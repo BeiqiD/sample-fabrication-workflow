@@ -1,0 +1,45 @@
+{
+  "kind": "independent-ui-execution98-build-only-state-correction-source-peer/1",
+  "at": "2026-10-10T22:40:44.611538+00:00",
+  "result": "CLEAR_NARROW_SOURCE_AND_RETAINED_FIVE_COMMAND_EVIDENCE_ONLY",
+  "rootHead": "98d81a170394a140fb63e970b31d1985bd56f68d",
+  "tree": "62d67e1c9fb3d59d74c49e0eceebe4ef2975ffe4",
+  "zPreservingRunnerSha256": "7158a3aa96562639b73825744f32f6aa312659d7fc374e2aa9b99d73f46524b5",
+  "soleBuildRunnerSha256": "fabba6b785d47d71e97d80a6c262973573563e24eb48be9505b57605dcba534a",
+  "patchSha256": "3b470d0230f1dff19f94d9d2ccd6a2c81a9f00b2e8d895bbfabd6c267dc11f3b",
+  "planSha256": "c626b3001c9d2b2a238240884eb3c1c26be0296563f80f934ab3bbc94eba7444",
+  "originalRunner93Preserved": true,
+  "originalWrapperFailure": {
+    "path": "/tmp/phase5f-ui-execution-currente108-runtime-98d81a1-attempt1/finite-runtime-completion-receipt.json",
+    "sha256": "d0881d89c8681266b9bad3ce136864e9523ca7f83ea5a1cbd5bc99685638c3a3",
+    "status": "FAIL retained; not rewritten as six-stagePASS"
+  },
+  "actualPostFailureDiagnosis": {
+    "path": "/tmp/phase5f-ui-execution-currente108-runtime-98d81a1-attempt1/owned-post-failure-diagnosis.json",
+    "sha256": "5ef3e0d9aa9db3b4fa7406315b5526d80e9375b69c4548e90b787359b062dbe5"
+  },
+  "rootOwnerReconciliation": {
+    "path": "/tmp/phase5f-ui-execution98-root-owner-reconciliation.json",
+    "sha256": "6f3e5806ee1b1cebf2ef48db9416777906b6f20b9b659e94f9c4013fc0e9ba53"
+  },
+  "review": [
+    "Only group_members changed from reviewed93: genuine stat state/PPID/group is retained despite /procFD PermissionError; actual Z/X kernelexit distinct from unobservedFDcount. Nonexited/unreadablestat remains active/unproven; no inventedFD0 or unownedcleanup.",
+    "Existing ownership/interruption/finally/directchildwait logic is exactreviewed93 for both correctedhelper and solebuildrunner. Sole continuation argv is exactly last originalsix-stage npm run build; five tests/strict/boundary stages will notrerun.",
+    "Rehashed exact original five logs, exit0/directchildreap and actual6/37/38 summaries. Originald088 wrapperFAIL remains immutable; root retained actual allfivegroup diagnosis identifies twoZ/PPID1 and fourempty groups with no live originalowner.",
+    "This is a source correction and truthful carry of observedfirstfive. Build remainsUNRUN, no six-stage wrapperPASS or currentbrowser/Execution12/fullCI inferred; eventual combinedjoinedreceipt must preserve originalfailure plus actual newbuild."
+  ],
+  "historicalFiveActualScope": {
+    "boundary": 1,
+    "strict": 1,
+    "cases": [
+      6,
+      37,
+      38
+    ],
+    "originalWrapper": "FAIL_RETAINED_NOT_REWRITTEN",
+    "build": "UNRUN"
+  },
+  "runnerOrPreflightInvoked": false,
+  "typesTestsSqlBuildSignalsProcessesExecuted": false,
+  "canonicalOrRemoteMutation": false
+}

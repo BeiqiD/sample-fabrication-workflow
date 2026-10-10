@@ -1,5 +1,49 @@
 # Phase 5F isolated actual API qualification
 
+The separate [Templates default-pagination qualification](../../../docs/PHASE_5F_TEMPLATE_PAGINATION_QUALIFICATION.md)
+records four actual passing cases on source `3c69d4d`, with a fresh canonical-source
+build, 21 distinct process families and 26 distinct metrology families created
+through ordinary APIs, and actual owned shutdown/physical checks. Its
+[frozen source plan](../../../docs/PHASE_5F_TEMPLATE_PAGINATION_SOURCE_CANDIDATE.md)
+retains its historical UNRUN status. The two new helpers preserve every earlier
+helper and receipt. For a new qualification, use a reviewed clean checkpoint,
+fresh same-source build and a new isolated Worker/PNG fixture from stages 1–6,
+then run the genuine API seed and complete four read-only browser cases:
+
+```sh
+node "$qa_root/seed-template-pagination-actual-api.mjs" http://127.0.0.1:4219/ "$qa_fixture"
+node "$qa_root/browser-template-pagination-actual-api.mjs" http://127.0.0.1:4219/ "$qa_fixture" "$qa_copy"
+```
+
+These commands require their own new receipts; the linked acceptance applies
+only to its recorded exact source and fixture. The namespace excludes the
+mature setup owners; the new process families are actual FabuBlox imports, not
+extra versions or SQL-created pagination owners. Do not run the old 20/six-case
+browser matrices merely as setup for this finite supplement. It accepts the
+complete four-case helper only, with no selected-case/hash override. Stop on
+the first failure, retain accepted writes, then await the owned Worker stop and
+the existing post-shutdown physical checks even if the supplement fails.
+
+The new [directory/Storage source candidate](../../../docs/PHASE_5F_DIRECTORY_AND_STORAGE_SOURCE_CANDIDATE.md)
+is unexecuted. Its separate supplemental helpers do not alter the historical
+20-case matrix or named Metrology evidence below.
+
+After a reviewed clean committed checkout is freshly built and stages 1–6 below
+have prepared a new isolated Worker, the additional seeder and browser helper
+can qualify 51 pagination owners plus six distinct directory/theme/exact-creation
+replay scenarios. These commands are a source-prepared plan, **not a passing run**:
+
+```sh
+node "$qa_root/seed-directory-actual-api.mjs" http://127.0.0.1:4219/ "$qa_fixture"
+node "$qa_root/browser-directory-actual-api.mjs" http://127.0.0.1:4219/ "$qa_fixture" "$qa_copy"
+```
+
+Inspect the first seeder's immutable receipt before running its browser. Retain
+partial accepted owners and failed receipts; never delete them to rerun a
+session. A selected `PHASE5F_CASE_ID` is only its named case. Use the existing
+awaited server stop and final physical checks after this supplement. The
+390px touch viewport is emulation and proves no physical keyboard, device or IME.
+
 These staged helpers reproduce the finite local Chromium matrix with fresh synthetic owners. They use the production Worker and route chunks, actual local D1/R2 requests, and the supported UI. They never deploy, log in, install dependencies, copy existing database state, or modify the source installation. `AUTH_MODE=disabled` deliberately proves system administrator denial; it cannot qualify Cloudflare Access or authenticated administrator operations.
 
 The predecessor `/tmp` helpers qualified source `af8f374` (20 browser cases and two Metrology pending cases). Those receipts remain historical evidence. The adopted helpers below add portable paths, immutable receipts, lifecycle control, and a named search-input check. The adopted pipeline passed a fresh committed build at `c06cb71`: all 20 matrix cases, both named Metrology cases, awaited stop and final physical SQLite/PNG checks. See [current receipts](../../../docs/PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md) and [the historical acceptance record](../../../docs/PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md) for exact identities and limits. Later application/helper changes require their own qualification; syntax checks alone do not qualify them.

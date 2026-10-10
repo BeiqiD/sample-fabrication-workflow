@@ -18,7 +18,7 @@ export function StorageProfileActivation({ candidate, nativeProfileId, evidence,
 }) {
   const [status, setStatus] = useState<CurrentStorageSettingsStatus | null>(null), [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(() => remembered(candidate.profileId)), [busy, setBusy] = useState(false), [message, setMessage] = useState("");
-  const [forbidden, setForbidden] = useState(false);
+  const [forbidden, setForbidden] = useState(false), [readError, setReadError] = useState("");
   const generation = useRef(0), operationBusy = useRef(false), pendingRef = useRef(pending), requests = useRef(new Set<AbortController>());
   const loadGeneration = useRef(0);
   const profile = status?.profiles.items.find(item => item.id === nativeProfileId);
@@ -39,14 +39,14 @@ export function StorageProfileActivation({ candidate, nativeProfileId, evidence,
   function denied(failure: unknown) {
     if (!(failure instanceof StoragePolicyRequestError) || failure.status !== 403) return false;
     generation.current += 1; for (const request of requests.current) request.abort();
-    operationBusy.current = false; setBusy(false); setLoading(false); setStatus(null); setForbidden(true);
+    operationBusy.current = false; setBusy(false); setLoading(false); setStatus(null); setForbidden(true); setReadError("");
     setMessage("System administrator access is required. Refresh saved candidates to check your access."); onForbidden(); return true;
   }
   async function load(current = generation.current) {
     const reading = ++loadGeneration.current;
-    setLoading(true); setStatus(null);
+    setLoading(true); setStatus(null); setReadError("");
     try { const value = await request(signal => api.getCurrentStorageSettings(signal)); if (current === generation.current && reading === loadGeneration.current && value.version === 3) setStatus(value); }
-    catch (failure) { if (current === generation.current && reading === loadGeneration.current && !denied(failure)) setMessage("Activation settings are unavailable. Refresh activation status to try again."); }
+    catch (failure) { if (current === generation.current && reading === loadGeneration.current && !denied(failure)) setReadError("Activation settings are unavailable. Refresh activation status to try again."); }
     finally { if (current === generation.current && reading === loadGeneration.current) setLoading(false); }
   }
   function accept(value: NativeStorageActivationReceipt, input: NativeStorageActivationInput) {
@@ -102,13 +102,14 @@ export function StorageProfileActivation({ candidate, nativeProfileId, evidence,
     <p className="muted">Activation binds this registered profile to the tested configuration and current credentials. Upload destinations change only when you save your choices in storage settings.</p>
     {loading && <p role="status">Reading activation status…</p>}
     {profile?.bindingRevision !== null && profile?.bindingRevision !== undefined && <p className="muted">Current activation revision: {profile.bindingRevision}.</p>}
-    {!loading && !enabled && <p className="muted">Activation is unavailable while file access or configuration work is paused.</p>}
+    {!loading && !forbidden && (blocked || status && (status.authority.mode !== "active" || status.authority.fileAccess !== "enabled")) && <p className="muted">Activation is unavailable while file access or configuration work is paused.</p>}
     {!loading && enabled && !eligible && <p className="muted">Refresh matching successful test evidence before activating this profile.</p>}
     {!pending && <button className="button" type="button" disabled={!eligible || loading || busy} onClick={() => void activate()}>
       {busy ? "Activating…" : profile?.bindingRevision ? "Update profile activation" : "Activate profile"}</button>}
     {pending && <p className="muted">Activation for <code>{pending.nativeProfileId}</code> from candidate revision {pending.expectedCandidateRevision} is awaiting confirmation.</p>}
     {pending && <button className="button" type="button" disabled={busy || blocked || forbidden} onClick={() => void retry()}>{busy ? "Checking activation…" : "Check or retry activation"}</button>}
     <button className="button" type="button" disabled={busy || loading} onClick={() => void load()}>Refresh activation status</button>
+    {readError && <p className="error-banner" role="alert">{readError}</p>}
     {message && <p role="status">{message}</p>}
     <p><a href="/settings/storage">Choose upload destinations</a></p>
   </div>;

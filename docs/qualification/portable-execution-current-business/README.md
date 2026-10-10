@@ -1,0 +1,9 @@
+# Current business Execution metadata candidate
+
+This private source candidate applies exactly thirteen frozen production files, six registered native/Worker fixtures and the two exercised focused configs to clean business `9592d9c`. Source hashes and all current23/V25 installation inputs are preserved. Ten unrelated Execution handlers retain their whole original bytes and all fifteen method registrations keep their order. No preview, Run-finish or V26 content is mixed into this checkpoint.
+
+The historical receipt proves eighteen native plus twelve Worker distinct scopes over the original frozen source. Those remain separate executions; they are not a fresh whole-thirty run and do not qualify this current business root. The source preparation receipt and finite plan remain the original unrun records. The added `actual-qualification-attempt1.json` now records three strict stages, fresh current native18 and fresh current Worker12 passing in separate serial invocations on clean `43a502f`, with default five-second cases and the original accepted-write/lost-acknowledgement controls. Build/browser and the own-head full source CI remain separate pending or unexercised gates.
+
+The services share mature SQL through genuine native/D1 owners. The confirmation atomic-returning port is distinct from the existing mutation-only configuration view and read-only ports. Native policy callbacks are trusted library witnesses. They do not establish current installed principal/physical writer lease admission or close the async-admission-to-BEGIN gap; a future composer must supply authentic request-bound and same-core admission.
+
+This base has twenty-three migrations ending in local identity, with `portable-runtime/v25`. The separate V26 successor has its own source61/24-migration inputs and must be reviewed and qualified independently. No migration, actual database/provider, remote repository or production action occurs during this source preparation.

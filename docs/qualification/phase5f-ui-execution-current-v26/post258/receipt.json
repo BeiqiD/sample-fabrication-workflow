@@ -1,0 +1,128 @@
+{
+  "kind": "portable-v26-258-postmerge-complete-ci/1",
+  "capturedAt": "2026-10-10T22:35:46.644228+00:00",
+  "merge": "e10849614afbb4807c86b3f0fc2fc357ba70ceda",
+  "sourceTree": "d5f48defbb7e3a0c23e912017e8dee9c76eb00bb",
+  "runs": [
+    {
+      "id": 38090002753,
+      "workflow": "Verify",
+      "status": "completed",
+      "conclusion": "success",
+      "head": "e10849614afbb4807c86b3f0fc2fc357ba70ceda",
+      "log": "/tmp/portable-v26-258-postmerge-complete-ci-attempt1/38090002753-complete.log",
+      "logSha256": "2f2245abe20e28fe106b41bae81a8bb7cfb41faf8a27ffdd8544eaa31464c329",
+      "actualTestSummaryLines": [
+        "verify\tRun shared verification checks\t2026-10-10T22:30:23.0531354Z  Test Files  409 passed (409)",
+        "verify\tRun shared verification checks\t2026-10-10T22:30:23.0546314Z       Tests  3843 passed (3843)",
+        "verify\tRun shared verification checks\t2026-10-10T22:31:54.3007443Z  Test Files  103 passed (103)",
+        "verify\tRun shared verification checks\t2026-10-10T22:31:54.3013964Z       Tests  985 passed (985)"
+      ],
+      "allJobStepsSuccess": false
+    },
+    {
+      "id": 38090002713,
+      "workflow": "Map",
+      "status": "completed",
+      "conclusion": "success",
+      "head": "e10849614afbb4807c86b3f0fc2fc357ba70ceda",
+      "log": "/tmp/portable-v26-258-postmerge-complete-ci-attempt1/38090002713-complete.log",
+      "logSha256": "70fa8545a9f0f0acd04468d7f4ccaa1e288297ea54f99614f7e3f77d31d04c99",
+      "actualTestSummaryLines": [
+        "verify\tRun Project Map performance checks\t2026-10-10T22:04:18.9482245Z  Test Files  2 passed (2)",
+        "verify\tRun Project Map performance checks\t2026-10-10T22:04:18.9483313Z       Tests  13 passed (13)",
+        "verify\tRun Project Map performance checks\t2026-10-10T22:04:24.5996937Z  Test Files  1 passed (1)",
+        "verify\tRun Project Map performance checks\t2026-10-10T22:04:24.5997946Z       Tests  5 passed (5)"
+      ],
+      "allJobStepsSuccess": false
+    }
+  ],
+  "all15ContextsSuccess": true,
+  "contexts": [
+    {
+      "context": "pre-pr/install",
+      "state": "success",
+      "target": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38090002753"
+    },
+    {
+      "context": "pre-pr/project-map-performance",
+      "state": "success",
+      "target": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38090002713"
+    },
+    {
+      "context": "pre-pr/project-foundation",
+      "state": "success",
+      "target": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38090002753"
+    },
+    {
+      "context": "pre-pr/tests",
+      "state": "success",
+      "target": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38090002753"
+    },
+    {
+      "context": "pre-pr/blob-lifecycle",
+      "state": "success",
+      "target": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38090002753"
+    },
+    {
+      "context": "pre-pr/reference-foundation",
+      "state": "success",
+      "target": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38090002753"
+    },
+    {
+      "context": "pre-pr/build",
+      "state": "success",
+      "target": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38090002753"
+    },
+    {
+      "context": "pre-pr/file-jobs",
+      "state": "success",
+      "target": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38090002753"
+    },
+    {
+      "context": "pre-pr/project-reference-placement",
+      "state": "success",
+      "target": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38090002753"
+    },
+    {
+      "context": "pre-pr/project-map",
+      "state": "success",
+      "target": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38090002753"
+    },
+    {
+      "context": "pre-pr/project-canvas-productivity",
+      "state": "success",
+      "target": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38090002753"
+    },
+    {
+      "context": "pre-pr/project-persistence",
+      "state": "success",
+      "target": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38090002753"
+    },
+    {
+      "context": "pre-pr/project-owned-content",
+      "state": "success",
+      "target": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38090002753"
+    },
+    {
+      "context": "pre-pr/project-edges",
+      "state": "success",
+      "target": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38090002753"
+    },
+    {
+      "context": "pre-pr/project-reading",
+      "state": "success",
+      "target": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38090002753"
+    }
+  ],
+  "qualification": "Actual post-merge Verify and Map and all15 status contexts success; separate from premerge318 checks. No deployed serving/schema/authenticated provider qualification.",
+  "files": {
+    "final-statuses.json": "7c81907b63b6f288cb1132ded0125ce1525ed04bd1e2b52d9f70f1f38616490d",
+    "38090002713-complete.log": "70fa8545a9f0f0acd04468d7f4ccaa1e288297ea54f99614f7e3f77d31d04c99",
+    "38090002713-jobs.json": "3a76b015817d1cf5c8d5959a647da7552d960fe10b947ed66314c2d0b33c1231",
+    "38090002713-run.json": "f361f08847f3017eff274017281016c8907751634335eaafc01582d770abdc86",
+    "38090002753-complete.log": "2f2245abe20e28fe106b41bae81a8bb7cfb41faf8a27ffdd8544eaa31464c329",
+    "38090002753-jobs.json": "2215d7edf8a66c88c6822523c31ebd361ae68791dcf7ac7704e1cabbfc414896",
+    "38090002753-run.json": "8328afc2fc3d3ba8ffc2e9dc75766bf787173564c1cdb0a769759886b6617ec6"
+  }
+}

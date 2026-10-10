@@ -2,35 +2,61 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Current development integration: PR #254 merged at `7e129b8c888179631d84623721c464d2efb320bf`,
-with exact final-head tree equality. All12 local default leaves, all four own
-remote Verify/Map runs and all15 final status contexts passed: native355,
-source3351 and mounted980. [Final follow-up checks](PHASE_5F_FINAL_FOLLOWUP_CHECKS.md)
-retain exact counts, durations and historical failures. The new merge-SHA checks
-remain separate. Draft #253 is rebased onto this accepted integration; its
-original7c complete-gate failures remain historical, and its new15-leaf plan
-(including independent Node client build) still requires fresh qualification.
+Current development integration: PR #258 merged at
+`e10849614afbb4807c86b3f0fc2fc357ba70ceda`, preserving its own-four-gate-qualified
+`318` tree `d5f48defbb7e3a0c23e912017e8dee9c76eb00bb` exactly. Its current V26
+checkpoint retains the presence-probe/query-budget and current Reference fixes.
+Its post-merge Verify/Map and all15 contexts passed (source409 files/3843 cases,
+mounted103 files/985 cases); conditional failure-cleanup skipped, no verification
+leaf skipped. These checks do not establish deployed serving/schema. Prior #257 merged at `913364e`, preserving
+qualified `9592d9c`; its own Verify/Map pairs and all15 contexts passed
+(native356, source404 files/3784 cases, mounted103 files/985 cases).
+PR #256 merged the paired current checkpoint at `5f36748`; both own complete
+Verify/Map pairs and all15 contexts passed, and its post-merge Verify/Map passed
+(source396 files/3727 cases, mounted102 files/980 cases).
 
-Last reviewed: 2026-10-10 after [PR #252](https://github.com/BeiqiD/sample-fabrication-workflow/pull/252)
-merged into `v2/backend-foundation` as `fc3abc3eac6085cfde8af97b44a9b6d91ac62a15`
-at 15:03:29 UTC. Its final `989f1b6` tree
-`15d89bf222c6a16adfc15b857a8f75943b485912` was preserved exactly. Four final-head
-Verify/Map runs and all fifteen contexts passed before merge. Post-merge Map
-passed; post-merge Verify attempt 1 failed five existing source cases at the
-unchanged default deadline, with later leaves skipped. The one failed-job
-rerun passed all twelve default leaves and fifteen public contexts; the original
-failure remains retained. Workers Build114248318359 failed without a reason
-in check metadata; actual serving/schema remain unqualified.
+Last reviewed: 2026-10-10 after development merge #258, the separate four-case Templates qualification and current24 Execution qualification.
+PR #253 (`fbeb4217`) preserves the portable factory/HTTP/SQL/crypto/disk
+foundation; #255 (`b6b2d9a`) integrates the separately qualified identity,
+installer, configuration and profile services. Their complete gates passed.
+Historical failed, cancelled and skipped checks remain retained; they are not
+reclassified as passes. The current Node application, local File/jobs,
+Docker distribution and resource authorization remain incomplete.
 
-Planning PR #250 and implementation #251 remain merged at `541eedb` and
-`aa497d9`. The historical `af8f374` tree's full local/default remote and #251
-post-merge checks passed; Workers Build `114224522096` succeeded without
-proving serving traffic or schema. Historical browser records remain dated.
-The newer [Retry/group/motion qualification](PHASE_5F_RETRY_GROUP_MOTION_ACCEPTANCE.md)
-passed five distinct actual-browser scopes on `6c4dc88`; the follow-up branch's
-complete gates passed and the follow-up merged as #254. Draft portable-runtime
-PR #253 is a partial foundation; its original complete failures are retained
-while its rebased implementation is qualified separately.
+Merged #258 retains the V26 checkpoint/export query-budget correction with
+its original assertions intact. Draft #259 retains six actual directory and
+lost-ACK browser cases. Its initial complete gates failed shared source ownership
+after native356, with14 skipped leaves. At canonical-path repair head `781ebb6`,
+PR Verify passed native356/shared verification, then failed one source fixture:
+3786 passed/1 failed, with13 downstream leaves skipped. The fixture used two
+clock reads for fields required to match. The one-timestamp repair passed the
+original six stream/migration cases at combined source `98d81a1`; replacement
+complete final-head gates remain open.
+The separate [Templates qualification](PHASE_5F_TEMPLATE_PAGINATION_QUALIFICATION.md)
+passed four cases with true20+1/25+1 default pages and actual shutdown/physical
+proof at `3c69d4d`; it does not replace final-head CI or a fresh combined browser
+run. Execution source `4928ce9` separately passed four strict checks, seven
+legacy route cases and twelve genuine current24 Worker cases with actual owned
+closure; its [raw evidence](qualification/portable-execution-current24-worker/README.md)
+is retained separately from the older current23 native18/Worker12 results.
+The reviewed combined #259 candidate includes that Step-confirmation,
+Run trash/restore and Metrology metadata mutation service extraction alongside
+the UI changes. It preserves current V26 and original revision/CAS/accepted-write
+semantics. The [combined local qualification](qualification/phase5f-ui-execution-current-v26/README.md)
+completed shared ownership, one owned strict, original6/mounted37/source38 and
+a separate fresh build on exact `98d81a1`. The first wrapper failure remains
+recorded; genuine exited-kernel/FD-permission reconciliation carries the five
+actual command passes without rerun. Exact final-head complete gates remain open.
+After a successful combined #259 merge, close #260 as superseded while retaining
+its independent failures and qualification; #260 is not independently merged.
+
+Earlier #250/#251/#252/#254 integration and browser evidence remains dated in
+[the autonomous goal](ROADMAP_AUTONOMOUS_DEVELOPMENT_GOAL.md),
+[final follow-up checks](PHASE_5F_FINAL_FOLLOWUP_CHECKS.md) and the individual
+acceptance records. The #252 post-merge default-deadline failures remain
+historical despite its successful separate rerun. Anonymous development routes
+returned Access302; serving version/schema, genuine authenticated readiness,
+real providers and physical-device acceptance remain separate external gates.
 
 The owner authorizes autonomous development, self-review and merges into the
 development/test integration branch, including its existing Workers build path.
@@ -47,14 +73,14 @@ is valuable evidence but is not a remote pass or production admission.
 
 | Area | Synchronization and evidence as of 2026-10-10 | Remaining boundary |
 | --- | --- | --- |
-| Integration and deployment | Planning #250 and implementations #251/#252/#254 are merged. #254 preserves the qualified9b final tree at7e129b8; all12 local leaves/four own runs/15 contexts passed. Qualified final #252 tree is preserved at `fc3abc3`. Its own final four runs/all fifteen contexts passed; post-merge source attempt 1 failed five deadline cases, and its separate rerun passed all twelve leaves/fifteen contexts. Historical #251 Workers Build succeeded; #252 Workers Build114248318359 failed with no reason in check metadata. Three anonymous routes returned Access 302. | Observe actual serving version/schema and authenticated readiness; inspect the separate Workers build failure; retain the original post-merge deadline evidence. `main` remains a separate production release target. |
+| Integration and deployment | Planning #250 and implementations #251–#258 are merged into development/test. #258 preserves its own-four-gate-qualified318 tree at `e108496`; its post-merge Verify/Map/all15 contexts passed. #257's own pairs/all15 contexts and #256 post-merge pairs passed. Combined #259 completed its bounded local gates at98d and remains a candidate pending final complete CI; close #260 as superseded only after successful combined merge. | Observe actual serving version/schema and authenticated readiness. Retain previous Workers/build and post-merge failures. Production `main` remains outside the current development goal. |
 | FP1 | File authority was activated on the historical deployment; new `internal` and `originals` roles use R2. The [2026-10-01 acceptance](./FP1_R2_ROLE_DEFAULTS.md#live-acceptance--2026-10-01) passed 6 MiB HTTP writes and 15/15 V19 restore bytes. | Historical accepted locations and missing-provider outcomes remain explicit. |
 | FP2 | **Implemented, CI-qualified and integrated** through #251: native File R2/S3 byte access, verified publication and lifecycle, configured candidate activation, independent role defaults and frozen accepted destinations; `0018` / V21. [FP2/FP3 record](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP3_LOCAL_DEVELOPMENT_ACCEPTANCE.md). | Real AWS account/profile and deployed administration/provider/runtime acceptance. Fixture tests do not establish real-provider qualification. |
 | FP3 | **Implemented, CI-qualified and integrated**: persisted bounded migration jobs, isolated execution, pause/resume/cancel/retry, verified cutover, read holds and explicit cleanup; `0019` / V22. | Deployed runner limits/invocation, provider interruption and actual deployed nonempty recovery rehearsal. |
 | FP4 | **Implemented, CI-qualified and integrated**: paired **Sample and Project** package export, matching website **fresh-copy** import, separate readable reports, `0020` / V23. [FP4 record](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP4_RESEARCH_PACKAGES.md). | Deployed/provider and targeted manual acceptance; maintain bounded packages, complete dependencies and original-vs-copy identity. |
 | FP5 | **Implemented, CI-qualified and integrated**: privileged full backup, identity-preserving fresh-target recovery, protected configuration, legacy archive conversion and assisted handoff; `0021`–`0022` / V24. [FP5 goal](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP5_DEVELOPMENT_GOAL.md). | Real target provisioning, provider-specific and deployed handoff evidence; restored execution remains disabled pending explicit local admission. |
-| Frontend | C4, 5D, 5E and bounded #251/#252 repairs are integrated. **5F remains in progress**. Exercised `6c4dc88` passed mixed matrix20, motion6, suggestions2, selected Retry1 and cost6 as distinct scopes, plus controlled stop and four physical DB checks. [Follow-up evidence](PHASE_5F_RETRY_GROUP_MOTION_ACCEPTANCE.md) retains old failures and original identities. | Follow-up #254 complete gates passed and merge completed. Physical input/IME, directory-pagination browser coverage, authenticated/provider and whole-5F acceptance stay open. |
-| CI | Historical `af8f374` passed all twelve local leaves, native355/source3349/mounted945, four remote runs and all fifteen contexts. Final #252 own four runs/all fifteen contexts also passed. Its post-merge source attempt 1 failed five default-deadline cases; attempt 2 passed all twelve leaves/fifteen contexts (355/3349/966). Draft #253 at7c failed local source1, push source1 and PR mounted1; skipped later leaves are not passes. | The #254 fixture/focus repair and named V21 integration15s budget passed full local/four own remote checks; global case default and forty-minute job budget remain unchanged. New #253 final source still needs its own15-leaf gate. Historical totals are not summed. |
+| Frontend | C4, 5D, 5E and bounded #251/#252/#254 repairs are integrated. **5F remains in progress**. `6c4dc88` mixed/motion/Retry/cost scopes remain distinct historical receipts. The separate six directory/creation cases at `2f5d616` and four genuine Templates default-page cases at `3c69d4d` passed actual browser/owned-stop/physical checks. [Role/focus ledger](PHASE_5F_ROLE_FOCUS_REVIEW_LEDGER.md) documents current cross-surface ownership. | Integrate the reviewed candidates only after final-head gates. Physical input/IME, authenticated/provider and whole-5F acceptance stay open; the two directory pagination gaps now have bounded local browser proof. |
+| CI | #258's own Verify/Map pairs qualified its exact318 tree; post-merge Verify/Map/all15 contexts passed (source409/3843, mounted103/985). #257/#256 retain earlier scopes. #259 initial ownership and later781 clock failures remain recorded with14/13 skipped downstream leaves. Corrected98d local boundary/strict/6+37+38/build gates passed across two attempts; first wrapperFAIL stays immutable. Final complete gates remain open. | Complete exact-head push/PR Verify and Map gates before each implementation merge. Do not sum historical/current scopes or count skipped leaves as passes. |
 | Integration defect repairs | [FP3 actor admission](FP3_JOB_AUTHORIZATION_ACCEPTANCE.md), [FP5 recovery bootstrap](FP5_RECOVERY_BOOTSTRAP_ACCEPTANCE.md) and [explicit route recovery](PHASE_6_ROUTE_RECOVERY_ACCEPTANCE.md) are included in the qualified, merged tree. | Actual development rollout, provider and operational acceptance remain separate. No real provider was activated. |
 | Stabilization | 6A1–6A5 selected ownership/S2 work is historical; #251 combined-tree review and complete local/default remote gates passed. | Remaining 6A6 serving/schema/device and enabled-scope 6B provider/operational release verification stay open. |
 | Legacy Drafts | #199/#200 are inactive alternatives to the chosen S2 route. | Review closure as maintenance, not as new migrations or a release prerequisite. |
@@ -1086,21 +1112,22 @@ Project-owned Markdown or attachment content only through explicit user action.
 | 5F integrated UX | In progress. Bounded #251/#252 repairs integrated; historical actual browser evidence preserved. `6c4dc88` Retry/group/motion actual scopes passed with controlled-stop/physical proof. Its final #254 local12/four remote runs/15 contexts passed and it merged at7e129b8; whole-5F/device/authenticated/provider acceptance stays open. |
 | 6A6 / 6B | Combined-tree review, complete local/default remote gates and implementation merge passed at `af8f374` / `aa497d9`. Remaining serving/schema, physical-device, provider/operational and scoped release acceptance is open. |
 | First integrated V3 release | Existing product plus **explicitly qualified enabled** FP2–FP5 scope. Capabilities awaiting live evidence remain unavailable/deferred rather than incorrectly marked unimplemented or enabled. |
-| Portable runtime | **RT1–RT6 unfinished.** Draft #253 implements reviewed factory/SQL/HTTP/crypto/disk foundations; complete checks failed and are being repaired. Private identity, installer, configuration and provider-opening services do not yet qualify the full Node application, local role defaults, Docker volumes/upgrades or cross-deployment recovery. |
+| Portable runtime | **RT1–RT6 unfinished.** Reviewed foundation/services/current-business ports and current V26 checkpoint are merged through #258. Private Node/job-principal/stream-lifetime slices retain their bounded qualification. Full local File/role/application composition, Docker volumes/upgrades and cross-runtime recovery remain distinct work. |
 | Group collaboration | Small-group membership and complete resource authorization, after runtime/identity boundaries are qualified. |
 
 ## Immediate next PR order
 
-1. Continue from merged **#254** integration `7e129b8`. Preserve #250/#251/#252,
-   all exact source/tree receipts, paired migrations `0018`–`0022`, V21–V24
-   readers and historical failed/cancelled runs. Inactive Drafts #199/#200
-   remain alternatives; do not adopt their migration bridges.
-2. Preserve qualified, merged #254 Retry/group/motion and its complete checks.
-   Continue rebased #253 and qualify the new fifteen-leaf final tree. Preserve the
-   distinct actual `6c4dc88` browser and physical scopes; they do not replace
-   final complete gates. Preserve #252's post-merge deadline failures. Continue
-   draft #253 and the private Node identity/installer/configuration slices
-   without claiming complete portable application acceptance.
+1. Continue from merged **#258** development integration `e108496`. Preserve
+   #250–#258 exact source/tree receipts, current V26 and paired historical readers,
+   and every failed/cancelled/skipped outcome. Inactive Drafts #199/#200 remain
+   alternatives; do not adopt their migration bridges.
+2. Qualify and integrate the combined #259: directory creation/recovery identity,
+   genuine Templates default-page supplement, one-timestamp fixture correction
+   and Step-confirmation/Run trash/Metrology metadata mutation services. Preserve
+   current V26, distinct historical browser/Node/Worker evidence and current24
+   source4928 qualification. These do not replace exact combined-head complete
+   CI or qualify the full Node application. After successful merge, close #260
+   as superseded, preserving its independent qualification and failed checks.
 3. Continue remaining bounded **5F-1** (cross-page language/control), **5F-2** (read/retry, focus,
    uncertain-write and recovery identity), then **5F-3** (realistic integrated
    responsive/theme/accessibility and source-data workflows).

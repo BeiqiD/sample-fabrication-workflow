@@ -3,6 +3,7 @@ import { HTTPException } from "hono/http-exception";
 import { isProjectApiId } from "../../shared/project-api";
 import { classifyProjectFailure } from "./failure";
 import type { ProjectReadService } from "./read-service";
+import { PROJECT_CREATION_SUBJECT_HEADER, projectCreationSubject, type ProjectCreationSubjectScope } from "../../shared/project-creation-subject";
 
 type ActorBindings<Bindings extends object> = { Bindings: Bindings; Variables: { userEmail: string } };
 async function projectReadCall<T>(operation: () => Promise<T>): Promise<T> {
@@ -13,7 +14,8 @@ async function projectReadCall<T>(operation: () => Promise<T>): Promise<T> {
     throw error;
   }
 }
-export function createProjectReadHandlers<Bindings extends object>(selectService: (request: Request, bindings: Bindings) => ProjectReadService) {
+export function createProjectReadHandlers<Bindings extends object>(selectService: (request: Request, bindings: Bindings) => ProjectReadService,
+  selectSubjectScope?: (request: Request, bindings: Bindings) => ProjectCreationSubjectScope) {
   const requests = new WeakMap<Context<ActorBindings<Bindings>>, Request>();
   const ingressRequest = (c: Context<ActorBindings<Bindings>>) => {
     const request = requests.get(c); if (!request) throw new Error("Project request admission is unavailable"); return request;
@@ -24,7 +26,11 @@ export function createProjectReadHandlers<Bindings extends object>(selectService
   return {
     captureIngressRequest,
     async list(c: Context<ActorBindings<Bindings>>) {
-      return c.json(await projectReadCall(() => selectService(ingressRequest(c), c.env).list(c.req.query("includeDeleted") === "1", c.get("userEmail"))));
+      const request = ingressRequest(c), actor = c.get("userEmail");
+      const subject = selectSubjectScope ? await projectCreationSubject(actor, selectSubjectScope(request, c.env)) : null;
+      const result = await projectReadCall(() => selectService(request, c.env).list(c.req.query("includeDeleted") === "1", actor));
+      if (subject) { c.header(PROJECT_CREATION_SUBJECT_HEADER, subject); c.header("Cache-Control", "no-store"); }
+      return c.json(result);
     },
     async snapshot(c: Context<ActorBindings<Bindings>, "/projects/:projectId">) {
       const projectId = c.req.param("projectId");
@@ -34,8 +40,9 @@ export function createProjectReadHandlers<Bindings extends object>(selectService
   };
 }
 /** Only the two existing GET owners. Bytes, copies and mutations stay separate. */
-export function createProjectReadSurface<Bindings extends object>(selectService: (request: Request, bindings: Bindings) => ProjectReadService) {
-  const routes = new Hono<ActorBindings<Bindings>>(), handlers = createProjectReadHandlers(selectService);
+export function createProjectReadSurface<Bindings extends object>(selectService: (request: Request, bindings: Bindings) => ProjectReadService,
+  selectSubjectScope?: (request: Request, bindings: Bindings) => ProjectCreationSubjectScope) {
+  const routes = new Hono<ActorBindings<Bindings>>(), handlers = createProjectReadHandlers(selectService, selectSubjectScope);
   routes.get("/projects", handlers.captureIngressRequest, handlers.list);
   routes.get("/projects/:projectId", handlers.captureIngressRequest, handlers.snapshot);
   return routes;

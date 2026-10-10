@@ -1,0 +1,284 @@
+{
+  "kind": "execution-current-business-source-integration/1",
+  "status": "SOURCE_ONLY_ALL_CURRENT_GATES_UNRUN",
+  "privateRoot": "/tmp/rt1-execution-current-business-9592d9c",
+  "base": {
+    "head": "9592d9c2c40116ac53c1f2a185b9207d59f60197",
+    "tree": "3e5435912a126f26c3728ce884729d3be8bc3d70",
+    "repo": "/workspace/portable-business-combined-current-integration",
+    "ordinaryClone": true,
+    "worktree": false
+  },
+  "historicalInputs": {
+    "checkpoint": "e0df607621a8475c36850e0b917b2971c7005ec6",
+    "testedWorkerHead": "047c35965b74deb21d929e228bab8f865a639530",
+    "qualificationReceipt": "/tmp/portable-execution-metadata-cumulative-thirty-qualification.json",
+    "qualificationReceiptSha256": "0cfcd6987ee7a6596029228370dc947b65e70de28c50a71f80e35db2bcb87334",
+    "distinctQualifiedHistoricalScopes": {
+      "native18": 18,
+      "worker12": 12,
+      "total": 30,
+      "freshWholeThirty": false
+    },
+    "currentIntegrationQualified": false,
+    "sourcePatchSha256": "9d60462a1926e25ffc364aadf4ebbdf38b69df01c365cde6a6f85b77814b969b"
+  },
+  "exactCopiedProduction13": {
+    "worker/execution/routes.ts": "819efa262c5e19c2741b8f0d780ee6268eae9ff1e094ccfbb7536b23007a7494",
+    "server/step-confirmation-sql.ts": "d3451b4882f083465f7717b3b9ee2ba248118341f3ab7ca18595d67363097e18",
+    "worker/execution/confirmation-d1.ts": "b5e7f67478db3fec2ae4db71063da90a6f3348a59432d48e281ebe16a1d4321b",
+    "worker/execution/confirmation-service.ts": "eef194c0054705dc198012d44a744d1f96c3de4b55b1dd940303454dff6e2305",
+    "worker/execution/confirmation-sql.ts": "07e9050d6e629f037f393485d384fbf04486a2ab59960370c92d6b994ef37f4c",
+    "worker/execution/confirmation-surface.ts": "32dd2b8ca44f1164d1b19432ae7b5bad542366014d4c30f81a0cf35058977037",
+    "worker/execution/confirmation-worker.ts": "2aad426066ce4843c486d78a39cde044f4c047364dc9daaaa943280df3892cd2",
+    "worker/execution/metrology-write-service.ts": "b77e88bf4151ae87722cf1343cde13b9721e3fc6f3bfbe022d8aab83c106b031",
+    "worker/execution/metrology-write-surface.ts": "62bc81cacb633867501a0ac0f32c79b1333d2adead8127ff0980b052d103b1a3",
+    "worker/execution/metrology-write-worker.ts": "a178ccd6b0edfd41d061c223085159d9f375fa07604142db308344518d30a59e",
+    "worker/execution/run-trash-service.ts": "6473e07a348ea5e3659edf8607f3be1e18e1d6380e34997c23b8a01bcd16182a",
+    "worker/execution/run-trash-surface.ts": "08268fb8be0b085cab71b82c889c012430fb501ac14f7bd6d89b70eef5b3ef6b",
+    "worker/execution/run-trash-worker.ts": "338e7e8810cdab60463e05a7f15493bdaad92fae8c9c83079fb5beae49a9da31"
+  },
+  "exactRegisteredFixtureSixAndFocusedConfigsTwo": {
+    "execution-metadata-qualification.tsconfig.json": "829526f07834536a7d779d1d0fde2cb7c2952b7671c461af283465c89e57904b",
+    "execution-metadata-qualification.vitest.config.mts": "864a0d5fa77334f1ea05ccc57d8a9e0357447cffcc38f2d7182a7cda89b4a369",
+    "server/metrology-write.test.ts": "12730fa64073e0a6d1216e8cb704217dcb5ac760baf9ff169db9b1fd8b19115f",
+    "server/run-trash.test.ts": "3ad9a7b0dd9290e6b14c2b0cc9b899ac555046996d503a57fc58adb144d8d61d",
+    "server/step-confirmation.test.ts": "baec3c5c45020d993cba9efdbe363ef4a70d8bceaf2b2409faa041e523d5b9db",
+    "worker/metrology-write.qualification.test.ts": "106e85615054e641b11e3b4fdd099cde185f84f4fcd95d972d5a94323cf3f8f1",
+    "worker/run-trash.qualification.test.ts": "9bdb38cec05fd85c24bb1a2fd7cd29df5adb3dd4cdf251233e7ee0c0746cb9b8",
+    "worker/step-confirmation.qualification.test.ts": "b69f1bb11661b820de13aa0c0be0e0dba499dedbed6d27259b7e72551f903290"
+  },
+  "excludedHistoricalUnexercisedPerLeafConfigs": [
+    "metrology-write-qualification.vitest.config.mts",
+    "run-trash-qualification.vitest.config.mts",
+    "step-confirmation-qualification.vitest.config.mts"
+  ],
+  "basePreservation": {
+    "baseTrackedFiles": 1482,
+    "baselineFilesUnchangedExceptMatureExecutionRegistration": 1481,
+    "onlyModifiedExistingPath": "worker/execution/routes.ts",
+    "allAddedPathsAreOwned21InputsAndPrivateProofDocs": true,
+    "executionRouteBaseEqualsOriginal21fc": true,
+    "finalExecutionRouteEqualsFrozenE0": true,
+    "orderedExecutionRegistrationsUnchanged": [
+      [
+        "routes.post",
+        "/samples/:id/runs/preview"
+      ],
+      [
+        "routes.post",
+        "/samples/:id/runs"
+      ],
+      [
+        "routes.post",
+        "/samples/:sampleId/runs/:runId/finish"
+      ],
+      [
+        "routes.delete",
+        "/samples/:sampleId/runs/:runId"
+      ],
+      [
+        "routes.post",
+        "/samples/:sampleId/runs/:runId/restore"
+      ],
+      [
+        "routes.post",
+        "/samples/:sampleId/runs/:runId/plan-update/preview"
+      ],
+      [
+        "routes.post",
+        "/samples/:sampleId/runs/:runId/plan-update"
+      ],
+      [
+        "routes.patch",
+        "/samples/:sampleId/runs/:runId/steps/:stepId"
+      ],
+      [
+        "routes.delete",
+        "/samples/:sampleId/runs/:runId/steps/:stepId/assets"
+      ],
+      [
+        "routes.post",
+        "/samples/:sampleId/runs/:runId/steps/:stepId/assets/restore"
+      ],
+      [
+        "routes.post",
+        "/samples/:sampleId/runs/:runId/steps"
+      ],
+      [
+        "routes.post",
+        "/samples/:sampleId/runs/:runId/metrology"
+      ],
+      [
+        "routes.post",
+        "/samples/:sampleId/metrology-runs"
+      ],
+      [
+        "verificationRoutes.post",
+        "/run-steps/confirm"
+      ],
+      [
+        "verificationRoutes.post",
+        "/samples/:sampleId/runs/:runId/steps/:stepId/verify-state"
+      ]
+    ],
+    "tenOtherHandlersByteUnchangedByTransitiveWholeFileProof": true,
+    "staticRelativeImportClosureFiles": 77,
+    "closureFilePins": {
+      "server/sqlite.ts": "852c319a02f44ee25aa99b1b95d1dec3bfcdec8dd60a4d7deec58e256e42df68",
+      "server/step-confirmation-sql.ts": "d3451b4882f083465f7717b3b9ee2ba248118341f3ab7ca18595d67363097e18",
+      "shared/content-addressing.ts": "ee1d965164c289d40dd3f1b0f228dfabb153cbceb0a18ddf832c996004af4ab5",
+      "shared/contracts/file-jobs.ts": "47cccec6437a4e7af189d356a5a1eddeab45da2aedbfedd84f2b0d02d788da4b",
+      "shared/contracts/files.ts": "526d3cfde8fd31accab1de467616ce85ee161561e8e82be24ff1fadf6fbaab28",
+      "shared/contracts/r2-upload.ts": "fb893a06a11204abd7fc4a91ee50f59b19a267733501dd5ff474aeb51a4903a2",
+      "shared/contracts/storage-candidate-check.ts": "e19df56e53a6849e56b2f944abc514ec5fbeb424c7d7c0eb07ce5ca8d82ca1fa",
+      "shared/contracts/storage-configuration.ts": "23c21ab06a8e7d57e5aef54a322a672668ca3053d71f75d18e837b40c1b2bb04",
+      "shared/contracts/storage-profile-admission.ts": "58e5f229515a52b002e0cf48d8205c33179d01cc026c4bcd4146d25830132d54",
+      "shared/contracts/types.ts": "754133847b274f59b5fbd779588a555f0df18f3df38396487d293b32da89705a",
+      "shared/domain/content-addressing.ts": "ab3b5b1bb2983fd6594a7cae5c3e68e1d6099258f243fc1c7ffe9a2b223cbc7a",
+      "shared/domain/mime-type.ts": "12e4ba15786ffaf7f6b802eaf7bb413ce1330c8e461e1180f0b37643778eeac4",
+      "shared/mime-type.ts": "d7d23216ca4cbe752cc9a2a46be561685db2ee287faa5aaed435d456ee436b6f",
+      "shared/types.ts": "e3a67e943054c26f5dd8ea5097c9ecf85ce72f03262cfbe72ab40c833c41090e",
+      "worker/application/sample-structure.ts": "e47be81aca7194c01d5dc655756461a0b1557e4211280a4aca37602c2c6f7b8c",
+      "worker/d1-bulk.ts": "c7a722adad32e6ca5b4bf101fd6eb801cbed91757898039415ad97cd761e2d73",
+      "worker/d1-primary.ts": "8c512fa626c6a88a66db9250f093717da49ffd560b77d4793b668925ec9c6a6a",
+      "worker/execution/confirmation-d1.ts": "b5e7f67478db3fec2ae4db71063da90a6f3348a59432d48e281ebe16a1d4321b",
+      "worker/execution/confirmation-service.ts": "eef194c0054705dc198012d44a744d1f96c3de4b55b1dd940303454dff6e2305",
+      "worker/execution/confirmation-sql.ts": "07e9050d6e629f037f393485d384fbf04486a2ab59960370c92d6b994ef37f4c",
+      "worker/execution/confirmation-surface.ts": "32dd2b8ca44f1164d1b19432ae7b5bad542366014d4c30f81a0cf35058977037",
+      "worker/execution/confirmation-worker.ts": "2aad426066ce4843c486d78a39cde044f4c047364dc9daaaa943280df3892cd2",
+      "worker/execution/metrology-write-service.ts": "b77e88bf4151ae87722cf1343cde13b9721e3fc6f3bfbe022d8aab83c106b031",
+      "worker/execution/metrology-write-surface.ts": "62bc81cacb633867501a0ac0f32c79b1333d2adead8127ff0980b052d103b1a3",
+      "worker/execution/metrology-write-worker.ts": "a178ccd6b0edfd41d061c223085159d9f375fa07604142db308344518d30a59e",
+      "worker/execution/native-asset-lifecycle.ts": "ffb5bdd3402143e596fc993b8a2b32bde27e518d3965696d593a99b2dd6e8515",
+      "worker/execution/plan-alignment.ts": "b259449e9ffca2294914ed4012062344b8cfbdaa814cbfab50b4f4746f87a981",
+      "worker/execution/routes.ts": "819efa262c5e19c2741b8f0d780ee6268eae9ff1e094ccfbb7536b23007a7494",
+      "worker/execution/run-trash-service.ts": "6473e07a348ea5e3659edf8607f3be1e18e1d6380e34997c23b8a01bcd16182a",
+      "worker/execution/run-trash-surface.ts": "08268fb8be0b085cab71b82c889c012430fb501ac14f7bd6d89b70eef5b3ef6b",
+      "worker/execution/run-trash-worker.ts": "338e7e8810cdab60463e05a7f15493bdaad92fae8c9c83079fb5beae49a9da31",
+      "worker/execution/step-targets.ts": "a3fd5673b8f1d45bd992de406a4b62d05e8d8f15f519db4b3c6c964044e815e5",
+      "worker/files/asset-input.ts": "e47cec0dfbff2d68775d5ed41283814eacde14c9add96627f9f8e8b9a6bb1137",
+      "worker/files/authority-mode.ts": "287680a0daaa18900f73051b7bed422547735dadd4c21f150ef7c3a153dc42b5",
+      "worker/files/authority-reader.ts": "e0c9dba2cda8bd584594899d6a27726966284efd6334214b3ba74f74bfae8037",
+      "worker/files/business-lifecycle.ts": "58add13ef0fb08a2bed69e75fa66cd57defd3734fceb5a70d7d45e96703bdc86",
+      "worker/files/byte-deleter.ts": "ddb0436810e3d6b858aa740c2e2b3af67442bb57c3282c107ac1efaae14fd163",
+      "worker/files/byte-reader.ts": "852f0055f0e8ca30497784f4bbaf1409139a1b31b2964db0817425c46a888519",
+      "worker/files/byte-verification.ts": "31c060d28d77b2a2a0923a139125580600e6360bd568b203ba782f232029d609",
+      "worker/files/byte-writer.ts": "80ea741722912ddddcc38e50fc56f0fddb7574ceee0c20884fb2149f9cc61b15",
+      "worker/files/consumer-binding.ts": "0df56959e4352f9faf7351c67f45acf2167fec97ce53d2abc9b669ef2184f89e",
+      "worker/files/jobs/d1-repository.ts": "730c52eb3356c1ead1d01a8e6564de9f723686404fba4eb62e0a69cb164ea197",
+      "worker/files/jobs/sql-repository.ts": "c9b9c9fb7164ab3af156b9f6c97e740c6a4d2d102b3d0a773d4315901e74302a",
+      "worker/files/jobs/types.ts": "bf941e05134c68f68bc66929b9232d7c2a501a3d8ec438efc76bd2329281f61d",
+      "worker/files/managed-bootstrap-profile.ts": "e9b533d618be98808d1088c87a6eb0fbc2030df9977b5812d423b350eca5c161",
+      "worker/files/r2-bootstrap-profile.ts": "85b3e1c401416fc2d4c50d49e753ed804329663469fc78d6090eeaaee27fa9b6",
+      "worker/files/r2-profile-bindings.ts": "fbe6d2c18dd9fb912b97e86f19f8a3425ba148a2ec6de67ed2e582a089e1c78a",
+      "worker/files/shadow-profile.ts": "587b07e866557c17509321f2be625002a681f81a946f6078eb43c81235b789ae",
+      "worker/files/storage-adapters/cloudflare-sha256.ts": "bf4b550dc99d7d1b164cc3a93919463d288234c79f65553370760c0dc48f5e44",
+      "worker/files/storage-adapters/managed-deleter.ts": "68ced7c63688346fed0eb6017ea7b973cbf754fd2feccf06bfa1f8ee0ff23d58",
+      "worker/files/storage-adapters/managed-reader.ts": "82edfeb41f0625e6530b7c964606501c6854caefd24ea81a258ca57e81753ef2",
+      "worker/files/storage-adapters/managed-writer.ts": "b8e890fd154453a36743e78fce7673c008d26480be38e292a3ae923ade940e2f",
+      "worker/files/storage-adapters/r2-deleter.ts": "080662fb67af64da77145e7ad2a9c39f30a9ec7169239ad15584243960ae8ec8",
+      "worker/files/storage-adapters/r2-reader.ts": "5dc0b2a49fa74d199ca168d9e315dc3c754af44ea1aead0f665070a58f5a6858",
+      "worker/files/storage-adapters/r2-shadow-writer.ts": "239f9f290c9f8ab0cdb4a25d5f3336055788ab28ab183e6962726b9bd126d3f7",
+      "worker/files/storage-profile-opening.ts": "926261bd578605082e2ffc24236c094cc543a894de3ee6458186c3a730ffd625",
+      "worker/managed-storage.ts": "161f95fa937e9e236e8be2ae7c5cbf2463e7db945ec87a8f64b798d45e44839e",
+      "worker/plan-context.ts": "1e877b22484f357f729f71d9568a9f71720373ef49f9e3d641ca941b1725955e",
+      "worker/plan-update.ts": "bd1f09b8f8bf17923c0414d551b01439c19d461e2ca17ea8e4c9c022671a8e34",
+      "worker/process-definition/substrate.ts": "e81a2bb6c921d43115bbe9f4d655517bfaf9d6ed23a052d6617389a4b49e532d",
+      "worker/run-lifecycle.ts": "78ff33f6505246e5225e9314942da1da4c1a4b227af3726f1f700dfde2e3ae18",
+      "worker/run-position.ts": "93a99f3b0f58b81318b7cb7ed88fa0b6fc31fce0e1b3261a2d2c19c0691f127c",
+      "worker/run-start.ts": "74fe13cfa61dd25c20c2ab10cbf496f272a08aa0552c0bc8b9de9f83834a43d9",
+      "worker/run-step-confirmation.ts": "347308c5b6db80731fca297a05f0db9c6c98171ee7c43754c2c2a480a3e48572",
+      "worker/runtime/configuration-sql.ts": "1ef2a9857222e527633858026e1e82f990104ed19f52787eca67d544145de0fd",
+      "worker/runtime/read-sql.ts": "c57e13bc619ce613054526065cfb2000a7279712553849e83424cddc9beae6d1",
+      "worker/runtime/sql.ts": "c30f91bb5de7e4ccdebe8f35422a2f9e9c19d0376fbc30839ffa7a44c1780b6a",
+      "worker/sample-split-state.ts": "23a7000e3892a23de3cac9a9a14ae697eb03e37744084b342b3837007dced106",
+      "worker/sample-structure-query.ts": "56be5b15c9293e5945d9d741f8e269504798cec9737534da4e6551353af8817a",
+      "worker/storage/configuration-d1.ts": "a85ee48baec40ef67f641f9abe8b2ef0baa30fcb9e544a7725740d699fdcafe7",
+      "worker/storage/credential-envelope.ts": "676f3508842d657c4e980cdd5a709738727e34a351d3096282d4381e5e8017b6",
+      "worker/storage/native-s3-byte-reader.ts": "8248d0d9918e0d9dd9d38fb5a0da1eb136a3221a5727a402c745ef85ba33e671",
+      "worker/storage/native-s3-byte-storage.ts": "4d147a12ac8ea8787a69e1203ff44c0b25e18853320a0f1efc22cb3531bc698a",
+      "worker/storage/s3-byte-adapter.ts": "020122c519afb27c627912e131f3e484625ce606bfb16bb6e0f13a3db6b6cf11",
+      "worker/switchdrive-storage.ts": "8bba15b33e728ac479c109b0ac79970815b35c25a1a88c2f47ef810957902abf",
+      "worker/template-publication.ts": "ca2caa8547cb0001510d94f10bbaa0806980ab27f514f02c87771f3eadb40ed4",
+      "worker/types.ts": "4ec9592962374df19f7e9825e46e6236443bb11e2402494f15bd72da5bec36d0"
+    },
+    "closureEqualHistoricalE0": true,
+    "staticClosureLimits": "Relative TypeScript source imports only; no actual bundler, conditional package resolution, runtime/default-sourceCI proof."
+  },
+  "currentRequiredDependencyPins": {
+    "server/sqlite.ts": "852c319a02f44ee25aa99b1b95d1dec3bfcdec8dd60a4d7deec58e256e42df68",
+    "server/storage-configuration-sql.ts": "abac24e41ed4c0c475906f1c1c054cb58469e669fc4d6b26d36dfbe8a775b642",
+    "server/http.ts": "a385a665e71cdef1a80b3d1ad425b3f253e13d83fc22a9c92c187273b6f697ea",
+    "server/migrations.ts": "983cd7d70ce210d427779efbb571be67d67c7b789547e8912e4496a0246fa596",
+    "server/installation-catalog.ts": "b12f6850defb6992d8bbdeb2da8bd12c305e54513643fd987281814a1df88992",
+    "worker/runtime/read-sql.ts": "c57e13bc619ce613054526065cfb2000a7279712553849e83424cddc9beae6d1",
+    "worker/runtime/configuration-sql.ts": "1ef2a9857222e527633858026e1e82f990104ed19f52787eca67d544145de0fd",
+    "worker/storage/configuration-d1.ts": "a85ee48baec40ef67f641f9abe8b2ef0baa30fcb9e544a7725740d699fdcafe7",
+    "worker/fixtures/reference-graph.sql": "1732e55261ec36bbbdb6deafeee7916a4ec0c9ed605780b7ee4e0fb25020b524",
+    "worker/application.ts": "3c309fd57784d7a4a5e1eb64251cfc5870fdbe44c84e8aae61d2945e0849b041",
+    "worker/index.ts": "d1f672ea14a8c81e9d4e12718b5a946a5421d606cb423c51f5464b02bb3e09e3",
+    "package.json": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+    "package-lock.json": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a",
+    "tsconfig.worker.json": "7f8a8beb3115c839a0c9008b4949336a0a18517e351ad14f05431b0e73c424fc",
+    "tsconfig.server.json": "1b49e4d0ab2c9b8c5583ca5eedcb9a40c8cc9667a4f74d7f4f03d1c8f6da9880",
+    "tsconfig.runtime-tests.json": "6cb4ca106cacb07c0df398c9e894fdd77b98908f27340449fc2a61e208df2356",
+    "vitest.config.ts": "f7d653404ebf008e1c134c56039b3e9219f9242a491db4bd035cbbd06658a66d"
+  },
+  "current23MigrationPins": {
+    "migrations/0001_v3_baseline.sql": "da244690cc17e88c99628461e4c4d5b52db37334b7fd6dd04643dfa7ebe4b4d2",
+    "migrations/0002_fp1_file_registry.sql": "28f95dbc7fca4a824c38575ec6be998aacf0d50f25c7325ea745a5a2362d5584",
+    "migrations/0003_fp1_import_acceptance.sql": "c56596cb35bbadda16e8be14f8b3527a1b7384947be1a68c7604602a3d42c701",
+    "migrations/0004_r2_upload_acceptance.sql": "911adba4ba3c5fa6f9e560d72f337da8669cc17be4d51e470940bb86fb62c1b8",
+    "migrations/0005_metrology_reference_acceptance.sql": "ddda77389c39d71d9475c0f83b04995616a8940f00be83eee27b1e9efd4bcd5e",
+    "migrations/0006_comment_acceptance.sql": "5f5a6354f1c55b95644fcd010631a949ba7fdb55f8c77ded7a1829be2b745de8",
+    "migrations/0007_fp1_file_authority_transition.sql": "252123f4e901f2c6ae970f84c25fe34d9ef3f3433fcc144ca583c70b4556218d",
+    "migrations/0008_fp1_shadow_runtime.sql": "324ab0ec3ce282f13b7ee0caae1be1977d817bbd448836925090b72709bd2dfc",
+    "migrations/0009_fp1_shadow_withdrawals.sql": "8394abf5853cb3217da8c5d5b2b1b29188f1f0100d90b8fdc9b569c8621283f8",
+    "migrations/0010_fp1_shadow_adjudications.sql": "6038d51909b8d2fa8ad1d1d3eba4bd96808bb7d4b9a42fafeaeb10b36d40a1a0",
+    "migrations/0011_fp1_retire_legacy_test_projects.sql": "177d3e751bb066dec3b1fcfe78f90703f24f8817b45ce8a6ee861b6d86b6011a",
+    "migrations/0012_fp1_file_authority_runtime.sql": "8360b65ae1f9b199f90e88443bde82e49bb6db6cc9f9110c8bc4410b51a92fab",
+    "migrations/0013_fp1_r2_role_defaults.sql": "d5df0455221af4b52b007a7462b48355fdc5fc6471766979696c2545b19a2343",
+    "migrations/0014_fp2_storage_configuration.sql": "427f022d84086aa29ac34a3b0540e70807fc68e3815e2db98312614028e00d54",
+    "migrations/0015_fp2_storage_candidate_checks.sql": "f2558f69ea77c6382e44f705e76fcc2ed56ad320274c43a3ad0be0afa8cc40c3",
+    "migrations/0016_fp2_credential_reenvelopes.sql": "6b622eaa0fccca4b241a803bcb3b0ee19688d432648d28eb80f34b0afffc36c3",
+    "migrations/0017_fp2_native_storage_profiles.sql": "94919cde4b666e6243358ee328bdc53f7572dbbb5f42ae9a4a4f94dc5a7e4057",
+    "migrations/0018_fp2_native_file_runtime.sql": "76a72e55cd0cadaf48ccedf559cdd411ba26e93096578cdd99fce9c89ab0fe6d",
+    "migrations/0019_fp3_file_jobs.sql": "23d216a71383b4238a9dbf73e98e0252173ba94c1af13b2892e0eb798e4d19a4",
+    "migrations/0020_fp4_research_packages.sql": "0dc7a2248a06a434cf92ca7f647bab4c50ad7f6419c792d10ec13b05b94c44b4",
+    "migrations/0021_fp5_system_recovery.sql": "834df694d90705962b6a8d81e97b0c1cf9b4514ff270f954e29d2080b596a3e1",
+    "migrations/0022_fp5_recovery_evidence.sql": "b637e7e901168e11276b76040cd0a1c45693884a35ad35b5279527e54609ee48",
+    "migrations/0023_portable_local_identity.sql": "7d16acea4506c080397bf57ba3f103cb128a5e4fdfca333a321e99f881dfc245"
+  },
+  "sourceBaseChangesSinceOriginal21fc": [
+    "docs/PORTABLE_BUSINESS_READ_CI_FOLLOWUP.json",
+    "docs/PORTABLE_CURRENT_V25_PROJECT_WORKER_SMOKE.md",
+    "docs/PORTABLE_CURRENT_V25_PROJECT_WORKER_SMOKE_RECEIPT.json",
+    "scripts/verify-project-worker.mjs",
+    "src/reference-page.test.ts",
+    "tsconfig.export-contract.json"
+  ],
+  "schemaScope": {
+    "migrationCount": 23,
+    "lastMigration": "0023_portable_local_identity.sql",
+    "checkpoint": "portable-runtime/v25",
+    "catalogSha256": "b12f6850defb6992d8bbdeb2da8bd12c305e54513643fd987281814a1df88992",
+    "centralV26Or0024Adopted": false,
+    "V26SuccessorSeparateReceipt": "/tmp/portable-v26-current-business-config-adoption-source-receipt.json",
+    "V26SuccessorSeparateInputs": "source61 / actual24 migrations; requires separately reviewed genuine catalog/fixture/recovery paired source and own-head strict/runtime. Never replace23 with24 only to satisfy a count."
+  },
+  "methodScope": [
+    "POST /run-steps/confirm",
+    "DELETE /samples/:sampleId/runs/:runId",
+    "POST /samples/:sampleId/runs/:runId/restore",
+    "POST /samples/:sampleId/runs/:runId/metrology",
+    "POST /samples/:sampleId/metrology-runs"
+  ],
+  "limits": [
+    "No preview, Run-finish or later structure/File mutation source included.",
+    "No Node composer mount, installed principal/session/physical lease or authorization-BEGIN token proof; native trusted policy callbacks remain witnesses.",
+    "Confirmation narrow atomic-returning port remains separate from configuration mutation-only/read-only ports; originalSQL/binds/audits/CAS/accepted-write/lostACK unchanged.",
+    "All current compilation/fixtures/defaultCI/build/browser are UNRUN; historical30 are immutable separate scopes, not this current integration.",
+    "No source DB/state/provider operations, schema generation/activation, dependency changes or remote publication."
+  ]
+}

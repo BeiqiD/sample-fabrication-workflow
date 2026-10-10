@@ -1,0 +1,89 @@
+{
+  "kind": "phase5f-ui-execution98-build-only-continuation-plan/1",
+  "status": "SOURCE_PREPARED_UNRUN_AWAITING_PEER_AND_EXCLUSIVE_GO",
+  "head": "98d81a170394a140fb63e970b31d1985bd56f68d",
+  "tree": "62d67e1c9fb3d59d74c49e0eceebe4ef2975ffe4",
+  "sourceReconciliationReceiptSha256": "7e46f73ac538f30ef0dc59c8fe165fa2f675869f4fff1e9eddb2f980cd292b8b",
+  "originalSixStagePlanSha256": "17c2984c99f3850074fc69cdcdaef1984c9ac6a4febdcd55e89d92d5c995ffd5",
+  "commands": [
+    {
+      "stage": "fresh-current-v26-combined-build",
+      "argv": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "/workspace/remaining-5f-ui-execution-currente108-source-integration"
+    }
+  ],
+  "priorImmutableWrapperFailure": {
+    "path": "/tmp/phase5f-ui-execution-currente108-runtime-98d81a1-attempt1/finite-runtime-completion-receipt.json",
+    "sha256": "d0881d89c8681266b9bad3ce136864e9523ca7f83ea5a1cbd5bc99685638c3a3",
+    "status": "FAIL retained; not rewritten as six-stagePASS"
+  },
+  "actualPostFailureDiagnosis": {
+    "path": "/tmp/phase5f-ui-execution-currente108-runtime-98d81a1-attempt1/owned-post-failure-diagnosis.json",
+    "sha256": "5ef3e0d9aa9db3b4fa7406315b5526d80e9375b69c4548e90b787359b062dbe5"
+  },
+  "independentRootOwnerReconciliation": {
+    "path": "/tmp/phase5f-ui-execution98-root-owner-reconciliation.json",
+    "sha256": "6f3e5806ee1b1cebf2ef48db9416777906b6f20b9b659e94f9c4013fc0e9ba53"
+  },
+  "historicalFiveActualCommandCarry": [
+    {
+      "stage": "shared-source-boundary",
+      "exitCode": 0,
+      "log": "/tmp/phase5f-ui-execution-currente108-runtime-98d81a1-attempt1/shared-source-boundary.log",
+      "logSha256": "21a428b7b54bea7d7e889fc732a12e2a0477651d44738485a4f44116959f8b03",
+      "actualSummaryLines": null,
+      "directChildReaped": true
+    },
+    {
+      "stage": "owned-canonical-witness-fixture-strict",
+      "exitCode": 0,
+      "log": "/tmp/phase5f-ui-execution-currente108-runtime-98d81a1-attempt1/owned-canonical-witness-fixture-strict.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "actualSummaryLines": null,
+      "directChildReaped": true
+    },
+    {
+      "stage": "original-native-stream-migration-regressions",
+      "exitCode": 0,
+      "log": "/tmp/phase5f-ui-execution-currente108-runtime-98d81a1-attempt1/original-native-stream-migration-regressions.log",
+      "logSha256": "773b07cc4c64f2990dfd9d06dc3730a5739fb64d62c5dce1970e94604eb18833",
+      "actualSummaryLines": [
+        "Test Files  1 passed (1)",
+        "Tests  6 passed (6)"
+      ],
+      "directChildReaped": true
+    },
+    {
+      "stage": "new14-plus-owned-mature23-mounted",
+      "exitCode": 0,
+      "log": "/tmp/phase5f-ui-execution-currente108-runtime-98d81a1-attempt1/new14-plus-owned-mature23-mounted.log",
+      "logSha256": "9fa25ab12b92df17f37251e7a51a09dc3429a10c25d722ecfadad1f52ddedd93",
+      "actualSummaryLines": [
+        "Test Files  5 passed (5)",
+        "Tests  37 passed (37)"
+      ],
+      "directChildReaped": true
+    },
+    {
+      "stage": "subject-and-mature-project-source-regressions",
+      "exitCode": 0,
+      "log": "/tmp/phase5f-ui-execution-currente108-runtime-98d81a1-attempt1/subject-and-mature-project-source-regressions.log",
+      "logSha256": "0b8cc1f5fe288e918a9126a78705386270bb5575c090dfefb57d3c54d941b9ea",
+      "actualSummaryLines": [
+        "Test Files  7 passed (7)",
+        "Tests  38 passed (38)"
+      ],
+      "directChildReaped": true
+    }
+  ],
+  "ownerScope": "Original last group has two genuineZ/PPID1; inaccessible FD directories retained without observed zeroFDclaim, Linux exited-kernel state establishes no live process/resources. Other four groups empty. Root independently verified and released. No unowned parent reaping or extra cleanup.",
+  "runnerStateFixSha256": "7158a3aa96562639b73825744f32f6aa312659d7fc374e2aa9b99d73f46524b5",
+  "budgets": "Exact original npm run build argv; no test/config/assertion/budget edits, no first-five command rerun. Same first-failure/owned interruption cleanup and direct-child reap.",
+  "browser": "Prior6/4 remain historical; no browser/performance/Execution12 rerun or remote mutation",
+  "runtimeRoot": "/tmp/phase5f-ui-execution-currente108-build-only-98d81a1-attempt2",
+  "ownCompleteCi": "Still requires exact final-head push/PR Verify/Map after qualification checkpoint and root-owned ancestry join."
+}

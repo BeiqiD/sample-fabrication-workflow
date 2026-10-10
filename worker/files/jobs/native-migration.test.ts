@@ -226,8 +226,11 @@ describe("FP3 independent jobs over real admitted native transports", () => {
     f.sql.prepare("UPDATE file_migration_items SET cleanup_not_before=? WHERE job_id=?").run(new Date(Date.now() - 1000).toISOString(), job.id);
     expect((await dispatchFileJobs(f.env)).outcome).toBe("released_to_gc");
     expect((await f.repository().items(job.id)).items[0].cleanupState).toBe("released_to_gc");
-    const orphan = () => f.sql.prepare("INSERT INTO file_location_gc_ledger(location_id,state,orphaned_at,updated_at) VALUES(?,'orphaned',?,?)")
-      .run(f.file.active_location_id, new Date().toISOString(), new Date().toISOString());
+    const orphan = () => {
+      const orphanedAt = new Date().toISOString();
+      return f.sql.prepare("INSERT INTO file_location_gc_ledger(location_id,state,orphaned_at,updated_at) VALUES(?,'orphaned',?,?)")
+        .run(f.file.active_location_id, orphanedAt, orphanedAt);
+    };
     expect(orphan).toThrow();
     expect(new Uint8Array(await new Response(read.body).arrayBuffer())).toEqual(sourceBytes);
     expect(f.sql.prepare("SELECT count(*) n FROM file_location_holds WHERE hold_kind='read' AND released_at IS NULL").get()!.n).toBe(0);

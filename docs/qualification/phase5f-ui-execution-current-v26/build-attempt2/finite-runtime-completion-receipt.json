@@ -1,0 +1,96 @@
+{
+  "kind": "phase5f-ui-execution-combined-build-only-continuation-actual/1",
+  "status": "PASS",
+  "sourceHead": "98d81a170394a140fb63e970b31d1985bd56f68d",
+  "sourceTree": "62d67e1c9fb3d59d74c49e0eceebe4ef2975ffe4",
+  "completedAt": "2026-10-10T22:43:55.942605+00:00",
+  "planSha256": "c626b3001c9d2b2a238240884eb3c1c26be0296563f80f934ab3bbc94eba7444",
+  "sourceReceiptSha256": "7e46f73ac538f30ef0dc59c8fe165fa2f675869f4fff1e9eddb2f980cd292b8b",
+  "commands": [
+    {
+      "stage": "fresh-current-v26-combined-build",
+      "argv": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "/workspace/remaining-5f-ui-execution-currente108-source-integration",
+      "startedAt": "2026-10-10T22:43:50.457464+00:00",
+      "status": "PASS",
+      "log": "/tmp/phase5f-ui-execution-currente108-build-only-98d81a1-attempt2/fresh-current-v26-combined-build.log",
+      "pid": 301315,
+      "processGroup": 301315,
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 301449,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 301315,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 301449,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 301315,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 301449,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 301315,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "endedAt": "2026-10-10T22:43:55.907368+00:00",
+      "logSha256": "01a2aea4510ee4b8bca21aa55b2be40c2e8f24e48c36d19ee361b620fc8c793b"
+    }
+  ],
+  "firstFailedStage": null,
+  "runnerError": null,
+  "remainingUnrunStages": [],
+  "sourcePinsRechecked": true,
+  "sourcePostCheckError": null,
+  "allOwnedGroupsFinal": {
+    "301315": [
+      {
+        "pid": 301449,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 301315,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "allDirectChildrenActuallyReaped": true,
+  "noActiveOwnedProcessOrFd": true,
+  "serviceBrowserProcessesStarted": 0,
+  "scope": "Only actual fresh npm run build. Previous five actual command passes carry original98d attempt1 and independent root owner reconciliation; first wrapperFAIL remains immutable. No tests rerun, fresh combined browser/Execution12, complete own CI, provider or physical device claim.",
+  "priorWrapperFailure": {
+    "path": "/tmp/phase5f-ui-execution-currente108-runtime-98d81a1-attempt1/finite-runtime-completion-receipt.json",
+    "sha256": "d0881d89c8681266b9bad3ce136864e9523ca7f83ea5a1cbd5bc99685638c3a3",
+    "status": "FAIL retained; not rewritten as six-stagePASS"
+  },
+  "rootOwnerReconciliation": {
+    "path": "/tmp/phase5f-ui-execution98-root-owner-reconciliation.json",
+    "sha256": "6f3e5806ee1b1cebf2ef48db9416777906b6f20b9b659e94f9c4013fc0e9ba53"
+  },
+  "runtimeReleased": "Parent observes actual runner tool exit and bounded owned closure before assigning another runner; any interrupted stage is unqualified."
+}

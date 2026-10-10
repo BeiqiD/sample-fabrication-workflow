@@ -1,0 +1,42 @@
+{
+  "stage": "new14-plus-owned-mature23-mounted",
+  "argv": [
+    "node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "vitest.mounted.config.ts",
+    "src/phase5f-project-directory-intent.mount.test.tsx",
+    "src/phase5f-storage-activation-read.mount.test.tsx",
+    "src/project-shell.mount.test.tsx",
+    "src/storage-activation-recovery.mount.test.tsx",
+    "src/current-storage-settings.mount.test.tsx",
+    "--maxWorkers=1",
+    "--bail=1"
+  ],
+  "expectedStaticCases": 37,
+  "cwd": "/workspace/remaining-5f-ui-execution-currente108-source-integration",
+  "startedAt": "2026-10-10T22:35:50.311662+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-ui-execution-currente108-runtime-98d81a1-attempt1/new14-plus-owned-mature23-mounted.log",
+  "pid": 297711,
+  "processGroup": 297711,
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-10T22:35:54.627235+00:00",
+  "logSha256": "9fa25ab12b92df17f37251e7a51a09dc3429a10c25d722ecfadad1f52ddedd93",
+  "actualSummaryLines": [
+    "Test Files  5 passed (5)",
+    "Tests  37 passed (37)"
+  ],
+  "actualPassedCountMatchesFinitePlan": true
+}
