@@ -71,8 +71,8 @@ import {
   projectDirtyPlacements,
   projectGeometryEquals,
   projectMapNodes,
+  orderProjectReadingNodes,
   projectPlacementIndex,
-  projectReadingNodes,
   type ProjectGeometryCommand,
 } from "../lib/project-map-model";
 import {
@@ -2374,14 +2374,13 @@ export function ProjectPage() {
     return true;
   }, [edgeController.selectEdge]);
 
-  const descriptors = useMemo(() => snapshot ? projectMapNodes(snapshot).map((node) => ({
+  // Source content is independent of working geometry; both views share its projection.
+  const canonicalDescriptors = useMemo(() => snapshot ? projectMapNodes(snapshot) : [], [snapshot]);
+  const descriptors = useMemo(() => canonicalDescriptors.map((node) => ({
     ...node,
     geometry: geometry[node.placementId] ?? node.geometry,
-  })) : [], [geometry, snapshot]);
-  const readingNodes = useMemo(() => snapshot ? projectReadingNodes(snapshot).map((node) => ({
-    ...node,
-    geometry: geometry[node.placementId] ?? node.geometry,
-  })) : [], [geometry, snapshot]);
+  })), [canonicalDescriptors, geometry]);
+  const readingNodes = useMemo(() => orderProjectReadingNodes(descriptors), [descriptors]);
   const selectedDescriptors = selectedItemIds.flatMap((itemId) => {
     const descriptor = descriptors.find((node) => node.itemId === itemId);
     return descriptor ? [descriptor] : [];
