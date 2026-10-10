@@ -1,18 +1,22 @@
 # Phase 5F isolated actual API qualification
 
-The separate [Templates default-pagination plan](../../../docs/PHASE_5F_TEMPLATE_PAGINATION_SOURCE_CANDIDATE.md)
-is source-prepared and **entirely unrun**. Its new helpers preserve every
-earlier helper and receipt. After its reviewed final checkpoint has a fresh
-same-source build and stages 1–6 below prepare a new isolated Worker/PNG fixture,
-use its genuine 21-process-family/26-metrology-family API seed and four read-only
-default-pagination cases:
+The separate [Templates default-pagination qualification](../../../docs/PHASE_5F_TEMPLATE_PAGINATION_QUALIFICATION.md)
+records four actual passing cases on source `3c69d4d`, with a fresh canonical-source
+build, 21 distinct process families and 26 distinct metrology families created
+through ordinary APIs, and actual owned shutdown/physical checks. Its
+[frozen source plan](../../../docs/PHASE_5F_TEMPLATE_PAGINATION_SOURCE_CANDIDATE.md)
+retains its historical UNRUN status. The two new helpers preserve every earlier
+helper and receipt. For a new qualification, use a reviewed clean checkpoint,
+fresh same-source build and a new isolated Worker/PNG fixture from stages 1–6,
+then run the genuine API seed and complete four read-only browser cases:
 
 ```sh
 node "$qa_root/seed-template-pagination-actual-api.mjs" http://127.0.0.1:4219/ "$qa_fixture"
 node "$qa_root/browser-template-pagination-actual-api.mjs" http://127.0.0.1:4219/ "$qa_fixture" "$qa_copy"
 ```
 
-These are planned commands, not passing results. The namespace excludes the
+These commands require their own new receipts; the linked acceptance applies
+only to its recorded exact source and fixture. The namespace excludes the
 mature setup owners; the new process families are actual FabuBlox imports, not
 extra versions or SQL-created pagination owners. Do not run the old 20/six-case
 browser matrices merely as setup for this finite supplement. It accepts the

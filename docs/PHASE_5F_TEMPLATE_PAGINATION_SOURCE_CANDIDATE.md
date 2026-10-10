@@ -1,5 +1,8 @@
 # Genuine Templates default-pagination qualification plan
 
+Historical frozen source snapshot. The later actual outcome is recorded in
+[Templates pagination qualification](PHASE_5F_TEMPLATE_PAGINATION_QUALIFICATION.md).
+
 Date: 2026-10-10 UTC. Status: **source-prepared and entirely UNRUN**. The two
 additive helpers have not been syntax-checked, bundled, seeded or executed.
 This checkpoint changes QA/documentation only and preserves the earlier six
