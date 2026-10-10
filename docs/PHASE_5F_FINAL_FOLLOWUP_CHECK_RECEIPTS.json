@@ -1,0 +1,362 @@
+{
+  "head": "9b9dfd526418b134f5b959d9a6f330de881d368d",
+  "tree": "97a282d800c73ca855e95037c76f5422589da4c2",
+  "base": "fc3abc3eac6085cfde8af97b44a9b6d91ac62a15",
+  "pr": 254,
+  "localSession": 55909,
+  "localSessionExitCode": 0,
+  "workingTreeClean": true,
+  "completeChecks": [
+    {
+      "event": "local",
+      "path": "/tmp/phase5f-9b9dfd5-verify-ci-attempt1.log",
+      "sha256": "b5a39604fb59f282bc4689f035f676508e915d4cd808d8fa8fc28c9cec9e8fb8",
+      "exitCode": 0,
+      "nativeTests": 355,
+      "sourceFiles": 366,
+      "sourceTests": 3351,
+      "mountedFiles": 102,
+      "mountedTests": 980,
+      "leaves": [
+        {
+          "id": "verification-scripts",
+          "outcome": "success",
+          "durationMs": 396858
+        },
+        {
+          "id": "source",
+          "outcome": "success",
+          "durationMs": 814368
+        },
+        {
+          "id": "mounted",
+          "outcome": "success",
+          "durationMs": 71909
+        },
+        {
+          "id": "rich-text",
+          "outcome": "success",
+          "durationMs": 523
+        },
+        {
+          "id": "export-contract",
+          "outcome": "success",
+          "durationMs": 976
+        },
+        {
+          "id": "file-jobs-node",
+          "outcome": "success",
+          "durationMs": 448
+        },
+        {
+          "id": "migrations",
+          "outcome": "success",
+          "durationMs": 13952
+        },
+        {
+          "id": "reference-worker",
+          "outcome": "success",
+          "durationMs": 26219
+        },
+        {
+          "id": "reference-search-worker",
+          "outcome": "success",
+          "durationMs": 24327
+        },
+        {
+          "id": "build",
+          "outcome": "success",
+          "durationMs": 5962
+        },
+        {
+          "id": "map-bundle",
+          "outcome": "success",
+          "durationMs": 573
+        },
+        {
+          "id": "project-worker",
+          "outcome": "success",
+          "durationMs": 24710
+        }
+      ]
+    },
+    {
+      "event": "push",
+      "path": "/tmp/phase5f-9b9dfd5-push-verify-pass-attempt1.log",
+      "sha256": "445c50e5ca1c87ffe12a2dfa1d468275f9b7065dd51be24922b34ece164708cc",
+      "exitCode": 0,
+      "nativeTests": 355,
+      "sourceFiles": 366,
+      "sourceTests": 3351,
+      "mountedFiles": 102,
+      "mountedTests": 980,
+      "leaves": [
+        {
+          "id": "verification-scripts",
+          "outcome": "success",
+          "durationMs": 323579
+        },
+        {
+          "id": "source",
+          "outcome": "success",
+          "durationMs": 801642
+        },
+        {
+          "id": "mounted",
+          "outcome": "success",
+          "durationMs": 68329
+        },
+        {
+          "id": "rich-text",
+          "outcome": "success",
+          "durationMs": 306
+        },
+        {
+          "id": "export-contract",
+          "outcome": "success",
+          "durationMs": 529
+        },
+        {
+          "id": "file-jobs-node",
+          "outcome": "success",
+          "durationMs": 173
+        },
+        {
+          "id": "migrations",
+          "outcome": "success",
+          "durationMs": 11212
+        },
+        {
+          "id": "reference-worker",
+          "outcome": "success",
+          "durationMs": 16862
+        },
+        {
+          "id": "reference-search-worker",
+          "outcome": "success",
+          "durationMs": 15440
+        },
+        {
+          "id": "build",
+          "outcome": "success",
+          "durationMs": 4056
+        },
+        {
+          "id": "map-bundle",
+          "outcome": "success",
+          "durationMs": 399
+        },
+        {
+          "id": "project-worker",
+          "outcome": "success",
+          "durationMs": 18856
+        }
+      ]
+    },
+    {
+      "event": "pull_request",
+      "path": "/tmp/phase5f-9b9dfd5-pr-verify-pass-attempt1.log",
+      "sha256": "6fd74528ab2cbd13e154866d5956ae2f278117eb55f1aa525f67c8b7591e7d5a",
+      "exitCode": 0,
+      "nativeTests": 355,
+      "sourceFiles": 366,
+      "sourceTests": 3351,
+      "mountedFiles": 102,
+      "mountedTests": 980,
+      "leaves": [
+        {
+          "id": "verification-scripts",
+          "outcome": "success",
+          "durationMs": 360566
+        },
+        {
+          "id": "source",
+          "outcome": "success",
+          "durationMs": 965995
+        },
+        {
+          "id": "mounted",
+          "outcome": "success",
+          "durationMs": 78785
+        },
+        {
+          "id": "rich-text",
+          "outcome": "success",
+          "durationMs": 374
+        },
+        {
+          "id": "export-contract",
+          "outcome": "success",
+          "durationMs": 632
+        },
+        {
+          "id": "file-jobs-node",
+          "outcome": "success",
+          "durationMs": 210
+        },
+        {
+          "id": "migrations",
+          "outcome": "success",
+          "durationMs": 12980
+        },
+        {
+          "id": "reference-worker",
+          "outcome": "success",
+          "durationMs": 19674
+        },
+        {
+          "id": "reference-search-worker",
+          "outcome": "success",
+          "durationMs": 17958
+        },
+        {
+          "id": "build",
+          "outcome": "success",
+          "durationMs": 4844
+        },
+        {
+          "id": "map-bundle",
+          "outcome": "success",
+          "durationMs": 455
+        },
+        {
+          "id": "project-worker",
+          "outcome": "success",
+          "durationMs": 22885
+        }
+      ]
+    }
+  ],
+  "ownRuns": [
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-10T16:42:50Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38068727086/job/114261587907",
+      "name": "verify",
+      "startedAt": "2026-10-10T16:42:09Z",
+      "status": "COMPLETED",
+      "workflowName": "Project Map performance"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-10T16:42:36Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38068724465/job/114261580531",
+      "name": "verify",
+      "startedAt": "2026-10-10T16:42:06Z",
+      "status": "COMPLETED",
+      "workflowName": "Project Map performance"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-10T17:07:24Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38068727066/job/114261587840",
+      "name": "verify",
+      "startedAt": "2026-10-10T16:42:08Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify"
+    },
+    {
+      "__typename": "CheckRun",
+      "completedAt": "2026-10-10T17:03:29Z",
+      "conclusion": "SUCCESS",
+      "detailsUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38068724408/job/114261580946",
+      "name": "verify",
+      "startedAt": "2026-10-10T16:42:06Z",
+      "status": "COMPLETED",
+      "workflowName": "Verify"
+    }
+  ],
+  "finalContexts": [
+    {
+      "context": "pre-pr/install",
+      "state": "success",
+      "targetUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38068724408"
+    },
+    {
+      "context": "pre-pr/project-map-performance",
+      "state": "success",
+      "targetUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38068724465"
+    },
+    {
+      "context": "pre-pr/project-foundation",
+      "state": "success",
+      "targetUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38068724408"
+    },
+    {
+      "context": "pre-pr/tests",
+      "state": "success",
+      "targetUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38068724408"
+    },
+    {
+      "context": "pre-pr/blob-lifecycle",
+      "state": "success",
+      "targetUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38068724408"
+    },
+    {
+      "context": "pre-pr/reference-foundation",
+      "state": "success",
+      "targetUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38068724408"
+    },
+    {
+      "context": "pre-pr/file-jobs",
+      "state": "success",
+      "targetUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38068724408"
+    },
+    {
+      "context": "pre-pr/build",
+      "state": "success",
+      "targetUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38068724408"
+    },
+    {
+      "context": "pre-pr/project-reference-placement",
+      "state": "success",
+      "targetUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38068724408"
+    },
+    {
+      "context": "pre-pr/project-map",
+      "state": "success",
+      "targetUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38068724408"
+    },
+    {
+      "context": "pre-pr/project-edges",
+      "state": "success",
+      "targetUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38068724408"
+    },
+    {
+      "context": "pre-pr/project-persistence",
+      "state": "success",
+      "targetUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38068724408"
+    },
+    {
+      "context": "pre-pr/project-owned-content",
+      "state": "success",
+      "targetUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38068724408"
+    },
+    {
+      "context": "pre-pr/project-canvas-productivity",
+      "state": "success",
+      "targetUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38068724408"
+    },
+    {
+      "context": "pre-pr/project-reading",
+      "state": "success",
+      "targetUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38068724408"
+    }
+  ],
+  "preservedHistoricalFailures": [
+    "fc3abc3 postmerge Verify attempt1",
+    "a482b10 own PR Verify V21 7301ms default5s",
+    "7cdee51 foundation three complete gate failures",
+    "initial SQLite fixture/telemetry/focus/preparation observations"
+  ],
+  "boundaries": [
+    "development/test merge only",
+    "bounded prior6c4dc88 browser scopes; no full5F/device/input/auth/provider acceptance",
+    "one named integration test budget15s; genuine40-case scheduling trial rejected",
+    "RT1-RT6 and group authorization unfinished",
+    "no production release/provider activation/source cutover"
+  ]
+}

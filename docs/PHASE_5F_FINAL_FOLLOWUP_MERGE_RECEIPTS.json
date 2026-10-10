@@ -1,0 +1,11 @@
+{
+  "merged": true,
+  "mergeSha": "7e129b8c888179631d84623721c464d2efb320bf",
+  "tree": "97a282d800c73ca855e95037c76f5422589da4c2",
+  "matchesQualifiedFinalHeadTree": true,
+  "qualifiedHead": "9b9dfd526418b134f5b959d9a6f330de881d368d",
+  "base": "fc3abc3eac6085cfde8af97b44a9b6d91ac62a15",
+  "localAndRemoteGateReceipt": "/tmp/phase5f-9b9dfd5-final-acceptance-receipt.json",
+  "postmergeChecks": "pending, separate new merge-SHA checks",
+  "servingSchemaProviderAcceptance": false
+}

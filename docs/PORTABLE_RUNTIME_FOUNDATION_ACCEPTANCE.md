@@ -2,6 +2,17 @@
 
 Status: **implemented foundation, integration gate pending; RT1–RT6 are not complete**.
 
+Current adoption is rebased onto qualified #254 integration `7e129b8`.
+[Follow-up full checks](PHASE_5F_FINAL_FOLLOWUP_CHECKS.md) prove its local12,
+four own remote runs and15 contexts, while preserving original #252/#253 failures.
+The new foundation adds the separately qualified independent Node client build
+and bounded immutable canonical-SQL memo; no final integrated-gate pass is claimed.
+Current required CI/development-deployment plan has15 unique leaves and15 public
+contexts. The fourteen-leaf preparation below is historical at original7c.
+A private composed Node fixture additionally exposed legitimate endpoint body
+cancellation masking413 as500; that transport repair must qualify before this
+new foundation is pushed or merged. RT1–RT6 remain open.
+
 The adoption source is based on `989f1b6ee0b594ddd5492bd890897fc63ca3ef11`.
 [PR #252](https://github.com/BeiqiD/sample-fabrication-workflow/pull/252)
 subsequently merged at `fc3abc3eac6085cfde8af97b44a9b6d91ac62a15`; both have
@@ -50,7 +61,7 @@ File runner case**, strict Node production/test and new Worker-test types, and
 **6 verification-plan contract cases**. Counts overlap private preparation
 receipts and are not summed into a new complete-suite claim.
 
-The default CI/development deployment plan now has **14 mandatory leaves**:
+The original7c CI/development deployment plan had **14 mandatory leaves**:
 the existing twelve plus `node-http` and `server-types`. The Node `.test.mts`
 files are explicitly registered; the new Worker tests have a separate strict
 type scope. Existing File runner checks, default deadlines and 15 public status
