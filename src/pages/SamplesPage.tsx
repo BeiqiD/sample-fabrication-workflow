@@ -16,6 +16,7 @@ import { StatusPill } from "../components/StatusPill";
 import { api } from "../lib/api";
 import { shouldAutoFocusPageField } from "../lib/page-load-autofocus";
 import { pageFromSearchParam, setPageParam } from "../lib/pagination";
+import { preferredScrollBehavior } from "../lib/preferred-scroll-behavior";
 import {
   activeSampleDirectorySettingCount,
   applySampleDirectorySettings,
@@ -139,7 +140,7 @@ export function SamplesPage() {
 
   function changePage(page: number) {
     setSearchParams(setPageParam(searchParams, "page", page));
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: preferredScrollBehavior() });
   }
 
   function toggleFilters() {

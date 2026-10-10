@@ -7,6 +7,7 @@ import { visibleAlphaBounds } from "../lib/diagramImage";
 import { discardR2Upload, prepareR2UploadFile, R2UploadRequestError } from "../lib/r2-upload-client";
 import { compressLayerStackImage } from "../lib/images";
 import { useModalDialog } from "../lib/use-modal-dialog";
+import { preferredScrollBehavior } from "../lib/preferred-scroll-behavior";
 import {
   buildRunGrid,
   findCurrentRunGridRow,
@@ -1016,7 +1017,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, onAttachmentC
     if (!node || !sampleHeader) return;
     const columnWidth = sampleHeader.getBoundingClientRect().width;
     const nextColumn = Math.round(node.scrollLeft / columnWidth) + direction;
-    node.scrollTo({ left: Math.max(0, nextColumn * columnWidth), behavior: "smooth" });
+    node.scrollTo({ left: Math.max(0, nextColumn * columnWidth), behavior: preferredScrollBehavior() });
   }
 
   async function jumpToCurrent() {

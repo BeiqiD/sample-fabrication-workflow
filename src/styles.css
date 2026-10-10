@@ -1391,6 +1391,7 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .recipe-icon-action[aria-busy="true"] .processing-action-icon { animation: none; }
   .jump-to-current-anchor, .jump-to-current-anchor button { transition: none; }
   .sample-step-cell.jump-current-highlight::after { opacity: 1; animation: none; }
 }
