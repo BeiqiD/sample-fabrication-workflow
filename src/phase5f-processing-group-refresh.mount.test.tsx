@@ -214,7 +214,9 @@ describe("Processing grouped confirmation through the actual grid and page", () 
     await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
     expect(requests().slice(count)).toEqual(ids);
     expect(api.confirmRunSteps).toHaveBeenCalledTimes(1);
-    for (const index of [0, 1, 2]) expect(columns()[index]).toBe(server.get(ids[index]));
+    await waitFor(() => {
+      for (const index of [0, 1, 2]) expect(columns()[index]).toBe(server.get(ids[index]));
+    });
   });
 
   it("fences a held accepted original confirmation after switching the route source", async () => {

@@ -22,6 +22,13 @@ export interface SqliteCapability {
   primary(): SqliteCapability;
   close(): void;
 }
+const connectionOwners = new WeakMap<SqliteCapability, DatabaseSync>();
+
+/** Admission and a query capability must refer to the same actual connection. */
+export function assertSqliteConnectionOwner(capability: SqliteCapability, database: DatabaseSync): void {
+  if (connectionOwners.get(capability) !== database || !database.isOpen) throw new Error("SQLite capability connection owner mismatch or closed");
+  capability.primary();
+}
 
 export function checkedSafeInteger(value: number | bigint, description = "SQL integer"): number {
   const number = typeof value === "bigint" ? Number(value) : value;
@@ -168,8 +175,15 @@ export function createSqliteCapability(database: DatabaseSync, options: { busyTi
       } finally { inBatch = false; }
     },
     primary() { active(); return capability; },
-    close() { if (!closed) { active(); database.close(); closed = true; } },
+    close() {
+      if (closed) return;
+      // The privileged maintenance owner may have checkpointed and closed the
+      // same native handle already. Query admission still rejects that handle.
+      if (!database.isOpen) { closed = true; return; }
+      active(); database.close(); closed = true;
+    },
   };
+  connectionOwners.set(capability, database);
   return capability;
 }
 

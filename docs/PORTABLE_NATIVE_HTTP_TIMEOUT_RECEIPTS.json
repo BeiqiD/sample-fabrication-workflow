@@ -1,0 +1,103 @@
+{
+  "format": "portable-native-http-timeout-and-processing-retry-followup/1",
+  "qualifiedHttp": {
+    "format": "qualified-node-native-timeout-repair/1",
+    "baseHead": "8537c1aa72ccb048b288c86714309313c5d9a452",
+    "privateRoot": "/tmp/portable-http-native-timeout-qualified-8537c1a-attempt2",
+    "nodeVersion": "24.19.0",
+    "sourceHashes": {
+      "server/http.ts": {
+        "originalSha256": "a8676294ab3527dd0d14bddda28ab7986782827e354bfb344de9112bd6337ce0",
+        "qualifiedSha256": "a385a665e71cdef1a80b3d1ad425b3f253e13d83fc22a9c92c187273b6f697ea"
+      },
+      "server/http.test.mts": {
+        "originalSha256": "3f8e205b1aad94932ecd32364f7bb91ca936c62439dd09d822c7c09a0c5a2c59",
+        "qualifiedSha256": "d6f753d4ea873916b110fcea6103e3f11c68156cf51be5ed15f2eb834737103f"
+      }
+    },
+    "sourceScope": {
+      "baselineTrackedFilesCompared": 1394,
+      "changedFiles": [
+        "server/http.test.mts",
+        "server/http.ts"
+      ],
+      "allOtherTrackedFileBytesUnchanged": true
+    },
+    "patchPath": "/tmp/portable-http-native-timeout-qualified-8537c1a-attempt2/qualified-native-timeout.patch",
+    "patchSha256": "d829fd5a6a0ddb876c40b9ad73c913c6f6417ee3f0ef2f511185aad1e1e8fd5c",
+    "actualApplyCheck": {
+      "exit": 0,
+      "actualApplyExit": 0,
+      "bothQualifiedSourceHashesMatchFreshAppliedCopy": true
+    },
+    "originalFailures": [
+      {
+        "path": "/tmp/portable-services-8537c1a-pr-verify-failed-attempt1.log",
+        "scope": "Remote native HTTP/static19 =18PASS1FAIL: original same-deadline incomplete cancellation response400 instead of408"
+      },
+      {
+        "path": "/tmp/portable-http-native-timeout-before-fix-attempt1.log",
+        "scope": "First new control had native header deadline1000 > request20; observed errors[] and laterFetchdeadline1000; fixture-only failure retained"
+      },
+      {
+        "path": "/tmp/portable-http-native-timeout-qualified-8537c1a-attempt2/control-original-production.log",
+        "exit": 1,
+        "cases": 1,
+        "failed": 1,
+        "scope": "Corrected matchednativeheader/request20 control against untouched8537production; actual ERR_HTTP_REQUEST_TIMEOUT code assertion passed, wire400failed408;37.60ms"
+      }
+    ],
+    "sourceCause": "Actual native Node HTTP connection-check expiry invokes clientError with ERR_HTTP_REQUEST_TIMEOUT; the custom listener previously mapped every nonheaderoverflow error to400. Its native deadline can win against the same-deadline Fetch timer.",
+    "sourceCorrection": "Map only ERR_HTTP_REQUEST_TIMEOUT to408 RequestTimeout; preserve malformedsyntax400/headeroverflow431/actualresponseempty/errorredaction/timeoutdefaults and originalsame-deadline test/assertions. New socketcontrol sets bothnativeheader/requestdeadline20 beforelisten, interval5, Fetchdeadline1000 and records actualnativecode.",
+    "actualQualification": [
+      {
+        "scope": "NativeHTTP+diskstatic complete files",
+        "cases": 20,
+        "pass": 20,
+        "fail": 0,
+        "exit": 0,
+        "durationMs": 823.361935,
+        "log": "full-http-static20.log"
+      },
+      {
+        "scope": "tsconfig.server.json",
+        "exit": 0,
+        "log": "server-strict.log"
+      },
+      {
+        "scope": "tsconfig.runtime-tests.json",
+        "exit": 0,
+        "log": "runtime-tests-strict.log"
+      }
+    ],
+    "logHashes": {
+      "control-original-production.log": "e95f044bce415bd37b00677ad0b41fc43d363976c00d37a4d5944e4b6e1d1d0b",
+      "full-http-static20.log": "d56ff436445cf34cfc809eeffa0b108bc30a6fedfd13fe769f344fa59ed81935",
+      "server-strict.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "runtime-tests-strict.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "runtimeWindowReleased": true,
+    "noCanonicalEdits": true,
+    "v26FrozenCandidateUnchanged": true,
+    "noClaims": [
+      "Whole15CI rerun",
+      "Provider/currentcheckpoint activation",
+      "V26 runtime/type qualification"
+    ]
+  },
+  "processingRetry": {
+    "before": "a5f87dea0c6c5abde94b2e4d7414ab4c728f0b051667fb84f9a960be717ab56e",
+    "after": "dfc89668cfaa373ea075cebc294bc21bb741018054cb1d3c1909186c6d89203c",
+    "change": "Wait for exact three accepted sample object identities after Retry; retain all assertions/default timeout/production source",
+    "actualMountedCases": 7,
+    "pass": 7,
+    "clientStrictExit": 0
+  },
+  "logHashes": {
+    "/tmp/phase5f-processing-retry-publication-mounted7-attempt1.log": "3931e8ce55b4a1edeb7cbebc22a0c7ec1f093748812b47e711c16d796b02e0f9",
+    "/tmp/phase5f-processing-retry-publication-client-types-attempt1.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/tmp/portable-foundation-fbeb421-postmerge-verify-failed-attempt1.log": "d8ea6ae7829ffde6417f462ec5a67a0b97de0ce7c4cf158483d8ca13ac3e13c4",
+    "/tmp/portable-services-8537c1a-pr-verify-failed-attempt1.log": "a381f3e1402af1fc9f7195f10d2f5af52bfad72bba7296067924ebc44dd71cb8"
+  },
+  "scope": "Own runtime/type scopes passed; complete new-head local/remote15 gates pending; no production/provider/current-schema activation"
+}

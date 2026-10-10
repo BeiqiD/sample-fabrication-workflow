@@ -209,6 +209,31 @@ test("caller-cancelled incomplete body retains the deadline and actual disconnec
   } finally { await stop(live.server); }
 });
 
+test("native HTTP upload deadline returns 408 when it expires before the Fetch owner deadline", async () => {
+  const signals: AbortSignal[] = [], errors: string[] = [];
+  const server = createNodeHttpServer(async request => {
+    signals.push(request.signal);
+    const reader = request.body!.getReader(); await reader.read();
+    await reader.cancel(); reader.releaseLock();
+    return new Response("accepted");
+  }, { publicOrigin: "https://qualified.example", timeoutMs: 1000 });
+  // Isolate Node's real parser/connection timeout path from the later Fetch
+  // timer. Set its connection-check interval before actual listen/HTTP ingress.
+  server.requestTimeout = 20;
+  server.headersTimeout = 20;
+  Reflect.set(server, "connectionsCheckingInterval", 5);
+  server.on("clientError", error => { errors.push((error as NodeJS.ErrnoException).code ?? ""); });
+  server.listen(0, "127.0.0.1"); await once(server, "listening");
+  const address = server.address(); assert(address && typeof address !== "string");
+  try {
+    const result = await raw(address.port, "POST /api/early HTTP/1.1\r\nHost: test\r\nContent-Length: 5\r\n\r\nx");
+    assert.deepEqual(errors, ["ERR_HTTP_REQUEST_TIMEOUT"], "Actual native deadline must win this control");
+    assert.match(result, /408 Request Timeout/); assert.doesNotMatch(result, /400 Bad Request|accepted/);
+    for (let i = 0; i < 100 && !signals[0]?.aborted; i++) await delay(2);
+    assert.equal(signals[0]?.aborted, true);
+  } finally { await stop(server); }
+});
+
 test("bounded header bytes/count and encoded target guards reject before application dispatch", async () => {
   let calls = 0;
   const live = await listening(() => { calls++; return new Response("wrong"); }, { maxHeaderBytes: 1024, maxHeaderCount: 4 });

@@ -3,13 +3,12 @@ import { fileAuthorityActiveSql, deletedEventAssetSql, deletedVerificationAssetS
 import { consumerFileBindingFence, resolveConsumerFileId } from "../files/consumer-binding";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { DEFAULT_SAMPLE_STATUS, isSampleStatus, MAX_SPLIT_PIECES, type CreateRecordInput, type DeleteSampleInput, type FileAssetMediaRef, type SampleDirectorySort, type SampleStatus, type SplitSampleInput } from "../../shared/types";
+import { isSampleStatus, MAX_SPLIT_PIECES, type CreateRecordInput, type FileAssetMediaRef, type SampleDirectorySort, type SampleStatus, type SplitSampleInput } from "../../shared/types";
 import { isSampleRecordEvent } from "../../shared/sample-records";
 import { prepareSplitInheritedState } from "../sample-split-state";
 import { sampleDetail, sampleEvent, sampleSummary } from "../serializers";
 import { escapedLikePattern } from "../request-guards";
-import { titleChangeAudit } from "../sample-update";
-import { validateCreateSampleInput, validateUpdateSampleInput } from "../sample-input";
+import { sampleMetadataHandlers } from "./metadata-worker";
 import { directoryFilterValue, likeBindings, paginationMeta, processingDirectoryFilter, readPagination, repeatedLikeSql, sampleDirectorySort, searchTokens } from "../directory-query";
 import { serializeCommentSubmissions, type CommentSubmissionItemRow, type CommentSubmissionRow } from "../comment-submission-serialization";
 import type { Env } from "../types";
@@ -437,34 +436,7 @@ routes.get("/samples", async (c) => {
   return response;
 });
 
-routes.post("/samples", async (c) => {
-  const validation = validateCreateSampleInput(await c.req.json<unknown>().catch(() => null));
-  if (!validation.ok) throw new HTTPException(400, { message: validation.error });
-  const input = validation.input;
-  const code = input.code.trim();
-  const title = input.title.trim();
-
-  const id = crypto.randomUUID();
-  const eventId = crypto.randomUUID();
-  const now = new Date().toISOString();
-  const userEmail = c.get("userEmail");
-  const status = input.status ?? DEFAULT_SAMPLE_STATUS;
-  try {
-    await c.env.DB.batch([
-      c.env.DB.prepare(
-        `INSERT INTO samples (id, code, title, description, status, location, created_by, updated_by, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      ).bind(id, code, title, input.description?.trim() || null, status, input.location?.trim() || null, userEmail, userEmail, now, now),
-      c.env.DB.prepare(
-        "INSERT INTO events (id, sample_id, kind, body, actor_email, created_at) VALUES (?, ?, 'created', ?, ?, ?)",
-      ).bind(eventId, id, `Sample ${code} created`, userEmail, now),
-    ]);
-  } catch (error) {
-    if (String(error).includes("UNIQUE")) throw new HTTPException(409, { message: `Sample code ${code} already exists` });
-    throw error;
-  }
-  return c.json({ id }, 201);
-});
+routes.post("/samples", sampleMetadataHandlers.create);
 
 routes.post("/samples/:id/split", async (c) => {
   const parentId = c.req.param("id");
@@ -929,128 +901,11 @@ routes.get("/samples/:id", async (c) => {
   });
 });
 
-routes.patch("/samples/:id", async (c) => {
-  const id = c.req.param("id");
-  const validation = validateUpdateSampleInput(await c.req.json<unknown>().catch(() => null));
-  if (!validation.ok) throw new HTTPException(400, { message: validation.error });
-  const input = validation.input;
-  const current = await c.env.DB.prepare(
-    `SELECT title, description, status, location, pinned, updated_at
-     FROM samples WHERE id = ? AND deleted_at IS NULL`,
-  ).bind(id).first<{ title: string; description: string | null; status: SampleStatus; location: string | null; pinned: number; updated_at: string }>();
-  if (!current) throw new HTTPException(404, { message: "Sample not found" });
-  if (current.updated_at !== input.expectedUpdatedAt) {
-    throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before saving." });
-  }
+routes.patch("/samples/:id", sampleMetadataHandlers.update);
 
-  const nextTitle = input.title === undefined ? current.title : input.title.trim();
-  const nextDescription = input.description === undefined ? current.description : input.description.trim() || null;
-  const nextStatus = input.status ?? current.status;
-  const nextLocation = input.location === undefined ? current.location : input.location.trim() || null;
-  const nextPinned = input.pinned === undefined ? Boolean(current.pinned) : input.pinned;
-  const changed = nextTitle !== current.title || nextDescription !== current.description || nextLocation !== current.location || nextStatus !== current.status || nextPinned !== Boolean(current.pinned);
-  if (!changed) return c.json({ ok: true, updatedAt: current.updated_at });
+routes.delete("/samples/:id", sampleMetadataHandlers.remove);
 
-  const now = new Date().toISOString();
-  const mutationId = crypto.randomUUID();
-  const titleAudit = titleChangeAudit(current.title, nextTitle);
-  const statements = [c.env.DB.prepare(
-    `UPDATE samples SET title = ?, description = ?, status = ?, location = ?, pinned = ?, updated_by = ?, last_mutation_id = ?, updated_at = ?
-     WHERE id = ? AND updated_at = ? AND deleted_at IS NULL`,
-  ).bind(nextTitle, nextDescription, nextStatus, nextLocation, nextPinned ? 1 : 0, c.get("userEmail"), mutationId, now, id, input.expectedUpdatedAt)];
-  if (titleAudit) statements.push(c.env.DB.prepare(
-      `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-       SELECT ?, id, 'comment', ?, ?, ?, ? FROM samples
-       WHERE id = ? AND last_mutation_id = ? AND deleted_at IS NULL`,
-    ).bind(
-      crypto.randomUUID(), titleAudit.body, JSON.stringify(titleAudit.metadata),
-      c.get("userEmail"), now, id, mutationId,
-    ));
-  const results = await c.env.DB.batch(statements);
-  if (!results[0].meta.changes) {
-    throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before saving." });
-  }
-  if (titleAudit && !results[1]?.meta.changes) throw new Error("Sample title audit event was not created");
-  return c.json({ ok: true, updatedAt: now });
-});
-
-routes.delete("/samples/:id", async (c) => {
-  const id = c.req.param("id");
-  const input = await c.req.json<DeleteSampleInput>().catch(() => null);
-  if (!input || typeof input.confirmationCode !== "string" || typeof input.expectedUpdatedAt !== "string") {
-    throw new HTTPException(400, { message: "The sample code and current revision are required" });
-  }
-  const sample = await c.env.DB.prepare(
-    `SELECT s.code, s.updated_at,
-            (SELECT COUNT(*) FROM runs r WHERE r.sample_id = s.id) AS run_count,
-            (SELECT COUNT(*) FROM run_steps rs JOIN runs r ON r.id = rs.run_id WHERE r.sample_id = s.id) AS step_count,
-            (SELECT COUNT(*) FROM events e WHERE e.sample_id = s.id) AS event_count,
-            (SELECT COUNT(*) FROM state_verifications sv WHERE sv.sample_id = s.id) AS verification_count,
-            (SELECT COUNT(*) FROM samples child WHERE child.parent_id = s.id) AS child_count
-     FROM samples s WHERE s.id = ? AND s.deleted_at IS NULL`,
-  ).bind(id).first<{
-    code: string; updated_at: string; run_count: number; step_count: number;
-    event_count: number; verification_count: number; child_count: number;
-  }>();
-  if (!sample) throw new HTTPException(404, { message: "Sample not found" });
-  if (input.confirmationCode !== sample.code) {
-    throw new HTTPException(400, { message: "The confirmation code does not match the sample code" });
-  }
-  if (input.expectedUpdatedAt !== sample.updated_at) {
-    throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before deleting." });
-  }
-
-  const now = new Date(Math.max(Date.now(), Date.parse(sample.updated_at) + 1)).toISOString();
-  const result = await c.env.DB.prepare(
-    `UPDATE samples
-     SET deleted_at = ?, deleted_by = ?, updated_by = ?, last_mutation_id = ?, updated_at = ?
-     WHERE id = ? AND code = ? AND updated_at = ? AND deleted_at IS NULL`,
-  ).bind(now, c.get("userEmail"), c.get("userEmail"), crypto.randomUUID(), now,
-    id, sample.code, sample.updated_at).run();
-  if (!result.meta.changes) {
-    throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before deleting." });
-  }
-  return c.json({
-    ok: true,
-    updatedAt: now,
-    deleted: {
-      runs: Number(sample.run_count),
-      steps: Number(sample.step_count),
-      events: Number(sample.event_count),
-      verifications: Number(sample.verification_count),
-      childrenDetached: 0,
-    },
-  });
-});
-
-routes.post("/samples/:id/restore", async (c) => {
-  const id = c.req.param("id");
-  const input = await c.req.json<DeleteSampleInput>().catch(() => null);
-  if (!input || typeof input.confirmationCode !== "string" || typeof input.expectedUpdatedAt !== "string") {
-    throw new HTTPException(400, { message: "The sample code and current revision are required" });
-  }
-  const sample = await c.env.DB.prepare(
-    "SELECT code, updated_at, deleted_at FROM samples WHERE id = ? AND deleted_at IS NOT NULL",
-  ).bind(id).first<{ code: string; updated_at: string; deleted_at: string }>();
-  if (!sample) throw new HTTPException(404, { message: "Deleted sample not found" });
-  if (input.confirmationCode !== sample.code) {
-    throw new HTTPException(400, { message: "The confirmation code does not match the sample code" });
-  }
-  if (input.expectedUpdatedAt !== sample.updated_at) {
-    throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before restoring." });
-  }
-  const now = new Date(Math.max(Date.now(), Date.parse(sample.updated_at) + 1)).toISOString();
-  const result = await c.env.DB.prepare(
-    `UPDATE samples
-     SET deleted_at = NULL, deleted_by = NULL, updated_by = ?, last_mutation_id = ?, updated_at = ?
-     WHERE id = ? AND code = ? AND updated_at = ? AND deleted_at = ?`,
-  ).bind(c.get("userEmail"), crypto.randomUUID(), now, id, sample.code,
-    sample.updated_at, sample.deleted_at).run();
-  if (!result.meta.changes) {
-    throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before restoring." });
-  }
-  return c.json({ ok: true, updatedAt: now });
-});
+routes.post("/samples/:id/restore", sampleMetadataHandlers.restore);
 
 routes.post("/samples/:id/records", async (c) => {
   const sampleId = c.req.param("id");
