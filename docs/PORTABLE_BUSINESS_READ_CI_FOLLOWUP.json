@@ -1,0 +1,28 @@
+{
+  "kind": "business-read-ports-ci-followup/1",
+  "firstHead": "21fc17362d94b7ede38279781626130ddcb4020a",
+  "failures": [
+    {
+      "event": "push",
+      "path": "/tmp/portable-business-21fc173-push-verify-failed-attempt1.log",
+      "sha256": "dd8e6582c9312b60fe68522ee92665b876750b9d3799c5427ef5dc945712da85",
+      "actualSummary": "Tests  1 failed | 3783 passed (3784)",
+      "error": "reference-page static contract still expected rawfetch; laterleaves skipped"
+    },
+    {
+      "event": "pr",
+      "path": "/tmp/portable-business-21fc173-pr-verify-failed-attempt1.log",
+      "sha256": "d90d57c8a08670f14ac8b3a6fe8d8541d07e9b38c7dde520ae047159b28798fc",
+      "actualSummary": "Tests  1 failed | 3783 passed (3784)",
+      "error": "reference-page static contract still expected rawfetch; laterleaves skipped"
+    }
+  ],
+  "change": "Require existing applicationFetch import and resolver call, preserving method/body/no-mutation checks",
+  "productionChange": false,
+  "localFollowup": "not yet run on business source; exact currentV25smoke separately qualified and adopted",
+  "completeGate": "new own-head Verify/Map required",
+  "source": {
+    "path": "src/reference-page.test.ts",
+    "sha256": "7bcfc842cfc18a0b5e42dadc6043e52a688a9e233c1c6639725953f3231da148"
+  }
+}
