@@ -1,8 +1,9 @@
 # Phase 5F Processing owner refresh checkpoint
 
 Date: 2026-10-10. Status: the bounded owner refresh change passes prototype and
-applied-source focused and full mounted/build qualification. Optimized real-browser measurement and
-the new committed head's full gate remain pending. This checkpoint does not
+applied-source focused and full mounted/build qualification. The committed
+implementation also passed the optimized actual-API browser measurement; the
+final candidate head's full remote gate remains pending. This checkpoint does not
 close all Phase 5F or establish a browser latency budget.
 
 ## Measured baseline
@@ -113,8 +114,8 @@ write payloads and Metrology callback capture across fresh Run objects and a
 replacement callback; the pending drawer waits for the original refresh.
 Grouped writes retain the no-argument full callback.
 
-At this checkpoint the implementation is applied but uncommitted on parent
-`aa497d9a1a304751ea7533548573a256799ef734`. The root's additional Metrology
+The implementation was committed as `a6dfd237a3cff90376bc5375a2bf318e3aa4f6a6`
+on development parent `aa497d9a1a304751ea7533548573a256799ef734`. The root's additional Metrology
 search accessibility label is included in the current Grid file. Applied
 source SHA256 values are:
 
@@ -139,11 +140,17 @@ and their limits are recorded above.
 - `/tmp/phase5f-refresh-live-focused.log`: `24a4f3c78e241cb38b928864cf1f759d43d95d3229391234759ddf3ae86760d7`
 - `/tmp/phase5f-processing-refresh-prototype-receipt.json`: exact prototype source, patch and artifact bindings.
 
-The next isolated actual-UI measurement must use fresh dedicated owners and
-the committed current build. It should demonstrate one Processing GET after
-single-owner correction, retain eight GETs after grouped confirmation, and
-check final accepted write state. Current-head full CI, the complete browser
-matrix and that optimized cost receipt remain required integration evidence.
+The fresh committed `ee1713393f5dea1f6bbd7a856c7586a8e517591c` build
+passed all six actual-UI cost phases with Processing GET counts **8,0,1,8,7,8**.
+Single-owner correction used one GET / **3,329 decoded bytes**, removing seven
+unrelated reads / **22,841 bytes**; grouped confirmation retained eight GETs.
+Both UI writes returned 200, all 39 browser API responses returned 200, and
+final actual API readback preserved the original plans and three Done / five
+Pending Steps. The adopted pipeline also passed its complete 20-case matrix,
+awaited disposal with exit 0, and final four-SQLite/FK/PNG checks. These results
+remain pinned to the exercised commit, with raw hashes and scope in
+[the current browser checkpoint](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md).
+The final candidate head still requires all default remote gates.
 The existing Map/Reading and 250/500 Save-cost acceptance remain separate
 finite measurements; this change does not add a batch placement protocol.
 
@@ -195,3 +202,10 @@ disposal with exit 0; it is not application/API/browser proof. The root-only
 failed probe and successful explicit-module-root probe are retained respectively
 under `/tmp/phase5f-module-root-probe-2topcN/` and
 `/tmp/phase5f-module-root-probe-pass-m0Cqqq/`.
+
+The first `ee17133` named Metrology attempt preserved a zero-case, zero-API
+preflight failure: its provenance check required `sourceTree`, which the
+launcher omitted from lifecycle identity. The bounded helper correction adds
+that field without weakening the check. Named-search/create/add/refresh
+qualification requires a fresh committed fixture after this correction; the
+historical placeholder-based cases do not qualify the native accessible name.

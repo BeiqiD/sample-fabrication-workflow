@@ -6,7 +6,7 @@ It does not declare Phase 6 complete or authorize a production release.
 
 ## Evidence identity and status rules
 
-- Current qualified implementation source:
+- Historical fully qualified implementation source:
   `af8f374cfbbade3282f2e686cc9f35d3c40adf4a`. All **12 local default**
   `npm run verify:ci` leaves passed, with no skips: native **355 tests**,
   source **366 files / 3,349 tests**, mounted **98 files / 945 tests**;
@@ -19,9 +19,20 @@ It does not declare Phase 6 complete or authorize a production release.
 - Observed implementation [PR #251](https://github.com/BeiqiD/sample-fabrication-workflow/pull/251)
   merge: `aa497d9a1a304751ea7533548573a256799ef734`, 2026-10-10 at
   13:30:26 UTC. Its tree `087749d12a3e3ad19473f1f4e63d29e1ecf1c269`
-  equals the validated `af8f374` tree. This records tree identity, not separate
-  post-merge CI or a serving/schema/provider acceptance result. Later changes
-  need their own checks.
+  equals the validated `af8f374` tree. Its post-merge Verify/Map checks and all
+  15 contexts subsequently passed, as did Workers Build `114224522096`.
+  Three anonymous routes still returned Access 302; serving/schema/provider
+  admission remains separate. Later changes need their own checks.
+- Open [PR #252](https://github.com/BeiqiD/sample-fabrication-workflow/pull/252):
+  applied UI source passed 100 mounted files / 966 tests and build. At
+  `ee1713393f5dea1f6bbd7a856c7586a8e517591c`, tree
+  `8f37485feb0328094738ada55da46a2a9c38aeaf`, the
+  [current local checkpoint](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md) passed
+  the adopted 20-case matrix, 84-request seed, six cost cases, 12 additional
+  Project scenario IDs, awaited controlled stop and four physical SQLite/FK
+  checks with exact PNG/original-state byte proof. Named Metrology remains
+  pending a fresh metadata-corrected fixture; final-head complete remote gates
+  remain pending. These bounded checks do not inherit the historical full gate.
 - Historical qualified source/document head: `4b2c660267b794d09798f961efe8d11ba6e1df86`;
   [Verify 37987949742](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37987949742)
   succeeded. This evidence belongs to that head, not subsequent changes.
@@ -41,13 +52,14 @@ It does not declare Phase 6 complete or authorize a production release.
 
 | Acceptance item | Current evidence and finite exit | Status |
 | --- | --- | --- |
-| Reviewed combined code/docs tree | #250 planning and #251 implementation are merged. Reviewed `af8f374` passed full local/default remote checks; observed integration `aa497d9` has its identical tree. Preserve exact receipts for later changes. | QUALIFIED_TREE / observed development merge |
+| Reviewed combined code/docs tree | #250 planning and #251 implementation are merged. Reviewed `af8f374` passed full local/default remote checks; observed integration `aa497d9` has its identical tree and post-merge checks passed. Open #252 has bounded current local evidence; its final-head complete gates remain pending. Preserve exact receipts for later changes. | QUALIFIED_TREE / observed development merge |
 | Frozen predecessor and paired migrations | 0001–0017 are unchanged from the integration baseline. Paired 0018/V21, 0019/V22, 0020/V23 and 0021–0022/V24 review and complete local/remote gates passed; retain frozen hashes/readers and fresh/populated coverage. Actual remote D1 migration receipts remain unknown. | QUALIFIED_TREE / OPEN_REMOTE |
 | Generated recovery schema | Historical fresh audit matched 119 tables and 1,115 schema objects without differences or FK violations. Relevant bytes were unchanged at audit checkpoint `8636973`; later complete `af8f374` migration/schema/export gates passed independently. | QUALIFIED_TREE |
 | Current export admission | Generation markers/columns distinguish V21–V24; stale writers return 409, incomplete generations fail closed, and validators require exact fingerprints/inventory. Canonical suites below passed at `af8f374`; authenticated actual serving-route checks remain open. | QUALIFIED_TREE / OPEN_REMOTE |
 | Nonempty recovery and preserved history | Native/legacy canonical tests passed with bytes, canonical cells, signed rowids, source identity and accepted provenance preserved through export/restore and repeated recovery. This local/native evidence does not qualify an actual deployed provider or provisioned target handoff. | QUALIFIED_TREE / OPEN_REMOTE |
 | Stale-tab deployment recovery | Explicit recovery passed actual-App mounted and full gates; [route recovery evidence](PHASE_6_ROUTE_RECOVERY_ACCEPTANCE.md) preserves pre-fix failures. [Built-Worker browser evidence](PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md) passed two one-shot 404/503 chunk failures, explicit keyboard reload and full URL retention. An actual old-document/new-serving-version handover is still required. | QUALIFIED_TREE / local browser passed / OPEN_REMOTE |
-| Integrated browser/input/data workflows | The isolated built-Worker matrix passed 20 cases, including real start/plan confirmations and 720/721/1200 light/dark mixed surfaces; two additional real Metrology pending-flow cases passed. The empty Metrology search accessible name and measured Processing refresh are pending bounded implementation. Physical-device/OS-input and authenticated deployment checks remain open. | Bounded browser passed / OPEN_IMPLEMENTATION / OPEN_REMOTE |
+| Integrated browser/input/data workflows | Historical 20-case matrix and two Metrology pending cases retain their versioned scope. Current `ee171339` adopted matrix passed 20 cases plus six cost cases and 12 additional Project scenario IDs; dirty/held/lost-ACK exact retries preserve original Projects, and controlled-stop/physical proof passed. Owner refresh and search label are implemented in open #252. | Bounded current browser passed / named Metrology and final-head gates pending / OPEN_REMOTE |
+| Next finite product repairs | Initial Project GET Retry characterization had 5 red / 1 pass; its candidate has 6 green mounted cases. Known three-owner group refresh has a private 29-test/type candidate for 8 → 3 reads. Both belong in separate reviewable PRs, with current-artifact qualification before integration. | OPEN_IMPLEMENTATION / candidate tests only |
 
 Fresh-schema audit SHA-256:
 `7783c42f0259f6b9b857a0e2860d4c754638faaa8e13500a4cd9ab953555f3d8`.
@@ -95,7 +107,7 @@ API action, or expose an unqualified operation merely because its UI is hidden.
 | Required evidence | Present checkpoint / exit |
 | --- | --- |
 | Legitimate authenticated development session | The post-merge curl checks of three development routes returned HTTP 302 to Cloudflare Access. No legitimate test identity/session was available; this does not qualify application health, readiness, data or authorization behavior. |
-| Actual development schema and serving code | Workers Build `114224522096` was in progress at the post-merge checkpoint. Record actual serving Worker/version and observed D1 receipts/schema for 0018–0022, then authenticated readiness, V24 export and stale-writer rejection. Even a successful build is insufficient. No manual remote migration is claimed by this ledger. |
+| Actual development schema and serving code | Workers Build `114224522096` succeeded after the post-merge checkpoint. Record actual serving Worker/version and observed D1 receipts/schema for 0018–0022, then authenticated readiness, V24 export and stale-writer rejection. Even a successful build is insufficient. No manual remote migration is claimed by this ledger. |
 | Independent runner cadence | Repository cron is `17 3 * * *` (daily), not a qualified two-minute runner. API `cadenceSeconds: 120` and a 60s step bound do not prove an installed cadence, heartbeat or deployed resource budget. |
 | Real providers and enabled operations | Local SQLite/native workerd and isolated provider witnesses establish runtime mechanics. Record actual R2/S3/managed-service identity, interruption/settlement and applicable resource limits for each proposed live operation before enabling it. |
 | Real devices and deployment handoff | Finish applicable physical-device, OS-input/IME and stale-document handoff scenarios against the reviewed serving version. Record failures and recovery outcomes rather than substituting emulation or manual refresh. |

@@ -16,12 +16,22 @@ descriptors and explicit route-load recovery. Their focused/full local evidence 
 [current Product checkpoint](PRODUCT_ROADMAP.md#current-checkpoint). The
 [autonomous goal](ROADMAP_AUTONOMOUS_DEVELOPMENT_GOAL.md) now authorizes continued
 development and reviewed integration. The
-[integrated built-Worker browser matrix](PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md)
-passed 20 cases, plus two real Metrology pending-flow cases. It found an empty
-Metrology search accessible name; that correction and measured Processing
-refresh scope are the next bounded slice. The post-merge Workers Build
-`114224522096` was in progress and three remote routes returned Access 302;
-authenticated/serving/schema and whole-phase device gates stay open.
+[historical integrated browser matrix](PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md)
+passed 20 cases plus two Metrology pending-flow cases at its recorded source.
+Open [PR #252](https://github.com/BeiqiD/sample-fabrication-workflow/pull/252)
+implements owner-scoped Processing refresh and the search label; its applied UI
+source passed 100 mounted files / 966 tests and build. The
+[current checkpoint](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md) records `ee171339`:
+20 adopted matrix cases, 84 actual API seed requests, six cost cases and 12
+additional Project scenario IDs, with dirty/held/lost-ACK exact retry and
+unchanged original Projects. Awaited service disposal and four physical
+SQLite/FK checks plus PNG/original-byte proof passed. The named Metrology pair
+awaits a fresh source-tree metadata correction, and final-head complete gates
+remain pending. Initial Project GET Retry and three-owner group refresh are
+next separate product slices with candidate tests, not current browser passes.
+Post-merge #251 Verify/Map and all 15 contexts and Workers Build
+`114224522096` succeeded; three anonymous routes still returned Access 302.
+Authenticated serving/schema and whole-phase device gates stay open.
 
 The historical 2026-09-13 Project/Worker checkpoint below remains evidence,
 not today's phase queue. C4's [local completion](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/PROJECT_C4_ACCEPTANCE.md),
@@ -549,12 +559,15 @@ Read-state, preview ownership, modal focus, narrow-grid, research control,
 Metrology session/read, projection and explicit route-recovery repairs are
 merged. The [integrated browser evidence](PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md)
 records real start/plan confirmations, mixed light/dark responsive surfaces and
-explicit keyboard chunk-error recovery. The next bounded slice repairs measured
-Processing refresh scope and the empty Metrology search accessible name.
+explicit keyboard chunk-error recovery. Open #252 implements owner refresh and
+the search label; [current local evidence](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md)
+records its matrix/cost/Project/physical checks. Fresh named Metrology and final
+gates remain pending; initial Project GET Retry and known three-owner group
+refresh are the next separate product slices.
 Whole-phase physical-input/authenticated/provider qualification remains open. See
 [the initial 5F goal](https://github.com/BeiqiD/sample-fabrication-workflow/blob/20176fc51d77301c58706d8ae0ff7d87ca6a8422/docs/PHASE_5F_DEVELOPMENT_GOAL.md)
 and the [Product checkpoint](./PRODUCT_ROADMAP.md#current-checkpoint) for bounded
-historical local results and current exact `af8f374` complete local/default remote
+historical local results and exact `af8f374` complete local/default remote
 qualification; do not replace live/provider/device evidence with those receipts.
 Divide the work into 5F-1 (cross-page semantics and action ownership),
 5F-2 (navigation, focus, fresh/old GETs, uncertain writes, permissions and

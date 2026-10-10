@@ -12,17 +12,24 @@ merged at `aa497d9a1a304751ea7533548573a256799ef734` on 2026-10-10 at
 13:30:26 UTC, preserving exact qualified `af8f374cfbbade3282f2e686cc9f35d3c40adf4a`
 tree `087749d12a3e3ad19473f1f4e63d29e1ecf1c269`. All 12 local default leaves,
 four remote Verify/Map runs and all 15 final status contexts passed at that source.
+The #251 post-merge Verify/Map checks and all 15 contexts also passed. Open
+[PR #252](https://github.com/BeiqiD/sample-fabrication-workflow/pull/252) has
+[current browser evidence](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md) at `ee171339`;
+its final-head complete remote gate remains pending.
 
 ## Working order
 
 1. Preserve the completed [Metrology pending/session slice](PHASE_5F_METROLOGY_ACCEPTANCE.md)
    and reviewed #251 integration. Retain migration ordering, V21–V24 recovery
    compatibility and distinct historical/current receipts.
-2. Complete the next bounded 5F slice: narrow Processing refresh to the measured
-   affected owners and repair the observed empty Metrology search accessible name.
-   The [integrated browser evidence](PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md)
-   records 20 passing built-Worker cases and two additional real Metrology
-   pending-flow cases; it does not close accessibility/device/live acceptance.
+2. Finish #252's owner-scoped Processing refresh and search-label slice.
+   Preserve `ee171339` 20-case matrix, 84-request seed, six cost cases and 12
+   additional Project scenario identities, plus awaited-stop and physical
+   DB/FK/PNG/original-byte receipts. Run the named Metrology pair on the fresh
+   source-tree metadata-corrected fixture and qualify the final head before
+   integration. Then use separate PRs for initial Project GET Retry and known
+   three-owner group refresh; candidate mounted/type tests are not actual
+   browser qualification.
 3. Complete the remaining bounded 5F language, navigation, read/retry/recovery
    and representative browser/responsive/theme checks. Repair observed defects;
    preserve domain identity, accepted-write semantics and mature grid geometry.
@@ -50,9 +57,8 @@ destructive recovery as a shortcut to acceptance.
 Authenticated remote testing needs a legitimate Cloudflare Access identity and
 the application's verified-email authorization. The current instance reaches an
 Access login redirect on three anonymously checked routes; that proves
-reachability, not application readiness. Workers Build `114224522096` was still
-in progress at the post-merge checkpoint. A
-Workers build success does not alone prove the deployed traffic version or D1
+reachability, not application readiness. Workers Build `114224522096`
+succeeded after merge. That success does not alone prove the deployed traffic version or D1
 migration state. Local implementation and isolated test work continue while
 those operational prerequisites are unavailable.
 

@@ -12,12 +12,17 @@ are merged; #251 landed at `aa497d9` on 2026-10-10 at 13:30:26 UTC.
 Its tree matches qualified source `af8f374`: all 12 local default verification
 leaves, four remote Verify/Map runs and all 15 final status contexts passed.
 This integrates FP2–FP5, C4/5D/5E and bounded 5F repairs into development.
-**5F remains in progress**: isolated built-Worker browser checks passed 20 cases,
-with two additional real Metrology pending-flow cases. The observed empty
-Metrology search accessible name and measured Processing refresh cost are the
-next bounded corrections. See [integrated browser evidence](./docs/PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md).
-The post-merge Workers Build `114224522096` was still in progress at this
-checkpoint; three anonymous remote routes returned Access 302 redirects.
+**5F remains in progress**. Open [PR #252](https://github.com/BeiqiD/sample-fabrication-workflow/pull/252)
+implements owner-scoped Processing refresh and the Metrology search label, and
+adopts the isolated QA pipeline. At `ee171339`, its built Worker passed the
+20-case matrix, 84-request seed, six Processing cost cases and 12 additional
+Project scenario identities; controlled disposal and physical DB/PNG checks passed.
+The named Metrology cases await the fresh source-tree metadata correction;
+final-head complete remote checks remain pending. See
+[current browser evidence](./docs/PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md) and
+[historical integrated evidence](./docs/PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md).
+The #251 post-merge Verify/Map checks and all 15 contexts succeeded; Workers
+Build `114224522096` succeeded. Three anonymous routes still returned Access 302.
 Actual serving code/schema, authenticated testing, providers and physical-device
 acceptance remain open. The last authenticated historical runtime was V20;
 the development integration contains V24. `main` has not received its first

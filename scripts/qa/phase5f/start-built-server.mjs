@@ -89,7 +89,7 @@ assert(Object.values(physical.results).length && Object.values(physical.results)
 const receiptPath = resolve(fixtureDirectory, 'isolated-server-receipt.json'), stopPath = resolve(fixtureDirectory, 'isolated-server-stop-receipt.json'), sessionPath = resolve(fixtureDirectory, 'isolated-server-session.json');
 for (const path of [receiptPath, stopPath, sessionPath, resolve(fixtureDirectory, 'actual-api-fixture-receipt.json'), resolve(fixtureDirectory, 'actual-api-fixture-session.json')]) await absent(path);
 await portClosed();
-const identity = { sourceRoot: isolation.sourceRoot, sourceCopyRoot: root, fixtureDirectory, sourceHead: isolation.sourceHead, sessionId: randomUUID(), sessionPid: process.pid, isolationReceiptSha256: isolationHash, fixtureManifestSha256: fixtureHash };
+const identity = { sourceRoot: isolation.sourceRoot, sourceCopyRoot: root, fixtureDirectory, sourceHead: isolation.sourceHead, sourceTree: isolation.sourceTree, sessionId: randomUUID(), sessionPid: process.pid, isolationReceiptSha256: isolationHash, fixtureManifestSha256: fixtureHash };
 await writeOnce(sessionPath, { version: 1, ...identity, reservedAt: new Date().toISOString() });
 const receipt = { version: 2, ...identity, copiedState: false, processWorkingDirectory: process.cwd(), runtimeRootPath: root, modulesRootPath: root, host: '127.0.0.1', port: 4219, authMode: 'disabled',
   d1DatabaseId: config.d1_databases[0].database_id, r2BucketName: config.r2_buckets[0].bucket_name,
