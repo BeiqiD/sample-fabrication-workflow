@@ -91,7 +91,7 @@ for (const path of [receiptPath, stopPath, sessionPath, resolve(fixtureDirectory
 await portClosed();
 const identity = { sourceRoot: isolation.sourceRoot, sourceCopyRoot: root, fixtureDirectory, sourceHead: isolation.sourceHead, sessionId: randomUUID(), sessionPid: process.pid, isolationReceiptSha256: isolationHash, fixtureManifestSha256: fixtureHash };
 await writeOnce(sessionPath, { version: 1, ...identity, reservedAt: new Date().toISOString() });
-const receipt = { version: 2, ...identity, copiedState: false, host: '127.0.0.1', port: 4219, authMode: 'disabled',
+const receipt = { version: 2, ...identity, copiedState: false, processWorkingDirectory: process.cwd(), runtimeRootPath: root, modulesRootPath: root, host: '127.0.0.1', port: 4219, authMode: 'disabled',
   d1DatabaseId: config.d1_databases[0].database_id, r2BucketName: config.r2_buckets[0].bucket_name,
   persistRoot: resolve(root, '.wrangler/state'), namespace, helperSha256: sha(await readFile(new URL(import.meta.url))),
   workerSha256: sha(await readFile(artifact.scriptPath)), configSha256: sha(await readFile(configPath)), activeBuildConfigSha256: active.configSha256,
@@ -100,7 +100,7 @@ const receipt = { version: 2, ...identity, copiedState: false, host: '127.0.0.1'
 let runtime;
 try {
   const { Miniflare, Log, LogLevel } = createRequire(resolve(root, 'package.json'))('miniflare');
-  runtime = new Miniflare({ ...artifact, modules: true, host: '127.0.0.1', port: 4219, bindings: config.vars,
+  runtime = new Miniflare({ ...artifact, rootPath: root, modulesRoot: root, modules: true, host: '127.0.0.1', port: 4219, bindings: config.vars,
     d1Databases: { DB: config.d1_databases[0].database_id }, d1Persist: resolve(root, '.wrangler/state/v3/d1'),
     r2Buckets: { ASSETS: config.r2_buckets[0].bucket_name }, r2Persist: resolve(root, '.wrangler/state/v3/r2'), log: new Log(LogLevel.ERROR) });
   const ready = await runtime.ready; assert.equal(new URL(ready.href).origin, 'http://127.0.0.1:4219');
@@ -114,8 +114,9 @@ try {
   await writeOnce(receiptPath, receipt);
   console.log(JSON.stringify({ status: 'ready', baseUrl: ready.href, receiptPath, sourceHead: receipt.sourceHead, sessionId: identity.sessionId, control: 'Send stop on stdin and await exit.' }));
 } catch (error) {
-  if (runtime) await runtime.dispose();
-  Object.assign(receipt, { status: 'failed', error: error.message, completedAt: new Date().toISOString() });
+  let cleanupError;
+  if (runtime) { try { await runtime.dispose(); } catch (failure) { cleanupError = failure.message; } }
+  Object.assign(receipt, { status: 'failed', error: error.message, ...(cleanupError ? { cleanupError } : {}), completedAt: new Date().toISOString() });
   await writeOnce(receiptPath, receipt); throw error;
 }
 const input = createInterface({ input: process.stdin, crlfDelay: Infinity });

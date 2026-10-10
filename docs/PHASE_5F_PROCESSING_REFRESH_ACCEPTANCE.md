@@ -180,3 +180,18 @@ helper-function evidence, not application/browser qualification. Its receipt is
 `/tmp/phase5f-checker-snapshot-manual-pass-9nel7n7s/snapshot-receipt.json`;
 the initial strict `/proc` inspection rejection is retained separately in
 `/tmp/phase5f-checker-snapshot-manual-s82r5a3g/manual-attempt1-failed.json`.
+
+The `ff2a113f5831361c8a4c3a6287a413bae41df96b` attempt passed the corrected
+pre-API physical check, then failed Worker startup before API/browser writes:
+Miniflare defaulted module resolution to the caller directory outside the copy.
+Startup cleanup also rejected, so the original launcher did not produce its
+failed ready receipt. The separate observation preserves that missing-receipt
+fact, dead process and refused port in
+`/tmp/phase5f-ff2a113-fixture/isolated-server-startup-observation-failed.json`.
+The bounded launcher now fixes both runtime and module roots to the copy and
+preserves startup failure even when disposal fails. A private module/relative-
+import probe served HTTP 200 from an unrelated caller directory and awaited
+disposal with exit 0; it is not application/API/browser proof. The root-only
+failed probe and successful explicit-module-root probe are retained respectively
+under `/tmp/phase5f-module-root-probe-2topcN/` and
+`/tmp/phase5f-module-root-probe-pass-m0Cqqq/`.
