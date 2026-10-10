@@ -1140,8 +1140,10 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, onAttachmentC
     if (!eligible.length) return;
     setPendingAction(`confirm:${rowKey}`); setError("");
     try {
-      await api.confirmRunSteps({ targets: eligible.map(({ column, step }) => target(column, step)) });
-      await onSaved();
+      const targets = eligible.map(({ column, step }) => target(column, step));
+      const affectedSampleIds = [...new Set(targets.map(({ sampleId }) => sampleId))];
+      await api.confirmRunSteps({ targets });
+      await onSaved(affectedSampleIds);
     } catch (error) { setError((error as Error).message); }
     finally { setPendingAction(null); }
   }
