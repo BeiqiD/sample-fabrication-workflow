@@ -598,9 +598,15 @@ function MetrologyPickerDrawer({ state, onClose, onSaved }: {
   onClose: () => void;
   onSaved: () => Promise<void>;
 }) {
-  const [templates, setTemplates] = useState<MetrologyTemplateSummary[]>([]);
-  const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
+  const [readAttempt, setReadAttempt] = useState(0);
+  const readKey = JSON.stringify([query, readAttempt]);
+  const [templateRead, setTemplateRead] = useState<{
+    key: string; templates: MetrologyTemplateSummary[]; loading: boolean; error: string;
+  }>({ key: readKey, templates: [], loading: true, error: "" });
+  const templates = templateRead.key === readKey ? templateRead.templates : [];
+  const loading = templateRead.key !== readKey || templateRead.loading;
+  const readError = templateRead.key === readKey ? templateRead.error : "";
   const [creating, setCreating] = useState(false);
   const [savingPhase, setSavingPhase] = useState<"create" | "add" | "refresh" | null>(null);
   const [savingId, setSavingId] = useState("");
@@ -624,22 +630,24 @@ function MetrologyPickerDrawer({ state, onClose, onSaved }: {
   }, []);
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
+    setTemplateRead({ key: readKey, templates: [], loading: true, error: "" });
     const timeout = window.setTimeout(() => {
       api.listMetrologyTemplates({ query, pageSize: 50, signal: controller.signal }).then(({ templates }) => {
-        setTemplates(templates);
-        setError("");
+        if (!controller.signal.aborted) setTemplateRead({ key: readKey, templates, loading: false, error: "" });
       }).catch((error: Error) => {
-        if (error.name !== "AbortError") setError(error.message);
+        if (!controller.signal.aborted && error.name !== "AbortError") {
+          setTemplateRead({ key: readKey, templates: [], loading: false, error: error.message });
+        }
       }).finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
+        if (!controller.signal.aborted) setTemplateRead((current) => current.key === readKey
+          ? { ...current, loading: false } : current);
       });
     }, query.trim() ? 160 : 0);
     return () => {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [query]);
+  }, [query, readKey]);
 
   function begin(phase: "create" | "add", templateVersionId = "") {
     if (!sessionRef.current || operationRef.current || !state.column.run) return null;
@@ -713,8 +721,9 @@ function MetrologyPickerDrawer({ state, onClose, onSaved }: {
             <span>{savingId === template.id ? "Adding…" : "Add"}</span>
           </button>)}
           {loading && !templates.length && <p className="muted">Loading metrology templates…</p>}
-          {!loading && !templates.length && <p className="muted">No matching metrology templates.</p>}
+          {!loading && !templates.length && !readError && <p className="muted">No matching metrology templates.</p>}
         </div>
+        {readError && <div><p className="error-banner" role="alert">{readError}</p><button type="button" className="button" disabled={saving} onClick={() => setReadAttempt((attempt) => attempt + 1)}>Retry templates</button></div>}
         <button type="button" className="button wide" disabled={saving} onClick={() => setCreating(true)}>Create new metrology template</button>
       </>}
       {error && <p className="error-banner">{error}</p>}
