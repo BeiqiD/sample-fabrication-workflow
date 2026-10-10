@@ -97,3 +97,15 @@ measured performance, enabled-scope 6A6/6B, real devices/IME/other engines,
 authenticated deployment, real providers, operational recovery and release
 acceptance remain open. Historical archive readers, migrations, authorization,
 provider selection and accepted-operation protocols are preserved.
+
+## Continuation on 2026-10-10 (UTC)
+
+The checkpoint above is historical. PR #250 was merged at `541eedb`; the current
+autonomous development scope includes reviewed integration merges into
+`v2/backend-foundation`. The bounded [Metrology pending/session goal](PHASE_5F_METROLOGY_GOAL.md)
+is locally complete, with subsequent picker/standalone and projection fixes
+recorded in their acceptance documents. Current program status is tracked by
+[the autonomous goal](ROADMAP_AUTONOMOUS_DEVELOPMENT_GOAL.md) and
+[the Phase 6 acceptance ledger](PHASE_6_INTEGRATION_ACCEPTANCE_LEDGER.md); current
+combined-tree and deployment qualification must not be inferred from this older
+checkpoint.

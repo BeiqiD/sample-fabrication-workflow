@@ -1,8 +1,9 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { Navigate, NavLink, Route, Routes } from "react-router-dom";
+import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { REFERENCE_ROUTE_PATTERN } from "../shared/reference-destinations";
 import { ActionIcon } from "./components/ActionIcon";
 import { NavigationIcon, type NavigationIconName } from "./components/NavigationIcon";
+import { RouteErrorBoundary } from "./components/RouteErrorBoundary";
 import "./reference-search.css";
 
 const SamplesPage = lazy(() => import("./pages/SamplesPage").then((module) => ({ default: module.SamplesPage })));
@@ -40,6 +41,7 @@ const primaryNavigation: Array<{ to: string; label: string; icon: NavigationIcon
 ];
 
 export function App() {
+  const location = useLocation();
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     const saved = window.localStorage.getItem("sample-workflow-theme");
     if (saved === "light" || saved === "dark") return saved;
@@ -82,7 +84,8 @@ export function App() {
         </div>
       </header>
       <main>
-        <Suspense fallback={<div className="page route-loading"><p className="muted">Loading…</p></div>}>
+        <RouteErrorBoundary resetKey={location.pathname}>
+          <Suspense fallback={<div className="page route-loading"><p className="muted">Loading…</p></div>}>
           <Routes>
             <Route path="/" element={<Navigate to="/processing" replace />} />
             <Route path={REFERENCE_ROUTE_PATTERN} element={<ReferencePage />} />
@@ -109,7 +112,8 @@ export function App() {
             <Route path="/maintenance/file-evidence" element={<FileEvidencePage />} />
             <Route path="/maintenance/file-authority" element={<FileAuthorityPage />} />
           </Routes>
-        </Suspense>
+          </Suspense>
+        </RouteErrorBoundary>
       </main>
     </div>
   );
