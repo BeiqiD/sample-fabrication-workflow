@@ -115,6 +115,100 @@ test("application endpoint-specific body rejection stays stricter than the trans
   } finally { await stop(live.server); }
 });
 
+test("caller-cancelled chunked body preserves an endpoint 413 without aborting its Fetch signal", async () => {
+  let signal: AbortSignal | undefined;
+  const live = await listening(async request => {
+    signal = request.signal;
+    const reader = request.body!.getReader();
+    try {
+      let bytes = 0;
+      while (bytes <= 4096) { const part = await reader.read(); assert.equal(part.done, false); bytes += part.value!.byteLength; }
+      return new Response("Endpoint credential limit", { status: 413 });
+    } finally { await reader.cancel(); reader.releaseLock(); }
+  }, { maxBodyBytes: 8192 });
+  try {
+    const body = "x".repeat(4097);
+    const result = await raw(live.port, `POST /api/login HTTP/1.1\r\nHost: test\r\nConnection: close\r\nTransfer-Encoding: chunked\r\n\r\n${body.length.toString(16)}\r\n${body}\r\n0\r\n\r\n`);
+    assert.match(result, /413 Payload Too Large/); assert.match(result, /Endpoint credential limit/);
+    assert.equal(signal?.aborted, false);
+  } finally { await stop(live.server); }
+});
+
+test("caller-cancelled bounded body drains before success and does not hide an unrelated handler error", async () => {
+  let cancelled = false, responseReceived = false;
+  let signal: AbortSignal | undefined;
+  const live = await listening(async request => {
+    signal = request.signal;
+    const reader = request.body!.getReader(); await reader.read();
+    await reader.cancel(new Error("private caller reason")); reader.releaseLock(); cancelled = true;
+    if (new URL(request.url).pathname === "/api/fault") throw new Error("private handler fault");
+    return new Response("accepted");
+  }, { maxBodyBytes: 8 });
+  try {
+    const request = httpRequest(`${live.base}/api/early`, { method: "POST" });
+    const answer = new Promise<{ status: number; text: string }>((resolve, reject) => {
+      request.on("response", response => { responseReceived = true; let text = "";
+        response.on("data", chunk => { text += chunk; }); response.on("end", () => resolve({ status: response.statusCode!, text })); });
+      request.on("error", reject);
+    });
+    request.write("1234");
+    for (let i = 0; i < 100 && !cancelled; i++) await delay(2);
+    assert.equal(cancelled, true); await delay(20);
+    assert.equal(responseReceived, false, "Success still waits for the complete HTTP upload");
+    request.end("5678"); assert.deepEqual(await answer, { status: 200, text: "accepted" });
+    assert.equal(signal?.aborted, false);
+    const fault = await fetch(`${live.base}/api/fault`, { method: "POST", body: "1234" });
+    assert.equal(fault.status, 500); assert.equal(await fault.text(), "Request failed");
+  } finally { await stop(live.server); }
+});
+
+test("caller-cancelled body still counts later bytes and cannot ACK before upload completion", async () => {
+  let cancelled = false, responseReceived = false;
+  const live = await listening(async request => {
+    const reader = request.body!.getReader(); await reader.read();
+    await reader.cancel(new Error("private caller reason")); reader.releaseLock(); cancelled = true;
+    return new Response("accepted");
+  }, { maxBodyBytes: 8 });
+  try {
+    const request = httpRequest(`${live.base}/api/early`, { method: "POST" });
+    const answer = new Promise<{ status: number; text: string }>((resolve, reject) => {
+      request.on("response", response => { responseReceived = true; let text = "";
+        response.on("data", chunk => { text += chunk; }); response.on("end", () => resolve({ status: response.statusCode!, text })); });
+      request.on("error", reject);
+    });
+    request.write("1234");
+    for (let i = 0; i < 100 && !cancelled; i++) await delay(2);
+    assert.equal(cancelled, true); await delay(20);
+    assert.equal(responseReceived, false, "Consumer cancellation does not finish the HTTP upload");
+    request.end("56789");
+    assert.deepEqual(await answer, { status: 413, text: "Request body exceeds the runtime limit" });
+  } finally { await stop(live.server); }
+});
+
+test("caller-cancelled incomplete body retains the deadline and actual disconnect abort", async () => {
+  const signals: AbortSignal[] = [];
+  let cancellations = 0;
+  const live = await listening(async request => {
+    signals.push(request.signal);
+    const reader = request.body!.getReader(); await reader.read();
+    await reader.cancel(); reader.releaseLock(); cancellations++;
+    return new Response("accepted");
+  }, { timeoutMs: 100 });
+  try {
+    const result = await raw(live.port, "POST /api/early HTTP/1.1\r\nHost: test\r\nContent-Length: 5\r\n\r\nx");
+    assert.match(result, /408 Request Timeout/); assert.doesNotMatch(result, /accepted/);
+    assert.equal(signals[0]?.aborted, true);
+    const socket = createConnection({ host: "127.0.0.1", port: live.port });
+    socket.on("error", () => undefined); await once(socket, "connect");
+    socket.write("POST /api/early HTTP/1.1\r\nHost: test\r\nContent-Length: 5\r\n\r\nx");
+    for (let i = 0; i < 100 && cancellations < 2; i++) await delay(2);
+    assert.equal(cancellations, 2);
+    socket.destroy(); await once(socket, "close");
+    for (let i = 0; i < 100 && !signals[1]?.aborted; i++) await delay(2);
+    assert.equal(signals[1]?.aborted, true);
+  } finally { await stop(live.server); }
+});
+
 test("bounded header bytes/count and encoded target guards reject before application dispatch", async () => {
   let calls = 0;
   const live = await listening(() => { calls++; return new Response("wrong"); }, { maxHeaderBytes: 1024, maxHeaderCount: 4 });

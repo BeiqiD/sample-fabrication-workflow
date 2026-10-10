@@ -9,9 +9,12 @@ The new foundation adds the separately qualified independent Node client build
 and bounded immutable canonical-SQL memo; no final integrated-gate pass is claimed.
 Current required CI/development-deployment plan has15 unique leaves and15 public
 contexts. The fourteen-leaf preparation below is historical at original7c.
-A private composed Node fixture additionally exposed legitimate endpoint body
-cancellation masking413 as500; that transport repair must qualify before this
-new foundation is pushed or merged. RT1–RT6 remain open.
+A private composed Node fixture exposed endpoint body cancellation masking413
+as500. The reviewed transport repair passed original15+4 actualsocket scopes;
+root applied types and19 HTTP/static cases passed. Separately auth14 and the
+partial prototype8 passed, with the original7/8 attempt retained.
+[Cancellation evidence](NODE_HTTP_CALLER_CANCELLATION_ACCEPTANCE.md) states
+the exact scopes and remaining integrated gate. RT1–RT6 remain open.
 
 The adoption source is based on `989f1b6ee0b594ddd5492bd890897fc63ca3ef11`.
 [PR #252](https://github.com/BeiqiD/sample-fabrication-workflow/pull/252)

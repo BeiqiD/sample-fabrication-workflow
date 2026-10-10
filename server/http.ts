@@ -5,6 +5,9 @@ export type FetchHandler = (request: Request) => Promise<Response> | Response;
 export type NodeHttpOptions = {
   /** Deployment-owned origin; Host and forwarding headers never select it. */
   publicOrigin: string;
+  /** Trusted composition-owned admission of this exact request and actual ingress.
+   * Returning a fixed denial prevents handler dispatch; omitted keeps transport behavior. */
+  requestAdmission?: (request: Request, incoming: IncomingMessage, server: Server) => void | Response;
   maxBodyBytes?: number;
   maxHeaderBytes?: number;
   maxHeaderCount?: number;
@@ -110,6 +113,7 @@ export function createNodeHttpServer(handler: FetchHandler, options: NodeHttpOpt
   if (!["http:", "https:"].includes(origin.protocol) || origin.username || origin.password
     || origin.pathname !== "/" || origin.search || origin.hash) throw new Error("Configure a public origin without credentials or path");
   const publicOrigin = origin.origin;
+  const requestAdmission = options.requestAdmission;
   const maxBodyBytes = positive(options.maxBodyBytes ?? 100 * 1024 * 1024, "maxBodyBytes");
   const maxHeaderBytes = positive(options.maxHeaderBytes ?? 16 * 1024, "maxHeaderBytes");
   const maxHeaderCount = positive(options.maxHeaderCount ?? 128, "maxHeaderCount");
@@ -171,18 +175,48 @@ export function createNodeHttpServer(handler: FetchHandler, options: NodeHttpOpt
       const init: RequestInit & { duplex?: "half" } = { method, headers, signal: controller.signal };
       if (hasBody) {
         limiter = new PassThrough({ highWaterMark: 64 * 1024 });
+        const bodyStream = limiter;
+        // A Fetch consumer may stop reading (for example after its smaller
+        // credential limit). Only this privately owned cancellation ends the
+        // downstream stream; the HTTP upload still counts and drains to EOF.
+        const consumptionEnded = new Error("Fetch body consumption ended");
         // Count at IncomingMessage, including bytes queued in a downstream
         // writable buffer if the handler returns without reading its body.
         incoming.on("data", (chunk: Buffer) => {
           try { count(chunk); } catch (error) { incoming.pause(); limiter?.destroy(error as Error); fail(error as Error); }
         });
-        limiter.on("error", (error) => { incoming.unpipe(limiter); incoming.pause(); fail(error); });
-        init.body = Readable.toWeb(limiter) as ReadableStream<Uint8Array>; init.duplex = "half";
+        limiter.on("error", (error) => {
+          if (error === consumptionEnded) return;
+          incoming.unpipe(bodyStream); incoming.pause(); fail(error);
+        });
+        const reader = (Readable.toWeb(limiter) as ReadableStream<Uint8Array>).getReader();
+        let consumptionCancelled = false;
+        init.body = new ReadableStream<Uint8Array>({
+          async pull(body) {
+            try {
+              const next = await reader.read();
+              if (consumptionCancelled) return;
+              if (next.done) { body.close(); reader.releaseLock(); }
+              else body.enqueue(next.value);
+            } catch (error) {
+              if (consumptionCancelled) return;
+              reader.releaseLock(); body.error(error);
+            }
+          },
+          async cancel() {
+            consumptionCancelled = true;
+            incoming.unpipe(bodyStream); incoming.resume();
+            try { await reader.cancel(consumptionEnded); }
+            finally { reader.releaseLock(); }
+          },
+        }, { highWaterMark: 0 });
+        init.duplex = "half";
         incoming.pipe(limiter);
       }
       const request = new Request(publicOrigin + target, init);
       if (continueRequested) outgoing.writeContinue();
-      const applicationResponse = Promise.resolve(handler(request)).then(response => {
+      const admitted = requestAdmission?.(request, incoming, server);
+      const applicationResponse = Promise.resolve(admitted instanceof Response ? admitted : handler(request)).then(response => {
         if (controller.signal.aborted) {
           void response.body?.cancel().catch(() => undefined);
           throw controller.signal.reason;
