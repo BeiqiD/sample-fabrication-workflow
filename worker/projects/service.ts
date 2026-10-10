@@ -20,14 +20,11 @@ import type {
   UpdateProjectPlacementInput,
 } from "../../shared/project-api";
 import {
-  MAX_REFERENCE_RESOLUTION_TARGETS,
-  type ReferenceResolution,
   type ReferenceTarget,
   type ReferenceTargetType,
 } from "../../shared/reference-types";
 import {
   MAX_PROJECT_SAFE_INTEGER,
-  PROJECT_SCHEMA_VERSION,
 } from "../../shared/project-types";
 import type { BlobLocator } from "../blob-lifecycle/types";
 import { consumerFileBindingFence, resolveConsumerFileId } from "../files/consumer-binding";
@@ -36,7 +33,6 @@ import {
   referenceRegistrationStatements,
 } from "../references/registry";
 import {
-  referenceTargetKey,
   resolveReferences,
 } from "../references/resolver";
 import {
@@ -54,21 +50,10 @@ import {
   type ProjectRow,
 } from "./serializers";
 
-export type ProjectServiceErrorCode =
-  | "not_found"
-  | "conflict"
-  | "reference_unavailable"
-  | "blob_unavailable";
-
-export class ProjectServiceError extends Error {
-  constructor(
-    readonly code: ProjectServiceErrorCode,
-    message: string,
-  ) {
-    super(message);
-    this.name = "ProjectServiceError";
-  }
-}
+import { ProjectServiceError } from "./errors";
+export { ProjectServiceError, type ProjectServiceErrorCode } from "./errors";
+import { d1ProjectReadDatabase } from "./read-d1";
+import { listProjects as listProjectsRead, readProjectSnapshot as readProjectSnapshotRead } from "./read-service";
 
 type ReferenceRegistryRow = {
   id: string;
@@ -420,16 +405,8 @@ async function returnCreateReplayOrConflict(
   conflict("A Project identity or operation ID was already used for different content");
 }
 
-export async function listProjects(
-  db: D1Database,
-  includeDeleted = false,
-): Promise<ProjectListResponse> {
-  const result = await db.prepare(`
-    SELECT * FROM projects
-    WHERE (? = 1 OR deleted_at IS NULL)
-    ORDER BY (deleted_at IS NOT NULL), updated_at DESC, id
-  `).bind(includeDeleted ? 1 : 0).all<ProjectRow>();
-  return { projects: result.results.map(serializeProject) };
+export async function listProjects(db: D1Database, includeDeleted = false): Promise<ProjectListResponse> {
+  return listProjectsRead(d1ProjectReadDatabase(db), includeDeleted);
 }
 
 export async function createProject(
@@ -575,105 +552,8 @@ export async function restoreProject(
   return { project: serializeProject(updated), replayed: false };
 }
 
-export async function readProjectSnapshot(
-  db: D1Database,
-  projectId: string,
-  includeDeleted = false,
-): Promise<ProjectSnapshot> {
-  const results = await db.batch([
-    db.prepare(`
-      SELECT * FROM projects
-      WHERE id = ? AND (? = 1 OR deleted_at IS NULL)
-      LIMIT 1
-    `).bind(projectId, includeDeleted ? 1 : 0),
-    db.prepare(`
-      SELECT pc.*
-      FROM project_contents pc
-      JOIN project_items pi ON pi.project_content_id = pc.id
-      WHERE pc.project_id = ?
-    AND (? = 1 OR (pc.deleted_at IS NULL AND pi.deleted_at IS NULL))
-  ORDER BY pi.created_sequence, pc.id
-`).bind(projectId, includeDeleted ? 1 : 0),
-    db.prepare(`
-      SELECT pca.*, pc.project_id
-      FROM project_content_attachments pca
-      JOIN project_contents pc ON pc.id = pca.project_content_id
-      JOIN project_items pi ON pi.project_content_id = pc.id
-      WHERE pc.project_id = ?
-    AND (? = 1 OR (pc.deleted_at IS NULL AND pi.deleted_at IS NULL))
-  ORDER BY pi.created_sequence, pca.project_content_id
-`).bind(projectId, includeDeleted ? 1 : 0),
-    db.prepare(`
-      SELECT * FROM project_items
-  WHERE project_id = ? AND (? = 1 OR deleted_at IS NULL)
-  ORDER BY created_sequence, id
-`).bind(projectId, includeDeleted ? 1 : 0),
-    db.prepare(`
-      SELECT pmp.*
-      FROM project_map_placements pmp
-      JOIN project_items pi ON pi.id = pmp.project_item_id
-      WHERE pi.project_id = ? AND (? = 1 OR pi.deleted_at IS NULL)
-  ORDER BY pi.created_sequence, pmp.id
-`).bind(projectId, includeDeleted ? 1 : 0),
-    db.prepare(`
-      SELECT pe.*
-      FROM project_edges pe
-      JOIN project_items source ON source.id = pe.source_item_id
-      JOIN project_items target ON target.id = pe.target_item_id
-      WHERE pe.project_id = ?
-    AND (? = 1 OR (
-      pe.deleted_at IS NULL
-      AND source.deleted_at IS NULL
-      AND target.deleted_at IS NULL
-    ))
-  ORDER BY pe.created_at, pe.id
-`).bind(projectId, includeDeleted ? 1 : 0),
-    db.prepare(`
-      SELECT DISTINCT rt.id, rt.target_type, rt.target_id
-      FROM project_items pi
-      JOIN reference_targets rt ON rt.id = pi.reference_target_id
-      WHERE pi.project_id = ? AND (? = 1 OR pi.deleted_at IS NULL)
-  ORDER BY rt.target_type, rt.target_id
-`).bind(projectId, includeDeleted ? 1 : 0),
-  ]);
-
-  const project = resultRows<ProjectRow>(results[0])[0];
-  if (!project) notFound("Project not found");
-  const registryRows = resultRows<ReferenceRegistryRow>(results[6]);
-  const targets: ReferenceTarget[] = registryRows.map((row) => ({
-    type: row.target_type,
-    id: row.target_id,
-  }));
-  const resolutionsByTarget = new Map<string, ReferenceResolution>();
-  // A Project, including accumulated Trash, can exceed one resolver batch.
-  // Resolve sequentially to keep source queries bounded without changing the
-  // public resolver limit or the snapshot's stable registry ordering.
-  for (let offset = 0; offset < targets.length; offset += MAX_REFERENCE_RESOLUTION_TARGETS) {
-    const resolutions = await resolveReferences(
-      db,
-      targets.slice(offset, offset + MAX_REFERENCE_RESOLUTION_TARGETS),
-    );
-    for (const resolution of resolutions) {
-      resolutionsByTarget.set(referenceTargetKey(resolution.target), resolution);
-    }
-  }
-
-  return {
-    schemaVersion: PROJECT_SCHEMA_VERSION,
-    project: serializeProject(project),
-    contents: resultRows<ProjectContentRow>(results[1]).map(serializeProjectContent),
-    attachments: resultRows<ProjectAttachmentRow>(results[2]).map(serializeProjectAttachment),
-    items: resultRows<ProjectItemRow>(results[3]).map(serializeProjectItem),
-    placements: resultRows<ProjectPlacementRow>(results[4]).map(serializeProjectPlacement),
-    edges: resultRows<ProjectEdgeRow>(results[5]).map(serializeProjectEdge),
-    references: registryRows.map((row) => ({
-      registryId: row.id,
-      resolution: resolutionsByTarget.get(referenceTargetKey({
-        type: row.target_type,
-        id: row.target_id,
-      })) as ReferenceResolution,
-    })),
-  };
+export async function readProjectSnapshot(db: D1Database, projectId: string, includeDeleted = false): Promise<ProjectSnapshot> {
+  return readProjectSnapshotRead(d1ProjectReadDatabase(db), projectId, includeDeleted);
 }
 
 export async function createMarkdownProjectItem(

@@ -1,3 +1,4 @@
+import { applicationFetch } from "./authentication-client";
 import { uploadR2Asset, type R2UploadOptions } from "./r2-upload-client";
 import { createUuid } from "./uuid";
 import type {
@@ -43,7 +44,7 @@ export class ProjectApiError extends Error {
 }
 
 async function projectRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api${path}`, init);
+  const response = await applicationFetch(`/api${path}`, init);
   if (!response.ok) {
     const payload = await response.json().catch(() => ({ error: response.statusText })) as {
       error?: string;

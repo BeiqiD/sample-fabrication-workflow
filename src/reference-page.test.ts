@@ -60,7 +60,8 @@ describe("reference destination route", () => {
   });
 
   it("uses the existing read-only batch resolver and no source mutation client", () => {
-    expect(client).toContain('fetch("/api/references/resolve"');
+    expect(client).toContain('import { applicationFetch } from "./authentication-client"');
+    expect(client).toContain('applicationFetch("/api/references/resolve"');
     expect(client).toMatch(/method:\s*"POST"/);
     expect(client).toContain("targets: [target]");
     expect(page).toContain("resolveReference(target, controller.signal)");

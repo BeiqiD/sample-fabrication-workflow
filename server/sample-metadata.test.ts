@@ -60,7 +60,7 @@ async function listening(service: SampleMetadataService) {
   app.onError((error, c) => error instanceof HTTPException ? c.json({ error: error.message }, error.status)
     : c.json({ error: "Unexpected server error" }, 500));
   app.use("*", async (c, next) => { c.set("userEmail", actor); await next(); });
-  app.route("/", createSampleMetadataSurface<Bindings>(bindings => bindings.service));
+  app.route("/", createSampleMetadataSurface<Bindings>((_request, bindings) => bindings.service));
   const server = createNodeHttpServer(request => app.fetch(request, { service }), { publicOrigin: "https://sample-fixture.test" });
   servers.push(server); server.listen(0, "127.0.0.1"); await once(server, "listening");
   const address = server.address(); if (!address || typeof address === "string") throw new Error("Expected private loopback listener");
