@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Record read-only physical diagnostics of a stopped private synthetic fixture.
 
-This is a physical SQLite check, not a D1 API PRAGMA qualification. It does not
-stop processes, fix state, checkpoint databases, or overwrite earlier evidence.
+This checks a byte-identical private snapshot of quiescent physical SQLite
+files and their WAL/SHM sidecars. It does not stop processes, fix state,
+checkpoint databases, or qualify D1 API PRAGMA support. Originals stay unopened
+by SQLite, so reader coordination can only modify the disposable snapshot.
 """
 
 import argparse
@@ -12,6 +14,8 @@ import json
 import os
 from pathlib import Path
 import socket
+import shutil
+import subprocess
 import sqlite3
 import stat
 import tempfile
@@ -98,6 +102,75 @@ def dead_pid(value):
     except PermissionError as error:
         raise ValueError("Recorded server PID cannot be inspected; quiescence is unproven.") from error
     raise ValueError("Recorded server session PID is still live; wait for its exit, without killing automatically.")
+
+
+def no_open_state_files(state):
+    """Inspect descriptors without opening any original SQLite connection."""
+    prefix = str(state) + os.sep
+    found = []
+    inaccessible = set()
+    inspected_processes = set()
+    proc = Path("/proc")
+    if proc.is_dir():
+        for process in proc.iterdir():
+            if not process.name.isdigit():
+                continue
+            try:
+                descriptors = list((process / "fd").iterdir())
+            except (FileNotFoundError, ProcessLookupError):
+                continue
+            except PermissionError:
+                inaccessible.add(int(process.name))
+                continue
+            for descriptor in descriptors:
+                try:
+                    target = os.readlink(descriptor)
+                except (FileNotFoundError, ProcessLookupError):
+                    continue
+                except PermissionError:
+                    inaccessible.add(int(process.name))
+                    continue
+                inspected_processes.add(int(process.name))
+                if target == str(state) or target.startswith(prefix):
+                    found.append({"pid": int(process.name), "fd": descriptor.name, "target": target})
+        require(not found, "Processes still hold original isolated state files; wait for quiescence.")
+        return {"method": "proc-descriptor-inspection", "openStateFileDescriptors": found,
+                "inspectedProcessCount": len(inspected_processes),
+                "inaccessibleProcessCount": len(inaccessible), "inaccessibleProcessIds": sorted(inaccessible),
+                "scope": "Accessible process descriptors only; no global FD-absence claim. Port/PID and stable original inventories supply additional fixture evidence."}
+    executable = shutil.which("lsof")
+    require(executable, "Read-only descriptor inspection requires /proc or installed lsof.")
+    result = subprocess.run([executable, "-Fn", "+D", str(state)], capture_output=True, text=True, timeout=10)
+    require(result.returncode in (0, 1) and not result.stdout.strip() and not result.stderr.strip(),
+            "Descriptor inspection did not prove original-state quiescence.")
+    return {"method": "lsof-descriptor-inspection", "openStateFileDescriptors": [],
+            "scope": "Installed lsof observation only; no global FD-absence claim."}
+
+
+def snapshot_sqlite_files(state, fixture, stage, source, sqlite_paths, state_hashes):
+    """Copy complete quiescent SQLite groups; mode=ro remains WAL-aware."""
+    destination = fixture / ("physical-snapshot-" + stage)
+    destination.mkdir(mode=0o700)  # Exclusive directory; failed attempts remain.
+    inputs = {}
+    copied_paths = {}
+    for database in sqlite_paths:
+        for original in (database, Path(str(database) + "-wal"), Path(str(database) + "-shm")):
+            if not original.exists():
+                continue
+            relative = original.relative_to(state)
+            target = destination / relative
+            target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+            shutil.copyfile(original, target)
+            target.chmod(0o600)
+            original_key = original.relative_to(source).as_posix()
+            require(sha256(target) == state_hashes[original_key],
+                    "Quiescent snapshot bytes differ from the original inventory.")
+            inputs[original_key] = {"snapshotRelativePath": relative.as_posix(),
+                                    "byteSize": target.stat().st_size, "sha256": sha256(target)}
+        copied_paths[database] = destination / database.relative_to(state)
+    return copied_paths, {"directory": str(destination), "inputFiles": inputs,
+                          "sqliteConnectionMode": "mode=ro on private WAL-aware copies only",
+                          "originalSQLiteConnectionsOpened": 0}
 
 
 def quoted(identifier):
@@ -194,7 +267,7 @@ def main():
         "fixtureDirectory": str(fixture), "sourceHead": isolation["sourceHead"], "copiedState": False,
         "isolationReceiptSha256": isolation_hash, "fixtureManifestSha256": manifest_hash,
         "helperSha256": sha256(Path(__file__).resolve()), "results": {},
-        "scope": "Read-only quiescent physical isolated SQLite diagnostics; not D1 API PRAGMA, remote Access or provider qualification.",
+        "scope": "Read-only SQLite diagnostics on byte-identical private copies of quiescent isolated physical DB/WAL/SHM groups; original state bytes stay unchanged. Not D1 API PRAGMA, remote Access or provider qualification.",
     }
     failure = None
     try:
@@ -219,15 +292,19 @@ def main():
                         and item.get("isolationReceiptSha256") == isolation_hash
                         and item.get("fixtureManifestSha256") == manifest_hash,
                         "Server lifecycle receipts must bind the same session, roots and hashes.")
-            require(server.get("status") == "ready" and stopped.get("status") == "stopped",
-                    "A ready service and separately recorded awaited stop are required.")
+            require(server.get("status") == "ready" and stopped.get("status") == "stopped"
+                    and stopped.get("disposalAwaited") is True and stopped.get("portClosed") is True,
+                    "A ready service and separately recorded awaited disposal/closed port are required.")
             receipt["sessionId"] = session_id
             receipt["serverReceiptSha256"] = sha256(regular_file(fixture, "isolated-server-receipt.json"))
             receipt["stopReceiptSha256"] = sha256(regular_file(fixture, "isolated-server-stop-receipt.json"))
+            require(stopped.get("startupReceiptSha256") == receipt["serverReceiptSha256"],
+                    "The controlled stop must bind the exact immutable ready receipt.")
             receipt["processQuiescence"] = dead_pid(session["sessionPid"])
         receipt["loopbackQuiescence"] = port_refused()
         state = source / ".wrangler/state/v3"
         require(state.is_dir() and not state.is_symlink(), "Expected isolated physical D1/R2 state.")
+        receipt["originalStateQuiescenceBeforeCopy"] = no_open_state_files(state)
         state_files = inspect_tree(state)
         state_hashes = {path.relative_to(source).as_posix(): sha256(path) for path in state_files}
         sqlite_paths = [path for path in state_files if path.suffix == ".sqlite"]
@@ -238,10 +315,15 @@ def main():
         }
         require(receipt["physicalSqliteCategories"]["d1"] >= 1,
                 "Physical diagnostics require at least one isolated D1 SQLite file.")
+        diagnostic_paths, receipt["physicalSnapshot"] = snapshot_sqlite_files(
+            state, fixture, args.stage, source, sqlite_paths, state_hashes)
+        require(state_hashes == {path.relative_to(source).as_posix(): sha256(path) for path in inspect_tree(state)},
+                "Original physical state changed while copying its quiescent diagnostic snapshot.")
+        receipt["originalStateInputSha256"] = state_hashes
         for path in sqlite_paths:
             relative = path.relative_to(source).as_posix()
             try:
-                receipt["results"][relative] = diagnose(path, manifest, migration_names)
+                receipt["results"][relative] = diagnose(diagnostic_paths[path], manifest, migration_names)
             except (ValueError, OSError, sqlite3.Error, KeyError, TypeError) as error:
                 receipt["results"][relative] = {"error": str(error)}
                 raise
@@ -268,7 +350,7 @@ def main():
                         and seed.get("sourceHead") == isolation["sourceHead"]
                         and seed.get("isolationReceiptSha256") == isolation_hash
                         and seed.get("fixtureManifestSha256") == manifest_hash
-                        and seed.get("sessionId") == receipt["sessionId"],
+                        and seed.get("serverSessionId") == receipt["sessionId"],
                         "Prepared API seed must match the isolated session and evidence hashes.")
                 project = seed["project"]
                 require(any(blob["sha256"] == project["attachmentSha256"]
@@ -282,7 +364,9 @@ def main():
                 receipt["seededProjectAttachmentPhysicalBytesMatched"] = False
                 receipt["scope"] += " Start/stop lifecycle only: no API seed or attachment byte proof."
         require(state_hashes == {path.relative_to(source).as_posix(): sha256(path) for path in inspect_tree(state)},
-                "Physical state bytes changed during diagnostics; read-only quiescence is unproven.")
+                "Original physical state changed during snapshot diagnostics; quiescence is unproven.")
+        receipt["originalStateBytesUnchanged"] = True
+        receipt["originalStateQuiescenceAfterReads"] = no_open_state_files(state)
         port_refused()
         if args.stage == "after-shutdown":
             dead_pid(session["sessionPid"])

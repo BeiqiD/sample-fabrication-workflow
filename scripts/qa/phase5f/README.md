@@ -50,7 +50,7 @@ WRANGLER_SEND_METRICS=false WRANGLER_LOG_PATH="$qa_fixture/wrangler-logs" \
   --file "$qa_fixture/process-fixture.sql"
 ```
 
-4. With no service listening, record read-only physical SQLite diagnostics and exact migrated schema/sentinel identity. No application owners should exist yet. This is physical SQLite evidence, not a claim that the D1 API supports equivalent PRAGMA diagnostics.
+4. With no service listening or observed original-state descriptors, capture byte-identical private copies of each physical SQLite file and its WAL/SHM sidecars, then run read-only diagnostics on those copies and check exact migrated schema/sentinel identity. No application owners should exist yet. This is quiescent physical snapshot evidence; original state bytes must remain unchanged. SQLite reader coordination may alter only the private diagnostic copy. It does not claim that the D1 API supports equivalent PRAGMA diagnostics.
 
 ```sh
 python3 "$qa_root/check-isolated-state.py" --source-copy "$qa_copy" \
@@ -86,7 +86,7 @@ node "$qa_root/browser-metrology-pending-actual-api.mjs" http://127.0.0.1:4219/ 
 
 9. In the server terminal, send the single line **`stop`** and await exit 0. The helper awaits `runtime.dispose()`, verifies the port closed, and creates a separate exclusive `isolated-server-stop-receipt.json`. The ready receipt is never rewritten. `SIGKILL`, lost control sessions, and arbitrary process termination do not establish this graceful-stop proof.
 
-10. After the server process has exited and the port refuses connections, record final read-only physical diagnostics. It validates lifecycle hashes/session, PID absence and port closure, SQLite quick/FK checks, and exact uploaded PNG bytes when the seed succeeded. A lifecycle-only startup/stop run explicitly carries no attachment qualification.
+10. After the server process has exited and the port refuses connections, record final physical snapshot diagnostics. It validates lifecycle hashes/session and awaited disposal, PID absence, port closure and accessible-descriptor inspection, copies complete DB/WAL/SHM groups, verifies original bytes unchanged, and checks SQLite quick/FK results and exact uploaded PNG bytes when the seed succeeded. A lifecycle-only startup/stop run explicitly carries no attachment qualification.
 
 ```sh
 python3 "$qa_root/check-isolated-state.py" --source-copy "$qa_copy" \
@@ -97,4 +97,4 @@ python3 "$qa_root/check-isolated-state.py" --source-copy "$qa_copy" \
 
 All seed, server, stop, physical and browser final receipts use exclusive creation. Browser progress is a separate append-only journal within its exclusively reserved session; it never overwrites a prior final result. Compact summaries retain actual statuses, response hashes, case assertions, source/artifact/config/helper identities and explicit limits without raw API response bodies; detailed pending receipts may retain synthetic response payloads locally. Screenshots and temporary state remain local evidence; do not commit them or credentials.
 
-A failed reserved session remains single-use. Preserve its SQL, receipts, CLI output and physical state for diagnosis. Static preflight rejection before session reservation exits without accepted writes; terminal output is its evidence. Quiescent physical reads are required before and after service use, and cannot be replaced by a live-file snapshot. The new receipts do not inherit historical diagnostic failures or manufacture a pass for them.
+A failed reserved session remains single-use. Preserve its SQL, receipts, CLI output and physical state for diagnosis. Static preflight rejection before session reservation exits without accepted writes; terminal output is its evidence. Quiescent physical snapshots are required before and after service use; a live-file snapshot is rejected. Descriptor inspection uses `/proc` or an already installed `lsof`; any observed original-state descriptor is rejected. Inaccessible supervisor processes are recorded as a limit; this is not a claim of global descriptor absence. Missing inspection tooling fails closed, and stable original byte inventories, port refusal and owned-server PID absence remain required. The new receipts do not inherit historical diagnostic failures or manufacture a pass for them.

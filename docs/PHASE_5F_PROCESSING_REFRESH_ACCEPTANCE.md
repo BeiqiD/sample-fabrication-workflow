@@ -146,3 +146,37 @@ check final accepted write state. Current-head full CI, the complete browser
 matrix and that optimized cost receipt remain required integration evidence.
 The existing Map/Reading and 250/500 Save-cost acceptance remain separate
 finite measurements; this change does not add a batch placement protocol.
+
+### Adopted QA pre-API failure retained
+
+Candidate `a6dfd237a3cff90376bc5375a2bf318e3aa4f6a6` was committed and pushed
+as [PR #252](https://github.com/BeiqiD/sample-fabrication-workflow/pull/252).
+Its fresh build passed. The first adopted-helper attempt copied 1,298 tracked
+files and 123 artifacts, applied 22 ordinary migrations and the template SQL,
+then failed the physical-checker's all-state-byte-stability assertion before
+starting any server or issuing API/browser writes. Both physical SQLite
+quick/FK checks passed. The first pre-read inventory was not persisted, so the
+exact changed file is unknown; a later independent read-only observation had
+no observed open state descriptors and unchanged before/after inventories.
+SQLite reader coordination is a plausible cause, not a confirmed file identity.
+
+The bounded checker correction diagnoses byte-identical private copies of
+quiescent DB/WAL/SHM groups, verifies original inventory stability, records
+accessible descriptor inspection and its limitations, and binds the separate
+awaited-stop receipt and seeder's actual `serverSessionId` field. It does not
+change application code, migration SQL, authentication or accepted data. The
+failed attempt and observation remain at:
+
+- `/tmp/phase5f-a6dfd23-fixture/physical-sqlite-before-api.json`
+- `/tmp/phase5f-a6dfd23-fixture/physical-diagnostic-readonly-observation.json`
+
+A new committed build and fresh fixture are required for the corrected helper's
+actual startup, browser, named-search, cost and controlled-stop qualification.
+
+The corrected snapshot functions passed a finite retained-WAL manual probe:
+the committed WAL row remained visible, all three original DB/WAL/SHM files
+kept exact byte hashes, quick-check was `ok` and FK checks were empty. This is
+helper-function evidence, not application/browser qualification. Its receipt is
+`/tmp/phase5f-checker-snapshot-manual-pass-9nel7n7s/snapshot-receipt.json`;
+the initial strict `/proc` inspection rejection is retained separately in
+`/tmp/phase5f-checker-snapshot-manual-s82r5a3g/manual-attempt1-failed.json`.
