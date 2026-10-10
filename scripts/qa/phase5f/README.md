@@ -1,5 +1,25 @@
 # Phase 5F isolated actual API qualification
 
+The separate [Templates default-pagination plan](../../../docs/PHASE_5F_TEMPLATE_PAGINATION_SOURCE_CANDIDATE.md)
+is source-prepared and **entirely unrun**. Its new helpers preserve every
+earlier helper and receipt. After its reviewed final checkpoint has a fresh
+same-source build and stages 1–6 below prepare a new isolated Worker/PNG fixture,
+use its genuine 21-process-family/26-metrology-family API seed and four read-only
+default-pagination cases:
+
+```sh
+node "$qa_root/seed-template-pagination-actual-api.mjs" http://127.0.0.1:4219/ "$qa_fixture"
+node "$qa_root/browser-template-pagination-actual-api.mjs" http://127.0.0.1:4219/ "$qa_fixture" "$qa_copy"
+```
+
+These are planned commands, not passing results. The namespace excludes the
+mature setup owners; the new process families are actual FabuBlox imports, not
+extra versions or SQL-created pagination owners. Do not run the old 20/six-case
+browser matrices merely as setup for this finite supplement. It accepts the
+complete four-case helper only, with no selected-case/hash override. Stop on
+the first failure, retain accepted writes, then await the owned Worker stop and
+the existing post-shutdown physical checks even if the supplement fails.
+
 The new [directory/Storage source candidate](../../../docs/PHASE_5F_DIRECTORY_AND_STORAGE_SOURCE_CANDIDATE.md)
 is unexecuted. Its separate supplemental helpers do not alter the historical
 20-case matrix or named Metrology evidence below.
