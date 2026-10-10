@@ -1,0 +1,85 @@
+{
+  "baselineHead": "7cdee5198188bcafc0b9e8703ac77451d0179234",
+  "baselineTree": "c7bcea5d47ed70bb40aec56ed424e58ed6c4702a",
+  "patch": "/tmp/export-canonical-cache-7cdee51.patch",
+  "patchSha256": "916e42e77813967a1ccfd1162a76520f4f07d21b4268b45e3defe11de82fcdbf",
+  "patchBytes": 23296,
+  "files": [
+    {
+      "path": "shared/domain/bounded-string-memo.ts",
+      "sha256": "6d272c6187c8079b548a2745d540e28669796904a155f8e3a24cb1ffecd19902"
+    },
+    {
+      "path": "shared/contracts/export-file-authority.ts",
+      "sha256": "3e6e477b5779d86fe1c0cb76ab4797af7405089d14cf2e1a2a0bf5729da66293"
+    },
+    {
+      "path": "shared/contracts/export-file-shadow.ts",
+      "sha256": "acc20e751bd2cd7358607cdac619062af5b7508343a3a49a007dc48588d2919e"
+    },
+    {
+      "path": "shared/domain/bounded-string-memo.test.ts",
+      "sha256": "b331b19b27296a095d5885e1753978f4725ceecfff87b3b4f1eaae904ebf35c7"
+    },
+    {
+      "path": "shared/contracts/export-schema-canonical-cache.test.ts",
+      "sha256": "1e87a2e0dd956a1b4c18c6b0da5d88b8437c595af98902acf957dda00efa4607"
+    },
+    {
+      "path": "docs/EXPORT_CANONICAL_SQL_CACHE_ACCEPTANCE.md",
+      "sha256": "23e3f45ff7295ff01dff3eb34292c0ef2ade08ceefe594740536afee95459b34"
+    }
+  ],
+  "cacheLimits": {
+    "maxEntries": 2048,
+    "maxAccountedUtf16StringBytes": 8388608,
+    "totalHeapBoundClaim": false
+  },
+  "proof": {
+    "originalTokenizerSourceTextEqual": true,
+    "focused20PASS": true,
+    "historicalCheckpointPins": 11,
+    "negativeConstantKeyControl": "expected1FAIL",
+    "restoredControl": "1PASS",
+    "defaultCaseTimeoutMs": 5000,
+    "fullValidatorsRetained": 4,
+    "actualContentMigrationExecutionsRetained": 14,
+    "sourceQueriesChanged": false,
+    "migrationChanges": false,
+    "providerIO": false,
+    "liveTreeEdits": false
+  },
+  "typecheck": {
+    "sharedProduction": "PASS",
+    "newTests": "PASS strict Node types; no repository config edits"
+  },
+  "beforeAfterMeasurement": {
+    "V21": {
+      "baseline": {
+        "first-five-fresh-reads": 302.158907,
+        "repeat-five-fresh-reads": 254.29068600000028
+      },
+      "candidate": {
+        "first-five-fresh-reads": 155.02010699999983,
+        "repeat-five-fresh-reads": 73.89809699999978
+      }
+    },
+    "V24": {
+      "baseline": {
+        "first-five-fresh-reads": 268.3157449999999,
+        "repeat-five-fresh-reads": 249.0848790000009
+      },
+      "candidate": {
+        "first-five-fresh-reads": 69.58231299999989,
+        "repeat-five-fresh-reads": 66.63911999999982
+      }
+    }
+  },
+  "initialRejectedBoundReceipt": "/tmp/export-canonical-cache-7cdee51-measurement-attempt1.json",
+  "finalMeasurementReceipt": "/tmp/export-canonical-cache-7cdee51-measurement-attempt2.json",
+  "baselineTrace": "/tmp/export-v21-deadline-trace-7cdee51-attempt1.json",
+  "candidateTrace": "/tmp/export-v21-deadline-trace-7cdee51-attempt2.json",
+  "privateDiagnosticReceiptFenceFailureLog": "/tmp/export-canonical-cache-v21-instrumentation-attempt1.log",
+  "independentReview": "canonical_cache_read_review: no blocker, read-only/no test runners; strings accounting not heap ceiling",
+  "limits": "Finite private sequential qualification only. Does not claim all historical5s source or mounted failures repaired. Full integrated mandatory gates/exacthead CI pending."
+}

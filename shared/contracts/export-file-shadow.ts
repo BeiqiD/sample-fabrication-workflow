@@ -5,7 +5,7 @@ import { isFileShadowRowid } from "./file-shadow-rowid";
 import { buildBlobExportPlan } from "./export-blob-plan";
 import { validateLegacyOverlap } from "./export-file-foundation";
 import {
-  canonicalFileAuthoritySchemaSql, FILE_AUTHORITY_CONSUMER_COLUMNS, FILE_AUTHORITY_EXPORTED_VIEWS,
+  canonicalFileAuthoritySchemaSql, canonicalFileAuthoritySchemaSqlJson, FILE_AUTHORITY_CONSUMER_COLUMNS, FILE_AUTHORITY_EXPORTED_VIEWS,
   FILE_AUTHORITY_EXPORT_COLUMNS, FILE_AUTHORITY_EXPORT_VIEW_COLUMNS, legacyConsumerProjections,
 } from "./export-file-authority";
 import { FILE_SHADOW_DEPENDENCY_SPECS, FILE_SHADOW_EXPORT_COLUMNS, FILE_SHADOW_EXPORTED_VIEW_COLUMNS, FILE_SHADOW_LOCAL_TABLE_NAMES, FILE_SHADOW_SLOT_KEYS } from "./file-shadow-schema";
@@ -36,19 +36,28 @@ SELECT COUNT(*) AS invalid_count FROM (
 export const FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256 = "deef45bdf72e430da0001925d8f3a54a6d7b32c0441eca68da5e10e3646bccd8";
 const PLATFORM = new Set(["d1_migrations", "_cf_KV", "_cf_METADATA"]);
 
-export function fileShadowSchemaSlice(objects: ExportSchemaObject[]) {
+function mappedShadowSchemaSql<Sql>(objects: ExportSchemaObject[], canonicalize: (sql: string) => Sql) {
   return objects.filter((entry) => !PLATFORM.has(entry.tableName) && !entry.tableName.startsWith("sqlite_"))
     .map((entry) => ({ type: entry.type, name: entry.name, tableName: entry.tableName,
-      sql: entry.sql === null ? null : canonicalFileAuthoritySchemaSql(entry.sql) }))
+      sql: entry.sql === null ? null : canonicalize(entry.sql) }))
     .sort((a, b) => {
       const left = `${a.type}\0${a.name}\0${a.tableName}`, right = `${b.type}\0${b.name}\0${b.tableName}`;
       return left < right ? -1 : left > right ? 1 : 0;
     });
 }
-export async function fileShadowSchemaFingerprint(objects: ExportSchemaObject[]) {
-  return sha256Hex(JSON.stringify([FILE_SHADOW_SCHEMA_FINGERPRINT_ALGORITHM,
-    fileShadowSchemaSlice(objects).map((entry) => [entry.type, entry.name, entry.tableName, entry.sql])]));
+export function fileShadowSchemaSlice(objects: ExportSchemaObject[]) {
+  return mappedShadowSchemaSql(objects, canonicalFileAuthoritySchemaSql);
 }
+export async function fileShadowSchemaFingerprint(objects: ExportSchemaObject[]) {
+  const tuples = mappedShadowSchemaSql(objects, canonicalFileAuthoritySchemaSqlJson).map((entry) => {
+    const fields = JSON.stringify([entry.type, entry.name, entry.tableName]);
+    // The cached string is already JSON, including its array boundary. Keep
+    // exactly the previous nested tuple encoding without reparsing tokens.
+    return `${fields.slice(0, -1)},${entry.sql ?? "null"}]`;
+  });
+  return sha256Hex(`[${JSON.stringify(FILE_SHADOW_SCHEMA_FINGERPRINT_ALGORITHM)},[${tuples.join(",")}]]`);
+}
+
 function ensure(value: unknown, reason: string): asserts value {
   if (!value) throw new Error(`Full export rejected: invalid File shadow ${reason}`);
 }
