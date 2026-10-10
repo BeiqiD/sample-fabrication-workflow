@@ -132,8 +132,12 @@ export function createNodeHttpServer(handler: FetchHandler, options: NodeHttpOpt
   server.on("checkContinue", (incoming, outgoing) => { void handle(incoming, outgoing, true); });
   server.on("clientError", (error, socket) => {
     if (!socket.writable) return;
-    const status = (error as NodeJS.ErrnoException).code === "HPE_HEADER_OVERFLOW" ? 431 : 400;
-    socket.end(`HTTP/1.1 ${status} ${status === 431 ? "Request Header Fields Too Large" : "Bad Request"}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`);
+    const code = (error as NodeJS.ErrnoException).code;
+    // Native requestTimeout and the Fetch owner deadline can expire in either
+    // order. The native deadline is still a timeout, not malformed HTTP syntax.
+    const status = code === "ERR_HTTP_REQUEST_TIMEOUT" ? 408 : code === "HPE_HEADER_OVERFLOW" ? 431 : 400;
+    const reason = status === 408 ? "Request Timeout" : status === 431 ? "Request Header Fields Too Large" : "Bad Request";
+    socket.end(`HTTP/1.1 ${status} ${reason}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`);
   });
   server.on("connect", (_incoming, socket) => { socket.end("HTTP/1.1 405 Method Not Allowed\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"); });
   server.on("upgrade", (_incoming, socket) => { socket.end("HTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"); });
