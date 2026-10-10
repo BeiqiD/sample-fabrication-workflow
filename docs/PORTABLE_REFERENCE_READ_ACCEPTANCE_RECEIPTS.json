@@ -214,5 +214,33 @@
       "after": "3b1a133479da99cf6d19a9c854b399950d3bd1ca02dd67bc7ca2cf902d89bd96",
       "change": "remove one duplicate final blank line; all source tokens and SQL bytes unchanged"
     }
+  },
+  "currentCombinedIntegration": {
+    "recordedAt": "2026-10-10T19:45:56.529244+00:00",
+    "servicesMerged": "b6b2d9a414c7ce49a28f28b2d1da929fbf538f01",
+    "currentDependency": "767f1c0823f823a3c40207e2ac43ea2a72567778",
+    "originalBusiness": "14d3bcc24c3d7264efedb5c850fb6e472ae2244e",
+    "originalReference": "17299152f654de8b3ef1279465fa0c5f5cddc03c",
+    "combinedSourceBeforeDocumentation": "7fdcc7b9afd50af56304573667c254a11be1aea6",
+    "sourceOnlyIntegration": true,
+    "referenceOwnedFilesByteExact": 19,
+    "differencesFromQualifiedReference": {
+      "docs/PORTABLE_CURRENT_V25_APPLIED_RECEIPTS.json": "492c68486ea520922de8fbca64c20001216a9659defff09fb15ab00f58fafedb",
+      "docs/PORTABLE_CURRENT_V25_LIBRARY_ACCEPTANCE.md": "71f6c5952e4767bcc703e7a634f18106b26b99adfcf33ead8effd31286c5d3f1",
+      "docs/PORTABLE_NATIVE_HTTP_TIMEOUT_ACCEPTANCE.md": "43d913c556cbe2af756ae97371d18903f92e7fff39788afbae088ae3437cb08f",
+      "docs/PORTABLE_NATIVE_HTTP_TIMEOUT_RECEIPTS.json": "21589e6e3a69895347f6753801aeb64e3d43c0b7e5daa196b69789bad4de69c7",
+      "docs/ROADMAP_AUTONOMOUS_DEVELOPMENT_GOAL.md": "e2fcd1857c69e64e560dd5d539fa5a8c937cc3d30b92ce802e0ff58e7682b68b",
+      "scripts/lib/export-portable-runtime.test.ts": "62c8e17316896ee4ab87b767030bea8c635cfb2ec4b15ed9ab31be1bcff975ed",
+      "server/http.test.mts": "d6f753d4ea873916b110fcea6103e3f11c68156cf51be5ed15f2eb834737103f",
+      "server/http.ts": "a385a665e71cdef1a80b3d1ad425b3f253e13d83fc22a9c92c187273b6f697ea",
+      "src/lib/exportAll.ts": "1855d500189d787321e1ae01daae03743455d3dfa44b254055143776e35a70fa",
+      "src/phase5f-processing-group-refresh.mount.test.tsx": "dfc89668cfaa373ea075cebc294bc21bb741018054cb1d3c1909186c6d89203c",
+      "worker/recovery/target-import-workerd.test.ts": "9a8037602e08480c1fd1c6092d20ea6e9cb8a7073afe564cadbf145f9c334d46",
+      "worker/source-lifecycle-routes.test.ts": "4a77724b0db6371f4f85463cdb86eb86e343b196af1c8859f8fc579fada3babf"
+    },
+    "actualPriorScopes": "original business55, pure Reference10+strict, renamed Reference10, original historical6+4, V8/Reference22; original143 run had one retained count failure before fix",
+    "combinedExactHeadCompleteCI": "pending new own Verify/Map; no new combined-local runtime claim",
+    "currentFocused57": "qualified in predecessor current source before business extension; not a combined57 rerun",
+    "wholeNodeApplication": "not enabled by read surfaces alone"
   }
 }
