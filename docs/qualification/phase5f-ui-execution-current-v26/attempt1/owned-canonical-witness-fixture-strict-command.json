@@ -1,0 +1,28 @@
+{
+  "stage": "owned-canonical-witness-fixture-strict",
+  "argv": [
+    "node",
+    "node_modules/typescript/bin/tsc",
+    "-p",
+    "tsconfig.phase5f-project-creation-subject-tests.json"
+  ],
+  "cwd": "/workspace/remaining-5f-ui-execution-currente108-source-integration",
+  "startedAt": "2026-10-10T22:35:38.016274+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-ui-execution-currente108-runtime-98d81a1-attempt1/owned-canonical-witness-fixture-strict.log",
+  "pid": 297559,
+  "processGroup": 297559,
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-10T22:35:38.331475+00:00",
+  "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

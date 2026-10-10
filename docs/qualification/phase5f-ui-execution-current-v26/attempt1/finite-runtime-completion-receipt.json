@@ -1,0 +1,247 @@
+{
+  "kind": "phase5f-ui-execution-combined-six-stage-actual/1",
+  "status": "FAIL",
+  "sourceHead": "98d81a170394a140fb63e970b31d1985bd56f68d",
+  "sourceTree": "62d67e1c9fb3d59d74c49e0eceebe4ef2975ffe4",
+  "completedAt": "2026-10-10T22:36:34.394894+00:00",
+  "planSha256": "17c2984c99f3850074fc69cdcdaef1984c9ac6a4febdcd55e89d92d5c995ffd5",
+  "sourceReceiptSha256": "7e46f73ac538f30ef0dc59c8fe165fa2f675869f4fff1e9eddb2f980cd292b8b",
+  "commands": [
+    {
+      "stage": "shared-source-boundary",
+      "argv": [
+        "node",
+        "scripts/verify-shared-boundary.mjs"
+      ],
+      "cwd": "/workspace/remaining-5f-ui-execution-currente108-source-integration",
+      "startedAt": "2026-10-10T22:35:37.670500+00:00",
+      "status": "PASS",
+      "log": "/tmp/phase5f-ui-execution-currente108-runtime-98d81a1-attempt1/shared-source-boundary.log",
+      "pid": 297541,
+      "processGroup": 297541,
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-10T22:35:38.016025+00:00",
+      "logSha256": "21a428b7b54bea7d7e889fc732a12e2a0477651d44738485a4f44116959f8b03"
+    },
+    {
+      "stage": "owned-canonical-witness-fixture-strict",
+      "argv": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.phase5f-project-creation-subject-tests.json"
+      ],
+      "cwd": "/workspace/remaining-5f-ui-execution-currente108-source-integration",
+      "startedAt": "2026-10-10T22:35:38.016274+00:00",
+      "status": "PASS",
+      "log": "/tmp/phase5f-ui-execution-currente108-runtime-98d81a1-attempt1/owned-canonical-witness-fixture-strict.log",
+      "pid": 297559,
+      "processGroup": 297559,
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-10T22:35:38.331475+00:00",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stage": "original-native-stream-migration-regressions",
+      "argv": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/files/jobs/native-migration.test.ts",
+        "--maxWorkers=1",
+        "--bail=1"
+      ],
+      "expectedStaticCases": 6,
+      "cwd": "/workspace/remaining-5f-ui-execution-currente108-source-integration",
+      "startedAt": "2026-10-10T22:35:38.331909+00:00",
+      "status": "PASS",
+      "log": "/tmp/phase5f-ui-execution-currente108-runtime-98d81a1-attempt1/original-native-stream-migration-regressions.log",
+      "pid": 297575,
+      "processGroup": 297575,
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-10T22:35:50.311143+00:00",
+      "logSha256": "773b07cc4c64f2990dfd9d06dc3730a5739fb64d62c5dce1970e94604eb18833",
+      "actualSummaryLines": [
+        "Test Files  1 passed (1)",
+        "Tests  6 passed (6)"
+      ],
+      "actualPassedCountMatchesFinitePlan": true
+    },
+    {
+      "stage": "new14-plus-owned-mature23-mounted",
+      "argv": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.mounted.config.ts",
+        "src/phase5f-project-directory-intent.mount.test.tsx",
+        "src/phase5f-storage-activation-read.mount.test.tsx",
+        "src/project-shell.mount.test.tsx",
+        "src/storage-activation-recovery.mount.test.tsx",
+        "src/current-storage-settings.mount.test.tsx",
+        "--maxWorkers=1",
+        "--bail=1"
+      ],
+      "expectedStaticCases": 37,
+      "cwd": "/workspace/remaining-5f-ui-execution-currente108-source-integration",
+      "startedAt": "2026-10-10T22:35:50.311662+00:00",
+      "status": "PASS",
+      "log": "/tmp/phase5f-ui-execution-currente108-runtime-98d81a1-attempt1/new14-plus-owned-mature23-mounted.log",
+      "pid": 297711,
+      "processGroup": 297711,
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-10T22:35:54.627235+00:00",
+      "logSha256": "9fa25ab12b92df17f37251e7a51a09dc3429a10c25d722ecfadad1f52ddedd93",
+      "actualSummaryLines": [
+        "Test Files  5 passed (5)",
+        "Tests  37 passed (37)"
+      ],
+      "actualPassedCountMatchesFinitePlan": true
+    },
+    {
+      "stage": "subject-and-mature-project-source-regressions",
+      "argv": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/project-creation-subject.test.ts",
+        "server/project-read.test.ts",
+        "src/reference-page.test.ts",
+        "worker/project-persistence-service.test.ts",
+        "worker/project-read.qualification.test.ts",
+        "worker/project-routes.test.ts",
+        "src/lib/project-client.test.ts",
+        "--maxWorkers=1",
+        "--bail=1"
+      ],
+      "expectedStaticCases": 38,
+      "cwd": "/workspace/remaining-5f-ui-execution-currente108-source-integration",
+      "startedAt": "2026-10-10T22:35:54.627553+00:00",
+      "status": "FAILED",
+      "log": "/tmp/phase5f-ui-execution-currente108-runtime-98d81a1-attempt1/subject-and-mature-project-source-regressions.log",
+      "pid": 297775,
+      "processGroup": 297775,
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 297808,
+            "state": "UNREADABLE_OWNED_MEMBER"
+          },
+          {
+            "pid": 297817,
+            "state": "UNREADABLE_OWNED_MEMBER"
+          }
+        ],
+        "after": [
+          {
+            "pid": 297808,
+            "state": "UNREADABLE_OWNED_MEMBER"
+          },
+          {
+            "pid": 297817,
+            "state": "UNREADABLE_OWNED_MEMBER"
+          }
+        ],
+        "ownedCleanupSignals": [
+          "SIGTERM",
+          "SIGKILL"
+        ],
+        "noActiveOwnedProcessOrFd": false,
+        "unexpectedLingeringOwner": true,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 297808,
+            "state": "UNREADABLE_OWNED_MEMBER"
+          },
+          {
+            "pid": 297817,
+            "state": "UNREADABLE_OWNED_MEMBER"
+          }
+        ]
+      },
+      "endedAt": "2026-10-10T22:36:34.281360+00:00",
+      "logSha256": "0b8cc1f5fe288e918a9126a78705386270bb5575c090dfefb57d3c54d941b9ea",
+      "actualSummaryLines": [
+        "Test Files  7 passed (7)",
+        "Tests  38 passed (38)"
+      ],
+      "actualPassedCountMatchesFinitePlan": true
+    }
+  ],
+  "firstFailedStage": "subject-and-mature-project-source-regressions",
+  "runnerError": null,
+  "remainingUnrunStages": [
+    "fresh-current-v26-combined-build"
+  ],
+  "sourcePinsRechecked": true,
+  "sourcePostCheckError": null,
+  "allOwnedGroupsFinal": {
+    "297541": [],
+    "297559": [],
+    "297575": [],
+    "297711": [],
+    "297775": [
+      {
+        "pid": 297808,
+        "state": "UNREADABLE_OWNED_MEMBER"
+      },
+      {
+        "pid": 297817,
+        "state": "UNREADABLE_OWNED_MEMBER"
+      }
+    ]
+  },
+  "allDirectChildrenActuallyReaped": true,
+  "noActiveOwnedProcessOrFd": false,
+  "serviceBrowserProcessesStarted": 0,
+  "scope": "Only actual boundary/ownedstrict/clock6/mounted37/source38/freshbuild. Original case budgets and assertions unchanged. No old browser/performance rerun, fresh combined Execution12, complete own CI, provider or physical device claim.",
+  "runtimeReleased": "Parent observes actual runner tool exit and bounded owned closure before assigning another runner; any interrupted stage is unqualified."
+}

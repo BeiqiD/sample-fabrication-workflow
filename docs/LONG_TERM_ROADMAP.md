@@ -30,7 +30,11 @@ their original [browser/cost receipts](PHASE_5F_RETRY_GROUP_MOTION_ACCEPTANCE.md
 remain distinct historical scopes. Draft #259 retains six actual directory/
 lost-reply cases and the new [four genuine Templates default-page cases](PHASE_5F_TEMPLATE_PAGINATION_QUALIFICATION.md).
 Its later complete CI passed shared ownership but failed one fixture timestamp
-constraint; the minimal correction and reconciled final-head gates are next.
+constraint. Corrected combined source98d completed bounded shared ownership,
+one strict check, original6/mounted37/source38 and a separate fresh build; the
+first wrapper owner-check failure remains recorded. Final-head complete gates
+remain open. Merged #258 separately passed post-merge Verify/Map/all15 contexts
+(source409/3843, mounted103/985), without a deployed serving/schema claim.
 The combined #259 candidate also retains Step-confirmation, Run trash/restore
 and Metrology metadata mutation services from separately qualified source4928.
 Its fresh current24 four strict checks, legacy7 and Worker12 with owned closure

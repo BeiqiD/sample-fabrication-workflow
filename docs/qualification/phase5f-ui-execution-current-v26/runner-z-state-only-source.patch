@@ -1,0 +1,27 @@
+--- /tmp/phase5f-ui-execution-currente108-source-reconciliation/run-exact-finite-plan.93-original-qualified-source-first-runtime-failure.py	2026-10-10 22:38:50.280390081 +0000
++++ /tmp/phase5f-ui-execution-currente108-source-reconciliation/run-exact-finite-plan.z-preserving-source.py	2026-10-10 22:38:50.282691297 +0000
+@@ -50,12 +50,21 @@
+             fields = stat[stat.rfind(")") + 2 :].split()
+             if int(fields[2]) != group:
+                 continue
+-            fds = list((process / "fd").iterdir())
+-            members.append({"pid": int(process.name), "state": fields[0], "openFdCount": len(fds)})
++            member = {"pid": int(process.name), "state": fields[0],
++                      "ppid": int(fields[1]), "processGroup": int(fields[2])}
++            if fields[0] in {"Z", "X"}:
++                member["kernelResourcesExited"] = True
++            try:
++                member["openFdCount"] = len(list((process / "fd").iterdir()))
++            except PermissionError:
++                # Preserve the genuine kernel state already read above.
++                # Inaccessible FD metadata is not an observed zero FD count.
++                member["fdInspection"] = "PermissionError"
++            members.append(member)
+         except FileNotFoundError:
+             continue
+         except (PermissionError, ProcessLookupError):
+-            members.append({"pid": int(process.name), "state": "UNREADABLE_OWNED_MEMBER"})
++            members.append({"pid": int(process.name), "state": "UNREADABLE_PROCESS_STAT"})
+     return members
+ 
+ 

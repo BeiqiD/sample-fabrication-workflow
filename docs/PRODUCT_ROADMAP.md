@@ -5,8 +5,10 @@ Status: canonical product direction and active implementation roadmap
 Current development integration: PR #258 merged at
 `e10849614afbb4807c86b3f0fc2fc357ba70ceda`, preserving its own-four-gate-qualified
 `318` tree `d5f48defbb7e3a0c23e912017e8dee9c76eb00bb` exactly. Its current V26
-checkpoint retains the presence-probe/query-budget and current Reference fixes;
-post-merge qualification is separate. Prior #257 merged at `913364e`, preserving
+checkpoint retains the presence-probe/query-budget and current Reference fixes.
+Its post-merge Verify/Map and all15 contexts passed (source409 files/3843 cases,
+mounted103 files/985 cases); conditional failure-cleanup skipped, no verification
+leaf skipped. These checks do not establish deployed serving/schema. Prior #257 merged at `913364e`, preserving
 qualified `9592d9c`; its own Verify/Map pairs and all15 contexts passed
 (native356, source404 files/3784 cases, mounted103 files/985 cases).
 PR #256 merged the paired current checkpoint at `5f36748`; both own complete
@@ -27,8 +29,9 @@ lost-ACK browser cases. Its initial complete gates failed shared source ownershi
 after native356, with14 skipped leaves. At canonical-path repair head `781ebb6`,
 PR Verify passed native356/shared verification, then failed one source fixture:
 3786 passed/1 failed, with13 downstream leaves skipped. The fixture used two
-clock reads for fields required to match; its one-timestamp repair remains
-source-only until its affected regression and replacement complete gates pass.
+clock reads for fields required to match. The one-timestamp repair passed the
+original six stream/migration cases at combined source `98d81a1`; replacement
+complete final-head gates remain open.
 The separate [Templates qualification](PHASE_5F_TEMPLATE_PAGINATION_QUALIFICATION.md)
 passed four cases with true20+1/25+1 default pages and actual shutdown/physical
 proof at `3c69d4d`; it does not replace final-head CI or a fresh combined browser
@@ -39,7 +42,11 @@ is retained separately from the older current23 native18/Worker12 results.
 The reviewed combined #259 candidate includes that Step-confirmation,
 Run trash/restore and Metrology metadata mutation service extraction alongside
 the UI changes. It preserves current V26 and original revision/CAS/accepted-write
-semantics. The combined finite checks and exact-head complete gates remain open.
+semantics. The [combined local qualification](qualification/phase5f-ui-execution-current-v26/README.md)
+completed shared ownership, one owned strict, original6/mounted37/source38 and
+a separate fresh build on exact `98d81a1`. The first wrapper failure remains
+recorded; genuine exited-kernel/FD-permission reconciliation carries the five
+actual command passes without rerun. Exact final-head complete gates remain open.
 After a successful combined #259 merge, close #260 as superseded while retaining
 its independent failures and qualification; #260 is not independently merged.
 
@@ -66,14 +73,14 @@ is valuable evidence but is not a remote pass or production admission.
 
 | Area | Synchronization and evidence as of 2026-10-10 | Remaining boundary |
 | --- | --- | --- |
-| Integration and deployment | Planning #250 and implementations #251–#258 are merged into development/test. #258 preserves its own-four-gate-qualified318 tree at `e108496`; #257's own pairs/all15 contexts and #256 post-merge pairs passed. Combined #259 remains a candidate with the distinct failure/qualification states above; close #260 as superseded only after a successful combined merge. | Observe actual serving version/schema and authenticated readiness. Retain previous Workers/build and post-merge failures. Production `main` remains outside the current development goal. |
+| Integration and deployment | Planning #250 and implementations #251–#258 are merged into development/test. #258 preserves its own-four-gate-qualified318 tree at `e108496`; its post-merge Verify/Map/all15 contexts passed. #257's own pairs/all15 contexts and #256 post-merge pairs passed. Combined #259 completed its bounded local gates at98d and remains a candidate pending final complete CI; close #260 as superseded only after successful combined merge. | Observe actual serving version/schema and authenticated readiness. Retain previous Workers/build and post-merge failures. Production `main` remains outside the current development goal. |
 | FP1 | File authority was activated on the historical deployment; new `internal` and `originals` roles use R2. The [2026-10-01 acceptance](./FP1_R2_ROLE_DEFAULTS.md#live-acceptance--2026-10-01) passed 6 MiB HTTP writes and 15/15 V19 restore bytes. | Historical accepted locations and missing-provider outcomes remain explicit. |
 | FP2 | **Implemented, CI-qualified and integrated** through #251: native File R2/S3 byte access, verified publication and lifecycle, configured candidate activation, independent role defaults and frozen accepted destinations; `0018` / V21. [FP2/FP3 record](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP3_LOCAL_DEVELOPMENT_ACCEPTANCE.md). | Real AWS account/profile and deployed administration/provider/runtime acceptance. Fixture tests do not establish real-provider qualification. |
 | FP3 | **Implemented, CI-qualified and integrated**: persisted bounded migration jobs, isolated execution, pause/resume/cancel/retry, verified cutover, read holds and explicit cleanup; `0019` / V22. | Deployed runner limits/invocation, provider interruption and actual deployed nonempty recovery rehearsal. |
 | FP4 | **Implemented, CI-qualified and integrated**: paired **Sample and Project** package export, matching website **fresh-copy** import, separate readable reports, `0020` / V23. [FP4 record](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP4_RESEARCH_PACKAGES.md). | Deployed/provider and targeted manual acceptance; maintain bounded packages, complete dependencies and original-vs-copy identity. |
 | FP5 | **Implemented, CI-qualified and integrated**: privileged full backup, identity-preserving fresh-target recovery, protected configuration, legacy archive conversion and assisted handoff; `0021`–`0022` / V24. [FP5 goal](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP5_DEVELOPMENT_GOAL.md). | Real target provisioning, provider-specific and deployed handoff evidence; restored execution remains disabled pending explicit local admission. |
 | Frontend | C4, 5D, 5E and bounded #251/#252/#254 repairs are integrated. **5F remains in progress**. `6c4dc88` mixed/motion/Retry/cost scopes remain distinct historical receipts. The separate six directory/creation cases at `2f5d616` and four genuine Templates default-page cases at `3c69d4d` passed actual browser/owned-stop/physical checks. [Role/focus ledger](PHASE_5F_ROLE_FOCUS_REVIEW_LEDGER.md) documents current cross-surface ownership. | Integrate the reviewed candidates only after final-head gates. Physical input/IME, authenticated/provider and whole-5F acceptance stay open; the two directory pagination gaps now have bounded local browser proof. |
-| CI | #258's own Verify/Map pairs qualified its exact318 tree; #257 and #256 totals retain their earlier scopes. #259 initial ownership failure and later `781ebb6` one-source-case clock failure remain recorded, with14 and13 skipped downstream leaves respectively. The corrected fixture/reconciled head needs its own complete gates. | Complete exact-head push/PR Verify and Map gates before each implementation merge. Do not sum historical/current scopes or count skipped leaves as passes. |
+| CI | #258's own Verify/Map pairs qualified its exact318 tree; post-merge Verify/Map/all15 contexts passed (source409/3843, mounted103/985). #257/#256 retain earlier scopes. #259 initial ownership and later781 clock failures remain recorded with14/13 skipped downstream leaves. Corrected98d local boundary/strict/6+37+38/build gates passed across two attempts; first wrapperFAIL stays immutable. Final complete gates remain open. | Complete exact-head push/PR Verify and Map gates before each implementation merge. Do not sum historical/current scopes or count skipped leaves as passes. |
 | Integration defect repairs | [FP3 actor admission](FP3_JOB_AUTHORIZATION_ACCEPTANCE.md), [FP5 recovery bootstrap](FP5_RECOVERY_BOOTSTRAP_ACCEPTANCE.md) and [explicit route recovery](PHASE_6_ROUTE_RECOVERY_ACCEPTANCE.md) are included in the qualified, merged tree. | Actual development rollout, provider and operational acceptance remain separate. No real provider was activated. |
 | Stabilization | 6A1–6A5 selected ownership/S2 work is historical; #251 combined-tree review and complete local/default remote gates passed. | Remaining 6A6 serving/schema/device and enabled-scope 6B provider/operational release verification stay open. |
 | Legacy Drafts | #199/#200 are inactive alternatives to the chosen S2 route. | Review closure as maintenance, not as new migrations or a release prerequisite. |

@@ -33,11 +33,17 @@ their actual [follow-up scopes](PHASE_5F_RETRY_GROUP_MOTION_ACCEPTANCE.md) remai
 separate receipts. Current development is #258/currentV26 at `e108496`.
 Candidate #259 retains the prior six directory/creation cases and the new four
 true default-page Templates cases. Its one-source-case clock fixture failure
-and13 skipped downstream leaves require the minimal repair/final complete gates;
+and13 skipped downstream leaves remain historical. Corrected combined98d
+completed local boundary/owned strict/original6/mounted37/source38 and a separate
+fresh build, retaining the first wrapper owner-check failure and genuine
+exited-kernel/FD-permission reconciliation. Final complete gates remain open;
 no historical browser scope is relabelled as a fresh combined-head run. The
 combined candidate also retains separately qualified current24 Execution
 metadata mutation services; its final complete gates must cover the actual
 combined head. Close #260 as superseded only after successful combined merge.
+Merged #258 post-merge Verify/Map and all15 contexts also passed (source409/3843,
+mounted103/985); conditional failure-cleanup skipped, no verification leaf
+skipped, and no deployed serving/schema claim.
 Post-merge #251 Verify/Map and all 15 contexts and Workers Build
 `114224522096` succeeded; three anonymous routes still returned Access 302.
 Authenticated serving/schema and whole-phase device gates stay open.
@@ -573,8 +579,10 @@ search-label, initial Project GET Retry, three-owner refresh and reduced-motion
 repairs with their dated actual scopes. The new [four Templates cases](PHASE_5F_TEMPLATE_PAGINATION_QUALIFICATION.md)
 close true20+1/25+1 pagination, independent navigation, native Search/focus and
 read-only Retry gaps at their actual3c source. The prior six directory/creation
-cases retain their actual2f source. Candidate #259's clock fixture repair and
-complete final-head gates remain open on the #258/currentV26 integration.
+cases retain their actual2f source. Candidate #259's corrected combined98d
+local gates passed across the firstfive actual command passes and a separate
+fresh build; the original wrapperFAIL remains recorded. Exact final-head
+complete gates remain open on the #258/currentV26 integration.
 The [role/focus ledger](PHASE_5F_ROLE_FOCUS_REVIEW_LEDGER.md) records the bounded
 cross-page action/overlay review and preserves historical scope limits.
 Whole-phase physical-input/authenticated/provider qualification remains open. See
