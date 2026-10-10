@@ -1,8 +1,6 @@
 {
   "kind": "portable-v26-current-business-finite-qualification-plan/1",
   "status": "FROZEN_SOURCE_ONLY; no listed command executed by this audit",
-  "sourceHead": "4ee8a7b1c7b1e0ced8ce5a771b76e908b9aae5c2",
-  "sourceTree": "fbabedb1f23a6e92e554cc4b5205e508f592789c",
   "workingDirectory": "/tmp/portable-v26-business-e9eb709-private-source",
   "strictCommands": [
     {
@@ -291,7 +289,7 @@
         "--test-concurrency=1",
         "scripts/current-schema-source.test.mjs"
       ],
-      "sourceSha256": "e37a33b7710a7e5302ebb90b107d9010b4b517540fbd077f1a92871815d55871",
+      "sourceSha256": "bcd9104eaea5f67ac1bb1b378d0f95025550ba0a0c9307be1ebeec587eb6e64e",
       "expectedCases": 10,
       "scope": "Actual populated whole-file and Wrangler-split upgrades through raw0024, original typed cells/rowids/receipts and pinned historical SQL.",
       "authoredBudget": "Original Node test defaults.",
@@ -362,5 +360,17 @@
     "No borrowed latest runtime qualification from prior 46-path strict receipt.",
     "Local authority rows used by tests are explicitly SQL guard fixtures and never physical probe/admission proof."
   ],
-  "publicationBoundary": "V26 remains a separately owned provisional metadata-only catalog. Current operational Node/main catalog stays V25. No File/local provider authority or default-role enabling; no production deployment or remote D1/provider I/O."
+  "publicationBoundary": "V26 remains a separately owned provisional metadata-only catalog. Current operational Node/main catalog stays V25. No File/local provider authority or default-role enabling; no production deployment or remote D1/provider I/O.",
+  "sourceBaselineHead": "4ee8a7b1c7b1e0ced8ce5a771b76e908b9aae5c2",
+  "sourceBaselineTree": "fbabedb1f23a6e92e554cc4b5205e508f592789c",
+  "preparedAtCheckpoint": "42573a7ae7759863c44863e585c8866c63d47b2e",
+  "sourceDelta": {
+    "path": "scripts/current-schema-source.test.mjs",
+    "originalSha256": "e37a33b7710a7e5302ebb90b107d9010b4b517540fbd077f1a92871815d55871",
+    "correctedSha256": "bcd9104eaea5f67ac1bb1b378d0f95025550ba0a0c9307be1ebeec587eb6e64e",
+    "reason": "Existing conservative SQL token normalization in complete catalog comparison; raw0024 comment text differs under genuine Wrangler splitting.",
+    "other60V26CodeConfigurationPinsUnchanged": true,
+    "parentFinitePlanSha256": "da3cf7f17ddcfa381029552bb5c15eae87bb3d687c87c67850ef5662f20927b2",
+    "actualQualificationMustRecordOwnCommit": "The corrected Git checkpoint and any subsequent docs-only checkpoint must record exact own HEAD/tree before execution. No runtime has occurred on this source."
+  }
 }

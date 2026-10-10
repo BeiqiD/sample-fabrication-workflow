@@ -1,0 +1,114 @@
+{
+  "kind": "portable-v26-current-migration-comment-comparison-correction/1",
+  "status": "SOURCE_ONLY; proposed narrow correction, compiler/test/build/DB UNRUN",
+  "parentCheckpoint": "42573a7ae7759863c44863e585c8866c63d47b2e",
+  "originalFailureLogs": [
+    {
+      "event": "push",
+      "runId": 38085442041,
+      "source": "4ee8a7b1c7b1e0ced8ce5a771b76e908b9aae5c2",
+      "path": "/tmp/portable-v26-4ee8a7b-push-verify-failed-attempt1.log",
+      "sha256": "832c513dfe7ded27b9342a67bf947a8ab93ea23d08990eb973f7649f76567698",
+      "status": "FAIL",
+      "actualVerificationScripts": {
+        "passed": 356,
+        "failed": 1
+      },
+      "retainedSummary": [
+        "| source | skipped | \u2014 |",
+        "| mounted | skipped | \u2014 |",
+        "| rich-text | skipped | \u2014 |",
+        "| node-http | skipped | \u2014 |",
+        "| server-types | skipped | \u2014 |",
+        "| node-client | skipped | \u2014 |",
+        "| export-contract | skipped | \u2014 |",
+        "| file-jobs-node | skipped | \u2014 |",
+        "| migrations | skipped | \u2014 |",
+        "| reference-worker | skipped | \u2014 |",
+        "| reference-search-worker | skipped | \u2014 |",
+        "| build | skipped | \u2014 |",
+        "| map-bundle | skipped | \u2014 |",
+        "| project-worker | skipped | \u2014 |"
+      ]
+    },
+    {
+      "event": "pr",
+      "runId": 38085474230,
+      "source": "4ee8a7b1c7b1e0ced8ce5a771b76e908b9aae5c2",
+      "path": "/tmp/portable-v26-4ee8a7b-pr-verify-failed-attempt1.log",
+      "sha256": "afdf76db58a10a3045318fd5204eb0c4964bc3849d2ee294a8eb56b4bac42713",
+      "status": "FAIL",
+      "actualVerificationScripts": {
+        "passed": 356,
+        "failed": 1
+      },
+      "retainedSummary": [
+        "| source | skipped | \u2014 |",
+        "| mounted | skipped | \u2014 |",
+        "| rich-text | skipped | \u2014 |",
+        "| node-http | skipped | \u2014 |",
+        "| server-types | skipped | \u2014 |",
+        "| node-client | skipped | \u2014 |",
+        "| export-contract | skipped | \u2014 |",
+        "| file-jobs-node | skipped | \u2014 |",
+        "| migrations | skipped | \u2014 |",
+        "| reference-worker | skipped | \u2014 |",
+        "| reference-search-worker | skipped | \u2014 |",
+        "| build | skipped | \u2014 |",
+        "| map-bundle | skipped | \u2014 |",
+        "| project-worker | skipped | \u2014 |"
+      ]
+    }
+  ],
+  "cause": "Pinned Wrangler splitSqlIntoStatements consumes line and block comments, so raw0024 internal provenance comment appears in whole-file sqlite_schema but not the split observation. Executable schema tokens are unchanged.",
+  "changedApplicationOrMigrationSource": false,
+  "soleChangedTestPath": "scripts/current-schema-source.test.mjs",
+  "originalSourceSha256": "e37a33b7710a7e5302ebb90b107d9010b4b517540fbd077f1a92871815d55871",
+  "correctedSourceSha256": "bcd9104eaea5f67ac1bb1b378d0f95025550ba0a0c9307be1ebeec587eb6e64e",
+  "correction": "Use the already imported normalizeSchemaSql for only SQL fields in the complete whole-file/split catalog observation, exactly as the existing FP3 migration scope does. Keep every schema object/type/name/table and normalized SQL token, with quoted bytes exact.",
+  "existingNormalizationSemantics": {
+    "path": "scripts/d1-migration-plan.mjs",
+    "sha256": "b70c18b733176422b26460c7a78b4a959038def92e44f924d769ee819e5ab38e",
+    "preserved": "Entire quoted strings and identifiers, blob-literal adjacency, SQL punctuation/operators/tokens and non-ASCII identifiers. Malformed quotes/comments reject. Ignores SQLite ASCII whitespace, SQL comments and trailing semicolons only."
+  },
+  "existingNegativeNormalizationCoverage": {
+    "path": "scripts/d1-migration-plan.test.mjs",
+    "sha256": "d5d9a1366113f786e18cb5f26ad3e3823f0bb5b5ae94c9a04b99b523ead38a07",
+    "scope": "Existing comment/whitespace equivalence and unequal quoted-string/identifier bytes, unterminated quote/comment rejection, and further complete observation/token integrity cases. Unchanged and UNRUN here.",
+    "authoredCases": 18
+  },
+  "allOther60V26CodeConfigurationHashesEqual": true,
+  "all24RawMigrationHashesEqual": true,
+  "all5FrozenCatalogGeneratedHashesEqual": true,
+  "raw0024Sha256": "010414ba121247175e3bf6fe2eb88028ff8557035b123cfa12970c37e3985533",
+  "schemaAssertionsRetained": "Complete sorted catalog equality, populated original typed cells and signed rowids, original receipts and ledger ordering, foreign-key check/enabled, recovery disabled and authority legacy mode. No schema object or SQL token exclusion added.",
+  "affectedFollowup": [
+    {
+      "command": [
+        "node",
+        "--test",
+        "--test-concurrency=1",
+        "scripts/current-schema-source.test.mjs"
+      ],
+      "expectedCases": 10,
+      "status": "UNRUN; requires explicit coordinator runtime GO"
+    },
+    {
+      "command": [
+        "node",
+        "--test",
+        "--test-concurrency=1",
+        "scripts/d1-migration-plan.test.mjs"
+      ],
+      "expectedCases": 18,
+      "status": "UNRUN; existing normalization control suite if coordinator includes it"
+    }
+  ],
+  "previousFinitePlan": "The exact parent425 finite plan remains in Git history, SHA da3cf7f17ddcfa381029552bb5c15eae87bb3d687c87c67850ef5662f20927b2. The current plan preserves all commands/counts/budgets and compiler pins, updates only the affected test source pin, and explicitly identifies the original reviewed base plus the one-test source delta.",
+  "historicalEvidencePreserved": true,
+  "provisionalMetadataOnly": true,
+  "noLocalFileRoleProviderEnabling": true,
+  "currentOperationalNodeCatalogRemainsV25": true,
+  "noCompilerTestBuildOrDatabaseExecution": true,
+  "updatedFinitePlanSha256": "0c7b23363ba2f08958c133eaba6c7c9cd55ad05580b86d025f05a468e34a91fe"
+}

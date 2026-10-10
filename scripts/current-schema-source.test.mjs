@@ -45,7 +45,10 @@ for (const filename of ["0021_fp5_system_recovery.sql", "0022_fp5_recovery_evide
         assert.deepEqual(name === "d1_migrations" ? observed.slice(0, expected.length) : observed, expected, `Original typed cells and rowids: ${name}`);
         assert.deepEqual(rows(whole, name), priorWholeRows.get(name), `Whole-file preservation: ${name}`);
       }
-      const catalog = db => db.prepare("SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE name NOT GLOB 'sqlite_*' ORDER BY type,name").all();
+      // Wrangler strips comments inside CREATE statements; compare every schema
+      // object and executable token while retaining quoted SQL bytes exactly.
+      const catalog = db => db.prepare("SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE name NOT GLOB 'sqlite_*' ORDER BY type,name")
+        .all().map(row => ({ ...row, sql: row.sql === null ? null : normalizeSchemaSql(row.sql) }));
       assert.deepEqual(catalog(actual), catalog(whole));
       assert.deepEqual(actual.prepare("PRAGMA foreign_key_check").all(), []);
       assert.equal(actual.prepare("PRAGMA foreign_keys").get().foreign_keys, 1);
