@@ -1,3 +1,4 @@
+import { validateFullExportV25 } from "../../shared/contracts/export-portable-runtime";
 import type JSZip from "jszip";
 import { createExportArtifact, exportArtifactText, validateFullExportV8, validateFullExportV9, validateFullExportV10, validateFullExportV11, validateFullExportV12, validateFullExportV13, validateFullExportV14, validateFullExportV15, validateFullExportV16, validateFullExportV17, validateFullExportV18, validateFullExportV19, validateFullExportV20, validateFullExportV21, validateFullExportV22, validateFullExportV23, validateFullExportV24 } from "../../shared/contracts/export-protocol";
 import type { FullExportBlobEntryV15, FullExportNativeBlobEntryV21 } from "../../shared/contracts/export";
@@ -166,7 +167,7 @@ export async function buildFullExportArchive(
 }
 
 async function buildVersionedFullExportArchive(
-  version: 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24,
+  version: 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25,
   input: unknown,
   onProgress?: (completed: number, total: number) => void,
   fetcher: typeof fetch = fetch,
@@ -178,7 +179,7 @@ async function buildVersionedFullExportArchive(
           : version === 12 ? await validateFullExportV12(input)
             : version === 13 ? await validateFullExportV13(input)
               : version === 14 ? await validateFullExportV14(input)
-                : version === 15 ? await validateFullExportV15(input) : version === 16 ? await validateFullExportV16(input) : version === 17 ? await validateFullExportV17(input) : version === 18 ? await validateFullExportV18(input) : version === 19 ? await validateFullExportV19(input) : version === 20 ? await validateFullExportV20(input) : version === 21 ? await validateFullExportV21(input) : version === 22 ? await validateFullExportV22(input) : version === 23 ? await validateFullExportV23(input) : await validateFullExportV24(input);
+                : version === 15 ? await validateFullExportV15(input) : version === 16 ? await validateFullExportV16(input) : version === 17 ? await validateFullExportV17(input) : version === 18 ? await validateFullExportV18(input) : version === 19 ? await validateFullExportV19(input) : version === 20 ? await validateFullExportV20(input) : version === 21 ? await validateFullExportV21(input) : version === 22 ? await validateFullExportV22(input) : version === 23 ? await validateFullExportV23(input) : version === 24 ? await validateFullExportV24(input) : await validateFullExportV25(input);
   const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
   const paths = new Set(["export-manifest.json", "export-warnings.json"]);
@@ -204,8 +205,8 @@ async function buildVersionedFullExportArchive(
     tables,
     artifacts,
     blobs: results,
-    ...(manifest.schemaVersion === 23 || manifest.schemaVersion === 24 ? { excludedOutputs: manifest.excludedOutputs } : {}),
-    ...(manifest.schemaVersion === 24 ? { relocatedSources: manifest.relocatedSources, backupHoldOwner: manifest.backupHoldOwner } : {}),
+    ...(manifest.schemaVersion === 23 || manifest.schemaVersion === 24 || manifest.schemaVersion === 25 ? { excludedOutputs: manifest.excludedOutputs } : {}),
+    ...(manifest.schemaVersion === 24 || manifest.schemaVersion === 25 ? { relocatedSources: manifest.relocatedSources, backupHoldOwner: manifest.backupHoldOwner } : {}),
   }, null, 2));
   zip.file("export-warnings.json", JSON.stringify(warnings, null, 2));
   const files = Object.values(zip.files).filter((file) => !file.dir);
@@ -289,4 +290,8 @@ export function buildFullExportArchiveV23(input: unknown, onProgress?: (complete
 
 export function buildFullExportArchiveV24(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
   return buildVersionedFullExportArchive(24, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV25(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(25, input, onProgress, fetcher);
 }

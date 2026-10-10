@@ -5,7 +5,6 @@ import type {
   CreateProjectEdgeInput,
   CreateProjectInput,
   CreateReferenceProjectItemInput,
-  ProjectAttachmentRecord,
   ProjectEdgeLifecycleInput,
   ProjectItemLifecycleInput,
   ProjectItemMutationResponse,

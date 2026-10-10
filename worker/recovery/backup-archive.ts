@@ -2,11 +2,19 @@ import type { Env } from "../types";
 import { openShadowProfile } from "../files/shadow-profile";
 import { legacyByteReader } from "../files/legacy-byte-reader";
 import { RECOVERY_SCHEMA_SHA256, RECOVERY_TABLES } from "../../shared/contracts/system-recovery-catalog";
-import { finishSystemBackupManifest, validateSystemBackupDocuments, type SystemBackupFile, type SystemBackupRecordsV1, type SystemBackupSource } from "../../shared/contracts/system-backup";
+import { finishSystemBackupManifest, validateSystemBackupDocuments, type SystemBackupFile, type SystemBackupSource } from "../../shared/contracts/system-backup";
 import { systemBackupArchiveMetadata } from "../../shared/domain/system-backup-archive";
-export { validateSystemBackupArchive } from "../../shared/contracts/system-backup-archive-admission";
+import { finishSystemBackupManifestV2, validateSystemBackupDocumentsV2 } from "../../shared/contracts/system-backup-v2";
+import { selectReviewedRecoveryCatalog, type VersionedRecoveryRecords } from "./versioned-catalog";
+export { validateVersionedSystemBackupArchive as validateSystemBackupArchive } from "../../shared/contracts/system-backup-versioned-admission";
 
-export async function prepareSystemBackupArchive(records: SystemBackupRecordsV1, files: readonly SystemBackupFile[]) {
+export async function prepareSystemBackupArchive(records: VersionedRecoveryRecords, files: readonly SystemBackupFile[]) {
+  selectReviewedRecoveryCatalog(records);
+  if (records.schema === "system-backup-records/2") {
+    const manifest = await finishSystemBackupManifestV2(records, files);
+    const checked = await validateSystemBackupDocumentsV2(manifest, records);
+    return { ...checked, ...await systemBackupArchiveMetadata(checked.manifest, checked.records, checked.manifest) };
+  }
   const manifest = await finishSystemBackupManifest(records, files);
   await validateSystemBackupDocuments(manifest, records, { schemaSha256: RECOVERY_SCHEMA_SHA256, tables: RECOVERY_TABLES });
   return { manifest, records, ...await systemBackupArchiveMetadata(manifest, records, manifest) };

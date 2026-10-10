@@ -2,7 +2,6 @@ import {
   DEFAULT_REFERENCE_CHILD_LIMIT,
   MAX_REFERENCE_CHILD_LIMIT,
   isListReferenceChildrenInput,
-  type ListReferenceChildrenInput,
   type ListReferenceChildrenResponse,
 } from "../../shared/reference-children";
 import {

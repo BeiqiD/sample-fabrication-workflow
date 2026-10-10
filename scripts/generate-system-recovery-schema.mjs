@@ -18,7 +18,22 @@ const protectedNames = new Set([
 const quote = name => `"${name.replaceAll('"', '""')}"`;
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const database = new DatabaseSync(":memory:"), clock = new DatabaseSync(":memory:");
-const migrationNames = (await readdir(join(root, "migrations"))).filter(name => /^\d{4}_.*\.sql$/.test(name)).sort();
+// This generator owns the frozen V1/V24 checkpoint. Current portable runtime
+// migrations have a separate versioned generator and must never refresh it.
+const reviewedMigrationNames = [
+  "0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql",
+  "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql", "0006_comment_acceptance.sql",
+  "0007_fp1_file_authority_transition.sql", "0008_fp1_shadow_runtime.sql", "0009_fp1_shadow_withdrawals.sql",
+  "0010_fp1_shadow_adjudications.sql", "0011_fp1_retire_legacy_test_projects.sql", "0012_fp1_file_authority_runtime.sql",
+  "0013_fp1_r2_role_defaults.sql", "0014_fp2_storage_configuration.sql", "0015_fp2_storage_candidate_checks.sql",
+  "0016_fp2_credential_reenvelopes.sql", "0017_fp2_native_storage_profiles.sql", "0018_fp2_native_file_runtime.sql",
+  "0019_fp3_file_jobs.sql", "0020_fp4_research_packages.sql", "0021_fp5_system_recovery.sql", "0022_fp5_recovery_evidence.sql",
+];
+const migrationNames = (await readdir(join(root, "migrations")))
+  .filter(name => /^\d{4}_.*\.sql$/.test(name) && name <= "0022_fp5_recovery_evidence.sql").sort();
+if (JSON.stringify(migrationNames) !== JSON.stringify(reviewedMigrationNames)) {
+  throw new Error("Frozen V1/V24 generation requires the exact reviewed 0001–0022 inventory");
+}
 const migrations = [];
 try {
   const classifications = await readFile(join(root, "shared/contracts/storage-configuration-schema.ts"), "utf8");

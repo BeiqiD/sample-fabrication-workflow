@@ -105,7 +105,7 @@ export function planSystemBackupSources(content: FullExportManifestV24): SystemB
 
 /** The archive contains encrypted envelope history only. Key material and
  * execution privileges are supplied independently by the destination. */
-export function systemBackupProtectedConfiguration(image: SystemRecoveryImageV1, status: ProtectedConfigurationPolicy["status"] = "included_encrypted"): ProtectedConfigurationPolicy {
+export function systemBackupProtectedConfiguration(image: Pick<SystemRecoveryImageV1, "tables">, status: ProtectedConfigurationPolicy["status"] = "included_encrypted"): ProtectedConfigurationPolicy {
   const tableNames = Object.keys(image.tables).filter(name => name.startsWith("system_storage_")).sort();
   const keys = new Set<string>();
   for (const name of tableNames) {
@@ -132,13 +132,18 @@ function checkedFile(source: SystemBackupSource, value: unknown): SystemBackupFi
   return row as unknown as SystemBackupFile;
 }
 
-export async function finishSystemBackupManifest(records: SystemBackupRecordsV1, values: readonly SystemBackupFile[]): Promise<SystemBackupManifestV1> {
-  ensure(text(records.backupId, 128) && text(records.createdAt, 200) && Number.isFinite(Date.parse(records.createdAt)), "identity");
-  const sources = planSystemBackupSources(records.content);
+export function validateSystemBackupFileInventory(content: FullExportManifestV24, values: readonly SystemBackupFile[]): { files: SystemBackupFile[]; bytes: number } {
+  const sources = planSystemBackupSources(content);
   ensure(values.length === sources.length, "file_inventory");
   const files = sources.map((source, index) => checkedFile(source, values[index]));
   const bytes = files.reduce((total, file) => total + (file.byteSize ?? 0), 0);
   ensure(bytes <= SYSTEM_BACKUP_MAX_PAYLOAD_BYTES, "payload_budget");
+  return { files, bytes };
+}
+
+export async function finishSystemBackupManifest(records: SystemBackupRecordsV1, values: readonly SystemBackupFile[]): Promise<SystemBackupManifestV1> {
+  ensure(text(records.backupId, 128) && text(records.createdAt, 200) && Number.isFinite(Date.parse(records.createdAt)), "identity");
+  const { files, bytes } = validateSystemBackupFileInventory(records.content, values);
   const recordsText = stableJson(records); ensure(new TextEncoder().encode(recordsText).byteLength <= SYSTEM_BACKUP_MAX_RECORDS_BYTES, "records_budget");
   const identity = records.content.tables.research_package_source_identity[0];
   ensure(identity && text(identity.installation_id), "installation_identity");
@@ -173,7 +178,7 @@ export function validateSystemBackupMigrationLedger(value: unknown): SystemBacku
 }
 /** The typed recovery image and historical content proof must describe the
  * SAME frozen records. An independently valid second image is not sufficient. */
-export async function validateSystemBackupContentImage(content: FullExportManifestV24, image: SystemRecoveryImageV1) {
+export async function validateSystemBackupContentImage(content: FullExportManifestV24, image: Pick<SystemRecoveryImageV1, "tables">) {
   const compatibility = classifyExportCompatibilitySchema(content.artifacts.sourceSchema.value.compatibilityColumns, "file-authority-v14");
   const physical = restoreCompatibilityRows(content.tables, content.artifacts.retiredFields.value, compatibility, "file-authority-v14");
   for (const [name, table] of Object.entries(image.tables)) {

@@ -1,9 +1,10 @@
 import { stableJson, sha256Hex } from "../../shared/domain/content-addressing";
-import type { SystemBackupRecordsV1 } from "../../shared/contracts/system-backup";
+import { selectReviewedRecoveryCatalog, validateRecoverySourceImage, type VersionedRecoveryRecords } from "./versioned-catalog";
+import { inspectCurrentCloudflareSchema } from "./current-cloudflare-schema";
 import type { SystemRecoveryCell, SystemRecoveryRow, SystemRecoveryTable, RecoveryTableSpec } from "../../shared/contracts/system-recovery-image";
 import { FILE_REGISTRY_ROWID_CLAIMS_INTEGRITY_SQL, canonicalFileAuthoritySchemaSql } from "../../shared/contracts/export-file-authority";
 import { FILE_SHADOW_HEAD_INTEGRITY_SQL } from "../../shared/contracts/export-file-shadow";
-import { RECOVERY_SCHEMA_SHA256, RECOVERY_SCHEMA_STATEMENTS, RECOVERY_TABLES } from "./trusted-schema";
+
 import { readRecoveryTable, assertRecoveredCapabilitiesInert, recoveryIdentifier } from "./protected-settings";
 import { recoveryFileCellChanges, type RecoveryDestinationProfile, type RecoveryPlannedFile } from "./target-files";
 import type { RecoveryCellDifference } from "./report";
@@ -97,15 +98,23 @@ async function appendedRowAllowed(database: D1Database, table: SystemRecoveryTab
   }
   return false;
 }
-export async function verifyRecoveryTarget(database: D1Database, records: SystemBackupRecordsV1,
+export async function verifyRecoveryTarget(database: D1Database, records: VersionedRecoveryRecords,
   files: readonly RecoveryPlannedFile[], profiles: readonly RecoveryDestinationProfile[], jobId: string, imageSha256: string): Promise<RecoveryVerification> {
-  await assertRecoveredCapabilitiesInert(database);
+  const catalog = selectReviewedRecoveryCatalog(records);
+  validateRecoverySourceImage(records);
+  await assertRecoveredCapabilitiesInert(database, catalog);
   await inspectRecoveryPlatformSchema(database);
+  if (catalog.imageVersion === 2) {
+    const all = await database.prepare("SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema ORDER BY type,name")
+      .all<import("../../shared/contracts/export").ExportSchemaObject>();
+    ensure(all.success, "restored_schema_unavailable");
+    await inspectCurrentCloudflareSchema(all.results);
+  }
   const schema = await database.prepare("SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*' AND tbl_name NOT IN('_cf_KV','_cf_METADATA','d1_migrations') ORDER BY type,name")
     .all<{ type: string; name: string; tableName: string; sql: string }>();
   const schemaTokens = (entries: readonly { type: string; name: string; tableName: string; sql: string }[]) =>
     entries.map(entry => ({ ...entry, sql: canonicalFileAuthoritySchemaSql(entry.sql) }));
-  ensure(schema.success && stableJson(schemaTokens(schema.results)) === stableJson(schemaTokens(RECOVERY_SCHEMA_STATEMENTS)), "restored_schema_differs");
+  ensure(schema.success && stableJson(schemaTokens(schema.results)) === stableJson(schemaTokens(catalog.schemaStatements)), "restored_schema_differs");
   ensure((await database.prepare("PRAGMA foreign_key_check").all()).results.length === 0, "restored_foreign_keys_invalid");
   const originalText = (await database.prepare("SELECT chunk,image_sha256 FROM system_recovery_target_provenance WHERE job_id=? ORDER BY ordinal")
     .bind(jobId).all<{ chunk: string; image_sha256: string }>()).results;
@@ -125,8 +134,8 @@ export async function verifyRecoveryTarget(database: D1Database, records: System
   const headSources = (await database.prepare(`SELECT h.occurrence_id,h.consumer_kind,h.consumer_id,h.consumer_sub_id,h.file_slot,s.source_json
     FROM file_shadow_heads h JOIN file_shadow_sources s ON s.consumer_kind=h.consumer_kind AND s.consumer_id=h.consumer_id
       AND s.consumer_sub_id=h.consumer_sub_id AND s.file_slot=h.file_slot WHERE h.present=1`).all<Record<string, unknown>>()).results;
-  for (const spec of RECOVERY_TABLES.filter(table => !table.local)) {
-    const expected = records.image.tables[spec.name], observed = await readRecoveryTable(database, spec.name);
+  for (const spec of catalog.tables.filter(table => !table.local)) {
+    const expected = records.image.tables[spec.name], observed = await readRecoveryTable(database, spec.name, catalog);
     if (Object.hasOwn(SYSTEM_RECOVERY_EVIDENCE_EXPORT_COLUMNS, spec.name) || ["files","storage_profiles","file_locations","file_location_publications"].includes(spec.name)) {
       evidenceTables[spec.name] = observed.rows.map(row => Object.fromEntries(spec.columns.map((column,index) => {
         const cell=row.cells[index]; return [column,cell.type==='null'?null:cell.type==='integer'||cell.type==='real'?Number(cell.value):cell.value];
@@ -141,6 +150,10 @@ export async function verifyRecoveryTarget(database: D1Database, records: System
         let allowed = false, reason: RecoveryCellDifference["reason"] = "destination_mapping";
         const planned = changes.filter(change => change.table === spec.name && change.column === column && keyed(expected, original, change.keys));
         if (planned.length) { allowed = planned.every(change => stableJson(after) === stableJson(change.value === null ? { type: "null" } : text(change.value))); reason = column === "active_location_id" ? "destination_mapping" : "file_binding"; }
+        if (catalog.imageVersion === 2 && spec.name === "local_accounts" && column === "enabled") {
+          allowed = before.type === "integer" && before.value === "1" && after.type === "integer" && after.value === "0";
+          reason = "identity_quarantine";
+        }
         if (spec.name === "file_authority_control") {
           const originalMode=cellValue(original.cells[expected.columns.indexOf('mode')]);
           if(files.length&&originalMode!=='active')allowed ||= column === "mode" && stableJson(after) === stableJson(text("active"))
@@ -176,6 +189,6 @@ export async function verifyRecoveryTarget(database: D1Database, records: System
     "SELECT 1 FROM project_edges e JOIN project_items a ON a.id=e.source_item_id JOIN project_items b ON b.id=e.target_item_id WHERE a.project_id<>e.project_id OR b.project_id<>e.project_id LIMIT 1",
   ];
   for (const sql of projectChecks) ensure(!await database.prepare(sql).first(), "restored_project_relationships_invalid");
-  return { differences, checkpoint: { schemaSha256: RECOVERY_SCHEMA_SHA256, tables: tableHashes,
+  return { differences, checkpoint: { schemaSha256: catalog.schemaSha256, tables: tableHashes,
     files: await sha256Hex(stableJson(proofFiles)), sourceImageSha256: imageSha256 } };
 }

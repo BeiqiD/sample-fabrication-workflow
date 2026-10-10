@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.worker.json",
+  "compilerOptions": {
+    "types": [
+      "@cloudflare/workers-types",
+      "node"
+    ],
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  },
+  "include": [
+    "worker/recovery/portable-backup-current-workerd.test.ts",
+    "worker/recovery/backup-holds-workerd.test.ts"
+  ],
+  "exclude": []
+}

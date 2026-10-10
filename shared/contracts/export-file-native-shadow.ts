@@ -1,13 +1,12 @@
 import type { ExportRow, ExportSchemaObject, ExportTables, FileShadowSourceRowids } from "./export";
-import { sha256Hex, stableJson } from "../domain/content-addressing";
+import { stableJson } from "../domain/content-addressing";
 import { sqliteTableColumns } from "../domain/sqlite-table-columns";
 import { isFileShadowRowid } from "./file-shadow-rowid";
 import { validateLegacyOverlap } from "./export-file-foundation";
 import {
-  canonicalFileAuthoritySchemaSql, FILE_AUTHORITY_CONSUMER_COLUMNS, FILE_AUTHORITY_EXPORTED_VIEWS,
-  FILE_AUTHORITY_EXPORT_COLUMNS, FILE_AUTHORITY_EXPORT_VIEW_COLUMNS, legacyConsumerProjections,
+  FILE_AUTHORITY_CONSUMER_COLUMNS, FILE_AUTHORITY_EXPORT_COLUMNS, legacyConsumerProjections,
 } from "./export-file-authority";
-import { FILE_SHADOW_DEPENDENCY_SPECS, FILE_SHADOW_EXPORT_COLUMNS, FILE_SHADOW_EXPORTED_VIEW_COLUMNS, FILE_SHADOW_LOCAL_TABLE_NAMES, FILE_SHADOW_SLOT_KEYS } from "./file-shadow-schema";
+import { FILE_SHADOW_DEPENDENCY_SPECS, FILE_SHADOW_EXPORT_COLUMNS, FILE_SHADOW_SLOT_KEYS } from "./file-shadow-schema";
 
 /** Successor graph validator. Historical entry points and row semantics remain
  * frozen; native registration/activation is authenticated by the V21 caller. */

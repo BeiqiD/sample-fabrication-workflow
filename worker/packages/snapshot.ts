@@ -5,7 +5,7 @@ import {
 } from "../../shared/contracts/research-package-api";
 import { RESEARCH_PACKAGE_CATALOG, RESEARCH_RECORD_KINDS, RESEARCH_EVENT_RELATIONSHIP_FIELDS, type ResearchRecordKind } from "../../shared/contracts/research-package-catalog";
 import {
-  researchRecordKey, researchReferenceKind, type ResearchDomainRecord, type ResearchDependency, type ResearchPackageFile,
+  researchRecordKey, type ResearchDomainRecord, type ResearchDependency, type ResearchPackageFile,
   researchRecordsDocument, type ResearchEntityRef, type ResearchDependencyResolution, type ResearchPackageV1, type ResearchReportV1,
   RESEARCH_PACKAGE_MAX_RECORD_BYTES, checkedResearchPackageManifest, checkedResearchReportManifest,
 } from "../../shared/contracts/research-package";

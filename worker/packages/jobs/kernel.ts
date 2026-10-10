@@ -1,6 +1,6 @@
 import { ByteVerificationError, verifyStoredBytes } from "../../files/byte-verification";
 import { writeVerifiedBytes } from "../../files/byte-writer";
-import type { PackageAttempt, PackageCapabilities, PackageClaim, PackageFile } from "./types";
+import type { PackageAttempt, PackageCapabilities, PackageClaim } from "./types";
 
 export const PACKAGE_STEP_MS=60_000;
 /** One durable action, composed from persistence, format and exact transport

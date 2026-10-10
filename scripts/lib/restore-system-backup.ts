@@ -2,7 +2,8 @@ import { randomBytes } from "node:crypto";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { validateSystemBackupArchive } from "../../shared/contracts/system-backup-archive-admission";
+import { validateVersionedSystemBackupArchive } from "../../shared/contracts/system-backup-versioned-admission";
+import { restorePortableSystemBackupIntoDirectory } from "../../server/recovery/restore";
 import { SYSTEM_BACKUP_MAX_ARCHIVE_BYTES } from "../../shared/contracts/system-backup";
 import { recoveryCellBinding, recoveryTableSnapshotSql, type RecoveryTableSpec, type SystemRecoveryRow, type SystemRecoveryTable } from "../../shared/contracts/system-recovery-image";
 import { stableJson } from "../../shared/domain/content-addressing";
@@ -50,7 +51,7 @@ export async function restoreSystemBackupToIsolatedDirectory(options: RestoreSys
     await writePrivateRecoveryStream(originalArchivePath, await inputSource.open!(0, inputSource.byteSize));
     const source = await nodeRecoveryArchiveSource(originalArchivePath), sourceHash = await nodeRecoveryFileSha256(originalArchivePath);
     ensure(sourceHash.byteSize === inputSource.byteSize && (!options.expectedSha256 || options.expectedSha256 === sourceHash.sha256), "archive_sha256");
-    const admitted = await validateSystemBackupArchive(source, { ...NODE_RECOVERY_ARCHIVE_OPTIONS, expectedSha256: sourceHash.sha256 });
+    const admitted = await validateVersionedSystemBackupArchive(source, { ...NODE_RECOVERY_ARCHIVE_OPTIONS, expectedSha256: sourceHash.sha256 });
     ensure(admitted.manifest.completeness === "complete", "partial_backup_not_complete_recovery");
     const byteDirectory = join(destination, "files"), metadataDirectory = join(destination, "metadata");
     await mkdir(byteDirectory, { mode: 0o700 }); await mkdir(metadataDirectory, { mode: 0o700 }); await mkdir(join(destination, "report"), { mode: 0o700 });
@@ -59,6 +60,11 @@ export async function restoreSystemBackupToIsolatedDirectory(options: RestoreSys
       await writePrivateRecoveryStream(path, await openStoreArchiveEntry(source, entry, NODE_RECOVERY_ARCHIVE_OPTIONS));
     }
     ensure((await nodeRecoveryFileSha256(originalArchivePath)).sha256 === admitted.sha256, "retained_original_archive_changed");
+    if (admitted.format === "v2") {
+      const result = await restorePortableSystemBackupIntoDirectory({ directory: destination, archiveSha256: admitted.sha256,
+        manifest: admitted.manifest, records: admitted.records });
+      completed = true; return result;
+    }
     const databasePath = join(destination, "database.sqlite"); await writeFile(databasePath, new Uint8Array(), { flag: "wx", mode: 0o600 });
     database = new DatabaseSync(databasePath); database.exec("PRAGMA foreign_keys=ON; BEGIN IMMEDIATE; PRAGMA defer_foreign_keys=ON;");
     let statements = 0, recoveredRows = 0;

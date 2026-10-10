@@ -1,3 +1,4 @@
+import { validateFullExportV25, PORTABLE_RUNTIME_SOURCE_CHECKPOINT_PATH, PORTABLE_IDENTITY_MIGRATION_NAMES } from "../../shared/contracts/export-portable-runtime";
 import { SYSTEM_RECOVERY_SCHEMA_FINGERPRINT_SHA256, buildSystemRecoveryBlobExportPlan } from "../../shared/contracts/export-system-recovery";
 import { SYSTEM_RECOVERY_EVIDENCE_EXPORT_COLUMNS } from "../../shared/contracts/export-system-recovery-evidence";
 import { RESEARCH_PACKAGE_SCHEMA_FINGERPRINT_SHA256, buildResearchPackageBlobExportPlan } from "../../shared/contracts/export-research-packages";
@@ -86,7 +87,8 @@ export function planExportRestoreMigrations(migrationNames: string[], schemaVers
   const cleanup = "0011_fp1_retire_legacy_test_projects.sql";
   // Content recovery never installs administrator candidates or credential
   // payload storage. A separately authorized installation recovery owns those.
-  const schemaNames = migrationNames.filter((name) => name !== cleanup && !SYSTEM_STORAGE_CONFIGURATION_MIGRATIONS.includes(name as typeof SYSTEM_STORAGE_CONFIGURATION_MIGRATIONS[number]));
+  const schemaNames = migrationNames.filter((name) => name !== cleanup && !SYSTEM_STORAGE_CONFIGURATION_MIGRATIONS.includes(name as typeof SYSTEM_STORAGE_CONFIGURATION_MIGRATIONS[number])
+    && !PORTABLE_IDENTITY_MIGRATION_NAMES.includes(name as typeof PORTABLE_IDENTITY_MIGRATION_NAMES[number]));
   const knownChain = schemaNames.length >= 2 && schemaNames.length <= reviewedChain.length
     && canonical(schemaNames) === canonical(reviewedChain.slice(0, schemaNames.length));
   const forwardNames = knownChain ? schemaNames.filter((name) =>
@@ -190,11 +192,16 @@ async function archiveReader(bytes: Buffer) {
     let checksum = 0;
     await new Promise<void>((accept, reject) => {
       const stream = file.nodeStream("nodebuffer");
+      // JSZip uses readable-stream, whose public type omits destroy(). Qualify
+      // the cancellation capability actually consumed by this byte budget;
+      // its implementation need not inherit Node's core Readable prototype.
+      const destroy = "destroy" in stream ? stream.destroy : undefined;
+      ensure(typeof destroy === "function", "Archive cancellation unavailable");
       stream.on("data", (chunk: Buffer) => {
         size += chunk.length;
         expanded += chunk.length;
         if (size > MAX_ENTRY_BYTES || expanded > MAX_EXPANDED_BYTES) {
-          stream.destroy(new Error("Archive exceeds isolated restore size limits"));
+          destroy.call(stream, new Error("Archive exceeds isolated restore size limits"));
           return;
         }
         chunks.push(chunk);
@@ -254,9 +261,9 @@ function ensureResearchPackageExecutionSuspended(database: DatabaseSync) {
   return true;
 }
 
-async function ensureFileShadowTargetSchema(database: DatabaseSync, version: 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 = 15) {
+async function ensureFileShadowTargetSchema(database: DatabaseSync, version: 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 = 15) {
   const observed = database.prepare("SELECT type, name, tbl_name AS tableName, sql FROM sqlite_schema ORDER BY type, name").all() as unknown as ExportSchemaObject[];
-  ensure(await fileShadowSchemaFingerprint(observed) === (version === 24 ? SYSTEM_RECOVERY_SCHEMA_FINGERPRINT_SHA256 : version === 23 ? RESEARCH_PACKAGE_SCHEMA_FINGERPRINT_SHA256 : version === 22 ? FILE_MIGRATION_SCHEMA_FINGERPRINT_SHA256 : version === 21 ? FILE_NATIVE_RUNTIME_SCHEMA_FINGERPRINT_SHA256 : version === 20 ? FILE_NATIVE_ADMISSION_SCHEMA_FINGERPRINT_SHA256 : version === 19 ? FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256 : version === 18 ? FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256 : version === 17 ? FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256 : version === 16 ? FILE_SHADOW_WITHDRAWAL_SCHEMA_FINGERPRINT_SHA256 : FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256),
+  ensure(await fileShadowSchemaFingerprint(observed) === (version >= 24 ? SYSTEM_RECOVERY_SCHEMA_FINGERPRINT_SHA256 : version === 23 ? RESEARCH_PACKAGE_SCHEMA_FINGERPRINT_SHA256 : version === 22 ? FILE_MIGRATION_SCHEMA_FINGERPRINT_SHA256 : version === 21 ? FILE_NATIVE_RUNTIME_SCHEMA_FINGERPRINT_SHA256 : version === 20 ? FILE_NATIVE_ADMISSION_SCHEMA_FINGERPRINT_SHA256 : version === 19 ? FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256 : version === 18 ? FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256 : version === 17 ? FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256 : version === 16 ? FILE_SHADOW_WITHDRAWAL_SCHEMA_FINGERPRINT_SHA256 : FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256),
     "Local File shadow schema differs from the reviewed migration checkpoint");
 }
 
@@ -372,7 +379,7 @@ export async function restoreExportToIsolatedDirectory(options: {
     const archive = await archiveReader(bytes);
     const manifest = await archive.json("export-manifest.json");
     const warnings = await archive.json("export-warnings.json");
-    ensure(object(manifest) && [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24].includes(manifest.schemaVersion) && typeof manifest.exportedAt === "string"
+    ensure(object(manifest) && [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25].includes(manifest.schemaVersion) && typeof manifest.exportedAt === "string"
       && Number.isFinite(Date.parse(manifest.exportedAt)) && object(manifest.tables)
       && Array.isArray(manifest.blobs) && Array.isArray(warnings), "Unsupported complete-export manifest");
 
@@ -439,6 +446,7 @@ export async function restoreExportToIsolatedDirectory(options: {
       const artifacts: Record<string, any> = {};
       const artifactPaths = [["sourceSchema", EXPORT_SOURCE_SCHEMA_PATH], ["retiredFields", EXPORT_RETIRED_FIELDS_PATH]];
       if (manifest.schemaVersion >= 15) artifactPaths.push(["sourceRowids", FILE_SHADOW_SOURCE_ROWIDS_PATH]);
+      if (manifest.schemaVersion === 25) artifactPaths.push(["portableCheckpoint", PORTABLE_RUNTIME_SOURCE_CHECKPOINT_PATH]);
       for (const [name, path] of artifactPaths) {
         const descriptor = manifest.artifacts[name];
         ensure(object(descriptor) && descriptor.path === path && Number.isSafeInteger(descriptor.byteSize), `Invalid ${name} artifact descriptor`);
@@ -447,12 +455,12 @@ export async function restoreExportToIsolatedDirectory(options: {
         artifacts[name] = { ...descriptor, value: JSON.parse(artifactBytes.toString("utf8")) };
         retainedArtifacts.push({ path, bytes: artifactBytes });
       }
-      ensure(Object.keys(manifest.artifacts).sort().join(",") === (manifest.schemaVersion >= 15 ? "retiredFields,sourceRowids,sourceSchema" : "retiredFields,sourceSchema"), "Unknown or missing provenance artifacts");
+      ensure(Object.keys(manifest.artifacts).sort().join(",") === (manifest.schemaVersion === 25 ? "portableCheckpoint,retiredFields,sourceRowids,sourceSchema" : manifest.schemaVersion >= 15 ? "retiredFields,sourceRowids,sourceSchema" : "retiredFields,sourceSchema"), "Unknown or missing provenance artifacts");
       // Archive entries have final outcomes, while the negotiated wire catalog
       // has download URLs. Validate provenance against a reconstructed wire
       // plan here; the original archived blob catalog and bytes are checked
       // against that same table-derived plan below without dropping entries.
-      const validate = manifest.schemaVersion === 24 ? validateFullExportV24 : manifest.schemaVersion === 23 ? validateFullExportV23 : manifest.schemaVersion === 22 ? validateFullExportV22 : manifest.schemaVersion === 21 ? validateFullExportV21 : manifest.schemaVersion === 20 ? validateFullExportV20 : manifest.schemaVersion === 19 ? validateFullExportV19 : manifest.schemaVersion === 18 ? validateFullExportV18 : manifest.schemaVersion === 17 ? validateFullExportV17 : manifest.schemaVersion === 16 ? validateFullExportV16 : manifest.schemaVersion === 15 ? validateFullExportV15 : manifest.schemaVersion === 14 ? validateFullExportV14 : manifest.schemaVersion === 13 ? validateFullExportV13 : manifest.schemaVersion === 12 ? validateFullExportV12 : manifest.schemaVersion === 11 ? validateFullExportV11 : manifest.schemaVersion === 10 ? validateFullExportV10 : manifest.schemaVersion === 9 ? validateFullExportV9 : validateFullExportV8;
+      const validate = manifest.schemaVersion === 25 ? validateFullExportV25 : manifest.schemaVersion === 24 ? validateFullExportV24 : manifest.schemaVersion === 23 ? validateFullExportV23 : manifest.schemaVersion === 22 ? validateFullExportV22 : manifest.schemaVersion === 21 ? validateFullExportV21 : manifest.schemaVersion === 20 ? validateFullExportV20 : manifest.schemaVersion === 19 ? validateFullExportV19 : manifest.schemaVersion === 18 ? validateFullExportV18 : manifest.schemaVersion === 17 ? validateFullExportV17 : manifest.schemaVersion === 16 ? validateFullExportV16 : manifest.schemaVersion === 15 ? validateFullExportV15 : manifest.schemaVersion === 14 ? validateFullExportV14 : manifest.schemaVersion === 13 ? validateFullExportV13 : manifest.schemaVersion === 12 ? validateFullExportV12 : manifest.schemaVersion === 11 ? validateFullExportV11 : manifest.schemaVersion === 10 ? validateFullExportV10 : manifest.schemaVersion === 9 ? validateFullExportV9 : validateFullExportV8;
       const validated = await validate({ ...manifest, tables, artifacts, blobs: manifest.schemaVersion >= 24 ? buildSystemRecoveryBlobExportPlan(tables, artifacts.sourceSchema.value.snapshotClock, manifest.backupHoldOwner).blobs : manifest.schemaVersion >= 23 ? buildResearchPackageBlobExportPlan(tables, artifacts.sourceSchema.value.snapshotClock).blobs : manifest.schemaVersion >= 21 ? buildFileNativeBlobExportPlan(tables) : manifest.schemaVersion >= 15 ? buildFileShadowBlobExportPlan(tables) : buildBlobExportPlan(tables) });
       if (validated.schemaVersion >= 21) sourceSnapshotClock = artifacts.sourceSchema.value.snapshotClock;
       if (validated.schemaVersion >= 15) sourceRowids = (validated as FullExportManifestV15).artifacts.sourceRowids.value;
@@ -835,6 +843,7 @@ export async function restoreExportToIsolatedDirectory(options: {
         ...(sourceSnapshotClock ? { sourceSnapshotClock, retentionEqualAtSourceSnapshotClock: true } : {}) },
     };
     await mkdir(join(staging, "provenance"));
+    if (manifest.schemaVersion === 25) await mkdir(join(staging, "artifacts"));
     for (const artifact of retainedArtifacts) await writeFile(join(staging, artifact.path), artifact.bytes, { flag: "wx", mode: 0o600 });
     await writeFile(join(staging, "original-archive.zip"), bytes, { flag: "wx", mode: 0o600 });
     await writeFile(join(staging, "provider-manifest.json"), JSON.stringify(providerEntries, null, 2), { flag: "wx", mode: 0o600 });

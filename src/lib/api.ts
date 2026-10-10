@@ -2,7 +2,7 @@ import { checkedStorageSettingsStatus } from "../../shared/contracts/storage-set
 import { checkedCurrentStorageSettings } from "../../shared/contracts/current-storage-settings";
 import { checkedNativeStorageActivationInput, checkedNativeStorageActivationReceipt, checkedStorageRolePolicyInput, checkedStorageRolePolicyReceipt,
   type NativeStorageActivationInput, type StorageRolePolicyInput } from "../../shared/contracts/storage-policy";
-import type { FullExportManifestV24 } from "../../shared/contracts/export";
+import type { FullExportManifestV25 } from "../../shared/contracts/export-portable-runtime";
 import type {
   TemplateRecord,
   ProcessTemplateVersionSummary,
@@ -10,11 +10,10 @@ import type {
   ProcessTemplateFamilyOption,
   MetrologyTemplateSummary,
   TemplateDetail,
-  MetrologyTemplateReference,
   TemplateStepInput,
   MetrologyTemplateInput,
 } from "../../shared/contracts/template";
-import type { ApplyPlanUpdateInput, ConfirmRunStepsInput, CreateCommentSubmissionInput, CreateMetrologyRunEntryInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, DeleteRunInput, DeleteSampleInput, FinishProcessRunInput, ManagedStorageStatus, PaginationMeta, PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleDeletionImpact, SampleDetail, SampleDirectoryFilterOptions, SampleDirectorySort, SampleListResponse, SampleStatus, SplitSampleInput, StartMetrologyRunInput, StartProcessRunInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
+import type { ApplyPlanUpdateInput, ConfirmRunStepsInput, CreateMetrologyRunEntryInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, DeleteRunInput, DeleteSampleInput, FinishProcessRunInput, ManagedStorageStatus, PaginationMeta, PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleDeletionImpact, SampleDetail, SampleDirectoryFilterOptions, SampleDirectorySort, SampleListResponse, SampleStatus, SplitSampleInput, StartMetrologyRunInput, StartProcessRunInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
 import { createDurableCommentSubmission, uploadDurableCommentItem, finalizeDurableCommentSubmission, cancelDurableCommentSubmission, removeDurableCommentItem, getCommentAcceptance } from "./comment-submission-client";
 import { uploadR2Asset, type R2UploadOptions } from "./r2-upload-client";
 import { uploadMetrologyReference } from "./metrology-reference-upload-client";
@@ -313,7 +312,7 @@ export const api = {
     method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
   }),
   deleteTemplateStep: (templateId: string, stepId: string) => request<{ ok: true }>(`/templates/${templateId}/steps/${stepId}`, { method: "DELETE" }),
-  getFullExport: () => request<FullExportManifestV24>("/exports/all?archiveSchema=24&archiveWriter=1"),
+  getFullExport: () => request<FullExportManifestV25>("/exports/all?archiveSchema=25&archiveWriter=1"),
   importFabublox: submitFabubloxImport,
 };
 

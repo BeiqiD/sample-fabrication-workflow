@@ -1,17 +1,19 @@
+import { PORTABLE_IDENTITY_MIGRATION_NAMES } from "../../shared/contracts/export-portable-runtime";
 import { readdirSync } from "node:fs";
 import { expect, it } from "vitest";
 import { planExportRestoreMigrations } from "./export-restore";
 import { SYSTEM_STORAGE_CONFIGURATION_MIGRATIONS } from "../../shared/contracts/storage-configuration-schema";
 
-it("keeps V7–V24 content upgrades while excluding reviewed cleanup and installation configuration, check evidence and key-maintenance receipts", () => {
+it("keeps V7–V25 content upgrades while excluding reviewed cleanup and installation configuration, check evidence and key-maintenance receipts", () => {
   const cleanup = "0011_fp1_retire_legacy_test_projects.sql";
   const names = readdirSync(new URL("../../migrations/", import.meta.url)).filter((name) => name.endsWith(".sql")).sort();
   expect(names).toContain("0017_fp2_native_storage_profiles.sql");
   expect(names).toContain("0021_fp5_system_recovery.sql");
   expect(names).toContain("0022_fp5_recovery_evidence.sql");
-  const schemaNames = names.filter(name => name !== cleanup && !SYSTEM_STORAGE_CONFIGURATION_MIGRATIONS.includes(name as typeof SYSTEM_STORAGE_CONFIGURATION_MIGRATIONS[number]));
+  const schemaNames = names.filter(name => name !== cleanup && !SYSTEM_STORAGE_CONFIGURATION_MIGRATIONS.includes(name as typeof SYSTEM_STORAGE_CONFIGURATION_MIGRATIONS[number]) && !PORTABLE_IDENTITY_MIGRATION_NAMES.includes(name as typeof PORTABLE_IDENTITY_MIGRATION_NAMES[number]));
   expect(schemaNames).not.toContain("0021_fp5_system_recovery.sql");
-  for (let version = 7; version <= 24; version++) {
+  expect(schemaNames).not.toContain("0023_portable_local_identity.sql");
+  for (let version = 7; version <= 25; version++) {
     const plan = planExportRestoreMigrations(names, version);
     expect(plan).toEqual(planExportRestoreMigrations(schemaNames, version));
     expect(plan.schemaNames).toEqual(schemaNames);

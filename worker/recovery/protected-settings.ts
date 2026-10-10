@@ -1,6 +1,6 @@
 import { stableJson } from "../../shared/domain/content-addressing";
-import type { SystemBackupRecordsV1 } from "../../shared/contracts/system-backup";
-import { recoveryTableSnapshotSql, type SystemRecoveryImage, type SystemRecoveryTable } from "../../shared/contracts/system-recovery-image";
+import type { VersionedRecoveryRecords, VersionedRecoveryImage, ReviewedRecoveryCatalog } from "./versioned-catalog";
+import { recoveryTableSnapshotSql, type SystemRecoveryTable } from "../../shared/contracts/system-recovery-image";
 import { RECOVERY_TABLES, RECOVERY_SEED_TABLE_ROWS } from "./trusted-schema";
 
 export interface RecoverySettingsReport {
@@ -8,7 +8,7 @@ export interface RecoverySettingsReport {
   rootKeysIncluded: false; nativeBindingsEnabled: false; automaticExecution: false;
   freshConfigurationRequired: true;
 }
-export function recoveryProtectedSettingsReport(records: SystemBackupRecordsV1): RecoverySettingsReport {
+export function recoveryProtectedSettingsReport(records: VersionedRecoveryRecords): RecoverySettingsReport {
   const policy = records.protectedConfiguration;
   if (policy.rootKeysIncluded !== false || policy.automaticExecution !== false
     || policy.policy !== "encrypted-configuration-quarantine/1") throw new Error("protected_settings_policy");
@@ -17,8 +17,8 @@ export function recoveryProtectedSettingsReport(records: SystemBackupRecordsV1):
     automaticExecution: false, freshConfigurationRequired: true };
 }
 export function recoveryIdentifier(name: string) { return `"${name.replaceAll('"', '""')}"`; }
-export async function readRecoveryTable(database: D1Database, name: string): Promise<SystemRecoveryTable> {
-  const spec = RECOVERY_TABLES.find(table => table.name === name);
+export async function readRecoveryTable(database: D1Database, name: string, catalog?: ReviewedRecoveryCatalog): Promise<SystemRecoveryTable> {
+  const spec = (catalog?.tables ?? RECOVERY_TABLES).find(table => table.name === name);
   if (!spec) throw new Error("unreviewed_recovery_table");
   const rows: SystemRecoveryTable["rows"] = [];
   const sql = recoveryTableSnapshotSql(spec);
@@ -38,8 +38,8 @@ function sameTable(left: SystemRecoveryTable, right: SystemRecoveryTable) {
 }
 /** Freshness admits only migration-owned seed values. Random installation IDs
  * and the migration clock are structurally checked, never matched to one build. */
-export function isRecoverySeedTable(name: string, observed: SystemRecoveryTable): boolean {
-  const seed = RECOVERY_SEED_TABLE_ROWS[name];
+export function isRecoverySeedTable(name: string, observed: SystemRecoveryTable, catalog?: ReviewedRecoveryCatalog): boolean {
+  const seed = (catalog?.seedTableRows ?? RECOVERY_SEED_TABLE_ROWS)[name];
   if (!seed || observed.rows.length !== seed.rows.length || stableJson(observed.columns) !== stableJson(seed.columns)) return false;
   const copy = structuredClone(observed);
   const randomColumns = name === "research_package_source_identity" ? ["installation_id"]
@@ -59,10 +59,10 @@ export function isRecoverySeedTable(name: string, observed: SystemRecoveryTable)
   }
   return sameTable(copy, seed);
 }
-export function recoveryImageTableRows(image: SystemRecoveryImage) {
+export function recoveryImageTableRows(image: VersionedRecoveryImage) {
   return Object.values(image.tables).reduce((total, table) => total + table.rows.length, 0);
 }
-export async function assertRecoveredCapabilitiesInert(database: D1Database): Promise<void> {
+export async function assertRecoveredCapabilitiesInert(database: D1Database, catalog?: ReviewedRecoveryCatalog): Promise<void> {
   const statements = [
     "SELECT count(*) AS invalid FROM file_authority_runtime_guard WHERE enabled<>0 OR incarnation IS NOT NULL",
     "SELECT count(*) AS invalid FROM file_shadow_runtime_guard WHERE enabled<>0 OR incarnation IS NOT NULL",
@@ -73,6 +73,13 @@ export async function assertRecoveredCapabilitiesInert(database: D1Database): Pr
     "SELECT count(*) AS invalid FROM system_research_package_cleanup_grants",
     "SELECT count(*) AS invalid FROM file_shadow_runtime_incarnations",
   ];
+  if (catalog?.imageVersion === 2) statements.push(
+    "SELECT count(*) AS invalid FROM local_accounts WHERE enabled<>0",
+    "SELECT count(*) AS invalid FROM local_identity_installation",
+    "SELECT count(*) AS invalid FROM local_admin_grants",
+    "SELECT count(*) AS invalid FROM local_sessions",
+    "SELECT count(*) AS invalid FROM local_login_throttle",
+  );
   const results = await database.batch(statements.map(sql => database.prepare(sql)));
   if (results.some(result => !result.success || result.results.length !== 1 || (result.results[0] as Record<string, unknown>).invalid !== 0)) {
     throw new Error("recovered_execution_not_inert");
