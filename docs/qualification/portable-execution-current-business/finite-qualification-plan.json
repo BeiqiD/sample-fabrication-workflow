@@ -1,0 +1,119 @@
+{
+  "kind": "execution-current-business-finite-qualification-plan/1",
+  "status": "UNRUN_AWAITING_EXPLICIT_PARENT_EXCLUSIVE_GO",
+  "sourceReceipt": "docs/qualification/portable-execution-current-business/source-receipt.json",
+  "sourceReceiptSha256": "6de441433cc342e26b726b85d984fc87b87272d0596961962141256786141696",
+  "privateRoot": "/tmp/rt1-execution-current-business-9592d9c",
+  "preconditions": [
+    "Parent grants finite exclusive runtime; current Node/UI/V26 owners and listeners have fully released.",
+    "Verify clean pinned checkpoint/tree and13prod/eight fixture/config/current23/catalog pins; reject drift before SQL.",
+    "Attach already-installed dependencies privately after GO only, exclude node_modules via private Git info/exclude, compare package-lock; no install/new dependencies.",
+    "Reserve new log/report/WRANGLER_LOG_PATH with exclusive creation; refuse reuse; preserve every failure."
+  ],
+  "policy": {
+    "serial": true,
+    "caseDeadlineMs": 5000,
+    "maxWorkers": 1,
+    "fileParallelism": false,
+    "bail": 1,
+    "stopOnFirstFailure": true,
+    "noRetryOrTimeoutIncrease": true
+  },
+  "stages": [
+    {
+      "stage": "worker-strict",
+      "cwd": "/tmp/rt1-execution-current-business-9592d9c",
+      "argv": [
+        "node_modules/.bin/tsc",
+        "--noEmit",
+        "-p",
+        "tsconfig.worker.json"
+      ],
+      "log": "/tmp/portable-execution-current-business-959-worker-strict-attempt1.log",
+      "requiredExit": 0
+    },
+    {
+      "stage": "server-strict",
+      "cwd": "/tmp/rt1-execution-current-business-9592d9c",
+      "argv": [
+        "node_modules/.bin/tsc",
+        "--noEmit",
+        "-p",
+        "tsconfig.server.json"
+      ],
+      "log": "/tmp/portable-execution-current-business-959-server-strict-attempt1.log",
+      "requiredExit": 0
+    },
+    {
+      "stage": "owned-fixtures-strict",
+      "cwd": "/tmp/rt1-execution-current-business-9592d9c",
+      "argv": [
+        "node_modules/.bin/tsc",
+        "--noEmit",
+        "-p",
+        "execution-metadata-qualification.tsconfig.json"
+      ],
+      "log": "/tmp/portable-execution-current-business-959-owned-fixtures-strict-attempt1.log",
+      "requiredExit": 0
+    },
+    {
+      "stage": "native18",
+      "cwd": "/tmp/rt1-execution-current-business-9592d9c",
+      "argv": [
+        "node_modules/.bin/vitest",
+        "run",
+        "server/step-confirmation.test.ts",
+        "server/run-trash.test.ts",
+        "server/metrology-write.test.ts",
+        "--config",
+        "execution-metadata-qualification.vitest.config.mts",
+        "--bail=1",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-execution-current-business-959-native18-actual-attempt1.json"
+      ],
+      "log": "/tmp/portable-execution-current-business-959-native18-actual-attempt1.log",
+      "requiredExit": 0,
+      "requiredPassed": 18,
+      "requiredFailed": 0,
+      "requiredSkipped": 0,
+      "requiredFiles": 3,
+      "after": "Await owned cleanup and actual child exit; stop/release on first failure."
+    },
+    {
+      "stage": "worker12",
+      "cwd": "/tmp/rt1-execution-current-business-9592d9c",
+      "argv": [
+        "node_modules/.bin/vitest",
+        "run",
+        "worker/step-confirmation.qualification.test.ts",
+        "worker/run-trash.qualification.test.ts",
+        "worker/metrology-write.qualification.test.ts",
+        "--config",
+        "execution-metadata-qualification.vitest.config.mts",
+        "--bail=1",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-execution-current-business-959-worker12-actual-attempt1.json"
+      ],
+      "log": "/tmp/portable-execution-current-business-959-worker12-actual-attempt1.log",
+      "requiredExit": 0,
+      "requiredPassed": 12,
+      "requiredFailed": 0,
+      "requiredSkipped": 0,
+      "requiredFiles": 3,
+      "after": "Await owned cleanup and actual child exit; stop/release on first failure.",
+      "environment": {
+        "WRANGLER_LOG_PATH": "/tmp/portable-execution-current-business-959-worker12-attempt1-wrangler"
+      }
+    }
+  ],
+  "acceptance": [
+    "All three exact strict invocations must exit0.",
+    "Native stage must execute exactly18 cases/threefiles and Worker stage exactly12 cases/threefiles, zero skipped; fullworkload/default5s authoritative.",
+    "If both separate stages pass, report current native18+Worker12 distinct scopes; do not call them one fresh whole30 run.",
+    "Await real HTTP listeners/nativecore and Miniflare disposal and process exit before nextstage; retain accepted/failed syntheticstate and receipts.",
+    "Node mounted authorization-BEGIN/fresh grant/physical lease composition and V26 are not qualified by this librarymatrix.",
+    "After own focused acceptance, root separately owns PR/current full source CI before dev integration; no production/main/provider action."
+  ]
+}
