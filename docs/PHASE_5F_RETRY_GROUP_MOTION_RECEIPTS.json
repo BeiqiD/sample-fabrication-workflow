@@ -182,5 +182,51 @@
     "Directory pagination actual API/browser flow",
     "Other motion widths/themes/devices/IME/engines",
     "Remote Access/provider/schema/deployment qualification"
-  ]
+  ],
+  "followupProductEquivalence": {
+    "exerciseHead": "6c4dc88800f783cd756ce6370fb4d8f4764f952c",
+    "checkedTrackedNonDocumentationNonPhase5fQaFiles": 1159,
+    "allBytesEqual": true,
+    "excluded": "docs/ and scripts/qa/phase5f/; final branch complete CI still pending"
+  },
+  "appliedFocused": {
+    "tests": 35,
+    "status": "passed",
+    "logSha256": "1f6fea90ad3ac66366e7bd9119ba67c66e8010b5a536a771a58f39c812fd00eb"
+  },
+  "integration252": {
+    "mergeSha": "fc3abc3eac6085cfde8af97b44a9b6d91ac62a15",
+    "tree": "15d89bf222c6a16adfc15b857a8f75943b485912",
+    "mergedAt": "2026-10-10T15:03:29Z",
+    "ownFinalRuns": [
+      38060230559,
+      38060233331,
+      38060230577,
+      38060233336
+    ],
+    "ownFinalFourRunsPassed": true,
+    "ownFinalPublicContextsPassed": 15,
+    "postMergeMapRun": 38062074448,
+    "postMergeMapPassed": true,
+    "postMergeVerifyAttempt1": {
+      "sourceHead": "fc3abc3eac6085cfde8af97b44a9b6d91ac62a15",
+      "runId": 38062074458,
+      "attempt": 1,
+      "status": "failed",
+      "nativePassed": 355,
+      "sourcePassed": 3344,
+      "sourceFailed": 5,
+      "sourceFilesPassed": 364,
+      "sourceFilesFailed": 2,
+      "cause": "five existing source cases timed out at unchanged default5000ms",
+      "failedFiles": [
+        "worker/export-v21-protocol.test.ts",
+        "worker/files/jobs/worker-runtime-authorization.test.ts"
+      ],
+      "laterLeaves": "skipped",
+      "log": "/tmp/phase5f-fc3-postmerge-verify-failed.log",
+      "logSha256": "de5f87b266fc1fa81fa9f42c577051b93d3268db10e8b5e518c26c3077894c46"
+    },
+    "postMergeVerifyAttempt2": "one failed-job rerun requested; result not qualified in this checkpoint"
+  }
 }
