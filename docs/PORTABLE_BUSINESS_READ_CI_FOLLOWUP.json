@@ -15,14 +15,41 @@
       "sha256": "d90d57c8a08670f14ac8b3a6fe8d8541d07e9b38c7dde520ae047159b28798fc",
       "actualSummary": "Tests  1 failed | 3783 passed (3784)",
       "error": "reference-page static contract still expected rawfetch; laterleaves skipped"
+    },
+    {
+      "head": "e9eb709ff6a9c2af2e2c7a64190a0bf8fefcb94d",
+      "event": "push",
+      "runId": 38083134557,
+      "path": "/tmp/portable-business-e9eb709-push-verify-failed-attempt1.log",
+      "sha256": "e4c81d5896762a057e983d041e13f61c45afcb723fce468586698b992e7a649b",
+      "actualSummary": "404 source files/3784 cases and 103 mounted files/985 cases passed; export-contract failed TS2339; later leaves skipped",
+      "error": "authentication-client ImportMeta.env is missing from focused export-contract compiler types"
     }
   ],
   "change": "Require existing applicationFetch import and resolver call, preserving method/body/no-mutation checks",
   "productionChange": false,
-  "localFollowup": "not yet run on business source; exact currentV25smoke separately qualified and adopted",
+  "localFollowup": {
+    "head": "e9eb709ff6a9c2af2e2c7a64190a0bf8fefcb94d",
+    "referenceContract": "5 cases passed after resolving private dependency link; first zero-case setup failure retained",
+    "projectWorker": "real current23/V25 Worker/D1 smoke passed; disposed and isolated fixture removed",
+    "receipt": "/tmp/portable-business-e9eb709-local-followup-receipt.json"
+  },
   "completeGate": "new own-head Verify/Map required",
   "source": {
     "path": "src/reference-page.test.ts",
     "sha256": "7bcfc842cfc18a0b5e42dadc6043e52a688a9e233c1c6639725953f3231da148"
+  },
+  "exportContractCorrection": {
+    "path": "tsconfig.export-contract.json",
+    "change": "Include the existing pinned vite/client types alongside workers types because the export test reaches the authenticated browser request seam. All strictness, entry files and assertions remain unchanged.",
+    "sha256": "e8ec1615b8eca48ee0855db8c05025f4c1d2e32cb16e512a3fc80926ff6a09a7",
+    "localAffectedCompiler": "UNRUN when this source checkpoint was saved; queue after UI qualification",
+    "newCompleteGate": "UNRUN when this source checkpoint was saved; new own-head push and PR Verify/Map required",
+    "productionSourceChanged": false,
+    "independentSourcePeer": {
+      "path": "/tmp/portable-export-contract-vite-types-independent-source-peer.json",
+      "sha256": "638a4190f9ad8c58398bee4cb3e7ad3228bc08b840f64a56ec782d1375cfdb63",
+      "status": "CLEAR_SOURCE_ONLY; compiler/runtime pending"
+    }
   }
 }
