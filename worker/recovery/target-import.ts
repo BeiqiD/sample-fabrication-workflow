@@ -1,3 +1,5 @@
+import { validateSystemBackupDocumentsV3 } from "../../shared/contracts/system-backup-v3";
+import { inspectV26CloudflareSchema } from "./v26-cloudflare-schema";
 import type { Env } from "../types";
 import { primaryD1 } from "../d1-primary";
 import { stableJson, sha256Hex } from "../../shared/domain/content-addressing";
@@ -129,7 +131,7 @@ export async function inspectRecoveryTargetFreshness(env: TargetEnvironment, exp
   const objects = await schemaObjects(target);
   await inspectRecoveryPlatformSchema(target);
   await inspectRecoveryMigrationLedger(target, false, catalog?.migrations);
-  if (catalog?.imageVersion === 2) {
+  if (catalog?.imageVersion === 2 || catalog?.imageVersion === 3) {
     const all = await target.prepare("SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema ORDER BY type,name")
       .all<import("../../shared/contracts/export").ExportSchemaObject>();
     ensure(all.success, "target_schema_unavailable");
@@ -137,7 +139,8 @@ export async function inspectRecoveryTargetFreshness(env: TargetEnvironment, exp
       ensure(stripReviewedCurrentCloudflarePlatformSchema(all.results).applicationObjects.length === 0, "target_schema_not_reviewed");
       return { empty: true, target };
     }
-    await inspectCurrentCloudflareSchema(all.results);
+    if (catalog.imageVersion === 3) await inspectV26CloudflareSchema(all.results);
+    else await inspectCurrentCloudflareSchema(all.results);
   }
   if (!objects.length) return { empty: true, target };
   const schemaTokens = (entries: readonly { type: string; name: string; tableName: string; sql: string }[]) =>
@@ -225,8 +228,9 @@ export function createRecoveryTargetEngine(env: TargetEnvironment) {
     id(input.jobId); id(input.incarnation); id(input.expectedTargetId);
     const catalog = selectReviewedRecoveryCatalog(input.records);
     validateRecoverySourceImage(input.records);
-    ensure(input.manifest.schema === (catalog.imageVersion === 2 ? "system-backup/2" : "system-backup/1"), "recovery_version_pair");
-    if (input.records.schema === "system-backup-records/2") await validateSystemBackupDocumentsV2(input.manifest, input.records);
+    ensure(input.manifest.schema === (catalog.imageVersion === 3 ? "system-backup/3" : catalog.imageVersion === 2 ? "system-backup/2" : "system-backup/1"), "recovery_version_pair");
+    if (input.records.schema === "system-backup-records/3") await validateSystemBackupDocumentsV3(input.manifest, input.records);
+    else if (input.records.schema === "system-backup-records/2") await validateSystemBackupDocumentsV2(input.manifest, input.records);
     ensure(input.manifest.completeness === "complete" && input.manifest.files.every(file => file.outcome === "packaged"), "partial_backup_not_complete_recovery");
     const budget = atomicBudget(input.records);
     let profiles: RecoveryDestinationProfile[] | undefined;

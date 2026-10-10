@@ -1,3 +1,4 @@
+import { finishSystemBackupManifestV3, validateSystemBackupDocumentsV3 } from "../../shared/contracts/system-backup-v3";
 import type { Env } from "../types";
 import { openShadowProfile } from "../files/shadow-profile";
 import { legacyByteReader } from "../files/legacy-byte-reader";
@@ -10,6 +11,11 @@ export { validateVersionedSystemBackupArchive as validateSystemBackupArchive } f
 
 export async function prepareSystemBackupArchive(records: VersionedRecoveryRecords, files: readonly SystemBackupFile[]) {
   selectReviewedRecoveryCatalog(records);
+  if (records.schema === "system-backup-records/3") {
+    const manifest = await finishSystemBackupManifestV3(records, files);
+    await validateSystemBackupDocumentsV3(manifest, records);
+    return { manifest, records, ...await systemBackupArchiveMetadata(manifest, records, manifest) };
+  }
   if (records.schema === "system-backup-records/2") {
     const manifest = await finishSystemBackupManifestV2(records, files);
     const checked = await validateSystemBackupDocumentsV2(manifest, records);

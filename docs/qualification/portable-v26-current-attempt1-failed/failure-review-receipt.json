@@ -1,0 +1,38 @@
+{
+  "kind": "portable-v26-current-business-first-actual-failure/1",
+  "status": "FAILED; runtime released before source adaptation",
+  "sourceHead": "a823dda035109a69d094c9ef51ab308f1f834534",
+  "sourceTree": "656aaabb710615b19bc787889916c131ee31a03f",
+  "sixFirstCompilerCommands": "PASS with original exact empty logs",
+  "firstFailedCommand": [
+    "node",
+    "node_modules/typescript/bin/tsc",
+    "-p",
+    ".tsconfig.v26-worker-tests.json"
+  ],
+  "firstActualError": "worker/projects/service.ts(23,8): error TS6133: ReferenceTarget is declared but its value is never read.",
+  "failedCommandExitCode": 1,
+  "firstActualFailureLogSha256": "fd4409e0225fdec3bfea2645cc1804577e5fec6f2295b657d11c1d181ce10cf3",
+  "retainedExactProofHashes": {
+    "source-only-preflight-receipt.json": "812a68356e99fc2875c7e6bc1a094275bc03da0dc9e3583ec6113e99ed96a6f6",
+    "actual-receipt.json": "d832ed97048d3d84a383706557bd6fb5603c12806c9bfed5191732310f3d3197",
+    "01-strict-tsconfig.server.json.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "02-strict-tsconfig.runtime-tests.json.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "03-strict-tsconfig.worker.json.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "04-strict-tsconfig.app.json.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "05-strict-tsconfig.shared.json.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "06-strict-tsconfig.file-jobs-node.json.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "07-strict-.tsconfig.v26-worker-tests.json.log": "fd4409e0225fdec3bfea2645cc1804577e5fec6f2295b657d11c1d181ce10cf3"
+  },
+  "unrunCompilerCommands": 5,
+  "allVitestNodeBuildSmokeStages": "UNRUN; no runtime cases or build were executed",
+  "allSourcePinsUnchangedAfter": true,
+  "allOwnedResourcesClosedAfter": true,
+  "preexistingUnownedWorkerdPid44327Untouched": true,
+  "sourceDiagnosis": "Only import occurrence of ReferenceTarget remains in the mature Worker Project service after shared read extraction. ReferenceTargetType is still used. Expanded compiler noUnusedLocals correctly catches it.",
+  "proposedNarrowFix": "Remove only the unused type ReferenceTarget import line. No strictness relaxation, test exclusion or service behavior change. File is outside original owned61 V26 paths; root source review will coordinate adoption.",
+  "sourceCorrectionAppliedHere": false,
+  "noLocalFileRoleProviderEnabling": true,
+  "provisionalMetadataOnly": true,
+  "currentOperationalNodeCatalogRemainsV25": true
+}

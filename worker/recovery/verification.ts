@@ -1,3 +1,4 @@
+import { inspectV26CloudflareSchema } from "./v26-cloudflare-schema";
 import { stableJson, sha256Hex } from "../../shared/domain/content-addressing";
 import { selectReviewedRecoveryCatalog, validateRecoverySourceImage, type VersionedRecoveryRecords } from "./versioned-catalog";
 import { inspectCurrentCloudflareSchema } from "./current-cloudflare-schema";
@@ -104,11 +105,12 @@ export async function verifyRecoveryTarget(database: D1Database, records: Versio
   validateRecoverySourceImage(records);
   await assertRecoveredCapabilitiesInert(database, catalog);
   await inspectRecoveryPlatformSchema(database);
-  if (catalog.imageVersion === 2) {
+  if (catalog.imageVersion === 2 || catalog.imageVersion === 3) {
     const all = await database.prepare("SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema ORDER BY type,name")
       .all<import("../../shared/contracts/export").ExportSchemaObject>();
     ensure(all.success, "restored_schema_unavailable");
-    await inspectCurrentCloudflareSchema(all.results);
+    if (catalog.imageVersion === 3) await inspectV26CloudflareSchema(all.results);
+    else await inspectCurrentCloudflareSchema(all.results);
   }
   const schema = await database.prepare("SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*' AND tbl_name NOT IN('_cf_KV','_cf_METADATA','d1_migrations') ORDER BY type,name")
     .all<{ type: string; name: string; tableName: string; sql: string }>();
@@ -150,7 +152,7 @@ export async function verifyRecoveryTarget(database: D1Database, records: Versio
         let allowed = false, reason: RecoveryCellDifference["reason"] = "destination_mapping";
         const planned = changes.filter(change => change.table === spec.name && change.column === column && keyed(expected, original, change.keys));
         if (planned.length) { allowed = planned.every(change => stableJson(after) === stableJson(change.value === null ? { type: "null" } : text(change.value))); reason = column === "active_location_id" ? "destination_mapping" : "file_binding"; }
-        if (catalog.imageVersion === 2 && spec.name === "local_accounts" && column === "enabled") {
+        if ((catalog.imageVersion === 2 || catalog.imageVersion === 3) && spec.name === "local_accounts" && column === "enabled") {
           allowed = before.type === "integer" && before.value === "1" && after.type === "integer" && after.value === "0";
           reason = "identity_quarantine";
         }
