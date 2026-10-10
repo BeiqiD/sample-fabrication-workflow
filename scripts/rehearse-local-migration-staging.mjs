@@ -7,7 +7,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
-import { getPlatformProxy } from "wrangler";
+import { getPlatformProxy, unstable_splitSqlQuery as splitSql } from "wrangler";
 import { observeD1Migrations } from "./d1-migration-observer.mjs";
 import { migrationSqlHash, normalizeSchema, planD1Migrations, schemaFingerprint } from "./d1-migration-plan.mjs";
 import { applyHostTransaction, compatibilityDirectory, generateS2Baseline, observeHostSchema, readSchemaSources } from "./lib/backend-schema-baseline.mjs";
@@ -68,6 +68,7 @@ async function verifySources(trusted) {
 }
 
 async function verifyPrivateState(paths) {
+  paths.signal?.throwIfAborted();
   for (const path of [paths.directory, paths.persist]) {
     const info = await lstat(path);
     assert(info.isDirectory(), "An isolated directory was replaced by a symlink or file");
@@ -103,7 +104,12 @@ function expectedTables(before, after, baselineTables) {
 async function withDatabase(paths, operation) {
   await verifyPrivateState(paths);
   const proxy = await getPlatformProxy({ configPath: paths.config, persist: { path: join(paths.persist, "v3") }, remoteBindings: false, envFiles: [] });
-  try { return await operation(proxy.env.DB); }
+  try {
+    paths.signal?.throwIfAborted();
+    const result = await operation(proxy.env.DB);
+    paths.signal?.throwIfAborted();
+    return result;
+  }
   finally { await proxy.dispose(); }
 }
 
@@ -127,27 +133,80 @@ async function invokeWrangler(paths, arguments_, label) {
   const args = [wrangler, "d1", ...arguments_, "DB", "--local", "--config", paths.config, "--persist-to", paths.persist];
   const receipt = { executable: process.execPath, args, startedAt: new Date().toISOString(), success: false };
   try {
-    const result = await execute(process.execPath, args, { cwd: paths.directory, env, timeout: 120_000, maxBuffer: 4 * 1024 * 1024 });
+    const result = await execute(process.execPath, args, { cwd: paths.directory, env, signal: paths.signal, timeout: 120_000, maxBuffer: 4 * 1024 * 1024 });
     Object.assign(receipt, { success: true, stdout: result.stdout, stderr: result.stderr });
   } catch (error) {
     Object.assign(receipt, { exitCode: error.code, signal: error.signal, stdout: error.stdout ?? "", stderr: error.stderr ?? "", error: error.message });
   }
   receipt.finishedAt = new Date().toISOString();
   await writeFile(join(paths.directory, `${label}.json`), json(receipt), { flag: "wx", mode: 0o600 });
+  paths.signal?.throwIfAborted();
   return receipt;
+}
+
+async function populateHistoricalFixture(paths, trusted) {
+  const historical = trusted.sources.filter(({ kind }) => kind === "historical");
+  // Fixture construction is not the forward migration under qualification.
+  // Keep each exact source and its ledger INSERT in an independent native D1
+  // transaction, but reuse one workerd instead of restarting it for every file.
+  await withDatabase(paths, async (database) => {
+    const initial = await observeD1Migrations(database);
+    assert(initial.ledger.exists && initial.ledger.rows.length === 0, "Historical fixture requires a new CLI-initialized ledger");
+    for (const source of historical) {
+      paths.signal?.throwIfAborted();
+      const statements = splitSql(source.sql).map((sql) => database.prepare(sql));
+      statements.push(database.prepare("INSERT INTO d1_migrations (name) VALUES (?)").bind(source.filename));
+      const results = await database.batch(statements);
+      assert(results.length === statements.length && results.every(({ success }) => success), `Historical fixture transaction failed: ${source.filename}`);
+    }
+    const actual = await observeD1Migrations(database);
+    assert.deepEqual(actual.ledger.rows.map(({ id, name }) => ({ id, name })),
+      historical.map(({ filename }, index) => ({ id: index + 1, name: filename })), "Historical fixture preserves every distinct filename and ledger ID in order");
+    const expected = trusted.catalog.lineages.find(({ kind }) => kind === "legacy").supportedStates.find(({ appliedCount }) => appliedCount === historical.length);
+    assert.deepEqual(normalizeSchema(actual.schema), normalizeSchema(expected.schema), "Native historical fixture matches the independent whole-source host chain");
+  });
+}
+
+async function qualifyRetainedFixture(paths, trusted, seed) {
+  const reference = new DatabaseSync(":memory:");
+  try {
+    reference.exec("PRAGMA foreign_keys = ON");
+    for (const source of trusted.sources.filter(({ kind }) => kind === "historical")) applyHostTransaction(reference, source.sql);
+    applyHostTransaction(reference, seed);
+    const expectedSchema = observeHostSchema(reference);
+    const tables = expectedSchema.objects.filter(({ type, name }) => type === "table" && !name.startsWith("sqlite_"));
+    const snapshots = tables.map(({ name }) => ({ name, sql: `SELECT CAST(rowid AS TEXT) AS fixture_rowid, * FROM ${quote(name)} ORDER BY rowid` }));
+    const expectedRows = Object.fromEntries(snapshots.map(({ name, sql }) => [name, reference.prepare(sql).all().map((row) => ({ ...row }))]));
+    await withDatabase(paths, async (database) => {
+      const actual = await observeD1Migrations(database);
+      assert.deepEqual(normalizeSchema(actual.schema), normalizeSchema(expectedSchema), "Retained native fixture schema matches independent host execution");
+      const results = await database.batch(snapshots.map(({ sql }) => database.prepare(sql)));
+      assert(results.length === snapshots.length && results.every(({ success, results }) => success && Array.isArray(results)), "Incomplete retained fixture rowid qualification");
+      const actualRows = Object.fromEntries(snapshots.map(({ name }, index) => [name, results[index].results]));
+      assert.deepEqual(actualRows, expectedRows, "Every retained fixture row and physical rowid matches independent host execution");
+      await writeFile(join(paths.directory, "historical-fixture-qualification.json"), json({
+        kind: "exact-source-native-d1-fixture", transactionCount: 37,
+        sourceHashes: trusted.sources.filter(({ kind }) => kind === "historical").map(({ filename, sha256 }) => ({ filename, sha256 })),
+        schemaSha256: schemaFingerprint(actual.schema), rowsAndRowidsSha256: migrationSqlHash(json(actualRows)),
+        ledger: actual.ledger, forwardMigrationExecutor: "installed-wrangler-cli", remoteExecutionAuthorized: false,
+      }), { flag: "wx", mode: 0o600 });
+    });
+  } finally { reference.close(); }
 }
 
 /** Create only a NEW private fixture, never open an existing user/database path. */
 export async function createLocalMigrationRehearsal(options) {
   assert(options && typeof options === "object" && !Array.isArray(options)
-    && Object.keys(options).every((name) => ["destination", "fixture"].includes(name)), "Only a new destination and a fixed fixture may be selected");
-  const { destination, fixture = "empty" } = options;
+    && Object.keys(options).every((name) => ["destination", "fixture", "signal"].includes(name)), "Only a new destination, fixed fixture and cancellation signal may be selected");
+  const { destination, fixture = "empty", signal } = options;
+  assert(signal === undefined || signal instanceof AbortSignal, "Cancellation requires an AbortSignal");
+  signal?.throwIfAborted();
   assert(typeof destination === "string" && destination.length, "A new isolated destination is required");
   assert(["empty", "retained", "retained-s1"].includes(fixture), "Unknown fixed local fixture");
   const trusted = await trustedCatalog();
   const directory = resolve(destination);
   await mkdir(directory, { mode: 0o700 }); // Exclusive reservation; EEXIST is never overwritten.
-  const paths = { directory, config: join(directory, "wrangler.json"), persist: join(directory, "state") };
+  const paths = { directory, config: join(directory, "wrangler.json"), persist: join(directory, "state"), signal };
   await mkdir(paths.persist, { mode: 0o700 });
   paths.identities = Object.fromEntries(await Promise.all([paths.directory, paths.persist].map(async (path) => {
     const { dev, ino } = await lstat(path);
@@ -162,17 +221,21 @@ export async function createLocalMigrationRehearsal(options) {
   await writeFile(paths.config, configText, { flag: "wx", mode: 0o600 });
   await writeFile(join(directory, "identity.json"), json({ kind: "exclusive-local-migration-rehearsal", identity, fixture, remoteExecutionAuthorized: false }), { flag: "wx", mode: 0o600 });
   if (fixture !== "empty") {
+    // Let installed Wrangler create its own ledger shape on the empty fixture.
+    // No historical SQL is present until that initialization has completed.
+    const initialized = await invokeWrangler(paths, ["migrations", "apply"], "bootstrap-ledger");
+    assert(initialized.success, `Actual local Wrangler ledger initialization failed: ${initialized.stderr}`);
     for (const source of trusted.sources.filter(({ kind }) => kind === "historical")) {
       await writeFile(join(bootstrap, source.filename), source.sql, { flag: "wx", mode: 0o600 });
     }
-    const historical = await invokeWrangler(paths, ["migrations", "apply"], "bootstrap-historical");
-    assert(historical.success, `Actual local Wrangler historical setup failed: ${historical.stderr}`);
+    await populateHistoricalFixture(paths, trusted);
     const seedPath = join(directory, "retained-fixture.sql");
     const seed = await readFile(join(root, "worker/fixtures/reference-graph-s0.sql"), "utf8") + "\n"
       + await readFile(join(root, compatibilityDirectory, "retained-data.sql"), "utf8");
     await writeFile(seedPath, seed, { flag: "wx", mode: 0o600 });
     const seeded = await invokeWrangler(paths, ["execute", "--file", seedPath], "bootstrap-retained-data");
     assert(seeded.success, `Actual local Wrangler fixture setup failed: ${seeded.stderr}`);
+    await qualifyRetainedFixture(paths, trusted, seed);
     if (fixture === "retained-s1") {
       await writeFile(join(bootstrap, stageNames[0]), trusted.sources.find(({ filename }) => filename === stageNames[0]).sql, { flag: "wx", mode: 0o600 });
       const expanded = await invokeWrangler(paths, ["migrations", "apply"], "bootstrap-s1");

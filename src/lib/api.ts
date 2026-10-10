@@ -1,5 +1,8 @@
 import { checkedStorageSettingsStatus } from "../../shared/contracts/storage-settings";
-import type { FullExportManifestV20 } from "../../shared/contracts/export";
+import { checkedCurrentStorageSettings } from "../../shared/contracts/current-storage-settings";
+import { checkedNativeStorageActivationInput, checkedNativeStorageActivationReceipt, checkedStorageRolePolicyInput, checkedStorageRolePolicyReceipt,
+  type NativeStorageActivationInput, type StorageRolePolicyInput } from "../../shared/contracts/storage-policy";
+import type { FullExportManifestV24 } from "../../shared/contracts/export";
 import type {
   TemplateRecord,
   ProcessTemplateVersionSummary,
@@ -24,6 +27,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(payload.error || `Request failed (${response.status})`);
   }
   return response.json() as Promise<T>;
+}
+export class StoragePolicyRequestError extends Error {
+  constructor(readonly status: number) { super("Storage policy request failed."); }
+}
+async function storagePolicyRequest(path: string, init: RequestInit): Promise<unknown> {
+  const response = await fetch(`/api${path}`, { cache: "no-store", credentials: "same-origin", redirect: "error", ...init });
+  if (!response.ok) throw new StoragePolicyRequestError(response.status);
+  return response.json();
 }
 
 export interface SampleListOptions {
@@ -83,6 +94,36 @@ export const api = {
   getStorageSettings: async (signal?: AbortSignal) => checkedStorageSettingsStatus(await request<unknown>("/settings/storage", {
     method: "GET", cache: "no-store", credentials: "same-origin", redirect: "error", signal,
   })),
+  getCurrentStorageSettings: async (signal?: AbortSignal) => checkedCurrentStorageSettings(await storagePolicyRequest("/settings/storage?version=3", { method: "GET", signal })),
+  activateStorageProfile: async (input: NativeStorageActivationInput, signal?: AbortSignal) => {
+    const checked = checkedNativeStorageActivationInput(input);
+    const value = checkedNativeStorageActivationReceipt(await storagePolicyRequest("/storage/configuration/activations", {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(checked), signal,
+    }));
+    if (value.operationId !== checked.operationId || value.nativeProfileId !== checked.nativeProfileId || value.candidateProfileId !== checked.candidateProfileId
+      || value.candidateRevision !== checked.expectedCandidateRevision || value.envelopeRevision !== checked.expectedEnvelopeRevision
+      || value.checkId !== checked.checkId || checked.expectedBindingRevision !== null && value.bindingRevision !== checked.expectedBindingRevision + 1) throw new Error("Invalid storage activation response.");
+    return value;
+  },
+  readStorageActivation: async (operationId: string, signal?: AbortSignal) => {
+    const value = checkedNativeStorageActivationReceipt(await storagePolicyRequest(`/storage/configuration/activations/${encodeURIComponent(operationId)}`, { method: "GET", signal }));
+    if (value.operationId !== operationId) throw new Error("Invalid storage activation response.");
+    return value;
+  },
+  setStorageRoleDefaults: async (input: StorageRolePolicyInput, signal?: AbortSignal) => {
+    const checked = checkedStorageRolePolicyInput(input);
+    const value = checkedStorageRolePolicyReceipt(await storagePolicyRequest("/settings/storage/defaults", {
+      method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(checked), signal,
+    }));
+    if (value.operationId !== checked.operationId || value.internalProfileId !== checked.internalProfileId || value.originalsProfileId !== checked.originalsProfileId
+      || value.policyRevision !== Math.max(3, (checked.expectedPolicyRevision ?? 2) + 1)) throw new Error("Invalid storage policy response.");
+    return value;
+  },
+  readStorageRolePolicy: async (operationId: string, signal?: AbortSignal) => {
+    const value = checkedStorageRolePolicyReceipt(await storagePolicyRequest(`/settings/storage/defaults/${encodeURIComponent(operationId)}`, { method: "GET", signal }));
+    if (value.operationId !== operationId) throw new Error("Invalid storage policy response.");
+    return value;
+  },
   listSamples: (options: SampleListOptions | string = {}) => {
     const signal = typeof options === "string" ? undefined : options.signal;
     return request<SampleListResponse>(sampleListPath(options), signal ? { signal } : undefined);
@@ -184,8 +225,8 @@ export const api = {
   deleteRunStepCommentAsset: (commentId: string) => request<{ ok: true; updatedAt: string }>(`/run-step-comments/${commentId}/asset`, {
     method: "DELETE",
   }),
-  deleteRunStepAsset: (sampleId: string, runId: string, stepId: string, assetKey: string) => request<{ ok: true; updatedAt: string }>(`/samples/${sampleId}/runs/${runId}/steps/${stepId}/assets`, {
-    method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ assetKey }),
+  deleteRunStepAsset: (sampleId: string, runId: string, stepId: string, assetKey: string | { assetId: string }) => request<{ ok: true; updatedAt: string }>(`/samples/${sampleId}/runs/${runId}/steps/${stepId}/assets`, {
+    method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify(typeof assetKey === "string" ? { assetKey } : assetKey),
   }),
   confirmRunSteps: (input: ConfirmRunStepsInput) => request<{ ok: true; confirmed: number }>("/run-steps/confirm", {
     method: "POST",
@@ -212,6 +253,12 @@ export const api = {
     },
   ),
   removeCommentSubmissionItem: removeDurableCommentItem,
+  // Completed attachment lifecycle is distinct from pending durable uploads.
+  // Reconcile uncertain outcomes with an owner refresh before another attempt.
+  removeReadyCommentSubmissionItem: (submissionId: string, itemId: string) => request<{ ok: true }>(
+    `/comment-submissions/${encodeURIComponent(submissionId)}/items/${encodeURIComponent(itemId)}`,
+    { method: "DELETE" },
+  ),
   finalizeCommentSubmission: finalizeDurableCommentSubmission,
   cancelCommentSubmission: cancelDurableCommentSubmission,
   deleteCommentSubmission: (submissionId: string) => request<{ ok: true }>(
@@ -266,7 +313,7 @@ export const api = {
     method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
   }),
   deleteTemplateStep: (templateId: string, stepId: string) => request<{ ok: true }>(`/templates/${templateId}/steps/${stepId}`, { method: "DELETE" }),
-  getFullExport: () => request<FullExportManifestV20>("/exports/all?archiveSchema=20&archiveWriter=1"),
+  getFullExport: () => request<FullExportManifestV24>("/exports/all?archiveSchema=24&archiveWriter=1"),
   importFabublox: submitFabubloxImport,
 };
 

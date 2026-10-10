@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import type { PaginationMeta, SampleListFacets, SampleRun, SampleSummary } from "../../shared/types";
 import { EmptyState } from "../components/EmptyState";
 import { PaginationControls } from "../components/PaginationControls";
+import { ReadStatus } from "../components/ReadStatus";
 import { SampleStateThumbnail } from "../components/SampleStateThumbnail";
 import { api } from "../lib/api";
 import { pageFromSearchParam, setPageParam } from "../lib/pagination";
@@ -36,12 +37,16 @@ export function ProcessingPage() {
   const filter: ProcessingFilter = isProcessingFilter(requestedFilter) ? requestedFilter : "active";
   const requestedQuery = searchParams.get("q") ?? "";
   const requestedPage = pageFromSearchParam(searchParams.get("page"));
+  const readKey = JSON.stringify([filter, requestedPage, requestedQuery]);
   const [samples, setSamples] = useState<SampleSummary[]>([]);
   const [query, setQuery] = useState(requestedQuery);
   const [pagination, setPagination] = useState<PaginationMeta>(EMPTY_PAGINATION);
   const [counts, setCounts] = useState<SampleListFacets>(EMPTY_FACETS);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [readState, setReadState] = useState({ key: readKey, loading: true, error: "" });
+  const [retry, setRetry] = useState(0);
+  const loading = readState.key !== readKey || readState.loading;
+  const error = readState.key === readKey ? readState.error : "";
+  const hasResults = !loading && !error;
 
   useEffect(() => {
     setQuery(requestedQuery);
@@ -61,7 +66,7 @@ export function ProcessingPage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
+    setReadState({ key: readKey, loading: true, error: "" });
     api.listSamples({
       query: requestedQuery,
       page: requestedPage,
@@ -70,6 +75,7 @@ export function ProcessingPage() {
       status: filter,
       signal: controller.signal,
     }).then((result) => {
+      if (controller.signal.aborted) return;
       if (requestedPage > result.pagination.totalPages) {
         setSearchParams((current) => setPageParam(current, "page", result.pagination.totalPages), { replace: true });
         return;
@@ -77,14 +83,14 @@ export function ProcessingPage() {
       setSamples(result.samples);
       setPagination(result.pagination);
       setCounts(result.facets ?? EMPTY_FACETS);
-      setError("");
+      setReadState({ key: readKey, loading: false, error: "" });
     }).catch((error: Error) => {
-      if (error.name !== "AbortError") setError(error.message);
-    }).finally(() => {
-      if (!controller.signal.aborted) setLoading(false);
+      if (!controller.signal.aborted && error.name !== "AbortError") {
+        setReadState({ key: readKey, loading: false, error: error.message });
+      }
     });
     return () => controller.abort();
-  }, [filter, requestedPage, requestedQuery, setSearchParams]);
+  }, [filter, requestedPage, requestedQuery, readKey, retry, setSearchParams]);
 
   function selectFilter(nextFilter: ProcessingFilter) {
     const next = new URLSearchParams(searchParams);
@@ -105,21 +111,21 @@ export function ProcessingPage() {
     </div>
     <div className="processing-controls">
       <div className="segmented-control" aria-label="Filter processing runs">
-        {filters.map(({ value, label }) => <button type="button" className={filter === value ? "selected" : ""} aria-pressed={filter === value} key={value} onClick={() => selectFilter(value)}>{label}<span>{counts[value]}</span></button>)}
+        {filters.map(({ value, label }) => <button type="button" className={filter === value ? "selected" : ""} aria-pressed={filter === value} key={value} onClick={() => selectFilter(value)}>{label}<span>{hasResults ? counts[value] : "—"}</span></button>)}
       </div>
       <label className="search-box compact-search"><span>Search</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search processing…" /></label>
     </div>
-    {error && <p className="error-banner">{error}</p>}
-    {loading ? <p className="muted">Loading…</p> : samples.length ? <div className="processing-list">
+    <ReadStatus loading={loading} error={error} loadingMessage="Loading processing…" errorTitle="Could not load processing" onRetry={() => setRetry((value) => value + 1)} />
+    {hasResults && (samples.length ? <div className="processing-list">
       {samples.map((sample) => <Link to={`/processing/${sample.id}`} className="processing-row" key={sample.id}>
         <SampleStateThumbnail sample={sample} />
         <div className="processing-sample"><strong className="sample-code">{sample.code}</strong><span>{sample.title}</span><small>{sample.location || "No location"}</small></div>
         <div className="processing-workflow"><small>Process template</small><strong>{sample.latestWorkflowName ? `${sample.latestWorkflowName}${sample.latestWorkflowVersion != null ? ` · v${sample.latestWorkflowVersion}` : ""}` : "No process run yet"}</strong><span>{sample.currentStepTitle ? `Next · ${sample.currentStepTitle}` : sample.latestRunStatus === "complete" ? "Process run completed" : "Open to start a process run"}</span></div>
-        <div className="processing-row-side"><span className={`run-status run-status-${sample.latestRunStatus || "ready"}`}>{runStatusLabel(sample.latestRunStatus)}</span><time>{new Date(sample.updatedAt).toLocaleDateString()}</time></div>
+        <div className="processing-row-side"><span className={`run-status run-status-${sample.latestRunStatus || "ready"}`}>{runStatusLabel(sample.latestRunStatus)}</span><time dateTime={sample.updatedAt}>{new Date(sample.updatedAt).toLocaleDateString()}</time></div>
       </Link>)}
-    </div> : <EmptyState title={requestedQuery ? "No matching process runs" : filter === "active" ? "No active processing" : `No ${filter} process runs`}>
+    </div> : <EmptyState title={requestedQuery ? "No matching process runs" : filter === "active" ? "No active processing" : filter === "all" ? "No process runs" : `No ${filter === "complete" ? "completed" : filter} process runs`}>
       {requestedQuery ? "Try another code, name, process template, or location." : filter === "active" ? "Samples without a process run will also appear here when they are marked active." : "Choose another status to inspect other runs."}
-    </EmptyState>}
-    <PaginationControls pagination={pagination} label="Processing pages" disabled={loading} onPageChange={changePage} />
+    </EmptyState>)}
+    {hasResults && <PaginationControls pagination={pagination} label="Processing pages" onPageChange={changePage} />}
   </div>;
 }

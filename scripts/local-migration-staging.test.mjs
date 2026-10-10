@@ -1,18 +1,32 @@
 import assert from "node:assert/strict";
-import { cp, link, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { cp, link, lstat, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { after, before, test } from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { getPlatformProxy } from "wrangler";
 import { createLocalMigrationRehearsal } from "./rehearse-local-migration-staging.mjs";
-import { migrationSqlHash, normalizeSchema } from "./d1-migration-plan.mjs";
+import { migrationSqlHash, normalizeSchema, schemaFingerprint } from "./d1-migration-plan.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const sqlRoot = join(root, "scripts/fixtures/backend-schema");
 let scratch;
+const pending = new Set();
 before(async () => { scratch = await mkdtemp(join(tmpdir(), "wrangler-staging-qualification-")); });
-after(async () => { if (scratch) await rm(scratch, { recursive: true, force: true }); });
+after(async () => {
+  // node:test cancellation does not itself await the callback's unfinished I/O.
+  // Abort child work first, then drain it before deleting its working directory.
+  await Promise.allSettled([...pending]);
+  if (scratch) await rm(scratch, { recursive: true, force: true });
+});
+function qualificationTest(name, options, operation) {
+  test(name, options, (context) => {
+    const work = operation(context);
+    pending.add(work);
+    work.then(() => pending.delete(work), () => pending.delete(work));
+    return work;
+  });
+}
 
 // Faults affect only this test's newly created fixture. Migration execution
 // itself always passes through the installed Wrangler CLI inside the wrapper.
@@ -22,9 +36,9 @@ async function fixtureFault(session, sql) {
   finally { await proxy.dispose(); }
 }
 
-test("actual local Wrangler selects only raw baseline for a new empty DB and preserves the separate ledger", { timeout: 120_000 }, async () => {
+qualificationTest("actual local Wrangler selects only raw baseline for a new empty DB and preserves the separate ledger", { timeout: 120_000 }, async (t) => {
   const destination = join(scratch, "fresh");
-  const session = await createLocalMigrationRehearsal({ destination });
+  const session = await createLocalMigrationRehearsal({ destination, signal: t.signal });
   const initial = await session.observe();
   assert.equal(initial.observation.ledger.exists, false, "Read-only observation must not initialize the migration ledger");
   const accepted = await session.prepare();
@@ -48,10 +62,22 @@ test("actual local Wrangler selects only raw baseline for a new empty DB and pre
   assert.equal(await readFile(join(destination, "preserved-before.json"), "utf8"), preserved);
 });
 
-test("actual CLI retained lineage stages only S1/S2 raw suffix and leaves all original 37 ledger rows unchanged", { timeout: 120_000 }, async () => {
-  const session = await createLocalMigrationRehearsal({ destination: join(scratch, "retained"), fixture: "retained" });
+qualificationTest("actual CLI retained lineage stages only S1/S2 raw suffix and leaves all original 37 ledger rows unchanged", { timeout: 120_000 }, async (t) => {
+  const session = await createLocalMigrationRehearsal({ destination: join(scratch, "retained"), fixture: "retained", signal: t.signal });
   const before = await session.observe();
   assert.equal(before.observation.ledger.rows.length, 37);
+  const qualification = JSON.parse(await readFile(join(session.paths.directory, "historical-fixture-qualification.json"), "utf8"));
+  assert.equal(qualification.kind, "exact-source-native-d1-fixture");
+  assert.equal(qualification.transactionCount, 37);
+  assert.equal(qualification.sourceHashes.length, 37);
+  assert.equal(qualification.schemaSha256, schemaFingerprint(before.observation.schema));
+  assert.match(qualification.rowsAndRowidsSha256, /^[a-f0-9]{64}$/);
+  assert.deepEqual(qualification.ledger, before.observation.ledger);
+  assert.deepEqual(qualification.ledger.rows.map(({ id }) => id), Array.from({ length: 37 }, (_, index) => index + 1));
+  assert.equal(qualification.forwardMigrationExecutor, "installed-wrangler-cli");
+  const initialized = JSON.parse(await readFile(join(session.paths.directory, "bootstrap-ledger.json"), "utf8"));
+  assert.equal(initialized.success, true);
+  assert.match(initialized.stdout, /No migrations to apply/);
   assert.deepEqual(before.tables.samples.map(({ process_revision }) => process_revision).sort((a, b) => a - b), [37, 9007199254740000]);
   const accepted = await session.prepare();
   assert.deepEqual(accepted.proposal.migrations.map(({ filename }) => filename), ["0037_compatibility_bridge.sql", "0038_final_schema.sql"]);
@@ -70,8 +96,8 @@ test("actual CLI retained lineage stages only S1/S2 raw suffix and leaves all or
   assert.deepEqual(JSON.parse(retained).tables, before.tables);
 });
 
-test("actual CLI rolls back a failing S2 file and its ledger insert, then retries the identical SQL successfully", { timeout: 120_000 }, async () => {
-  const session = await createLocalMigrationRehearsal({ destination: join(scratch, "retry"), fixture: "retained-s1" });
+qualificationTest("actual CLI rolls back a failing S2 file and its ledger insert, then retries the identical SQL successfully", { timeout: 120_000 }, async (t) => {
+  const session = await createLocalMigrationRehearsal({ destination: join(scratch, "retry"), fixture: "retained-s1", signal: t.signal });
   const valid = await session.observe();
   assert.equal(valid.observation.ledger.rows.length, 38);
   await fixtureFault(session, "UPDATE run_step_comments SET legacy_body = NULL WHERE id = 'retained-legacy-individual'");
@@ -100,8 +126,8 @@ test("actual CLI rolls back a failing S2 file and its ledger insert, then retrie
   assert.deepEqual(result.after.observation.ledger.rows.slice(0, 38), valid.observation.ledger.rows);
 });
 
-test("staged bytes, configuration, schema and ledger drift reject before invoking Wrangler apply", { timeout: 120_000 }, async () => {
-  const session = await createLocalMigrationRehearsal({ destination: join(scratch, "drift") });
+qualificationTest("staged bytes, configuration, schema and ledger drift reject before invoking Wrangler apply", { timeout: 120_000 }, async (t) => {
+  const session = await createLocalMigrationRehearsal({ destination: join(scratch, "drift"), signal: t.signal });
   let accepted = await session.prepare();
   await writeFile(join(accepted.staging, "0001_v3_baseline.sql"), "-- altered but syntactically valid SQL\n", { flag: "a" });
   await assert.rejects(session.apply(), /Staging source hash drift/);
@@ -138,7 +164,7 @@ test("staged bytes, configuration, schema and ledger drift reject before invokin
   assert.deepEqual((await readdir(session.paths.directory)).filter((name) => /^apply-/.test(name)), []);
 });
 
-test("repository source hash drift rejects a prepared proposal without changing real repository SQL", { timeout: 120_000 }, async () => {
+qualificationTest("repository source hash drift rejects a prepared proposal without changing real repository SQL", { timeout: 120_000 }, async (t) => {
   // Load the exact module from a private checkout copy. Alter only that copy's
   // source after planning; the public wrapper has no alternate-source parameter.
   const checkout = join(scratch, "private-source-checkout");
@@ -150,7 +176,7 @@ test("repository source hash drift rejects a prepared proposal without changing 
   }
   await symlink(join(root, "node_modules"), join(checkout, "node_modules"));
   const copied = await import(pathToFileURL(join(checkout, "scripts/rehearse-local-migration-staging.mjs")).href);
-  const session = await copied.createLocalMigrationRehearsal({ destination: join(scratch, "source-drift") });
+  const session = await copied.createLocalMigrationRehearsal({ destination: join(scratch, "source-drift"), signal: t.signal });
   await session.prepare();
   const filename = "migrations-history/s0/0001_alpha_state_chain.sql";
   const original = await readFile(join(root, filename), "utf8");
@@ -158,4 +184,12 @@ test("repository source hash drift rejects a prepared proposal without changing 
   await assert.rejects(session.apply(), /Source hash drift/);
   assert.equal(await readFile(join(root, filename), "utf8"), original);
   assert.deepEqual((await readdir(session.paths.directory)).filter((name) => /^apply-/.test(name)), []);
+});
+
+test("an aborted rehearsal never creates a fixture directory or starts Wrangler", async () => {
+  const abort = new AbortController();
+  abort.abort();
+  const destination = join(scratch, "aborted");
+  await assert.rejects(createLocalMigrationRehearsal({ destination, signal: abort.signal }), { name: "AbortError" });
+  await assert.rejects(lstat(destination), { code: "ENOENT" });
 });

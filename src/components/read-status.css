@@ -1,0 +1,16 @@
+.read-status {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  min-width: 0;
+  margin: 14px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.read-status p { margin: 0; }
+.read-status-error { color: var(--danger); background: var(--danger-soft); }
+.read-status .button { min-height: 40px; max-width: 100%; }
+.read-status[data-density="compact"] .button { min-height: 34px; }

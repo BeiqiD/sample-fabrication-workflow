@@ -15,6 +15,7 @@ import { createUuid } from "../lib/uuid";
 import { anchoredMenuPosition, type AnchoredMenuPosition } from "../lib/anchoredMenuPosition";
 import { commentUploadQueue } from "../lib/commentUploadQueue";
 import { isTiffFile, prepareCommentImage } from "../lib/images";
+import { attachmentStatusLabel, formatAttachmentBytes } from "../lib/attachment-presentation";
 import { useOriginalFileStorageStatus } from "../lib/useManagedStorageStatus";
 
 interface CommentComposerProps {
@@ -147,29 +148,29 @@ export function CommentSubmissionRecovery({
           <div><strong>Upload incomplete</strong>{submission.body && <p>{submission.body}</p>}<span className="recovery-hint">{blocked ? "This older or unavailable upload cannot resume. Cancel it and submit a new comment." : "The upload state was restored. Reselect a failed local file to retry it."}</span></div>
           <div className="uploading-comment-actions">
             {!blocked && <button type="button" onClick={() => void finish(submission.id)}>Finish</button>}
-            <button type="button" onClick={() => void cancel(submission.id)}>Cancel</button>
+            <button type="button" onClick={() => void cancel(submission.id)} aria-label="Cancel comment upload">Cancel</button>
           </div>
         </div>
         <div className="upload-item-list">
           {fileItems.map((item) => <div className={`upload-item status-${item.status}`} key={item.id}>
-            <span className="upload-item-state">{item.status === "ready" ? "✓" : "!"}</span>
+            <span className="upload-item-state" aria-hidden="true">{item.status === "ready" ? "✓" : "!"}</span>
             <div>
               <strong>{item.filename}</strong>
-              <span>{"assetKey" in item ? "Comment image" : "Original attachment"} · {item.status}</span>
-              {(progress[item.id] ?? 0) > 0 && (progress[item.id] ?? 0) < 100 && <progress max={100} value={progress[item.id]} />}
+              <span>{"assetKey" in item ? "Comment image" : "Original attachment"} · {attachmentStatusLabel(item.status)}</span>
+              {(progress[item.id] ?? 0) > 0 && (progress[item.id] ?? 0) < 100 && <progress aria-label={`Upload progress: ${item.filename}`} max={100} value={progress[item.id]} />}
               {(errors[item.id] || item.error) && <span className="upload-item-error">{errors[item.id] || item.error}</span>}
             </div>
             {!blocked && item.status !== "ready" && <div className="upload-item-actions">
-              <label className="text-button">Retry<input type="file" onChange={(event) => {
+              <label className="text-button">Retry<input type="file" aria-label={`Retry upload: ${item.filename}`} onChange={(event) => {
                 const selected = event.target.files?.[0];
                 if (selected) void retryFile(submission, item, selected);
                 event.target.value = "";
               }} /></label>
-              {!isRequiredTiffOriginal(submission, item) && <button type="button" onClick={() => void removeItem(submission.id, item.id)}>Remove</button>}
+              {!isRequiredTiffOriginal(submission, item) && <button type="button" onClick={() => void removeItem(submission.id, item.id)} aria-label={`Remove failed upload: ${item.filename}`}>Remove</button>}
             </div>}
           </div>)}
           {submission.attachments.filter((attachment) => attachment.kind === "link").map((link) => <div className="upload-item status-ready" key={link.id}>
-            <span className="upload-item-state">✓</span><div><strong>{link.title}</strong><span>Attachment link · ready</span></div>
+            <span className="upload-item-state" aria-hidden="true">✓</span><div><strong>{link.title}</strong><span>Attachment link · ready</span></div>
           </div>)}
         </div>
         {(submission.error || errors[submission.id]) && <p className="upload-submission-error">{errors[submission.id] || submission.error}</p>}
@@ -231,11 +232,7 @@ interface LocalSubmission {
   cancelFailed?: boolean;
 }
 
-const formatSize = (bytes: number) => {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(bytes < 10 * 1024 ? 1 : 0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)} MB`;
-};
+const formatSize = (bytes: number) => formatAttachmentBytes(bytes) ?? "Size unavailable";
 
 function fileType(file: File) {
   const extension = file.name.split(".").pop()?.toUpperCase();
@@ -1010,7 +1007,7 @@ function CommentComposerSession({
             >
               {image.attachOriginal ? "Detach original" : "Attach original"}
             </button>}
-            <button type="button" onClick={() => removeImage(image.id)}>Remove</button>
+            <button type="button" onClick={() => removeImage(image.id)} aria-label={`Remove draft image: ${image.original.name}`}>Remove</button>
           </div>
         </article>)}
         {rejected.map((entry) => <article className="rejected-image-card" key={entry.id}>
@@ -1041,12 +1038,12 @@ function CommentComposerSession({
             <span>{fileType(attachment.file)} · {formatSize(attachment.file.size)} · Original file</span>
             {attachment.previewNote && <span>{attachment.previewNote}</span>}
           </div>
-          <button type="button" onClick={() => setAttachments((current) => current.filter((candidate) => candidate.id !== attachment.id))}>Remove</button>
+          <button type="button" onClick={() => setAttachments((current) => current.filter((candidate) => candidate.id !== attachment.id))} aria-label={`Remove draft attachment: ${attachment.file.name}`}>Remove</button>
         </div>)}
         {links.map((link) => <div className="pending-attachment" key={link.id}>
           <span className="attachment-kind-icon" aria-hidden="true">↗</span>
           <div><strong>{link.title}</strong><span>{link.url}</span></div>
-          <button type="button" onClick={() => setLinks((current) => current.filter((candidate) => candidate.id !== link.id))}>Remove</button>
+          <button type="button" onClick={() => setLinks((current) => current.filter((candidate) => candidate.id !== link.id))} aria-label={`Remove draft link: ${link.title}`}>Remove</button>
         </div>)}
       </div>
     </section>}
@@ -1059,22 +1056,22 @@ function CommentComposerSession({
           <div><strong>{submission.status === "failed" ? "Upload incomplete" : "Uploading comment…"}</strong>{submission.body && <p>{submission.body}</p>}</div>
           <div className="uploading-comment-actions">
             {submission.status === "failed" && <button type="button" onClick={() => void retrySubmission(submission.id)}>Retry incomplete</button>}
-            <button type="button" onClick={() => void cancelSubmission(submission.id)}>Cancel</button>
+            <button type="button" onClick={() => void cancelSubmission(submission.id)} aria-label="Cancel comment upload">Cancel</button>
           </div>
         </div>
         <div className="upload-item-list">
           {submission.items.filter((item) => item.status !== "removed").map((item) => <div className={`upload-item status-${item.status}`} key={item.id}>
-            <span className="upload-item-state">{item.status === "ready" ? "✓" : item.status === "failed" ? "!" : item.status === "hashing" ? "…" : item.status === "waiting" ? "○" : `${item.progress}%`}</span>
+            <span className="upload-item-state" aria-hidden="true">{item.status === "ready" ? "✓" : item.status === "failed" ? "!" : item.status === "hashing" ? "…" : item.status === "waiting" ? "○" : `${item.progress}%`}</span>
             <div>
               <strong>{item.filename}</strong>
-              <span>{item.kind === "comment_image" ? "Comment image" : item.kind === "attachment" ? (item.required ? "Required original TIFF" : "Original attachment") : "Attachment link"} · {item.status === "hashing" ? "Checking file hash" : item.status}</span>
-              {item.status === "uploading" && <progress max={100} value={item.progress} />}
+              <span>{item.kind === "comment_image" ? "Comment image" : item.kind === "attachment" ? (item.required ? "Required original TIFF" : "Original attachment") : "Attachment link"} · {attachmentStatusLabel(item.status)}</span>
+              {item.status === "uploading" && <progress aria-label={`Upload progress: ${item.filename}`} max={100} value={item.progress} />}
               {item.error && <span className="upload-item-error">{item.error}</span>}
             </div>
             {item.status === "failed" && <div className="upload-item-actions">
-              {item.file ? <button type="button" onClick={() => void retryItem(submission.id, item.id)}>Retry</button>
-                : <label className="text-button">Retry<input type="file" onChange={(event) => { const file = event.target.files?.[0]; if (file) void retryItem(submission.id, item.id, file); event.target.value = ""; }} /></label>}
-              {!item.required && <button type="button" onClick={() => void removeFailedItem(submission.id, item.id)}>Remove</button>}
+              {item.file ? <button type="button" onClick={() => void retryItem(submission.id, item.id)} aria-label={`Retry upload: ${item.filename}`}>Retry</button>
+                : <label className="text-button">Retry<input type="file" aria-label={`Retry upload: ${item.filename}`} onChange={(event) => { const file = event.target.files?.[0]; if (file) void retryItem(submission.id, item.id, file); event.target.value = ""; }} /></label>}
+              {!item.required && <button type="button" onClick={() => void removeFailedItem(submission.id, item.id)} aria-label={`Remove failed upload: ${item.filename}`}>Remove</button>}
             </div>}
           </div>)}
         </div>

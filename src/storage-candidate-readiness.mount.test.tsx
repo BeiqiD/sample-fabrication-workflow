@@ -55,7 +55,7 @@ describe("read-only candidate check evidence", () => {
     expect(within(panel).getByText("58")).toBeTruthy(); expect(within(panel).getByText("51")).toBeTruthy();
     expect(within(panel).getByText(/Counts include all recorded history/)).toBeTruthy();
     expect(within(panel).getByText(/does not guarantee that the provider is reachable now/)).toBeTruthy();
-    expect(within(panel).getByText(/Candidate activation is unavailable/)).toBeTruthy();
+    expect(within(panel).getByText(/Register a tested profile, activate it/)).toBeTruthy();
     expect(screen.getByText("Current configuration revision 2")).toBeTruthy();
     expect(document.body.textContent).not.toContain("opaque-current"); expect(document.body.textContent).not.toContain("admin@example.org");
     expect(network.mock.calls.every(([path, options]) => String(path).startsWith("/api/storage/configuration") && options?.method === "GET")).toBe(true);
@@ -74,7 +74,7 @@ describe("read-only candidate check evidence", () => {
     network.mockImplementation(async path => String(path).includes("/readiness?") ? json(value) : fallback(path));
     render(<StorageConfigurationPage />); const panel = await openEvidence(); await within(panel).findByText(positive);
     expect(within(panel).getByText("Credentials unavailable")).toBeTruthy();
-    expect(within(panel).getByText(/Candidate activation is unavailable/)).toBeTruthy();
+    expect(within(panel).getByText(/Register a tested profile, activate it/)).toBeTruthy();
   });
 
   it("fails closed for incomplete responses and renders no server diagnostic details", async () => {

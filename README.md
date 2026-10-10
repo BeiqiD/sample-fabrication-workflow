@@ -6,8 +6,9 @@ This is intentionally not a general LIMS, inventory system, or enterprise MES. T
 
 ## Development status
 
-The active V3 integration line is `v2/backend-foundation` (last merged
-checkpoint `474a038`); `main` has not received its first integrated V3 release.
+The active V3 development/test integration line is `v2/backend-foundation`
+(planning PR #250 merged at `541eedb`); `main` has not received its first
+integrated V3 production release.
 A **separate synchronized development line**, with qualified implementation
 checkpoint `3c1baf5`, contains locally qualified FP2–FP5 and C4/5D/5E changes, bounded 5F implementation
 and follow-up research read-error, receipt and job-control ownership repairs,
@@ -16,7 +17,10 @@ CI gate passed at `3c1baf5`; local mounted/build leaves passed, while the full
 local canonical gate remains unqualified. Review and qualification of the
 accepted combined tree, providers/devices and remaining 5F work stay open.
 This README distinguishes that **development V24** from the **deployed V20**
-runtime. See the [version-aware roadmap](./docs/PRODUCT_ROADMAP.md#current-checkpoint)
+historical runtime. New Metrology session/read repairs, Project projection
+reuse and integration admission/bootstrap repairs are recorded in the
+[autonomous development goal](./docs/ROADMAP_AUTONOMOUS_DEVELOPMENT_GOAL.md).
+See the [version-aware roadmap](./docs/PRODUCT_ROADMAP.md#current-checkpoint)
 before using any capability on a live installation.
 
 ## Core model
@@ -130,6 +134,8 @@ See [the full deployment guide](./docs/DEPLOYMENT.md) for resource setup, first-
 The accepted FP1 integration uses the existing R2 profile for both ordinary/internal
 files and unchanged originals. Original uploads do not require SWITCHdrive.
 Authenticated Storage Settings shows current destinations and configuration status.
+The synchronized runtime supports registered R2/S3 destinations and independent
+role defaults. The SWITCHdrive configuration below is the historical compatibility path.
 
 Historically deployed FP2 adds administrator-scoped candidates, encrypted
 credentials, checks and AWS S3 **read-only** profile admission under V20.
@@ -158,6 +164,8 @@ no hidden fallback redirects an accepted operation. Bootstrap bindings/root keys
 remain deployment configuration, while optional external candidates are managed
 through the administrator Settings surface. See [deployment](./docs/DEPLOYMENT.md)
 and the [File/data plan](./docs/FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md).
+See [comment file uploads](./docs/comment-file-uploads.md) for the retained
+historical managed-storage and retry contract.
 
 ## Local development
 
@@ -171,6 +179,29 @@ npm run dev
 ```
 
 Cloudflare's Vite plugin runs the API in the Workers runtime with local D1 and R2 simulations. `AUTH_MODE=disabled` is intended only for local development.
+
+The current development Storage Settings page supports independent registered
+R2 instances through the optional deployment-owned `R2_PROFILE_BINDINGS` map.
+Each profile ID maps to its exact canonical `namespaceIdentity` JSON string and
+the corresponding environment `bindingName`; each bucket binding must already
+exist. This map changes no registered physical identities and makes no provider
+connection test. See [current Storage Settings](./docs/FP2_CURRENT_STORAGE_SETTINGS.md)
+for local availability, activation and default-selection behavior.
+
+The current development branch also supplies persisted File migration jobs at
+`/settings/storage/migrations`, with independent execution, complete-byte
+verification, per-File progress and separate cleanup. See the
+[FP2/FP3 local development checkpoint](./docs/FP3_LOCAL_DEVELOPMENT_ACCEPTANCE.md)
+for limits, recovery behavior and pending real-provider acceptance. Run the
+complete development gate with `npm run verify:ci`.
+
+Settings Data at `/settings/data` now supplies native Sample/Project package
+export, uploaded-package validation and fresh-copy import, plus independent
+offline reports. Sample and Project pages provide contextual export entries.
+Accepted jobs persist independently of the browser; native execution requires
+qualified active File authority, available destinations and the independently
+invoked executor. See [FP4 research packages](./docs/FP4_RESEARCH_PACKAGES.md)
+for formats, bounds and recovery behavior.
 
 The local migration script explicitly uses `.wrangler/state`, matching Vite's
 storage directory. Use `--persist-to .wrangler/state` for other local D1 commands
@@ -248,6 +279,7 @@ remain historical, not a substitute for the separate synchronized FP3 job and V2
 - [Proposed file storage architecture](./docs/FILE_STORAGE_ARCHITECTURE.md)
 - [Proposed reports, data packages and system recovery](./docs/DATA_EXPORT_IMPORT_DESIGN.md)
 - [File/data portability implementation and compatibility plan](./docs/FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
+- [FP4 native research packages and local qualification](./docs/FP4_RESEARCH_PACKAGES.md)
 - [FP1a file registry implementation boundary](./docs/FP1_FILE_REGISTRY_FOUNDATION.md)
 - [FP1b byte-reader and legacy route boundary](./docs/FP1_BYTE_READER_BOUNDARY.md)
 - [FP1c verified writes and bounded hashing](./docs/FP1_VERIFIED_BYTE_WRITES.md)

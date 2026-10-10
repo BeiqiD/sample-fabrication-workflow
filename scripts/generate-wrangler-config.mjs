@@ -69,6 +69,22 @@ const values = local
 
 assertDeploymentValues(values);
 
+// Opt in to a separately provisioned, initially empty recovery database. This
+// only generates bindings; it never creates or deploys a remote resource.
+const localRecoveryId = argumentValue("--local-recovery-target");
+if (process.argv.includes("--local-recovery-target") && !localRecoveryId) throw new Error("--local-recovery-target requires an explicit target ID");
+if (localRecoveryId && !local) throw new Error("--local-recovery-target requires --local");
+const recoveryNames = ["DEPLOY_RECOVERY_D1_DATABASE_NAME", "DEPLOY_RECOVERY_D1_DATABASE_ID", "DEPLOY_RECOVERY_TARGET_ID"];
+const recoveryConfigured = !local && recoveryNames.some(name => Boolean(process.env[name]?.trim()));
+const recovery = local && localRecoveryId
+  ? { databaseName: `${values.databaseName}-recovery`, databaseId: "00000000-0000-4000-8000-000000000001", targetId: localRecoveryId }
+  : recoveryConfigured ? { databaseName: required(recoveryNames[0]), databaseId: required(recoveryNames[1]), targetId: required(recoveryNames[2]) } : null;
+if (recovery) {
+  assertDeploymentValues({ workerName: values.workerName, databaseId: recovery.databaseId });
+  if (recovery.databaseId.toLowerCase() === values.databaseId.toLowerCase() || recovery.databaseName === values.databaseName) throw new Error("Recovery database must be separate from the source database");
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(recovery.targetId)) throw new Error("Recovery target ID must contain 1–128 ASCII letters, numbers, underscores or hyphens");
+}
+
 const accountId = local ? undefined : await resolveCloudflareAccountId({ root });
 const namespace = local
   ? localR2Namespace(await localInstallationId(root, argumentValue("--local-installation-id")), values.bucketName)
@@ -81,7 +97,8 @@ const generated = {
   name: values.workerName,
   ...(local ? {} : { account_id: accountId }),
   workers_dev: values.workersDev,
-  vars: { ...(local ? { AUTH_MODE: "disabled" } : {}), R2_BOOTSTRAP_NAMESPACE: namespace },
+  vars: { ...(local ? { AUTH_MODE: "disabled" } : {}), R2_BOOTSTRAP_NAMESPACE: namespace,
+    ...(recovery ? { RECOVERY_TARGET_ID: recovery.targetId } : {}) },
   d1_databases: [
     {
       binding: "DB",
@@ -89,6 +106,7 @@ const generated = {
       database_id: values.databaseId,
       migrations_dir: relativeToOutput("migrations"),
     },
+    ...(recovery ? [{ binding: "RECOVERY_DB", database_name: recovery.databaseName, database_id: recovery.databaseId }] : []),
   ],
   r2_buckets: [
     {

@@ -87,9 +87,30 @@ function deploymentIdentity(config) {
     || config.r2_buckets[0].preview_bucket_name !== undefined) throw new Error();
   const namespace = cloudflareR2Namespace(account, config.r2_buckets[0].bucket_name);
   if (config.vars?.R2_BOOTSTRAP_NAMESPACE !== namespace) throw new Error();
-  if (config.d1_databases?.length !== 1 || config.d1_databases[0].binding !== "DB") throw new Error();
+  const databases = config.d1_databases;
+  if (!Array.isArray(databases) || ![1, 2].includes(databases.length)
+    || new Set(databases.map(database => database?.binding)).size !== databases.length
+    || databases.some(database => !["DB", "RECOVERY_DB"].includes(database?.binding))) throw new Error();
+  const identity = database => {
+    if (typeof database?.database_id !== "string"
+      || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(database.database_id)
+      || typeof database.database_name !== "string" || !database.database_name.trim()
+      || database.database_name !== database.database_name.trim() || database.database_name.includes("\0")
+      || database.preview_database_id !== undefined || database.remote !== undefined) throw new Error();
+    return { databaseId: database.database_id, databaseName: database.database_name };
+  };
+  const source = identity(databases.find(database => database.binding === "DB"));
+  const recoveryBinding = databases.find(database => database.binding === "RECOVERY_DB");
+  let recovery = null;
+  if (recoveryBinding) {
+    const target = identity(recoveryBinding);
+    if (target.databaseId.toLowerCase() === source.databaseId.toLowerCase()
+      || target.databaseName === source.databaseName || typeof config.vars.RECOVERY_TARGET_ID !== "string"
+      || !/^[A-Za-z0-9_-]{1,128}$/.test(config.vars.RECOVERY_TARGET_ID)) throw new Error();
+    recovery = { ...target, targetId: config.vars.RECOVERY_TARGET_ID };
+  } else if (config.vars.RECOVERY_TARGET_ID !== undefined) throw new Error();
   return JSON.stringify({ account, namespace, workerName: config.name,
-    databaseId: config.d1_databases[0].database_id, databaseName: config.d1_databases[0].database_name });
+    ...source, recovery });
 }
 
 export function assertDeploymentBootstrapAgreement(migrationConfig, builtConfig) {

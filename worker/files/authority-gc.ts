@@ -3,6 +3,7 @@ import type { Env } from "../types";
 import { BLOB_ORPHAN_GRACE_MS, BLOB_REGISTRATION_GRACE_MS } from "../blob-lifecycle/reachability";
 import { readFileAuthorityMode } from "./authority-reader";
 import { openShadowProfile } from "./shadow-profile";
+import { recoveryHoldsInstalled } from "../blob-lifecycle/recovery-retention";
 
 const BATCH_SIZE = 100;
 const CLAIM_LEASE_MS = 15 * 60 * 1_000;
@@ -11,24 +12,29 @@ const active = "EXISTS (SELECT 1 FROM file_authority_control c JOIN file_authori
 // A usable-publications lookup alone would discard quarantined/disabled but
 // still retained Files. Physical deletion also respects legacy consumers and
 // shadow source holds; a matching key in an unproven namespace retains bytes.
-const locationUnretained = `NOT EXISTS (SELECT 1 FROM file_location_retention_edges e WHERE e.location_id=l.id)
+const locationUnretained = `NOT EXISTS (SELECT 1 FROM file_location_retention_edges e WHERE e.location_id=l.id
+  AND NOT(e.occurrence_type='file_shadow_publication' AND EXISTS(
+    SELECT 1 FROM file_shadow_heads h JOIN file_consumer_projection typed
+      ON typed.consumer_kind=h.consumer_kind AND typed.consumer_id=h.consumer_id AND typed.consumer_sub_id=h.consumer_sub_id AND typed.file_slot=h.file_slot
+    JOIN file_publications published ON published.file_id=typed.file_id AND published.state='ready'
+    WHERE h.occurrence_id=e.occurrence_id AND typed.file_id=e.file_id AND typed.resolution_state='resolved')))
 AND NOT EXISTS (SELECT 1 FROM file_holds h WHERE h.file_id=l.file_id AND h.released_at IS NULL
   AND (h.expires_at IS NULL OR julianday(h.expires_at)>julianday('now')))
 AND NOT EXISTS (SELECT 1 FROM file_shadow_legacy_holds h
   WHERE h.storage_profile_id=l.storage_profile_id AND h.object_key=l.object_key AND h.released_at IS NULL)
 AND NOT EXISTS (SELECT 1 FROM blob_retention_edges e JOIN storage_profiles p ON p.id=l.storage_profile_id
   WHERE e.provider=p.adapter_type AND e.object_key=l.object_key
-    AND e.store_kind=CASE p.adapter_type WHEN 'r2' THEN 'r2' ELSE 'managed' END)`;
-const unretained = `NOT EXISTS (
-  SELECT 1 FROM file_publications f WHERE f.active_location_id=l.id AND f.state='ready'
-) AND ${locationUnretained}`;
+    AND e.store_kind=CASE p.adapter_type WHEN 'r2' THEN 'r2' ELSE 'managed' END
+    AND NOT EXISTS(SELECT 1 FROM file_retention_edges typed JOIN file_publications published ON published.file_id=typed.file_id AND published.state='ready'
+      WHERE typed.source_type=e.source_type AND typed.source_id=e.source_id AND typed.occurrence_id=e.occurrence_id
+        AND(typed.occurrence_type=e.occurrence_type OR(e.occurrence_type='run_step_comment_asset' AND typed.occurrence_type='run_step_comment_file'))))`;
 
 interface LocationWork {
   location_id: string;
   storage_profile_id: string;
   configuration_revision: number;
   object_key: string;
-  adapter_type: "r2" | "switchdrive";
+  adapter_type: "r2" | "switchdrive" | "s3";
   namespace_identity: string;
   state: "orphaned" | "deleting";
   operation_id: string | null;
@@ -46,6 +52,19 @@ const claimValues = (work: LocationWork, claim: Claim) =>
 export async function runFileGarbageCollection(env: Env, now = new Date()) {
   const result = { orphanCandidatesMarked: 0, imageDeleted: 0, managedDeleted: 0, failures: 0 };
   const database = env.DB, db = primaryD1(database);
+  const recoveryInstalled = await recoveryHoldsInstalled(db,
+    env.RECOVERY_DB !== undefined || env.RECOVERY_TARGET_ID !== undefined);
+  if (recoveryInstalled === null) return result;
+  const recoveryUnretained = recoveryInstalled ? `AND NOT EXISTS (
+    SELECT 1 FROM system_recovery_legacy_holds recovery_hold
+    JOIN storage_profiles recovery_profile ON recovery_profile.id=l.storage_profile_id
+    WHERE recovery_hold.store_kind=CASE recovery_profile.adapter_type WHEN 'r2' THEN 'r2' ELSE 'managed' END
+      AND recovery_hold.provider=recovery_profile.adapter_type AND recovery_hold.object_key=l.object_key
+      AND recovery_hold.released_at IS NULL)` : "";
+  const locationUnretainedNow = `${locationUnretained} ${recoveryUnretained}`;
+  const unretained = `NOT EXISTS (
+    SELECT 1 FROM file_publications f WHERE f.active_location_id=l.id AND f.state='ready'
+  ) AND ${locationUnretainedNow}`;
   if (await readFileAuthorityMode(db) !== "active") return result;
   const runtime = await db.prepare("SELECT incarnation FROM file_authority_runtime_guard WHERE singleton=1 AND enabled=1")
     .first<{ incarnation: string }>();
@@ -56,6 +75,14 @@ export async function runFileGarbageCollection(env: Env, now = new Date()) {
   const registrationCutoff = new Date(now.getTime() - BLOB_REGISTRATION_GRACE_MS).toISOString();
   const orphanCutoff = new Date(now.getTime() - BLOB_ORPHAN_GRACE_MS).toISOString();
   const staleCutoff = new Date(now.getTime() - CLAIM_LEASE_MS).toISOString();
+  const jobsInstalled = Boolean(await db.prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='file_migration_attempts'").first());
+  const terminalMigrationCandidate = jobsInstalled ? `OR EXISTS(SELECT 1 FROM file_migration_attempts attempt
+    WHERE attempt.location_id=l.id AND attempt.state IN('failed','cancelled')
+      AND(attempt.io_settled_at IS NOT NULL OR attempt.write_started_at IS NULL))` : "";
+  const packagesInstalled=Boolean(await db.prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='research_package_attempts'").first());
+  const terminalPackageCandidate=packagesInstalled?`OR EXISTS(SELECT 1 FROM research_package_attempts attempt
+    WHERE attempt.location_id=l.id AND attempt.state IN('failed','cancelled')
+    AND(attempt.io_settled_at IS NOT NULL OR attempt.write_started_at IS NULL))`:"";
   // Original recovery/retry-window maintenance runs first. Receipt expiry alone
   // is never terminal evidence: pending and missing receipts retain candidates.
   await db.batch([
@@ -86,7 +113,7 @@ export async function runFileGarbageCollection(env: Env, now = new Date()) {
         WHERE f.state='ready' AND julianday(f.published_at)<=julianday(?)
           AND julianday(l.created_at)<=julianday(?)
           AND NOT EXISTS (SELECT 1 FROM file_retention_edges e WHERE e.file_id=f.file_id)
-          AND ${locationUnretained}
+          AND ${locationUnretainedNow}
         ORDER BY f.published_at,f.file_id LIMIT ?)`)
       .bind(timestamp, runtime.incarnation, registrationCutoff, registrationCutoff, BATCH_SIZE),
   ]);
@@ -97,7 +124,7 @@ export async function runFileGarbageCollection(env: Env, now = new Date()) {
       AND NOT EXISTS (SELECT 1 FROM file_location_gc_ledger g WHERE g.location_id=l.id)
       AND (EXISTS (SELECT 1 FROM file_location_publications p WHERE p.location_id=l.id)
         OR EXISTS (SELECT 1 FROM file_acceptance_candidates c
-          WHERE c.candidate_location_id=l.id AND c.state IN ('ready','cancelled')))
+          WHERE c.candidate_location_id=l.id AND c.state IN ('ready','cancelled')) ${terminalMigrationCandidate} ${terminalPackageCandidate})
       AND ${unretained}
     ORDER BY l.created_at,l.id LIMIT ?`)
     .bind(timestamp, timestamp, runtime.incarnation, registrationCutoff, BATCH_SIZE).run();
@@ -140,7 +167,10 @@ export async function runFileGarbageCollection(env: Env, now = new Date()) {
         .bind(...claimValues(location, claim), runtime.incarnation, ...locationValues).first());
       const profile = await openShadowProfile(env, {
         profileId: location.storage_profile_id, configurationRevision: location.configuration_revision,
-      }, "write", { beforeDelete: key => key === location.object_key ? ownsClaim() : Promise.resolve(false) });
+      }, "write", {
+        beforeRequest: operation => operation.key === location.object_key ? ownsClaim() : Promise.resolve(false),
+        beforeDelete: key => key === location.object_key ? ownsClaim() : Promise.resolve(false),
+      });
       if (!profile.deleter || env.DB !== database || profile.storage.adapterType !== location.adapter_type
         || profile.storage.namespaceIdentity !== location.namespace_identity)
         throw new Error("The recorded File deleter is unavailable");

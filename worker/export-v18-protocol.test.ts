@@ -12,7 +12,8 @@ import { validateFullExportV18 } from "../shared/contracts/export-protocol";
 import { buildFullExportArchiveV17, buildFullExportArchiveV18 } from "../src/lib/exportAll";
 import { restoreExportToIsolatedDirectory } from "../scripts/lib/export-restore";
 import { snapshotFullExportV17 } from "./export-v17-snapshot";
-import { snapshotFullExportV20 } from "./export-v20-snapshot";
+import { snapshotFullExportV24 } from "./export-v24-snapshot";
+import { expectHistoricalForwardTables } from "./export-forward-test-support";
 import { snapshotFullExportV18 } from "./export-v18-snapshot";
 import { snapshotRoutes } from "./export-routes";
 import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
@@ -44,7 +45,7 @@ function fixture(active = true) {
   const stored = new Map<string, Uint8Array>();
   const put = vi.fn(async (key: string, value: ArrayBuffer) => { stored.set(key, new Uint8Array(value.slice(0))); });
   const get = vi.fn(async (key: string) => { const value = stored.get(key); return value ? { body: new Blob([value]).stream(), size: value.length, httpEtag: '"file"', writeHttpMetadata() {} } : null; });
-  const env = { DB: db, R2_BOOTSTRAP_NAMESPACE: namespace, ASSETS: { get, head: get, put } as unknown as R2Bucket } satisfies Env;
+  const env = { DB: db, R2_BOOTSTRAP_NAMESPACE: namespace, ASSETS: { get, head: get, put, delete: async (key: string) => { stored.delete(key); } } as unknown as R2Bucket } satisfies Env;
   // V18 predates role defaults. Construct its immutable accepted history under
   // the actual 0012 guards, then use the frozen candidate writer for real byte
   // verification/publication. Current fresh acceptance policy belongs to V19.
@@ -148,9 +149,10 @@ describe("V18 accepted File runtime archive", () => {
     expect(f.sql.prepare("SELECT enabled FROM file_authority_runtime_guard").get()!.enabled).toBe(1);
     expect(f.manifest.tables).not.toHaveProperty("file_authority_runtime_guard");
     const { sql, result } = await restore(f.manifest);
-    const recovered = (await snapshotFullExportV20(adapter(sql))).tables;
+    const current = await snapshotFullExportV24(adapter(sql)); expect(current.schemaVersion).toBe(24);
+    const recovered = current.tables;
     expect(recovered.storage_role_defaults).toEqual([]);
-    expect(Object.fromEntries(Object.keys(f.manifest.tables).map(name => [name, recovered[name]]))).toEqual(f.manifest.tables);
+    expectHistoricalForwardTables(recovered, f.manifest.tables);
     expect(sql.prepare("SELECT mode FROM file_authority_control").get()!.mode).toBe("active");
     expect(sql.prepare("SELECT enabled,incarnation FROM file_shadow_runtime_guard").get()).toEqual({ enabled: 0, incarnation: null });
     expect(sql.prepare("SELECT enabled,incarnation FROM file_authority_runtime_guard").get()).toEqual({ enabled: 0, incarnation: null });
@@ -198,9 +200,10 @@ describe("V18 accepted File runtime archive", () => {
     const old = database("0010_fp1_shadow_adjudications.sql");
     old.prepare("INSERT INTO file_shadow_enablements SELECT 1,epoch,'fixture',? FROM file_shadow_control").run(new Date().toISOString());
     const manifest = await snapshotFullExportV17(adapter(old)), { sql } = await restore(manifest);
-    const recovered = (await snapshotFullExportV20(adapter(sql))).tables;
+    const current = await snapshotFullExportV24(adapter(sql)); expect(current.schemaVersion).toBe(24);
+    const recovered = current.tables;
     expect(recovered.storage_role_defaults).toEqual([]);
-    expect(Object.fromEntries(Object.keys(manifest.tables).map(name => [name, recovered[name]]))).toEqual(manifest.tables);
+    expectHistoricalForwardTables(recovered, manifest.tables);
     expect(sql.prepare("SELECT mode FROM file_authority_control").get()!.mode).toBe("overlap");
     expect(sql.prepare("SELECT * FROM file_acceptance_candidates").all()).toEqual([]);
     expect(sql.prepare("SELECT enabled,incarnation FROM file_shadow_runtime_guard").get()).toEqual({ enabled: 0, incarnation: null });

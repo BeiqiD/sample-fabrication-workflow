@@ -116,10 +116,10 @@ export function StorageConfigurationPage() {
     {error && <div className="error-banner" role="alert"><p>{error}</p></div>}
     {notice && <p role="status">{notice}</p>}
     {capability && !capability.canManage && <section className="card storage-settings-section"><h2 className="card-title">Read only</h2>
-      <p>Only system administrators can manage storage candidates. Current Cloudflare R2 storage does not require external credentials.</p></section>}
+      <p>Only system administrators can manage storage candidates. Cloudflare R2 storage does not require external credentials.</p></section>}
     {capability?.canManage && status && <>
       <div className="storage-settings-observation"><strong>Candidate storage</strong>
-        <p className="muted">Saving does not test the connection, activate a provider or change upload destinations. Current Cloudflare R2 storage does not require external credentials.</p></div>
+        <p className="muted">Saving does not test the connection, activate a provider or change upload destinations. Cloudflare R2 storage does not require external credentials.</p></div>
       {!externalEditing && <p className="muted">External credential editing is unavailable. An administrator must configure the installation encryption key before saving external candidates.</p>}
       <section className="card storage-settings-section" aria-labelledby="storage-candidates-title"><h2 className="card-title" id="storage-candidates-title">Saved candidates</h2>
         {status.candidates.items.length === 0 ? <p className="muted">No external storage candidates have been saved.</p> : <ul className="storage-profile-list">
@@ -310,7 +310,7 @@ function CandidateChecks({ candidate, canTest, canCleanup, onForbidden, onEviden
     <h4>Connection tests</h4>
     <p className="muted">Revision labels describe the saved configuration. Check evidence separately to see whether a recorded success matches the credentials stored now.</p>
     {candidate.namespace.kind === "s3" ? <>
-      <p className="muted">A test writes a small temporary object, verifies its contents and metadata, then removes it. Current Cloudflare R2 upload destinations remain unchanged.</p>
+      <p className="muted">A test writes a small temporary object, verifies its contents and metadata, then removes it. Saved upload destinations remain unchanged.</p>
       {canTest && <button className="button" type="button" disabled={loading || busy || unresolved || !!message} onClick={() => void start()}>Test {candidate.label}</button>}
     </> : <p className="muted">Connection tests are currently available for S3 candidates.</p>}
     {loading && <p role="status">Reading test history…</p>}

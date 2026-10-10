@@ -1,9 +1,29 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { copyFileSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { DatabaseSync, type StatementSync } from "node:sqlite";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import worker from "./index";
 import { acceptCommentSubmission, acceptCommentUpload, uploadAcceptedCommentItem, commentManagedFetch } from "./comment-acceptance-test-support";
 import type { Env } from "./types";
+
+// Reuse compiled SQL only within each connection, as native D1 does. Results,
+// bindings, hooks, and mutation counts remain live on every execution; SQLite
+// automatically recompiles statements if a scenario changes its schema.
+const compiledByDatabase = new WeakMap<DatabaseSync, Map<string, StatementSync>>();
+function compiledStatement(database: DatabaseSync, query: string): StatementSync {
+  let compiled = compiledByDatabase.get(database);
+  if (!compiled) {
+    compiled = new Map();
+    compiledByDatabase.set(database, compiled);
+  }
+  let statement = compiled.get(query);
+  if (statement) compiled.delete(query);
+  else statement = database.prepare(query);
+  compiled.set(query, statement);
+  if (compiled.size > 256) compiled.delete(compiled.keys().next().value!);
+  return statement;
+}
 
 class SqliteD1Statement {
   constructor(
@@ -21,7 +41,7 @@ class SqliteD1Statement {
     if (this.bindings.length > 100) {
       throw new Error(`D1 allows at most 100 bound parameters; received ${this.bindings.length}`);
     }
-    return this.database.prepare(this.query);
+    return compiledStatement(this.database, this.query);
   }
 
   async first<T>() {
@@ -41,16 +61,15 @@ class SqliteD1Statement {
     const statement = this.statement();
     // Native D1 reports trigger writes too; use its connection-wide delta while
     // retaining RETURNING rows for exact top-level mutation counts.
-    const before = Number(this.database.prepare("SELECT total_changes() AS count").get()?.count);
+    const counter = compiledStatement(this.database, "SELECT total_changes() AS count");
+    const before = Number(counter.get()?.count);
     const results = statement.columns().length > 0
       ? statement.all(...this.bindings)
       : (statement.run(...this.bindings), []);
-    const changes = Number(this.database.prepare("SELECT total_changes() AS count").get()?.count) - before;
+    const changes = Number(counter.get()?.count) - before;
     return { success: true, meta: { changes }, results };
   }
 }
-
-afterEach(() => vi.unstubAllGlobals());
 
 class SqliteD1Database {
   constructor(
@@ -77,13 +96,46 @@ class SqliteD1Database {
   }
 }
 
-function createDatabase() {
+let fixtureDirectory: string | undefined;
+let pristinePath: string | undefined;
+let nextFixture = 0;
+const fixtureDatabases = new Set<DatabaseSync>();
+const quoteIdentifier = (value: string) => `"${value.replaceAll('"', '""')}"`;
+
+function fixtureImage(database: DatabaseSync) {
+  const schema = database.prepare("SELECT type,name,tbl_name,sql FROM sqlite_schema ORDER BY type,name").all();
+  const tables = database.prepare("SELECT name FROM sqlite_schema WHERE type='table' AND name NOT GLOB 'sqlite_*' ORDER BY name")
+    .all() as { name: string }[];
+  const withoutRowid = new Set((database.prepare("PRAGMA table_list").all() as { name: string; wr: number }[])
+    .filter((table) => table.wr === 1).map((table) => table.name));
+  return { schema, tables: Object.fromEntries(tables.map(({ name }) => {
+    const columns = database.prepare(`PRAGMA table_info(${quoteIdentifier(name)})`).all() as { name: string; pk: number }[];
+    const primaryKey = columns
+      .filter((column) => column.pk > 0).sort((a, b) => a.pk - b.pk).map((column) => quoteIdentifier(column.name));
+    const storageTypes = columns.map((column, index) =>
+      `typeof(${quoteIdentifier(column.name)}) AS ${quoteIdentifier(`_fixture_type_${index}`)}`).join(",");
+    const rows = database.prepare(withoutRowid.has(name)
+      ? `SELECT *,${storageTypes} FROM ${quoteIdentifier(name)} ORDER BY ${primaryKey.join(",")}`
+      : `SELECT rowid AS _fixture_rowid,*,${storageTypes} FROM ${quoteIdentifier(name)} ORDER BY rowid`);
+    rows.setReadBigInts(true);
+    return [name, rows.all()];
+  })) };
+}
+
+beforeAll(() => {
+  // Execute the complete real migration chain and unchanged seed once. Each
+  // scenario receives a separate physical database; this module never compares
+  // installation identities across scenarios or shares scenario writes.
+  fixtureDirectory = mkdtempSync(join(tmpdir(), "fp5-source-lifecycle-"));
+  pristinePath = join(fixtureDirectory, "pristine.sqlite");
   const database = new DatabaseSync(":memory:");
-  const migrationDirectory = new URL("../migrations/", import.meta.url);
-  for (const filename of readdirSync(migrationDirectory).filter((name) => name.endsWith(".sql")).sort()) {
-    database.exec(readFileSync(new URL(filename, migrationDirectory), "utf8"));
-  }
-  database.exec(`
+  database.exec("PRAGMA foreign_keys=ON");
+  try {
+    const migrationDirectory = new URL("../migrations/", import.meta.url);
+    for (const filename of readdirSync(migrationDirectory).filter((name) => name.endsWith(".sql")).sort()) {
+      database.exec(readFileSync(new URL(filename, migrationDirectory), "utf8"));
+    }
+    database.exec(`
     INSERT INTO recipe_families (id, name, template_type, created_at)
     VALUES
       ('family-process', 'Process', 'process', '2026-08-07T10:00:00.000Z'),
@@ -107,7 +159,43 @@ function createDatabase() {
     VALUES
       ('template-step-process', 'template-process', 'process:1', 0, 'definition-1'),
       ('template-step-metrology', 'template-metrology', 'metrology:1', 0, 'definition-1');
-  `);
+    `);
+    expect(database.prepare("PRAGMA foreign_keys").get()).toEqual({ foreign_keys: 1 });
+    expect(database.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    expect(database.prepare("PRAGMA quick_check").all()).toEqual([{ quick_check: "ok" }]);
+    const expected = fixtureImage(database);
+    database.exec(`VACUUM INTO '${pristinePath.replaceAll("'", "''")}'`);
+    const cloned = new DatabaseSync(pristinePath, { readOnly: true });
+    try {
+      expect(fixtureImage(cloned)).toEqual(expected);
+      expect(cloned.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    } finally {
+      cloned.close();
+    }
+  } finally {
+    database.close();
+  }
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  for (const database of fixtureDatabases) if (database.isOpen) database.close();
+  fixtureDatabases.clear();
+});
+
+afterAll(() => {
+  for (const database of fixtureDatabases) if (database.isOpen) database.close();
+  fixtureDatabases.clear();
+  if (fixtureDirectory) rmSync(fixtureDirectory, { recursive: true, force: true });
+});
+
+function createDatabase() {
+  if (!fixtureDirectory || !pristinePath) throw new Error("The canonical source lifecycle fixture has not been initialized");
+  const path = join(fixtureDirectory, `scenario-${nextFixture++}.sqlite`);
+  copyFileSync(pristinePath, path);
+  const database = new DatabaseSync(path);
+  database.exec("PRAGMA foreign_keys=ON");
+  fixtureDatabases.add(database);
   return database;
 }
 
@@ -422,11 +510,13 @@ describe("source lifecycle routes", () => {
       })));
       const env = managedStorageEnv(database);
 
-      const manifestResponse = await request(env, "/exports/all?archiveSchema=20&archiveWriter=1");
+      const manifestResponse = await request(env, "/exports/all?archiveSchema=24&archiveWriter=1");
       expect(manifestResponse.status).toBe(200);
       const manifest = await manifestResponse.json() as {
+        schemaVersion: number;
         blobs: Array<{ blobRecordIds: string[]; downloadUrl: string | null }>;
       };
+      expect(manifest.schemaVersion).toBe(24);
       const exportedBlob = manifest.blobs.find((blob) => blob.blobRecordIds.includes("export-storage"));
       expect(exportedBlob).toEqual(expect.objectContaining({
         downloadUrl: "/api/exports/managed/export-storage",

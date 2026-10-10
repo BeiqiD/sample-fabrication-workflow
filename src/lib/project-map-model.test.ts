@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { ProjectSnapshot } from "../../shared/project-api";
+import { projectTestSnapshotWithAttachment } from "../project-test-fixture";
 import {
   applyProjectGeometryCommand,
   applyProjectGeometryCommands,
   normalizeProjectGeometryCommands,
+  orderProjectReadingNodes,
   projectDirtyPlacements,
   projectMapNodes,
   projectNodeKindLabel,
@@ -173,6 +175,44 @@ describe("Project Map projection", () => {
       "item-markdown",
       "item-reference",
     ]);
+  });
+
+  it("orders complete mixed-record descriptors without mutating Map order or working geometry", () => {
+    const fixture = projectTestSnapshotWithAttachment();
+    fixture.items = [fixture.items[2], fixture.items[0], fixture.items[1]].map((item, index) => ({
+      ...item, createdSequence: index === 0 ? 1 : 3,
+    }));
+    const canonical = projectMapNodes(fixture);
+    const before = structuredClone(canonical);
+    const workingGeometry = { ...canonical[2].geometry, x: canonical[2].geometry.x + 80 };
+    const projected = Object.freeze(canonical.map((node) => node.itemId === "item-note"
+      ? Object.freeze({ ...node, geometry: Object.freeze(workingGeometry) }) : Object.freeze(node)));
+    const reading = orderProjectReadingNodes(projected);
+
+    expect(projected.map((node) => node.kind)).toEqual(["attachment", "reference", "markdown"]);
+    expect(reading.map((node) => node.itemId)).toEqual(["item-attachment", "item-note", "item-reference"]);
+    expect(reading).toEqual([projected[0], projected[2], projected[1]]);
+    expect(reading[0]).toBe(projected[0]);
+    expect(reading[1]).toBe(projected[2]);
+    expect(reading[2]).toBe(projected[1]);
+    expect(reading[1].geometry).toBe(workingGeometry);
+    expect(projected.map((node) => node.itemId)).toEqual(["item-attachment", "item-reference", "item-note"]);
+    expect(canonical).toEqual(before);
+    expect(projectReadingNodes(fixture)).toEqual([canonical[0], canonical[2], canonical[1]]);
+  });
+
+  it("keeps Reading sequence independent of reversed Map order and returns a separate array", () => {
+    const canonical = projectMapNodes(projectTestSnapshotWithAttachment());
+    const reversed = Object.freeze([...canonical].reverse());
+    const reading = orderProjectReadingNodes(reversed);
+    expect(reading).toEqual([canonical[1], canonical[0], canonical[2]]);
+    expect(reading.map((node) => node.itemId)).toEqual(["item-note", "item-reference", "item-attachment"]);
+    expect(reversed).toEqual([...canonical].reverse());
+    expect(reading).not.toBe(reversed);
+    expect(reading.every((node) => canonical.includes(node))).toBe(true);
+    const empty = Object.freeze([]);
+    expect(orderProjectReadingNodes(empty)).toEqual([]);
+    expect(orderProjectReadingNodes(empty)).not.toBe(empty);
   });
 
   it("normalizes one grouped geometry action and applies every placement atomically in history", () => {

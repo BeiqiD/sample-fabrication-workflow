@@ -2,6 +2,47 @@
   font-size: 0;
 }
 
+.comment-attachment-child-actions {
+  min-width: 0;
+  max-width: 100%;
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+}
+
+.comment-attachment-child-actions > button {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.attachment-dependency-hint {
+  color: var(--muted);
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+
+.upload-item-actions label:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.comment-attachment-list:focus-visible,
+.sample-note-attachments:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (max-width: 560px) {
+  .uploading-comment-heading { flex-wrap: wrap; }
+  .uploading-comment-heading > div:first-child { min-width: 0; flex: 1 1 180px; }
+  .upload-item-actions button,
+  .upload-item-actions label,
+  .pending-card-actions button,
+  .pending-attachment > button,
+  .uploading-comment-actions button { min-height: 32px; }
+}
+
 .comment-drop-overlay::after {
   content: "Drop images or attachments";
   font-size: 12px;

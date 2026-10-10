@@ -63,6 +63,30 @@ function fixture(options: { ready?: boolean; managed?: boolean; mode?: "active" 
 }
 
 describe("active File location garbage collection", () => {
+  it.each([false, true])("preserves exact legacy recovery holds in native %s collection until released", async managed => {
+    const f = fixture({ ready: true, managed });
+    f.sql.prepare(`INSERT INTO system_recovery_jobs(id,request_id,actor,kind,state,phase,input_json,accepted_at,updated_at)
+      VALUES('backup','backup','admin@example.test','backup','queued','snapshot','{}',?,?)`).run(OLD, OLD);
+    f.sql.prepare(`INSERT INTO system_recovery_legacy_holds(job_id,store_kind,provider,object_key)
+      VALUES('backup',?,?,'owned/file')`).run(managed ? "managed" : "r2", managed ? "switchdrive" : "r2");
+    expect(await runFileGarbageCollection(f.env, NOW)).toEqual({ orphanCandidatesMarked: 0, imageDeleted: 0, managedDeleted: 0, failures: 0 });
+    expect(f.sql.prepare("SELECT state FROM file_publications WHERE file_id='file'").get()!.state).toBe("ready");
+    expect(f.ledger()).toBeUndefined(); expect(f.remove).not.toHaveBeenCalled(); expect(f.fetch).not.toHaveBeenCalled();
+    f.sql.prepare("UPDATE system_recovery_legacy_holds SET released_at=? WHERE job_id='backup'").run(NOW.toISOString());
+    expect((await runFileGarbageCollection(f.env, NOW)).orphanCandidatesMarked).toBe(1);
+    expect((await runFileGarbageCollection(f.env, later(7)))[managed ? "managedDeleted" : "imageDeleted"]).toBe(1);
+    if (managed) expect(f.fetch).toHaveBeenCalledTimes(1);
+    else expect(f.remove).toHaveBeenCalledExactlyOnceWith("owned/file");
+  });
+
+  it("fails closed when recovery is configured without its native retention metadata", async () => {
+    const f = fixture();
+    f.sql.exec("DROP TABLE system_recovery_legacy_holds");
+    Object.assign(f.env, { RECOVERY_TARGET_ID: "configured-target" });
+    expect(await runFileGarbageCollection(f.env, NOW)).toEqual({ orphanCandidatesMarked: 0, imageDeleted: 0, managedDeleted: 0, failures: 0 });
+    expect(f.ledger()).toBeUndefined(); expect(f.remove).not.toHaveBeenCalled(); expect(f.fetch).not.toHaveBeenCalled();
+  });
+
   it("protects a retained ready File even when quarantined and legacy GC/dedup are called directly", async () => {
     const f = fixture({ ready: true, hold: true });
     f.sql.prepare(`INSERT INTO file_location_integrity_quarantine(location_id,reason,expected_byte_size,expected_sha256,operation_id,detected_at,last_checked_at)
@@ -295,7 +319,7 @@ it("releases explicitly detached event and verification bytes while keeping type
   const sql = futureActiveRuntimeDatabase(database => {
     database.prepare("INSERT INTO storage_profiles VALUES('profile','r2',?,'bootstrap',NULL,1,'historical',?)").run(namespace, now);
     database.prepare("INSERT INTO file_shadow_profile_enablements VALUES('profile',1,'operator',?)").run(now);
-  });
+  }, { throughMigration: "0017_fp2_native_storage_profiles.sql" });
   databases.push(sql);
   const db = new SqliteD1Database(sql) as unknown as D1Database;
   const stored = new Map<string, Uint8Array>();

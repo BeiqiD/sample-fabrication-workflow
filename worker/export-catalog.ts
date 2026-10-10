@@ -1,3 +1,4 @@
+import { SYSTEM_RECOVERY_EVIDENCE_EXPORT_COLUMNS } from "../shared/contracts/export-system-recovery-evidence";
 import { FILE_SHADOW_ADJUDICATION_EXPORT_COLUMNS } from "../shared/contracts/file-shadow-adjudication";
 import { FILE_SHADOW_WITHDRAWAL_EXPORT_COLUMNS } from "../shared/contracts/file-shadow-withdrawal";
 import { FILE_SHADOW_EXPORT_COLUMNS, FILE_SHADOW_EXPORTED_VIEW_COLUMNS } from "../shared/contracts/file-shadow-schema";
@@ -152,4 +153,36 @@ export const FULL_EXPORT_V20_TABLE_QUERIES = {
   ...FULL_EXPORT_V19_TABLE_QUERIES,
   storage_profile_admissions: "SELECT * FROM storage_profile_admissions ORDER BY operation_id",
 } as const;
-export const FULL_EXPORT_TABLE_QUERIES = FULL_EXPORT_V20_TABLE_QUERIES;
+// V21 retains native execution provenance and each import item's immutable
+// accepted target. Installation credential bindings are deliberately excluded.
+export const FULL_EXPORT_V21_TABLE_QUERIES = {
+  ...FULL_EXPORT_V20_TABLE_QUERIES,
+  storage_profile_activations: "SELECT * FROM storage_profile_activations ORDER BY created_at, operation_id",
+  storage_role_policy_revisions: "SELECT * FROM storage_role_policy_revisions ORDER BY policy_revision, role",
+  import_file_acceptances: "SELECT * FROM import_file_acceptances ORDER BY import_id, item_id",
+} as const;
+// The live executor projection is rebuilt from a disabled local guard on restore.
+export const FULL_EXPORT_V22_TABLE_QUERIES = {
+  ...FULL_EXPORT_V21_TABLE_QUERIES,
+  file_migration_jobs: "SELECT * FROM file_migration_jobs ORDER BY accepted_at, id",
+  file_migration_items: "SELECT * FROM file_migration_items ORDER BY job_id, file_id",
+  file_migration_attempts: "SELECT * FROM file_migration_attempts ORDER BY job_id, file_id, created_at, id",
+} as const;
+// Package staging and immutable copy provenance are portable audit history.
+// Installation cleanup grants and the live executor projections are rebuilt.
+export const FULL_EXPORT_V23_TABLE_QUERIES = {
+  ...FULL_EXPORT_V22_TABLE_QUERIES,
+  research_package_source_identity: "SELECT * FROM research_package_source_identity ORDER BY singleton",
+  research_package_jobs: "SELECT * FROM research_package_jobs ORDER BY accepted_at, id",
+  research_package_requests: "SELECT * FROM research_package_requests ORDER BY actor, request_id",
+  research_package_records: "SELECT * FROM research_package_records ORDER BY job_id, ordinal, record_kind, source_id",
+  research_package_files: "SELECT * FROM research_package_files ORDER BY job_id, logical_file_id",
+  research_package_attempts: "SELECT * FROM research_package_attempts ORDER BY job_id, logical_file_id, created_at, id",
+  research_package_identity_maps: "SELECT * FROM research_package_identity_maps ORDER BY job_id, entity_kind, source_id",
+} as const;
+export const FULL_EXPORT_V24_TABLE_QUERIES = {
+  ...FULL_EXPORT_V23_TABLE_QUERIES,
+  ...Object.fromEntries(Object.entries(SYSTEM_RECOVERY_EVIDENCE_EXPORT_COLUMNS)
+    .map(([name, columns]) => [name, `SELECT ${columns.join(", ")} FROM ${name} ORDER BY ${columns.join(", ")}`])),
+} as const;
+export const FULL_EXPORT_TABLE_QUERIES = FULL_EXPORT_V24_TABLE_QUERIES;

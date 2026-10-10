@@ -16,24 +16,34 @@ export async function exportSample(sample: SampleDetail) {
   const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
   const assetPaths = new Map<string, string>();
+  const nativeAssetPaths = new Map<string, string>();
   const attachmentPaths = new Map<string, string>();
+  const nativeUrls = new Set<string>();
+  const addNative = (url: string | undefined) => { if (url?.startsWith("/api/file-assets/")) nativeUrls.add(url); };
+  const imagePath = (image: { assetKey?: string | null; assetUrl?: string }) => image.assetUrl
+    ? nativeAssetPaths.get(image.assetUrl) : image.assetKey ? assetPaths.get(image.assetKey) : undefined;
 
   const keys = new Set<string>();
   for (const event of sample.events) {
     if (event.assetKey) keys.add(event.assetKey);
+    addNative(event.assetUrl); addNative(event.thumbnailUrl);
     if (typeof event.metadata.thumbnailKey === "string") keys.add(event.metadata.thumbnailKey);
   }
   for (const run of sample.runs) {
+    for (const key of run.initialStateImageKeys) keys.add(key);
+    for (const image of run.initialStateImages ?? []) addNative(image.url);
     for (const step of run.steps) {
       for (const key of [...step.plannedImageKeys, ...step.executionImageKeys]) keys.add(key);
+      for (const image of [...(step.plannedImages ?? []), ...(step.executionImages ?? [])]) addNative(image.url);
       for (const comment of step.comments) {
         if (comment.assetKey) keys.add(comment.assetKey);
-        for (const image of comment.images ?? []) if (image.assetKey) keys.add(image.assetKey);
+        addNative(comment.assetUrl);
+        for (const image of comment.images ?? []) { if (image.assetKey) keys.add(image.assetKey); addNative(image.assetUrl); }
       }
     }
   }
   for (const comment of sample.comments ?? []) {
-    for (const image of comment.images) if (image.assetKey) keys.add(image.assetKey);
+    for (const image of comment.images) { if (image.assetKey) keys.add(image.assetKey); addNative(image.assetUrl); }
   }
   for (const key of keys) {
     const response = await fetch(`/api/assets/${key}`);
@@ -41,6 +51,12 @@ export async function exportSample(sample: SampleDetail) {
     const path = assetPath(key);
     zip.file(path, await response.blob());
     assetPaths.set(key, path);
+  }
+  for (const url of nativeUrls) {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Could not export a native File asset");
+    const path = `assets/native/${safeName(decodeURIComponent(url.slice("/api/file-assets/".length)))}`;
+    zip.file(path, await response.blob()); nativeAssetPaths.set(url, path);
   }
   const comments = [
     ...(sample.comments ?? []),
@@ -79,7 +95,7 @@ export async function exportSample(sample: SampleDetail) {
     lines.push("## Notes & observations", "");
     for (const comment of sampleComments) {
       lines.push(`### ${comment.createdAt}`, "", comment.body || "Files attached");
-      for (const image of comment.images) if (image.assetKey) lines.push("", `![${image.filename}](${assetPaths.get(image.assetKey)})`);
+      for (const image of comment.images) if (imagePath(image)) lines.push("", `![${image.filename}](${imagePath(image)})`);
       for (const attachment of comment.attachments) {
         if (attachment.kind === "link") lines.push("", `[${attachment.title}](${attachment.url})`);
         else if (attachmentPaths.has(attachment.id)) lines.push("", `[${attachment.filename}](${attachmentPaths.get(attachment.id)})`);
@@ -90,6 +106,8 @@ export async function exportSample(sample: SampleDetail) {
   for (const run of sample.runs) {
     lines.push(`### Run ${run.sequenceNo}: ${run.templateName} — ${run.templateType} v${run.templateVersion}`, "",
       `- Status: ${run.status}`, `- Plan revision: ${run.planRevisionNumber}`, `- Predecessor run: ${run.predecessorRunId || ""}`, "");
+    for (const key of run.initialStateImageKeys) lines.push("", `![Initial substrate](${assetPaths.get(key)})`);
+    for (const image of run.initialStateImages ?? []) if (nativeAssetPaths.has(image.url)) lines.push("", `![Initial substrate](${nativeAssetPaths.get(image.url)})`);
     const visibleSteps = run.steps.filter((step) => step.planStatus === "current" || step.actualizedAt).sort((left, right) => left.position - right.position);
     for (const [index, step] of visibleSteps.entries()) {
       lines.push(`#### ${index + 1}. ${step.title} [${step.status}]`, "", `- Origin: ${step.origin}`, `- Tool: ${step.toolName || ""}`, "", step.parametersText || "");
@@ -101,8 +119,8 @@ export async function exportSample(sample: SampleDetail) {
         lines.push("", "**Common execution comments:**");
         for (const comment of commonComments) {
           lines.push(`- ${comment.body || "Image attached"} (${comment.createdAt})`);
-          const images = comment.images?.length ? comment.images : comment.assetKey ? [{ assetKey: comment.assetKey, filename: "Comment image" }] : [];
-          for (const image of images) if (image.assetKey) lines.push(`  ![${image.filename}](${assetPaths.get(image.assetKey)})`);
+          const images = comment.images?.length ? comment.images : comment.assetKey || comment.assetUrl ? [{ assetKey: comment.assetKey, assetUrl: comment.assetUrl, filename: "Comment image" }] : [];
+          for (const image of images) if (imagePath(image)) lines.push(`  ![${image.filename}](${imagePath(image)})`);
           for (const attachment of comment.attachments ?? []) {
             if (attachment.kind === "link") lines.push(`  [${attachment.title}](${attachment.url})`);
             else if (attachmentPaths.has(attachment.id)) lines.push(`  [${attachment.filename}](${attachmentPaths.get(attachment.id)})`);
@@ -113,8 +131,8 @@ export async function exportSample(sample: SampleDetail) {
         lines.push("", "**Individual execution comments:**");
         for (const comment of individualComments) {
           lines.push(`- ${comment.body || "Image attached"} (${comment.createdAt})`);
-          const images = comment.images?.length ? comment.images : comment.assetKey ? [{ assetKey: comment.assetKey, filename: "Comment image" }] : [];
-          for (const image of images) if (image.assetKey) lines.push(`  ![${image.filename}](${assetPaths.get(image.assetKey)})`);
+          const images = comment.images?.length ? comment.images : comment.assetKey || comment.assetUrl ? [{ assetKey: comment.assetKey, assetUrl: comment.assetUrl, filename: "Comment image" }] : [];
+          for (const image of images) if (imagePath(image)) lines.push(`  ![${image.filename}](${imagePath(image)})`);
           for (const attachment of comment.attachments ?? []) {
             if (attachment.kind === "link") lines.push(`  [${attachment.title}](${attachment.url})`);
             else if (attachmentPaths.has(attachment.id)) lines.push(`  [${attachment.filename}](${attachmentPaths.get(attachment.id)})`);
@@ -122,6 +140,7 @@ export async function exportSample(sample: SampleDetail) {
         }
       }
       for (const key of [...step.plannedImageKeys, ...step.executionImageKeys]) lines.push("", `![${step.title}](${assetPaths.get(key)})`);
+      for (const image of [...(step.plannedImages ?? []), ...(step.executionImages ?? [])]) if (nativeAssetPaths.has(image.url)) lines.push("", `![${step.title}](${nativeAssetPaths.get(image.url)})`);
       lines.push("");
     }
   }
@@ -139,7 +158,7 @@ export async function exportSample(sample: SampleDetail) {
   );
   for (const event of [...sample.events].reverse()) {
     lines.push(`### ${event.createdAt} — ${event.kind}`, "", event.body || "");
-    if (event.assetKey) lines.push("", `![${event.body || event.kind}](${assetPaths.get(event.assetKey)})`);
+    if (imagePath(event)) lines.push("", `![${event.body || event.kind}](${imagePath(event)})`);
     lines.push("");
   }
 

@@ -7,6 +7,9 @@ export interface ConsumerFileInput {
   assetId?: string;
   assetKey?: string;
   storageObjectId?: string;
+  /** Set only after the caller resolves an exact ready asset row with a NULL
+   * legacy R2 key. External request values never choose this branch. */
+  nativeAsset?: boolean;
   purpose: FilePurpose;
   /** A preview must already have verified derivation from this exact source. */
   sourceFileId?: string | null;
@@ -15,6 +18,12 @@ export interface ConsumerFileInput {
 function selection(input: ConsumerFileInput) {
   if ([input.assetId, input.assetKey, input.storageObjectId].filter(value => value !== undefined).length !== 1) {
     throw new HTTPException(400, { message: "One exact file attachment is required" });
+  }
+  if (input.nativeAsset) {
+    if (input.assetId === undefined || input.assetKey !== undefined || input.storageObjectId !== undefined) {
+      throw new HTTPException(400, { message: "A native File requires its exact asset identifier" });
+    }
+    return nativeSelection(input);
   }
   const managed = input.storageObjectId !== undefined;
   const source = managed
@@ -52,6 +61,51 @@ function selection(input: ConsumerFileInput) {
       ORDER BY f.file_id LIMIT 1`,
     bindings: [input.assetId ?? input.assetKey ?? input.storageObjectId!, input.purpose, input.purpose,
       input.purpose, input.purpose, input.sourceFileId ?? null],
+  };
+}
+
+function nativeSelection(input: ConsumerFileInput) {
+  return {
+    sql: `WITH source AS (
+      SELECT a.id,a.file_id,a.storage_profile_id,a.storage_profile_revision,a.object_key,a.byte_size,a.sha256
+      FROM assets a JOIN storage_profiles profile ON profile.id=a.storage_profile_id
+        AND profile.configuration_revision=a.storage_profile_revision AND profile.adapter_type='s3'
+      WHERE a.id=? AND a.r2_key IS NULL AND a.status='ready'
+        AND (a.import_id IS NULL OR EXISTS(SELECT 1 FROM imports i WHERE i.id=a.import_id AND i.status='ready'))
+        AND EXISTS(SELECT 1 FROM file_location_publications recorded WHERE recorded.file_id=a.file_id
+          AND recorded.storage_profile_id=a.storage_profile_id AND recorded.object_key=a.object_key
+          AND recorded.verified_byte_size=a.byte_size AND recorded.verified_sha256=a.sha256)
+    ), admitted AS (
+      SELECT p.file_id FROM source s JOIN file_consumer_projection p ON p.file_id=s.file_id
+      WHERE p.expected_purpose IS NULL OR p.expected_purpose=?
+      UNION
+      SELECT c.result_file_id FROM source s JOIN file_acceptance_candidates c ON c.result_file_id=s.file_id
+      JOIN file_location_publications recorded ON recorded.location_id=c.result_location_id AND recorded.file_id=c.result_file_id
+        AND recorded.storage_profile_id=s.storage_profile_id AND recorded.object_key=s.object_key
+      WHERE c.state='ready' AND c.purpose=? AND c.storage_profile_id=s.storage_profile_id
+        AND c.expected_byte_size=s.byte_size AND c.expected_sha256=s.sha256 AND (
+          (c.acceptance_kind='r2_upload' AND EXISTS(SELECT 1 FROM r2_upload_requests r WHERE r.id=c.acceptance_id
+            AND r.status='ready' AND json_extract(r.accepted_result_json,'$.id')=s.id))
+          OR (c.acceptance_kind='metrology_reference' AND EXISTS(SELECT 1 FROM metrology_reference_upload_requests r
+            WHERE r.id=c.acceptance_id AND r.status='ready' AND json_extract(r.accepted_result_json,'$.assetId')=s.id))
+          OR (c.acceptance_kind='comment_item' AND EXISTS(SELECT 1 FROM comment_item_acceptances r
+            JOIN comment_submission_acceptances parent ON parent.submission_id=r.submission_id
+            WHERE r.item_id=c.acceptance_id AND r.status='ready' AND parent.status='ready'
+              AND json_extract(r.accepted_result_json,'$.blobRecordId')=s.id))
+          OR (c.acceptance_kind='import_file' AND EXISTS(SELECT 1 FROM imports r
+            JOIN import_file_acceptances item ON item.import_id=r.id AND item.item_id=c.item_id
+            WHERE r.id=c.acceptance_id AND r.status='ready' AND item.status='ready'
+              AND item.result_file_id=s.file_id)))
+    ) SELECT f.file_id FROM admitted binding JOIN source s ON s.file_id=binding.file_id
+      JOIN file_usable_publications f ON f.file_id=binding.file_id
+        AND f.verified_byte_size=s.byte_size AND f.verified_sha256=s.sha256
+      JOIN file_authority_control authority ON authority.singleton=1 AND authority.mode='active'
+      WHERE f.purpose=? AND f.access_scope='system'
+        AND (?<>'derived_preview' OR EXISTS(SELECT 1 FROM file_derivations d
+          JOIN file_usable_publications original ON original.file_id=d.source_file_id
+          WHERE d.derived_file_id=f.file_id AND d.source_file_id=? AND d.trust_state='verified'))
+      ORDER BY f.file_id LIMIT 1`,
+    bindings: [input.assetId!, input.purpose, input.purpose, input.purpose, input.purpose, input.sourceFileId ?? null],
   };
 }
 

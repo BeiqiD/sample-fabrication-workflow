@@ -3,6 +3,11 @@
 Status: long-horizon direction. The [Product roadmap](./PRODUCT_ROADMAP.md#near-term-order-and-first-integrated-release)
 owns current sequence and release scope.
 
+The owner requests autonomous continuation on 2026-10-10 under the
+[development goal](ROADMAP_AUTONOMOUS_DEVELOPMENT_GOAL.md). Scheduled portability
+and membership remain concrete later milestones; optional exploratory ideas
+retain their evidence-triggered scope.
+
 Last reviewed: 2026-10-09 against integration `474a038` and synchronized
 qualified implementation checkpoint `3c1baf5` (not yet integrated/deployed).
 

@@ -12,6 +12,7 @@ import { projectNodeKindLabel, type ProjectNodeDescriptor } from "../../lib/proj
 import { ReferenceExcerpt } from "../ReferenceExcerpt";
 import { ProjectMarkdownPreview } from "./ProjectMarkdownPreview";
 import { ProjectInspectorDisclosure } from "./ProjectInspectorDisclosure";
+import { ProjectAttachmentPresentation } from "./ProjectAttachmentPresentation";
 import "./project-inspector-details.css";
 
 export interface ProjectInspectorDetailsProps {
@@ -77,7 +78,6 @@ export function ProjectInspectorDetails({
   onPreviewExpandedChange,
 }: ProjectInspectorDetailsProps) {
   const projection = projectInspectorProjection(snapshot, descriptor);
-  const [failedMediaUrl, setFailedMediaUrl] = useState<string | null>(null);
   const [localPreviewExpanded, setLocalPreviewExpanded] = useState(false);
   const previewId = useId();
   const previewExpanded = controlledPreviewExpanded ?? localPreviewExpanded;
@@ -89,7 +89,6 @@ export function ProjectInspectorDetails({
     </>;
   }
 
-  const media = projection.media?.url === failedMediaUrl ? null : projection.media;
   return <>
     <header className="project-inspector-summary">
       <div className="project-inspector-summary-row">
@@ -103,11 +102,11 @@ export function ProjectInspectorDetails({
         </div>}
       </div>
       {descriptor.kind !== "markdown" && <h2>{projection.title}</h2>}
-      {projection.subtitle && <p className="card-meta">{projection.subtitle}</p>}
+      {descriptor.kind !== "attachment" && projection.subtitle && <p className="card-meta">{projection.subtitle}</p>}
     </header>
 
-    {((descriptor.kind !== "reference" && projection.primaryAction) || primaryContent) && <div className="project-inspector-primary-actions">
-      {!editing && descriptor.kind !== "reference" && projection.primaryAction && <ProjectInspectorActionLink
+    {((descriptor.kind === "markdown" && projection.primaryAction) || primaryContent) && <div className="project-inspector-primary-actions">
+      {!editing && descriptor.kind === "markdown" && projection.primaryAction && <ProjectInspectorActionLink
         action={projection.primaryAction}
         className="button compact-button project-inspector-open-action"
       />}
@@ -132,19 +131,22 @@ export function ProjectInspectorDetails({
           onClick={() => (onPreviewExpandedChange ?? setLocalPreviewExpanded)(!previewExpanded)}
         >{previewExpanded ? "Collapse note" : "Expand note"}</button>
       </div>
-      : <ReferenceExcerpt
+      : descriptor.kind === "attachment" ? <ProjectAttachmentPresentation
+        key={descriptor.itemId}
+        title={descriptor.title}
+        fileUrl={descriptor.fileUrl}
+        mimeType={descriptor.mimeType}
+        byteSize={descriptor.attachmentByteSize}
+        caption={descriptor.attachmentCaption}
+        sourceUrl={descriptor.attachmentSourceUrl}
+        density="compact"
+        captionRegionLabel="Inspector content preview"
+      /> : <ReferenceExcerpt
         source={projection.excerpt}
         format={descriptor.excerptFormat}
         className="project-inspector-excerpt"
         scrollRegionLabel="Inspector content preview"
       />}
-
-    {media && <img
-      className="project-inspector-media"
-      src={media.url}
-      alt={media.alt}
-      onError={() => setFailedMediaUrl(media.url)}
-    />}
 
     {projection.relationships.length > 0 && <section
       className="project-inspector-section"

@@ -1,6 +1,10 @@
+import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { routes as projectRoutes } from "./project-routes";
 import {
   referenceTestDatabase,
@@ -23,6 +27,75 @@ type ManagedGuard = "gc" | "quarantine";
 const ACTOR = "copy-route@example.com";
 const NOW = "2026-08-17T00:00:00.000Z";
 const geometry = { x: 40, y: 60, width: 320, height: 180, zIndex: 0 };
+
+const databases: DatabaseSync[] = [];
+let fixtureDirectory: string | undefined;
+let pristinePath: string | undefined;
+let nextFixture = 0;
+const quoteIdentifier = (value: string) => `"${value.replaceAll('"', '""')}"`;
+
+function fixtureImage(database: DatabaseSync) {
+  const schema = database.prepare("SELECT type,name,tbl_name,sql FROM sqlite_schema ORDER BY type,name").all();
+  const tables = database.prepare("SELECT name FROM sqlite_schema WHERE type='table' AND name NOT GLOB 'sqlite_*' ORDER BY name")
+    .all() as { name: string }[];
+  const withoutRowid = new Set((database.prepare("PRAGMA table_list").all() as { name: string; wr: number }[])
+    .filter((table) => table.wr === 1).map((table) => table.name));
+  return { schema, tables: Object.fromEntries(tables.map(({ name }) => {
+    const columns = database.prepare(`PRAGMA table_info(${quoteIdentifier(name)})`).all() as { name: string; pk: number }[];
+    const primaryKey = columns.filter((column) => column.pk > 0)
+      .sort((a, b) => a.pk - b.pk).map((column) => quoteIdentifier(column.name));
+    const storageTypes = columns.map((column, index) =>
+      `typeof(${quoteIdentifier(column.name)}) AS ${quoteIdentifier(`_fixture_type_${index}`)}`).join(",");
+    const rows = database.prepare(withoutRowid.has(name)
+      ? `SELECT *,${storageTypes} FROM ${quoteIdentifier(name)} ORDER BY ${primaryKey.join(",")}`
+      : `SELECT rowid AS _fixture_rowid,*,${storageTypes} FROM ${quoteIdentifier(name)} ORDER BY rowid`);
+    rows.setReadBigInts(true);
+    return [name, rows.all()];
+  })) };
+}
+
+beforeAll(() => {
+  // Keep the complete current migration schema while removing repeated DDL
+  // work from the route deadlines. Every scenario uses a fresh physical copy;
+  // only pristine schema/seed bytes and installation identity are shared.
+  fixtureDirectory = mkdtempSync(join(tmpdir(), "fp5-project-attachment-copy-"));
+  pristinePath = join(fixtureDirectory, "pristine.sqlite");
+  const database = referenceTestDatabase();
+  try {
+    expect(database.prepare("PRAGMA foreign_keys").get()).toEqual({ foreign_keys: 1 });
+    expect(database.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    expect(database.prepare("PRAGMA quick_check").all()).toEqual([{ quick_check: "ok" }]);
+    const expected = fixtureImage(database);
+    database.exec(`VACUUM INTO '${pristinePath.replaceAll("'", "''")}'`);
+    const cloned = new DatabaseSync(pristinePath, { readOnly: true });
+    try {
+      cloned.exec("PRAGMA foreign_keys=ON");
+      expect(fixtureImage(cloned)).toEqual(expected);
+      expect(cloned.prepare("PRAGMA foreign_keys").get()).toEqual({ foreign_keys: 1 });
+      expect(cloned.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    } finally {
+      cloned.close();
+    }
+  } finally {
+    database.close();
+  }
+});
+
+function pristineDatabase() {
+  if (!fixtureDirectory || !pristinePath) throw new Error("The canonical Project attachment copy fixture has not been initialized");
+  const path = join(fixtureDirectory, `scenario-${nextFixture++}.sqlite`);
+  copyFileSync(pristinePath, path);
+  const database = new DatabaseSync(path);
+  database.exec("PRAGMA foreign_keys=ON");
+  databases.push(database);
+  return database;
+}
+
+afterEach(() => databases.splice(0).forEach((database) => { if (database.isOpen) database.close(); }));
+afterAll(() => {
+  databases.splice(0).forEach((database) => { if (database.isOpen) database.close(); });
+  if (fixtureDirectory) rmSync(fixtureDirectory, { recursive: true, force: true });
+});
 
 class InterleavingSqliteD1Database extends SqliteD1Database {
   beforeNextBatch: (() => Promise<void>) | null = null;
@@ -51,7 +124,7 @@ class InterleavingSqliteD1Database extends SqliteD1Database {
 }
 
 function fixture() {
-  const database = referenceTestDatabase();
+  const database = pristineDatabase();
   const adapter = new InterleavingSqliteD1Database(database);
   const env = {
     DB: adapter as unknown as D1Database,

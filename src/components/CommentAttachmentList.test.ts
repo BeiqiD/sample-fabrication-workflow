@@ -25,7 +25,7 @@ describe("CommentAttachmentList", () => {
 
     expect(markup).toContain('href="/api/attachments/file-1/download"');
     expect(markup).toContain('download="surface scan.tiff"');
-    expect(markup).toContain("2.0 MB");
+    expect(markup).toContain("2.1 MB");
   });
 
   it("keeps external attachment links separate from managed downloads", () => {

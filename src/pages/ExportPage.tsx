@@ -62,11 +62,13 @@ export function ExportPage() {
   return <div className="page export-page">
     <p className="eyebrow">Backup</p><h1>Export content</h1>
     <p className="lead">Download a versioned ZIP of samples, Projects, process records and available files. System storage configuration and credentials are excluded. Missing or unavailable files are recorded as warnings without discarding the content backup.</p>
+    <p><a href="/settings/data/system">System backup and recovery</a> provides administrator-managed, durable backup jobs and isolated installation recovery.</p>
     <section className="card export-card">
       <h2 className="card-title">Content archive</h2>
       <p className="muted">Includes samples, timeline history, process runs, template versions, FabuBlox manifests and source workbooks, layer images, comment files, final blob outcomes, and export warnings.</p>
       <button className="button primary" disabled={exporting} onClick={() => void startExport()}>{exporting ? "Building archive…" : "Download full ZIP"}</button>
-      {exporting && progress && <p className="muted" role="status">Assets processed: {progress.completed} / {progress.total}. Building archive…</p>}
+      {exporting && <p className="muted" role="status">{progress
+        ? `Assets processed: ${progress.completed} / ${progress.total}. Building archive…` : "Building archive…"}</p>}
       {prepared && <div>
         <p role="status">Archive ready. Assets included: {prepared.packaged} / {prepared.total}.</p>
         {prepared.warningCount > 0 && <p className="warning-card" role="status">

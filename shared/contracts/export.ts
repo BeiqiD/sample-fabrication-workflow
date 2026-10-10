@@ -13,7 +13,11 @@ export const FULL_EXPORT_ARCHIVE_SCHEMA_V17 = 17 as const;
 export const FULL_EXPORT_ARCHIVE_SCHEMA_V18 = 18 as const;
 export const FULL_EXPORT_ARCHIVE_SCHEMA_V19 = 19 as const;
 export const FULL_EXPORT_ARCHIVE_SCHEMA_V20 = 20 as const;
-export const FULL_EXPORT_ARCHIVE_SCHEMA = FULL_EXPORT_ARCHIVE_SCHEMA_V20;
+export const FULL_EXPORT_ARCHIVE_SCHEMA_V21 = 21 as const;
+export const FULL_EXPORT_ARCHIVE_SCHEMA_V22 = 22 as const;
+export const FULL_EXPORT_ARCHIVE_SCHEMA_V23 = 23 as const;
+export const FULL_EXPORT_ARCHIVE_SCHEMA_V24 = 24 as const;
+export const FULL_EXPORT_ARCHIVE_SCHEMA = FULL_EXPORT_ARCHIVE_SCHEMA_V24;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V9 = "fp1-legacy-overlap" as const;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V10 = "fp1-import-acceptance" as const;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V11 = "fp1-r2-upload-acceptance" as const;
@@ -26,7 +30,11 @@ export const FULL_EXPORT_ARCHIVE_PROFILE_V17 = "fp1-shadow-adjudications" as con
 export const FULL_EXPORT_ARCHIVE_PROFILE_V18 = "fp1-file-runtime" as const;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V19 = "fp1-r2-role-defaults" as const;
 export const FULL_EXPORT_ARCHIVE_PROFILE_V20 = "fp2-native-profile-admission" as const;
-export const FULL_EXPORT_ARCHIVE_PROFILE = FULL_EXPORT_ARCHIVE_PROFILE_V20;
+export const FULL_EXPORT_ARCHIVE_PROFILE_V21 = "fp2-native-file-runtime" as const;
+export const FULL_EXPORT_ARCHIVE_PROFILE_V22 = "fp3-file-migrations" as const;
+export const FULL_EXPORT_ARCHIVE_PROFILE_V23 = "fp4-research-packages" as const;
+export const FULL_EXPORT_ARCHIVE_PROFILE_V24 = "fp5-system-recovery-evidence" as const;
+export const FULL_EXPORT_ARCHIVE_PROFILE = FULL_EXPORT_ARCHIVE_PROFILE_V24;
 export const FULL_EXPORT_ARCHIVE_WRITER = 1 as const;
 
 export type ExportCell = string | number | null;
@@ -48,6 +56,12 @@ export interface ObservedExportSchema {
   kind: "observed-sqlite-schema";
   objects: ExportSchemaObject[];
   compatibilityColumns: { samples: string[]; run_step_comments: string[] };
+}
+
+/** Successor retention views share one source SQLite clock. Historical
+ * observations keep their original artifact shape and clock limitations. */
+export interface ObservedNativeExportSchema extends ObservedExportSchema {
+  snapshotClock: string;
 }
 
 export interface RetiredExportField<T extends ExportCell> {
@@ -176,4 +190,61 @@ export interface FullExportManifestV19 extends Omit<FullExportManifestV15, "sche
 export interface FullExportManifestV20 extends Omit<FullExportManifestV15, "schemaVersion" | "archiveProfile"> {
   schemaVersion: typeof FULL_EXPORT_ARCHIVE_SCHEMA_V20;
   archiveProfile: typeof FULL_EXPORT_ARCHIVE_PROFILE_V20;
+}
+
+/** Native provider bytes have no legacy managed-object identity. Keep this
+ * successor wire type separate from the frozen V7–V20 blob contracts. */
+export interface FullExportNativeBlobEntryV21 extends Omit<FullExportBlobEntryV15, "storeKind" | "provider" | "byteAuthority" | "storageProfileId" | "storageProfileRevision" | "locationId"> {
+  storeKind: "file";
+  provider: "s3";
+  byteAuthority: "file_location";
+  storageProfileId: string;
+  storageProfileRevision: number;
+  locationId: string;
+}
+
+export type FullExportBlobEntryV21 = FullExportBlobEntryV15 | FullExportNativeBlobEntryV21;
+
+export interface FullExportManifestV21 extends Omit<FullExportManifestV15, "schemaVersion" | "archiveProfile" | "blobs" | "artifacts"> {
+  schemaVersion: typeof FULL_EXPORT_ARCHIVE_SCHEMA_V21;
+  archiveProfile: typeof FULL_EXPORT_ARCHIVE_PROFILE_V21;
+  blobs: FullExportBlobEntryV21[];
+  artifacts: Omit<FullExportManifestV15["artifacts"], "sourceSchema"> & {
+    sourceSchema: ExportJsonArtifact<ObservedNativeExportSchema>;
+  };
+}
+
+export interface FullExportManifestV22 extends Omit<FullExportManifestV21, "schemaVersion" | "archiveProfile"> {
+  schemaVersion: typeof FULL_EXPORT_ARCHIVE_SCHEMA_V22;
+  archiveProfile: typeof FULL_EXPORT_ARCHIVE_PROFILE_V22;
+}
+
+/** Temporary package output bytes are not recursive full-backup inputs.
+ * Their portable ownership and verification history remains in the tables. */
+export interface ExcludedResearchPackageOutput {
+  locationId: string;
+  fileId: string;
+  jobId: string;
+  reason: "disposable_job_output";
+}
+
+export interface FullExportManifestV23 extends Omit<FullExportManifestV22, "schemaVersion" | "archiveProfile"> {
+  schemaVersion: typeof FULL_EXPORT_ARCHIVE_SCHEMA_V23;
+  archiveProfile: typeof FULL_EXPORT_ARCHIVE_PROFILE_V23;
+  excludedOutputs: ExcludedResearchPackageOutput[];
+}
+
+/** FP5 preserves qualified recovery File publications and unverified imported
+ * preview provenance without changing the historical V23 contract. */
+export interface FullExportManifestV24 extends Omit<FullExportManifestV23, "schemaVersion" | "archiveProfile"> {
+  schemaVersion: typeof FULL_EXPORT_ARCHIVE_SCHEMA_V24;
+  archiveProfile: typeof FULL_EXPORT_ARCHIVE_PROFILE_V24;
+  relocatedSources: RelocatedSystemRecoverySource[];
+  backupHoldOwner: string | null;
+}
+
+export interface RelocatedSystemRecoverySource {
+  evidenceId: string; sourceLocatorId: string; sourceLocationId: string | null; sourceFileId: string | null;
+  destinationFileId: string; destinationLocationId: string; byteSize: number; sha256: string;
+  reason: "verified_recovery_relocation";
 }

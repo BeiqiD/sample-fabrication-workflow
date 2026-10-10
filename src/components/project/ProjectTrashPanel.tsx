@@ -44,7 +44,7 @@ export function ProjectTrashPanel({
       <h2 id="project-trash-heading">Project trash</h2>
       <button className="button compact-button" type="button" onClick={controller.close} disabled={controller.pending !== null} aria-label="Close Project trash"><DialogCloseIcon /></button>
     </header>
-    <p>Restore cards and their connections. Removed references leave the original records unchanged.</p>
+    <p>Restore cards and their connections. Cards moved to trash are retained for 30 days. Removed references leave the original records unchanged.</p>
     <div className="project-trash-panel__actions">
       <button className="button compact-button" type="button" onClick={() => void controller.refresh()} disabled={busy || controller.loading}>Refresh</button>
       <button className="button compact-button" type="button" disabled={busy || selection.length === 0} onClick={() => controller.restoreItems(selection)}>

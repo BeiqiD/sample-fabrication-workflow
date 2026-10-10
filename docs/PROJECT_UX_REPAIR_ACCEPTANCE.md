@@ -13,7 +13,10 @@ PR #184 makes Markdown double-click open its surface editor and Inspector
 together, while reference, attachment and edge double-click opens Inspector.
 An unchanged existing editor can yield to the same primary Canvas click or drag;
 changed/new drafts and unresolved operations stay protected. Reading and Inspector
-retain text selection. C4 is still in progress; Phase 5D has not started.
+retain text selection. At the 2026-09-13 integration checkpoint, C4 remained
+in progress and Phase 5D had not started. Subsequent local refinement status
+and remaining formal acceptance limits are recorded in the
+[current product roadmap](./PRODUCT_ROADMAP.md).
 
 ## Historical implemented behavior — PR #168
 

@@ -78,16 +78,21 @@ async function getRow(env: CheckEnvironment, id: string): Promise<CheckRow | nul
   try { return await env.DB.prepare("SELECT * FROM system_storage_candidate_checks WHERE id=?").bind(id).first<CheckRow>(); }
   catch { throw unavailable(); }
 }
-/** Reads reconcile expired leases only. They never contact or replay a provider. */
+/** Read-driven reconciliation is suspended while the source image is fenced. */
 async function reconcile(env: CheckEnvironment, now: string, id?: string, profileId?: string): Promise<void> {
   try {
+    const installed = await env.DB.prepare("SELECT 1 AS present FROM sqlite_schema WHERE type='table' AND name='system_recovery_maintenance'")
+      .first<{ present: number }>();
+    const writable = installed?.present === 1
+      ? "EXISTS(SELECT 1 FROM system_recovery_maintenance WHERE singleton=1 AND state='open')"
+      : "NOT EXISTS(SELECT 1 FROM sqlite_schema WHERE type='table' AND name='system_recovery_maintenance')";
     await env.DB.prepare(`UPDATE system_storage_candidate_checks SET
       status=CASE WHEN status='running' THEN 'interrupted' ELSE status END,
       cleanup_outcome=CASE WHEN cleanup_outcome IN ('confirmed_absent','absence_observed') THEN cleanup_outcome
         WHEN write_outcome='pending' AND cleanup_outcome<>'running' THEN 'confirmed_absent' ELSE 'required' END,
       result_code='execution_interrupted',
       completed_at=COALESCE(completed_at,?),updated_at=?
-      WHERE execution_deadline<=? AND (status='running' OR cleanup_outcome='running')${id ? " AND id=?" : profileId ? " AND profile_id=?" : ""}`)
+      WHERE execution_deadline<=? AND (status='running' OR cleanup_outcome='running') AND ${writable}${id ? " AND id=?" : profileId ? " AND profile_id=?" : ""}`)
       .bind(now, now, now, ...(id ? [id] : profileId ? [profileId] : [])).run();
   } catch { throw unavailable(); }
 }

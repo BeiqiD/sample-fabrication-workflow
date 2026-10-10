@@ -8,6 +8,13 @@ remain open. **5F is in progress** with bounded implementation and follow-up
 research read-error, receipt and job-control ownership repairs committed and pushed; this does
 not close the whole phase.
 
+The 2026-10-10 continuation adds bounded Metrology create/add/refresh ownership,
+picker reads and standalone navigation, plus equivalent shared Map/Reading
+descriptors. Their focused/full local evidence remains versioned in the linked
+[current Product checkpoint](PRODUCT_ROADMAP.md#current-checkpoint). The
+[autonomous goal](ROADMAP_AUTONOMOUS_DEVELOPMENT_GOAL.md) now authorizes continued
+development and reviewed integration; whole-phase browser/device gates stay open.
+
 The historical 2026-09-13 Project/Worker checkpoint below remains evidence,
 not today's phase queue. C4's [local completion](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/PROJECT_C4_ACCEPTANCE.md),
 [5D completion](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/PHASE_5D_ACCEPTANCE.md) and
@@ -447,7 +454,9 @@ and command ownership (#175/#176/#183), editing resize (#180), Markdown draft
 composition (#181), the leave dialog and Inspector disclosures (#182), shared
 panel behavior and combined Markdown activation (#184), and panel/source-note
 layout (#185). Their current evidence is in
-[C4 integration acceptance](./PROJECT_C4_ACCEPTANCE.md#current-integration-check--2026-09-13).
+[historical deployed C4 acceptance](./PROJECT_C4_ACCEPTANCE.md#current-integration-check--2026-09-13).
+The current local evidence is in the
+[2026-10-07 C4 checkpoint](./PROJECT_C4_ACCEPTANCE.md#local-integration-checkpoint--2026-10-07).
 Do not reopen these implemented slices solely because an older acceptance entry
 describes a pre-deployment state. In particular, keyboard shortcuts are already
 part of the verified implementation.

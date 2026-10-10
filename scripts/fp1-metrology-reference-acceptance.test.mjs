@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -21,6 +21,12 @@ const requestId = "8c4d5fab-6bdd-4486-81b1-76daa781938a";
 const otherRequestId = "8c4d5fab-6bdd-4486-81b1-76daa781938b";
 const table = "metrology_reference_upload_requests";
 const migration = "0005_metrology_reference_acceptance.sql";
+// This regression owns the frozen V20 boundary. Later schema qualification
+// belongs to its paired archive suite, rather than silently changing this one.
+const lastMigration = "0017_fp2_native_storage_profiles.sql";
+const migrationNames = readdirSync(join(root, "migrations")).filter((name) => name.endsWith(".sql") && name <= lastMigration).sort();
+assert.equal(migrationNames.length, 17);
+assert.equal(migrationNames.at(-1), lastMigration);
 const namespace = JSON.stringify({ kind: "local-r2", installationId: "b72529f0-273b-4b72-9fc7-155a93461d83", bucketName: "fixture-assets" });
 const modes = ["replay", "concurrent", "concurrent-distinct", "held-pending", "lost-acceptance-ack", "lost-finalization-ack", "lost-http-ack",
   "failed-put", "unavailable-read", "missing-header", "invalid-header", "missing-namespace", "namespace-change", "missing-profile", "expired",
@@ -76,7 +82,7 @@ async function apply(db, sql) {
 }
 async function rows(db, name) { return (await db.prepare(`SELECT * FROM ${name} ORDER BY rowid`).all()).results; }
 async function seedBeforeUpgrade(db) {
-  for (const name of readdirSync(join(root, "migrations")).filter((name) => name.endsWith(".sql") && name < migration).sort()) await apply(db, read(`migrations/${name}`));
+  for (const name of migrationNames.filter((name) => name < migration)) await apply(db, read(`migrations/${name}`));
   await apply(db, `
     INSERT INTO samples (id, code, title, created_at, updated_at) VALUES ('previous-sample', 'PREVIOUS', 'Previous sample', '2026-08-01T00:00:00.000Z', '2026-08-01T00:00:00.000Z');
     INSERT INTO assets (id, r2_key, original_name, mime_type, byte_size, sha256, status, created_at)
@@ -111,6 +117,56 @@ async function upgrade(db) {
   for (const name of oldTables) assert.deepEqual(await rows(db, name), oldRows[name], name);
   assert.deepEqual(await retention(), oldRetention, "receipts add no retention roots"); assert.deepEqual(await rows(db, table), []);
   assert.deepEqual((await db.prepare("PRAGMA foreign_key_check").all()).results, []);
+}
+
+const fixtureCatalogSql = `SELECT type, name, tbl_name, sql FROM sqlite_master
+  WHERE name NOT LIKE 'sqlite_%' AND name NOT IN ('_cf_KV','_cf_METADATA') AND sql IS NOT NULL`;
+const quoteIdentifier = (value) => `"${value.replaceAll('"', '""')}"`;
+function fixtureTables(catalog) {
+  return catalog.filter(({ type }) => type === "table").map((definition) => {
+    const hasRowid = !/\bWITHOUT\s+ROWID\b/i.test(definition.sql);
+    return { ...definition, hasRowid, query: hasRowid
+      ? `SELECT CAST(rowid AS TEXT) AS fixture_rowid, * FROM ${quoteIdentifier(definition.name)} ORDER BY rowid`
+      : `SELECT * FROM ${quoteIdentifier(definition.name)}` };
+  });
+}
+async function fixtureState(db, catalog) {
+  const tables = fixtureTables(catalog);
+  const results = await db.batch([
+    db.prepare(`${fixtureCatalogSql} ORDER BY type, name`),
+    db.prepare(`${fixtureCatalogSql} AND type='trigger' ORDER BY rowid`),
+    ...tables.map(({ query }) => db.prepare(query)),
+    db.prepare("PRAGMA foreign_keys"), db.prepare("PRAGMA foreign_key_check"), db.prepare("PRAGMA quick_check"),
+  ]);
+  assert.equal(results.length, tables.length + 5);
+  assert(results.every(({ success, results }) => success === true && Array.isArray(results)), "Incomplete native fixture observation");
+  assert.deepEqual(results.at(-3).results, [{ foreign_keys: 1 }], "Native fixtures keep foreign-key enforcement enabled");
+  assert.deepEqual(results.at(-2).results, [], "Native fixtures have no foreign-key violations");
+  assert.deepEqual(results.at(-1).results, [{ quick_check: "ok" }]);
+  return { catalog: results[0].results, triggerOrder: results[1].results.map(({ name }) => name),
+    rows: Object.fromEntries(tables.map(({ name, hasRowid }, index) =>
+      [name, hasRowid ? results[index + 2].results : results[index + 2].results.sort((left, right) => canonical(left).localeCompare(canonical(right), "en"))])) };
+}
+async function cloneQualifiedFixture(db, catalog, expected, signal) {
+  signal?.throwIfAborted();
+  // All destinations are new, independent D1 fixtures. No existing guard is
+  // disabled: exact qualified rows load before installing unchanged triggers.
+  // Preserve trigger creation order and every physical source rowid/history.
+  const statements = [db.prepare("PRAGMA defer_foreign_keys = ON")];
+  for (const { sql } of fixtureTables(catalog)) statements.push(db.prepare(sql));
+  for (const { name, hasRowid } of fixtureTables(catalog)) {
+    for (const row of expected.rows[name]) {
+      const columns = Object.keys(row).filter((column) => column !== "fixture_rowid");
+      const inserted = hasRowid ? ["rowid", ...columns] : columns;
+      const values = hasRowid ? [row.fixture_rowid, ...columns.map((column) => row[column])] : columns.map((column) => row[column]);
+      statements.push(db.prepare(`INSERT INTO ${quoteIdentifier(name)} (${inserted.map(quoteIdentifier).join(",")}) VALUES (${inserted.map(() => "?").join(",")})`).bind(...values));
+    }
+  }
+  for (const { type, sql } of catalog) if (type !== "table") statements.push(db.prepare(sql));
+  const results = await db.batch(statements);
+  signal?.throwIfAborted();
+  assert(results.length === statements.length && results.every(({ success }) => success === true));
+  assert.deepEqual(await fixtureState(db, catalog), expected, "Cloned fixture matches the qualified native schema, every row and physical rowid");
 }
 const workerSource = `
 import { Hono } from "hono";
@@ -325,7 +381,10 @@ async function qualifyRestore(mf, scratch, fixture) {
   });
   const archivePath = join(scratch, "recovery-contract.zip"); await writeFile(archivePath, Buffer.from(await archive.archive.arrayBuffer()));
   const originalHash = hash(await readFile(archivePath));
-  const restored = await service.restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "restored"), migrationsDirectory: join(root, "migrations"), targetCompatibilitySchema: "S2" });
+  const frozenMigrations = join(scratch, "v20-migrations");
+  await mkdir(frozenMigrations);
+  for (const name of migrationNames) await writeFile(join(frozenMigrations, name), read(`migrations/${name}`));
+  const restored = await service.restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "restored"), migrationsDirectory: frozenMigrations, targetCompatibilitySchema: "S2" });
   assert.equal(restored.report.schemaVersion, 20); assert.equal(restored.report.archiveProfile, "fp2-native-profile-admission");
   assert.deepEqual(restored.report.appliedForwardMigrations, []);
   assert.equal(restored.report.verification.rowsEqual, true); assert.equal(restored.report.verification.foreignKeys, true);
@@ -391,15 +450,42 @@ test("metrology upload acceptance upgrades populated host SQLite without changin
   try { host.exec("PRAGMA foreign_keys = ON; PRAGMA recursive_triggers = OFF"); const db = hostAdapter(host); await seedBeforeUpgrade(db); await upgrade(db); }
   finally { host.close(); }
 });
+test("qualified metrology fixture copies preserve populated history, rowids and trigger order", async () => {
+  const source = new DatabaseSync(":memory:"), destination = new DatabaseSync(":memory:");
+  try {
+    for (const database of [source, destination]) database.exec("PRAGMA foreign_keys = ON");
+    const native = hostAdapter(source), copied = hostAdapter(destination);
+    await seedBeforeUpgrade(native); await upgrade(native);
+    for (const name of migrationNames.filter((name) => name > migration)) await apply(native, read(`migrations/${name}`));
+    const catalog = (await native.prepare(`${fixtureCatalogSql} ORDER BY rowid`).all()).results;
+    const expected = await fixtureState(native, catalog);
+    await cloneQualifiedFixture(copied, catalog, expected);
+    assert(expected.rows.assets.some(({ id }) => id === "previous-asset"));
+    assert(expected.rows.r2_upload_requests.some(({ status }) => status === "pending"));
+    assert.equal(expected.rows.file_authority_control[0].mode, "legacy");
+    assert(expected.rows.file_shadow_occurrences.length > 0, "The copy includes captured native occurrence history");
+    assertLegacyFileAuthority(destination);
+  } finally { source.close(); destination.close(); }
+});
 test("production metrology upload routes qualify durable publication on real workerd, D1 and R2", { timeout: 240_000 }, async (t) => {
   const mf = new Miniflare({ modules: true, script: await bundle(workerSource), compatibilityDate: "2026-07-20", r2Buckets: ["BUCKET", "RESTORED_BUCKET"],
     d1Databases: [...Object.values(bindings), "DB_GUARDS", "DB_RESTORED"], log: new Log(LogLevel.ERROR) });
   const scratch = await mkdtemp(join(tmpdir(), "fp1-metrology-reference-")); let replayFixture;
   try {
-    for (const binding of [...Object.values(bindings), "DB_GUARDS"]) {
-      const db = await mf.getD1Database(binding); await seedBeforeUpgrade(db); await upgrade(db);
-      for (const name of readdirSync(join(root, "migrations")).filter((name) => name.endsWith(".sql") && name > migration).sort()) await apply(db, read(`migrations/${name}`));
+    const qualified = await mf.getD1Database("DB_GUARDS");
+    let upgraded = false;
+    await t.test("populated native D1 upgrade preserves previous schema, authority, rows and retention", async () => {
+      await seedBeforeUpgrade(qualified); await upgrade(qualified);
+      upgraded = true;
+    });
+    assert(upgraded, "Do not construct route fixtures from an unqualified upgrade");
+    for (const name of migrationNames.filter((name) => name > migration)) {
+      t.signal.throwIfAborted();
+      await apply(qualified, read(`migrations/${name}`));
     }
+    const catalog = (await qualified.prepare(`${fixtureCatalogSql} ORDER BY rowid`).all()).results;
+    const expected = await fixtureState(qualified, catalog);
+    for (const binding of Object.values(bindings)) await cloneQualifiedFixture(await mf.getD1Database(binding), catalog, expected, t.signal);
     for (const mode of modes) await t.test(mode, async () => {
       const response = await mf.dispatchFetch("https://qualification.test/", { method: "POST", body: JSON.stringify({ mode, binding: bindings[mode] }) });
       assert.equal(response.status, 200, await response.clone().text()); const result = await response.json();
@@ -464,7 +550,7 @@ test("production metrology upload routes qualify durable publication on real wor
       assert(replayFixture); const host = new DatabaseSync(":memory:");
       try {
         host.exec("PRAGMA foreign_keys = ON; PRAGMA recursive_triggers = OFF"); const db = hostAdapter(host); await seedBeforeUpgrade(db); await upgrade(db);
-        for (const name of readdirSync(join(root, "migrations")).filter((name) => name.endsWith(".sql") && name > migration).sort()) await apply(db, read(`migrations/${name}`));
+        for (const name of migrationNames.filter((name) => name > migration)) await apply(db, read(`migrations/${name}`));
         await qualifySqlGuards(db, replayFixture);
       }
       finally { host.close(); }

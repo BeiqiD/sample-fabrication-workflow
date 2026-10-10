@@ -6,7 +6,7 @@ export interface StorageRoleDefault {
   role: "internal" | "originals";
   storageProfileId: string;
   storageProfileRevision: 1;
-  policyRevision: 2;
+  policyRevision: number;
   createdAt: string;
 }
 export interface StorageRoleDefaults { internal: StorageRoleDefault; originals: StorageRoleDefault }
@@ -26,12 +26,13 @@ export async function readStorageRoleDefaults(database: D1Database): Promise<Sto
     const rows = result.results.map((row): StorageRoleDefault => {
       if (!["internal", "originals"].includes(row.role) || typeof row.storage_profile_id !== "string" || !row.storage_profile_id
         || row.storage_profile_id.length > 256 || row.storage_profile_id.includes("\0") || row.storage_profile_revision !== 1
-        || row.policy_revision !== 2 || !Number.isFinite(Date.parse(row.created_at)) || new Date(row.created_at).toISOString() !== row.created_at)
+        || !Number.isSafeInteger(row.policy_revision) || row.policy_revision < 2 || !Number.isFinite(Date.parse(row.created_at)) || new Date(row.created_at).toISOString() !== row.created_at)
         throw new StorageRoleDefaultsUnavailableError();
       return { role: row.role as StorageRoleDefault["role"], storageProfileId: row.storage_profile_id,
-        storageProfileRevision: 1, policyRevision: 2, createdAt: row.created_at };
+        storageProfileRevision: 1, policyRevision: row.policy_revision, createdAt: row.created_at };
     });
-    if (rows[0].role !== "internal" || rows[1].role !== "originals" || rows[0].storageProfileId !== rows[1].storageProfileId || rows[0].createdAt !== rows[1].createdAt)
+    if (rows[0].role !== "internal" || rows[1].role !== "originals" || rows[0].policyRevision !== rows[1].policyRevision
+      || rows[0].policyRevision === 2 && rows[0].storageProfileId !== rows[1].storageProfileId || rows[0].createdAt !== rows[1].createdAt)
       throw new StorageRoleDefaultsUnavailableError();
     return { internal: rows[0], originals: rows[1] };
   } catch { throw new StorageRoleDefaultsUnavailableError(); }
@@ -44,6 +45,7 @@ export async function prepareR2StorageRoleDefaults(database: D1Database, env: Pi
   const db = primaryD1(database);
   try {
     const stored = await readStorageRoleDefaults(db);
+    if (stored && stored.internal.policyRevision !== 2) throw new StorageRoleDefaultsUnavailableError();
     const profile = stored ? await assertR2BootstrapProfile(db, env, stored.originals.storageProfileId, stored.originals.storageProfileRevision)
       : await ensureR2BootstrapProfile(db, env, now);
     const admitted = await db.prepare(`SELECT 1 FROM file_authority_control a JOIN file_authority_runtime_guard g

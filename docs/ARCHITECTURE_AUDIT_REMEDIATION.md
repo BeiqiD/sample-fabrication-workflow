@@ -22,9 +22,12 @@ or requiring a schema/provider migration. Current integration is PR #185 merge
 `c4bf698e3753a0474e7d75d400af6685ff874a6a`; deployed desktop evidence and remaining
 wide-screen, physical-device and large-Project checks are in the
 [current C4 record](./PROJECT_C4_ACCEPTANCE.md#current-integration-check--2026-09-13).
-Phase 5C4 remains in progress; Phase 5D has not started. New frontend refinement
-is paused while backend verification, concrete repairs and small behavior-preserving
-extractions take priority under the [current product roadmap](./PRODUCT_ROADMAP.md).
+At the 2026-09-13 reconciliation, Phase 5C4 remained in progress and
+Phase 5D had not started. New frontend refinement was paused while backend
+verification, concrete repairs and small behavior-preserving extractions
+took priority. Subsequent local C4/Phase 5D checkpoints and the remaining
+formal acceptance boundaries are recorded in the
+[current product roadmap](./PRODUCT_ROADMAP.md).
 
 | Finding | Repair boundary | Required regression evidence |
 |---|---|---|

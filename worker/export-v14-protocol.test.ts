@@ -331,7 +331,7 @@ describe("v14 additive File authority export profile", () => {
       expect(restored.report).toMatchObject({
         schemaVersion: 14,
         archiveProfile: "fp1-file-authority-transition",
-        appliedForwardMigrations: [{ name: "0008_fp1_shadow_runtime.sql" }, { name: "0009_fp1_shadow_withdrawals.sql" }, { name: "0010_fp1_shadow_adjudications.sql" }, { name: "0012_fp1_file_authority_runtime.sql" }, { name: "0013_fp1_r2_role_defaults.sql" }, { name: "0017_fp2_native_storage_profiles.sql" }],
+        appliedForwardMigrations: [{ name: "0008_fp1_shadow_runtime.sql" }, { name: "0009_fp1_shadow_withdrawals.sql" }, { name: "0010_fp1_shadow_adjudications.sql" }, { name: "0012_fp1_file_authority_runtime.sql" }, { name: "0013_fp1_r2_role_defaults.sql" }, { name: "0017_fp2_native_storage_profiles.sql" }, { name: "0018_fp2_native_file_runtime.sql" }, { name: "0019_fp3_file_jobs.sql" }, { name: "0020_fp4_research_packages.sql" }, { name: "0022_fp5_recovery_evidence.sql" }],
         verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", schemaEqual: true,
           derivedTablesRebuilt: true },
       });
@@ -374,6 +374,11 @@ END;
         expect(restoredProfile.rowid).not.toBe(-7);
         expect(database.prepare(`SELECT claimed_rowid FROM file_registry_rowid_claims
           WHERE registry_name = 'storage_profiles'`).get()).toEqual({ claimed_rowid: restoredProfile.rowid });
+        expect(database.prepare("SELECT asset_key FROM events WHERE id='v14-event'").get()).toEqual({ asset_key: "legacy/v14.png" });
+        for (const name of ["storage_profile_admissions", "storage_role_defaults", "storage_profile_activations", "storage_role_policy_revisions", "import_file_acceptances", "file_migration_jobs", "file_migration_items", "file_migration_attempts"])
+          expect(database.prepare(`SELECT count(*) count FROM ${name}`).get(), `${name} stays empty`).toEqual({ count: 0 });
+        expect(database.prepare("SELECT enabled,incarnation FROM file_authority_runtime_guard").get()).toEqual({ enabled: 0, incarnation: null });
+        expect(database.prepare("SELECT enabled,incarnation FROM file_job_runtime_guard").get()).toEqual({ enabled: 0, incarnation: null });
       } finally {
         database.close();
       }

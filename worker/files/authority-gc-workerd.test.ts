@@ -28,6 +28,13 @@ const bundledWorker = build({ stdin: { contents: `
       constraints.push(constraint);const session=bindings.DB.withSession(constraint);
       return {prepare:sql=>{
         const statement=session.prepare(sql);
+        if(input.scenario==='recovery-hold-before-claim'&&sql.startsWith('UPDATE file_location_gc_ledger SET state=')){
+          return {bind:(...values)=>{const bound=statement.bind(...values);return {first:async()=>{
+            await bindings.DB.prepare("INSERT INTO system_recovery_legacy_holds(job_id,store_kind,provider,object_key) VALUES('backup','r2','r2',?)")
+              .bind(input.key).run();
+            return bound.first();
+          }};}};
+        }
         if(input.scenario!=='pause-before-delete'||!sql.startsWith('SELECT 1 AS writable'))return statement;
         return {bind:(...values)=>{
           const bound=statement.bind(...values);
@@ -50,7 +57,7 @@ const bundledWorker = build({ stdin: { contents: `
   }};`, resolveDir: fileURLToPath(new URL(".", import.meta.url)), loader: "ts" },
   bundle: true, format: "esm", platform: "browser", write: false });
 
-it.each(["baseline", "pause-before-delete", "pause-after-delete", "reclaimed-lease"] as const)(
+it.each(["baseline", "pause-before-delete", "pause-after-delete", "reclaimed-lease", "recovery-hold-before-claim"] as const)(
   "qualifies exact native D1/R2 File deletion and acknowledgment fences: %s", async scenario => {
     const bundle = await bundledWorker;
     const native = new Miniflare({ modules: true, script: bundle.outputFiles[0].text,
@@ -77,26 +84,30 @@ it.each(["baseline", "pause-before-delete", "pause-after-delete", "reclaimed-lea
           VALUES('location','file','profile',?,4,?,'full_read_sha256','verified',?,?)`).bind(KEY, SHA, OLD, OLD),
         db.prepare(`INSERT INTO file_location_gc_ledger(location_id,state,operation_id,orphaned_at,deletion_started_at,
           deleted_at,attempt_count,last_error,updated_at) VALUES('location','orphaned',NULL,?,NULL,NULL,0,NULL,?)`).bind(OLD, OLD),
+        ...(scenario === "recovery-hold-before-claim" ? [db.prepare(`INSERT INTO system_recovery_jobs
+          (id,request_id,actor,kind,state,phase,input_json,accepted_at,updated_at)
+          VALUES('backup','backup','admin@example.test','backup','queued','snapshot','{}',?,?)`).bind(OLD, OLD)] : []),
         ...triggers.map(trigger => db.prepare(trigger.sql)),
       ]);
       const assets = await native.getR2Bucket("ASSETS"), sibling = await native.getR2Bucket("OTHER_ASSETS");
       await assets.put(KEY, "file"); await sibling.put(KEY, "retained other namespace");
       const response = await native.dispatchFetch("https://fixture.test", { method: "POST",
-        body: JSON.stringify({ scenario, now: NOW, reclaimed: RECLAIMED }) });
+        body: JSON.stringify({ scenario, now: NOW, reclaimed: RECLAIMED, key: KEY }) });
       expect(response.status, await response.clone().text()).toBe(200);
       const observed = await response.json() as { result: Record<string, number>; deletes: string[]; constraints: string[];
         unexpectedFetches: number; paused: boolean };
       expect(observed.unexpectedFetches).toBe(0);
       expect(observed.constraints.length).toBeGreaterThan(1);
       expect(observed.constraints.every(constraint => constraint === "first-primary")).toBe(true);
+      const held = scenario === "recovery-hold-before-claim";
       expect(observed.result).toEqual({ orphanCandidatesMarked: 0, imageDeleted: scenario === "baseline" ? 1 : 0,
-        managedDeleted: 0, failures: scenario === "baseline" ? 0 : 1 });
-      expect(observed.deletes).toEqual(scenario === "pause-before-delete" ? [] : [KEY]);
+        managedDeleted: 0, failures: scenario === "baseline" || held ? 0 : 1 });
+      expect(observed.deletes).toEqual(scenario === "pause-before-delete" || held ? [] : [KEY]);
       expect(await sibling.get(KEY).then(object => object!.text())).toBe("retained other namespace");
-      expect(await assets.head(KEY)).toEqual(scenario === "pause-before-delete" ? expect.objectContaining({ size: 4 }) : null);
+      expect(await assets.head(KEY)).toEqual(scenario === "pause-before-delete" || held ? expect.objectContaining({ size: 4 }) : null);
       const ledger = await db.prepare("SELECT state,attempt_count,deleted_at,last_error FROM file_location_gc_ledger WHERE location_id='location'").first();
-      expect(ledger).toEqual({ state: scenario === "baseline" ? "deleted" : "deleting",
-        attempt_count: scenario === "reclaimed-lease" ? 2 : 1, deleted_at: scenario === "baseline" ? NOW : null, last_error: null });
+      expect(ledger).toEqual({ state: held ? "orphaned" : scenario === "baseline" ? "deleted" : "deleting",
+        attempt_count: held ? 0 : scenario === "reclaimed-lease" ? 2 : 1, deleted_at: scenario === "baseline" ? NOW : null, last_error: null });
       expect(observed.paused).toBe(scenario.startsWith("pause-"));
       expect((await db.prepare("PRAGMA foreign_key_check").all()).results).toEqual([]);
     } finally { await native.dispose(); }

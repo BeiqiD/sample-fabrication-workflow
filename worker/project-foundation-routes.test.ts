@@ -52,12 +52,12 @@ const PRE_PROJECT_EXPORT_TABLES = [
 
 describe("Full export route", () => {
   it("owns complete export and snapshots every current table in one batch", async () => {
-    expect(FULL_EXPORT_ARCHIVE_SCHEMA).toBe(20);
+    expect(FULL_EXPORT_ARCHIVE_SCHEMA).toBe(24);
     const app = new Hono<AppBindings>();
     app.route("/", snapshotRoutes);
     const { env, batch, database } = exportEnvironment();
 
-    const response = await app.request("/exports/all?archiveSchema=20&archiveWriter=1", {}, env);
+    const response = await app.request(`/exports/all?archiveSchema=${FULL_EXPORT_ARCHIVE_SCHEMA}&archiveWriter=1`, {}, env);
     const body = await response.json<{
       schemaVersion: number;
       tables: Record<string, Array<Record<string, unknown>>>;
@@ -71,8 +71,9 @@ describe("Full export route", () => {
     expect(body.blobs).toEqual([]);
     expect(batch).toHaveBeenCalledTimes(1);
     // Schema, two compatibility-column inventories, registry-rowid claims,
-    // and current shadow-head integrity share the same D1 snapshot as every table.
-    expect(batch.mock.calls[0][0]).toHaveLength(Object.keys(FULL_EXPORT_TABLE_QUERIES).length + 5);
+    // shadow-head integrity, and retention with its source clock share the
+    // same D1 snapshot as every table.
+    expect(batch.mock.calls[0][0]).toHaveLength(Object.keys(FULL_EXPORT_TABLE_QUERIES).length + 6);
     database.close();
   });
 

@@ -33,6 +33,9 @@ function fixture() {
     const value = stored.get(key);
     return value ? { body: new Blob([value]).stream(), size: value.length, httpEtag: '"file"', writeHttpMetadata() {} } : null;
   });
+  const remove = vi.fn(async (key: string | string[]) => {
+    for (const objectKey of typeof key === "string" ? [key] : key) stored.delete(objectKey);
+  });
   const adapter = new SqliteD1Database(sql);
   let losePublicationAck = false;
   const batchErrors: string[] = [];
@@ -45,7 +48,7 @@ function fixture() {
       return result;
     } catch (error) { batchErrors.push(String(error)); throw error; }
   } } as unknown as D1Database;
-  const env = { DB: db, R2_BOOTSTRAP_NAMESPACE: namespace, ASSETS: { get, head: get, put } as unknown as R2Bucket } satisfies Env;
+  const env = { DB: db, R2_BOOTSTRAP_NAMESPACE: namespace, ASSETS: { get, head: get, put, delete: remove } as unknown as R2Bucket } satisfies Env;
   const base = { actorEmail: "owner@example.test", originalName: "image.png", mimeType: "image/png", bytes: bytes.buffer };
   const r2 = (ingress: R2UploadIngress = "ordinary_image", requestId = crypto.randomUUID()) => acceptAndUploadR2Asset(env, { ...base, ingress, requestId });
   const metrology = (requestId = crypto.randomUUID()) => acceptAndUploadMetrologyReference(env, { ...base, templateId: "template", requestId });
@@ -63,10 +66,16 @@ describe("active accepted R2 and metrology uploads under official runtime guards
     expect(f.sql.prepare("SELECT file_id FROM file_usable_publications").get()!.file_id).toBe(candidate.result_file_id);
     if (kind === "metrology") expect(f.sql.prepare("SELECT file_id FROM metrology_template_references").get()!.file_id).toBe(candidate.result_file_id);
     expect(f.sql.prepare("SELECT count(*) n FROM assets").get()!.n).toBe(1);
-    const changes = f.sql.prepare("SELECT total_changes() n").get()!.n;
+    const publications = f.sql.prepare("SELECT * FROM file_publications").all();
+    const candidates = f.sql.prepare("SELECT * FROM file_acceptance_candidates").all();
+    const receiptTable = kind === "r2" ? "r2_upload_requests" : "metrology_reference_upload_requests";
+    const receipt = f.sql.prepare(`SELECT * FROM ${receiptTable}`).get();
     expect(await upload()).toEqual({ state: first.state, fresh: false });
     expect(f.put).toHaveBeenCalledOnce();
-    expect(f.sql.prepare("SELECT total_changes() n").get()!.n).toBe(changes);
+    expect(f.sql.prepare(`SELECT * FROM ${receiptTable}`).get()).toEqual(receipt);
+    expect(f.sql.prepare("SELECT * FROM file_publications").all()).toEqual(publications);
+    expect(f.sql.prepare("SELECT * FROM file_acceptance_candidates").all()).toEqual(candidates);
+    expect(f.sql.prepare("SELECT count(*) n FROM file_location_holds WHERE released_at IS NULL").get()!.n).toBe(0);
     if (kind === "metrology") {
       const referenceId = f.sql.prepare("SELECT id FROM metrology_template_references").get()!.id;
       const path = `https://app.test/api/metrology-templates/template/references/${referenceId}`;

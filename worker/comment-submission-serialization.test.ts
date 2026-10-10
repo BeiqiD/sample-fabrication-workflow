@@ -6,6 +6,17 @@ import {
 } from "./comment-submission-serialization";
 
 describe("comment submission serialization", () => {
+  it("renders a ready native Comment image using its typed asset ID and preserves its original relation", () => {
+    const [comment] = serializeCommentSubmissions([{
+      id: "native-submission", context_kind: "sample", sample_id: "native-sample", scope: null, body: "Native preview",
+      status: "ready", error_message: null, actor_email: null, created_at: "2026-10-05T12:00:00.000Z", updated_at: "2026-10-05T12:00:00.000Z",
+    }], [{ id: "native-preview", submission_id: "native-submission", kind: "comment_image", status: "ready",
+      filename: "preview.webp", mime_type: "image/webp", byte_size: 4, original_filename: "original.tif", original_mime_type: "image/tiff",
+      original_byte_size: 40, title: null, description: null, external_url: null, sha256: "a".repeat(64), related_item_id: "native-original",
+      error_message: null, asset_key: null, storage_object_id: null, asset_id: "native-asset", file_id: "native-file" }]);
+    expect(comment.images[0]).toMatchObject({ assetKey: null, assetId: "native-asset", fileId: "native-file",
+      assetUrl: "/api/file-assets/native-asset", relatedAttachmentId: "native-original" });
+  });
   it("keeps inline images and original attachments separate while preserving their relation", () => {
     const [comment] = serializeCommentSubmissions([{
       id: "submission-1",

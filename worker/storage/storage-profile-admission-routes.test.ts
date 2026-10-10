@@ -15,9 +15,21 @@ const receipt = { operationId: input.operationId, profileId: input.profileId, re
   checkId: input.checkId, nativeProfileId: `storage-profile:aws-s3:${"a".repeat(64)}`, configurationRevision: 1,
   runtimeAccess: "read_only", createdAt: "2026-10-02T08:00:00.000Z", createdBy: "admin@example.test" };
 const context = { waitUntil() {}, passThroughOnException() {}, props: {} } as unknown as ExecutionContext;
+function expectRequestEnvironment(request: Env, original: Env) {
+  expect(request).not.toBe(original);
+  expect(request.DB).not.toBe(original.DB);
+  expect(Reflect.ownKeys(request)).toEqual(Reflect.ownKeys(original));
+  for (const key of Reflect.ownKeys(original)) {
+    if (key !== "DB") expect(Reflect.get(request, key)).toBe(Reflect.get(original, key));
+  }
+}
 function fixture() {
   const prepare = vi.fn(() => { throw new Error("File execution gate must not run for administrator registration"); });
-  const env = { DB: { prepare }, AUTH_MODE: "access", SYSTEM_ADMIN_EMAILS: "admin@example.test" } as unknown as Env;
+  const env = {
+    DB: { prepare }, AUTH_MODE: "access", SYSTEM_ADMIN_EMAILS: "admin@example.test",
+    R2_BOOTSTRAP_NAMESPACE: JSON.stringify({ kind: "local-r2", installationId: "4e5c6dd7-325b-4eae-8499-518eaa0fcb40", bucketName: "untouched-fixture" }),
+    STORAGE_CREDENTIAL_KEYRING: "unchanged-fixture-binding",
+  } as unknown as Env;
   const request = (path = "", init: RequestInit = {}, bindings = env) => worker.fetch(new Request(`https://app.test/api/storage/configuration/registrations${path}`, init), bindings, context);
   const post = (value: unknown = input, headers: HeadersInit = { "content-type": "application/json" }) => request("", { method: "POST", headers, body: JSON.stringify(value) });
   return { env, prepare, request, post };
@@ -36,7 +48,10 @@ describe("administrator native profile registration HTTP boundary", () => {
       expect(response.status).toBe(200); expect(await response.json()).toEqual(receipt);
       expect(response.headers.get("cache-control")).toBe("private, no-store"); expect(response.headers.get("pragma")).toBe("no-cache");
     }
-    expect(mocked.register).toHaveBeenCalledExactlyOnceWith(f.env, input, "admin@example.test");
+    const requestEnv = mocked.register.mock.calls[0][0] as Env;
+    expectRequestEnvironment(requestEnv, f.env);
+    expect(f.env.DB.prepare).toBe(f.prepare);
+    expect(mocked.register).toHaveBeenCalledExactlyOnceWith(requestEnv, input, "admin@example.test");
     expect(mocked.read).toHaveBeenCalledExactlyOnceWith(f.env, input.operationId, "admin@example.test");
     expect(mocked.find).toHaveBeenCalledExactlyOnceWith(f.env, { profileId: input.profileId, expectedRevision: 3 }, "admin@example.test");
     expect(f.prepare).not.toHaveBeenCalled();

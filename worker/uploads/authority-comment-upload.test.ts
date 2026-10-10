@@ -13,7 +13,7 @@ const databases: ReturnType<typeof futureActiveRuntimeDatabase>[] = [];
 const context = { waitUntil() {}, passThroughOnException() {}, props: {} } as unknown as ExecutionContext;
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); databases.splice(0).forEach(db => db.close()); });
 
-function fixture(active = true) {
+function fixture(active = true, throughMigration = "0017_fp2_native_storage_profiles.sql") {
   const config = { AUTH_MODE: "disabled", R2_BOOTSTRAP_NAMESPACE: COMMENT_TEST_R2_NAMESPACE,
     MANAGED_STORAGE_PROVIDER: "switchdrive", SWITCHDRIVE_WEBDAV_URL: "https://drive.switch.ch/remote.php/dav/files/user%40example.ch",
     SWITCHDRIVE_USERNAME: "user@example.ch", SWITCHDRIVE_APP_PASSWORD: "test-password" };
@@ -24,7 +24,8 @@ function fixture(active = true) {
       .run(managedBootstrapNamespace(config), now);
     for (const id of ["r2-profile", "managed-profile"]) db.prepare("INSERT INTO file_shadow_profile_enablements VALUES(?,1,'test',?)").run(id, now);
   };
-  const sql = active ? futureActiveRuntimeDatabase(seed) : referenceTestDatabase();
+  const schema = { throughMigration };
+  const sql = active ? futureActiveRuntimeDatabase(seed, schema) : referenceTestDatabase(schema);
   if (!active) {
     sql.exec("PRAGMA foreign_keys=ON");
     sql.prepare("INSERT INTO file_shadow_enablements SELECT 1,epoch,'test',? FROM file_shadow_control").run(now);
@@ -56,6 +57,22 @@ function fixture(active = true) {
 }
 
 describe("active accepted Comment upload publication", () => {
+  it("preserves a pre-role-policy managed original through authentic0012 acceptance and publication", async () => {
+    const f = fixture(false, "0012_fp1_file_authority_runtime.sql"), bytes = new TextEncoder().encode("original before role policy");
+    expect(f.sql.prepare("SELECT count(*) n FROM sqlite_master WHERE type='table' AND name='storage_role_defaults'").get()!.n).toBe(0);
+    await acceptCommentUpload(f.sql, f.env, { kind: "attachment", bytes });
+    const parent = f.sql.prepare("SELECT * FROM comment_submission_acceptances").get()!;
+    expect(parent).not.toHaveProperty("storage_role_policy_revision");
+    expect(parent).not.toHaveProperty("role_selection_revision");
+    expect(f.sql.prepare("SELECT storage_profile_id FROM comment_item_acceptances").get()!.storage_profile_id).toBe("managed-profile");
+    expect((await f.upload("item-upload", bytes, "application/octet-stream")).status).toBe(200);
+    expect((await f.finalize()).status).toBe(200);
+    expect(JSON.parse(String(f.sql.prepare("SELECT accepted_result_json FROM comment_item_acceptances").get()!.accepted_result_json)))
+      .toMatchObject({ storeKind: "managed", provider: "switchdrive", byteSize: bytes.length });
+    expect(f.put).not.toHaveBeenCalled();
+    expect(f.sql.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+  });
+
   it("commits an image File, alias, binding and receipt together and replays a lost commit acknowledgement without another PUT", async () => {
     const f = fixture(), bytes = new TextEncoder().encode("accepted image");
     await acceptCommentSubmission(f.env, { id: "submission-upload", body: "", context: { kind: "sample", sampleId: "sample-upload", expectedUpdatedAt: f.now },

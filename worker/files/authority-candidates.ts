@@ -87,14 +87,12 @@ function receiptSql(owner: AuthorityCandidateOwner): string {
         AND submission.status NOT IN('ready','cancelled') AND submission.retry_closed_at IS NULL AND submission.deleted_at IS NULL
         AND source.status<>'cancelled' AND source.deleted_at IS NULL`;
   } else {
-    receipt = `SELECT json_extract(entry.value,'$.purpose') purpose,r.request_scope access_scope,r.storage_profile_id,
-      r.storage_profile_revision configuration_revision,json_extract(entry.value,'$.byteSize') expected_byte_size,
-      json_extract(entry.value,'$.sha256') expected_sha256,NULL candidate_object_key
-      FROM imports r JOIN json_each(CASE WHEN ?5='workbook' THEN json_array(json_extract(r.request_input_json,'$.workbook'))
-        WHEN ?5='manifest' THEN json_array(json_extract(r.request_input_json,'$.manifest'))
-        WHEN substr(?5,1,6)='image:' THEN json_extract(r.request_input_json,'$.images') ELSE '[]' END) entry
+    receipt = `SELECT item.purpose,r.request_scope access_scope,item.storage_profile_id,
+      item.storage_profile_revision configuration_revision,item.expected_byte_size,item.expected_sha256,item.candidate_object_key
+      FROM imports r JOIN file_authority_pending_receipt_items item
+        ON item.acceptance_kind='import_file' AND item.acceptance_id=r.id AND item.item_id=?5
       WHERE r.id=?1 AND r.actor_email=?2 AND r.operation_id=?3 AND r.status='pending' AND r.client_request_id IS NOT NULL
-        AND r.lease_expires_at>?4 AND (?5 IN('workbook','manifest') OR json_extract(entry.value,'$.localId')=substr(?5,7))`;
+        AND r.lease_expires_at>?4`;
   }
   return `SELECT receipt.*,(SELECT incarnation FROM file_authority_runtime_guard WHERE singleton=1 AND enabled=1) execution_incarnation FROM (${receipt}) receipt
     JOIN storage_profiles p ON p.id=receipt.storage_profile_id AND p.configuration_revision=receipt.configuration_revision

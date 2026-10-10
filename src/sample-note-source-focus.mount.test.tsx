@@ -117,11 +117,11 @@ describe("Sample note Open source navigation", () => {
     fireEvent.click(screen.getByRole("link", { name: "Open source" }));
     const target = await noteArticle(referencedComment);
     await waitFor(() => expect(target.getAttribute("data-reference-focused")).toBe("true"));
-    const deleteButton = within(target).getByRole("button", { name: "Delete note" });
+    const deleteButton = within(target).getByRole("button", { name: "Move Comment to trash" });
     deleteButton.focus();
     fireEvent.click(deleteButton);
 
-    const dialog = await screen.findByRole("alertdialog", { name: "Delete this sample note?" });
+    const dialog = await screen.findByRole("alertdialog", { name: "Move this Comment to trash?" });
     expect(within(dialog).getByText(referencedComment.body)).toBeTruthy();
     expect(within(dialog).queryByText(unrelatedComment.body)).toBeNull();
     fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));

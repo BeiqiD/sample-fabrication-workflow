@@ -12,5 +12,5 @@
     "types": ["@cloudflare/workers-types"]
   },
   "include": ["worker", "shared"],
-  "exclude": ["**/*.test.ts", "worker/reference-test-support.ts", "worker/comment-acceptance-test-support.ts", "worker/files/authority-runtime-test-support.ts"]
+  "exclude": ["**/*.test.ts", "worker/reference-test-support.ts", "worker/comment-acceptance-test-support.ts", "worker/files/authority-runtime-test-support.ts", "worker/uploads/native-acceptance-test-support.ts", "worker/packages/roundtrip-native-test-support.ts", "worker/recovery/legacy-all-slots-test-support.ts"]
 }

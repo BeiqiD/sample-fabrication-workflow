@@ -18,6 +18,10 @@ export type StepStatus = "pending" | "in_progress" | "done" | "skipped" | "block
 type EventKind = "comment" | "image" | "location" | "status" | "created" | "step" | "run" | "plan" | "verification";
 export const MAX_SPLIT_PIECES = 32;
 
+/** A ready asset's authorized media route. Native File placements retain a
+ * NULL legacy key and are addressed by their real asset identifier. */
+export interface FileAssetMediaRef { assetId: string; fileId: string | null; url: string }
+
 export interface SampleSummary {
   id: string;
   code: string;
@@ -35,6 +39,7 @@ export interface SampleSummary {
   currentStepTitle: string | null;
   currentStateStepTitle: string | null;
   currentStateThumbnailKey: string | null;
+  currentStateThumbnailUrl?: string | null;
 }
 
 export interface PaginationMeta {
@@ -81,6 +86,10 @@ export interface SampleEvent {
   kind: EventKind;
   body: string | null;
   assetKey: string | null;
+  assetId?: string;
+  fileId?: string;
+  assetUrl?: string;
+  thumbnailUrl?: string;
   metadata: Record<string, unknown>;
   actorEmail: string | null;
   createdAt: string;
@@ -125,6 +134,8 @@ export interface RunStep {
   plannedCommentsText: string | null;
   plannedImageKeys: string[];
   executionImageKeys: string[];
+  plannedImages?: FileAssetMediaRef[];
+  executionImages?: FileAssetMediaRef[];
   comments: RunStepComment[];
   actualizedAt: string | null;
   verificationIds: string[];
@@ -154,6 +165,7 @@ export interface RunStepComment {
   operationGroupId: string | null;
   body: string;
   assetKey: string | null;
+  assetUrl?: string;
   submissionId?: string | null;
   status?: CommentSubmissionStatus;
   images?: CommentImage[];
@@ -174,6 +186,9 @@ export interface CommentImage {
   originalMimeType: string;
   originalByteSize: number;
   assetKey: string | null;
+  assetId?: string;
+  fileId?: string;
+  assetUrl?: string;
   status: CommentSubmissionItemStatus;
   error: string | null;
   relatedAttachmentId: string | null;
@@ -323,6 +338,7 @@ export interface UpdateRunStepInput {
   notes: string;
   expectedUpdatedAt: string;
   assetKey?: string;
+  assetId?: string;
   assetMetadata?: RunStepAssetPresentationInput;
 }
 
@@ -334,6 +350,7 @@ export interface CreateRunStepInput {
   commentsText: string;
   deviationNote: string;
   assetKey?: string;
+  assetId?: string;
   assetMetadata?: RunStepAssetPresentationInput;
 }
 
@@ -354,6 +371,7 @@ export interface SampleRun {
   runGroupId: string;
   initialStateHash: string | null;
   initialStateImageKeys: string[];
+  initialStateImages?: FileAssetMediaRef[];
   createdAt: string;
   completedAt: string | null;
   steps: RunStep[];
@@ -371,6 +389,7 @@ export interface RunStartPreview {
     key: string;
     stateHash: string | null;
     imageKeys: string[];
+    images?: FileAssetMediaRef[];
     stepId: string | null;
     stepTitle: string;
   } | null;
@@ -384,6 +403,7 @@ export interface RunStartPreview {
     hash: string | null;
     stepTitle: string | null;
     imageKeys: string[];
+    images?: FileAssetMediaRef[];
   };
 }
 
@@ -450,6 +470,7 @@ export interface CreateStateVerificationInput {
   expectedUpdatedAt: string;
   completeStep?: boolean;
   assetKey?: string;
+  assetId?: string;
 }
 
 export interface CreateSampleInput {
@@ -503,7 +524,9 @@ export interface CreateRecordInput {
   expectedUpdatedAt: string;
   body?: string;
   assetKey?: string;
+  assetId?: string;
   thumbnailKey?: string;
+  thumbnailAssetId?: string;
 }
 
 export type BlobExportOutcome =

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -21,7 +21,16 @@ const modes = ["ordinary-replay", "project-replay", "concurrent", "held-pending"
   "lost-finalization-ack", "lost-http-ack", "failed-put", "unavailable-read", "missing-header",
   "missing-namespace", "namespace-change", "expired", "gc-unavailable", "quarantine-unavailable", "cross-ingress", "actor-independent", "deduplicated"];
 const bindings = Object.fromEntries(modes.map((mode, index) => [mode, `DB_${index}`]));
-const migrations = readdirSync(join(root, "migrations")).filter((name) => name.endsWith(".sql")).sort();
+// The native FP1 acceptance/restore fixture deliberately qualifies frozen V20.
+// Successor native File/job generations have separate V21/V22 qualification.
+const archiveMigration = "0017_fp2_native_storage_profiles.sql";
+const migrations = readdirSync(join(root, "migrations")).filter((name) => name.endsWith(".sql") && name <= archiveMigration).sort();
+assert.equal(migrations.length, 17); assert.equal(migrations.at(-1), archiveMigration);
+async function frozenArchiveMigrations(scratch) {
+  const directory = join(scratch, "migrations-v20"); await mkdir(directory);
+  await Promise.all(migrations.map(async name => writeFile(join(directory, name), await readFile(join(root, "migrations", name)))));
+  return directory;
+}
 const typedFileSlots = [
   ["state_representation_assets", "file_id"], ["run_step_assets", "file_id"],
   ["metrology_template_references", "file_id"], ["run_step_comments", "file_id"],
@@ -375,7 +384,7 @@ test("production R2 upload routes preserve durable ownership on real workerd, D1
         });
         const archivePath = join(scratch, "recovery-contract.zip"); await writeFile(archivePath, Buffer.from(await archive.archive.arrayBuffer()));
         const originalHash = hash(await readFile(archivePath));
-        const restored = await service.restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "restored"), migrationsDirectory: join(root, "migrations"), targetCompatibilitySchema: "S2" });
+        const restored = await service.restoreExportToIsolatedDirectory({ archivePath, destination: join(scratch, "restored"), migrationsDirectory: await frozenArchiveMigrations(scratch), targetCompatibilitySchema: "S2" });
         assert.equal(restored.report.schemaVersion, 20); assert.equal(restored.report.archiveProfile, "fp2-native-profile-admission");
         assert.deepEqual(restored.report.appliedForwardMigrations, []);
         assert.equal(restored.report.verification.rowsEqual, true); assert.equal(restored.report.verification.foreignKeys, true);

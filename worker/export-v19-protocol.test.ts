@@ -1,4 +1,5 @@
-import { snapshotFullExportV20 } from "./export-v20-snapshot";
+import { snapshotFullExportV24 } from "./export-v24-snapshot";
+import { expectHistoricalForwardTables } from "./export-forward-test-support";
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -25,7 +26,7 @@ const migrationsDirectory = fileURLToPath(new URL("../migrations/", import.meta.
 const databases: DatabaseSync[] = [], directories: string[] = [];
 const namespace = JSON.stringify({ kind: "local-r2", installationId: "4e5c6dd7-325b-4eae-8499-518eaa0fcb40", bucketName: "role-archive" });
 const adapter = (db: DatabaseSync) => new SqliteD1Database(db) as unknown as D1Database;
-function database(throughMigration?: string) { const sql = referenceTestDatabase({ throughMigration }); databases.push(sql); return sql; }
+function database(throughMigration = "0013_fp1_r2_role_defaults.sql") { const sql = referenceTestDatabase({ throughMigration }); databases.push(sql); return sql; }
 afterEach(async () => { vi.restoreAllMocks(); vi.unstubAllGlobals(); databases.splice(0).forEach(db => db.close()); for (const directory of directories.splice(0)) await rm(directory, { recursive: true, force: true }); });
 const execution = { waitUntil() {}, passThroughOnException() {}, props: {} } as unknown as ExecutionContext;
 
@@ -45,7 +46,7 @@ async function mixedFixture(originalSize = 8) {
   const env = { AUTH_MODE: "disabled", DB: adapter(sql), R2_BOOTSTRAP_NAMESPACE: namespace,
     MANAGED_STORAGE_PROVIDER: "switchdrive", SWITCHDRIVE_WEBDAV_URL: "https://drive.switch.ch/remote.php/dav/files/archive%40example.test",
     SWITCHDRIVE_USERNAME: "archive@example.test", SWITCHDRIVE_APP_PASSWORD: "test-password",
-    ASSETS: { get, head: get, put } as unknown as R2Bucket } as Env;
+    ASSETS: { get, head: get, put, delete: async (key: string) => { stored.delete(key); } } as unknown as R2Bucket } as Env;
   const oldBytes = Uint8Array.of(1, 2, 3, 4);
   await acceptCommentUpload(sql, env, { kind: "attachment", bytes: oldBytes, submissionId: "legacy-submission", itemId: "legacy-original" });
   const previous = sql.prepare("SELECT * FROM comment_item_acceptances WHERE item_id='legacy-original'").get();
@@ -91,9 +92,10 @@ describe("V19 immutable R2 role policy archive", () => {
     expect(JSON.parse(String(receipt.accepted_result_json))).toMatchObject({ provider: "r2", storeKind: "r2", byteSize: f.original.length });
     expect(f.put).toHaveBeenCalledTimes(1);
     const { sql, result } = await restore(f.manifest, f.original);
-    const recovered = (await snapshotFullExportV20(adapter(sql))).tables;
+    const current = await snapshotFullExportV24(adapter(sql)); expect(current.schemaVersion).toBe(24);
+    const recovered = current.tables;
     expect(recovered.storage_profile_admissions).toEqual([]);
-    expect(Object.fromEntries(Object.keys(f.manifest.tables).map(name => [name, recovered[name]]))).toEqual(f.manifest.tables);
+    expectHistoricalForwardTables(recovered, f.manifest.tables);
     expect(sql.prepare("SELECT enabled,incarnation FROM file_authority_runtime_guard").get()).toEqual({ enabled: 0, incarnation: null });
     expect(result.report.authorityRecovery).toMatchObject({ recordedAuthorityMode: "active", runtimeExecutionEnabled: false, installationAdmissionRequired: true });
     const io = vi.fn();
@@ -128,10 +130,11 @@ describe("V19 immutable R2 role policy archive", () => {
   it("forwards V18 records without initializing defaults or authorizing recovered execution", async () => {
     const old = database("0012_fp1_file_authority_runtime.sql"), oldManifest = await snapshotFullExportV18(adapter(old));
     const { sql, result } = await restore(oldManifest, Uint8Array.of(1));
-    const recovered = await snapshotFullExportV20(adapter(sql));
+    const recovered = await snapshotFullExportV24(adapter(sql));
+    expect(recovered.schemaVersion).toBe(24);
     expect(recovered.tables.storage_role_defaults).toEqual([]);
-    expect(Object.fromEntries(Object.keys(oldManifest.tables).map(name => [name, recovered.tables[name]]))).toEqual(oldManifest.tables);
-    expect(result.report.appliedForwardMigrations).toMatchObject([{ name: "0013_fp1_r2_role_defaults.sql" }, { name: "0017_fp2_native_storage_profiles.sql" }]);
+    expectHistoricalForwardTables(recovered.tables, oldManifest.tables);
+    expect(result.report.appliedForwardMigrations).toMatchObject([{ name: "0013_fp1_r2_role_defaults.sql" }, { name: "0017_fp2_native_storage_profiles.sql" }, { name: "0018_fp2_native_file_runtime.sql" }, { name: "0019_fp3_file_jobs.sql" }, { name: "0020_fp4_research_packages.sql" }, { name: "0022_fp5_recovery_evidence.sql" }]);
     expect(sql.prepare("SELECT enabled FROM file_authority_runtime_guard").get()).toEqual({ enabled: 0 });
   }, 30_000);
 });

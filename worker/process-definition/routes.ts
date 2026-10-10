@@ -1,3 +1,5 @@
+import { nativeAssetUrl } from "../../shared/contracts/r2-upload";
+import { readReadyAssetInput } from "../files/asset-input";
 import { fileAuthorityActiveSql, prepareFileRestoration } from "../files/business-lifecycle";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
@@ -310,8 +312,8 @@ routes.get("/templates", async (c) => {
     parameters_text: string | null;
     comments_text: string | null;
   }>(),
-    pickerView ? Promise.resolve({ results: [] as Array<{ template_version_id: string; r2_key: string }> }) : c.env.DB.prepare(
-      `SELECT tv.id AS template_version_id, a.r2_key
+    pickerView ? Promise.resolve({ results: [] as Array<{ template_version_id: string; r2_key: string | null; asset_id: string; file_id: string | null }> }) : c.env.DB.prepare(
+      `SELECT tv.id AS template_version_id, a.r2_key, a.id asset_id, ${await fileAuthorityActiveSql(c.env.DB) === '1' ? 'sra.file_id' : 'NULL'} file_id
        FROM template_versions tv
        JOIN state_representation_assets sra ON sra.state_hash = tv.initial_state_hash
        JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
@@ -319,11 +321,14 @@ routes.get("/templates", async (c) => {
          AND ${publishedTemplateVersionSql("tv")}
          AND ${publishedAssetSql("a")}
        ORDER BY tv.id, sra.position, a.id`,
-    ).all<{ template_version_id: string; r2_key: string }>(),
+    ).all<{ template_version_id: string; r2_key: string | null; asset_id: string; file_id: string | null }>(),
   ]);
   const initialAssets = new Map<string, string[]>();
+  const nativeInitialAssets = new Map<string, Array<{ assetId: string; fileId: string; url: string }>>();
   for (const row of initialAssetRows.results) {
-    initialAssets.set(row.template_version_id, [...(initialAssets.get(row.template_version_id) ?? []), row.r2_key]);
+    if (row.r2_key !== null) initialAssets.set(row.template_version_id, [...(initialAssets.get(row.template_version_id) ?? []), row.r2_key]);
+    else if (row.file_id) nativeInitialAssets.set(row.template_version_id, [...(nativeInitialAssets.get(row.template_version_id) ?? []),
+      { assetId: row.asset_id, fileId: row.file_id, url: nativeAssetUrl(row.asset_id) }]);
   }
   const d1Duration = performance.now() - d1Started;
   const serializeStarted = performance.now();
@@ -342,6 +347,7 @@ routes.get("/templates", async (c) => {
     commentsText: row.comments_text,
     initialStateHash: row.initial_state_hash,
     initialStateImageKeys: initialAssets.get(row.id) ?? [],
+    ...(nativeInitialAssets.has(row.id) ? { initialStateImages: nativeInitialAssets.get(row.id) } : {}),
     initialSubstrateStep: pickerView ? null : parseInitialSubstrateStep(row.content_json),
     locked: Boolean(row.locked_at),
     lockedAt: row.locked_at,
@@ -621,16 +627,16 @@ routes.get("/templates/:id", async (c) => {
        WHERE ts.template_version_id = ? ORDER BY ts.position`,
     ).bind(id).all<Record<string, unknown>>(),
     c.env.DB.prepare(
-      `SELECT ts.id AS template_step_id, a.r2_key
+      `SELECT ts.id AS template_step_id, a.r2_key, a.id asset_id, ${await fileAuthorityActiveSql(c.env.DB) === '1' ? 'sra.file_id' : 'NULL'} file_id
        FROM template_steps ts
        JOIN state_representation_assets sra ON sra.state_hash = ts.expected_state_hash
        JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
        WHERE ts.template_version_id = ?
          AND ${publishedAssetSql("a")}
        ORDER BY ts.id, sra.position, a.id`,
-    ).bind(id).all<{ template_step_id: string; r2_key: string }>(),
+    ).bind(id).all<{ template_step_id: string; r2_key: string | null; asset_id: string; file_id: string | null }>(),
     c.env.DB.prepare(
-      `SELECT a.r2_key
+      `SELECT a.r2_key, a.id asset_id, ${await fileAuthorityActiveSql(c.env.DB) === '1' ? 'sra.file_id' : 'NULL'} file_id
        FROM template_versions tv
        JOIN state_representation_assets sra ON sra.state_hash = tv.initial_state_hash
        JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
@@ -638,9 +644,9 @@ routes.get("/templates/:id", async (c) => {
          AND ${publishedTemplateVersionSql("tv")}
          AND ${publishedAssetSql("a")}
        ORDER BY sra.position, a.id`,
-    ).bind(id).all<{ r2_key: string }>(),
+    ).bind(id).all<{ r2_key: string | null; asset_id: string; file_id: string | null }>(),
     c.env.DB.prepare(
-      `SELECT mtr.id, mtr.display_name, a.mime_type, a.byte_size, a.r2_key, mtr.created_at
+      `SELECT mtr.id, mtr.display_name, a.mime_type, a.byte_size, a.r2_key, mtr.created_at, a.id asset_id, ${await fileAuthorityActiveSql(c.env.DB) === '1' ? 'mtr.file_id' : 'NULL'} file_id
        FROM metrology_template_references mtr
        JOIN assets a ON a.id = mtr.asset_id AND a.status = 'ready'
        WHERE mtr.template_version_id = ? AND mtr.deleted_at IS NULL
@@ -648,12 +654,17 @@ routes.get("/templates/:id", async (c) => {
        ORDER BY mtr.position, mtr.created_at, mtr.id`,
     ).bind(id).all<{
       id: string; display_name: string; mime_type: string; byte_size: number;
-      r2_key: string; created_at: string;
+      r2_key: string | null; created_at: string; asset_id: string; file_id: string | null;
     }>(),
   ]);
   if (!template) throw new HTTPException(404, { message: "Template version not found" });
   const images = new Map<string, string[]>();
-  for (const row of assetRows.results) images.set(row.template_step_id, [...(images.get(row.template_step_id) ?? []), row.r2_key]);
+  const nativeImages = new Map<string, Array<{ assetId: string; fileId: string; url: string }>>();
+  for (const row of assetRows.results) {
+    if (row.r2_key !== null) images.set(row.template_step_id, [...(images.get(row.template_step_id) ?? []), row.r2_key]);
+    else if (row.file_id) nativeImages.set(row.template_step_id, [...(nativeImages.get(row.template_step_id) ?? []),
+      { assetId: row.asset_id, fileId: row.file_id, url: nativeAssetUrl(row.asset_id) }]);
+  }
   return c.json({ template: {
     id: String(template.id), recipeFamilyId: String(template.recipe_family_id), name: String(template.name),
     templateType: String(template.template_type) as TemplateDetail["templateType"],
@@ -661,7 +672,9 @@ routes.get("/templates/:id", async (c) => {
     version: Number(template.version),
     manifestHash: String(template.manifest_hash),
     initialStateHash: template.initial_state_hash ? String(template.initial_state_hash) : null,
-    initialStateImageKeys: initialAssetRows.results.map((row) => row.r2_key),
+    initialStateImageKeys: initialAssetRows.results.flatMap(row => row.r2_key === null ? [] : [row.r2_key]),
+    ...(initialAssetRows.results.some(row => row.r2_key === null) ? { initialStateImages: initialAssetRows.results.flatMap(row =>
+      row.r2_key === null && row.file_id ? [{ assetId: row.asset_id, fileId: row.file_id, url: nativeAssetUrl(row.asset_id) }] : []) } : {}),
     initialSubstrateStep: parseInitialSubstrateStep(template.content_json ? String(template.content_json) : null),
     sourceFilename: template.source_filename ? String(template.source_filename) : null,
     metrologyNotes: template.metrology_notes ? String(template.metrology_notes) : null,
@@ -671,6 +684,7 @@ routes.get("/templates/:id", async (c) => {
       mimeType: reference.mime_type,
       byteSize: Number(reference.byte_size),
       assetKey: reference.r2_key,
+      ...(reference.r2_key === null ? { fileId: reference.file_id ?? undefined, url: nativeAssetUrl(reference.asset_id) } : {}),
       createdAt: reference.created_at,
     })),
     locked: Boolean(template.locked_at), lockedAt: template.locked_at ? String(template.locked_at) : null,
@@ -684,6 +698,7 @@ routes.get("/templates/:id", async (c) => {
       parametersText: step.parameters_text ? String(step.parameters_text) : null,
       commentsText: step.comments_text ? String(step.comments_text) : null,
       imageKeys: images.get(String(step.id)) ?? [],
+      ...(nativeImages.has(String(step.id)) ? { images: nativeImages.get(String(step.id)) } : {}),
     })),
   } satisfies TemplateDetail });
 });
@@ -718,7 +733,7 @@ routes.patch("/templates/:id", async (c) => {
 routes.post("/templates/:id/steps", async (c) => {
   const templateId = c.req.param("id");
   await requirePublishedTemplateVersion(c.env.DB, templateId);
-  const input = await c.req.json<{ name?: string; toolName?: string; parametersText?: string; commentsText?: string; assetKey?: string }>();
+  const input = await c.req.json<{ name?: string; toolName?: string; parametersText?: string; commentsText?: string; assetKey?: string; assetId?: string }>();
   if (typeof input.name !== "string" || typeof input.toolName !== "string" || typeof input.parametersText !== "string" || typeof input.commentsText !== "string" || (input.assetKey !== undefined && typeof input.assetKey !== "string")) throw new HTTPException(400, { message: "Valid template step fields are required" });
   const name = input.name.trim();
   if (!name || name.length > 200 || input.toolName.length > 500 || input.parametersText.length > 10_000 || input.commentsText.length > 10_000) throw new HTTPException(400, { message: "One or more template step fields are invalid" });
@@ -729,20 +744,12 @@ routes.post("/templates/:id/steps", async (c) => {
     ).bind(templateId).first<{ locked_at: string | null; archived_at: string | null; deleted_at: string | null }>(),
     c.env.DB.prepare("SELECT logical_step_key, definition_hash, expected_state_hash, position FROM template_steps WHERE template_version_id = ? ORDER BY position")
       .bind(templateId).all<{ logical_step_key: string; definition_hash: string; expected_state_hash: string | null; position: number }>(),
-    input.assetKey ? c.env.DB.prepare(
-      `SELECT id, sha256 FROM assets a WHERE status = 'ready' AND r2_key = ?
-         AND ${publishedAssetSql("a")}
-         AND (${await fileAuthorityActiveSql(c.env.DB)} OR NOT EXISTS (
-           SELECT 1 FROM blob_gc_ledger bg
-           WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
-             AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-         ))`,
-    ).bind(input.assetKey).first<{ id: string; sha256: string }>() : Promise.resolve(null),
+    readReadyAssetInput(c.env.DB, input),
   ]);
   if (!template || template.deleted_at) throw new HTTPException(404, { message: "Template version not found" });
   if (template.archived_at || template.locked_at) throw new HTTPException(409, { message: "Only unused active template versions can be edited" });
-  if (input.assetKey && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
-  const fileId = asset ? await resolveConsumerFileId(c.env.DB, { assetId: asset.id, purpose: "embedded_content" }) : null;
+  if ((input.assetKey || input.assetId) && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
+  const fileId = asset ? await resolveConsumerFileId(c.env.DB, { assetId: asset.id, nativeAsset: asset.r2_key === null, purpose: "embedded_content" }) : null;
   const stepId = crypto.randomUUID();
   const now = new Date().toISOString();
   const state = asset ? await hashStateRepresentation([asset.sha256]) : null;
@@ -760,7 +767,7 @@ routes.post("/templates/:id/steps", async (c) => {
     ).bind(definition.hash, STEP_HASH_SCHEME, definition.canonical.name, definition.canonical.toolName,
       definition.canonical.parametersText, definition.canonical.commentsText, stableJson(definition.canonical), now),
   ];
-  if (asset) statements.unshift(consumerFileBindingFence(c.env.DB, { assetId: asset.id, purpose: "embedded_content" }, fileId));
+  if (asset) statements.unshift(consumerFileBindingFence(c.env.DB, { assetId: asset.id, nativeAsset: asset.r2_key === null, purpose: "embedded_content" }, fileId));
   if (state) statements.push(c.env.DB.prepare(
     `INSERT OR IGNORE INTO state_representations (hash, hash_scheme, representation_type, content_json, created_at)
      VALUES (?, ?, 'diagram', ?, ?)`,
@@ -786,7 +793,7 @@ routes.post("/templates/:id/steps", async (c) => {
 routes.patch("/templates/:templateId/steps/:stepId", async (c) => {
   const { templateId, stepId } = c.req.param();
   await requirePublishedTemplateVersion(c.env.DB, templateId);
-  const input = await c.req.json<{ name?: string; toolName?: string; parametersText?: string; commentsText?: string; assetKey?: string }>();
+  const input = await c.req.json<{ name?: string; toolName?: string; parametersText?: string; commentsText?: string; assetKey?: string; assetId?: string }>();
   if (typeof input.name !== "string" || typeof input.toolName !== "string" || typeof input.parametersText !== "string" || typeof input.commentsText !== "string" || (input.assetKey !== undefined && typeof input.assetKey !== "string")) throw new HTTPException(400, { message: "Valid template step fields are required" });
   const name = input.name.trim();
   if (!name || name.length > 200 || input.toolName.length > 500 || input.parametersText.length > 10_000 || input.commentsText.length > 10_000) throw new HTTPException(400, { message: "One or more template step fields are invalid" });
@@ -799,20 +806,12 @@ routes.patch("/templates/:templateId/steps/:stepId", async (c) => {
       .bind(stepId, templateId).first<{ id: string; logical_step_key: string; expected_state_hash: string | null }>(),
     c.env.DB.prepare("SELECT id, logical_step_key, definition_hash, expected_state_hash FROM template_steps WHERE template_version_id = ? ORDER BY position")
       .bind(templateId).all<{ id: string; logical_step_key: string; definition_hash: string; expected_state_hash: string | null }>(),
-    input.assetKey ? c.env.DB.prepare(
-      `SELECT id, sha256 FROM assets a WHERE status = 'ready' AND r2_key = ?
-         AND ${publishedAssetSql("a")}
-         AND (${await fileAuthorityActiveSql(c.env.DB)} OR NOT EXISTS (
-           SELECT 1 FROM blob_gc_ledger bg
-           WHERE bg.store_kind = 'r2' AND bg.provider = 'r2'
-             AND bg.object_key = a.r2_key AND bg.state IN ('deleting', 'deleted')
-         ))`,
-    ).bind(input.assetKey).first<{ id: string; sha256: string }>() : Promise.resolve(null),
+    readReadyAssetInput(c.env.DB, input),
   ]);
   if (!template || template.deleted_at || !step) throw new HTTPException(404, { message: "Template step not found" });
   if (template.archived_at || template.locked_at) throw new HTTPException(409, { message: "Only unused active template versions can be edited" });
-  if (input.assetKey && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
-  const fileId = asset ? await resolveConsumerFileId(c.env.DB, { assetId: asset.id, purpose: "embedded_content" }) : null;
+  if ((input.assetKey || input.assetId) && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
+  const fileId = asset ? await resolveConsumerFileId(c.env.DB, { assetId: asset.id, nativeAsset: asset.r2_key === null, purpose: "embedded_content" }) : null;
   const now = new Date().toISOString();
   const state = asset ? await hashStateRepresentation([asset.sha256]) : null;
   const expectedStateHash = state?.hash ?? step.expected_state_hash;
@@ -827,7 +826,7 @@ routes.patch("/templates/:templateId/steps/:stepId", async (c) => {
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   ).bind(definition.hash, STEP_HASH_SCHEME, definition.canonical.name, definition.canonical.toolName,
     definition.canonical.parametersText, definition.canonical.commentsText, stableJson(definition.canonical), now)];
-  if (asset) statements.unshift(consumerFileBindingFence(c.env.DB, { assetId: asset.id, purpose: "embedded_content" }, fileId));
+  if (asset) statements.unshift(consumerFileBindingFence(c.env.DB, { assetId: asset.id, nativeAsset: asset.r2_key === null, purpose: "embedded_content" }, fileId));
   if (state) statements.push(c.env.DB.prepare(
     `INSERT OR IGNORE INTO state_representations (hash, hash_scheme, representation_type, content_json, created_at)
      VALUES (?, ?, 'diagram', ?, ?)`,

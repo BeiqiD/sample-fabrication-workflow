@@ -16,9 +16,12 @@ import { StatusPill } from "../components/StatusPill";
 import { api } from "../lib/api";
 import { currentStructurePresentation } from "../lib/currentStructure";
 import { exportSample } from "../lib/exportSample";
+import { ResearchPackageExport } from "../components/ResearchPackageExport";
+import { ReadStatus } from "../components/ReadStatus";
 import { SAMPLE_HISTORY_PREVIEW_COUNT } from "../lib/sampleHistory";
 import { collectSampleNotes } from "../lib/sampleNotes";
 import { selectSamplePageRuns } from "../lib/sample-run-selection";
+import { commentImageUrl, fileAssetMediaUrls, sampleEventAssetUrl } from "../lib/asset-media";
 import "../sample-identity-form.css";
 
 const SAMPLE_NOTES_PREVIEW_COUNT = 3;
@@ -37,17 +40,19 @@ function runStatusLabel(status: SampleRun["status"]) {
 }
 
 function runStructureFrames(run: SampleRun) {
-  const frames: Array<{ key: string; label: string; imageKeys: string[]; stateHash: string | null }> = [];
-  if (run.initialStateImageKeys.length) {
-    frames.push({ key: `${run.id}:initial`, label: "Initial substrate", imageKeys: run.initialStateImageKeys, stateHash: run.initialStateHash });
+  const frames: Array<{ key: string; label: string; imageUrls: string[]; stateHash: string | null }> = [];
+  const initialImages = fileAssetMediaUrls(run.initialStateImageKeys, run.initialStateImages);
+  if (initialImages.length) {
+    frames.push({ key: `${run.id}:initial`, label: "Initial substrate", imageUrls: initialImages, stateHash: run.initialStateHash });
   }
   for (const step of run.steps) {
     if (step.status !== "done" || !step.actualizedAt) continue;
-    const imageKeys = step.executionImageKeys.length ? step.executionImageKeys : step.plannedImageKeys;
-    if (!imageKeys.length) continue;
+    const executionImages = fileAssetMediaUrls(step.executionImageKeys, step.executionImages);
+    const imageUrls = executionImages.length ? executionImages : fileAssetMediaUrls(step.plannedImageKeys, step.plannedImages);
+    if (!imageUrls.length) continue;
     const previous = frames[frames.length - 1];
-    if (step.expectedStateHash && previous?.stateHash === step.expectedStateHash && !step.executionImageKeys.length) continue;
-    frames.push({ key: step.id, label: step.title, imageKeys, stateHash: step.expectedStateHash });
+    if (step.expectedStateHash && previous?.stateHash === step.expectedStateHash && !executionImages.length) continue;
+    frames.push({ key: step.id, label: step.title, imageUrls, stateHash: step.expectedStateHash });
   }
   if (frames.length === 1 && frames[0].key.endsWith(":initial")) {
     frames[0].label = run.status === "active" ? "Initial / latest recorded structure" : "Initial / final structure";
@@ -64,6 +69,8 @@ export function SamplePage() {
   const requestedFocus = searchParams.get("focus");
   const [sample, setSample] = useState<SampleDetail | null>(null);
   const [error, setError] = useState("");
+  const [readError, setReadError] = useState("");
+  const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [editingDetails, setEditingDetails] = useState(false);
   const [updatingDetails, setUpdatingDetails] = useState(false);
@@ -90,7 +97,10 @@ export function SamplePage() {
   sourceIdRef.current = sampleId;
   const loadSequence = useRef(0);
   const load = useCallback(async () => {
+    if (sourceIdRef.current !== sampleId) return;
     const sequence = ++loadSequence.current;
+    setLoading(true);
+    setReadError("");
     try {
       const result = await api.getSample(sampleId);
       if (sourceIdRef.current !== sampleId || sequence !== loadSequence.current) return;
@@ -98,14 +108,17 @@ export function SamplePage() {
       setError("");
     } catch (error) {
       if (sourceIdRef.current !== sampleId || sequence !== loadSequence.current) return;
-      setError((error as Error).message);
+      setReadError((error as Error).message);
       throw error;
+    } finally {
+      if (sourceIdRef.current === sampleId && sequence === loadSequence.current) setLoading(false);
     }
   }, [sampleId]);
 
   useEffect(() => {
     setShowAllNotes(false);
     setSample(null);
+    setError("");
     void load().catch(() => undefined);
     return () => { loadSequence.current += 1; };
   }, [load]);
@@ -168,7 +181,7 @@ export function SamplePage() {
 
   async function updateDetails(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!sample) return;
+    if (!sample || updatingDetails) return;
     const form = new FormData(event.currentTarget);
     setUpdatingDetails(true); setError("");
     try {
@@ -199,7 +212,10 @@ export function SamplePage() {
     finally { setDeletingSample(false); }
   }
 
-  if (!sample) return <div className="page"><p>{error || "Loading sample…"}</p></div>;
+  if (!sample) return <div className="page">
+    <Link className="back-link" to="/samples">← Samples</Link>
+    <ReadStatus loading={loading} error={readError} loadingMessage="Loading sample…" errorTitle="Sample could not be loaded" retryLabel="Retry sample" onRetry={() => void load().catch(() => undefined)} />
+  </div>;
   const {
     activeProcessRun,
     activeMetrologyRun,
@@ -280,11 +296,13 @@ export function SamplePage() {
             <ActionIcon name="export" />
             <span className="responsive-action-label">{exporting ? "Exporting…" : "Export ZIP"}</span>
           </button>
+          <ResearchPackageExport root={{ type: "sample", id: sample.id }} disabled={exporting} compact />
         </div>
       </div>
     </div>
 
-    {error && <p className="error-banner">{error}</p>}
+    <ReadStatus loading={loading} error={readError} loadingMessage="Refreshing sample…" errorTitle="Sample could not be refreshed" retryLabel="Retry sample" onRetry={() => void load().catch(() => undefined)} />
+    {error && <p className="error-banner" role="alert">{error}</p>}
     <section className="sample-priority-grid">
       <div className="sample-priority-sidebar">
         <aside className={`card facts sample-details-card${editingDetails ? " is-editing" : ""}`}>
@@ -294,13 +312,13 @@ export function SamplePage() {
               <dl><dt>Location</dt><dd className="sample-location-value">{sample.location || "—"}</dd><dt>Sample code</dt><dd>{sample.code}</dd><dt>Sample name</dt><dd>{sample.title}</dd><dt>Status</dt><dd>{SAMPLE_STATUS_LABELS[sample.status]}</dd><dt>Pinned</dt><dd>{sample.pinned ? "Yes" : "No"}</dd><dt>Parent</dt><dd>{sample.parent ? <Link to={`/samples/${sample.parent.id}`}>{sample.parent.code}</Link> : "—"}</dd><dt>Children</dt><dd>{sample.children.length ? sample.children.map((child) => <Link key={child.id} to={`/samples/${child.id}`}>{child.code}</Link>) : "—"}</dd><dt>Created</dt><dd>{new Date(sample.createdAt).toLocaleString()}</dd></dl>
               <div className="sample-danger-zone"><div><strong>Delete sample</strong><small>Remove this sample and its processing history.</small></div><button type="button" className="button danger" onClick={() => { setSampleDeleteConfirmation(""); setSampleDeleteError(""); setConfirmingSampleDeletion(true); }}>Delete</button></div>
             </div>
-            {editingDetails && <form className="detail-form sample-identity-form sample-details-edit-form" onSubmit={updateDetails}>
+            {editingDetails && <form className="detail-form sample-identity-form sample-details-edit-form" onSubmit={updateDetails} aria-busy={updatingDetails}>
               <label>Sample code<input value={sample.code} readOnly aria-readonly="true" title="Sample code is a permanent identifier" /></label>
-              <label>Sample name<input name="title" defaultValue={sample.title} required maxLength={200} /></label>
-              <label>Status<select name="status" defaultValue={sample.status}>{SAMPLE_STATUSES.map((status) => <option value={status} key={status}>{SAMPLE_STATUS_LABELS[status]}</option>)}</select></label>
-              <label>Location<input name="location" defaultValue={sample.location || ""} placeholder="Box, lab, or tool" /></label>
-              <label className="sample-details-description-field">Description<textarea name="description" defaultValue={sample.description || ""} maxLength={10_000} rows={4} placeholder="Purpose, structure, or other sample context" /></label>
-              <label className="checkbox-label"><input name="pinned" type="checkbox" defaultChecked={sample.pinned} />Pinned</label>
+              <label>Sample name<input name="title" defaultValue={sample.title} required maxLength={200} disabled={updatingDetails} /></label>
+              <label>Status<select name="status" defaultValue={sample.status} disabled={updatingDetails}>{SAMPLE_STATUSES.map((status) => <option value={status} key={status}>{SAMPLE_STATUS_LABELS[status]}</option>)}</select></label>
+              <label>Location<input name="location" defaultValue={sample.location || ""} disabled={updatingDetails} placeholder="Box, lab, or tool" /></label>
+              <label className="sample-details-description-field">Description<textarea name="description" defaultValue={sample.description || ""} maxLength={10_000} rows={4} disabled={updatingDetails} placeholder="Purpose, structure, or other sample context" /></label>
+              <label className="checkbox-label"><input name="pinned" type="checkbox" defaultChecked={sample.pinned} disabled={updatingDetails} />Pinned</label>
               <button className="button primary wide" disabled={updatingDetails}>{updatingDetails ? "Saving…" : "Save changes"}</button>
             </form>}
           </div>
@@ -356,20 +374,21 @@ export function SamplePage() {
           <div className="sample-note-content">
             {note.status !== "ready" && <strong className={`comment-upload-state status-${note.status}`}>{note.status === "failed" ? "Upload incomplete" : "Uploading…"}</strong>}
             {note.status === "ready" ? <CommentBody source={note.body} /> : <p>{note.body}</p>}
-            {note.images.some((image) => image.assetKey) && <div className="sample-note-images"><DiagramGallery
-              keys={note.images.flatMap((image) => image.assetKey ? [image.assetKey] : [])}
+            {note.images.some((image) => image.status === "ready" && commentImageUrl(image)) && <div className="sample-note-images"><DiagramGallery
+              keys={[]}
+              urls={note.images.flatMap((image) => { const url = image.status === "ready" ? commentImageUrl(image) : null; return url ? [url] : []; })}
               label={`${note.label} photo`}
               kind="photo"
             /></div>}
-            <CommentAttachmentList attachments={note.attachments} className="sample-note-attachments" />
+            <CommentAttachmentList attachments={note.attachments} images={note.submissionId ? note.images : undefined} submissionId={note.status === "ready" ? note.submissionId : undefined} onChanged={load} common={note.label === "Common process comment"} density="comfortable" className="sample-note-attachments" />
           </div>
           <div className="sample-note-footer">
             <span className="sample-note-author">{note.actorEmail || (note.kind === "execution_detail" || note.kind === "execution_image" || note.kind === "deviation" || note.kind === "blocked_step" ? "Recorded process evidence" : "Unknown user")}</span>
             <div className="sample-note-actions">
               {note.runId && <Link className="text-button" to={`/processing/${sample.id}?run=${encodeURIComponent(note.runId)}`}>Open in processing</Link>}
-              {note.sampleEvent?.assetKey && <button type="button" className="text-button" onClick={() => { setAssetDeleteError(""); setAssetToDelete(note.sampleEvent); }}>Delete image</button>}
+              {note.sampleEvent && sampleEventAssetUrl(note.sampleEvent) && <button type="button" className="text-button" onClick={() => { setAssetDeleteError(""); setAssetToDelete(note.sampleEvent); }}>Delete image</button>}
               {note.sampleEvent && <button type="button" className="text-button danger-text-button" onClick={() => { setRecordDeleteError(""); setRecordToDelete(note.sampleEvent); }}>Delete note</button>}
-              {note.submissionId && <button type="button" className="text-button danger-text-button" onClick={() => { setSubmissionDeleteError(""); setSubmissionToDelete({ id: note.submissionId!, body: note.body }); }}>Delete note</button>}
+              {note.submissionId && <button type="button" className="text-button danger-text-button" onClick={() => { setSubmissionDeleteError(""); setSubmissionToDelete({ id: note.submissionId!, body: note.body }); }}>Move Comment to trash</button>}
             </div>
           </div>
           </article>
@@ -408,7 +427,7 @@ export function SamplePage() {
             <div className="run-structure-history">
               {frames.length ? frames.map((frame, index) => <div className="run-structure-frame" key={frame.key}>
                 {index > 0 && <span className="run-structure-arrow" aria-hidden="true">→</span>}
-                <div><small>{frame.label}</small><div className="run-structure-images">{frame.imageKeys.map((key) => <img loading="lazy" src={`/api/assets/${key}`} alt={`${frame.label} for run ${run.sequenceNo}`} key={key} />)}</div></div>
+                <div><small>{frame.label}</small><div className="run-structure-images">{frame.imageUrls.map((url) => <img loading="lazy" src={url} alt={`${frame.label} for run ${run.sequenceNo}`} key={url} />)}</div></div>
               </div>) : <p className="muted">This run has no recorded structure diagrams.</p>}
             </div>
           </details>;
@@ -426,9 +445,9 @@ export function SamplePage() {
         </div>
       </section>
     </section>
-    {recordToDelete && <ConfirmDeleteDialog title="Delete this sample note?" description="The note will disappear from Notes & observations, while the Timeline will retain a deletion audit entry." summary={recordToDelete.body?.trim() || (recordToDelete.assetKey ? "Photo observation" : "Empty note")} deleting={deletingRecord} error={recordDeleteError} eyebrow="Delete note" confirmLabel="Delete note" onCancel={() => { setRecordToDelete(null); setRecordDeleteError(""); }} onConfirm={() => void deleteRecord()} />}
+    {recordToDelete && <ConfirmDeleteDialog title="Delete this sample note?" description="The note will disappear from Notes & observations, while the Timeline will retain a deletion audit entry." summary={recordToDelete.body?.trim() || (sampleEventAssetUrl(recordToDelete) ? "Photo observation" : "Empty note")} deleting={deletingRecord} error={recordDeleteError} eyebrow="Delete note" confirmLabel="Delete note" onCancel={() => { setRecordToDelete(null); setRecordDeleteError(""); }} onConfirm={() => void deleteRecord()} />}
     {assetToDelete && <ConfirmDeleteDialog title="Delete this image attachment?" description="The image will be detached from the record. The Timeline will retain a text-only audit entry showing that an image was removed." summary={assetToDelete.body?.trim() || "Image attachment"} deleting={deletingAsset} error={assetDeleteError} eyebrow="Delete image" confirmLabel="Delete image" onCancel={() => { setAssetToDelete(null); setAssetDeleteError(""); }} onConfirm={() => void deleteAsset()} />}
-    {submissionToDelete && <ConfirmDeleteDialog title="Delete this sample note?" description="The note and its attachments will be removed. The Timeline will retain a deletion audit entry." summary={submissionToDelete.body || "Files attached"} deleting={deletingSubmission} error={submissionDeleteError} eyebrow="Delete note" confirmLabel="Delete note" onCancel={() => { setSubmissionToDelete(null); setSubmissionDeleteError(""); }} onConfirm={() => void deleteSubmission()} />}
+    {submissionToDelete && <ConfirmDeleteDialog title="Move this Comment to trash?" description="The Comment and its attachments will be hidden from their targets and retained in Trash for 30 days. The Timeline retains a deletion audit entry." appendIrreversibleWarning={false} summary={submissionToDelete.body || "Files attached"} deleting={deletingSubmission} error={submissionDeleteError} eyebrow="Move Comment to trash" confirmLabel="Move Comment to trash" onCancel={() => { setSubmissionToDelete(null); setSubmissionDeleteError(""); }} onConfirm={() => void deleteSubmission()} />}
     {confirmingSampleDeletion && <ConfirmDeleteDialog
       title={`Delete ${sample.code}?`}
       description={`The sample and all of its processing history will be permanently deleted.${sample.children.length ? " Child samples will remain, but their parent link will be removed." : ""}`}

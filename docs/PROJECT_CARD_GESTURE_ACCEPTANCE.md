@@ -7,7 +7,10 @@ active-editor resize and PR #184's combined Markdown activation. Historical
 
 See the [current C4 integration record](./PROJECT_C4_ACCEPTANCE.md#current-integration-check--2026-09-13)
 for deployed desktop acceptance and remaining wide-screen, physical-device and
-large-Project checks. C4 remains in progress; Phase 5D has not started.
+large-Project checks. At that 2026-09-13 checkpoint, C4 remained in progress
+and Phase 5D had not started. Subsequent local refinement status and
+remaining formal acceptance limits belong to the
+[current product roadmap](./PRODUCT_ROADMAP.md).
 
 ## Interaction contract
 

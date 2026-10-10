@@ -87,10 +87,10 @@ async function transport(env: ReaderEnvironment, profile: NativeS3ReaderProfile,
  * or provider requests at construction. Each read/stat authenticates its exact
  * retained descriptor anew; plaintext is never exposed through this interface.
  *
- * The caller owns business authorization and key selection. This is groundwork
- * for native File access, not a public reader or permission to create S3 File
- * locations. The current schema still prohibits those locations, write admission
- * and defaults. No writer/deleter, activation, fallback or retry is provided.
+ * The caller owns business authorization and key selection. This restricted
+ * transport serves the native admission generation through migration 0017.
+ * Native File access introduced in 0018 uses nativeS3ByteStorage. This interface
+ * provides no writer/deleter, activation, fallback or retry.
  * Available bytes/metadata are transport observations, not File verification.
  */
 export function nativeS3ByteReader(env: ReaderEnvironment, input: NativeS3ReaderProfile, options: S3ByteAdapterOptions = {}): ByteReader {

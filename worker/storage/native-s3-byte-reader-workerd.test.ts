@@ -88,7 +88,11 @@ it("binds native workerd reads to admitted D1 history, fences a wrapping race an
     expect(await db.prepare("SELECT count(*) n FROM file_locations").first()).toEqual({ n: 0 });
     expect(await db.prepare("SELECT count(*) n FROM storage_role_defaults").first()).toEqual({ n: 0 });
     await expect(db.prepare("UPDATE storage_profile_runtime SET state='read_write' WHERE storage_profile_id=?").bind(result.profile.profileId).run())
-      .rejects.toThrow("Native S3 registration remains read-only");
+      .rejects.toThrow("Native runtime activation requires exact tested binding");
+    expect(await db.prepare("SELECT state FROM storage_profile_runtime WHERE storage_profile_id=?").bind(result.profile.profileId).first())
+      .toEqual({ state: "read_only" });
+    expect(await db.prepare("SELECT count(*) n FROM storage_profile_activations").first()).toEqual({ n: 0 });
+    expect(await db.prepare("SELECT count(*) n FROM system_storage_native_bindings").first()).toEqual({ n: 0 });
     expect((await db.prepare("PRAGMA foreign_key_check").all()).results).toEqual([]);
   } finally { await native.dispose(); }
 }, 60_000);

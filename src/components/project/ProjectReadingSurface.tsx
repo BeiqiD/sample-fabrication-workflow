@@ -6,6 +6,7 @@ import { ReferenceExcerpt } from "../ReferenceExcerpt";
 import { projectNodeKindLabel, type ProjectNodeDescriptor } from "../../lib/project-map-model";
 import type { ProjectMapMarkdownEditorState } from "../../lib/project-owned-content";
 import { buildProjectReadableArchive } from "../../lib/project-readable-export";
+import { ResearchPackageExport } from "../ResearchPackageExport";
 import { ProjectAttachmentPresentation } from "./ProjectAttachmentPresentation";
 import { ProjectEditorFeedback } from "./ProjectEditorFeedback";
 import { projectKeyboardEventIsPlainEscape } from "../../lib/project-canvas-productivity";
@@ -28,6 +29,7 @@ export interface ProjectReadingSurfaceProps {
   nodes: ProjectNodeDescriptor[];
   mobile?: boolean;
   projectTitle?: string;
+  projectId?: string;
   focusedItemId?: string | null;
   focusRequestSequence?: number;
   inspectedItemId?: string | null;
@@ -123,6 +125,7 @@ export function ProjectReadingSurface({
   nodes,
   mobile = false,
   projectTitle = "Project Reading",
+  projectId,
   focusedItemId = null,
   focusRequestSequence = 0,
   inspectedItemId = null,
@@ -202,6 +205,8 @@ export function ProjectReadingSurface({
           disabled={!nodes.length || interactionDisabled || editorBusy || exportState.status === "exporting"}
           onClick={exportReading}
         >{exportState.status === "exporting" ? "Exporting…" : "Export readable ZIP"}</button>
+        {projectId && <ResearchPackageExport root={{ type: "project", id: projectId }} compact
+          disabled={!!interactionDisabled || editorBusy || exportState.status === "exporting"} />}
       </ReadingMore>
       {exportState.message && <p className={`project-reading-export-message ${exportState.status === "error" ? "error" : exportState.message.includes("warning") ? "warning" : ""}`} role="status">
         {exportState.message}
@@ -281,12 +286,13 @@ export function ProjectReadingSurface({
                 className="button compact-button danger"
                 disabled={interactionDisabled || editorBusy}
                 onClick={() => onAttachmentDeleteRequest(node.itemId)}
-              >Move attachment to trash</button>
+              >Remove attachment</button>
+              <p className="project-attachment-removal-hint">The attachment moves to Project trash and can be restored for 30 days. The Project stays active.</p>
             </ReadingMore>}
           </div>
         </header>
         {showGeneratedTitle && <h2>{node.title}</h2>}
-        {node.subtitle && <p className="card-meta">{node.subtitle}</p>}
+        {node.kind !== "attachment" && node.subtitle && <p className="card-meta">{node.subtitle}</p>}
 
         {node.kind === "markdown" && (editingMarkdown ? <Suspense fallback={<div className="project-rich-editor-loading">Loading editor…</div>}>
           <LazyProjectMarkdownEditor
@@ -340,6 +346,7 @@ export function ProjectReadingSurface({
               title={node.title}
               fileUrl={node.fileUrl}
               mimeType={node.mimeType}
+              byteSize={node.attachmentByteSize}
               caption={node.attachmentCaption}
               sourceUrl={node.attachmentSourceUrl}
             />

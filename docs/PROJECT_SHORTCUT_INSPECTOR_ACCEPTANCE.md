@@ -18,8 +18,10 @@ Current integration is PR #185 merge
 the completed follow-ups and remaining C4 boundaries are recorded in
 [Project C4 integration acceptance](./PROJECT_C4_ACCEPTANCE.md#current-integration-check--2026-09-13).
 The historical results below belong to their named build, not a new execution
-of the shortcut suite on this documentation update. Phase 5C4 remains in
-progress and Phase 5D has not started.
+of the shortcut suite on this documentation update. At the 2026-09-13
+checkpoint, Phase 5C4 remained in progress and Phase 5D had not started.
+Subsequent local refinement status and remaining formal acceptance limits
+are recorded in the [current product roadmap](./PRODUCT_ROADMAP.md).
 
 ## Historical desktop acceptance — PR #175–#178
 

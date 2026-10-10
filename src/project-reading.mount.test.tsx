@@ -352,7 +352,7 @@ describe("mounted Phase 3C Reading projection", () => {
     await screen.findByText("Map fixture");
     fireEvent.click(screen.getByRole("button", { name: "Reading" }));
     fireEvent.click(await screen.findByLabelText("More actions for result.pdf"));
-    fireEvent.click(screen.getByRole("button", { name: "Move attachment to trash" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove attachment" }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     const request = fetchMock.mock.calls[1];
@@ -366,7 +366,7 @@ describe("mounted Phase 3C Reading projection", () => {
     expect(body.operationId).toEqual(expect.any(String));
     await waitFor(() => {
       expect(screen.queryByRole("heading", { level: 2, name: "result.pdf" })).toBeNull();
-      expect(screen.queryByRole("button", { name: "Move attachment to trash" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "Remove attachment" })).toBeNull();
       expect(screen.getByRole("heading", { level: 1, name: "Design note" })).toBeTruthy();
     });
   });

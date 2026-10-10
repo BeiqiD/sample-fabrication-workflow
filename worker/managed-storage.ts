@@ -3,6 +3,7 @@ import {
   SwitchdriveConnectionCheckError,
   SwitchdriveStorage,
   switchdriveConfiguration,
+  type SwitchdriveTransportOptions,
 } from "./switchdrive-storage";
 import type { Env } from "./types";
 
@@ -37,10 +38,10 @@ export interface ManagedStorage {
   delete(key: string): Promise<void>;
 }
 
-export function managedStorage(env: Env): ManagedStorage | null {
+export function managedStorage(env: Env, options: SwitchdriveTransportOptions = {}): ManagedStorage | null {
   if (env.MANAGED_STORAGE_PROVIDER?.trim().toLowerCase() === "switchdrive") {
     const configuration = switchdriveConfiguration(env);
-    return configuration ? new SwitchdriveStorage(configuration) : null;
+    return configuration ? new SwitchdriveStorage(configuration, options) : null;
   }
   return null;
 }

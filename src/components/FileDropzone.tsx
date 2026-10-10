@@ -38,6 +38,7 @@ export function FileDropzone({ accept, file, label, hint, compact = false, disab
     aria-label={file ? `Replace ${file.name}` : label}
     onClick={(event) => { if (!(event.target as HTMLElement).closest("button")) browse(); }}
     onKeyDown={(event) => {
+      if (event.target !== event.currentTarget) return;
       if (event.key === "Enter" || event.key === " ") { event.preventDefault(); browse(); }
     }}
     onDragEnter={(event) => { event.preventDefault(); if (!disabled) { dragDepth.current += 1; setDragging(true); } }}

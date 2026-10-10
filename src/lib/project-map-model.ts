@@ -189,10 +189,14 @@ export function projectMapNodes(snapshot: ProjectSnapshot): ProjectNodeDescripto
   });
 }
 
-export function projectReadingNodes(snapshot: ProjectSnapshot) {
-  return projectMapNodes(snapshot).sort((left, right) => (
+export function orderProjectReadingNodes(nodes: readonly ProjectNodeDescriptor[]) {
+  return [...nodes].sort((left, right) => (
     left.createdSequence - right.createdSequence || left.itemId.localeCompare(right.itemId)
   ));
+}
+
+export function projectReadingNodes(snapshot: ProjectSnapshot) {
+  return orderProjectReadingNodes(projectMapNodes(snapshot));
 }
 
 export function projectPlacementIndex(snapshot: ProjectSnapshot) {

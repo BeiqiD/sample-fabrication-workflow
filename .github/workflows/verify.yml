@@ -16,7 +16,9 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # The complete gate includes native, source, mounted and Worker checks.
+    # Keep individual test deadlines; allow the sequential gate to finish.
+    timeout-minutes: 40
     steps:
       - name: Check out repository
         uses: actions/checkout@v4

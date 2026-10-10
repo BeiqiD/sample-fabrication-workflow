@@ -8,6 +8,11 @@ qualified implementation checkpoint `3c1baf5fdb21994c0510754eb20919db8189a91a`. 
 exits**, while [Product roadmap](./PRODUCT_ROADMAP.md#current-checkpoint)
 owns active implementation/deployment/CI state.
 
+The 2026-10-10 development integration also repairs current FP3 background actor
+admission and optional FP5 recovery binding parity. See the
+[forward rollout procedure](V3_DEVELOPMENT_INTEGRATION_RUNBOOK.md); these focused
+repairs do not claim real-provider activation or completed release acceptance.
+
 The 2026-10-03 deployed runtime remained `0017` / V20, R2 defaults and
 active File authority. The **separate local development branch** has:
 - FP2 `0018` / V21: exact-profile native File S3/R2 operations, accepted
@@ -115,6 +120,11 @@ are unavailable; a deferral is not a success claim.
 | FP3 — jobs and migration | Persisted bounded job execution; migration planning/dry run, copy/verify/conditional switch, per-file retries and progress; GC/read holds and explicit source cleanup | Interrupted jobs resume safely; corruption never cuts over; concurrent delete/read/migration is safe; all file purposes can migrate. R2/S3 same-type and cross-type instances are exercised. SWITCHdrive live cases remain explicitly pending if inaccessible. |
 | FP4 — portable research data | Native Sample/Project package export and matching website import; shared dependency/snapshot planner; offline readable projection included; report-only output | Complete non-empty package can be read offline and imported as a new copy with intact sources, comments, graph/placements and files on a different provider mapping. Retry does not duplicate records. Export and import ship as one product milestone. |
 | FP5 — system recovery | Shared bounded archive engine for full backup; visible completeness; privileged website recovery into a fresh target with verified cutover; legacy archive recovery/conversion path | Recover all promised canonical state/history and file purposes, preserving IDs; validate partial-backup handling, provider remapping, protected settings recovery and safe treatment of old jobs. Source remains usable until successful cutover. |
+
+Current local state: FP2 and FP3 retain their V21/V22 qualification evidence.
+FP4 implementation and local qualification are preserved with `0020`/V23;
+its final development result is recorded above. The formal exit conditions above
+remain separate from local fixtures. FP5 local development is complete, with independent implementation and qualification recorded in its checklist.
 
 FP1 is not a temporary R2-originals feature that leaves ordinary images bound to
 R2 indefinitely. The universal model is designed before its first schema slice;

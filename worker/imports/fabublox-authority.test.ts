@@ -34,7 +34,10 @@ function fixture(loseAck = false, interruption: "before-finalization" | "after-f
     db.prepare("INSERT INTO storage_profiles VALUES('import-profile','r2',?,'bootstrap',NULL,1,'historical',?)").run(namespace, now);
     db.prepare("INSERT INTO file_shadow_profile_enablements VALUES('import-profile',1,'operator',?)").run(now);
   };
-  const sql = initialMode === "active" ? futureActiveRuntimeDatabase(prepareOverlap) : referenceTestDatabase();
+  // This file qualifies frozen FP1 single-target receipts. FP2 per-file native
+  // receipts are qualified against 0018 in native-file-ingress.test.ts.
+  const historical = { throughMigration: "0017_fp2_native_storage_profiles.sql" };
+  const sql = initialMode === "active" ? futureActiveRuntimeDatabase(prepareOverlap, historical) : referenceTestDatabase(historical);
   if (initialMode === "overlap") {
     sql.prepare("INSERT INTO file_shadow_enablements SELECT 1,epoch,'future-runtime-test',? FROM file_shadow_control").run(now);
     prepareOverlap(sql);

@@ -71,8 +71,8 @@ import {
   projectDirtyPlacements,
   projectGeometryEquals,
   projectMapNodes,
+  orderProjectReadingNodes,
   projectPlacementIndex,
-  projectReadingNodes,
   type ProjectGeometryCommand,
 } from "../lib/project-map-model";
 import {
@@ -2374,14 +2374,13 @@ export function ProjectPage() {
     return true;
   }, [edgeController.selectEdge]);
 
-  const descriptors = useMemo(() => snapshot ? projectMapNodes(snapshot).map((node) => ({
+  // Source content is independent of working geometry; both views share its projection.
+  const canonicalDescriptors = useMemo(() => snapshot ? projectMapNodes(snapshot) : [], [snapshot]);
+  const descriptors = useMemo(() => canonicalDescriptors.map((node) => ({
     ...node,
     geometry: geometry[node.placementId] ?? node.geometry,
-  })) : [], [geometry, snapshot]);
-  const readingNodes = useMemo(() => snapshot ? projectReadingNodes(snapshot).map((node) => ({
-    ...node,
-    geometry: geometry[node.placementId] ?? node.geometry,
-  })) : [], [geometry, snapshot]);
+  })), [canonicalDescriptors, geometry]);
+  const readingNodes = useMemo(() => orderProjectReadingNodes(descriptors), [descriptors]);
   const selectedDescriptors = selectedItemIds.flatMap((itemId) => {
     const descriptor = descriptors.find((node) => node.itemId === itemId);
     return descriptor ? [descriptor] : [];
@@ -3370,14 +3369,6 @@ export function ProjectPage() {
               onClick={() => startAttachmentEdit(selected.itemId, "inspector")}
             ><ActionIcon name="edit" />Edit</button> : null}
             primaryContent={selected.kind === "attachment" ? <>
-              {attachmentEditor?.itemId !== selected.itemId && <div className="project-inspector-supporting-actions">
-                {selected.attachmentSourceUrl && <a
-                  className="button compact-button"
-                  href={selected.attachmentSourceUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >Open source URL</a>}
-              </div>}
               {attachmentEditor?.host === "inspector" && attachmentEditor.itemId === selected.itemId && <div className="project-attachment-meta-form project-inspector-editor">
                 <label>Caption
                   <textarea
@@ -3472,7 +3463,8 @@ export function ProjectPage() {
                   : pendingReferenceRemoval.status === "uncertain"
                     ? "Removal needs exact retry"
                     : "Removal needs reconciliation"
-              : "Move attachment to trash"}</button>}
+              : "Remove attachment"}</button>}
+            {selected.kind === "attachment" && <small className="muted">Removed attachments remain recoverable in Project trash for 30 days.</small>}
             {selected.kind === "reference" && <button
               type="button"
               className="button danger wide"
@@ -3500,6 +3492,7 @@ export function ProjectPage() {
     <ProjectReadingSurface
       nodes={readingNodes}
       projectTitle={snapshot.project.title}
+      projectId={snapshot.project.id}
       focusedItemId={navigationFocusItemId}
       focusRequestSequence={readingFocusSequence}
       mobile={!desktop}
@@ -3689,7 +3682,9 @@ export function ProjectPage() {
       />
     <div className="project-workspace-status-region">
       <ProjectTrashStatus controller={trash} disabled={saveState !== "saved" || ownedContentBusy || edgeController.unsafe || copyPaste.unsafe || pendingReference !== null || pendingReferenceRemoval !== null} />
-        {pendingAttachment && <div className={`project-owned-content-pending ${pendingAttachment.status}`}>
+        {pendingAttachment && <div className={`project-owned-content-pending ${pendingAttachment.status}`}
+          role="status" aria-live="polite" aria-label="Attachment upload status"
+          aria-busy={pendingAttachment.status === "uploading" || pendingAttachment.status === "saving"}>
           <strong>{pendingAttachment.filename}</strong>
           <span>{pendingAttachment.status === "uploading"
             ? "Uploading file…"

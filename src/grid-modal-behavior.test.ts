@@ -39,9 +39,9 @@ describe("grid modal behavior", () => {
     expect(drawer).toContain('className="drawer-close" aria-label="Close" disabled={saving}');
     expect(drawer).toContain('className="button" disabled={saving} onClick={onClose}');
 
-    expect(picker).toContain("blocked: Boolean(savingId)");
+    expect(picker).toContain("blocked: saving");
     expect(picker).toContain("ref={searchRef}");
-    expect(picker).toContain('className="drawer-close" aria-label="Close" disabled={Boolean(savingId)}');
+    expect(picker).toContain('className="drawer-close" aria-label="Close" disabled={saving}');
   });
 
   it("keeps the image lightbox keyboard model specialized", () => {

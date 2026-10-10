@@ -121,6 +121,45 @@ describe("registered native S3 read transport", () => {
     expect(await reader.stat("files/known")).toEqual({ outcome: "unavailable" });
   });
 
+  it("applies caller lifecycle checks without granting native write access or changing recorded targets", async () => {
+    const f = await fixture();
+    let permitted = false;
+    const beforeRequest = vi.fn(async () => permitted);
+    const before = f.sql.prepare("SELECT total_changes() n").get();
+    const reader = nativeS3ByteReader(f.env, f.profile, { fetch: f.fetch, beforeRequest });
+    expect(Object.keys(reader).sort()).toEqual(["read", "stat"]);
+    expect(await reader.read("files/known")).toEqual({ outcome: "unavailable" });
+    expect(f.fetch).not.toHaveBeenCalled();
+    permitted = true;
+    expect(await reader.stat("files/known")).toMatchObject({ outcome: "available", byteSize: 11 });
+    expect(beforeRequest.mock.calls).toEqual([[{ method: "GET", key: "files/known" }], [{ method: "HEAD", key: "files/known" }]]);
+    expect(f.fetch).toHaveBeenCalledTimes(1);
+    expect(f.fetch.mock.calls[0][0].url).toBe(f.url);
+    expect(f.sql.prepare("SELECT total_changes() n").get()).toEqual(before);
+    expect(f.sql.prepare("SELECT state FROM storage_profile_runtime WHERE storage_profile_id=?").get(f.profile.profileId))
+      .toEqual({ state: "read_only" });
+    expect(f.sql.prepare("SELECT count(*) n FROM file_locations").get()).toEqual({ n: 0 });
+    expect(f.sql.prepare("SELECT count(*) n FROM storage_role_defaults").get()).toEqual({ n: 0 });
+  });
+
+  it("rechecks the admitted binding after an asynchronous caller lifecycle check rotates its envelope", async () => {
+    const f = await fixture(); f.env.STORAGE_CREDENTIAL_KEYRING = newRing;
+    let rotated = false;
+    const beforeRequest = vi.fn(async () => {
+      if (!rotated) { rotated = true; await f.rotate(); }
+      return true;
+    });
+    const reader = nativeS3ByteReader(f.env, f.profile, { fetch: f.fetch, beforeRequest });
+    expect(await reader.stat("files/known")).toEqual({ outcome: "unavailable" });
+    expect(f.fetch).not.toHaveBeenCalled();
+    expect(beforeRequest).toHaveBeenCalledTimes(1);
+    // A later explicit call authenticates the replacement; the rejected call
+    // does not retry or bypass the final primary-D1 binding check.
+    expect(await reader.stat("files/known")).toMatchObject({ outcome: "available", byteSize: 11 });
+    expect(f.fetch).toHaveBeenCalledTimes(1);
+    expect(beforeRequest).toHaveBeenCalledTimes(2);
+  });
+
   it("does not substitute another candidate after recovery or a missing admitted payload", async () => {
     const f = await fixture();
     await saveStorageCandidate(f.env, { expectedRevision: null, label: "Same native namespace, separate installation candidate",

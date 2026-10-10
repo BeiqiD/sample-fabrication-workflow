@@ -1,8 +1,9 @@
+import { nativeAssetUrl } from "../../shared/contracts/r2-upload";
 import { fileAuthorityActiveSql, deletedEventAssetSql, deletedVerificationAssetSql, deletedEventMetadataSql } from "../files/business-lifecycle";
 import { consumerFileBindingFence, resolveConsumerFileId } from "../files/consumer-binding";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { DEFAULT_SAMPLE_STATUS, isSampleStatus, MAX_SPLIT_PIECES, type CreateRecordInput, type DeleteSampleInput, type SampleDirectorySort, type SampleStatus, type SplitSampleInput } from "../../shared/types";
+import { DEFAULT_SAMPLE_STATUS, isSampleStatus, MAX_SPLIT_PIECES, type CreateRecordInput, type DeleteSampleInput, type FileAssetMediaRef, type SampleDirectorySort, type SampleStatus, type SplitSampleInput } from "../../shared/types";
 import { isSampleRecordEvent } from "../../shared/sample-records";
 import { prepareSplitInheritedState } from "../sample-split-state";
 import { sampleDetail, sampleEvent, sampleSummary } from "../serializers";
@@ -17,7 +18,24 @@ import { requireVisibleCommentOperationGroup } from "../evidence/comment-operati
 
 export const routes = new Hono<{ Bindings: Env; Variables: { userEmail: string } }>();
 
-const sampleOverviewSelect = `
+async function sampleHasFileBindings(db: D1Database): Promise<boolean> {
+  // Retained pre-File databases do not have these columns. Inspect the actual
+  // schema before preparing either query shape; partial upgrades fail closed.
+  const schema = await db.prepare(`
+    SELECT
+      (SELECT COUNT(*) FROM sqlite_schema
+       WHERE type = 'table' AND name = 'file_authority_control') AS authority_tables,
+      (SELECT COUNT(*) FROM pragma_table_info('run_step_assets') WHERE name = 'file_id')
+        + (SELECT COUNT(*) FROM pragma_table_info('state_representation_assets') WHERE name = 'file_id')
+        + (SELECT COUNT(*) FROM pragma_table_info('run_step_comments') WHERE name = 'file_id')
+        + (SELECT COUNT(*) FROM pragma_table_info('events') WHERE name IN ('asset_file_id', 'thumbnail_file_id')) AS file_columns
+  `).first<{ authority_tables: number; file_columns: number }>();
+  if (schema?.authority_tables === 0 && schema.file_columns === 0) return false;
+  if (schema?.authority_tables === 1 && schema.file_columns === 5) return true;
+  throw new HTTPException(503, { message: "Sample File metadata is unavailable" });
+}
+
+const sampleOverviewSelect = (hasFileBindings: boolean) => `
   SELECT s.*,
          COALESCE(ptv.name, r.template_name_snapshot) AS latest_workflow_name,
          COALESCE(ptv.version, r.template_version_snapshot) AS latest_workflow_version,
@@ -50,7 +68,7 @@ const sampleOverviewSelect = `
          (
            COALESCE(
              (
-               SELECT a.r2_key
+               SELECT json_object('assetId',a.id,'fileId',${hasFileBindings ? "rsa.file_id" : "NULL"},'key',a.r2_key)
                FROM run_steps rs
                JOIN run_step_assets rsa ON rsa.run_step_id = rs.id AND rsa.role = 'execution'
                  AND rsa.deleted_at IS NULL
@@ -61,7 +79,7 @@ const sampleOverviewSelect = `
                ORDER BY rs.position DESC, rsa.position, a.id LIMIT 1
              ),
              (
-               SELECT a.r2_key
+               SELECT json_object('assetId',a.id,'fileId',${hasFileBindings ? "sra.file_id" : "NULL"},'key',a.r2_key)
                FROM state_representation_assets sra
                JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
                WHERE sra.state_hash = COALESCE(
@@ -90,7 +108,7 @@ const sampleOverviewSelect = `
                ORDER BY sra.position, a.id LIMIT 1
              )
            )
-         ) AS current_state_thumbnail_key
+         ) AS current_state_thumbnail_json
   FROM samples s
   LEFT JOIN runs r ON r.sample_id = s.id AND r.deleted_at IS NULL
     AND r.sequence_no = (
@@ -261,6 +279,7 @@ routes.get("/samples", async (c) => {
     throw new HTTPException(400, { message: "Invalid matching-run filter" });
   }
   const processingView = c.req.query("view") === "processing";
+  const hasFileBindings = processingView ? await sampleHasFileBindings(c.env.DB) : false;
   const filter = processingDirectoryFilter(c.req.query("status"));
   const { page, pageSize, offset } = readPagination(c.req.query("page"), c.req.query("pageSize"));
   const search = sampleDirectorySearch(query);
@@ -307,7 +326,7 @@ routes.get("/samples", async (c) => {
          ) AS current_state_step_title,
          COALESCE(
            (
-             SELECT a.r2_key
+             SELECT json_object('assetId',a.id,'fileId',${hasFileBindings ? "rsa.file_id" : "NULL"},'key',a.r2_key)
              FROM run_steps rs
              JOIN run_step_assets rsa ON rsa.run_step_id = rs.id AND rsa.role = 'execution'
                AND rsa.deleted_at IS NULL
@@ -318,7 +337,7 @@ routes.get("/samples", async (c) => {
              ORDER BY rs.position DESC, rsa.position, a.id LIMIT 1
            ),
            (
-             SELECT a.r2_key
+             SELECT json_object('assetId',a.id,'fileId',${hasFileBindings ? "sra.file_id" : "NULL"},'key',a.r2_key)
              FROM state_representation_assets sra
              JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
              WHERE sra.state_hash = COALESCE(
@@ -352,7 +371,7 @@ routes.get("/samples", async (c) => {
              )
              ORDER BY sra.position, a.id LIMIT 1
            )
-         ) AS current_state_thumbnail_key` : `,
+         ) AS current_state_thumbnail_json` : `,
          NULL AS current_state_step_title,
          NULL AS current_state_thumbnail_key`;
   const pageSql = `
@@ -561,6 +580,7 @@ routes.post("/samples/:id/split", async (c) => {
 routes.get("/samples/:id", async (c) => {
   const id = c.req.param("id");
   const processingView = c.req.query("view") === "processing";
+  const hasFileBindings = await sampleHasFileBindings(c.env.DB);
   const [
     sample,
     children,
@@ -576,7 +596,7 @@ routes.get("/samples/:id", async (c) => {
     commentSubmissionTargetRows,
   ] = await Promise.all([
     c.env.DB.prepare(
-      `WITH sample_overview AS (${sampleOverviewSelect})
+      `WITH sample_overview AS (${sampleOverviewSelect(hasFileBindings)})
        SELECT s.*, p.id AS p_id, p.code AS p_code, p.title AS p_title
        FROM sample_overview s
        LEFT JOIN samples p ON p.id = s.parent_id AND p.deleted_at IS NULL
@@ -634,8 +654,8 @@ routes.get("/samples/:id", async (c) => {
        ORDER BY r.sequence_no DESC, rs.position ASC`,
     ).bind(id).all<Record<string, unknown>>(),
     c.env.DB.prepare(
-      `SELECT run_step_id, role, r2_key FROM (
-         SELECT rs.id AS run_step_id, 'planned' AS role, a.r2_key, sra.position, a.created_at
+      `SELECT run_step_id, role, r2_key, asset_id, file_id FROM (
+         SELECT rs.id AS run_step_id, 'planned' AS role, a.r2_key, a.id AS asset_id, ${hasFileBindings ? "sra.file_id" : "NULL"} AS file_id, sra.position, a.created_at
          FROM run_steps rs
          JOIN runs r ON r.id = rs.run_id
          LEFT JOIN run_step_plan_links current_link
@@ -647,7 +667,7 @@ routes.get("/samples/:id", async (c) => {
          JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
          WHERE r.sample_id = ? AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
          UNION ALL
-         SELECT rsa.run_step_id, 'execution' AS role, a.r2_key, rsa.position, rsa.created_at
+         SELECT rsa.run_step_id, 'execution' AS role, a.r2_key, a.id AS asset_id, ${hasFileBindings ? "rsa.file_id" : "NULL"} AS file_id, rsa.position, rsa.created_at
          FROM run_step_assets rsa
          JOIN assets a ON a.id = rsa.asset_id AND a.status = 'ready'
          JOIN run_steps rs ON rs.id = rsa.run_step_id
@@ -655,19 +675,19 @@ routes.get("/samples/:id", async (c) => {
          WHERE r.sample_id = ? AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
            AND rsa.role = 'execution' AND rsa.deleted_at IS NULL
        ) ORDER BY run_step_id, role, position, created_at`,
-    ).bind(id, id).all<{ run_step_id: string; role: "planned" | "execution"; r2_key: string }>(),
+    ).bind(id, id).all<{ run_step_id: string; role: "planned" | "execution"; r2_key: string | null; asset_id: string; file_id: string | null }>(),
     c.env.DB.prepare(
-      `SELECT r.id AS run_id, a.r2_key
+      `SELECT r.id AS run_id, a.r2_key, a.id AS asset_id, ${hasFileBindings ? "sra.file_id" : "NULL"} AS file_id
        FROM runs r
        JOIN state_representation_assets sra ON sra.state_hash = r.initial_state_hash
        JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
        WHERE r.sample_id = ? AND r.deleted_at IS NULL
        ORDER BY r.sequence_no DESC, sra.position, a.id`,
-    ).bind(id).all<{ run_id: string; r2_key: string }>(),
+    ).bind(id).all<{ run_id: string; r2_key: string | null; asset_id: string; file_id: string | null }>(),
     c.env.DB.prepare(
       `SELECT rsc.id, rsc.run_step_id, rsc.scope, rsc.operation_group_id,
               CASE WHEN rsc.submission_id IS NULL THEN rsc.legacy_body ELSE cs.body END AS body,
-              ca.r2_key AS asset_key, rsc.submission_id, rsc.actor_email, rsc.created_at
+              ca.r2_key AS asset_key, ca.id AS asset_id, ${hasFileBindings ? "rsc.file_id" : "NULL"} AS file_id, rsc.submission_id, rsc.actor_email, rsc.created_at
        FROM run_step_comments rsc
        JOIN run_steps rs ON rs.id = rsc.run_step_id
        JOIN runs r ON r.id = rs.run_id
@@ -683,7 +703,7 @@ routes.get("/samples/:id", async (c) => {
        ORDER BY rsc.created_at, rsc.id`,
     ).bind(id).all<{
       id: string; run_step_id: string; scope: "common" | "individual";
-      operation_group_id: string | null; body: string; asset_key: string | null;
+      operation_group_id: string | null; body: string; asset_key: string | null; asset_id: string | null; file_id: string | null;
       submission_id: string | null; actor_email: string | null; created_at: string;
     }>(),
     c.env.DB.prepare(
@@ -754,10 +774,12 @@ routes.get("/samples/:id", async (c) => {
   const verificationByEndpoint = new Map(stateVerifications.map((verification) => [verification.afterRunStepId, verification]));
   const runs = new Map<string, Record<string, unknown> & { steps: unknown[] }>();
   const stepAssets = new Map<string, { planned: string[]; execution: string[] }>();
+  const stepMedia = new Map<string, { planned: FileAssetMediaRef[]; execution: FileAssetMediaRef[]; native: boolean }>();
   const initialAssetsByRun = new Map<string, string[]>();
+  const initialMediaByRun = new Map<string, { refs: FileAssetMediaRef[]; native: boolean }>();
   const stepComments = new Map<string, Array<{
     id: string; scope: "common" | "individual"; operationGroupId: string | null;
-    body: string; assetKey: string | null; submissionId: string | null;
+    body: string; assetKey: string | null; assetUrl?: string; submissionId: string | null;
     status: "draft" | "uploading" | "ready" | "failed" | "cancelled";
     images: import("../../shared/types").CommentImage[];
     attachments: import("../../shared/types").CommentAttachment[];
@@ -767,11 +789,21 @@ routes.get("/samples/:id", async (c) => {
   const submissionById = new Map(submissions.map((submission) => [submission.id, submission]));
   for (const row of runAssetRows.results) {
     const entry = stepAssets.get(row.run_step_id) ?? { planned: [], execution: [] };
-    entry[row.role].push(row.r2_key);
+    if (row.r2_key) entry[row.role].push(row.r2_key);
     stepAssets.set(row.run_step_id, entry);
+    const media = stepMedia.get(row.run_step_id) ?? { planned: [], execution: [], native: false };
+    if (!row.r2_key && row.file_id) media[row.role].push({ assetId: row.asset_id, fileId: row.file_id,
+      url: nativeAssetUrl(row.asset_id) });
+    media.native ||= row.r2_key === null && Boolean(row.file_id);
+    stepMedia.set(row.run_step_id, media);
   }
   for (const row of runInitialAssetRows.results) {
-    initialAssetsByRun.set(row.run_id, [...(initialAssetsByRun.get(row.run_id) ?? []), row.r2_key]);
+    if (row.r2_key) initialAssetsByRun.set(row.run_id, [...(initialAssetsByRun.get(row.run_id) ?? []), row.r2_key]);
+    const media = initialMediaByRun.get(row.run_id) ?? { refs: [], native: false };
+    if (!row.r2_key && row.file_id) media.refs.push({ assetId: row.asset_id, fileId: row.file_id,
+      url: nativeAssetUrl(row.asset_id) });
+    media.native ||= row.r2_key === null && Boolean(row.file_id);
+    initialMediaByRun.set(row.run_id, media);
   }
   for (const row of runCommentRows.results) {
     const entry = stepComments.get(row.run_step_id) ?? [];
@@ -782,9 +814,10 @@ routes.get("/samples/:id", async (c) => {
       operationGroupId: row.operation_group_id,
       body: row.body,
       assetKey: row.asset_key,
+      ...(!row.asset_key && row.asset_id && row.file_id ? { assetUrl: nativeAssetUrl(row.asset_id) } : {}),
       submissionId: row.submission_id,
       status: submission?.status ?? "ready",
-      images: submission?.images ?? (row.asset_key ? [{
+      images: submission?.images ?? (row.asset_key || row.asset_id && row.file_id ? [{
         id: `legacy:${row.id}`,
         filename: "Comment image",
         mimeType: "image/*",
@@ -793,6 +826,8 @@ routes.get("/samples/:id", async (c) => {
         originalMimeType: "image/*",
         originalByteSize: 0,
         assetKey: row.asset_key,
+        ...(!row.asset_key && row.asset_id && row.file_id ? { assetId: row.asset_id, fileId: row.file_id,
+          assetUrl: nativeAssetUrl(row.asset_id) } : {}),
         status: "ready",
         error: null,
         relatedAttachmentId: null,
@@ -813,6 +848,7 @@ routes.get("/samples/:id", async (c) => {
       operationGroupId: submission.scope === "common" ? submission.id : null,
       body: submission.body,
       assetKey: submission.images[0]?.assetKey ?? null,
+      ...(submission.images[0]?.assetUrl ? { assetUrl: submission.images[0].assetUrl } : {}),
       submissionId: submission.id,
       status: submission.status,
       images: submission.images,
@@ -839,6 +875,7 @@ routes.get("/samples/:id", async (c) => {
       sequenceNo: Number(row.sequence_no), runGroupId: String(row.run_group_id),
       initialStateHash: row.initial_state_hash ? String(row.initial_state_hash) : null,
       initialStateImageKeys: initialAssetsByRun.get(runId) ?? [],
+      ...(initialMediaByRun.get(runId)?.native ? { initialStateImages: initialMediaByRun.get(runId)!.refs } : {}),
       createdAt: String(row.run_created_at),
       completedAt: row.completed_at ? String(row.completed_at) : null,
       steps: [],
@@ -867,6 +904,7 @@ routes.get("/samples/:id", async (c) => {
       plannedCommentsText: row.planned_comments_text ? String(row.planned_comments_text) : null,
       plannedImageKeys: images.planned,
       executionImageKeys: images.execution,
+      ...(stepMedia.get(stepId)?.native ? { plannedImages: stepMedia.get(stepId)!.planned, executionImages: stepMedia.get(stepId)!.execution } : {}),
       comments: stepComments.get(stepId) ?? [],
       actualizedAt: row.actualized_at ? String(row.actualized_at) : null,
       verificationIds: verificationIdsByStep.get(stepId) ?? [],
@@ -1017,16 +1055,33 @@ routes.post("/samples/:id/restore", async (c) => {
 routes.post("/samples/:id/records", async (c) => {
   const sampleId = c.req.param("id");
   const input = await c.req.json<CreateRecordInput>();
-  if (typeof input.expectedUpdatedAt !== "string" || typeof input.location !== "string" || typeof input.pinned !== "boolean" || !isSampleStatus(input.status) || (input.body !== undefined && typeof input.body !== "string") || (input.assetKey !== undefined && typeof input.assetKey !== "string") || (input.thumbnailKey !== undefined && typeof input.thumbnailKey !== "string")) {
+  if (typeof input.expectedUpdatedAt !== "string" || typeof input.location !== "string" || typeof input.pinned !== "boolean" || !isSampleStatus(input.status)
+    || (input.body !== undefined && typeof input.body !== "string") || (input.assetKey !== undefined && typeof input.assetKey !== "string")
+    || (input.thumbnailKey !== undefined && typeof input.thumbnailKey !== "string")
+    || (input.assetId !== undefined && (typeof input.assetId !== "string" || !input.assetId || input.assetId.length > 256 || input.assetId.includes("\0")))
+    || (input.thumbnailAssetId !== undefined && (typeof input.thumbnailAssetId !== "string" || !input.thumbnailAssetId || input.thumbnailAssetId.length > 256 || input.thumbnailAssetId.includes("\0")))
+    || (input.assetKey !== undefined && input.assetId !== undefined) || (input.thumbnailKey !== undefined && input.thumbnailAssetId !== undefined)) {
     throw new HTTPException(400, { message: "A valid sample state and expectedUpdatedAt are required" });
   }
   const body = input.body?.trim() || null;
   if ((input.body?.length ?? 0) > 10_000 || input.location.length > 500) {
     throw new HTTPException(400, { message: "Record text or location is too long" });
   }
-  const assetKey = input.assetKey || null;
-  const thumbnailKey = input.thumbnailKey || null;
-  if (thumbnailKey && !assetKey) throw new HTTPException(400, { message: "A thumbnail requires a primary asset" });
+  let assetKey = input.assetKey || null;
+  let thumbnailKey = input.thumbnailKey || null;
+  if ((thumbnailKey || input.thumbnailAssetId) && !assetKey && !input.assetId) throw new HTTPException(400, { message: "A thumbnail requires a primary asset" });
+  const byId = async (assetId: string) => {
+    const asset = await c.env.DB.prepare(`SELECT a.id,a.r2_key FROM assets a WHERE a.id=? AND a.status='ready'
+      AND (a.import_id IS NULL OR EXISTS(SELECT 1 FROM imports i WHERE i.id=a.import_id AND i.status='ready'))`)
+      .bind(assetId).first<{ id: string; r2_key: string | null }>();
+    if (!asset) throw new HTTPException(400, { message: "One or more uploaded assets are unavailable" });
+    return asset;
+  };
+  const primaryAsset = input.assetId ? await byId(input.assetId) : null;
+  const previewAsset = input.thumbnailAssetId ? await byId(input.thumbnailAssetId) : null;
+  if (primaryAsset) assetKey = primaryAsset.r2_key;
+  if (previewAsset) thumbnailKey = previewAsset.r2_key;
+  const hasAsset = Boolean(assetKey || primaryAsset);
   const assetKeys = [assetKey, thumbnailKey].filter((key): key is string => Boolean(key));
   if (assetKeys.length) {
     const placeholders = assetKeys.map(() => "?").join(", ");
@@ -1056,10 +1111,14 @@ routes.post("/samples/:id/records", async (c) => {
     }
   }
 
-  const primaryInput = assetKey ? { assetKey, purpose: "embedded_content" as const } : null;
+  const primaryInput = primaryAsset ? { assetId: primaryAsset.id, nativeAsset: primaryAsset.r2_key === null, purpose: "embedded_content" as const }
+    : assetKey ? { assetKey, purpose: "embedded_content" as const } : null;
   const fileId = primaryInput ? await resolveConsumerFileId(c.env.DB, primaryInput) : null;
-  const previewInput = thumbnailKey ? { assetKey: thumbnailKey, purpose: "derived_preview" as const, sourceFileId: fileId } : null;
+  if (primaryAsset?.r2_key === null && !fileId) throw new HTTPException(409, { message: "Native images require active File authority" });
+  const previewInput = previewAsset ? { assetId: previewAsset.id, nativeAsset: previewAsset.r2_key === null, purpose: "derived_preview" as const, sourceFileId: fileId }
+    : thumbnailKey ? { assetKey: thumbnailKey, purpose: "derived_preview" as const, sourceFileId: fileId } : null;
   const previewFileId = previewInput ? await resolveConsumerFileId(c.env.DB, previewInput) : null;
+  if (previewAsset?.r2_key === null && !previewFileId) throw new HTTPException(409, { message: "Native previews require active File authority" });
   const fences = [
     ...(primaryInput ? [consumerFileBindingFence(c.env.DB, primaryInput, fileId)] : []),
     ...(previewInput ? [consumerFileBindingFence(c.env.DB, previewInput, previewFileId)] : []),
@@ -1074,7 +1133,7 @@ routes.post("/samples/:id/records", async (c) => {
   }
   const location = input.location.trim() || null;
   const detailsChanged = current.status !== input.status || current.location !== location || Boolean(current.pinned) !== input.pinned;
-  if (!detailsChanged && !body && !assetKey) throw new HTTPException(400, { message: "The record has no changes" });
+  if (!detailsChanged && !body && !hasAsset) throw new HTTPException(400, { message: "The record has no changes" });
 
   const mutationId = crypto.randomUUID();
   const now = new Date(Math.max(Date.now(), Date.parse(input.expectedUpdatedAt) + 1)).toISOString();
@@ -1083,13 +1142,15 @@ routes.post("/samples/:id/records", async (c) => {
     `UPDATE samples SET status = ?, location = ?, pinned = ?, updated_by = ?, last_mutation_id = ?, updated_at = ?
      WHERE id = ? AND updated_at = ? AND deleted_at IS NULL`,
   ).bind(input.status, location, input.pinned ? 1 : 0, userEmail, mutationId, now, sampleId, input.expectedUpdatedAt)];
-  if (body || assetKey) statements.push(c.env.DB.prepare(
+  if (body || hasAsset) statements.push(c.env.DB.prepare(
     `INSERT INTO events (id, sample_id, kind, body, asset_key, asset_file_id, thumbnail_file_id, metadata_json, actor_email, created_at)
      SELECT ?, id, ?, ?, ?, ?, ?, ?, ?, ? FROM samples
      WHERE id = ? AND last_mutation_id = ? AND deleted_at IS NULL`,
   ).bind(
-    crypto.randomUUID(), assetKey ? "image" : "comment", body, assetKey, fileId, previewFileId,
-    JSON.stringify({ action: "sample_record", ...(thumbnailKey ? { thumbnailKey } : {}) }), userEmail, now, sampleId, mutationId,
+    crypto.randomUUID(), hasAsset ? "image" : "comment", body, assetKey, fileId, previewFileId,
+    JSON.stringify({ action: "sample_record", ...(thumbnailKey ? { thumbnailKey } : {}),
+      ...(primaryAsset?.r2_key === null ? { assetId: primaryAsset.id } : {}),
+      ...(previewAsset?.r2_key === null ? { thumbnailAssetId: previewAsset.id } : {}) }), userEmail, now, sampleId, mutationId,
   ));
   const results = (await c.env.DB.batch([...fences, ...statements])).slice(fences.length);
   if (!results[0].meta.changes) throw new HTTPException(409, { message: "This sample changed elsewhere. Review the current state and save again." });
@@ -1100,9 +1161,11 @@ routes.post("/samples/:id/records", async (c) => {
 routes.delete("/samples/:id/records/:eventId", async (c) => {
   const sampleId = c.req.param("id");
   const eventId = c.req.param("eventId");
+  const hasFileBindings = await sampleHasFileBindings(c.env.DB);
   const event = await c.env.DB.prepare(
-    "SELECT id, kind, body, asset_key, metadata_json FROM events WHERE id = ? AND sample_id = ?",
-  ).bind(eventId, sampleId).first<{ id: string; kind: string; body: string | null; asset_key: string | null; metadata_json: string }>();
+    `SELECT id, kind, body, asset_key, ${hasFileBindings ? "asset_file_id" : "NULL"} AS asset_file_id,
+            metadata_json FROM events WHERE id = ? AND sample_id = ?`,
+  ).bind(eventId, sampleId).first<{ id: string; kind: string; body: string | null; asset_key: string | null; asset_file_id: string | null; metadata_json: string }>();
   if (!event) throw new HTTPException(404, { message: "Sample record not found" });
   let metadata: Record<string, unknown> = {};
   try { metadata = JSON.parse(event.metadata_json || "{}") as Record<string, unknown>; }
@@ -1116,7 +1179,7 @@ routes.delete("/samples/:id/records/:eventId", async (c) => {
   const now = new Date(Math.max(Date.now(), Date.parse(sample.updated_at) + 1)).toISOString();
   const userEmail = c.get("userEmail");
   const { thumbnailKey: _thumbnailKey, ...retainedMetadata } = metadata;
-  const deletedSummary = event.body?.trim() || (event.asset_key ? "Photo attachment" : "Empty record");
+  const deletedSummary = event.body?.trim() || (event.asset_key || event.asset_file_id ? "Photo attachment" : "Empty record");
   const deletionOperationId = crypto.randomUUID();
   const results = await c.env.DB.batch([
     c.env.DB.prepare(
@@ -1135,7 +1198,7 @@ routes.delete("/samples/:id/records/:eventId", async (c) => {
         deletedAt: now,
         deletedBy: userEmail,
         deletionOperationId,
-        hadAsset: Boolean(event.asset_key),
+        hadAsset: Boolean(event.asset_key || event.asset_file_id),
       }),
       eventId,
       sampleId,
@@ -1179,15 +1242,23 @@ routes.delete("/samples/:id/records/:eventId", async (c) => {
 routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
   const sampleId = c.req.param("id");
   const eventId = c.req.param("eventId");
+  const hasFileBindings = await sampleHasFileBindings(c.env.DB);
   const event = await c.env.DB.prepare(
-    "SELECT id, kind, body, asset_key, metadata_json FROM events WHERE id = ? AND sample_id = ?",
-  ).bind(eventId, sampleId).first<{ id: string; kind: string; body: string | null; asset_key: string | null; metadata_json: string }>();
+    `SELECT id, kind, body, asset_key, ${hasFileBindings ? "asset_file_id" : "NULL"} AS asset_file_id,
+            metadata_json FROM events WHERE id = ? AND sample_id = ?`,
+  ).bind(eventId, sampleId).first<{ id: string; kind: string; body: string | null; asset_key: string | null; asset_file_id: string | null; metadata_json: string }>();
   if (!event) throw new HTTPException(404, { message: "Timeline entry not found" });
-  if (!event.asset_key) throw new HTTPException(409, { message: "This image attachment was already deleted" });
   let metadata: Record<string, unknown> = {};
   try { metadata = JSON.parse(event.metadata_json || "{}") as Record<string, unknown>; }
   catch { throw new HTTPException(409, { message: "This image attachment cannot be safely deleted" }); }
   if (metadata.assetDeletedAt || metadata.deletedAt) throw new HTTPException(409, { message: "This image attachment was already deleted" });
+  const nativeAssetId = !event.asset_key && event.asset_file_id && typeof metadata.assetId === "string" ? metadata.assetId : null;
+  if (!event.asset_key && !nativeAssetId) throw new HTTPException(409, { message: "This image attachment was already deleted" });
+  if (nativeAssetId && !await c.env.DB.prepare("SELECT 1 FROM assets WHERE id=? AND r2_key IS NULL AND file_id=?")
+    .bind(nativeAssetId,event.asset_file_id).first()) throw new HTTPException(409, { message: "This image attachment no longer has its recorded File alias" });
+  const assetLocator = nativeAssetId ?? event.asset_key;
+  const assetColumn = nativeAssetId ? "id" : "r2_key";
+  const eventColumn = nativeAssetId ? "json_extract(metadata_json,'$.assetId')" : "asset_key";
 
   const sourceAction = typeof metadata.action === "string" ? metadata.action : null;
   const operationGroupId = typeof metadata.operationGroupId === "string" ? metadata.operationGroupId : null;
@@ -1212,11 +1283,11 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
          JOIN runs r ON r.id = rs.run_id
          JOIN samples s ON s.id = r.sample_id
          WHERE rsa.id = ? AND rsa.run_step_id = ? AND rsa.role = 'execution'
-           AND a.r2_key = ? AND rs.id = ? AND r.id = ? AND s.id = ?
+           AND a.${assetColumn} = ? AND rs.id = ? AND r.id = ? AND s.id = ?
            AND rsa.deleted_at IS NULL AND rs.deleted_at IS NULL
            AND r.deleted_at IS NULL AND s.deleted_at IS NULL`,
       ).bind(
-        eventRunStepAssetId, stepId, event.asset_key,
+        eventRunStepAssetId, stepId, assetLocator,
         stepId, runId, sampleId,
       ).all<{ id: string }>()).results
       : (await c.env.DB.prepare(
@@ -1226,11 +1297,11 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
          JOIN run_steps rs ON rs.id = rsa.run_step_id
          JOIN runs r ON r.id = rs.run_id
          JOIN samples s ON s.id = r.sample_id
-         WHERE rsa.run_step_id = ? AND rsa.role = 'execution' AND a.r2_key = ?
+         WHERE rsa.run_step_id = ? AND rsa.role = 'execution' AND a.${assetColumn} = ?
            AND rs.id = ? AND r.id = ? AND s.id = ?
            AND rsa.deleted_at IS NULL AND rs.deleted_at IS NULL
            AND r.deleted_at IS NULL AND s.deleted_at IS NULL`,
-      ).bind(stepId, event.asset_key, stepId, runId, sampleId).all<{ id: string }>()).results;
+      ).bind(stepId, assetLocator, stepId, runId, sampleId).all<{ id: string }>()).results;
     if (occurrences.length !== 1) {
       throw new HTTPException(409, { message: "This execution image no longer identifies one attachment occurrence" });
     }
@@ -1242,14 +1313,14 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
        WHERE kind = 'step' AND json_valid(metadata_json)
          AND json_extract(metadata_json, '$.action') = 'step_comment'
          AND json_extract(metadata_json, '$.operationGroupId') = ?
-         AND asset_key = ?
+         AND ${eventColumn} = ?
        ORDER BY id`,
-    ).bind(operationGroupId, event.asset_key).all<{ id: string; sample_id: string }>()).results
+    ).bind(operationGroupId, assetLocator).all<{ id: string; sample_id: string }>()).results
     : executionOccurrenceId && stepId && runId && event.kind === "image"
       ? (await c.env.DB.prepare(
         `SELECT id, sample_id
          FROM events
-         WHERE sample_id = ? AND kind = 'image' AND asset_key = ? AND json_valid(metadata_json)
+         WHERE sample_id = ? AND kind = 'image' AND ${eventColumn} = ? AND json_valid(metadata_json)
            AND (
              json_extract(metadata_json, '$.runStepAssetId') = ?
              OR (
@@ -1260,7 +1331,7 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
            )
          ORDER BY id`,
       ).bind(
-        sampleId, event.asset_key, executionOccurrenceId, runId, stepId,
+        sampleId, assetLocator, executionOccurrenceId, runId, stepId,
       ).all<{ id: string; sample_id: string }>()).results
     : [{ id: eventId, sample_id: sampleId }];
   const affectedSampleIds = [...new Set(affectedEvents.map((row) => row.sample_id))];
@@ -1290,7 +1361,7 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
       `WITH valid_events AS MATERIALIZED (
          SELECT id FROM events
          WHERE id IN (${affectedEventPlaceholders})
-           AND kind = 'step' AND asset_key = ? AND json_valid(metadata_json)
+           AND kind = 'step' AND ${eventColumn} = ? AND json_valid(metadata_json)
            AND json_extract(metadata_json, '$.action') = 'step_comment'
            AND json_extract(metadata_json, '$.operationGroupId') = ?
        ),
@@ -1301,7 +1372,7 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
          JOIN runs r ON r.id = rs.run_id
          JOIN samples s ON s.id = r.sample_id
          WHERE rsc.operation_group_id = ?
-           AND rsc.asset_id = (SELECT id FROM assets WHERE r2_key = ?)
+           AND rsc.asset_id = (SELECT id FROM assets WHERE ${assetColumn} = ?)
            AND rsc.deleted_at IS NULL AND rsc.asset_deleted_at IS NULL
            AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
            AND (
@@ -1329,29 +1400,29 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
          ) = (
            SELECT COUNT(*) FROM run_step_comments
            WHERE operation_group_id = ?
-             AND asset_id = (SELECT id FROM assets WHERE r2_key = ?)
+             AND asset_id = (SELECT id FROM assets WHERE ${assetColumn} = ?)
              AND deleted_at IS NULL AND asset_deleted_at IS NULL
          )
        RETURNING 1 AS affected`,
     ).bind(
       ...affectedEventIds,
-      event.asset_key,
+      assetLocator,
       operationGroupId,
       operationGroupId,
-      event.asset_key,
+      assetLocator,
       now,
       userEmail,
       deletionOperationId,
       affectedEventIds.length,
       operationGroupId,
-      event.asset_key,
+      assetLocator,
     ));
     statements.push(c.env.DB.prepare(
       `UPDATE run_step_comments
        SET asset_deleted_at = ?, asset_deleted_by = ?,
            asset_deletion_operation_id = ?, last_mutation_id = ?
        WHERE operation_group_id = ?
-         AND asset_id = (SELECT id FROM assets WHERE r2_key = ?)
+         AND asset_id = (SELECT id FROM assets WHERE ${assetColumn} = ?)
          AND deleted_at IS NULL AND asset_deleted_at IS NULL
          AND (
            SELECT COUNT(*) FROM events source
@@ -1364,7 +1435,7 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
       deletionOperationId,
       deletionOperationId,
       operationGroupId,
-      event.asset_key,
+      assetLocator,
       ...affectedEventIds,
       deletionOperationId,
       affectedEventIds.length,
@@ -1384,7 +1455,7 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
            metadata_json, '$.assetDeletedAt', ?, '$.assetDeletedBy', ?,
            '$.assetDeletionOperationId', ?
          )
-       WHERE id = ? AND sample_id = ? AND asset_key = ?
+       WHERE id = ? AND sample_id = ? AND ${eventColumn} = ?
          AND EXISTS (
            SELECT 1
            FROM state_verifications sv
@@ -1392,27 +1463,27 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
            JOIN runs r ON r.id = endpoint.run_id
            JOIN samples s ON s.id = sv.sample_id
            WHERE sv.id = ? AND sv.sample_id = ?
-             AND sv.evidence_asset_id = (SELECT id FROM assets WHERE r2_key = ?)
+             AND sv.evidence_asset_id = (SELECT id FROM assets WHERE ${assetColumn} = ?)
              AND s.deleted_at IS NULL AND r.deleted_at IS NULL
              AND endpoint.deleted_at IS NULL
          )
        RETURNING 1 AS affected`,
     ).bind(
       now, userEmail, deletionOperationId,
-      eventId, sampleId, event.asset_key,
-      verificationId, sampleId, event.asset_key,
+      eventId, sampleId, assetLocator,
+      verificationId, sampleId, assetLocator,
     ));
     statements.push(c.env.DB.prepare(
       `UPDATE state_verifications SET evidence_asset_id = ${await deletedVerificationAssetSql(c.env.DB)}
        WHERE id = ? AND sample_id = ?
-         AND evidence_asset_id = (SELECT id FROM assets WHERE r2_key = ?)
+         AND evidence_asset_id = (SELECT id FROM assets WHERE ${assetColumn} = ?)
          AND EXISTS (
            SELECT 1 FROM events source
            WHERE source.id = ? AND source.sample_id = ?
              AND json_extract(source.metadata_json, '$.assetDeletionOperationId') = ?
          )`,
     ).bind(
-      verificationId, sampleId, event.asset_key,
+      verificationId, sampleId, assetLocator,
       eventId, sampleId, deletionOperationId,
     ));
   } else if (stepId && runId && event.kind === "image" && executionOccurrenceId) {
@@ -1420,7 +1491,7 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
       `WITH candidate_events AS MATERIALIZED (
          SELECT id
          FROM events
-         WHERE sample_id = ? AND kind = 'image' AND asset_key = ? AND json_valid(metadata_json)
+         WHERE sample_id = ? AND kind = 'image' AND ${eventColumn} = ? AND json_valid(metadata_json)
            AND (
              json_extract(metadata_json, '$.runStepAssetId') = ?
              OR (
@@ -1438,7 +1509,7 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
          JOIN runs r ON r.id = rs.run_id
          JOIN samples s ON s.id = r.sample_id
          WHERE rsa.id = ? AND rsa.run_step_id = ? AND rsa.role = 'execution'
-           AND a.r2_key = ? AND rs.id = ? AND r.id = ? AND s.id = ?
+           AND a.${assetColumn} = ? AND rs.id = ? AND r.id = ? AND s.id = ?
            AND rsa.deleted_at IS NULL AND rs.deleted_at IS NULL
            AND r.deleted_at IS NULL AND s.deleted_at IS NULL
        )
@@ -1453,8 +1524,8 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
          AND EXISTS (SELECT 1 FROM valid_occurrence)
        RETURNING 1 AS affected`,
     ).bind(
-      sampleId, event.asset_key, executionOccurrenceId, runId, stepId,
-      executionOccurrenceId, stepId, event.asset_key, stepId, runId, sampleId,
+      sampleId, assetLocator, executionOccurrenceId, runId, stepId,
+      executionOccurrenceId, stepId, assetLocator, stepId, runId, sampleId,
       executionOccurrenceId, now, userEmail, deletionOperationId,
       affectedEventIds.length,
     ));
@@ -1462,7 +1533,7 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
       `UPDATE run_step_assets
        SET deleted_at = ?, deleted_by = ?, last_mutation_id = ?
        WHERE id = ? AND run_step_id = ? AND deleted_at IS NULL
-         AND asset_id = (SELECT id FROM assets WHERE r2_key = ?)
+         AND asset_id = (SELECT id FROM assets WHERE ${assetColumn} = ?)
          AND (
            SELECT COUNT(*) FROM events source
            WHERE source.sample_id = ? AND source.kind = 'image'
@@ -1472,7 +1543,7 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
          ) = ?`,
     ).bind(
       now, userEmail, deletionOperationId,
-      executionOccurrenceId, stepId, event.asset_key,
+      executionOccurrenceId, stepId, assetLocator,
       sampleId, executionOccurrenceId, deletionOperationId, affectedEventIds.length,
     ));
     statements.push(c.env.DB.prepare(
@@ -1491,7 +1562,7 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
     const { thumbnailKey: _thumbnailKey, ...retainedMetadata } = metadata;
     statements.push(c.env.DB.prepare(
       `UPDATE events SET asset_key = ${await deletedEventAssetSql(c.env.DB)}, metadata_json = ${await deletedEventMetadataSql(c.env.DB)}
-       WHERE id = ? AND sample_id = ? AND asset_key = ?
+       WHERE id = ? AND sample_id = ? AND ${eventColumn} = ?
          AND EXISTS (
            SELECT 1 FROM samples s
            WHERE s.id = events.sample_id AND s.deleted_at IS NULL
@@ -1506,7 +1577,7 @@ routes.delete("/samples/:id/events/:eventId/asset", async (c) => {
       }),
       eventId,
       sampleId,
-      event.asset_key,
+      assetLocator,
     ));
   } else {
     throw new HTTPException(400, { message: "This timeline image is not a removable attachment" });

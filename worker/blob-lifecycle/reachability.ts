@@ -1,5 +1,6 @@
 import type { BlobLocator, RetentionEdgeRow } from "./types";
 import type { BlobLifecycleDatabase } from "./gc-database";
+import { recoveryHoldsInstalled, recoveryTupleUnheldSql } from "./recovery-retention";
 
 /** The exact lease granted by the atomic claim, not just its operation family. */
 export interface BlobDeletionClaim {
@@ -17,26 +18,35 @@ export function retryUntil(now: Date) {
 }
 
 export async function listRetentionEdges(db: D1Database, locator: BlobLocator) {
+  const recoveryInstalled = Boolean(await recoveryHoldsInstalled(db));
   const result = await db.prepare(
     `SELECT store_kind, provider, object_key, blob_record_id,
             source_type, source_id, occurrence_type, occurrence_id,
             retention_reason, retain_until
      FROM blob_retention_edges
-     WHERE store_kind = ? AND provider = ? AND object_key = ?
+     WHERE store_kind = ?1 AND provider = ?2 AND object_key = ?3
+     ${recoveryInstalled ? `UNION ALL
+     SELECT store_kind, provider, object_key, NULL,
+       'system_recovery_backup', job_id, 'system_recovery_source', job_id,
+       'system_recovery_source_hold', NULL
+     FROM system_recovery_legacy_holds
+     WHERE store_kind = ?1 AND provider = ?2 AND object_key = ?3 AND released_at IS NULL` : ""}
      ORDER BY source_type, source_id, occurrence_type, occurrence_id`,
   ).bind(locator.storeKind, locator.provider, locator.objectKey).all<RetentionEdgeRow>();
   return result.results;
 }
 
 export async function isBlobReachable(db: D1Database, locator: BlobLocator) {
+  const installed = await recoveryHoldsInstalled(db);
   const row = await db.prepare(
-    `SELECT 1 AS reachable FROM blob_retention_edges
-     WHERE store_kind = ? AND provider = ? AND object_key = ? LIMIT 1`,
+    `SELECT 1 AS reachable WHERE EXISTS (SELECT 1 FROM blob_retention_edges
+     WHERE store_kind = ?1 AND provider = ?2 AND object_key = ?3)
+       OR NOT (${recoveryTupleUnheldSql(Boolean(installed), "?1", "?2", "?3")})`,
   ).bind(locator.storeKind, locator.provider, locator.objectKey).first<{ reachable: number }>();
   return Boolean(row);
 }
 
-function orphanInsertSql(storeKind: BlobLocator["storeKind"]) {
+function orphanInsertSql(storeKind: BlobLocator["storeKind"], recoveryInstalled: boolean) {
   const source = storeKind === "r2"
     ? `assets b`
     : `managed_storage_objects b`;
@@ -57,6 +67,7 @@ function orphanInsertSql(storeKind: BlobLocator["storeKind"]) {
         WHERE bre.store_kind = ? AND bre.provider = ${provider}
           AND bre.object_key = ${key}
       )
+      AND ${recoveryTupleUnheldSql(recoveryInstalled, `'${storeKind}'`, provider, key)}
     ON CONFLICT(store_kind, provider, object_key) DO UPDATE SET
       blob_record_id = excluded.blob_record_id,
       operation_id = excluded.operation_id,
@@ -75,8 +86,9 @@ export async function markOrphanCandidate(
   now: Date,
 ) {
   const timestamp = now.toISOString();
+  const recoveryInstalled = Boolean(await recoveryHoldsInstalled(db));
   const registrationCutoff = new Date(now.getTime() - BLOB_REGISTRATION_GRACE_MS).toISOString();
-  const insert = db.prepare(orphanInsertSql(locator.storeKind)).bind(
+  const insert = db.prepare(orphanInsertSql(locator.storeKind, recoveryInstalled)).bind(
     locator.storeKind,
     operationId,
     timestamp,
@@ -104,7 +116,8 @@ export async function markOrphanCandidate(
            SELECT 1 FROM blob_retention_edges bre
            WHERE bre.store_kind = 'managed' AND bre.provider = managed_storage_objects.provider
              AND bre.object_key = managed_storage_objects.object_key
-         )`,
+         )
+         AND ${recoveryTupleUnheldSql(recoveryInstalled, "'managed'", "managed_storage_objects.provider", "managed_storage_objects.object_key")}`,
     ).bind(timestamp, locator.provider, locator.objectKey),
   ]);
   return Boolean(results[0].meta.changes);
@@ -116,6 +129,7 @@ export async function refreshOrphanGrace(
   operationId: string,
   now: Date,
 ) {
+  const recoveryInstalled = Boolean(await recoveryHoldsInstalled(db));
   const ledger = await db.prepare(
     `SELECT state FROM blob_gc_ledger
      WHERE store_kind = ? AND provider = ? AND object_key = ?`,
@@ -131,7 +145,8 @@ export async function refreshOrphanGrace(
        AND NOT EXISTS (
          SELECT 1 FROM blob_retention_edges bre
          WHERE bre.store_kind = ? AND bre.provider = ? AND bre.object_key = ?
-       )`,
+       )
+       AND ${recoveryTupleUnheldSql(recoveryInstalled, "blob_gc_ledger.store_kind", "blob_gc_ledger.provider", "blob_gc_ledger.object_key")}`,
   ).bind(
     operationId,
     timestamp,
@@ -152,6 +167,7 @@ export async function claimBlobDeletion(
   operationId: string,
   now: Date,
 ) {
+  const recoveryInstalled = Boolean(await recoveryHoldsInstalled(db));
   const timestamp = now.toISOString();
   const orphanCutoff = new Date(now.getTime() - BLOB_ORPHAN_GRACE_MS).toISOString();
   const result = await db.prepare(
@@ -164,6 +180,7 @@ export async function claimBlobDeletion(
          SELECT 1 FROM blob_retention_edges bre
          WHERE bre.store_kind = ? AND bre.provider = ? AND bre.object_key = ?
        )
+       AND ${recoveryTupleUnheldSql(recoveryInstalled, "blob_gc_ledger.store_kind", "blob_gc_ledger.provider", "blob_gc_ledger.object_key")}
      RETURNING operation_id AS operationId, attempt_count AS attemptCount,
                deletion_started_at AS deletionStartedAt`,
   ).bind(
@@ -188,6 +205,7 @@ export async function reclaimBlobDeletion(
   now: Date,
   staleBefore: string,
 ) {
+  const recoveryInstalled = Boolean(await recoveryHoldsInstalled(db));
   const timestamp = now.toISOString();
   const result = await db.prepare(
     `UPDATE blob_gc_ledger
@@ -199,6 +217,7 @@ export async function reclaimBlobDeletion(
          SELECT 1 FROM blob_retention_edges bre
          WHERE bre.store_kind = ? AND bre.provider = ? AND bre.object_key = ?
        )
+       AND ${recoveryTupleUnheldSql(recoveryInstalled, "blob_gc_ledger.store_kind", "blob_gc_ledger.provider", "blob_gc_ledger.object_key")}
      RETURNING operation_id AS operationId, attempt_count AS attemptCount,
                deletion_started_at AS deletionStartedAt`,
   ).bind(

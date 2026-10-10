@@ -52,6 +52,7 @@ test("CI and deployment cover the same unique leaves; only deployment build uses
     assert.equal(new Set(plan.leaves.map(({ id }) => id)).size, plan.leaves.length);
     assert.equal(plan.leaves.filter(({ id }) => id === "build").length, 1);
     assert(plan.leaves.some(({ script }) => script === "typecheck:export-contract"));
+    assert(plan.leaves.some(({ script }) => script === "typecheck:file-jobs-node"));
     assert(plan.leaves.some(({ script }) => script === "verify:project-worker-artifact"));
     for (const { script } of plan.leaves) assert.equal(typeof scripts[script], "string", script);
     for (const ids of Object.values(plan.contexts)) for (const id of ids) assert(plan.leaves.some((leaf) => leaf.id === id), id);
@@ -60,6 +61,19 @@ test("CI and deployment cover the same unique leaves; only deployment build uses
   assert.equal(ci.leaves.find(({ id }) => id === "build").script, "build");
   assert.equal(deploy.leaves.find(({ id }) => id === "build").script, "build:deploy");
   assert(!deploy.leaves.some(({ script }) => /deploy:remote|migrate:remote/.test(script)));
+});
+
+test("required verification includes both FP3 native fixtures and a platform-independent Node runner typecheck", async () => {
+  for (const file of ["scripts/fp3-transfer-spike.test.mjs", "scripts/fp3-node-runner.test.mjs"]) {
+    assert.equal(scripts["test:verification-scripts"].split(/\s+/).filter(token => token === file).length, 1, file);
+  }
+  assert.equal(scripts["typecheck:file-jobs-node"], "tsc -p tsconfig.file-jobs-node.json");
+  const configuration = JSON.parse(await readFile(new URL("../tsconfig.file-jobs-node.json", import.meta.url), "utf8"));
+  assert.deepEqual(configuration.compilerOptions.types, ["node"]);
+  assert.deepEqual(configuration.files, ["scripts/lib/file-job-node-runtime.ts"]);
+  const plan = verificationPlan("ci");
+  assert(plan.contexts["pre-pr/file-jobs"].includes("file-jobs-node"));
+  assert.equal(plan.leaves.filter(leaf => leaf.id === "file-jobs-node").length, 1);
 });
 
 test("complete test leaves discover every explicit file from preserved local domain commands", async () => {

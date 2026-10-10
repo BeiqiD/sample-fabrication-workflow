@@ -1,8 +1,9 @@
 import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { canonicalCommentAcceptanceInput, COMMENT_ACCEPTANCE_LIFETIME_MS, MAX_COMMENT_ACCEPTANCE_INPUT_BYTES,
-  validateCommentAcceptanceInput, validateCommentAcceptedItemResult, validateCommentPublicationPlan, validateCommentPublicationResult,
-  type AcceptedCommentSubmissionInput, type CommentAcceptanceState, type CommentAcceptedItemResult, type CommentPublicationPlan } from "../../shared/contracts/comment-acceptance";
+  validateCommentAcceptanceInput, validateCommentAcceptedItemResultV21, validateCommentPublicationPlan, validateCommentPublicationResult,
+  type AcceptedCommentSubmissionInput, type CommentAcceptanceState, type CommentAcceptedItemResult, type CommentAcceptedItemResultV21,
+  type CommentPublicationPlan } from "../../shared/contracts/comment-acceptance";
 import { validSubmissionId } from "../../shared/contracts/comment-submissions";
 import { sha256Hex, stableJson } from "../../shared/domain/content-addressing";
 import { primaryD1 } from "../d1-primary";
@@ -18,19 +19,22 @@ import { r2ByteReader } from "../files/storage-adapters/r2-reader";
 import { managedByteReader } from "../files/storage-adapters/managed-reader";
 import { readFileAuthorityMode } from "../files/authority-reader";
 import { verifyAcceptedResultFile } from "../files/accepted-result-reader";
-import { stageAuthorityCandidate } from "../files/authority-candidates";
+import { stageAuthorityCandidate, type StagedAuthorityCandidate } from "../files/authority-candidates";
 import { writeAuthorityCandidate } from "../files/authority-publication";
+import { nativeAssetAliasBindings, nativeAssetAliasInsert, nativeAssetAliasPredicate } from "../files/native-asset-alias";
 import type { Env } from "../types";
 
 type C = Context<{ Bindings: Env; Variables: { userEmail: string } }>;
 export interface CommentSubmissionAcceptanceRow {
   submission_id: string; actor_email: string; operation_id: string; request_sha256: string; request_input_json: string;
-  publication_plan_json: string; request_scope: "system"; storage_policy_revision: 1; storage_role_policy_revision: 1 | 2; status: "pending" | "ready" | "cancelled";
+  publication_plan_json: string; request_scope: "system"; storage_policy_revision: 1; storage_role_policy_revision?: 1 | 2 | 3;
+  role_selection_revision?: number | null; status: "pending" | "ready" | "cancelled";
   accepted_result_json: string | null; created_at: string; completed_at: string | null; expires_at: string;
 }
 export interface CommentItemAcceptanceRow {
   item_id: string; submission_id: string; actor_email: string; purpose: "embedded_content" | "derived_preview" | "research_source";
   expected_sha256: string; expected_byte_size: number; storage_profile_id: string; storage_profile_revision: 1;
+  role_selection_revision?: number | null;
   candidate_blob_id: string; candidate_object_key: string; execution_token: string | null; started_at: string | null;
   status: "pending" | "ready" | "cancelled"; accepted_result_json: string | null; created_at: string;
 }
@@ -76,9 +80,19 @@ async function itemStillEligible(db: D1Database, row: CommentItemAcceptanceRow, 
     .bind(row.item_id, row.submission_id, row.expected_sha256, result.blobRecordId, result.objectKey, row.expected_sha256, row.expected_byte_size,
       result.storeKind, result.provider, result.objectKey, result.storeKind, result.provider, result.objectKey).first());
 }
-const activeItemAvailableSql = `ia.status='ready' AND csi.sha256=ia.expected_sha256 AND csi.byte_size=ia.expected_byte_size
+const activeItemAvailableSql = (native: boolean) => `ia.status='ready' AND csi.sha256=ia.expected_sha256 AND csi.byte_size=ia.expected_byte_size
   AND ((json_extract(ia.accepted_result_json,'$.storeKind')='r2' AND csi.asset_id=json_extract(ia.accepted_result_json,'$.blobRecordId'))
-    OR (json_extract(ia.accepted_result_json,'$.storeKind')='managed' AND csi.storage_object_id=json_extract(ia.accepted_result_json,'$.blobRecordId')))
+    OR (json_extract(ia.accepted_result_json,'$.storeKind')='managed' AND csi.storage_object_id=json_extract(ia.accepted_result_json,'$.blobRecordId'))
+    ${native ? `OR (json_extract(ia.accepted_result_json,'$.schema')='comment-upload/2'
+      AND json_extract(ia.accepted_result_json,'$.storeKind')='file' AND json_extract(ia.accepted_result_json,'$.provider')='s3'
+      AND csi.file_id=json_extract(ia.accepted_result_json,'$.fileId') AND csi.storage_object_id IS NULL
+      AND EXISTS(SELECT 1 FROM assets a LEFT JOIN imports i ON i.id=a.import_id
+        WHERE a.id=csi.asset_id AND a.id=json_extract(ia.accepted_result_json,'$.blobRecordId')
+          AND a.r2_key IS NULL AND a.file_id=csi.file_id AND a.status='ready'
+          AND a.storage_profile_id=ia.storage_profile_id AND a.storage_profile_id=json_extract(ia.accepted_result_json,'$.storageProfileId')
+          AND a.storage_profile_revision=ia.storage_profile_revision AND a.storage_profile_revision=json_extract(ia.accepted_result_json,'$.storageProfileRevision')
+          AND a.object_key=json_extract(ia.accepted_result_json,'$.objectKey')
+          AND a.sha256=ia.expected_sha256 AND a.byte_size=ia.expected_byte_size AND (a.import_id IS NULL OR i.status='ready')))` : ""})
   AND EXISTS (SELECT 1 FROM file_usable_publications f WHERE f.file_id=csi.file_id AND f.purpose=ia.purpose
     AND f.access_scope='system' AND f.verified_byte_size=ia.expected_byte_size AND f.verified_sha256=ia.expected_sha256)
   AND NOT EXISTS (SELECT 1 FROM file_acceptance_candidates candidate
@@ -91,14 +105,14 @@ async function activeItemFileId(db: D1Database, row: CommentItemAcceptanceRow): 
     JOIN comment_item_acceptances ia ON ia.item_id=csi.id
     WHERE csi.id=? AND csi.submission_id=? AND ia.actor_email=? AND ia.accepted_result_json=?
       AND csi.status='ready' AND csi.deleted_at IS NULL AND cs.status<>'cancelled' AND cs.deleted_at IS NULL
-      AND ${visibleCommentTargetsSql("cs")} AND ${activeItemAvailableSql}`)
+      AND ${visibleCommentTargetsSql("cs")} AND ${activeItemAvailableSql(row.role_selection_revision != null)}`)
     .bind(row.item_id,row.submission_id,row.actor_email,row.accepted_result_json).first<{ file_id: string }>();
   return source?.file_id ?? null;
 }
 
 async function verifiedItem(env: Env, row: CommentItemAcceptanceRow, active: boolean): Promise<boolean> {
-  let result: CommentAcceptedItemResult;
-  try { result = validateCommentAcceptedItemResult(JSON.parse(row.accepted_result_json ?? "null"), { maxByteSize: (row.purpose === "research_source" ? 100 : 5) * 1024 * 1024 }); } catch { failClosed(); }
+  let result: CommentAcceptedItemResultV21;
+  try { result = validateCommentAcceptedItemResultV21(JSON.parse(row.accepted_result_json ?? "null"), { maxByteSize: (row.purpose === "research_source" ? 100 : 5) * 1024 * 1024 }); } catch { failClosed(); }
   const db = primaryD1(env.DB);
   if (active) {
     try {
@@ -108,6 +122,9 @@ async function verifiedItem(env: Env, row: CommentItemAcceptanceRow, active: boo
       });
     } catch { failClosed(); }
   }
+  // Native results are served solely through active, typed File authority.
+  // A mode change never grants permission to read a recorded key directly.
+  if (result.storeKind === "file") return false;
   if (!await itemStillEligible(db, row, result)) return false;
   const check = () => result.storeKind === "r2" ? assertR2BootstrapProfile(db, env, row.storage_profile_id, row.storage_profile_revision)
     : assertManagedBootstrapProfile(db, env, row.storage_profile_id, row.storage_profile_revision);
@@ -148,11 +165,14 @@ export async function getCommentAcceptanceState(env: Env, actor: string, id: str
       } else if (active) {
         if (!await activeItemFileId(db, accepted!)) status = "unavailable";
       } else {
-        const result = validateCommentAcceptedItemResult(JSON.parse(accepted!.accepted_result_json ?? "null"), { maxByteSize: (accepted!.purpose === "research_source" ? 100 : 5) * 1024 * 1024 });
+        const result = validateCommentAcceptedItemResultV21(JSON.parse(accepted!.accepted_result_json ?? "null"), { maxByteSize: (accepted!.purpose === "research_source" ? 100 : 5) * 1024 * 1024 });
         try {
-          if (result.storeKind === "r2") await assertR2BootstrapProfile(db,env,accepted!.storage_profile_id,accepted!.storage_profile_revision);
-          else await assertManagedBootstrapProfile(db,env,accepted!.storage_profile_id,accepted!.storage_profile_revision);
-          if (!await itemStillEligible(db,accepted!,result)) status = "unavailable";
+          if (result.storeKind === "file") status = "unavailable";
+          else {
+            if (result.storeKind === "r2") await assertR2BootstrapProfile(db,env,accepted!.storage_profile_id,accepted!.storage_profile_revision);
+            else await assertManagedBootstrapProfile(db,env,accepted!.storage_profile_id,accepted!.storage_profile_revision);
+            if (!await itemStillEligible(db,accepted!,result)) status = "unavailable";
+          }
         } catch { status = "unavailable"; }
       }
     }
@@ -164,7 +184,7 @@ export async function getCommentAcceptanceState(env: Env, actor: string, id: str
     db.prepare(`SELECT cs.status,cs.deleted_at,ca.status AS acceptance_status,ca.expires_at,${visibleCommentTargetsSql("cs")} AS visible
       FROM comment_submissions cs JOIN comment_submission_acceptances ca ON ca.submission_id=cs.id WHERE cs.id=?`).bind(id),
     db.prepare(`SELECT csi.id,csi.status,csi.deleted_at,ia.execution_token,CASE WHEN csi.kind='link' THEN 1
-      ${active ? `WHEN ${activeItemAvailableSql} THEN 1 WHEN 1=1 THEN 0` : ""}
+      ${active ? `WHEN ${activeItemAvailableSql(parent.role_selection_revision != null)} THEN 1 WHEN 1=1 THEN 0` : ""}
       WHEN ia.status='ready' AND csi.sha256=ia.expected_sha256 AND csi.byte_size=ia.expected_byte_size
         AND ((csi.kind='comment_image' AND EXISTS(SELECT 1 FROM assets a LEFT JOIN imports i ON i.id=a.import_id
           WHERE a.id=csi.asset_id AND a.id=json_extract(ia.accepted_result_json,'$.blobRecordId') AND a.r2_key=json_extract(ia.accepted_result_json,'$.objectKey')
@@ -238,13 +258,19 @@ export async function createAcceptedComment(c: C) {
   const plan = publicationPlan(input); const operation = crypto.randomUUID();
   const authorityMode = await readFileAuthorityMode(db).catch(() => failClosed());
   const active = authorityMode === "active";
+  // Historical0012 receipts predate role policy;0013 adds its format column,
+  // while0018 adds the independently frozen native selection revision.
+  const policyGeneration = await db.prepare("SELECT count(*) AS count FROM sqlite_master WHERE type='table' AND name='storage_role_defaults'")
+    .first<{ count: number }>().catch(() => failClosed());
+  if (!policyGeneration || ![0, 1].includes(policyGeneration.count)) failClosed();
+  const hasRolePolicy = policyGeneration.count === 1;
   const binaryItems = input.items.flatMap(item => {
     if (item.kind === "link") return [];
     const purpose: CommentItemAcceptanceRow["purpose"] = item.kind === "attachment" ? "research_source"
       : item.relatedAttachmentId ? "derived_preview" : "embedded_content";
     return [{ item, purpose }];
   });
-  const rolePolicy = active && binaryItems.length ? await prepareStorageRoleSelection(db, c.env, binaryItems.map(entry => entry.purpose), now) : null;
+  const rolePolicy = active && hasRolePolicy && binaryItems.length ? await prepareStorageRoleSelection(db, c.env, binaryItems.map(entry => entry.purpose), now) : null;
   const r2 = !rolePolicy && binaryItems.some(({ item }) => item.kind === "comment_image") ? await ensureR2BootstrapProfile(db, c.env, now) : null;
   const managed = !rolePolicy && binaryItems.some(({ item }) => item.kind === "attachment") ? await ensureManagedBootstrapProfile(db, c.env, now) : null;
   const sampleIds = input.context.kind === "sample" ? [input.context.sampleId] : [...new Set(input.context.targets.map((target) => target.sampleId))];
@@ -279,14 +305,20 @@ export async function createAcceptedComment(c: C) {
     const related = item.kind === "comment_image" ? item.relatedAttachmentId : item.kind === "attachment" ? item.relatedCommentImageId : null;
     if (related) statements.push(db.prepare("UPDATE comment_submission_items SET related_item_id=? WHERE id=? AND submission_id=?").bind(related,item.id,input.id));
   }
-  statements.push(db.prepare(`INSERT INTO comment_submission_acceptances (submission_id,actor_email,operation_id,request_sha256,request_input_json,publication_plan_json,request_scope,storage_policy_revision${rolePolicy ? ",storage_role_policy_revision" : ""},status,created_at,expires_at)
-    VALUES (?,?,?,?,?,?,'system',1${rolePolicy ? `,${rolePolicy.rolePolicyRevision}` : ""},'pending',?,?)`).bind(input.id,actor,operation,accepted.sha256,accepted.json,stableJson(plan),now,expires));
+  const selectionRevision = rolePolicy?.selectionRevision ?? null;
+  const policyFormat = selectionRevision !== null ? 3 : rolePolicy ? 2 : 1;
+  statements.push(db.prepare(`INSERT INTO comment_submission_acceptances (submission_id,actor_email,operation_id,request_sha256,request_input_json,
+    publication_plan_json,request_scope,storage_policy_revision${hasRolePolicy ? ",storage_role_policy_revision" : ""}${selectionRevision !== null ? ",role_selection_revision" : ""},status,created_at,expires_at)
+    VALUES (?,?,?,?,?,?,'system',1${hasRolePolicy ? ",?" : ""}${selectionRevision !== null ? ",?" : ""},'pending',?,?)`)
+    .bind(input.id,actor,operation,accepted.sha256,accepted.json,stableJson(plan),...(hasRolePolicy ? [policyFormat] : []),...(selectionRevision !== null ? [selectionRevision] : []),now,expires));
   for (const { item, purpose } of binaryItems) {
     const profile = rolePolicy ? rolePolicy.profileFor(purpose) : item.kind === "comment_image" ? r2! : managed!; const blob = crypto.randomUUID();
     const key = rolePolicy || item.kind === "comment_image" ? `comments/${input.id}/${item.id}/${blob}-${safeAttachmentObjectName(item.filename)}`
       : managedObjectKey(input.id, `${item.id}-${blob}`, item.filename, managedSample ?? undefined);
-    statements.push(db.prepare(`INSERT INTO comment_item_acceptances (item_id,submission_id,actor_email,purpose,expected_sha256,expected_byte_size,storage_profile_id,storage_profile_revision,candidate_blob_id,candidate_object_key,status,created_at)
-      VALUES (?,?,?,?,?,?,?,?,?,?,'pending',?)`).bind(item.id,input.id,actor,purpose,item.sha256!,item.byteSize,profile.id,profile.configurationRevision,blob,key,now));
+    statements.push(db.prepare(`INSERT INTO comment_item_acceptances (item_id,submission_id,actor_email,purpose,expected_sha256,expected_byte_size,
+      storage_profile_id,storage_profile_revision${selectionRevision !== null ? ",role_selection_revision" : ""},candidate_blob_id,candidate_object_key,status,created_at)
+      VALUES (?,?,?,?,?,?,?,?,${selectionRevision !== null ? "?," : ""}?,?,'pending',?)`)
+      .bind(item.id,input.id,actor,purpose,item.sha256!,item.byteSize,profile.id,profile.configurationRevision,...(selectionRevision !== null ? [selectionRevision] : []),blob,key,now));
   }
   statements.push(assertSql(db, "EXISTS(SELECT 1 FROM comment_submission_acceptances WHERE submission_id=? AND operation_id=?) AND (SELECT count(*) FROM comment_item_acceptances WHERE submission_id=?)=?",[input.id,operation,input.id,binaryItems.length]));
   try { await db.batch(statements); } catch { /* The same authoritative read reconciles conflicts and lost commit responses. */ }
@@ -302,6 +334,43 @@ async function acceptedOwner(c: C) {
   return { db, row:saved.parent, canonical:saved.canonical!, input:inputFor(saved.parent) };
 }
 
+function nativeCommentItemStatements(db: D1Database, accepted: CommentItemAcceptanceRow,
+  item: { filename: string; mimeType: string; byteSize: number },
+  publication: Awaited<ReturnType<typeof writeAuthorityCandidate>>, candidate: StagedAuthorityCandidate, now: string) {
+  const exactBlob = `${nativeAssetAliasPredicate("blob")}
+    AND (blob.import_id IS NULL OR EXISTS(SELECT 1 FROM imports i WHERE i.id=blob.import_id AND i.status='ready'))`;
+  const blobBindings = nativeAssetAliasBindings(candidate, publication.result);
+  return [
+    ...publication.statements,
+    nativeAssetAliasInsert(db, { assetId: accepted.candidate_blob_id, originalName: item.filename, mimeType: item.mimeType,
+      actorEmail: accepted.actor_email, createdAt: now, candidate, result: publication.result }),
+    db.prepare(`UPDATE comment_submission_items SET asset_id=(SELECT blob.id FROM assets blob WHERE ${exactBlob}),
+      storage_object_id=NULL,sha256=?,error_message=NULL,updated_at=?
+      WHERE id=? AND submission_id=? AND status<>'cancelled' AND deleted_at IS NULL
+        AND EXISTS(SELECT 1 FROM comment_item_acceptances ia JOIN comment_submission_acceptances ca ON ca.submission_id=ia.submission_id
+          JOIN comment_submissions cs ON cs.id=ca.submission_id WHERE ia.item_id=? AND ia.execution_token=? AND ia.status='pending'
+          AND ca.status='pending' AND ca.expires_at>? AND cs.status NOT IN('ready','cancelled') AND cs.retry_closed_at IS NULL
+          AND cs.deleted_at IS NULL AND ${visibleCommentTargetsSql("cs")})`)
+      .bind(...blobBindings, accepted.expected_sha256, now, accepted.item_id, accepted.submission_id,
+        accepted.item_id, accepted.execution_token, now),
+    assertSql(db, "changes()=1"),
+    db.prepare("UPDATE comment_submission_items SET status='ready',file_id=? WHERE id=? AND submission_id=? AND status='uploading' AND file_id IS NULL")
+      .bind(publication.result.fileId, accepted.item_id, accepted.submission_id),
+    assertSql(db, "changes()=1"),
+    db.prepare(`UPDATE comment_item_acceptances SET status='ready',accepted_result_json=(
+      SELECT json_object('schema','comment-upload/2','storeKind','file','provider','s3','blobRecordId',blob.id,
+        'fileId',blob.file_id,'storageProfileId',blob.storage_profile_id,'storageProfileRevision',blob.storage_profile_revision,
+        'objectKey',blob.object_key,'sha256',blob.sha256,'byteSize',blob.byte_size,
+        'deduplicated',json(CASE WHEN blob.id<>? OR ? THEN 'true' ELSE 'false' END))
+      FROM assets blob JOIN comment_submission_items csi ON csi.asset_id=blob.id
+      WHERE csi.id=? AND csi.file_id=? AND ${exactBlob}) WHERE item_id=? AND execution_token=? AND status='pending'`)
+      .bind(accepted.candidate_blob_id, publication.result.fileId !== candidate.fileId ? 1 : 0,
+        accepted.item_id, publication.result.fileId, ...blobBindings, accepted.item_id, accepted.execution_token),
+    assertSql(db, "changes()=1 AND EXISTS(SELECT 1 FROM comment_item_acceptances WHERE item_id=? AND execution_token=? AND status='ready')",
+      [accepted.item_id, accepted.execution_token]),
+  ];
+}
+
 async function publishActiveCommentItem(c: C, parent: CommentSubmissionAcceptanceRow, accepted: CommentItemAcceptanceRow,
   item: { kind: "comment_image" | "attachment"; filename: string; mimeType: string; byteSize: number; sha256?: string },
   body: ArrayBuffer | ReadableStream<Uint8Array>) {
@@ -314,7 +383,12 @@ async function publishActiveCommentItem(c: C, parent: CommentSubmissionAcceptanc
   // SWITCHdrive receipts created before the new R2 originals policy.
   const profile = await db.prepare("SELECT adapter_type FROM storage_profiles WHERE id=? AND configuration_revision=?")
     .bind(accepted.storage_profile_id, accepted.storage_profile_revision).first<{ adapter_type: string }>();
-  if (!profile || !["r2", "switchdrive"].includes(profile.adapter_type)) failClosed();
+  if (!profile || !["r2", "switchdrive", "s3"].includes(profile.adapter_type)) failClosed();
+  if (profile.adapter_type === "s3") {
+    try { await db.batch(nativeCommentItemStatements(db, accepted, item, publication, candidate, new Date().toISOString())); }
+    catch { /* Reconcile the same native result after failure or a lost acknowledgement; never repeat its PUT. */ }
+    return;
+  }
   const r2 = profile.adapter_type === "r2", table = r2 ? "assets" : "managed_storage_objects";
   const keyColumn = r2 ? "r2_key" : "object_key", bindingColumn = r2 ? "asset_id" : "storage_object_id";
   const provider = r2 ? "r2" : "switchdrive", storeKind = r2 ? "r2" : "managed";
@@ -411,7 +485,7 @@ export async function uploadAcceptedCommentItem(c: C) {
     const ready = request.items.find((entry) => entry.id === itemId)?.status === "ready";
     const receipt = await getItem();
     const deduplicated = receipt?.status === "ready"
-      ? validateCommentAcceptedItemResult(JSON.parse(receipt.accepted_result_json!), { maxByteSize: (item.kind === "attachment" ? 100 : 5) * 1024 * 1024 }).deduplicated : false;
+      ? validateCommentAcceptedItemResultV21(JSON.parse(receipt.accepted_result_json!), { maxByteSize: (item.kind === "attachment" ? 100 : 5) * 1024 * 1024 }).deduplicated : false;
     return c.json({ ok: ready, deduplicated, request }, ready ? 200 : request.status === "pending" ? 202 : 409);
   }
   let result:CommentAcceptedItemResult;

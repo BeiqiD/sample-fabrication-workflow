@@ -7,7 +7,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { restoreExportToIsolatedDirectory } from "../scripts/lib/export-restore";
 import { createExportArtifact, validateFullExportV15 } from "../shared/contracts/export-protocol";
 import { buildFullExportArchiveV15 } from "../src/lib/exportAll";
-import { snapshotFullExportV20 } from "./export-v20-snapshot";
+import { snapshotFullExportV24 } from "./export-v24-snapshot";
+import { expectHistoricalForwardTables } from "./export-forward-test-support";
 import { snapshotFullExportV15 } from "./export-v15-snapshot";
 import { referenceTestDatabase, SqliteD1Database } from "./reference-test-support";
 
@@ -46,10 +47,13 @@ describe("V15 signed int64 source identities", () => {
       try {
         expect(db.prepare("SELECT CAST(rowid AS TEXT) AS rowid FROM events ORDER BY id").all().map((row) => row.rowid)).toEqual(deleted ? [] : rowids);
         expect(db.prepare("SELECT COUNT(*) AS n FROM file_shadow_occurrences WHERE present=1 AND typeof(source_rowid)<>'integer'").get()).toEqual({ n: 0 });
-        const recovered = await snapshotFullExportV20(new SqliteD1Database(db) as unknown as D1Database);
+        const recovered = await snapshotFullExportV24(new SqliteD1Database(db) as unknown as D1Database);
+        expect(recovered.schemaVersion).toBe(24);
         expect(recovered.tables.file_shadow_occurrences).toEqual(manifest.tables.file_shadow_occurrences);
         expect(recovered.tables.file_shadow_heads).toEqual(manifest.tables.file_shadow_heads);
         expect(recovered.artifacts.sourceRowids).toEqual(manifest.artifacts.sourceRowids);
+        expect(recovered.tables.comment_submission_acceptances).toEqual([]);
+        expectHistoricalForwardTables(recovered.tables, manifest.tables);
       } finally { db.close(); }
     } finally { await rm(directory, { recursive: true, force: true }); }
   }, 30_000);

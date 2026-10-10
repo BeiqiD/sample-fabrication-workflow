@@ -14,9 +14,11 @@ export interface AcceptedFabubloxImportRow {
   request_sha256: string;
   request_input_json: string;
   request_scope: "system";
-  storage_profile_id: string;
-  storage_profile_revision: 1;
-  storage_policy_revision: 1;
+  storage_profile_id: string | null;
+  storage_profile_revision: 1 | null;
+  storage_policy_revision: 1 | null;
+  file_targets_protocol?: 1 | null;
+  role_policy_revision?: number | null;
   status: "pending" | "ready" | "failed";
   lease_expires_at: string | null;
   accepted_result_json: string | null;
@@ -29,9 +31,11 @@ export interface AcceptFabubloxImportInput {
   requestSha256: string;
   requestInputJson: string;
   actorEmail: string;
-  profileId: string;
-  profileRevision: 1;
-  policyRevision: 1;
+  profileId: string | null;
+  profileRevision: 1 | null;
+  policyRevision: 1 | null;
+  rolePolicyRevision?: number;
+  fileTargets?: readonly AcceptedImportFileTarget[];
   sourceFilename: string;
   sourceSha256: string;
   sheetName: string;
@@ -40,6 +44,11 @@ export interface AcceptFabubloxImportInput {
   warningCount: number;
   createdAt: string;
   leaseExpiresAt: string;
+}
+
+export interface AcceptedImportFileTarget {
+  itemId: string; purpose: "provenance" | "embedded_content"; profileId: string; profileRevision: 1;
+  sha256: string; byteSize: number; candidateAssetId: string; candidateObjectKey: string;
 }
 
 export class FabubloxImportRequestConflictError extends Error {
@@ -65,11 +74,7 @@ export async function readAcceptedImport(
   if (!normalized || !actorEmail) throw new Error("Invalid import request identity");
   try {
     return await primaryD1(db).prepare(`
-      SELECT id, actor_email, operation_id, client_request_id, request_sha256,
-             request_input_json, request_scope, storage_profile_id,
-             storage_profile_revision, storage_policy_revision, status,
-             lease_expires_at, accepted_result_json
-      FROM imports WHERE actor_email = ? AND client_request_id = ?
+      SELECT * FROM imports WHERE actor_email = ? AND client_request_id = ?
     `).bind(actorEmail, normalized).first<AcceptedFabubloxImportRow>();
   } catch {
     throw new FabubloxImportAcceptanceUnavailableError();
@@ -96,13 +101,26 @@ export function acceptedImportState(row: AcceptedFabubloxImportRow): FabubloxImp
 function validateInput(input: AcceptFabubloxImportInput) {
   if (normalizeFabubloxImportRequestId(input.requestId) !== input.requestId
     || !/^[0-9a-f]{64}$/.test(input.requestSha256)
-    || !input.actorEmail || !input.operationId || !input.importId || !input.profileId
-    || input.profileRevision !== 1 || input.policyRevision !== 1
+    || !input.actorEmail || !input.operationId || !input.importId
+    || (input.fileTargets ? input.profileId !== null || input.profileRevision !== null || input.policyRevision !== null
+      || !Number.isSafeInteger(input.rolePolicyRevision) || Number(input.rolePolicyRevision) < 3
+      : !input.profileId || input.profileRevision !== 1 || input.policyRevision !== 1)
     || new TextEncoder().encode(input.requestInputJson).byteLength > MAX_FABUBLOX_REQUEST_INPUT_BYTES) {
     throw new Error("Invalid import acceptance input");
   }
   const metadata: unknown = JSON.parse(input.requestInputJson);
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) throw new Error("Invalid import acceptance metadata");
+  if (input.fileTargets) {
+    const request = metadata as { workbook: { sha256: string; byteSize: number }; manifest: { sha256: string; byteSize: number }; images: Array<{ localId: string; sha256: string; byteSize: number }> };
+    const items = new Map<string, { sha256: string; byteSize: number; purpose: string }>([...["workbook", "manifest"].map(itemId => [itemId, { ...request[itemId as "workbook" | "manifest"], purpose: "provenance" }] as const),
+      ...request.images.map(item => [`image:${item.localId}`, { ...item, purpose: "embedded_content" }] as const)]);
+    if (input.fileTargets.length !== items.size || new Set(input.fileTargets.map(item => item.itemId)).size !== items.size) throw new Error("Incomplete accepted import targets");
+    for (const target of input.fileTargets) {
+      const item = items.get(target.itemId);
+      if (!item || item.purpose !== target.purpose || item.sha256 !== target.sha256 || item.byteSize !== target.byteSize
+        || !target.profileId || target.profileRevision !== 1 || !target.candidateAssetId || !target.candidateObjectKey) throw new Error("Invalid accepted import target");
+    }
+  }
 }
 
 /**
@@ -126,26 +144,35 @@ export async function acceptFabubloxImport(
         id, status, source_filename, source_sha256, sheet_name, template_type,
         recipe_family_id, warning_count, actor_email, created_at, operation_id,
         lease_expires_at, client_request_id, request_sha256, request_input_json,
-        request_scope, storage_profile_id, storage_profile_revision, storage_policy_revision
-      ) VALUES (?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'system', ?, ?, ?)
+        request_scope, storage_profile_id, storage_profile_revision, storage_policy_revision${input.fileTargets ? ",file_targets_protocol,role_policy_revision" : ""}
+      ) VALUES (?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'system', ?, ?, ?${input.fileTargets ? ",1,?" : ""})
     `).bind(
       input.importId, input.sourceFilename, input.sourceSha256, input.sheetName,
       input.templateType, input.recipeFamilyId, input.warningCount, input.actorEmail,
       input.createdAt, input.operationId, input.leaseExpiresAt, input.requestId,
       input.requestSha256, input.requestInputJson, input.profileId,
       input.profileRevision, input.policyRevision,
+      ...(input.fileTargets ? [input.rolePolicyRevision] : []),
     );
-    if (acceptanceStatements.length) await acceptanceDb.batch([...acceptanceStatements, insert,
+    const targets = input.fileTargets?.map(target => acceptanceDb.prepare(`INSERT INTO import_file_acceptances
+      (import_id,item_id,purpose,storage_profile_id,storage_profile_revision,role_policy_revision,expected_sha256,expected_byte_size,
+       candidate_asset_id,candidate_object_key,status,created_at)
+      VALUES(?,?,?,?,?,?,?,?,?,?,'pending',?)`).bind(input.importId, target.itemId, target.purpose, target.profileId,
+        target.profileRevision, input.rolePolicyRevision, target.sha256, target.byteSize, target.candidateAssetId, target.candidateObjectKey, input.createdAt)) ?? [];
+    if (acceptanceStatements.length || targets.length) await acceptanceDb.batch([...acceptanceStatements, insert, ...targets,
       acceptanceDb.prepare(`SELECT CASE WHEN EXISTS(
         SELECT 1 FROM imports WHERE id=? AND operation_id=? AND actor_email=?
           AND client_request_id=? AND request_sha256=? AND request_input_json=?
-          AND storage_profile_id=? AND storage_profile_revision=? AND storage_policy_revision=?
+          AND storage_profile_id IS ? AND storage_profile_revision IS ? AND storage_policy_revision IS ?
           AND status='pending'
       ) THEN 1 ELSE json('Import acceptance did not commit') END`).bind(
         input.importId, input.operationId, input.actorEmail, input.requestId,
         input.requestSha256, input.requestInputJson, input.profileId,
         input.profileRevision, input.policyRevision,
       ),
+      ...(input.fileTargets ? [acceptanceDb.prepare(`SELECT CASE WHEN
+        (SELECT count(*) FROM import_file_acceptances WHERE import_id=? AND role_policy_revision=?)=?
+        THEN 1 ELSE json('Import targets did not commit') END`).bind(input.importId, input.rolePolicyRevision, input.fileTargets.length)] : []),
     ]);
     else await insert.run();
   } catch {
@@ -162,6 +189,19 @@ export async function acceptFabubloxImport(
     || row.storage_profile_revision !== input.profileRevision
     || row.storage_policy_revision !== input.policyRevision)) {
     throw new FabubloxImportAcceptanceUnavailableError();
+  }
+  if (owned && input.fileTargets) {
+    const stored = await primaryD1(db).prepare(`SELECT item_id,purpose,storage_profile_id,storage_profile_revision,role_policy_revision,
+      expected_sha256,expected_byte_size,candidate_asset_id,candidate_object_key FROM import_file_acceptances WHERE import_id=? ORDER BY item_id`)
+      .bind(input.importId).all<Record<string, unknown>>();
+    if (row.file_targets_protocol !== 1 || row.role_policy_revision !== input.rolePolicyRevision
+      || !stored.success || stored.results.length !== input.fileTargets.length) throw new FabubloxImportAcceptanceUnavailableError();
+    for (const target of input.fileTargets) {
+      const saved = stored.results.find(item => item.item_id === target.itemId);
+      if (!saved || saved.purpose !== target.purpose || saved.storage_profile_id !== target.profileId || saved.storage_profile_revision !== target.profileRevision
+        || saved.role_policy_revision !== input.rolePolicyRevision || saved.expected_sha256 !== target.sha256 || saved.expected_byte_size !== target.byteSize
+        || saved.candidate_asset_id !== target.candidateAssetId || saved.candidate_object_key !== target.candidateObjectKey) throw new FabubloxImportAcceptanceUnavailableError();
+    }
   }
   return { row, owned };
 }

@@ -1,18 +1,144 @@
 # Project C4 integration acceptance
 
-Status: in progress. Shortcut ownership/help, editor resizing and space use,
-panel continuity and Markdown activation, and panel/Sample-note layout have
-passed their recorded deployed desktop checks through PR #185. The remaining
-browser/device acceptance below is incomplete; Phase 5D has not started. New
-frontend refinement is paused while backend verification and concrete repairs
-take priority under the [product roadmap](./PRODUCT_ROADMAP.md). C4's open checks
-remain recorded here and are not a prerequisite for behavior-preserving backend
-work or satisfied by backend-only evidence.
+Status: formal C4 acceptance remains in progress. The bounded local development
+goal completed on 2026-10-07 after FP5 qualification, with two demonstrated
+responsive repairs and the current isolated-browser evidence below. Shortcut,
+editor and panel work through PR #185 retains its recorded deployed desktop
+acceptance. Physical-device, OS input and deployed-runtime boundaries remain
+explicit. The successor [Phase 5D local goal](./PHASE_5D_DEVELOPMENT_GOAL.md)
+completed on 2026-10-08; its [acceptance record](./PHASE_5D_ACCEPTANCE.md)
+preserves these formal C4 boundaries. Phase 5E is the next implementation slice.
 
-Reviewed: 2026-09-13. This update reconciles the merged PR acceptance records;
-it does not claim a new execution of their tests or browser workflows.
+Current status reviewed: 2026-10-08 for the successor Phase 5D local checkpoint.
+The 2026-10-07 C4 local integration subsection and the 2026-09-13 and earlier
+deployed records retain their original versions, dates and test scope.
 
-## Current integration check — 2026-09-13
+## Local integration checkpoint — 2026-10-07
+
+The [bounded C4 development goal](./C4_LOCAL_DEVELOPMENT_GOAL.md) resumed after
+FP5 qualification on `codex/fp2-fp3-development`, from local baseline commit
+`426b969e682780bbb9b6dcec7e57cecee6eb81e9`. This checkpoint is local development
+qualification; the historical deployed records below retain their original
+versions and scope. Phase 5D has not started.
+
+### Demonstrated repairs
+
+Only `src/project.css` changed in production code. No Project state, command,
+identity, lifecycle, persistence, API, migration, provider or authentication
+implementation changed.
+
+- When a pending editor/save kept the desktop projection while the viewport
+  narrowed from 1440px to 390px, Save occupied x=446–515 and Help x=518–554,
+  outside the viewport. The retained desktop header now uses a second action row
+  below 860px, wraps action/status groups and anchors Add inside the viewport.
+  Existing icon controls retain their accessible names and titles. The unsafe
+  projection remains locked until its existing state machine permits switching.
+- At 360 × 600 in ordinary mobile Reading, Help's center was covered by Project
+  actions in all three Project fixtures and both themes. Mobile action groups
+  now wrap below 561px instead of shrinking into overlapping controls. Status
+  text can wrap, and the Add menu stays reachable.
+
+The initial 64-case matrix recorded 58 passes and six mobile failures. The final
+matrix passed all 64 after the second repair. Independent comparison of all 24
+workspace cases at widths of at least 860px found identical header geometry
+before and after the repairs. CSS SHA-256:
+`cfda4fdb54fb8a1207435a39739d610022d721c4b60001e0e3380cbcc44afc96`.
+
+### Local application and browser evidence
+
+Chromium 151.0.7922.173 drove the actual Vite/Worker/D1 application on loopback.
+The scratch application used its own `/tmp/c4-local-Q2tJrl/state` directory,
+applied the 22 actual migrations, and held three disposable Projects: ordinary
+Markdown/reference/image content, a 200-character title, and an empty workspace.
+Project content and geometry restoration used normal Project APIs; the source
+reference fixture was populated only in the isolated database. The browser used the existing
+`AUTH_MODE=disabled` local development configuration; it does not establish
+Cloudflare Access or system administrator authentication/authorization.
+
+| Check | Observed local result |
+| --- | --- |
+| Workspace/directory, responsive layout and Help | 64/64 passed: Map/Reading, ordinary/long-title/empty Projects, light/dark, 1440/1024/390/360 widths and adjacent 480/481, 560/561, 859/860, 1180/1181 boundaries at short height. Header bounds, native center hit testing, horizontal overflow, Help initial focus/Tab containment/body scrolling/Escape trigger restoration and directory draft cancellation passed. |
+| Active Markdown editor | 18/18 passed: Map Inspector and desktop Reading narrowed to 320/360/390/859 in both themes, plus ordinary 390px mobile Reading. Draft text and the required projection lock survived; Save, Cancel, menus, Help and full unsaved status stayed reachable. Cancel retained backend text. No API writes occurred in this matrix. |
+| Committed response loss | Passed: a real placement write committed before browser delivery was replaced with 503. Narrow-screen Retry save resent the exact original input/operation identity; native replay returned the same revision. Saved geometry survived reload. |
+| Response during active gesture | Passed: the real reference-write acknowledgement arrived while another card was in a native mouse drag. The gesture and transform remained unchanged; mouse-up produced one new note placement write, persisted through reload. |
+| Real revision conflict | Passed: an independent local API client changed the placement revision before the UI write. Native 409 retained the local move until explicit narrow-screen authoritative reload; the server position then appeared. Both clients used the same local development identity. |
+| Canvas focus | Help Escape returned focus to Help; a native blank-Canvas click focused the Canvas. Control+A selected all four cards and Escape cleared selection. |
+
+These are measured headless browser viewport and mouse checks, not physical
+touch/native mobile/OS keyboard acceptance. Reference and legacy R2 image cards
+were representative content, not a full attachment lifecycle qualification.
+Existing transient ReactFlow size warnings were visible during initial Map/view
+transitions; the successful matrices had no page exceptions. No large-project
+real-browser frame-rate improvement is claimed.
+
+### Verification and evidence preservation
+
+All five affected checks passed at the same start/end source fingerprint
+`e7eaddd9e9677d0c2a7a1bbe688a4cec5e3215705dfa53ea35695b3784af36a4`:
+
+| Command | Result |
+| --- | --- |
+| `npm exec -- vitest run src/project-owned-content-contract.test.ts src/project-map-kernel.test.ts src/lib/project-map-performance.test.ts --maxWorkers=2` | 3 files / 24 tests passed. |
+| `npm run test:reference-mounted -- --maxWorkers=2` | All 81 files / 698 tests passed. |
+| `npm run build` | TypeScript and production build passed. |
+| `npm run test:project-map-bundle` | Lazy ReactFlow ownership passed: 6 initial and 18 Map chunks. |
+| `npm run verify:project-worker-artifact` | Production assets/API/SPA and actual Worker/D1 Project smoke passed, including expected missing-JWT Access rejection, 201 distinct references, media, replay, conflict and lifecycle. This is not successful live Access authentication. |
+
+The complete FP5 twelve-leaf gate remains preserved at its qualified baseline;
+it was not rerun or relabelled as a fresh complete C4 gate. The C4 scope required
+the affected source contracts, complete mounted suite, build and Project gates.
+Independent review found no blocking issue in the scoped CSS changes or coverage.
+
+The actual development database exactly matches the pre-C4 snapshot: complete
+schema, all 119 application tables / 33 rows, typed cells and physical rowids,
+all 22 migration receipts and unchanged raw migration SQL. SQLite quick check
+passed; foreign-key violations were zero. File mode remains legacy and execution
+guards disabled. Browser fixtures used separate state; the local server was
+stopped after qualification. Fixture geometry was restored through ordinary API
+CAS, retaining real operation receipts and advanced revisions.
+
+Machine-readable reports, screenshots, harnesses, all five check logs, original
+failures, baseline manifest and data proof are preserved in
+`/tmp/c4-final-qualification-checkpoint/`. The pre-C4 full archive, FP5 evidence
+and database snapshot remain in `/tmp/c4-development-baseline/`.
+
+The first final-CSS fault rerun recorded one pass, then `route.fetch` raised
+`socket hang up` inside an uncaught async route callback. Node exited before the
+second result and cleanup; that incomplete run is not counted as passed. The
+upstream socket-drop cause is unproven. A separate harness now catches and drains
+callbacks, records request identity before forwarding, uses `Connection: close`
+and `maxRetries: 0`, and asserts identical replay body bytes. Existing assertions,
+10-second UI waits and 15-second bounded waits remain; the native fetch bound is
+15 seconds, stricter than the original default. The abandoned fixture was first
+restored through normal API CAS. The subsequent final run passed all three cases
+and both geometry restorations, with zero unconfirmed attempts. No application
+save logic or mutation behavior changed to accommodate the harness.
+
+### Current remaining acceptance boundaries
+
+The local goal closes the named checks above. Formal C4 acceptance remains in
+progress for the following boundaries:
+
+- Physical macOS Command and Windows/macOS IME, physical touch and multi-finger
+  interruption, soft keyboard/visual viewport, safe areas and native mobile
+  browser engines.
+- Final deployed version and authenticated Cloudflare Access/application and
+  independent administrator authorization; real provider/runtime, deployment,
+  recovery and release acceptance remain separate.
+- Fresh real-backend large-Project performance and the full native normal/reduced
+  zoom connection-port, resize-grip and source-link matrix. Mounted large
+  fixtures and historical desktop results retain their recorded coverage.
+- The complete cross-mode command-under-Help sweep beyond the specific focus,
+  selection and editor checks recorded here.
+
+Phase 5D attachment/media presentation remains the next implementation slice;
+its plan must preserve the stable File/lifecycle/preview-trust semantics and
+carry these formal acceptance gaps forward. Phase 5E, Phase 5F and Phase 6B
+follow their existing roadmap order.
+
+<a id="current-integration-check--2026-09-13"></a>
+
+## Historical deployed integration check — 2026-09-13
 
 - Integration branch: `v2/backend-foundation`, at [PR #185](https://github.com/BeiqiD/sample-fabrication-workflow/pull/185)
   merge [`c4bf698e3753a0474e7d75d400af6685ff874a6a`](https://github.com/BeiqiD/sample-fabrication-workflow/commit/c4bf698e3753a0474e7d75d400af6685ff874a6a),

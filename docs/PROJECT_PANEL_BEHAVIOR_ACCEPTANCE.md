@@ -11,7 +11,10 @@ the deployed desktop acceptance below. PR #185 subsequently aligned panel
 widths and Sample-note metadata without changing these interaction rules.
 The [current C4 integration record](./PROJECT_C4_ACCEPTANCE.md#current-integration-check--2026-09-13)
 owns the latest build identity, layout measurements and remaining acceptance
-boundaries. Phase 5C4 remains in progress; Phase 5D has not started.
+boundaries. At the 2026-09-13 checkpoint, Phase 5C4 remained in progress and
+Phase 5D had not started. Subsequent local refinement status and remaining
+formal acceptance limits are recorded in the
+[current product roadmap](./PRODUCT_ROADMAP.md).
 
 ## Shared panel rules
 

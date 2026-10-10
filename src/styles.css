@@ -283,7 +283,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .processing-row { min-height: 122px; display: grid; grid-template-columns: 120px minmax(140px, .9fr) minmax(220px, 1.5fr) auto; gap: 16px; align-items: center; padding: 14px 12px; border-bottom: 1px solid var(--line); text-decoration: none; }
 .processing-row:hover { background: var(--surface); box-shadow: inset 3px 0 var(--accent); }
 .processing-sample, .processing-workflow { min-width: 0; display: grid; gap: 4px; }
-.processing-sample > span, .processing-workflow > strong { overflow-wrap: anywhere; }
+.processing-sample > span, .processing-sample > small, .processing-workflow > strong { overflow-wrap: anywhere; }
 .processing-sample > small, .processing-workflow > small, .processing-workflow > span, .processing-row-side time { color: var(--muted); font-size: 12px; }
 .processing-row-side { min-width: 116px; align-self: stretch; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; gap: 10px; }
 .run-status { display: inline-flex; width: fit-content; padding: 4px 8px; border: 0; border-radius: 999px; color: var(--status-neutral-ink); background: var(--neutral-soft); font-size: 11px; font-weight: 720; text-transform: capitalize; }
@@ -513,6 +513,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .image-lightbox-stage img { display: block; width: auto; height: auto; max-width: min(70vw, 720px); max-height: calc(100dvh - var(--lightbox-outer-inset) - 52px - var(--lightbox-stage-block-padding) - 4px); object-fit: contain; user-select: none; transition: transform .12s ease-out; will-change: transform; }
 .photo-lightbox .image-lightbox-stage img { max-width: min(82vw, 1040px); }
 .image-lightbox-stage.zoomed img { transition: none; }
+.image-lightbox-stage > .attachment-card { max-width: min(480px, 100%); }
+.image-preview-unavailable { padding: 6px; color: var(--muted); font-size: 9px; overflow-wrap: anywhere; }
 .image-lightbox-toolbar { position: relative; z-index: 2; min-height: 52px; display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 7px 9px 7px 14px; color: white; background: #202521; font-size: 12px; }
 .image-lightbox-caption { min-width: 0; margin-right: auto; display: grid; gap: 1px; }
 .image-lightbox-caption strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -577,7 +579,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .comment-card-copy { min-width: 0; flex: 1 1 auto; }
 .comment-card-copy > p, .comment-card-copy > .comment-rich-text-fallback { margin: 0 0 3px; overflow-wrap: anywhere; white-space: pre-wrap; font-size: 12px; }
 .comment-card-copy > .comment-rich-text { margin: 0 0 3px; font-size: 12px; }
-.cell-comment small { display: block; color: var(--muted); font-size: 9px; line-height: 1.35; }
+.cell-comment small { display: block; color: var(--muted); font-size: 9px; line-height: 1.35; overflow-wrap: anywhere; }
 .comment-delete-button { position: absolute; top: 5px; right: 6px; padding: 3px; border: 0; color: var(--muted); background: transparent; font-size: 9px; }
 .comment-delete-button:hover { color: var(--danger); text-decoration: underline; }
 .comment-history { display: grid; gap: 6px; }
@@ -937,7 +939,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .event-content > p, .event-content > .comment-rich-text-fallback { margin: 8px 0; white-space: pre-wrap; }
 .event-content > .comment-rich-text { margin: 8px 0; }
 .event-content img { display: block; max-width: min(100%, 620px); max-height: 520px; border-radius: 10px; object-fit: contain; background: var(--surface-muted); }
-.event-meta { display: flex; justify-content: space-between; gap: 16px; color: var(--muted); font-size: 12px; text-transform: capitalize; }
+.event-meta { display: flex; justify-content: space-between; gap: 16px; color: var(--muted); font-size: 12px; }
+.event-meta > span { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
 .event-meta > div { display: flex; align-items: center; gap: 10px; }
 .event-meta button { padding: 0; border: 0; color: var(--muted); background: transparent; font-size: 10px; }
 .event-meta button:hover { color: var(--danger); text-decoration: underline; }
@@ -1277,7 +1280,8 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .run-grid-card,
   .run-grid-card.sample-count-1,
   .run-grid-card.sample-count-2,
-  .run-grid-card.sample-count-3 { --recipe-width: 88px; --sample-width: 270px; }
+  .run-grid-card.sample-count-3,
+  .run-grid-card.sample-count-4 { --recipe-width: 88px; --sample-width: 270px; }
   .run-grid-card.sample-count-1 .run-grid { width: 100%; grid-template-columns: var(--recipe-width) minmax(var(--sample-width), 1fr); }
   .run-grid-card.sample-count-2 .run-grid,
   .run-grid-card.sample-count-3 .run-grid,
@@ -1344,8 +1348,10 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .image-lightbox { --lightbox-outer-inset: 20px; --lightbox-stage-block-padding: 20px; padding: 10px; }
   .image-lightbox-panel { min-width: 0; }
   .image-lightbox-toolbar { gap: 7px; padding-left: 10px; }
-  .image-lightbox-caption strong { display: none; }
-  .image-lightbox-toolbar a { display: none; }
+  .image-lightbox-toolbar { flex-wrap: wrap; }
+  .image-lightbox-caption { flex: 1 1 100%; }
+  .image-lightbox-caption strong { white-space: normal; overflow-wrap: anywhere; }
+  .image-lightbox-toolbar a { margin-right: auto; }
   .image-lightbox-stage { padding: 10px; }
   .image-lightbox-stage img { max-width: calc(100vw - 40px); }
   .lightbox-arrow { width: 38px; height: 38px; }

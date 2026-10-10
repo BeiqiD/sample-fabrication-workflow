@@ -23,8 +23,11 @@ it("binds an accepted Project upload and its authorized copy to the same publish
     return value ? { body: new Response(value).body!, size: value.length, httpEtag: '"project"', writeHttpMetadata() {} } : null;
   });
   const put = vi.fn(async (key: string, body: BodyInit) => stored.set(key, new Uint8Array(await new Response(body).arrayBuffer())));
+  const remove = vi.fn(async (key: string | string[]) => {
+    for (const objectKey of typeof key === "string" ? [key] : key) stored.delete(objectKey);
+  });
   const db = new SqliteD1Database(sql) as unknown as D1Database;
-  const env = { DB: db, R2_BOOTSTRAP_NAMESPACE: namespace, ASSETS: { get, head: get, put } as unknown as R2Bucket } satisfies Env;
+  const env = { DB: db, R2_BOOTSTRAP_NAMESPACE: namespace, ASSETS: { get, head: get, put, delete: remove } as unknown as R2Bucket } satisfies Env;
   const actor = "project@example.test";
   const uploaded = await acceptAndUploadR2Asset(env, { actorEmail: actor, ingress: "project_attachment", requestId: crypto.randomUUID(),
     originalName: "source.txt", mimeType: "text/plain", bytes: new TextEncoder().encode("Project File bytes").buffer });

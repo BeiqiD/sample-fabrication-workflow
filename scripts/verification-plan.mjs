@@ -15,6 +15,7 @@ export const verificationContexts = {
   "pre-pr/project-edges": mutationLeaves,
   "pre-pr/project-reading": mutationLeaves,
   "pre-pr/tests": testLeaves,
+  "pre-pr/file-jobs": ["verification-scripts", "source", "mounted", "export-contract", "file-jobs-node", "migrations", "build"],
   "pre-pr/build": ["build"],
 };
 
@@ -36,6 +37,7 @@ export function verificationPlan(mode) {
       { id: "mounted", script: "test:reference-mounted" },
       { id: "rich-text", script: "test:rich-text-bundle" },
       { id: "export-contract", script: "typecheck:export-contract" },
+      { id: "file-jobs-node", script: "typecheck:file-jobs-node" },
       { id: "migrations", script: "verify:d1-migrations" },
       { id: "reference-worker", script: "verify:reference-worker" },
       { id: "reference-search-worker", script: "verify:reference-search-worker" },

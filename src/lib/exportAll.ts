@@ -1,6 +1,6 @@
 import type JSZip from "jszip";
-import { createExportArtifact, exportArtifactText, validateFullExportV8, validateFullExportV9, validateFullExportV10, validateFullExportV11, validateFullExportV12, validateFullExportV13, validateFullExportV14, validateFullExportV15, validateFullExportV16, validateFullExportV17, validateFullExportV18, validateFullExportV19, validateFullExportV20 } from "../../shared/contracts/export-protocol";
-import type { FullExportBlobEntryV15 } from "../../shared/contracts/export";
+import { createExportArtifact, exportArtifactText, validateFullExportV8, validateFullExportV9, validateFullExportV10, validateFullExportV11, validateFullExportV12, validateFullExportV13, validateFullExportV14, validateFullExportV15, validateFullExportV16, validateFullExportV17, validateFullExportV18, validateFullExportV19, validateFullExportV20, validateFullExportV21, validateFullExportV22, validateFullExportV23, validateFullExportV24 } from "../../shared/contracts/export-protocol";
+import type { FullExportBlobEntryV15, FullExportNativeBlobEntryV21 } from "../../shared/contracts/export";
 import type {
   BlobExportOutcome,
   FullExportBlobEntry,
@@ -9,11 +9,13 @@ import type {
 import { sha256Hex } from "../../shared/content-addressing";
 import { api } from "./api";
 
+type VersionedExportBlobEntry = FullExportBlobEntry | FullExportNativeBlobEntryV21;
+
 function safeSegment(value: string) {
   return value.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
-function archivePath(entry: FullExportBlobEntry, index: number) {
+function archivePath(entry: VersionedExportBlobEntry, index: number) {
   // Provider keys and record IDs are opaque identities, not filesystem paths.
   // Sanitizing them can merge different locators or preserve dot segments. The
   // manifest's unique ordinal owns the path; its metadata retains every exact
@@ -23,7 +25,7 @@ function archivePath(entry: FullExportBlobEntry, index: number) {
   return `blobs/${entry.storeKind}/${ordinal}-${filename}`;
 }
 
-function warningMessage(outcome: Exclude<BlobExportOutcome, "packaged">, entry: FullExportBlobEntry) {
+function warningMessage(outcome: Exclude<BlobExportOutcome, "packaged">, entry: VersionedExportBlobEntry) {
   const subject = `${entry.storeKind} blob ${entry.filename}`;
   switch (outcome) {
     case "missing": return `${subject} is missing from its storage provider.`;
@@ -37,7 +39,7 @@ function warningMessage(outcome: Exclude<BlobExportOutcome, "packaged">, entry: 
 
 async function packageExportBlobs(
   zip: JSZip,
-  blobs: FullExportBlobEntry[],
+  blobs: VersionedExportBlobEntry[],
   onProgress: ((completed: number, total: number) => void) | undefined,
   fetcher: typeof fetch,
   validatedFileLocationTransport = false,
@@ -46,14 +48,14 @@ async function packageExportBlobs(
   onProgress?.(0, total);
   let completed = 0;
   type ShadowIdentity = Pick<FullExportBlobEntryV15, "byteAuthority" | "storageProfileId" | "storageProfileRevision" | "locationId">;
-  const identity = (entry: FullExportBlobEntry): Partial<ShadowIdentity> => "byteAuthority" in entry
-    ? { byteAuthority: (entry as FullExportBlobEntryV15).byteAuthority,
-      storageProfileId: (entry as FullExportBlobEntryV15).storageProfileId,
-      storageProfileRevision: (entry as FullExportBlobEntryV15).storageProfileRevision,
-      locationId: (entry as FullExportBlobEntryV15).locationId } : {};
+  const identity = (entry: VersionedExportBlobEntry): Partial<ShadowIdentity> => "byteAuthority" in entry
+    ? { byteAuthority: (entry as ShadowIdentity).byteAuthority,
+      storageProfileId: (entry as ShadowIdentity).storageProfileId,
+      storageProfileRevision: (entry as ShadowIdentity).storageProfileRevision,
+      locationId: (entry as ShadowIdentity).locationId } : {};
   const results: Array<Partial<ShadowIdentity> & {
     locatorId: string;
-    storeKind: FullExportBlobEntry["storeKind"];
+    storeKind: VersionedExportBlobEntry["storeKind"];
     provider: string;
     objectKey: string;
     blobRecordIds: string[];
@@ -164,7 +166,7 @@ export async function buildFullExportArchive(
 }
 
 async function buildVersionedFullExportArchive(
-  version: 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20,
+  version: 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24,
   input: unknown,
   onProgress?: (completed: number, total: number) => void,
   fetcher: typeof fetch = fetch,
@@ -176,7 +178,7 @@ async function buildVersionedFullExportArchive(
           : version === 12 ? await validateFullExportV12(input)
             : version === 13 ? await validateFullExportV13(input)
               : version === 14 ? await validateFullExportV14(input)
-                : version === 15 ? await validateFullExportV15(input) : version === 16 ? await validateFullExportV16(input) : version === 17 ? await validateFullExportV17(input) : version === 18 ? await validateFullExportV18(input) : version === 19 ? await validateFullExportV19(input) : await validateFullExportV20(input);
+                : version === 15 ? await validateFullExportV15(input) : version === 16 ? await validateFullExportV16(input) : version === 17 ? await validateFullExportV17(input) : version === 18 ? await validateFullExportV18(input) : version === 19 ? await validateFullExportV19(input) : version === 20 ? await validateFullExportV20(input) : version === 21 ? await validateFullExportV21(input) : version === 22 ? await validateFullExportV22(input) : version === 23 ? await validateFullExportV23(input) : await validateFullExportV24(input);
   const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
   const paths = new Set(["export-manifest.json", "export-warnings.json"]);
@@ -202,6 +204,8 @@ async function buildVersionedFullExportArchive(
     tables,
     artifacts,
     blobs: results,
+    ...(manifest.schemaVersion === 23 || manifest.schemaVersion === 24 ? { excludedOutputs: manifest.excludedOutputs } : {}),
+    ...(manifest.schemaVersion === 24 ? { relocatedSources: manifest.relocatedSources, backupHoldOwner: manifest.backupHoldOwner } : {}),
   }, null, 2));
   zip.file("export-warnings.json", JSON.stringify(warnings, null, 2));
   const files = Object.values(zip.files).filter((file) => !file.dir);
@@ -251,7 +255,7 @@ export function buildFullExportArchiveV16(input: unknown, onProgress?: (complete
 
 export async function exportAll(onProgress?: (completed: number, total: number) => void) {
   const manifest = await api.getFullExport();
-  const result = await buildFullExportArchiveV20(manifest, onProgress);
+  const result = await buildFullExportArchiveV24(manifest, onProgress);
   return { ...result, filename: `sample-log-${manifest.exportedAt.slice(0, 10)}.zip` };
 }
 
@@ -269,4 +273,20 @@ export function buildFullExportArchiveV19(input: unknown, onProgress?: (complete
 
 export function buildFullExportArchiveV20(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
   return buildVersionedFullExportArchive(20, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV21(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(21, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV22(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(22, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV23(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(23, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV24(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(24, input, onProgress, fetcher);
 }

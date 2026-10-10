@@ -1,7 +1,9 @@
 import type { SampleEvent } from "../../shared/types";
 import { isSampleRecordEvent } from "../../shared/sample-records";
 import { sampleEventLabel } from "../lib/sampleHistory";
+import { sampleEventAssetUrl } from "../lib/asset-media";
 import { CommentBody } from "./CommentBody";
+import { DiagramGallery } from "./MultiSampleRunGrid";
 
 export function SampleTimeline({
   events,
@@ -25,22 +27,18 @@ export function SampleTimeline({
         <div className="event-meta">
           <span>{sampleEventLabel(event)}{event.metadata.deletedAt ? " · deleted" : ""}{event.actorEmail ? ` · ${event.actorEmail}` : ""}</span>
           <div>
-            <time>{new Date(event.createdAt).toLocaleString()}</time>
-            {onDeleteAsset && event.assetKey && <button type="button" onClick={() => onDeleteAsset(event)}>Delete image</button>}
+            <time dateTime={event.createdAt}>{new Date(event.createdAt).toLocaleString()}</time>
+            {onDeleteAsset && sampleEventAssetUrl(event) && <button type="button" onClick={() => onDeleteAsset(event)}>Delete image</button>}
             {onDeleteRecord && isSampleRecordEvent(event.kind, event.metadata) && <button type="button" onClick={() => onDeleteRecord(event)}>Delete note</button>}
           </div>
         </div>
         {event.body && (event.kind === "comment" || event.kind === "image"
           ? <CommentBody source={event.body} scrollable={compact} />
           : <p>{event.body}</p>)}
-        {!compact && event.assetKey && <div className="event-asset">
-          <a href={`/api/assets/${event.assetKey}`} target="_blank" rel="noreferrer">
-            <img
-              src={`/api/assets/${typeof event.metadata.thumbnailKey === "string" ? event.metadata.thumbnailKey : event.assetKey}`}
-              alt={event.body || "Timeline attachment"}
-              loading="lazy"
-            />
-          </a>
+        {!compact && sampleEventAssetUrl(event) && <div className="event-asset">
+          <DiagramGallery keys={[]} urls={[sampleEventAssetUrl(event)!]}
+            thumbnailUrls={{ [sampleEventAssetUrl(event)!]: event.thumbnailUrl ?? (typeof event.metadata.thumbnailKey === "string" ? `/api/assets/${event.metadata.thumbnailKey}` : sampleEventAssetUrl(event)!) }}
+            label={event.body || "Timeline attachment"} kind="photo" size="wide" />
         </div>}
       </div>
     </article>)}

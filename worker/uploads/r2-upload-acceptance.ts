@@ -2,6 +2,7 @@ import { HTTPException } from "hono/http-exception";
 import {
   canonicalR2UploadInput, MAX_R2_UPLOAD_BYTES, normalizeR2UploadRequestId,
   R2_UPLOAD_RECEIPT_LIFETIME_MS, validateR2UploadInput,
+  validateFileUploadResult,
   type R2UploadIngress, type R2UploadRequestState, type R2UploadResult,
 } from "../../shared/contracts/r2-upload";
 import { sha256Hex } from "../../shared/domain/content-addressing";
@@ -18,12 +19,14 @@ import { assertR2BootstrapProfile, ensureR2BootstrapProfile, R2BootstrapUnavaila
 import { prepareStorageRoleSelection } from "../files/storage-role-selection";
 import { StorageRoleDefaultsUnavailableError } from "../files/storage-role-defaults";
 import type { Env } from "../types";
+import { nativeAssetAliasBindings, nativeAssetAliasInsert, nativeAssetAliasPredicate } from "../files/native-asset-alias";
 
 export interface AcceptedR2UploadRow {
   id: string; actor_email: string; client_request_id: string; operation_id: string;
   ingress: R2UploadIngress; purpose: "embedded_content" | "research_source";
   request_sha256: string; request_input_json: string; request_scope: "system";
   storage_profile_id: string; storage_profile_revision: 1; storage_policy_revision: 1;
+  role_policy_revision?: number | null;
   candidate_asset_id: string; candidate_object_key: string;
   status: "pending" | "ready" | "failed"; accepted_result_json: string | null;
   created_at: string; completed_at: string | null; expires_at: string;
@@ -81,17 +84,19 @@ function identity(row: AcceptedR2UploadRow) {
 }
 function resultFor(row: AcceptedR2UploadRow): R2UploadResult {
   try {
-    const result = JSON.parse(row.accepted_result_json ?? "null") as R2UploadResult;
-    if (!result || typeof result !== "object" || Array.isArray(result)
-      || Object.keys(result).sort().join(",") !== "deduplicated,id,key"
-      || typeof result.id !== "string" || !result.id || [...result.id].length > 256 || result.id.includes("\0")
-      || typeof result.key !== "string" || !result.key || [...result.key].length > 4096 || result.key.includes("\0")
-      || typeof result.deduplicated !== "boolean") throw new Error();
-    return result;
+    return validateFileUploadResult(JSON.parse(row.accepted_result_json ?? "null"));
   } catch { throw new R2UploadAcceptanceUnavailableError(); }
 }
 async function resultStillEligible(db: D1Database, result: R2UploadResult, expected: { sha256: string; byteSize: number }, active = false) {
   try {
+    if (result.key === null) {
+      if (!active) return false;
+      return Boolean(await primaryD1(db).prepare(`SELECT 1 FROM assets a JOIN file_usable_publications f ON f.file_id=a.file_id
+        WHERE a.id=? AND a.r2_key IS NULL AND a.file_id=? AND a.status='ready' AND a.sha256=? AND a.byte_size=?
+          AND (a.import_id IS NULL OR EXISTS(SELECT 1 FROM imports i WHERE i.id=a.import_id AND i.status='ready'))
+          AND f.verified_sha256=a.sha256 AND f.verified_byte_size=a.byte_size`)
+        .bind(result.id, result.fileId, expected.sha256, expected.byteSize).first());
+    }
     return Boolean(await primaryD1(db).prepare(`SELECT 1 AS available FROM assets a LEFT JOIN imports i ON i.id = a.import_id
       WHERE a.id = ? AND a.r2_key = ? AND a.status = 'ready' AND a.sha256 = ? AND a.byte_size = ?
         AND (a.import_id IS NULL OR i.status = 'ready')
@@ -123,6 +128,7 @@ export async function acceptedR2UploadState(env: Env, row: AcceptedR2UploadRow):
     if (!verified || !await resultStillEligible(env.DB, result, expected, true)) return { ...base, status: "unavailable" };
     return { ...base, status: "ready", result };
   }
+  if (result.key === null) return { ...base, status: "unavailable" };
   await assertR2BootstrapProfile(primaryD1(env.DB), env, row.storage_profile_id, row.storage_profile_revision);
   if (!await resultStillEligible(env.DB, result, expected)) return { ...base, status: "unavailable" };
   const opened = await r2ByteReader(env.ASSETS).read(result.key);
@@ -175,6 +181,7 @@ export async function acceptAndUploadR2Asset(env: Env, upload: AcceptAndUploadR2
   const modeAtAcceptance = await readFileAuthorityMode(db).catch(() => { throw new R2UploadAcceptanceUnavailableError(); });
   const selection = modeAtAcceptance === "active" ? await prepareStorageRoleSelection(db, env, [canonical.input.purpose], now) : null;
   const profile = selection?.profileFor(canonical.input.purpose) ?? await ensureR2BootstrapProfile(db, env, now);
+  const policyRevision = selection && Number(selection.rolePolicyRevision) >= 3 ? Number(selection.rolePolicyRevision) : null;
   const id = crypto.randomUUID();
   const operationId = crypto.randomUUID();
   const assetId = crypto.randomUUID();
@@ -183,11 +190,11 @@ export async function acceptAndUploadR2Asset(env: Env, upload: AcceptAndUploadR2
     const acceptance = db.prepare(`INSERT INTO r2_upload_requests
       (id, actor_email, client_request_id, operation_id, ingress, purpose, request_sha256, request_input_json,
        request_scope, storage_profile_id, storage_profile_revision, storage_policy_revision,
-       candidate_asset_id, candidate_object_key, status, created_at, expires_at)
-      SELECT ?, ?, ?, ?, ?, ?, ?, ?, 'system', ?, 1, 1, ?, ?, 'pending', ?, ?
+       candidate_asset_id, candidate_object_key, status, created_at, expires_at${policyRevision !== null ? ",role_policy_revision" : ""})
+      SELECT ?, ?, ?, ?, ?, ?, ?, ?, 'system', ?, 1, 1, ?, ?, 'pending', ?, ?${policyRevision !== null ? ",?" : ""}
       WHERE EXISTS(SELECT 1 FROM file_authority_control WHERE singleton=1 AND mode=?)`)
       .bind(id, upload.actorEmail, upload.requestId, operationId, upload.ingress, canonical.input.purpose,
-        canonical.sha256, canonical.json, profile.id, assetId, objectKey, now, expiresAt, modeAtAcceptance);
+        canonical.sha256, canonical.json, profile.id, assetId, objectKey, now, expiresAt, ...(policyRevision !== null ? [policyRevision] : []), modeAtAcceptance);
     if (selection) await db.batch([
       ...selection.statements, acceptance,
       db.prepare(`SELECT CASE WHEN changes()=1 AND EXISTS(SELECT 1 FROM r2_upload_requests
@@ -206,7 +213,6 @@ export async function acceptAndUploadR2Asset(env: Env, upload: AcceptAndUploadR2
   if (accepted.storage_profile_id !== profile.id || accepted.storage_profile_revision !== profile.configurationRevision
     || accepted.candidate_asset_id !== assetId || accepted.candidate_object_key !== objectKey) throw new R2UploadAcceptanceUnavailableError();
   if (accepted.expires_at <= new Date().toISOString()) return { state: { ...identity(accepted), status: "expired" }, fresh: false };
-  await assertR2BootstrapProfile(primaryD1(env.DB), env, accepted.storage_profile_id, accepted.storage_profile_revision);
   const active = await readFileAuthorityMode(env.DB).catch(() => { throw new R2UploadAcceptanceUnavailableError(); }) === "active";
   if (active) {
     const owner = { kind: "r2_upload" as const, acceptanceId: accepted.id, actorEmail: accepted.actor_email, operationId: accepted.operation_id };
@@ -219,16 +225,27 @@ export async function acceptAndUploadR2Asset(env: Env, upload: AcceptAndUploadR2
       });
     } catch { throw new R2UploadAcceptanceUnavailableError(); }
     const db = primaryD1(env.DB), completedAt = new Date().toISOString();
+    const native = Boolean(await db.prepare("SELECT 1 FROM storage_profiles WHERE id=? AND adapter_type='s3' AND configuration_revision=?")
+      .bind(accepted.storage_profile_id, accepted.storage_profile_revision).first());
     // Preserve the public asset contract using the typed result's location.
     // File purpose/profile/scope/bytes, never global asset SHA, choose reuse.
     try {
       await db.batch([
         ...publication.statements,
-        db.prepare(`INSERT INTO assets(id,r2_key,original_name,mime_type,byte_size,status,sha256,actor_email,created_at)
+        native ? nativeAssetAliasInsert(db, { assetId: accepted.candidate_asset_id, originalName: upload.originalName,
+          mimeType: upload.mimeType, actorEmail: accepted.actor_email, createdAt: completedAt, candidate, result: publication.result })
+          : db.prepare(`INSERT INTO assets(id,r2_key,original_name,mime_type,byte_size,status,sha256,actor_email,created_at)
           SELECT ?,?,?,?,?,'ready',?,?,? WHERE NOT EXISTS(SELECT 1 FROM assets WHERE r2_key=?)`)
           .bind(accepted.candidate_asset_id, publication.result.objectKey, upload.originalName, upload.mimeType,
             candidate.expectedBytes.byteSize, candidate.expectedBytes.sha256, accepted.actor_email, completedAt, publication.result.objectKey),
-        db.prepare(`UPDATE r2_upload_requests SET status='ready',completed_at=?,accepted_result_json=(
+        native ? db.prepare(`UPDATE r2_upload_requests SET status='ready',completed_at=?,accepted_result_json=(
+          SELECT json_object('id',a.id,'key',NULL,'storageKind','native','fileId',a.file_id,'url','/api/file-assets/'||a.id,
+            'deduplicated',json(CASE WHEN a.id<>? OR ?<>? THEN 'true' ELSE 'false' END))
+          FROM assets a WHERE ${nativeAssetAliasPredicate()}
+        ) WHERE id=? AND operation_id=? AND status='pending' AND expires_at>?`)
+          .bind(completedAt, accepted.candidate_asset_id, publication.result.fileId, candidate.fileId,
+            ...nativeAssetAliasBindings(candidate, publication.result), accepted.id, accepted.operation_id, completedAt)
+          : db.prepare(`UPDATE r2_upload_requests SET status='ready',completed_at=?,accepted_result_json=(
           SELECT json_object('id',a.id,'key',a.r2_key,'deduplicated',json(CASE WHEN a.id<>? OR ?<>? THEN 'true' ELSE 'false' END))
           FROM assets a WHERE a.r2_key=? AND a.status='ready' AND a.byte_size=? AND a.sha256=?
         ) WHERE id=? AND operation_id=? AND status='pending' AND expires_at>?`)
@@ -244,6 +261,7 @@ export async function acceptAndUploadR2Asset(env: Env, upload: AcceptAndUploadR2
     if (!finalized || finalized.id !== accepted.id || finalized.operation_id !== accepted.operation_id) throw new R2UploadAcceptanceUnavailableError();
     return { state: await acceptedR2UploadState(env, finalized), fresh: true };
   }
+  await assertR2BootstrapProfile(primaryD1(env.DB), env, accepted.storage_profile_id, accepted.storage_profile_revision);
   let result: R2UploadResult;
   try {
     const registration = await ingestR2Attachment(env, {

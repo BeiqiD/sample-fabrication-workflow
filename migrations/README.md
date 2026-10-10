@@ -1,5 +1,11 @@
 # S2 baseline and forward migrations
 
+For the reviewed `0017` → `0018`–`0022` development handoff and paired
+V21–V24 content/recovery generations, use the
+[V3 forward integration runbook](../docs/V3_DEVELOPMENT_INTEGRATION_RUNBOOK.md).
+Source and fresh recovery target identities remain separate. Installing source
+does not activate providers, restored execution or a new scheduler cadence.
+
 `0001_v3_baseline.sql` retains the exact reviewed bytes of
 `scripts/fixtures/backend-schema/s2-baseline.sql`. Its provenance comments remain
 unchanged. The baseline requires an empty application schema and migration

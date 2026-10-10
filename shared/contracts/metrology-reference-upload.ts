@@ -1,6 +1,7 @@
 import { sha256Hex, stableJson } from "../domain/content-addressing";
 import type { MetrologyTemplateReference } from "./template";
 import type { R2UploadFileInput } from "./r2-upload";
+import { nativeAssetUrl } from "./r2-upload";
 
 export const MAX_METROLOGY_REFERENCE_UPLOAD_BYTES = 25 * 1024 * 1024;
 export const MAX_METROLOGY_REFERENCE_REQUEST_INPUT_BYTES = 8192;
@@ -91,4 +92,18 @@ export function validateMetrologyReferenceUploadResult(value: unknown): Metrolog
     || ref.byteSize < 1 || ref.byteSize > MAX_METROLOGY_REFERENCE_UPLOAD_BYTES || !text(ref.assetKey, 4096) || !timestamp(ref.createdAt)) throw new Error("Invalid metrology reference result snapshot");
   return bounded({ assetId: value.assetId, deduplicated: value.deduplicated, reference: { id: ref.id, filename: ref.filename,
     mimeType: ref.mimeType, byteSize: ref.byteSize, assetKey: ref.assetKey, createdAt: ref.createdAt } });
+}
+
+/** Successor runtime result admission; the historical archive validator above is frozen. */
+export function validateMetrologyReferenceUploadResultV21(value: unknown): MetrologyReferenceUploadResult {
+  if (record(value) && record(value.reference) && value.reference.assetKey !== null) return validateMetrologyReferenceUploadResult(value);
+  if (!record(value) || !keys(value, ["assetId", "deduplicated", "reference"]) || !text(value.assetId, 256)
+    || typeof value.deduplicated !== "boolean" || !record(value.reference)) throw new Error("Invalid native metrology result");
+  const ref = value.reference;
+  if (!keys(ref, ["id", "filename", "mimeType", "byteSize", "assetKey", "createdAt", "fileId", "url"])
+    || !text(ref.id, 256) || !text(ref.filename, 255) || !text(ref.mimeType, 200) || !/^[\x20-\x7e]+$/.test(ref.mimeType)
+    || ref.mimeType.trim() !== ref.mimeType || !Number.isSafeInteger(ref.byteSize) || Number(ref.byteSize) < 1
+    || Number(ref.byteSize) > MAX_METROLOGY_REFERENCE_UPLOAD_BYTES || ref.assetKey !== null
+    || !timestamp(ref.createdAt) || !text(ref.fileId, 256) || ref.url !== nativeAssetUrl(value.assetId)) throw new Error("Invalid native metrology result snapshot");
+  return bounded(value as unknown as MetrologyReferenceUploadResult);
 }

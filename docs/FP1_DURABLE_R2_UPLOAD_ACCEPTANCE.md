@@ -3,6 +3,14 @@
 Implementation base: `9225237` (merged PR #214). Final review, check results,
 deployed commit and browser acceptance belong in the implementation PR.
 
+This historical native qualification retains the exact V20 fixture generation:
+all source migrations through `0017_fp2_native_storage_profiles.sql`, including
+the populated pre-0004 to 0004 upgrade, original route scenarios and SQL guards.
+Its nonempty archive restore stages that same 17-file prefix and verifies V20
+rows and bytes. Successor native File and relocation behavior is qualified by
+the separate V21/V22 suites; full-chain forward recovery checks the current V22
+snapshot while preserving the historical cells and physical rowids.
+
 FP1g made historical file consumers explicit. FP1h adds durable upload acceptance
 to the ordinary image and Project attachment writers, a prerequisite for their
 later File publication transition. A repeated request now refers to one accepted
