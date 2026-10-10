@@ -55,3 +55,33 @@ compiler/module regressions, a fresh same-source build, and complete own-head
 CI. It does not require repeating those six browser cases solely for a path
 move. Separate real Templates default-pagination cases need their own fresh
 fixture and receipt on the canonical-path source.
+
+## Subsequent exact-head CI fixture failure
+
+The initial repair record above retains its original source-only status. At
+canonical repair/dated-roadmap head `781ebb6c0c0daee80cc1376b20c8f5d9f2dd434a`,
+the separate pull-request Verify [38088625041](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38088625041)
+passed native356 and the shared verification-scripts leaf, then failed the
+source leaf: **405 files, 404 passed/1 failed; 3,787 cases, 3,786 passed/1 failed**.
+All13 downstream leaves were skipped. Complete log:
+`/tmp/portable-current-258-259-260-ci-closure-attempt1/38088625041-complete.log`,
+SHA256 `b4679b9a8798dabeec5f187306ee1f8e2cce1a58758b2cda10dd16379912b2f9`.
+No skipped leaf is counted as a pass, and this failure remains independent from
+the earlier shared-boundary failure.
+
+The held-original-stream native migration fixture's post-EOF `orphan` insertion
+called `new Date().toISOString()` separately for `orphaned_at` and `updated_at`.
+Crossing a millisecond violates the actual ledger CHECK that those fields are
+equal for state `orphaned`. The minimal fixture repair captures one timestamp
+per invocation and supplies it to both unchanged SQL parameters.
+
+All production source, schema guards, hold-before-EOF rejection, exact original
+stream bytes, released-hold count, post-EOF acceptance, delayed GC/provider
+deletion and final media/alias/FK assertions are preserved. No fake clock,
+timeout, test count, schema or production behavior changes. The corrected
+fixture and replacement complete gates are **UNRUN** in this source checkpoint.
+
+Separately, [the four genuine Templates browser cases](PHASE_5F_TEMPLATE_PAGINATION_QUALIFICATION.md)
+passed at `3c69d4d` with the one owned strict, fresh same-source build and actual
+owned shutdown/physical closure. That evidence does not turn this CI failure or
+its13 skipped leaves into passes and does not qualify the changed fixture.
