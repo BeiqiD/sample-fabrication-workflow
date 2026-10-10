@@ -1,37 +1,8 @@
 import type { DatabaseSync } from "node:sqlite";
-import { referenceTestDatabase, seedReferenceGraph } from "./reference-test-support";
+import { referenceTestDatabase, seedReferenceGraph, SqliteD1Database } from "./reference-test-support";
 import { describe, expect, it } from "vitest";
 import worker from "./index";
 import type { Env } from "./types";
-
-class SqliteD1Statement {
-  constructor(
-    private readonly database: DatabaseSync,
-    private readonly sql: string,
-    private readonly bindings: unknown[] = [],
-  ) {}
-
-  bind(...values: unknown[]) {
-    return new SqliteD1Statement(this.database, this.sql, values);
-  }
-
-  async all<T>() {
-    return {
-      results: this.database.prepare(this.sql).all(...this.bindings) as T[],
-      success: true,
-      meta: { changes: 0 },
-    };
-  }
-
-  async first<T>() {
-    return (this.database.prepare(this.sql).get(...this.bindings) as T | undefined) ?? null;
-  }
-
-  async run() {
-    const result = this.database.prepare(this.sql).run(...this.bindings);
-    return { results: [], success: true, meta: { changes: Number(result.changes) } };
-  }
-}
 
 function testDatabase() {
   const database = referenceTestDatabase();
@@ -49,10 +20,7 @@ function testDatabase() {
 function testEnv(database: DatabaseSync): Env {
   return {
     AUTH_MODE: "disabled",
-    DB: {
-      prepare: (sql: string) => new SqliteD1Statement(database, sql),
-      batch: (statements: SqliteD1Statement[]) => Promise.all(statements.map((statement) => statement.run())),
-    } as unknown as D1Database,
+    DB: new SqliteD1Database(database) as unknown as D1Database,
     ASSETS: {} as R2Bucket,
   };
 }
