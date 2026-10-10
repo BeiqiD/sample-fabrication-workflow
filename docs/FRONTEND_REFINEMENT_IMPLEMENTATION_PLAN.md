@@ -1,19 +1,27 @@
 # Phase 5 frontend refinement implementation plan
 
 Status: historical Phase 5A–5C slices through PR #185 merged/deployed.
-**Bounded local C4, 5D and 5E development completed** on synchronized
-`codex/fp2-fp3-development`, with qualified implementation checkpoint `3c1baf5`;
-formal device/OS-input, deployed-provider and combined-product acceptance
-remain open. **5F is in progress** with bounded implementation and follow-up
-research read-error, receipt and job-control ownership repairs committed and pushed; this does
-not close the whole phase.
+**C4, 5D and 5E and bounded 5F repairs are integrated** through
+[PR #251](https://github.com/BeiqiD/sample-fabrication-workflow/pull/251) at
+`aa497d9a1a304751ea7533548573a256799ef734` on 2026-10-10 (13:30:26 UTC).
+Its tree `087749d12a3e3ad19473f1f4e63d29e1ecf1c269` equals qualified source
+`af8f374cfbbade3282f2e686cc9f35d3c40adf4a`: all 12 local default leaves,
+four remote Verify/Map runs and all 15 final status contexts passed.
+**5F remains in progress**; formal device/OS-input, deployed-provider and
+whole-product acceptance remain open.
 
 The 2026-10-10 continuation adds bounded Metrology create/add/refresh ownership,
 picker reads and standalone navigation, plus equivalent shared Map/Reading
-descriptors. Their focused/full local evidence remains versioned in the linked
+descriptors and explicit route-load recovery. Their focused/full local evidence remains versioned in the linked
 [current Product checkpoint](PRODUCT_ROADMAP.md#current-checkpoint). The
 [autonomous goal](ROADMAP_AUTONOMOUS_DEVELOPMENT_GOAL.md) now authorizes continued
-development and reviewed integration; whole-phase browser/device gates stay open.
+development and reviewed integration. The
+[integrated built-Worker browser matrix](PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md)
+passed 20 cases, plus two real Metrology pending-flow cases. It found an empty
+Metrology search accessible name; that correction and measured Processing
+refresh scope are the next bounded slice. The post-merge Workers Build
+`114224522096` was in progress and three remote routes returned Access 302;
+authenticated/serving/schema and whole-phase device gates stay open.
 
 The historical 2026-09-13 Project/Worker checkpoint below remains evidence,
 not today's phase queue. C4's [local completion](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/PROJECT_C4_ACCEPTANCE.md),
@@ -24,13 +32,14 @@ supplemental checks under a bounded local source configuration. The historical
 `2060c745` default-five-second CI failure remains recorded; the later `4479295`
 Verify run was cancelled at the 20-minute whole-job budget. The `20176fc5`
 source context passed, but mounted checks failed. Follow-up repairs are pushed
-at `3c1baf5`; its complete default remote gate passed. Accepted combined-tree
-review/requalification and whole-5F acceptance remain open. See the
+at the historical `3c1baf5`; its complete default remote gate passed. The later
+combined `af8f374` tree has its own complete local/remote qualification.
+Whole-5F acceptance remains open. See the
 [current checkpoint](./PRODUCT_ROADMAP.md#current-checkpoint).
 
 [Product roadmap](./PRODUCT_ROADMAP.md#near-term-order-and-first-integrated-release)
-now schedules qualified implementation review/integration, 5F and a finite performance lane
-before 6A6/6B. FP2–FP5 implementation is locally complete, not a reason to defer
+now records completed implementation review/integration and schedules remaining
+5F and a finite performance lane before 6A6/6B. FP2–FP5 is integrated, not a reason to defer
 5F again. Preserve Comfortable/Compact/Dense presentation roles, current
 Project keyboard/editor/panel behavior, 5D attachment trust/lifecycle,
 5E read-state ownership and the distinct copy-import vs system-recovery
@@ -535,14 +544,18 @@ their intentional density and workflow differences.
 
 ### Phase 5F — cross-product integration review
 
-Status: **bounded development in progress** at `3c1baf5`. Initial read-state,
-preview ownership, modal focus and narrow-grid repairs, plus follow-up research
-read-error, receipt and job-control ownership fixes, are committed and pushed; complete
-cross-product qualification remains open. See
+Status: **bounded development in progress** after qualified #251 integration.
+Read-state, preview ownership, modal focus, narrow-grid, research control,
+Metrology session/read, projection and explicit route-recovery repairs are
+merged. The [integrated browser evidence](PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md)
+records real start/plan confirmations, mixed light/dark responsive surfaces and
+explicit keyboard chunk-error recovery. The next bounded slice repairs measured
+Processing refresh scope and the empty Metrology search accessible name.
+Whole-phase physical-input/authenticated/provider qualification remains open. See
 [the initial 5F goal](https://github.com/BeiqiD/sample-fabrication-workflow/blob/20176fc51d77301c58706d8ae0ff7d87ca6a8422/docs/PHASE_5F_DEVELOPMENT_GOAL.md)
 and the [Product checkpoint](./PRODUCT_ROADMAP.md#current-checkpoint) for bounded
-local results, the passed `3c1baf5` default remote gate, and remaining combined-tree
-qualification and real-plan/mutation cases.
+historical local results and current exact `af8f374` complete local/default remote
+qualification; do not replace live/provider/device evidence with those receipts.
 Divide the work into 5F-1 (cross-page semantics and action ownership),
 5F-2 (navigation, focus, fresh/old GETs, uncertain writes, permissions and
 recovery identity), and 5F-3 (representative mixed-domain browser,

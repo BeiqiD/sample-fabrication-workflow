@@ -8,20 +8,24 @@ The owner requests autonomous continuation on 2026-10-10 under the
 and membership remain concrete later milestones; optional exploratory ideas
 retain their evidence-triggered scope.
 
-Last reviewed: 2026-10-09 against integration `474a038` and synchronized
-qualified implementation checkpoint `3c1baf5` (not yet integrated/deployed).
+Last reviewed: 2026-10-10 after [PR #251](https://github.com/BeiqiD/sample-fabrication-workflow/pull/251)
+merged at `aa497d9a1a304751ea7533548573a256799ef734` (13:30:26 UTC).
+Its tree `087749d12a3e3ad19473f1f4e63d29e1ecf1c269` equals qualified source
+`af8f374cfbbade3282f2e686cc9f35d3c40adf4a`; all 12 local default leaves,
+four remote Verify/Map runs and all 15 final status contexts passed.
 
 FP1 File authority/R2 defaults are historically deployed. **FP2, FP3, FP4 and
-FP5 are now locally implemented and qualified** on the synchronized development
-branch, with V21–V24 paired recovery and migrations `0018`–`0022`.
+FP5 are implemented, CI-qualified and integrated** into development,
+with V21–V24 paired recovery and migrations `0018`–`0022`.
 Bounded local C4, 5D and 5E have likewise completed. **5F is in progress** with
 bounded implementation and follow-up research/job-control ownership repairs
-committed and pushed.
-The immediate work is
-review/integration of the default-remote-CI-qualified implementation,
-accepted combined-tree requalification and
-continued **5F**, alongside finite measured
-performance cleanup, 6A6 and scoped 6B; remaining real-provider/device/deployed
+merged through #251. The [integrated browser matrix](PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md)
+passed 20 cases plus two real Metrology pending-flow cases.
+The immediate work is continued **5F**, first correcting the observed empty
+Metrology search accessible name and measured Processing refresh scope,
+alongside finite performance cleanup, 6A6 and scoped 6B. Workers Build
+`114224522096` was in progress after merge; Access 302 replies do not qualify
+serving code/schema or authenticated behavior. Remaining real-provider/device/deployed
 acceptance is not waived. See the single [current status matrix](./PRODUCT_ROADMAP.md#current-checkpoint).
 Detailed FP milestones below are durable design commitments, **not** an assertion
 that FP3–FP5 remain unimplemented.
@@ -44,8 +48,8 @@ replication, workspaces, ACL tables or per-user infrastructure.
 
 | Order | Capability | Boundary |
 | --- | --- | --- |
-| Now | Synchronized FP2–FP5 and C4/5D/5E review | Do not recreate implemented code. Use the qualified default remote gate at `3c1baf5`, review/requalify the accepted combined tree, and integrate complete native File/archive pairs and bounded 5F implementation/follow-up repairs; preserve historical deployed V20 separately from local V24. |
-| In progress | 5F and finite performance/maintenance | Cross-page consistency, keyboard/focus and read/retry identities, realistic mixed-domain flows; measured multi-card save/Processing/CI/archive costs. |
+| Complete development integration | FP2–FP5, C4/5D/5E and bounded 5F | #251 preserves the qualified `af8f374` tree at merged `aa497d9`. Do not recreate implemented code or infer live V24/provider qualification from local/default CI. Preserve historical deployed V20 evidence separately. |
+| Now / in progress | Remaining 5F and finite performance/maintenance | First repair measured Processing refresh scope and Metrology search accessible name; retain cross-page consistency, keyboard/focus and read/retry identities. Continue remaining mixed-domain/input checks and only measured save/CI/archive costs. |
 | First integrated release | 6A6 and scoped 6B | Accept only the actually qualified **enabled FP2–FP5** subset, with explicit provider and operational gates. Unqualified installed code remains restricted. |
 | Later portability | Node/Docker + SQLite + persistent local defaults | Complete deployable app/runtime, volumes and real cross-deployment recovery, not merely the already delivered Node File-job runner. |
 | Later shared-data | Small-group membership and resource authorization | End-to-end Sample/Project/Template/media/export/job permissions, not per-user storage infrastructure. |
@@ -367,7 +371,8 @@ Current FP work preserves:
   adapters;
 - existing user-visible media/Comment/Project behavior while backend records evolve.
 
-6A6 and broad C4 device/deployed acceptance remain open; bounded local C4 implementation has passed. FP design
+6A6 serving/schema/device and scoped 6B/provider exits remain open after the
+qualified development integration; bounded C4 implementation is integrated. FP design
 cannot convert a zero-blob recovery exercise into a non-empty upload/download
 pass, infer successful SWITCHdrive authentication, repeat a database reset or
 resume held operational controls. Detailed transition and stage checks are in

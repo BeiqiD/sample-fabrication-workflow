@@ -6,15 +6,32 @@ It does not declare Phase 6 complete or authorize a production release.
 
 ## Evidence identity and status rules
 
+- Current qualified implementation source:
+  `af8f374cfbbade3282f2e686cc9f35d3c40adf4a`. All **12 local default**
+  `npm run verify:ci` leaves passed, with no skips: native **355 tests**,
+  source **366 files / 3,349 tests**, mounted **98 files / 945 tests**;
+  contracts, fresh/populated migrations, Worker, build and bundle leaves passed.
+  [Push Verify 38054290373](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38054290373),
+  [PR Verify 38054322488](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38054322488),
+  [push Map 38054290357](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38054290357)
+  and [PR Map 38054322490](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38054322490)
+  all succeeded; all **15 final status contexts** passed.
+- Observed implementation [PR #251](https://github.com/BeiqiD/sample-fabrication-workflow/pull/251)
+  merge: `aa497d9a1a304751ea7533548573a256799ef734`, 2026-10-10 at
+  13:30:26 UTC. Its tree `087749d12a3e3ad19473f1f4e63d29e1ecf1c269`
+  equals the validated `af8f374` tree. This records tree identity, not separate
+  post-merge CI or a serving/schema/provider acceptance result. Later changes
+  need their own checks.
 - Historical qualified source/document head: `4b2c660267b794d09798f961efe8d11ba6e1df86`;
   [Verify 37987949742](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37987949742)
   succeeded. This evidence belongs to that head, not subsequent changes.
-- Read-only audit checkpoint: `86369739160057f45ec8476b7778fdba9c79799d`.
-  Source/doc integration, later fixes and the final combined tree need their own
-  full required gates and review before an implementation PR is merged.
+- Historical read-only audit checkpoint: `86369739160057f45ec8476b7778fdba9c79799d`.
+  Its fresh-schema audit is retained separately from the later complete
+  `af8f374` qualification and observed integration merge.
 - `REVIEWED_SOURCE` means implementation and existing test assertions were read;
   it is not a new test pass. `OPEN_GATE` needs exact-tree verification.
-  `OPEN_REMOTE` needs deployment/provider/operational evidence.
+  `QUALIFIED_TREE` means the reviewed tree passed its complete local/default
+  remote gate. `OPEN_REMOTE` needs deployment/provider/operational evidence.
   `OPEN_IMPLEMENTATION` identifies code work rather than an external dependency.
 - Preserve failed, interrupted, historical and current runs separately. A build,
   successful docs merge or mock provider test does not establish serving traffic,
@@ -24,23 +41,26 @@ It does not declare Phase 6 complete or authorize a production release.
 
 | Acceptance item | Current evidence and finite exit | Status |
 | --- | --- | --- |
-| Reviewed combined code/docs tree | PR #250 is merged; FP2–FP5 implementation and subsequent bounded 5F fixes still require their actual combined-tree review, full required CI and observed implementation merge. Record exact head/tree and receipts. | OPEN_GATE |
-| Frozen predecessor and paired migrations | 0001–0017 are unchanged from the integration baseline. Review 0018/V21, 0019/V22, 0020/V23 and 0021–0022/V24 together; preserve historical hashes/readers and qualified fresh/populated migration coverage. | REVIEWED_SOURCE / OPEN_GATE |
-| Generated recovery schema | Read-only fresh in-memory audit matched all 119 tables and 1,115 schema objects; no missing/stale tables, column differences, migration hash differences or FK violations. Relevant schema/export bytes were unchanged between `4b2c660` and audit checkpoint `8636973`. | Fresh-schema check passed; full combined-tree gate open |
-| Current export admission | Generation markers/columns distinguish V21–V24; stale writers return 409, incomplete generations fail closed, and snapshot validators require the exact schema fingerprint and table inventory. Existing tests below cover actual routes and forged histories. | REVIEWED_SOURCE / OPEN_GATE |
-| Nonempty recovery and preserved history | Existing native and legacy tests preserve bytes, canonical cells, signed rowids, source identity and accepted provenance through current-version export/restore and repeated recovery. Review source preservation and every restored execution guard at the final tree. | REVIEWED_SOURCE / OPEN_GATE |
-| Stale-tab deployment recovery | The pre-existing obsolete lazy chunk gap now has a bounded explicit recovery implementation and five passing actual-App mounted cases; [route recovery evidence](PHASE_6_ROUTE_RECOVERY_ACCEPTANCE.md) preserves three pre-fix failures and the host-observation correction. Combined-tree gates, built-chunk browser recovery and actual serving-version handover are still required. | Locally implemented/focused pass; OPEN_GATE / OPEN_REMOTE |
-| Integrated browser/input/data workflows | Retain bounded C4/5D/5E/5F receipts; finish applicable current-tree cross-page save/retry/focus, representative responsive/themes/mixed records, physical-device and OS-input checks. Mocked confirmation and viewport emulation do not establish real-device/IME acceptance. | OPEN_GATE / OPEN_REMOTE |
+| Reviewed combined code/docs tree | #250 planning and #251 implementation are merged. Reviewed `af8f374` passed full local/default remote checks; observed integration `aa497d9` has its identical tree. Preserve exact receipts for later changes. | QUALIFIED_TREE / observed development merge |
+| Frozen predecessor and paired migrations | 0001–0017 are unchanged from the integration baseline. Paired 0018/V21, 0019/V22, 0020/V23 and 0021–0022/V24 review and complete local/remote gates passed; retain frozen hashes/readers and fresh/populated coverage. Actual remote D1 migration receipts remain unknown. | QUALIFIED_TREE / OPEN_REMOTE |
+| Generated recovery schema | Historical fresh audit matched 119 tables and 1,115 schema objects without differences or FK violations. Relevant bytes were unchanged at audit checkpoint `8636973`; later complete `af8f374` migration/schema/export gates passed independently. | QUALIFIED_TREE |
+| Current export admission | Generation markers/columns distinguish V21–V24; stale writers return 409, incomplete generations fail closed, and validators require exact fingerprints/inventory. Canonical suites below passed at `af8f374`; authenticated actual serving-route checks remain open. | QUALIFIED_TREE / OPEN_REMOTE |
+| Nonempty recovery and preserved history | Native/legacy canonical tests passed with bytes, canonical cells, signed rowids, source identity and accepted provenance preserved through export/restore and repeated recovery. This local/native evidence does not qualify an actual deployed provider or provisioned target handoff. | QUALIFIED_TREE / OPEN_REMOTE |
+| Stale-tab deployment recovery | Explicit recovery passed actual-App mounted and full gates; [route recovery evidence](PHASE_6_ROUTE_RECOVERY_ACCEPTANCE.md) preserves pre-fix failures. [Built-Worker browser evidence](PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md) passed two one-shot 404/503 chunk failures, explicit keyboard reload and full URL retention. An actual old-document/new-serving-version handover is still required. | QUALIFIED_TREE / local browser passed / OPEN_REMOTE |
+| Integrated browser/input/data workflows | The isolated built-Worker matrix passed 20 cases, including real start/plan confirmations and 720/721/1200 light/dark mixed surfaces; two additional real Metrology pending-flow cases passed. The empty Metrology search accessible name and measured Processing refresh are pending bounded implementation. Physical-device/OS-input and authenticated deployment checks remain open. | Bounded browser passed / OPEN_IMPLEMENTATION / OPEN_REMOTE |
 
 Fresh-schema audit SHA-256:
 `7783c42f0259f6b9b857a0e2860d4c754638faaa8e13500a4cd9ab953555f3d8`.
-The audit applied the reviewed fresh chain in memory, excluding the retired
-0011 data-cleanup operation as the generator does. It did not execute remote
-migrations, a new populated restore suite or the full canonical gate.
+The historical audit applied the reviewed fresh chain in memory, excluding the
+retired 0011 data-cleanup operation as the generator does. That audit alone did
+not execute remote migrations, a new populated restore suite or the full gate;
+the later `af8f374` complete gate has its separate receipt above.
 
 ## Source guards and existing regression coverage
 
-These are reviewed test paths, not newly executed results for the current head.
+These reviewed paths are covered by the complete native/source gate at
+`af8f374`; their individual counts are not added to the canonical totals.
+None is a real-provider or actual deployed target receipt.
 
 | Guard / preservation requirement | Existing assertion evidence |
 | --- | --- |
@@ -74,8 +94,8 @@ API action, or expose an unqualified operation merely because its UI is hidden.
 
 | Required evidence | Present checkpoint / exit |
 | --- | --- |
-| Legitimate authenticated development session | Anonymous requests to the development Workers URL currently redirect with HTTP 302 to Cloudflare Access. No legitimate test identity/session was available; this does not qualify application health, readiness, data or authorization behavior. |
-| Actual development schema and serving code | Record current serving Worker/version and observed D1 receipts/schema for 0018–0022, then authenticated readiness, V24 export and stale-writer rejection. A successful Workers Build is insufficient. No remote migration is claimed by this ledger. |
+| Legitimate authenticated development session | The post-merge curl checks of three development routes returned HTTP 302 to Cloudflare Access. No legitimate test identity/session was available; this does not qualify application health, readiness, data or authorization behavior. |
+| Actual development schema and serving code | Workers Build `114224522096` was in progress at the post-merge checkpoint. Record actual serving Worker/version and observed D1 receipts/schema for 0018–0022, then authenticated readiness, V24 export and stale-writer rejection. Even a successful build is insufficient. No manual remote migration is claimed by this ledger. |
 | Independent runner cadence | Repository cron is `17 3 * * *` (daily), not a qualified two-minute runner. API `cadenceSeconds: 120` and a 60s step bound do not prove an installed cadence, heartbeat or deployed resource budget. |
 | Real providers and enabled operations | Local SQLite/native workerd and isolated provider witnesses establish runtime mechanics. Record actual R2/S3/managed-service identity, interruption/settlement and applicable resource limits for each proposed live operation before enabling it. |
 | Real devices and deployment handoff | Finish applicable physical-device, OS-input/IME and stale-document handoff scenarios against the reviewed serving version. Record failures and recovery outcomes rather than substituting emulation or manual refresh. |

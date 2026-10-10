@@ -6,20 +6,24 @@ This is intentionally not a general LIMS, inventory system, or enterprise MES. T
 
 ## Development status
 
-The active V3 development/test integration line is `v2/backend-foundation`
-(planning PR #250 merged at `541eedb`); `main` has not received its first
-integrated V3 production release.
-A **separate synchronized development line**, with qualified implementation
-checkpoint `3c1baf5`, contains locally qualified FP2–FP5 and C4/5D/5E changes, bounded 5F implementation
-and follow-up research read-error, receipt and job-control ownership repairs,
-not yet merged/deployed. **5F remains in progress**. The complete default remote
-CI gate passed at `3c1baf5`; local mounted/build leaves passed, while the full
-local canonical gate remains unqualified. Review and qualification of the
-accepted combined tree, providers/devices and remaining 5F work stay open.
-This README distinguishes that **development V24** from the **deployed V20**
-historical runtime. New Metrology session/read repairs, Project projection
-reuse and integration admission/bootstrap repairs are recorded in the
-[autonomous development goal](./docs/ROADMAP_AUTONOMOUS_DEVELOPMENT_GOAL.md).
+The active V3 development/test integration line is `v2/backend-foundation`.
+Planning PR #250 and implementation [PR #251](https://github.com/BeiqiD/sample-fabrication-workflow/pull/251)
+are merged; #251 landed at `aa497d9` on 2026-10-10 at 13:30:26 UTC.
+Its tree matches qualified source `af8f374`: all 12 local default verification
+leaves, four remote Verify/Map runs and all 15 final status contexts passed.
+This integrates FP2–FP5, C4/5D/5E and bounded 5F repairs into development.
+**5F remains in progress**: isolated built-Worker browser checks passed 20 cases,
+with two additional real Metrology pending-flow cases. The observed empty
+Metrology search accessible name and measured Processing refresh cost are the
+next bounded corrections. See [integrated browser evidence](./docs/PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md).
+The post-merge Workers Build `114224522096` was still in progress at this
+checkpoint; three anonymous remote routes returned Access 302 redirects.
+Actual serving code/schema, authenticated testing, providers and physical-device
+acceptance remain open. The last authenticated historical runtime was V20;
+the development integration contains V24. `main` has not received its first
+integrated V3 production release. The
+[autonomous development goal](./docs/ROADMAP_AUTONOMOUS_DEVELOPMENT_GOAL.md)
+records the continuing work.
 See the [version-aware roadmap](./docs/PRODUCT_ROADMAP.md#current-checkpoint)
 before using any capability on a live installation.
 
@@ -63,7 +67,7 @@ The application deploys as one Cloudflare Worker project.
 | Hono on Cloudflare Workers | API, authentication checks, reference resolution and search, exports, scheduled cleanup, and storage orchestration |
 | Cloudflare D1 | Samples, templates, runs, events, comments, reference registry, hashes, retention edges, GC ledger, and file metadata |
 | Private Cloudflare R2 | Default destination for both ordinary/internal files and unchanged originals after FP1 |
-| File registry and exact-profile adapters | Logical File locations and lifecycle; historical SWITCHdrive/WebDAV access. Native S3 is implemented in the separate local successor and is not qualified on the historical deployed V20 runtime. |
+| File registry and exact-profile adapters | Logical File locations and lifecycle; historical SWITCHdrive/WebDAV access. Native S3 is integrated into development; actual deployed/provider admission remains open. |
 | Cloudflare Access | User authentication; the Worker validates the Access JWT again before serving protected API routes |
 
 File reads resolve their recorded profile and location. New writes select a storage role at acceptance, and retries retain that destination. Provider authentication and requests remain inside adapters; changing a future default will not migrate old files.
@@ -125,7 +129,12 @@ The recommended workflow needs no persistent local checkout:
 8. Merge only a tested release into the configured production branch. The normal deploy command runs the blob-lifecycle, Reference, Project persistence, and Project Map gates, Wrangler migration and Worker/D1 smokes, complete tests, deployment build, remote D1 migrations, and Worker deployment in that order.
 9. Sign in through Access and confirm `/api/ready` returns `{"ok":true}`.
 
-`v2/backend-foundation` is an isolated integration branch, not a production branch. Its exact merged head must pass the dedicated v3 deployment gate before any isolated v3 remote migration or deployment is authorized.
+`v2/backend-foundation` is the isolated development/test integration branch.
+The owner already authorizes ordinary reviewed development integration and its
+existing Workers build path. Execute remote development migrations/deployment
+only after the exact tree passes the dedicated v3 gate and the intended resource
+and forward-migration configuration is verified. The current build configuration,
+serving version and actual remote schema still need operational evidence.
 
 See [the full deployment guide](./docs/DEPLOYMENT.md) for resource setup, first-deployment checks, upgrades, recovery, and optional SWITCHdrive setup. See [blob lifecycle activation and operations](./docs/BLOB_LIFECYCLE_OPERATIONS.md) for the integration-head gate, GC monitoring, incident rules, and explicit implementation limits.
 
@@ -139,11 +148,11 @@ role defaults. The SWITCHdrive configuration below is the historical compatibili
 
 Historically deployed FP2 adds administrator-scoped candidates, encrypted
 credentials, checks and AWS S3 **read-only** profile admission under V20.
-The **synchronized local implementation** adds native S3 File read/write,
+The **merged development implementation** adds native S3 File read/write,
 publication/GC, independent internal/original role defaults and accepted
 per-purpose destinations (`0018`/V21), with persistent migration jobs
-(`0019`/V22). Those capabilities have local qualification **but have not been
-integrated, deployed or validated against a real AWS provider**. A configured
+(`0019`/V22). Those capabilities passed local and remote CI and are integrated
+through #251; **actual deployed operation and real AWS qualification remain open**. A configured
 candidate or local test does not make an upload destination active on the
 existing deployment. See [phase and release gates](./docs/PRODUCT_ROADMAP.md#fp2-completion-units).
 
@@ -222,7 +231,7 @@ npm run verify:v3-deployment
 
 ## Data ownership and backup
 
-The **deployed** complete content writer remains **V20**, writer **1**,
+The **last authenticated historical deployment** used **V20**, writer **1**,
 `fp2-native-profile-admission`. It retains canonical rows and available bytes
 plus nonsecret S3 admission metadata, but not installation candidate secrets,
 check history or root keys. Missing/unavailable/mismatched bytes still appear
@@ -230,7 +239,7 @@ as explicit `export-warnings.json` outcomes; a partial content archive is not
 a complete system backup. The older browser ZIP path needs its own measured
 memory ceiling.
 
-The **synchronized, not deployed** implementation adds V21 native File archive,
+The **merged development** implementation adds V21 native File archive,
 V22 migration-job archive, V23 native Sample/**Project** export with matching
 website **fresh-copy** import plus offline HTML/Markdown reports, and V24
 privileged system backup/website **identity-preserving** recovery. These
@@ -267,7 +276,7 @@ Historical conversion utilities are version-scoped diagnostics rather than
 current universal migration tools: [FP1g planner](./docs/FP1_FILE_CONSUMER_MIGRATION_PLAN.md),
 [V14 consumer inspection](./docs/FP1_SHADOW_CONVERSION_PREFLIGHT.md), and
 [shadow runtime/inspection](./docs/FP1_SHADOW_RUNTIME.md). Their frozen inputs
-remain historical, not a substitute for the separate synchronized FP3 job and V22 archive implementation.
+remain historical, not a substitute for the merged FP3 job and V22 archive implementation.
 
 ## Further documentation
 

@@ -54,6 +54,14 @@ export function ProcessingWorkspacePage() {
   const [readState, setReadState] = useState({ key: readKey, loading: true });
   const currentSource = useRef(readKey);
   currentSource.current = readKey;
+  const readOwner = useMemo(() => ({ key: readKey }), [readKey]);
+  const currentReadOwner = useRef(readOwner);
+  currentReadOwner.current = readOwner;
+  const readLifetime = useRef(true);
+  const readCache = useRef<{ owner: typeof readOwner; samples: ProcessingSampleDetail[] } | null>(null);
+  // Retain invalidations until a current read succeeds, including failed or
+  // superseded reads. A later B refresh must also cover still-dirty A.
+  const pendingReadScope = useRef<{ owner: typeof readOwner; ids: Set<string> } | null>(null);
   const readGeneration = useRef(0);
   const loading = readState.key !== readKey || readState.loading;
   const error = readState.key === readKey ? readError : "";
@@ -96,40 +104,63 @@ export function ProcessingWorkspacePage() {
   const [confirmingRunDelete, setConfirmingRunDelete] = useState(false);
   const [deleteRunError, setDeleteRunError] = useState("");
 
-  const load = useCallback(async (propagateError = false) => {
-    if (currentSource.current !== readKey) {
+  const load = useCallback(async (propagateError = false, affectedSampleIds?: readonly string[]) => {
+    if (!readLifetime.current || currentReadOwner.current !== readOwner) {
       if (propagateError) throw new Error("The processing view changed before attachment state could be refreshed.");
       return;
     }
+    const visibleIds = [sampleId, ...additionalIds];
+    const cached = readCache.current;
+    const completeCache = cached?.owner === readOwner && cached.samples.length === visibleIds.length
+      && cached.samples.every((item, index) => item.id === visibleIds[index]);
+    const knownScope = Array.isArray(affectedSampleIds) && affectedSampleIds.length > 0
+      && affectedSampleIds.every(id => visibleIds.includes(id));
+    const requestedIds = completeCache && knownScope ? affectedSampleIds : visibleIds;
+    const pending = pendingReadScope.current?.owner === readOwner
+      ? pendingReadScope.current : { owner: readOwner, ids: new Set<string>() };
+    requestedIds.forEach(id => pending.ids.add(id));
+    pendingReadScope.current = pending;
+    const refreshIds = visibleIds.filter(id => pending.ids.has(id));
     const generation = ++readGeneration.current;
     setReadState({ key: readKey, loading: true });
     setError("");
     try {
-      const details = await Promise.all([sampleId, ...additionalIds].map((id) => api.getProcessingSample(id)));
-      if (generation !== readGeneration.current || currentSource.current !== readKey) {
+      const details = await Promise.all(refreshIds.map((id) => api.getProcessingSample(id)));
+      if (details.some((item, index) => item.id !== refreshIds[index])) {
+        throw new Error("The processing sample response did not match its requested owner.");
+      }
+      if (generation !== readGeneration.current || !readLifetime.current || currentReadOwner.current !== readOwner) {
         if (propagateError) throw new Error("The processing view changed before attachment state could be refreshed.");
         return;
       }
-      setSamples(details);
+      const refreshed = new Map(details.map(item => [item.id, item]));
+      const nextSamples = refreshIds.length === visibleIds.length ? details
+        : readCache.current!.samples.map(item => refreshed.get(item.id) ?? item);
+      readCache.current = { owner: readOwner, samples: nextSamples };
+      pendingReadScope.current = null;
+      setSamples(nextSamples);
       setLoadedReadKey(readKey);
       setError("");
     } catch (error) {
-      if (generation === readGeneration.current && currentSource.current === readKey) {
+      if (generation === readGeneration.current && readLifetime.current && currentReadOwner.current === readOwner) {
         setError((error as Error).message);
       }
       if (propagateError) throw error;
     } finally {
-      if (generation === readGeneration.current && currentSource.current === readKey) {
+      if (generation === readGeneration.current && readLifetime.current && currentReadOwner.current === readOwner) {
         setReadState({ key: readKey, loading: false });
       }
     }
   // additionalKey is the stable URL representation of additionalIds.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sampleId, additionalKey, readKey]);
+  }, [sampleId, additionalKey, readKey, readOwner]);
+
+  const refreshSaved = useCallback((affectedSampleIds?: readonly string[]) => load(false, affectedSampleIds), [load]);
 
   useEffect(() => {
+    readLifetime.current = true;
     void load();
-    return () => { readGeneration.current += 1; };
+    return () => { readLifetime.current = false; readGeneration.current += 1; };
   }, [load]);
   const activeRun = sample?.runs.find((run) => run.runKind === "process" && run.status === "active") ?? null;
   const selectedRun = sample?.runs.find((run) => run.id === requestedRunId) ?? activeRun ?? sample?.runs[0] ?? null;
@@ -626,7 +657,7 @@ export function ProcessingWorkspacePage() {
       </div>
 
       {selectedRun ? <section className="runs-section">
-        <MultiSampleRunGrid key={`${selectedRun.id}:${samples.map((item) => item.id).join(",")}`} primaryRun={selectedRun} columns={gridColumns} onSaved={load} onAttachmentChanged={() => load(true)} readOnly={!selectedRunIsEditable} />
+        <MultiSampleRunGrid key={`${selectedRun.id}:${samples.map((item) => item.id).join(",")}`} primaryRun={selectedRun} columns={gridColumns} onSaved={refreshSaved} onAttachmentChanged={() => load(true)} readOnly={!selectedRunIsEditable} />
         <ProcessingReferenceSourceFocus
           focusValue={requestedFocus}
           sampleId={sampleId}

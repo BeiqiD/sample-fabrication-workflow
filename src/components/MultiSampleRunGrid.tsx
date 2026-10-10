@@ -714,7 +714,7 @@ function MetrologyPickerDrawer({ state, onClose, onSaved }: {
       <div className="step-drawer-heading"><div><p className="dialog-kicker">{state.column.sample.code}</p><h2 id="metrology-picker-title">Add metrology</h2></div><button type="button" className="drawer-close" aria-label="Close" disabled={saving} onClick={close}><DialogCloseIcon /></button></div>
       <p className="muted">Choose a saved record type, or create a new metrology template and add it here.</p>
       {creating ? <MetrologyTemplateForm embedded title="New metrology template" submitLabel="Save and add" onCancel={() => setCreating(false)} onSubmit={createAndAdd} /> : <>
-        <label className="search-box metrology-template-search"><span>Search templates</span><input ref={searchRef} disabled={saving} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="SEM, AFM, XRD…" /></label>
+        <label className="search-box metrology-template-search"><span>Search templates</span><input ref={searchRef} aria-label="Search templates" disabled={saving} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="SEM, AFM, XRD…" /></label>
         <div className="metrology-picker-list">
           {templates.map((template) => <button type="button" key={template.id} disabled={saving} onClick={() => void add(template.id)}>
             <span><strong>{template.name}</strong><small>{template.toolName || "No default tool"}{template.hasDefaultContent ? " · default content" : ""}</small></span>
@@ -731,7 +731,7 @@ function MetrologyPickerDrawer({ state, onClose, onSaved }: {
   </div>;
 }
 
-export function MultiSampleRunGrid({ columns, primaryRun, onSaved, onAttachmentChanged = onSaved, readOnly = false }: { columns: RunGridColumn[]; primaryRun: SampleRun; onSaved: () => Promise<void>; onAttachmentChanged?: () => Promise<void>; readOnly?: boolean }) {
+export function MultiSampleRunGrid({ columns, primaryRun, onSaved, onAttachmentChanged = onSaved, readOnly = false }: { columns: RunGridColumn[]; primaryRun: SampleRun; onSaved: (affectedSampleIds?: readonly string[]) => Promise<void>; onAttachmentChanged?: () => Promise<void>; readOnly?: boolean }) {
   const rows = useMemo(() => buildRunGrid(columns), [columns]);
   const currentRow = useMemo(() => findCurrentRunGridRow(rows), [rows]);
   const currentRowSignature = currentRow ? `${currentRow.row.key}:${currentRow.unfinishedColumnIndexes.join(",")}` : "";
@@ -1429,8 +1429,8 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, onAttachmentC
         })}
       </div>
     </div>
-    {drawer && <StepDrawer key={`${drawer.mode}:${drawer.mode === "edit" ? drawer.step.id : `${drawer.column.sample.id}:${drawer.afterStepId || "first"}`}`} state={drawer} onClose={() => setDrawer(null)} onSaved={onSaved} />}
-    {metrologyDrawer && <MetrologyPickerDrawer key={`${metrologyDrawer.column.sample.id}:${metrologyDrawer.afterStepId || "first"}`} state={metrologyDrawer} onClose={() => setMetrologyDrawer(null)} onSaved={onSaved} />}
+    {drawer && <StepDrawer key={`${drawer.mode}:${drawer.mode === "edit" ? drawer.step.id : `${drawer.column.sample.id}:${drawer.afterStepId || "first"}`}`} state={drawer} onClose={() => setDrawer(null)} onSaved={() => onSaved([drawer.column.sample.id])} />}
+    {metrologyDrawer && <MetrologyPickerDrawer key={`${metrologyDrawer.column.sample.id}:${metrologyDrawer.afterStepId || "first"}`} state={metrologyDrawer} onClose={() => setMetrologyDrawer(null)} onSaved={() => onSaved([metrologyDrawer.column.sample.id])} />}
     {recipeDetails && <RecipeDetailsSheet state={recipeDetails} onClose={closeRecipeDetails} />}
     {deleteRequest && <ConfirmDeleteDialog
       title={deleteRequest.kind === "comment" ? (deleteRequest.comment.submissionId ? "Move this Comment to trash?" : "Delete this comment?") : deleteRequest.kind === "comment_asset" ? "Delete this comment attachment?" : "Delete this run attachment?"}
