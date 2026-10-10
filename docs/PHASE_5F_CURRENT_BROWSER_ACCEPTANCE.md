@@ -1,5 +1,15 @@
 # Current bounded Phase 5F browser checkpoint
 
+The text below retains historical `ee171339` / `c06cb71` evidence. PR #252
+subsequently merged at `fc3abc3` after its own four final-head runs and all
+fifteen contexts passed. Its post-merge Verify attempt 1 failed five source
+deadline cases and remains a separate failure. The newer exercised frontend
+`6c4dc88` and its distinct Retry/group/motion scopes are recorded in
+[the follow-up acceptance](PHASE_5F_RETRY_GROUP_MOTION_ACCEPTANCE.md).
+Throughout these physical receipts, original-state byte stability refers to
+isolated fixture inputs during diagnostic-copy reads, not a canonical workspace
+database before/after comparison.
+
 The reviewed Processing single-owner refresh removes demonstrated redundant reads. Source `ee1713393f5dea1f6bbd7a856c7586a8e517591c` (tree `8f37485feb0328094738ada55da46a2a9c38aeaf`) was built freshly, copied without existing state, and exercised using the adopted repository QA pipeline. All 22 ordinary migrations and the valid hashed two-version template fixture applied to private local persistence. Pre-API physical snapshot checks passed and kept original bytes unchanged. Actual application health/readiness returned 200; 84 real API requests prepared synthetic owners.
 
 The complete Chromium 151 finite matrix passed 20/20 in 78.879s: process starts, in-place plan updates, 720/721/1200 light/dark mixed surfaces, native source links, PNG decode, local administrator denial, and explicit recovery from one-shot missing route chunks. Source/artifact/config/session identities and actual themes were checked. This is local built-Worker evidence, not authenticated deployment or real-device acceptance.

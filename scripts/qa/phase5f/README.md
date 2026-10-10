@@ -92,10 +92,11 @@ the override and actual helper hash. Keep source/artifact/config/session fences
 and retain the failed predecessor. This identifies supplemental QA code; it
 does not attest a new application build or qualify another source tree.
 
-When the source is a new private checkout with no installation state, automatic
-original-state checks apply to that checkout. They do not establish byte
-preservation of a different workspace installation. Record that distinction,
-or separately compare a previously captured workspace inventory read-only.
+In physical diagnostic receipts, `originalStateBytesUnchanged` refers to the
+isolated fixture's persisted DB/WAL/SHM inputs remaining unchanged while their
+private diagnostic clones are read. It does not compare the workspace's
+pre-existing installation. No workspace state is copied or targeted; a
+workspace byte-preservation claim requires its own captured inventory.
 
 8. Optionally run the seventh Metrology pending-stage helper **after** the base matrix releases the browser. It creates its own two fresh Sample/Run owners and preserves the base owners. Choose a fresh private output directory. It checks the actual `Search templates` textbox name (including Chromium's computed accessibility name) and pending create → add → refresh / direct add locks. Historical `af8f374` pending receipts only qualified the old placeholder-based scope.
 

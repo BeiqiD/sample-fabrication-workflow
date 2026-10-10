@@ -1,0 +1,186 @@
+{
+  "version": 1,
+  "scope": "Five distinct bounded actual-browser scopes on product6c4 and exact attested build. No canonical workspace DB-byte, remote Access/provider, physical device/IME/other-engine, directory pagination or whole5F completion claim.",
+  "status": "passed",
+  "sourceHead": "6c4dc88800f783cd756ce6370fb4d8f4764f952c",
+  "sourceTree": "31a4f00026345f8e54818566e95d54d0441a0e5c",
+  "sourceRoot": "/tmp/phase5f-6c4dc88-attested-checkout",
+  "sourceCopyRoot": "/tmp/phase5f-6c4dc88-attempt2-copy",
+  "fixtureDirectory": "/tmp/phase5f-6c4dc88-attempt2-fixture",
+  "isolation": {
+    "path": "/tmp/phase5f-6c4dc88-attempt2-copy/isolation-receipt.json",
+    "sha256": "ecb9e2fd754507f54383f6fb0289a0f0c614d6885e6fd377c2ec49ff747d967e",
+    "copiedState": false,
+    "trackedFiles": 1305,
+    "artifactFiles": 124,
+    "activeBuild": {
+      "redirectPath": ".wrangler/deploy/config.json",
+      "configPath": "dist/sample_fabrication_workflow_local/wrangler.json",
+      "scriptPath": "dist/sample_fabrication_workflow_local/index.js",
+      "assetsDirectory": "dist/client",
+      "configSha256": "5e2ea7c0235691dc87ddb4a9a8d5e382fb56f1a91ef0e460b638e5fd6d5fe245",
+      "scriptSha256": "3422c1bf5551c54a6ed214102c4547a4395878412b7be8424ee2ea8f6fbd5ff0"
+    },
+    "provenance": {
+      "path": "/tmp/phase5f-6c4dc88-attempt2-prepare-provenance.json",
+      "sha256": "f8e2eebcbee9f327c79dff8c38e06dafcc53f143c71ea02531614f5f8f3bc253"
+    },
+    "artifactBuild": "Fresh root6c4 build exited0 /tmp/phase5f-motion-fresh-build.log; byte-equal to prior6c4 copied artifacts. Private clean6c4 checkout dependency files copied from existing install; no dependency install, new build or canonical state snapshot claimed."
+  },
+  "preparation": {
+    "appliedMigrationCount": 22,
+    "seedRequestCount": 84,
+    "seedReceipt": {
+      "path": "/tmp/phase5f-6c4dc88-attempt2-fixture/actual-api-fixture-receipt.json",
+      "sha256": "3135e39140386e6c683ec7a7b3d64fd51f84501802fdbc875491979c86f62efb"
+    },
+    "physicalBefore": {
+      "path": "/tmp/phase5f-6c4dc88-attempt2-fixture/physical-sqlite-before-api.json",
+      "sha256": "5153dbdfde7f457c11fd98c27603038f518f35f69220c6adf00926c630f1d8a7"
+    }
+  },
+  "actualBrowserScopes": {
+    "mixed20": {
+      "passed": 20,
+      "failed": 0,
+      "completeFiniteMatrix": true,
+      "report": {
+        "path": "/tmp/phase5f-6c4dc88-attempt2-fixture/actual-api-browser-report.json",
+        "sha256": "3c699b558a96cf68b0e33b16700967017774e1886ad528d14ec76232c79a6f60"
+      },
+      "summary": {
+        "path": "/tmp/phase5f-6c4dc88-attempt2-fixture/actual-api-browser-summary.json",
+        "sha256": "65b4481e9b60704321fd338f140c7c65802ba0e85f2347ccaf252e6b8c4c038e"
+      },
+      "observationAudit": {
+        "path": "/tmp/phase5f-6c4dc88-attempt2-fixture/repaired-browser-observation-audit.json",
+        "sha256": "fad5a1a145b4d5b8175badb7e7d3e0662ff5c18cc4104e95c742dd10433e0c11"
+      },
+      "supplementalFrozenHarness": {
+        "path": "/tmp/phase5f-browser-observation-repair/browser-actual-api.mjs",
+        "sha256": "71a2d573239c973e3ec487516b75a879cbaf5baaa73e4e3b35c00243466af16d"
+      },
+      "requiredBodyCount": 30,
+      "pendingObservations": 0
+    },
+    "nativeMotion6": {
+      "passed": 6,
+      "failed": 0,
+      "report": {
+        "path": "/tmp/phase5f-motion-positive-6c4dc88-attempt2/motion-browser-report.json",
+        "sha256": "246b4dee6611c0601506dd10579b3ba3f037fdf8ef48c1865ea730523924c591"
+      },
+      "heldDeliveryAudit": {
+        "path": "/tmp/phase5f-motion-positive-6c4dc88-attempt2/motion-held-delivery-audit.json",
+        "sha256": "ba27fb10db1eea425ddf4955676fb51718928825566e323333b616ced2819e89"
+      },
+      "supplementalFrozenHarness": {
+        "path": "/tmp/phase5f-motion-browser.mjs",
+        "sha256": "d31f27c5fd32ab0944f8b8cab010de8ee44156d9ae2e022544bf79b68f7d37ef"
+      }
+    },
+    "nativeReadonlySuggestions2": {
+      "passed": 2,
+      "failed": 0,
+      "report": {
+        "path": "/tmp/phase5f-suggestion-motion-positive-6c4dc88-attempt2/suggestion-motion-report.json",
+        "sha256": "9986f8430e1fe5125e488068817855af862899489d217c308af534c11b1ad786"
+      },
+      "audit": {
+        "path": "/tmp/phase5f-suggestion-motion-positive-6c4dc88-attempt2/suggestion-motion-audit.json",
+        "sha256": "b67d6f71c1e600c25999e901035701fe0bd3ba292c8f81237a4deb66a28481fc"
+      },
+      "supplementalFrozenHarness": {
+        "path": "/tmp/phase5f-suggestion-motion-browser-v2.mjs",
+        "sha256": "54866b8967fb336d86f4cd9d748f2f5714003f14c4d8f65e18d0b2ca4c60efed"
+      },
+      "realChildrenResponseCount": 4,
+      "crudRequests": 0
+    },
+    "selectedProjectInitialReadRetry1": {
+      "passed": 1,
+      "failed": 0,
+      "completeRequestedCases": true,
+      "full12Matrix": false,
+      "report": {
+        "path": "/tmp/phase5f-project-retry-6c4dc88-attempt2/project-browser-report.json",
+        "sha256": "743d126fff08d7f4c4a3afd0fb4cfd2f689a5121cf5f2ff161b09456b8cb22d3"
+      }
+    },
+    "processingCost6": {
+      "passed": 6,
+      "failed": 0,
+      "processingGets": [
+        8,
+        0,
+        1,
+        3,
+        7,
+        8
+      ],
+      "processingResponseBytes": [
+        26104,
+        0,
+        3329,
+        9859,
+        22911,
+        26174
+      ],
+      "report": {
+        "path": "/tmp/phase5f-processing-cost-6c4dc88-attempt2/processing-browser-cost.json",
+        "sha256": "530b0d7b6d5197635d2e6bbf8ce6dfb6e3d513cbd15cfe85d3960074a86f8aed"
+      }
+    }
+  },
+  "controlledStop": {
+    "path": "/tmp/phase5f-6c4dc88-attempt2-fixture/isolated-server-stop-receipt.json",
+    "sha256": "a8537813955cbb35498338a01c29e1087b617c461d8a0cfb42b07d5393847253",
+    "control": "stdin:stop",
+    "runtimeDisposalAwaited": true,
+    "exitCode": 0,
+    "portClosed": true,
+    "sessionId": "67bb6d3f-1974-4593-bd8b-98dff6436d96",
+    "sessionPid": 91352,
+    "ownedServerProcessAbsent": true
+  },
+  "physicalAfter": {
+    "path": "/tmp/phase5f-6c4dc88-attempt2-fixture/physical-sqlite-after-shutdown.json",
+    "sha256": "0a3197a7c76da71cb9e1ad822d0843cd1d0c89e4b2fde84645af192d715ab66c",
+    "sqliteFileCount": 4,
+    "quickChecks": "all ok",
+    "foreignKeyViolations": 0,
+    "categories": {
+      "d1": 2,
+      "r2": 2
+    },
+    "seededPngBytesMatched": true,
+    "objectBlobCount": 1,
+    "isolatedPersistedInputBytesUnchangedByDiagnostics": true,
+    "originalSQLiteConnectionsOpened": 0,
+    "canonicalWorkspaceDbByteProof": false,
+    "descriptorInspectionScope": "Accessible process descriptors only; not global FD absence.",
+    "inspectedProcessCount": 2,
+    "inaccessibleProcessCount": 431
+  },
+  "preservedFailures": [
+    {
+      "kind": "Original6c4 telemetry stall diagnostically interrupted; unqualified14passed+2closurefailures, no product defect established.",
+      "report": {
+        "path": "/tmp/phase5f-6c4dc88-fixture/actual-api-browser-report.json",
+        "sha256": "e2333f6086467dd66b110d12371ceb869823817f37802987ad21f29ada19b057"
+      }
+    },
+    {
+      "kind": "Suggestion attempt1 own-selector vs shared-keyframe mistaken expectation;1pass1harnessfailure,0CRUD, originalProjectunchanged.",
+      "report": {
+        "path": "/tmp/phase5f-suggestion-motion-positive-6c4dc88-attempt1/suggestion-motion-report.json",
+        "sha256": "19337482a9aaa4f4a6150cc58903373dd58756a574cf798efd6515d8a114901f"
+      }
+    }
+  ],
+  "remainingUnexercised": [
+    "Directory pagination actual API/browser flow",
+    "Other motion widths/themes/devices/IME/engines",
+    "Remote Access/provider/schema/deployment qualification"
+  ]
+}

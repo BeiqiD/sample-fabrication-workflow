@@ -2,21 +2,23 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Last reviewed: 2026-10-10 after [PR #251](https://github.com/BeiqiD/sample-fabrication-workflow/pull/251)
-merged the reviewed implementation into `v2/backend-foundation` at
-`aa497d9a1a304751ea7533548573a256799ef734` (13:30:26 UTC). Its source tree
-`087749d12a3e3ad19473f1f4e63d29e1ecf1c269` equals the locally and remotely
-qualified `af8f374cfbbade3282f2e686cc9f35d3c40adf4a` tree. Planning PR #250
-remains merged at `541eedb1405678097675aac5eb1284bf3c8ef950`.
-Post-merge Verify/Map checks and all 15 contexts at `aa497d9` succeeded,
-as did Workers Build `114224522096`. Open [PR #252](https://github.com/BeiqiD/sample-fabrication-workflow/pull/252)
-has the bounded [current browser checkpoint](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md)
-at `ee1713393f5dea1f6bbd7a856c7586a8e517591c`, tree
-`8f37485feb0328094738ada55da46a2a9c38aeaf`. The later exercised source
-`c06cb71ec5933cfb4d1721a5c1ac314b09a96ed8`, tree
-`2466e71894298e90acdc5bd4b183d29fdd88b24f`, passed a fresh 20-case matrix,
-both named Metrology cases and controlled-stop/physical proof. The final-head
-complete remote gate remains pending. Earlier checkpoints retain their dated evidence.
+Last reviewed: 2026-10-10 after [PR #252](https://github.com/BeiqiD/sample-fabrication-workflow/pull/252)
+merged into `v2/backend-foundation` as `fc3abc3eac6085cfde8af97b44a9b6d91ac62a15`
+at 15:03:29 UTC. Its final `989f1b6` tree
+`15d89bf222c6a16adfc15b857a8f75943b485912` was preserved exactly. Four final-head
+Verify/Map runs and all fifteen contexts passed before merge. Post-merge Map
+passed; post-merge Verify attempt 1 failed five existing source cases at the
+unchanged default deadline, with later leaves skipped. One failed-job rerun
+was requested; this checkpoint does not yet qualify its result.
+
+Planning PR #250 and implementation #251 remain merged at `541eedb` and
+`aa497d9`. The historical `af8f374` tree's full local/default remote and #251
+post-merge checks passed; Workers Build `114224522096` succeeded without
+proving serving traffic or schema. Historical browser records remain dated.
+The newer [Retry/group/motion qualification](PHASE_5F_RETRY_GROUP_MOTION_ACCEPTANCE.md)
+passed five distinct actual-browser scopes on `6c4dc88`; the follow-up branch's
+complete gates remain pending. Draft portable-runtime PR #253 is a partial
+foundation with observed local and remote complete-check failures under repair.
 
 The owner authorizes autonomous development, self-review and merges into the
 development/test integration branch, including its existing Workers build path.
@@ -33,14 +35,14 @@ is valuable evidence but is not a remote pass or production admission.
 
 | Area | Synchronization and evidence as of 2026-10-10 | Remaining boundary |
 | --- | --- | --- |
-| Integration and deployment | Planning #250 and implementation #251 are merged. The qualified `af8f374` tree is preserved exactly at integration `aa497d9`. Post-merge Verify/Map and all 15 contexts succeeded; Workers Build `114224522096` succeeded. Three anonymous routes still returned Access 302. The last authenticated historical deployment evidence is the 2026-10-03 V20 Worker `faa8a01b-0fc8-47d7-b59e-81e038bc4310`. | Observe actual serving version/schema and authenticated readiness. Neither Access redirects nor a build establish those facts. `main` remains the separate production release target. |
+| Integration and deployment | Planning #250 and implementations #251/#252 are merged. Qualified final #252 tree is preserved at `fc3abc3`. Its own final four runs/all fifteen contexts passed; post-merge source attempt 1 failed five deadline cases, with one separate rerun requested. Historical #251 Workers Build succeeded. Three anonymous routes returned Access 302. | Observe actual serving version/schema and authenticated readiness; resolve recorded post-merge failures. `main` remains a separate production release target. |
 | FP1 | File authority was activated on the historical deployment; new `internal` and `originals` roles use R2. The [2026-10-01 acceptance](./FP1_R2_ROLE_DEFAULTS.md#live-acceptance--2026-10-01) passed 6 MiB HTTP writes and 15/15 V19 restore bytes. | Historical accepted locations and missing-provider outcomes remain explicit. |
 | FP2 | **Implemented, CI-qualified and integrated** through #251: native File R2/S3 byte access, verified publication and lifecycle, configured candidate activation, independent role defaults and frozen accepted destinations; `0018` / V21. [FP2/FP3 record](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP3_LOCAL_DEVELOPMENT_ACCEPTANCE.md). | Real AWS account/profile and deployed administration/provider/runtime acceptance. Fixture tests do not establish real-provider qualification. |
 | FP3 | **Implemented, CI-qualified and integrated**: persisted bounded migration jobs, isolated execution, pause/resume/cancel/retry, verified cutover, read holds and explicit cleanup; `0019` / V22. | Deployed runner limits/invocation, provider interruption and actual deployed nonempty recovery rehearsal. |
 | FP4 | **Implemented, CI-qualified and integrated**: paired **Sample and Project** package export, matching website **fresh-copy** import, separate readable reports, `0020` / V23. [FP4 record](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP4_RESEARCH_PACKAGES.md). | Deployed/provider and targeted manual acceptance; maintain bounded packages, complete dependencies and original-vs-copy identity. |
 | FP5 | **Implemented, CI-qualified and integrated**: privileged full backup, identity-preserving fresh-target recovery, protected configuration, legacy archive conversion and assisted handoff; `0021`–`0022` / V24. [FP5 goal](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP5_DEVELOPMENT_GOAL.md). | Real target provisioning, provider-specific and deployed handoff evidence; restored execution remains disabled pending explicit local admission. |
-| Frontend | **C4, 5D and 5E** and bounded #251 repairs are integrated. **5F remains in progress**. Open #252 implements owner-scoped refresh and the search label; `ee171339` passed the adopted 20-case built-Worker matrix, 84 API seed requests, six actual Processing cost cases, 12 additional Project scenario identities and controlled-stop/physical checks. [Current evidence](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md) separates current and historical results. | The fresh `c06cb71` 20-case matrix and both named Metrology cases, awaited stop and physical proof passed; finish final-head complete gates. Next separate PRs address initial Project GET retry and three-owner group refresh. Physical input/authenticated/provider and whole-5F acceptance remain open. |
-| CI | At `af8f374`, all **12 local default leaves** passed: native **355 tests**, source **366 files / 3,349 tests**, mounted **98 files / 945 tests**, with no skips. Four remote Verify/Map runs and all **15 final status contexts** succeeded. Integration `aa497d9` preserves that exact tree and its post-merge Verify/Map/all 15 contexts passed. Applied #252 UI source passed 100 mounted files / 966 tests and build; its final complete gate remains pending. The 40-minute job budget/default case deadlines are unchanged. | Later source/docs trees need their own checks. Earlier `3c1baf5`, `4b2c660` and 97-file/939-test receipts remain historical and are not summed. |
+| Frontend | C4, 5D, 5E and bounded #251/#252 repairs are integrated. **5F remains in progress**. Exercised `6c4dc88` passed mixed matrix20, motion6, suggestions2, selected Retry1 and cost6 as distinct scopes, plus controlled stop and four physical DB checks. [Follow-up evidence](PHASE_5F_RETRY_GROUP_MOTION_ACCEPTANCE.md) retains old failures and original identities. | Follow-up branch complete gates and merge remain pending. Physical input/IME, directory-pagination browser coverage, authenticated/provider and whole-5F acceptance stay open. |
+| CI | Historical `af8f374` passed all twelve local leaves, native355/source3349/mounted945, four remote runs and all fifteen contexts. Final #252 own four runs/all fifteen contexts also passed. Its post-merge source attempt 1 failed five default-deadline cases. Draft #253 at7c failed local source1, push source1 and PR mounted1; skipped later leaves are not passes. | Repair actual fixture/await costs and race evidence, then qualify each final source. Default case deadlines and forty-minute job budget are unchanged. Historical totals are not summed. |
 | Integration defect repairs | [FP3 actor admission](FP3_JOB_AUTHORIZATION_ACCEPTANCE.md), [FP5 recovery bootstrap](FP5_RECOVERY_BOOTSTRAP_ACCEPTANCE.md) and [explicit route recovery](PHASE_6_ROUTE_RECOVERY_ACCEPTANCE.md) are included in the qualified, merged tree. | Actual development rollout, provider and operational acceptance remain separate. No real provider was activated. |
 | Stabilization | 6A1–6A5 selected ownership/S2 work is historical; #251 combined-tree review and complete local/default remote gates passed. | Remaining 6A6 serving/schema/device and enabled-scope 6B provider/operational release verification stay open. |
 | Legacy Drafts | #199/#200 are inactive alternatives to the chosen S2 route. | Review closure as maintenance, not as new migrations or a release prerequisite. |
@@ -72,7 +74,7 @@ textbox names. Awaited stop, four SQLite/FK checks, unchanged original bytes
 and exact PNG proof passed again. These checks do not claim current final-head
 full remote qualification.
 
-**Next separately reviewable product slices.** Initial Project GET recovery has
+**Historical next-slice characterization before 6c4 qualification.** Initial Project GET recovery has
 an explicit Retry gap: the bounded mounted characterization was **5 red /
 1 pass**, with **6 green** for the candidate fix. Known three-owner group refresh
 has a private **29-test/type** candidate for **8 → 3** reads; it has no actual
@@ -1069,23 +1071,24 @@ Project-owned Markdown or attachment content only through explicit user action.
 | Foundation → Project v1 shape | Earlier Project and backend fundamentals are delivered; retain their reference/Canvas/save/media regression behavior. |
 | Integrated FP2–FP5 development | Native File/S3, bounded migration jobs, paired Sample+Project copy packages and system backup/restore **implemented, locally/remotely CI-qualified and merged** through #251; actual deployed/provider acceptance remains open. |
 | C4 / 5D / 5E | Bounded local development completed; keep physical-device, OS-input and deployed-runtime acceptance gaps visible. |
-| 5F integrated UX | In progress: ownership, narrow-grid, projection and explicit route-recovery repairs are integrated and qualified at `af8f374`. Built-Worker browser matrix passed 20 cases plus two Metrology pending-flow cases. Open #252 implements owner refresh and search-label corrections; current 20-case/cost/Project/physical evidence is recorded separately. `c06cb71` qualified the fresh 20-case matrix and both named Metrology cases plus stop/physical proof; final complete gates remain pending; initial Project GET Retry and three-owner refresh are the next separate product slices. Physical input/authenticated/provider acceptance stays open. |
+| 5F integrated UX | In progress. Bounded #251/#252 repairs integrated; historical actual browser evidence preserved. `6c4dc88` Retry/group/motion actual scopes passed with controlled-stop/physical proof. Its final branch gate remains pending; whole-5F/device/authenticated/provider acceptance stays open. |
 | 6A6 / 6B | Combined-tree review, complete local/default remote gates and implementation merge passed at `af8f374` / `aa497d9`. Remaining serving/schema, physical-device, provider/operational and scoped release acceptance is open. |
 | First integrated V3 release | Existing product plus **explicitly qualified enabled** FP2–FP5 scope. Capabilities awaiting live evidence remain unavailable/deferred rather than incorrectly marked unimplemented or enabled. |
-| Portable runtime | Node/Docker/SQLite/local defaults with real volume/upgrade and cross-deployment recovery evidence. |
+| Portable runtime | **RT1–RT6 unfinished.** Draft #253 implements reviewed factory/SQL/HTTP/crypto/disk foundations; complete checks failed and are being repaired. Private identity, installer, configuration and provider-opening services do not yet qualify the full Node application, local role defaults, Docker volumes/upgrades or cross-deployment recovery. |
 | Group collaboration | Small-group membership and complete resource authorization, after runtime/identity boundaries are qualified. |
 
 ## Immediate next PR order
 
-1. Continue on merged **#251** integration `aa497d9`. Preserve exact validated
-   `af8f374`/tree receipts, paired migrations `0018`–`0022` and V21–V24 readers,
-   and historical failed/cancelled runs. #250 planning and inactive Drafts
-   #199/#200 have been reviewed; do not adopt those old migration bridges.
-2. Finish open **#252**: preserve `ee171339` matrix/cost/Project/physical receipts,
-   preserve `c06cb71` fresh 20-case/named-pair/stop/physical qualification,
-   then pass the final-head complete gate before reviewed integration.
-   Follow with separate initial Project GET Retry and known three-owner group
-   refresh PRs; their private candidate tests do not establish browser acceptance.
+1. Continue from merged **#252** integration `fc3abc3`. Preserve #250/#251,
+   all exact source/tree receipts, paired migrations `0018`–`0022`, V21–V24
+   readers and historical failed/cancelled runs. Inactive Drafts #199/#200
+   remain alternatives; do not adopt their migration bridges.
+2. Qualify and merge the Retry, three-owner group refresh and reduced-motion
+   follow-up after fixing observed CI fixture/await failures. Preserve the
+   distinct actual `6c4dc88` browser and physical scopes; they do not replace
+   final complete gates. Preserve #252's post-merge deadline failures. Continue
+   draft #253 and the private Node identity/installer/configuration slices
+   without claiming complete portable application acceptance.
 3. Continue remaining bounded **5F-1** (cross-page language/control), **5F-2** (read/retry, focus,
    uncertain-write and recovery identity), then **5F-3** (realistic integrated
    responsive/theme/accessibility and source-data workflows).
