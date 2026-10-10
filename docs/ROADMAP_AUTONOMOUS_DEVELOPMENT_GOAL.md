@@ -12,26 +12,37 @@ merged at `aa497d9a1a304751ea7533548573a256799ef734` on 2026-10-10 at
 13:30:26 UTC, preserving exact qualified `af8f374cfbbade3282f2e686cc9f35d3c40adf4a`
 tree `087749d12a3e3ad19473f1f4e63d29e1ecf1c269`. All 12 local default leaves,
 four remote Verify/Map runs and all 15 final status contexts passed at that source.
-The #251 post-merge Verify/Map checks and all 15 contexts also passed. Open
-[PR #252](https://github.com/BeiqiD/sample-fabrication-workflow/pull/252) has
+The #251 post-merge Verify/Map checks and all 15 contexts also passed.
+[PR #252](https://github.com/BeiqiD/sample-fabrication-workflow/pull/252) merged at
+`fc3abc3eac6085cfde8af97b44a9b6d91ac62a15` on 2026-10-10 at 15:03:29 UTC.
+Its final four Verify/Map runs and all fifteen contexts passed before merge;
+post-merge Verify attempt 1 failed five existing default-deadline source cases,
+with later leaves skipped. The one separate failed-job rerun then passed
+all twelve default leaves and fifteen public contexts (native355, source3349,
+mounted966). The first failure remains retained. Workers Build114248318359
+failed without a reason in check metadata; actual serving/schema remain open. It has
 [current browser evidence](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md) at `ee171339`
 and fresh `c06cb71` / tree `2466e718` (20 matrix cases, both named Metrology
-cases and awaited-stop/physical proof passed); its final-head complete remote
-gate remains pending.
+cases and awaited-stop/physical proof passed). The later
+[Retry/group/motion slice](PHASE_5F_RETRY_GROUP_MOTION_ACCEPTANCE.md) has bounded
+actual browser qualification at `6c4dc88`; its final branch gate remains pending.
+Draft portable-runtime PR #253 is implemented only as a partial foundation;
+its observed complete-check failures remain open.
 
 ## Working order
 
 1. Preserve the completed [Metrology pending/session slice](PHASE_5F_METROLOGY_ACCEPTANCE.md)
    and reviewed #251 integration. Retain migration ordering, V21–V24 recovery
    compatibility and distinct historical/current receipts.
-2. Finish #252's owner-scoped Processing refresh and search-label slice.
+2. Preserve merged #252's owner-scoped Processing refresh and search-label slice.
    Preserve `ee171339` 20-case matrix, 84-request seed, six cost cases and 12
    additional Project scenario identities, plus awaited-stop and physical
-   DB/FK/PNG/original-byte receipts. Preserve the fresh `c06cb71` 20-case matrix,
+   DB/FK/PNG/isolated-input-byte receipts. Preserve the fresh `c06cb71` 20-case matrix,
    named Metrology pair and stop/physical qualification; qualify the final-head
-   complete gate before integration. Then use separate PRs for initial Project GET Retry and known
-   three-owner group refresh; candidate mounted/type tests are not actual
-   browser qualification.
+   complete gate and the separate post-merge failures. Qualify the follow-up
+   initial Project GET Retry, known three-owner group refresh and reduced-motion
+   branch's own complete gates before merging. Its actual browser scopes passed;
+   they do not replace complete CI or whole-5F acceptance.
 3. Complete the remaining bounded 5F language, navigation, read/retry/recovery
    and representative browser/responsive/theme checks. Repair observed defects;
    preserve domain identity, accepted-write semantics and mature grid geometry.

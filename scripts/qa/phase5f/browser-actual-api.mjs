@@ -8,6 +8,21 @@ import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+const BODY_OBSERVATION_TIMEOUT_MS = 5000;
+const CONTEXT_SHUTDOWN_TIMEOUT_MS = 10000;
+async function bounded(promise, timeoutMs, label) {
+  let timer;
+  try {
+    return await Promise.race([promise, new Promise((_, reject) => {
+      timer = setTimeout(() => { const error = new Error(`${label} exceeded ${timeoutMs}ms`); error.code = 'PHASE5F_OBSERVATION_DEADLINE'; reject(error); }, timeoutMs);
+    })]);
+  } finally { if (timer) clearTimeout(timer); }
+}
+function requireMutationResponseCaptures(record) {
+  const missing = record.api.filter(item => item.bodyObservationRequired && item.observationStatus !== 'completed');
+  assert.equal(missing.length, 0, `Required mutation/preview response captures unfinished: ${missing.map(item => `${item.method} ${item.path}`).join(', ')}`);
+}
+
 const tempAlias = resolve(tmpdir()), tempRoot = await realpath(tempAlias);
 function within(root, path) { const part = relative(root, path); return part && part !== '..' && !part.startsWith(`..${sep}`) && !isAbsolute(part); }
 async function privateDirectory(value) {
@@ -43,7 +58,10 @@ for (const map of [isolation.trackedFiles, isolation.copiedArtifactFiles]) {
   assert(map && Object.keys(map).length);
   for (const [name, hash] of Object.entries(map)) assert.equal(sha(await readFile(await ownedFile(isolatedSourceRoot, name))), hash, `Copied byte mismatch: ${name}`);
 }
-assert.equal(sha(await readFile(new URL(import.meta.url))), isolation.trackedFiles['scripts/qa/phase5f/browser-actual-api.mjs'], 'Execute the copied/committed helper byte identity.');
+const harnessSha256 = sha(await readFile(new URL(import.meta.url)));
+const explicitReviewedHarnessSha256 = process.env.PHASE5F_REVIEWED_HARNESS_SHA256 || null;
+if (explicitReviewedHarnessSha256) assert(/^[a-f0-9]{64}$/.test(explicitReviewedHarnessSha256));
+assert.equal(harnessSha256, explicitReviewedHarnessSha256 || isolation.trackedFiles['scripts/qa/phase5f/browser-actual-api.mjs'], 'Execute the committed helper or explicitly frozen reviewed supplemental helper byte identity.');
 assert((await lstat(resolve(isolatedSourceRoot, 'node_modules'))).isSymbolicLink());
 assert.equal(await realpath(resolve(isolatedSourceRoot, 'node_modules')), isolation.nodeModulesRoot);
 const requestedBase = new URL(baseValue);
@@ -83,7 +101,7 @@ const output = resolve(fixtureDirectory, 'browser-artifacts');
 for (const path of [reportPath, summaryPath, progressPath, browserSessionPath, output]) await noPriorFile(path);
 async function actualApi(path) {
   await liveSession();
-  const response = await fetch(new URL(`/api${path}`, base), { redirect: 'error' });
+  const response = await fetch(new URL(`/api${path}`, base), { redirect: 'error', signal: AbortSignal.timeout(20000) });
   assert.equal(response.status, 200, `Actual API GET ${path}`);
   return response.json();
 }
@@ -104,7 +122,7 @@ const projectChunkNames = assetNames.filter(name => /^ProjectPage-[^.]+\.js$/.te
 assert.equal(projectChunkNames.length, 1, 'Exactly one built ProjectPage route chunk is required.');
 const projectChunk = projectChunkNames[0];
 const projectChunkBytes = await readFile(resolve(assetsDirectory, projectChunk));
-const servedChunk = await fetch(new URL(`/assets/${projectChunk}`, base), { redirect: 'error' });
+const servedChunk = await fetch(new URL(`/assets/${projectChunk}`, base), { redirect: 'error', signal: AbortSignal.timeout(20000) });
 assert.equal(servedChunk.status, 200);
 assert.equal(sha(Buffer.from(await servedChunk.arrayBuffer())), sha(projectChunkBytes),
   'Served route bytes must match the selected built artifact.');
@@ -127,7 +145,7 @@ expectedCaseIds.push('chunk-404-explicit-reload', 'chunk-503-explicit-reload');
 if (selectedCase) assert(expectedCaseIds.includes(selectedCase), 'Unknown explicit case ID.');
 const report = { version: 1, scope: 'Actual local API + current built UI; synthetic isolated data. No remote Access, provider, device, or whole-roadmap completion claim.',
   ...identities, baseUrl: base.origin, prefix: fixture.prefix, serverSessionId: server.sessionId, serverReceiptSha256: serverHash,
-  harnessSha256: sha(await readFile(new URL(import.meta.url))),
+  harnessSha256, explicitReviewedHarnessSha256, observationPolicy: { bodyTimeoutMs: BODY_OBSERVATION_TIMEOUT_MS, contextShutdownTimeoutMs: CONTEXT_SHUTDOWN_TIMEOUT_MS, requiredMutationAndPreviewBodiesFailClosed: true, unfinishedIncidentalGetBodiesRetained: true },
   seedHelperSha256: sha(await readFile(new URL('./seed-actual-api.mjs', import.meta.url))),
   generatorHelperSha256: sha(await readFile(new URL('./generate-process-fixture.mjs', import.meta.url))),
   isolationHelperSha256: sha(await readFile(new URL('./prepare-isolated-copy.py', import.meta.url))),
@@ -183,31 +201,39 @@ async function executeCase(id, matrix, action, { controlledChunkFault = false } 
   page.on('response', response => {
     const target = new URL(response.url());
     if (target.origin !== base.origin || !target.pathname.startsWith('/api/')) return;
-    const item = { path: target.pathname + target.search, method: response.request().method(), status: response.status() };
+    const item = { path: target.pathname + target.search, method: response.request().method(), status: response.status(), bodyObservationRequired: !['GET', 'HEAD'].includes(response.request().method()), observationStatus: 'pending' };
     record.api.push(item);
     const observation = (async () => {
       const request = response.request();
       try { item.request = request.postDataJSON(); } catch { item.request = null; }
       if (response.headers()['content-type']?.includes('application/json')) {
-        try { const body = await response.body(); item.responseSha256 = sha(body); const value = JSON.parse(body); item.preview = { ...(typeof value.canConfirm === 'boolean' ? { canConfirm: value.canConfirm, blockingReason: value.blockingReason } : {}), ...(typeof value.compatible === 'boolean' ? { compatible: value.compatible } : {}), ...(value.substrateTransition ? { substrateCanConfirm: value.substrateTransition.canConfirm, substrateBlockingReason: value.substrateTransition.blockingReason } : {}) }; }
-        catch { item.responseUnavailable = true; }
-      }
+        try { const body = await bounded(response.body(), BODY_OBSERVATION_TIMEOUT_MS, `Response body ${item.method} ${item.path}`); item.observationStatus = 'completed'; item.responseSha256 = sha(body); const value = JSON.parse(body); item.preview = { ...(typeof value.canConfirm === 'boolean' ? { canConfirm: value.canConfirm, blockingReason: value.blockingReason } : {}), ...(typeof value.compatible === 'boolean' ? { compatible: value.compatible } : {}), ...(value.substrateTransition ? { substrateCanConfirm: value.substrateTransition.canConfirm, substrateBlockingReason: value.substrateTransition.blockingReason } : {}) }; }
+        catch (error) { item.responseUnavailable = true; item.observationStatus = error.code === 'PHASE5F_OBSERVATION_DEADLINE' ? 'unfinished' : 'unavailable'; item.observationError = error.message; }
+      } else { item.observationStatus = 'not-json'; }
     })(); observations.push(observation);
   });
   try {
     await action(page, record);
     await Promise.all(observations);
+    requireMutationResponseCaptures(record);
     assert.equal(record.unexpectedOrigins.length, 0, 'No external server traffic is part of this fixture.');
     if (!controlledChunkFault) assert.equal(record.pageErrors.length, 0, record.pageErrors.join('\n'));
-    await page.screenshot({ path: resolve(output, `${id}.png`), fullPage: true });
+    await page.screenshot({ path: resolve(output, `${id}.png`), fullPage: true, timeout: 20000 });
     record.status = 'passed';
   } catch (error) {
     record.status = 'failed'; record.error = error.stack || error.message;
     await Promise.all(observations);
-    await page.screenshot({ path: resolve(output, `${id}-failed.png`), fullPage: true }).catch(() => {});
+    await page.screenshot({ path: resolve(output, `${id}-failed.png`), fullPage: true, timeout: 20000 }).catch(() => {});
   } finally {
-    record.completedAt = new Date().toISOString(); await context.close(); await saveReport();
+    let shutdownError;
+    try { await bounded(context.close(), CONTEXT_SHUTDOWN_TIMEOUT_MS, 'Browser context shutdown'); record.contextClosed = true; }
+    catch (error) { shutdownError = error; record.status = 'failed'; record.contextCloseError = error.message; record.error ||= error.stack || error.message; }
+    await Promise.all(observations);
+    try { requireMutationResponseCaptures(record); } catch (error) { record.status = 'failed'; record.captureError = error.message; record.error ||= error.stack || error.message; }
+    record.observationSummary = { completed: record.api.filter(item => item.observationStatus === 'completed').length, unfinished: record.api.filter(item => item.observationStatus === 'unfinished').length, unavailable: record.api.filter(item => item.observationStatus === 'unavailable').length, requiredUnfinished: record.api.filter(item => item.bodyObservationRequired && item.observationStatus !== 'completed').length };
+    record.completedAt = new Date().toISOString(); await saveReport();
     console.log(JSON.stringify({ id, status: record.status, error: record.error?.split('\n')[0] ?? null }));
+    if (shutdownError) throw shutdownError;
   }
 }
 const incoming = page => page.getByRole('dialog', { name: 'Choose the incoming process template', exact: true });
@@ -356,7 +382,7 @@ try {
       await noDocumentOverflow(page, record.assertions, 'settings-system-admin-denied', record.theme);
       const capability = await actualApi('/system-recovery/capabilities');
       assert.equal(capability.canManage, false, 'AUTH disabled must retain the actual system administrator denial');
-      const protectedRead = await fetch(new URL('/api/system-recovery/jobs', base), { redirect: 'error' });
+      const protectedRead = await fetch(new URL('/api/system-recovery/jobs', base), { redirect: 'error', signal: AbortSignal.timeout(20000) });
       assert.equal(protectedRead.status, 403);
       assert(record.api.some(item => item.path === '/api/system-recovery/capabilities' && item.status === 200));
       record.assertions.push({ systemAdministratorCapability: false, protectedRecoveryReadStatus: 403, remoteAccessQualified: false });
@@ -399,7 +425,7 @@ try {
 } catch (error) {
   report.error = error.stack || error.message; process.exitCode = 1;
 } finally {
-  if (browser) { try { await browser.close(); } catch (error) { report.error ||= error.stack || error.message; process.exitCode = 1; } }
+  if (browser) { try { await bounded(browser.close(), CONTEXT_SHUTDOWN_TIMEOUT_MS, 'Browser shutdown'); report.browserClosed = true; } catch (error) { report.error ||= error.stack || error.message; report.cleanupError = error.message; process.exitCode = 1; } }
   const requested = selectedCase ? [selectedCase] : expectedCaseIds;
   report.requestedCaseIds = requested;
   report.passedCount = report.cases.filter(item => item.status === 'passed').length;
@@ -409,7 +435,7 @@ try {
   report.completeFiniteMatrix = !selectedCase && report.status === 'passed';
   await saveReport();
   await writeOnce(reportPath, report);
-  const summary = { ...identities, version: 1, scope: report.scope, status: report.status, completeFiniteMatrix: report.completeFiniteMatrix, selectedCase, startedAt: report.startedAt, completedAt: report.completedAt, passedCount: report.passedCount, failedCount: report.failedCount, requestedCaseIds: report.requestedCaseIds, harnessSha256: report.harnessSha256, serverSessionId: server.sessionId, serverReceiptSha256: serverHash, seedReceiptSha256: report.seedReceiptSha256, fixtureSqlSha256: report.fixtureSqlSha256, migrationConfigSha256: report.migrationConfigSha256, deploymentRedirectSha256: report.deploymentRedirectSha256, artifact: report.artifact, reportSha256: sha(await readFile(reportPath)), cases: report.cases.map(({ id, width, theme, status, error, assertions, api, pageErrors, unexpectedOrigins }) => ({ id, width, theme, status, error, assertions, api: api.map(({ path, method, status, responseSha256, preview }) => ({ path, method, status, responseSha256, preview })), pageErrors, unexpectedOrigins })), ...(report.error ? { error: report.error } : {}) };
+  const summary = { ...identities, version: 1, scope: report.scope, status: report.status, completeFiniteMatrix: report.completeFiniteMatrix, selectedCase, startedAt: report.startedAt, completedAt: report.completedAt, passedCount: report.passedCount, failedCount: report.failedCount, requestedCaseIds: report.requestedCaseIds, harnessSha256: report.harnessSha256, explicitReviewedHarnessSha256: report.explicitReviewedHarnessSha256, observationPolicy: report.observationPolicy, browserClosed: report.browserClosed, serverSessionId: server.sessionId, serverReceiptSha256: serverHash, seedReceiptSha256: report.seedReceiptSha256, fixtureSqlSha256: report.fixtureSqlSha256, migrationConfigSha256: report.migrationConfigSha256, deploymentRedirectSha256: report.deploymentRedirectSha256, artifact: report.artifact, reportSha256: sha(await readFile(reportPath)), cases: report.cases.map(({ id, width, theme, status, error, assertions, api, pageErrors, unexpectedOrigins, observationSummary, contextClosed }) => ({ id, width, theme, status, error, assertions, observationSummary, contextClosed, api: api.map(({ path, method, status, responseSha256, preview, bodyObservationRequired, observationStatus, observationError }) => ({ path, method, status, responseSha256, preview, bodyObservationRequired, observationStatus, observationError })), pageErrors, unexpectedOrigins })), ...(report.error ? { error: report.error } : {}) };
   await writeOnce(summaryPath, summary);
   console.log(JSON.stringify({ status: report.status, passed: report.passedCount, failed: report.failedCount,
     completeFiniteMatrix: report.completeFiniteMatrix, reportPath }));

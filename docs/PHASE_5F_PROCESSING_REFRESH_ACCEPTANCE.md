@@ -150,7 +150,11 @@ Pending Steps. The adopted pipeline also passed its complete 20-case matrix,
 awaited disposal with exit 0, and final four-SQLite/FK/PNG checks. These results
 remain pinned to the exercised commit, with raw hashes and scope in
 [the current browser checkpoint](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md).
-The final candidate head still requires all default remote gates.
+The final #252 candidate passed its own four Verify/Map runs and all fifteen
+contexts, then merged as `fc3abc3`. Its post-merge source timeout failures remain
+separate. The later three-owner group reduction is qualified in
+[the follow-up acceptance](PHASE_5F_RETRY_GROUP_MOTION_ACCEPTANCE.md), whose final
+branch complete gates remain pending.
 The existing Map/Reading and 250/500 Save-cost acceptance remain separate
 finite measurements; this change does not add a batch placement protocol.
 

@@ -1,5 +1,10 @@
 import { createHash } from "node:crypto";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { backup, DatabaseSync } from "node:sqlite";
+import { sqliteFixtureImage } from "../../test/sqlite-fixture-image";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { S3StorageNamespace } from "../../shared/contracts/storage-configuration";
 import type { Sha256Factory } from "../files/byte-verification";
 import { referenceTestDatabase, SqliteD1Database } from "../reference-test-support";
@@ -20,8 +25,36 @@ const credentials = { accessKeyId: "fixture-old-access", secretAccessKey: "fixtu
 const hash: Sha256Factory = () => { const value = createHash("sha256"); return { async write(bytes) { value.update(bytes); },
   async finish() { return value.digest("hex"); }, async abort() {} }; };
 const databases: ReturnType<typeof referenceTestDatabase>[] = [];
+let fixtureDirectory = "", pristinePath = "", nextFixture = 0;
+beforeAll(async () => {
+  // Replay all current migrations, then preserve their complete native SQLite
+  // image. Cases share no candidate, credential, binding, object or env writes.
+  fixtureDirectory = mkdtempSync(join(tmpdir(), "native-s3-reader-pristine-"));
+  pristinePath = join(fixtureDirectory, "pristine.sqlite");
+  const database = referenceTestDatabase();
+  try {
+    expect(database.prepare("PRAGMA foreign_keys").get()).toEqual({ foreign_keys: 1 });
+    expect(database.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    const expected = sqliteFixtureImage(database);
+    await backup(database, pristinePath);
+    const cloned = new DatabaseSync(pristinePath, { readOnly: true });
+    try {
+      expect(sqliteFixtureImage(cloned)).toEqual(expected);
+      expect(cloned.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    } finally { cloned.close(); }
+  } finally { database.close(); }
+});
+afterAll(() => { if (fixtureDirectory) rmSync(fixtureDirectory, { recursive: true, force: true }); });
+function pristineDatabase() {
+  if (!fixtureDirectory || !pristinePath) throw new Error("The canonical native reader fixture is unavailable");
+  const path = join(fixtureDirectory, `scenario-${nextFixture++}.sqlite`);
+  copyFileSync(pristinePath, path);
+  const database = new DatabaseSync(path);
+  database.exec("PRAGMA foreign_keys=ON");
+  return database;
+}
 async function fixture() {
-  const sql = referenceTestDatabase(); databases.push(sql); sql.exec("PRAGMA foreign_keys=ON");
+  const sql = pristineDatabase(); databases.push(sql);
   const db = new SqliteD1Database(sql), env = { DB: db as unknown as D1Database, AUTH_MODE: "access", SYSTEM_ADMIN_EMAILS: actor,
     STORAGE_CREDENTIAL_KEYRING: oldRing } as Env;
   const candidate = { expectedRevision: null, label: "Reader fixture", namespace, credentials: { mode: "replace", value: credentials } };
@@ -52,6 +85,23 @@ async function fixture() {
 afterEach(() => { vi.restoreAllMocks(); databases.splice(0).forEach(db => db.close()); });
 
 describe("registered native S3 read transport", () => {
+  it("isolates candidate revisions, credential policy and provider objects across fresh copies", async () => {
+    const f = await fixture(); await f.revise();
+    f.env.STORAGE_CREDENTIAL_KEYRING = undefined;
+    f.objects.clear();
+    const g = await fixture();
+    expect(g.env).not.toBe(f.env); expect(g.sql).not.toBe(f.sql);
+    expect(g.sql.prepare("SELECT latest_revision FROM system_storage_profiles WHERE id=?").get(g.saved.profileId)).toEqual({ latest_revision: 1 });
+    expect(f.sql.prepare("SELECT latest_revision FROM system_storage_profiles WHERE id=?").get(f.saved.profileId)).toEqual({ latest_revision: 2 });
+    expect(g.env.STORAGE_CREDENTIAL_KEYRING).toBe(oldRing);
+    expect(await g.reader.stat("files/known")).toMatchObject({ outcome: "available", byteSize: 11 });
+    expect(g.sql.prepare("SELECT state FROM storage_profile_runtime WHERE storage_profile_id=?").get(g.profile.profileId)).toEqual({ state: "read_only" });
+    expect(g.sql.prepare("SELECT count(*) n FROM file_locations").get()).toEqual({ n: 0 });
+    expect(g.sql.prepare("PRAGMA foreign_keys").get()).toEqual({ foreign_keys: 1 });
+    expect(g.sql.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    expect(f.fetch).not.toHaveBeenCalled();
+  });
+
   it("constructs without I/O, exposes only read/stat and sends owner-qualified signed requests without changing metadata", async () => {
     const f = await fixture(); f.db.resetQueryCount();
     const before = f.sql.prepare("SELECT total_changes() n").get();
@@ -102,7 +152,7 @@ describe("registered native S3 read transport", () => {
   it("rejects a wrapping race immediately before send without retrying; the next call uses the authenticated replacement", async () => {
     const f = await fixture(); f.env.STORAGE_CREDENTIAL_KEYRING = newRing;
     let rotated = false;
-    const withSession = vi.fn(() => ({ prepare: (sql: string) => ({ bind: (...values: unknown[]) => ({ first: async () => {
+    const withSession = vi.fn((_constraint: string) => ({ prepare: (sql: string) => ({ bind: (...values: unknown[]) => ({ first: async () => {
       if (sql.startsWith("SELECT 1 AS bound") && !rotated) { rotated = true; await f.rotate(); }
       return f.db.prepare(sql).bind(...values).first();
     } }) }) }));

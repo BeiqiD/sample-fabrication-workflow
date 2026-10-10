@@ -13,6 +13,7 @@ import {
   type ProcessTemplateVersionSummary,
 } from "../lib/api";
 import { pageFromSearchParam, setPageParam } from "../lib/pagination";
+import { preferredScrollBehavior } from "../lib/preferred-scroll-behavior";
 
 const FabubloxImporter = lazy(() => import("../components/FabubloxImporter")
   .then((module) => ({ default: module.FabubloxImporter })));
@@ -253,7 +254,7 @@ export function TemplatesPage() {
 
   function changePage(key: "processPage" | "metrologyPage", page: number, sectionId: string) {
     setSearchParams(setPageParam(searchParams, key, page));
-    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: preferredScrollBehavior(), block: "start" });
   }
 
   const hasQuery = Boolean(requestedQuery);

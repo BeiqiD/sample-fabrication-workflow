@@ -373,6 +373,11 @@
   animation: reference-search-loading 1.2s ease-in-out infinite;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .reference-search-loading span,
+  .reference-suggestion-loading span { animation: none; }
+}
+
 .reference-placement-card {
   min-width: 0;
   display: grid;

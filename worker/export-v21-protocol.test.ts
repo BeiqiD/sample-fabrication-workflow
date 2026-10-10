@@ -134,7 +134,7 @@ describe("V21 native File archive generation", () => {
     expect(sql.prepare("SELECT state FROM storage_profile_runtime WHERE storage_profile_id=?").get(f.profileId)).toEqual({ state: "read_only" });
     expect(result.report.authorityRecovery).toMatchObject({ providerIO: false, runtimeExecutionEnabled: false, installationAdmissionRequired: true });
     expect(fetcher).not.toHaveBeenCalled();
-  });
+  }, 15_000);
 
   it("omits only local binding-owned DDL and preserves portable credential-access guards", async () => {
     const sql = await contentNativeRuntimeMigrationSql(await readFile(join(migrationsDirectory, generation), "utf8"));

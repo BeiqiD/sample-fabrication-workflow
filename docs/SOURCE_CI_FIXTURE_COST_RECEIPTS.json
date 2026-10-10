@@ -1,0 +1,35 @@
+{
+  "baselineHead": "7cdee5198188bcafc0b9e8703ac77451d0179234",
+  "baselineTree": "c7bcea5d47ed70bb40aec56ed424e58ed6c4702a",
+  "patchPath": "/tmp/source-ci-deadline-fixture-7cdee51.patch",
+  "patchSha256": "57a61219e34021fae11bd595bc8e50fb24679398ea849fe0146ed06b65e026c8",
+  "files": [
+    {
+      "path": "worker/storage/native-s3-byte-reader.test.ts",
+      "sha256": "93188b056bfc5f3d0d6cbda23aad51cc75c24485a2706fbf5ce8353339a33af9"
+    },
+    {
+      "path": "worker/files/jobs/worker-runtime-authorization.test.ts",
+      "sha256": "e9d1dd234869d440f95e94477b6f76ea201f30651fffd84318afb5e2e56f90aa"
+    },
+    {
+      "path": "test/sqlite-fixture-image.ts",
+      "sha256": "bc272f33441d5cc5318da6e0f6c77c646d26d14a5583edd3ce49eacf520344ea"
+    },
+    {
+      "path": "docs/SOURCE_CI_FIXTURE_COST_ACCEPTANCE.md",
+      "sha256": "123db711546f797bb545a89ff0381053789337897319cab5e4c1a6a77c47a087"
+    }
+  ],
+  "focused": {
+    "baseline": 42,
+    "candidate": 44,
+    "finalTouched": 33,
+    "status": "PASS",
+    "unchangedDefaultTimeoutMs": 5000,
+    "maxWorkers": 1
+  },
+  "typecheck": "PASS narrow touched files + helper, strict Node + Worker types",
+  "measurementReceipt": "/tmp/source-ci-deadline-7cdee51-measurement-attempt2.json",
+  "limits": "Finite private sequential qualification; no live edits, no full-suite/remote success claim; original failure logs retained."
+}

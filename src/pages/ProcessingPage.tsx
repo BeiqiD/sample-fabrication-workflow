@@ -7,6 +7,7 @@ import { ReadStatus } from "../components/ReadStatus";
 import { SampleStateThumbnail } from "../components/SampleStateThumbnail";
 import { api } from "../lib/api";
 import { pageFromSearchParam, setPageParam } from "../lib/pagination";
+import { preferredScrollBehavior } from "../lib/preferred-scroll-behavior";
 
 type ProcessingFilter = "active" | "complete" | "cancelled" | "all";
 
@@ -101,7 +102,7 @@ export function ProcessingPage() {
 
   function changePage(page: number) {
     setSearchParams(setPageParam(searchParams, "page", page));
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: preferredScrollBehavior() });
   }
 
   return <div className="page processing-page">

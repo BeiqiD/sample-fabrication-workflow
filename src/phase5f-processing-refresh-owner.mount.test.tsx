@@ -11,7 +11,7 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
-function ownerFixture(owner: "a" | "b", adHoc = false): { sample: SampleDetail; run: SampleRun } {
+function ownerFixture(owner: "a" | "b" | "c", adHoc = false): { sample: SampleDetail; run: SampleRun } {
   const date = "2026-10-10T12:30:00Z";
   const run: SampleRun = {
     id: `run-${owner}`, recipeFamilyId: "family-a", templateVersionId: "template-a", templateName: "Etch process", templateType: "process", templateVersion: 1, runKind: "process", status: "active",
@@ -133,7 +133,7 @@ describe("Processing refresh scope from actual grid owner actions", () => {
     expect(screen.queryByRole("dialog", { name: "Add metrology" })).toBeNull();
   });
 
-  it("keeps the default full refresh for a grouped action with two exact accepted targets", async () => {
+  it("refreshes both exact accepted owners for a grouped action", async () => {
     const owner = renderOwners();
     fireEvent.click(screen.getByRole("button", { name: "Confirm 2 selected sample steps as done" }));
     await waitFor(() => expect(owner.onSaved).toHaveBeenCalledTimes(1));
@@ -141,7 +141,35 @@ describe("Processing refresh scope from actual grid owner actions", () => {
       { sampleId: "sample-a", runId: "run-a", stepId: "step-a", expectedUpdatedAt: owner.a.run.steps[0].updatedAt },
       { sampleId: "sample-b", runId: "run-b", stepId: "step-b", expectedUpdatedAt: owner.b.run.steps[0].updatedAt },
     ] });
-    expect(owner.onSaved).toHaveBeenCalledExactlyOnceWith();
+    expect(owner.onSaved).toHaveBeenCalledExactlyOnceWith(["sample-a", "sample-b"]);
     expect(api.updateRunStep).not.toHaveBeenCalled();
+  });
+
+  it("keeps all three original owners and the original callback across held grouped confirmation and new props", async () => {
+    const confirm = deferred<{ ok: true; confirmed: number }>(), refresh = deferred<void>();
+    vi.mocked(api.confirmRunSteps).mockReturnValue(confirm.promise);
+    const onSaved = vi.fn<Saved>(() => refresh.promise), replacementOnSaved = vi.fn<Saved>(async () => {});
+    const a = ownerFixture("a"), b = ownerFixture("b"), c = ownerFixture("c");
+    const props = { primaryRun: a.run, columns: [a, b, c], onSaved };
+    const view = render(<MultiSampleRunGrid {...props} />);
+    fireEvent.click(screen.getByRole("button", { name: "Confirm 3 selected sample steps as done" }));
+    const expectedTargets = [a, b, c].map(({ sample, run }) => ({ sampleId: sample.id, runId: run.id, stepId: run.steps[0].id, expectedUpdatedAt: run.steps[0].updatedAt }));
+    expect(api.confirmRunSteps).toHaveBeenCalledExactlyOnceWith({ targets: expectedTargets });
+    expect(onSaved).not.toHaveBeenCalled();
+    const freshColumns = [a, b, c].map(({ sample, run }) => {
+      const freshRun = { ...run, steps: run.steps.map(step => ({ ...step, updatedAt: "2026-10-10T14:10:00Z" })) };
+      return { sample: { ...sample, runs: [freshRun] }, run: freshRun };
+    });
+    view.rerender(<MultiSampleRunGrid {...props} columns={freshColumns} onSaved={replacementOnSaved} />);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Owner c S-002" }));
+    await act(async () => confirm.resolve({ ok: true, confirmed: 3 }));
+    expect(onSaved).toHaveBeenCalledExactlyOnceWith(["sample-a", "sample-b", "sample-c"]);
+    expect(replacementOnSaved).not.toHaveBeenCalled();
+    expect(api.confirmRunSteps).toHaveBeenCalledExactlyOnceWith({ targets: expectedTargets });
+    expect(screen.getByRole("button", { name: "Saving confirmed steps" }).hasAttribute("disabled")).toBe(true);
+    await act(async () => refresh.resolve());
+    expect(screen.queryByRole("button", { name: "Saving confirmed steps" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Confirm 2 selected sample steps as done" }).hasAttribute("disabled")).toBe(false);
+    expect(api.confirmRunSteps).toHaveBeenCalledTimes(1);
   });
 });

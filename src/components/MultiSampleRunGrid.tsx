@@ -7,6 +7,7 @@ import { visibleAlphaBounds } from "../lib/diagramImage";
 import { discardR2Upload, prepareR2UploadFile, R2UploadRequestError } from "../lib/r2-upload-client";
 import { compressLayerStackImage } from "../lib/images";
 import { useModalDialog } from "../lib/use-modal-dialog";
+import { preferredScrollBehavior } from "../lib/preferred-scroll-behavior";
 import {
   buildRunGrid,
   findCurrentRunGridRow,
@@ -1016,7 +1017,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, onAttachmentC
     if (!node || !sampleHeader) return;
     const columnWidth = sampleHeader.getBoundingClientRect().width;
     const nextColumn = Math.round(node.scrollLeft / columnWidth) + direction;
-    node.scrollTo({ left: Math.max(0, nextColumn * columnWidth), behavior: "smooth" });
+    node.scrollTo({ left: Math.max(0, nextColumn * columnWidth), behavior: preferredScrollBehavior() });
   }
 
   async function jumpToCurrent() {
@@ -1140,8 +1141,10 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, onAttachmentC
     if (!eligible.length) return;
     setPendingAction(`confirm:${rowKey}`); setError("");
     try {
-      await api.confirmRunSteps({ targets: eligible.map(({ column, step }) => target(column, step)) });
-      await onSaved();
+      const targets = eligible.map(({ column, step }) => target(column, step));
+      const affectedSampleIds = [...new Set(targets.map(({ sampleId }) => sampleId))];
+      await api.confirmRunSteps({ targets });
+      await onSaved(affectedSampleIds);
     } catch (error) { setError((error as Error).message); }
     finally { setPendingAction(null); }
   }

@@ -1,0 +1,266 @@
+{
+  "scope": "Applied frontend retry/group refresh candidate; browser and exact integration gates pending",
+  "baseHead": "989f1b6ee0b594ddd5492bd890897fc63ca3ef11",
+  "privateQualificationBase": "c06cb71ec5933cfb4d1721a5c1ac314b09a96ed8",
+  "nonDocumentationTrackedFilesPlusNewTestsMatchPrivateFullMounted": 1160,
+  "privateFullMounted": {
+    "files": 102,
+    "tests": 980,
+    "exitCode": 0
+  },
+  "privateFocused": {
+    "files": 7,
+    "tests": 45,
+    "exitCode": 0
+  },
+  "appliedFocused": {
+    "files": 4,
+    "tests": 35,
+    "exitCode": 0
+  },
+  "appTypecheckExitCode": 0,
+  "sourceSha256": {
+    "src/pages/ProjectPage.tsx": "0b2befcdae0a84dfb48efe77c4038df5a76d3e66501d6c0145103cbc046bfc64",
+    "src/components/MultiSampleRunGrid.tsx": "9861393c3b675c2bde5cfa3f9e766aee9a01651a0d29f3a2fd2cfbd43797bbdc",
+    "src/phase5f-project-read-retry.mount.test.tsx": "8022bb7e575eed4bb74609c96e752abed34f81700d83498ae2e359bd1842efe1",
+    "src/phase5f-processing-group-refresh.mount.test.tsx": "a5f87dea0c6c5abde94b2e4d7414ab4c728f0b051667fb84f9a960be717ab56e",
+    "src/phase5f-processing-refresh-owner.mount.test.tsx": "a5a45a0aa630cae6e72e57f23e6d4c694aa6bd3d2dc77a15e46e823ccbf396d3"
+  },
+  "privateQualificationReceipt": {
+    "path": "/tmp/phase5f-project-group-pair-c06cb71-receipt.json",
+    "sha256": "01572126768c8b6f712c2a5edaa6593295867fc8f466ba89f31557693b61f75b"
+  },
+  "remaining": [
+    "Reduced-motion actual artifact baseline/new browser comparison",
+    "Fresh final committed-head base matrix andcost",
+    "Final complete exact-headCI and integration review"
+  ],
+  "reducedMotionCandidate": {
+    "privateMountedFiles": 11,
+    "privateMountedTests": 117,
+    "exitCode": 0,
+    "appTypesExitCode": 0,
+    "sourceSha256": {
+      "src/components/MultiSampleRunGrid.tsx": "17daa9cd9b16cceff8553dc558dddec905d13df4550405efa26db6da7f6397fd",
+      "src/pages/ProcessingPage.tsx": "0ab4507c761d4d0c996beb7a5182bd5fc29dac5f3bbf47c4d9c767c40bb978dd",
+      "src/pages/SamplesPage.tsx": "a86ac2a1d16b12cfbfc5f22221a2f79b4e56d9cfd27a4cb7bd1f80e8c1885b4b",
+      "src/pages/TemplatesPage.tsx": "aa7904a6aeb1adf2ce7a7dc6d1c223d2791cdecbac3ed372cb69702a19f2db14",
+      "src/reference-search.css": "6ad908c780cbbc215372b99fc9cfc40f937b73b1b3c6248dd9f40ca527e3d6c6",
+      "src/styles.css": "887d2350a26d97492ee8d9f192c1ab70f092dc5412582ce90b6502e62460c5f4",
+      "src/lib/preferred-scroll-behavior.ts": "dc0eafe33482e8ac7633e4d96877c3e0491ef675986461709bd0f840834428ad"
+    },
+    "actualBrowser": "pending fresh committed source; preserved baseline follows9956805"
+  },
+  "actual9956805": {
+    "sourceHead": "99568051411bffca71257d61aa9432406fb71985",
+    "sourceTree": "d47cd71fd58aff6a6b9bd189b29a3fe504a7c268",
+    "baseMatrix": {
+      "passed": 20,
+      "failed": 0,
+      "durationSeconds": 77.262
+    },
+    "initialProjectRetry": {
+      "status": "passed",
+      "passedCount": 1,
+      "failedCount": 0,
+      "completeRequestedCases": true,
+      "completeFiniteMatrix": false,
+      "originalProjectPreservation": {
+        "projectId": "phase5f-455137d8-ca1-project",
+        "beforeSha256": "4c691ccec238f34d73489527fb42941149806ff348608c27c720d5f0c0ed92ad",
+        "afterSha256": "4c691ccec238f34d73489527fb42941149806ff348608c27c720d5f0c0ed92ad",
+        "unchanged": true
+      },
+      "cases": [
+        {
+          "id": "project-initial-get-503-explicit-retry",
+          "width": 860,
+          "theme": "light",
+          "status": "passed",
+          "assertions": [
+            {
+              "injectedInitialGet503": 1,
+              "explicitKeyboardRetry": true,
+              "actualRetryGet200": true,
+              "urlRetained": true,
+              "acceptedWrites": 0
+            }
+          ],
+          "api": [
+            {
+              "path": "/api/projects/phase5f-455137d8-ca1-project",
+              "method": "GET",
+              "status": 503,
+              "responseSha256": "ab14d3178931b6b880fa9c84f8b15cd1671ccb58e627e1e030b310bc24abf90f"
+            },
+            {
+              "path": "/api/projects/phase5f-455137d8-ca1-project",
+              "method": "GET",
+              "status": 200,
+              "responseSha256": "4c691ccec238f34d73489527fb42941149806ff348608c27c720d5f0c0ed92ad"
+            },
+            {
+              "path": "/api/projects/phase5f-455137d8-ca1-project/contents/73fdee2c-05c7-413d-839d-1b5fd8261c62/file",
+              "method": "GET",
+              "status": 200,
+              "responseSha256": "5e3d382db4dd83d59aa5742793ad6b7903409e865c83bcbc54835049f043bc15"
+            }
+          ],
+          "pageErrors": [],
+          "unexpectedOrigins": [],
+          "blockedMutations": [],
+          "requestFailures": []
+        }
+      ]
+    },
+    "processingCost": {
+      "status": "passed",
+      "phases": [
+        {
+          "id": "initial-eight-column-load",
+          "status": "passed",
+          "processingGets": 8,
+          "processingResponseBytes": 26104,
+          "writes": 0
+        },
+        {
+          "id": "selection-only-three-columns",
+          "status": "passed",
+          "processingGets": 0,
+          "processingResponseBytes": 0,
+          "writes": 0
+        },
+        {
+          "id": "individual-step-correction-refresh",
+          "status": "passed",
+          "processingGets": 1,
+          "processingResponseBytes": 3329,
+          "writes": 1
+        },
+        {
+          "id": "grouped-three-step-confirm-refresh",
+          "status": "passed",
+          "processingGets": 3,
+          "processingResponseBytes": 9859,
+          "writes": 1
+        },
+        {
+          "id": "remove-eighth-visible-column",
+          "status": "passed",
+          "processingGets": 7,
+          "processingResponseBytes": 22911,
+          "writes": 0
+        },
+        {
+          "id": "add-eighth-visible-column",
+          "status": "passed",
+          "processingGets": 8,
+          "processingResponseBytes": 26174,
+          "writes": 0
+        }
+      ],
+      "fiveUnrelatedFinalHashes": [
+        {
+          "sampleId": "e0d04be9-7926-40bf-814d-0433a1be4e20",
+          "path": "/samples/e0d04be9-7926-40bf-814d-0433a1be4e20?view=processing",
+          "method": "GET",
+          "status": 200,
+          "responseBytes": 3263,
+          "initialResponseSha256": "c6a20e4fc2aba82d1c64af5c00a5ca63ee07598b9be88a9d7adf8460cdb498d1",
+          "responseSha256": "c6a20e4fc2aba82d1c64af5c00a5ca63ee07598b9be88a9d7adf8460cdb498d1",
+          "unchanged": true
+        },
+        {
+          "sampleId": "0e8877f7-19b8-4e69-a7a3-ed25b35d2594",
+          "path": "/samples/0e8877f7-19b8-4e69-a7a3-ed25b35d2594?view=processing",
+          "method": "GET",
+          "status": 200,
+          "responseBytes": 3263,
+          "initialResponseSha256": "ab0073880dd13afc3b24960d9c1c57ee5ec0ad79a60fdcfb6664522829b5d449",
+          "responseSha256": "ab0073880dd13afc3b24960d9c1c57ee5ec0ad79a60fdcfb6664522829b5d449",
+          "unchanged": true
+        },
+        {
+          "sampleId": "90004d81-fb29-4383-88b1-fa49218c8f50",
+          "path": "/samples/90004d81-fb29-4383-88b1-fa49218c8f50?view=processing",
+          "method": "GET",
+          "status": 200,
+          "responseBytes": 3263,
+          "initialResponseSha256": "bfe8359af59415f157f4144aa502f1fbc9cfd4303f81ae02a153fcb51deac96f",
+          "responseSha256": "bfe8359af59415f157f4144aa502f1fbc9cfd4303f81ae02a153fcb51deac96f",
+          "unchanged": true
+        },
+        {
+          "sampleId": "14739d78-a115-42a8-8189-2f8b30ad3e63",
+          "path": "/samples/14739d78-a115-42a8-8189-2f8b30ad3e63?view=processing",
+          "method": "GET",
+          "status": 200,
+          "responseBytes": 3263,
+          "initialResponseSha256": "955a5fbb6448f4afee1de6ee101d6837046461cf1866b97e36db8d556f2a86dd",
+          "responseSha256": "955a5fbb6448f4afee1de6ee101d6837046461cf1866b97e36db8d556f2a86dd",
+          "unchanged": true
+        },
+        {
+          "sampleId": "24fffd7f-5202-41ca-84bd-47962599e981",
+          "path": "/samples/24fffd7f-5202-41ca-84bd-47962599e981?view=processing",
+          "method": "GET",
+          "status": 200,
+          "responseBytes": 3263,
+          "initialResponseSha256": "09e652cd6edf63eaf87f857de5aa28ed5e94282cc1726343f6c1f39b010e752d",
+          "responseSha256": "09e652cd6edf63eaf87f857de5aa28ed5e94282cc1726343f6c1f39b010e752d",
+          "unchanged": true
+        }
+      ],
+      "pageErrors": [],
+      "forbiddenRequests": []
+    },
+    "crossSourceHistory": {
+      "status": "passed",
+      "passedCount": 1,
+      "apiCrudWrites": 0,
+      "stages": [
+        "native keyboard Open source",
+        "Back to full original Project URL",
+        "Forward source focus",
+        "Direct reload source focus"
+      ],
+      "originalProjectAndSampleResponseBytesPreserved": true
+    },
+    "shutdown": {
+      "exitCode": 0,
+      "disposalAwaited": true,
+      "portClosed": true,
+      "physicalSqliteFiles": 4,
+      "foreignKeyErrors": 0,
+      "quickCheck": "ok",
+      "pngBytesMatch": true,
+      "originalStateBytesUnchanged": true
+    },
+    "rawLocalReceipts": [
+      {
+        "path": "/tmp/phase5f-project-initial-retry-9956805-attempt1/project-browser-summary.json",
+        "sha256": "e14a81cdcd859edfa6a3381468e7e43d7c7a96eb182b9374565de4a5052ed1fa"
+      },
+      {
+        "path": "/tmp/phase5f-processing-cost-9956805-attempt1/processing-browser-cost.json",
+        "sha256": "2f47a47ca70029b36d975b13e19b34a5bffc3c9ace516aadad14999743b5a233"
+      },
+      {
+        "path": "/tmp/phase5f-source-history-9956805-attempt1/source-history-report.json",
+        "sha256": "95b7b1d2b29edd126dea45e210ec2ecb14752067a45c0916ae54956f9a3e49a3"
+      },
+      {
+        "path": "/tmp/phase5f-9956805-fixture/actual-api-browser-summary.json",
+        "sha256": "f28911b8e7ccbd0200714266d1940e721d3386ea5231e27125904cb284d824ec"
+      },
+      {
+        "path": "/tmp/phase5f-9956805-fixture/isolated-server-stop-receipt.json",
+        "sha256": "9c21466ac3fb2493a5a7907b3732423ed204d582c684513418c50641c2ffb93d"
+      },
+      {
+        "path": "/tmp/phase5f-9956805-fixture/physical-sqlite-after-shutdown.json",
+        "sha256": "565111499184cd784bd7d9b864fbd97636965bfa90aa43843b87f47d96bcf786"
+      }
+    ]
+  }
+}

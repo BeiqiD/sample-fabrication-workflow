@@ -41,6 +41,7 @@ import type {
   ProjectMapGeometry,
 } from "../../shared/project-types";
 import { ActionIcon } from "../components/ActionIcon";
+import { ReadStatus } from "../components/ReadStatus";
 import { NavigationIcon } from "../components/NavigationIcon";
 import { DialogCloseIcon } from "../components/DialogCloseIcon";
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
@@ -2882,7 +2883,14 @@ export function ProjectPage() {
   if (loading) return <div className="page project-page"><p className="muted">Loading Project…</p></div>;
   if (loadError || !snapshot) return <div className="page project-page">
     <Link className="back-link" to="/projects">← Projects</Link>
-    <p className="error-banner">{loadError || "Project not found"}</p>
+    {!snapshot ? <ReadStatus
+      loading={false}
+      error={loadError || "Project not found"}
+      loadingMessage="Loading Project…"
+      errorTitle="Project could not be loaded"
+      retryLabel="Retry loading Project"
+      onRetry={() => { if (!snapshot) void loadProject(); }}
+    /> : <p className="error-banner" role="alert">{loadError}</p>}
   </div>;
 
   const ownedContentBusy = Boolean(markdownEditor || pendingAttachment || attachmentEditor);
