@@ -33,7 +33,7 @@ export async function createSystemRecoveryReport(input: {
     counts: { tables: Object.keys(input.records.image.tables).length, originalRows: recoveryImageTableRows(input.records.image),
       files: input.manifest.files.length, bytes: input.manifest.counts.bytes, auditedCellDifferences: input.differences.length },
     protectedSettings: recoveryProtectedSettingsReport(input.records),
-    ...(input.records.schema === "system-backup-records/2" ? { protectedIdentity: {
+    ...((input.records.schema === "system-backup-records/2" || input.records.schema === "system-backup-records/3") ? { protectedIdentity: {
       passwordVerifiersIncluded: true as const, destinationAccounts: "disabled" as const,
       destinationBootstrap: "explicit-offline-exact-principal" as const, authorityRestored: false as const, automaticExecution: false as const,
     } } : {}),

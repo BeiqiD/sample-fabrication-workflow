@@ -1,3 +1,4 @@
+import { planSystemBackupSourcesV26 } from "../../shared/contracts/system-backup-v26-content";
 import type { Env } from "../types";
 import { canAdministerSystemSettings } from "../storage/system-administrator";
 import { allowedEmail } from "../auth";
@@ -53,7 +54,7 @@ export async function systemRecoveryJobStatus(env:Env,job:RecoveryJob):Promise<S
     result:job.result_json?JSON.parse(job.result_json):null};
 }
 async function records(repository:SystemRecoveryRepository,jobId:string){const value=await repository.metadata(jobId,"records");if(!value)throw new Error("archive_invalid");const records=value as VersionedRecoveryRecords;selectReviewedRecoveryCatalog(records);return records;}
-async function manifest(repository:SystemRecoveryRepository,jobId:string){const value=await repository.metadata(jobId,"manifest");if(!value)throw new Error("archive_invalid");const manifest=value as VersionedRecoveryManifest;if(!["system-backup/1","system-backup/2"].includes(manifest.schema))throw new Error("archive_invalid");return manifest;}
+async function manifest(repository:SystemRecoveryRepository,jobId:string){const value=await repository.metadata(jobId,"manifest");if(!value)throw new Error("archive_invalid");const manifest=value as VersionedRecoveryManifest;if(!["system-backup/1","system-backup/2","system-backup/3"].includes(manifest.schema))throw new Error("archive_invalid");return manifest;}
 async function terminalFiles(repository:SystemRecoveryRepository,jobId:string){return(await repository.files(jobId)).map(row=>JSON.parse(row.file_json) as SystemBackupFile);}
 function groupFileStatements(repository:SystemRecoveryRepository,claim:RecoveryClaim,sources:readonly SystemBackupSource[]){
   const db=repository.db(),groups:Array<Array<{id:string;ordinal:number;json:string}>>=[];let group:Array<{id:string;ordinal:number;json:string}>=[];
@@ -112,7 +113,7 @@ export async function workerSystemRecoveryCapabilities(env:Env):Promise<SystemRe
         if(input.mode==="planned"){const status=await readSourceMaintenance(env);if(status.state!=="fenced"||status.activeWriters)throw new Error("source_maintenance_required");}
         const frozen=await captureVersionedSystemBackupSnapshot(env.DB,{backupId:claim.id,createdAt:claim.accepted_at});if(!await current())throw new Error("administrator_revoked");
         const checkpoint=await sourceVersionedBackupCheckpoint(frozen);if(input.mode==="planned")await recordSourceCheckpoint(env,claim.id,checkpoint);
-        const sources=planSystemBackupSources(frozen.content.schemaVersion===25?portableBusinessManifestV24(frozen.content):frozen.content),statements=[...repository.metadataStatements(claim.id,"records",frozen),...groupFileStatements(repository,claim,sources)];
+        const sources=frozen.content.schemaVersion===26?planSystemBackupSourcesV26(frozen.content):planSystemBackupSources(frozen.content.schemaVersion===25?portableBusinessManifestV24(frozen.content):frozen.content),statements=[...repository.metadataStatements(claim.id,"records",frozen),...groupFileStatements(repository,claim,sources)];
         if(statements.length+2>128)throw new SystemRecoveryConflict("metadata_budget");
         return{patch:{state:"queued",phase:"inventory",source_checkpoint:checkpoint,total_files:sources.length},statements,outcome:"snapshot"};
       }
@@ -187,7 +188,7 @@ export async function systemRecoveryPreview(env:Env,job:RecoveryJob):Promise<Sys
   return{schema:"system-recovery-preview/1",archive:{schema:backup.schema,byteSize:source.archive_byte_size,sha256:source.archive_sha256,complete,legacy:frozen.origin.format==="legacy-converted",recoveryPoint},
     counts:{tables:backup.counts.tables,rows:backup.counts.rows,files:backup.counts.sources,bytes:backup.counts.bytes,availableFiles:backup.counts.packagedFiles,unavailableFiles:backup.counts.unavailableFiles},
     files:backup.files.map(file=>({id:file.id,purpose:file.purposes.join(",")||"unknown",byteSize:file.byteSize??file.source.expectedByteSize??0,status:file.outcome,reason:file.outcome==="packaged"?null:file.outcome,sourceProfileId:recoverySourceProfileId(file)})),profiles,
-    protectedSettings:{included:frozen.protectedConfiguration.status==="included_encrypted",credentialRecovery:frozen.protectedConfiguration.status==="included_encrypted"?"quarantined":"excluded",warnings:[...(frozen.protectedConfiguration.keyIds.length?["separate_root_keys_required"]:[]),...(frozen.schema==="system-backup-records/2"?["protected_local_accounts_disabled_offline_bootstrap_required"]:[])]},
+    protectedSettings:{included:frozen.protectedConfiguration.status==="included_encrypted",credentialRecovery:frozen.protectedConfiguration.status==="included_encrypted"?"quarantined":"excluded",warnings:[...(frozen.protectedConfiguration.keyIds.length?["separate_root_keys_required"]:[]),...(["system-backup-records/2","system-backup-records/3"].includes(frozen.schema)?["protected_local_accounts_disabled_offline_bootstrap_required"]:[]),...(frozen.schema==="system-backup-records/3"&&frozen.content.tables.storage_profiles.some(profile=>profile.adapter_type==="local")?["local_profiles_require_fresh_destination_binding"]:[])]},
     oldJobs:{paused,automaticReplay:false},target:{id:configured?env.RECOVERY_TARGET_ID!:null,available:targetAvailable,reason:targetReason},
     source:{maintenanceRequired:true,checkpoint:job.source_checkpoint??maintenance.checkpoint,mode:input.mode??"historical"},canRecover:complete&&!expired&&archiveAvailable&&restoreBudget.available&&targetAvailable&&job.kind!=="recovery",canCutover:complete&&targetAvailable&&Boolean(job.result_json)&&maintenance.state==="fenced"&&maintenance.activeWriters===0,reasons:reason?[reason]:[]};
 }

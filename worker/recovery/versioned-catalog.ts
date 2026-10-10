@@ -1,3 +1,8 @@
+import type { SystemBackupManifestV3, SystemBackupRecordsV3, SystemRecoveryImageV3 } from "../../shared/contracts/system-backup-v3";
+import { SYSTEM_BACKUP_RECORDS_SCHEMA_V3, validateSystemRecoveryImageV3 } from "../../shared/contracts/system-backup-v3";
+import { PORTABLE_RUNTIME_CHECKPOINT_ID as V26_CHECKPOINT_ID, PORTABLE_RUNTIME_RECOVERY_SCHEMA_SHA256 as V26_SCHEMA_SHA256,
+  PORTABLE_RUNTIME_SCHEMA_STATEMENTS as V26_SCHEMA_STATEMENTS, PORTABLE_RUNTIME_RECOVERY_TABLES as V26_TABLES,
+  PORTABLE_RUNTIME_SEED_TABLE_ROWS as V26_SEEDS, PORTABLE_RUNTIME_RECOVERY_MIGRATIONS as V26_MIGRATIONS } from "./portable-runtime-v26-trusted-schema";
 import type { SystemBackupManifestV1, SystemBackupRecordsV1 } from "../../shared/contracts/system-backup";
 import { SYSTEM_BACKUP_MAX_RECORDS_BYTES, SYSTEM_BACKUP_RECORDS_SCHEMA } from "../../shared/contracts/system-backup";
 import type { SystemBackupManifestV2, SystemBackupRecordsV2, SystemRecoveryImageV2 } from "../../shared/contracts/system-backup-v2";
@@ -8,9 +13,9 @@ import { RECOVERY_MIGRATIONS, RECOVERY_SCHEMA_SHA256, RECOVERY_SCHEMA_STATEMENTS
 import { PORTABLE_RUNTIME_CHECKPOINT_ID, PORTABLE_RUNTIME_RECOVERY_MIGRATIONS, PORTABLE_RUNTIME_RECOVERY_SCHEMA_SHA256,
   PORTABLE_RUNTIME_RECOVERY_TABLES, PORTABLE_RUNTIME_SCHEMA_STATEMENTS, PORTABLE_RUNTIME_SEED_TABLE_ROWS } from "./portable-runtime-trusted-schema";
 
-export type VersionedRecoveryRecords = SystemBackupRecordsV1 | SystemBackupRecordsV2;
-export type VersionedRecoveryManifest = SystemBackupManifestV1 | SystemBackupManifestV2;
-export type VersionedRecoveryImage = SystemRecoveryImageV1 | SystemRecoveryImageV2;
+export type VersionedRecoveryRecords = SystemBackupRecordsV1 | SystemBackupRecordsV2 | SystemBackupRecordsV3;
+export type VersionedRecoveryManifest = SystemBackupManifestV1 | SystemBackupManifestV2 | SystemBackupManifestV3;
+export type VersionedRecoveryImage = SystemRecoveryImageV1 | SystemRecoveryImageV2 | SystemRecoveryImageV3;
 export type ReviewedRecoveryTableSpec = RecoveryTableSpec & {
   classification: "content" | "protected_configuration" | "protected_identity" | "local";
 };
@@ -22,9 +27,9 @@ export interface ReviewedRecoveryMigration {
   readonly name: string; readonly sha256: string; readonly appliedToFreshSchema: boolean;
 }
 export interface ReviewedRecoveryCatalog {
-  readonly imageVersion: 1 | 2;
-  readonly recordsSchema: typeof SYSTEM_BACKUP_RECORDS_SCHEMA | typeof SYSTEM_BACKUP_RECORDS_SCHEMA_V2;
-  readonly checkpointId: typeof PORTABLE_RUNTIME_CHECKPOINT_ID | null;
+  readonly imageVersion: 1 | 2 | 3;
+  readonly recordsSchema: typeof SYSTEM_BACKUP_RECORDS_SCHEMA | typeof SYSTEM_BACKUP_RECORDS_SCHEMA_V2 | typeof SYSTEM_BACKUP_RECORDS_SCHEMA_V3;
+  readonly checkpointId: typeof PORTABLE_RUNTIME_CHECKPOINT_ID | typeof V26_CHECKPOINT_ID | null;
   readonly schemaSha256: string;
   readonly schemaStatements: readonly Readonly<ReviewedRecoverySchemaStatement>[];
   readonly tables: readonly Readonly<ReviewedRecoveryTableSpec>[];
@@ -57,6 +62,9 @@ const historical = ownCatalog({ imageVersion: 1, recordsSchema: SYSTEM_BACKUP_RE
 const current = ownCatalog({ imageVersion: 2, recordsSchema: SYSTEM_BACKUP_RECORDS_SCHEMA_V2, checkpointId: PORTABLE_RUNTIME_CHECKPOINT_ID,
   schemaSha256: PORTABLE_RUNTIME_RECOVERY_SCHEMA_SHA256, schemaStatements: PORTABLE_RUNTIME_SCHEMA_STATEMENTS,
   tables: PORTABLE_RUNTIME_RECOVERY_TABLES, seedTableRows: PORTABLE_RUNTIME_SEED_TABLE_ROWS, migrations: PORTABLE_RUNTIME_RECOVERY_MIGRATIONS });
+const v26 = ownCatalog({ imageVersion: 3, recordsSchema: SYSTEM_BACKUP_RECORDS_SCHEMA_V3, checkpointId: V26_CHECKPOINT_ID,
+  schemaSha256: V26_SCHEMA_SHA256, schemaStatements: V26_SCHEMA_STATEMENTS, tables: V26_TABLES, seedTableRows: V26_SEEDS, migrations: V26_MIGRATIONS });
+const v26LocalTables = new Set(["local_storage_profile_checks", "local_storage_profile_admissions", "local_storage_profile_bindings"]);
 const identityLocalTables = new Set(["local_identity_installation", "local_admin_grants", "local_sessions", "local_login_throttle"]);
 
 /** Cheap closed dispatch only. The caller still admits the complete backup
@@ -70,6 +78,8 @@ export function selectReviewedRecoveryCatalog(records: VersionedRecoveryRecords)
     && image.schemaSha256 === historical.schemaSha256 && !Object.hasOwn(image, "checkpointId")) return historical;
   if (records.schema === SYSTEM_BACKUP_RECORDS_SCHEMA_V2 && image.version === 2 && image.kind === "system-recovery-image"
     && image.checkpointId === current.checkpointId && image.schemaSha256 === current.schemaSha256) return current;
+  if (records.schema === SYSTEM_BACKUP_RECORDS_SCHEMA_V3 && image.version === 3 && image.kind === "system-recovery-image"
+    && image.checkpointId === v26.checkpointId && image.schemaSha256 === v26.schemaSha256) return v26;
   return fail("catalog_unsupported");
 }
 
@@ -79,7 +89,7 @@ export function validateRecoverySourceImage(records: VersionedRecoveryRecords): 
   const catalog = selectReviewedRecoveryCatalog(records);
   return catalog.imageVersion === 1 ? validateSystemRecoveryImage(records.image, {
     schemaSha256: catalog.schemaSha256, tables: catalog.tables, maxMetadataBytes: SYSTEM_BACKUP_MAX_RECORDS_BYTES,
-  }) : validateSystemRecoveryImageV2(records.image);
+  }) : catalog.imageVersion === 2 ? validateSystemRecoveryImageV2(records.image) : validateSystemRecoveryImageV3(records.image);
 }
 
 /** A bounded per-table validation/copy after full image admission at entry.
@@ -92,7 +102,7 @@ export function recoveryDestinationTable(records: VersionedRecoveryRecords, name
   if (!spec) return fail("table_unreviewed");
   if (spec.local) {
     const seed = catalog.seedTableRows[name];
-    if (!seed || catalog.imageVersion === 2 && identityLocalTables.has(name) && seed.rows.length !== 0) return fail("local_seed_unreviewed");
+    if (!seed || ((catalog.imageVersion === 2 || catalog.imageVersion === 3) && identityLocalTables.has(name) || catalog.imageVersion === 3 && v26LocalTables.has(name)) && seed.rows.length !== 0) return fail("local_seed_unreviewed");
     return cloneTable(seed);
   }
   const image = records.image;
@@ -101,7 +111,7 @@ export function recoveryDestinationTable(records: VersionedRecoveryRecords, name
     schemaSha256: catalog.schemaSha256, tables: [spec], maxMetadataBytes: SYSTEM_BACKUP_MAX_RECORDS_BYTES,
   });
   const destination = cloneTable(checked.tables[name]);
-  if (catalog.imageVersion === 2 && name === "local_accounts") {
+  if ((catalog.imageVersion === 2 || catalog.imageVersion === 3) && name === "local_accounts") {
     const enabled = spec.columns.indexOf("enabled"), principal = spec.columns.indexOf("principal_id"), username = spec.columns.indexOf("username");
     for (const row of destination.rows) {
       const state = row.cells[enabled], id = row.cells[principal], user = row.cells[username];

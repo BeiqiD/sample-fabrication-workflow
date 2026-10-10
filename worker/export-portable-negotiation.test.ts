@@ -1,3 +1,5 @@
+import { PORTABLE_RUNTIME_RECOVERY_MIGRATIONS as V26_MIGRATIONS } from "../shared/contracts/portable-runtime-v26-recovery-catalog";
+import { validateFullExportV26 } from "../shared/contracts/export-portable-runtime-v26";
 import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -39,10 +41,10 @@ afterEach(() => {
   for (const directory of directories.splice(0)) rmSync(directory, { recursive: true, force: true });
   vi.restoreAllMocks(); vi.unstubAllGlobals();
 });
-function fixture(current = true) {
+function fixture(current: boolean | "v26" = true) {
   const directory = mkdtempSync(join(tmpdir(), "portable-export-negotiation-")); directories.push(directory);
   const native = new DatabaseSync(join(directory, "source.sqlite")); opened.push(native); native.exec("PRAGMA foreign_keys=ON");
-  for (const migration of PORTABLE_RUNTIME_RECOVERY_MIGRATIONS.slice(0, current ? 23 : 22)) {
+  for (const migration of (current === "v26" ? V26_MIGRATIONS : PORTABLE_RUNTIME_RECOVERY_MIGRATIONS.slice(0, current ? 23 : 22))) {
     const sql = readFileSync(new URL(`../migrations/${migration.name}`, import.meta.url), "utf8");
     expect(createHash("sha256").update(sql).digest("hex")).toBe(migration.sha256); native.exec(sql);
   }
@@ -59,7 +61,7 @@ async function accessHeaders(): Promise<HeadersInit> {
     .setIssuer(domain).setAudience(audience).setIssuedAt().setExpirationTime("5m").sign(signingKey);
   return { "cf-access-jwt-assertion": token };
 }
-function request(env: Env, version: 24 | 25, headers?: HeadersInit) {
+function request(env: Env, version: 24 | 25 | 26, headers?: HeadersInit) {
   return createWorkerApplication().fetch(new Request(`https://application.test/api/exports/all?archiveSchema=${version}&archiveWriter=1`, { headers }), env, executionContext);
 }
 it("denies unauthenticated current export before database or provider reads", async () => {
@@ -87,3 +89,20 @@ it("preserves authenticated explicit V24 on the historical 22-migration schema a
   const current = await request(f.env, 25, headers); expect(current.status).toBe(409);
   expect(providerIO).not.toHaveBeenCalled();
 }, 15_000);
+
+it("negotiates actual V26 explicitly, refusing both V24 and V25 while excluding protected local histories and authority", async () => {
+  const f = fixture("v26"), headers = await accessHeaders();
+  for (const oldVersion of [24, 25] as const) expect((await request(f.env, oldVersion, headers)).status).toBe(409);
+  const current = await request(f.env, 26, headers); expect(current.status).toBe(200);
+  const content = await validateFullExportV26(await current.json());
+  expect(content.schemaVersion).toBe(26); expect(content.tables.samples[0].title).toBe("Retained export");
+  for (const name of ["local_accounts", "local_auth_events", "local_storage_profile_registrations", "local_storage_profile_activations", "local_storage_profile_checks", "local_storage_profile_admissions", "local_storage_profile_bindings"])
+    expect(Object.hasOwn(content.tables, name)).toBe(false);
+  expect(JSON.stringify(content)).not.toContain(verifier); expect(providerIO).not.toHaveBeenCalled();
+}, 20_000);
+it("denies unauthenticated V26 before actual database/provider reads and refuses V26 on the unchanged V25 catalog", async () => {
+  const latest = fixture("v26"), before = latest.db.queryCount;
+  expect((await request(latest.env, 26)).status).toBe(403); expect(latest.db.queryCount).toBe(before);
+  const old = fixture(), headers = await accessHeaders(); expect((await request(old.env, 26, headers)).status).toBe(409);
+  expect(providerIO).not.toHaveBeenCalled();
+}, 20_000);

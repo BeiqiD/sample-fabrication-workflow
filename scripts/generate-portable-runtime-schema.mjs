@@ -105,8 +105,16 @@ export async function generatePortableRuntimeSchema(root = defaultRoot, { check 
   ensure(frozen.RECOVERY_MIGRATIONS.length === 22 && frozen.RECOVERY_SCHEMA_SHA256 === reviewedApplicationSha256[21], "unreviewed historical checkpoint");
   const reviewedMigrations = [...frozen.RECOVERY_MIGRATIONS, newMigration];
   const entries = await readdir(join(root, "migrations"), { withFileTypes: true });
+  // Explicit paired successor inventory only. V25 never executes 0024 and its
+  // output/catalog/23-step receipt policy remains frozen. An unreviewed name or
+  // changed successor byte stream still fails before any output is written.
+  const successorName = "0024_rt3_local_volume_profiles.sql";
+  const successor = entries.find(entry => entry.name === successorName);
+  if (successor) ensure(successor.isFile()
+    && hash(await readFile(join(root, "migrations", successorName))) === "010414ba121247175e3bf6fe2eb88028ff8557035b123cfa12970c37e3985533",
+  "unreviewed V26 successor inventory");
   // README.md is documentation, never an executable migration input.
-  ensure(entries.every(entry => entry.isFile()) && JSON.stringify(entries.filter(entry => entry.name !== "README.md").map(entry => entry.name).sort())
+  ensure(entries.every(entry => entry.isFile()) && JSON.stringify(entries.filter(entry => entry.name !== "README.md" && entry.name !== successorName).map(entry => entry.name).sort())
     === JSON.stringify(reviewedMigrations.map(value => value.name)), "unknown, missing, or non-file migration inventory");
   const migrations = [];
   for (const reviewed of reviewedMigrations) {
