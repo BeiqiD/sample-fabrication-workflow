@@ -9,7 +9,7 @@ describe("reference search target coverage", () => {
   });
 
   it("uses the portable literal matcher instead of LIKE-pattern encoding", () => {
-    const source = readFileSync(new URL("./references/search.ts", import.meta.url), "utf8");
+    const source = readFileSync(new URL("./references/read-search.ts", import.meta.url), "utf8");
     expect(source).not.toContain("escapedLikePattern");
     expect(source).not.toContain("toLocaleLowerCase");
     expect(source).not.toMatch(/\bLIKE\b/);

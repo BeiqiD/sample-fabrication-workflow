@@ -1,0 +1,218 @@
+{
+  "scope": "Shared Reference reads, exact frozen historical input reconstruction, current export probe fixture follow-up; no complete new-head gate claim",
+  "base": "14d3bcc24c3d7264efedb5c850fb6e472ae2244e",
+  "purePatch": {
+    "scope": "Applied exact Reference pure-graph incremental patch; post-repair types/runtime UNEXECUTED",
+    "patch": {
+      "path": "/tmp/portable-reference-pure-graph-incremental.patch",
+      "sha256": "8c786b150aeb3d771f5bc87f19c3685a85a954e5d70e5a7c96e8d6f2eedc8d2d",
+      "bytes": 78531
+    },
+    "candidateFiles": {
+      "worker/references/children.ts": {
+        "sha256": "835e523bac1174c5aa510aa3e92c439cead8510e90317e6ef778a29fd27e248e",
+        "bytes": 550
+      },
+      "worker/references/search.ts": {
+        "sha256": "a372f8b8332f548765d4251bfa8528c59bb2a97a5490bf2bb4faca934ba0171a",
+        "bytes": 464
+      },
+      "worker/references/read-children.ts": {
+        "sha256": "343a0d70a11e0ca9699c2e707ede52c34d3f81039d69f6f801b560c3ec512875",
+        "bytes": 8380
+      },
+      "worker/references/read-search.ts": {
+        "sha256": "d955a3826da922bac5a85b03efe64c6d3a238c46188390009993d719bf0e9f95",
+        "bytes": 27710
+      },
+      "worker/references/read-service.ts": {
+        "sha256": "f4f2a100d333be88fd136a3a0fca99dbc2f608e51a60abc8a0873420ba170759",
+        "bytes": 2225
+      },
+      "worker/references/read-surface.ts": {
+        "sha256": "5bdd813b7da22f0e1b055dee4e1c89155979bfe2f3410d6d4c7b3c9e2415ab26",
+        "bytes": 3685
+      },
+      "server/reference-read.qualification.ts": {
+        "sha256": "e84486667474198fe6cf114353e50963ba2e995e519f68ff6c43395bfb004dc5",
+        "bytes": 14671
+      },
+      "worker/reference-search-consistency.test.ts": {
+        "sha256": "e0c58777b157aa6fd1e79da7581db00d5a5128f3768a7b6aec8c7792c6ca6d66",
+        "bytes": 1155
+      }
+    },
+    "checks": {
+      "read-children.ts_body_unchanged_except_adapter_import": true,
+      "children.ts_compatibility_wrapper_body_unchanged": true,
+      "read-children.ts_backtick_literals_unchanged": true,
+      "read-search.ts_body_unchanged_except_adapter_import": true,
+      "search.ts_compatibility_wrapper_body_unchanged": true,
+      "read-search.ts_backtick_literals_unchanged": true,
+      "source_guard_only_path_changed": true,
+      "all_media_route_file_bytes_unchanged": true,
+      "worker_qualification_bytes_unchanged": true,
+      "node_fixture_only_two_import_paths_changed": true,
+      "worker/references/read-service.ts_local_graph_has_no_D1_or_CF_dependencies": true,
+      "worker/references/read-service.ts_graph_files": [
+        "shared/contracts/reference-children.ts",
+        "shared/contracts/reference-destinations.ts",
+        "shared/contracts/reference-search.ts",
+        "shared/contracts/reference-types.ts",
+        "shared/domain/reference-comment-preview.ts",
+        "shared/reference-children.ts",
+        "shared/reference-comment-preview.ts",
+        "shared/reference-destinations.ts",
+        "shared/reference-search.ts",
+        "shared/reference-types.ts",
+        "worker/references/adapters.ts",
+        "worker/references/eligibility.ts",
+        "worker/references/read-children.ts",
+        "worker/references/read-resolver.ts",
+        "worker/references/read-search.ts",
+        "worker/references/read-service.ts",
+        "worker/runtime/configuration-sql.ts",
+        "worker/runtime/read-sql.ts",
+        "worker/template-publication.ts"
+      ],
+      "worker/references/read-service.ts_forbidden_graph_files": [],
+      "worker/references/read-surface.ts_local_graph_has_no_D1_or_CF_dependencies": true,
+      "worker/references/read-surface.ts_graph_files": [
+        "shared/contracts/reference-children.ts",
+        "shared/contracts/reference-destinations.ts",
+        "shared/contracts/reference-search.ts",
+        "shared/contracts/reference-types.ts",
+        "shared/domain/reference-comment-preview.ts",
+        "shared/reference-children.ts",
+        "shared/reference-comment-preview.ts",
+        "shared/reference-destinations.ts",
+        "shared/reference-search.ts",
+        "shared/reference-types.ts",
+        "worker/references/adapters.ts",
+        "worker/references/eligibility.ts",
+        "worker/references/read-children.ts",
+        "worker/references/read-resolver.ts",
+        "worker/references/read-search.ts",
+        "worker/references/read-service.ts",
+        "worker/references/read-surface.ts",
+        "worker/runtime/configuration-sql.ts",
+        "worker/runtime/read-sql.ts",
+        "worker/template-publication.ts"
+      ],
+      "worker/references/read-surface.ts_forbidden_graph_files": [],
+      "server/reference-read.qualification.ts_local_graph_has_no_D1_or_CF_dependencies": true,
+      "server/reference-read.qualification.ts_graph_files": [
+        "server/installation-catalog.ts",
+        "server/migrations.ts",
+        "server/reference-read.qualification.ts",
+        "server/sqlite.ts",
+        "server/storage-configuration-sql.ts",
+        "shared/contracts/file-jobs.ts",
+        "shared/contracts/files.ts",
+        "shared/contracts/node-installation-schema.ts",
+        "shared/contracts/reference-children.ts",
+        "shared/contracts/reference-destinations.ts",
+        "shared/contracts/reference-search.ts",
+        "shared/contracts/reference-types.ts",
+        "shared/domain/reference-comment-preview.ts",
+        "shared/reference-children.ts",
+        "shared/reference-comment-preview.ts",
+        "shared/reference-destinations.ts",
+        "shared/reference-search.ts",
+        "shared/reference-types.ts",
+        "worker/files/byte-reader.ts",
+        "worker/files/byte-verification.ts",
+        "worker/files/byte-writer.ts",
+        "worker/files/jobs/sql-repository.ts",
+        "worker/files/jobs/types.ts",
+        "worker/references/adapters.ts",
+        "worker/references/eligibility.ts",
+        "worker/references/read-children.ts",
+        "worker/references/read-resolver.ts",
+        "worker/references/read-search.ts",
+        "worker/references/read-service.ts",
+        "worker/references/read-surface.ts",
+        "worker/runtime/configuration-sql.ts",
+        "worker/runtime/read-sql.ts",
+        "worker/runtime/sql.ts",
+        "worker/template-publication.ts"
+      ],
+      "server/reference-read.qualification.ts_forbidden_graph_files": []
+    }
+  },
+  "actualChecks": {
+    "reference10Pure": {
+      "log": "/tmp/portable-reference-read10-pure-attempt1.log",
+      "sha256": "742865970e345fb72140d4847aba7adc6773d070691804758b6aac49e875c959",
+      "cases": 10,
+      "pass": 10,
+      "fail": 0
+    },
+    "mature26First": {
+      "log": "/tmp/portable-business-reference-mature-regressions-attempt1.log",
+      "sha256": "0a3da064fca344b3b3011837bb8db84633496700585c1a740943fa5059e0a4be",
+      "cases": 143,
+      "pass": 142,
+      "fail": 1
+    },
+    "unchangedHistoricalE6": {
+      "log": "/tmp/portable-historical-c-e-pure-read-port-freeze-attempt1.log",
+      "sha256": "1adca159cbfeaa77b0cbcbecac1fc30b3b91bb2cae26ecbc98bddf7385511725",
+      "cases": 6,
+      "pass": 6,
+      "fail": 0
+    },
+    "unchangedHistoricalC4": {
+      "log": "/tmp/portable-historical-c-pure-read-port-contract4-attempt1.log",
+      "sha256": "d326156cdb0a98c5a963abf2ddd41ae62ec6cf1a06af899bbad18e10b71ae55b",
+      "cases": 4,
+      "pass": 4,
+      "fail": 0
+    },
+    "twoProbeTargetedRetest": {
+      "log": "/tmp/portable-current-two-probe-export-regressions-attempt1.log",
+      "sha256": "56f2cbe00f33c33916f033ad062c0d3ca20780aeb90d78e533da8c6a88d5a59d",
+      "cases": 22,
+      "pass": 22,
+      "fail": 0
+    }
+  },
+  "strict": {
+    "/tmp/portable-reference-pure-server-types-attempt1.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/tmp/portable-reference-pure-specific-worker-types-attempt1.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/tmp/portable-reference-pure-worker-types-attempt1.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "defaultCiRegistration": {
+    "nodeNativeFile": "server/reference-read.test.ts",
+    "sha256": "e84486667474198fe6cf114353e50963ba2e995e519f68ff6c43395bfb004dc5",
+    "change": "Native six-case source bytes unchanged; filename/config register the default source gate. Actual renamed two-file10case focus passed.",
+    "pending": "complete new-head CI",
+    "actualRegisteredEntry": {
+      "log": "/tmp/portable-reference-read10-registered-attempt1.log",
+      "sha256": "f8308c220a030747c33b809bfc2652a2b4be319064648b8c54b5d3d888c11b53",
+      "cases": 10,
+      "pass": 10,
+      "fail": 0,
+      "exit": 0
+    }
+  },
+  "historicalFirstFailureLog": "/tmp/portable-historical-c-e-read-port-freeze-focus-attempt1.log",
+  "limitations": [
+    "3 metadata Reference reads; media routes unchanged",
+    "Original C/E fingerprint manifests and patches unchanged",
+    "All native Node/actual Worker cases are isolated fixtures, no remote/provider proof",
+    "Whole Node application/local File/roles/jobs/Docker/membership unfinished"
+  ],
+  "postQualificationWhitespaceOnly": {
+    "worker/references/read-children.ts": {
+      "before": "343a0d70a11e0ca9699c2e707ede52c34d3f81039d69f6f801b560c3ec512875",
+      "after": "43cbfc7c962ee36b5390e2d845259a6f01710d40ffdc1587e185f3767aa6da99",
+      "change": "remove one duplicate final blank line; all source tokens and SQL bytes unchanged"
+    },
+    "worker/references/read-search.ts": {
+      "before": "d955a3826da922bac5a85b03efe64c6d3a238c46188390009993d719bf0e9f95",
+      "after": "3b1a133479da99cf6d19a9c854b399950d3bd1ca02dd67bc7ca2cf902d89bd96",
+      "change": "remove one duplicate final blank line; all source tokens and SQL bytes unchanged"
+    }
+  }
+}

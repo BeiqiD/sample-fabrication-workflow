@@ -1,32 +1,14 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { decodeReferenceRouteId } from "../shared/reference-destinations";
-import type { ListReferenceChildrenResponse } from "../shared/reference-children";
-import type { SearchReferencesResponse } from "../shared/reference-search";
-import {
-  isReferenceTarget,
-  MAX_REFERENCE_RESOLUTION_TARGETS,
-  type ResolveReferencesInput,
-  type ResolveReferencesResponse,
-} from "../shared/reference-types";
+import { isReferenceTarget } from "../shared/reference-types";
 import { safeMediaResponseHeaders } from "./media-response";
 import { getBlob } from "./blob-lifecycle/storage";
 import { readFileAuthorityMode, readPublishedFile } from "./files/authority-reader";
 import { primaryD1 } from "./d1-primary";
 import { hasRecoveryAssetAliasEvidence, qualifiedRecoveryLegacyAssetAliasSql } from "./files/native-asset-alias";
 import type { FilePurpose } from "../shared/contracts/files";
-import {
-  ReferenceChildrenInputError,
-  listReferenceChildren,
-} from "./references/children";
-import {
-  ReferenceResolutionInputError,
-  resolveReferences,
-} from "./references/resolver";
-import {
-  ReferenceSearchInputError,
-  searchReferences,
-} from "./references/search";
+import { referenceReadHandlers } from "./references/read-worker";
 import type { Env } from "./types";
 
 type AppBindings = { Bindings: Env; Variables: { userEmail: string } };
@@ -164,80 +146,9 @@ routes.get("/assets/:key{.+}", async (c) => {
   return new Response(object.body, { headers });
 });
 
-routes.post("/references/resolve", async (c) => {
-  let input: unknown;
-  try {
-    input = await c.req.json<unknown>();
-  } catch {
-    throw new HTTPException(400, { message: "A valid JSON request body is required" });
-  }
-  if (!input || typeof input !== "object" || !Array.isArray((input as Partial<ResolveReferencesInput>).targets)) {
-    throw new HTTPException(400, { message: "Reference targets are required" });
-  }
-
-  const targets = (input as Partial<ResolveReferencesInput>).targets!;
-  if (targets.length < 1 || targets.length > MAX_REFERENCE_RESOLUTION_TARGETS) {
-    throw new HTTPException(400, {
-      message: `Between 1 and ${MAX_REFERENCE_RESOLUTION_TARGETS} reference targets are required`,
-    });
-  }
-  if (!targets.every((target) => isReferenceTarget(target) && target.id.trim() === target.id)) {
-    throw new HTTPException(400, { message: "Every reference target needs a known type and valid stable ID" });
-  }
-
-  try {
-    const response: ResolveReferencesResponse = {
-      results: await resolveReferences(c.env.DB, targets),
-    };
-    return c.json(response);
-  } catch (error) {
-    if (error instanceof ReferenceResolutionInputError) {
-      throw new HTTPException(400, { message: error.message });
-    }
-    throw error;
-  }
-});
-
-routes.post("/references/children", async (c) => {
-  let input: unknown;
-  try {
-    input = await c.req.json<unknown>();
-  } catch {
-    throw new HTTPException(400, { message: "A valid JSON request body is required" });
-  }
-
-  try {
-    const response: ListReferenceChildrenResponse = await listReferenceChildren(
-      c.env.DB,
-      input,
-    );
-    return c.json(response);
-  } catch (error) {
-    if (error instanceof ReferenceChildrenInputError) {
-      throw new HTTPException(400, { message: error.message });
-    }
-    throw error;
-  }
-});
-
-routes.post("/references/search", async (c) => {
-  let input: unknown;
-  try {
-    input = await c.req.json<unknown>();
-  } catch {
-    throw new HTTPException(400, { message: "A valid JSON request body is required" });
-  }
-
-  try {
-    const response: SearchReferencesResponse = await searchReferences(c.env.DB, input);
-    return c.json(response);
-  } catch (error) {
-    if (error instanceof ReferenceSearchInputError) {
-      throw new HTTPException(400, { message: error.message });
-    }
-    throw error;
-  }
-});
+routes.post("/references/resolve", referenceReadHandlers.captureIngressRequest, referenceReadHandlers.resolve);
+routes.post("/references/children", referenceReadHandlers.captureIngressRequest, referenceReadHandlers.children);
+routes.post("/references/search", referenceReadHandlers.captureIngressRequest, referenceReadHandlers.search);
 
 routes.get("/references/media/execution_image/:encodedId", async (c) => {
   const id = decodeReferenceRouteId(c.req.param("encodedId"));
