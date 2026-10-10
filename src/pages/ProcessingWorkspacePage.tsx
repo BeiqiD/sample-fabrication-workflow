@@ -87,7 +87,10 @@ export function ProcessingWorkspacePage() {
   const [sampleResults, setSampleResults] = useState<SampleSummary[]>([]);
   const [samplePickerState, setSamplePickerState] = useState({ key: "", loading: true, error: "" });
   const [samplePickerRetry, setSamplePickerRetry] = useState(0);
-  const [showMetrologyPicker, setShowMetrologyPicker] = useState(false);
+  const [metrologyPicker, setMetrologyPicker] = useState<{ source: string } | null>(null);
+  const currentMetrologyPicker = useRef(metrologyPicker);
+  const showMetrologyPicker = metrologyPicker?.source === readKey;
+  currentMetrologyPicker.current = showMetrologyPicker ? metrologyPicker : null;
   const [confirmingRunFinish, setConfirmingRunFinish] = useState(false);
   const [finishRunError, setFinishRunError] = useState("");
   const [confirmingRunDelete, setConfirmingRunDelete] = useState(false);
@@ -220,6 +223,10 @@ export function ProcessingWorkspacePage() {
     setConfirmingRunDelete(false);
     setDeleteRunError("");
   }, [selectedRun?.id]);
+
+  useEffect(() => {
+    setMetrologyPicker(current => current?.source === readKey ? current : null);
+  }, [readKey]);
 
   useEffect(() => {
     if (!sample || requestedAction !== "start" || activeRun || transitionMode) return;
@@ -577,7 +584,7 @@ export function ProcessingWorkspacePage() {
       label: "Start metrology",
       icon: <ActionIcon name="metrology" />,
       disabled: transitionBusy,
-      onSelect: () => setShowMetrologyPicker(true),
+      onSelect: () => setMetrologyPicker(current => current?.source === readKey ? current : { source: readKey }),
     });
 
   return <div ref={workspaceRef} className="page processing-workspace-page sample-page">
@@ -628,10 +635,12 @@ export function ProcessingWorkspacePage() {
         />
       </section> : <div className="card empty-run-message"><h3 className="card-title">No run yet</h3><p>Start a process or an independent metrology run to create an execution record.</p></div>}
       {showMetrologyPicker && <StandaloneMetrologyDialog
+        key={readKey}
         sampleId={sampleId}
-        onClose={() => setShowMetrologyPicker(false)}
+        onClose={() => { if (currentMetrologyPicker.current === metrologyPicker) setMetrologyPicker(null); }}
         onStarted={async (runId) => {
-          setShowMetrologyPicker(false);
+          if (currentMetrologyPicker.current !== metrologyPicker || currentSource.current !== readKey) return;
+          setMetrologyPicker(null);
           updateSearchParams({ run: runId });
           await load();
         }}
