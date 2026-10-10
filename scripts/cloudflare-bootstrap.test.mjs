@@ -12,6 +12,7 @@ const run = promisify(execFile);
 const ROOT = resolve(import.meta.dirname, "..");
 const ACCOUNT = "a".repeat(32);
 const UUID = "ed52e1b3-bc58-4bad-9aab-c803cfa6f14c";
+const RECOVERY_UUID = "421265f5-7216-4db7-91f5-1913d0b47d3f";
 const ENV = { DEPLOY_WORKER_NAME: "test-worker", DEPLOY_D1_DATABASE_NAME: "test-database",
   DEPLOY_D1_DATABASE_ID: UUID, DEPLOY_R2_BUCKET_NAME: "test-bucket", DEPLOY_WORKERS_DEV: "false", CLOUDFLARE_ACCOUNT_ID: ACCOUNT };
 
@@ -127,4 +128,98 @@ test("pre-migration guard follows deploy's dist redirect and rejects any physica
     await writeFile(resolve(root, ".wrangler/deploy/config.json"), JSON.stringify({ configPath: "../deploy.jsonc" }));
     await assert.rejects(verifyDeploymentBootstrap(root), /do not agree/);
   } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test("pre-migration guard admits the exact separately configured recovery database and target", async () => {
+  const root = await fixture();
+  try {
+    await run(process.execPath, ["scripts/generate-wrangler-config.mjs"], { cwd: root, env: {
+      ...ENV, DEPLOY_RECOVERY_D1_DATABASE_NAME: "test-recovery",
+      DEPLOY_RECOVERY_D1_DATABASE_ID: RECOVERY_UUID, DEPLOY_RECOVERY_TARGET_ID: "recovery-target",
+    } });
+    const config = JSON.parse(await readFile(resolve(root, ".wrangler/deploy.jsonc"), "utf8"));
+    assert.deepEqual(config.d1_databases.map(({ binding }) => binding), ["DB", "RECOVERY_DB"]);
+    assert.equal(config.vars.RECOVERY_TARGET_ID, "recovery-target");
+    await mkdir(resolve(root, ".wrangler/deploy"), { recursive: true });
+    await mkdir(resolve(root, "dist/test-worker"), { recursive: true });
+    await writeFile(resolve(root, ".wrangler/deploy/config.json"), JSON.stringify({ configPath: "../../dist/test-worker/wrangler.json" }));
+    await writeFile(resolve(root, "dist/test-worker/wrangler.json"), JSON.stringify({ ...config, no_bundle: true }));
+    await verifyDeploymentBootstrap(root);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test("recovery generator rejects partial settings and source aliases without provisioning", async () => {
+  const root = await fixture();
+  try {
+    const recovery = { DEPLOY_RECOVERY_D1_DATABASE_NAME: "test-recovery",
+      DEPLOY_RECOVERY_D1_DATABASE_ID: RECOVERY_UUID, DEPLOY_RECOVERY_TARGET_ID: "recovery-target" };
+    for (const mutation of [
+      { DEPLOY_RECOVERY_D1_DATABASE_NAME: undefined },
+      { DEPLOY_RECOVERY_D1_DATABASE_ID: undefined },
+      { DEPLOY_RECOVERY_TARGET_ID: undefined },
+      { DEPLOY_RECOVERY_D1_DATABASE_ID: UUID },
+      { DEPLOY_RECOVERY_D1_DATABASE_ID: UUID.toUpperCase() },
+      { DEPLOY_RECOVERY_D1_DATABASE_NAME: ENV.DEPLOY_D1_DATABASE_NAME },
+      { DEPLOY_RECOVERY_TARGET_ID: "private/name" },
+    ]) await assert.rejects(run(process.execPath, ["scripts/generate-wrangler-config.mjs"], {
+      cwd: root, env: { ...ENV, ...recovery, ...mutation },
+    }), /Missing required Cloudflare Build Variable|Recovery database must be separate|Recovery target ID must contain/);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test("recovery bootstrap rejects target, source, account and namespace drift before migration", () => {
+  const source = { binding: "DB", database_id: UUID, database_name: "test-database" };
+  const target = { binding: "RECOVERY_DB", database_id: RECOVERY_UUID, database_name: "test-recovery" };
+  const vars = { R2_BOOTSTRAP_NAMESPACE: cloudflareR2Namespace(ACCOUNT, "test-bucket"), RECOVERY_TARGET_ID: "recovery-target" };
+  const config = { account_id: ACCOUNT, name: "test-worker", vars,
+    r2_buckets: [{ binding: "ASSETS", bucket_name: "test-bucket" }], d1_databases: [source, target] };
+  // Binding order is incidental; the named primary and target identities are not.
+  assert.doesNotThrow(() => assertDeploymentBootstrapAgreement(config, { ...config, d1_databases: [target, source] }));
+  for (const mutation of [
+    { d1_databases: [source, { ...target, database_id: "b7928e23-f9f4-49f2-b098-e9a5cab2a53f" }] },
+    { d1_databases: [source, { ...target, database_name: "another-target" }] },
+    { vars: { ...vars, RECOVERY_TARGET_ID: "another-target" } },
+    { d1_databases: [{ ...source, database_id: "b7928e23-f9f4-49f2-b098-e9a5cab2a53f" }, target] },
+    { d1_databases: [{ ...source, database_name: "another-source" }, target] },
+    { account_id: "b".repeat(32) }, { name: "another-worker" },
+    { r2_buckets: [{ binding: "ASSETS", bucket_name: "another-bucket" }] },
+    { vars: { ...vars, R2_BOOTSTRAP_NAMESPACE: cloudflareR2Namespace(ACCOUNT, "another-bucket") } },
+    { d1_databases: [source], vars: { R2_BOOTSTRAP_NAMESPACE: vars.R2_BOOTSTRAP_NAMESPACE } },
+  ]) {
+    assert.throws(() => assertDeploymentBootstrapAgreement(config, { ...config, ...mutation }), /do not agree/);
+    assert.throws(() => assertDeploymentBootstrapAgreement({ ...config, ...mutation }, config), /do not agree/);
+  }
+});
+
+test("recovery bootstrap rejects aliased, incomplete or unreviewed bindings even when both configs match", () => {
+  const source = { binding: "DB", database_id: UUID, database_name: "test-database" };
+  const target = { binding: "RECOVERY_DB", database_id: RECOVERY_UUID, database_name: "test-recovery" };
+  const vars = { R2_BOOTSTRAP_NAMESPACE: cloudflareR2Namespace(ACCOUNT, "test-bucket"), RECOVERY_TARGET_ID: "recovery-target" };
+  const config = { account_id: ACCOUNT, name: "test-worker", vars,
+    r2_buckets: [{ binding: "ASSETS", bucket_name: "test-bucket" }], d1_databases: [source, target] };
+  const invalid = [
+    { d1_databases: [source, { ...target, database_id: UUID }] },
+    { d1_databases: [source, { ...target, database_id: UUID.toUpperCase() }] },
+    { d1_databases: [source, { ...target, database_name: source.database_name }] },
+    { d1_databases: [source, source] }, { d1_databases: [target, target] },
+    { d1_databases: [source, { ...target, binding: "OTHER_DB" }] },
+    { d1_databases: [source, target, { ...target, binding: "OTHER_DB" }] },
+    { d1_databases: [target] }, { d1_databases: [source] }, { d1_databases: [] },
+    { d1_databases: null }, { d1_databases: [null, target] },
+    { d1_databases: [source, { ...target, database_id: "unknown" }] },
+    { d1_databases: [{ ...source, database_id: "unknown" }, target] },
+    { d1_databases: [{ ...source, database_name: "" }, target] },
+    { d1_databases: [source, { ...target, database_name: "" }] },
+    { d1_databases: [source, { ...target, database_name: " private-name " }] },
+    { d1_databases: [source, { ...target, database_name: "private\0name" }] },
+    { d1_databases: [source, { ...target, preview_database_id: UUID }] },
+    { d1_databases: [{ ...source, remote: true }, target] },
+    ...[undefined, null, "", " target ", "private/name", "x".repeat(129), 42]
+      .map(RECOVERY_TARGET_ID => ({ vars: { ...vars, RECOVERY_TARGET_ID } })),
+  ];
+  for (const mutation of invalid) {
+    const malformed = { ...config, ...mutation };
+    assert.throws(() => assertDeploymentBootstrapAgreement(malformed, malformed), error =>
+      error.message === "Built Worker and migration deployment identities do not agree" && error.cause === undefined);
+  }
 });
