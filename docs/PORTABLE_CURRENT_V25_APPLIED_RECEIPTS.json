@@ -3302,6 +3302,48 @@
       "V26 source proposal is separate and unqualified; raw0024 not included"
     ]
   },
-  "currentHeadCompleteCI": "pending; ordinary development merge requires own complete checks",
+  "currentHeadCompleteCI": {
+    "path": "scripts/remote-d1-migration-observation.test.mjs",
+    "beforeSha256": "890bf18f60673f364b21d1782eff759481f401f7e1b8035f31eae660e0772a4d",
+    "afterSha256": "7235268102f36914a9617df739a6ddaa0c2ec4b68c00d424aa1ff7969fb63767",
+    "retainedFailedRuns": [
+      38075455925,
+      38075491402
+    ],
+    "change": "append sole reviewed0023 migration to exact current fixture inventory; all realD1 lexicalschema/ledger/oneSELECT assertions retained; no production probe changes",
+    "logs": [
+      {
+        "path": "/tmp/portable-current-b4c1f7c-push-verify-failed-attempt1.log",
+        "outcome": "failure",
+        "sha256": "4f9e77a81f2a30d00b197752f5665ce60cb58cbf8d12f21a3f32e0c5acf0ccb8"
+      },
+      {
+        "path": "/tmp/portable-current-b4c1f7c-pr-verify-failed-attempt1.log",
+        "outcome": "failure",
+        "sha256": "a3bc5ee376b7fdf1d762ffa756af0d54a0be31b985a2004ff6166a5b1e40f8a8"
+      },
+      {
+        "path": "/tmp/portable-current-23-d1-parity-focused-attempt1.log",
+        "outcome": "focusedPass9",
+        "sha256": "23a1540a6296f783eb23c5b4f5be25b2b4b58723bad87de216275d46185f6e76"
+      }
+    ],
+    "retainedFullGateFailure": {
+      "nativeCases": 356,
+      "nativePassed": 355,
+      "nativeFailed": 1,
+      "laterLeaves": "skipped; no pass inferred"
+    },
+    "focusedActual": {
+      "cases": 9,
+      "passed": 9,
+      "realCurrentD1MigrationCount": 23,
+      "realS0MigrationCount": 37,
+      "snapshotQueryStatementCount": 1,
+      "currentSchemaResponseBytes": 2147894,
+      "deadlineChanges": false
+    },
+    "newOwnCompleteCI": "pending after dependency reconciliation"
+  },
   "allRuntimeMilestonesUnfinished": true
 }

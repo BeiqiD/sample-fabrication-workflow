@@ -49,3 +49,9 @@ V26/local-volume0024 remains a separate unqualified source proposal, with new cl
 ## Applied services checkpoint
 
 The latest services91 + readiness4a + paired V25 integration has now passed all 56 installer/migration/WAL cases and eight strict scopes on its exact applied source, closing the latest generator-copy test gap described above. The 62 adopted files match the qualified private manifest; all other services/readiness source and historical files stayed unchanged. See [applied receipts](PORTABLE_CURRENT_V25_APPLIED_RECEIPTS.json). This remains development library support; actual complete checks and the full local application/File/jobs/container milestone are pending.
+
+## Complete-gate inventory correction
+
+The original `b4c1f7c` push Verify #38075455925 and PR Verify #38075491402 each failed the first verification leaf: the current remote-D1 observation parity fixture still expected 22 filenames while the reviewed source directory contains 23. Each ran 356 native cases with 355 passes and one failure; all later leaves were skipped. The failure is retained.
+
+Only that current fixture label and its exact expected list were updated to include `0023_portable_local_identity.sql`. The first applied focused run passed all nine remote-observation cases, including actual 37-file S0 D1 and actual current 23-file D1. The single-snapshot-SELECT assertion, exact schema/ledger equality, request count, private output and redaction controls remain unchanged. No production probe, migration bytes, catalog pins or test budgets changed. A new complete gate is still required before this checkpoint merges. Exact hashes and logs are in the applied receipts.
