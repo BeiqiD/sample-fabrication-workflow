@@ -1,0 +1,44 @@
+{
+  "kind": "current-v25-project-worker-smoke/1",
+  "qualifiedBase": "767f1c0823f823a3c40207e2ac43ea2a72567778",
+  "productionSourceUnchanged": true,
+  "change": "Negotiate currentV25, assertcurrentcheckpoint, explicitlyrefusehistoricalV24; retainallmatureProjectassertions",
+  "actual": [
+    {
+      "scope": "normal-project-worker",
+      "exitCode": 0,
+      "path": "/tmp/portable-current-v25-project-worker-smoke-attempt1.log",
+      "sha256": "20340578bc55e056e63f1da5124a08f68e2f41cd370587df7f32142a1f8f2127"
+    },
+    {
+      "scope": "production-build",
+      "exitCode": 0,
+      "path": "/tmp/portable-current-v25-production-build-attempt1.log",
+      "sha256": "1256a67b1d2a95865ee5edd887e4c864ea30ac7cbf0b9e6206352d78d84d4edb"
+    },
+    {
+      "scope": "production-project-worker",
+      "exitCode": 0,
+      "path": "/tmp/portable-current-v25-project-worker-artifact-attempt1.log",
+      "sha256": "bffe8c7891c66638aa1be176dd23e0079803fbf3850c4063a4a85c21715a16a9"
+    }
+  ],
+  "remoteFirstFailures": [
+    {
+      "path": "/tmp/portable-current-767f1c0-push-verify-failed-attempt1.log",
+      "sha256": "c725c34d8e852247de2d7fde17a0babbcd20b997d171b3c4641ff53d2ac6b217",
+      "scope": "own767 completegate fails oldV24export negotiation, earlierleavespassed"
+    },
+    {
+      "path": "/tmp/portable-current-767f1c0-pr-verify-failed-attempt1.log",
+      "sha256": "537ac3a200ffb54a04826d113a96b9ad3276681b70358c0a81fe749045620c32",
+      "scope": "own767 completegate fails oldV24export negotiation, earlierleavespassed"
+    }
+  ],
+  "completeGate": "new own-head Verify/Map required; source3727/mounted980 passed at preceding767, whoseProjectWorkersmoke failed409vs200",
+  "source": {
+    "path": "scripts/verify-project-worker.mjs",
+    "sha256": "fc31549214fd49f8c2677564772b92bb2314272a0600c7461e6d448ef3dece66"
+  },
+  "closure": "Both Miniflare scripts finally disposeWorker and remove exactprivatefixtures; bothprocessesexited0; no deployment"
+}

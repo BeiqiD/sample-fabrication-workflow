@@ -118,12 +118,15 @@ try {
   const oldExport = await miniflare.dispatchFetch("https://app.test/api/exports/all");
   assert.equal(oldExport.status, 409);
   assert.match((await oldExport.json()).error, /Refresh the page/);
-  const exportResponse = await miniflare.dispatchFetch("https://app.test/api/exports/all?archiveSchema=24&archiveWriter=1");
+  const historicalWriter = await miniflare.dispatchFetch("https://app.test/api/exports/all?archiveSchema=24&archiveWriter=1");
+  assert.equal(historicalWriter.status, 409, "Current identity-bearing installation must refuse the frozen historical writer");
+  const exportResponse = await miniflare.dispatchFetch("https://app.test/api/exports/all?archiveSchema=25&archiveWriter=1");
   const fullExport = await exportResponse.json();
   assert.equal(exportResponse.status, 200, JSON.stringify(fullExport));
-  assert.equal(fullExport.schemaVersion, 24);
-  assert.equal(fullExport.archiveProfile, "fp5-system-recovery-evidence");
+  assert.equal(fullExport.schemaVersion, 25);
+  assert.equal(fullExport.archiveProfile, "portable-runtime-local-identity");
   assert.equal(fullExport.archiveWriter, 1);
+  assert.equal(fullExport.artifacts.portableCheckpoint.value.checkpointId, "portable-runtime/v25");
   assert(fullExport.tables.samples.some((row) => row.id === "reference-sample-a"));
   const sourceSchema = fullExport.artifacts.sourceSchema.value;
   assert(sourceSchema.objects.some((entry) => entry.type === "table" && entry.name === "samples"));
