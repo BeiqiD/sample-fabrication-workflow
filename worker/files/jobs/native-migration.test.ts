@@ -95,6 +95,9 @@ afterAll(() => {
 async function fixture(sourceNative = true, secondNative = false) {
   const f = await nativeAcceptanceFixture(sourceNative, { throughMigration: "0019_fp3_file_jobs.sql", databaseFactory: pristineDatabase });
   databases.push(f.sql);
+  // Independent jobs recheck the ordinary Access admission in addition to
+  // the administrator policy already supplied by the storage upload fixture.
+  Object.assign(f.env, { ACCESS_TEAM_DOMAIN: "https://fixture.cloudflareaccess.com", ACCESS_AUD: "fixture-audience", ALLOWED_EMAILS: f.actor });
   let destination = f.admission.nativeProfileId;
   if (secondNative) {
     const saved = await saveStorageCandidate(f.env, { expectedRevision: null, label: "Second native migration bucket",

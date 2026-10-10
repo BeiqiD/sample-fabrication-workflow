@@ -169,7 +169,8 @@ describe("historical asset URLs after actual V8 recovery", () => {
 
   it("keeps the NULL-SHA URL usable after real FP3 R2-to-S3 migration and garbage collection of its recovery placement", async () => {
     const before = asset("legacy-occurrence-asset"), actor = capability.actor;
-    const env = { ...capability.env, DB: environment.DB };
+    const env = { ...capability.env, DB: environment.DB,
+      ACCESS_TEAM_DOMAIN: "https://fixture.cloudflareaccess.com", ACCESS_AUD: "fixture-audience", ALLOWED_EMAILS: actor };
     // Separately model the reviewed operator handoff. Every admission,
     // migration, publication and GC guard remains installed throughout.
     await releaseSourceMaintenance(env, actor, 0);

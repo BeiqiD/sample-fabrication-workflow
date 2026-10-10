@@ -1,6 +1,7 @@
 import { primaryD1 } from "../../d1-primary";
 import { HTTPException } from "hono/http-exception";
 import { canAdministerSystemSettings } from "../../storage/system-administrator";
+import { allowedEmail } from "../../auth";
 import type { Env } from "../../types";
 import { ensureFileAuthorityExecution } from "../authority-execution";
 import { openShadowProfile } from "../shadow-profile";
@@ -29,7 +30,11 @@ export async function workerFileJobCapabilities(env: Env): Promise<FileJobCapabi
   return {
     repository: d1FileJobRepository(env.DB), incarnation: row.incarnation,
     now: () => new Date(), randomId: () => crypto.randomUUID(),
-    authorizeAdministrator: actor => canAdministerSystemSettings(env, actor),
+    // An accepted background job must retain both current application access
+    // and the separate administrator grant. Recheck deployment-owned policy
+    // on every claim/request/publication fence, without reusing an old JWT.
+    authorizeAdministrator: actor => canAdministerSystemSettings(env, actor)
+      && Boolean(env.ACCESS_TEAM_DOMAIN && env.ACCESS_AUD) && allowedEmail(actor, env.ALLOWED_EMAILS),
     // This capability is supplied only to the installation's explicitly
     // enabled independent maintenance invocation, never from a job actor.
     authorizeSystemCleanup: () => true,

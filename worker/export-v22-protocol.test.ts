@@ -31,6 +31,7 @@ afterEach(async () => {
 });
 async function fixture(migrate = true, executor = migrate) {
   const f = await nativeAcceptanceFixture(); databases.push(f.sql);
+  Object.assign(f.env, { ACCESS_TEAM_DOMAIN: "https://fixture.cloudflareaccess.com", ACCESS_AUD: "fixture-audience", ALLOWED_EMAILS: f.actor });
   f.sql.exec(await readFile(join(migrationsDirectory, "0019_fp3_file_jobs.sql"), "utf8"));
   const bytes = Uint8Array.of(137, 80, 78, 71, 13, 10, 26, 10);
   const uploaded = await acceptAndUploadR2Asset(f.env, { actorEmail: f.actor, requestId: crypto.randomUUID(),
