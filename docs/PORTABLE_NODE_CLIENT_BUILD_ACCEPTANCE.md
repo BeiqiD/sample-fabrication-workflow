@@ -17,8 +17,10 @@ continues to inspect the existing Worker client build.
 mandatory `node-client` leaf joins the canonical CI/development-deployment plan,
 bringing that plan to fifteen unique leaves while retaining the fifteen public
 status contexts. Verification/bundle contracts passed ten tests. The combined
-script and the final complete plan still require their own observed execution;
-this record preserves the separate build, configuration-type and bundle checks.
+`npm run verify:node-client` also exited 0 on this private candidate, rebuilding
+the actual client and passing the same bundle check. The complete fifteen-leaf
+plan remains unrun. [Receipts](PORTABLE_NODE_CLIENT_BUILD_RECEIPTS.json) preserve
+the separate checks, artifact hashes and combined command log digest.
 
 This is frontend build capability only. No Node app startup, login/cookies,
 current application migrations, local file-role defaults, Docker image/volume,
