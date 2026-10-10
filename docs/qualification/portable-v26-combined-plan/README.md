@@ -1,0 +1,9 @@
+# Current business V26 source review and finite qualification
+
+The reviewed source is `4ee8a7b1c7b1e0ced8ce5a771b76e908b9aae5c2`, tree `fbabedb1f23a6e92e554cc4b5205e508f592789c`. The preceding combined source was `aee4631e200102429e6dbad23b910c155d124ed0`. Only the recorded CI followup and focused export compiler configuration changed in that adoption. The compiler now includes the existing `vite/client` declarations because export reaches the authenticated browser request seam.
+
+Static checks confirm all 61 combined V26 code/configuration hashes, all 24 raw migration hashes and all five frozen historical generated hashes remain equal to the previous reviewed receipt. After the two explicit adoptions, 1455 other original business Git blobs remain equal. The pinned raw0024 whitespace is retained exactly. Original frozen source and actual d79/e1d qualification evidence remain immutable and distinct from this combined source.
+
+`finite-qualification-plan.json` contains the exact sequential compiler and actual runtime commands, source-derived expected counts, unchanged authored budgets, fresh artifact requirement and owned-resource closure policy. Every listed command remains UNRUN on this combined source. Local execution requires root coordinator GO after the previous exclusive runtime owner closes. Stop at the first failure and retain original output before adaptation; do not mark later stages passed.
+
+This checkpoint adds only these three review files. It does not change application source, tests, configuration, SQL or historical evidence. V26 remains provisional metadata-only. The operational Node/main catalog remains V25; the local File/role/provider guards remain closed. No deployment, real provider access, authority restoration or automatic admission is authorized by this review.

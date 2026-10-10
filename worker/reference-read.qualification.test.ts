@@ -1,6 +1,6 @@
 import { build } from "esbuild";
 import { Log, LogLevel, Miniflare } from "miniflare";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { unstable_splitSqlQuery as splitSql } from "wrangler";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -8,6 +8,7 @@ import { encodeReferenceRouteId } from "../shared/reference-destinations";
 import type { ReferenceTarget, ResolveReferencesResponse } from "../shared/reference-types";
 import type { ListReferenceChildrenResponse } from "../shared/reference-children";
 import type { SearchReferencesResponse } from "../shared/reference-search";
+import { reviewedPortableMigrationSources } from "../test/reviewed-portable-migration-sources";
 
 // SOURCE-ONLY qualification candidate, UNEXECUTED. Bundle the actual Worker
 // entry and use genuine Miniflare D1/R2 bindings and the full current catalog.
@@ -25,8 +26,8 @@ beforeAll(async () => {
   script = bundle.outputFiles[0].text; native = actualWorker("disabled");
   database = await native.getD1Database("DB");
   const directory = new URL("../migrations/", import.meta.url);
-  const migrations = readdirSync(directory).filter(name => name.endsWith(".sql")).sort();
-  expect(migrations).toHaveLength(23); expect(migrations.at(-1)).toBe("0023_portable_local_identity.sql");
+  const migrations = reviewedPortableMigrationSources(26, directory).map(source => source.name);
+  expect(migrations).toHaveLength(24); expect(migrations.at(-1)).toBe("0024_rt3_local_volume_profiles.sql");
   for (const name of migrations) {
     await database.batch(splitSql(readFileSync(new URL(name, directory), "utf8")).map(sql => database.prepare(sql)));
   }

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -14,6 +14,7 @@ import { PORTABLE_RUNTIME_CHECKPOINT_ID, PORTABLE_RUNTIME_INTERNAL_SCHEMA_OBJECT
   PORTABLE_RUNTIME_RECOVERY_MIGRATIONS, PORTABLE_RUNTIME_RECOVERY_SCHEMA_SHA256 } from "../../shared/contracts/portable-runtime-recovery-catalog";
 import type { SystemRecoveryReport } from "./report";
 import { RECOVERY_MIGRATION_LEDGER_SQL } from "./target-migrations";
+import { reviewedPortableMigrationSources } from "../../test/reviewed-portable-migration-sources";
 
 // Native workerd/D1 qualification only. The existing V1 workerd test remains
 // frozen. No Node SQLite adapter, provider, root key, KDF or live binding is used.
@@ -90,7 +91,9 @@ function workerSource(): Promise<string> {
 }
 async function installCurrent(db: NativeD1): Promise<void> {
   const directory = new URL("../../migrations/", import.meta.url);
-  const names = readdirSync(directory).filter(name => name.endsWith(".sql")).sort();
+  // This family remains V25/image2: verify the reviewed successor bytes, but
+  // install only its original 23 migrations rather than silently changing V2.
+  const names = reviewedPortableMigrationSources(25, directory).map(source => source.name);
   expect(names).toEqual(PORTABLE_RUNTIME_RECOVERY_MIGRATIONS.map(migration => migration.name));
   for (const migration of PORTABLE_RUNTIME_RECOVERY_MIGRATIONS) {
     const sql = readFileSync(new URL(migration.name, directory), "utf8");

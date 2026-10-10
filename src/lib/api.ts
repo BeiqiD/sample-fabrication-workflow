@@ -3,7 +3,7 @@ import { checkedStorageSettingsStatus } from "../../shared/contracts/storage-set
 import { checkedCurrentStorageSettings } from "../../shared/contracts/current-storage-settings";
 import { checkedNativeStorageActivationInput, checkedNativeStorageActivationReceipt, checkedStorageRolePolicyInput, checkedStorageRolePolicyReceipt,
   type NativeStorageActivationInput, type StorageRolePolicyInput } from "../../shared/contracts/storage-policy";
-import type { FullExportManifestV25 } from "../../shared/contracts/export-portable-runtime";
+import type { FullExportManifestV26 } from "../../shared/contracts/export-portable-runtime-v26";
 import type {
   TemplateRecord,
   ProcessTemplateVersionSummary,
@@ -313,7 +313,7 @@ export const api = {
     method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
   }),
   deleteTemplateStep: (templateId: string, stepId: string) => request<{ ok: true }>(`/templates/${templateId}/steps/${stepId}`, { method: "DELETE" }),
-  getFullExport: () => request<FullExportManifestV25>("/exports/all?archiveSchema=25&archiveWriter=1"),
+  getFullExport: () => request<FullExportManifestV26>("/exports/all?archiveSchema=26&archiveWriter=1"),
   importFabublox: submitFabubloxImport,
 };
 

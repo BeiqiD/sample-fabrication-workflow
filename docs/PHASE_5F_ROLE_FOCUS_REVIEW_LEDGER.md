@@ -38,9 +38,12 @@ solely to make different roles look uniform.
 ## Theme, motion and representative-content baseline
 
 Selected current core page/component rules consume the shared theme roles.
-The earlier bounded source scan found intentional dark image/lightbox colors,
-not an additional confirmed accidental accent defect. It was not an exhaustive
-computed-style audit. The existing reduced-motion checks verify actual jump
+A final source-only literal-color scan examined all35 CSS files: eight contain
+literal colors. Root theme/palette definitions are deliberately layered by
+`main.tsx`; later media roles override older lightbox surfaces. Other matches
+are alpha backdrop/shadow rules or fallback values behind current shared tokens,
+not an additional confirmed accidental interaction accent. This is source
+ownership review, not an exhaustive computed-style or contrast audit. The existing reduced-motion checks verify actual jump
 scroll/pending/loading behaviors; this read-only Templates slice adds no new
 animation or motion rule.
 

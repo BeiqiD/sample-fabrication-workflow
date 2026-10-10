@@ -9,7 +9,7 @@ import { CURRENT_NODE_INSTALLATION_CATALOG } from "../../server/installation-cat
 import { installReviewedSqliteCatalog } from "../../server/migrations";
 import { createSqliteCapability } from "../../server/sqlite";
 import { captureQuiescedNodeSystemBackup } from "../../server/recovery/snapshot";
-import { exportAll } from "../../src/lib/exportAll";
+import { buildFullExportArchiveV25 } from "../../src/lib/exportAll";
 import { restoreExportToIsolatedDirectory } from "./export-restore";
 
 it("packages and restores actual non-empty V25 research bytes/rowids while excluding protected accounts and all installation authority", async () => {
@@ -38,9 +38,11 @@ it("packages and restores actual non-empty V25 research bytes/rowids while exclu
       expect(content.blobs.some(blob => blob.downloadUrl === address)).toBe(true);
       return new Response(payload.slice().buffer);
     });
-    // Exercise the actual browser-facing dispatcher and current API query,
-    // then inspect and independently restore its genuine non-empty ZIP.
-    const built = await exportAll();
+    // V25 remains an explicit historical writer. The separate V26 case owns
+    // the current public dispatcher; this preserves V25's actual bytes and
+    // independent restore without pretending a V25 source is current V26.
+    const historical = await fetch("/api/exports/all?archiveSchema=25&archiveWriter=1");
+    const built = await buildFullExportArchiveV25(await historical.json());
     expect(manifestRequests).toBe(1);
     expect(built.warnings).toEqual([]); expect(fetched).toHaveLength(1);
     const bytes = Buffer.from(await built.archive.arrayBuffer()), zip = await JSZip.loadAsync(bytes);

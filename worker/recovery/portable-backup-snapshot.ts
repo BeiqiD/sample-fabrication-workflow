@@ -1,3 +1,5 @@
+import { capturePortableV26SystemBackupSnapshot } from "./portable-backup-v26-snapshot";
+import { SYSTEM_BACKUP_RECORDS_SCHEMA_V3, sourceBackupCheckpointV3 } from "../../shared/contracts/system-backup-v3";
 import { primaryD1 } from "../d1-primary";
 import { buildFullExportV24FromSnapshot, nativeV24SnapshotSql, type NativeExportSnapshotResult } from "../export-v24-core";
 import { captureSystemBackupSnapshot, type CaptureSystemBackupOptions } from "./backup-snapshot";
@@ -87,9 +89,12 @@ export async function capturePortableSystemBackupSnapshot(database: D1Database, 
 /** Current table presence only selects a stricter code-owned admission. A
  * partial/newer/unknown schema is rejected by the chosen exact atomic reader. */
 export async function captureVersionedSystemBackupSnapshot(database: D1Database, options: CaptureSystemBackupOptions): Promise<VersionedRecoveryRecords> {
+  const local = await primaryD1(database).prepare("SELECT 1 FROM sqlite_schema WHERE tbl_name IN('local_storage_profile_registrations','local_storage_profile_activations','local_storage_profile_checks','local_storage_profile_admissions','local_storage_profile_bindings') LIMIT 1").first();
+  if (local) return capturePortableV26SystemBackupSnapshot(database, options);
   const current = await primaryD1(database).prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='local_identity_installation'").first();
   return current ? capturePortableSystemBackupSnapshot(database, options) : captureSystemBackupSnapshot(database, options);
 }
 export function sourceVersionedBackupCheckpoint(records: VersionedRecoveryRecords): Promise<string> {
+  if (records.schema === SYSTEM_BACKUP_RECORDS_SCHEMA_V3) return sourceBackupCheckpointV3(records);
   return records.schema === SYSTEM_BACKUP_RECORDS_SCHEMA_V2 ? sourceBackupCheckpointV2(records) : sourceBackupCheckpoint(records);
 }

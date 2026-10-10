@@ -18,8 +18,8 @@ descriptors and explicit route-load recovery. Their focused/full local evidence 
 development and reviewed integration. The
 [historical integrated browser matrix](PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md)
 passed 20 cases plus two Metrology pending-flow cases at its recorded source.
-Open [PR #252](https://github.com/BeiqiD/sample-fabrication-workflow/pull/252)
-implements owner-scoped Processing refresh and the search label; its applied UI
+Historical [PR #252](https://github.com/BeiqiD/sample-fabrication-workflow/pull/252)
+subsequently merged owner-scoped Processing refresh and the search label; its applied UI
 source passed 100 mounted files / 966 tests and build. The
 [current checkpoint](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md) records `ee171339`:
 20 adopted matrix cases, 84 actual API seed requests, six cost cases and 12
@@ -27,8 +27,14 @@ additional Project scenario IDs, with dirty/held/lost-ACK exact retry and
 unchanged original Projects. Awaited service disposal and four physical
 SQLite/FK checks plus PNG/original-byte proof passed. The fresh `c06cb71` / tree `2466e718` checkpoint passed the 20-case matrix
 and both named Metrology cases, awaited stop and physical DB/FK/PNG/original-byte
-proof. Final-head complete gates remain pending. Initial Project GET Retry and three-owner group refresh are
-next separate product slices with candidate tests, not current browser passes.
+proof. #252 and later #254 final-head gates passed and both merged. The latter
+qualified initial Project GET Retry, three-owner refresh and reduced motion;
+their actual [follow-up scopes](PHASE_5F_RETRY_GROUP_MOTION_ACCEPTANCE.md) remain
+separate receipts. Current development is #258/currentV26 at `e108496`.
+Candidate #259 retains the prior six directory/creation cases and the new four
+true default-page Templates cases. Its one-source-case clock fixture failure
+and13 skipped downstream leaves require the minimal repair/final complete gates;
+no historical browser scope is relabelled as a fresh combined-head run.
 Post-merge #251 Verify/Map and all 15 contexts and Workers Build
 `114224522096` succeeded; three anonymous routes still returned Access 302.
 Authenticated serving/schema and whole-phase device gates stay open.
@@ -559,11 +565,15 @@ Read-state, preview ownership, modal focus, narrow-grid, research control,
 Metrology session/read, projection and explicit route-recovery repairs are
 merged. The [integrated browser evidence](PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md)
 records real start/plan confirmations, mixed light/dark responsive surfaces and
-explicit keyboard chunk-error recovery. Open #252 implements owner refresh and
-the search label; [current local evidence](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md)
-records its matrix/cost/Project/physical checks. Fresh `c06cb71` matrix/named Metrology and stop/physical checks passed; final
-gates remain pending; initial Project GET Retry and known three-owner group
-refresh are the next separate product slices.
+explicit keyboard chunk-error recovery. Merged #252/#254 retain owner refresh,
+search-label, initial Project GET Retry, three-owner refresh and reduced-motion
+repairs with their dated actual scopes. The new [four Templates cases](PHASE_5F_TEMPLATE_PAGINATION_QUALIFICATION.md)
+close true20+1/25+1 pagination, independent navigation, native Search/focus and
+read-only Retry gaps at their actual3c source. The prior six directory/creation
+cases retain their actual2f source. Candidate #259's clock fixture repair and
+complete final-head gates remain open on the #258/currentV26 integration.
+The [role/focus ledger](PHASE_5F_ROLE_FOCUS_REVIEW_LEDGER.md) records the bounded
+cross-page action/overlay review and preserves historical scope limits.
 Whole-phase physical-input/authenticated/provider qualification remains open. See
 [the initial 5F goal](https://github.com/BeiqiD/sample-fabrication-workflow/blob/20176fc51d77301c58706d8ae0ff7d87ca6a8422/docs/PHASE_5F_DEVELOPMENT_GOAL.md)
 and the [Product checkpoint](./PRODUCT_ROADMAP.md#current-checkpoint) for bounded

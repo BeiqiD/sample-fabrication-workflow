@@ -1,3 +1,4 @@
+import { restorePortableV26SystemBackupIntoDirectory } from "../../server/recovery/restore-v26";
 import { randomBytes } from "node:crypto";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -60,6 +61,12 @@ export async function restoreSystemBackupToIsolatedDirectory(options: RestoreSys
       await writePrivateRecoveryStream(path, await openStoreArchiveEntry(source, entry, NODE_RECOVERY_ARCHIVE_OPTIONS));
     }
     ensure((await nodeRecoveryFileSha256(originalArchivePath)).sha256 === admitted.sha256, "retained_original_archive_changed");
+    if (admitted.format === "v3") {
+      const result = await restorePortableV26SystemBackupIntoDirectory({ directory: destination, archiveSha256: admitted.sha256,
+        manifest: admitted.manifest, records: admitted.records });
+      completed = true;
+      return result;
+    }
     if (admitted.format === "v2") {
       const result = await restorePortableSystemBackupIntoDirectory({ directory: destination, archiveSha256: admitted.sha256,
         manifest: admitted.manifest, records: admitted.records });

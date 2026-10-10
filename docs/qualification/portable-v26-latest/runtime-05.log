@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /tmp/portable-checkpoint-v26-b4c1f7c-source-only
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  20:23:32
+   Duration  54.57s (transform 614ms, setup 28ms, import 1.38s, tests 53.06s, environment 0ms)
+

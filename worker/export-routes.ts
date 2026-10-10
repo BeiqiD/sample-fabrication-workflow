@@ -1,3 +1,5 @@
+import { snapshotFullExportV26 } from "./export-v26-snapshot";
+import { supportedPortableV26ExportRequest } from "../shared/contracts/export-portable-runtime-v26";
 import { snapshotFullExportV23 } from "./export-v23-snapshot";
 import { snapshotFullExportV24 } from "./export-v24-snapshot";
 import { snapshotFullExportV25 } from "./export-v25-snapshot";
@@ -270,17 +272,30 @@ async function installedExportSchema(database: D1Database) {
   return null;
 }
 
+// Both portable-generation markers are schema metadata, so observe them in one
+// bounded statement before the unchanged canonical row/schema snapshot batch.
+const PORTABLE_EXPORT_SCHEMA_PRESENCE_PROBE = `SELECT
+  EXISTS(SELECT 1 FROM sqlite_schema WHERE tbl_name IN('local_storage_profile_registrations','local_storage_profile_activations','local_storage_profile_checks','local_storage_profile_admissions','local_storage_profile_bindings') LIMIT 1) AS local_profile_present,
+  EXISTS(SELECT 1 FROM sqlite_schema WHERE tbl_name IN (${PORTABLE_IDENTITY_TABLE_NAMES.map(() => "?").join(",")}) LIMIT 1) AS identity_present`;
+
 snapshotRoutes.get("/exports/all", async (c) => {
-  if (!supportedExportRequest(new URL(c.req.url)) && !supportedPortableExportRequest(new URL(c.req.url))) {
+  if (!supportedExportRequest(new URL(c.req.url)) && !supportedPortableExportRequest(new URL(c.req.url)) && !supportedPortableV26ExportRequest(new URL(c.req.url))) {
     throw new HTTPException(409, { message: "This archive writer is out of date. Refresh the page and download the full ZIP again." });
   }
   try {
     const requestedSchema = c.req.query("archiveSchema");
     const installedSchema = await installedExportSchema(c.env.DB);
     if (installedSchema === null) throw new Error("Installed export schema generation is incomplete or inconsistent");
-    const identity = await c.env.DB.prepare(`SELECT 1 FROM sqlite_schema WHERE tbl_name IN (${PORTABLE_IDENTITY_TABLE_NAMES.map(() => "?").join(",")}) LIMIT 1`)
-      .bind(...PORTABLE_IDENTITY_TABLE_NAMES).first();
-    if (identity) {
+    const portable = await c.env.DB.prepare(PORTABLE_EXPORT_SCHEMA_PRESENCE_PROBE)
+      .bind(...PORTABLE_IDENTITY_TABLE_NAMES).first<{ local_profile_present: number; identity_present: number }>();
+    if (!portable || ![0, 1].includes(portable.local_profile_present) || ![0, 1].includes(portable.identity_present)) {
+      throw new Error("Installed portable export schema presence probe was incomplete or inconsistent");
+    }
+    if (portable.local_profile_present) {
+      if (installedSchema !== 24 || requestedSchema !== "26") throw new HTTPException(409, { message: "This archive writer is out of date. Refresh the page and download the full ZIP again." });
+      return c.json(await snapshotFullExportV26(c.env.DB));
+    }
+    if (portable.identity_present) {
       if (installedSchema !== 24 || requestedSchema !== "25") throw new HTTPException(409, { message: "This archive writer is out of date. Refresh the page and download the full ZIP again." });
       // Presence selects strict whole-current admission. Partial/newer DDL does
       // not become a valid generation merely by adding a marker table.
