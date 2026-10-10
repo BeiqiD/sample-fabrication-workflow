@@ -229,6 +229,25 @@
       "log": "/tmp/phase5f-fc3-postmerge-verify-failed.log",
       "logSha256": "de5f87b266fc1fa81fa9f42c577051b93d3268db10e8b5e518c26c3077894c46"
     },
-    "postMergeVerifyAttempt2": "one failed-job rerun requested; result not qualified in this checkpoint"
+    "postMergeVerifyAttempt2": {
+      "runId": 38062074458,
+      "attempt": 2,
+      "status": "success",
+      "allDefaultLeavesPassed": 12,
+      "nativePassed": 355,
+      "sourceFilesPassed": 366,
+      "sourcePassed": 3349,
+      "mountedFilesPassed": 100,
+      "mountedPassed": 966,
+      "allPublicContextsPassed": 15,
+      "logSha256": "e2a551eb12ac071c05ddf298c2ee2035ec6fca129f0e28af35d62d57d4c98a20"
+    },
+    "workersBuild": {
+      "checkRunId": 114248318359,
+      "buildId": "15c012f3-c928-4c03-af00-f9ca37d2082d",
+      "conclusion": "failure",
+      "reason": "check metadata provides no failure reason; logs not yet observed",
+      "servingVersionAndSchemaQualified": false
+    }
   }
 }

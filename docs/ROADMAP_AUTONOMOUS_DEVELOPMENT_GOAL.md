@@ -17,8 +17,10 @@ The #251 post-merge Verify/Map checks and all 15 contexts also passed.
 `fc3abc3eac6085cfde8af97b44a9b6d91ac62a15` on 2026-10-10 at 15:03:29 UTC.
 Its final four Verify/Map runs and all fifteen contexts passed before merge;
 post-merge Verify attempt 1 failed five existing default-deadline source cases,
-with later leaves skipped. The separate failed-job rerun is not yet qualified
-in this receipt. It has
+with later leaves skipped. The one separate failed-job rerun then passed
+all twelve default leaves and fifteen public contexts (native355, source3349,
+mounted966). The first failure remains retained. Workers Build114248318359
+failed without a reason in check metadata; actual serving/schema remain open. It has
 [current browser evidence](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md) at `ee171339`
 and fresh `c06cb71` / tree `2466e718` (20 matrix cases, both named Metrology
 cases and awaited-stop/physical proof passed). The later

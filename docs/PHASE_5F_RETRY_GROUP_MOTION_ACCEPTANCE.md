@@ -80,8 +80,11 @@ PR #252 merged on 2026-10-10 at 15:03:29 UTC as
 Verify/Map runs and all fifteen public contexts passed before the ordinary
 merge. Post-merge Map passed; post-merge Verify attempt 1 failed five existing
 source cases at the unchanged 5,000 ms deadline. That failure remains recorded
-separately from the pre-merge qualification. One failed-job rerun was requested;
-its result is recorded separately when observed. No production main release or
+separately from the pre-merge qualification. One failed-job rerun subsequently passed all twelve leaves: native355,
+source366 files/3,349 cases, mounted100 files/966 cases, and all fifteen public
+contexts. The first failure remains retained. Workers Build114248318359 failed;
+its check metadata contains no failure reason, so serving version and schema
+remain unqualified. No production main release or
 actual serving/schema/provider acceptance is implied.
 
 This follow-up branch starts from fc3 and retains the exercised frontend source
