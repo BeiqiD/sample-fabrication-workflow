@@ -1,6 +1,7 @@
+import type { VersionedRecoveryRecords } from "./versioned-catalog";
 import type { ExportRow } from "../../shared/contracts/export";
 import type { FilePurpose } from "../../shared/contracts/files";
-import type { SystemBackupBinding, SystemBackupFile, SystemBackupRecordsV1 } from "../../shared/contracts/system-backup";
+import type { SystemBackupBinding, SystemBackupFile } from "../../shared/contracts/system-backup";
 import type { SystemRecoveryStorageMapping } from "../../shared/contracts/system-recovery";
 import { sha256Hex, stableJson } from "../../shared/domain/content-addressing";
 import { SYSTEM_RECOVERY_EVIDENCE_EXPORT_COLUMNS } from "../../shared/contracts/export-system-recovery-evidence";
@@ -117,7 +118,7 @@ export function reviewedRecoveryBinding(binding: SystemBackupBinding): ReviewedR
   ensure(binding.purpose === null || binding.purpose === result.purpose, "binding_purpose");
   return result;
 }
-function physicalAliases(records: SystemBackupRecordsV1, file: SystemBackupFile) {
+function physicalAliases(records: VersionedRecoveryRecords, file: SystemBackupFile) {
   const aliases: Array<{ table: "assets" | "managed_storage_objects"; row: ExportRow }> = [];
   for (const row of records.content.tables.assets ?? []) {
     if (file.source.storeKind === "r2" && row.r2_key === file.source.objectKey
@@ -134,7 +135,7 @@ function physicalAliases(records: SystemBackupRecordsV1, file: SystemBackupFile)
  * target table or source cell is modified. A physical payload can represent
  * several File purposes; those remain separate logical Files and copies. */
 export async function planRecoveryFiles(
-  records: SystemBackupRecordsV1,
+  records: VersionedRecoveryRecords,
   files: readonly SystemBackupFile[],
   mappings: readonly SystemRecoveryStorageMapping[],
   destinationProfiles: readonly RecoveryDestinationProfile[],
@@ -430,7 +431,7 @@ export function recoveryDestinationProfileStatements(db: D1Database, profiles: r
 /** Recorded source runtime and audit history remain exact. Execution quarantine
  * lives in installation-local guards, independently of recorded audit cells. */
 export function recoveryDestinationProfileCellChanges(
-  profiles: readonly RecoveryDestinationProfile[], records?: SystemBackupRecordsV1,
+  profiles: readonly RecoveryDestinationProfile[], records?: VersionedRecoveryRecords,
 ): RecoveryFileCellChange[] {
   void profiles; void records; return [];
 }

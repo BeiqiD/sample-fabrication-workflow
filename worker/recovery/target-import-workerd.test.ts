@@ -1,5 +1,6 @@
 import { readFileSync, readdirSync } from "node:fs";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFile } from "node:child_process";
@@ -9,6 +10,7 @@ import { build } from "esbuild";
 import { Log, LogLevel, Miniflare } from "miniflare";
 import { unstable_splitSqlQuery as splitSql } from "wrangler";
 import { expect, it } from "vitest";
+import { RECOVERY_MIGRATIONS } from "./trusted-schema";
 
 /** The production target engine runs against native D1, native R2 source
  * objects and native signed S3 streams backed by an isolated provider bucket.
@@ -146,7 +148,8 @@ it("restores a nonempty native recovery image with cyclic references, signed phy
     bindings: { R2_BOOTSTRAP_NAMESPACE: namespace, AUTH_MODE: "access", SYSTEM_ADMIN_EMAILS: "recovery-admin@example.test",
       ACCESS_TEAM_DOMAIN: "https://qualification.cloudflareaccess.com", ACCESS_AUD: "qualification", RECOVERY_TARGET_ID: "first-native-target",
       STORAGE_CREDENTIAL_KEYRING: JSON.stringify({ version: 1, currentKeyId: "qualification", keys: { qualification: btoa(String.fromCharCode(...new Uint8Array(32).fill(47))) } }) } };
-  let native = new Miniflare(options);
+  let native = new Miniflare(options), ownsNative = true;
+  let primaryFailure: { error: unknown } | undefined;
   try {
     const source = await native.getD1Database("DB"), destination = await native.getD1Database("RECOVERY_DB"), second = await native.getD1Database("SECOND_DB");
     const migrations = new URL("../../migrations/", import.meta.url);
@@ -210,8 +213,20 @@ it("restores a nonempty native recovery image with cyclic references, signed phy
     expect(revalidated.targetCheckpoint).toBe(first.report.targetCheckpoint);
     const targetProof=await invoke({targetProof:true});
     expect(await destination.prepare('SELECT count(*) n FROM d1_migrations').first()).toEqual({n:22});
+    // This test restores the frozen version-1, 22-migration catalog. Asking
+    // Wrangler to inspect the repository's newer migrations would qualify an
+    // upgrade instead of proving that this recovered baseline needs no replay.
+    const ledgerMigrations=join(persist,'reviewed-v1-migrations');
+    await mkdir(ledgerMigrations,{mode:0o700});
+    expect(RECOVERY_MIGRATIONS).toHaveLength(22);
+    for(const migration of RECOVERY_MIGRATIONS){
+      const bytes=readFileSync(new URL(migration.name,migrations));
+      expect(createHash('sha256').update(bytes).digest('hex')).toBe(migration.sha256);
+      await writeFile(join(ledgerMigrations,migration.name),bytes,{flag:'wx',mode:0o600});
+    }
     const config=join(persist,'wrangler.toml');
-    await writeFile(config,`name = "fp5-target-ledger-qualification"\ncompatibility_date = "2026-07-20"\n[[d1_databases]]\nbinding = "RECOVERY_DB"\ndatabase_name = "fp5-target-ledger-qualification"\ndatabase_id = "${targetUuid}"\nmigrations_dir = "${fileURLToPath(migrations)}"\n`);
+    await writeFile(config,`name = "fp5-target-ledger-qualification"\ncompatibility_date = "2026-07-20"\n[[d1_databases]]\nbinding = "RECOVERY_DB"\ndatabase_name = "fp5-target-ledger-qualification"\ndatabase_id = "${targetUuid}"\nmigrations_dir = "${ledgerMigrations}"\n`);
+    ownsNative=false;
     await native.dispose();
     const execute=promisify(execFile),cwd=fileURLToPath(new URL('../../',import.meta.url));
     const cli=async(action:string)=>execute(process.execPath,[join(cwd,'node_modules/wrangler/bin/wrangler.js'),'d1','migrations',action,'RECOVERY_DB','--local','--persist-to',persist,'--config',config],
@@ -219,6 +234,22 @@ it("restores a nonempty native recovery image with cyclic references, signed phy
     const listed=await cli('list');expect(listed.stdout).toMatch(/No migrations (?:to apply|found)|No pending migrations/i);
     const applied=await cli('apply');expect(applied.stdout).toMatch(/No migrations (?:to apply|found)|No pending migrations/i);
     native=new Miniflare(options);
+    ownsNative=true;
     expect((await invoke({targetProof:true})).sourceTablesSha256).toBe(targetProof.sourceTablesSha256);
-  } finally { await native.dispose();await rm(persist,{recursive:true,force:true}); }
+  } catch(error) {
+    primaryFailure={error};
+    throw error;
+  } finally {
+    const cleanupErrors: unknown[]=[];
+    if(ownsNative){
+      ownsNative=false;
+      try { await native.dispose(); } catch(error) { cleanupErrors.push(error); }
+    }
+    try { await rm(persist,{recursive:true,force:true}); } catch(error) { cleanupErrors.push(error); }
+    if(cleanupErrors.length) throw new AggregateError(
+      primaryFailure ? [primaryFailure.error,...cleanupErrors] : cleanupErrors,
+      'Native recovery qualification cleanup failed',
+      primaryFailure ? {cause:primaryFailure.error} : undefined,
+    );
+  }
 }, 180_000);

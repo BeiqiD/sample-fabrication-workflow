@@ -104,8 +104,11 @@ export class SqliteD1Database {
 export function referenceTestDatabase(options: { throughMigration?: string } = {}) {
   const database = new DatabaseSync(":memory:");
   const migrationDirectory = new URL("../migrations/", import.meta.url);
+  // This fixture qualifies the frozen Worker/V24 protocols. Portable current
+  // tests install the reviewed Node catalog rather than silently upgrading it.
+  const throughMigration = options.throughMigration ?? "0022_fp5_recovery_evidence.sql";
   for (const filename of readdirSync(migrationDirectory).filter((name) => name.endsWith(".sql")
-    && (!options.throughMigration || name <= options.throughMigration)).sort()) {
+    && name <= throughMigration).sort()) {
     database.exec(readFileSync(new URL(filename, migrationDirectory), "utf8"));
   }
   return database;

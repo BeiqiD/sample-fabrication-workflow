@@ -1,5 +1,7 @@
 import { snapshotFullExportV23 } from "./export-v23-snapshot";
 import { snapshotFullExportV24 } from "./export-v24-snapshot";
+import { snapshotFullExportV25 } from "./export-v25-snapshot";
+import { supportedPortableExportRequest, PORTABLE_IDENTITY_TABLE_NAMES } from "../shared/contracts/export-portable-runtime";
 import { SYSTEM_RECOVERY_EVIDENCE_EXPORT_COLUMNS } from "../shared/contracts/export-system-recovery-evidence";
 import { RESEARCH_PACKAGE_EXPORT_COLUMNS, RESEARCH_PACKAGE_LOCAL_TABLE_NAMES } from "../shared/contracts/export-research-package-schema";
 import { snapshotFullExportV20 } from "./export-v20-snapshot";
@@ -269,13 +271,21 @@ async function installedExportSchema(database: D1Database) {
 }
 
 snapshotRoutes.get("/exports/all", async (c) => {
-  if (!supportedExportRequest(new URL(c.req.url))) {
+  if (!supportedExportRequest(new URL(c.req.url)) && !supportedPortableExportRequest(new URL(c.req.url))) {
     throw new HTTPException(409, { message: "This archive writer is out of date. Refresh the page and download the full ZIP again." });
   }
   try {
     const requestedSchema = c.req.query("archiveSchema");
     const installedSchema = await installedExportSchema(c.env.DB);
     if (installedSchema === null) throw new Error("Installed export schema generation is incomplete or inconsistent");
+    const identity = await c.env.DB.prepare(`SELECT 1 FROM sqlite_schema WHERE tbl_name IN (${PORTABLE_IDENTITY_TABLE_NAMES.map(() => "?").join(",")}) LIMIT 1`)
+      .bind(...PORTABLE_IDENTITY_TABLE_NAMES).first();
+    if (identity) {
+      if (installedSchema !== 24 || requestedSchema !== "25") throw new HTTPException(409, { message: "This archive writer is out of date. Refresh the page and download the full ZIP again." });
+      // Presence selects strict whole-current admission. Partial/newer DDL does
+      // not become a valid generation merely by adding a marker table.
+      return c.json(await snapshotFullExportV25(c.env.DB));
+    }
     if (Number(requestedSchema) !== installedSchema) {
       throw new HTTPException(409, { message: "This archive writer is out of date. Refresh the page and download the full ZIP again." });
     }

@@ -1,10 +1,14 @@
 import type { Env } from "../types";
 import { primaryD1 } from "../d1-primary";
 import { stableJson, sha256Hex } from "../../shared/domain/content-addressing";
-import type { SystemBackupFile, SystemBackupManifestV1, SystemBackupRecordsV1 } from "../../shared/contracts/system-backup";
+import type { SystemBackupFile } from "../../shared/contracts/system-backup";
 import type { SystemRecoveryStorageMapping } from "../../shared/contracts/system-recovery";
-import { validateSystemRecoveryImage, recoveryCellBinding, type RecoveryTableSpec, type SystemRecoveryRow, type SystemRecoveryTable } from "../../shared/contracts/system-recovery-image";
-import { RECOVERY_SCHEMA_SHA256, RECOVERY_SCHEMA_STATEMENTS, RECOVERY_TABLES, RECOVERY_SEED_TABLE_ROWS } from "./trusted-schema";
+import { recoveryCellBinding, type RecoveryTableSpec, type SystemRecoveryRow } from "../../shared/contracts/system-recovery-image";
+import { RECOVERY_SCHEMA_STATEMENTS, RECOVERY_TABLES } from "./trusted-schema";
+import { selectReviewedRecoveryCatalog, validateRecoverySourceImage, recoveryDestinationTable,
+  type VersionedRecoveryRecords, type VersionedRecoveryManifest } from "./versioned-catalog";
+import { validateSystemBackupDocumentsV2 } from "../../shared/contracts/system-backup-v2";
+import { inspectCurrentCloudflareSchema, stripReviewedCurrentCloudflarePlatformSchema } from "./current-cloudflare-schema";
 import { isRecoverySeedTable, readRecoveryTable, recoveryIdentifier, assertRecoveredCapabilitiesInert } from "./protected-settings";
 import { planRecoveryFiles, recoveryDestinationProfileStatements, recoveryFilePublicationStatements, writeRecoveryFile,
   type RecoveryDestinationProfile, type RecoveryPlannedFile } from "./target-files";
@@ -28,7 +32,7 @@ interface TargetClaim {
 }
 export interface RecoveryTargetInput {
   jobId: string; incarnation: string; ownerToken: string; generation: number; expectedTargetId: string;
-  records: SystemBackupRecordsV1; manifest: SystemBackupManifestV1; mapping: SystemRecoveryStorageMapping[];
+  records: VersionedRecoveryRecords; manifest: VersionedRecoveryManifest; mapping: SystemRecoveryStorageMapping[];
   mode: "historical" | "planned"; current: () => Promise<boolean>;
   runtimeIncarnation?: string; leaseExpiresAt?: string;
   openPayload: (file: SystemBackupFile, signal: AbortSignal) => Promise<ReadableStream<Uint8Array>>;
@@ -64,10 +68,11 @@ async function transportFence(env: TargetEnvironment, profile: Pick<RecoveryDest
   return sha256Hex(stableJson(value));
 }
 function id(value: string) { ensure(typeof value === "string" && /^[A-Za-z0-9_:.-]{1,256}$/.test(value), "invalid_target_identity"); }
-function imageGroups(records: SystemBackupRecordsV1) {
+function imageGroups(records: VersionedRecoveryRecords) {
+  const catalog = selectReviewedRecoveryCatalog(records);
   const groups: Array<{ spec: RecoveryTableSpec; rows: SystemRecoveryRow[] }> = [];
-  for (const spec of RECOVERY_TABLES.filter(table => !table.local)) {
-    const rows = records.image.tables[spec.name]?.rows; ensure(rows, "missing_image_table");
+  for (const spec of catalog.tables.filter(table => !table.local)) {
+    const rows = recoveryDestinationTable(records, spec.name).rows; ensure(rows, "missing_image_table");
     let group: SystemRecoveryRow[] = [], bytes = 2;
     for (const row of rows) {
       const length = encoder.encode(stableJson(row)).length + 1;
@@ -112,7 +117,8 @@ async function sourceInstallation(database: D1Database): Promise<string | null> 
   if (!table) return null;
   return (await database.prepare("SELECT installation_id FROM research_package_source_identity WHERE singleton=1").first<{ installation_id: string }>())?.installation_id ?? null;
 }
-export async function inspectRecoveryTargetFreshness(env: TargetEnvironment, expectedTargetId: string) {
+export async function inspectRecoveryTargetFreshness(env: TargetEnvironment, expectedTargetId: string, records?: VersionedRecoveryRecords) {
+  const catalog = records ? selectReviewedRecoveryCatalog(records) : undefined;
   ensure(env.RECOVERY_DB && env.RECOVERY_TARGET_ID === expectedTargetId && env.RECOVERY_DB !== env.DB, "recovery_target_unavailable");
   const target = primaryD1(env.RECOVERY_DB), source = primaryD1(env.DB);
   const [sourceMarker, targetMarker, sourceIdentity, targetIdentity] = await Promise.all([
@@ -122,17 +128,27 @@ export async function inspectRecoveryTargetFreshness(env: TargetEnvironment, exp
   ensure(!sourceIdentity || targetIdentity !== sourceIdentity, "recovery_target_alias");
   const objects = await schemaObjects(target);
   await inspectRecoveryPlatformSchema(target);
-  await inspectRecoveryMigrationLedger(target);
+  await inspectRecoveryMigrationLedger(target, false, catalog?.migrations);
+  if (catalog?.imageVersion === 2) {
+    const all = await target.prepare("SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema ORDER BY type,name")
+      .all<import("../../shared/contracts/export").ExportSchemaObject>();
+    ensure(all.success, "target_schema_unavailable");
+    if (!objects.length) {
+      ensure(stripReviewedCurrentCloudflarePlatformSchema(all.results).applicationObjects.length === 0, "target_schema_not_reviewed");
+      return { empty: true, target };
+    }
+    await inspectCurrentCloudflareSchema(all.results);
+  }
   if (!objects.length) return { empty: true, target };
   const schemaTokens = (entries: readonly { type: string; name: string; tableName: string; sql: string }[]) =>
     entries.map(entry => ({ ...entry, sql: canonicalFileAuthoritySchemaSql(entry.sql) }));
-  ensure(stableJson(schemaTokens(objects)) === stableJson(schemaTokens(RECOVERY_SCHEMA_STATEMENTS)), "target_schema_not_reviewed");
-  for (const spec of RECOVERY_TABLES) ensure(isRecoverySeedTable(spec.name, await readRecoveryTable(target, spec.name)), "target_not_fresh");
+  ensure(stableJson(schemaTokens(objects)) === stableJson(schemaTokens(catalog?.schemaStatements ?? RECOVERY_SCHEMA_STATEMENTS)), "target_schema_not_reviewed");
+  for (const spec of catalog?.tables ?? RECOVERY_TABLES) ensure(isRecoverySeedTable(spec.name, await readRecoveryTable(target, spec.name, catalog), catalog), "target_not_fresh");
   const blobs = await target.prepare("SELECT hex(unhex('000102FF')) AS probe").first<{ probe: string }>();
   ensure(blobs?.probe === "000102FF", "native_exact_blob_restore_unsupported");
   return { empty: false, target };
 }
-async function destinationProfiles(env: TargetEnvironment, mapping: SystemRecoveryStorageMapping[], records: SystemBackupRecordsV1): Promise<RecoveryDestinationProfile[]> {
+async function destinationProfiles(env: TargetEnvironment, mapping: SystemRecoveryStorageMapping[], records: VersionedRecoveryRecords): Promise<RecoveryDestinationProfile[]> {
   const ids = [...new Set(mapping.map(value => value.destinationProfileId))];
   if (!ids.length) return [];
   const db = primaryD1(env.DB), placeholders = ids.map(() => "?").join(",");
@@ -180,13 +196,14 @@ function safeChunks(text: string) {
 function claimGuard(database: D1Database, input: RecoveryTargetInput, imageSha256: string) {
   return database.prepare(`SELECT CASE WHEN EXISTS(SELECT 1 FROM system_recovery_target_claim WHERE singleton=1 AND target_id=? AND job_id=? AND incarnation=? AND schema_sha256=? AND image_sha256=? AND status<>'failed'
     AND owner_token=? AND generation=? AND runtime_incarnation=? AND julianday(lease_expires_at)>julianday('now')) THEN 1 ELSE json('Recovery target ownership changed') END`)
-    .bind(input.expectedTargetId, input.jobId, input.incarnation, RECOVERY_SCHEMA_SHA256, imageSha256,
+    .bind(input.expectedTargetId, input.jobId, input.incarnation, selectReviewedRecoveryCatalog(input.records).schemaSha256, imageSha256,
       input.ownerToken, input.generation, input.runtimeIncarnation ?? input.incarnation);
 }
-function atomicBudget(records: SystemBackupRecordsV1) {
+function atomicBudget(records: VersionedRecoveryRecords) {
+  const catalog = selectReviewedRecoveryCatalog(records);
   const groups = imageGroups(records);
-  const seedDeletes = RECOVERY_TABLES.filter(spec => !spec.local && RECOVERY_SEED_TABLE_ROWS[spec.name]?.rows.length).length;
-  const localSeeds = RECOVERY_TABLES.filter(spec => spec.local && !spec.name.startsWith("system_recovery_")).reduce((total, spec) => total + RECOVERY_SEED_TABLE_ROWS[spec.name].rows.length, 0);
+  const seedDeletes = catalog.tables.filter(spec => !spec.local && catalog.seedTableRows[spec.name]?.rows.length).length;
+  const localSeeds = catalog.tables.filter(spec => spec.local && !spec.name.startsWith("system_recovery_")).reduce((total, spec) => total + catalog.seedTableRows[spec.name].rows.length, 0);
   const chunks = safeChunks(stableJson(records.image));
   const commands = 5 + seedDeletes + groups.length + localSeeds + chunks.length;
   ensure(commands <= MAX_ATOMIC_STATEMENTS, "atomic_restore_budget");
@@ -194,9 +211,9 @@ function atomicBudget(records: SystemBackupRecordsV1) {
 }
 /** Archive production remains useful when the bounded website restore cannot
  * atomically publish this row graph. This check admits no target or provider. */
-export function recoveryTargetRestoreBudget(records:SystemBackupRecordsV1) {
+export function recoveryTargetRestoreBudget(records:VersionedRecoveryRecords) {
   try {
-    validateSystemRecoveryImage(records.image);
+    validateRecoverySourceImage(records);
     return {available:true,reason:null,atomicStatements:atomicBudget(records).commands} as const;
   }catch(error){
     return {available:false,reason:error instanceof RecoveryTargetError?error.code:'recovery_image_not_admitted',atomicStatements:0} as const;
@@ -206,7 +223,10 @@ export function createRecoveryTargetEngine(env: TargetEnvironment) {
   const targetBinding = env.RECOVERY_DB, sourceBinding = env.DB;
   async function prepare(input: RecoveryTargetPreviewInput) {
     id(input.jobId); id(input.incarnation); id(input.expectedTargetId);
-    validateSystemRecoveryImage(input.records.image);
+    const catalog = selectReviewedRecoveryCatalog(input.records);
+    validateRecoverySourceImage(input.records);
+    ensure(input.manifest.schema === (catalog.imageVersion === 2 ? "system-backup/2" : "system-backup/1"), "recovery_version_pair");
+    if (input.records.schema === "system-backup-records/2") await validateSystemBackupDocumentsV2(input.manifest, input.records);
     ensure(input.manifest.completeness === "complete" && input.manifest.files.every(file => file.outcome === "packaged"), "partial_backup_not_complete_recovery");
     const budget = atomicBudget(input.records);
     let profiles: RecoveryDestinationProfile[] | undefined;
@@ -224,11 +244,11 @@ export function createRecoveryTargetEngine(env: TargetEnvironment) {
     ensure(encoder.encode(metadataText).length <= 1024 * 1024 && safeChunks(metadataText).length + 1 <= MAX_ATOMIC_STATEMENTS, "destination_metadata_budget");
     const files = await planRecoveryFiles(input.records, input.manifest.files, input.mapping, profiles, input.incarnation);
     ensure(files.length <= 100 && files.reduce((total, file) => total + file.byteSize, 0) <= 96 * 1024 * 1024, "recovery_file_budget");
-    return { budget, profiles, files, imageSha256: await sha256Hex(stableJson(input.records.image)) };
+    return { catalog, budget, profiles, files, imageSha256: await sha256Hex(stableJson(input.records.image)) };
   }
   async function preview(input: RecoveryTargetPreviewInput) {
     try {
-      const plan = await prepare(input); await inspectRecoveryTargetFreshness(env, input.expectedTargetId);
+      const plan = await prepare(input); await inspectRecoveryTargetFreshness(env, input.expectedTargetId, input.records);
       return { available: true as const, reason: null, atomicStatements: plan.budget.commands, files: plan.files.length,
         bytes: plan.files.reduce((total, file) => total + file.byteSize, 0), imageSha256: plan.imageSha256 };
     } catch (error) { return { available: false as const, reason: error instanceof RecoveryTargetError ? error.code : "recovery_preflight_failed", atomicStatements: 0, files: 0, bytes: 0, imageSha256: null }; }
@@ -280,7 +300,7 @@ export function createRecoveryTargetEngine(env: TargetEnvironment) {
     const target = primaryD1(env.RECOVERY_DB), prior = await existingClaim(target);
     if (prior) {
       ensure(prior.target_id === input.expectedTargetId && prior.job_id === input.jobId && prior.incarnation === input.incarnation
-        && prior.schema_sha256 === RECOVERY_SCHEMA_SHA256 && prior.image_sha256 === plan.imageSha256, "recovery_target_already_claimed");
+        && prior.schema_sha256 === plan.catalog.schemaSha256 && prior.image_sha256 === plan.imageSha256, "recovery_target_already_claimed");
       ensure(await input.current(), "recovery_actor_or_lease_changed");
       ensure(prior.generation <= input.generation, "stale_recovery_target_generation");
       await target.prepare(`UPDATE system_recovery_target_claim SET owner_token=?,generation=?,runtime_incarnation=?,lease_expires_at=? WHERE singleton=1
@@ -289,10 +309,10 @@ export function createRecoveryTargetEngine(env: TargetEnvironment) {
           input.leaseExpiresAt ?? new Date(Date.now() + 60_000).toISOString(), input.jobId, input.incarnation, input.generation, input.generation, input.ownerToken).run();
       await current(input, target, plan.imageSha256); return { target, cursor: JSON.parse(prior.cursor_json) as TargetCursor };
     }
-    const fresh = await inspectRecoveryTargetFreshness(env, input.expectedTargetId);
+    const fresh = await inspectRecoveryTargetFreshness(env, input.expectedTargetId, input.records);
     ensure(await input.current(), "recovery_actor_or_lease_changed");
     if (fresh.empty) {
-      const local = RECOVERY_SCHEMA_STATEMENTS.filter(object => object.type === "table" && ["system_recovery_runtime", "system_recovery_target_claim", "system_recovery_target_provenance"].includes(object.name));
+      const local = plan.catalog.schemaStatements.filter(object => object.type === "table" && ["system_recovery_runtime", "system_recovery_target_claim", "system_recovery_target_provenance"].includes(object.name));
       ensure(local.length === 3, "reviewed_target_claim_missing");
       await target.batch(local.map(object => target.prepare(object.sql)));
       await target.prepare("INSERT INTO system_recovery_runtime VALUES(1,0,lower(hex(randomblob(16))),lower(hex(randomblob(16))),NULL,?)")
@@ -300,7 +320,7 @@ export function createRecoveryTargetEngine(env: TargetEnvironment) {
     }
     const challenge = crypto.randomUUID(), cursor: TargetCursor = { phase: "schema", schemaIndex: 0, fileIndex: 0, empty: fresh.empty, dropped: false };
     await target.prepare("INSERT INTO system_recovery_target_claim(singleton,target_id,job_id,incarnation,challenge,schema_sha256,image_sha256,status,cursor_json,owner_token,generation,runtime_incarnation,lease_expires_at) VALUES(1,?,?,?,?,?,?,'claimed',?,?,?,?,?)")
-      .bind(input.expectedTargetId, input.jobId, input.incarnation, challenge, RECOVERY_SCHEMA_SHA256, plan.imageSha256, stableJson(cursor),
+      .bind(input.expectedTargetId, input.jobId, input.incarnation, challenge, plan.catalog.schemaSha256, plan.imageSha256, stableJson(cursor),
         input.ownerToken, input.generation, input.runtimeIncarnation ?? input.incarnation, input.leaseExpiresAt ?? new Date(Date.now() + 60_000).toISOString()).run();
     await current(input, target, plan.imageSha256); return { target, cursor };
   }
@@ -317,9 +337,9 @@ export function createRecoveryTargetEngine(env: TargetEnvironment) {
     await current(input, target, plan.imageSha256);
     if (cursor.phase === "schema") {
       const objects = cursor.empty ? [
-        ...RECOVERY_SCHEMA_STATEMENTS.filter(object => object.type === "table" && !["system_recovery_runtime", "system_recovery_target_claim", "system_recovery_target_provenance"].includes(object.name)),
-        ...RECOVERY_SCHEMA_STATEMENTS.filter(object => object.type === "index"), ...RECOVERY_SCHEMA_STATEMENTS.filter(object => object.type === "view"),
-      ] : RECOVERY_SCHEMA_STATEMENTS.filter(object => object.type === "trigger").map(object => ({ ...object, sql: `DROP TRIGGER ${quote(object.name)}` }));
+        ...plan.catalog.schemaStatements.filter(object => object.type === "table" && !["system_recovery_runtime", "system_recovery_target_claim", "system_recovery_target_provenance"].includes(object.name)),
+        ...plan.catalog.schemaStatements.filter(object => object.type === "index"), ...plan.catalog.schemaStatements.filter(object => object.type === "view"),
+      ] : plan.catalog.schemaStatements.filter(object => object.type === "trigger").map(object => ({ ...object, sql: `DROP TRIGGER ${quote(object.name)}` }));
       const group = objects.slice(cursor.schemaIndex, cursor.schemaIndex + DDL_GROUP);
       cursor.schemaIndex += group.length;
       if (cursor.schemaIndex >= objects.length) { cursor.phase = "rows"; cursor.schemaIndex = 0; cursor.dropped = true; }
@@ -330,10 +350,10 @@ export function createRecoveryTargetEngine(env: TargetEnvironment) {
       const probe = await target.prepare("SELECT hex(unhex('000102FF')) AS probe").first<{ probe: string }>();
       ensure(probe?.probe === "000102FF", "native_exact_blob_restore_unsupported");
       const statements = [claimGuard(target, input, plan.imageSha256), target.prepare("PRAGMA defer_foreign_keys=ON")];
-      if (!cursor.empty) for (const spec of RECOVERY_TABLES.filter(table => !table.local && RECOVERY_SEED_TABLE_ROWS[table.name]?.rows.length)) statements.push(target.prepare(`DELETE FROM ${quote(spec.name)}`));
+      if (!cursor.empty) for (const spec of plan.catalog.tables.filter(table => !table.local && plan.catalog.seedTableRows[table.name]?.rows.length)) statements.push(target.prepare(`DELETE FROM ${quote(spec.name)}`));
       for (const group of plan.budget.groups) statements.push(groupInsert(target, group.spec, group.rows));
-      if (cursor.empty) for (const spec of RECOVERY_TABLES.filter(table => table.local && !table.name.startsWith("system_recovery_"))) {
-        for (const row of RECOVERY_SEED_TABLE_ROWS[spec.name].rows) statements.push(singleRowInsert(target, spec, row));
+      if (cursor.empty) for (const spec of plan.catalog.tables.filter(table => table.local && !table.name.startsWith("system_recovery_"))) {
+        for (const row of recoveryDestinationTable(input.records, spec.name).rows) statements.push(singleRowInsert(target, spec, row));
       }
       if (cursor.empty) statements.push(target.prepare("INSERT INTO system_recovery_maintenance(singleton,state,generation,updated_at) VALUES(1,'fenced',0,?)").bind(new Date().toISOString()));
       else statements.push(target.prepare("UPDATE system_recovery_maintenance SET state='fenced',updated_at=? WHERE singleton=1").bind(new Date().toISOString()));
@@ -346,7 +366,7 @@ export function createRecoveryTargetEngine(env: TargetEnvironment) {
       cursor.phase = "files";
       statements.push(target.prepare("UPDATE system_recovery_target_claim SET status='files',cursor_json=? WHERE singleton=1").bind(stableJson(cursor)));
       ensure(statements.length <= MAX_ATOMIC_STATEMENTS, "atomic_restore_budget"); await target.batch(statements);
-      await assertRecoveredCapabilitiesInert(target); return result();
+      await assertRecoveredCapabilitiesInert(target, plan.catalog); return result();
     }
     if (cursor.phase === "files") {
       if (cursor.fileIndex === 0) {
@@ -360,7 +380,7 @@ export function createRecoveryTargetEngine(env: TargetEnvironment) {
     }
     if (cursor.phase === "reinstall") {
       if (cursor.schemaIndex === 0) await finalizeMappings(target, input, plan.files, plan.imageSha256);
-      const triggers = RECOVERY_SCHEMA_STATEMENTS.filter(object => object.type === "trigger"), group = triggers.slice(cursor.schemaIndex, cursor.schemaIndex + DDL_GROUP);
+      const triggers = plan.catalog.schemaStatements.filter(object => object.type === "trigger"), group = triggers.slice(cursor.schemaIndex, cursor.schemaIndex + DDL_GROUP);
       cursor.schemaIndex += group.length;
       if (cursor.schemaIndex >= triggers.length) { cursor.phase = "verify"; cursor.schemaIndex = 0; }
       await target.batch([claimGuard(target, input, plan.imageSha256), ...group.map(object => target.prepare(object.sql)),
@@ -369,9 +389,9 @@ export function createRecoveryTargetEngine(env: TargetEnvironment) {
     await verifyTargetBytes(input, target, plan);
     const verified = await verifyRecoveryTarget(target, input.records, plan.files, plan.profiles, input.jobId, plan.imageSha256);
     await current(input, target, plan.imageSha256);
-    const ledger = await recoveryMigrationLedgerStatements(target);
+    const ledger = await recoveryMigrationLedgerStatements(target, plan.catalog.migrations);
     if (ledger.length) await target.batch([claimGuard(target,input,plan.imageSha256),...ledger]);
-    await inspectRecoveryMigrationLedger(target,true);
+    await inspectRecoveryMigrationLedger(target,true,plan.catalog.migrations);
     const report = await reportFor(input, verified);
     cursor.phase = "ready";
     await target.batch([claimGuard(target, input, plan.imageSha256), target.prepare("UPDATE system_recovery_target_claim SET status='ready',cursor_json=?,verified_at=? WHERE singleton=1")
@@ -384,7 +404,7 @@ export function createRecoveryTargetEngine(env: TargetEnvironment) {
   async function verify(input: RecoveryTargetInput) {
     const plan = await prepare(input), { target, cursor } = await claim(input, plan);
     ensure(cursor.phase === "ready", "target_not_ready");
-    await inspectRecoveryMigrationLedger(target,true);
+    await inspectRecoveryMigrationLedger(target,true,plan.catalog.migrations);
     await verifyTargetBytes(input, target, plan);
     const proof = await verifyRecoveryTarget(target, input.records, plan.files, plan.profiles, input.jobId, plan.imageSha256);
     await current(input, target, plan.imageSha256); return reportFor(input, proof);

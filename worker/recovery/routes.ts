@@ -9,8 +9,8 @@ import { recoveryRepository,recoveryActorAllowed,systemRecoveryCapabilities,syst
 import { writeSystemRecoveryUpload, runBoundedSystemRecoveryReadAction } from "./jobs";
 import type { RecoveryJob } from "./repository";
 import { readSourceMaintenance, verifySourceCheckpoint } from "./maintenance";
-import { recaptureSystemBackupSnapshot, sourceBackupCheckpoint } from "./backup-snapshot";
-import type { SystemBackupRecordsV1, SystemBackupManifestV1 } from "../../shared/contracts/system-backup";
+import { captureVersionedSystemBackupSnapshot, sourceVersionedBackupCheckpoint } from "./portable-backup-snapshot";
+import type { VersionedRecoveryRecords, VersionedRecoveryManifest } from "./versioned-catalog";
 import { createRecoveryTargetEngine, recoveryTargetRestoreBudget } from "./target-import";
 import { stableJson } from "../../shared/domain/content-addressing";
 import type { SystemRecoveryReport } from "./report";
@@ -70,7 +70,7 @@ systemRecoveryRoutes.post("/system-recovery/recoveries",async c=>{const accepted
   const prior=await repository.request(acceptedInput.requestId,actor,acceptedInput);if(prior)return c.json(await receipt(c.env,acceptedInput.requestId,{job:prior,reused:true}),202);
   const upload=await owned(c.env,acceptedInput.uploadJobId,actor);if(upload.kind!=="upload"||upload.state!=="preview")throw fail("Recovery upload has not been validated",409);
   await assertRecoveryArtifactNamespace(c.env,upload);
-  const records=await repository.metadata(upload.id,"records") as SystemBackupRecordsV1|null,manifest=await repository.metadata(upload.id,"manifest") as SystemBackupManifestV1|null;
+  const records=await repository.metadata(upload.id,"records") as VersionedRecoveryRecords|null,manifest=await repository.metadata(upload.id,"manifest") as VersionedRecoveryManifest|null;
   if(!records||!manifest||manifest.completeness!=="complete")throw fail("A partial backup cannot prepare complete recovery",409);
   if(!recoveryTargetRestoreBudget(records).available)throw fail("Recovery image exceeds the website atomic restore budget; use an independently reviewed offline recovery path",409);
   if(acceptedInput.mode==="planned"){const source=await repository.job(records.backupId),maintenance=await readSourceMaintenance(c.env);
@@ -122,7 +122,7 @@ systemRecoveryRoutes.get("/system-recovery/jobs/:jobId/report",async c=>{const j
 systemRecoveryRoutes.post("/system-recovery/jobs/:jobId/cutover",async c=>{const acceptedInput=await input(c.req.raw,checkedSystemRecoveryCutoverInput),actor=c.get("userEmail"),repository=recoveryRepository(c.env),job=await owned(c.env,c.req.param("jobId"),actor);
   const prior=await repository.request(acceptedInput.requestId,actor,acceptedInput);if(prior)return c.json(await receipt(c.env,acceptedInput.requestId,{job:prior,reused:true}));
   if(job.kind!=="recovery"||job.state!=="completed"||job.phase!=="ready"||!job.target_incarnation||job.target_id!==acceptedInput.expectedTargetId||JSON.parse(job.result_json??"null")?.checkpoint!==acceptedInput.expectedCheckpoint)throw fail("Recovery target is not ready at this checkpoint",409);
-  const frozenInput=checkedSystemRecoveryImportInput(JSON.parse(job.input_json)),records=await repository.metadata(job.source_upload_job_id!,"records") as SystemBackupRecordsV1,manifest=await repository.metadata(job.source_upload_job_id!,"manifest") as SystemBackupManifestV1;
+  const frozenInput=checkedSystemRecoveryImportInput(JSON.parse(job.input_json)),records=await repository.metadata(job.source_upload_job_id!,"records") as VersionedRecoveryRecords,manifest=await repository.metadata(job.source_upload_job_id!,"manifest") as VersionedRecoveryManifest;
   const maintenance=await readSourceMaintenance(c.env);if(maintenance.state!=="fenced"||maintenance.activeWriters)throw fail("Prepared handoff requires drained source maintenance",409);
   if(frozenInput.mode==="historical"&&!frozenInput.acknowledgeLaterChanges)throw fail("Historical recovery requires explicit later-change acknowledgement",409);
   const accepted=await runBoundedSystemRecoveryReadAction(async()=>{if(!recoveryActorAllowed(c.env,actor))return false;const status=await readSourceMaintenance(c.env),live=await repository.job(job.id);
@@ -130,8 +130,8 @@ systemRecoveryRoutes.post("/system-recovery/jobs/:jobId/cutover",async c=>{const
       &&live.generation===job.generation&&live.target_incarnation===job.target_incarnation&&live.target_id===acceptedInput.expectedTargetId&&JSON.parse(live.result_json??"null")?.checkpoint===acceptedInput.expectedCheckpoint&&recoveryActorAllowed(c.env,actor);
   },async(current,signal,deadlineAt)=>{
     if(!await current())throw fail("Recovery verification checkpoint changed",409);
-    if(frozenInput.mode==="planned"){const fresh=await recaptureSystemBackupSnapshot(c.env,records.backupId);if(!await current())throw fail("Recovery verification checkpoint changed",409);
-      const sha=await sourceBackupCheckpoint(fresh);await verifySourceCheckpoint(c.env,records.backupId,sha);
+    if(frozenInput.mode==="planned"){const fresh=await captureVersionedSystemBackupSnapshot(c.env.DB,{backupId:records.backupId,acquireHolds:false});if(!await current())throw fail("Recovery verification checkpoint changed",409);
+      const sha=await sourceVersionedBackupCheckpoint(fresh);await verifySourceCheckpoint(c.env,records.backupId,sha);
       if(sha!==manifest.sourceCheckpoint||!await current())throw fail("Final source checkpoint changed",409);}
     const report=await createRecoveryTargetEngine(c.env).verify({jobId:job.id,incarnation:job.target_incarnation!,ownerToken:acceptedInput.requestId,generation:job.generation+1,
       runtimeIncarnation:(await repository.runtime())!.incarnation,leaseExpiresAt:deadlineAt,signal,expectedTargetId:acceptedInput.expectedTargetId,records,manifest,mapping:frozenInput.mapping,mode:frozenInput.mode,current,

@@ -6,9 +6,11 @@ import type { SystemRecoveryCapabilitiesAdapter } from "./jobs";
 import { runSystemRecoveryJobStep } from "./jobs";
 import { cloudflareSha256 } from "../files/storage-adapters/cloudflare-sha256";
 import { stableJson,sha256Hex } from "../../shared/domain/content-addressing";
-import { planSystemBackupSources, type SystemBackupSource, type SystemBackupFile, type SystemBackupRecordsV1, type SystemBackupManifestV1 } from "../../shared/contracts/system-backup";
+import { planSystemBackupSources, type SystemBackupSource, type SystemBackupFile } from "../../shared/contracts/system-backup";
 import type { SystemRecoveryCapabilities, SystemRecoveryPreview, SystemRecoveryJobStatus, SystemRecoveryImportInput } from "../../shared/contracts/system-recovery";
-import { captureSystemBackupSnapshot, sourceBackupCheckpoint } from "./backup-snapshot";
+import { captureVersionedSystemBackupSnapshot, sourceVersionedBackupCheckpoint } from "./portable-backup-snapshot";
+import { selectReviewedRecoveryCatalog, type VersionedRecoveryRecords, type VersionedRecoveryManifest } from "./versioned-catalog";
+import { portableBusinessManifestV24 } from "../../shared/contracts/export-portable-runtime";
 import { prepareSystemBackupArchive, validateSystemBackupArchive, openSystemBackupSource } from "./backup-archive";
 import { createSystemBackupArchiveStream, measureSystemBackupArchive } from "../../shared/domain/system-backup-archive";
 import { sourceFromStream, openStoreArchiveEntry, type ArchiveSource, type ArchiveIndexEntry } from "../../shared/domain/research-archive";
@@ -50,8 +52,8 @@ export async function systemRecoveryJobStatus(env:Env,job:RecoveryJob):Promise<S
     output:job.archive_byte_size&&job.archive_sha256&&job.expires_at?{available,byteSize:job.archive_byte_size,sha256:job.archive_sha256,expiresAt:job.expires_at}:null,
     result:job.result_json?JSON.parse(job.result_json):null};
 }
-async function records(repository:SystemRecoveryRepository,jobId:string){const value=await repository.metadata(jobId,"records");if(!value)throw new Error("archive_invalid");return value as SystemBackupRecordsV1;}
-async function manifest(repository:SystemRecoveryRepository,jobId:string){const value=await repository.metadata(jobId,"manifest");if(!value)throw new Error("archive_invalid");return value as SystemBackupManifestV1;}
+async function records(repository:SystemRecoveryRepository,jobId:string){const value=await repository.metadata(jobId,"records");if(!value)throw new Error("archive_invalid");const records=value as VersionedRecoveryRecords;selectReviewedRecoveryCatalog(records);return records;}
+async function manifest(repository:SystemRecoveryRepository,jobId:string){const value=await repository.metadata(jobId,"manifest");if(!value)throw new Error("archive_invalid");const manifest=value as VersionedRecoveryManifest;if(!["system-backup/1","system-backup/2"].includes(manifest.schema))throw new Error("archive_invalid");return manifest;}
 async function terminalFiles(repository:SystemRecoveryRepository,jobId:string){return(await repository.files(jobId)).map(row=>JSON.parse(row.file_json) as SystemBackupFile);}
 function groupFileStatements(repository:SystemRecoveryRepository,claim:RecoveryClaim,sources:readonly SystemBackupSource[]){
   const db=repository.db(),groups:Array<Array<{id:string;ordinal:number;json:string}>>=[];let group:Array<{id:string;ordinal:number;json:string}>=[];
@@ -108,9 +110,9 @@ export async function workerSystemRecoveryCapabilities(env:Env):Promise<SystemRe
       if(claim.kind==="backup"&&claim.phase==="snapshot"){
         const input=JSON.parse(claim.input_json) as {mode:"historical"|"planned"};
         if(input.mode==="planned"){const status=await readSourceMaintenance(env);if(status.state!=="fenced"||status.activeWriters)throw new Error("source_maintenance_required");}
-        const frozen=await captureSystemBackupSnapshot(env.DB,{backupId:claim.id,createdAt:claim.accepted_at});if(!await current())throw new Error("administrator_revoked");
-        const checkpoint=await sourceBackupCheckpoint(frozen);if(input.mode==="planned")await recordSourceCheckpoint(env,claim.id,checkpoint);
-        const sources=planSystemBackupSources(frozen.content),statements=[...repository.metadataStatements(claim.id,"records",frozen),...groupFileStatements(repository,claim,sources)];
+        const frozen=await captureVersionedSystemBackupSnapshot(env.DB,{backupId:claim.id,createdAt:claim.accepted_at});if(!await current())throw new Error("administrator_revoked");
+        const checkpoint=await sourceVersionedBackupCheckpoint(frozen);if(input.mode==="planned")await recordSourceCheckpoint(env,claim.id,checkpoint);
+        const sources=planSystemBackupSources(frozen.content.schemaVersion===25?portableBusinessManifestV24(frozen.content):frozen.content),statements=[...repository.metadataStatements(claim.id,"records",frozen),...groupFileStatements(repository,claim,sources)];
         if(statements.length+2>128)throw new SystemRecoveryConflict("metadata_budget");
         return{patch:{state:"queued",phase:"inventory",source_checkpoint:checkpoint,total_files:sources.length},statements,outcome:"snapshot"};
       }
@@ -173,7 +175,7 @@ export async function systemRecoveryPreview(env:Env,job:RecoveryJob):Promise<Sys
     const p=frozen.content.tables.storage_profiles.find(row=>row.id===id);return{id,adapterType:String(p?.adapter_type??file.source.provider),namespaceIdentity:String(p?.namespace_identity??id)};});
   const maintenance=await readSourceMaintenance(env),input=JSON.parse(job.input_json) as {mode?:"historical"|"planned"},complete=backup.completeness==="complete";
   const configured=targetConfigured(env);let targetAvailable=configured,targetReason:string|null=configured?null:"target_unavailable";
-  if(configured&&job.kind!=="recovery")try{await inspectRecoveryTargetFreshness(env,env.RECOVERY_TARGET_ID!);}catch(error){targetAvailable=false;targetReason=error instanceof RecoveryTargetError?error.code:"target_unavailable";}
+  if(configured&&job.kind!=="recovery")try{await inspectRecoveryTargetFreshness(env,env.RECOVERY_TARGET_ID!,frozen);}catch(error){targetAvailable=false;targetReason=error instanceof RecoveryTargetError?error.code:"target_unavailable";}
   if(job.kind==="recovery"&&job.state!=="completed"){targetAvailable=false;targetReason="target_recovery_pending";}
   if(job.kind==="recovery"&&job.target_id!==env.RECOVERY_TARGET_ID){targetAvailable=false;targetReason="target_configuration_changed";}
   const expired=job.kind==="upload"&&(!job.expires_at||Date.parse(job.expires_at)<=Date.now());
@@ -185,7 +187,7 @@ export async function systemRecoveryPreview(env:Env,job:RecoveryJob):Promise<Sys
   return{schema:"system-recovery-preview/1",archive:{schema:backup.schema,byteSize:source.archive_byte_size,sha256:source.archive_sha256,complete,legacy:frozen.origin.format==="legacy-converted",recoveryPoint},
     counts:{tables:backup.counts.tables,rows:backup.counts.rows,files:backup.counts.sources,bytes:backup.counts.bytes,availableFiles:backup.counts.packagedFiles,unavailableFiles:backup.counts.unavailableFiles},
     files:backup.files.map(file=>({id:file.id,purpose:file.purposes.join(",")||"unknown",byteSize:file.byteSize??file.source.expectedByteSize??0,status:file.outcome,reason:file.outcome==="packaged"?null:file.outcome,sourceProfileId:recoverySourceProfileId(file)})),profiles,
-    protectedSettings:{included:frozen.protectedConfiguration.status==="included_encrypted",credentialRecovery:frozen.protectedConfiguration.status==="included_encrypted"?"quarantined":"excluded",warnings:frozen.protectedConfiguration.keyIds.length?["separate_root_keys_required"]:[]},
+    protectedSettings:{included:frozen.protectedConfiguration.status==="included_encrypted",credentialRecovery:frozen.protectedConfiguration.status==="included_encrypted"?"quarantined":"excluded",warnings:[...(frozen.protectedConfiguration.keyIds.length?["separate_root_keys_required"]:[]),...(frozen.schema==="system-backup-records/2"?["protected_local_accounts_disabled_offline_bootstrap_required"]:[])]},
     oldJobs:{paused,automaticReplay:false},target:{id:configured?env.RECOVERY_TARGET_ID!:null,available:targetAvailable,reason:targetReason},
     source:{maintenanceRequired:true,checkpoint:job.source_checkpoint??maintenance.checkpoint,mode:input.mode??"historical"},canRecover:complete&&!expired&&archiveAvailable&&restoreBudget.available&&targetAvailable&&job.kind!=="recovery",canCutover:complete&&targetAvailable&&Boolean(job.result_json)&&maintenance.state==="fenced"&&maintenance.activeWriters===0,reasons:reason?[reason]:[]};
 }

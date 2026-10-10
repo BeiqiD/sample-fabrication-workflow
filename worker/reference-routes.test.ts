@@ -160,9 +160,9 @@ describe("reference resolution route", () => {
 
     expect(response.status).toBe(200);
     expect(d1.batchCount).toBe(1);
-    // One bounded generation-marker probe runs before the one canonical
-    // table/schema snapshot batch. No canonical table escapes that batch.
-    expect(d1.directQueryCount).toBe(1);
+    // Two bounded schema-only probes check generation and portable identity
+    // before the one canonical table/schema batch. No table escapes that batch.
+    expect(d1.directQueryCount).toBe(2);
     expect(payload.schemaVersion).toBe(FULL_EXPORT_ARCHIVE_SCHEMA);
     expect(payload.tables.reference_targets).toEqual([
       expect.objectContaining({

@@ -7,6 +7,7 @@ export interface SystemBackupReportProjection {
   backupId: string; createdAt: string; sourceSnapshotClock: string; completeness: "complete" | "partial";
   counts: { tables: number; rows: number; sources: number; packagedFiles: number; unavailableFiles: number; bytes: number };
   protectedConfiguration: { keyIds: readonly string[]; rootKeysIncluded: false; automaticExecution: false };
+  protectedIdentity?: { passwordVerifiersIncluded: true; sessionsIncluded: false; grantsIncluded: false; destinationAccounts: "disabled" };
   relocatedSources?: readonly { evidenceId: string; sourceLocatorId: string; destinationLocationId: string; byteSize: number; sha256: string }[];
   files: readonly { id: string; path: string | null; outcome: string; byteSize: number | null; sha256: string | null;
     fileIds: readonly string[]; purposes: readonly string[]; source: { filename: string; sourceOccurrences: readonly { sourceType: string; sourceId: string; occurrenceType: string; occurrenceId: string }[] };
@@ -25,6 +26,9 @@ export function renderSystemBackupReport(backup: SystemBackupReportProjection): 
   }).join("");
   const relocated = backup.relocatedSources ?? [];
   const relocationHtml = relocated.length ? `<h2>Verified recovery relocations</h2><p>Old physical addresses remain historical evidence. Required bytes are preserved at these verified recovered locations.</p><ul>${relocated.map(entry => `<li>${html(entry.sourceLocatorId)} → ${html(entry.destinationLocationId)}; proof ${html(entry.evidenceId)}; ${entry.byteSize} bytes; SHA-256 ${html(entry.sha256)}</li>`).join("")}</ul>` : "";
+  const identityNotice = backup.protectedIdentity
+    ? "This protected backup includes password verifiers and account identity. Keep the archive private. Restored accounts are disabled; sessions and administrator grants are excluded. Destination access requires an explicit offline account recovery."
+    : "";
   const markup = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'none'; script-src 'none'; base-uri 'none'; form-action 'none'"><meta name="viewport" content="width=device-width, initial-scale=1"><title>System backup ${html(backup.backupId)}</title><style>body{font:16px system-ui;max-width:1000px;margin:2rem auto;padding:0 1rem}table{border-collapse:collapse;width:100%}th,td{text-align:left;vertical-align:top;border:1px solid #ccc;padding:.5rem;overflow-wrap:anywhere}.partial{font-weight:bold;color:#9d3400}</style></head><body><h1>System backup</h1><p>Backup ${html(backup.backupId)} — ${html(backup.createdAt)}</p><p>Source snapshot ${html(backup.sourceSnapshotClock)}</p><p class="${backup.completeness}">${html(state)}</p><p>${html(summary)}</p><p>Canonical identities, relationships, history and recoverable deletion states are preserved. Connection credentials remain encrypted. Root encryption keys are recovered separately. Restored jobs, provider probes and cleanup remain disabled until destination review.</p><table><thead><tr><th>File</th><th>Outcome</th><th>Bytes</th><th>Purposes</th><th>Affected records</th></tr></thead><tbody>${rows}</tbody></table>${relocationHtml}</body></html>`;
   const lines = ["# System backup", "", `Backup: ${markdown(backup.backupId)}`, `Created: ${markdown(backup.createdAt)}`, `Source snapshot: ${markdown(backup.sourceSnapshotClock)}`, "", state, "", summary, "",
     "Canonical identities, relationships, history and recoverable deletion states are preserved. Credentials remain encrypted; root encryption keys are recovered separately. Restored execution remains disabled until destination review.", "", "| File | Outcome | Bytes | Purposes | Affected records |", "| --- | --- | --- | --- | --- |"];
@@ -38,7 +42,8 @@ export function renderSystemBackupReport(backup: SystemBackupReportProjection): 
     lines.push("", "## Verified recovery relocations", "", "Old physical addresses remain historical evidence; required bytes are preserved at verified recovered locations.");
     for (const entry of relocated) lines.push(`- ${markdown(entry.sourceLocatorId)} → ${markdown(entry.destinationLocationId)}; proof ${markdown(entry.evidenceId)}; ${entry.byteSize} bytes; SHA-256 ${entry.sha256}`);
   }
-  return { html: markup, markdown: `${lines.join("\n")}\n` };
+  if (identityNotice) lines.push("", identityNotice);
+  return { html: identityNotice ? markup.replace("</body>", `<p>${html(identityNotice)}</p></body>`) : markup, markdown: `${lines.join("\n")}\n` };
 }
 
 export interface SystemBackupArchiveMetadata { contents: ReadonlyMap<string, string>; entries: ArchiveEntry[] }

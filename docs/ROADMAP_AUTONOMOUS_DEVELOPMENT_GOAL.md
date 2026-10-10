@@ -29,9 +29,7 @@ actual browser qualification at `6c4dc88`. Final source9b passed all12 local
 leaves (355/3351/980), four own Verify/Map runs and all15 contexts; #254 merged
 at `7e129b8c888179631d84623721c464d2efb320bf` with exact qualified tree equality.
 [Final follow-up receipts](PHASE_5F_FINAL_FOLLOWUP_CHECKS.md) retain all failures.
-Draft portable-runtime PR #253 is implemented only as a partial foundation;
-its original7c complete-check failures remain retained. The rebased foundation
-and independent Node client build now require their own complete15-leaf gate.
+Portable-runtime foundation PR #253 merged at `fbeb4217e984bfb25d80f7029626df438e6d618b` after its exact own-head Verify/Map gates and all15 contexts passed. Its post-merge Processing Retry publication assertion failure is retained. Services PR #255 merged at `b6b2d9a414c7ce49a28f28b2d1da929fbf538f01` after both new own-head complete Verify gates, both Map gates and all15 contexts passed, including the native408 timeout and mounted Retry follow-ups. The paired current checkpoint and business read ports remain distinct subsequent candidates; actual whole Node/File/jobs/container and group authorization milestones remain unfinished.
 
 ## Working order
 

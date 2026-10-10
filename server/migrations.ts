@@ -1,33 +1,9 @@
 import { createHash, randomUUID } from "node:crypto";
 import { constants, type DatabaseSync } from "node:sqlite";
 
-export interface InstallationSchemaObject {
-  type: "table" | "index" | "view" | "trigger";
-  name: string;
-  tableName: string;
-  sql: string;
-}
-export const NODE_INSTALLATION_DDL = `CREATE TABLE node_installation (
-  singleton INTEGER PRIMARY KEY CHECK(singleton=1),
-  installation_id TEXT NOT NULL CHECK(length(installation_id)=36),
-  catalog_id TEXT NOT NULL,
-  schema_checkpoint TEXT NOT NULL,
-  schema_sha256 TEXT NOT NULL CHECK(length(schema_sha256)=64),
-  created_at TEXT NOT NULL
-)`;
-export const NODE_MIGRATIONS_DDL = `CREATE TABLE node_migrations (
-  ordinal INTEGER PRIMARY KEY CHECK(ordinal>0),
-  name TEXT NOT NULL UNIQUE,
-  raw_sha256 TEXT NOT NULL CHECK(length(raw_sha256)=64),
-  checkpoint_id TEXT NOT NULL UNIQUE,
-  schema_sha256 TEXT NOT NULL CHECK(length(schema_sha256)=64),
-  status TEXT NOT NULL CHECK(status='applied'),
-  applied_at TEXT NOT NULL
-)`;
-export const NODE_PLATFORM_OBJECTS: readonly InstallationSchemaObject[] = Object.freeze([
-  Object.freeze({ type: "table", name: "node_installation", tableName: "node_installation", sql: NODE_INSTALLATION_DDL }),
-  Object.freeze({ type: "table", name: "node_migrations", tableName: "node_migrations", sql: NODE_MIGRATIONS_DDL }),
-]);
+import { NODE_INSTALLATION_DDL, NODE_MIGRATIONS_DDL, NODE_PLATFORM_OBJECTS, type InstallationSchemaObject } from "../shared/contracts/node-installation-schema";
+export { NODE_INSTALLATION_DDL, NODE_MIGRATIONS_DDL, NODE_PLATFORM_OBJECTS, type InstallationSchemaObject } from "../shared/contracts/node-installation-schema";
+
 export interface ReviewedInstallationCheckpoint {
   id: string;
   applicationObjects: readonly InstallationSchemaObject[];
@@ -168,15 +144,22 @@ function migrationAuthorizer(database: DatabaseSync) {
   const native = database as AuthorizableDatabase;
   if (typeof native.setAuthorizer !== "function") fail("native_authorizer_required");
   const action = constants as unknown as Record<string, number>;
-  const required = ["SQLITE_OK", "SQLITE_DENY", "SQLITE_TRANSACTION", "SQLITE_SAVEPOINT", "SQLITE_ATTACH", "SQLITE_DETACH", "SQLITE_PRAGMA"];
+  const required = ["SQLITE_OK", "SQLITE_DENY", "SQLITE_TRANSACTION", "SQLITE_SAVEPOINT", "SQLITE_ATTACH", "SQLITE_DETACH", "SQLITE_PRAGMA", "SQLITE_READ", "SQLITE_UPDATE"];
   if (required.some(name => !Number.isSafeInteger(action[name]))) fail("native_authorizer_required");
   const policy: Authorizer = (code, first, second, schema) => {
+    // Native ALTER TABLE inspects/rewrites these engine-owned metadata cells
+    // even when the prechecked temp schema contains no user object. This does
+    // not admit CREATE TEMP, attached namespaces or writable_schema policy.
+    const nativeAlterMetadata = schema === "temp" && first === "sqlite_temp_master"
+      && (code === action.SQLITE_READ && ["type", "name", "sql", "tbl_name"].includes(second ?? "")
+        || code === action.SQLITE_UPDATE && ["sql", "tbl_name"].includes(second ?? ""));
     if ([action.SQLITE_TRANSACTION, action.SQLITE_SAVEPOINT, action.SQLITE_ATTACH, action.SQLITE_DETACH].includes(code)
-      || schema !== null && schema !== "main"
+      || schema !== null && schema !== "main" && !nativeAlterMetadata
       || NODE_PLATFORM_OBJECTS.some(value => first === value.name || second === value.name)) return action.SQLITE_DENY!;
     if (code === action.SQLITE_PRAGMA) {
       const pragma = first?.toLowerCase(), value = second?.toLowerCase();
-      if (pragma === "foreign_keys" && value === "on"
+      if (["quick_check", "foreign_key_check"].includes(pragma ?? "")
+        || pragma === "foreign_keys" && value === "on"
         || ["defer_foreign_keys", "legacy_alter_table"].includes(pragma ?? "") && ["on", "off"].includes(value ?? "")) return action.SQLITE_OK!;
       return action.SQLITE_DENY!;
     }
