@@ -1,0 +1,187 @@
+{
+  "status": "applied-foundation-qualified-focused-only-full-integration-pending",
+  "baseHead": "989f1b6ee0b594ddd5492bd890897fc63ca3ef11",
+  "nodeVersion": "v24.19.0",
+  "checks": [
+    {
+      "name": "focused-source",
+      "status": "passed",
+      "exitCode": 0,
+      "cases": 103,
+      "log": "/tmp/portable-foundation-applied-focused-attempt1.log",
+      "logSha256": "8ca242b892ac42f11e1935a283e61017047b45fb4cd89f63aa863ba09477ec47"
+    },
+    {
+      "name": "actual-http-static",
+      "status": "passed",
+      "exitCode": 0,
+      "cases": 15,
+      "log": "/tmp/portable-foundation-applied-http.log",
+      "logSha256": "c35e642fee8cfedec2b573e5ff4ef461179e5b1e4e0f09e55b5101d925fcbc37"
+    },
+    {
+      "name": "strict-types",
+      "status": "passed",
+      "exitCode": 0,
+      "cases": null,
+      "log": "/tmp/portable-foundation-applied-types-attempt1.log",
+      "logSha256": "91f3b25c6bd367187e78c2868412891e1928806cc4192a004a6185a86acfb530"
+    },
+    {
+      "name": "verification-contract",
+      "status": "passed",
+      "exitCode": 0,
+      "cases": 6,
+      "log": "/tmp/portable-foundation-verification-contract.log",
+      "logSha256": "cc5d7d36e4bcd50607fe31d358f8aef469ae263e804d49f12eea772306fccfb6"
+    },
+    {
+      "name": "existing-process-runner",
+      "status": "passed",
+      "exitCode": 0,
+      "cases": 1,
+      "log": "/tmp/portable-foundation-existing-node-runner.log",
+      "logSha256": "3a007f3ea50dc1e13eeb978a9e08b5009dab66ce0ead69e661a24ef3cecf576d"
+    }
+  ],
+  "source": [
+    {
+      "path": "package.json",
+      "sha256": "36702b20415f6557766c754e5ff593bd755c9738d5fbd88f81c86b47cbdf9552"
+    },
+    {
+      "path": "scripts/lib/file-job-node-runtime.ts",
+      "sha256": "5eb3b68e2a8740a9e481b821384684c568a777b94e3c8ba4f001d9cd5b46ffe4"
+    },
+    {
+      "path": "scripts/verification-plan.mjs",
+      "sha256": "f4e16bbb26f7647af96c8e6655572921c7de22f32f0e2fa8b686de52477dd41c"
+    },
+    {
+      "path": "scripts/verification.test.mjs",
+      "sha256": "c7d30815beaf07e810dd6bb69a6703bf2b170a63efab076fc2285611153eda31"
+    },
+    {
+      "path": "server/auth/passwords.test.ts",
+      "sha256": "6095604ad6542cc4929f8f98c12605370f9dd6ec5dff15385f32f682fc25b782"
+    },
+    {
+      "path": "server/auth/passwords.ts",
+      "sha256": "a09d4f507e6b3fcbfce8ca41c180126d3a79aecb06bf2d22052882480a6b6187"
+    },
+    {
+      "path": "server/auth/tokens.test.ts",
+      "sha256": "54b06dbbc4d66499c0d653ca76e9f39e2f2ea94a53b28d50957e67730d330597"
+    },
+    {
+      "path": "server/auth/tokens.ts",
+      "sha256": "1fb7981fa0ed20e7e9d620f24eeb899024451d42c7b04905f155bf7e4deccc30"
+    },
+    {
+      "path": "server/http.test.mts",
+      "sha256": "1545b58834b6070bf38cbacc90b6938b4d4d1354b1b090b7fab31e0c936ea726"
+    },
+    {
+      "path": "server/http.ts",
+      "sha256": "8ea619e3ea853a05ba3d4bc12fcd48dab446b5f61d3b9a2a755230351d9fc663"
+    },
+    {
+      "path": "server/sqlite.test.ts",
+      "sha256": "35188eb20aa409af6a5af13ea293c881e2deac264a6c75b5bb0d88e5e5d22ada"
+    },
+    {
+      "path": "server/sqlite.ts",
+      "sha256": "18a93504559e150fe531f385aa2a2218098ef214d1f7702a5e10fcdaa60cefe2"
+    },
+    {
+      "path": "server/static-assets.test.mts",
+      "sha256": "959dfa054ddbdc4cfb3093ada08698c3cabfa8a05bef244855e57195bf5ec5ca"
+    },
+    {
+      "path": "server/static-assets.ts",
+      "sha256": "b7333ac7d9373577d61757d7afb9f1102d3c5a45fa4df737322e0618fe88fd7c"
+    },
+    {
+      "path": "tsconfig.runtime-tests.json",
+      "sha256": "6cb4ca106cacb07c0df398c9e894fdd77b98908f27340449fc2a61e208df2356"
+    },
+    {
+      "path": "tsconfig.server.json",
+      "sha256": "1b49e4d0ab2c9b8c5583ca5eedcb9a40c8cc9667a4f74d7f4f03d1c8f6da9880"
+    },
+    {
+      "path": "worker/application.test.ts",
+      "sha256": "c71db0b33e3cb7fc12f35c6e5aa25f6bb2939314a2c00e11ede6999b1ed55c79"
+    },
+    {
+      "path": "worker/application.ts",
+      "sha256": "3c309fd57784d7a4a5e1eb64251cfc5870fdbe44c84e8aae61d2945e0849b041"
+    },
+    {
+      "path": "worker/index.ts",
+      "sha256": "d1f672ea14a8c81e9d4e12718b5a946a5421d606cb423c51f5464b02bb3e09e3"
+    },
+    {
+      "path": "worker/platform/authentication.ts",
+      "sha256": "037eda366f5bedfb47acf2a31b2427ca34e4fd8ec5f1b6b64c904c11200a1a34"
+    },
+    {
+      "path": "worker/platform/http.ts",
+      "sha256": "77823626b1dc7e47090b54457c3db06b263226abe98b3adabffb5c26b7287e00"
+    },
+    {
+      "path": "worker/platform/readiness.ts",
+      "sha256": "1ca1cdffbabfb8f9d8dc5d9c06550a0ea6df7b15b15e3a7a272ac4ac727a75bc"
+    },
+    {
+      "path": "worker/platform/routes.test.ts",
+      "sha256": "cf7e8506337ac40f2b521cc39f6d4c24af79c2ea60b66f3ef3bb3ad9b2342fe1"
+    },
+    {
+      "path": "worker/platform/routes.ts",
+      "sha256": "e67f8f6ec69bd53d2c009fd1c2bbef49718bb3f2dddc0af36e2b817178093bfc"
+    },
+    {
+      "path": "worker/project-foundation-routes.test.ts",
+      "sha256": "3b2fa888a1ffe1292a09b8926d2cab5615e914b257a8a9c66cfbe84e1a3a9c64"
+    },
+    {
+      "path": "worker/reference-test-support.ts",
+      "sha256": "09641d9c64c04dd1235beaa078041edcf95eef8d7736a7147a8d8c2a25c27d2d"
+    },
+    {
+      "path": "worker/runtime/d1-sql.test.ts",
+      "sha256": "10bccd22ecd1881c0e7034502167c0795b28c631d465c17fd93fa5ef6b8303b7"
+    },
+    {
+      "path": "worker/runtime/d1-sql.ts",
+      "sha256": "a73c496183edfe02917855cb4492a15810e767e2849db8bf3a3b1aab7099bead"
+    },
+    {
+      "path": "worker/runtime/sql.ts",
+      "sha256": "c30f91bb5de7e4ccdebe8f35422a2f9e9c19d0376fbc30839ffa7a44c1780b6a"
+    }
+  ],
+  "mandatoryDefaultLeaves": 14,
+  "unchangedStatusContexts": 15,
+  "independentReviews": [
+    "factory-order-and-entry-boundary",
+    "sqlite-adapter",
+    "http-static-boundary",
+    "password-token-crypto"
+  ],
+  "notComplete": [
+    "RT1",
+    "RT2",
+    "RT3",
+    "RT4",
+    "RT5",
+    "RT6",
+    "small-group-resource-authorization"
+  ],
+  "limits": [
+    "No complete Node application, local accounts, registered local profiles or Docker runtime admission",
+    "No production/main release, live provider activation or source data cutover",
+    "Source receipt pins pre-commit content; exact final commit still requires complete gates"
+  ]
+}

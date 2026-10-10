@@ -91,25 +91,34 @@ describe("Full export route", () => {
     ]));
   });
 
-  it("mounts Export and Project directly in core and leaves the Reference aggregate independent", () => {
+  it("mounts Export and Project in the application, delegates the Worker entry, and leaves the Reference aggregate independent", () => {
     const indexSource = readFileSync(new URL("./index.ts", import.meta.url), "utf8");
+    const applicationSource = readFileSync(new URL("./application.ts", import.meta.url), "utf8");
     const referenceSource = readFileSync(
       new URL("./reference-routes.ts", import.meta.url),
       "utf8",
     );
 
     expect(indexSource).toContain(
+      'import { createWorkerApplication } from "./application";',
+    );
+    expect(indexSource).toContain("const app = createWorkerApplication();");
+    expect(indexSource).toContain("app.fetch(request, env, executionContext)");
+    expect(indexSource).not.toContain("app.route(");
+    expect(applicationSource).toContain("export function createWorkerApplication()");
+    expect(applicationSource).toContain(
       'import { routes as projectRoutes } from "./project-routes";',
     );
-    const foundationMount = indexSource.indexOf('app.route("/", projectFoundationRoutes);');
-    const exportMount = indexSource.indexOf('app.route("/", exportSnapshotRoutes);');
-    const projectMount = indexSource.indexOf('app.route("/", projectRoutes);');
-    const referenceMount = indexSource.indexOf('app.route("/", referenceRoutes);');
+    const foundationMount = applicationSource.indexOf('app.route("/", projectFoundationRoutes);');
+    const exportMount = applicationSource.indexOf('app.route("/", exportSnapshotRoutes);');
+    const projectMount = applicationSource.indexOf('app.route("/", projectRoutes);');
+    const referenceMount = applicationSource.indexOf('app.route("/", referenceRoutes);');
     expect(foundationMount).toBeGreaterThan(-1);
     expect(exportMount).toBeGreaterThan(foundationMount);
     expect(projectMount).toBeGreaterThan(exportMount);
     expect(referenceMount).toBeGreaterThan(projectMount);
     expect(indexSource).not.toMatch(/app\.get\("\/exports\/all"/);
+    expect(applicationSource).not.toMatch(/app\.get\("\/exports\/all"/);
     expect(referenceSource).not.toContain("./project-routes");
     expect(referenceSource).not.toContain("projectRoutes");
   });

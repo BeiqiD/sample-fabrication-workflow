@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync } from "node:fs";
-import { DatabaseSync } from "node:sqlite";
+import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 
 const referenceGraphSql = readFileSync(
   new URL("./fixtures/reference-graph.sql", import.meta.url),
@@ -20,7 +20,9 @@ export class SqliteD1Statement {
   async all<T>() {
     this.owner.recordQuery();
     return {
-      results: this.owner.compiledStatement(this.sql).all(...this.bindings) as T[],
+      // Preserve the permissive D1 test surface: native SQLite validates the
+      // actual values; this assertion changes no fixture runtime behavior.
+      results: this.owner.compiledStatement(this.sql).all(...(this.bindings as SQLInputValue[])) as T[],
       success: true,
       meta: { changes: 0 },
     };
@@ -28,7 +30,7 @@ export class SqliteD1Statement {
 
   async first<T>() {
     this.owner.recordQuery();
-    return (this.owner.compiledStatement(this.sql).get(...this.bindings) as T | undefined) ?? null;
+    return (this.owner.compiledStatement(this.sql).get(...(this.bindings as SQLInputValue[])) as T | undefined) ?? null;
   }
 
   async run() {
@@ -40,14 +42,14 @@ export class SqliteD1Statement {
     const statement = this.owner.compiledStatement(this.sql);
     if (statement.columns().length > 0) {
       const before = Number(this.owner.compiledStatement("SELECT total_changes() AS count").get()?.count);
-      const results = statement.all(...this.bindings);
+      const results = statement.all(...(this.bindings as SQLInputValue[]));
       return {
         results,
         success: true,
         meta: { changes: Number(this.owner.compiledStatement("SELECT total_changes() AS count").get()?.count) - before },
       };
     }
-    const result = statement.run(...this.bindings);
+    const result = statement.run(...(this.bindings as SQLInputValue[]));
     return { results: [], success: true, meta: { changes: Number(result.changes) } };
   }
 }

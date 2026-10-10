@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.worker.json",
+  "compilerOptions": {
+    "types": [
+      "@cloudflare/workers-types",
+      "node"
+    ]
+  },
+  "include": [
+    "worker/application.test.ts",
+    "worker/platform/routes.test.ts",
+    "worker/runtime/d1-sql.test.ts"
+  ],
+  "exclude": []
+}

@@ -1,5 +1,6 @@
-import { DatabaseSync, type SQLInputValue } from "node:sqlite";
-import { SqlFileJobRepository, type JobSqlDatabase, type JobSqlStatement } from "../../worker/files/jobs/sql-repository";
+import { DatabaseSync } from "node:sqlite";
+import { SqlFileJobRepository } from "../../worker/files/jobs/sql-repository";
+import { asJobSqlDatabase, createSqliteCapability } from "../../server/sqlite";
 import { runFileJobLoop } from "../../worker/files/jobs/migration-kernel";
 import type { FileJobCapabilities } from "../../worker/files/jobs/types";
 import { randomUUID } from "node:crypto";
@@ -7,33 +8,14 @@ import { randomUUID } from "node:crypto";
 export { runFileJobLoop };
 export function openNodeFileJobRepository(path: string) {
   const database = new DatabaseSync(path, { enableForeignKeyConstraints: true, allowExtension: false });
-  database.exec("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;");
-  const statements = new WeakMap<JobSqlStatement, { sql: string; values: SQLInputValue[] }>();
-  const statement = (sql: string, values: SQLInputValue[] = []): JobSqlStatement => {
-    const result: JobSqlStatement = {
-      bind(...bindings) { return statement(sql, bindings as SQLInputValue[]); },
-      async first<T>() { return database.prepare(sql).get(...values) as T ?? null; },
-      async all<T>() { return { results: database.prepare(sql).all(...values) as T[] }; },
-      async run() { return database.prepare(sql).run(...values); },
-    };
-    statements.set(result, { sql, values }); return result;
-  };
-  const sql: JobSqlDatabase = {
-    prepare: statement,
-    async batch(batch) {
-      database.exec("BEGIN IMMEDIATE");
-      try {
-        const results = batch.map(item => {
-          const bound = statements.get(item); if (!bound) throw new Error("Foreign Node File job statement");
-          return database.prepare(bound.sql).all(...bound.values);
-        });
-        database.exec("COMMIT"); return results;
-      } catch (error) { database.exec("ROLLBACK"); throw error; }
-    },
-    primary() { return sql; },
-  };
+  let capability;
+  try { capability = createSqliteCapability(database, { busyTimeoutMs: 5000 }); }
+  catch (error) { database.close(); throw error; }
+  const sql = asJobSqlDatabase(capability);
   return { repository: new SqlFileJobRepository(sql, () => new Date(), randomUUID),
-    database, close: () => database.close() };
+    // Existing installation/control callers retain this privileged handle.
+    // The shared query capability itself does not expose native transactions.
+    database, close: () => capability.close() };
 }
 export type NodeFileJobBindings = Pick<FileJobCapabilities, "openStorage" | "authorizeAdministrator" | "authorizeSystemCleanup">;
 export function enableNodeFileJobs(database: DatabaseSync) {
