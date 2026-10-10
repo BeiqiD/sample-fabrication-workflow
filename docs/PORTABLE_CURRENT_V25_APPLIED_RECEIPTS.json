@@ -3390,5 +3390,69 @@
         "sha256": "76162e465989f3f070a9de8db711fbf358e53b74d09ce1bbdb57c727e4c4a16d"
       }
     ]
+  },
+  "currentHistoricalFixtureFollowup": {
+    "recordedAt": "2026-10-10T19:43:18.155524+00:00",
+    "parentBeforeRepair": "9ac70fa563ef138ef9f7cceeade05e4af7692363",
+    "sourceHashes": {
+      "server/http.ts": "a385a665e71cdef1a80b3d1ad425b3f253e13d83fc22a9c92c187273b6f697ea",
+      "server/http.test.mts": "d6f753d4ea873916b110fcea6103e3f11c68156cf51be5ed15f2eb834737103f",
+      "worker/export-v8-protocol.test.ts": "9c11af3960fcf76704f9b6c80cfb781dadfb6c41dd8abb9df4cb12a0698e66b9",
+      "worker/reference-routes.test.ts": "4482893cc375217bb0c0abd59a2f31083e0efe64bea90ee94f9fe92606f79426",
+      "worker/source-lifecycle-routes.test.ts": "4a77724b0db6371f4f85463cdb86eb86e343b196af1c8859f8fc579fada3babf",
+      "worker/recovery/target-import-workerd.test.ts": "9a8037602e08480c1fd1c6092d20ea6e9cb8a7073afe564cadbf145f9c334d46"
+    },
+    "actual": {
+      "fourFiles": 4,
+      "cases": 57,
+      "passed": 57,
+      "durationSeconds": 53.67,
+      "fixtureStrict": "PASS attempt2",
+      "serverStrict": "PASS",
+      "runtimeTestStrict": "PASS"
+    },
+    "changes": [
+      "V8/Reference query observation includes identity-bearing schema admission probe; SQL results and old writers unchanged",
+      "Frozen22 V24 lifecycle cases are retained separately; current23 V25 paired cases explicitly refuse old24",
+      "Native frozen22 target-import Wrangler ledger uses exact hash-checked historical migration directory; primary and cleanup failures are retained",
+      "Native ERR_HTTP_REQUEST_TIMEOUT maps to408; malformed request400/header overflow431 retained; exact already-qualified services20 source adopted"
+    ],
+    "typeCorrection": "Actual fixture type attempt1 failed before runtime; SQLInputValue bindings and Set<string> only corrected, with existing export-client DOM libraries; no casts or assertion changes",
+    "runnerConfig": "import { defineConfig } from \"vitest/config\";\nexport default defineConfig({test:{include:[\"worker/export-v8-protocol.test.ts\",\"worker/reference-routes.test.ts\",\"worker/source-lifecycle-routes.test.ts\",\"worker/recovery/target-import-workerd.test.ts\"],environment:\"node\",maxWorkers:1,fileParallelism:false,setupFiles:[\"./test/setup-worker-crypto.ts\"]}});\n",
+    "typeConfig": "{\n  \"extends\": \"./tsconfig.worker.json\",\n  \"compilerOptions\": {\n    \"types\": [\n      \"node\",\n      \"@cloudflare/workers-types\"\n    ],\n    \"lib\": [\n      \"ES2022\",\n      \"DOM\",\n      \"DOM.Iterable\",\n      \"WebWorker\"\n    ]\n  },\n  \"include\": [\n    \"worker/export-v8-protocol.test.ts\",\n    \"worker/reference-routes.test.ts\",\n    \"worker/source-lifecycle-routes.test.ts\",\n    \"worker/recovery/target-import-workerd.test.ts\"\n  ],\n  \"exclude\": []\n}\n",
+    "logs": [
+      {
+        "path": "/tmp/portable-current-fixture-regressions57-attempt1.log",
+        "sha256": "da04960a1354af011d6735bd0ab01a116d40d7db5fc83eb5464e05c059ff9018"
+      },
+      {
+        "path": "/tmp/portable-current-fixture-regressions-types-attempt1.log",
+        "sha256": "a018811910bb322565f18bbb97dbe98f633eedc398f4bcc5a990ec2c48c0c1e3"
+      },
+      {
+        "path": "/tmp/portable-current-fixture-regressions-types-attempt2.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "/tmp/portable-current-http-adopted-server-types-attempt1.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "/tmp/portable-current-http-adopted-runtime-types-attempt1.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "/tmp/portable-current-9ac70fa-push-verify-failed-attempt1.log",
+        "sha256": "99d0631be8b46b11995bb8d1d9c2a60526dc88a6028fcdd920998500bdeb7e9c"
+      },
+      {
+        "path": "/tmp/portable-current-69fbdf6-push-verify-failed-attempt1.log",
+        "sha256": "9ce5139c3794921b9d3b5706e15c0aa243dade8ade8f16521a17330be10eb027"
+      }
+    ],
+    "completeCI": "new own-head required after services255 actual merge rebase; former9ac/69 complete failures retained",
+    "productionRawMigrationsChanged": false,
+    "historicalCatalogsChanged": false,
+    "defaultTestTimeoutChanged": false
   }
 }

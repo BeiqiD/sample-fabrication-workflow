@@ -79,9 +79,9 @@ describe("negotiated v8 API, browser archive writer and isolated recovery", () =
       expect(f.fetcher).toHaveBeenCalledWith(endpoint, undefined);
       expect(f.batch).toHaveBeenCalledTimes(1);
       expect(f.batch.mock.calls[0][0]).toHaveLength(Object.keys(manifest.tables).length + 3);
-      // One route-level generation probe prevents every historical archive
-      // writer from snapshotting a different physical migration generation.
-      expect(f.d1.queryCount).toBe(Object.keys(manifest.tables).length + 4);
+      // Two schema-only route probes check migration generation and portable
+      // identity presence before the one historical row/schema snapshot batch.
+      expect(f.d1.queryCount).toBe(Object.keys(manifest.tables).length + 5);
       expect(manifest.artifacts.retiredFields.value.samplesProcessRevision.values).toContainEqual({ id: "reference-sample-a", value: 37 });
       const result = await buildFullExportArchiveV8(manifest, undefined, f.fetcher);
       expect(result.warnings).toEqual([]);

@@ -1,11 +1,13 @@
 import { copyFileSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { DatabaseSync, type StatementSync } from "node:sqlite";
+import { DatabaseSync, type StatementSync, type SQLInputValue } from "node:sqlite";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import worker from "./index";
 import { acceptCommentSubmission, acceptCommentUpload, uploadAcceptedCommentItem, commentManagedFetch } from "./comment-acceptance-test-support";
 import type { Env } from "./types";
+import { RECOVERY_MIGRATIONS } from "./recovery/trusted-schema";
 
 // Reuse compiled SQL only within each connection, as native D1 does. Results,
 // bindings, hooks, and mutation counts remain live on every execution; SQLite
@@ -29,11 +31,11 @@ class SqliteD1Statement {
   constructor(
     private readonly database: DatabaseSync,
     readonly query: string,
-    readonly bindings: unknown[] = [],
+    readonly bindings: SQLInputValue[] = [],
     private readonly beforeRun?: () => void,
   ) {}
 
-  bind(...bindings: unknown[]) {
+  bind(...bindings: SQLInputValue[]) {
     return new SqliteD1Statement(this.database, this.query, bindings, this.beforeRun);
   }
 
@@ -98,6 +100,7 @@ class SqliteD1Database {
 
 let fixtureDirectory: string | undefined;
 let pristinePath: string | undefined;
+let historicalV24PristinePath: string | undefined;
 let nextFixture = 0;
 const fixtureDatabases = new Set<DatabaseSync>();
 const quoteIdentifier = (value: string) => `"${value.replaceAll('"', '""')}"`;
@@ -123,8 +126,9 @@ function fixtureImage(database: DatabaseSync) {
 }
 
 beforeAll(() => {
-  // Execute the complete real migration chain and unchanged seed once. Each
-  // scenario receives a separate physical database; this module never compares
+  // Execute the complete real migration chain and unchanged seed once, retaining
+  // the frozen22 image before current-only DDL. Each scenario receives its own
+  // physical database; this module never compares
   // installation identities across scenarios or shares scenario writes.
   fixtureDirectory = mkdtempSync(join(tmpdir(), "fp5-source-lifecycle-"));
   pristinePath = join(fixtureDirectory, "pristine.sqlite");
@@ -132,8 +136,16 @@ beforeAll(() => {
   database.exec("PRAGMA foreign_keys=ON");
   try {
     const migrationDirectory = new URL("../migrations/", import.meta.url);
-    for (const filename of readdirSync(migrationDirectory).filter((name) => name.endsWith(".sql")).sort()) {
-      database.exec(readFileSync(new URL(filename, migrationDirectory), "utf8"));
+    const migrations = readdirSync(migrationDirectory).filter((name) => name.endsWith(".sql")).sort();
+    expect(RECOVERY_MIGRATIONS).toHaveLength(22);
+    const historicalNames = new Set<string>(RECOVERY_MIGRATIONS.map((migration) => migration.name));
+    const currentMigrations = migrations.filter((name) => !historicalNames.has(name));
+    // Retain V24's actual frozen22 source separately. Current-only identity
+    // DDL must not silently change a historical archive writer's meaning.
+    for (const migration of RECOVERY_MIGRATIONS) {
+      const bytes = readFileSync(new URL(migration.name, migrationDirectory));
+      expect(createHash("sha256").update(bytes).digest("hex")).toBe(migration.sha256);
+      database.exec(bytes.toString("utf8"));
     }
     database.exec(`
     INSERT INTO recipe_families (id, name, template_type, created_at)
@@ -160,6 +172,22 @@ beforeAll(() => {
       ('template-step-process', 'template-process', 'process:1', 0, 'definition-1'),
       ('template-step-metrology', 'template-metrology', 'metrology:1', 0, 'definition-1');
     `);
+    historicalV24PristinePath = join(fixtureDirectory, "historical-v24-pristine.sqlite");
+    expect(database.prepare("PRAGMA foreign_keys").get()).toEqual({ foreign_keys: 1 });
+    expect(database.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    expect(database.prepare("PRAGMA quick_check").all()).toEqual([{ quick_check: "ok" }]);
+    const historicalExpected = fixtureImage(database);
+    database.exec(`VACUUM INTO '${historicalV24PristinePath.replaceAll("'", "''")}'`);
+    const historicalCloned = new DatabaseSync(historicalV24PristinePath, { readOnly: true });
+    try {
+      expect(fixtureImage(historicalCloned)).toEqual(historicalExpected);
+      expect(historicalCloned.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    } finally {
+      historicalCloned.close();
+    }
+    for (const filename of currentMigrations) {
+      database.exec(readFileSync(new URL(filename, migrationDirectory), "utf8"));
+    }
     expect(database.prepare("PRAGMA foreign_keys").get()).toEqual({ foreign_keys: 1 });
     expect(database.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
     expect(database.prepare("PRAGMA quick_check").all()).toEqual([{ quick_check: "ok" }]);
@@ -189,10 +217,10 @@ afterAll(() => {
   if (fixtureDirectory) rmSync(fixtureDirectory, { recursive: true, force: true });
 });
 
-function createDatabase() {
-  if (!fixtureDirectory || !pristinePath) throw new Error("The canonical source lifecycle fixture has not been initialized");
+function createDatabase(archiveSchema: 24 | 25 = 25) {
+  if (!fixtureDirectory || !pristinePath || !historicalV24PristinePath) throw new Error("The canonical source lifecycle fixture has not been initialized");
   const path = join(fixtureDirectory, `scenario-${nextFixture++}.sqlite`);
-  copyFileSync(pristinePath, path);
+  copyFileSync(archiveSchema === 24 ? historicalV24PristinePath : pristinePath, path);
   const database = new DatabaseSync(path);
   database.exec("PRAGMA foreign_keys=ON");
   fixtureDatabases.add(database);
@@ -459,10 +487,13 @@ describe("source lifecycle routes", () => {
     database.close();
   });
 
-  it.each(["item", "canonical"] as const)(
-    "exports managed attachment bytes after the %s source is soft-deleted",
-    async (deletedSource) => {
-      const database = createDatabase();
+  it.each([
+    ["item", 24], ["canonical", 24],
+    ["item", 25], ["canonical", 25],
+  ] as const)(
+    "exports managed attachment bytes after the %s source is soft-deleted with archive schema %i",
+    async (deletedSource, archiveSchema) => {
+      const database = createDatabase(archiveSchema);
       addSample(database);
       database.exec(`
         INSERT INTO managed_storage_objects
@@ -510,13 +541,19 @@ describe("source lifecycle routes", () => {
       })));
       const env = managedStorageEnv(database);
 
-      const manifestResponse = await request(env, "/exports/all?archiveSchema=24&archiveWriter=1");
+      if (archiveSchema === 25) {
+        // Current23 includes protected identity DDL. An old request must fail
+        // closed instead of omitting the required portable source checkpoint.
+        expect((await request(env, "/exports/all?archiveSchema=24&archiveWriter=1")).status).toBe(409);
+      }
+      const manifestResponse = await request(env, `/exports/all?archiveSchema=${archiveSchema}&archiveWriter=1`);
       expect(manifestResponse.status).toBe(200);
       const manifest = await manifestResponse.json() as {
         schemaVersion: number;
         blobs: Array<{ blobRecordIds: string[]; downloadUrl: string | null }>;
       };
-      expect(manifest.schemaVersion).toBe(24);
+      if (archiveSchema === 24) expect(manifest.schemaVersion).toBe(24);
+      else expect(manifest.schemaVersion).toBe(25);
       const exportedBlob = manifest.blobs.find((blob) => blob.blobRecordIds.includes("export-storage"));
       expect(exportedBlob).toEqual(expect.objectContaining({
         downloadUrl: "/api/exports/managed/export-storage",
