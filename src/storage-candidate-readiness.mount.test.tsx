@@ -164,11 +164,12 @@ describe("read-only candidate check evidence", () => {
 
   it("requires a fresh observation of the new revision after saving a candidate", async () => {
     let revision = 2;
+    const updatedHistory = deferred<Response>(), updatedEvidence = deferred<Readiness>();
     network.mockImplementation(async (path, options) => {
       if (options?.method === "PUT") { revision = 3; return json({}); }
+      if (String(path).includes("/checks?") && revision === 3) return updatedHistory.promise;
       if (String(path).includes("/readiness?")) {
-        const value = readiness(); value.revision = revision; if (revision === 3) value.evidence.exactCurrentContextSuccess = null;
-        return json(value);
+        return revision === 3 ? updatedEvidence.promise.then(value => json(value)) : json(readiness());
       }
       if (String(path) === "/api/storage/configuration") return json(configuration({ ...candidate(), revision }));
       return fallback(path);
@@ -177,7 +178,23 @@ describe("read-only candidate check evidence", () => {
     await openEvidence(); await screen.findByText(positive);
     fireEvent.click(screen.getByRole("button", { name: "Save draft" }));
     await screen.findByText("Historical revision 2"); expect(screen.queryByText(positive)).toBeNull();
-    fireEvent.click(await enabledButton("Refresh evidence")); await screen.findByText(negative);
+    // The revision label renders before its automatic history read settles.
+    // That read invalidates evidence, so observe its completion before starting
+    // the deliberate fresh observation of the newly saved revision.
+    await waitFor(() => expect(network.mock.calls.filter(([path]) => String(path).includes("/checks?"))).toHaveLength(2));
+    await screen.findByText("Evidence cleared while configuration or test work is unresolved. Refresh evidence when it settles.");
+    expect((screen.getByRole("button", { name: "Refresh evidence" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(evidenceCalls().filter(([path]) => String(path).includes("expectedRevision=3"))
+      .every(([, options]) => options?.signal?.aborted)).toBe(true);
+    await act(async () => { updatedHistory.resolve(json({ items: [check()], hasMore: false })); });
+    await waitFor(() => expect(screen.queryByText("Reading test history…")).toBeNull());
+    const priorObservations = evidenceCalls().length;
+    fireEvent.click(await enabledButton("Refresh evidence"));
+    await waitFor(() => expect(evidenceCalls()).toHaveLength(priorObservations + 1));
+    await waitFor(() => expect(evidenceCalls().at(-1)?.[0]).toBe("/api/storage/configuration/readiness?profileId=candidate-example&expectedRevision=3"));
+    const current = readiness(); current.revision = 3; current.evidence.exactCurrentContextSuccess = null;
+    await act(async () => { updatedEvidence.resolve(current); });
+    await screen.findByText(negative); expect(screen.queryByText(positive)).toBeNull();
     expect(evidenceCalls().at(-1)?.[0]).toBe("/api/storage/configuration/readiness?profileId=candidate-example&expectedRevision=3");
   });
 
