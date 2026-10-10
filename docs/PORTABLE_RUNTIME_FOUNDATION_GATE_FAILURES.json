@@ -1,0 +1,53 @@
+{
+  "head": "7cdee5198188bcafc0b9e8703ac77451d0179234",
+  "tree": "c7bcea5d47ed70bb40aec56ed424e58ed6c4702a",
+  "status": "complete gate unqualified; actual failures retained",
+  "defaultCaseDeadlineMs": 5000,
+  "jobBudgetMinutes": 40,
+  "newDefaultLeaves": 14,
+  "allRuntimeMilestonesUnfinished": true,
+  "attempts": [
+    {
+      "event": "local",
+      "runId": null,
+      "nativePassed": 355,
+      "nativeFailed": 0,
+      "sourcePassed": 3479,
+      "sourceFailed": 1,
+      "mountedPassed": null,
+      "mountedFailed": null,
+      "failure": "worker/storage/native-s3-byte-reader.test.ts:75 default5000ms",
+      "laterLeaves": "skipped after first failed leaf",
+      "log": "/tmp/portable-foundation-7cdee51-verify-ci-attempt1.log",
+      "logSha256": "fb513eab0bd64c804c271a0fa94d02ab4b285f5397f0b1ca7569ba3994aa5954"
+    },
+    {
+      "event": "push",
+      "runId": 38062827256,
+      "nativePassed": 355,
+      "nativeFailed": 0,
+      "sourcePassed": 3479,
+      "sourceFailed": 1,
+      "mountedPassed": null,
+      "mountedFailed": null,
+      "failure": "worker/export-v21-protocol.test.ts:121 default5000ms",
+      "laterLeaves": "skipped after first failed leaf",
+      "log": "/tmp/portable-foundation-7cdee51-push-verify-failed.log",
+      "logSha256": "a331fca2cd04312ec17741261e8168fa9674c8611e92b1c45fb881fc2338fa4f"
+    },
+    {
+      "event": "pull_request",
+      "runId": 38062853279,
+      "nativePassed": 355,
+      "nativeFailed": 0,
+      "sourcePassed": 3480,
+      "sourceFailed": 0,
+      "mountedPassed": 965,
+      "mountedFailed": 1,
+      "failure": "src/attachment-media.mount.test.tsx:90 containment assertion",
+      "laterLeaves": "skipped after first failed leaf",
+      "log": "/tmp/portable-foundation-7cdee51-pr-verify-failed.log",
+      "logSha256": "e67e19faf0818a09259b2ff12c601b6f47873d3e1e27eb55bb632721d9b825b6"
+    }
+  ]
+}
