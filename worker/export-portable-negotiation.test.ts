@@ -100,9 +100,35 @@ it("negotiates actual V26 explicitly, refusing both V24 and V25 while excluding 
     expect(Object.hasOwn(content.tables, name)).toBe(false);
   expect(JSON.stringify(content)).not.toContain(verifier); expect(providerIO).not.toHaveBeenCalled();
 }, 20_000);
-it("denies unauthenticated V26 before actual database/provider reads and refuses V26 on the unchanged V25 catalog", async () => {
+it("denies unauthenticated V26 and malformed metadata before snapshots, and refuses V26 on the unchanged V25 catalog", async () => {
   const latest = fixture("v26"), before = latest.db.queryCount;
   expect((await request(latest.env, 26)).status).toBe(403); expect(latest.db.queryCount).toBe(before);
   const old = fixture(), headers = await accessHeaders(); expect((await request(old.env, 26, headers)).status).toBe(409);
+  const guarded = fixture("v26"), batch = vi.spyOn(guarded.db, "batch");
+  const prepare = guarded.db.prepare.bind(guarded.db);
+  let responseRow: unknown;
+  const probe = vi.spyOn(guarded.db, "prepare").mockImplementation(sql => {
+    const statement = prepare(sql);
+    if (!sql.includes("AS local_profile_present") || !sql.includes("AS identity_present")) return statement;
+    const bind = statement.bind.bind(statement);
+    vi.spyOn(statement, "bind").mockImplementation((...bindings) => {
+      const bound = bind(...bindings), first = bound.first.bind(bound);
+      vi.spyOn(bound, "first").mockImplementation(async <T>() => {
+        // Execute the genuine metadata observation before corrupting its reply;
+        // this control never fabricates installation or provider authority.
+        expect(await first()).toEqual({ local_profile_present: 1, identity_present: 1 });
+        return responseRow as T | null;
+      });
+      return bound;
+    });
+    return statement;
+  });
+  for (responseRow of [null, {}, { local_profile_present: 2, identity_present: 1 },
+    { local_profile_present: 1, identity_present: "1" }, { local_profile_present: null, identity_present: 1 }]) {
+    expect((await request(guarded.env, 26, headers)).status).toBe(500);
+    expect(batch).not.toHaveBeenCalled();
+    expect(providerIO).not.toHaveBeenCalled();
+  }
+  probe.mockRestore();
   expect(providerIO).not.toHaveBeenCalled();
 }, 20_000);
