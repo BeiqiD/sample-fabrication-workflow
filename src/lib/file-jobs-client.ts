@@ -1,3 +1,4 @@
+import { applicationFetch } from "./authentication-client";
 import { checkedAcceptFileMigration, checkedFileJobStatus, checkedFileJobTarget, FILE_JOB_MAX_ATTEMPTS, FILE_JOB_MAX_BYTES, FILE_JOB_MAX_FILES,
   type AcceptFileMigrationInput, type FileJobExecutorStatus, type FileJobStatus, type FileMigrationPlan,
   type FileMigrationItems } from "../../shared/contracts/file-jobs";
@@ -18,7 +19,7 @@ export function fileMigrationErrorMessage(error: unknown): string {
 async function request(path: string, body?: unknown, signal?: AbortSignal): Promise<unknown> {
   let response: Response;
   try {
-    response = await fetch(`/api/files/migrations${path}`, { method: body === undefined ? "GET" : "POST",
+    response = await applicationFetch(`/api/files/migrations${path}`, { method: body === undefined ? "GET" : "POST",
       ...(body === undefined ? {} : { headers: { "content-type": "application/json" }, body: JSON.stringify(body) }),
       credentials: "same-origin", cache: "no-store", redirect: "error", signal });
   } catch { throw new FileMigrationRequestError(null); }

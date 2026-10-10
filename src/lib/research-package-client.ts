@@ -1,3 +1,4 @@
+import { applicationFetch } from "./authentication-client";
 import {
   checkedResearchExecutorStatus, checkedResearchExportInput, checkedResearchExportPlanInput,
   checkedResearchImportInput, checkedResearchJobControl, checkedResearchJobStatus,
@@ -62,7 +63,7 @@ async function request(path: string, method: "GET" | "POST" | "PUT" = "GET", bod
   let response: Response;
   const raw = body instanceof Blob;
   try {
-    response = await fetch(`${base}${path}`, { method, credentials: "same-origin", cache: "no-store", redirect: "error", signal,
+    response = await applicationFetch(`${base}${path}`, { method, credentials: "same-origin", cache: "no-store", redirect: "error", signal,
       ...(method === "GET" ? {} : { headers: { "content-type": raw ? "application/zip" : "application/json" },
         body: raw ? body : JSON.stringify(body) }) });
   } catch { throw new ResearchPackageRequestError(null); }

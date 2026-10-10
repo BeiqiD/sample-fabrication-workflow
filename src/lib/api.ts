@@ -1,3 +1,4 @@
+import { applicationFetch } from "./authentication-client";
 import { checkedStorageSettingsStatus } from "../../shared/contracts/storage-settings";
 import { checkedCurrentStorageSettings } from "../../shared/contracts/current-storage-settings";
 import { checkedNativeStorageActivationInput, checkedNativeStorageActivationReceipt, checkedStorageRolePolicyInput, checkedStorageRolePolicyReceipt,
@@ -20,7 +21,7 @@ import { uploadMetrologyReference } from "./metrology-reference-upload-client";
 import { submitFabubloxImport } from "./fabublox-import-client";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api${path}`, init);
+  const response = await applicationFetch(`/api${path}`, init);
   if (!response.ok) {
     const payload = await response.json().catch(() => ({ error: response.statusText })) as { error?: string };
     throw new Error(payload.error || `Request failed (${response.status})`);
@@ -31,7 +32,7 @@ export class StoragePolicyRequestError extends Error {
   constructor(readonly status: number) { super("Storage policy request failed."); }
 }
 async function storagePolicyRequest(path: string, init: RequestInit): Promise<unknown> {
-  const response = await fetch(`/api${path}`, { cache: "no-store", credentials: "same-origin", redirect: "error", ...init });
+  const response = await applicationFetch(`/api${path}`, { cache: "no-store", credentials: "same-origin", redirect: "error", ...init });
   if (!response.ok) throw new StoragePolicyRequestError(response.status);
   return response.json();
 }

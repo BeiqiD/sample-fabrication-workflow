@@ -1,3 +1,4 @@
+import { applicationFetch } from "./authentication-client";
 import { sha256Hex } from "../../shared/content-addressing";
 import { createUuid } from "./uuid";
 import { R2_UPLOAD_REQUEST_HEADER, validateFileUploadResult, validateR2UploadInput, type R2UploadIngress, type R2UploadResult } from "../../shared/contracts/r2-upload";
@@ -124,7 +125,7 @@ async function execute(prepared: Prepared, key: string): Promise<R2UploadResult>
   }
   if (prepared.attempted) {
     let response: Response;
-    try { response = await fetch(`/api/r2-upload-requests/${encodeURIComponent(checkpoint.requestId)}`, { cache: "no-store" }); }
+    try { response = await applicationFetch(`/api/r2-upload-requests/${encodeURIComponent(checkpoint.requestId)}`, { cache: "no-store" }); }
     catch { throw new R2UploadRequestError("The upload status could not be checked. Retry to check the same request."); }
     if (response.status !== 404) {
       const payload: unknown = await response.json().catch(() => null);
@@ -140,7 +141,7 @@ async function execute(prepared: Prepared, key: string): Promise<R2UploadResult>
   prepared.attempted = true;
   let response: Response;
   try {
-    response = await fetch(checkpoint.ingress === "ordinary_image" ? "/api/assets" : "/api/project-assets", {
+    response = await applicationFetch(checkpoint.ingress === "ordinary_image" ? "/api/assets" : "/api/project-assets", {
       method: "POST",
       headers: {
         "content-type": checkpoint.mimeType,

@@ -1,3 +1,4 @@
+import { applicationFetch } from "./authentication-client";
 import { sha256Hex } from "../../shared/content-addressing";
 import type { MetrologyTemplateReference } from "../../shared/contracts/template";
 import {
@@ -121,7 +122,7 @@ async function execute(prepared: Prepared, key: string): Promise<MetrologyRefere
   if (prepared.attempted) {
     let response: Response;
     try {
-      response = await fetch(`/api/metrology-templates/${encodeURIComponent(checkpoint.templateId)}/reference-upload-requests/${encodeURIComponent(checkpoint.requestId)}`, { cache: "no-store" });
+      response = await applicationFetch(`/api/metrology-templates/${encodeURIComponent(checkpoint.templateId)}/reference-upload-requests/${encodeURIComponent(checkpoint.requestId)}`, { cache: "no-store" });
     } catch { throw new MetrologyReferenceUploadError("The reference upload status could not be checked. Retry to check the same request."); }
     if (response.status !== 404) {
       if (response.ok) return settle(await response.json().catch(() => null), prepared, key);
@@ -133,7 +134,7 @@ async function execute(prepared: Prepared, key: string): Promise<MetrologyRefere
   prepared.attempted = true;
   let response: Response;
   try {
-    response = await fetch(`/api/metrology-templates/${encodeURIComponent(checkpoint.templateId)}/references`, {
+    response = await applicationFetch(`/api/metrology-templates/${encodeURIComponent(checkpoint.templateId)}/references`, {
       method: "POST", headers: { "content-type": checkpoint.mimeType, "X-Upload-Request-Id": checkpoint.requestId, "X-Filename-Uri": encodeURIComponent(checkpoint.filename) },
       body: prepared.file,
     });

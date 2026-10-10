@@ -1,3 +1,4 @@
+import { applicationFetch } from "./authentication-client";
 import {
   checkedFileShadowEvidenceReview, checkedFileShadowIdentification, checkedFileShadowReviewKey,
   type FileShadowEvidenceReview, type FileShadowIdentification, type FileShadowReviewKey,
@@ -43,7 +44,7 @@ const keyText = (key: FileShadowReviewKey) => JSON.stringify(key);
 /** This client has read capabilities only. It never opens browser storage,
  * obtains a conversion lock, or handles an operation journal. */
 export function createFileShadowEvidenceClient(options: { fetch?: typeof fetch } = {}) {
-  const fetcher = options.fetch ?? ((...args) => fetch(...args));
+  const fetcher = options.fetch ?? ((...args) => applicationFetch(...args));
   async function read(path: string, payload?: unknown): Promise<unknown> {
     let response: Response;
     try {

@@ -1,3 +1,4 @@
+import { applicationFetch } from "./authentication-client";
 export interface FileAuthorityStatus {
   mode: "legacy" | "overlap" | "active";
   updated_at: string;
@@ -34,7 +35,7 @@ export interface EnableRecoveredFileAuthorityInput {
 export class FileAuthorityAccessError extends Error {}
 
 async function request<T>(path: string, input?: unknown): Promise<T> {
-  const response = await fetch(`/api/files/${path}`, {
+  const response = await applicationFetch(`/api/files/${path}`, {
     method: input === undefined ? "GET" : "POST", cache: "no-store", credentials: "same-origin", redirect: "error",
     ...(input === undefined ? {} : { headers: { "content-type": "application/json" }, body: JSON.stringify(input) }),
   });

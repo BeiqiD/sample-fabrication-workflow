@@ -1,3 +1,4 @@
+import { applicationFetch } from "./authentication-client";
 import {
   checkedShadowAdjudicationRequest, checkedShadowAdjudicationRevocationRequest,
   shadowAdjudicationRequestSha256, shadowAdjudicationRevocationRequestSha256,
@@ -103,7 +104,7 @@ export function canDismissAdjudication(journal: AdjudicationJournal): boolean {
 export function createFileShadowAdjudicationClient(options: {
   fetch?: typeof fetch; storage?: Storage; withLock?: <T>(action: () => Promise<T>) => Promise<T>;
 } = {}) {
-  const fetcher = options.fetch ?? ((...args) => fetch(...args));
+  const fetcher = options.fetch ?? ((...args) => applicationFetch(...args));
   let authorized = false;
   let preparations = new WeakMap<AdjudicationPreparation, string>();
   const receipts = new WeakMap<AdjudicationReceipt, string>();

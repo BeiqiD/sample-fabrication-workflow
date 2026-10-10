@@ -1,3 +1,4 @@
+import { applicationFetch } from "./authentication-client";
 import type {
   ListReferenceChildrenInput,
   ListReferenceChildrenResponse,
@@ -24,7 +25,7 @@ export async function resolveReference(
   target: ReferenceTarget,
   signal?: AbortSignal,
 ): Promise<ReferenceResolution> {
-  const response = await fetch("/api/references/resolve", {
+  const response = await applicationFetch("/api/references/resolve", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ targets: [target] }),
@@ -43,7 +44,7 @@ export async function searchReferences(
   input: SearchReferencesInput,
   signal?: AbortSignal,
 ): Promise<SearchReferencesResponse> {
-  const response = await fetch("/api/references/search", {
+  const response = await applicationFetch("/api/references/search", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(input),
@@ -56,7 +57,7 @@ export async function listReferenceChildren(
   input: ListReferenceChildrenInput,
   signal?: AbortSignal,
 ): Promise<ListReferenceChildrenResponse> {
-  const response = await fetch("/api/references/children", {
+  const response = await applicationFetch("/api/references/children", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(input),

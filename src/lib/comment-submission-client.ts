@@ -1,3 +1,4 @@
+import { applicationFetch } from "./authentication-client";
 import type { CreateCommentSubmissionInput } from "../../shared/types";
 import { canonicalCommentAcceptanceInput, validateCommentAcceptanceInput, validateCommentPublicationResult, MAX_COMMENT_ACCEPTANCE_INPUT_BYTES, type AcceptedCommentSubmissionInput, type CommentAcceptanceState } from "../../shared/contracts/comment-acceptance";
 
@@ -147,7 +148,7 @@ async function verifyState(value: unknown, id: string): Promise<CommentAcceptanc
 }
 export async function getCommentAcceptance(id: string): Promise<CommentAcceptanceState | null> {
   let response: Response;
-  try { response = await fetch(`/api/comment-submissions/${encodeURIComponent(id)}/acceptance`, { cache: "no-store" }); }
+  try { response = await applicationFetch(`/api/comment-submissions/${encodeURIComponent(id)}/acceptance`, { cache: "no-store" }); }
   catch { throw new CommentAcceptanceError("The comment status could not be checked. Retry to check the same request."); }
   if (response.status === 404) return null;
   if (!response.ok) throw new CommentAcceptanceError("The comment status could not be checked. Retry to check the same request.");
@@ -156,7 +157,7 @@ export async function getCommentAcceptance(id: string): Promise<CommentAcceptanc
 async function mutation(path: string, id: string, init: RequestInit): Promise<CommentAcceptanceState> {
   requireTracked(id);
   let response: Response;
-  try { response = await fetch(`/api/comment-submissions${path}`, init); }
+  try { response = await applicationFetch(`/api/comment-submissions${path}`, init); }
   catch { throw new CommentAcceptanceError("The comment response was lost. Retry to check the same request."); }
   const payload: unknown = await response.json().catch(() => null);
   if (!response.ok) throw new CommentAcceptanceError(record(payload) && typeof payload.error === "string" ? payload.error : "The comment operation did not complete. Retry to check its status.");

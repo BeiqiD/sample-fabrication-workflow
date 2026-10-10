@@ -1,3 +1,4 @@
+import { applicationFetch } from "./authentication-client";
 import { checkedStorageConfigurationStatus, type SaveStorageCandidateInput, type StorageConfigurationStatus } from "../../shared/contracts/storage-configuration";
 import { checkedStorageCandidateCheck, checkedStorageCandidateCheckId, checkedStorageCandidateCheckList, checkedStorageCandidateCheckProfileId,
   checkedStartStorageCandidateCheckInput, type StartStorageCandidateCheckInput, type StorageCandidateCheck, type StorageCandidateCheckList } from "../../shared/contracts/storage-candidate-check";
@@ -14,7 +15,7 @@ export class StorageConfigurationRequestError extends Error {
   constructor(readonly status: number) { super("Storage configuration request failed."); }
 }
 async function request(path: string, init: RequestInit): Promise<unknown> {
-  const response = await fetch(`/api/storage/configuration${path}`, {
+  const response = await applicationFetch(`/api/storage/configuration${path}`, {
     cache: "no-store", credentials: "same-origin", redirect: "error", ...init,
   });
   if (!response.ok) throw new StorageConfigurationRequestError(response.status);

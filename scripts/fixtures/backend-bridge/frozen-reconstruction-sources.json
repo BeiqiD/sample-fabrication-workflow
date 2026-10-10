@@ -22,6 +22,20 @@
       "sourceBlob": "9fcd54a993eff3ca2c468cab7a945c1e7f6f2c2d",
       "sha256": "4072fa479d484155d7bf7b30450375e8f33f0d341e71dfcd9e71009e6039597f",
       "byteSize": 78071
+    },
+    "worker/references/adapters.ts": {
+      "fixture": "scripts/fixtures/backend-bridge/reconstruction-sources/worker/references/adapters.ts.txt",
+      "sourceCommit": "4a2ed0f97b267446c6a4e7aebea8b161fa5959bb",
+      "sourceBlob": "0af700c0025498e2b6b4b90673fcdcbcb6f9d77b",
+      "byteSize": 22631,
+      "sha256": "c19dab005cdce8c5948961bf58d44dd19a4d13a64696bb1493ffa7112b7ff895"
+    },
+    "worker/references/search.ts": {
+      "fixture": "scripts/fixtures/backend-bridge/reconstruction-sources/worker/references/search.ts.txt",
+      "sourceCommit": "4a2ed0f97b267446c6a4e7aebea8b161fa5959bb",
+      "sourceBlob": "3a81dde8a9ebb5194c06e3a91089249b4aa157b4",
+      "byteSize": 26893,
+      "sha256": "214f18ad79d0d694718e74950fdf878fa4b76edc862261794b4aca05b981a5f3"
     }
   }
 }

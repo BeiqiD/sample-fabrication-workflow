@@ -1,3 +1,5 @@
+import type { ReadSqlDatabase, ReadSqlRow } from "../runtime/read-sql";
+import { configurationSqlInteger } from "../runtime/configuration-sql";
 import type {
   ReferenceContext,
   ReferenceContextSegment,
@@ -14,11 +16,11 @@ export interface ResolvedReferenceRecord {
 }
 
 export type ReferenceAdapter = (
-  db: D1Database,
+  db: ReadSqlDatabase,
   ids: readonly string[],
 ) => Promise<Map<string, ResolvedReferenceRecord>>;
 
-type Row = Record<string, unknown>;
+type Row = ReadSqlRow;
 
 function text(value: unknown) {
   return typeof value === "string" ? value : null;
@@ -28,9 +30,9 @@ function requiredText(value: unknown) {
   return text(value) ?? "";
 }
 
-function numeric(value: unknown) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
+function numeric(value: unknown, field: string) {
+  if (value === null || value === undefined) return 0;
+  return configurationSqlInteger(value, field);
 }
 
 function excerpt(value: unknown, maximum = 240) {
@@ -44,12 +46,12 @@ function uniqueIds(ids: readonly string[]) {
 }
 
 async function allRows(
-  db: D1Database,
+  db: ReadSqlDatabase,
   sql: string,
   ids: readonly string[],
 ): Promise<Row[]> {
   if (!ids.length) return [];
-  const result = await db.prepare(sql).bind(JSON.stringify(uniqueIds(ids))).all<Row>();
+  const result = await db.prepare(sql).bind(JSON.stringify(uniqueIds(ids))).all();
   return result.results;
 }
 
@@ -61,13 +63,13 @@ function sampleLabel(row: Row, prefix = "") {
 
 function runLabel(row: Row, prefix = "") {
   const name = requiredText(row[`${prefix}run_template_name`]);
-  const version = numeric(row[`${prefix}run_template_version`]);
+  const version = numeric(row[`${prefix}run_template_version`], "reference.run_template_version");
   return name ? `${name} v${version}` : `Run ${requiredText(row[`${prefix}run_id`])}`;
 }
 
 function recipeLabel(row: Row, prefix = "") {
   const name = requiredText(row[`${prefix}recipe_name`]);
-  const version = numeric(row[`${prefix}recipe_version`]);
+  const version = numeric(row[`${prefix}recipe_version`], "reference.recipe_version");
   return name ? `${name} v${version}` : `Recipe revision ${requiredText(row[`${prefix}recipe_id`])}`;
 }
 
@@ -240,7 +242,7 @@ const runStepAdapter: ReferenceAdapter = async (db, ids) => {
   }));
 };
 
-async function commentContexts(db: D1Database, ids: readonly string[]) {
+async function commentContexts(db: ReadSqlDatabase, ids: readonly string[]) {
   const sampleRows = await allRows(db, `
     SELECT cs.id AS owner_id,
            s.id AS sample_id, s.code AS sample_code, s.title AS sample_title,
@@ -353,7 +355,7 @@ const commentOccurrenceAdapter: ReferenceAdapter = async (db, ids) => {
   }));
 };
 
-async function attachmentContexts(db: D1Database, itemIds: readonly string[]) {
+async function attachmentContexts(db: ReadSqlDatabase, itemIds: readonly string[]) {
   const sampleRows = await allRows(db, `
     SELECT csi.id AS owner_id,
            s.id AS sample_id, s.code AS sample_code, s.title AS sample_title,
