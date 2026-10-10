@@ -602,11 +602,26 @@ function MetrologyPickerDrawer({ state, onClose, onSaved }: {
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
+  const [savingPhase, setSavingPhase] = useState<"create" | "add" | "refresh" | null>(null);
   const [savingId, setSavingId] = useState("");
   const [error, setError] = useState("");
+  const sessionRef = useRef<object | null>(null);
+  const operationRef = useRef<object | null>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-  useModalDialog({ dialogRef, initialFocusRef: searchRef, onClose, blocked: Boolean(savingId) });
+  const saving = savingPhase !== null;
+  function close() {
+    if (!operationRef.current) onClose();
+  }
+  useModalDialog({ dialogRef, initialFocusRef: searchRef, onClose: close, blocked: saving });
+  useEffect(() => {
+    const session = {};
+    sessionRef.current = session;
+    return () => {
+      sessionRef.current = null;
+      operationRef.current = null;
+    };
+  }, []);
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
@@ -626,40 +641,81 @@ function MetrologyPickerDrawer({ state, onClose, onSaved }: {
     };
   }, [query]);
 
-  async function add(templateVersionId: string) {
-    if (!state.column.run) return;
-    setSavingId(templateVersionId); setError("");
+  function begin(phase: "create" | "add", templateVersionId = "") {
+    if (!sessionRef.current || operationRef.current || !state.column.run) return null;
+    const operation = {
+      session: sessionRef.current,
+      sampleId: state.column.sample.id,
+      runId: state.column.run.id,
+      afterStepId: state.afterStepId,
+      onSaved,
+      onClose,
+    };
+    operationRef.current = operation;
+    setSavingPhase(phase); setSavingId(templateVersionId); setError("");
+    return operation;
+  }
+
+  type Operation = NonNullable<ReturnType<typeof begin>>;
+  function current(operation: Operation) {
+    return sessionRef.current === operation.session && operationRef.current === operation;
+  }
+  function finish(operation: Operation) {
+    if (!current(operation)) return;
+    operationRef.current = null;
+    setSavingPhase(null); setSavingId("");
+  }
+
+  async function insert(operation: Operation, templateVersionId: string) {
+    if (!current(operation)) return;
+    setSavingPhase("add"); setSavingId(templateVersionId);
     try {
-      await api.createMetrologyRunEntry(state.column.sample.id, state.column.run.id, {
+      await api.createMetrologyRunEntry(operation.sampleId, operation.runId, {
         templateVersionId,
-        afterStepId: state.afterStepId,
+        afterStepId: operation.afterStepId,
       });
-      await onSaved();
-      onClose();
-    } catch (error) { setError((error as Error).message); }
-    finally { setSavingId(""); }
+      if (!current(operation)) return;
+      setSavingPhase("refresh");
+      await operation.onSaved();
+      if (current(operation)) operation.onClose();
+    } catch (error) {
+      if (current(operation)) setError((error as Error).message);
+    }
+  }
+
+  async function add(templateVersionId: string) {
+    const operation = begin("add", templateVersionId);
+    if (!operation) return;
+    try { await insert(operation, templateVersionId); }
+    finally { finish(operation); }
   }
 
   async function createAndAdd(input: MetrologyTemplateInput) {
-    const created = await api.createMetrologyTemplate(input);
-    await add(created.id);
+    const operation = begin("create");
+    if (!operation) return;
+    try {
+      const created = await api.createMetrologyTemplate(input);
+      if (current(operation)) await insert(operation, created.id);
+    } catch (error) {
+      if (current(operation)) throw error;
+    } finally { finish(operation); }
   }
 
-  return <div className="step-drawer-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !savingId) onClose(); }}>
+  return <div className="step-drawer-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) close(); }}>
     <aside ref={dialogRef} className="step-drawer metrology-picker-drawer" role="dialog" aria-modal="true" aria-labelledby="metrology-picker-title">
-      <div className="step-drawer-heading"><div><p className="dialog-kicker">{state.column.sample.code}</p><h2 id="metrology-picker-title">Add metrology</h2></div><button type="button" className="drawer-close" aria-label="Close" disabled={Boolean(savingId)} onClick={onClose}><DialogCloseIcon /></button></div>
+      <div className="step-drawer-heading"><div><p className="dialog-kicker">{state.column.sample.code}</p><h2 id="metrology-picker-title">Add metrology</h2></div><button type="button" className="drawer-close" aria-label="Close" disabled={saving} onClick={close}><DialogCloseIcon /></button></div>
       <p className="muted">Choose a saved record type, or create a new metrology template and add it here.</p>
       {creating ? <MetrologyTemplateForm embedded title="New metrology template" submitLabel="Save and add" onCancel={() => setCreating(false)} onSubmit={createAndAdd} /> : <>
-        <label className="search-box metrology-template-search"><span>Search templates</span><input ref={searchRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="SEM, AFM, XRD…" /></label>
+        <label className="search-box metrology-template-search"><span>Search templates</span><input ref={searchRef} disabled={saving} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="SEM, AFM, XRD…" /></label>
         <div className="metrology-picker-list">
-          {templates.map((template) => <button type="button" key={template.id} disabled={Boolean(savingId)} onClick={() => void add(template.id)}>
+          {templates.map((template) => <button type="button" key={template.id} disabled={saving} onClick={() => void add(template.id)}>
             <span><strong>{template.name}</strong><small>{template.toolName || "No default tool"}{template.hasDefaultContent ? " · default content" : ""}</small></span>
             <span>{savingId === template.id ? "Adding…" : "Add"}</span>
           </button>)}
           {loading && !templates.length && <p className="muted">Loading metrology templates…</p>}
           {!loading && !templates.length && <p className="muted">No matching metrology templates.</p>}
         </div>
-        <button type="button" className="button wide" disabled={Boolean(savingId)} onClick={() => setCreating(true)}>Create new metrology template</button>
+        <button type="button" className="button wide" disabled={saving} onClick={() => setCreating(true)}>Create new metrology template</button>
       </>}
       {error && <p className="error-banner">{error}</p>}
     </aside>

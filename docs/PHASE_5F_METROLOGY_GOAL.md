@@ -1,6 +1,9 @@
 # Queued goal: 5F-2d Metrology drawer pending work and session ownership
 
-Status: **queued next slice; not implemented or qualified yet**.
+Status: **bounded local goal complete on 2026-10-10**. See the
+[acceptance and limits](PHASE_5F_METROLOGY_ACCEPTANCE.md) and
+[check receipts](PHASE_5F_METROLOGY_RECEIPTS.json). Combined-tree CI and integration
+remain subsequent gates; this does not complete all Phase 5F coverage.
 
 Source baseline: `3c1baf5fdb21994c0510754eb20919db8189a91a` on `codex/fp2-fp3-development`.
 The preceding saved-job control ACK slice has focused, full mounted and build passes, recorded in [the initial acceptance](PHASE_5F_INITIAL_ACCEPTANCE.md). Its CI qualification is separate from this queued goal. This goal does not mark all of Phase 5F complete.

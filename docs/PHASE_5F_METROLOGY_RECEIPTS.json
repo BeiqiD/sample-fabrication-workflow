@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "baselineHead": "4b2c660267b794d09798f961efe8d11ba6e1df86",
+  "sourceFiles": [
+    "src/components/MultiSampleRunGrid.tsx",
+    "src/grid-modal-behavior.test.ts",
+    "src/phase5f-metrology-pending.mount.test.tsx"
+  ],
+  "checks": [
+    {
+      "command": "npm run test:reference-mounted -- src/phase5f-metrology-pending.mount.test.tsx",
+      "result": "4 expected defect reproductions failed before source change",
+      "evidencePath": "/tmp/metrology-pre-fix-mounted.log",
+      "sha256": "b33ab1abf36f91f24d64c3dab485f9dca4a27a7b94cc3b0be5b3fb0e473434f2"
+    },
+    {
+      "command": "npm run test:reference-mounted -- src/phase5f-metrology-pending.mount.test.tsx src/phase5e-advanced-records.mount.test.tsx src/attachment-media.mount.test.tsx",
+      "result": "3 files / 66 tests passed; before two additional stale-refresh cases",
+      "evidencePath": "/tmp/metrology-focused-mounted.log",
+      "sha256": "810ceae94dfea48db6ff2586b37e52d5fb7fe06ae5586059eaf859db3150e885"
+    },
+    {
+      "command": "npm run test:reference-mounted",
+      "result": "94 files / 903 tests passed, including final 26 Metrology cases",
+      "evidencePath": "/tmp/metrology-full-mounted.log",
+      "sha256": "f5eff41215192bd14a6d7934d8ed80b8cfe5e9d2feaf6cc4516cc84efd4b680c"
+    },
+    {
+      "command": "npx vitest run src/grid-modal-behavior.test.ts",
+      "result": "1 file / 4 tests passed",
+      "evidencePath": "/tmp/metrology-source-modal.log",
+      "sha256": "522210323a0ac427a8e61f581218751e659929b226245fd5b655e1c90d83cb3f"
+    },
+    {
+      "command": "XDG_CONFIG_HOME=/workspace/.config WRANGLER_SEND_METRICS=false npm run build",
+      "result": "failed: unsupported exact option in new test ByRoleOptions; later corrected without changing exact string matching",
+      "evidencePath": "/tmp/metrology-build-initial-type-failure.log",
+      "sha256": "ff1f5bf066460efa516ad595b4ea42616398b032ddb4fcd666705b4a96140c78"
+    },
+    {
+      "command": "XDG_CONFIG_HOME=/workspace/.config WRANGLER_SEND_METRICS=false npm run build",
+      "result": "passed after test typing correction",
+      "evidencePath": "/tmp/metrology-build-corrected.log",
+      "sha256": "ad67a2b2fbd78dc12687f41b682a3d37102f21002c7091f10269bfbfb31693e9"
+    }
+  ],
+  "limits": [
+    "No browser or remote provider acceptance claimed",
+    "No remote migrations, provider activation or real development database writes",
+    "Old dispatched writes may still be accepted; no cancellation, rollback or automatic replay"
+  ]
+}
