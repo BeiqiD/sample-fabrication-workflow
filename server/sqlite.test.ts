@@ -6,7 +6,8 @@ import { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it } from "vitest";
 import { SqlFileJobRepository } from "../worker/files/jobs/sql-repository";
 import { checkDatabaseReadiness } from "../worker/platform/readiness";
-import { asJobSqlDatabase, asReadinessDatabase, checkedSafeInteger, createSqliteCapability, type SqliteCapability } from "./sqlite";
+import { asJobSqlDatabase, asReadinessDatabase, assertSqliteConnectionOwner, checkedSafeInteger, createSqliteCapability, type SqliteCapability } from "./sqlite";
+import { shutdownQuiescedSqliteDatabase } from "./sqlite-backup";
 
 const fixtures: Array<{ directory: string; database: DatabaseSync; core: SqliteCapability }> = [];
 afterEach(() => {
@@ -167,6 +168,25 @@ describe("exact file-backed SQLite capability", () => {
     const reopened = createSqliteCapability(database, { busyTimeoutMs: 100 });
     try { expect(await reopened.prepare("SELECT id,value FROM business").first()).toEqual({ id: 1n, value: "persisted" }); }
     finally { reopened.close(); }
+  });
+
+  it("closes idempotently after privileged checkpoint/shutdown while rejecting retained queries", async () => {
+    const f = fixture(), statement = f.core.prepare("SELECT * FROM business");
+    await f.core.prepare("INSERT INTO business VALUES(1,'before-shutdown',0)").run();
+    expect(shutdownQuiescedSqliteDatabase(f.database, { busyTimeoutMs: 100 }).busy).toBe(0);
+    expect(() => f.core.close()).not.toThrow(); expect(() => f.core.close()).not.toThrow();
+    expect(() => f.core.primary()).toThrow("closed"); await expect(statement.first()).rejects.toThrow("closed");
+    const reopened = new DatabaseSync(f.path, { readOnly: true, allowExtension: false });
+    try { expect(reopened.prepare("SELECT value FROM business").get()?.value).toBe("before-shutdown"); }
+    finally { reopened.close(); }
+  });
+
+  it("binds actual query capabilities to their native owner for reviewed installation admission", () => {
+    const first = fixture(), second = fixture();
+    expect(() => assertSqliteConnectionOwner(first.core, first.database)).not.toThrow();
+    expect(() => assertSqliteConnectionOwner(first.core, second.database)).toThrow("owner mismatch");
+    expect(() => assertSqliteConnectionOwner({ ...first.core }, first.database)).toThrow("owner mismatch");
+    first.core.close(); expect(() => assertSqliteConnectionOwner(first.core, first.database)).toThrow("closed");
   });
 
   it("exposes the existing readiness port without creating a Cloudflare environment", async () => {

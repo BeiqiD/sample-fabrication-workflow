@@ -160,8 +160,34 @@ describe("administrator storage candidate registry", () => {
   it("uses the actual D1 transaction with native Worker crypto for candidate saves and stale CAS", async () => {
     const bundled = await build({ stdin: { contents: `
       import { readStorageConfiguration,saveStorageCandidate } from './configuration-registry';
+      import { createStorageConfigurationRegistry } from './configuration-registry-core';
+      import { d1StorageConfigurationDatabase } from './configuration-d1';
+      import { parseStorageCredentialKeyring } from './credential-envelope';
+      import { canAdministerSystemSettings } from './system-administrator';
       export default { async fetch(request,env) {
-        try { const input=await request.json(); return Response.json(input.action==='read' ? await readStorageConfiguration(env,'admin@example.test') : await saveStorageCandidate(env,input.command,'admin@example.test')); }
+        try { const input=await request.json();
+          if(input.action==='direct-counts') {
+            const sql=d1StorageConfigurationDatabase(env.DB).primary();
+            return Response.json(await sql.batch([sql.prepare('INSERT INTO fixture_direct(v) VALUES(?)').bind(1)]));
+          }
+          if(input.action==='read-batch') {
+            const sql=d1StorageConfigurationDatabase(env.DB).primary();
+            return Response.json(await sql.batch([sql.prepare('SELECT 1 AS value')]));
+          }
+          if(input.action==='foreign-statement') {
+            const own=d1StorageConfigurationDatabase(env.DB).primary();
+            const other=d1StorageConfigurationDatabase(env.DB).primary();
+            return Response.json(await own.batch([other.prepare('INSERT INTO fixture_direct(v) VALUES(?)').bind(2)]));
+          }
+          if(input.action==='lost-ack') {
+            const sql=d1StorageConfigurationDatabase(env.DB);
+            const lossy={...sql,primary(){const selected=sql.primary();return {...selected,async batch(items){await selected.batch(items);throw new Error('Private ACK lost');}};}};
+            const registry=createStorageConfigurationRegistry({database:()=>lossy,
+              authorizeAdministrator:actor=>canAdministerSystemSettings(env,actor),
+              keyring:()=>parseStorageCredentialKeyring(env.STORAGE_CREDENTIAL_KEYRING)});
+            return Response.json(await registry.saveStorageCandidate(input.command,'admin@example.test'));
+          }
+          return Response.json(input.action==='read' ? await readStorageConfiguration(env,'admin@example.test') : await saveStorageCandidate(env,input.command,'admin@example.test')); }
         catch(error) { return Response.json({error:error.message},{status:error.status||503}); }
       } };`, resolveDir: fileURLToPath(new URL(".", import.meta.url)), loader: "ts" }, bundle: true, format: "esm", platform: "browser", write: false });
     const native = new Miniflare({ modules: true, script: bundled.outputFiles[0].text, compatibilityDate: "2026-07-14", d1Databases: ["DB"],
@@ -172,7 +198,20 @@ describe("administrator storage candidate registry", () => {
       // intact through prepare rather than split on their internal semicolons.
       const statements = migration.match(/CREATE TABLE[\s\S]*?;|CREATE TRIGGER[\s\S]*?\nEND;/g)!;
       await db.batch(statements.map(statement => db.prepare(statement)));
+      await db.batch([
+        db.prepare("CREATE TABLE fixture_direct(v INTEGER)"), db.prepare("CREATE TABLE fixture_trigger(v INTEGER)"),
+        db.prepare("CREATE TRIGGER fixture_side_effect AFTER INSERT ON fixture_direct BEGIN INSERT INTO fixture_trigger VALUES(NEW.v); END;"),
+      ]);
       const invoke = (value: unknown) => native.dispatchFetch("https://fixture.test", { method: "POST", body: JSON.stringify(value) });
+      expect(await (await invoke({ action: "direct-counts" })).json()).toEqual([{ directChanges: 1 }]);
+      const rejectedRead = await invoke({ action: "read-batch" });
+      expect(rejectedRead.status).toBe(503);
+      expect(await rejectedRead.json()).toEqual({ error: "Storage configuration batch only accepts top-level mutations" });
+      const rejectedForeign = await invoke({ action: "foreign-statement" });
+      expect(rejectedForeign.status).toBe(503);
+      expect(await rejectedForeign.json()).toEqual({ error: "Foreign storage configuration statement" });
+      expect((await db.prepare("SELECT count(*) n FROM fixture_direct").first<{ n: number }>())!.n).toBe(1);
+      expect((await db.prepare("SELECT count(*) n FROM fixture_trigger").first<{ n: number }>())!.n).toBe(1);
       const firstResponse = await invoke({ command: input }); expect(firstResponse.status).toBe(200);
       const first = await firstResponse.json() as { profileId: string };
       const update = { ...input, profileId: first.profileId, expectedRevision: 1, credentials: { mode: "retain" } };
@@ -181,6 +220,10 @@ describe("administrator storage candidate registry", () => {
       const read = await (await invoke({ action: "read" })).json();
       expect(read).toMatchObject({ candidates: { items: [{ revision: 2, credentials: { status: "configured" } }] } });
       expect((await db.prepare("SELECT count(*) n FROM system_storage_credential_payloads").first<{ n: number }>())!.n).toBe(2);
+      const settled = await invoke({ action: "lost-ack", command: { ...update, expectedRevision: 2 } });
+      expect(settled.status).toBe(200); expect(await settled.json()).toMatchObject({ profileId: first.profileId, revision: 3 });
+      expect((await db.prepare("SELECT count(*) n FROM system_storage_credential_payloads").first<{ n: number }>())!.n).toBe(3);
+      expect((await db.prepare("SELECT count(*) n FROM system_storage_configuration_audit").first<{ n: number }>())!.n).toBe(3);
     } finally { await native.dispose(); }
   }, 30_000);
 });

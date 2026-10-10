@@ -8,6 +8,7 @@ const KEY_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 const BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8", { fatal: true });
+type StorageCryptoKey = Awaited<ReturnType<typeof crypto.subtle.importKey>>;
 
 export interface StorageCredentialIdentity {
   profileId: string;
@@ -25,7 +26,7 @@ export interface StorageCredentialKeyring {
   version: 1;
   currentKeyId: string;
   /** Imported keys are non-extractable; the bootstrap JSON is not retained. */
-  keys: ReadonlyMap<string, CryptoKey>;
+  keys: ReadonlyMap<string, StorageCryptoKey>;
 }
 export type StorageCredentialRead = { outcome: "available"; plaintext: string } | { outcome: "unavailable" };
 export type StorageCredentialReenvelope = {
@@ -93,7 +94,7 @@ export async function parseStorageCredentialKeyring(raw: unknown): Promise<Stora
       throw new StorageCredentialUnavailableError();
     const entries = Object.entries(value.keys);
     if (!entries.length || entries.length > MAX_KEYS || !Object.hasOwn(value.keys, value.currentKeyId)) throw new StorageCredentialUnavailableError();
-    const keys = new Map<string, CryptoKey>();
+    const keys = new Map<string, StorageCryptoKey>();
     for (const [keyId, material] of entries) {
       if (!KEY_ID.test(keyId)) throw new StorageCredentialUnavailableError();
       const keyBytes = bytes(material, 32);
