@@ -20,7 +20,6 @@ import type {
   UpdateProjectPlacementInput,
 } from "../../shared/project-api";
 import {
-  type ReferenceTarget,
   type ReferenceTargetType,
 } from "../../shared/reference-types";
 import {
