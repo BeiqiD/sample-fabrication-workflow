@@ -76,7 +76,9 @@
     "test:file-shadow-inspection": "node --test scripts/fp1-shadow-inspection.test.mjs",
     "test:file-shadow": "node --test scripts/fp1-shadow-runtime.test.mjs scripts/fp1-shadow-r2-writer.test.mjs scripts/fp1-shadow-withdrawals.test.mjs scripts/fp1-shadow-adjudications.test.mjs",
     "typecheck:server": "tsc -p tsconfig.server.json && tsc -p tsconfig.runtime-tests.json",
-    "test:node-http": "node --test server/http.test.mts server/static-assets.test.mts"
+    "test:node-http": "node --test server/http.test.mts server/static-assets.test.mts",
+    "build:node-client": "tsc -b tsconfig.shared.json tsconfig.app.json && vite build --config vite.node.config.ts",
+    "verify:node-client": "npm run build:node-client && node scripts/verify-project-map-bundle.mjs --client-directory dist-node/client"
   },
   "dependencies": {
     "@xyflow/react": "^12.11.2",

@@ -64,5 +64,8 @@ export async function verifyProjectMapBundle(clientDirectory) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  await verifyProjectMapBundle(fileURLToPath(new URL("../dist/client/", import.meta.url)));
+  const args = process.argv.slice(2);
+  assert(args.length === 0 || args.length === 2 && args[0] === "--client-directory" && args[1],
+    "Usage: node scripts/verify-project-map-bundle.mjs [--client-directory PATH]");
+  await verifyProjectMapBundle(args.length ? resolve(args[1]) : fileURLToPath(new URL("../dist/client/", import.meta.url)));
 }

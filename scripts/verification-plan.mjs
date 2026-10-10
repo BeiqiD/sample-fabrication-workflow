@@ -1,6 +1,6 @@
 // Leaf checks are shared by CI and deployment. Domain scripts remain convenient
 // local entry points; the complete gate runs each underlying check only once.
-const testLeaves = ["verification-scripts", "source", "mounted", "rich-text", "node-http", "server-types"];
+const testLeaves = ["verification-scripts", "source", "mounted", "rich-text", "node-http", "server-types", "node-client"];
 const mapLeaves = ["source", "mounted", "build", "map-bundle"];
 const mutationLeaves = [...mapLeaves, "project-worker"];
 export const verificationContexts = {
@@ -16,7 +16,7 @@ export const verificationContexts = {
   "pre-pr/project-reading": mutationLeaves,
   "pre-pr/tests": testLeaves,
   "pre-pr/file-jobs": ["verification-scripts", "source", "mounted", "export-contract", "file-jobs-node", "server-types", "migrations", "build"],
-  "pre-pr/build": ["build"],
+  "pre-pr/build": ["build", "node-client"],
 };
 
 export function verificationPlan(mode) {
@@ -38,6 +38,7 @@ export function verificationPlan(mode) {
       { id: "rich-text", script: "test:rich-text-bundle" },
       { id: "node-http", script: "test:node-http" },
       { id: "server-types", script: "typecheck:server" },
+      { id: "node-client", script: "verify:node-client" },
       { id: "export-contract", script: "typecheck:export-contract" },
       { id: "file-jobs-node", script: "typecheck:file-jobs-node" },
       { id: "migrations", script: "verify:d1-migrations" },
