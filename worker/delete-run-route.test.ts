@@ -1,69 +1,9 @@
 import { readFileSync, readdirSync } from "node:fs";
-import { DatabaseSync, type StatementSync } from "node:sqlite";
+import { DatabaseSync } from "node:sqlite";
+import { SqliteD1Database } from "./reference-test-support";
 import { describe, expect, it } from "vitest";
 import worker from "./index";
 import type { Env } from "./types";
-
-class SqliteD1Statement {
-  constructor(
-    private readonly database: DatabaseSync,
-    readonly query: string,
-    readonly bindings: unknown[] = [],
-  ) {}
-
-  bind(...bindings: unknown[]) {
-    return new SqliteD1Statement(this.database, this.query, bindings);
-  }
-
-  private statement(): StatementSync {
-    return this.database.prepare(this.query);
-  }
-
-  async first<T>() {
-    return (this.statement().get(...this.bindings) as T | undefined) ?? null;
-  }
-
-  async all<T>() {
-    return {
-      success: true,
-      results: this.statement().all(...this.bindings) as T[],
-      meta: {},
-    };
-  }
-
-  async run() {
-    return this.execute();
-  }
-
-  execute() {
-    const result = this.statement().run(...this.bindings);
-    return {
-      success: true,
-      meta: { changes: Number(result.changes) },
-      results: [],
-    };
-  }
-}
-
-class SqliteD1Database {
-  constructor(readonly database: DatabaseSync) {}
-
-  prepare(query: string) {
-    return new SqliteD1Statement(this.database, query);
-  }
-
-  async batch(statements: SqliteD1Statement[]) {
-    this.database.exec("BEGIN");
-    try {
-      const results = statements.map((statement) => statement.execute());
-      this.database.exec("COMMIT");
-      return results;
-    } catch (error) {
-      this.database.exec("ROLLBACK");
-      throw error;
-    }
-  }
-}
 
 function createDatabase() {
   const database = new DatabaseSync(":memory:");

@@ -34,7 +34,10 @@ separate receipts. Current development is #258/currentV26 at `e108496`.
 Candidate #259 retains the prior six directory/creation cases and the new four
 true default-page Templates cases. Its one-source-case clock fixture failure
 and13 skipped downstream leaves require the minimal repair/final complete gates;
-no historical browser scope is relabelled as a fresh combined-head run.
+no historical browser scope is relabelled as a fresh combined-head run. The
+combined candidate also retains separately qualified current24 Execution
+metadata mutation services; its final complete gates must cover the actual
+combined head. Close #260 as superseded only after successful combined merge.
 Post-merge #251 Verify/Map and all 15 contexts and Workers Build
 `114224522096` succeeded; three anonymous routes still returned Access 302.
 Authenticated serving/schema and whole-phase device gates stay open.

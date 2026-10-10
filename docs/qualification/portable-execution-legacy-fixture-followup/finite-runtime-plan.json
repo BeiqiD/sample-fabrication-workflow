@@ -1,0 +1,65 @@
+{
+  "kind": "execution-legacy-fixture-followup-finite-runtime-plan/1",
+  "status": "UNRUN_AWAITING_EXPLICIT_EXCLUSIVE_PARENT_GO",
+  "root": "/tmp/rt1-execution-legacy-fixture-repair-8a30cc5",
+  "sourceReceipt": "docs/qualification/portable-execution-legacy-fixture-followup/source-receipt.json",
+  "sourceReceiptSha256": "5af2d3826d12743e1a59a685847dac7c0931eb4f1da0183f21ee3eafd7c46848",
+  "policy": {
+    "serial": true,
+    "maxWorkers": 1,
+    "fileParallelism": false,
+    "defaultCaseDeadlineMs": 5000,
+    "bail": 1,
+    "stopAfterFirstFailure": true,
+    "noReplaysOrBudgetChanges": true
+  },
+  "preconditions": [
+    "Independent source peer must clear exact two fixture substitutions/configs and parent explicitly release the exclusive CPU/runtime window.",
+    "Verify exact clean private checkpoint and all fixture/helper/adapter/config/production pins before any actual compiler or SQL effect.",
+    "Use existing installed dependencies afterGO only; compare package-lock and reserve private symlink with no install or dependency changes.",
+    "Refuse existing log/report paths. Reserve new outputs privately before child launch.",
+    "Historical full-own-CI logs remain immutable. Do not run diagnostics, old30/preview/finish/V26 or baseline reruns in this finite window."
+  ],
+  "stages": [
+    {
+      "stage": "owned-fixture-strict",
+      "cwd": "/tmp/rt1-execution-legacy-fixture-repair-8a30cc5",
+      "argv": [
+        "node_modules/.bin/tsc",
+        "--noEmit",
+        "-p",
+        "execution-legacy-fixture-ci-followup.tsconfig.json"
+      ],
+      "log": "/tmp/portable-execution-legacy-fixture-owned-strict-attempt1.log",
+      "requiredExit": 0
+    },
+    {
+      "stage": "mature-seven",
+      "cwd": "/tmp/rt1-execution-legacy-fixture-repair-8a30cc5",
+      "argv": [
+        "node_modules/.bin/vitest",
+        "run",
+        "worker/delete-run-route.test.ts",
+        "worker/metrology-routes.test.ts",
+        "--config",
+        "execution-legacy-fixture-ci-followup.vitest.config.mts",
+        "--bail=1",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-execution-legacy-fixture-seven-actual-attempt1.json"
+      ],
+      "log": "/tmp/portable-execution-legacy-fixture-seven-actual-attempt1.log",
+      "requiredExit": 0,
+      "requiredTotalAndPassed": 7,
+      "requiredFiles": 2,
+      "requiredFailed": 0,
+      "requiredSkipped": 0,
+      "after": "Await runner exit and original native/Worker-request operations settled; inspect actual cleanup/errors before release. The existing fixtures use ephemeral in-memory native databases, not durable failed-state copies; do not claim globalFDabsence."
+    }
+  ],
+  "acceptance": [
+    "Exactly six Run-trash and one Metrology existing cases must pass; zero selected/skipped is not qualification.",
+    "Do not claim current13-prod/native18+workerd12 repeated or whole application integration from these seven native fixture scopes.",
+    "Own final-head fullsource CI must independently pass after root authorized publication."
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.runtime-tests.json",
+  "include": [
+    "server/step-confirmation.test.ts",
+    "server/run-trash.test.ts",
+    "server/metrology-write.test.ts",
+    "worker/step-confirmation.qualification.test.ts",
+    "worker/run-trash.qualification.test.ts",
+    "worker/metrology-write.qualification.test.ts",
+    "execution-metadata-qualification.vitest.config.mts"
+  ],
+  "exclude": []
+}

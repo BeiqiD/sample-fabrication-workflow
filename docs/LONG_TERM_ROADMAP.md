@@ -31,6 +31,12 @@ remain distinct historical scopes. Draft #259 retains six actual directory/
 lost-reply cases and the new [four genuine Templates default-page cases](PHASE_5F_TEMPLATE_PAGINATION_QUALIFICATION.md).
 Its later complete CI passed shared ownership but failed one fixture timestamp
 constraint; the minimal correction and reconciled final-head gates are next.
+The combined #259 candidate also retains Step-confirmation, Run trash/restore
+and Metrology metadata mutation services from separately qualified source4928.
+Its fresh current24 four strict checks, legacy7 and Worker12 with owned closure
+remain distinct from historical current23 native18/Worker12 and the UI browser
+scopes. Only after the combined final-head gates and successful merge should
+#260 be closed as superseded; it is not independently merged.
 The [role/focus ledger](PHASE_5F_ROLE_FOCUS_REVIEW_LEDGER.md) documents the bounded
 cross-surface review. Anonymous Access302 still does not qualify serving code/
 schema or enabled administration. Real-provider/device/deployed acceptance stays open.
@@ -57,7 +63,7 @@ replication, workspaces, ACL tables or per-user infrastructure.
 | Order | Capability | Boundary |
 | --- | --- | --- |
 | Complete development integration | FP2–FP5, C4/5D/5E and bounded 5F | #251 preserves the qualified `af8f374` tree at merged `aa497d9`. Do not recreate implemented code or infer live V24/provider qualification from local/default CI. Preserve historical deployed V20 evidence separately. |
-| Now / in progress | Remaining 5F and finite performance/maintenance | Continue from merged #258/currentV26; qualify #259's exact reconciled head and minimal fixture-clock correction, retaining historical6/new4 browser scopes and role/focus ledger. Completed #252/#254 refresh/Retry/motion repairs are preserved. Continue only demonstrated gaps, finite input checks and measured costs. |
+| Now / in progress | Remaining 5F and finite performance/maintenance | Continue from merged #258/currentV26; qualify combined #259's UI/fixture-clock and Execution metadata mutation services, retaining historical6/new4 browser and separate current24 Execution scopes. Close #260 as superseded after successful combined merge. Completed #252/#254 refresh/Retry/motion repairs are preserved. Continue only demonstrated gaps, finite input checks and measured costs. |
 | First integrated release | 6A6 and scoped 6B | Accept only the actually qualified **enabled FP2–FP5** subset, with explicit provider and operational gates. Unqualified installed code remains restricted. |
 | Later portability | Node/Docker + SQLite + persistent local defaults | Complete deployable app/runtime, volumes and real cross-deployment recovery, not merely the already delivered Node File-job runner. |
 | Later shared-data | Small-group membership and resource authorization | End-to-end Sample/Project/Template/media/export/job permissions, not per-user storage infrastructure. |

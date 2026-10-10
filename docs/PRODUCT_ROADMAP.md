@@ -13,7 +13,7 @@ PR #256 merged the paired current checkpoint at `5f36748`; both own complete
 Verify/Map pairs and all15 contexts passed, and its post-merge Verify/Map passed
 (source396 files/3727 cases, mounted102 files/980 cases).
 
-Last reviewed: 2026-10-10 after development merge #258 and the separate four-case Templates qualification.
+Last reviewed: 2026-10-10 after development merge #258, the separate four-case Templates qualification and current24 Execution qualification.
 PR #253 (`fbeb4217`) preserves the portable factory/HTTP/SQL/crypto/disk
 foundation; #255 (`b6b2d9a`) integrates the separately qualified identity,
 installer, configuration and profile services. Their complete gates passed.
@@ -32,8 +32,16 @@ source-only until its affected regression and replacement complete gates pass.
 The separate [Templates qualification](PHASE_5F_TEMPLATE_PAGINATION_QUALIFICATION.md)
 passed four cases with true20+1/25+1 default pages and actual shutdown/physical
 proof at `3c69d4d`; it does not replace final-head CI or a fresh combined browser
-run. Draft #260 retains its separately recorded strict/native/Worker evidence
-and pending final gates. #259/#260 remain unmerged candidates.
+run. Execution source `4928ce9` separately passed four strict checks, seven
+legacy route cases and twelve genuine current24 Worker cases with actual owned
+closure; its [raw evidence](qualification/portable-execution-current24-worker/README.md)
+is retained separately from the older current23 native18/Worker12 results.
+The reviewed combined #259 candidate includes that Step-confirmation,
+Run trash/restore and Metrology metadata mutation service extraction alongside
+the UI changes. It preserves current V26 and original revision/CAS/accepted-write
+semantics. The combined finite checks and exact-head complete gates remain open.
+After a successful combined #259 merge, close #260 as superseded while retaining
+its independent failures and qualification; #260 is not independently merged.
 
 Earlier #250/#251/#252/#254 integration and browser evidence remains dated in
 [the autonomous goal](ROADMAP_AUTONOMOUS_DEVELOPMENT_GOAL.md),
@@ -58,7 +66,7 @@ is valuable evidence but is not a remote pass or production admission.
 
 | Area | Synchronization and evidence as of 2026-10-10 | Remaining boundary |
 | --- | --- | --- |
-| Integration and deployment | Planning #250 and implementations #251–#258 are merged into development/test. #258 preserves its own-four-gate-qualified318 tree at `e108496`; #257's own pairs/all15 contexts and #256 post-merge pairs passed. #259/#260 remain candidates with the distinct failure/qualification states above. | Observe actual serving version/schema and authenticated readiness. Retain previous Workers/build and post-merge failures. Production `main` remains outside the current development goal. |
+| Integration and deployment | Planning #250 and implementations #251–#258 are merged into development/test. #258 preserves its own-four-gate-qualified318 tree at `e108496`; #257's own pairs/all15 contexts and #256 post-merge pairs passed. Combined #259 remains a candidate with the distinct failure/qualification states above; close #260 as superseded only after a successful combined merge. | Observe actual serving version/schema and authenticated readiness. Retain previous Workers/build and post-merge failures. Production `main` remains outside the current development goal. |
 | FP1 | File authority was activated on the historical deployment; new `internal` and `originals` roles use R2. The [2026-10-01 acceptance](./FP1_R2_ROLE_DEFAULTS.md#live-acceptance--2026-10-01) passed 6 MiB HTTP writes and 15/15 V19 restore bytes. | Historical accepted locations and missing-provider outcomes remain explicit. |
 | FP2 | **Implemented, CI-qualified and integrated** through #251: native File R2/S3 byte access, verified publication and lifecycle, configured candidate activation, independent role defaults and frozen accepted destinations; `0018` / V21. [FP2/FP3 record](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP3_LOCAL_DEVELOPMENT_ACCEPTANCE.md). | Real AWS account/profile and deployed administration/provider/runtime acceptance. Fixture tests do not establish real-provider qualification. |
 | FP3 | **Implemented, CI-qualified and integrated**: persisted bounded migration jobs, isolated execution, pause/resume/cancel/retry, verified cutover, read holds and explicit cleanup; `0019` / V22. | Deployed runner limits/invocation, provider interruption and actual deployed nonempty recovery rehearsal. |
@@ -1106,11 +1114,13 @@ Project-owned Markdown or attachment content only through explicit user action.
    #250–#258 exact source/tree receipts, current V26 and paired historical readers,
    and every failed/cancelled/skipped outcome. Inactive Drafts #199/#200 remain
    alternatives; do not adopt their migration bridges.
-2. Qualify and integrate #259 directory creation/recovery identity, its genuine
-   Templates default-page supplement and one-timestamp fixture correction, then
-   #260 Execution metadata reads, on their exact reconciled heads. Preserve
-   distinct historical browser/Node/Worker evidence; it does not replace final
-   complete CI or qualify the full Node application.
+2. Qualify and integrate the combined #259: directory creation/recovery identity,
+   genuine Templates default-page supplement, one-timestamp fixture correction
+   and Step-confirmation/Run trash/Metrology metadata mutation services. Preserve
+   current V26, distinct historical browser/Node/Worker evidence and current24
+   source4928 qualification. These do not replace exact combined-head complete
+   CI or qualify the full Node application. After successful merge, close #260
+   as superseded, preserving its independent qualification and failed checks.
 3. Continue remaining bounded **5F-1** (cross-page language/control), **5F-2** (read/retry, focus,
    uncertain-write and recovery identity), then **5F-3** (realistic integrated
    responsive/theme/accessibility and source-data workflows).

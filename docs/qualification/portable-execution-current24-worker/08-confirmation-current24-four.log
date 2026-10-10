@@ -1,0 +1,66 @@
+
+ RUN  v4.1.10 /tmp/portable-execution-current-v26-fixture-repair-source
+
+stderr | worker/step-confirmation.qualification.test.ts
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+
+stderr | worker/step-confirmation.qualification.test.ts > Grouped Step confirmation through the actual current Worker: four finite scopes > rolls back the real D1 batch when its second audit fails and rejects foreign statements before issuing either mutation
+Error: D1_ERROR: Qualification second audit failure: SQLITE_CONSTRAINT (extended: SQLITE_CONSTRAINT_TRIGGER)
+    at D1DatabaseSessionAlwaysPrimary._sendOrThrow (cloudflare-internal:d1-api:146:19)
+    at async cloudflare-internal:d1-api:97:27 {
+  [cause]: Error: Qualification second audit failure: SQLITE_CONSTRAINT (extended: SQLITE_CONSTRAINT_TRIGGER)
+      at D1DatabaseSessionAlwaysPrimary._sendOrThrow (cloudflare-internal:d1-api:147:24)
+      at async cloudflare-internal:d1-api:97:27
+}
+
+stderr | worker/step-confirmation.qualification.test.ts > Grouped Step confirmation through the actual current Worker: four finite scopes > keeps current authentication, maintenance and invalid-target guards ahead of business execution and preserves method ownership
+Authentication rejected Error: AUTH_MODE must be access or disabled
+    at authenticateRequest (script-0:55974:41)
+    at script-0:56010:32
+    at dispatch (script-0:22:23)
+    at script-0:5:12
+    at script-0:1425:32
+    at #dispatch (script-0:1435:7)
+    at _Hono.fetch (script-0:1449:26)
+    at Object.fetch (script-0:89733:51)
+
+stderr | worker/step-confirmation.qualification.test.ts > Grouped Step confirmation through the actual current Worker: four finite scopes > keeps current authentication, maintenance and invalid-target guards ahead of business execution and preserves method ownership
+FileAuthorityUnavailableError: File storage is unavailable
+    at readSqlFileAuthorityMode (script-0:4811:9)
+    at async ensureFileAuthorityExecution (script-0:60178:7)
+    at async Proxy.<anonymous> (script-0:60217:9)
+    at async Object.atomicBatch (script-0:48001:23)
+    at async Object.confirm (script-0:48092:23)
+    at async confirm (script-0:48118:21)
+    at async dispatch (script-0:22:17)
+    at async captureIngressRequest (script-0:48109:9)
+    at async dispatch (script-0:22:17)
+    at async fileAuthorityExecutionAdmission (script-0:60228:3)
+
+stderr | worker/step-confirmation.qualification.test.ts > Grouped Step confirmation through the actual current Worker: four finite scopes > keeps current authentication, maintenance and invalid-target guards ahead of business execution and preserves method ownership
+FileAuthorityUnavailableError: File storage is unavailable
+    at readSqlFileAuthorityMode (script-0:4811:9)
+    at async ensureFileAuthorityExecution (script-0:60178:7)
+    at async Proxy.<anonymous> (script-0:60217:9)
+    at async Object.atomicBatch (script-0:48001:23)
+    at async Object.confirm (script-0:48092:23)
+    at async confirm (script-0:48118:21)
+    at async dispatch (script-0:22:17)
+    at async captureIngressRequest (script-0:48109:9)
+    at async dispatch (script-0:22:17)
+    at async fileAuthorityExecutionAdmission (script-0:60228:3)
+
+ ✓ worker/step-confirmation.qualification.test.ts (4 tests) 38089ms
+     ✓ accepts two cross-Sample targets with one operation group, exact audits, monotonic time and genuine rollup effects  8526ms
+     ✓ rejects stale timestamps, incorrect associations and every deleted ancestor without confirming either target  11589ms
+     ✓ rolls back the real D1 batch when its second audit fails and rejects foreign statements before issuing either mutation  8336ms
+     ✓ keeps current authentication, maintenance and invalid-target guards ahead of business execution and preserves method ownership  9447ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  22:15:33
+   Duration  39.24s (transform 239ms, setup 33ms, import 1.00s, tests 38.09s, environment 0ms)
+
+JSON report written to /tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/08-confirmation-current24-four.json
