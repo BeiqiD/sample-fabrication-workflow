@@ -1,10 +1,12 @@
 # File and data portability implementation plan
 
 Status: FP0 design reviewed (#207), FP1 historically deployed and accepted.
-**Synchronized local FP2–FP5 implementation and qualification are complete**;
-real-provider/deployed/integrated release exits remain open.
-Last reviewed: 2026-10-09 at integration `474a038` and separate synchronized
-qualified implementation checkpoint `3c1baf5fdb21994c0510754eb20919db8189a91a`. This document records **contracts and acceptance
+**FP2–FP5 implementation is locally/remotely CI-qualified and integrated**
+through [PR #251](https://github.com/BeiqiD/sample-fabrication-workflow/pull/251).
+Real-provider/deployed and production release exits remain open.
+Last reviewed: 2026-10-10 at merged integration `aa497d9a1a304751ea7533548573a256799ef734`;
+its tree `087749d12a3e3ad19473f1f4e63d29e1ecf1c269` equals qualified source
+`af8f374cfbbade3282f2e686cc9f35d3c40adf4a`. This document records **contracts and acceptance
 exits**, while [Product roadmap](./PRODUCT_ROADMAP.md#current-checkpoint)
 owns active implementation/deployment/CI state.
 
@@ -13,8 +15,8 @@ admission and optional FP5 recovery binding parity. See the
 [forward rollout procedure](V3_DEVELOPMENT_INTEGRATION_RUNBOOK.md); these focused
 repairs do not claim real-provider activation or completed release acceptance.
 
-The 2026-10-03 deployed runtime remained `0017` / V20, R2 defaults and
-active File authority. The **separate local development branch** has:
+The last authenticated historical deployment, on 2026-10-03, used `0017` / V20,
+R2 defaults and active File authority. The **merged development integration** has:
 - FP2 `0018` / V21: exact-profile native File S3/R2 operations, accepted
   writes/read/GC, candidate activation and independent original/internal roles;
 - FP3 `0019` / V22: persisted bounded migration jobs, execution, complete
@@ -24,6 +26,21 @@ active File authority. The **separate local development branch** has:
 - FP5 `0021`–`0022` / V24: privileged full backup, identity-preserving
   website fresh-target recovery, protected settings and operator-assisted handoff.
 
+The complete default local `af8f374` gate passed all 12 leaves: 355 native tests,
+366 source files / 3,349 tests and 98 mounted files / 945 tests, with no skips.
+Its four remote Verify/Map runs and all 15 final status contexts passed. The
+[current Product checkpoint](PRODUCT_ROADMAP.md#current-checkpoint) links those
+receipts and the separately qualified built-Worker browser checks.
+The #251 post-merge Verify/Map checks and all 15 contexts passed; Workers Build
+`114224522096` succeeded. Three anonymous development routes still returned
+Access 302, without actual serving/schema or authenticated admission proof.
+Open #252's [current browser checkpoint](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md)
+records the `ee171339` 20-case matrix, 84-request real seed, six cost cases,
+additional Project workflows and controlled-stop/physical DB/PNG checks.
+The fresh `c06cb71` / tree `2466e718` checkpoint passed 20 matrix cases and
+both named Metrology cases, followed by awaited stop and physical DB/FK/PNG/
+original-byte proof. The candidate's final-head complete remote gate remains pending.
+
 The recorded local qualification includes nonempty R2/S3 fixture round trips,
 but it does **not** qualify a real AWS account, deployed runner or operator
 handoff. Local File mode remains legacy with execution disabled. The historical
@@ -31,16 +48,16 @@ handoff. Local File mode remains legacy with execution disabled. The historical
 dependent gates were not independent failures. The later `4479295` run exhausted
 the 20-minute whole-job budget. The `20176fc5` source context passed, but mounted checks failed;
 follow-up research read-error, receipt and job-control ownership repairs are
-pushed at `3c1baf5`.
+pushed at the historical `3c1baf5` checkpoint.
 The 40-minute job budget, default 5-second Vitest deadline and existing
 case-specific limits are retained. The complete default remote gate at
-`3c1baf5` passed; accepted combined-tree review/requalification and provider
-acceptance remain open. The Product checkpoint owns current gate status.
+`3c1baf5` passed; the later accepted `af8f374` tree has its own complete local
+and remote qualification above. Provider acceptance remains open.
 See [FP2/3 evidence](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP3_LOCAL_DEVELOPMENT_ACCEPTANCE.md),
 [FP4 evidence](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP4_RESEARCH_PACKAGES.md) and
 [FP5 goal](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP5_DEVELOPMENT_GOAL.md).
-Preserve frozen historical readers/migrations and current V20 deployment
-semantics until each explicitly reviewed rollout. The owner-waived V20 live
+Preserve frozen historical readers/migrations and recorded V20 deployment
+semantics when reviewing each forward rollout. The owner-waived V20 live
 ZIP/download rehearsal is not reimposed for unrelated work, although material
 V21–V24 release changes require their relevant new evidence.
 
@@ -82,12 +99,12 @@ historical SWITCHdrive support. Its active File registry separates logical
 File purpose, physical location, profile identity, accepted operation, retention
 and execution ownership. Changing a role default never rewrites an existing File.
 The deployed 2026-10-03 R2 configuration is accepted FP1/early FP2, whereas
-the synchronized development branch contains implemented native S3 and
+the merged development integration contains implemented native S3 and
 independent role routing. Those are distinct generations and environments.
 
-The S2 baseline and historical migration chain stay immutable; the synchronized
-branch adds forward `0018`–`0022` and paired V21–V24 writers/readers. These
-are **implemented local checkpoints** rather than an instruction to reset D1,
+The S2 baseline and historical migration chain stay immutable; the merged
+development integration adds forward `0018`–`0022` and paired V21–V24 writers/readers.
+These are **qualified development checkpoints** rather than an instruction to reset D1,
 activate a provider or change deployment bindings. 6A6 and provider/device/manual
 acceptance remain open. SWITCHdrive live credential issues remain explicit and
 do not silently become qualified when R2 or AWS fixtures pass.
@@ -98,16 +115,16 @@ Each FP milestone may contain several focused PRs. Every implementation starts
 from the latest integration head, preserves a usable frontend and carries its
 affected schema, export/restore, file-lifecycle and authorization checks.
 
-The accepted FP1 conversion/publication history is retained. On the synchronized
-branch, the native generation and purpose-specific, per-item FabuBlox accepted
+The accepted FP1 conversion/publication history is retained. On the development
+integration, the native generation and purpose-specific, per-item FabuBlox accepted
 destinations are already implemented and qualified locally. The historical
 single-profile import note applies only to the earlier `0017`/V20 deployment;
 it is no longer a missing implementation task. See
 [FP2 completion evidence and release boundaries](./PRODUCT_ROADMAP.md#fp2-completion-units).
 
-FP2–FP5 are already built in local development and must not be scheduled as
+FP2–FP5 are already built and merged into development and must not be scheduled as
 future greenfield implementation. The first integrated V3 release is scoped
-after reviewed code integration, 5F, 6A6 and 6B; the **enabled** subset of
+after the completed reviewed code integration and remaining 5F, 6A6 and 6B exits; the **enabled** subset of
 FP2–FP5 must individually pass real-provider, deployed, recovery and operator
 gates. Explicit server-side deferral is valid when qualified operations
 are unavailable; a deferral is not a success claim.
@@ -121,7 +138,7 @@ are unavailable; a deferral is not a success claim.
 | FP4 — portable research data | Native Sample/Project package export and matching website import; shared dependency/snapshot planner; offline readable projection included; report-only output | Complete non-empty package can be read offline and imported as a new copy with intact sources, comments, graph/placements and files on a different provider mapping. Retry does not duplicate records. Export and import ship as one product milestone. |
 | FP5 — system recovery | Shared bounded archive engine for full backup; visible completeness; privileged website recovery into a fresh target with verified cutover; legacy archive recovery/conversion path | Recover all promised canonical state/history and file purposes, preserving IDs; validate partial-backup handling, provider remapping, protected settings recovery and safe treatment of old jobs. Source remains usable until successful cutover. |
 
-Current local state: FP2 and FP3 retain their V21/V22 qualification evidence.
+Current development state: FP2 and FP3 retain their V21/V22 qualification evidence.
 FP4 implementation and local qualification are preserved with `0020`/V23;
 its final development result is recorded above. The formal exit conditions above
 remain separate from local fixtures. FP5 local development is complete, with independent implementation and qualification recorded in its checklist.
@@ -305,9 +322,14 @@ The backend-first product priority continues. FP's affected upload/storage/data
 UI is part of its own milestones; it does not repeat completed Canvas work or
 absorb the entire Phase 5 media/appearance pass. Bounded local C4, 5D and 5E
 development is complete; their remaining formal acceptance retains its scope.
-Phase 5F is in progress alongside exact-head qualification and synchronized
-implementation review; bounded implementation and follow-up repairs do not complete cross-product
-acceptance. These exits precede the scoped Phase 6B release. Phase 6B validates
+Phase 5F remains in progress after the qualified #251 development integration;
+[Historical 20 built-Worker cases and two Metrology pending cases](PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md)
+remain qualified at their own source. Open #252 implements owner refresh and the
+search label; [current evidence](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md) records
+its versioned matrix/cost/Project/physical checks. Fresh `c06cb71` matrix/named
+Metrology and stop/physical checks passed; final-head gates remain open. Initial Project GET Retry and three-owner group refresh are
+next separate product slices. Whole-phase device/provider/deployed acceptance
+remains open. These exits precede the scoped Phase 6B release. Phase 6B validates
 the actual enabled FP capabilities,
 not merely the previous zero-blob S2 state. Delaying an FP feature requires an
 explicit scope update rather than marking its tests passed.
