@@ -27,8 +27,9 @@ The immediate work is continued **5F**. Open #252 implements owner-scoped
 Processing refresh and the Metrology search label; its applied UI source passed
 966 mounted tests and build. The [current browser checkpoint](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md)
 records `ee171339` matrix/cost/Project/controlled-stop/physical qualification.
-Fresh named Metrology cases after the source-tree metadata correction and the
-final-head complete gate remain pending. Initial Project GET Retry and known
+The fresh `c06cb71` / tree `2466e718` checkpoint passed 20 matrix cases, both
+named Metrology cases and awaited-stop/physical DB/FK/PNG/original-byte proof.
+The final-head complete gate remains pending. Initial Project GET Retry and known
 three-owner group refresh are the next separate product slices. Access 302 on
 three anonymous routes still does not qualify serving code/schema or
 admin behavior. Remaining real-provider/device/deployed acceptance stays open.
@@ -55,7 +56,7 @@ replication, workspaces, ACL tables or per-user infrastructure.
 | Order | Capability | Boundary |
 | --- | --- | --- |
 | Complete development integration | FP2–FP5, C4/5D/5E and bounded 5F | #251 preserves the qualified `af8f374` tree at merged `aa497d9`. Do not recreate implemented code or infer live V24/provider qualification from local/default CI. Preserve historical deployed V20 evidence separately. |
-| Now / in progress | Remaining 5F and finite performance/maintenance | Finish #252 fresh named-Metrology/final-head gates; retain its current matrix/cost/Project/physical receipts. Next separately fix initial Project GET Retry and known three-owner refresh, retaining cross-page consistency, keyboard/focus, accepted-write and read/retry identities. Continue only remaining finite mixed-domain/input checks and measured costs. |
+| Now / in progress | Remaining 5F and finite performance/maintenance | Finish #252 final-head gates; retain its versioned matrix/cost/Project/physical receipts and fresh `c06cb71` 20-case/named-pair/stop qualification. Next separately fix initial Project GET Retry and known three-owner refresh, retaining cross-page consistency, keyboard/focus, accepted-write and read/retry identities. Continue only remaining finite mixed-domain/input checks and measured costs. |
 | First integrated release | 6A6 and scoped 6B | Accept only the actually qualified **enabled FP2–FP5** subset, with explicit provider and operational gates. Unqualified installed code remains restricted. |
 | Later portability | Node/Docker + SQLite + persistent local defaults | Complete deployable app/runtime, volumes and real cross-deployment recovery, not merely the already delivered Node File-job runner. |
 | Later shared-data | Small-group membership and resource authorization | End-to-end Sample/Project/Template/media/export/job permissions, not per-user storage infrastructure. |

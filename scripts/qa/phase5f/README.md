@@ -2,7 +2,7 @@
 
 These staged helpers reproduce the finite local Chromium matrix with fresh synthetic owners. They use the production Worker and route chunks, actual local D1/R2 requests, and the supported UI. They never deploy, log in, install dependencies, copy existing database state, or modify the source installation. `AUTH_MODE=disabled` deliberately proves system administrator denial; it cannot qualify Cloudflare Access or authenticated administrator operations.
 
-The predecessor `/tmp` helpers qualified source `af8f374` (20 browser cases and two Metrology pending cases). Those receipts remain historical evidence. The adopted helpers below add portable paths, immutable receipts, lifecycle control, and a named search-input check. Their current-tree behavior requires a fresh committed-build run; syntax checks alone do not qualify it. See [the acceptance record](../../../docs/PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md) for the retained version and limits.
+The predecessor `/tmp` helpers qualified source `af8f374` (20 browser cases and two Metrology pending cases). Those receipts remain historical evidence. The adopted helpers below add portable paths, immutable receipts, lifecycle control, and a named search-input check. The adopted pipeline passed a fresh committed build at `c06cb71`: all 20 matrix cases, both named Metrology cases, awaited stop and final physical SQLite/PNG checks. See [current receipts](../../../docs/PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md) and [the historical acceptance record](../../../docs/PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md) for exact identities and limits. Later application/helper changes require their own qualification; syntax checks alone do not qualify them.
 
 ## Prerequisites and boundaries
 

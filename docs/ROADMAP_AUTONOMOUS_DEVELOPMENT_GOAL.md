@@ -14,8 +14,10 @@ tree `087749d12a3e3ad19473f1f4e63d29e1ecf1c269`. All 12 local default leaves,
 four remote Verify/Map runs and all 15 final status contexts passed at that source.
 The #251 post-merge Verify/Map checks and all 15 contexts also passed. Open
 [PR #252](https://github.com/BeiqiD/sample-fabrication-workflow/pull/252) has
-[current browser evidence](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md) at `ee171339`;
-its final-head complete remote gate remains pending.
+[current browser evidence](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md) at `ee171339`
+and fresh `c06cb71` / tree `2466e718` (20 matrix cases, both named Metrology
+cases and awaited-stop/physical proof passed); its final-head complete remote
+gate remains pending.
 
 ## Working order
 
@@ -25,9 +27,9 @@ its final-head complete remote gate remains pending.
 2. Finish #252's owner-scoped Processing refresh and search-label slice.
    Preserve `ee171339` 20-case matrix, 84-request seed, six cost cases and 12
    additional Project scenario identities, plus awaited-stop and physical
-   DB/FK/PNG/original-byte receipts. Run the named Metrology pair on the fresh
-   source-tree metadata-corrected fixture and qualify the final head before
-   integration. Then use separate PRs for initial Project GET Retry and known
+   DB/FK/PNG/original-byte receipts. Preserve the fresh `c06cb71` 20-case matrix,
+   named Metrology pair and stop/physical qualification; qualify the final-head
+   complete gate before integration. Then use separate PRs for initial Project GET Retry and known
    three-owner group refresh; candidate mounted/type tests are not actual
    browser qualification.
 3. Complete the remaining bounded 5F language, navigation, read/retry/recovery

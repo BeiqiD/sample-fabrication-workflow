@@ -17,8 +17,9 @@ implements owner-scoped Processing refresh and the Metrology search label, and
 adopts the isolated QA pipeline. At `ee171339`, its built Worker passed the
 20-case matrix, 84-request seed, six Processing cost cases and 12 additional
 Project scenario identities; controlled disposal and physical DB/PNG checks passed.
-The named Metrology cases await the fresh source-tree metadata correction;
-final-head complete remote checks remain pending. See
+At `c06cb71` / tree `2466e718`, a fresh 20-case matrix and both named
+Metrology cases passed; awaited stop and physical DB/FK/PNG/original-byte
+checks passed again. Final-head complete remote checks remain pending. See
 [current browser evidence](./docs/PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md) and
 [historical integrated evidence](./docs/PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md).
 The #251 post-merge Verify/Map checks and all 15 contexts succeeded; Workers

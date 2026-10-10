@@ -209,3 +209,10 @@ launcher omitted from lifecycle identity. The bounded helper correction adds
 that field without weakening the check. Named-search/create/add/refresh
 qualification requires a fresh committed fixture after this correction; the
 historical placeholder-based cases do not qualify the native accessible name.
+
+Fresh committed `c06cb71` qualification passed the adopted 20-case matrix and
+both named Metrology cases, then awaited disposal with exit 0 and passed final
+four-SQLite/FK/PNG/original-byte checks. Exact receipts and preserved failures
+are recorded in [the current checkpoint](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md).
+No application source changed between the exercised `ee17133` cost measurement
+and `c06cb71`; the served Worker and Processing chunk hashes are identical.

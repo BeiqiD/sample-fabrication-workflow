@@ -37,8 +37,9 @@ Access 302, without actual serving/schema or authenticated admission proof.
 Open #252's [current browser checkpoint](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md)
 records the `ee171339` 20-case matrix, 84-request real seed, six cost cases,
 additional Project workflows and controlled-stop/physical DB/PNG checks.
-Named Metrology cases await a fresh source-tree metadata correction, and the
-candidate's final-head complete remote gate remains pending.
+The fresh `c06cb71` / tree `2466e718` checkpoint passed 20 matrix cases and
+both named Metrology cases, followed by awaited stop and physical DB/FK/PNG/
+original-byte proof. The candidate's final-head complete remote gate remains pending.
 
 The recorded local qualification includes nonempty R2/S3 fixture round trips,
 but it does **not** qualify a real AWS account, deployed runner or operator
@@ -325,8 +326,8 @@ Phase 5F remains in progress after the qualified #251 development integration;
 [Historical 20 built-Worker cases and two Metrology pending cases](PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md)
 remain qualified at their own source. Open #252 implements owner refresh and the
 search label; [current evidence](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md) records
-its new matrix/cost/Project/physical checks. Fresh named Metrology and final-head
-gates remain open. Initial Project GET Retry and three-owner group refresh are
+its versioned matrix/cost/Project/physical checks. Fresh `c06cb71` matrix/named
+Metrology and stop/physical checks passed; final-head gates remain open. Initial Project GET Retry and three-owner group refresh are
 next separate product slices. Whole-phase device/provider/deployed acceptance
 remains open. These exits precede the scoped Phase 6B release. Phase 6B validates
 the actual enabled FP capabilities,

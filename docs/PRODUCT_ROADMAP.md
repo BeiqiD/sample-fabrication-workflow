@@ -12,8 +12,11 @@ Post-merge Verify/Map checks and all 15 contexts at `aa497d9` succeeded,
 as did Workers Build `114224522096`. Open [PR #252](https://github.com/BeiqiD/sample-fabrication-workflow/pull/252)
 has the bounded [current browser checkpoint](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md)
 at `ee1713393f5dea1f6bbd7a856c7586a8e517591c`, tree
-`8f37485feb0328094738ada55da46a2a9c38aeaf`; its final-head complete remote gate
-remains pending. Earlier checkpoints retain their dated evidence.
+`8f37485feb0328094738ada55da46a2a9c38aeaf`. The later exercised source
+`c06cb71ec5933cfb4d1721a5c1ac314b09a96ed8`, tree
+`2466e71894298e90acdc5bd4b183d29fdd88b24f`, passed a fresh 20-case matrix,
+both named Metrology cases and controlled-stop/physical proof. The final-head
+complete remote gate remains pending. Earlier checkpoints retain their dated evidence.
 
 The owner authorizes autonomous development, self-review and merges into the
 development/test integration branch, including its existing Workers build path.
@@ -36,7 +39,7 @@ is valuable evidence but is not a remote pass or production admission.
 | FP3 | **Implemented, CI-qualified and integrated**: persisted bounded migration jobs, isolated execution, pause/resume/cancel/retry, verified cutover, read holds and explicit cleanup; `0019` / V22. | Deployed runner limits/invocation, provider interruption and actual deployed nonempty recovery rehearsal. |
 | FP4 | **Implemented, CI-qualified and integrated**: paired **Sample and Project** package export, matching website **fresh-copy** import, separate readable reports, `0020` / V23. [FP4 record](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP4_RESEARCH_PACKAGES.md). | Deployed/provider and targeted manual acceptance; maintain bounded packages, complete dependencies and original-vs-copy identity. |
 | FP5 | **Implemented, CI-qualified and integrated**: privileged full backup, identity-preserving fresh-target recovery, protected configuration, legacy archive conversion and assisted handoff; `0021`–`0022` / V24. [FP5 goal](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP5_DEVELOPMENT_GOAL.md). | Real target provisioning, provider-specific and deployed handoff evidence; restored execution remains disabled pending explicit local admission. |
-| Frontend | **C4, 5D and 5E** and bounded #251 repairs are integrated. **5F remains in progress**. Open #252 implements owner-scoped refresh and the search label; `ee171339` passed the adopted 20-case built-Worker matrix, 84 API seed requests, six actual Processing cost cases, 12 additional Project scenario identities and controlled-stop/physical checks. [Current evidence](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md) separates current and historical results. | Finish fresh named Metrology cases after the source-tree metadata correction and final-head complete gates. Next separate PRs address initial Project GET retry and three-owner group refresh. Physical input/authenticated/provider and whole-5F acceptance remain open. |
+| Frontend | **C4, 5D and 5E** and bounded #251 repairs are integrated. **5F remains in progress**. Open #252 implements owner-scoped refresh and the search label; `ee171339` passed the adopted 20-case built-Worker matrix, 84 API seed requests, six actual Processing cost cases, 12 additional Project scenario identities and controlled-stop/physical checks. [Current evidence](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md) separates current and historical results. | The fresh `c06cb71` 20-case matrix and both named Metrology cases, awaited stop and physical proof passed; finish final-head complete gates. Next separate PRs address initial Project GET retry and three-owner group refresh. Physical input/authenticated/provider and whole-5F acceptance remain open. |
 | CI | At `af8f374`, all **12 local default leaves** passed: native **355 tests**, source **366 files / 3,349 tests**, mounted **98 files / 945 tests**, with no skips. Four remote Verify/Map runs and all **15 final status contexts** succeeded. Integration `aa497d9` preserves that exact tree and its post-merge Verify/Map/all 15 contexts passed. Applied #252 UI source passed 100 mounted files / 966 tests and build; its final complete gate remains pending. The 40-minute job budget/default case deadlines are unchanged. | Later source/docs trees need their own checks. Earlier `3c1baf5`, `4b2c660` and 97-file/939-test receipts remain historical and are not summed. |
 | Integration defect repairs | [FP3 actor admission](FP3_JOB_AUTHORIZATION_ACCEPTANCE.md), [FP5 recovery bootstrap](FP5_RECOVERY_BOOTSTRAP_ACCEPTANCE.md) and [explicit route recovery](PHASE_6_ROUTE_RECOVERY_ACCEPTANCE.md) are included in the qualified, merged tree. | Actual development rollout, provider and operational acceptance remain separate. No real provider was activated. |
 | Stabilization | 6A1–6A5 selected ownership/S2 work is historical; #251 combined-tree review and complete local/default remote gates passed. | Remaining 6A6 serving/schema/device and enabled-scope 6B provider/operational release verification stay open. |
@@ -63,8 +66,11 @@ Twelve additional Project scenario IDs qualified across attempt 2 (**11 passed,
 including dirty state, held ACK, lost ACK and exact retry; original Projects
 remained unchanged. Awaited disposal exited 0; four physical SQLite checks,
 FK checks, original-state byte preservation and exact PNG bytes passed.
-The named Metrology pair remains pending a fresh metadata-corrected fixture;
-these checks do not claim current final-head full remote qualification.
+A fresh `c06cb71` / tree `2466e718` fixture subsequently passed the full
+20-case matrix and both named Metrology pending-flow cases, including computed
+textbox names. Awaited stop, four SQLite/FK checks, unchanged original bytes
+and exact PNG proof passed again. These checks do not claim current final-head
+full remote qualification.
 
 **Next separately reviewable product slices.** Initial Project GET recovery has
 an explicit Retry gap: the bounded mounted characterization was **5 red /
@@ -1063,7 +1069,7 @@ Project-owned Markdown or attachment content only through explicit user action.
 | Foundation → Project v1 shape | Earlier Project and backend fundamentals are delivered; retain their reference/Canvas/save/media regression behavior. |
 | Integrated FP2–FP5 development | Native File/S3, bounded migration jobs, paired Sample+Project copy packages and system backup/restore **implemented, locally/remotely CI-qualified and merged** through #251; actual deployed/provider acceptance remains open. |
 | C4 / 5D / 5E | Bounded local development completed; keep physical-device, OS-input and deployed-runtime acceptance gaps visible. |
-| 5F integrated UX | In progress: ownership, narrow-grid, projection and explicit route-recovery repairs are integrated and qualified at `af8f374`. Built-Worker browser matrix passed 20 cases plus two Metrology pending-flow cases. Open #252 implements owner refresh and search-label corrections; current 20-case/cost/Project/physical evidence is recorded separately. Fresh named Metrology and final complete gates remain pending; initial Project GET Retry and three-owner refresh are the next separate product slices. Physical input/authenticated/provider acceptance stays open. |
+| 5F integrated UX | In progress: ownership, narrow-grid, projection and explicit route-recovery repairs are integrated and qualified at `af8f374`. Built-Worker browser matrix passed 20 cases plus two Metrology pending-flow cases. Open #252 implements owner refresh and search-label corrections; current 20-case/cost/Project/physical evidence is recorded separately. `c06cb71` qualified the fresh 20-case matrix and both named Metrology cases plus stop/physical proof; final complete gates remain pending; initial Project GET Retry and three-owner refresh are the next separate product slices. Physical input/authenticated/provider acceptance stays open. |
 | 6A6 / 6B | Combined-tree review, complete local/default remote gates and implementation merge passed at `af8f374` / `aa497d9`. Remaining serving/schema, physical-device, provider/operational and scoped release acceptance is open. |
 | First integrated V3 release | Existing product plus **explicitly qualified enabled** FP2–FP5 scope. Capabilities awaiting live evidence remain unavailable/deferred rather than incorrectly marked unimplemented or enabled. |
 | Portable runtime | Node/Docker/SQLite/local defaults with real volume/upgrade and cross-deployment recovery evidence. |
@@ -1076,7 +1082,7 @@ Project-owned Markdown or attachment content only through explicit user action.
    and historical failed/cancelled runs. #250 planning and inactive Drafts
    #199/#200 have been reviewed; do not adopt those old migration bridges.
 2. Finish open **#252**: preserve `ee171339` matrix/cost/Project/physical receipts,
-   qualify the named Metrology pair on the fresh source-tree-corrected fixture,
+   preserve `c06cb71` fresh 20-case/named-pair/stop/physical qualification,
    then pass the final-head complete gate before reviewed integration.
    Follow with separate initial Project GET Retry and known three-owner group
    refresh PRs; their private candidate tests do not establish browser acceptance.

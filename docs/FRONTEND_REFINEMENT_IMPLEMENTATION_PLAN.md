@@ -25,9 +25,9 @@ source passed 100 mounted files / 966 tests and build. The
 20 adopted matrix cases, 84 actual API seed requests, six cost cases and 12
 additional Project scenario IDs, with dirty/held/lost-ACK exact retry and
 unchanged original Projects. Awaited service disposal and four physical
-SQLite/FK checks plus PNG/original-byte proof passed. The named Metrology pair
-awaits a fresh source-tree metadata correction, and final-head complete gates
-remain pending. Initial Project GET Retry and three-owner group refresh are
+SQLite/FK checks plus PNG/original-byte proof passed. The fresh `c06cb71` / tree `2466e718` checkpoint passed the 20-case matrix
+and both named Metrology cases, awaited stop and physical DB/FK/PNG/original-byte
+proof. Final-head complete gates remain pending. Initial Project GET Retry and three-owner group refresh are
 next separate product slices with candidate tests, not current browser passes.
 Post-merge #251 Verify/Map and all 15 contexts and Workers Build
 `114224522096` succeeded; three anonymous routes still returned Access 302.
@@ -561,7 +561,7 @@ merged. The [integrated browser evidence](PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE
 records real start/plan confirmations, mixed light/dark responsive surfaces and
 explicit keyboard chunk-error recovery. Open #252 implements owner refresh and
 the search label; [current local evidence](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md)
-records its matrix/cost/Project/physical checks. Fresh named Metrology and final
+records its matrix/cost/Project/physical checks. Fresh `c06cb71` matrix/named Metrology and stop/physical checks passed; final
 gates remain pending; initial Project GET Retry and known three-owner group
 refresh are the next separate product slices.
 Whole-phase physical-input/authenticated/provider qualification remains open. See

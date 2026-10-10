@@ -30,9 +30,11 @@ It does not declare Phase 6 complete or authorize a production release.
   [current local checkpoint](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md) passed
   the adopted 20-case matrix, 84-request seed, six cost cases, 12 additional
   Project scenario IDs, awaited controlled stop and four physical SQLite/FK
-  checks with exact PNG/original-state byte proof. Named Metrology remains
-  pending a fresh metadata-corrected fixture; final-head complete remote gates
-  remain pending. These bounded checks do not inherit the historical full gate.
+  checks with exact PNG/original-state byte proof. Fresh exercised source
+  `c06cb71ec5933cfb4d1721a5c1ac314b09a96ed8`, tree
+  `2466e71894298e90acdc5bd4b183d29fdd88b24f`, then passed 20 matrix cases,
+  both named Metrology cases, awaited stop and four SQLite/FK/PNG/original-byte
+  checks. Final-head complete remote gates remain pending. These bounded checks do not inherit the historical full gate.
 - Historical qualified source/document head: `4b2c660267b794d09798f961efe8d11ba6e1df86`;
   [Verify 37987949742](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37987949742)
   succeeded. This evidence belongs to that head, not subsequent changes.
@@ -58,7 +60,7 @@ It does not declare Phase 6 complete or authorize a production release.
 | Current export admission | Generation markers/columns distinguish V21–V24; stale writers return 409, incomplete generations fail closed, and validators require exact fingerprints/inventory. Canonical suites below passed at `af8f374`; authenticated actual serving-route checks remain open. | QUALIFIED_TREE / OPEN_REMOTE |
 | Nonempty recovery and preserved history | Native/legacy canonical tests passed with bytes, canonical cells, signed rowids, source identity and accepted provenance preserved through export/restore and repeated recovery. This local/native evidence does not qualify an actual deployed provider or provisioned target handoff. | QUALIFIED_TREE / OPEN_REMOTE |
 | Stale-tab deployment recovery | Explicit recovery passed actual-App mounted and full gates; [route recovery evidence](PHASE_6_ROUTE_RECOVERY_ACCEPTANCE.md) preserves pre-fix failures. [Built-Worker browser evidence](PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md) passed two one-shot 404/503 chunk failures, explicit keyboard reload and full URL retention. An actual old-document/new-serving-version handover is still required. | QUALIFIED_TREE / local browser passed / OPEN_REMOTE |
-| Integrated browser/input/data workflows | Historical 20-case matrix and two Metrology pending cases retain their versioned scope. Current `ee171339` adopted matrix passed 20 cases plus six cost cases and 12 additional Project scenario IDs; dirty/held/lost-ACK exact retries preserve original Projects, and controlled-stop/physical proof passed. Owner refresh and search label are implemented in open #252. | Bounded current browser passed / named Metrology and final-head gates pending / OPEN_REMOTE |
+| Integrated browser/input/data workflows | Historical 20-case matrix and two Metrology pending cases retain their versioned scope. Current `ee171339` adopted matrix passed 20 cases plus six cost cases and 12 additional Project scenario IDs; dirty/held/lost-ACK exact retries preserve original Projects, and controlled-stop/physical proof passed. Owner refresh and search label are implemented in open #252; fresh `c06cb71` passed 20 matrix cases and both named Metrology cases, plus awaited-stop/physical checks. | Bounded current browser passed / final-head gates pending / OPEN_REMOTE |
 | Next finite product repairs | Initial Project GET Retry characterization had 5 red / 1 pass; its candidate has 6 green mounted cases. Known three-owner group refresh has a private 29-test/type candidate for 8 → 3 reads. Both belong in separate reviewable PRs, with current-artifact qualification before integration. | OPEN_IMPLEMENTATION / candidate tests only |
 
 Fresh-schema audit SHA-256:
