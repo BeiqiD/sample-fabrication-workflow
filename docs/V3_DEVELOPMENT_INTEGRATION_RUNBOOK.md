@@ -146,7 +146,9 @@ case limits; a larger job budget is not evidence of a performance repair.
 1. Resolve latest accepted roadmap and implementation documentation together.
    Preserve dated evidence and update the current status matrix. Review the
    actual combined implementation, paired migration/recovery generations and
-   configured automatic build/deploy path.
+   repository build/deploy path. Record unavailable automatic-build configuration
+   as an operational evidence gap; it is not a new permission question for the
+   owner-authorized development integration.
 2. Qualify the exact PR head with the full default Verify gate and required Map
    gate. Merge through a reviewed PR against development integration; do not
    bypass failed or unexecuted required checks.
