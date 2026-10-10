@@ -102,6 +102,22 @@
       "sha256": "b7333ac7d9373577d61757d7afb9f1102d3c5a45fa4df737322e0618fe88fd7c"
     },
     {
+      "path": "server/storage/local-byte-storage.process-fixture.ts",
+      "sha256": "0a597b00df77cb6556216cecd7b1f4685bbbe6991b160daac26a4e99a1162fd9"
+    },
+    {
+      "path": "server/storage/local-byte-storage.test.ts",
+      "sha256": "2865de561fc719af6a99e30d9f542f7eb4543196548d0bfb0e08e327b54758a7"
+    },
+    {
+      "path": "server/storage/local-byte-storage.ts",
+      "sha256": "7830fc6299c5d9c64b89cba920440dd4526f12a8ff7e954a19420651539ac108"
+    },
+    {
+      "path": "server/storage/node-sha256.ts",
+      "sha256": "7a68fca8daba4cbffd85a60e684becfe18814f22a9b8684300f5296d883bbcc6"
+    },
+    {
       "path": "tsconfig.runtime-tests.json",
       "sha256": "6cb4ca106cacb07c0df398c9e894fdd77b98908f27340449fc2a61e208df2356"
     },
@@ -168,7 +184,8 @@
     "factory-order-and-entry-boundary",
     "sqlite-adapter",
     "http-static-boundary",
-    "password-token-crypto"
+    "password-token-crypto",
+    "root-read-local-disk-transport-and-node-sha256"
   ],
   "notComplete": [
     "RT1",
@@ -183,5 +200,80 @@
     "No complete Node application, local accounts, registered local profiles or Docker runtime admission",
     "No production/main release, live provider activation or source data cutover",
     "Source receipt pins pre-commit content; exact final commit still requires complete gates"
-  ]
+  ],
+  "diskSlice": {
+    "status": "applied-focused-qualified-disabled-and-uncomposed",
+    "patchSha256": "7b6befd68949e454912655e83a914219882055abc0ba80a46622c9e39d66ef7c",
+    "excludedPrivateOnlyFile": "tsconfig.local-byte-node.json; mandatory tsconfig.server covers all adopted source",
+    "checks": [
+      {
+        "command": "RT3_LOCAL_BYTE_FIXTURE_PARENT=/workspace RT3_LOCAL_BYTE_RECEIPT_PATH=/tmp/portable-rt3-byte-applied-2c5911e.json npx vitest run server/storage/local-byte-storage.test.ts worker/files/byte-verification.test.ts worker/files/byte-reader.test.ts worker/files/byte-deleter.test.ts",
+        "status": "passed",
+        "cases": 104,
+        "newDiskCases": 31,
+        "existingContractCases": 73,
+        "logSha256": "83d686846e8c3f0c8e5830936760274176139e2a549bd3c95e472ae10d911a21"
+      },
+      {
+        "command": "npm run typecheck:server",
+        "status": "passed",
+        "logSha256": "91f3b25c6bd367187e78c2868412891e1928806cc4192a004a6185a86acfb530"
+      }
+    ],
+    "actualRuntime": {
+      "version": 1,
+      "node": "v24.19.0",
+      "platform": "linux",
+      "fixtureParent": "/workspace",
+      "filesystemTypeHex": "794c7630",
+      "scope": "Actual synthetic filesystem operations and independent Node processes; no application/profile/schema/provider composition.",
+      "observations": [
+        {
+          "case": "lost-ACK",
+          "writerCalls": 1,
+          "committedObjects": 1,
+          "freshExactKeyVerification": {
+            "byteSize": 27,
+            "sha256": "aff62162806e0fb0fd3fdd90ef62a5382c1e5447fb65f247fbf34a77e7cfa20d"
+          },
+          "replayOrDelete": false
+        },
+        {
+          "case": "before-publish",
+          "independentProcess": true,
+          "signal": "SIGKILL",
+          "exitCode": null,
+          "freshStat": "missing",
+          "committedObjects": 0,
+          "retainedStages": 1
+        },
+        {
+          "case": "after-publish",
+          "independentProcess": true,
+          "signal": "SIGKILL",
+          "exitCode": null,
+          "freshStat": "available",
+          "committedObjects": 1,
+          "retainedStages": 0
+        },
+        {
+          "case": "RLIMIT_FSIZE",
+          "independentProcess": true,
+          "exitCode": 0,
+          "signal": null,
+          "actualWriteFailureObserved": true,
+          "configuredMaximumBytes": 1024,
+          "retainedPartialBytes": 1024,
+          "freshStat": "missing",
+          "committedObjects": 0
+        }
+      ]
+    },
+    "limits": [
+      "No local profile/schema/default/ingress/admission enabled",
+      "No ENOSPC/power-loss/network-volume/non-root-container acceptance",
+      "Failed stages/unknown ACK retained; no automatic replay/delete",
+      "Host-owned immutable private filesystem prerequisite"
+    ]
+  }
 }

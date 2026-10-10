@@ -34,6 +34,13 @@ post-merge Verify and development Workers build remain separate observations.
   measurement observed roughly 364 ms hash / 367 ms verification medians and
   306.3 MiB process peak RSS at concurrency two; this is not a process RSS cap.
   No account, session, grant, cookie, bootstrap or login route is enabled here.
+- The disabled local byte capability implements the existing reader/writer/
+  deleter contracts and Node incremental hashing. An already provisioned exact
+  volume/root/profile marker is required; keys remain opaque and physical names
+  are generated digests. Exclusive staging, source verification, fsync and
+  immutable atomic publication retain uncertain outcomes for exact-key
+  reconciliation. No local profile, default, File publication or cleanup
+  admission is enabled by adding this transport.
 
 ## Applied-tree checks
 
@@ -59,6 +66,16 @@ No failing attempt is counted as a passing qualification.
 The [machine receipt](PORTABLE_RUNTIME_FOUNDATION_RECEIPTS.json) pins adopted
 source and applied check logs. Temporary private logs may be unavailable in a
 replacement environment; the durable record retains their hashes and scope.
+
+The separately applied disk slice passed **31 actual disk cases plus 73
+existing byte-contract cases** and the mandatory strict server types. The
+synthetic fixtures used `/workspace` overlayfs (`0x794c7630`); `/tmp` tmpfs
+diagnostics remain historical. Actual independent-process SIGKILL before/after
+publication, a native 1,024-byte process file-size limit, and one lost-ACK write
+with fresh independent verification passed. The file-size failure is not
+ENOSPC evidence. Power loss, network volumes, arbitrary host mutation and
+non-root distribution volumes remain unqualified. The root reviewed the
+complete production transport independently of its implementation owner.
 
 ## Remaining roadmap work
 
