@@ -2,6 +2,7 @@ import type { ExportRow, ExportSchemaObject, ExportTables } from "./export";
 import { validateLegacyOverlap } from "./export-file-foundation";
 import { sqliteTableColumns } from "../domain/sqlite-table-columns";
 import { sha256Hex, stableJson } from "../domain/content-addressing";
+import { boundedStringMemo } from "../domain/bounded-string-memo";
 
 export const FILE_AUTHORITY_CONTROL_TABLE = "file_authority_control" as const;
 export const FILE_AUTHORITY_REBUILDABLE_TABLE_NAMES = ["file_registry_rowid_claims"] as const;
@@ -209,6 +210,13 @@ export function canonicalFileAuthoritySchemaSql(sql: string) {
   while (tokens.at(-1) === ";") tokens.pop();
   return tokens;
 }
+
+// Fingerprints need serialized tokens, so retain only immutable strings. This
+// never caches a manifest, schema identity, validator outcome or database row.
+export const canonicalFileAuthoritySchemaSqlJson = boundedStringMemo(
+  (sql) => JSON.stringify(canonicalFileAuthoritySchemaSql(sql)),
+  { maxEntries: 2_048, maxStringBytes: 8 * 1024 * 1024 },
+);
 
 function comparedSchemaObject(entry: ExportSchemaObject) {
   return {

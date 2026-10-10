@@ -1,0 +1,28 @@
+{
+  "patch": "/tmp/portable-node-composer-7cdee51/http-caller-cancel-candidate.patch",
+  "patchSha256": "f543462e8a7724eebc2e385428235586cdbefaa428f6d5372aad4fc8adbc5d84",
+  "code": {
+    "server/http.ts": "a8676294ab3527dd0d14bddda28ab7986782827e354bfb344de9112bd6337ce0",
+    "server/http.test.mts": "3f8e205b1aad94932ecd32364f7bb91ca936c62439dd09d822c7c09a0c5a2c59"
+  },
+  "appliedFocusedChecks": [
+    {
+      "path": "/tmp/portable-foundation-post254-applied-server-types-attempt1.log",
+      "sha256": "91f3b25c6bd367187e78c2868412891e1928806cc4192a004a6185a86acfb530",
+      "exitCode": 0
+    },
+    {
+      "path": "/tmp/portable-foundation-post254-applied-http19-attempt1.log",
+      "sha256": "f61f211be95de048417ed20d26ef2510acfd39322ed3f0a082873cff2d437eec",
+      "exitCode": 0
+    }
+  ],
+  "nativeHTTPAndStaticTests": 19,
+  "completeIntegrated15LeafGate": "pending",
+  "independentSourceReview": {
+    "result": "clear: no concrete source blocker",
+    "scope": "source and existing actual receipts only; no independent runner invocation",
+    "receipt": "/tmp/portable-node-composer-7cdee51/http-caller-cancel-peer-review.json",
+    "sha256": "a04a71d201fd8c88cb6ddf2a1fb2c3f56015c606bd28c554a8fe9c777758c400"
+  }
+}

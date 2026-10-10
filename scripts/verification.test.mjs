@@ -53,6 +53,9 @@ test("CI and deployment cover the same unique leaves; only deployment build uses
     assert.equal(plan.leaves.filter(({ id }) => id === "build").length, 1);
     assert(plan.leaves.some(({ script }) => script === "typecheck:export-contract"));
     assert(plan.leaves.some(({ script }) => script === "typecheck:file-jobs-node"));
+    assert(plan.leaves.some(({ script }) => script === "typecheck:server"));
+    assert(plan.leaves.some(({ script }) => script === "test:node-http"));
+    assert(plan.leaves.some(({ script }) => script === "verify:node-client"));
     assert(plan.leaves.some(({ script }) => script === "verify:project-worker-artifact"));
     for (const { script } of plan.leaves) assert.equal(typeof scripts[script], "string", script);
     for (const ids of Object.values(plan.contexts)) for (const id of ids) assert(plan.leaves.some((leaf) => leaf.id === id), id);
@@ -74,6 +77,16 @@ test("required verification includes both FP3 native fixtures and a platform-ind
   const plan = verificationPlan("ci");
   assert(plan.contexts["pre-pr/file-jobs"].includes("file-jobs-node"));
   assert.equal(plan.leaves.filter(leaf => leaf.id === "file-jobs-node").length, 1);
+  for (const id of ["node-http", "server-types"]) {
+    assert.equal(plan.leaves.filter(leaf => leaf.id === id).length, 1);
+    assert(plan.contexts["pre-pr/tests"].includes(id));
+  }
+  for (const file of ["server/http.test.mts", "server/static-assets.test.mts"]) {
+    assert.equal(scripts["test:node-http"].split(/\s+/).filter(token => token === file).length, 1, file);
+  }
+  const serverConfiguration = JSON.parse(await readFile(new URL("../tsconfig.server.json", import.meta.url), "utf8"));
+  assert.deepEqual(serverConfiguration.compilerOptions.types, ["node"]);
+  assert.deepEqual(serverConfiguration.compilerOptions.lib, ["ES2022"]);
 });
 
 test("complete test leaves discover every explicit file from preserved local domain commands", async () => {

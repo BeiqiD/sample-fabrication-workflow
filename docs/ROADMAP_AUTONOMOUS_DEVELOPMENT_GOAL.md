@@ -25,9 +25,13 @@ failed without a reason in check metadata; actual serving/schema remain open. It
 and fresh `c06cb71` / tree `2466e718` (20 matrix cases, both named Metrology
 cases and awaited-stop/physical proof passed). The later
 [Retry/group/motion slice](PHASE_5F_RETRY_GROUP_MOTION_ACCEPTANCE.md) has bounded
-actual browser qualification at `6c4dc88`; its final branch gate remains pending.
+actual browser qualification at `6c4dc88`. Final source9b passed all12 local
+leaves (355/3351/980), four own Verify/Map runs and all15 contexts; #254 merged
+at `7e129b8c888179631d84623721c464d2efb320bf` with exact qualified tree equality.
+[Final follow-up receipts](PHASE_5F_FINAL_FOLLOWUP_CHECKS.md) retain all failures.
 Draft portable-runtime PR #253 is implemented only as a partial foundation;
-its observed complete-check failures remain open.
+its original7c complete-check failures remain retained. The rebased foundation
+and independent Node client build now require their own complete15-leaf gate.
 
 ## Working order
 
@@ -39,10 +43,10 @@ its observed complete-check failures remain open.
    additional Project scenario identities, plus awaited-stop and physical
    DB/FK/PNG/isolated-input-byte receipts. Preserve the fresh `c06cb71` 20-case matrix,
    named Metrology pair and stop/physical qualification; qualify the final-head
-   complete gate and the separate post-merge failures. Qualify the follow-up
-   initial Project GET Retry, known three-owner group refresh and reduced-motion
-   branch's own complete gates before merging. Its actual browser scopes passed;
-   they do not replace complete CI or whole-5F acceptance.
+   complete gate and the separate post-merge failures. Preserve #254's qualified
+   initial Project GET Retry, three-owner group refresh and reduced-motion
+   merge, both named actual browser scopes and final complete checks;
+   they do not establish whole-5F acceptance.
 3. Complete the remaining bounded 5F language, navigation, read/retry/recovery
    and representative browser/responsive/theme checks. Repair observed defects;
    preserve domain identity, accepted-write semantics and mature grid geometry.

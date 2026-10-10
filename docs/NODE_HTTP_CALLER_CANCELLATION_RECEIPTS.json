@@ -1,0 +1,324 @@
+{
+  "scope": "Qualified bounded Node HTTP caller-body-cancellation repair only; no provider deployment or business activation.",
+  "createdUtc": "2026-10-10T17:26:09.903333+00:00",
+  "baseHead": "7cdee5198188bcafc0b9e8703ac77451d0179234",
+  "files": {
+    "server/http.ts": "a8676294ab3527dd0d14bddda28ab7986782827e354bfb344de9112bd6337ce0",
+    "server/http.test.mts": "3f8e205b1aad94932ecd32364f7bb91ca936c62439dd09d822c7c09a0c5a2c59"
+  },
+  "patch": {
+    "path": "/tmp/portable-node-composer-7cdee51/http-caller-cancel-candidate.patch",
+    "sha256": "f543462e8a7724eebc2e385428235586cdbefaa428f6d5372aad4fc8adbc5d84"
+  },
+  "mechanism": "Fetch-body wrapper sends its private per-request sentinel to the Node Web reader. Only exact sentinel identity avoids transport failure; caller reason is not used. IncomingMessage remains transport-owned, counted, drained and deadline/disconnect checked before ACK. Secret-parser cancellation remains unchanged.",
+  "nativeRed": {
+    "log": {
+      "path": "/tmp/portable-node-http-caller-cancel-red.log",
+      "sha256": "d25a9c1c1186edbb1bf2171b9aa33a8aaa5804ccba75c37af63356e3bd6f3a4a"
+    },
+    "exitCode": 1,
+    "tests": 1,
+    "failed": 1,
+    "actualStatus": 500,
+    "expectedStatus": 413
+  },
+  "nativeIntermediate": {
+    "log": {
+      "path": "/tmp/portable-node-http-caller-cancel-green-attempt1.log",
+      "sha256": "8947b0c12ceec3a58109d82361b7e0093a2e0641297596ea64b575c4dbdca3e4"
+    },
+    "exitCode": 0,
+    "passed": 18
+  },
+  "nativeFinal": {
+    "log": {
+      "path": "/tmp/portable-node-http-caller-cancel-final-native.log",
+      "sha256": "6bd35a713c2fd44f39bf04c364be5bc13af92407ebfac83edc62d20c6e4580de"
+    },
+    "exitCode": 0,
+    "tests": 19,
+    "passed": 19,
+    "failed": 0,
+    "command": "node --test server/http.test.mts server/static-assets.test.mts",
+    "originalTests": 15,
+    "newCancellationCases": 4
+  },
+  "types": {
+    "server": {
+      "log": {
+        "path": "/tmp/portable-node-http-caller-cancel-server-types-final.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "exitCode": 0,
+      "command": "node node_modules/typescript/bin/tsc -p tsconfig.server.json"
+    },
+    "runtimeTests": {
+      "log": {
+        "path": "/tmp/portable-node-http-caller-cancel-runtime-types.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "exitCode": 0,
+      "command": "node node_modules/typescript/bin/tsc -p tsconfig.runtime-tests.json"
+    }
+  },
+  "authLibrary14": {
+    "json": {
+      "path": "/tmp/portable-node-http-caller-cancel-auth14.json",
+      "sha256": "a038bc1231af4b0df4424ce6fe4aeedf24f10ba823e32ad87cafe8cb1a2af2f4"
+    },
+    "log": {
+      "path": "/tmp/portable-node-http-caller-cancel-auth14.log",
+      "sha256": "5b4a75d326a2f770cc92b1a0129ada4d1b88dceaccc89e236d54e00226ea4c1f"
+    },
+    "success": true,
+    "tests": 14,
+    "passed": 14,
+    "failed": 0,
+    "pending": 0,
+    "cases": [
+      {
+        "title": "delivers the raw bearer only in its development HttpOnly cookie and persists only its hash",
+        "status": "passed",
+        "durationMs": 1189.185966
+      },
+      {
+        "title": "requires exact configured Origin and same-origin Fetch Metadata before writing login state",
+        "status": "passed",
+        "durationMs": 695.620966
+      },
+      {
+        "title": "bounds streamed credentials, enforces fatal UTF8 and exact input without relying on Content-Length",
+        "status": "passed",
+        "durationMs": 720.354218
+      },
+      {
+        "title": "refuses anonymous initialization and leaves offline bootstrap available",
+        "status": "passed",
+        "durationMs": 725.3798709999996
+      },
+      {
+        "title": "denies unknown and wrong passwords generically with no cookie or credential reflection",
+        "status": "passed",
+        "durationMs": 1414.6555119999998
+      },
+      {
+        "title": "requires a fresh persisted session plus exact Origin and matching derived CSRF on domain mutations",
+        "status": "passed",
+        "durationMs": 1168.824528
+      },
+      {
+        "title": "rejects duplicate/malformed cookies and Access-style headers without a genuine local session",
+        "status": "passed",
+        "durationMs": 1046.781532
+      },
+      {
+        "title": "rotates explicitly, invalidates old bearer and CSRF, and preserves the original absolute deadline",
+        "status": "passed",
+        "durationMs": 1081.3634549999988
+      },
+      {
+        "title": "revokes before clearing its cookie and rejects the same bearer after logout",
+        "status": "passed",
+        "durationMs": 1005.8539710000005
+      },
+      {
+        "title": "selects current admin grants separately from actor provenance and keeps File operator false",
+        "status": "passed",
+        "durationMs": 1139.7467190000007
+      },
+      {
+        "title": "fails a later trusted actor admission after the actual account becomes disabled",
+        "status": "passed",
+        "durationMs": 1071.2464820000005
+      },
+      {
+        "title": "rejects idle expiry and current password-reset revocation through the same actual HTTP surface",
+        "status": "passed",
+        "durationMs": 1795.3333409999996
+      },
+      {
+        "title": "rejects a Fetch request with no actual ingress admission and refuses public/proxy origin modes",
+        "status": "passed",
+        "durationMs": 702.489384999999
+      },
+      {
+        "title": "rejects a wildcard-bound actual listener despite a loopback request and refuses spoofed Host/proxy headers",
+        "status": "passed",
+        "durationMs": 1503.5393299999996
+      }
+    ],
+    "retainedFixtureDirectories": [],
+    "fixtureCount": 0,
+    "allFixtureDirectoriesRetained": true
+  },
+  "actualComposed8OriginalFailure": {
+    "json": {
+      "path": "/tmp/portable-node-composer-actual-attempt1.json",
+      "sha256": "963ad9d0db0d31f1333c00da4d32369184e6caf5a5153b3e3a222d91b6e73e6a"
+    },
+    "log": {
+      "path": "/tmp/portable-node-composer-actual-attempt1.log",
+      "sha256": "acedbda4355d78f5695dfe781b51512ff2550759e28ef532c7c8c84b8e9a877c"
+    },
+    "success": false,
+    "tests": 8,
+    "passed": 7,
+    "failed": 1,
+    "pending": 0,
+    "cases": [
+      {
+        "title": "serves attested real client bytes and public health while readiness and File capability require a genuine session",
+        "status": "passed",
+        "durationMs": 4428.079347
+      },
+      {
+        "title": "rejects actual spoofed Host, hostile Origin and missing CSRF before auth or storage publication",
+        "status": "passed",
+        "durationMs": 4551.310316
+      },
+      {
+        "title": "publishes a genuinely chunked encrypted candidate via shared SQL and rechecks current persisted administrator grants",
+        "status": "passed",
+        "durationMs": 3844.210035
+      },
+      {
+        "title": "rotates the real cookie without extending expiry then revokes before clearing it on logout",
+        "status": "passed",
+        "durationMs": 4256.695428999999
+      },
+      {
+        "title": "rejects actual chunked4097-byte credentials before throttle, session, event or credential state changes",
+        "status": "failed",
+        "durationMs": 3762.0300750000024
+      },
+      {
+        "title": "denies all unported business owners with authenticated503 without entering SPA or writing business state",
+        "status": "passed",
+        "durationMs": 4284.236226000001
+      },
+      {
+        "title": "rejects foreign native/core/admission and unqualified TLS before constructor KDF work",
+        "status": "passed",
+        "durationMs": 8155.678046999998
+      },
+      {
+        "title": "retains the actual identity writer across timeout and disconnect until shutdown drains its original operation",
+        "status": "passed",
+        "durationMs": 9218.177787999994
+      }
+    ],
+    "retainedFixtureDirectories": [
+      "/workspace/.node-composer-9zOhtY",
+      "/workspace/.node-composer-GF0qZL",
+      "/workspace/.node-composer-bc50Km",
+      "/workspace/.node-composer-r57ySX",
+      "/workspace/.node-composer-Hi7iFv",
+      "/workspace/.node-composer-pqtr8x",
+      "/workspace/.node-composer-cnmp98",
+      "/workspace/.node-composer-sKs8LA",
+      "/workspace/.node-composer-oTX7AN",
+      "/workspace/.node-composer-ZKTESN"
+    ],
+    "fixtureCount": 10,
+    "allFixtureDirectoriesRetained": true
+  },
+  "actualComposed8Repair": {
+    "json": {
+      "path": "/tmp/portable-node-composer-actual-attempt2.json",
+      "sha256": "8d575e594877fbee878b0aab4526a5d66cad3188656c04e19a6908e950038ed0"
+    },
+    "log": {
+      "path": "/tmp/portable-node-composer-actual-attempt2.log",
+      "sha256": "7f24f498c05821fb80afd018a8b711c3f45ada7ce35511ad4ce6a5cb4554f643"
+    },
+    "success": true,
+    "tests": 8,
+    "passed": 8,
+    "failed": 0,
+    "pending": 0,
+    "cases": [
+      {
+        "title": "serves attested real client bytes and public health while readiness and File capability require a genuine session",
+        "status": "passed",
+        "durationMs": 4092.908746
+      },
+      {
+        "title": "rejects actual spoofed Host, hostile Origin and missing CSRF before auth or storage publication",
+        "status": "passed",
+        "durationMs": 3846.5874240000003
+      },
+      {
+        "title": "publishes a genuinely chunked encrypted candidate via shared SQL and rechecks current persisted administrator grants",
+        "status": "passed",
+        "durationMs": 3879.4331600000005
+      },
+      {
+        "title": "rotates the real cookie without extending expiry then revokes before clearing it on logout",
+        "status": "passed",
+        "durationMs": 3894.9633919999997
+      },
+      {
+        "title": "rejects actual chunked4097-byte credentials before throttle, session, event or credential state changes",
+        "status": "passed",
+        "durationMs": 3546.421601000002
+      },
+      {
+        "title": "denies all unported business owners with authenticated503 without entering SPA or writing business state",
+        "status": "passed",
+        "durationMs": 3876.6961499999998
+      },
+      {
+        "title": "rejects foreign native/core/admission and unqualified TLS before constructor KDF work",
+        "status": "passed",
+        "durationMs": 7202.087519000001
+      },
+      {
+        "title": "retains the actual identity writer across timeout and disconnect until shutdown drains its original operation",
+        "status": "passed",
+        "durationMs": 8118.029435000004
+      }
+    ],
+    "retainedFixtureDirectories": [
+      "/workspace/.node-composer-ibl4Eq",
+      "/workspace/.node-composer-C9btrU",
+      "/workspace/.node-composer-0twDPJ",
+      "/workspace/.node-composer-xuYv5d",
+      "/workspace/.node-composer-S9hMKJ",
+      "/workspace/.node-composer-uE2KG6",
+      "/workspace/.node-composer-JX4QwG",
+      "/workspace/.node-composer-FMu8G1",
+      "/workspace/.node-composer-zJMRTf",
+      "/workspace/.node-composer-0KvR26"
+    ],
+    "fixtureCount": 10,
+    "allFixtureDirectoriesRetained": true
+  },
+  "authInputs": {
+    "server/auth/local-auth-http.ts": "12e7a55fa56ac45671f8df33354d75212e430cb34fc918529b6454116a3c4993",
+    "server/auth/local-auth-transport.ts": "01879c200be84c623d31c325e86b31e6314be6d3bcaa858d9ae894f706a75d76",
+    "server/auth/local-auth-http.test.ts": "fe666a937538ca3cb4aec0f24f5ac9c7d9502cf5103cc76d65d181ea9b0b92a8"
+  },
+  "requestAdmission": "Trusted composer hook is included in HTTP-only patch against7c. Exact Request/IncomingMessage/actual Server are passed; omission preserves default behavior.",
+  "shutdown": "All invoked suites completed and runner processes exited0. Actual composed fixture cleanup awaited prototype.close then native/core.close; all synthetic fixture state retained.",
+  "limits": [
+    "No public/TLS/proxy authentication qualification or current0023 Worker activation.",
+    "No physical writer lease activated.",
+    "This does not qualify all business domains or provider/storage byte authority.",
+    "No canonical workspace DB byte inventory proof is claimed; test mutations were confined to explicitly allocated private synthetic fixture directories."
+  ],
+  "independentReview": {
+    "path": "/tmp/portable-node-composer-7cdee51/http-caller-cancel-peer-review.json",
+    "sha256": "a04a71d201fd8c88cb6ddf2a1fb2c3f56015c606bd28c554a8fe9c777758c400"
+  },
+  "previousFrozenReceipt": {
+    "path": "/tmp/portable-node-composer-7cdee51/http-caller-cancel-qualified-receipt.json",
+    "sha256": "c1c973734666db61e5c8a8970cd80d4abe58c78ef73d4509805f49d9c60d3581"
+  },
+  "frozen": true,
+  "patchApplyCheck": {
+    "result": "PASS",
+    "baselineHead": "7cdee5198188bcafc0b9e8703ac77451d0179234",
+    "privateDirectory": "/tmp/node-http-patch-apply-check-cri1qb5s",
+    "canonicalMutations": false
+  }
+}

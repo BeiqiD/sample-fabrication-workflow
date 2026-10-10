@@ -19,7 +19,7 @@
     "db:migrate:remote": "npm run verify:v3-deployment && npm run internal:db:migrate:remote",
     "db:observe:remote": "node scripts/observe-remote-d1-migrations.mjs",
     "internal:db:migrate:remote": "npm run config:deploy && node scripts/verify-deployment-bootstrap.mjs && wrangler d1 migrations apply DB --remote --config .wrangler/deploy.jsonc",
-    "test": "vitest run && npm run test:reference-mounted && npm run test:rich-text-bundle && npm run test:verification-scripts",
+    "test": "vitest run && npm run test:reference-mounted && npm run test:rich-text-bundle && npm run test:verification-scripts && npm run test:node-http",
     "test:rich-text-bundle": "node scripts/verify-rich-text-bundle.mjs",
     "test:comment-rich-text": "vitest run src/lib/rich-text.test.ts src/lib/project-markdown.test.ts src/comment-rich-text-contract.test.ts",
     "test:comment-rich-text-mounted": "vitest run --config vitest.mounted.config.ts src/comment-rich-text.mount.test.tsx",
@@ -74,7 +74,11 @@
     "inspect:file-consumers": "node scripts/inspect-file-consumers.mjs",
     "inspect:file-shadow": "node scripts/inspect-file-shadow.mjs",
     "test:file-shadow-inspection": "node --test scripts/fp1-shadow-inspection.test.mjs",
-    "test:file-shadow": "node --test scripts/fp1-shadow-runtime.test.mjs scripts/fp1-shadow-r2-writer.test.mjs scripts/fp1-shadow-withdrawals.test.mjs scripts/fp1-shadow-adjudications.test.mjs"
+    "test:file-shadow": "node --test scripts/fp1-shadow-runtime.test.mjs scripts/fp1-shadow-r2-writer.test.mjs scripts/fp1-shadow-withdrawals.test.mjs scripts/fp1-shadow-adjudications.test.mjs",
+    "typecheck:server": "tsc -p tsconfig.server.json && tsc -p tsconfig.runtime-tests.json",
+    "test:node-http": "node --test server/http.test.mts server/static-assets.test.mts",
+    "build:node-client": "tsc -b tsconfig.shared.json tsconfig.app.json && vite build --config vite.node.config.ts",
+    "verify:node-client": "npm run build:node-client && node scripts/verify-project-map-bundle.mjs --client-directory dist-node/client"
   },
   "dependencies": {
     "@xyflow/react": "^12.11.2",
