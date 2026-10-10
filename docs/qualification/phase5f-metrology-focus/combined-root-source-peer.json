@@ -1,0 +1,10 @@
+{
+  "head": "d191eac9aab2f5b89037a3630eb68e417e8046e2",
+  "baseline": "f02dd9ab80f98a3317b0842e4ec8a2f8cb899a43",
+  "changed": [
+    "src/components/MultiSampleRunGrid.tsx",
+    "src/phase5f-metrology-pending.mount.test.tsx"
+  ],
+  "sourcePeer": "CLEAR",
+  "scope": "minimal product/fixture delta and unchanged previously accepted recorder functions; runtime UNRUN"
+}

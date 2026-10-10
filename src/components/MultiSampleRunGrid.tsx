@@ -1,5 +1,5 @@
 import { nativeAssetUrl } from "../../shared/contracts/r2-upload";
-import { Fragment, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, type FormEvent, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { FileAssetMediaRef, CommentSubmission, CreateCommentSubmissionInput, RunStep, RunStepAssetPresentationInput, RunStepComment, SampleRun, StepStatus } from "../../shared/types";
 import { api, type MetrologyTemplateInput, type MetrologyTemplateSummary } from "../lib/api";
@@ -39,7 +39,7 @@ type DrawerState =
   | { mode: "add"; column: RunGridColumn; afterStepId?: string }
   | null;
 
-type MetrologyDrawerState = { column: RunGridColumn; afterStepId?: string } | null;
+type MetrologyDrawerState = { column: RunGridColumn; afterStepId?: string; returnFocusRef: RefObject<HTMLButtonElement | null> } | null;
 
 type DeleteRequest =
   | { kind: "comment"; comment: RunStepComment; common: boolean }
@@ -616,11 +616,12 @@ function MetrologyPickerDrawer({ state, onClose, onSaved }: {
   const operationRef = useRef<object | null>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const returnToPickerRef = useRef(false);
   const saving = savingPhase !== null;
   function close() {
     if (!operationRef.current) onClose();
   }
-  useModalDialog({ dialogRef, initialFocusRef: searchRef, onClose: close, blocked: saving });
+  useModalDialog({ dialogRef, initialFocusRef: searchRef, returnFocusRef: state.returnFocusRef, onClose: close, blocked: saving });
   useEffect(() => {
     const session = {};
     sessionRef.current = session;
@@ -714,8 +715,18 @@ function MetrologyPickerDrawer({ state, onClose, onSaved }: {
     <aside ref={dialogRef} className="step-drawer metrology-picker-drawer" role="dialog" aria-modal="true" aria-labelledby="metrology-picker-title">
       <div className="step-drawer-heading"><div><p className="dialog-kicker">{state.column.sample.code}</p><h2 id="metrology-picker-title">Add metrology</h2></div><button type="button" className="drawer-close" aria-label="Close" disabled={saving} onClick={close}><DialogCloseIcon /></button></div>
       <p className="muted">Choose a saved record type, or create a new metrology template and add it here.</p>
-      {creating ? <MetrologyTemplateForm embedded title="New metrology template" submitLabel="Save and add" onCancel={() => setCreating(false)} onSubmit={createAndAdd} /> : <>
-        <label className="search-box metrology-template-search"><span>Search templates</span><input ref={searchRef} aria-label="Search templates" disabled={saving} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="SEM, AFM, XRD…" /></label>
+      {creating ? <MetrologyTemplateForm embedded title="New metrology template" submitLabel="Save and add" onCancel={() => { if (operationRef.current) return; returnToPickerRef.current = true; setCreating(false); }} onSubmit={createAndAdd} /> : <>
+        <label className="search-box metrology-template-search"><span>Search templates</span><input ref={(node) => {
+          searchRef.current = node;
+          if (!node || !returnToPickerRef.current) return;
+          returnToPickerRef.current = false;
+          // This picker owns only its explicit idle create-form return. A later
+          // overlay or an unmounted session keeps its own focus destination.
+          if (sessionRef.current && !operationRef.current && node.isConnected
+            && (document.activeElement === document.body || dialogRef.current?.contains(document.activeElement))) {
+            node.focus({ preventScroll: true });
+          }
+        }} aria-label="Search templates" disabled={saving} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="SEM, AFM, XRD…" /></label>
         <div className="metrology-picker-list">
           {templates.map((template) => <button type="button" key={template.id} disabled={saving} onClick={() => void add(template.id)}>
             <span><strong>{template.name}</strong><small>{template.toolName || "No default tool"}{template.hasDefaultContent ? " · default content" : ""}</small></span>
@@ -1226,7 +1237,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, onAttachmentC
       onDeleteExecutionAsset={(selector) => { setDeleteError(""); setDeleteRequest({ kind: "execution_asset", assetKey: typeof selector === "string" ? selector : "", ...(typeof selector === "string" ? {} : selector), column, step }); }}
       onEdit={() => setDrawer({ mode: "edit", column, step })}
       onAddFabrication={() => setDrawer({ mode: "add", column, afterStepId: step.id })}
-      onAddMetrology={() => setMetrologyDrawer({ column, afterStepId: step.id })}
+      onAddMetrology={(returnFocusRef) => setMetrologyDrawer({ column, afterStepId: step.id, returnFocusRef })}
       allowAdd={primaryRun.runKind === "process"}
       readOnly={runStepIsReadOnly(readOnly, primaryRun.status === "complete", step)}
     />;
@@ -1463,13 +1474,14 @@ function StepCell({ column, step, pendingAction, onDone, onVerifyMatched, onVeri
   onCommentSubmitted: () => Promise<void>;
   onAttachmentChanged: () => Promise<void>;
   onDeleteComment: (comment: RunStepComment) => void; onDeleteCommentAsset: (comment: RunStepComment) => void; onDeleteExecutionAsset: (selector: string | { assetId: string }) => void; onEdit: () => void;
-  onAddFabrication: () => void; onAddMetrology: () => void; allowAdd: boolean; readOnly: boolean;
+  onAddFabrication: () => void; onAddMetrology: (returnFocusRef: RefObject<HTMLButtonElement | null>) => void; allowAdd: boolean; readOnly: boolean;
 }) {
   const individualComments = step.comments.filter((comment) => comment.scope === "individual");
   const recoverableComments = recoverableFromComments(individualComments);
   const readyComments = individualComments.filter((comment) => (comment.status ?? "ready") === "ready");
   const [showStateActions, setShowStateActions] = useState(false);
   const [showAddActions, setShowAddActions] = useState(false);
+  const addActionRef = useRef<HTMLButtonElement>(null);
   const [showMismatchDialog, setShowMismatchDialog] = useState(false);
   const actionsLocked = pendingAction !== null;
   const pendingForStep = pendingRunStepActionTargets(pendingAction, step.id);
@@ -1483,10 +1495,10 @@ function StepCell({ column, step, pendingAction, onDone, onVerifyMatched, onVeri
     {!readOnly && <div className={`cell-actions${metrology ? " metrology-cell-actions" : ""}`}>
       <button type="button" className="done-action" aria-busy={pendingAction === `done:${step.id}`} data-background-locked={lockedByAnotherStep && step.status !== "done" || undefined} disabled={actionsLocked || step.status === "done"} onClick={onDone}>{pendingAction === `done:${step.id}` ? "Saving…" : "Done"}</button>
       <button type="button" data-background-locked={lockedByAnotherStep || undefined} disabled={actionsLocked} onClick={onEdit}>Correct</button>
-      {allowAdd && <button type="button" className="add-entry-action" title="Add after this entry" aria-label="Add after this entry" aria-expanded={showAddActions} data-background-locked={lockedByAnotherStep && column.run?.status === "active" || undefined} disabled={actionsLocked || column.run?.status !== "active"} onClick={() => { setShowStateActions(false); setShowAddActions((shown) => !shown); }}>Add ▾</button>}
+      {allowAdd && <button ref={addActionRef} type="button" className="add-entry-action" title="Add after this entry" aria-label="Add after this entry" aria-expanded={showAddActions} data-background-locked={lockedByAnotherStep && column.run?.status === "active" || undefined} disabled={actionsLocked || column.run?.status !== "active"} onClick={() => { setShowStateActions(false); setShowAddActions((shown) => !shown); }}>Add ▾</button>}
       {!metrology && <button type="button" aria-busy={pendingAction === `verify:${step.id}`} data-background-locked={lockedByAnotherStep || undefined} disabled={actionsLocked} aria-expanded={showStateActions} onClick={() => { setShowAddActions(false); setShowStateActions((shown) => !shown); }}>{pendingAction === `verify:${step.id}` ? "Saving…" : "State ▾"}</button>}
     </div>}
-    {!readOnly && showAddActions && <div className="state-action-panel add-action-panel"><button type="button" disabled={actionsLocked} onClick={() => { setShowAddActions(false); onAddFabrication(); }}>Fabrication</button><button type="button" disabled={actionsLocked} onClick={() => { setShowAddActions(false); onAddMetrology(); }}>Metrology</button></div>}
+    {!readOnly && showAddActions && <div className="state-action-panel add-action-panel"><button type="button" disabled={actionsLocked} onClick={() => { setShowAddActions(false); onAddFabrication(); }}>Fabrication</button><button type="button" disabled={actionsLocked} onClick={() => { setShowAddActions(false); onAddMetrology(addActionRef); }}>Metrology</button></div>}
     {!readOnly && showStateActions && <div className="state-action-panel"><button type="button" disabled={actionsLocked} onClick={() => { setShowStateActions(false); onVerifyMatched(); }}>State verified</button><button type="button" disabled={actionsLocked} onClick={() => { setShowStateActions(false); setShowMismatchDialog(true); }}>State mismatch</button></div>}
     {(step.origin === "ad_hoc" || metrology) && <strong className="ad-hoc-title">{step.title}</strong>}
     <div className="cell-content-split"><div><ActualDifferences step={step} /></div><DiagramGallery keys={step.executionImageKeys} images={step.executionImages} label={`Execution image for ${step.title}`} onDelete={onDeleteExecutionAsset} onDeleteNative={assetId => onDeleteExecutionAsset({ assetId })} /></div>

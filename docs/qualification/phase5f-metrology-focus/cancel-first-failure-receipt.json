@@ -1,0 +1,79 @@
+{
+  "kind": "phase5f-real-grid-idle-cancel-focus-characterization-actual/1",
+  "sourceHead": "732e5452bc78d89ff908c2d979b1fdcc7b0a4951",
+  "base": "f02dd9ab80f98a3317b0842e4ec8a2f8cb899a43",
+  "sourceReceiptSha256": "88a41efcc253bd98a60bc90f56f0dc57fb14108282573810ecbc19fb2e7990fd",
+  "completedAt": "2026-10-10T23:07:09.863842+00:00",
+  "commands": [
+    {
+      "stage": "one-real-grid-idle-cancel-focus",
+      "argv": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.mounted.config.ts",
+        "src/phase5f-metrology-pending.mount.test.tsx",
+        "--testNamePattern",
+        "returns focus to picker Search after cancelling an idle embedded create form",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile=/tmp/phase5f-metrology-cancel-focus-f02-source-review-attempt1/runtime/native-mounted-focus.vitest.json"
+      ],
+      "cwd": "/tmp/phase5f-metrology-cancel-focus-f02-source-attempt1",
+      "startedAt": "2026-10-10T23:07:08.414653+00:00",
+      "status": "FAILED",
+      "log": "/tmp/phase5f-metrology-cancel-focus-f02-source-review-attempt1/runtime/one-real-grid-idle-cancel-focus.log",
+      "pid": 315749,
+      "processGroup": 315749,
+      "exitCode": 1,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 1,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-10T23:07:09.837959+00:00",
+      "logSha256": "e74f2047d3ea4cbcc3d3b325ce5560945618ba3b6dc8d79e6a8837da930f0216"
+    }
+  ],
+  "actual": {
+    "reportSha256": "a1f435b9b64c8cbb7fb43d7f4264a8560e8cc60d472407e3ea5a1a9fa2312137",
+    "totalListedAssertions": 27,
+    "executedCount": 1,
+    "actualExecuted": [
+      {
+        "ancestorTitles": [
+          "Metrology picker full-chain pending and original-session ownership"
+        ],
+        "fullName": "Metrology picker full-chain pending and original-session ownership returns focus to picker Search after cancelling an idle embedded create form",
+        "status": "failed",
+        "title": "returns focus to picker Search after cancelling an idle embedded create form",
+        "duration": 221.359915,
+        "failureMessages": [
+          "AssertionError: expected <body style=\"overflow: hidden;\">\u2026(1)</body> to be <input \u2026(3)></input> // Object.is equality\n    at /tmp/phase5f-metrology-cancel-focus-f02-source-attempt1/src/phase5f-metrology-pending.mount.test.tsx:349:36\n    at file:///workspace/sample-fabrication-workflow/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+        ],
+        "meta": {},
+        "tags": []
+      }
+    ],
+    "filteredUnrunCount": 26,
+    "exactOneOriginalMeaningfulCaseExecuted": true
+  },
+  "runnerError": null,
+  "sourcePostCheckError": null,
+  "allOwnedGroupsFinal": {
+    "315749": []
+  },
+  "allDirectChildrenActuallyReaped": true,
+  "noActiveOwnedProcessOrFd": true,
+  "runtimeScope": "Only one genuine grid/modal DOM-focus characterization, original mounted/default budgets; typed API stubs, no actual Worker/native/browser/auth/provider/listener. Other case names filteredUNRUN, not qualified.",
+  "status": "ACTUAL_CASE_FAILED"
+}

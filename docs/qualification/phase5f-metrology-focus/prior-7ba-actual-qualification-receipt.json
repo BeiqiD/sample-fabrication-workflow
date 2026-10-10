@@ -1,0 +1,169 @@
+{
+  "kind": "phase5f-metrology-idle-cancel-focus-affected-local-actual/1",
+  "status": "PASS",
+  "sourceHead": "7ba51b3f83721596a6fa59a61c60f57426977bfb",
+  "sourceTree": "68a09d8427baf2538dfceb18a39fe883c7122337",
+  "completedAt": "2026-10-10T23:25:57.371885+00:00",
+  "sourceReceiptSha256": "499df96a877c737a99d336af313a1a8af72c5a5fd8f8d582e507964896c9347e",
+  "planSha256": "f75dd4b03dadcca72e5be8902bd70b33e2cfa99cee36c9201f9d566c1dc6c738",
+  "commands": [
+    {
+      "stage": "current-app-strict",
+      "argv": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.app.json"
+      ],
+      "cwd": "/tmp/phase5f-metrology-cancel-focus-f02-source-attempt1",
+      "startedAt": "2026-10-10T23:25:45.839851+00:00",
+      "status": "PASS",
+      "log": "/tmp/phase5f-metrology-cancel-focus-f02-source-review-attempt1/fixed-finite-runtime-attempt2/current-app-strict.log",
+      "pid": 324428,
+      "processGroup": 324428,
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-10T23:25:47.519016+00:00",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stage": "real-grid-picker-pending39",
+      "argv": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.mounted.config.ts",
+        "src/phase5f-metrology-pending.mount.test.tsx",
+        "src/phase5f-metrology-picker-read.mount.test.tsx",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile=/tmp/phase5f-metrology-cancel-focus-f02-source-review-attempt1/fixed-finite-runtime-attempt2/mounted39.vitest.json"
+      ],
+      "cwd": "/tmp/phase5f-metrology-cancel-focus-f02-source-attempt1",
+      "expectedStaticCases": 39,
+      "startedAt": "2026-10-10T23:25:47.519281+00:00",
+      "status": "PASS",
+      "log": "/tmp/phase5f-metrology-cancel-focus-f02-source-review-attempt1/fixed-finite-runtime-attempt2/real-grid-picker-pending39.log",
+      "pid": 324459,
+      "processGroup": 324459,
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-10T23:25:52.407793+00:00",
+      "logSha256": "777698ec960816a08029b9cf69b02a80ca5166885bd96bb0f948db586073c4cc",
+      "vitestActualTotals": {
+        "numTotalTests": 39,
+        "numPassedTests": 39,
+        "numFailedTests": 0,
+        "numPendingTests": 0,
+        "numTodoTests": 0
+      },
+      "vitestReportSha256": "75ff4b27a484f05baab4b6f1f1401a2269c8c72064701456beb58b7e48f1a539"
+    },
+    {
+      "stage": "fresh-current-metrology-focus-build",
+      "argv": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "/tmp/phase5f-metrology-cancel-focus-f02-source-attempt1",
+      "startedAt": "2026-10-10T23:25:52.408371+00:00",
+      "status": "PASS",
+      "log": "/tmp/phase5f-metrology-cancel-focus-f02-source-review-attempt1/fixed-finite-runtime-attempt2/fresh-current-metrology-focus-build.log",
+      "pid": 324542,
+      "processGroup": 324542,
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 324661,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 324542,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 324661,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 324542,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 324661,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 324542,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "endedAt": "2026-10-10T23:25:57.290742+00:00",
+      "logSha256": "12ab4eb7c23a1ac1073db2a3a7aec26ed2ddc43129a9f616e26eb82bccdca341"
+    }
+  ],
+  "firstFailedStage": null,
+  "runnerError": null,
+  "sourcePostCheckError": null,
+  "sourcePinsRechecked": true,
+  "remainingUnrunStages": [],
+  "allOwnedGroupsFinal": {
+    "324428": [],
+    "324459": [],
+    "324542": [
+      {
+        "pid": 324661,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 324542,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "allDirectChildrenActuallyReaped": true,
+  "noActiveOwnedProcessOrFd": true,
+  "freshArtifactFileCount": 118,
+  "historicalFirstFailure": {
+    "path": "/tmp/phase5f-metrology-cancel-focus-f02-source-review-attempt1/runtime/one-case-characterization-receipt.json",
+    "sha256": "988c8d66106288133f3fb9d97cd9712a3d89fec5e821cd029ad66f49f3bcb746",
+    "status": "One actual DOM-focus failed/26 filteredUNRUN; commandexit1 vs diagnosticwrapperexit0, originalgroupsEMPTY/reaped; immutable"
+  },
+  "browserSupplement": "UNRUN separateGO after source/artifact review",
+  "scope": "Exactly affected real-grid newfocus1+originalpending26+pickerread12; existing sharedmodal, query/currentread, busy/revision/accepted-write ownership preserved. Fresh frontend/Worker artifact needed for changed productioncomponent; no blanket historical matrices/native/backend rerun.",
+  "remoteMutation": false
+}
