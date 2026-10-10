@@ -1,0 +1,281 @@
+{
+  "status": "Actual latest ten strict checks and 24 bounded cases PASS on exact d79d4f source; metadata-only V26 remains provisional.",
+  "sourceCommit": "d79d4f02574e4b4e270808cb5732165e8fd3f3a1",
+  "sourceTree": "6e8fc3aafdf3f2b47326a27b6c7f1b24880360df",
+  "originalActualReceiptSha256": "d227303c0a7ca780f26d611203bc11aef41c0f1e7598090cd1e66b3c224d1d95",
+  "retainedOriginalActualReceiptPath": "docs/qualification/portable-v26-latest/original-actual-receipt.json",
+  "strictPassCount": 10,
+  "actualPassedCases": 24,
+  "scopes": {
+    "fileBackedNodeCapsuleAndProvenance": 14,
+    "publicResearchZipRoundtrip": 1,
+    "genuineSignedAccessRoutes": 5,
+    "clientNegotiation": 2,
+    "genuineWorkerdSourceAndTargets": 2
+  },
+  "stages": [
+    {
+      "stage": "strict-01",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.server.json"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 1.02,
+      "retainedLogPath": "docs/qualification/portable-v26-latest/strict-01.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stage": "strict-02",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.runtime-tests.json"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 1.046,
+      "retainedLogPath": "docs/qualification/portable-v26-latest/strict-02.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stage": "strict-03",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.worker.json"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 0.88,
+      "retainedLogPath": "docs/qualification/portable-v26-latest/strict-03.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stage": "strict-04",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.app.json"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 1.688,
+      "retainedLogPath": "docs/qualification/portable-v26-latest/strict-04.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stage": "strict-05",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.shared.json"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 0.51,
+      "retainedLogPath": "docs/qualification/portable-v26-latest/strict-05.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stage": "strict-06",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.file-jobs-node.json"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 0.141,
+      "retainedLogPath": "docs/qualification/portable-v26-latest/strict-06.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stage": "strict-07",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        ".tsconfig.v26-worker-tests.json"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 0.966,
+      "retainedLogPath": "docs/qualification/portable-v26-latest/strict-07.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stage": "strict-08",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        ".tsconfig.v26-node-script.json"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 0.685,
+      "retainedLogPath": "docs/qualification/portable-v26-latest/strict-08.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stage": "strict-09",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        ".tsconfig.v26-client-tests.json"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 0.271,
+      "retainedLogPath": "docs/qualification/portable-v26-latest/strict-09.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stage": "strict-10",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        ".tsconfig.v26-research-tests.json"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 0.751,
+      "retainedLogPath": "docs/qualification/portable-v26-latest/strict-10.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stage": "runtime-01",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "server/recovery/portable-v26-checkpoint.test.ts"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 36.314,
+      "retainedLogPath": "docs/qualification/portable-v26-latest/runtime-01.log",
+      "logSha256": "7cae2025cf6393c274811bbce4ce8ca4abe4e24b2e259c14d181a52724366771",
+      "actualPassedCases": 14,
+      "actualTotalCases": 14,
+      "skippedCases": 0,
+      "scope": "Actual file-backed Node capsule, protected identity/history, rollback and provenance."
+    },
+    {
+      "stage": "runtime-02",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "scripts/lib/export-portable-runtime-v26.test.ts"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 6.193,
+      "retainedLogPath": "docs/qualification/portable-v26-latest/runtime-02.log",
+      "logSha256": "9b6b2d28baff3c0b419aef62f4322160cc298e19092dfcf05f94f958f75859c8",
+      "actualPassedCases": 1,
+      "actualTotalCases": 1,
+      "skippedCases": 0,
+      "scope": "Actual public exportAll ZIP and isolated non-empty research restore."
+    },
+    {
+      "stage": "runtime-03",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "worker/export-portable-negotiation.test.ts"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 11.236,
+      "retainedLogPath": "docs/qualification/portable-v26-latest/runtime-03.log",
+      "logSha256": "06a5de3e71b966dec7db14e006f57b82441363fc8914219044b758db2c0f42b6",
+      "actualPassedCases": 5,
+      "actualTotalCases": 5,
+      "skippedCases": 0,
+      "scope": "Genuine signed Access factory routes on frozen V24, V25 and metadata-only V26."
+    },
+    {
+      "stage": "runtime-04",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "src/lib/api-portable-export.test.ts"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 0.605,
+      "retainedLogPath": "docs/qualification/portable-v26-latest/runtime-04.log",
+      "logSha256": "24dfb00b86b870e490e9dce6a4f00bcb3ad7b68f17ae82c7336e4e4683d8b93e",
+      "actualPassedCases": 2,
+      "actualTotalCases": 2,
+      "skippedCases": 0,
+      "scope": "Current client V26 negotiation and refusal preservation."
+    },
+    {
+      "stage": "runtime-05",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "worker/recovery/portable-backup-v26-workerd.test.ts"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 54.861,
+      "retainedLogPath": "docs/qualification/portable-v26-latest/runtime-05.log",
+      "logSha256": "c2fd530950d0800d7e40d1ea25235f2a133dfcb21b36635beb66cb2fea3379d0",
+      "actualPassedCases": 2,
+      "actualTotalCases": 2,
+      "skippedCases": 0,
+      "scope": "Genuine local Miniflare/workerd current source plus empty and current D1 target; original authored 180 s per case."
+    }
+  ],
+  "sourceHashesUnchangedDuringQualification": true,
+  "raw0024Sha256": "010414ba121247175e3bf6fe2eb88028ff8557035b123cfa12970c37e3985533",
+  "caseBudgets": "Frozen authored budgets/defaults, maxWorkers=1, fileParallelism=false, bail=1. No budget/assertion/helper/source changes.",
+  "resourceClosure": {
+    "fixtureDirectoriesBefore": [],
+    "fixtureDirectoriesAfter": [],
+    "workerdPidsBefore": [
+      44327
+    ],
+    "workerdPidsAfter": [
+      44327
+    ],
+    "newFixtureDirectoriesRemaining": [],
+    "newWorkerdPidsRemaining": [],
+    "preexistingUnownedWorkerdLeftUntouched": true,
+    "actualVitestProcessesExitedZero": true,
+    "runtimeWindowReleased": true
+  },
+  "previousReceipts": "Earlier generator and 46-path strict evidence stays separately scoped; this qualification exercises the latest saved source graph.",
+  "doesNotQualify": [
+    "Physical local File/provider opening and accepted HTTP byte flows",
+    "Storage role defaults and provider publication",
+    "Operational Node current catalog adoption",
+    "HTTP job controls or actual local File job composition",
+    "Remote Cloudflare/Docker transfers or production deployment"
+  ],
+  "provisionalMetadataOnly": true,
+  "noActivation": true,
+  "artifactWhitespace": {
+    "firstUnfilteredDiffCheckExit": 2,
+    "reason": "Five exact preserved Vitest stdout logs contain their original final blank line. These evidence bytes are not reformatted.",
+    "remainingSourceAndDocumentationDiffCheck": "Exclude only docs/qualification/portable-v26-latest/*.log; exit 0."
+  }
+}
