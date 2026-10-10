@@ -1,107 +1,30 @@
 # Long-term application roadmap
 
-Status: long-horizon direction and compatibility with the reviewed file/data portability track;
-not authorization to implement later capabilities
+Status: long-horizon direction. The [Product roadmap](./PRODUCT_ROADMAP.md#near-term-order-and-first-integrated-release)
+owns current sequence and release scope.
 
-Local FP5 development checkpoint, 2026-10-06: privileged `system-backup/1`
-archives and website fresh-target recovery are complete with additive `0021`/
-`0022` and ordinary V24 recovery. Native R2→S3→rebackup→fresh R2 and actual local
-Wrangler migration no-op passed; converted historical archives covered all 13
-File consumer slots. Protected history remains quarantined; handoff is operator
-assisted. Independent conversion/offline recovery and all 12 exact canonical CI
-leaves passed through the documented staged qualification. The actual local DB is on `0022` with 119 application tables; all
-103 prior tables' data, 31 rows, types/rowids, 20 old receipts and SQL files are
-preserved. File mode is legacy and execution remains disabled. See
-[FP5 system recovery](./FP5_SYSTEM_RECOVERY.md) and the
-[completed FP5 goal](./FP5_DEVELOPMENT_GOAL.md).
+The owner requests autonomous continuation on 2026-10-10 under the
+[development goal](ROADMAP_AUTONOMOUS_DEVELOPMENT_GOAL.md). Scheduled portability
+and membership remain concrete later milestones; optional exploratory ideas
+retain their evidence-triggered scope.
 
-Last reviewed: 2026-10-06 — local FP5 implementation and complete canonical qualification;
-historical deployed status includes accepted FP1, FP2 configuration/S3 transport,
-deployed candidate checks #242, credential re-enveloping #243 and shared fresh
-acceptance role selection #244. Candidate check evidence #245 (`5992307`) is
-merged and deployed. AWS S3 bucket-owner condition #246 (`4d7d942`) is deployed.
-Restricted native AWS S3 profile admission with paired V20 recovery is merged
-and deployed in #247 (`07a7d8f`); real-provider acceptance remains pending
+Last reviewed: 2026-10-09 against integration `474a038` and synchronized
+qualified implementation checkpoint `3c1baf5` (not yet integrated/deployed).
 
-The [Product goal and roadmap](./PRODUCT_ROADMAP.md) owns immediate priority.
-The 2026-10-05 development goal has implemented the remaining FP2 native runtime,
-activation/defaults and FP3 jobs/migration locally, with paired V21/V22 recovery.
-[Local checkpoint evidence](./FP3_LOCAL_DEVELOPMENT_ACCEPTANCE.md) distinguishes
-this work from the deployed V20 generation and pending formal provider/runtime
-acceptance. Required development checks are qualified, with the repaired final
-artifact leaf and affected regressions recorded separately from the canonical
-11/12 run. The local FP4 implementation now supplies paired native Sample/Project
-package export/site fresh-copy import, independent offline reports and Settings
-Data with additive `0020` and matched V23 recovery. The formats are
-`research-package/1`, `research-report/1` and `research-records/1`. Host
-qualification passed R2→S3, S3→R2 and S3→S3 round trips. The complete R2→S3
-workflow also passed in real workerd with local D1/R2 and an isolated signed S3
-transport fixture. The nonempty graph covered all 13 File binding slots and
-9 reference kinds, 97 records, 15 Files and 11 placements; a nonempty V23 backup
-and offline recovery also passed. See [FP4 research packages](./FP4_RESEARCH_PACKAGES.md)
-and the [development goal](./FP4_DEVELOPMENT_GOAL.md).
-
-At the preserved FP4 checkpoint, the exact 12 canonical CI leaves passed in serial stages; the local database had applied migration `0020`, preserved all 95 application tables and the original 19-entry ledger prefix, and remained in legacy File mode with execution disabled.
-The [FP4 checkpoint](./FP4_RESEARCH_PACKAGES.md) records the verification stages and corrections.
-
-Formal real-provider, deployed-runtime and concentrated manual acceptance remain
-deferred. FP5 local development and qualification are complete; see the
-[FP5 goal](./FP5_DEVELOPMENT_GOAL.md). No production deployment or provider activation is included.
-The historical deployed track described below remains separate from this local
-development checkpoint. The reviewed
-[file/data-portability implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md)
-has accepted **FP1 role defaults and recovery** and deployed **FP2 candidate
-configuration**.
-This track brings universal file storage, essential Settings and export/import
-forward while preserving completed Project and stabilization work. The earlier
-additive File substrate was followed by all-13-slot shadow capture, owned
-conversion and adjudication. The owner-authorized disposal of obsolete test
-Projects closed their evidence gaps; current references reached 4/4 resolved.
-#236 supplied the runtime and atomic activation, and an explicit operator command
-enabled File authority. #238 supplied R2 defaults for both roles, preserved old
-accepted destinations and added V19 recovery. After #240's download repair,
-the 6 MiB HTTP round trip and isolated V19 recovery passed on 2026-10-01;
-[exact FP1 acceptance proof](./FP1_R2_ROLE_DEFAULTS.md#live-acceptance--2026-10-01)
-is retained without routine repetition, alongside historical V15–V18 evidence.
-
-Deployed #239 [FP2 configuration security](./FP2_CONFIGURATION_SECURITY_FOUNDATION.md)
-adds an independent administrator policy, versioned candidates and encrypted
-credential storage without enabling external providers. Candidate editing
-performs no provider requests or activation. Deployed #243
-[credential re-enveloping](./FP2_CREDENTIAL_REENVELOPING.md) adds atomic key
-maintenance for retained descriptor payloads while preserving check snapshots.
-Deployed #244 [fresh acceptance role selection](./FP2_STORAGE_ROLE_SELECTION.md) centralizes
-purpose routing while preserving the immutable R2 defaults and historical
-accepted targets; independent defaults still require a successor schema/archive.
-Ordinary V19 content packages exclude candidate configuration, audit, descriptors and
-payloads; privileged installation backup uses the separate FP5 `system-backup/1` contract, qualified locally and not yet deployed.
-Merged and deployed #241 qualifies isolated S3 transport without activating a
-provider or changing defaults. [Bounded candidate checks](./FP2_CANDIDATE_STORAGE_CHECKS.md)
-are deployed in #242; atomic activation and independent role selection follow their
-qualification. The read-only
-[candidate check evidence report](./FP2_CANDIDATE_READINESS.md) is merged and deployed
-in #245 (`5992307`). It distinguishes exact
-current-envelope success from retained configuration history and counts
-unresolved cleanup across all checks. It
-performs no provider calls or database writes and keeps activation unavailable.
-The current live actor is read-only, so privileged provider checks have not been
-exercised on the deployment.
-
-The [S3 bucket-owner condition](./FP2_S3_BUCKET_OWNER_CONDITION.md) is deployed in
-#246 (`4d7d942`). Its optional AWS-specific request condition is a qualification
-prerequisite. The
-[native AWS S3 profile admission](./FP2_NATIVE_STORAGE_PROFILE_ADMISSION.md) slice
-is merged and deployed in #247 (`07a7d8f`) with migration `0017` and V20 recovery. It
-registers a restricted native identity and portable admission evidence while
-prohibiting S3 File locations, non-read-only state and defaults. It supplies no
-native S3 File byte access. [Registered S3 read transport](./FP2_NATIVE_S3_READ_TRANSPORT.md)
-is merged and deployed in #248 (`889ef20`), preparing exact installation binding
-without production File routing. [Profile-bound File GC](./FP2_PROFILE_BOUND_GC.md)
-removes legacy deletion reconstruction and fences paused/replaced executors and
-late holds without changing the schema or granting native S3 cleanup. Complete
-native byte-access/acceptance/lifecycle support and real-provider qualification precede atomic activation and independent
-defaults. V20 carries nonsecret native registration receipts while excluding the
-installation's candidate/check/credential payloads.
+FP1 File authority/R2 defaults are historically deployed. **FP2, FP3, FP4 and
+FP5 are now locally implemented and qualified** on the synchronized development
+branch, with V21–V24 paired recovery and migrations `0018`–`0022`.
+Bounded local C4, 5D and 5E have likewise completed. **5F is in progress** with
+bounded implementation and follow-up research/job-control ownership repairs
+committed and pushed.
+The immediate work is
+review/integration of the default-remote-CI-qualified implementation,
+accepted combined-tree requalification and
+continued **5F**, alongside finite measured
+performance cleanup, 6A6 and scoped 6B; remaining real-provider/device/deployed
+acceptance is not waived. See the single [current status matrix](./PRODUCT_ROADMAP.md#current-checkpoint).
+Detailed FP milestones below are durable design commitments, **not** an assertion
+that FP3–FP5 remain unimplemented.
 
 ## Product scale and engineering stance
 
@@ -119,21 +42,19 @@ replication, workspaces, ACL tables or per-user infrastructure.
 
 ## Intended order and compatibility
 
-| Order | Capability | Boundary with current and later work |
+| Order | Capability | Boundary |
 | --- | --- | --- |
-| Implemented locally | FP2 runtime/defaults and FP3 bounded jobs/migration | Native exact-instance access, verified writes, lifecycle/GC, activation/defaults, persisted migration and administration UI have matched `0018`/V21 and `0019`/V22 recovery. Preserve accepted targets and identities; restored execution remains disabled. See the local checkpoint for qualification. |
-| Implemented locally | FP4 native packages + matching website import | Paired native export/site fresh-copy import, independent reports and Settings Data have additive `0020`/V23 and focused local qualification of nonempty package round trips and offline recovery. The checkpoint above records final development checks. Research packages and readable reports retain distinct identity semantics. |
-| Pending formal acceptance | FP2–FP4 real-provider and deployed-runtime qualification | Separately authorized provider instances, interruptions, deployed resource limits, scheduler measurements and concentrated manual acceptance remain open. Local fixtures do not close these exits; historical deployment remains V20. |
-| Implemented and qualified locally | FP5 full backup + privileged web restore | Shared bounded backups, identity-preserving fresh-target recovery, protected quarantine and independent offline recovery passed the FP5 local development gate. Deployment handoff remains operator assisted. |
-| Integrated product | Remaining C4, Phase 5D/E/F and Phase 6B | Refine and qualify enabled file/Settings/data-control surfaces alongside existing workflows; do not repeat completed shortcuts or reset previous phases. |
-| Later portability milestone | Node/Docker + SQLite + local default storage | Same product/data/package contracts, actual cross-deployment non-empty import/restore and runtime validation. |
-| Later shared-data milestone | Small-group users, membership and domain authorization | Extend the early admin boundary and actor/concurrency seams; no real-time editing requirement. |
-| Independently justified | Appearance preferences, measured search/derivatives, optional insight | Do not block reliable files, recovery or the deterministic research workflow. |
+| Now | Synchronized FP2–FP5 and C4/5D/5E review | Do not recreate implemented code. Use the qualified default remote gate at `3c1baf5`, review/requalify the accepted combined tree, and integrate complete native File/archive pairs and bounded 5F implementation/follow-up repairs; preserve historical deployed V20 separately from local V24. |
+| In progress | 5F and finite performance/maintenance | Cross-page consistency, keyboard/focus and read/retry identities, realistic mixed-domain flows; measured multi-card save/Processing/CI/archive costs. |
+| First integrated release | 6A6 and scoped 6B | Accept only the actually qualified **enabled FP2–FP5** subset, with explicit provider and operational gates. Unqualified installed code remains restricted. |
+| Later portability | Node/Docker + SQLite + persistent local defaults | Complete deployable app/runtime, volumes and real cross-deployment recovery, not merely the already delivered Node File-job runner. |
+| Later shared-data | Small-group membership and resource authorization | End-to-end Sample/Project/Template/media/export/job permissions, not per-user storage infrastructure. |
+| Independently justified | Appearance, search/derivatives, LLM/insight | Optional, evidence-driven, not a release-blocking rewrite. |
 
-The exact FP sequence, gates and compatibility transition belong to the
-[implementation plan](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md). This
-long-term document must not introduce alternative phase labels or silently turn
-later portability/multi-user goals into an FP release gate.
+Keep exact instance/purpose-bound file locations. Changing a default routes
+new acceptances, while explicit FP3 migration moves qualified existing Files.
+FP4 copy imports allocate new identities; FP5 backup recovery preserves source
+identities into a fresh isolated target. These distinction rules remain current.
 
 ## Advanced now — universal file management and data portability
 
@@ -446,7 +367,7 @@ Current FP work preserves:
   adapters;
 - existing user-visible media/Comment/Project behavior while backend records evolve.
 
-The currently outstanding S2/6A6 and C4 acceptance remains outstanding. FP design
+6A6 and broad C4 device/deployed acceptance remain open; bounded local C4 implementation has passed. FP design
 cannot convert a zero-blob recovery exercise into a non-empty upload/download
 pass, infer successful SWITCHdrive authentication, repeat a database reset or
 resume held operational controls. Detailed transition and stage checks are in
@@ -480,9 +401,8 @@ The proposed FP track does not require:
 - account-level preference sync or appearance expansion before functional needs.
 
 Universal file portability, explicit migration and paired native export/import
-are current deliverables. Their local FP2–FP5 implementation and full canonical
-qualification are complete after accepted FP1, with final FP5 development checks
-recorded above and formal real-provider/deployed-runtime acceptance still pending.
-FP5 privileged recovery is locally complete under the canonical product roadmap
-and completed FP5 goal; later deployment-portability and frontend phases remain
-separately scoped.
+are locally implemented and qualified on the synchronized FP2–FP5 development
+branch. Real-provider, deployed and integrated release exits remain open; these
+capabilities are not items on this deferred list. The
+[Product roadmap](./PRODUCT_ROADMAP.md#current-checkpoint) owns their current
+implementation, integration and acceptance status.

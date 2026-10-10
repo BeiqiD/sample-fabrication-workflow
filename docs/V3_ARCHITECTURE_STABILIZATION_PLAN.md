@@ -1,44 +1,38 @@
 # V3 architecture stabilization plan
 
-Status: backend reliability corrections, Worker extraction and shared-contract
-separation are merged. Compatibility schemas, recovery and local migration
-staging are qualified; the final S2 application from #202 is merged and deployed.
-Current S0 browser checks and read-only remote observation transport qualification
-are recorded. The owner selected an in-place rebuild of the disposable test D1
-with all file bindings retained.
-The existing D1 was rebuilt and S2 deployed with unchanged file bindings; final
-authenticated browser acceptance and exit review remain open. New frontend
-refinement remains paused.
+Status: selected S2 baseline, Worker ownership and shared contracts merged/
+deployed historically. **6A6 is not closed.** Synchronized FP2–FP5 local
+development through `0022` / V24 and C4/5D/5E local acceptance are newer
+evidence, **not yet integrated or deployed**. Reviewed 2026-10-09 against
+integration `474a038` and qualified implementation checkpoint `3c1baf5`.
 
-The inventory, isolated recovery rehearsal and scale measurements are tracked in
-[Backend reliability acceptance](./BACKEND_RELIABILITY_ACCEPTANCE.md).
+The [Product roadmap](./PRODUCT_ROADMAP.md#current-checkpoint) owns the
+version-aware current matrix. The historical `2060c745` default-five-second
+V21 restore failure and `4479295` 20-minute job-budget cancellation remain
+distinct evidence. The `20176fc5` source context passed, but mounted checks
+failed. Follow-up research/receipt/job-control ownership repairs are pushed at
+implementation checkpoint `3c1baf5`, retaining the
+40-minute Verify job budget, default 5-second Vitest deadline and existing
+case-specific limits. Its complete default remote gate passed; accepted
+combined-tree review/requalification remains open. The full local canonical
+gate is not claimed complete. Do not
+recut immutable S2 or restart delivered 6A1–6A5 extraction. Frontend **5F is in
+progress** with bounded implementation and follow-up research repairs committed
+and pushed; 6A6/6B must qualify the
+**actual combined tree and the chosen enabled FP2–FP5 release scope**.
 
-Last reviewed: 2026-09-13 for the user-authorized backend-first execution order
-
-Planning update, 2026-09-13: the owner requests a documentation review of the
-[file/data portability track](./FILE_DATA_PORTABILITY_IMPLEMENTATION_PLAN.md).
-Its purpose-based files, Settings, migration and native export/import are
-intentional new capabilities, separate from this behavior-preserving
-stabilization phase. They do not certify 6A6 or authorize a second reset. The
-[product roadmap](./PRODUCT_ROADMAP.md) now schedules the reviewed FP track and
-its affected UI before broad remaining frontend refinement; implementation
-follows review of the documentation Draft PR.
-
-This document defines the bounded backend reliability, architecture and schema
-stabilization work required before final v1 release validation. Backend work now
-precedes the remaining frontend refinement. The high-level order remains in
-[Product goal and roadmap](./PRODUCT_ROADMAP.md). Current source identity,
-lifecycle, Reference, blob, Project, export, and deployment invariants remain
-authoritative in their focused contracts.
-
-This is not a second V3 implementation and does not authorize a product rewrite.
-The current `v2/backend-foundation` branch remains the behavior reference and
-integration line. Stabilization proceeds through small Draft PRs targeting that
-branch, with exact-head review and the existing verification gates.
+This plan owns behavior-preserving cleanup, migrations/compatibility hygiene
+and the 6A6 exit. FP native storage, jobs, research copy packages and privileged
+recovery are separate capability tracks with paired `0018`–`0022`
+migrations/V21–V24 historical readers and writers. Preserve accepted
+operation retries, source holds, race fences and frozen archive fingerprints;
+file size and trigger count are not optimization metrics. Perform only measured
+or independently justified maintenance cleanup; no reset, force-push, provider
+rebinding or deployment is authorized here.
 
 ## Decision summary
 
-Implementation checkpoint, 2026-09-13:
+Historical implementation checkpoint, 2026-09-13 (not current deployment state):
 
 | Slice | Evidence and remaining work |
 |---|---|
@@ -68,8 +62,9 @@ sequence passed; it requires actual maintenance and completion of existing
 requests/uploads before deleting the old schema. The complete application gate,
 reviewed reset, same-database local Wrangler rehearsal and final remote/browser
 acceptance remain required. The [activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md)
-records the successful reset, gated deployment and database checks. Application
-access is restored; build/Cron holds remain until final live browser acceptance.
+records the successful reset, gated deployment and database checks. The checkpoint recorded restored application access and held build/Cron controls
+at that time. Reconcile their current disposition at operational handoff; later
+successful Builds do not establish today's Cron state.
 
 V3 keeps the current runtime shape:
 
@@ -116,8 +111,8 @@ The stabilization phase will not:
 
 ## Relationship to Phase 5 and release hardening
 
-The user has chosen to pause new frontend refinement and prioritize backend
-review/correction. Phase 6A1 used the deployed PR #185 frontend behavior as the
+The historical Phase 6A1 sequence prioritized backend review/correction ahead
+of new frontend refinement. Phase 6A1 used the deployed PR #185 frontend behavior as the
 initial regression reference. Complete export/restore and representative
 large-Project characterization, demonstrated defect repairs, and Phase 6A2/6A3
 Worker/contract ownership work are merged. Continue from the current late-stage
@@ -135,9 +130,9 @@ sequence, now completed for the selected S2 integration path. Preserve their
 historical schema-comparison and recovery evidence; 6A6 remains open. New FP
 schema work follows the current baseline with reviewed forward migrations.
 
-The FP track preserves outstanding C4 acceptance and the frontend 5D → 5E → 5F
-sequence; its necessary storage/upload/data UI changes are reviewed in the FP
-slices. Resume broad frontend refinement at the checkpoint in the product
+The FP track preserves outstanding formal C4/5D/5E acceptance and ongoing 5F
+review; its necessary storage/upload/data UI changes are reviewed in the FP
+slices. Continue bounded frontend refinement at the checkpoint in the product
 roadmap without repeating completed work. Backend probes cannot qualify device
 or usability claims. Phase 6B requires backend exit, the final frontend baseline
 and acceptance of the release's enabled FP capabilities. Earlier recovery and
@@ -518,9 +513,10 @@ Run an exact-head review across the complete Phase 6A result. Confirm that:
 
 - All implementation branches start from the latest
   `v2/backend-foundation` and target it through Draft PRs.
-- `main` and any existing deployment remain frozen except for explicitly reviewed
-  repository-level maintenance that is synchronized back into the integration
-  line.
+- `main` remains frozen until the reviewed first integrated V3 release, except
+  for repository-level maintenance synchronized back into the integration line.
+  Its release PR reconciles branch ancestry and the documented deployment scope.
+  Existing deployments change only through their reviewed deployment handoff.
 - Every PR states whether it is characterization, behavior-preserving extraction,
   contract movement, intentional schema change, or migration-baseline work.
 - A PR does not combine unrelated categories merely to reduce PR count.
@@ -538,16 +534,31 @@ and exit evidence complete. If FP migrations precede the final integrated review
 also qualify fresh install and populated upgrade through the baseline plus those
 forward migrations; do not recut the baseline to satisfy a final-schema claim.
 
-Phase 6B follows only when this backend exit, the release's enabled FP scope and
-Phase 5F's resumed frontend baseline are complete. It owns:
+Phase 6B follows only after the combined-tree backend exit, Phase 5F
+integration and the selected **enabled** FP2–FP5 capabilities are qualified.
+Implementation and local fixtures alone do not grant real-provider activation.
+Its finite acceptance matrix includes:
 
-- sustained representative research-data use;
-- desktop, mobile, and supported-browser regression;
-- large-Project and performance qualification;
-- complete export, human-readable export, backup, restore, and recovery rehearsal;
-- isolated deployment and upgrade/runbook verification;
-- accessibility and security review;
-- release-blocking corrections without reopening optional feature development.
+- fresh S2 install and populated upgrades through every reviewed forward
+  migration to the actual release head, preserving existing rows and physical IDs;
+- complete current-version archive export/isolated restore, and the **matching**
+  Sample + Project package/website copy-import and privileged fresh-target system
+  recovery **if enabled** in that release;
+- real R2/S3 namespace/credential/role validation, immutable accepted targets,
+  explicit File migration, provider failure and resumed/cancelled job execution
+  **if those routes are enabled**;
+- current backup completeness, no automatic restart of restored execution,
+  protected settings/key policy and an operator-assisted target/binding handoff;
+- representative projects and multi-sample workflows, supported browser/device
+  and physical OS input checks, accessibility, measured performance, and security;
+- old-tab lazy-chunk/retry handling, documented unavailable capabilities, and
+  release-blocking corrections without unrelated optional scope.
+
+Any capability not operationally qualified remains explicitly restricted in
+server-side admission; do not call an R2-only or disabled S3 deployment an
+enabled FP2–FP5 release. Never reinterpret a fresh-copy package as identity-
+preserving recovery. Previous V19/V20 production evidence remains historical;
+new V24 release claims require their own relevant nonempty qualification.
 
 The representative-data rehearsal includes a 250/500-node Project's multi-card
 move through the final save acknowledgement, measuring request count, elapsed
