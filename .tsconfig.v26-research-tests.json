@@ -10,7 +10,9 @@
     "noUnusedParameters": true
   },
   "include": [
-    "scripts/lib/export-portable-runtime-v26.test.ts"
+    "scripts/lib/export-portable-runtime-v26.test.ts",
+    "scripts/lib/export-portable-runtime.test.ts",
+    "scripts/lib/export-restore-migrations.test.ts"
   ],
   "exclude": []
 }

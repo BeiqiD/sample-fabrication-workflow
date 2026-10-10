@@ -1,12 +1,13 @@
 import { PORTABLE_IDENTITY_MIGRATION_NAMES } from "../../shared/contracts/export-portable-runtime";
-import { readdirSync } from "node:fs";
+import { reviewedPortableMigrationSources } from "../../test/reviewed-portable-migration-sources";
 import { expect, it } from "vitest";
 import { planExportRestoreMigrations } from "./export-restore";
 import { SYSTEM_STORAGE_CONFIGURATION_MIGRATIONS } from "../../shared/contracts/storage-configuration-schema";
 
 it("keeps V7–V25 content upgrades while excluding reviewed cleanup and installation configuration, check evidence and key-maintenance receipts", () => {
   const cleanup = "0011_fp1_retire_legacy_test_projects.sql";
-  const names = readdirSync(new URL("../../migrations/", import.meta.url)).filter((name) => name.endsWith(".sql")).sort();
+  const names = reviewedPortableMigrationSources(25).map(source => source.name);
+  expect(names).not.toContain("0024_rt3_local_volume_profiles.sql");
   expect(names).toContain("0017_fp2_native_storage_profiles.sql");
   expect(names).toContain("0021_fp5_system_recovery.sql");
   expect(names).toContain("0022_fp5_recovery_evidence.sql");
