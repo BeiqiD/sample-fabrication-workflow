@@ -1,12 +1,13 @@
 import { build } from "esbuild";
 import { Log, LogLevel, Miniflare } from "miniflare";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { reviewedPortableMigrationSources } from "../test/reviewed-portable-migration-sources";
 import { fileURLToPath } from "node:url";
 import { unstable_splitSqlQuery as splitSql } from "wrangler";
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 // UNEXECUTED source candidate. Actual bundled Worker, genuine Miniflare D1/R2
-// bindings, current23 migration chain and mature reference graph per scope.
+// bindings, current24 migration chain and mature reference graph per scope.
 // No fabricated Env/D1, auth success, provider objects or native byte serving.
 let script = "";
 let runtime: Miniflare;
@@ -26,8 +27,8 @@ beforeAll(async () => {
 beforeEach(async () => {
   runtime = actualWorker(); database = await runtime.getD1Database("DB");
   const directory = new URL("../migrations/", import.meta.url);
-  const names = readdirSync(directory).filter(name => name.endsWith(".sql")).sort();
-  expect(names).toHaveLength(23); expect(names.at(-1)).toBe("0023_portable_local_identity.sql");
+  const names = reviewedPortableMigrationSources(26, directory).map(source => source.name);
+  expect(names).toHaveLength(24); expect(names.at(-1)).toBe("0024_rt3_local_volume_profiles.sql");
   for (const name of names) await database.batch(splitSql(readFileSync(new URL(name, directory), "utf8")).map(sql => database.prepare(sql)));
   await database.batch(splitSql(readFileSync(new URL("./fixtures/reference-graph.sql", import.meta.url), "utf8")).map(sql => database.prepare(sql)));
 }, 30_000);

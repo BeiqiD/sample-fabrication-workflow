@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "types": [
+      "vite/client",
+      "vitest/globals"
+    ],
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  },
+  "include": [
+    "src/lib/api-portable-export.test.ts"
+  ],
+  "exclude": []
+}

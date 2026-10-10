@@ -73,12 +73,17 @@ export async function assertRecoveredCapabilitiesInert(database: D1Database, cat
     "SELECT count(*) AS invalid FROM system_research_package_cleanup_grants",
     "SELECT count(*) AS invalid FROM file_shadow_runtime_incarnations",
   ];
-  if (catalog?.imageVersion === 2) statements.push(
+  if (catalog?.imageVersion === 2 || catalog?.imageVersion === 3) statements.push(
     "SELECT count(*) AS invalid FROM local_accounts WHERE enabled<>0",
     "SELECT count(*) AS invalid FROM local_identity_installation",
     "SELECT count(*) AS invalid FROM local_admin_grants",
     "SELECT count(*) AS invalid FROM local_sessions",
     "SELECT count(*) AS invalid FROM local_login_throttle",
+  );
+  if (catalog?.imageVersion === 3) statements.push(
+    "SELECT count(*) AS invalid FROM local_storage_profile_checks",
+    "SELECT count(*) AS invalid FROM local_storage_profile_admissions",
+    "SELECT count(*) AS invalid FROM local_storage_profile_bindings",
   );
   const results = await database.batch(statements.map(sql => database.prepare(sql)));
   if (results.some(result => !result.success || result.results.length !== 1 || (result.results[0] as Record<string, unknown>).invalid !== 0)) {

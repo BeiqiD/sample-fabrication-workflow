@@ -1,3 +1,4 @@
+import { restoreV26ResearchExportToIsolatedDirectory } from "./export-restore-v26";
 import { validateFullExportV25, PORTABLE_RUNTIME_SOURCE_CHECKPOINT_PATH, PORTABLE_IDENTITY_MIGRATION_NAMES } from "../../shared/contracts/export-portable-runtime";
 import { SYSTEM_RECOVERY_SCHEMA_FINGERPRINT_SHA256, buildSystemRecoveryBlobExportPlan } from "../../shared/contracts/export-system-recovery";
 import { SYSTEM_RECOVERY_EVIDENCE_EXPORT_COLUMNS } from "../../shared/contracts/export-system-recovery-evidence";
@@ -364,6 +365,14 @@ export async function restoreExportToIsolatedDirectory(options: {
   migrationsDirectory: string;
   targetCompatibilitySchema?: CompatibilitySchema;
 }) {
+  // Version dispatch is separate from the frozen historical readers. The
+  // bounded ZIP parser qualifies the manifest entry before choosing V26.
+  const negotiatedInfo = await stat(options.archivePath);
+  ensure(negotiatedInfo.isFile() && negotiatedInfo.size <= MAX_ARCHIVE_BYTES, "Archive exceeds isolated restore size limits");
+  const negotiatedBytes = await readFile(options.archivePath);
+  ensure(negotiatedBytes.length <= MAX_ARCHIVE_BYTES, "Archive exceeds isolated restore size limits");
+  const negotiated = await (await archiveReader(negotiatedBytes)).json("export-manifest.json");
+  if (object(negotiated) && negotiated.schemaVersion === 26) return restoreV26ResearchExportToIsolatedDirectory(options);
   const destination = resolve(options.destination);
   // Exclusive creation precedes all writes. Neither an existing directory nor
   // a symlink is accepted, and there is deliberately no force/overwrite mode.
@@ -384,7 +393,12 @@ export async function restoreExportToIsolatedDirectory(options: {
       && Array.isArray(manifest.blobs) && Array.isArray(warnings), "Unsupported complete-export manifest");
 
     database = new DatabaseSync(join(staging, "database.sqlite"));
-    const migrationNames = (await readdir(options.migrationsDirectory)).filter((name) => name.endsWith(".sql")).sort();
+    const successor = "0024_rt3_local_volume_profiles.sql";
+    const inventory = (await readdir(options.migrationsDirectory)).filter((name) => name.endsWith(".sql")).sort();
+    if (inventory.includes(successor)) ensure(hash(await readFile(join(options.migrationsDirectory, successor)))
+      === "010414ba121247175e3bf6fe2eb88028ff8557035b123cfa12970c37e3985533", "Unreviewed V26 successor migration");
+    // Exact known successor is not executed by any historical research reader.
+    const migrationNames = inventory.filter(name => name !== successor);
     ensure(migrationNames.length > 0, "No local migrations found");
     const migrations: Array<{ name: string; sha256: string }> = [];
     // Historical profiles first restore against their exact reviewed physical

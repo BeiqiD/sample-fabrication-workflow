@@ -1,4 +1,4 @@
-import { copyFileSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
+import { copyFileSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -8,6 +8,7 @@ import worker from "./index";
 import { acceptCommentSubmission, acceptCommentUpload, uploadAcceptedCommentItem, commentManagedFetch } from "./comment-acceptance-test-support";
 import type { Env } from "./types";
 import { RECOVERY_MIGRATIONS } from "./recovery/trusted-schema";
+import { reviewedPortableMigrationSources } from "../test/reviewed-portable-migration-sources";
 
 // Reuse compiled SQL only within each connection, as native D1 does. Results,
 // bindings, hooks, and mutation counts remain live on every execution; SQLite
@@ -101,6 +102,7 @@ class SqliteD1Database {
 let fixtureDirectory: string | undefined;
 let pristinePath: string | undefined;
 let historicalV24PristinePath: string | undefined;
+let historicalV25PristinePath: string | undefined;
 let nextFixture = 0;
 const fixtureDatabases = new Set<DatabaseSync>();
 const quoteIdentifier = (value: string) => `"${value.replaceAll('"', '""')}"`;
@@ -127,7 +129,7 @@ function fixtureImage(database: DatabaseSync) {
 
 beforeAll(() => {
   // Execute the complete real migration chain and unchanged seed once, retaining
-  // the frozen22 image before current-only DDL. Each scenario receives its own
+  // frozen22 and frozen23 images before each newer metadata DDL. Each scenario receives its own
   // physical database; this module never compares
   // installation identities across scenarios or shares scenario writes.
   fixtureDirectory = mkdtempSync(join(tmpdir(), "fp5-source-lifecycle-"));
@@ -136,7 +138,7 @@ beforeAll(() => {
   database.exec("PRAGMA foreign_keys=ON");
   try {
     const migrationDirectory = new URL("../migrations/", import.meta.url);
-    const migrations = readdirSync(migrationDirectory).filter((name) => name.endsWith(".sql")).sort();
+    const migrations = reviewedPortableMigrationSources(26, migrationDirectory).map(source => source.name);
     expect(RECOVERY_MIGRATIONS).toHaveLength(22);
     const historicalNames = new Set<string>(RECOVERY_MIGRATIONS.map((migration) => migration.name));
     const currentMigrations = migrations.filter((name) => !historicalNames.has(name));
@@ -187,6 +189,19 @@ beforeAll(() => {
     }
     for (const filename of currentMigrations) {
       database.exec(readFileSync(new URL(filename, migrationDirectory), "utf8"));
+      if (filename === "0023_portable_local_identity.sql") {
+        // Freeze V25's real 23-migration schema and typed cells before 0024.
+        historicalV25PristinePath = join(fixtureDirectory, "historical-v25-pristine.sqlite");
+        const v25Expected = fixtureImage(database);
+        database.exec(`VACUUM INTO '${historicalV25PristinePath.replaceAll("'", "''")}'`);
+        const v25Cloned = new DatabaseSync(historicalV25PristinePath, { readOnly: true });
+        try {
+          expect(fixtureImage(v25Cloned)).toEqual(v25Expected);
+          expect(v25Cloned.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+        } finally {
+          v25Cloned.close();
+        }
+      }
     }
     expect(database.prepare("PRAGMA foreign_keys").get()).toEqual({ foreign_keys: 1 });
     expect(database.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
@@ -217,10 +232,10 @@ afterAll(() => {
   if (fixtureDirectory) rmSync(fixtureDirectory, { recursive: true, force: true });
 });
 
-function createDatabase(archiveSchema: 24 | 25 = 25) {
-  if (!fixtureDirectory || !pristinePath || !historicalV24PristinePath) throw new Error("The canonical source lifecycle fixture has not been initialized");
+function createDatabase(archiveSchema: 24 | 25 | 26 = 26) {
+  if (!fixtureDirectory || !pristinePath || !historicalV24PristinePath || !historicalV25PristinePath) throw new Error("The canonical source lifecycle fixture has not been initialized");
   const path = join(fixtureDirectory, `scenario-${nextFixture++}.sqlite`);
-  copyFileSync(archiveSchema === 24 ? historicalV24PristinePath : pristinePath, path);
+  copyFileSync(archiveSchema === 24 ? historicalV24PristinePath : archiveSchema === 25 ? historicalV25PristinePath : pristinePath, path);
   const database = new DatabaseSync(path);
   database.exec("PRAGMA foreign_keys=ON");
   fixtureDatabases.add(database);
@@ -490,6 +505,7 @@ describe("source lifecycle routes", () => {
   it.each([
     ["item", 24], ["canonical", 24],
     ["item", 25], ["canonical", 25],
+    ["item", 26], ["canonical", 26],
   ] as const)(
     "exports managed attachment bytes after the %s source is soft-deleted with archive schema %i",
     async (deletedSource, archiveSchema) => {
@@ -542,9 +558,13 @@ describe("source lifecycle routes", () => {
       const env = managedStorageEnv(database);
 
       if (archiveSchema === 25) {
-        // Current23 includes protected identity DDL. An old request must fail
+        // Frozen23 includes protected identity DDL. An old request must fail
         // closed instead of omitting the required portable source checkpoint.
         expect((await request(env, "/exports/all?archiveSchema=24&archiveWriter=1")).status).toBe(409);
+      }
+      if (archiveSchema === 26) {
+        for (const older of [24, 25])
+          expect((await request(env, `/exports/all?archiveSchema=${older}&archiveWriter=1`)).status).toBe(409);
       }
       const manifestResponse = await request(env, `/exports/all?archiveSchema=${archiveSchema}&archiveWriter=1`);
       expect(manifestResponse.status).toBe(200);
@@ -552,8 +572,7 @@ describe("source lifecycle routes", () => {
         schemaVersion: number;
         blobs: Array<{ blobRecordIds: string[]; downloadUrl: string | null }>;
       };
-      if (archiveSchema === 24) expect(manifest.schemaVersion).toBe(24);
-      else expect(manifest.schemaVersion).toBe(25);
+      expect(manifest.schemaVersion).toBe(archiveSchema);
       const exportedBlob = manifest.blobs.find((blob) => blob.blobRecordIds.includes("export-storage"));
       expect(exportedBlob).toEqual(expect.objectContaining({
         downloadUrl: "/api/exports/managed/export-storage",
