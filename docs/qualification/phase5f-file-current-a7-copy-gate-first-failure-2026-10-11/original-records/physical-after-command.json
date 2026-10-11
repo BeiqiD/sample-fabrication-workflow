@@ -1,0 +1,39 @@
+{
+  "stage": "physical-after",
+  "cwd": "/workspace/portable-dev270-file-preview-focus-complete-native-helper-source-attempt2",
+  "argv": [
+    "python3",
+    "-B",
+    "/workspace/phase5f-file-preview-current-a7-native-qa-consumer-source-attempt6/scripts/qa/phase5f/check-genuine-two-r2-migration-state.py",
+    "--source-copy",
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt4/copy",
+    "--fixture-directory",
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt4/fixture",
+    "--runtime-directory",
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt4/runtime"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/file-preview-current-a7-two-r2-native-private-attempt4",
+    "SQLITE_TMPDIR": "/workspace/file-preview-current-a7-two-r2-native-private-attempt4"
+  },
+  "control": "Mandatory after original nativechild/directwait/reap/context/route/body/controller/browser/Worker/JWKS settlement; private physicalcopies only, original state/hash/PNG/source/artifacts exact. Missing report preserves original nativefailure/unqualified scope.",
+  "startedAt": "2026-10-11T12:37:37.037150+00:00",
+  "status": "FAILED",
+  "log": "/workspace/file-preview-current-a7-two-r2-native-private-attempt4/runtime/physical-after.log",
+  "pid": 1181072,
+  "processGroup": 1181072,
+  "originalStartTicks": "13551780",
+  "exitCode": 1,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 1,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T12:37:37.159644+00:00",
+  "logSha256": "97aac1d7a2666f87e2ec4355ec3d9bc0910a7190fac0379c9e72c54630c40630"
+}

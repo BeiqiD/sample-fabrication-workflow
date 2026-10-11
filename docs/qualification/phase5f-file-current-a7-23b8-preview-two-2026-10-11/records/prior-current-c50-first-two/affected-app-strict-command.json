@@ -1,0 +1,33 @@
+{
+  "stage": "affected-app-strict",
+  "cwd": "/workspace/portable-dev270-file-preview-focus-coherent-source-attempt1",
+  "argv": [
+    "node",
+    "node_modules/typescript/bin/tsc",
+    "-p",
+    "tsconfig.app.json"
+  ],
+  "env": {
+    "TMPDIR": "/workspace",
+    "SQLITE_TMPDIR": "/workspace"
+  },
+  "startedAt": "2026-10-11T12:06:15.265394+00:00",
+  "status": "PASS",
+  "log": "/workspace/phase5f-file-preview-current-c50-first-two-runtime-attempt4/affected-app-strict.log",
+  "pid": 1163328,
+  "processGroup": 1163328,
+  "originalStartTicks": "13363603",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T12:06:16.974236+00:00",
+  "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

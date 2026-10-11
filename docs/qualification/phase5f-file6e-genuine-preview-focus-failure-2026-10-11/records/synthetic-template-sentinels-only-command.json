@@ -1,0 +1,70 @@
+{
+  "stage": "synthetic-template-sentinels-only",
+  "cwd": "/workspace/file-two-r2-route-result-f228-private-attempt3/copy",
+  "argv": [
+    "node",
+    "node_modules/wrangler/bin/wrangler.js",
+    "d1",
+    "execute",
+    "DB",
+    "--local",
+    "--config",
+    ".wrangler/deploy.jsonc",
+    "--persist-to",
+    "/workspace/file-two-r2-route-result-f228-private-attempt3/copy/.wrangler/state",
+    "--file",
+    "/workspace/file-two-r2-route-result-f228-private-attempt3/fixture/process-fixture.sql"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3",
+    "SQLITE_TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3",
+    "WRANGLER_SEND_METRICS": "false",
+    "WRANGLER_LOG_PATH": "/workspace/file-two-r2-route-result-f228-private-attempt3/fixture/wrangler-logs"
+  },
+  "startedAt": "2026-10-11T11:43:20.514184+00:00",
+  "status": "PASS",
+  "log": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/synthetic-template-sentinels-only.log",
+  "pid": 1133795,
+  "processGroup": 1133795,
+  "originalStartTicks": "13226128",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1133811,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1133795,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1133811,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1133795,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1133811,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1133795,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T11:43:21.910266+00:00",
+  "logSha256": "769fd6f5b6fa2aecf50f3c9e6e84a4965331da91d3f65aac244d47ad083c4359"
+}

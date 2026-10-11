@@ -1,0 +1,69 @@
+{
+  "stage": "ordinary-actual24-local-migrations",
+  "cwd": "/workspace/file-two-r2-route-result-f228-private-attempt3/copy",
+  "argv": [
+    "node",
+    "node_modules/wrangler/bin/wrangler.js",
+    "d1",
+    "migrations",
+    "apply",
+    "DB",
+    "--local",
+    "--config",
+    ".wrangler/deploy.jsonc",
+    "--persist-to",
+    "/workspace/file-two-r2-route-result-f228-private-attempt3/copy/.wrangler/state"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3",
+    "SQLITE_TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3",
+    "WRANGLER_SEND_METRICS": "false",
+    "WRANGLER_LOG_PATH": "/workspace/file-two-r2-route-result-f228-private-attempt3/fixture/wrangler-logs"
+  },
+  "startedAt": "2026-10-11T11:42:51.867336+00:00",
+  "status": "PASS",
+  "log": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/ordinary-actual24-local-migrations.log",
+  "pid": 1133448,
+  "processGroup": 1133448,
+  "originalStartTicks": "13223263",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1133464,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1133448,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1133464,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1133448,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1133464,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1133448,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T11:43:05.708796+00:00",
+  "logSha256": "a4c2ee4f147f8110883945240afdfc2a2814e352b98694a6814440398a2d4360"
+}

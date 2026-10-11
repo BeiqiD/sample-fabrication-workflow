@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "status": "PASS-CLOSED-RELEASED",
+  "sourceRoot": "/workspace/portable-dev270-file-preview-focus-coherent-source-attempt1",
+  "head": "c50e040f7db35c646115c66012f16c6a2642e381",
+  "tree": "b44d44fcc42d7d4f0823b8a535bf385576a2ef32",
+  "trackedInputCount": 2436,
+  "all2436WorkingGitBlobsExactAndCleanAfter": true,
+  "commands": [
+    {
+      "stage": "affected-app-strict",
+      "path": "/workspace/phase5f-file-preview-current-c50-first-two-runtime-attempt4/affected-app-strict-command.json",
+      "sha256": "c430efa14ce9f9b501e597e2add00f03ddb1ec1a23b4bc9be40204a552153b34",
+      "pid": 1163328,
+      "processGroup": 1163328,
+      "originalStartTicks": "13363603",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "ownedGroupEmptyAtClose": true,
+      "log": {
+        "path": "/workspace/phase5f-file-preview-current-c50-first-two-runtime-attempt4/affected-app-strict.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "stage": "affected-file-mounted-file",
+      "path": "/workspace/phase5f-file-preview-current-c50-first-two-runtime-attempt4/affected-file-mounted-file-command.json",
+      "sha256": "6e7ec5049a6c493b924d73dc1fb8f474af6072a551f05d9dc51e18410a0da723",
+      "pid": 1163408,
+      "processGroup": 1163408,
+      "originalStartTicks": "13364964",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "ownedGroupEmptyAtClose": true,
+      "log": {
+        "path": "/workspace/phase5f-file-preview-current-c50-first-two-runtime-attempt4/affected-file-mounted-file.log",
+        "sha256": "383065da1e39fffb87460faee828fdf2b580ff6fe11c6760bf5b9c80d13811b9"
+      }
+    }
+  ],
+  "appStrict": "PASS",
+  "mounted": {
+    "wholeFile": "src/file-migrations.mount.test.tsx",
+    "passed": 11,
+    "failed": 0,
+    "unrun": 0,
+    "originalCases": 9,
+    "newDelayedFocusAndNoStealCases": 2,
+    "originalTestTimeoutMs": 5000,
+    "maxWorkers": 1,
+    "bail": 1
+  },
+  "noBuildWorkerNativeBrowserOrSQLiteStarted": true,
+  "allOriginalDirectChildrenWaitedAndReaped": true,
+  "originalGroupsEmptyAtClose": true,
+  "cleanupSignals": [],
+  "closedAt": "2026-10-11T12:07:11.597324+00:00",
+  "closure": "CLOSED",
+  "runtimeWindow": "RELEASED",
+  "scope": "Currentc50 local app strict+wholeFile11 only; currentnative two remains UNRUN/freshcoherent CFbuild separateGO. Oldceb342 local plans UNRUN and original File6e desktop focusfailure retained."
+}

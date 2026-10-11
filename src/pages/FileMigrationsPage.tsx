@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { checkedAcceptFileMigration, type AcceptFileMigrationInput, type FileJobExecutorStatus, type FileJobStatus, type FileMigrationPlan, type FileMigrationItems } from "../../shared/contracts/file-jobs";
 import type { StorageSettingsProfile } from "../../shared/contracts/storage-settings";
 import { ReadStatus } from "../components/ReadStatus";
@@ -38,6 +38,8 @@ export function FileMigrationsPage() {
   const lifetime = useRef<AbortController | null>(null), busyRef = useRef(false), sequence = useRef(0);
   const canManage = useRef(false), refreshSequence = useRef(0);
   const metadataSequence = useRef(0), retryInitialRead = useRef<() => void>(() => {});
+  const previewButton = useRef<HTMLButtonElement>(null);
+  const returnPreviewFocus = useRef<{ button: HTMLButtonElement; signal: AbortSignal } | null>(null);
   function checkAccessError(error: unknown) {
     if ((error instanceof FileMigrationRequestError || error instanceof StorageConfigurationRequestError || error instanceof StoragePolicyRequestError)
       && (error.status === 401 || error.status === 403)) {
@@ -133,6 +135,14 @@ export function FileMigrationsPage() {
     void readInitial();
     return () => { controller.abort(); if (timer) clearTimeout(timer); sequence.current++; metadataSequence.current++; };
   }, []);
+  useLayoutEffect(() => {
+    if (busy || !returnPreviewFocus.current) return;
+    const { button, signal } = returnPreviewFocus.current;
+    returnPreviewFocus.current = null;
+    if (signal !== lifetime.current?.signal || signal.aborted || !canManage.current) return;
+    if (button === previewButton.current && button.isConnected && !button.matches(":disabled")
+      && (document.activeElement === document.body || document.activeElement === button)) button.focus();
+  }, [busy]);
   async function act(operation: (signal: AbortSignal) => Promise<unknown>, preserveMessage = false) {
     if (!canManage.current || busyRef.current || !lifetime.current || lifetime.current.signal.aborted) return;
     const signal = lifetime.current.signal, current = ++sequence.current; busyRef.current = true; setBusy(true);
@@ -195,8 +205,12 @@ export function FileMigrationsPage() {
         {inventory.nextCursor && <button type="button" className="button" disabled={busy || !!pending} onClick={() => void act(async signal => {
           const next = await fileJobsClient.inventory(inventory.nextCursor!, signal); if (!signal.aborted) setInventory(current => ({ items: [...current.items, ...next.items], nextCursor: next.nextCursor }));
         })}>Load more files</button>}
-        <div className="storage-candidate-actions"><button type="button" className="button" disabled={busy || !!pending || !target || !selection.length}
-          onClick={() => void act(async signal => { const value = await fileJobsClient.plan(input(), signal); if (!signal.aborted) setPlan(value); })}>Preview migration</button>
+        <div className="storage-candidate-actions"><button ref={previewButton} type="button" className="button" disabled={busy || !!pending || !target || !selection.length}
+          onClick={() => void act(async signal => {
+            const button = previewButton.current;
+            returnPreviewFocus.current = button && document.activeElement === button ? { button, signal } : null;
+            const value = await fileJobsClient.plan(input(), signal); if (!signal.aborted) setPlan(value);
+          })}>Preview migration</button>
           {(plan || pending) && <button type="button" className="button primary" disabled={busy || !pending && plan!.items.some(item => item.status !== "eligible")}
             onClick={() => void act(accept)}>{pending ? "Check or retry accepted request" : "Start migration"}</button>}</div>
         {pending && <p className="muted">An acceptance result is awaiting confirmation for {pending.fileIds.length} files to <code>{pending.target.profileId}</code>.

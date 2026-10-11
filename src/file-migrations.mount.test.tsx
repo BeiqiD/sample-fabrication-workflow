@@ -89,6 +89,42 @@ describe("saved File migrations", () => {
     expect(document.body.textContent).not.toContain("private-admin");
   });
 
+  it("returns keyboard focus to the same Preview button after a delayed metadata preview", async () => {
+    const response = deferred<Response>();
+    network.mockImplementation(async (path, options) => String(path) === `${base}/plans` ? response.promise : fallback(path, options));
+    render(<FileMigrationsPage />); await choose();
+    const button = screen.getByRole("button", { name: "Preview migration" }); button.focus();
+    expect(document.activeElement).toBe(button); fireEvent.click(button);
+    await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(true));
+    // Model the native Chromium blur observed when the focused action becomes disabled.
+    const originalTabIndex = document.body.getAttribute("tabindex");
+    try {
+      document.body.setAttribute("tabindex", "-1"); document.body.focus(); expect(document.activeElement).toBe(document.body);
+      const submitted = JSON.parse(String(mutations()[0][1]?.body));
+      await act(async () => response.resolve(json(plan(submitted))));
+      await waitFor(() => expect(document.activeElement).toBe(button));
+      expect((button as HTMLButtonElement).disabled).toBe(false);
+      expect(screen.getByRole("button", { name: "Start migration" })).toBeTruthy();
+      expect(mutations().map(([path]) => path)).toEqual([`${base}/plans`]); expect(acceptCalls()).toHaveLength(0);
+    } finally {
+      if (originalTabIndex === null) document.body.removeAttribute("tabindex"); else document.body.setAttribute("tabindex", originalTabIndex);
+    }
+  });
+
+  it("keeps focus on another native control when a delayed Preview completes", async () => {
+    const response = deferred<Response>();
+    network.mockImplementation(async (path, options) => String(path) === `${base}/plans` ? response.promise : fallback(path, options));
+    render(<FileMigrationsPage />); await choose();
+    const button = screen.getByRole("button", { name: "Preview migration" }); button.focus(); fireEvent.click(button);
+    await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(true));
+    const other = screen.getByRole("link", { name: "Storage settings" }); other.focus(); expect(document.activeElement).toBe(other);
+    const submitted = JSON.parse(String(mutations()[0][1]?.body));
+    await act(async () => response.resolve(json(plan(submitted))));
+    await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
+    expect(document.activeElement).toBe(other);
+    expect(mutations().map(([path]) => path)).toEqual([`${base}/plans`]); expect(acceptCalls()).toHaveLength(0);
+  });
+
   it("retains and explicitly retries a lost acceptance response with its original files, target and identity across remount", async () => {
     network.mockImplementation(async (path, options) => {
       if (String(path) === base && options?.method === "POST") {
