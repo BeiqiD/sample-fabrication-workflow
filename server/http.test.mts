@@ -4,7 +4,7 @@ import { request as httpRequest, type Server } from "node:http";
 import { createConnection } from "node:net";
 import { setTimeout as delay } from "node:timers/promises";
 import { test } from "node:test";
-import { createNodeHttpServer, type FetchHandler, type NodeHttpOptions } from "./http.ts";
+import { createNodeHttpServer, stopNodeHttpServerAndDrain, type FetchHandler, type NodeHttpOptions } from "./http.ts";
 
 async function listening(handler: FetchHandler, options: Partial<NodeHttpOptions> = {}) {
   const server = createNodeHttpServer(handler, { publicOrigin: "https://qualified.example", ...options });
@@ -12,7 +12,7 @@ async function listening(handler: FetchHandler, options: Partial<NodeHttpOptions
   const address = server.address(); assert(address && typeof address !== "string");
   return { server, port: address.port, base: `http://127.0.0.1:${address.port}` };
 }
-async function stop(server: Server) { server.closeAllConnections(); await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
+async function stop(server: Server) { server.closeAllConnections(); await stopNodeHttpServerAndDrain(server); }
 async function raw(port: number, text: string) {
   const socket = createConnection({ host: "127.0.0.1", port });
   socket.setTimeout(2000, () => socket.destroy(new Error("Raw HTTP test timed out")));
@@ -249,12 +249,14 @@ test("bounded header bytes/count and encoded target guards reject before applica
 
 test("whole-request timeout aborts handler, and incomplete upload timeout returns 408", async () => {
   let signal: AbortSignal | undefined;
-  const live = await listening(request => { signal = request.signal; return new Promise<Response>(() => undefined); }, { timeoutMs: 40 });
+  let release!: () => void;
+  const original = new Promise<void>(resolve => { release = resolve; });
+  const live = await listening(async request => { signal = request.signal; await original; return new Response("late original"); }, { timeoutMs: 40 });
   try {
     const result = await fetch(`${live.base}/api/held`); assert.equal(result.status, 408); assert.equal(signal?.aborted, true);
     const incomplete = await raw(live.port, "POST /api HTTP/1.1\r\nHost: test\r\nContent-Length: 5\r\n\r\nx");
     assert.match(incomplete, /408 Request Timeout/);
-  } finally { await stop(live.server); }
+  } finally { release(); await stop(live.server); }
 });
 
 test("incomplete headers close within the configured idle bound without dispatch", async () => {
