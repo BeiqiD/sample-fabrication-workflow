@@ -1,0 +1,945 @@
+{
+  "kind": "phase5f-shared36-first-enabled-admin-503-body-observation-failure/1",
+  "status": "FAILED_CLOSED_RELEASED",
+  "createdAt": "2026-10-11T00:13:26.034243+00:00",
+  "sourceHead": "36e28cb2db6500ce26ca6e3048eb4b6fe44d0c5e",
+  "sourceTree": "606e517d574fdf20a62265b898babc2e02f9598c",
+  "firstFailedStage": "genuine-enabled-Access-admin-four",
+  "failure": "Last admin retry case actual503→nativefocusedRefreshEnter→200 and catalog restore/assertions succeeded, but original503 Playwright response.body failed Network.getResponseBody No data found; unchanged strict final allresponsebody assertion correctly failed. No wholeadminmatrix pass inferred.",
+  "commandReceipts": [
+    {
+      "stage": "fresh-two-version-sentinel",
+      "cwd": "/tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3",
+      "argv": [
+        "node",
+        "/tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3/scripts/qa/phase5f/generate-process-fixture.mjs",
+        "/tmp/phase5f-idle-focus-enabled-admin-copy-attempt3",
+        "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3"
+      ],
+      "startedAt": "2026-10-11T00:10:33.830760+00:00",
+      "status": "PASS",
+      "log": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/fresh-two-version-sentinel.log",
+      "pid": 365641,
+      "processGroup": 365641,
+      "originalStartTicks": "9069460",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 365652,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 365641,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 365652,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 365641,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 365652,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 365641,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "endedAt": "2026-10-11T00:10:34.995391+00:00",
+      "logSha256": "0689daa7baf7a39a70166f5fec0bd955c09cb6831695be83a8b4f8188fdb6697"
+    },
+    {
+      "stage": "genuine-enabled-Access-admin-four",
+      "cwd": "/tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3",
+      "argv": [
+        "node",
+        "/tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3/scripts/qa/phase5f/browser-enabled-admin-actual-api.mjs",
+        "/tmp/phase5f-idle-focus-enabled-admin-copy-attempt3",
+        "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3",
+        "--exclusive-go-four-enabled-admin"
+      ],
+      "env": {
+        "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+        "CHROMIUM_PATH": "/usr/bin/chromium"
+      },
+      "cases": [
+        "admin-1280-light",
+        "admin-390-dark",
+        "reader-1280-light",
+        "admin-390-dark-read-retry"
+      ],
+      "authenticationControls": 6,
+      "mutationScope": "No accepted browserwrites. One original privileged PUT{} by genuine reader mustdeny403. Fixture-only originalempty revisiontable temporarilydropped/restored exactDDL once and originalserviceGET503→200; fulltyped catalog/row compare required. JWT/privatekey memoryonly, original auth/adminpolicy unchanged.",
+      "ownership": "Helper owns NEW originalJWKSserver/AccessWorker/browser contexts, caches same originalclose/dispose/restore promises and awaits actual closure/portrefusal in finally. Recorder awaits childexit/reap/originalgroup. Disabledseedstop receipts remain historicaldisabled scope.",
+      "startedAt": "2026-10-11T00:11:46.928699+00:00",
+      "status": "FAILED",
+      "log": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/genuine-enabled-Access-admin-four.log",
+      "pid": 370547,
+      "processGroup": 370547,
+      "originalStartTicks": "9076769",
+      "exitCode": 1,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 1,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-11T00:11:56.409463+00:00",
+      "logSha256": "c95ee6e558cab56d41c92fc2d402ecdf2f78b936d1f05cc70a2aa61cb7a3660e"
+    },
+    {
+      "stage": "isolated-copy",
+      "cwd": "/tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3",
+      "argv": [
+        "python3",
+        "/tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3/scripts/qa/phase5f/prepare-isolated-copy.py",
+        "--source-root",
+        "/tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3",
+        "--destination",
+        "/tmp/phase5f-idle-focus-enabled-admin-copy-attempt3",
+        "--dependency-root",
+        "/workspace/sample-fabrication-workflow/node_modules"
+      ],
+      "startedAt": "2026-10-11T00:10:30.208428+00:00",
+      "status": "PASS",
+      "log": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/isolated-copy.log",
+      "pid": 365581,
+      "processGroup": 365581,
+      "originalStartTicks": "9069097",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-11T00:10:31.103806+00:00",
+      "logSha256": "5f83e094248658bd1c3114ee13987fc24362ec69685a18d6579e7d09ab9f16d0"
+    },
+    {
+      "stage": "mature-genuine-api-84-only",
+      "cwd": "/tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3",
+      "argv": [
+        "node",
+        "/tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3/scripts/qa/phase5f/seed-actual-api.mjs",
+        "http://127.0.0.1:4219/",
+        "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3"
+      ],
+      "expectedRequests": 84,
+      "startedAt": "2026-10-11T00:11:12.752262+00:00",
+      "status": "PASS",
+      "log": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/mature-genuine-api-84-only.log",
+      "pid": 368120,
+      "processGroup": 368120,
+      "originalStartTicks": "9073352",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-11T00:11:15.357643+00:00",
+      "logSha256": "ffda006865acf6a59ccb954967fbb330da2c4f936b62892bf3910b919b6e0e68"
+    },
+    {
+      "stage": "native-idle-Cancel-Escape-Close-two",
+      "cwd": "/tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3",
+      "argv": [
+        "node",
+        "/tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3/scripts/qa/phase5f/browser-metrology-cancel-focus-actual-api.mjs",
+        "http://127.0.0.1:4219/",
+        "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3",
+        "/tmp/phase5f-idle-focus-enabled-admin-copy-attempt3"
+      ],
+      "env": {
+        "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+        "CHROMIUM_PATH": "/usr/bin/chromium"
+      },
+      "cases": [
+        "metrology-cancel-focus-390-dark",
+        "metrology-cancel-focus-1280-light"
+      ],
+      "expectedBrowserMutations": 0,
+      "newAuxiliaryApiReads": 10,
+      "notes": "Two sentinelGET +four actual before/after readbacks per case=10auxAPIreads; native original menu unmount, Cancel Search remount, Escape sameoriginalStepAdd, newactualdirectoryGET/newdrawer then Close sameoriginalStepAdd. Actual browserAPIread cost captured separately, zero UI mutations; no latency/device claim.",
+      "startedAt": "2026-10-11T00:11:18.345837+00:00",
+      "status": "PASS",
+      "log": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/native-idle-Cancel-Escape-Close-two.log",
+      "pid": 368176,
+      "processGroup": 368176,
+      "originalStartTicks": "9073911",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-11T00:11:23.707335+00:00",
+      "logSha256": "6b75cf337034bb32ad2968971f68892e9bfaba040d9edc74efc339dabc922a10"
+    },
+    {
+      "stage": "one-fresh-final-QA-source-build",
+      "cwd": "/tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3",
+      "argv": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "qualification": "Actual one fresh command receipt must capture exact frozen finalHEAD/tree, directchildexit/reap/ownedgroup and regular artifact hashes. Originald191 new118 build remains earlier qualification and is not relabelled finalhead. No strict41/native/source/perf/oldbrowser reruns.",
+      "startedAt": "2026-10-11T00:10:15.843541+00:00",
+      "status": "PASS",
+      "log": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/one-fresh-final-QA-source-build.log",
+      "pid": 365415,
+      "processGroup": 365415,
+      "originalStartTicks": "9067661",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 365526,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 365415,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 365526,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 365415,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 365526,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 365415,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "endedAt": "2026-10-11T00:10:20.706540+00:00",
+      "logSha256": "772461bc34e190a5abb0f1b85081a3c581c0157a6902d1a33999b9a0bf5e1c11"
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "cwd": "/tmp/phase5f-idle-focus-enabled-admin-copy-attempt3",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "migrations",
+        "apply",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/tmp/phase5f-idle-focus-enabled-admin-copy-attempt3/.wrangler/state"
+      ],
+      "env": {
+        "WRANGLER_SEND_METRICS": "false",
+        "WRANGLER_LOG_PATH": "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/wrangler-logs"
+      },
+      "startedAt": "2026-10-11T00:10:40.261747+00:00",
+      "status": "PASS",
+      "log": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/ordinary-actual24-local-migrations.log",
+      "pid": 365721,
+      "processGroup": 365721,
+      "originalStartTicks": "9070103",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 365737,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 365721,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 365737,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 365721,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 365737,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 365721,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "endedAt": "2026-10-11T00:10:53.128305+00:00",
+      "logSha256": "a4c2ee4f147f8110883945240afdfc2a2814e352b98694a6814440398a2d4360"
+    },
+    {
+      "stage": "owned-built-worker",
+      "cwd": "/tmp/phase5f-idle-focus-enabled-admin-copy-attempt3",
+      "argv": [
+        "node",
+        "/tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3/scripts/qa/phase5f/start-built-server.mjs",
+        "/tmp/phase5f-idle-focus-enabled-admin-copy-attempt3",
+        "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3"
+      ],
+      "control": "Keep owned stdin open, await actual ready health/ready200 and immutable owner/session; never start browser while readiness lacks",
+      "toolInvocation": {
+        "tty": true,
+        "yieldTimeMs": 1000,
+        "control": "PTY keeps originalstdin alive, sourceisatty guard BEFORE childspawn. Require originalready200/session/PID/startticks/noStop beforeseed. Explicitoriginalstop newline only originaltoolsession, thenactualdisposal/directwait."
+      },
+      "startedAt": "2026-10-11T00:11:06.141222+00:00",
+      "status": "PASS",
+      "log": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/owned-built-worker.log",
+      "pid": 368030,
+      "processGroup": 368030,
+      "originalStartTicks": "9072691",
+      "originalStdinStopSent": true,
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-11T00:11:28.931517+00:00",
+      "logSha256": "4b2a0d4a8a3ec10c5e292aa77ce6a296da27b0e0e8b2980158afd45c83d3c89c"
+    },
+    {
+      "stage": "physical-after",
+      "cwd": "/tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3",
+      "argv": [
+        "python3",
+        "/tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3/scripts/qa/phase5f/check-isolated-state.py",
+        "--source-copy",
+        "/tmp/phase5f-idle-focus-enabled-admin-copy-attempt3",
+        "--fixture-directory",
+        "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3",
+        "--stage",
+        "after-shutdown"
+      ],
+      "require": "Only after originaldisabledseedWorker and newenabledAccesshelper bothactualexit +browser/Worker/JWKSstopclosed +bothportsrefused, regardlessfirstfailure where fixture exists. Original mature physical checker preservesSQLiteFK/PNG/inputbytes. Do not infer Accessclosure fromseedstop.",
+      "startedAt": "2026-10-11T00:12:08.867714+00:00",
+      "status": "PASS",
+      "log": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/physical-after.log",
+      "pid": 370937,
+      "processGroup": 370937,
+      "originalStartTicks": "9078963",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-11T00:12:09.393040+00:00",
+      "logSha256": "92ec78bf4922688feb53b0cda31f96e45160370e1d2a008a01d4d4ce7a09c62b"
+    },
+    {
+      "stage": "physical-before",
+      "cwd": "/tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3",
+      "argv": [
+        "python3",
+        "/tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3/scripts/qa/phase5f/check-isolated-state.py",
+        "--source-copy",
+        "/tmp/phase5f-idle-focus-enabled-admin-copy-attempt3",
+        "--fixture-directory",
+        "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3",
+        "--stage",
+        "before-api"
+      ],
+      "startedAt": "2026-10-11T00:11:02.628052+00:00",
+      "status": "PASS",
+      "log": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/physical-before.log",
+      "pid": 367459,
+      "processGroup": 367459,
+      "originalStartTicks": "9072339",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-11T00:11:03.184433+00:00",
+      "logSha256": "c5e1c89f6528bd1b3f094cd4bcd131e69cc32db8ace0c1b9664eca009ae21557"
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "cwd": "/tmp/phase5f-idle-focus-enabled-admin-copy-attempt3",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "execute",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/tmp/phase5f-idle-focus-enabled-admin-copy-attempt3/.wrangler/state",
+        "--file",
+        "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/process-fixture.sql"
+      ],
+      "env": {
+        "WRANGLER_SEND_METRICS": "false",
+        "WRANGLER_LOG_PATH": "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/wrangler-logs"
+      },
+      "startedAt": "2026-10-11T00:10:56.861438+00:00",
+      "status": "PASS",
+      "log": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/synthetic-template-sentinels-only.log",
+      "pid": 366027,
+      "processGroup": 366027,
+      "originalStartTicks": "9071763",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 366043,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 366027,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 366043,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 366027,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 366043,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 366027,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "endedAt": "2026-10-11T00:10:58.084776+00:00",
+      "logSha256": "f660f2e386b399677549be9cf24546ec3eb2b483db5ea2e484cd78964ccfb920"
+    }
+  ],
+  "actualNewSameHeadBuild": {
+    "producerPid": 365415,
+    "status": "PASS",
+    "exitCode": 0,
+    "freshArtifacts": 118,
+    "copiedArtifacts": 121,
+    "raw": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/one-fresh-final-QA-source-build-command.json",
+    "sha256": "0bcd57b09039365c70b00ab937486cb0974f10b777f80fa73385f76a14bc7c9f",
+    "witnessSha256": "c867a879c1e1fe2669d3d46b6c5a6a2c7ae64922c682d7ad73a6b4f83cedb5a1"
+  },
+  "actualSeedRequests": 84,
+  "focusTwo": {
+    "passed": 2,
+    "failed": 0,
+    "unrun": [],
+    "auxiliaryApiReadbacks": 10,
+    "browserReadRequests": 10,
+    "acceptedBrowserWrites": 0,
+    "contextsAndBrowserClosed": true
+  },
+  "adminFour": {
+    "passed": 3,
+    "failed": 1,
+    "unrun": [],
+    "actualCaseIds": [
+      "admin-1280-light",
+      "admin-390-dark",
+      "reader-1280-light",
+      "admin-390-dark-read-retry"
+    ],
+    "authenticationControlStatuses": [
+      200,
+      200,
+      403,
+      403,
+      403,
+      403
+    ],
+    "browserApiRequests": 15,
+    "deniedReaderPut": 1,
+    "acceptedBrowserWrites": 0,
+    "failedBodyObservation": {
+      "path": "/api/storage/configuration",
+      "method": "GET",
+      "status": 503,
+      "body": "failed",
+      "error": "response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier"
+    },
+    "contextsAndBrowserClosed": true,
+    "originalTypedCatalogAndRowsRestored": true
+  },
+  "ownedClosure": {
+    "disabledWorkerPidAbsent": true,
+    "adminHelperPidAbsent": true,
+    "port4219": "ECONNREFUSED",
+    "jwksPort": 38625,
+    "jwksConnection": "ECONNREFUSED",
+    "originalDisabledWorkerStdinStopDisposalAwaited": true,
+    "newAdminOriginalOwnerPromisesAwaited": {
+      "sessionId": "b3570748-e683-46b3-9d80-64bbb6d241cf",
+      "startedAt": "2026-10-11T00:11:55.157Z",
+      "status": "closed",
+      "browserCloseAwaited": true,
+      "originalCatalogAndRowsRestored": true,
+      "workerDisposeAwaited": true,
+      "workerPortRefused": true,
+      "jwksCloseAwaited": true,
+      "jwksPortRefused": true,
+      "completedAt": "2026-10-11T00:11:56.330Z"
+    },
+    "all11DirectChildrenActuallyReaped": true,
+    "allOriginalGroupsFinal": {
+      "365641": [
+        {
+          "pid": 365652,
+          "state": "Z",
+          "ppid": 1,
+          "processGroup": 365641,
+          "originalStartTicks": "9069517",
+          "kernelResourcesExited": true,
+          "fdInspection": "PermissionError"
+        }
+      ],
+      "370547": [],
+      "365581": [],
+      "368120": [],
+      "368176": [],
+      "365415": [
+        {
+          "pid": 365526,
+          "state": "Z",
+          "ppid": 1,
+          "processGroup": 365415,
+          "originalStartTicks": "9068049",
+          "kernelResourcesExited": true,
+          "fdInspection": "PermissionError"
+        }
+      ],
+      "365721": [
+        {
+          "pid": 365737,
+          "state": "Z",
+          "ppid": 1,
+          "processGroup": 365721,
+          "originalStartTicks": "9070174",
+          "kernelResourcesExited": true,
+          "fdInspection": "PermissionError"
+        }
+      ],
+      "368030": [],
+      "370937": [],
+      "367459": [],
+      "366027": [
+        {
+          "pid": 366043,
+          "state": "Z",
+          "ppid": 1,
+          "processGroup": 366027,
+          "originalStartTicks": "9071833",
+          "kernelResourcesExited": true,
+          "fdInspection": "PermissionError"
+        }
+      ]
+    },
+    "noActiveOwnedProcessOrFd": true,
+    "kernelZFdScope": "Observed kernelZ/PPID1/resourcesExited and inaccessibleFD metadata retained; no observedzeroFD/globalhostquiescence claim"
+  },
+  "physical": {
+    "status": "passed",
+    "sqliteFiles": 4,
+    "quickFK": "allok/empty",
+    "originalStateBytesUnchanged": true,
+    "seededAttachmentPhysicalBytesMatched": true,
+    "physicalObjectBlobCount": 1
+  },
+  "source1707AndAll121ArtifactsExact": true,
+  "retainedFirstAttemptSetupAndSecondAttempt404Failures": [
+    {
+      "path": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt1/first-failure-closed-and-released-receipt.json",
+      "sha256": "aef2af48d32e2c3438cc3868ed7337526df41cb4bf57890d7920ac5096ad6d69"
+    },
+    {
+      "path": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt2/first-failure-closed-and-released-receipt.json",
+      "sha256": "c7002e6e6dd42168bfb5fbd795e394e4c4f8dad05e6da61816b36b8718cd432e"
+    }
+  ],
+  "rawEvidence": {
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/fresh-build-artifact-manifest.json": {
+      "sha256": "4276b9853b81532218647e7ee0e7c6b965d0eadfd1fc24c60d408a234b7643f3",
+      "bytes": 14601
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/fresh-two-version-sentinel-command.json": {
+      "sha256": "743642c41f78d21c7c5c4d5d311e383ee6bf13cf6a6be2a3fc07eded9ab18c6a",
+      "bytes": 1646
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/fresh-two-version-sentinel.log": {
+      "sha256": "0689daa7baf7a39a70166f5fec0bd955c09cb6831695be83a8b4f8188fdb6697",
+      "bytes": 206
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/frozen-approved-plan.json": {
+      "sha256": "d7fcdd512662442f3eb35180b7e59c667035035ae59838f15911bb9ae1515749",
+      "bytes": 13807
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/genuine-enabled-Access-admin-four-command.json": {
+      "sha256": "e01cb379326dc434a757ee794fd9acff5ffba8184c8bcda9c13339a5bc13cdeb",
+      "bytes": 2039
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/genuine-enabled-Access-admin-four.log": {
+      "sha256": "c95ee6e558cab56d41c92fc2d402ecdf2f78b936d1f05cc70a2aa61cb7a3660e",
+      "bytes": 6590
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/isolated-copy-command.json": {
+      "sha256": "9400e4d14edfad809b4600e4b657a90b4498772ffae45193933f6dcf6a56a0a0",
+      "bytes": 1164
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/isolated-copy.log": {
+      "sha256": "5f83e094248658bd1c3114ee13987fc24362ec69685a18d6579e7d09ab9f16d0",
+      "bytes": 190
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/mature-genuine-api-84-only-command.json": {
+      "sha256": "d89325745df07560cf0eab4d4cab4cfde045c1e9166d124ce5797542a0ddd881",
+      "bytes": 1040
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/mature-genuine-api-84-only.log": {
+      "sha256": "ffda006865acf6a59ccb954967fbb330da2c4f936b62892bf3910b919b6e0e68",
+      "bytes": 177
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/native-idle-Cancel-Escape-Close-two-command.json": {
+      "sha256": "27fd02297bda5f885fdfbe9c0510e195199407e24e0ea4b11dccb74c7d2a04eb",
+      "bytes": 1751
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/native-idle-Cancel-Escape-Close-two.log": {
+      "sha256": "6b75cf337034bb32ad2968971f68892e9bfaba040d9edc74efc339dabc922a10",
+      "bytes": 329
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/one-fresh-final-QA-source-build-command.json": {
+      "sha256": "0bcd57b09039365c70b00ab937486cb0974f10b777f80fa73385f76a14bc7c9f",
+      "bytes": 1732
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/one-fresh-final-QA-source-build.log": {
+      "sha256": "772461bc34e190a5abb0f1b85081a3c581c0157a6902d1a33999b9a0bf5e1c11",
+      "bytes": 12735
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/ordinary-actual24-local-migrations-command.json": {
+      "sha256": "855b175c90fdf422f6dc78f1e7dcce5be1dd99845d44dd43b21ce9eaef5be828",
+      "bytes": 1804
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/ordinary-actual24-local-migrations.log": {
+      "sha256": "a4c2ee4f147f8110883945240afdfc2a2814e352b98694a6814440398a2d4360",
+      "bytes": 147956
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/owned-built-worker-command.json": {
+      "sha256": "d42f9c63796ba3c98c112d41a1c55376f8ffae1762b04114be6ccac6345e399b",
+      "bytes": 1500
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/owned-built-worker.log": {
+      "sha256": "4b2a0d4a8a3ec10c5e292aa77ce6a296da27b0e0e8b2980158afd45c83d3c89c",
+      "bytes": 489
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/physical-after-command.json": {
+      "sha256": "2ee4e0e3df5c3d88dbe5282a7e6d9147c6bd37e9c56c495b616038afc56c5441",
+      "bytes": 1410
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/physical-after.log": {
+      "sha256": "92ec78bf4922688feb53b0cda31f96e45160370e1d2a008a01d4d4ce7a09c62b",
+      "bytes": 159
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/physical-before-command.json": {
+      "sha256": "022e25300cd36c3cc07f657ca14e99d4c741dd28cca36e7ed2a0858504dd8d59",
+      "bytes": 1109
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/physical-before.log": {
+      "sha256": "c5e1c89f6528bd1b3f094cd4bcd131e69cc32db8ace0c1b9664eca009ae21557",
+      "bytes": 155
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/synthetic-template-sentinels-only-command.json": {
+      "sha256": "daf1eb5d556cc0885f58005ee4be81cb65db016f44d729f55e01516ac49e844b",
+      "bytes": 1882
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/synthetic-template-sentinels-only.log": {
+      "sha256": "f660f2e386b399677549be9cf24546ec3eb2b483db5ea2e484cd78964ccfb920",
+      "bytes": 1611
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/actual-api-fixture-receipt.json": {
+      "sha256": "1d13d36d5ceeac70ff6f2f0cd612f9507a592e15036a3ae18570285a60981b02",
+      "bytes": 51606
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/actual-api-fixture-session.json": {
+      "sha256": "28be3be520c3cf8ec21af90a5fec0ebb7a2d73f2fb58ef69d2ead468580d5ca1",
+      "bytes": 936
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/enabled-admin-browser-artifacts/admin-1280-light.png": {
+      "sha256": "7dc9bdfa9bd6a392ccafb8b98854b05ac4571a818d9fc24a6f8be2e7b659f8be",
+      "bytes": 73078
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/enabled-admin-browser-artifacts/admin-390-dark-read-retry.png": {
+      "sha256": "bb8853c899c6affbfc2f7856261b67eb3d90233e6c923a5f11a7d93de4ddeda7",
+      "bytes": 57695
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/enabled-admin-browser-artifacts/admin-390-dark.png": {
+      "sha256": "bb8853c899c6affbfc2f7856261b67eb3d90233e6c923a5f11a7d93de4ddeda7",
+      "bytes": 57695
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/enabled-admin-browser-artifacts/reader-1280-light.png": {
+      "sha256": "3531337e3a3344503e5eff4149e8d386e6f6fea824e103ea18a1b9e4b3acd47c",
+      "bytes": 54119
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/enabled-admin-browser-progress.ndjson": {
+      "sha256": "a23a8c1b84f4f28af4317153d63ab60ffa18fb70db66a63a2978e7c1b2831260",
+      "bytes": 456
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/enabled-admin-browser-report.json": {
+      "sha256": "8b290fc944a42d8ffb42fef48ecbef24d47a03b0312ee48a4ac8a402a67f4ceb",
+      "bytes": 31167
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/enabled-admin-fresh-build.json": {
+      "sha256": "c867a879c1e1fe2669d3d46b6c5a6a2c7ae64922c682d7ad73a6b4f83cedb5a1",
+      "bytes": 697
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/enabled-admin-runtime-stop.json": {
+      "sha256": "146cf20905eb4aca19d019cc242ed7cbfb497caa5c8f95f406a054399291f430",
+      "bytes": 357
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/fixture-hashing.mjs": {
+      "sha256": "23739b01e022f1bc3737390b018fd489820223a9f617455902d556f52e0fb926",
+      "bytes": 2917
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/isolated-server-receipt.json": {
+      "sha256": "d3df3e60b86b24210661d961374935ce9ef193243176f809d0a9eb6b76e28657",
+      "bytes": 3381
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/isolated-server-session.json": {
+      "sha256": "800406b1e9ea7bd8da729326b8f32ed3bae241e68daf04103bf8fee0e019b65b",
+      "bytes": 695
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/isolated-server-stop-receipt.json": {
+      "sha256": "e9aa166042af3ba0fe79442d1cc5df990aa6319df6480c98e2cf2da866360734",
+      "bytes": 1016
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/metrology-cancel-focus-browser-artifacts/metrology-cancel-focus-1280-light-restored-search.png": {
+      "sha256": "685a1318d3cf093ecb8fbc3d29c900df31767de4e57dde401d20af7e33e54356",
+      "bytes": 203512
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/metrology-cancel-focus-browser-artifacts/metrology-cancel-focus-1280-light-restored-step-add.png": {
+      "sha256": "94b756d0cc2addf43d314a8059da885640f23149f0b82a2b203dfd3ea9d76666",
+      "bytes": 154090
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/metrology-cancel-focus-browser-artifacts/metrology-cancel-focus-1280-light.png": {
+      "sha256": "94b756d0cc2addf43d314a8059da885640f23149f0b82a2b203dfd3ea9d76666",
+      "bytes": 154090
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/metrology-cancel-focus-browser-artifacts/metrology-cancel-focus-390-dark-restored-search.png": {
+      "sha256": "ab25d294173e24176cdca3fea2b57de71e8862d59bdfbd9ba7da6b2e80d8aa1e",
+      "bytes": 82365
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/metrology-cancel-focus-browser-artifacts/metrology-cancel-focus-390-dark-restored-step-add.png": {
+      "sha256": "0a97bf910b750a33c388866dbccd36848f4ff6d6b0bf5368abe8dff85f43731d",
+      "bytes": 109851
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/metrology-cancel-focus-browser-artifacts/metrology-cancel-focus-390-dark.png": {
+      "sha256": "0a97bf910b750a33c388866dbccd36848f4ff6d6b0bf5368abe8dff85f43731d",
+      "bytes": 109851
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/metrology-cancel-focus-browser-progress.ndjson": {
+      "sha256": "042b654d5941dd236917bfb1cee1993824e1ba288238a5b1e596da24af8e6534",
+      "bytes": 700
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/metrology-cancel-focus-browser-report.json": {
+      "sha256": "800e74c625a962d3008a06ab69058181fd9e5b5e398923789f9012323fdb6d81",
+      "bytes": 27871
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/metrology-cancel-focus-browser-session.json": {
+      "sha256": "2c189536d0d848db076835bfb13d604381f228561628f779941dd2df147fe8b6",
+      "bytes": 702
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/metrology-cancel-focus-browser-summary.json": {
+      "sha256": "dcb0ebe18063f9d6500a6c2388771fe5cf5ac163f61f6a0f9b66839ab3d52ba7",
+      "bytes": 7881
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/physical-snapshot-after-shutdown/d1/miniflare-D1DatabaseObject/faaf2b0445ab934c3aac48ddf0cdfade8f9bac050be98993748742cdd2cb05fb.sqlite": {
+      "sha256": "038d4082e8f358f798a72ca428cc2505306bc8f3358562b4ecb15b3d312e4948",
+      "bytes": 3907584
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/physical-snapshot-after-shutdown/d1/miniflare-D1DatabaseObject/faaf2b0445ab934c3aac48ddf0cdfade8f9bac050be98993748742cdd2cb05fb.sqlite-shm": {
+      "sha256": "2cd6342603ec0336cf122a12e396a4fa10cb2f7ea3003e9fa1a0b8b723b77cad",
+      "bytes": 32768
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/physical-snapshot-after-shutdown/d1/miniflare-D1DatabaseObject/faaf2b0445ab934c3aac48ddf0cdfade8f9bac050be98993748742cdd2cb05fb.sqlite-wal": {
+      "sha256": "6bbcb296a8e3ad2f5d1cc6bf52c8b67ec2c96f3580d58c2d5a14232e78f918b4",
+      "bytes": 5924592
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/physical-snapshot-after-shutdown/d1/miniflare-D1DatabaseObject/metadata.sqlite": {
+      "sha256": "4c34b48e33536be849e9810707c97ff2b5625bb5cbf1637dbe384cfffdda3b9d",
+      "bytes": 4096
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/physical-snapshot-after-shutdown/d1/miniflare-D1DatabaseObject/metadata.sqlite-shm": {
+      "sha256": "267a86220ca6c4aba0348149135bcc0e93213fc2c89b7c725c0244b2acd8552f",
+      "bytes": 32768
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/physical-snapshot-after-shutdown/d1/miniflare-D1DatabaseObject/metadata.sqlite-wal": {
+      "sha256": "53375cb80f8568c55a4fc3ec39da33abf4f4d41d534377c97f1a93f03bc72784",
+      "bytes": 8272
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/physical-snapshot-after-shutdown/r2/miniflare-R2BucketObject/eaa2fcb26d4038a3ef7dc7a68c7d2b0194f2d07ce329fb4925ae44e7f0611f87.sqlite": {
+      "sha256": "19ebe75cde57b2f2cc58cf3b992945dfe9ac4435d031878ad9ac5aa1ec0bd243",
+      "bytes": 28672
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/physical-snapshot-after-shutdown/r2/miniflare-R2BucketObject/eaa2fcb26d4038a3ef7dc7a68c7d2b0194f2d07ce329fb4925ae44e7f0611f87.sqlite-shm": {
+      "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb",
+      "bytes": 32768
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/physical-snapshot-after-shutdown/r2/miniflare-R2BucketObject/eaa2fcb26d4038a3ef7dc7a68c7d2b0194f2d07ce329fb4925ae44e7f0611f87.sqlite-wal": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/physical-snapshot-after-shutdown/r2/miniflare-R2BucketObject/metadata.sqlite": {
+      "sha256": "4c34b48e33536be849e9810707c97ff2b5625bb5cbf1637dbe384cfffdda3b9d",
+      "bytes": 4096
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/physical-snapshot-after-shutdown/r2/miniflare-R2BucketObject/metadata.sqlite-shm": {
+      "sha256": "06dbf6ab6ecd7ad5232ee1bc5e4a92b417cc7629d9e7bfb34bc22c745448007f",
+      "bytes": 32768
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/physical-snapshot-after-shutdown/r2/miniflare-R2BucketObject/metadata.sqlite-wal": {
+      "sha256": "5c39ddc62d1506d0b7fe67bcbbfb6138654514b650f1a985cf577a97789240aa",
+      "bytes": 8272
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/physical-snapshot-before-api/d1/miniflare-D1DatabaseObject/faaf2b0445ab934c3aac48ddf0cdfade8f9bac050be98993748742cdd2cb05fb.sqlite": {
+      "sha256": "8e2366e7b7f3bdc86749eb6a17babb835fffbfdf857264349e396d0b10152fe3",
+      "bytes": 3825664
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/physical-snapshot-before-api/d1/miniflare-D1DatabaseObject/faaf2b0445ab934c3aac48ddf0cdfade8f9bac050be98993748742cdd2cb05fb.sqlite-shm": {
+      "sha256": "d6c9cf47742cc2b2b146827fc1b47681d34329f6ece4fe94248395bd0beea8bf",
+      "bytes": 32768
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/physical-snapshot-before-api/d1/miniflare-D1DatabaseObject/faaf2b0445ab934c3aac48ddf0cdfade8f9bac050be98993748742cdd2cb05fb.sqlite-wal": {
+      "sha256": "2a5f9ff4c1d0e74ecbacde55dbd7b7ca9be3cd1dfa5b629d9d5bdb60775b0e6e",
+      "bytes": 5920472
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/physical-snapshot-before-api/d1/miniflare-D1DatabaseObject/metadata.sqlite": {
+      "sha256": "4c34b48e33536be849e9810707c97ff2b5625bb5cbf1637dbe384cfffdda3b9d",
+      "bytes": 4096
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/physical-snapshot-before-api/d1/miniflare-D1DatabaseObject/metadata.sqlite-shm": {
+      "sha256": "267a86220ca6c4aba0348149135bcc0e93213fc2c89b7c725c0244b2acd8552f",
+      "bytes": 32768
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/physical-snapshot-before-api/d1/miniflare-D1DatabaseObject/metadata.sqlite-wal": {
+      "sha256": "53375cb80f8568c55a4fc3ec39da33abf4f4d41d534377c97f1a93f03bc72784",
+      "bytes": 8272
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/physical-sqlite-after-shutdown.json": {
+      "sha256": "f419622f48e32cf515452f34c9800d255696708042d64f36a005672951ad9522",
+      "bytes": 46201
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/physical-sqlite-before-api.json": {
+      "sha256": "03ecc62cc786ac13994424c2882ba0b8130027b8b1c60f4c58fa1ca39fe1a68e",
+      "bytes": 42576
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/process-fixture.json": {
+      "sha256": "1101c8dc9f78404f13778357cf6a7aa58d4161973d4bd2017197ddcae688c816",
+      "bytes": 1534
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/process-fixture.sql": {
+      "sha256": "8ba2d45ad17d8aa97e6fa83c3d41c6ea1edb6332a274dc361ae7820b9d5b4a4a",
+      "bytes": 5579
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/wrangler-logs/wrangler-2026-10-11_00-10-40_764.log": {
+      "sha256": "bf6b5589e545b15abf806fcbb14b88da890c99b42d34900ad02c9d0a74599a35",
+      "bytes": 155088
+    },
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/wrangler-logs/wrangler-2026-10-11_00-10-57_350.log": {
+      "sha256": "cc46908910c3de46bf36634e1dd7bf2645de5c847b197736249fc8c634129c17",
+      "bytes": 4411
+    }
+  },
+  "scope": "Actual current24 private D1/R2, mature84. Focus2 AUTH_MODEdisabled nativeChromium390dark/1280light PASS. Admin4 genuineAccess originalJOSE6controls actual3PASS1FAIL failedrequired503bodycapture; no liveprovider/deployment/device/IME/group/recovery/whole5F acceptance."
+}

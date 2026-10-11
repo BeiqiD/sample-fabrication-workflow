@@ -1,0 +1,15 @@
+{
+  "stage": "authorized-post-hoc-original-empty-table-physical-restoration-repair2",
+  "scriptSha256": "07d96e84ba1bdbead0347ceb60bebbd731bcdc1057bc3fb5d485620a499d1b97",
+  "startedAt": "2026-10-11T00:27:55.792706+00:00",
+  "scope": "Original stopped synthetic attempt4 only; no new Worker/browser/test/build",
+  "pid": 386968,
+  "processGroup": 386968,
+  "originalStartTicks": "9173656",
+  "exitCode": 0,
+  "directChildReaped": true,
+  "ownedGroupAfterReap": [],
+  "ownedGroupNoActive": true,
+  "endedAt": "2026-10-11T00:27:57.046699+00:00",
+  "logSha256": "a0cc868fa2e2fb0ad23eb560604e0180bbb794c41917337b3a5026f93642d746"
+}

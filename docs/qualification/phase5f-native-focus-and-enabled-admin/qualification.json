@@ -1,0 +1,578 @@
+{
+  "version": 1,
+  "date": "2026-10-11 UTC",
+  "status": "BOUNDED_LOCAL_NATIVE_FOCUS2_AND_ENABLED_STORAGE_ADMIN4_ACTUAL_PASS",
+  "frozenSourceHead": "63d720a807ab8b21a8f8c152cc3cb8314e615355",
+  "frozenSourceTree": "bd0aac2ca2f0de8b7fddbbad4e5865b9e89dd0d8",
+  "docsCheckpoint": "Docs/evidence only; all1707 frozen source modes/blobs/working bytes preserved, except the two explicitly updated qualification/ledger documents.",
+  "actualAdmin": {
+    "sourceHead": "63d720a807ab8b21a8f8c152cc3cb8314e615355",
+    "cases": [
+      {
+        "id": "admin-1280-light",
+        "status": "passed",
+        "contextClosed": true,
+        "width": 1280,
+        "theme": "light"
+      },
+      {
+        "id": "admin-390-dark",
+        "status": "passed",
+        "contextClosed": true,
+        "width": 390,
+        "theme": "dark"
+      },
+      {
+        "id": "reader-1280-light",
+        "status": "passed",
+        "contextClosed": true,
+        "width": 1280,
+        "theme": "light"
+      },
+      {
+        "id": "admin-390-dark-read-retry",
+        "status": "passed",
+        "contextClosed": true,
+        "width": 390,
+        "theme": "dark"
+      }
+    ],
+    "authenticationControls": [
+      {
+        "id": "genuine-signed-admin",
+        "status": 200,
+        "responseSha256": "635c1a510be4a89b46d9144f09780f1a1e794d1235555fd6f60b7d3761299e54"
+      },
+      {
+        "id": "genuine-signed-reader",
+        "status": 200,
+        "responseSha256": "46cd1fdfbc14df588d9b364855b1d714409c19fef8f0ba099d3de75b51680931"
+      },
+      {
+        "id": "missing-jwt",
+        "status": 403,
+        "responseSha256": "ca730ec7fc2b7edb7277e5b8e58d6a474971ca59dafb499141a4856c06132638"
+      },
+      {
+        "id": "forged-signature",
+        "status": 403,
+        "responseSha256": "ca730ec7fc2b7edb7277e5b8e58d6a474971ca59dafb499141a4856c06132638"
+      },
+      {
+        "id": "expired-jwt",
+        "status": 403,
+        "responseSha256": "ca730ec7fc2b7edb7277e5b8e58d6a474971ca59dafb499141a4856c06132638"
+      },
+      {
+        "id": "wrong-audience",
+        "status": 403,
+        "responseSha256": "ca730ec7fc2b7edb7277e5b8e58d6a474971ca59dafb499141a4856c06132638"
+      }
+    ],
+    "browserApiRequests": 15,
+    "acceptedBrowserWrites": 0,
+    "readerPutDenied403": 1,
+    "strictCompleteOriginalBodies": 14,
+    "original503": {
+      "path": "/api/storage/configuration",
+      "method": "GET",
+      "status": 503,
+      "body": "cancelled-after-explicit-refresh",
+      "error": "response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier",
+      "nativeRequestTerminal": {
+        "type": "requestfailed",
+        "failure": {
+          "errorText": "net::ERR_ABORTED"
+        },
+        "controlledRefreshStarted": true
+      }
+    },
+    "unused503NormalFinishedBranch": "SOURCE_PERMITTED_NOT_OBSERVED",
+    "originalStdinInterruptionBranch": "SOURCE_REVIEW_ONLY_NOT_TRIGGERED",
+    "normalFinallyObserved": {
+      "sessionId": "c0bcb2aa-d83b-4c33-916a-8dc58fca218c",
+      "startedAt": "2026-10-11T00:48:43.779Z",
+      "status": "closed",
+      "browserCloseAwaited": true,
+      "originalCatalogAndRowsRestored": true,
+      "workerDisposeAwaited": true,
+      "workerPortRefused": true,
+      "jwksCloseAwaited": true,
+      "jwksPortRefused": true,
+      "completedAt": "2026-10-11T00:48:44.894Z"
+    },
+    "knownRequests": {
+      "ordinaryAuthDisabledSetup": 84,
+      "genuineJWTControls": 6,
+      "browserApi": 15,
+      "knownTotal": 105,
+      "readyHealthProbes": "Excluded; not a total HTTP request count."
+    }
+  },
+  "historicalNativeFocus": {
+    "sourceHead": "36e28cb2db6500ce26ca6e3048eb4b6fe44d0c5e",
+    "actualPassed": 2,
+    "actualFailed": 0,
+    "caseIds": [
+      "metrology-cancel-focus-390-dark",
+      "metrology-cancel-focus-1280-light"
+    ],
+    "sourceEquivalentTrackedFiles": 1706,
+    "soleDifferentPath": "scripts/qa/phase5f/browser-enabled-admin-actual-api.mjs",
+    "sameActualWorkerAndFrontendOutputs": 117,
+    "separateLocalDeploymentConfigDifferences": [
+      "configPath",
+      "userConfigPath",
+      "vars.R2_BOOTSTRAP_NAMESPACE.installationId"
+    ],
+    "rerunOn63d": false,
+    "scope": "Native390dark/1280light Cancel/Search, same connected Step Add after Escape/Close, Tab/ShiftTab trap, source readback unchanged,0 browser writes; no physical keyboard/device claim."
+  },
+  "buildCarry": {
+    "producerHead": "95ad6b88d833c16d6f9e62f4787101c7919b31c5",
+    "consumerHead": "63d720a807ab8b21a8f8c152cc3cb8314e615355",
+    "producerCommandSha256": "6334349862c338c34370ac2a4ec83354d30dae17f13e798d1151e4b5eb074d0e",
+    "producer118ActualOutputs": true,
+    "transferredOriginalOutputsAndConfigs": 121,
+    "preservedTrackedInputs": 1706,
+    "soleQAExcludedPath": "scripts/qa/phase5f/browser-enabled-admin-actual-api.mjs",
+    "newBuildCommands": 0,
+    "sourceProof": "36 and95 and63d tree modes/blobs agree at every path except the admin QA helper; original36 and95 actual117 Worker/frontend outputs equal. Their sole generated wrangler config has explicit source-root locators and separate genuine R2 installation UUIDs. Original95 actual producer receipt/head remains original and all118+3 original95 bytes carried to63d exactly."
+  },
+  "ownedClosure": {
+    "all10DirectChildrenExit0AndReaped": true,
+    "emptyGroups": 7,
+    "kernelZOnlyGroups": 3,
+    "zPPID": 1,
+    "fdMetadata": "PermissionError retained, not an observed zero-FD count. No active owned processes; no whole-host quiescence claim.",
+    "originalStop": "Mature disabled seed Worker original TTY stop and normal cached finalizers observed; admin4 normal finally observed, its explicit stdin interruption branch not triggered.",
+    "physical": "4SQLite quick/FK PASS, seededPNG original bytes, exact original typedcatalog/rowhash before/after; original source/input/artifact bytes unchanged.",
+    "runtimeReleased": true
+  },
+  "preservedHistory": [
+    {
+      "attempt": 1,
+      "result": "Setup EOF guard failure;0 seeder writes/0 browser cases; original child stop observed. Originald2d actual build remains original."
+    },
+    {
+      "attempt": 2,
+      "result": "Wrong QA detail route404 before firstpage/UI actions; secondfocus/admin4 UNRUN; setup84 and owned physical closure passed."
+    },
+    {
+      "attempt": 3,
+      "result": "NativeFocus2 PASS; admin3PASS1FAIL only original503 CDPNoData strict capture;6 auth controls and restoration/normal closure observed. Not full admin qualification."
+    },
+    {
+      "attempt": 4,
+      "result": "Original95 progress3PASS/fourthpending; helper externally interrupted143, NOT original finally. Authorized later private emptytableDDL restoration proved typedrows/catalog/FK/PNG. Read-only snapshot SHM coordination changes retained; main+WAL/application metadata equal."
+    },
+    {
+      "sourceHead": "ffcaccb5622bff6ebffe2747b0b3ae3da062ebb2",
+      "result": "Mandatory future requestfailed premise rejected source-only; never executed.63d allows genuine nativefinished or failed outcomes without fabricated payload/hash."
+    }
+  ],
+  "remainingScopes": [
+    "Own-head complete CI/reviewed development integration remain parent-owned gates.",
+    "Authenticated writes/runtime admission, SystemRecovery target/provider handoff and live remote Access/provider acceptance remain separate.",
+    "No physical device/IME/other-engine/production/group activation or whole5F completion.",
+    "All earlier historical matrices retain original source/command/date scopes; no totals summed."
+  ],
+  "records": [
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/actual-four-admin-closed-and-released-receipt.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/actual-four-admin-closed-and-released-receipt.json",
+      "byteSize": 25968,
+      "sha256": "4da6737fbf63fee239c7f53d9ed6de42d2b40ef21a6027ceac821d19dd86d3d7"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/fresh-two-version-sentinel-command.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/fresh-two-version-sentinel-command.json",
+      "byteSize": 1693,
+      "sha256": "def187b63ecc428158e00132d3297970844c53acd1de544afb39c39783e634f0"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/fresh-two-version-sentinel.log",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/fresh-two-version-sentinel.log",
+      "byteSize": 236,
+      "sha256": "3802d4bfe788805d067993b666955713be25899d32e5730f6c0cea23d6d3a594"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/frozen-approved-plan.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/frozen-approved-plan.json",
+      "byteSize": 16910,
+      "sha256": "f2ffdca07a6a02253e77a7c12462068974ec6446d3c3aff77b545ef7fdfbbdf6"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/genuine-enabled-Access-admin-four-command.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/genuine-enabled-Access-admin-four-command.json",
+      "byteSize": 2815,
+      "sha256": "2a67ed9831cd6c73315bc30cfa4bdd6b64b419b7072a3ad4d82b17d5b4d68a3d"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/genuine-enabled-Access-admin-four.log",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/genuine-enabled-Access-admin-four.log",
+      "byteSize": 7130,
+      "sha256": "48efd35769af23054be6a940b6543633708ab5f672bf6e13ba02b0bf9ad2c06a"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/isolated-copy-command.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/isolated-copy-command.json",
+      "byteSize": 1197,
+      "sha256": "28ebeb81a9187d921e99e81acef8aa1af52334aa68e4f30b61462105deaf49b3"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/isolated-copy.log",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/isolated-copy.log",
+      "byteSize": 205,
+      "sha256": "1d44f613dbcdb5985f42f143450c544e8871d9f865e48e2b697400109a938be9"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/mature-genuine-api-84-only-command.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/mature-genuine-api-84-only-command.json",
+      "byteSize": 1072,
+      "sha256": "8a0d0d52aa7078c0420bcde11388b774718651a4a4b661a7811d0a105ec1b9f4"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/mature-genuine-api-84-only.log",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/mature-genuine-api-84-only.log",
+      "byteSize": 192,
+      "sha256": "6017e5aef89ece11f26085dc6a7b0c2b2e8bac2508c52356fb77ae94327db3cd"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/ordinary-actual24-local-migrations-command.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/ordinary-actual24-local-migrations-command.json",
+      "byteSize": 1864,
+      "sha256": "b483f94047e827eda534204e483db89681925129c5b69c43ae382b437cadbe3a"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/ordinary-actual24-local-migrations.log",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/ordinary-actual24-local-migrations.log",
+      "byteSize": 147956,
+      "sha256": "a4c2ee4f147f8110883945240afdfc2a2814e352b98694a6814440398a2d4360"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/original95-actual-build-artifact-causal-carry-command.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/original95-actual-build-artifact-causal-carry-command.json",
+      "byteSize": 1574,
+      "sha256": "ea430e5ed582f223b18f82dbb57417c5446d6ec188a4bc8bc850db8795ea9f2b"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/original95-actual-build-artifact-causal-carry.log",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/original95-actual-build-artifact-causal-carry.log",
+      "byteSize": 140,
+      "sha256": "92b9c71791ff212dd337d2949f9205dc5ff352e8d50745a42fdc580c0d259186"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/original95-causal-artifact-carry.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/original95-causal-artifact-carry.json",
+      "byteSize": 30511,
+      "sha256": "4548fdd53b3596255f45df9335ddba5c1ab314bd211806534eaf8dba97eaa432"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/owned-built-worker-command.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/owned-built-worker-command.json",
+      "byteSize": 1561,
+      "sha256": "00ebc4c562c2ea4bf9d7371a270a1e343ba84419ce564e05400135bb3c238a01"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/owned-built-worker.log",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/owned-built-worker.log",
+      "byteSize": 519,
+      "sha256": "07dbdd72f5ec8fee46964d7b4885d2531e4acf47ef23de95df595eaaba2c533f"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/physical-after-command.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/physical-after-command.json",
+      "byteSize": 1457,
+      "sha256": "ceaac8207178f0cde8acbfd14789dfdca0088a25f52257822569c3bf9b9c53b5"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/physical-after.log",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/physical-after.log",
+      "byteSize": 174,
+      "sha256": "94ca1bd25f64a0311791614096f8a9a7e0b77323bdaee3f979ddf8a896cc971e"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/physical-before-command.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/physical-before-command.json",
+      "byteSize": 1156,
+      "sha256": "5961040e3cdc551d3b901ecb18a45f17a2fe2266fac4a21edda12897898880f6"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/physical-before.log",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/physical-before.log",
+      "byteSize": 170,
+      "sha256": "d5fed96d93ecf0b4e4f5f295d14c193cbfac927494f17bc065dff1983ae8f9db"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/synthetic-template-sentinels-only-command.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/synthetic-template-sentinels-only-command.json",
+      "byteSize": 1957,
+      "sha256": "8568a591875f5764a9b5effc2d6006e4840dc070cab1a0ba8e32a2e9d8634acd"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/synthetic-template-sentinels-only.log",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/synthetic-template-sentinels-only.log",
+      "byteSize": 1611,
+      "sha256": "10d17e5d126b305aa52bea40310b1bd934992468680925a32cc3cbca69bd4a15"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/enabled-admin-browser-report.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5/enabled-admin-browser-report.json",
+      "byteSize": 50813,
+      "sha256": "194089e497452e0d1eb9f1b0439d30b545b5e86fd26449a974569ef588e716d7"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/enabled-admin-browser-progress.ndjson",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5/enabled-admin-browser-progress.ndjson",
+      "byteSize": 456,
+      "sha256": "8aa7436cc75c6bc047447939bfbd67990ef98fbd863ae2beeac33a0cca769bf2"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/enabled-admin-runtime-stop.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5/enabled-admin-runtime-stop.json",
+      "byteSize": 357,
+      "sha256": "7418916c725de897df3471ed6b61be6e6b6ec647ff8532d3037a4baafe290aa0"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/enabled-admin-fresh-build.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5/enabled-admin-fresh-build.json",
+      "byteSize": 1542,
+      "sha256": "29442a0f6cc2ed64d2ff721427731c5938abd7e040dfc165ed5373bde9648759"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/physical-sqlite-before-api.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5/physical-sqlite-before-api.json",
+      "byteSize": 43966,
+      "sha256": "5cf8dcdc7c81f1edaff4c178b1434e937bee0acbd7894c2892c243c159aa9a3a"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/physical-sqlite-after-shutdown.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5/physical-sqlite-after-shutdown.json",
+      "byteSize": 47647,
+      "sha256": "61a9ab836cafb8f1de4398ed0f5f77ba763efcf275f17effcedef32635d0f8c3"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/actual-api-fixture-receipt.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5/actual-api-fixture-receipt.json",
+      "byteSize": 51637,
+      "sha256": "2adafd0b851ebe3ce6f3767e235e5842defecc8aa18a81e816c232651f51cb84"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/actual-api-fixture-session.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5/actual-api-fixture-session.json",
+      "byteSize": 967,
+      "sha256": "66e5382f067dc384c8924da5fd6d1684ce620936565657c9edda11409d4b47a2"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/isolated-server-session.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5/isolated-server-session.json",
+      "byteSize": 726,
+      "sha256": "98857771c12947a208db5447a774183e76b48f5388e344900a2ccd3700599828"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/isolated-server-receipt.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5/isolated-server-receipt.json",
+      "byteSize": 3472,
+      "sha256": "a3a9b4e0c16e18d98982edff26e8170e2d83e17a5a77fb3b7e771683c6c7a62f"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/isolated-server-stop-receipt.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5/isolated-server-stop-receipt.json",
+      "byteSize": 1047,
+      "sha256": "ed3c97b97181e893a07b2e906715e635a1ecac851a73afd93fc2f1ad07e3af70"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/admin-1280-light.png",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5/enabled-admin-browser-artifacts/admin-1280-light.png",
+      "byteSize": 73078,
+      "sha256": "7dc9bdfa9bd6a392ccafb8b98854b05ac4571a818d9fc24a6f8be2e7b659f8be"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/admin-390-dark-read-retry.png",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5/enabled-admin-browser-artifacts/admin-390-dark-read-retry.png",
+      "byteSize": 57695,
+      "sha256": "bb8853c899c6affbfc2f7856261b67eb3d90233e6c923a5f11a7d93de4ddeda7"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/admin-390-dark.png",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5/enabled-admin-browser-artifacts/admin-390-dark.png",
+      "byteSize": 57695,
+      "sha256": "bb8853c899c6affbfc2f7856261b67eb3d90233e6c923a5f11a7d93de4ddeda7"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/admin63d-actual/reader-1280-light.png",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5/enabled-admin-browser-artifacts/reader-1280-light.png",
+      "byteSize": 54119,
+      "sha256": "3531337e3a3344503e5eff4149e8d386e6f6fea824e103ea18a1b9e4b3acd47c"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/focus36-actual/metrology-cancel-focus-browser-report.json",
+      "originalPath": "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/metrology-cancel-focus-browser-report.json",
+      "byteSize": 27871,
+      "sha256": "800e74c625a962d3008a06ab69058181fd9e5b5e398923789f9012323fdb6d81"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/focus36-actual/metrology-cancel-focus-browser-summary.json",
+      "originalPath": "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/metrology-cancel-focus-browser-summary.json",
+      "byteSize": 7881,
+      "sha256": "dcb0ebe18063f9d6500a6c2388771fe5cf5ac163f61f6a0f9b66839ab3d52ba7"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/focus36-actual/metrology-cancel-focus-browser-progress.ndjson",
+      "originalPath": "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/metrology-cancel-focus-browser-progress.ndjson",
+      "byteSize": 700,
+      "sha256": "042b654d5941dd236917bfb1cee1993824e1ba288238a5b1e596da24af8e6534"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/focus36-actual/metrology-cancel-focus-browser-session.json",
+      "originalPath": "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/metrology-cancel-focus-browser-session.json",
+      "byteSize": 702,
+      "sha256": "2c189536d0d848db076835bfb13d604381f228561628f779941dd2df147fe8b6"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/focus36-actual/metrology-cancel-focus-1280-light-restored-search.png",
+      "originalPath": "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/metrology-cancel-focus-browser-artifacts/metrology-cancel-focus-1280-light-restored-search.png",
+      "byteSize": 203512,
+      "sha256": "685a1318d3cf093ecb8fbc3d29c900df31767de4e57dde401d20af7e33e54356"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/focus36-actual/metrology-cancel-focus-1280-light-restored-step-add.png",
+      "originalPath": "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/metrology-cancel-focus-browser-artifacts/metrology-cancel-focus-1280-light-restored-step-add.png",
+      "byteSize": 154090,
+      "sha256": "94b756d0cc2addf43d314a8059da885640f23149f0b82a2b203dfd3ea9d76666"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/focus36-actual/metrology-cancel-focus-390-dark-restored-search.png",
+      "originalPath": "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/metrology-cancel-focus-browser-artifacts/metrology-cancel-focus-390-dark-restored-search.png",
+      "byteSize": 82365,
+      "sha256": "ab25d294173e24176cdca3fea2b57de71e8862d59bdfbd9ba7da6b2e80d8aa1e"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/focus36-actual/metrology-cancel-focus-390-dark-restored-step-add.png",
+      "originalPath": "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/metrology-cancel-focus-browser-artifacts/metrology-cancel-focus-390-dark-restored-step-add.png",
+      "byteSize": 109851,
+      "sha256": "0a97bf910b750a33c388866dbccd36848f4ff6d6b0bf5368abe8dff85f43731d"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/focus36-actual/native-idle-Cancel-Escape-Close-two-command.json",
+      "originalPath": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/native-idle-Cancel-Escape-Close-two-command.json",
+      "byteSize": 1751,
+      "sha256": "27fd02297bda5f885fdfbe9c0510e195199407e24e0ea4b11dccb74c7d2a04eb"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/focus36-actual/native-idle-Cancel-Escape-Close-two.log",
+      "originalPath": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/native-idle-Cancel-Escape-Close-two.log",
+      "byteSize": 329,
+      "sha256": "6b75cf337034bb32ad2968971f68892e9bfaba040d9edc74efc339dabc922a10"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/focus36-actual/fresh-build-artifact-manifest.json",
+      "originalPath": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/fresh-build-artifact-manifest.json",
+      "byteSize": 14601,
+      "sha256": "4276b9853b81532218647e7ee0e7c6b965d0eadfd1fc24c60d408a234b7643f3"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/preserved-attempt1/first-failure-closed-and-released-receipt.json",
+      "originalPath": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt1/first-failure-closed-and-released-receipt.json",
+      "byteSize": 28208,
+      "sha256": "aef2af48d32e2c3438cc3868ed7337526df41cb4bf57890d7920ac5096ad6d69"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/preserved-attempt2/first-failure-closed-and-released-receipt.json",
+      "originalPath": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt2/first-failure-closed-and-released-receipt.json",
+      "byteSize": 31888,
+      "sha256": "c7002e6e6dd42168bfb5fbd795e394e4c4f8dad05e6da61816b36b8718cd432e"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/preserved-attempt3/first-failure-closed-and-released-receipt.json",
+      "originalPath": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/first-failure-closed-and-released-receipt.json",
+      "byteSize": 41346,
+      "sha256": "654ff268bd727158fe6f6925f9c994148edf9f62d32cbc69e6116f1a91febe76"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/preserved-attempt4/first-failure-closed-and-released-receipt.json",
+      "originalPath": "/tmp/phase5f-enabled-admin-original-body-barrier-runtime-attempt4/first-failure-closed-and-released-receipt.json",
+      "byteSize": 31230,
+      "sha256": "fe8300c7b809dc06115bc717751fc570c29450f618a6c0b71c731862475ea5e1"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/preserved-attempt3/enabled-admin-browser-report.json",
+      "originalPath": "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/enabled-admin-browser-report.json",
+      "byteSize": 31167,
+      "sha256": "8b290fc944a42d8ffb42fef48ecbef24d47a03b0312ee48a4ac8a402a67f4ceb"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/preserved-attempt4/original-body-pending-owned-interruption.json",
+      "originalPath": "/tmp/phase5f-enabled-admin-original-body-barrier-runtime-attempt4/original-body-pending-owned-interruption.json",
+      "byteSize": 1464,
+      "sha256": "045062645e98286e22fc6164d62be0475283935cc51321aa37415cf7248d0014"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/preserved-attempt4/interruption-missing-owned-empty-table-diagnosis.json",
+      "originalPath": "/tmp/phase5f-enabled-admin-original-body-barrier-runtime-attempt4/interruption-missing-owned-empty-table-diagnosis.json",
+      "byteSize": 1062,
+      "sha256": "1e5c650ca8031673538fc8eb67f04a62ce840810de66c0ee2456f98fa1d5808e"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/preserved-attempt4/post-hoc-original-empty-table-restoration-repair2.json",
+      "originalPath": "/tmp/phase5f-enabled-admin-original-body-barrier-runtime-attempt4/post-hoc-original-empty-table-restoration-repair2.json",
+      "byteSize": 195245,
+      "sha256": "358109083bf4aefd5de7a83b9ed9f5ee5d8a8b75713e5ffd237c80b6e474fd7a"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/preserved-attempt4/post-hoc-original-empty-table-restoration-repair2-command.json",
+      "originalPath": "/tmp/phase5f-enabled-admin-original-body-barrier-runtime-attempt4/post-hoc-original-empty-table-restoration-repair2-command.json",
+      "byteSize": 628,
+      "sha256": "3a69d22fd4ef518d7758a1b97a261df401fb49615c3eb5bddc30ec0ff374ef92"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/preserved-attempt4/post-hoc-original-empty-table-restoration-repair2.log",
+      "originalPath": "/tmp/phase5f-enabled-admin-original-body-barrier-runtime-attempt4/post-hoc-original-empty-table-restoration-repair2.log",
+      "byteSize": 228,
+      "sha256": "a0cc868fa2e2fb0ad23eb560604e0180bbb794c41917337b3a5026f93642d746"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/producer95-actual/one-fresh-final-QA-source-build-command.json",
+      "originalPath": "/tmp/phase5f-enabled-admin-original-body-barrier-runtime-attempt4/one-fresh-final-QA-source-build-command.json",
+      "byteSize": 1740,
+      "sha256": "6334349862c338c34370ac2a4ec83354d30dae17f13e798d1151e4b5eb074d0e"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/producer95-actual/one-fresh-final-QA-source-build.log",
+      "originalPath": "/tmp/phase5f-enabled-admin-original-body-barrier-runtime-attempt4/one-fresh-final-QA-source-build.log",
+      "byteSize": 12732,
+      "sha256": "376a273343dd1e44bab9f64d3c841599d654c4bf9e3f28a795cb32646eacc64a"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/producer95-actual/fresh-build-artifact-manifest.json",
+      "originalPath": "/tmp/phase5f-enabled-admin-original-body-barrier-runtime-attempt4/fresh-build-artifact-manifest.json",
+      "byteSize": 14601,
+      "sha256": "491bb8208e6ac94da0266a12c98e8db2d713787e22acc1c329702422dc8f7562"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/source-review/frozen-single-QA-request-and-stdin-source.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-source-review-attempt5/frozen-single-QA-request-and-stdin-source.json",
+      "byteSize": 4333,
+      "sha256": "c9064d91210109ab31109d216ab0d889ee39db1b7108bb4df6dcd50abb720640"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/source-review/frozen-single-QA-native-terminal-source.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-source-review-attempt5/frozen-single-QA-native-terminal-source.json",
+      "byteSize": 5097,
+      "sha256": "a0b13f008f1d27a2ebeaf7bda50b9260670f8b3a5df85dd8d0404c03b4ab4886"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/source-review/final-source-plan-runner-handoff.json",
+      "originalPath": "/tmp/phase5f-admin-explicit-refresh-original-request-source-review-attempt5/final-source-plan-runner-handoff.json",
+      "byteSize": 2827,
+      "sha256": "66dc2d255015920bfd70c0fec217d8360e030c30da244625da94bcb969bb210d"
+    },
+    {
+      "path": "docs/qualification/phase5f-native-focus-and-enabled-admin/source-review/phase5f-ui63d-native-terminal-and-original-stdin-v26-independent-source-peer.json",
+      "originalPath": "/tmp/phase5f-ui63d-native-terminal-and-original-stdin-v26-independent-source-peer.json",
+      "byteSize": 5397,
+      "sha256": "495c0d0a1aa208b38d207a64ad9ffab60a85bf35e33376198b4f5f0647930d55"
+    }
+  ]
+}

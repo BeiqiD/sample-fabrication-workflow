@@ -1,0 +1,14 @@
+{
+  "kind": "phase5f-admin95-original-503-body-observation-pending-owned-interruption/1",
+  "at": "2026-10-11T00:21:06.676733+00:00",
+  "status": "INTERRUPTION_INITIATED_NOT_TEST_PASS",
+  "ownedHelperPid": 382908,
+  "originalStartTicks": "9124633",
+  "originalParentRecorderPid": 382898,
+  "processGroup": 382908,
+  "cause": "Fourth case pending original503 response.body barrier beyond existing20s request observation range. Source-only abort-before-settlement hypothesis not sufficient; no nativeRefresh run. Originalallbody strict unchanged. Only verifiedoriginalchild SIGTERM triggers alreadyreviewed helpercached originalclosure and faultRestore finally.",
+  "signal": "SIGTERM",
+  "scope": "No unowned group/process cleanup; first three originalcases actualPASS preserved, fourth pending notPASS. Await originaldirectchild actualexit/finalreport/typedrestore and postphysical before release.",
+  "rawProgressSha256": "17515d90617ddd0dbc08fba40e5763b0ea4f9c77ae1eb7b89f8813617c682727",
+  "rawProgress": "{\"id\":\"admin-1280-light\",\"status\":\"running\"}\n{\"id\":\"admin-1280-light\",\"status\":\"passed\",\"contextClosed\":true}\n{\"id\":\"admin-390-dark\",\"status\":\"running\"}\n{\"id\":\"admin-390-dark\",\"status\":\"passed\",\"contextClosed\":true}\n{\"id\":\"reader-1280-light\",\"status\":\"running\"}\n{\"id\":\"reader-1280-light\",\"status\":\"passed\",\"contextClosed\":true}\n{\"id\":\"admin-390-dark-read-retry\",\"status\":\"running\"}\n"
+}

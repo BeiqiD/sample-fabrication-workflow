@@ -1,0 +1,56 @@
+{
+  "schema": "phase5f-focus-admin6ae-independent-docs-evidence-peer-v1",
+  "status": "CLEAR_SOURCE_AND_RETAINED_EVIDENCE_ONLY",
+  "sourceHead": "6ae3a27b16268ef31ec10ba0b53ecd875d475c73",
+  "sourceTree": "bb893e702b53210d10f52eac56bc3eb82f00d71c",
+  "candidateClean": true,
+  "independentByteVerification": {
+    "head": "6ae3a27b16268ef31ec10ba0b53ecd875d475c73",
+    "tree": "bb893e702b53210d10f52eac56bc3eb82f00d71c",
+    "clean": true,
+    "allTrackedWorkingFilesVerified": 1775,
+    "baseFiles": 1707,
+    "unchangedBaseEntries": 1705,
+    "changedBasePaths": [
+      "docs/PHASE_5F_METROLOGY_FOCUS_QUALIFICATION.md",
+      "docs/PHASE_5F_ROLE_FOCUS_REVIEW_LEDGER.md"
+    ],
+    "curatedOriginalRecordsVerified": 66,
+    "actualRawInventoryReferencesVerified": 60,
+    "producerArtifactsVerified": 118,
+    "consumerCopiedArtifactsAndConfigsVerified": 121
+  },
+  "qualificationIndexSha256": "90b5de65210ed16316367774a5af759af8f61efafa9c5602effb3b27a3ec5321",
+  "independentOriginal36_95_63dInputProof": {
+    "treeEntryCounts": [
+      1707,
+      1707,
+      1707
+    ],
+    "byteAndModeEqualTrackedInputs": 1706,
+    "soleDistinctQaPath": "scripts/qa/phase5f/browser-enabled-admin-actual-api.mjs"
+  },
+  "original36And95ActualArtifactProof": {
+    "bothOriginalManifestAndAll118ActualFilesVerified": true,
+    "sameWorkerAndFrontendArtifacts": 117,
+    "soleDifferentGeneratedConfig": "dist/sample_fabrication_workflow_local/wrangler.json",
+    "exactDifferentConfigFieldNames": [
+      "configPath",
+      "userConfigPath",
+      "vars.R2_BOOTSTRAP_NAMESPACE.installationId"
+    ],
+    "namespaceConfigValueRepresentation": "JSON-encoded string decoded for closedfield comparison",
+    "noWhole118CrossInstallationEqualityClaim": true
+  },
+  "claimsReviewed": [
+    "Actual63d four browser contexts and six genuine JWT controls are separate from historical36 nativefocus2.",
+    "Original95 producer118+three configurations preserved as actual causal carry; zero newbuild commands for63d.",
+    "Known84 auth-disabledsetup +6JWT +15browser=105 excludes health/ready. ReaderPUT403 and zero acceptedbrowserwrites; privilegedwriting not exercised.",
+    "Original503requestfailed ERR_ABORTED occurred only after explicitRefresh; normalfinished and stdininterrupt branches remain source-only/untriggered.",
+    "Ten directchildren exit0reaped, sevenEMPTYgroups and threekernelZ/PPID1 groups with FDPermission retained; no observedFD0 or wholehost claim.",
+    "Four historical failures and source-only rejectedFFC premise are preserved separately; posthocemptyDDL restoration is not original95 finally success.",
+    "No freshFocus2 replay, newbuild, whole5F, File/provider/default/group/recovery activation or completeownCI claim."
+  ],
+  "newRuntimeOrBuildExecuted": false,
+  "scope": "Read-only source/Git/retained file hashes and receipt/docs reconciliation; no new tests, browser, SQLite, provider or remote action."
+}

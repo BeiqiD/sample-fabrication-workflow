@@ -1,0 +1,30 @@
+{
+  "stage": "mature-genuine-api-84-only",
+  "cwd": "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5",
+  "argv": [
+    "node",
+    "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5/scripts/qa/phase5f/seed-actual-api.mjs",
+    "http://127.0.0.1:4219/",
+    "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5"
+  ],
+  "expectedRequests": 84,
+  "startedAt": "2026-10-11T00:47:25.311210+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/mature-genuine-api-84-only.log",
+  "pid": 400083,
+  "processGroup": 400083,
+  "originalStartTicks": "9290608",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T00:47:28.740211+00:00",
+  "logSha256": "6017e5aef89ece11f26085dc6a7b0c2b2e8bac2508c52356fb77ae94327db3cd"
+}

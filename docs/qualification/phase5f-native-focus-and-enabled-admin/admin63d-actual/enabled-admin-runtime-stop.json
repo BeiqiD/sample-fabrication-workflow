@@ -1,0 +1,12 @@
+{
+  "sessionId": "c0bcb2aa-d83b-4c33-916a-8dc58fca218c",
+  "startedAt": "2026-10-11T00:48:43.779Z",
+  "status": "closed",
+  "browserCloseAwaited": true,
+  "originalCatalogAndRowsRestored": true,
+  "workerDisposeAwaited": true,
+  "workerPortRefused": true,
+  "jwksCloseAwaited": true,
+  "jwksPortRefused": true,
+  "completedAt": "2026-10-11T00:48:44.894Z"
+}

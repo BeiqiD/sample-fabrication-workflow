@@ -1,0 +1,33 @@
+{
+  "stage": "isolated-copy",
+  "cwd": "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5",
+  "argv": [
+    "python3",
+    "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5/scripts/qa/phase5f/prepare-isolated-copy.py",
+    "--source-root",
+    "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5",
+    "--destination",
+    "/tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5",
+    "--dependency-root",
+    "/workspace/sample-fabrication-workflow/node_modules"
+  ],
+  "startedAt": "2026-10-11T00:46:00.148784+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/isolated-copy.log",
+  "pid": 397475,
+  "processGroup": 397475,
+  "originalStartTicks": "9282091",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T00:46:01.138584+00:00",
+  "logSha256": "1d44f613dbcdb5985f42f143450c544e8871d9f865e48e2b697400109a938be9"
+}
