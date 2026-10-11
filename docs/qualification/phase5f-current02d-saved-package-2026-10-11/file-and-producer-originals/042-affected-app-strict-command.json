@@ -1,0 +1,33 @@
+{
+  "stage": "affected-app-strict",
+  "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+  "argv": [
+    "node",
+    "node_modules/typescript/bin/tsc",
+    "-p",
+    "tsconfig.app.json"
+  ],
+  "env": {
+    "TMPDIR": "/workspace",
+    "SQLITE_TMPDIR": "/workspace"
+  },
+  "startedAt": "2026-10-11T16:08:43.878175+00:00",
+  "status": "FAILED",
+  "log": "/workspace/phase5f-saved-file-package-focus-current-a0d-first-two-runtime-attempt1/affected-app-strict.log",
+  "pid": 1347722,
+  "processGroup": 1347722,
+  "originalStartTicks": "14818464",
+  "exitCode": 1,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 1,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T16:08:46.068818+00:00",
+  "logSha256": "b8ac2e5edd777caa400015b6edcb7a7806a243f372a338e5cf669bfead747c2d"
+}

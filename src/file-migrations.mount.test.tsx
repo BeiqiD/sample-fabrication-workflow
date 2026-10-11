@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CurrentStorageSettingsStatus } from "../shared/contracts/current-storage-settings";
 import type { AcceptFileMigrationInput, FileJobStatus, FileMigrationItems, FileMigrationPlan } from "../shared/contracts/file-jobs";
@@ -123,6 +123,103 @@ describe("saved File migrations", () => {
     await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
     expect(document.activeElement).toBe(other);
     expect(mutations().map(([path]) => path)).toEqual([`${base}/plans`]); expect(acceptCalls()).toHaveLength(0);
+  });
+
+  it("keeps same-job keyboard continuity through delayed Pause, Resume and Cancel after status refresh settles", async () => {
+    jobs = [job(), { ...job(), id: "job:2" }];
+    let controlReply = deferred<Response>(), listReply = deferred<Response>(), holdList = false;
+    network.mockImplementation(async (path, options) => {
+      if (String(path).startsWith(`${base}/job%3A1/`) && options?.method === "POST") return controlReply.promise;
+      if (String(path) === base && options?.method === "GET" && holdList) return listReply.promise;
+      return fallback(path, options);
+    });
+    render(<FileMigrationsPage />); await screen.findByRole("button", { name: "View files in job:1" });
+    const row = screen.getByRole("heading", { name: "job:1" }).closest("li")!;
+    const otherRow = screen.getByRole("heading", { name: "job:2" }).closest("li")!;
+    expect(document.activeElement).toBe(document.body);
+    const originalTabIndex = document.body.getAttribute("tabindex");
+    try {
+      for (const [index, action, label, state, nextLabel] of [
+        [1, "pause", "Pause job", "paused", "Resume job"],
+        [2, "resume", "Resume job", "queued", "Pause job"],
+        [3, "cancel", "Cancel remaining files", "cancelled", null],
+      ] as const) {
+        controlReply = deferred<Response>(); listReply = deferred<Response>();
+        const origin = within(row).getByRole("button", { name: label }); origin.focus(); fireEvent.click(origin);
+        await waitFor(() => expect((origin as HTMLButtonElement).disabled).toBe(true));
+        expect(mutations().at(-1)?.[0]).toBe(`${base}/job%3A1/${action}`);
+        // Model the native disabled-control blur seen in the original Chromium characterization.
+        document.body.setAttribute("tabindex", "-1"); document.body.focus(); expect(document.activeElement).toBe(document.body);
+        jobs = [{ ...jobs[0], state, updatedAt: `2026-10-05T00:00:0${index}.000Z` }, jobs[1]]; holdList = true;
+        await act(async () => controlReply.resolve(json(jobs[0])));
+        await waitFor(() => expect(network.mock.calls.filter(([path, options]) => path === base && options?.method === "GET").length).toBe(index + 1));
+        expect(document.activeElement).toBe(document.body); expect((origin as HTMLButtonElement).disabled).toBe(true);
+        holdList = false; await act(async () => listReply.resolve(json({ jobs })));
+        const next = nextLabel ? within(row).getByRole("button", { name: nextLabel }) : within(row).getByRole("status");
+        await waitFor(() => expect(document.activeElement).toBe(next));
+        expect(next.isConnected).toBe(true); expect(origin.isConnected).toBe(false);
+        expect(document.activeElement).not.toBe(within(otherRow).getByRole("button", { name: "Pause job" }));
+        expect(mutations().map(([path]) => path)).toEqual(["pause", "resume", "cancel"].slice(0, index).map(action => `${base}/job%3A1/${action}`));
+      }
+      expect(within(row).queryByRole("button", { name: "Resume job" })).toBeNull();
+      expect(within(row).getByRole("status").textContent).toContain("cancelled");
+      expect(acceptCalls()).toHaveLength(0);
+    } finally {
+      if (originalTabIndex === null) document.body.removeAttribute("tabindex"); else document.body.setAttribute("tabindex", originalTabIndex);
+    }
+  });
+
+  it("does not reclaim job focus after the user moves elsewhere even if focus later returns to the body", async () => {
+    jobs = [job()]; const response = deferred<Response>();
+    network.mockImplementation(async (path, options) => String(path) === `${base}/job%3A1/pause` ? response.promise : fallback(path, options));
+    render(<FileMigrationsPage />); const origin = await screen.findByRole("button", { name: "Pause job" });
+    origin.focus(); fireEvent.click(origin); await waitFor(() => expect((origin as HTMLButtonElement).disabled).toBe(true));
+    const other = screen.getByRole("link", { name: "Storage settings" }); other.focus(); expect(document.activeElement).toBe(other);
+    const originalTabIndex = document.body.getAttribute("tabindex");
+    try {
+      document.body.setAttribute("tabindex", "-1"); document.body.focus(); expect(document.activeElement).toBe(document.body);
+      jobs = [{ ...job("paused"), updatedAt: "2026-10-05T00:00:01.000Z" }];
+      await act(async () => response.resolve(json(jobs[0])));
+      const next = await screen.findByRole("button", { name: "Resume job" });
+      await waitFor(() => expect((next as HTMLButtonElement).disabled).toBe(false));
+      expect(document.activeElement).toBe(document.body); expect(mutations().map(([path]) => path)).toEqual([`${base}/job%3A1/pause`]);
+    } finally {
+      if (originalTabIndex === null) document.body.removeAttribute("tabindex"); else document.body.setAttribute("tabindex", originalTabIndex);
+    }
+  });
+
+  it("returns a failed delayed job control to its original enabled button without replay", async () => {
+    jobs = [job()]; const response = deferred<Response>();
+    network.mockImplementation(async (path, options) => String(path) === `${base}/job%3A1/pause` ? response.promise : fallback(path, options));
+    render(<FileMigrationsPage />); const origin = await screen.findByRole("button", { name: "Pause job" });
+    origin.focus(); fireEvent.click(origin); await waitFor(() => expect((origin as HTMLButtonElement).disabled).toBe(true));
+    const originalTabIndex = document.body.getAttribute("tabindex");
+    try {
+      document.body.setAttribute("tabindex", "-1"); document.body.focus(); expect(document.activeElement).toBe(document.body);
+      await act(async () => response.resolve(json({ error: "private-provider-detail" }, 503)));
+      await screen.findByRole("alert"); await waitFor(() => expect(document.activeElement).toBe(origin));
+      expect((origin as HTMLButtonElement).disabled).toBe(false); expect(origin.isConnected).toBe(true);
+      expect(screen.queryByRole("button", { name: "Resume job" })).toBeNull();
+      expect(document.body.textContent).not.toContain("private-provider-detail");
+      expect(mutations().map(([path]) => path)).toEqual([`${base}/job%3A1/pause`]);
+    } finally {
+      if (originalTabIndex === null) document.body.removeAttribute("tabindex"); else document.body.setAttribute("tabindex", originalTabIndex);
+    }
+  });
+
+  it("does not transfer a late cancelled page's job focus to the same identifier after remount", async () => {
+    jobs = [job()]; const response = deferred<Response>();
+    network.mockImplementation(async (path, options) => String(path) === `${base}/job%3A1/pause` ? response.promise : fallback(path, options));
+    const mounted = render(<FileMigrationsPage />); const origin = await screen.findByRole("button", { name: "Pause job" });
+    origin.focus(); fireEvent.click(origin); await waitFor(() => expect((origin as HTMLButtonElement).disabled).toBe(true));
+    const originalSignal = mutations()[0][1]?.signal; mounted.unmount(); expect(originalSignal?.aborted).toBe(true);
+    render(<FileMigrationsPage />); const current = await screen.findByRole("button", { name: "Pause job" });
+    const other = screen.getByRole("link", { name: "Storage settings" }); other.focus();
+    jobs = [{ ...job("paused"), updatedAt: "2026-10-05T00:00:01.000Z" }];
+    await act(async () => response.resolve(json(jobs[0])));
+    expect(document.activeElement).toBe(other); expect(current.isConnected).toBe(true); expect(origin.isConnected).toBe(false);
+    expect((current as HTMLButtonElement).disabled).toBe(false); expect(screen.queryByRole("button", { name: "Resume job" })).toBeNull();
+    expect(mutations().map(([path]) => path)).toEqual([`${base}/job%3A1/pause`]);
   });
 
   it("retains and explicitly retries a lost acceptance response with its original files, target and identity across remount", async () => {

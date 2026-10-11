@@ -1,0 +1,618 @@
+{
+  "version": 1,
+  "sourceScope": "Actual source02d, native File QAa4d and native Package QAa787; public integrated head CI remains unrun. Original source and failed records preserved.",
+  "base": "2a1d81a74688a7f61afd69e9d972378340a04993",
+  "producerHead": "02d6dfbe5f2bd98847b3d6f509c219de5ad816ad",
+  "producerTrackedFiles": 2726,
+  "qaConsumerHead": "a7876c3c1c145c60978c9a302d198bbe4efff7c3",
+  "actualBuildFiles": 118,
+  "actualCopiedArtifacts": 121,
+  "records": [
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/001-qualified-current02d-coherent-build-producer-preflight-command.json",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight-command.json",
+      "sha256": "54ecddf167bdd0d129c0f85b91c6e99aa8124de7c68dd924d8a446aa4f141000",
+      "sizeBytes": 1253
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/002-qualified-current02d-coherent-build-producer-preflight.log",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight.log",
+      "sha256": "c4160a0c49b75db63594624dca05981b158dcd67cebbe588ffb3e5bebed64e0f",
+      "sizeBytes": 117
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/003-isolated-copy-command.json",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/isolated-copy-command.json",
+      "sha256": "db88f7e1565f214d25bc00b97abca0477a3841934ec2f45186baa766129ec702",
+      "sizeBytes": 1379
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/004-isolated-copy.log",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/isolated-copy.log",
+      "sha256": "6f40025a24269ca1ac4f8806a0fdbdd57b5ca7fab3379e47037f6286fdebf70e",
+      "sizeBytes": 200
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/005-fresh-two-version-sentinel-command.json",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/fresh-two-version-sentinel-command.json",
+      "sha256": "562c73e922102f9f52964dd4871fad183b2d25a68d42a8423d05c430602c50ce",
+      "sizeBytes": 1863
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/006-fresh-two-version-sentinel.log",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/fresh-two-version-sentinel.log",
+      "sha256": "49faaf041b3f823d7ec8ff05d8e6d6c91f9f9e4e8fa6a2a43cff52a4e0c49567",
+      "sizeBytes": 226
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/007-ordinary-actual24-local-migrations-command.json",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/ordinary-actual24-local-migrations-command.json",
+      "sha256": "e42ad0b4e5754eb85c04df619bf74604084ce5dfd5c350cb2df1be46a3378911",
+      "sizeBytes": 1863
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/008-ordinary-actual24-local-migrations.log",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/ordinary-actual24-local-migrations.log",
+      "sha256": "aed2481477c8245f8010689d9ee2a238adbc6f6de63705822046f7537ea9ef97",
+      "sizeBytes": 149092
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/009-synthetic-template-sentinels-only-command.json",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/synthetic-template-sentinels-only-command.json",
+      "sha256": "500691d0768c0d04bb2be5cda0ae0c1e989662e871e58845c4c1772b30fdbab7",
+      "sizeBytes": 1951
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/010-synthetic-template-sentinels-only.log",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/synthetic-template-sentinels-only.log",
+      "sha256": "7d6f58bdd759a13db6c31827c50b3f95e03c1b3534459b4faecaa66cd6e0bdd4",
+      "sizeBytes": 2747
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/011-physical-before-command.json",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/physical-before-command.json",
+      "sha256": "d5912794af60f842fb048f8277de7eb9a1a0b4133ebe484fc6e3532dfb96d499",
+      "sizeBytes": 1330
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/012-physical-before.log",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/physical-before.log",
+      "sha256": "1bc92f9f7c616efd93fc29d9fcbccf985e86424ff8cf6ffcde818590d5fd5150",
+      "sizeBytes": 165
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/013-current-source-build-and-pure24-witness-command.json",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/current-source-build-and-pure24-witness-command.json",
+      "sha256": "cd392365d9c1111e7ac5f17c1ebeee66d1305939f752714cc90aa77648bea5a4",
+      "sizeBytes": 1212
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/014-current-source-build-and-pure24-witness.log",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/current-source-build-and-pure24-witness.log",
+      "sha256": "b7dd8511ccac1589923a5f71597f5a37fcc5f5cffd83a0f65ad5a29dfb6436af",
+      "sizeBytes": 222
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/015-original-one-current-file-saved-job-keyboard-command.json",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/original-one-current-file-saved-job-keyboard-command.json",
+      "sha256": "9be1c0d32add31362629291b11f063fef04677b3445438037b4de825cf93f09d",
+      "sizeBytes": 2208
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/016-original-one-current-file-saved-job-keyboard.log",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/original-one-current-file-saved-job-keyboard.log",
+      "sha256": "12868b6495473db644894a1ad998d105c39961900ce79d4d323411cf04feaaa6",
+      "sizeBytes": 312
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/017-physical-after-command.json",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/physical-after-command.json",
+      "sha256": "2677af6ebd03cff7e184eef26b6c77704b5665c1b5f73d6cc61564fc85052977",
+      "sizeBytes": 1701
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/018-physical-after.log",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/physical-after.log",
+      "sha256": "98c1e78617223add2d8935b7b34757c9018fd97072b148755a15c592570f6970",
+      "sizeBytes": 174
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/019-final-source-artifact-input-pins-command.json",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/final-source-artifact-input-pins-command.json",
+      "sha256": "92a0492d66b541dec64e8321ea781d4cd9ced2925507ada0c0e4f281003c6648",
+      "sizeBytes": 1201
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/020-final-source-artifact-input-pins.log",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/final-source-artifact-input-pins.log",
+      "sha256": "5117c0d7420a09d5bca7547778c7502fef4e55a577042f5e9daa0eabac3d1619",
+      "sizeBytes": 225
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/021-genuine-local-r2-file-saved-job-keyboard-report.json",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/fixture/genuine-local-r2-file-saved-job-keyboard-report.json",
+      "sha256": "4c00a866b2de4c268bc930f7c9ea1d184888c9b15fbfe6d80926677ea7cda67b",
+      "sizeBytes": 94435
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/022-genuine-local-r2-file-saved-job-keyboard-stop.json",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/fixture/genuine-local-r2-file-saved-job-keyboard-stop.json",
+      "sha256": "1a67beee3b419f81a8f972ad7f1d854d14e0cbdb55b86201bc14345095d3faf6",
+      "sizeBytes": 500
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/023-physical-sqlite-after-current-file-saved-job-keyboard.json",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/fixture/physical-sqlite-after-current-file-saved-job-keyboard.json",
+      "sha256": "ca55b8b9f1c89a27fba5862a62c9812fdd6f043d7eeb5190f71eae16a97ec40c",
+      "sizeBytes": 73325
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/024-physical-sqlite-before-api.json",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/fixture/physical-sqlite-before-api.json",
+      "sha256": "ca424910987dad29eba911efe4228fbd074a98dd251227c5a65c1779c2a0b721",
+      "sizeBytes": 66428
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/025-final-current02d-source-and-genuine-saved-job-pins.json",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/final-current02d-source-and-genuine-saved-job-pins.json",
+      "sha256": "615ed4462708f51e8463fb38d3b716c2a0fe57676741ba4725f8daa606a86f23",
+      "sizeBytes": 2817
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/026-enabled-storage-draft-build-input-witness.json",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/fixture/enabled-storage-draft-build-input-witness.json",
+      "sha256": "3b87abcb6fd16beaaa74de9b3f25782de5de05201114b413f702b7f3c73d8d98",
+      "sizeBytes": 1352
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/027-isolation-receipt.json",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/copy/isolation-receipt.json",
+      "sha256": "db61197ad48acedbca6aaa96f75301004fc68cf931822d11834f50d5901502ff",
+      "sizeBytes": 393004
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/028-chromium-child-temp-owner.json",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/chromium-child-temp-owner.json",
+      "sha256": "28dff44f1548506f0507b84ba48fed4065d62de04bfc0862429d21813144cfd9",
+      "sizeBytes": 583
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/029-finite-source-handoff.json",
+      "originalPath": "/workspace/phase5f-coherent-file-saved-native-finite-source-preparation-attempt1/finite-source-handoff.json",
+      "sha256": "84121bfd7b6819e6087e2b7c7660ea21bec40e76633e776fa7f156f150f558c2",
+      "sizeBytes": 3069
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/030-finite-current-coherent-native-ten-plan.json",
+      "originalPath": "/workspace/phase5f-coherent-file-saved-native-finite-source-preparation-attempt1/finite-current-coherent-native-ten-plan.json",
+      "sha256": "3d4967ad4f7e8ef372010993b92acd7684415b3d95f592ff90eda8a89ca04d25",
+      "sizeBytes": 15153
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/031-actual-current02d-file-saved-job-original-ten-qualified-closed-release.json",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/actual-current02d-file-saved-job-original-ten-qualified-closed-release.json",
+      "sha256": "8e927dd3e9f89c92d00035ebeb18201d10435e5f9c6d2d97f1cf4a59b7738378",
+      "sizeBytes": 20738
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/032-actual-one-current02d-cf-build-qualified-closed-release.json",
+      "originalPath": "/workspace/phase5f-saved-file-package-coherent-one-cf-build-runtime-attempt1/actual-one-current02d-cf-build-qualified-closed-release.json",
+      "sha256": "ce43c814467daaf3889f9f8b1696e00d73d8214072c17ca973f7bbf8324dcdd3",
+      "sizeBytes": 3742
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/033-one-fresh-final-QA-source-build-command.json",
+      "originalPath": "/workspace/phase5f-saved-file-package-coherent-one-cf-build-runtime-attempt1/one-fresh-final-QA-source-build-command.json",
+      "sha256": "ae558f4ec6af56dd6d4632f02da485eb0a51b8b613abc21ea7c88f4b02581c65",
+      "sizeBytes": 1798
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/034-one-fresh-final-QA-source-build.log",
+      "originalPath": "/workspace/phase5f-saved-file-package-coherent-one-cf-build-runtime-attempt1/one-fresh-final-QA-source-build.log",
+      "sha256": "00969b5ce2f703a4a293d4f854e0a391800e5dd15f50623d281e851e4cf75f89",
+      "sizeBytes": 12739
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/035-fresh-build-artifact-manifest.json",
+      "originalPath": "/workspace/phase5f-saved-file-package-coherent-one-cf-build-runtime-attempt1/fresh-build-artifact-manifest.json",
+      "sha256": "589f7e3463f10a066cf274257ff4234ba74ad24dc4664bedfb671c6f44063b22",
+      "sizeBytes": 14601
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/036-actual-current02d-app-strict-and-whole-package34-qualified-closed-release.json",
+      "originalPath": "/workspace/phase5f-saved-package-typed-role-name-first-two-runtime-attempt2/actual-current02d-app-strict-and-whole-package34-qualified-closed-release.json",
+      "sha256": "9100d8754ab1601919a2ad5b485ba9b4c9a98cf0df600810b11f4c5de9de1726",
+      "sizeBytes": 2648
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/037-affected-app-strict-command.json",
+      "originalPath": "/workspace/phase5f-saved-package-typed-role-name-first-two-runtime-attempt2/affected-app-strict-command.json",
+      "sha256": "c4c1d6b4dd0bcafe639f521a291cf86a4aadf1fab495ea86a6f57333addd80e1",
+      "sizeBytes": 974
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/038-affected-app-strict.log",
+      "originalPath": "/workspace/phase5f-saved-package-typed-role-name-first-two-runtime-attempt2/affected-app-strict.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sizeBytes": 0
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/039-affected-package-mounted-file-command.json",
+      "originalPath": "/workspace/phase5f-saved-package-typed-role-name-first-two-runtime-attempt2/affected-package-mounted-file-command.json",
+      "sha256": "7d2b8213c50673a030df7a331608588e3d77b444ffd90a879abe75b6eb2b755f",
+      "sizeBytes": 1383
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/040-affected-package-mounted-file.log",
+      "originalPath": "/workspace/phase5f-saved-package-typed-role-name-first-two-runtime-attempt2/affected-package-mounted-file.log",
+      "sha256": "80637e4d2fcb63f12b276cb075e60c4483010baa36cb526752ed051e53deb004",
+      "sizeBytes": 260
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/041-original-b4-app-strict-first-failure-closed-release.json",
+      "originalPath": "/workspace/phase5f-saved-file-package-focus-current-a0d-first-two-runtime-attempt1/original-b4-app-strict-first-failure-closed-release.json",
+      "sha256": "d7eff92b1c3da3ff99113fb14f1c6f214ff79518fb1f1d55de5ff3aa77de4abd",
+      "sizeBytes": 1748
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/042-affected-app-strict-command.json",
+      "originalPath": "/workspace/phase5f-saved-file-package-focus-current-a0d-first-two-runtime-attempt1/affected-app-strict-command.json",
+      "sha256": "9b6b45f701cad38a34997d99042484907cc42e46313d4c3c6b23ed30ce43de32",
+      "sizeBytes": 983
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/file-and-producer-originals/043-affected-app-strict.log",
+      "originalPath": "/workspace/phase5f-saved-file-package-focus-current-a0d-first-two-runtime-attempt1/affected-app-strict.log",
+      "sha256": "b8ac2e5edd777caa400015b6edcb7a7806a243f372a338e5cf669bfead747c2d",
+      "sizeBytes": 1462
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/001-qualified-current02d-coherent-build-producer-preflight-command.json",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight-command.json",
+      "sha256": "5118b62d181a08e692f0ee6cbda315ef7ef605810616eb5b4ea94cc177e7abc0",
+      "sizeBytes": 1265
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/002-qualified-current02d-coherent-build-producer-preflight.log",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight.log",
+      "sha256": "3cdc53eb58a874d63edb9b707f58cfa2f802fd75cc9892e72330fb84f24aef10",
+      "sizeBytes": 120
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/003-isolated-copy-command.json",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/isolated-copy-command.json",
+      "sha256": "fe064a8c8b4fe65d9d75f35467f3b54cb4b3c33e7cae2d8597b18d7f9ad9214f",
+      "sizeBytes": 1391
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/004-isolated-copy.log",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/isolated-copy.log",
+      "sha256": "52a2b6661a422c37ed9619bd11d00100a30ae228eabdb05a8a2b5d44b3d0ee8d",
+      "sizeBytes": 203
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/005-fresh-two-version-sentinel-command.json",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/fresh-two-version-sentinel-command.json",
+      "sha256": "8dbd3f115fc12d3a2db11e32d4e650f094e79e36d15cd935431d682e99f08cbb",
+      "sizeBytes": 1878
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/006-fresh-two-version-sentinel.log",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/fresh-two-version-sentinel.log",
+      "sha256": "7d4f377384381324ad092e0600cf5d5c61e08a266627aea9034d41fc1b3da2e3",
+      "sizeBytes": 232
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/007-ordinary-actual24-local-migrations-command.json",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/ordinary-actual24-local-migrations-command.json",
+      "sha256": "99a398d32453fc42b0864aa3d09a5d31d4ed48bd2ab1600149ea2079dbccd505",
+      "sizeBytes": 1878
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/008-ordinary-actual24-local-migrations.log",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/ordinary-actual24-local-migrations.log",
+      "sha256": "49c7d82e3fab01d8e4dd2d6e675550b74765cef12cf745f0e1de7813c31d5fba",
+      "sizeBytes": 149092
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/009-synthetic-template-sentinels-only-command.json",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/synthetic-template-sentinels-only-command.json",
+      "sha256": "34acab74422649230309309e9a48c374d7b2902fd89cb7cd3b47c03cacaef766",
+      "sizeBytes": 1969
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/010-synthetic-template-sentinels-only.log",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/synthetic-template-sentinels-only.log",
+      "sha256": "427594d39c2112a70f9115333a2c3d2f1fa656e5dc3f74d9391a50a196a062b4",
+      "sizeBytes": 2747
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/011-physical-before-command.json",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/physical-before-command.json",
+      "sha256": "f741715086137d9aa8d4a0ee78a7e506f499b36654a29bc27cc6e8b9a2efc66f",
+      "sizeBytes": 1345
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/012-physical-before.log",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/physical-before.log",
+      "sha256": "3c0382ac3f004f55afaa824e00a3f569b2bbe771c618fedc13467c39e32fa0f8",
+      "sizeBytes": 168
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/013-current-source-build-and-pure24-witness-command.json",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/current-source-build-and-pure24-witness-command.json",
+      "sha256": "967f3e7766b7005c3227f5135b3669e1c2ed5b6c943137791a6780ceee5f3d6d",
+      "sizeBytes": 1224
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/014-current-source-build-and-pure24-witness.log",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/current-source-build-and-pure24-witness.log",
+      "sha256": "1491a71d7ab1b8b4f0e09c0c09cd1e0412647385ea5c070209713fbb03204fb1",
+      "sizeBytes": 225
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/015-original-one-current-package-saved-job-keyboard-command.json",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/original-one-current-package-saved-job-keyboard-command.json",
+      "sha256": "777e34bcdf73bc6312f8090646b0576864fd736714be8c371ce49f3fc31d797a",
+      "sizeBytes": 2228
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/016-original-one-current-package-saved-job-keyboard.log",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/original-one-current-package-saved-job-keyboard.log",
+      "sha256": "67e0d8dbd64ae6bd841589e51fa31c9cd4e8f00abde8416d36d198d0135c5c38",
+      "sizeBytes": 201
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/017-physical-after-command.json",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/physical-after-command.json",
+      "sha256": "976949c4ed247cdac809d4b40b9441a019540e8688463323a3e08117ce2f1493",
+      "sizeBytes": 1722
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/018-physical-after.log",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/physical-after.log",
+      "sha256": "01b4e4707db982934f3e107dc03c21492b21a1348d682fcba6a6876098055c17",
+      "sizeBytes": 180
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/019-final-source-artifact-input-pins-command.json",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/final-source-artifact-input-pins-command.json",
+      "sha256": "5afac589adaeaaa61b4e1005b6f6fab2d8cfa38e2f0782b4e01a45d93ffbb0cb",
+      "sizeBytes": 1213
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/020-final-source-artifact-input-pins.log",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/final-source-artifact-input-pins.log",
+      "sha256": "dbcdb4cf7553baef580b0d1706294e740242e57d94a0dafc3cce2fa3ceb35756",
+      "sizeBytes": 228
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/021-genuine-package-saved-job-keyboard-report.json",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/fixture/genuine-package-saved-job-keyboard-report.json",
+      "sha256": "e970bfd7acec5b803613b624952c7ac362326e9242ac638d6d067435e0e4dcb5",
+      "sizeBytes": 78148
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/022-physical-sqlite-after-current-package-saved-job-keyboard.json",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/fixture/physical-sqlite-after-current-package-saved-job-keyboard.json",
+      "sha256": "b5bfdc4a04f367f9db722837cac8f19e6ec7409bc8f6a5c2c2d8680f2dde8a93",
+      "sizeBytes": 73429
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/023-physical-sqlite-before-api.json",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/fixture/physical-sqlite-before-api.json",
+      "sha256": "5dc7101f373496bfd1e4e65296fc790e16ce8abce1396a5b7f45290cc16258ef",
+      "sizeBytes": 66617
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/024-final-current02d-source-and-genuine-saved-job-pins.json",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/final-current02d-source-and-genuine-saved-job-pins.json",
+      "sha256": "484b17bfd6426333ab7aa6f9379c0dc8644ca1cbbda6c416eaf072db0404f743",
+      "sizeBytes": 3701
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/025-current02d-build-new-pure24-native-causal-carry.json",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/current02d-build-new-pure24-native-causal-carry.json",
+      "sha256": "e1e6d942042a4502e60f85722521fe37bc39c13d5292a06f6f370e5858ebab25",
+      "sizeBytes": 1335
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/026-chromium-child-temp-owner.json",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/chromium-child-temp-owner.json",
+      "sha256": "2ab8fe4536a7bd8c74fb66eccf336040839557cc1e96b535f17c48c472b2d80c",
+      "sizeBytes": 589
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/027-frozen-approved-plan.json",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/frozen-approved-plan.json",
+      "sha256": "423aa228f6475a366a602ca97c752fbe55e5c9c1a014094093ef6fd1d6a7b278",
+      "sizeBytes": 15589
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-initial-failure-originals/028-actual-current02d-package-original-ten-setup-first-failure-closed-release.json",
+      "originalPath": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/actual-current02d-package-original-ten-setup-first-failure-closed-release.json",
+      "sha256": "bd528a2cc1ab7f2429545792c05bb5aca6c5244ffb85d2c12e114f52804dffaa",
+      "sizeBytes": 20251
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/001-qualified-current02d-coherent-build-producer-preflight-command.json",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/qualified-current02d-coherent-build-producer-preflight-command.json",
+      "sha256": "042d47fdb7e999c6910e5a9c94698f22a61c25895952b3d69ff2f275efcdfc83",
+      "sizeBytes": 1294
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/002-qualified-current02d-coherent-build-producer-preflight.log",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/qualified-current02d-coherent-build-producer-preflight.log",
+      "sha256": "3cdc53eb58a874d63edb9b707f58cfa2f802fd75cc9892e72330fb84f24aef10",
+      "sizeBytes": 120
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/003-isolated-copy-command.json",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/isolated-copy-command.json",
+      "sha256": "fae1cc063adc4e0859c6a1558d819a7b6528d0f91df760656d85a4d453e3e50c",
+      "sizeBytes": 1423
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/004-isolated-copy.log",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/isolated-copy.log",
+      "sha256": "4721f153a0ef801da5a624e605ba0528f900e10af364628e83f30a4120b2fd86",
+      "sizeBytes": 211
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/005-fresh-two-version-sentinel-command.json",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/fresh-two-version-sentinel-command.json",
+      "sha256": "4b1d43c33419be239681b0950842c4c0d45375b07cf01290b5175f0c9e51cda7",
+      "sizeBytes": 1918
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/006-fresh-two-version-sentinel.log",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/fresh-two-version-sentinel.log",
+      "sha256": "cf45efe74c7de10e13d456d5600b63b2773cdbb259d5e02a5287b271e2e91f3d",
+      "sizeBytes": 248
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/007-ordinary-actual24-local-migrations-command.json",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/ordinary-actual24-local-migrations-command.json",
+      "sha256": "1461577c62c80a5c55b5ecc5257c43cd87151361c38cc0992be7f8d9d17167a8",
+      "sizeBytes": 1918
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/008-ordinary-actual24-local-migrations.log",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/ordinary-actual24-local-migrations.log",
+      "sha256": "f00a5c0bb0f2380d02b7eda20538d76901dbae0780aaefb84323803ce05ac14e",
+      "sizeBytes": 149092
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/009-synthetic-template-sentinels-only-command.json",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/synthetic-template-sentinels-only-command.json",
+      "sha256": "423e395564886c9cdce2eddd3abf333aa51ad012248d981e54f77c2549a08334",
+      "sizeBytes": 2017
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/010-synthetic-template-sentinels-only.log",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/synthetic-template-sentinels-only.log",
+      "sha256": "b3f1c24e6e01eede628daf17af6ff004d494a4720cad31db7472483e1d11294b",
+      "sizeBytes": 2747
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/011-physical-before-command.json",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/physical-before-command.json",
+      "sha256": "1e44fcffe2cbb167ce4e9983e2f91ca45178339df5d47058de1ce71f09812fd1",
+      "sizeBytes": 1385
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/012-physical-before.log",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/physical-before.log",
+      "sha256": "42270492feededeb644b7f3d1dcf86ffc414b593e02a5a8262dc254c4fa6eda1",
+      "sizeBytes": 176
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/013-current-source-build-and-pure24-witness-command.json",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/current-source-build-and-pure24-witness-command.json",
+      "sha256": "b2c283365ffceb6554508426193c8cfd487b2d1e6711127eaaf3bf57db80d46b",
+      "sizeBytes": 1253
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/014-current-source-build-and-pure24-witness.log",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/current-source-build-and-pure24-witness.log",
+      "sha256": "1d9079bae82380384c6a61b972a5598c3db16826de5c6e7562569ace8bfb6569",
+      "sizeBytes": 225
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/015-original-one-current-package-saved-job-keyboard-command.json",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/original-one-current-package-saved-job-keyboard-command.json",
+      "sha256": "762ba909712c57afb240a1a19dd89236bf5c4ed4080d732006fb02551a17457f",
+      "sizeBytes": 2274
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/016-original-one-current-package-saved-job-keyboard.log",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/original-one-current-package-saved-job-keyboard.log",
+      "sha256": "b898d3d2508397ab5cd734cbd01698811f1ce9f762a890a2e3b871b8f247fde7",
+      "sizeBytes": 320
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/017-physical-after-command.json",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/physical-after-command.json",
+      "sha256": "aa037f84063ce1e5462e1c3e6a87b4c18ddf1f2e7b859c3734abef25d0f1bf70",
+      "sizeBytes": 1770
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/018-physical-after.log",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/physical-after.log",
+      "sha256": "130d05bdf927a9339b05c97b04abe3bc1f67966984f77357d33908902000bd77",
+      "sizeBytes": 188
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/019-final-source-artifact-input-pins-command.json",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/final-source-artifact-input-pins-command.json",
+      "sha256": "b41370ab61335bd5d244f5efcbdaf6a6c662d3dd11f0c06ad17855b2cbfcacd3",
+      "sizeBytes": 1242
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/020-final-source-artifact-input-pins.log",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/final-source-artifact-input-pins.log",
+      "sha256": "a111dbd383d0b5bf1e1dd29de666dd6a8ee0d9bbe710996bca96ed2cd548a73e",
+      "sizeBytes": 228
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/021-genuine-package-saved-job-keyboard-report.json",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/fixture/genuine-package-saved-job-keyboard-report.json",
+      "sha256": "350e8dc54a9d7fb9ce0ec20b995856dd644d44f41f55796a60e3e763c75cf333",
+      "sizeBytes": 91725
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/022-physical-sqlite-after-current-package-saved-job-keyboard.json",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/fixture/physical-sqlite-after-current-package-saved-job-keyboard.json",
+      "sha256": "bde5b22eb1766f374a9cae0bc2562680d689954c5ec1280dfc9e65602d749b66",
+      "sizeBytes": 73745
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/023-physical-sqlite-before-api.json",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/fixture/physical-sqlite-before-api.json",
+      "sha256": "d862f099bc22148abcd2b014d7d5e4dc5f63e460205dce512b66c45c5fa05839",
+      "sizeBytes": 66851
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/024-final-current02d-source-and-genuine-saved-job-pins.json",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/final-current02d-source-and-genuine-saved-job-pins.json",
+      "sha256": "fd7d47ee97a61cdb38293b903e0e53c2195abf4e314fe80d9e06037ae792cd30",
+      "sizeBytes": 2891
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/025-current02d-build-new-pure24-native-causal-carry.json",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/current02d-build-new-pure24-native-causal-carry.json",
+      "sha256": "066914a97a754d8cfc3e8c2f55305f96a135c433dea92b3002597c32f6aaa6c2",
+      "sizeBytes": 1335
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/026-chromium-child-temp-owner.json",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/chromium-child-temp-owner.json",
+      "sha256": "7c08682da0a6c6ae724bd601326e67f8e714409a69aad2b2dad69485f04de922",
+      "sizeBytes": 604
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/027-frozen-approved-plan.json",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/frozen-approved-plan.json",
+      "sha256": "10221b42504f8ed71857a65cc8fa7fc7e4540e7ff5938c1a8cade6120c22cdeb",
+      "sizeBytes": 17252
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/package-qualified-originals/028-actual-current02d-a787-package-original-ten-qualified-closed-release.json",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/actual-current02d-a787-package-original-ten-qualified-closed-release.json",
+      "sha256": "9a38e5a6540c2bc30024bd518156f9b8674684e413f5449dad46797e2b6176d5",
+      "sizeBytes": 22423
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/root-reads/root-current02d-file-original-ten-native-formal-raw-source-read-release.json",
+      "originalPath": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/root-current02d-file-original-ten-native-formal-raw-source-read-release.json",
+      "sha256": "711b4f16e2359985ba2d876d9a6aded644f7e90c58cebc24e494f8297c681092",
+      "sizeBytes": 1650
+    },
+    {
+      "path": "docs/qualification/phase5f-current02d-saved-package-2026-10-11/root-reads/root-current-a787-package-original-ten-formal-raw-source-kernel-read-release.json",
+      "originalPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/root-current-a787-package-original-ten-formal-raw-source-kernel-read-release.json",
+      "sha256": "6ddf56a11fe7f0a0155fd5b6359b4336c3f30519245dfdb1a7df9e549cd7e61a",
+      "sizeBytes": 1544
+    }
+  ]
+}

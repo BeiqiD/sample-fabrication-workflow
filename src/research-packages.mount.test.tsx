@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ResearchExecutorStatus, ResearchExportPlanInput, ResearchJobStatus, ResearchPackagePreview,
@@ -84,7 +84,7 @@ function fallback(path: RequestInfo | URL, options?: RequestInit): Response {
     const id = decodeURIComponent(url.pathname.slice(`${base}/jobs/`.length, -"/control".length));
     const { action } = JSON.parse(String(options?.body)), value = jobs.find(item => item.id === id)!;
     const nextState: ResearchJobStatus["state"] = action === "pause" ? "paused" : action === "cancel" ? "cancelled" : action === "cleanup" ? value.state : "queued";
-    const controlled = { ...value, state: nextState, reason: action === "pause" ? "operator_paused" : action === "cancel" ? "operator_cancelled" : null };
+    const controlled = { ...value, state: nextState, reason: action === "pause" ? "actor_paused" : action === "cancel" ? "operator_cancelled" : null };
     jobs = [controlled, ...jobs.filter(item => item.id !== id)]; return json(controlled);
   }
   return json({ error: "PRIVATE_UNKNOWN_ROUTE" }, 404);
@@ -117,6 +117,109 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); sessionStorage.clear(); });
 
 describe("native research package browser workflow", () => {
+
+  it("returns a settled saved Package control to the same job's next control and clears that intent before an explicit refresh", async () => {
+    const id = "focus:package", controlPath = `${base}/jobs/focus%3Apackage/control`;
+    const other = job("data_package", "queued", "other:package"); jobs = [job("report", "queued", id), other];
+    let finishControl!: (value: Response) => void, finishRefresh: ((value: Response) => void) | null = null;
+    network.mockImplementation(async (path, options) => {
+      if (String(path) === controlPath && options?.method === "POST") return new Promise<Response>(resolve => { finishControl = resolve; });
+      if (String(path) === `${base}/jobs` && finishRefresh) return new Promise<Response>(resolve => { finishRefresh = resolve; });
+      return fallback(path, options);
+    });
+    await mount(); const row = screen.getByText(id).closest("article")!, otherRow = screen.getByText(other.id).closest("article")!;
+    const originalTabIndex = document.body.getAttribute("tabindex");
+    try {
+      for (const [index, action] of (["pause", "resume", "cancel"] as const).entries()) {
+        const origin = within(row).getByRole("button", { name: action === "pause" ? "Pause" : action === "resume" ? "Resume" : "Cancel" });
+        await waitFor(() => expect(origin.matches(":disabled")).toBe(false));
+        origin.focus(); fireEvent.click(origin); await waitFor(() => expect(origin.matches(":disabled")).toBe(true));
+        // Model the prior native disabled-control blur; this is not a new Chromium qualification.
+        document.body.tabIndex = -1; document.body.focus(); expect(document.activeElement).toBe(document.body);
+        expect(savedMutations().map(([, options]) => JSON.parse(String(options?.body)))).toEqual(
+          ["pause", "resume", "cancel"].slice(0, index + 1).map(action => ({ action })));
+        const controlled: ResearchJobStatus = { ...jobs.find(value => value.id === id)!,
+          state: action === "pause" ? "paused" : action === "cancel" ? "cancel_requested" : "queued",
+          reason: action === "pause" ? "actor_paused" : null, updatedAt: `2026-10-06T09:00:0${index + 1}.000Z` };
+        jobs = [controlled, other]; await act(async () => finishControl(json(controlled)));
+        const next = action === "cancel" ? within(row).getByText(/snapshot · 0 \/ 1 files verified/)
+          : await within(row).findByRole("button", { name: action === "pause" ? "Resume" : "Pause" });
+        await waitFor(() => expect(document.activeElement).toBe(next)); expect(next.isConnected).toBe(true); expect(origin.isConnected).toBe(false);
+        expect(document.activeElement).not.toBe(within(otherRow).getByRole("button", { name: "Pause" }));
+        if (action === "pause") {
+          expect(within(row).getByText("Paused by the user.")).toBeTruthy();
+          expect(within(row).queryByRole("button", { name: "Retry failed work" })).toBeNull();
+          // The original read action is delayed independently; a settled job intent must not reclaim focus on its result.
+          finishRefresh = () => {}; const refresh = await enabled("Refresh status"); refresh.focus(); fireEvent.click(refresh);
+          await waitFor(() => expect(refresh.matches(":disabled")).toBe(true));
+          document.body.focus(); expect(document.activeElement).toBe(document.body);
+          await act(async () => { finishRefresh!(json({ jobs })); finishRefresh = null; });
+          await waitFor(() => expect(refresh.matches(":disabled")).toBe(false)); expect(document.activeElement).toBe(document.body);
+        }
+        if (action === "cancel") {
+          expect(next.getAttribute("role")).toBe("status"); expect(next.getAttribute("tabindex")).toBe("-1");
+          expect(within(row).queryByRole("button", { name: "Resume" })).toBeNull();
+          expect(within(row).getByText("cancel requested")).toBeTruthy();
+        }
+      }
+      expect(savedMutations().map(([path]) => String(path))).toEqual([controlPath, controlPath, controlPath]);
+      expect(callsTo("/jobs", "POST")).toHaveLength(0);
+    } finally {
+      if (originalTabIndex === null) document.body.removeAttribute("tabindex"); else document.body.setAttribute("tabindex", originalTabIndex);
+    }
+  });
+
+  it("preserves a user's move away from a pending Package control even when focus returns to the body", async () => {
+    jobs = [job("report")]; let finishControl!: (value: Response) => void;
+    network.mockImplementation(async (path, options) => String(path) === `${base}/jobs/export%3Ajob/control` && options?.method === "POST"
+      ? new Promise<Response>(resolve => { finishControl = resolve; }) : fallback(path, options));
+    await mount(); const origin = await enabled("Pause"); origin.focus(); fireEvent.click(origin);
+    await waitFor(() => expect(origin.matches(":disabled")).toBe(true));
+    const other = screen.getByRole("link", { name: "Storage settings" }); other.focus(); expect(document.activeElement).toBe(other);
+    const originalTabIndex = document.body.getAttribute("tabindex");
+    try {
+      document.body.tabIndex = -1; document.body.focus(); expect(document.activeElement).toBe(document.body);
+      jobs = [{ ...job("report", "paused"), reason: "actor_paused", updatedAt: "2026-10-06T09:00:01.000Z" }];
+      await act(async () => finishControl(json(jobs[0]))); const next = await enabled("Resume");
+      expect(next.isConnected).toBe(true); expect(document.activeElement).toBe(document.body);
+      expect(savedMutations().map(([, options]) => JSON.parse(String(options?.body)))).toEqual([{ action: "pause" }]);
+    } finally {
+      if (originalTabIndex === null) document.body.removeAttribute("tabindex"); else document.body.setAttribute("tabindex", originalTabIndex);
+    }
+  });
+
+  it("returns a delayed failed Package control to its original button without replaying accepted work", async () => {
+    jobs = [job("report")]; let finishControl!: (value: Response) => void;
+    network.mockImplementation(async (path, options) => String(path) === `${base}/jobs/export%3Ajob/control` && options?.method === "POST"
+      ? new Promise<Response>(resolve => { finishControl = resolve; }) : fallback(path, options));
+    await mount(); const origin = await enabled("Pause"); origin.focus(); fireEvent.click(origin);
+    await waitFor(() => expect(origin.matches(":disabled")).toBe(true)); const originalTabIndex = document.body.getAttribute("tabindex");
+    try {
+      document.body.tabIndex = -1; document.body.focus(); expect(document.activeElement).toBe(document.body);
+      await act(async () => finishControl(json({ error: "PRIVATE_PROVIDER_DETAIL" }, 503)));
+      await screen.findByRole("alert"); await waitFor(() => expect(document.activeElement).toBe(origin));
+      expect(origin.isConnected).toBe(true); expect(origin.matches(":disabled")).toBe(false);
+      expect(screen.queryByRole("button", { name: "Resume" })).toBeNull(); expect(document.body.textContent).not.toContain("PRIVATE_PROVIDER_DETAIL");
+      expect(savedMutations().map(([, options]) => JSON.parse(String(options?.body)))).toEqual([{ action: "pause" }]);
+    } finally {
+      if (originalTabIndex === null) document.body.removeAttribute("tabindex"); else document.body.setAttribute("tabindex", originalTabIndex);
+    }
+  });
+
+  it("does not apply a late prior page's Package control receipt or focus after the same job identifier is remounted", async () => {
+    jobs = [job("report")]; let finishControl!: (value: Response) => void;
+    network.mockImplementation(async (path, options) => String(path) === `${base}/jobs/export%3Ajob/control` && options?.method === "POST"
+      ? new Promise<Response>(resolve => { finishControl = resolve; }) : fallback(path, options));
+    const first = await mount(); const origin = await enabled("Pause"); origin.focus(); fireEvent.click(origin);
+    await waitFor(() => expect(origin.matches(":disabled")).toBe(true));
+    const signal = savedMutations()[0][1]?.signal; first.unmount(); expect(signal?.aborted).toBe(true);
+    await mount(); const current = await enabled("Pause"), other = screen.getByRole("link", { name: "Storage settings" }); other.focus();
+    const late = { ...job("report", "paused"), reason: "actor_paused", updatedAt: "2026-10-06T09:00:01.000Z" };
+    await act(async () => finishControl(json(late)));
+    expect(document.activeElement).toBe(other); expect(current.isConnected).toBe(true); expect(origin.isConnected).toBe(false);
+    expect(current.matches(":disabled")).toBe(false); expect(screen.queryByRole("button", { name: "Resume" })).toBeNull();
+    expect(savedMutations().map(([, options]) => JSON.parse(String(options?.body)))).toEqual([{ action: "pause" }]);
+  });
   it("returns focus to an explicitly focused Preview export after its original deferred response", async () => {
     let finishPreview!: (value: Response) => void;
     let originalPreview!: Response;
@@ -558,6 +661,34 @@ describe("native research package browser workflow", () => {
     expect(callsTo("/jobs/import%3Ajob/preview", "GET")).toHaveLength(1); expect(savedMutations()).toHaveLength(0);
     fireEvent.click(await enabled("Close accepted scope"));
     expect(screen.queryByRole("heading", { name: "Accepted import scope" })).toBeNull(); expect(savedMutations()).toHaveLength(0);
+  });
+
+  it("presents an explicit pause as user-paused work and resumes it without offering failed-work retry", async () => {
+    jobs = [job("report", "queued")];
+    await mount(); fireEvent.click(await enabled("Pause"));
+    await enabled("Resume");
+    expect(screen.getByText("Paused by the user.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Retry failed work" })).toBeNull();
+    expect(screen.queryByText("actor paused.")).toBeNull();
+    expect(savedMutations()).toHaveLength(1);
+    expect(JSON.parse(String(savedMutations()[0][1]?.body))).toEqual({ action: "pause" });
+    fireEvent.click(await enabled("Resume"));
+    await enabled("Pause");
+    expect(savedMutations()).toHaveLength(2);
+    expect(savedMutations().map(([, options]) => JSON.parse(String(options?.body)))).toEqual([{ action: "pause" }, { action: "resume" }]);
+    expect(savedMutations().every(([path]) => String(path) === `${base}/jobs/export%3Ajob/control`)).toBe(true);
+  });
+
+  it("keeps failed-work retry available for a paused package whose execution budget was exhausted", async () => {
+    jobs = [{ ...job("report", "paused"), reason: "execution_budget_exhausted" }];
+    await mount();
+    expect(screen.getByText("The bounded execution step reached its deadline.")).toBeTruthy();
+    expect(savedMutations()).toHaveLength(0);
+    fireEvent.click(await enabled("Retry failed work"));
+    await enabled("Pause");
+    expect(savedMutations()).toHaveLength(1);
+    expect(JSON.parse(String(savedMutations()[0][1]?.body))).toEqual({ action: "retry" });
+    expect(String(savedMutations()[0][0])).toBe(`${base}/jobs/export%3Ajob/control`);
   });
 
   it("polls metadata, exposes independent controls and download availability, and aborts reads on unmount", async () => {

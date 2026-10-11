@@ -1,0 +1,42 @@
+{
+  "stage": "affected-package-mounted-file",
+  "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+  "argv": [
+    "node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "vitest.mounted.config.ts",
+    "src/research-packages.mount.test.tsx",
+    "--maxWorkers",
+    "1",
+    "--bail",
+    "1"
+  ],
+  "env": {
+    "TMPDIR": "/workspace",
+    "SQLITE_TMPDIR": "/workspace"
+  },
+  "cases": 34,
+  "originalTestTimeoutMs": 5000,
+  "scope": "Original8a30 complete plus4 meaningful same-job delayedcontrol/read, nosteal, failure and realunmount/remount DOM/client controls. Original5s/maxWorkers1/bail1. No File15 repeat, Worker/browser/SQLite/build.",
+  "startedAt": "2026-10-11T16:17:00.257065+00:00",
+  "status": "PASS",
+  "log": "/workspace/phase5f-saved-package-typed-role-name-first-two-runtime-attempt2/affected-package-mounted-file.log",
+  "pid": 1355538,
+  "processGroup": 1355538,
+  "originalStartTicks": "14868102",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T16:17:03.558101+00:00",
+  "logSha256": "80637e4d2fcb63f12b276cb075e60c4483010baa36cb526752ed051e53deb004"
+}

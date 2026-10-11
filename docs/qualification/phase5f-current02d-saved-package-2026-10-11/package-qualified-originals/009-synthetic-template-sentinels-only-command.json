@@ -1,0 +1,68 @@
+{
+  "stage": "synthetic-template-sentinels-only",
+  "cwd": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/copy",
+  "argv": [
+    "node",
+    "node_modules/wrangler/bin/wrangler.js",
+    "d1",
+    "execute",
+    "DB",
+    "--local",
+    "--config",
+    ".wrangler/deploy.jsonc",
+    "--persist-to",
+    "/workspace/coherent-package-sample-shadow-native02-private-attempt2/copy/.wrangler/state",
+    "--file",
+    "/workspace/coherent-package-sample-shadow-native02-private-attempt2/fixture/process-fixture.sql"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2",
+    "SQLITE_TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2"
+  },
+  "startedAt": "2026-10-11T17:36:47.521643+00:00",
+  "status": "PASS",
+  "log": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/synthetic-template-sentinels-only.log",
+  "pid": 1407065,
+  "processGroup": 1407065,
+  "originalStartTicks": "15346829",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1407081,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1407065,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1407081,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1407065,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1407081,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1407065,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T17:36:48.876821+00:00",
+  "logSha256": "b3f1c24e6e01eede628daf17af6ff004d494a4720cad31db7472483e1d11294b"
+}

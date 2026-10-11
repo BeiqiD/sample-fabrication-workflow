@@ -2,16 +2,16 @@
 
 Status: canonical product direction and active implementation roadmap
 
-Current development checkpoint — 2026-10-11: [PR #270](https://github.com/BeiqiD/sample-fabrication-workflow/pull/270)
+Historical development checkpoint — 2026-10-11: [PR #270](https://github.com/BeiqiD/sample-fabrication-workflow/pull/270)
 merged at `51ab2b59fea69c2e033994ab6a02b146f9ab6071`, preserving qualified
 tree `ca40022eaf64147b876dfe457b55d36edcf47186`; both own Verify runs, both
-Map runs and all15 contexts passed before ordinary merge. It integrates the
-separately qualified Recovery Preview and replaced-control keyboard continuity.
-The new [File preview qualification](PHASE5F_FILE_NATIVE_PREVIEW_FOCUS_QUALIFICATION.md)
-passed currentc50 app/11-mounted, one currenta7 build and both original native
-1280/light and390/dark previews at QAconsumer23b8. The exact seven File/QA leaves
-are prepared on this merged base; their new own-head complete CI remains unrun.
-Saved-job keyboard continuity, migration execution and whole5F remain separate.
+Map runs and all15 contexts passed. Its Recovery Preview/control continuity
+scope and the later [File preview qualification](PHASE5F_FILE_NATIVE_PREVIEW_FOCUS_QUALIFICATION.md)
+remain separate: c50 app/11-mounted, one a7 build and two original23b8 native
+previews subsequently passed their own complete gates before #271 merge.
+Migration execution and whole5F remain separate.
+
+Dated local 5F follow-up — 2026-10-11: [#273](https://github.com/BeiqiD/sample-fabrication-workflow/pull/273) merged at `2a1d81a74688a7f61afd69e9d972378340a04993`, preserving qualified6ae4 tree `00865e355ccf9031c07c5f62d7af692ad8b46b2f`; four own Verify/Map runs and15 contexts passed. The separate [current File/Package saved-job qualification](PHASE5F_CURRENT_SAVED_JOB_KEYBOARD_QUALIFICATION.md) passed app/Package34/one actual02d build and both desktop controls. Public adoption needs new own-head complete CI. Native390/dark, current Storage status Refresh and whole5F remain open; original builds/failures/histories retain their exact sources.
 
 Historical development integration: PR #259 merged at
 `ed499a9de5e520871f1484d9357e89d34f16df14`, preserving final `f02dd9a` tree
@@ -174,7 +174,7 @@ is valuable evidence but is not a remote pass or production admission.
 | FP3 | **Implemented, CI-qualified and integrated**: persisted bounded migration jobs, isolated execution, pause/resume/cancel/retry, verified cutover, read holds and explicit cleanup; `0019` / V22. | Deployed runner limits/invocation, provider interruption and actual deployed nonempty recovery rehearsal. |
 | FP4 | **Implemented, CI-qualified and integrated**: paired **Sample and Project** package export, matching website **fresh-copy** import, separate readable reports, `0020` / V23. [FP4 record](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP4_RESEARCH_PACKAGES.md). | Deployed/provider and targeted manual acceptance; maintain bounded packages, complete dependencies and original-vs-copy identity. |
 | FP5 | **Implemented, CI-qualified and integrated**: privileged full backup, identity-preserving fresh-target recovery, protected configuration, legacy archive conversion and assisted handoff; `0021`–`0022` / V24. [FP5 goal](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/FP5_DEVELOPMENT_GOAL.md). | Real target provisioning, provider-specific and deployed handoff evidence; restored execution remains disabled pending explicit local admission. |
-| Frontend | C4/5D/5E and bounded 5F slices are integrated through #270. Native Metrology focus2, Storage read/admin4+JWT6, f88/actual2 draft-write and genuine Package previews retain their separate qualification. Recovery control continuity passed current22/build/native2 and its own integration CI before #270 merge. Current File preview passed c50 app/11-mounted, one a7 build and both genuine23b8 keyboard/layout cases, preserving all original failures. | 5F remains in progress. Exact current File adoption passed own-head Verify/Map pairs and all15 checks and is merged in #271. Saved-job keyboard continuity remains pending. Physical input/IME, other engines and provider/deployed acceptance remain separate. |
+| Frontend | C4/5D/5E and bounded 5F slices are integrated through #270. Native Metrology focus2, Storage read/admin4+JWT6, f88/actual2 draft-write and genuine Package previews retain their separate qualification. Recovery control continuity passed current22/build/native2 and its own integration CI before #270 merge. Current File preview passed c50 app/11-mounted, one a7 build and both genuine23b8 keyboard/layout cases, preserving all original failures. | 5F remains in progress. Exact current File adoption passed own-head Verify/Map pairs and all15 checks and is merged in #271. Desktop File/Package saved-job keyboard continuity passed in the linked current02d local scope; complementary390/dark controls and integrated own-head CI remain pending. Physical input/IME, other engines and provider/deployed acceptance remain separate. |
 | CI | #269/#270 own and post-merge Verify/Map gates passed; #271 own Verify/Map pairs and all15 contexts passed before ordinary merge. Earlier observed failures and skipped leaves remain retained with original source scopes. | Require exact own-head complete checks before each ordinary integration merge, including the new File candidate. Workers build and actual serving/schema retain separate evidence. |
 | Node/File/jobs | Current selected Node/local File/runtime composition passed one server strict check and all fresh same-head native25: configured application8, unmounted Job HTTP11 and explicit runtime6. Exact writer continuation, original waits/reaps and empty process groups are preserved in the [current integration record](CURRENT_NODE_FILE_JOB_RUNTIME_SOURCE_ADOPTION.md). | Own integration CI, same-application active Job dispatch/recovery, further File-dependent methods, complete resource authorization and supported whole-app recovery remain open. |
 | Docker and group permissions | Restricted runtime packaging and inactive group/resource contracts have separate bounded evidence. Explicit V28 enrollment/activation and V5 LocalFile backup candidates are saved source only. | Actual current-image/container qualification, complete resource permissions and genuine same-image nonempty LocalFile backup/restore remain unfinished. |
@@ -1219,7 +1219,7 @@ Project-owned Markdown or attachment content only through explicit user action.
 | Foundation → Project v1 shape | Earlier Project and backend fundamentals are delivered; retain their reference/Canvas/save/media regression behavior. |
 | Integrated FP2–FP5 development | Native File/S3, bounded migration jobs, paired Sample+Project copy packages and system backup/restore **implemented, locally/remotely CI-qualified and merged** through #251; actual deployed/provider acceptance remains open. |
 | C4 / 5D / 5E | Bounded local development completed; keep physical-device, OS-input and deployed-runtime acceptance gaps visible. |
-| 5F integrated UX | In progress through #270. Historical Retry/group/motion, Storage/Package and Recovery scopes remain preserved; Recovery control continuity passed its selective integration CI. Current File preview passed app/11-mounted/build/native2 in their exact c50/a7/23b8 scopes, with normal closure and five physical SQLite checks; its own-head Verify/Map pairs and all15 checks passed before #271 ordinary merge. Saved-job keyboard continuity remains pending. Whole5F/device/provider acceptance stay open. |
+| 5F integrated UX | In progress through #270. Historical Retry/group/motion, Storage/Package and Recovery scopes remain preserved; Recovery control continuity passed its selective integration CI. Current File preview passed app/11-mounted/build/native2 in their exact c50/a7/23b8 scopes, with normal closure and five physical SQLite checks; its own-head Verify/Map pairs and all15 checks passed before #271 ordinary merge. Desktop File/Package saved-job keyboard continuity passed in the linked current02d local scope; complementary390/dark controls and integrated own-head CI remain pending. Whole5F/device/provider acceptance stay open. |
 | 6A6 / 6B | Combined-tree review, complete local/default remote gates and implementation merge passed at `af8f374` / `aa497d9`. Remaining serving/schema, physical-device, provider/operational and scoped release acceptance is open. |
 | First integrated V3 release | Existing product plus **explicitly qualified enabled** FP2–FP5 scope. Capabilities awaiting live evidence remain unavailable/deferred rather than incorrectly marked unimplemented or enabled. |
 | Portable runtime | **RT1–RT6 unfinished.** The current selected Node/local File/runtime source has fresh same-head25 qualification with exact first-close and process custody. Its bounded development integration is separate from same-app Job dispatch, complete domain/resource policy, runnable CLI/artifacts, Docker volumes/upgrades and actual cross-runtime recovery. |
@@ -1227,7 +1227,7 @@ Project-owned Markdown or attachment content only through explicit user action.
 
 ## Immediate next PR order
 
-1. Continue from merged **#271** development integration `754c1730`. Preserve
+1. Continue from merged **#273** development integration `2a1d81a7`. Preserve
    exact source/tree receipts through #270, current V26 and paired historical
    readers, and every failed/cancelled/skipped outcome. #260 remains closed as
    superseded; Drafts #199/#200 remain alternatives.
@@ -1236,8 +1236,8 @@ Project-owned Markdown or attachment content only through explicit user action.
    draft-write/revision/layout passes. Continue genuine package previews and
    recovery presentation, then qualify the coherent integration head. Provider
    activation and whole5F acceptance remain separate. Preserve the exact current
-   File preview qualification and #271 merge, then characterize saved-job
-   keyboard continuity without enabling the executor. Complete the current
+   File preview qualification and #271 merge, then retain desktop saved-job
+   qualification and complete complementary390/dark without enabling the executor. Complete the current
    restricted Node composition and File/Job integration in parallel.
 3. Continue remaining bounded **5F-1** (cross-page language/control), **5F-2** (read/retry, focus,
    uncertain-write and recovery identity), then **5F-3** (realistic integrated

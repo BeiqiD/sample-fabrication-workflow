@@ -1,0 +1,41 @@
+{
+  "stage": "physical-after",
+  "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+  "argv": [
+    "python3",
+    "-B",
+    "/workspace/phase5f-coherent-saved-package-native-qa-source-attempt1/scripts/qa/phase5f/check-current-coherent-saved-job-physical-state.py",
+    "--domain",
+    "package",
+    "--source-copy",
+    "/workspace/coherent-package-saved-native02-private-attempt1/copy",
+    "--fixture-directory",
+    "/workspace/coherent-package-saved-native02-private-attempt1/fixture",
+    "--runtime-directory",
+    "/workspace/coherent-package-saved-native02-private-attempt1/runtime"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/coherent-package-saved-native02-private-attempt1",
+    "SQLITE_TMPDIR": "/workspace/coherent-package-saved-native02-private-attempt1"
+  },
+  "control": "Mandatory after original native child/directwait/reap and context/route/body/controller/browser/Worker/JWKS settlement. New physical output alias; preserve any accepted job/item/hold/permit partial history. Failed native case stays failed.",
+  "startedAt": "2026-10-11T17:08:55.056228+00:00",
+  "status": "PASS",
+  "log": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/physical-after.log",
+  "pid": 1387969,
+  "processGroup": 1387969,
+  "originalStartTicks": "15179582",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T17:08:55.888893+00:00",
+  "logSha256": "01b4e4707db982934f3e107dc03c21492b21a1348d682fcba6a6876098055c17"
+}
