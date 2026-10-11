@@ -73,9 +73,9 @@ passed. The [invocation-order repair](COMMENT_CREATE_ORDER_QUALIFICATION.md)
 retains that failure and passed original15 plus new2 controls,17 total at6d4,
 after the new baseline pair exposed the old failure. Its affected app type
 check and independent source review passed. The neutral extraction and repair
-are now reconciled onto merged #265; their new coherent-head complete CI is
-required before ordinary merge. Historical service/compiler/browser receipts
-are not retagged as executions of this new head.
+were reconciled onto merged #265, qualified by their new complete gates and
+merged normally in #264 as recorded below. Historical service/compiler/browser
+receipts retain their original execution sources.
 
 The [neutral File/Definition extraction](CURRENT194_NEUTRAL_FILE_DEFINITION_ADOPTION.md)
 now has complete original metadata algorithms, nine original affected Worker
@@ -83,8 +83,8 @@ controls passed at source96 and exact causal adoption onto current194 verified.
 The compiler and runtime observations retain their historical heads. This is a
 bounded service extraction; public Node File/Job Request authority and whole
 application/container qualification remain in progress. Continue the active
-roadmap after its own coherent-head complete CI; do not equate this slice with
-operational File or migration acceptance.
+roadmap from its reviewed ordinary #264 integration; operational File and
+migration acceptance remain separate work.
 
 PR #264 subsequently merged normally at `31a2cfe2ecd033679229b6318a1bcf85a6b2425d`.
 Its exactc5b Verify push/PR, Map push/PR and all15 statuses passed before merge;
