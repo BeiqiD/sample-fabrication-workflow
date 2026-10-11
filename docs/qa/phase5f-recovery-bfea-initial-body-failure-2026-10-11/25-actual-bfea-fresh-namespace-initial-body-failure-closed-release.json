@@ -1,0 +1,633 @@
+{
+  "version": 1,
+  "completedAt": "2026-10-11T09:00:37.263255+00:00",
+  "status": "FAILED",
+  "runtimeWindow": "CLOSED_RELEASED",
+  "qualifiedSource": {
+    "actualProducer": "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+    "qaConsumer": "bfea74fb975f46fa70eb203c5f5844b46d115215",
+    "originalProducerFiles": 2489,
+    "protectedConsumerFiles": 2488,
+    "originalBuildArtifacts": 118,
+    "actualCopyArtifacts": 121,
+    "newBuilds": 0,
+    "newPhysical24AndMature84": true,
+    "oldPausedHistoryUntouched": true
+  },
+  "actualCommands": {
+    "total": 12,
+    "passed": 11,
+    "failed": 1,
+    "originalTTYSeedStop": "PASS additional logical ninth stage; direct Worker command already counted",
+    "logicalPlanStages": 13
+  },
+  "actualCases": {
+    "passed": 0,
+    "failed": 1,
+    "unrun": 1,
+    "failedId": "historical-backup-controls-1280-light",
+    "unrunIds": [
+      "historical-backup-controls-390-dark"
+    ]
+  },
+  "firstFailure": {
+    "stage": "initial original successful capabilities200 body, before preview/backup/control invocation",
+    "originalError": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ 'failed'\n- 'completed'\n\n    at originalResponseBody (file:///workspace/phase5f-recovery-job-controls-original-pause-terminal-cut-source-attempt4/scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs:410:73)\n    at async caseRun (file:///workspace/phase5f-recovery-job-controls-original-pause-terminal-cut-source-attempt4/scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs:618:183)\n    at async file:///workspace/phase5f-recovery-job-controls-original-pause-terminal-cut-source-attempt4/scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs:762:3",
+    "pauseResponseObserved": false,
+    "nativeFailedResponses": [
+      {
+        "path": "/api/system-recovery/capabilities",
+        "status": 200,
+        "body": "failed",
+        "originalRequestTerminal": {
+          "ordinal": 1,
+          "path": "/api/system-recovery/capabilities",
+          "method": "GET",
+          "event": "requestfailed",
+          "issuedElapsedMs": 574.596,
+          "terminalElapsedMs": 590.767,
+          "failure": "net::ERR_ABORTED"
+        },
+        "headers": {
+          "contentType": "application/json",
+          "contentEncoding": "gzip",
+          "contentLength": null,
+          "transferEncoding": "chunked"
+        }
+      },
+      {
+        "path": "/api/system-recovery/maintenance",
+        "status": 200,
+        "body": "failed",
+        "originalRequestTerminal": {
+          "ordinal": 3,
+          "path": "/api/system-recovery/maintenance",
+          "method": "GET",
+          "event": "requestfailed",
+          "issuedElapsedMs": 596.97,
+          "terminalElapsedMs": 617.05,
+          "failure": "net::ERR_ABORTED"
+        },
+        "headers": {
+          "contentType": "application/json",
+          "contentEncoding": "gzip",
+          "contentLength": null,
+          "transferEncoding": "chunked"
+        }
+      }
+    ],
+    "originalRequestTerminalsAtFailure": [
+      {
+        "ordinal": 1,
+        "path": "/api/system-recovery/capabilities",
+        "method": "GET",
+        "event": "requestfailed",
+        "issuedElapsedMs": 574.596,
+        "terminalElapsedMs": 590.767,
+        "failure": "net::ERR_ABORTED"
+      },
+      {
+        "ordinal": 2,
+        "path": "/api/system-recovery/jobs",
+        "method": "GET",
+        "event": "requestfinished",
+        "issuedElapsedMs": 596.63,
+        "terminalElapsedMs": 614.698,
+        "failure": null
+      },
+      {
+        "ordinal": 3,
+        "path": "/api/system-recovery/maintenance",
+        "method": "GET",
+        "event": "requestfailed",
+        "issuedElapsedMs": 596.97,
+        "terminalElapsedMs": 617.05,
+        "failure": "net::ERR_ABORTED"
+      }
+    ],
+    "preCloseSnapshot": {
+      "currentRouteIsRecovery": true,
+      "recoveryPageVisible": true,
+      "routeErrorBoundaryVisible": false,
+      "routeLoadingVisible": false,
+      "originalControlCallerSignals": [],
+      "originalControlCallerSignalCount": 0,
+      "applicationControls": {
+        "responses": [],
+        "responseCount": 0,
+        "observerBoundary": {
+          "registeredInAwaitedBoundary": 0,
+          "settledInAwaitedBoundary": 0,
+          "registeredAtMetadataCut": 0,
+          "settledAtMetadataCut": 0
+        },
+        "originalPromiseObservers": 0,
+        "originalPromiseObserversSettled": 0
+      }
+    },
+    "sourceDiagnosisLimitation": "Initial capabilities and maintenance original Requests have native ERR_ABORTED before context cleanup. No control POST/application-control observer was exercised; this gives no cause for the historical original Pause200 failure and does not establish a product defect."
+  },
+  "acceptedHistory": {
+    "acceptedJobs": 0,
+    "requestRows": 0,
+    "original63PermitsExact": true,
+    "addedPermits": 0,
+    "metadataAcceptedRequests": 2,
+    "enableAndDisableOnly": true,
+    "retained": [
+      {
+        "stage": "settled-historical-backup-controls-1280-light",
+        "schemaExact": true,
+        "onlyThreeExplicitMetadataTablesMayDiffer": true,
+        "allOtherApplicationTablesExact": true,
+        "original63WritePermitsExact": true,
+        "addedPermits": 0,
+        "acceptedJobs": 0,
+        "requestRows": 0,
+        "runtimeEnabled": 1,
+        "runtimeIncarnationSha256": "3434dcf0f82b66ab05e0d28c1a3d9da579ed0e84d83c95c311dd9798db70dd80",
+        "runtimeRowSha256": "c7adfc3c2c4939db8620ea94a4f15bb3469ad71b0d0d8cf0ef1a654d3bb292b2",
+        "lineages": []
+      },
+      {
+        "stage": "after-original-shared-disable",
+        "schemaExact": true,
+        "onlyThreeExplicitMetadataTablesMayDiffer": true,
+        "allOtherApplicationTablesExact": true,
+        "original63WritePermitsExact": true,
+        "addedPermits": 0,
+        "acceptedJobs": 0,
+        "requestRows": 0,
+        "runtimeEnabled": 0,
+        "runtimeIncarnationSha256": "867f04c4c81a1cc4f93b9c05ed97b9b258347601744e97c8d3cc248de69efb09",
+        "runtimeRowSha256": "e367b5ff279992144074242a6a058f6072a6729a73638607df0e6de459bcf86a",
+        "lineages": []
+      }
+    ]
+  },
+  "apiCosts": {
+    "auxiliaryGets": 2,
+    "browserGets": 3,
+    "browserMutationIntents": 0,
+    "originalServerMutationRequestsIssued": 2,
+    "sharedMutationRequests": 2,
+    "originalMutationRequestsMaximum": 10,
+    "acceptedMetadataMutationResponses": 2,
+    "productionPollingMayAddReadOnlyGets": true,
+    "originalRouteFetchForwardsOneNativeIntentOnce": true,
+    "scheduledOrStepInvocationsByHelper": 0,
+    "zipOrProviderOrTargetOperationsByHelper": 0
+  },
+  "normalOriginalOwnerClosure": {
+    "sessionId": "780f49c5-5082-4e59-bacb-66b4274e3248",
+    "startedAt": "2026-10-11T08:59:18.983Z",
+    "status": "closed",
+    "browserCloseAwaited": true,
+    "originalSharedWorkBeforeDisableAwaited": 1,
+    "originalDisableAwaited": true,
+    "originalSharedWorkAwaited": {
+      "count": 2,
+      "rejected": 0
+    },
+    "originalApplicationCatalogRowsPermitsAndAcceptedHistoryVerified": true,
+    "executorDisabledReadBack": true,
+    "workerDisposeAwaited": true,
+    "workerPortRefused": true,
+    "jwksCloseAwaited": true,
+    "jwksPortRefused": true,
+    "completedAt": "2026-10-11T08:59:21.279Z"
+  },
+  "commandReceipts": [
+    {
+      "stage": "final-source-artifact-input-pins",
+      "status": "PASS",
+      "exitCode": 0,
+      "pid": 1008420,
+      "processGroup": 1008420,
+      "originalStartTicks": "12244901",
+      "directChildReaped": true,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "receipt": {
+        "path": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/final-source-artifact-input-pins-command.json",
+        "sha256": "e875ef0e8687705ca1cd6d318952ba2d698dc3d7d347240f20318a5a9e125a67",
+        "bytes": 1487
+      }
+    },
+    {
+      "stage": "fresh-current-source-build-witness",
+      "status": "PASS",
+      "exitCode": 0,
+      "pid": 1008121,
+      "processGroup": 1008121,
+      "originalStartTicks": "12240905",
+      "directChildReaped": true,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "receipt": {
+        "path": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/fresh-current-source-build-witness-command.json",
+        "sha256": "dbadd82b2032e1be78a9d99a8f99d0c731c6c91698d8dfde1056a7c5c8dc827f",
+        "bytes": 1488
+      }
+    },
+    {
+      "stage": "fresh-two-version-sentinel",
+      "status": "PASS",
+      "exitCode": 0,
+      "pid": 1007350,
+      "processGroup": 1007350,
+      "originalStartTicks": "12234007",
+      "directChildReaped": true,
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 1007438,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1007350,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 1007438,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1007350,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 1007438,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1007350,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "receipt": {
+        "path": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/fresh-two-version-sentinel-command.json",
+        "sha256": "4750cfabfffa84262fe370ee3ea7eb82b7d71a70ae8881380e34aac706b54ca4",
+        "bytes": 1895
+      }
+    },
+    {
+      "stage": "genuine-signed-admin-recovery-job-controls-two",
+      "status": "FAILED",
+      "exitCode": 1,
+      "pid": 1008162,
+      "processGroup": 1008162,
+      "originalStartTicks": "12241285",
+      "directChildReaped": true,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 1,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "receipt": {
+        "path": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/genuine-signed-admin-recovery-job-controls-two-command.json",
+        "sha256": "e56b1473385705a4afb954d9a377b5924669e767d2e2d511647b86129871e73e",
+        "bytes": 2549
+      }
+    },
+    {
+      "stage": "isolated-copy",
+      "status": "PASS",
+      "exitCode": 0,
+      "pid": 1007236,
+      "processGroup": 1007236,
+      "originalStartTicks": "12233050",
+      "directChildReaped": true,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "receipt": {
+        "path": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/isolated-copy-command.json",
+        "sha256": "343150c14ad1566275161acda0205bdc043171dd8223256856295a692e9af563",
+        "bytes": 1417
+      }
+    },
+    {
+      "stage": "mature-genuine-api-84-only",
+      "status": "PASS",
+      "exitCode": 0,
+      "pid": 1008052,
+      "processGroup": 1008052,
+      "originalStartTicks": "12239109",
+      "directChildReaped": true,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "receipt": {
+        "path": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/mature-genuine-api-84-only-command.json",
+        "sha256": "d95655e33179358f0285451f9b15b3e5ef2f659031febe1330bc27d967df5c95",
+        "bytes": 1273
+      }
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "status": "PASS",
+      "exitCode": 0,
+      "pid": 1007514,
+      "processGroup": 1007514,
+      "originalStartTicks": "12234826",
+      "directChildReaped": true,
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 1007530,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1007514,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 1007530,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1007514,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 1007530,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1007514,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "receipt": {
+        "path": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/ordinary-actual24-local-migrations-command.json",
+        "sha256": "565afad8a6aa22acc70dcbb54456fcba201c2bb36228a14e91be564af1301772",
+        "bytes": 2008
+      }
+    },
+    {
+      "stage": "owned-built-worker",
+      "status": "PASS",
+      "exitCode": 0,
+      "pid": 1007974,
+      "processGroup": 1007974,
+      "originalStartTicks": "12238168",
+      "directChildReaped": true,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "receipt": {
+        "path": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/owned-built-worker-command.json",
+        "sha256": "583a940f46399b5dbe3cfe4d8bb16acc2eb9584c059052537ed345424751412b",
+        "bytes": 1733
+      }
+    },
+    {
+      "stage": "physical-after",
+      "status": "PASS",
+      "exitCode": 0,
+      "pid": 1008396,
+      "processGroup": 1008396,
+      "originalStartTicks": "12244477",
+      "directChildReaped": true,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "receipt": {
+        "path": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/physical-after-command.json",
+        "sha256": "022561ec8ab11a6ec8e138c4660cabdda61728872290ad0f1eb1b1d6560ec033",
+        "bytes": 1668
+      }
+    },
+    {
+      "stage": "physical-before",
+      "status": "PASS",
+      "exitCode": 0,
+      "pid": 1007949,
+      "processGroup": 1007949,
+      "originalStartTicks": "12237681",
+      "directChildReaped": true,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "receipt": {
+        "path": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/physical-before-command.json",
+        "sha256": "720c1bc161f850aaff2fc205b174c9e3acdcc2d5b7c76e18220db117fdad4fcc",
+        "bytes": 1352
+      }
+    },
+    {
+      "stage": "qualified-original-f228-build-producer-preflight",
+      "status": "PASS",
+      "exitCode": 0,
+      "pid": 1007188,
+      "processGroup": 1007188,
+      "originalStartTicks": "12231778",
+      "directChildReaped": true,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "receipt": {
+        "path": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/qualified-original-f228-build-producer-preflight-command.json",
+        "sha256": "f700174a1bfceee3310c7e3c80a2cc932fdaba11667429c1b200294d0f4dd5ec",
+        "bytes": 1494
+      }
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "status": "PASS",
+      "exitCode": 0,
+      "pid": 1007863,
+      "processGroup": 1007863,
+      "originalStartTicks": "12236974",
+      "directChildReaped": true,
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 1007898,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1007863,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 1007898,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1007863,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 1007898,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1007863,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "receipt": {
+        "path": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/synthetic-template-sentinels-only-command.json",
+        "sha256": "a727a7f33ac671876f2633d60b0c11f6235ffecfb01ada1ff7d30ad7ea1db209",
+        "bytes": 2096
+      }
+    }
+  ],
+  "ownedProcessGroupsCurrent": {
+    "1008420": [],
+    "1008121": [],
+    "1007350": [
+      {
+        "pid": 1007438,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1007350,
+        "originalStartTicks": "12234083",
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "1008162": [],
+    "1007236": [],
+    "1008052": [],
+    "1007514": [
+      {
+        "pid": 1007530,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1007514,
+        "originalStartTicks": "12234894",
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "1007974": [],
+    "1008396": [],
+    "1007949": [],
+    "1007188": [],
+    "1007863": [
+      {
+        "pid": 1007898,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1007863,
+        "originalStartTicks": "12237045",
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "ownedProcessScope": "Only these twelve original owned process groups checked. All direct children reaped; remaining group members are kernel Z/X only. FD permission failures are not observed zero FDs; no signals were sent. No global-quiescence claim.",
+  "evidence": {
+    "report": {
+      "path": "/workspace/recovery-pause-observer-f228-private-attempt3/fixture/genuine-recovery-job-controls-browser-report-original-pause-observer-attempt3.json",
+      "sha256": "02eadacc2a053eab4000ff5b26e177f39ee5497adfaa6dd7bd022f0390780b9b",
+      "bytes": 55324
+    },
+    "physicalAfter": {
+      "path": "/workspace/recovery-pause-observer-f228-private-attempt3/fixture/physical-sqlite-after-shutdown.json",
+      "sha256": "720d0cd2d5549cf1c17e1658edcc651804ea39b44a2f8452e941cc46e9c79683",
+      "bytes": 62529
+    },
+    "finalPins": {
+      "path": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/final-causal-f228-source-and-job-controls-short-temp-pins.json",
+      "sha256": "8102602e67e17301e0a926c623f6b56645262d1efb83953e88f4d07e2f327c60",
+      "bytes": 2302
+    }
+  }
+}

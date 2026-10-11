@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "producerHead": "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+  "producerTree": "d16675a42725094e586f9f3bc78468aa5e46310d",
+  "qaConsumerHead": "21bb149da250ef249d2bef7ddb365feb63532503",
+  "qaConsumerTree": "c7bafcec3e2d9251dc4c6b675dab872db09f5645",
+  "originalBuildCommandReceiptSha256": "1e2d98d3207f902a2426b8aaf1d9a15e0bfbf8fe19acb9679c8c7c622ac70a9f",
+  "originalBuildLogSha256": "a0a78af3dda4ee238573d7dc99f3d87759dcffa3668bf2d1cbb8697aa8a0e1e5",
+  "originalProducerCount": 2489,
+  "nonHelperConsumerExactCount": 2488,
+  "helperSha256": "4f2873425d2bc40b3825f061a8e2d92da9ee193f694215fcd3bf0c9bcdd2e834",
+  "actualOriginalArtifacts": 118,
+  "newBuilds": 0,
+  "freshPhysicalFixtureRequired": true,
+  "oldPausedHistoryNotOpenedOrChanged": true,
+  "newSeedExpected": 84,
+  "maxOriginalJobControlPOSTs": 10,
+  "priorFailureCorrectionSha256": "0b641ffb208fe43e39554eb1667a3ef63ff14394faca01fc38619f7c571820ae",
+  "priorInitialBodyFailureSha256": "843258754c8ef7b859bf695000c7984202749a52338541d1946ec49e597f0a20",
+  "prior83caNativePauseBodyFailureSha256": "15ddc5076cd81ae72af734737d9731a62d21903b2f759b79d47cc5a8143ac99c"
+}

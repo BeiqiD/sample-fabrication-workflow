@@ -1,0 +1,52 @@
+{
+  "kind": "phase5f83ca-independent-original-initial-reader-passive-source-peer/1",
+  "status": "SOURCE_CLEAR_HELPER_ONLY_FINITE_PLAN_AND_RUNTIME_UNRUN",
+  "reviewedAt": "2026-10-11T09:11:16.748032+00:00",
+  "handoff": {
+    "path": "/workspace/phase5f-recovery-job-controls-original-initial-reader-source-review-attempt5/source-handoff.json",
+    "sha256": "f49a93a65b77c9dff38e2ac12fd6308e3c75a58b300090e6204e06d94ba2087b"
+  },
+  "sourceRoot": "/workspace/phase5f-recovery-job-controls-original-initial-reader-source-attempt5",
+  "sourceHead": "83ca5d0c1ea0d170febd36e3043b37512478e60c",
+  "sourceTree": "b0a707c3f0c43761768ce17db2ffb96992229fbc",
+  "helper": {
+    "path": "/workspace/phase5f-recovery-job-controls-original-initial-reader-source-attempt5/scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs",
+    "sha256": "ea70694752afee763dbb066bf35f6c6725a7fc12627d06b5562287a6439aeeb0",
+    "bytes": 72018
+  },
+  "freeze": {
+    "path": "/workspace/phase5f-recovery-job-controls-original-initial-reader-source-review-attempt5/complete-original-initial-reader-source-freeze.json",
+    "sha256": "5b3b92a5d844d943f9e710327bcee395b1331448c0ac8b5f5fe68fd82d1369ee",
+    "bytes": 605965
+  },
+  "patch": {
+    "path": "/workspace/phase5f-recovery-job-controls-original-initial-reader-source-review-attempt5/original-initialization-same-reader-owner-source.patch",
+    "sha256": "094262e08185d0ce414cef3fc58c7785a1f877b6f9d4e437ae400c6918cc8454",
+    "bytes": 8174
+  },
+  "basisHead": "bfea74fb975f46fa70eb203c5f5844b46d115215",
+  "priorCompleteBfeaPeer": {
+    "path": "/workspace/phase5f-bfea-independent-passive-helper-and-thirteen-source-peer.json",
+    "sha256": "8d688805eb4c850c7865ff1f8b82790fbfa4aef414e2688964ce97dbefc21d19"
+  },
+  "all2489WorkingGitModesVerified": true,
+  "all2488NonHelperBasisExact": true,
+  "wholeChangedPatchExact": true,
+  "originalStrictBodyFunctionRouteForwardingFullNativeActionsAndAssertionsExact": true,
+  "originalCaseFinallyAndGlobalCloseExactExceptChildTempRetarget": true,
+  "findings": [],
+  "conclusions": [
+    "Only original same-origin GET capabilities/maintenance and the existing control POSTs receive passive original Signal/Response/reader observers. At most5 records are captured; page-private WeakMap yields bounded numeric correlation IDs, not caller authority or a new controller.",
+    "All original native receivers/arguments/returned Promise/readers are retained; no additional read/cancel/request/clone/tee/fallback/retry, no cache of an authorization result.",
+    "Both original GETs can now show whether they share the actual caller signal, original read/cancel outcome and bounded already-yielded prefix hash. The failure-cut terminal metadata still precedes original asynchronous snapshot and context closure.",
+    "Preview/retry observations compare only two fixed button labels and persist booleans. No arbitrary text, markup, credentials or body bytes are emitted.",
+    "The same strict native200/202 bodies and original backend hash requirements, original4 forwards percase/max10 total mutations,20s body/120s TTY budgets, accepted-history verification and cached original closes remain unchanged.",
+    "Original bfea failed the initial capabilities200 native body before Pause; its closed0P1F1U remains preserved. This successor extends evidence for that observed stage without claiming an engine cause."
+  ],
+  "limits": [
+    "These are the first5 selected observations; any later matching calls are unobserved. Recorded observation count does not establish total original request count.",
+    "Passive wrappers and Promise reactions may affect scheduling; source review is not proof of runtime noninterference or exact failure cause.",
+    "Source-only helper peer does not approve a finite runner or grant actualGO. New outputs/child temp are only aliases; future fresh-copy24/mature84/build-carry prerequisites and exclusive original closure remain required."
+  ],
+  "compilerModuleBrowserBuildSDKSqliteSocketInvocations": 0
+}

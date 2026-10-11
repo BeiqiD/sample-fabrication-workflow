@@ -1,0 +1,49 @@
+{
+  "stage": "genuine-signed-admin-recovery-job-controls-two",
+  "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+  "argv": [
+    "node",
+    "/workspace/phase5f-recovery-job-controls-original-initial-reader-source-attempt5/scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs",
+    "/workspace/recovery-initial-reader-f228-private-attempt4/copy",
+    "/workspace/recovery-initial-reader-f228-private-attempt4/fixture",
+    "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+    "2489",
+    "--exclusive-go-two-genuine-recovery-job-controls"
+  ],
+  "env": {
+    "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+    "CHROMIUM_PATH": "/usr/bin/chromium",
+    "TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4",
+    "SQLITE_TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4",
+    "PHASE5F_CHROMIUM_PRIVATE_TEMP": "/workspace/.r2b8tmp",
+    "PHASE5F_JOB_CONTROL_RUNTIME_ROOT": "/workspace/recovery-initial-reader-f228-private-attempt4/runtime"
+  },
+  "cases": [
+    "historical-backup-controls-1280-light",
+    "historical-backup-controls-390-dark"
+  ],
+  "control": "Shared genuine executor enable200/disable200 once; each historical backup-preview200/backup202/pause200/resume200/cancel200 native actions. Max10 original metadata mutation requests, no scheduled/step/ZIP/target/provider. Strict original full native and backend Response bodies, no fallback. Exact3-table lineage/runtime audit and all original63 permits/other app rows preserved. Stop firstfailure after original routes/body/context settlement; remaining IDs UNRUN.",
+  "toolInvocation": {
+    "tty": true,
+    "originalControl": "Only explicitstop newline originalretainedTTY; awaitoriginalclosure/report/childexit120s guard, no SIGTERM-as-finally assumption."
+  },
+  "startedAt": "2026-10-11T09:24:12.665089+00:00",
+  "status": "FAILED",
+  "log": "/workspace/recovery-initial-reader-f228-private-attempt4/runtime/genuine-signed-admin-recovery-job-controls-two.log",
+  "pid": 1022348,
+  "processGroup": 1022348,
+  "originalStartTicks": "12391343",
+  "exitCode": 1,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 1,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T09:24:22.420290+00:00",
+  "logSha256": "cc59f511e26877afb7d70fda81c247440984c34e8db0fd5ae23ae18703fb0514"
+}

@@ -1,0 +1,126 @@
+{
+  "status": "ACTUAL_FIRST_PAUSE_BODY_FAILURE_CLOSED_RELEASED_EVIDENCE_ONLY",
+  "qaConsumerHead": "4a4f324588d2482ce24b56a759566eae822a0e97",
+  "originalProducerHead": "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+  "originalSourceCount": 2489,
+  "originalNonHelperCausalCount": 2488,
+  "selectedOriginalRaw": [
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/genuine-recovery-job-controls-browser-progress-short-chromium-attempt2.ndjson",
+      "saved": "docs/qa/phase5f-recovery-job-controls-pause-body-failure-2026-10-11/genuine-recovery-job-controls-browser-progress-short-chromium-attempt2.ndjson",
+      "sha256": "803f344e6716f5ec71eab992e5453ae6db726788e94185df6b9e040d0bfebc45",
+      "bytes": 152
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/genuine-recovery-job-controls-browser-report-short-chromium-attempt2.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-pause-body-failure-2026-10-11/genuine-recovery-job-controls-browser-report-short-chromium-attempt2.json",
+      "sha256": "697440a258b5969acc815dae9cebeb1e3720ba58ae8baf9acdd19d7a61bf0e12",
+      "bytes": 56141
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/genuine-recovery-job-controls-runtime-stop-short-chromium-attempt2.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-pause-body-failure-2026-10-11/genuine-recovery-job-controls-runtime-stop-short-chromium-attempt2.json",
+      "sha256": "c7eac0f73a311b571ab7c825de6ae9b54f02d4ea398dee8669a6310542133534",
+      "bytes": 579
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/physical-sqlite-after-short-chromium-attempt2.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-pause-body-failure-2026-10-11/physical-sqlite-after-short-chromium-attempt2.json",
+      "sha256": "5e3b7e23211b1dd8f3d01930a127bafeec9dd5f114194bcb8a86241727bd08d0",
+      "bytes": 61845
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/physical-sqlite-before-short-chromium-attempt2.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-pause-body-failure-2026-10-11/physical-sqlite-before-short-chromium-attempt2.json",
+      "sha256": "08bbff6db9733b31a25303856830c1b4cac4688e28feb669b49eecc26eb8b05b",
+      "bytes": 61735
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/chromium-child-temp-owner.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-pause-body-failure-2026-10-11/runtime-chromium-child-temp-owner.json",
+      "sha256": "9c84383c93a07b2800f90d8e0f75f4acc2615ed8ce9f7e861fc000db08a41084",
+      "bytes": 652
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/current-actual-f228-carry-and-short-temp-beforephysical-command.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-pause-body-failure-2026-10-11/runtime-current-actual-f228-carry-and-short-temp-beforephysical-command.json",
+      "sha256": "d65185548be502131571da453b25e28ce011493e65b9e849679b6aaa7fb147d4",
+      "bytes": 1675
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/current-actual-f228-carry-and-short-temp-beforephysical.log",
+      "saved": "docs/qa/phase5f-recovery-job-controls-pause-body-failure-2026-10-11/runtime-current-actual-f228-carry-and-short-temp-beforephysical.log",
+      "sha256": "fa65f6539aa4a3585323f4e329bf7d72965a897730b6b34de0c1cd79f238387a",
+      "bytes": 406
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/final-causal-f228-source-and-job-controls-short-temp-pins.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-pause-body-failure-2026-10-11/runtime-final-causal-f228-source-and-job-controls-short-temp-pins.json",
+      "sha256": "c0cae2a8c3f390d48c4e1f56bbad997477858f90ef5d966283b52a2f4dc564a6",
+      "bytes": 3086
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/final-source-artifact-input-pins-command.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-pause-body-failure-2026-10-11/runtime-final-source-artifact-input-pins-command.json",
+      "sha256": "30c564c93bcd60d0cc282a1f6fa9c52844008d8209a12b9337e5344fbc01f178",
+      "bytes": 1768
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/final-source-artifact-input-pins.log",
+      "saved": "docs/qa/phase5f-recovery-job-controls-pause-body-failure-2026-10-11/runtime-final-source-artifact-input-pins.log",
+      "sha256": "83755c7466e52cc3b9436df4afc4f83c5f45f5389ecad32e6ad70a9b278f122e",
+      "bytes": 201
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/frozen-approved-plan.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-pause-body-failure-2026-10-11/runtime-frozen-approved-plan.json",
+      "sha256": "2232b313fb27a5dc6baa4b59ca90a37f321008da324fcd75b71d36badcb5767b",
+      "bytes": 11012
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/genuine-signed-admin-recovery-job-controls-two-command.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-pause-body-failure-2026-10-11/runtime-genuine-signed-admin-recovery-job-controls-two-command.json",
+      "sha256": "fdd18d65e85a7554cdfd78a6a259eaca278494c13697e2ce6bd0053f6d900e96",
+      "bytes": 2894
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/genuine-signed-admin-recovery-job-controls-two.log",
+      "saved": "docs/qa/phase5f-recovery-job-controls-pause-body-failure-2026-10-11/runtime-genuine-signed-admin-recovery-job-controls-two.log",
+      "sha256": "8f10f1196917cc6d7b98e8c60176b9901bebc231b73639c53271063dc93c67b6",
+      "bytes": 256
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/physical-after-short-chromium-command.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-pause-body-failure-2026-10-11/runtime-physical-after-short-chromium-command.json",
+      "sha256": "f30fa2a92a005275670ff165019cf4d06d093fd3263d8e95989eb89f73236b40",
+      "bytes": 1866
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/physical-after-short-chromium.log",
+      "saved": "docs/qa/phase5f-recovery-job-controls-pause-body-failure-2026-10-11/runtime-physical-after-short-chromium.log",
+      "sha256": "857ae97726a90311d625ca5a8d8d422b3ffd4e5a448b2e1d67aaeb3219eb8e3e",
+      "bytes": 199
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/prior-actual-f228-build-and-two-shared-posts-causal-carry.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-pause-body-failure-2026-10-11/runtime-prior-actual-f228-build-and-two-shared-posts-causal-carry.json",
+      "sha256": "a727992e96186eb40f1fd29bf1d47f1f3e9a14e4b337a2ade33d05e069f36194",
+      "bytes": 943
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/actual-short-child-temp-first-body-failure-closed-release.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-pause-body-failure-2026-10-11/runtime-actual-short-child-temp-first-body-failure-closed-release.json",
+      "sha256": "31bca7f4584bf1320554e3021ffd5cd598727965c5be90c37850e60a70dd5e6c",
+      "bytes": 10803
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/actual-original-pause200-body-failure-source-correction.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-pause-body-failure-2026-10-11/runtime-actual-original-pause200-body-failure-source-correction.json",
+      "sha256": "0b641ffb208fe43e39554eb1667a3ef63ff14394faca01fc38619f7c571820ae",
+      "bytes": 3224
+    }
+  ],
+  "retainedPriorSetupCheckpoint": "26d59edeb356856f1ce1f238743766ac475b5a70",
+  "correction": "Original31bca scope contains an initial202/previewPOST diagnosis mistake. This checkpoint retains that original and exact0b641ffb correction. Raw202 complete and Pause200 failure are authoritative; no original failure rewritten.",
+  "runtime": "No new runtime; pure source/raw file curation."
+}

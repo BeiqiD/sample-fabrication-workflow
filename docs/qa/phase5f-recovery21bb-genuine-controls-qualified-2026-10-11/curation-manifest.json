@@ -1,0 +1,291 @@
+{
+  "version": 1,
+  "status": "QUALIFIED_GENUINE_TWO_RECOVERY_METADATA_JOB_CONTROLS_NOT_OPERATIONAL_RECOVERY_RELEASE",
+  "sourceHead": "21bb149da250ef249d2bef7ddb365feb63532503",
+  "producerHead": "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+  "originalAggregateSha256": "985d0c9de7d6e7d2c64939b6be257ae77cbaa7f69df3719677255f604f5846c0",
+  "rawRecords": [
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/chromium-child-temp-owner.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/01-chromium-child-temp-owner.json",
+      "sha256": "a4738d9003e088a4ef10a71fad6374bee80d5179987e400bd540e00c6b8e7c81",
+      "bytes": 618
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/final-causal-f228-source-and-job-controls-short-temp-pins.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/02-final-causal-f228-source-and-job-controls-short-temp-pins.json",
+      "sha256": "e2aa562710bbb1321a3caeafbb0a94d480c32d8aa01a2d43aaad5555a15ea68f",
+      "bytes": 3854
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/final-source-artifact-input-pins-command.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/03-final-source-artifact-input-pins-command.json",
+      "sha256": "9629a0f5b2692ab98d307094945537c0af4381bba77dc12996877898b43a019f",
+      "bytes": 1476
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/final-source-artifact-input-pins.log",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/04-final-source-artifact-input-pins.log",
+      "sha256": "bb5068e0b4ba469129191f9913a41b5eaead9722aef61ccd7cab99faac21974a",
+      "bytes": 201
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/fresh-current-source-build-witness-command.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/05-fresh-current-source-build-witness-command.json",
+      "sha256": "402451f3616520e1ef1154dadff1b37ab9677c1b1c1763a02f92de423bccf72a",
+      "bytes": 1477
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/fresh-current-source-build-witness.log",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/06-fresh-current-source-build-witness.log",
+      "sha256": "87a79b9d62aab84a4ab851c12f5bab4e3a1fc8bcb2a5f4df95849a163b6f7f92",
+      "bytes": 198
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/fresh-two-version-sentinel-command.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/07-fresh-two-version-sentinel-command.json",
+      "sha256": "c51660bd9cef2349ac90a61c92569623e4a37bed28e135788e2fc6833ba6ba51",
+      "bytes": 1885
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/fresh-two-version-sentinel.log",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/08-fresh-two-version-sentinel.log",
+      "sha256": "be608fdacc98745e9c989b61c6354aecae8d2f3c120fddc1b8143569e042f02f",
+      "bytes": 222
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/frozen-approved-plan.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/09-frozen-approved-plan.json",
+      "sha256": "131fb0980737c7b5bf321f58ad71c245ce53c5c1c55756146319b93fd34e9ef1",
+      "bytes": 22015
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/genuine-signed-admin-recovery-job-controls-two-command.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/10-genuine-signed-admin-recovery-job-controls-two-command.json",
+      "sha256": "697012a7e127cb078b63c8d5afb857bc03078660af3f29d1d008b85d2e5a3481",
+      "bytes": 2479
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/genuine-signed-admin-recovery-job-controls-two.log",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/11-genuine-signed-admin-recovery-job-controls-two.log",
+      "sha256": "17624ab2d6c3eab6e3d041b0aa01dbe501a9f46ee87dbf53a48b4d7ab0b3645a",
+      "bytes": 251
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/isolated-copy-command.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/12-isolated-copy-command.json",
+      "sha256": "e52bf956291b05a08612ac7097b9d2d6748d9192ff709ad413814110c15da356",
+      "bytes": 1409
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/isolated-copy.log",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/13-isolated-copy.log",
+      "sha256": "2b1e3105881a42d2a9aa7b09c8ab320e6d2dd48d81b91a75e1ad6f4d07424591",
+      "bytes": 198
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/mature-genuine-api-84-only-command.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/14-mature-genuine-api-84-only-command.json",
+      "sha256": "6ed99d159ff0ff3e737aabe3b77368c94fca6b9d587294c29ab234269fd932c5",
+      "bytes": 1265
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/mature-genuine-api-84-only.log",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/15-mature-genuine-api-84-only.log",
+      "sha256": "88df4f84c32616222c53d7b71567a8e01b33addc7dc3dd00b28c80b9a71dfaee",
+      "bytes": 185
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/ordinary-actual24-local-migrations-command.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/16-ordinary-actual24-local-migrations-command.json",
+      "sha256": "a1eb79f77efcc2405e23e5c2dec6424ec60f9913f3ef2a684805e69746246082",
+      "bytes": 1996
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/ordinary-actual24-local-migrations.log",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/17-ordinary-actual24-local-migrations.log",
+      "sha256": "a4c2ee4f147f8110883945240afdfc2a2814e352b98694a6814440398a2d4360",
+      "bytes": 147956
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/original-f228-build-new-physical-fixture-causal-carry.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/18-original-f228-build-new-physical-fixture-causal-carry.json",
+      "sha256": "babca3d21751c9a7f627c3eb247c816663f44982136562edd9e7c1cb89f59aba",
+      "bytes": 1151
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/owned-built-worker-command.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/19-owned-built-worker-command.json",
+      "sha256": "fa3f3eca47c95b2d73858312ec1f4a1b189eb4ec40ef79c66e4d000050303100",
+      "bytes": 1721
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/owned-built-worker.log",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/20-owned-built-worker.log",
+      "sha256": "6871441cd61aca6c54e60dd7b1ccc8949f1c067b47cfba3df102269133613ce7",
+      "bytes": 505
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/physical-after-command.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/21-physical-after-command.json",
+      "sha256": "508457f862e85f41575030d218e986d0c483c70437abeb853c9cdd814cb94cc0",
+      "bytes": 1658
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/physical-after.log",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/22-physical-after.log",
+      "sha256": "a0fa4e7dbe8929d2bdeeef21cfd7309384051b764670b50ea6cfddc4cefca208",
+      "bytes": 167
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/physical-before-command.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/23-physical-before-command.json",
+      "sha256": "fe092dcdddd432ed2829286e9a0b5863b9f2520192379b3e6487e4fff1c0ef03",
+      "bytes": 1342
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/physical-before.log",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/24-physical-before.log",
+      "sha256": "62459b71e43a1026f14d546facca27bc5acf37fe25893fb7033b032fd2fdfdf9",
+      "bytes": 163
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/qualified-original-f228-build-producer-preflight-command.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/25-qualified-original-f228-build-producer-preflight-command.json",
+      "sha256": "336389bdb36ec67df576561375fb6b5f6d3583e71a3146e4ed1cc72158f8ee5b",
+      "bytes": 1483
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/qualified-original-f228-build-producer-preflight.log",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/26-qualified-original-f228-build-producer-preflight.log",
+      "sha256": "1526840294dc311b819362a317d612b4942985bbdf52dc2dcc06a534e4a8af3f",
+      "bytes": 104
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/synthetic-template-sentinels-only-command.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/27-synthetic-template-sentinels-only-command.json",
+      "sha256": "d28cefe62d4168edf0fb4713383503341af9ac2ee75bb23cbdfcbf5e578de303",
+      "bytes": 2082
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/synthetic-template-sentinels-only.log",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/28-synthetic-template-sentinels-only.log",
+      "sha256": "388aa0a4b2be0299b9a16521bf64f9003c29ed7b6cf5532be72e7ee83581e4b4",
+      "bytes": 1611
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/fixture/genuine-recovery-job-controls-browser-report-original-native-byte-proof-attempt5.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/29-genuine-recovery-job-controls-browser-report-original-native-byte-proof-attempt5.json",
+      "sha256": "8c2105f77e587fd3b9bce24e666b6421e9e5109a50f2e1ef2307f7668e8fabfb",
+      "bytes": 103654
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/fixture/genuine-recovery-job-controls-runtime-stop-original-native-byte-proof-attempt5.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/30-genuine-recovery-job-controls-runtime-stop-original-native-byte-proof-attempt5.json",
+      "sha256": "40997ebcb42e64807273e69614c056bfd0093c39e2450dbba1e27bdad0ca8e9a",
+      "bytes": 579
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/fixture/physical-sqlite-before-api.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/31-physical-sqlite-before-api.json",
+      "sha256": "938e0796723f9eb733ee367acc65f3effc5e6607dd94016ac676645acca37776",
+      "bytes": 59148
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/fixture/physical-sqlite-after-shutdown.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/32-physical-sqlite-after-shutdown.json",
+      "sha256": "1f89ab96f9d4a1f6ca1d705be2da065aa90e3b66d3dc881b28388d4fc8ec6f90",
+      "bytes": 63963
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/fixture/actual-api-fixture-receipt.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/33-actual-api-fixture-receipt.json",
+      "sha256": "575dfd08ac33cb4875abe557cf86729112de30a073695e55246b10f4fc582e6d",
+      "bytes": 51642
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/fixture/isolated-server-receipt.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/34-isolated-server-receipt.json",
+      "sha256": "2faa3e5b40c3670778cb63ce740f6b1c1658d9d94840936ce7c11e6044836d22",
+      "bytes": 3450
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/fixture/isolated-server-stop-receipt.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/35-isolated-server-stop-receipt.json",
+      "sha256": "1512aa815fc44965baffffc7cf5fd84b31110bd4cdb7b4b8d2a5e2c0ce7929be",
+      "bytes": 1053
+    },
+    {
+      "originalPath": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/actual-21bb-two-genuine-job-controls-qualified-closed-release.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/36-actual-21bb-two-genuine-job-controls-qualified-closed-release.json",
+      "sha256": "985d0c9de7d6e7d2c64939b6be257ae77cbaa7f69df3719677255f604f5846c0",
+      "bytes": 21947
+    },
+    {
+      "originalPath": "/workspace/ui21bb-root-independent-uniform-native-application-byte-source-peer.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/37-ui21bb-root-independent-uniform-native-application-byte-source-peer.json",
+      "sha256": "18a3788eba5e765e69941dc0c8daae7f478e2e81a3dcf60388e404214c445ac7",
+      "bytes": 2172
+    },
+    {
+      "originalPath": "/workspace/ui21bb-final13-root-independent-mature-finite-binding-peer.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/38-ui21bb-final13-root-independent-mature-finite-binding-peer.json",
+      "sha256": "4bd2c361706bdca67a7ea953068b48891259a9499cf5f4854cccd8a8c3487e3d",
+      "bytes": 1447
+    },
+    {
+      "originalPath": "/workspace/phase5f-recovery-job-controls-native-byte-proof-final-finite-source-review-attempt7/source-handoff.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/39-source-handoff.json",
+      "sha256": "40ac7d6fa5ed46a97f52422956f50c23c7bdc72c3265144e8cc8ea030fa899e5",
+      "bytes": 2401
+    },
+    {
+      "originalPath": "/workspace/phase5f-recovery-job-controls-native-byte-proof-final-finite-source-review-attempt7/finite-original-f228-new-physical-native-byte-proof-thirteen-plan.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/40-finite-original-f228-new-physical-native-byte-proof-thirteen-plan.json",
+      "sha256": "131fb0980737c7b5bf321f58ad71c245ce53c5c1c55756146319b93fd34e9ef1",
+      "bytes": 22015
+    },
+    {
+      "originalPath": "/workspace/phase5f-recovery-job-controls-native-byte-proof-final-finite-source-review-attempt7/final-minimal-peer-binding-source-proof.json",
+      "curatedPath": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/41-final-minimal-peer-binding-source-proof.json",
+      "sha256": "a9b7737063a6a7861b37fead39c09dae1377bbc32237b68362ce0267edbb6b08",
+      "bytes": 647
+    }
+  ],
+  "actualScope": {
+    "actualCommands": 12,
+    "logicalStages": 13,
+    "allPassed": true,
+    "nativeCasesPassed": 2,
+    "nativeCasesFailed": 0,
+    "nativeCasesUnrun": 0,
+    "newBuilds": 0,
+    "freshCurrent24Fixture": true,
+    "matureApiSeedRequests": 84,
+    "acceptedMetadataMutations": 10,
+    "auxiliaryGETs": 2,
+    "browserGETs": 8,
+    "primaryOriginalEOFProofs": 12,
+    "desktopOriginalCDPCompleted": 6,
+    "mobileOriginalCDPCompleted": 4,
+    "mobileOriginalCDPFailed": 2
+  },
+  "historicalFailuresPreserved": [
+    {
+      "root": "/workspace/phase5f-recovery-job-controls83ca-original-pause-failure-evidence-source-attempt4",
+      "head": "a8f1c86cc7e6e160f8fa3f16f745f4b8f865f1e3",
+      "aggregateSha256": "15ddc5076cd81ae72af734737d9731a62d21903b2f759b79d47cc5a8143ac99c"
+    },
+    {
+      "root": "/workspace/phase5f-recovery-job-controls-bfea-capabilities-body-failure-evidence-source-attempt3",
+      "head": "9ba830e0dc81df04c536056043a54639adb1833e",
+      "aggregateSha256": "843258754c8ef7b859bf695000c7984202749a52338541d1946ec49e597f0a20"
+    },
+    {
+      "root": "/workspace/phase5f-recovery-job-controls-pause-body-failure-evidence-source-attempt2",
+      "head": "4515ce594ef5fc353fdb436076b7e371a18ff6bc",
+      "authoritativePauseCorrectionSha256": "0b641ffb208fe43e39554eb1667a3ef63ff14394faca01fc38619f7c571820ae"
+    }
+  ],
+  "limits": "Source-specific genuine CF local metadata controls. Exact source/artifact carry of original f228 CF118/copy121. No ZIP/step/provider/target/operational restore/deployment/devices/other engines. No older CDP failure cause inferred."
+}

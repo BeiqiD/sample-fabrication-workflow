@@ -1,0 +1,60 @@
+{
+  "stage": "fresh-two-version-sentinel",
+  "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+  "argv": [
+    "node",
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source/scripts/qa/phase5f/generate-process-fixture.mjs",
+    "/workspace/recovery-native-proof-f228-private-attempt5/copy",
+    "/workspace/recovery-native-proof-f228-private-attempt5/fixture"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/recovery-native-proof-f228-private-attempt5",
+    "SQLITE_TMPDIR": "/workspace/recovery-native-proof-f228-private-attempt5"
+  },
+  "startedAt": "2026-10-11T09:54:40.087106+00:00",
+  "status": "PASS",
+  "log": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/fresh-two-version-sentinel.log",
+  "pid": 1041821,
+  "processGroup": 1041821,
+  "originalStartTicks": "12574085",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1041832,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1041821,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1041832,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1041821,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1041832,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1041821,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T09:54:41.425415+00:00",
+  "logSha256": "be608fdacc98745e9c989b61c6354aecae8d2f3c120fddc1b8143569e042f02f"
+}

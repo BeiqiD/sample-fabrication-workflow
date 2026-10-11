@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "status": "FROZEN_SOURCE_ONLY_FINAL13_ALL_UNRUN",
+  "head": "21bb149da250ef249d2bef7ddb365feb63532503",
+  "tree": "c7bafcec3e2d9251dc4c6b675dab872db09f5645",
+  "root": "/workspace/phase5f-recovery-job-controls-native-application-byte-proof-source-attempt6",
+  "helperSha256": "4f2873425d2bc40b3825f061a8e2d92da9ee193f694215fcd3bf0c9bcdd2e834",
+  "files": {
+    "finite-original-f228-new-physical-native-byte-proof-thirteen-plan.json": {
+      "path": "/workspace/phase5f-recovery-job-controls-native-byte-proof-final-finite-source-review-attempt7/finite-original-f228-new-physical-native-byte-proof-thirteen-plan.json",
+      "sha256": "131fb0980737c7b5bf321f58ad71c245ce53c5c1c55756146319b93fd34e9ef1"
+    },
+    "run-frozen-owned-stage.py": {
+      "path": "/workspace/phase5f-recovery-job-controls-native-byte-proof-final-finite-source-review-attempt7/run-frozen-owned-stage.py",
+      "sha256": "289ee573aa5a1ff922034f083edd1c06b3c9ed5412ff3396d5d09b01c32920ec"
+    },
+    "carry-original-f228-new-fixture-native-byte-proof.py": {
+      "path": "/workspace/phase5f-recovery-job-controls-native-byte-proof-final-finite-source-review-attempt7/carry-original-f228-new-fixture-native-byte-proof.py",
+      "sha256": "33753e9594dec7c7e671910dc5e4a00326d4e9cf9530d06f5e35d85dad061d80"
+    },
+    "final-minimal-peer-binding-source-proof.json": {
+      "path": "/workspace/phase5f-recovery-job-controls-native-byte-proof-final-finite-source-review-attempt7/final-minimal-peer-binding-source-proof.json",
+      "sha256": "a9b7737063a6a7861b37fead39c09dae1377bbc32237b68362ce0267edbb6b08"
+    }
+  },
+  "wholeHelperSourcePeer": {
+    "path": "/workspace/ui21bb-root-independent-uniform-native-application-byte-source-peer.json",
+    "sha256": "18a3788eba5e765e69941dc0c8daae7f478e2e81a3dcf60388e404214c445ac7"
+  },
+  "historicalActualBuild": "Original f228 ONE118/copy121, newbuild0; newpure24+mature84 fixture/rootstillabsent; all old source/raw/paused jobs preserved.",
+  "all13CommandStageIDsCostsBudgetsExact": true,
+  "noActualGO": "Final rootbindingpeer and separate exclusiveGO required; all13 stages/2 cases UNRUN.",
+  "start": "python3 -B /workspace/phase5f-recovery-job-controls-native-byte-proof-final-finite-source-review-attempt7/run-frozen-owned-stage.py --exclusive-go-exact-21bb149-original-native-byte-proof-two-stage qualified-original-f228-build-producer-preflight"
+}

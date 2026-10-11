@@ -1,0 +1,35 @@
+{
+  "stage": "final-source-artifact-input-pins",
+  "control": "All exact current producer/consumer/copy original tracked working bytes/artifacts; actual accepted metadata history3-table rows verified by original helper; all63 permits/othercatalog/rows/objectroots exact; original directwait/reap/ports. Preserve browser FAIL/PARTIAL/UNRUN rather than infer pass from cleanup.",
+  "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+  "argv": [
+    "python3",
+    "-B",
+    "/workspace/phase5f-recovery-job-controls-current-coherent-finite-source-review-attempt1/verify-coherent-cf-producer-and-job-controls-witness.py",
+    "--coherent-cf-producer-for-genuine-job-controls-two",
+    "final-pins"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1",
+    "SQLITE_TMPDIR": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1"
+  },
+  "startedAt": "2026-10-11T07:54:33.311137+00:00",
+  "status": "FAILED",
+  "log": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/final-source-artifact-input-pins.log",
+  "pid": 981471,
+  "processGroup": 981471,
+  "originalStartTicks": "11853408",
+  "exitCode": 1,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 1,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T07:54:33.748497+00:00",
+  "logSha256": "4e1d4c67f925ef0523d29e28bf3cb55717bd2799908b12098bedbbf0ef65e0eb"
+}

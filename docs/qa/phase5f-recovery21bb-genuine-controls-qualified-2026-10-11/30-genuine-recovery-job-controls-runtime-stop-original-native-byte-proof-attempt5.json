@@ -1,0 +1,19 @@
+{
+  "sessionId": "dae0466d-96e0-40b0-907f-5c409876d1a2",
+  "startedAt": "2026-10-11T09:56:32.989Z",
+  "status": "closed",
+  "browserCloseAwaited": true,
+  "originalSharedWorkBeforeDisableAwaited": 1,
+  "originalDisableAwaited": true,
+  "originalSharedWorkAwaited": {
+    "count": 2,
+    "rejected": 0
+  },
+  "originalApplicationCatalogRowsPermitsAndAcceptedHistoryVerified": true,
+  "executorDisabledReadBack": true,
+  "workerDisposeAwaited": true,
+  "workerPortRefused": true,
+  "jwksCloseAwaited": true,
+  "jwksPortRefused": true,
+  "completedAt": "2026-10-11T09:56:35.196Z"
+}

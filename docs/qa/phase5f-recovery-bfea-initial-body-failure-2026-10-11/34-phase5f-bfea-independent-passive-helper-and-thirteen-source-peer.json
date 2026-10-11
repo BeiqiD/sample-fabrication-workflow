@@ -1,0 +1,57 @@
+{
+  "kind": "phase5f-bfea-independent-passive-observer-and-thirteen-source-peer/1",
+  "status": "SOURCE_CLEAR_ALL13_RUNTIME_UNRUN",
+  "reviewedAt": "2026-10-11T08:56:31.662046+00:00",
+  "sourceRoot": "/workspace/phase5f-recovery-job-controls-original-pause-terminal-cut-source-attempt4",
+  "sourceHead": "bfea74fb975f46fa70eb203c5f5844b46d115215",
+  "sourceTree": "0a7fa7198fa972e1e79e29abdefb17b5281e20b0",
+  "sourceHandoff": {
+    "path": "/workspace/phase5f-recovery-job-controls-original-pause-terminal-cut-source-review-attempt4/source-handoff.json",
+    "sha256": "52ef43c3cd1fccb57ffdad8096f8c15eff97927f1544522e6248b4ba5615647a"
+  },
+  "finiteHandoff": {
+    "path": "/workspace/phase5f-recovery-job-controls-original-pause-terminal-cut-finite-source-review-attempt4/source-handoff.json",
+    "sha256": "68cfb60e9529e380677e9e55870a4025bbd560c5984614379a10cd835bf819b1"
+  },
+  "sourceFreezeSha256": "f9e420b40c45eebccd4a28ae94ce5112f2c6925aa8b112da3ed917d5804c0b2e",
+  "helperSha256": "120568dc7243d62457dc42ec7bb0eb070b987390d659d9385ce504e7d08fce7c",
+  "allTrackedWorkingGitModesVerified": 2489,
+  "allNonHelperOriginalF228Exact": 2488,
+  "parentC5cEntireOneLineInverseExact": true,
+  "whole4aToC5cObserverPatchExact": true,
+  "original11RunnerDefinitionsAnd3CarrierFunctionsAstExact": true,
+  "all13CommandsAndOriginalBudgetsPreserved": true,
+  "originalActualProducerHead": "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+  "originalActualBuildCommand": {
+    "path": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/one-fresh-coherent-cf-worker-and-frontend-build-command.json",
+    "sha256": "1e2d98d3207f902a2426b8aaf1d9a15e0bfbf8fe19acb9679c8c7c622ac70a9f"
+  },
+  "originalActualArtifactCountVerified": 118,
+  "newCopyFixtureRuntimeAbsent": {
+    "copy": "/workspace/recovery-pause-observer-f228-private-attempt3/copy",
+    "fixture": "/workspace/recovery-pause-observer-f228-private-attempt3/fixture",
+    "runtime": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime"
+  },
+  "shortChildTempAbsent": "/workspace/.r2b7tmp",
+  "findings": [],
+  "sourceConclusions": [
+    "The synchronous flat Request terminal cut precedes the original asynchronous application snapshot and context cleanup. Later native events cannot rewrite that cut; final terminal metadata remains distinct.",
+    "The private WeakMaps correlate exact original native Requests. Application wrappers invoke the captured native methods with original receiver and arguments, return the original Promise/reader/value, and add no read, cancel, clone, tee, replay or request.",
+    "Only already-yielded bounded copied bytes and closed header/error categories are observed; snapshot metadata and bytes freeze before digest. Pending/late observers do not upgrade a captured prefix into complete-stream evidence.",
+    "Strict native original 200/202 bodies, size bound and backend hash equality remain acceptance requirements. At most10 original POSTs, genuine contracts and exact partial accepted job lineage remain intact.",
+    "The retained snapshot consumes only the remaining original20s before context cleanup; original route work, response bodies and waits settle before the cached shared disable, history verification and original Worker/JWKS disposal.",
+    "One original f228 CF/frontend build118 is causal historical input. New physical24 migrations plus84 genuine disabled-setup requests and two signed administrator cases remain UNRUN; old paused history is never opened or modified."
+  ],
+  "limitations": [
+    "This is source review, not a measured engine/root-cause diagnosis or completed Recovery/5F milestone.",
+    "Observers add method wrappers and Promise reactions; original arguments/return identities are retained, but source review does not prove runtime scheduling is unaffected.",
+    "The finite recorder runs individual stages. The exclusive root supervisor must enforce the declared120s TTY guard, explicit original stdin stop, stage order and mandatory post-failure physical/source checks.",
+    "No new CF build is planned; the helper still compiles exact three contract modules in memory as declared. That is separate from the historical CF/frontend production build.",
+    "Failed original disposal remains failure evidence. Process/group cleanup cannot substitute for graceful application close or accepted-history verification."
+  ],
+  "applicationImports": 0,
+  "compilerInvocations": 0,
+  "candidatePreflightInvocations": 0,
+  "buildInvocations": 0,
+  "SQLiteSDKSocketBrowserEffects": 0
+}
