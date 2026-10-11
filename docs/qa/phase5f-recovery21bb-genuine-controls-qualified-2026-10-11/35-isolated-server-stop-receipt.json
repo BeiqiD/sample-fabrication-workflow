@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "sourceRoot": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+  "sourceCopyRoot": "/workspace/recovery-native-proof-f228-private-attempt5/copy",
+  "fixtureDirectory": "/workspace/recovery-native-proof-f228-private-attempt5/fixture",
+  "sourceHead": "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+  "sourceTree": "d16675a42725094e586f9f3bc78468aa5e46310d",
+  "sessionId": "6961e48a-7be8-4fd1-9311-62349dad1a91",
+  "sessionPid": 1042325,
+  "isolationReceiptSha256": "5053e7583ee2fd41d61979b76aa2b65072c858d9782fed82a81627f2d5eceda8",
+  "fixtureManifestSha256": "ea228012036237ae58fbd4f874abfcfcc4f3be36cd4290cc615e3befa22a752c",
+  "status": "stopped",
+  "control": "stdin:stop",
+  "disposalAwaited": true,
+  "portClosed": true,
+  "startedAt": "2026-10-11T09:56:12.145Z",
+  "stoppedAt": "2026-10-11T09:56:12.157Z",
+  "startupReceiptSha256": "2faa3e5b40c3670778cb63ce740f6b1c1658d9d94840936ce7c11e6044836d22",
+  "helperSha256": "929eec612bf7ab8b266089553b5d56ce75e0abb192d24ab929222403cc5d3424"
+}

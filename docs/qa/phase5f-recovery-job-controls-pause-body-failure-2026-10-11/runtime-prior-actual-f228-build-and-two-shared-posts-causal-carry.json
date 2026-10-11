@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "producerHead": "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+  "producerTree": "d16675a42725094e586f9f3bc78468aa5e46310d",
+  "qaConsumerHead": "4a4f324588d2482ce24b56a759566eae822a0e97",
+  "qaConsumerTree": "2bd722e9723b8514ab202c0c33b09927f58dd27e",
+  "originalBuildReceiptSha256": "1e2d98d3207f902a2426b8aaf1d9a15e0bfbf8fe19acb9679c8c7c622ac70a9f",
+  "oldClosedReceiptSha256": "ac9a5db5a7550cdbf5fe5b4cec0dbedc688d54869790c6ecf4d986fdf592b95e",
+  "originalProducerCount": 2489,
+  "exactNonHelperConsumerCount": 2488,
+  "ownedQaHelperSha256": "fb6fe9acacd019f5b1eb4589b6e9b5878dd64645074b81c2e6d3cf655650d9b0",
+  "originalActualArtifacts": 118,
+  "originalCopiedArtifacts": 121,
+  "oldSetupSharedPosts": 2,
+  "oldJobs": 0,
+  "oldBrowserCasesRun": 0,
+  "newLogicalPostsMaximum": 10,
+  "noNewBuildOrSeed": true,
+  "originalNamespaceAndCopiedInputsExact": true,
+  "originalPhysicalStateBytesExactBeforeAnyNewRead": true
+}

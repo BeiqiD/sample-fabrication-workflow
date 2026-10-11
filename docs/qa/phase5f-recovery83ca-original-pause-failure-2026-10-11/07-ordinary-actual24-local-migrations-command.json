@@ -1,0 +1,69 @@
+{
+  "stage": "ordinary-actual24-local-migrations",
+  "cwd": "/workspace/recovery-initial-reader-f228-private-attempt4/copy",
+  "argv": [
+    "node",
+    "node_modules/wrangler/bin/wrangler.js",
+    "d1",
+    "migrations",
+    "apply",
+    "DB",
+    "--local",
+    "--config",
+    ".wrangler/deploy.jsonc",
+    "--persist-to",
+    "/workspace/recovery-initial-reader-f228-private-attempt4/copy/.wrangler/state"
+  ],
+  "env": {
+    "WRANGLER_SEND_METRICS": "false",
+    "WRANGLER_LOG_PATH": "/workspace/recovery-initial-reader-f228-private-attempt4/fixture/wrangler-logs",
+    "TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4",
+    "SQLITE_TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4"
+  },
+  "startedAt": "2026-10-11T09:22:38.136159+00:00",
+  "status": "PASS",
+  "log": "/workspace/recovery-initial-reader-f228-private-attempt4/runtime/ordinary-actual24-local-migrations.log",
+  "pid": 1019992,
+  "processGroup": 1019992,
+  "originalStartTicks": "12381890",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1020472,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1019992,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1020472,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1019992,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1020472,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1019992,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T09:22:51.605016+00:00",
+  "logSha256": "a4c2ee4f147f8110883945240afdfc2a2814e352b98694a6814440398a2d4360"
+}

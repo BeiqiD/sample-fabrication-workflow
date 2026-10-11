@@ -1,0 +1,255 @@
+{
+  "status": "ACTUAL_FIRST_SETUP_FAILURE_CLOSED_RELEASED_EVIDENCE_ONLY",
+  "baseHead": "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+  "originalAggregate": {
+    "path": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/actual-recovery-job-controls-first-setup-failure-closed-release.json",
+    "sha256": "ac9a5db5a7550cdbf5fe5b4cec0dbedc688d54869790c6ecf4d986fdf592b95e"
+  },
+  "selectedOriginalFiles": [
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/actual-recovery-job-controls-first-setup-failure-closed-release.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-first-setup-failure-2026-10-11/runtime-actual-recovery-job-controls-first-setup-failure-closed-release.json",
+      "sha256": "ac9a5db5a7550cdbf5fe5b4cec0dbedc688d54869790c6ecf4d986fdf592b95e",
+      "bytes": 17294
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/one-fresh-coherent-cf-worker-and-frontend-build-command.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-first-setup-failure-2026-10-11/runtime-one-fresh-coherent-cf-worker-and-frontend-build-command.json",
+      "sha256": "1e2d98d3207f902a2426b8aaf1d9a15e0bfbf8fe19acb9679c8c7c622ac70a9f",
+      "bytes": 1925
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/fresh-build-artifact-manifest.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-first-setup-failure-2026-10-11/runtime-fresh-build-artifact-manifest.json",
+      "sha256": "1a85377b549796e92f6065fe755a836b840b5953830207c7ec60d519add3f8d1",
+      "bytes": 14601
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/genuine-signed-admin-recovery-job-controls-two-command.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-first-setup-failure-2026-10-11/runtime-genuine-signed-admin-recovery-job-controls-two-command.json",
+      "sha256": "b31270c703ad54063f237d2e00ea064ac1c5e9179345347ebc7ab98070e6dd37",
+      "bytes": 2457
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/genuine-signed-admin-recovery-job-controls-two.log",
+      "saved": "docs/qa/phase5f-recovery-job-controls-first-setup-failure-2026-10-11/runtime-genuine-signed-admin-recovery-job-controls-two.log",
+      "sha256": "6e9760399e7adad39d42c0c893abceb8709a4e640546d6b7854c8b3e60d1e49e",
+      "bytes": 232
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/physical-after-command.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-first-setup-failure-2026-10-11/runtime-physical-after-command.json",
+      "sha256": "cd7dd35f94b2baab5ad3ffd6608432d462f915d92d779e8920831fda54e7fc32",
+      "bytes": 1741
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/final-source-artifact-input-pins-command.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-first-setup-failure-2026-10-11/runtime-final-source-artifact-input-pins-command.json",
+      "sha256": "36b957aaee7c877dc7ffc4957033fc77f5a2ce3840691129a1d073fa5da0c806",
+      "bytes": 1638
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/final-source-artifact-input-pins.log",
+      "saved": "docs/qa/phase5f-recovery-job-controls-first-setup-failure-2026-10-11/runtime-final-source-artifact-input-pins.log",
+      "sha256": "4e1d4c67f925ef0523d29e28bf3cb55717bd2799908b12098bedbbf0ef65e0eb",
+      "bytes": 389
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/genuine-recovery-job-controls-browser-report.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-first-setup-failure-2026-10-11/genuine-recovery-job-controls-browser-report.json",
+      "sha256": "495636ce2a6e58838bc68bf5046d4710afca6cc4a6329fe1f53aad7cbacf6a53",
+      "bytes": 51003
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/genuine-recovery-job-controls-runtime-stop.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-first-setup-failure-2026-10-11/genuine-recovery-job-controls-runtime-stop.json",
+      "sha256": "977ce06a6ae5d0120acde71e00bfec5ee7eba4d71dbd5a3af6139c95cc02f64d",
+      "bytes": 548
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/genuine-recovery-job-controls-browser-progress.ndjson",
+      "saved": "docs/qa/phase5f-recovery-job-controls-first-setup-failure-2026-10-11/genuine-recovery-job-controls-browser-progress.ndjson",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/physical-sqlite-after-shutdown.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-first-setup-failure-2026-10-11/physical-sqlite-after-shutdown.json",
+      "sha256": "b051a8dc387da543be3edd06acdf174c4099d42cd983db459b94238fa6ab9c80",
+      "bytes": 61171
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/isolated-server-stop-receipt.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-first-setup-failure-2026-10-11/isolated-server-stop-receipt.json",
+      "sha256": "f86479aa943d32df678fb27d095f577d7b3784d657b7923239d035c763dde269",
+      "bytes": 1086
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/actual-api-fixture-receipt.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-first-setup-failure-2026-10-11/actual-api-fixture-receipt.json",
+      "sha256": "7eb6d9ca18718da303f97f3a9b88d0523bdfecace2f16fb75f01b1f148828afc",
+      "bytes": 51676
+    },
+    {
+      "source": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/enabled-storage-draft-build-input-witness.json",
+      "saved": "docs/qa/phase5f-recovery-job-controls-first-setup-failure-2026-10-11/enabled-storage-draft-build-input-witness.json",
+      "sha256": "4460563edaafe71d29346833e2e0fac59ffac1c8378cd8e6f5a09b336eabc67d",
+      "bytes": 1448
+    }
+  ],
+  "allOriginalRawReferences": {
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/owned-built-worker-command.json": {
+      "sha256": "bfd20f71945c5a95b5ebbb7d1db0e8c1f58d850f6e8f91e7894136b2a858cd0a",
+      "bytes": 1821
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/one-fresh-coherent-cf-worker-and-frontend-build.log": {
+      "sha256": "a0a78af3dda4ee238573d7dc99f3d87759dcffa3668bf2d1cbb8697aa8a0e1e5",
+      "bytes": 12755
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/final-source-artifact-input-pins.log": {
+      "sha256": "4e1d4c67f925ef0523d29e28bf3cb55717bd2799908b12098bedbbf0ef65e0eb",
+      "bytes": 389
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/physical-before-command.json": {
+      "sha256": "ddd69df394244978462de549c71061843fd8f145996f9f24b9a6dca12d62aa69",
+      "bytes": 1425
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/fresh-current-source-build-witness-command.json": {
+      "sha256": "82e68b4a0374ed04407e403c152a97f86cad6b6cf6ab9a5093918dc1e583875a",
+      "bytes": 1499
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/genuine-signed-admin-recovery-job-controls-two.log": {
+      "sha256": "6e9760399e7adad39d42c0c893abceb8709a4e640546d6b7854c8b3e60d1e49e",
+      "bytes": 232
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/synthetic-template-sentinels-only.log": {
+      "sha256": "f086c450a430d2458cb3f0b98b1e844bbda73aef7ed162fd2651a14b7d123762",
+      "bytes": 1611
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/ordinary-actual24-local-migrations-command.json": {
+      "sha256": "256f417e3d2e882204d9431e2a05f53908f921d828efd7f55a71a60c8e412633",
+      "bytes": 2090
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/one-fresh-coherent-cf-worker-and-frontend-build-command.json": {
+      "sha256": "1e2d98d3207f902a2426b8aaf1d9a15e0bfbf8fe19acb9679c8c7c622ac70a9f",
+      "bytes": 1925
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/fresh-current-source-build-witness.log": {
+      "sha256": "53c6b99faa489162b95ad73456f5fcdd3d38dd7c3bb5c8bb03307f972cc2ad8f",
+      "bytes": 139
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/fresh-two-version-sentinel-command.json": {
+      "sha256": "c5bdf5a7cdda6d08042113c1df1b38c2697ed39a7f1b874bd63d2bf59bed39b2",
+      "bytes": 1962
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/isolated-copy-command.json": {
+      "sha256": "56cd4914e76638433b28c082728674e8a76ce91ff3c40fe9f40270c171fbd6d9",
+      "bytes": 1475
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/physical-before.log": {
+      "sha256": "ae489e72cb94301092804cd22ef70ea330366e4a47e9b1d23a270233dc600a18",
+      "bytes": 180
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/isolated-copy.log": {
+      "sha256": "f5ec0f15f34f695632f5095c8aace6679a5e82438b2ee8b5e13150cfc8445170",
+      "bytes": 215
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/physical-after-command.json": {
+      "sha256": "cd7dd35f94b2baab5ad3ffd6608432d462f915d92d779e8920831fda54e7fc32",
+      "bytes": 1741
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/ordinary-actual24-local-migrations.log": {
+      "sha256": "a4c2ee4f147f8110883945240afdfc2a2814e352b98694a6814440398a2d4360",
+      "bytes": 147956
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/genuine-signed-admin-recovery-job-controls-two-command.json": {
+      "sha256": "b31270c703ad54063f237d2e00ea064ac1c5e9179345347ebc7ab98070e6dd37",
+      "bytes": 2457
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/mature-genuine-api-84-only.log": {
+      "sha256": "41118e36d0229df8933bbf33151de8966a20efdfe8e35519eafdd22f1551831f",
+      "bytes": 202
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/frozen-approved-plan.json": {
+      "sha256": "9547173772606706e60b5658d2c7699ad999e6ca77f5723c87eee7a8527de9a3",
+      "bytes": 16508
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/fresh-two-version-sentinel.log": {
+      "sha256": "90a7f66e2af8332bedd4f2afab38786c56cee9a165104b6b3b799c19923c0458",
+      "bytes": 256
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/final-source-artifact-input-pins-command.json": {
+      "sha256": "36b957aaee7c877dc7ffc4957033fc77f5a2ce3840691129a1d073fa5da0c806",
+      "bytes": 1638
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/fresh-build-artifact-manifest.json": {
+      "sha256": "1a85377b549796e92f6065fe755a836b840b5953830207c7ec60d519add3f8d1",
+      "bytes": 14601
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/mature-genuine-api-84-only-command.json": {
+      "sha256": "4f1600652c18ac2b19c5d97b0adea2ac9633169f5241da7df94bc224bc674d68",
+      "bytes": 1331
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/physical-after.log": {
+      "sha256": "ea503ce93a0a80b1f7db320d8a4f489eaa79bc79a3774804cd538767b71c40b4",
+      "bytes": 184
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/owned-built-worker.log": {
+      "sha256": "e3a08c57fe02bf863f1a47a778e37e335b8a3faffaea3dd0b86ce01a5d8711d5",
+      "bytes": 539
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/synthetic-template-sentinels-only-command.json": {
+      "sha256": "c394b48d408c380386415d08840a7b1376ae75f06d6cfefcb77185214956d819",
+      "bytes": 2193
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/isolated-server-receipt.json": {
+      "sha256": "09dd462fdd8d7e4cff79eaa5c00d2574760e76be217b2306054c5edd0fbe760b",
+      "bytes": 3551
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/isolated-server-session.json": {
+      "sha256": "5438431b2bbc1e65e4d34bdc7be745e787ac38537027b2e357b2c6e567ce023f",
+      "bytes": 765
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/actual-api-fixture-session.json": {
+      "sha256": "c296081c3962ab9a49a61fa8cb4b6d7107b5f7b5ee0ffb6bf0d4f73a62624052",
+      "bytes": 1006
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/actual-api-fixture-receipt.json": {
+      "sha256": "7eb6d9ca18718da303f97f3a9b88d0523bdfecace2f16fb75f01b1f148828afc",
+      "bytes": 51676
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/physical-sqlite-before-api.json": {
+      "sha256": "6c005eebf1d63ecd4269310eebe474880882265cfd4ba7765d2645d29e63ddec",
+      "bytes": 56363
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/genuine-recovery-job-controls-browser-report.json": {
+      "sha256": "495636ce2a6e58838bc68bf5046d4710afca6cc4a6329fe1f53aad7cbacf6a53",
+      "bytes": 51003
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/process-fixture.json": {
+      "sha256": "cb9ddaeedbd9cd2e03191cddd1e4d4f32323248dd7b7c5e91ed58f8870643fd7",
+      "bytes": 1604
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/genuine-recovery-job-controls-browser-progress.ndjson": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/genuine-recovery-job-controls-runtime-stop.json": {
+      "sha256": "977ce06a6ae5d0120acde71e00bfec5ee7eba4d71dbd5a3af6139c95cc02f64d",
+      "bytes": 548
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/isolated-server-stop-receipt.json": {
+      "sha256": "f86479aa943d32df678fb27d095f577d7b3784d657b7923239d035c763dde269",
+      "bytes": 1086
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/enabled-storage-draft-build-input-witness.json": {
+      "sha256": "4460563edaafe71d29346833e2e0fac59ffac1c8378cd8e6f5a09b336eabc67d",
+      "bytes": 1448
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/physical-sqlite-after-shutdown.json": {
+      "sha256": "b051a8dc387da543be3edd06acdf174c4099d42cd983db459b94238fa6ab9c80",
+      "bytes": 61171
+    }
+  },
+  "scope": "This source checkpoint adds only dated original raw evidence/prose. Product2489 paths stay exact f228. No runtime rerun, no new qualification of two unrun browser cases. Original failed final carrier remains FAILED; independent source/artifact proof is separate. No returned Browser handle or browserCloseAwaited was observed; original native launched PID exited SIGABRT. Original direct owner/group results retain kernelZ/FDPermission and do not claim global quiescence."
+}

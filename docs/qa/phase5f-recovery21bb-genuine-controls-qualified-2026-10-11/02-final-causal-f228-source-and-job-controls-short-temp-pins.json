@@ -1,0 +1,93 @@
+{
+  "status": "PASS",
+  "actualProducerHead": "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+  "qaConsumerHead": "21bb149da250ef249d2bef7ddb365feb63532503",
+  "qaConsumerTree": "c7bafcec3e2d9251dc4c6b675dab872db09f5645",
+  "allOriginalProducerAndCopiedInputsExact": true,
+  "nonHelperConsumerCountExact": 2488,
+  "ownedQaHelperSha256": "4f2873425d2bc40b3825f061a8e2d92da9ee193f694215fcd3bf0c9bcdd2e834",
+  "originalActualArtifactCount": 118,
+  "originalCopiedArtifactCount": 121,
+  "newBuilds": 0,
+  "newSeedRequests": 84,
+  "newBrowserStatus": "passed",
+  "oldPausedHistorySeparateAndUntouched": true,
+  "newLogicalMutationMaximum": 10,
+  "retainedOriginal63LeaseRowsExact": true,
+  "acceptedMetadataHistoryEvidence": {
+    "stage": "after-original-shared-disable",
+    "schemaExact": true,
+    "onlyThreeExplicitMetadataTablesMayDiffer": true,
+    "allOtherApplicationTablesExact": true,
+    "original63WritePermitsExact": true,
+    "addedPermits": 0,
+    "acceptedJobs": 2,
+    "requestRows": 2,
+    "runtimeEnabled": 0,
+    "runtimeIncarnationSha256": "bd9dce036070e72d8d8e5e75171d5c7c9cb9f617cde1bbab74afe9d344b73494",
+    "runtimeRowSha256": "420397768e36ebb506f166617fff9fef93c4cfbec1a74fc74c6891b66eb460d3",
+    "lineages": [
+      {
+        "jobId": "09121f62-54c1-496b-b3ce-b96b41a13ad6",
+        "requestId": "651933c7-97bd-4fcd-8fb0-dbb7f3b663e8",
+        "actorMatchesCurrentSignedSubject": true,
+        "actorSha256": "5e685ebf41964f639f7cfd400fdfe7af27235920b84afae43456490d57625260",
+        "inputSha256": "ff84ca30241a0279d630d35d75b363d38e740ac46346cd2e3b721eb53b0aeaf9",
+        "checkpointSha256": "944281dab220b6b58386d470c482560520fef6a8df927785d35d9c12e18936cf",
+        "state": "cancelled",
+        "generation": 3,
+        "reason": null,
+        "jobSha256": "e700a24376a7130b18c41e3a458b4659a08c98b967f93b7d8950a72607083e10",
+        "requestSha256": "844450519a57e77ff1a66c50b51ca4e2506fe5c2ed94cf471009de1a83879d70",
+        "noExecutionOrTargetOrArtifactWork": true
+      },
+      {
+        "jobId": "2df45459-f097-4efb-b32c-94ef245241f9",
+        "requestId": "da3c8ac7-6444-4c68-8b8c-f991cbc9226d",
+        "actorMatchesCurrentSignedSubject": true,
+        "actorSha256": "5e685ebf41964f639f7cfd400fdfe7af27235920b84afae43456490d57625260",
+        "inputSha256": "3eebebd05a3c7c307f43c8d99699606bf9cdfa4aa67ea7d0545a19ad93e15727",
+        "checkpointSha256": "944281dab220b6b58386d470c482560520fef6a8df927785d35d9c12e18936cf",
+        "state": "cancelled",
+        "generation": 3,
+        "reason": null,
+        "jobSha256": "0cfb3f4cfb26ff78a6e1a486c7d4300eb2a13d8c92f7eaeb12ad49abed37e2df",
+        "requestSha256": "2de1e426502e777f2882c9d15bd3496aedb488e886b3533e98fbf344a731eba5",
+        "noExecutionOrTargetOrArtifactWork": true
+      }
+    ]
+  },
+  "originalNormalWorkerJwksHandleClosure": {
+    "sessionId": "dae0466d-96e0-40b0-907f-5c409876d1a2",
+    "startedAt": "2026-10-11T09:56:32.989Z",
+    "status": "closed",
+    "browserCloseAwaited": true,
+    "originalSharedWorkBeforeDisableAwaited": 1,
+    "originalDisableAwaited": true,
+    "originalSharedWorkAwaited": {
+      "count": 2,
+      "rejected": 0
+    },
+    "originalApplicationCatalogRowsPermitsAndAcceptedHistoryVerified": true,
+    "executorDisabledReadBack": true,
+    "workerDisposeAwaited": true,
+    "workerPortRefused": true,
+    "jwksCloseAwaited": true,
+    "jwksPortRefused": true,
+    "completedAt": "2026-10-11T09:56:35.196Z"
+  },
+  "browserHandleScope": {
+    "returnedBrowserHandleClosedAwaited": true
+  },
+  "originalDirectChildWaitReapAndGroupEvidence": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "oldFailuresStillRetained": true
+}

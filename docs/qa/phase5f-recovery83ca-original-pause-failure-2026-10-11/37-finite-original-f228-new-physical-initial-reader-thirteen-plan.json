@@ -1,0 +1,330 @@
+{
+  "version": 1,
+  "status": "FROZEN_SOURCE_ONLY_ALL13_UNRUN_NEW24_84_INITIALIZER_AND_CONTROL_DIAGNOSTICS",
+  "commands": [
+    {
+      "stage": "qualified-original-f228-build-producer-preflight",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-recovery-job-controls-original-initial-reader-finite-source-review-attempt5/carry-original-f228-new-fixture-and-initial-reader.py",
+        "--coherent-cf-producer-for-genuine-job-controls-two",
+        "producer-preflight"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4",
+        "SQLITE_TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4"
+      },
+      "control": "Causal original actual f228 build118 source2489 verification only. No freshbuild; require new COPY/FIXTURE and short child temp absent, preserve old paused history."
+    },
+    {
+      "stage": "isolated-copy",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "python3",
+        "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source/scripts/qa/phase5f/prepare-isolated-copy.py",
+        "--source-root",
+        "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+        "--destination",
+        "/workspace/recovery-initial-reader-f228-private-attempt4/copy",
+        "--dependency-root",
+        "/workspace/sample-fabrication-workflow/node_modules"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4",
+        "SQLITE_TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4"
+      }
+    },
+    {
+      "stage": "fresh-two-version-sentinel",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "node",
+        "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source/scripts/qa/phase5f/generate-process-fixture.mjs",
+        "/workspace/recovery-initial-reader-f228-private-attempt4/copy",
+        "/workspace/recovery-initial-reader-f228-private-attempt4/fixture"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4",
+        "SQLITE_TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4"
+      }
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "cwd": "/workspace/recovery-initial-reader-f228-private-attempt4/copy",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "migrations",
+        "apply",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/workspace/recovery-initial-reader-f228-private-attempt4/copy/.wrangler/state"
+      ],
+      "env": {
+        "WRANGLER_SEND_METRICS": "false",
+        "WRANGLER_LOG_PATH": "/workspace/recovery-initial-reader-f228-private-attempt4/fixture/wrangler-logs",
+        "TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4",
+        "SQLITE_TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4"
+      }
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "cwd": "/workspace/recovery-initial-reader-f228-private-attempt4/copy",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "execute",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/workspace/recovery-initial-reader-f228-private-attempt4/copy/.wrangler/state",
+        "--file",
+        "/workspace/recovery-initial-reader-f228-private-attempt4/fixture/process-fixture.sql"
+      ],
+      "env": {
+        "WRANGLER_SEND_METRICS": "false",
+        "WRANGLER_LOG_PATH": "/workspace/recovery-initial-reader-f228-private-attempt4/fixture/wrangler-logs",
+        "TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4",
+        "SQLITE_TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4"
+      }
+    },
+    {
+      "stage": "physical-before",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "python3",
+        "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source/scripts/qa/phase5f/check-isolated-state.py",
+        "--source-copy",
+        "/workspace/recovery-initial-reader-f228-private-attempt4/copy",
+        "--fixture-directory",
+        "/workspace/recovery-initial-reader-f228-private-attempt4/fixture",
+        "--stage",
+        "before-api"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4",
+        "SQLITE_TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4"
+      }
+    },
+    {
+      "stage": "owned-built-worker",
+      "cwd": "/workspace/recovery-initial-reader-f228-private-attempt4/copy",
+      "argv": [
+        "node",
+        "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source/scripts/qa/phase5f/start-built-server.mjs",
+        "/workspace/recovery-initial-reader-f228-private-attempt4/copy",
+        "/workspace/recovery-initial-reader-f228-private-attempt4/fixture"
+      ],
+      "control": "Keep owned stdin open, await actual ready health/ready200 and immutable owner/session; never start browser while readiness lacks",
+      "toolInvocation": {
+        "tty": true,
+        "yieldTimeMs": 1000,
+        "control": "PTY keeps originalstdin alive, sourceisatty guard BEFORE childspawn. Require originalready200/session/PID/startticks/noStop beforeseed. Explicitoriginalstop newline only originaltoolsession, thenactualdisposal/directwait."
+      },
+      "env": {
+        "TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4",
+        "SQLITE_TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4"
+      }
+    },
+    {
+      "stage": "mature-genuine-api-84-only",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "node",
+        "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source/scripts/qa/phase5f/seed-actual-api.mjs",
+        "http://127.0.0.1:4219/",
+        "/workspace/recovery-initial-reader-f228-private-attempt4/fixture"
+      ],
+      "expectedRequests": 84,
+      "env": {
+        "TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4",
+        "SQLITE_TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4"
+      }
+    },
+    {
+      "stage": "original-disabled-seed-Worker-stop",
+      "control": "After genuine mature84 setup succeeds or any firstfailure, send originalstdin stop only originalttytoolsession; await originaldisposal/stoppedreceipt/directexit0/PIDabsence/4219refusal. No focus/browser runs on this seedWorker. Recovery2 requires mature84PASS and originalseedownerCLOSED."
+    },
+    {
+      "stage": "fresh-current-source-build-witness",
+      "control": "Original f228 build command/output causal carry and new physical24+84 setup/owners; passive helper consumer2488 inputs exact. Zero repeatbuild; strict nativebody/readiness/acceptedhistory retained.",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-recovery-job-controls-original-initial-reader-finite-source-review-attempt5/carry-original-f228-new-fixture-and-initial-reader.py",
+        "--coherent-cf-producer-for-genuine-job-controls-two",
+        "witness"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4",
+        "SQLITE_TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4"
+      }
+    },
+    {
+      "stage": "genuine-signed-admin-recovery-job-controls-two",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "node",
+        "/workspace/phase5f-recovery-job-controls-original-initial-reader-source-attempt5/scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs",
+        "/workspace/recovery-initial-reader-f228-private-attempt4/copy",
+        "/workspace/recovery-initial-reader-f228-private-attempt4/fixture",
+        "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+        "2489",
+        "--exclusive-go-two-genuine-recovery-job-controls"
+      ],
+      "env": {
+        "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+        "CHROMIUM_PATH": "/usr/bin/chromium",
+        "TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4",
+        "SQLITE_TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4",
+        "PHASE5F_CHROMIUM_PRIVATE_TEMP": "/workspace/.r2b8tmp",
+        "PHASE5F_JOB_CONTROL_RUNTIME_ROOT": "/workspace/recovery-initial-reader-f228-private-attempt4/runtime"
+      },
+      "cases": [
+        "historical-backup-controls-1280-light",
+        "historical-backup-controls-390-dark"
+      ],
+      "control": "Shared genuine executor enable200/disable200 once; each historical backup-preview200/backup202/pause200/resume200/cancel200 native actions. Max10 original metadata mutation requests, no scheduled/step/ZIP/target/provider. Strict original full native and backend Response bodies, no fallback. Exact3-table lineage/runtime audit and all original63 permits/other app rows preserved. Stop firstfailure after original routes/body/context settlement; remaining IDs UNRUN.",
+      "toolInvocation": {
+        "tty": true,
+        "originalControl": "Only explicitstop newline originalretainedTTY; awaitoriginalclosure/report/childexit120s guard, no SIGTERM-as-finally assumption."
+      }
+    },
+    {
+      "stage": "physical-after",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "python3",
+        "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source/scripts/qa/phase5f/check-isolated-state.py",
+        "--source-copy",
+        "/workspace/recovery-initial-reader-f228-private-attempt4/copy",
+        "--fixture-directory",
+        "/workspace/recovery-initial-reader-f228-private-attempt4/fixture",
+        "--stage",
+        "after-shutdown"
+      ],
+      "require": "Only after original helper body/route/shared configure callbacks/context/browser/Worker/JWKS normalclose, actual directwait/reap and portsrefused. Physical4 is mandatory after fixture/browser failure; accepted job/request history remains retained. No original Recovery/Package outputs overwritten.",
+      "env": {
+        "TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4",
+        "SQLITE_TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4"
+      }
+    },
+    {
+      "stage": "final-source-artifact-input-pins",
+      "control": "Original f228 build command/output causal carry and new physical24+84 setup/owners; passive helper consumer2488 inputs exact. Zero repeatbuild; strict nativebody/readiness/acceptedhistory retained.",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-recovery-job-controls-original-initial-reader-finite-source-review-attempt5/carry-original-f228-new-fixture-and-initial-reader.py",
+        "--coherent-cf-producer-for-genuine-job-controls-two",
+        "final-pins"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4",
+        "SQLITE_TMPDIR": "/workspace/recovery-initial-reader-f228-private-attempt4"
+      }
+    }
+  ],
+  "sourceHead": "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+  "sourceTree": "d16675a42725094e586f9f3bc78468aa5e46310d",
+  "trackedFileCount": 2489,
+  "sourceRoot": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+  "runtimeRoot": "/workspace/recovery-initial-reader-f228-private-attempt4/runtime",
+  "roots": {
+    "copy": "/workspace/recovery-initial-reader-f228-private-attempt4/copy",
+    "fixture": "/workspace/recovery-initial-reader-f228-private-attempt4/fixture",
+    "runtime": "/workspace/recovery-initial-reader-f228-private-attempt4/runtime"
+  },
+  "installedDependencies": {
+    "root": "/workspace/sample-fabrication-workflow/node_modules",
+    "package": "5c8a504d14b7208edb3d77b8c5049c713d55e4e7821d8e43b7b54e6dbeebe8fc",
+    "dependencyParentPackage": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+    "lock": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a",
+    "hiddenLock": "95202718d08fd50cc286bcddf0af66b08503d63b494e992006c50d4246d69a98"
+  },
+  "originalOwnerPreparation": "/workspace/phase5f-recovery-job-controls-current-coherent-finite-preparation-attempt1/original-mature-owner-preparation.json",
+  "futureActualOwnership": "ONE historical actual f228 build118 causal carry; zero repeattypes/build. Fresh24/84 physical fixture then originaltwo native job-control cases. Same original native body/bytes/hash strict, diagnostics only, no alternate acceptance/fallback/request.",
+  "expectedCosts": {
+    "rawLocalMigrations": 24,
+    "disabledOrdinarySeedRequests": 84,
+    "readerAuxiliaryGETs": 2,
+    "browserBaselineGETs": 8,
+    "originalPollingMayAddOnlyStatusGETs": true,
+    "sharedPOSTs": 2,
+    "browserNativePOSTs": 8,
+    "totalOriginalPOSTMaximum": 10,
+    "newScheduledSteps": 0,
+    "newExecutionSteps": 0,
+    "newProviderTargets": 0,
+    "newCFBuilds": 0
+  },
+  "budgets": {
+    "nativeOperationBodyAndReadinessMs": 20000,
+    "originalTTYSupervisionMs": 120000,
+    "supervisionProgressEveryMs": 20000,
+    "bodyMaximumExclusiveBytes": 131072,
+    "overflowPx": 2
+  },
+  "currentBinding": "Original actual f228 CF118 historical build retained; new physical copy121/current24/mature84 setup pending. Sole passive initializer/control same-original signal+reader observer83ca5d0. Old setup/Pause/initialbody failures and all original physical histories untouched. No new helper/module/build/runtime invocation.",
+  "freezeBeforeGO": [
+    "Final retarget sourcepeer/root plan review",
+    "Explicit root exclusive runtime GO"
+  ],
+  "sourceReviewRoot": "/workspace/phase5f-recovery-job-controls-original-initial-reader-finite-source-review-attempt5",
+  "helper": {
+    "path": "scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs",
+    "sha256": "ea70694752afee763dbb066bf35f6c6725a7fc12627d06b5562287a6439aeeb0",
+    "wholeSourcePeer": "5d9a48499c684bacca2e199f4af169b231e6774a409e3f5a6b8e68d8bd9b6592",
+    "readinessPeer": "e18cff7d17e8c913e940f223043622e7f8b9bbaaf74db77e4eb31f32da1b4529",
+    "passiveInitializerPeer": {
+      "path": "/workspace/phase5f83ca-independent-original-initial-reader-source-peer.json",
+      "sha256": "c4e2a2de3401c8075ab168ca9194ecc7e4d6163d75973268c69e20003257e296"
+    }
+  },
+  "copyGate": {
+    "path": "scripts/qa/phase5f/prepare-isolated-copy.py",
+    "sha256": "fba64e958ba1042a7ea406ef9d502ce12829c194c4ec3ea65ee447b3f3105292",
+    "peer": "f56f85f07fc6dcc25d8980872913721c696cd558850d086f11bb10d8cfd985c1"
+  },
+  "originalStdinControlTimeGuard": {
+    "tool": "tools.exec_command tty:true for both original seed/controller and genuine browser helper",
+    "progressEveryMs": 20000,
+    "overallMs": 120000,
+    "stop": "Only explicit original stop newline once on original retainedTTY; await original helper closure/report/directchild exit/reap/ports. Never classify SIGTERM as graceful or normalfinally.",
+    "firstFailure": "Stop later normal stages; still mandatory original seedstop/original body/route/context/shared configure settlement/disable/history/disposal and postphysical+finalpins. Retain source/app/test/cleanup failures distinctly."
+  },
+  "carrier": {
+    "path": "/workspace/phase5f-recovery-job-controls-original-initial-reader-finite-source-review-attempt5/carry-original-f228-new-fixture-and-initial-reader.py",
+    "sha256": "e3393236715c9d0153f1d2734d3af01700013421265fcf0c888b355474279206",
+    "threeMatureDefinitionsAstExact": [
+      "sha",
+      "digest",
+      "saved"
+    ]
+  },
+  "qaConsumerHead": "83ca5d0c1ea0d170febd36e3043b37512478e60c",
+  "qaConsumerTree": "b0a707c3f0c43761768ce17db2ffb96992229fbc",
+  "qaConsumerRoot": "/workspace/phase5f-recovery-job-controls-original-initial-reader-source-attempt5",
+  "sourceHelper": {
+    "path": "scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs",
+    "sha256": "ea70694752afee763dbb066bf35f6c6725a7fc12627d06b5562287a6439aeeb0"
+  },
+  "shortChildTemporaryLeaf": "/workspace/.r2b8tmp",
+  "sourcePeerRequired": "Exact original helper83ca c4e2 sourceCLEAR; final13 carrier/top-level binding/source-only review plus explicit root exclusive GO required.",
+  "priorActualInitialFailure": {
+    "path": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/actual-bfea-fresh-namespace-initial-body-failure-closed-release.json",
+    "sha256": "843258754c8ef7b859bf695000c7984202749a52338541d1946ec49e597f0a20",
+    "actualCases": "0PASS1FAIL1UNRUN, initialcaps200/maintenance200 native ERR_ABORTED before backup/control; no initial control-reader observations, jobs0/newpermits0; normalclose+physical/source pins pass"
+  }
+}

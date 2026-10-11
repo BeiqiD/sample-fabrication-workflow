@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "phase": "source-only evidence authoring, before any copy",
+  "error": "FileNotFoundError because baseline has no docs/qa parent; mkdir lacked parents=True",
+  "correction": "Create the new docs/qa leaf with parents=True, preserve all old sources/raw",
+  "runtimeOrCaseEffects": 0
+}

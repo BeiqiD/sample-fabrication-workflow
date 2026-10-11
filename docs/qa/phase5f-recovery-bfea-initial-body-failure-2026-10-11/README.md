@@ -1,0 +1,9 @@
+# Recovery initial native-body failure — 2026-10-11
+
+This attempt created a fresh isolated current24 fixture and completed 84 genuine setup API requests. It reused the previously qualified f228 build; no build was rerun. The original two browser cases retained their strict original native response-body checks, 20-second budgets and first-failure stop.
+
+The desktop case failed on the initial capabilities 200 native body, before any backup preview, backup acceptance or Pause request. The capabilities and maintenance original native Requests recorded `net::ERR_ABORTED` before context cleanup; the jobs 200 body completed. This control-only observer did not exercise a control POST, caller signal or application control reader. These facts do not identify the cause of the earlier Pause 200 CDP-body failure and do not establish a product defect. The mobile case remained unrun.
+
+Twelve original commands finished: eleven passed and the browser command failed. The separate logical seed-Worker stop also passed. Only the genuine shared enable and disable metadata writes were accepted; no jobs, request rows, additional write permits, executor steps or provider actions were created. All 63 original permits and unrelated application rows stayed exact. Browser, context, route/body, shared request, Worker and JWKS closures were awaited normally. All twelve direct children were reaped; nine owned groups were empty and three contained only adopted kernel zombies with inaccessible FD metadata. No cleanup signal was sent and no global quiescence or observed-zero-FD claim is made. Mandatory physical checks and final source/artifact pins passed.
+
+The manifest retains exact original raw bytes and local paths. Previous failed Pause/setup attempts remain separate and immutable. Further diagnosis must distinguish a legitimate obsolete initialization response from the currently displayed page owner; no body waiver or fallback request is qualified here.

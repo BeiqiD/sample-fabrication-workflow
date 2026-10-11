@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "originalFullRawDiffCheckExitCode": 2,
+  "originalStdout": "docs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/17-ordinary-actual24-local-migrations.log:7: trailing whitespace.\n+Resource location: local \ndocs/qa/phase5f-recovery21bb-genuine-controls-qualified-2026-10-11/28-synthetic-template-sentinels-only.log:7: trailing whitespace.\n+Resource location: local \n",
+  "originalStderr": "",
+  "nonLogDocDiffCheckExitCode": 0,
+  "scope": "Original raw Wrangler logs retain trailing Resource location: local whitespace; no raw bytes normalized. Not compiler/runtime/application failure."
+}
