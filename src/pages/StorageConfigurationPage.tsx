@@ -29,6 +29,7 @@ export function StorageConfigurationPage() {
     };
   }
   const sequence = useRef(0), controller = useRef<AbortController | null>(null);
+  const refreshButton = useRef<HTMLButtonElement>(null), returnRefreshFocus = useRef(false);
   function resetEditor() { setForm(blank); setEditing(null); setReplaceCredentials(true); }
   function accessDenied() {
     sequence.current += 1; controller.current?.abort(); resetEditor(); setStatus(null);
@@ -53,6 +54,12 @@ export function StorageConfigurationPage() {
       if (current === sequence.current && !pending.signal.aborted) setLoading(false);
     }
   }
+  useEffect(() => {
+    if (loading || !returnRefreshFocus.current) return;
+    returnRefreshFocus.current = false;
+    const button = refreshButton.current;
+    if (button?.isConnected && !button.disabled && (document.activeElement === document.body || document.activeElement === button)) button.focus();
+  }, [loading]);
   useEffect(() => { void refresh(); return () => { sequence.current += 1; controller.current?.abort(); }; }, []);
   function edit(candidate: StorageCandidate) {
     const namespace = candidate.namespace;
@@ -110,7 +117,10 @@ export function StorageConfigurationPage() {
   return <div className="page storage-settings-page">
     <div className="page-heading"><div><p className="eyebrow">Settings</p><h1>Storage configuration</h1>
       <p className="lead">Save storage candidates, test S3 connections and maintain credential encryption.</p></div>
-      <button className="button" type="button" disabled={loading || saving} onClick={() => void refresh()}>{loading ? "Refreshing…" : "Refresh"}</button></div>
+      <button ref={refreshButton} className="button" type="button" disabled={loading || saving} onClick={() => {
+        returnRefreshFocus.current = document.activeElement === refreshButton.current;
+        void refresh();
+      }}>{loading ? "Refreshing…" : "Refresh"}</button></div>
     <p><a href="/settings/storage">Current storage settings</a></p>
     {loading && <p role="status">Reading configuration access…</p>}
     {error && <div className="error-banner" role="alert"><p>{error}</p></div>}

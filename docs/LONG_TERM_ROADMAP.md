@@ -8,7 +8,7 @@ The owner requests autonomous continuation on 2026-10-10 under the
 and membership remain concrete later milestones; optional exploratory ideas
 retain their evidence-triggered scope.
 
-Last reviewed: 2026-10-10 after merged #258/currentV26 and separate four-case Templates qualification. The following retains the earlier [PR #251](https://github.com/BeiqiD/sample-fabrication-workflow/pull/251)
+Last reviewed: 2026-10-11 after merged #262/currentV26, successful #261 post-merge checks, bounded LocalFile host qualification and separate f88 Storage layout/draft qualification. The following retains the earlier [PR #251](https://github.com/BeiqiD/sample-fabrication-workflow/pull/251)
 merge at `aa497d9a1a304751ea7533548573a256799ef734` (13:30:26 UTC).
 Its tree `087749d12a3e3ad19473f1f4e63d29e1ecf1c269` equals qualified source
 `af8f374cfbbade3282f2e686cc9f35d3c40adf4a`; all 12 local default leaves,
@@ -23,27 +23,36 @@ Bounded local C4, 5D and 5E have likewise completed. **5F is in progress** with
 bounded implementation and follow-up research/job-control ownership repairs
 merged through #251. The [integrated browser matrix](PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md)
 passed 20 cases plus two real Metrology pending-flow cases.
-The immediate work continues from merged #258 at `e108496`, retaining its exact
-qualified currentV26 tree. #252 owner refresh/search-label and #254 initial
+The immediate work continues from merged #262 at `591bee9`, retaining its exact
+qualified currentV26 tree and separate native-focus/authenticated-read evidence.
+Its own four CI runs and post-merge Verify/Map/all15 contexts passed.
+#261 post-merge Verify/Map/all15 also passed. #252 owner refresh/search-label and #254 initial
 Project GET Retry/three-owner refresh/reduced-motion repairs are integrated;
 their original [browser/cost receipts](PHASE_5F_RETRY_GROUP_MOTION_ACCEPTANCE.md)
-remain distinct historical scopes. Draft #259 retains six actual directory/
+remain distinct historical scopes. Merged #259 retains six actual directory/
 lost-reply cases and the new [four genuine Templates default-page cases](PHASE_5F_TEMPLATE_PAGINATION_QUALIFICATION.md).
 Its later complete CI passed shared ownership but failed one fixture timestamp
 constraint. Corrected combined source98d completed bounded shared ownership,
 one strict check, original6/mounted37/source38 and a separate fresh build; the
-first wrapper owner-check failure remains recorded. Final-head complete gates
-remain open. Merged #258 separately passed post-merge Verify/Map/all15 contexts
+first wrapper owner-check failure remains recorded. #259 final own/post-merge
+complete gates passed. Merged #258 separately passed post-merge Verify/Map/all15 contexts
 (source409/3843, mounted103/985), without a deployed serving/schema claim.
 The combined #259 candidate also retains Step-confirmation, Run trash/restore
 and Metrology metadata mutation services from separately qualified source4928.
 Its fresh current24 four strict checks, legacy7 and Worker12 with owned closure
 remain distinct from historical current23 native18/Worker12 and the UI browser
-scopes. Only after the combined final-head gates and successful merge should
-#260 be closed as superseded; it is not independently merged.
+scopes. #260 is closed as superseded and was not independently merged.
 The [role/focus ledger](PHASE_5F_ROLE_FOCUS_REVIEW_LEDGER.md) documents the bounded
 cross-surface review. Anonymous Access302 still does not qualify serving code/
 schema or enabled administration. Real-provider/device/deployed acceptance stays open.
+The separate [f88 candidate wrapping qualification](PHASE5F_STORAGE_CANDIDATE_WRAP_QUALIFICATION.md)
+passed a fresh strict check, affected24 mounted cases, one118-output build with121
+copied artifacts and one390 read-only layout case. The [original two draft cases](PHASE5F_STORAGE_TWO_AFTER_WRAP_QUALIFICATION.md)
+then passed against a new isolated24/84 fixture on that same build, preserving
+three accepted revisions, four real released permits and103 ordinary API
+requests with normal owned closure and physical checks. Prior01ad/558 failures
+remain unchanged. Package/recovery presentation, full5F and whole
+Node/File/jobs/Group/runtime acceptance remain unfinished.
 See the single [current status matrix](./PRODUCT_ROADMAP.md#current-checkpoint).
 Detailed FP milestones below are durable design commitments, **not** an assertion
 that FP3–FP5 remain unimplemented.
@@ -66,8 +75,8 @@ replication, workspaces, ACL tables or per-user infrastructure.
 
 | Order | Capability | Boundary |
 | --- | --- | --- |
-| Complete development integration | FP2–FP5, C4/5D/5E and bounded 5F | #251 preserves the qualified `af8f374` tree at merged `aa497d9`. Do not recreate implemented code or infer live V24/provider qualification from local/default CI. Preserve historical deployed V20 evidence separately. |
-| Now / in progress | Remaining 5F and finite performance/maintenance | Continue from merged #258/currentV26; qualify combined #259's UI/fixture-clock and Execution metadata mutation services, retaining historical6/new4 browser and separate current24 Execution scopes. Close #260 as superseded after successful combined merge. Completed #252/#254 refresh/Retry/motion repairs are preserved. Continue only demonstrated gaps, finite input checks and measured costs. |
+| Complete development integration | FP2–FP5, C4/5D/5E and bounded 5F | Development integration is merged through #262/currentV26. Preserve historical `af8f374`/`aa497d9` and later exact-head scopes; do not infer live provider qualification from local/default CI. |
+| Now / in progress | Remaining 5F and finite performance/maintenance | Continue from merged #262/currentV26. Preserve qualified f88 Storage layout/draft checks and their historical failures; next qualify supported genuine package/recovery presentation and final coherent-head checks. Separate browser/Execution/Node scopes remain distinct. #260 is closed as superseded. Continue demonstrated gaps, finite input checks and measured costs. |
 | First integrated release | 6A6 and scoped 6B | Accept only the actually qualified **enabled FP2–FP5** subset, with explicit provider and operational gates. Unqualified installed code remains restricted. |
 | Later portability | Node/Docker + SQLite + persistent local defaults | Complete deployable app/runtime, volumes and real cross-deployment recovery, not merely the already delivered Node File-job runner. |
 | Later shared-data | Small-group membership and resource authorization | End-to-end Sample/Project/Template/media/export/job permissions, not per-user storage infrastructure. |

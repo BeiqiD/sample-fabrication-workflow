@@ -1,0 +1,7 @@
+{
+  "status": "SUMMARY_AUTHORING_FIELD_ERROR_NOT_BROWSER_FAILURE",
+  "error": "KeyError originalInterceptionAwaited in case2; secondcase has no controlledreply-loss interception, originalhelper conditional report field",
+  "actualBrowser": "Original2PASS0FAIL0UNRUN; physical+pins actualPASS, untouched",
+  "firstOutputChunk": "c08127",
+  "scope": "No rerun/DB/server/processmutation; first summary did not write closedreceipt. Source inspect then correct collector only."
+}

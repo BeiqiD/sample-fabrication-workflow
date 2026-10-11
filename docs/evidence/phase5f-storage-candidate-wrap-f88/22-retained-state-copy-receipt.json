@@ -1,0 +1,101 @@
+{
+  "status": "copied-original-normal-closed-state",
+  "sourceCopyRoot": "/tmp/phase5f-storage-refresh-focus-body-model-current591-copy-attempt4",
+  "diagnosticRoot": "/tmp/phase5f-storage-candidate-section-wrap-fixture-attempt10",
+  "originalReportSha256": "bbbd67c04a67cab712aa66118d66798913c3e237781a975dfb596a04a801b9f6",
+  "originalClosedReceiptSha256": "495b15003c4ce0b3f658ce1e7401138ed2318ec3fd048b25a104317d3bb4ea13",
+  "copiedFiles": {
+    "v3/d1/miniflare-D1DatabaseObject/faaf2b0445ab934c3aac48ddf0cdfade8f9bac050be98993748742cdd2cb05fb.sqlite": "c10d8934de644e0a803b9068890783b34d409c5f42d123bbfd016d67778a134d",
+    "v3/d1/miniflare-D1DatabaseObject/faaf2b0445ab934c3aac48ddf0cdfade8f9bac050be98993748742cdd2cb05fb.sqlite-wal": "bcac61bc30232f62223c9cf8c72fd4cd2183839c5522dd660b1b78d89ecf592f",
+    "v3/d1/miniflare-D1DatabaseObject/metadata.sqlite": "4c34b48e33536be849e9810707c97ff2b5625bb5cbf1637dbe384cfffdda3b9d",
+    "v3/d1/miniflare-D1DatabaseObject/metadata.sqlite-wal": "8c723af66a6ce9bcf9b2b06a0388d1e3e8d7934a5051872e055bf3a8038fe5c8",
+    "v3/r2/miniflare-R2BucketObject/eaa2fcb26d4038a3ef7dc7a68c7d2b0194f2d07ce329fb4925ae44e7f0611f87.sqlite": "4b409e7a5880b8c5226c55f84dac955119458315c5b44e61abe487d7e35e5742",
+    "v3/r2/miniflare-R2BucketObject/metadata.sqlite": "4c34b48e33536be849e9810707c97ff2b5625bb5cbf1637dbe384cfffdda3b9d",
+    "v3/r2/miniflare-R2BucketObject/metadata.sqlite-wal": "b061c6079bb82ff9f170b2b4ddda00036885765d0f685297eddaf31755429962",
+    "v3/r2/sample-fabrication-workflow-local-assets/blobs/97d0169fcfc716a8d6477679d9f078f72ed9e55dab8409b4a151cfd02b53834c000001a128b6c926": "5e3d382db4dd83d59aa5742793ad6b7903409e865c83bcbc54835049f043bc15"
+  },
+  "originalStateFileBefore": {
+    "v3/d1/miniflare-D1DatabaseObject/faaf2b0445ab934c3aac48ddf0cdfade8f9bac050be98993748742cdd2cb05fb.sqlite": {
+      "size": 3940352,
+      "mtimeNs": 1791684440332314258,
+      "mode": 33152,
+      "inode": 1426947,
+      "sha256": "c10d8934de644e0a803b9068890783b34d409c5f42d123bbfd016d67778a134d"
+    },
+    "v3/d1/miniflare-D1DatabaseObject/faaf2b0445ab934c3aac48ddf0cdfade8f9bac050be98993748742cdd2cb05fb.sqlite-wal": {
+      "size": 1516192,
+      "mtimeNs": 1791684480705245474,
+      "mode": 33152,
+      "inode": 1427692,
+      "sha256": "bcac61bc30232f62223c9cf8c72fd4cd2183839c5522dd660b1b78d89ecf592f"
+    },
+    "v3/d1/miniflare-D1DatabaseObject/metadata.sqlite": {
+      "size": 4096,
+      "mtimeNs": 1791684383368904183,
+      "mode": 33152,
+      "inode": 1426943,
+      "sha256": "4c34b48e33536be849e9810707c97ff2b5625bb5cbf1637dbe384cfffdda3b9d"
+    },
+    "v3/d1/miniflare-D1DatabaseObject/metadata.sqlite-wal": {
+      "size": 8272,
+      "mtimeNs": 1791684383368947639,
+      "mode": 33152,
+      "inode": 1426945,
+      "sha256": "8c723af66a6ce9bcf9b2b06a0388d1e3e8d7934a5051872e055bf3a8038fe5c8"
+    },
+    "v3/r2/miniflare-R2BucketObject/eaa2fcb26d4038a3ef7dc7a68c7d2b0194f2d07ce329fb4925ae44e7f0611f87.sqlite": {
+      "size": 28672,
+      "mtimeNs": 1791684440348314608,
+      "mode": 33152,
+      "inode": 1427423,
+      "sha256": "4b409e7a5880b8c5226c55f84dac955119458315c5b44e61abe487d7e35e5742"
+    },
+    "v3/r2/miniflare-R2BucketObject/metadata.sqlite": {
+      "size": 4096,
+      "mtimeNs": 1791684416006553879,
+      "mode": 33152,
+      "inode": 1427326,
+      "sha256": "4c34b48e33536be849e9810707c97ff2b5625bb5cbf1637dbe384cfffdda3b9d"
+    },
+    "v3/r2/miniflare-R2BucketObject/metadata.sqlite-wal": {
+      "size": 8272,
+      "mtimeNs": 1791684416006604065,
+      "mode": 33152,
+      "inode": 1427328,
+      "sha256": "b061c6079bb82ff9f170b2b4ddda00036885765d0f685297eddaf31755429962"
+    },
+    "v3/r2/sample-fabrication-workflow-local-assets/blobs/97d0169fcfc716a8d6477679d9f078f72ed9e55dab8409b4a151cfd02b53834c000001a128b6c926": {
+      "size": 68,
+      "mtimeNs": 1791684430116077725,
+      "mode": 33152,
+      "inode": 1427429,
+      "sha256": "5e3d382db4dd83d59aa5742793ad6b7903409e865c83bcbc54835049f043bc15"
+    }
+  },
+  "originalShmStatBefore": {
+    "v3/d1/miniflare-D1DatabaseObject/faaf2b0445ab934c3aac48ddf0cdfade8f9bac050be98993748742cdd2cb05fb.sqlite-shm": {
+      "size": 32768,
+      "mtimeNs": 1791684475297395768,
+      "mode": 33152,
+      "inode": 1427693
+    },
+    "v3/d1/miniflare-D1DatabaseObject/metadata.sqlite-shm": {
+      "size": 32768,
+      "mtimeNs": 1791684475175774602,
+      "mode": 33152,
+      "inode": 1426946
+    },
+    "v3/r2/miniflare-R2BucketObject/metadata.sqlite-shm": {
+      "size": 32768,
+      "mtimeNs": 1791684475175970358,
+      "mode": 33152,
+      "inode": 1427329
+    }
+  },
+  "originalStateMainWalAndOtherBytesExact": true,
+  "originalShmBytesRead": false,
+  "originalShmStatExact": true,
+  "originalProducerHead": "01ad7ab9270f7db7b7c10fea5c31707a8923d66c",
+  "originalBuildArtifactsAndConfigs": 121,
+  "all1790OtherConsumerProductAndSourceBytesEqual": true
+}

@@ -1,0 +1,197 @@
+{
+  "status": "SOURCE_AND_ACTUAL_EVIDENCE_FROZEN",
+  "originalQualifiedProducerHead": "f88fffea3ba0654b52ca90ee87efdafdb70cd48c",
+  "originalQualifiedProducerTree": "df05a78afcdee28f7136a349001464c399531e9c",
+  "originalActualBuildRoot": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+  "originalFreshCopyRoot": "/tmp/phase5f-storage-candidate-section-wrap-copy-attempt10",
+  "actualReceiptSha256": "51bac259cf336bf9c4e04b26ed88566a884e39e257c1d5e1d6082a09d9ae7727",
+  "actualScopedGates": {
+    "appStrict": "PASS",
+    "mountedPassed": 24,
+    "freshBuildOutputs": 118,
+    "copiedArtifactsAndConfigs": 121,
+    "readonlyBrowserPassed": 1,
+    "readonlyBrowserFailed": 0,
+    "readonlyBrowserUnrun": 0,
+    "ordinaryApiGet": 6,
+    "mutations": 0,
+    "copiedSQLiteQuickFk": 4
+  },
+  "limits": "One local Chromium390dark retained-candidate read layout with old01 credentialkey unavailable. Not newStorage2 write/conflict, Package2, device/IME/liveprovider/deployed orwhole5F acceptance. Historicalfirstfailures retainedoriginaltmp ledgers.",
+  "records": [
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/frozen-approved-plan.json",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/01-frozen-approved-plan.json",
+      "sha256": "20d549143ab4730142119cc7f5aab513c64b990ba6069ea4e1dc7bb319e1e19d",
+      "bytes": 9206
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/fresh-build-artifact-manifest.json",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/02-fresh-build-artifact-manifest.json",
+      "sha256": "908d0ca51a39ebf1b7ae78532058d1d0d5e126248ae31dd956b92b10b409a559",
+      "bytes": 14601
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/affected-app-strict-command.json",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/03-affected-app-strict-command.json",
+      "sha256": "1089298626b0449c8dcbf416d921f3e6f6d3913e1fa08b98b59e19314bb56163",
+      "bytes": 869
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/affected-app-strict.log",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/04-affected-app-strict.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/affected-storage-mounted-file-command.json",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/05-affected-storage-mounted-file-command.json",
+      "sha256": "54bbeb12ef24ad359e11c62e65fc11eaf593e94b3edd2defb4e48ba179448b5f",
+      "bytes": 1137
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/affected-storage-mounted-file.log",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/06-affected-storage-mounted-file.log",
+      "sha256": "d6599c0c4b1a118f391142942af83a21b2ef0913605f2e857d90d79b70658e44",
+      "bytes": 249
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/one-fresh-final-QA-source-build-command.json",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/07-one-fresh-final-QA-source-build-command.json",
+      "sha256": "c6f7403a033b154a8b46b9f53b89b315474808afc99f4493d7abcc87eb01be28",
+      "bytes": 1577
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/one-fresh-final-QA-source-build.log",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/08-one-fresh-final-QA-source-build.log",
+      "sha256": "a3fd280b617a6174c06592006f101df0a0a3dacfe33ca9aacf32fe377b586f7c",
+      "bytes": 12728
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/isolated-copy-command.json",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/09-isolated-copy-command.json",
+      "sha256": "1ee2ae7106f21b3095fbf79b572ded9e20be3e07b267a9718dfb6ae9b233a20e",
+      "bytes": 1158
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/isolated-copy.log",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/10-isolated-copy.log",
+      "sha256": "c7fa7f114fd1ac82e15c03011da59497ac62ac4a06ae4744cfd1f4a1b21588a7",
+      "bytes": 197
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/fresh-storage-layout-build-input-witness-command.json",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/11-fresh-storage-layout-build-input-witness-command.json",
+      "sha256": "071b9de9cb8a89797d3c74ba500d9b5ce1c50d3cd6b8c0dde3f27f53267949c7",
+      "bytes": 1128
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/fresh-storage-layout-build-input-witness.log",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/12-fresh-storage-layout-build-input-witness.log",
+      "sha256": "af53b8639d268a3a8b9932a84f37b5c18c60204910d15985e958c605058f8299",
+      "bytes": 274
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/source-preflight-and-state-copy-command.json",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/13-source-preflight-and-state-copy-command.json",
+      "sha256": "40719f9875b52447ff4db8424ec6e39cf78b1e7823478d061c0ad351284b3dfe",
+      "bytes": 1277
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/source-preflight-and-state-copy.log",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/14-source-preflight-and-state-copy.log",
+      "sha256": "5ba4ac44d02d9165d92d1d1c0cbaa669ba704df1c0b499518ffacc703bcf473f",
+      "bytes": 138
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/one-read-only-retained390-layout-command.json",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/15-one-read-only-retained390-layout-command.json",
+      "sha256": "a888c72bc4eb71e7a5eccb60901603b824e0e7bc6300120c051023ca2ad2b92d",
+      "bytes": 1793
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/one-read-only-retained390-layout.log",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/16-one-read-only-retained390-layout.log",
+      "sha256": "4e378d354d7f2ceb15ceb8ee4b54de4b28d73fb6d77c953464e3c5367edcf588",
+      "bytes": 206
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/mandatory-postphysical-and-original-pins-command.json",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/17-mandatory-postphysical-and-original-pins-command.json",
+      "sha256": "5d24a17c427a6cc0d7801d99814de16ed17dbc23a488cd81f48a8170caf2dd98",
+      "bytes": 1402
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/mandatory-postphysical-and-original-pins.log",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/18-mandatory-postphysical-and-original-pins.log",
+      "sha256": "f68560888cc08682e5a366838490dd5a877c3057c0c131914c907de45e0057f5",
+      "bytes": 144
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-fixture-attempt10/enabled-storage-draft-browser-report.json",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/19-enabled-storage-draft-browser-report.json",
+      "sha256": "b07fed080919761449e6b92073ef980fce95b163b2c7d70876620a5563a03642",
+      "bytes": 45952
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-fixture-attempt10/enabled-storage-draft-runtime-stop.json",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/20-enabled-storage-draft-runtime-stop.json",
+      "sha256": "88dcdd13c7ae84a3f8e87b3e1331b1f1f13e9f200f2358061f76fbc11ac857ed",
+      "bytes": 381
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-fixture-attempt10/enabled-storage-draft-browser-progress.ndjson",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/21-enabled-storage-draft-browser-progress.ndjson",
+      "sha256": "331a1146386dfa7e94f386e51c3dbf4dfc616dbf9a89e862ad2053aae6deef84",
+      "bytes": 168
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-fixture-attempt10/retained-state-copy-receipt.json",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/22-retained-state-copy-receipt.json",
+      "sha256": "329a152b66e95cf6eef66499ef1b44a6d638feed9603dee43495cce6d606c9fb",
+      "bytes": 4898
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-fixture-attempt10/read-only-layout-postphysical-and-original-input-pins.json",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/23-read-only-layout-postphysical-and-original-input-pins.json",
+      "sha256": "16e2e43620163a177c767f643a773054a65bd784a7889809a3efa0f3b9f7b46d",
+      "bytes": 1725
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-fixture-attempt10/enabled-storage-draft-browser-artifacts/retained-candidates-read-only-layout-390-dark.retained-candidates-read-only-layout.geometry.json",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/24-retained-candidates-read-only-layout-390-dark.retained-candidates-read-only-layout.geometry.json",
+      "sha256": "fb4af4032ff79a4a9484c98629c3aa4edcbb624851a767d884c0077eacbc4644",
+      "bytes": 245
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-copy-attempt10/isolation-receipt.json",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/25-isolation-receipt.json",
+      "sha256": "104ab9729c8f87071f167c3854d60d147e771bacfc39a0743c23c0b0119b99fb",
+      "bytes": 236156
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-copy-attempt10/fresh-storage-layout-build-input-witness.json",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/26-fresh-storage-layout-build-input-witness.json",
+      "sha256": "4276143465a61cd05c11aa4f6dd4fa4796242fc6ec7755a2af2ea7d01b6c2ca9",
+      "bytes": 1252
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-f88-independent-fresh-artifact-source-peer.json",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/27-phase5f-storage-f88-independent-fresh-artifact-source-peer.json",
+      "sha256": "a211efba5c14c3c5f591990ba466a2c7c620af118fffb815cfe2470302b879b3",
+      "bytes": 3926
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-source-review-attempt10/source-plan-runner-handoff.json",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/28-source-plan-runner-handoff.json",
+      "sha256": "c8bba6a3ba4811f9bc20d87aca730cf015285520c698885bcdae11720fa7be7e",
+      "bytes": 3738
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/actual-storage-candidate-section-f88-eight-pass-closed-and-released.json",
+      "curatedPath": "docs/evidence/phase5f-storage-candidate-wrap-f88/29-actual-storage-candidate-section-f88-eight-pass-closed-and-released.json",
+      "sha256": "51bac259cf336bf9c4e04b26ed88566a884e39e257c1d5e1d6082a09d9ae7727",
+      "bytes": 13770
+    }
+  ]
+}

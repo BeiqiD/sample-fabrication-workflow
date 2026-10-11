@@ -34,11 +34,22 @@ Portable-runtime foundation PR #253 merged at `fbeb4217e984bfb25d80f7029626df438
 PR #261 subsequently merged at `1be6642406ae44f62c1b0bdb56e9e2877e6ed081`
 on 2026-10-11 01:03:05 UTC after exactff29 own Verify push/PR and Map push/PR
 and all15 contexts passed. Original [CI/ordinary merge receipts](qualification/phase5f-focus-pr261-complete-ci/README.md)
-retain source416/3877 and mounted105/1002 counts. Its post-merge checks remain
-in progress. The separate [native focus2 and enabled local Storage read/admin4/JWT6](PHASE_5F_NATIVE_FOCUS_AND_ENABLED_ADMIN_QUALIFICATION.md)
+retain source416/3877 and mounted105/1002 counts. Its post-merge Verify38100508911,
+Map38100508960 and all15 contexts passed. The separate [native focus2 and enabled local Storage read/admin4/JWT6](PHASE_5F_NATIVE_FOCUS_AND_ENABLED_ADMIN_QUALIFICATION.md)
 qualification preserves the original36/63d sources,95 actual build, all observed
 failures and awaited physical/owner closure; no accepted administrator write or
 provider activation was performed.
+
+PR #262 subsequently merged at `591bee968e2fc06a3666f8ed4774fd698bbf3c4b`
+on 2026-10-11 01:40:10 UTC after its own four Verify/Map runs and all15 contexts
+passed. Its merged tree exactly matches qualified source3578176/tree9de0f69;
+[the receipt](PR262_OWN_CI_AND_MERGE_RECEIPT.json) retains actual counts and original
+receipt hashes. Post-merge Verify38102602822, Map38102602889 and all15 contexts
+passed; [the complete receipt](PR262_POSTMERGE_COMPLETE_CI_RECEIPT.json) retains
+native357/source416-3877/mounted105-1002/NodeHTTP20 and original log hashes.
+Continue from this development/test integration while retaining all distinct
+historical source, browser, failed and CI scopes. The ordinary development merges
+remain authorized; production main and real-provider admission retain their scope.
 
 ## Working order
 
@@ -54,13 +65,14 @@ provider activation was performed.
    initial Project GET Retry, three-owner group refresh and reduced-motion
    merge, both named actual browser scopes and final complete checks;
    they do not establish whole-5F acceptance.
-3. Continue from merged #259/currentV26. Preserve its one-timestamp fixture
+3. Continue from merged #262/currentV26. Preserve #259's one-timestamp fixture
    correction, UI changes and Execution metadata services, along with the
    separate six directory/creation cases, four Templates cases and current24
    Execution source4928 receipts. Preserve merged #261's Metrology Cancel/Escape/Close focus repair, its narrow
    41-case qualification, actual browser focus2 and exact own-head complete CI
-   as distinct scopes. Continue genuine administrator draft-write/revision
-   uncertainty and supported package/recovery presentation in bounded slices.
+   as distinct scopes, including #262's durable authenticated-read evidence.
+   Preserve the separately passed f88 Storage layout/draft qualification and
+   continue supported genuine package/recovery presentation in bounded slices.
    Keep observed failures and actual enabled provider/operational limits explicit.
    Preserve domain identity, accepted-write semantics and mature grid geometry.
 4. Measure the finite performance candidates before changing them. Preserve
@@ -71,6 +83,36 @@ provider activation was performed.
    milestone, then small-group membership and domain authorization, in bounded
    contracts and implementation slices. The file-job Node adapter alone does
    not qualify the complete application or cross-deployment parity.
+
+The separate unmounted LocalFile host checkpointd8f878f8 passed strict2/native6,
+including real HTTP reads, original-owner draining and restart preservation.
+It does not enable the public application or certify whole Node/File/jobs.
+Node49 checkpoint729 passed strict and21 native cases before its business-SQL
+observer counted four real session-refresh statements in addition to49 business
+statements. The narrow observer repair subsequently passed the original Run
+cases. Later independent permission fixtures passed all seven Definition and
+seven Lifecycle cases, then stopped at a Project Step teardown timeout after
+one passing case. A normal-EOF request-body cancellation repair has passed
+source review; its baseline/fixed regression and complete fresh Node/HTTP
+qualification remain pending. Preserve every failed attempt; the
+business49/bind100/refused232-step boundaries remain unchanged. The first
+Storage focus mounted fixture and Sample permission strict failures are likewise
+retained separately. Storage source01ad passed fresh strict/24mounted/build and
+one lost-reply case but failed its conflict-case390 layout check after real
+conflict/Refresh/focus reconciliation. That original failure remains unchanged.
+The later [f88 candidate wrapping qualification](PHASE5F_STORAGE_CANDIDATE_WRAP_QUALIFICATION.md)
+passed a fresh app strict check, affected24 mounted cases, one118-output build
+with121 copied artifacts and one390 read-only layout case. Its [original two
+draft cases](PHASE5F_STORAGE_TWO_AFTER_WRAP_QUALIFICATION.md) then passed on a new
+isolated24/84 fixture using that exact build; prior strict/mounted/build passes
+were carried, not rerun. Three accepted revisions, all63 original permit rows
+and four uniquely correlated released HTTP permits were verified across103
+ordinary API requests, with normal owned browser/Worker/JWKS shutdown and
+physical/source/artifact checks. Earlier layout/focus failures retain their raw
+receipts; package/recovery presentation, final coherent-head CI and full5F remain
+open. Job fixture sourcef57 passed all20 original tests with actual owner
+closure, as a separate runtime-negative/fixture scope. Continue fixes and meaningful bounded checks without routine
+user intervention; merge only the qualified coherent implementation.
 
 The optional later search, LLM, real-time editing and other exploratory directions
 remain conditional roadmap items. Their presence in the long-term direction is

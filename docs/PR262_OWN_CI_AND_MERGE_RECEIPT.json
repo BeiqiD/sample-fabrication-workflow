@@ -1,0 +1,162 @@
+{
+  "status": "ORDINARY_SQUASH_MERGED_EXACT_QUALIFIED_TREE",
+  "pullRequest": 262,
+  "url": "https://github.com/BeiqiD/sample-fabrication-workflow/pull/262",
+  "sourceHead": "3578176dd0e1cf37927f87fc5fa6beae34a5b7f4",
+  "sourceTree": "9de0f69ebe091cac9b443965ed47589965901133",
+  "mergeCommit": "591bee968e2fc06a3666f8ed4774fd698bbf3c4b",
+  "mergedAt": "2026-10-11T01:40:10Z",
+  "ownRuns": [
+    {
+      "id": 38100712703,
+      "name": "Verify",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38100712703"
+    },
+    {
+      "id": 38100715922,
+      "name": "Verify",
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38100715922"
+    },
+    {
+      "id": 38100712794,
+      "name": "Project Map performance",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38100712794"
+    },
+    {
+      "id": 38100715844,
+      "name": "Project Map performance",
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38100715844"
+    }
+  ],
+  "requiredContexts": [
+    {
+      "context": "pre-pr/install",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-map-performance",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-foundation",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/tests",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/blob-lifecycle",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/reference-foundation",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/file-jobs",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/build",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-map",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-reference-placement",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-persistence",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-canvas-productivity",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-reading",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-edges",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-owned-content",
+      "state": "success"
+    }
+  ],
+  "actualBothVerifyCounts": {
+    "native": 357,
+    "sourceFiles": 416,
+    "sourceCases": 3877,
+    "mountedFiles": 105,
+    "mountedCases": 1002,
+    "nodeHttp": 20
+  },
+  "originalVerifyLogs": {
+    "push": {
+      "sha256": "d0e8c3e47f36ee5711b35f00b8980f26b17cae667179cc1da4ce3e1cce0d572e",
+      "actualSummaryLines": [
+        "2026-10-11T01:13:00.6978241Z \u2139 tests 357",
+        "2026-10-11T01:13:00.6978638Z \u2139 pass 357",
+        "2026-10-11T01:30:30.6362856Z  Test Files  416 passed (416)",
+        "2026-10-11T01:30:30.6378277Z       Tests  3877 passed (3877)",
+        "2026-10-11T01:31:39.6396603Z  Test Files  105 passed (105)",
+        "2026-10-11T01:31:39.6403695Z       Tests  1002 passed (1002)",
+        "2026-10-11T01:31:40.9280359Z \u2139 tests 20",
+        "2026-10-11T01:31:40.9280933Z \u2139 pass 20"
+      ]
+    },
+    "pr": {
+      "sha256": "907f0ee6f1e00db2963824e50d598143ac9ec4719a0f90b0b951a84a7339ad2f",
+      "actualSummaryLines": [
+        "2026-10-11T01:13:15.4424091Z \u2139 tests 357",
+        "2026-10-11T01:13:15.4424539Z \u2139 pass 357",
+        "2026-10-11T01:34:41.8679855Z  Test Files  416 passed (416)",
+        "2026-10-11T01:34:41.8699865Z       Tests  3877 passed (3877)",
+        "2026-10-11T01:36:11.6760398Z  Test Files  105 passed (105)",
+        "2026-10-11T01:36:11.6768198Z       Tests  1002 passed (1002)",
+        "2026-10-11T01:36:13.1383655Z \u2139 tests 20",
+        "2026-10-11T01:36:13.1384560Z \u2139 pass 20"
+      ]
+    }
+  },
+  "originalOwnChecksReceiptSha256": "ebec854ef1d921f1aa9af4a4f622f5226df183bfc90493d53f3e14f18f86d734",
+  "originalMergeReceiptSha256": "0692aa5889507ced9650ea00a88c40eee3f7e36de784765af6e773c57c55c724",
+  "scope": "Ordinary reviewed development/test squash merge preserves exact qualified tree. Own and separately recorded post-merge gates passed; no serving/schema/provider activation or whole Node/File/jobs qualification.",
+  "sourceSynchronizationWrittenAt": "2026-10-11T02:06:05.705587+00:00",
+  "postmergeStateObservation": "API output observed during source synchronization; exact API poll timestamp not separately retained.",
+  "historicalInitialPostmergeRuns": [
+    {
+      "id": 38102602822,
+      "name": "Verify",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "id": 38102602889,
+      "name": "Project Map performance",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "postmergeCompleteReceipt": "PR262_POSTMERGE_COMPLETE_CI_RECEIPT.json",
+  "postmergeCompleteReceiptSha256": "962ee039fadf61327b11177613b4ecb616d4712e649474d91d99b77cbce0a670"
+}

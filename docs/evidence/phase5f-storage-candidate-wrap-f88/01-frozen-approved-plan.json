@@ -1,0 +1,163 @@
+{
+  "version": 1,
+  "status": "SOURCE_FROZEN_ACTUAL_UNRUN_WAIT_EXCLUSIVE_GO",
+  "sourceRoot": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+  "sourceHead": "f88fffea3ba0654b52ca90ee87efdafdb70cd48c",
+  "sourceTree": "df05a78afcdee28f7136a349001464c399531e9c",
+  "trackedFileCount": 1792,
+  "runtimeRoot": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10",
+  "diagnosticRoot": "/tmp/phase5f-storage-candidate-section-wrap-fixture-attempt10",
+  "producerSourceCopyRoot": "/tmp/phase5f-storage-refresh-focus-body-model-current591-copy-attempt4",
+  "producerFixtureRoot": "/tmp/phase5f-storage-refresh-focus-body-model-current591-fixture-attempt4",
+  "producerHead": "01ad7ab9270f7db7b7c10fea5c31707a8923d66c",
+  "producerTree": "c225ead0246564fe109d99348f49493fb2b2ac8c",
+  "producerActualClosedReceipt": "/tmp/phase5f-storage-refresh-focus-body-model-current591-runtime-attempt4/actual-storage-refresh01ad-overflow-first-failure-closed-and-released.json",
+  "producerActualClosedReceiptSha256": "495b15003c4ce0b3f658ce1e7401138ed2318ec3fd048b25a104317d3bb4ea13",
+  "producerBuildCarry": "NONE for changedCSS. New sourcef88 ordinaryactualbuild once. Original01 fixture retains realhistorical24/84/accepted2profiles3revisions; only its physicalstate copied. Fresh3b6 Worker/staticartifact and original01 runtimeinstallation bindings deliberately separate and both source/artifact inventories qualified.",
+  "installedDependencies": {
+    "root": "/workspace/sample-fabrication-workflow/node_modules",
+    "package": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+    "lock": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a",
+    "hiddenLock": "95202718d08fd50cc286bcddf0af66b08503d63b494e992006c50d4246d69a98"
+  },
+  "commands": [
+    {
+      "stage": "affected-app-strict",
+      "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+      "argv": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.app.json"
+      ]
+    },
+    {
+      "stage": "affected-storage-mounted-file",
+      "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+      "argv": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.mounted.config.ts",
+        "src/storage-configuration.mount.test.tsx",
+        "--maxWorkers",
+        "1",
+        "--bail",
+        "1"
+      ],
+      "control": "Full original affected Storage mounted24/default5s; no assertion/config/timeout changes or unrelated matrix."
+    },
+    {
+      "stage": "one-fresh-final-QA-source-build",
+      "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+      "argv": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "control": "ONE genuine ordinary fresh build of exactf88 tracked source containing CSSrepair. Original01 output cannot qualify this CSS."
+    },
+    {
+      "stage": "isolated-copy",
+      "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+      "argv": [
+        "python3",
+        "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10/scripts/qa/phase5f/prepare-isolated-copy.py",
+        "--source-root",
+        "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+        "--destination",
+        "/tmp/phase5f-storage-candidate-section-wrap-copy-attempt10",
+        "--dependency-root",
+        "/workspace/sample-fabrication-workflow/node_modules"
+      ]
+    },
+    {
+      "stage": "fresh-storage-layout-build-input-witness",
+      "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+      "argv": [
+        "python",
+        "-B",
+        "/tmp/phase5f-storage-candidate-section-wrap-source-review-attempt10/write-fresh-layout-build-witness.py"
+      ],
+      "scope": "After actual buildPASS/directreaped+freshcopy; bind original npm build receipt/log/dist manifest+all1792/copiedartifact hashes. No SQLite/socket/browser."
+    },
+    {
+      "stage": "source-preflight-and-state-copy",
+      "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+      "argv": [
+        "python",
+        "-B",
+        "/tmp/phase5f-storage-candidate-section-wrap-source-review-attempt10/copy-and-postcheck-original-closed-storage-layout.py",
+        "--exclusive-go-read-only-retained-storage-layout-files",
+        "copy"
+      ],
+      "scope": "Verify originalclosed receipt/directPIDs/source1792/artifacts121 and QAconsumer1792/all1791otherbytes; copy only originalnormalclosed state regular main/WAL/R2blobs into0700newroot. OriginalSHM statonly, no originalSQLite reader."
+    },
+    {
+      "stage": "one-read-only-retained390-layout",
+      "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+      "argv": [
+        "node",
+        "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10/scripts/qa/phase5f/browser-enabled-storage-draft-actual-api.mjs",
+        "/tmp/phase5f-storage-refresh-focus-body-model-current591-copy-attempt4",
+        "/tmp/phase5f-storage-refresh-focus-body-model-current591-fixture-attempt4",
+        "--exclusive-go-read-only-retained-storage-layout",
+        "/tmp/phase5f-storage-candidate-section-wrap-fixture-attempt10",
+        "/tmp/phase5f-storage-candidate-section-wrap-copy-attempt10"
+      ],
+      "env": {
+        "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+        "CHROMIUM_PATH": "/usr/bin/chromium"
+      },
+      "tty": true,
+      "scope": "One390dark originalacceptedstate read-only page served by actual freshf88 application artifact. GenuineAccess,newprivatekeyring credentialsUnavailable,4browser+2aux GETs only; wholecatalog/allrows exact. Safegeometry before unchanged+2assert. Originalstate/01artifacts retainedseparately; no oldartifact CSScarry."
+    },
+    {
+      "stage": "mandatory-postphysical-and-original-pins",
+      "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+      "argv": [
+        "python",
+        "-B",
+        "/tmp/phase5f-storage-candidate-section-wrap-source-review-attempt10/copy-and-postcheck-original-closed-storage-layout.py",
+        "--exclusive-go-read-only-retained-storage-layout-files",
+        "postphysical"
+      ],
+      "mandatoryAfterBrowserFailure": true,
+      "scope": "Only after originalhelperreport normalawaitedbrowser/Worker/JWKS closure+refusedports and originalchildactualexit/reap; copied4SQLite quick/FK,PNG/blobbytes,originalmain+WAL/SHMstat/source/artifactspins and trackedconsumer. Firstfailure retained; mandatorycleanup/physical stays required."
+    }
+  ],
+  "cases": [
+    {
+      "id": "retained-candidates-read-only-layout-390-dark",
+      "count": 1,
+      "acceptedMetadataWrites": 0,
+      "expectedStoredProfiles": 2,
+      "retainedRevisions": 3,
+      "providerActions": 0
+    }
+  ],
+  "expectedCosts": {
+    "browserAPI": "Expected4 originalGETs capability/configuration/twoChecks, actualcounts retained.",
+    "auxiliaryAPI": "2 genuineadmin/reader capabilityGET; expectedtotal6 ordinaryAPIGET; JWKS/assets separate.",
+    "mature84": "Historicaloriginal01 setup only, notrerun inreadonlyrepairphase.",
+    "oldDraft2": "Notrerun untilsingle390 repairactualPASS; later finite2 use samefreshf88 build andnewisolated24/84 fixture.",
+    "mounted": "24 affectedexisting Storagecases; default5s.",
+    "newBuild": "1 genuine sameheadordinary npmrunbuild; no01artifactcarry."
+  },
+  "budgets": {
+    "bodyAndLocatorMs": 20000,
+    "viewportOverflowTolerance": 2,
+    "originalTTYSupervisionSeconds": 120,
+    "changes": "NONE"
+  },
+  "stopControl": "Launch browserstage via tools.exec_command tty:true. Originalhelperretainsstdin; explicit stop newline cancelsoriginalcontexts/browser thenoriginalfinally readsretainedsnapshot/disposesWorker/closesJWKS. Awaitdirectchildactualexit. NeverdescribeSIGTERM143 asgraceful; no unownedkill. Parent supervisesprogress20s and same120s guard.",
+  "firstFailure": "Stopremaining normalstages; if browserstarts alwaysawaitoriginalcontexts/browser/Worker/JWKS/directexit and mandatorypostphysical/sourcepins. ReadonlygeometryFAIL remains1failed, neverPASScase. No furtheractualStorage2 untilnewGO afterrepairsingle390PASS.",
+  "priorSourcePeers": [
+    "/tmp/phase5f-storage-safe-geometry6ff-independent-source-peer.json"
+  ],
+  "sourceParserScope": "Helper node--check exit0. Carrier/witness/runner Python AST parse only; no appcompiler/mounted/build/SQLite/Worker/browser yet.",
+  "priorSourceFinding": "Historical558 actualreadonly390FAIL:width390 root/body945,8nativebuttonoffenders widths588.64\u2013909.92. Actual6GET andwholecopiedrows/schema normalclosure/physicalPASS. CSSminimumscopedrule wraps candidate-list buttons; all originallabels/assertions/budgets unchanged.",
+  "freshApplicationCopyRoot": "/tmp/phase5f-storage-candidate-section-wrap-copy-attempt10",
+  "postRepairFollowup": "AfteractualPASS, prepare original2 metadata encrypted draft/lostACK/revision409 browsercases withnewisolated24+84 fixture using the SAMEalreadyqualifiedfreshf88 artifact; no redundant ordinarybuild. Package2 genuinepreview maylatershare samefreshproducer onlyaftercausalinputproof."
+}

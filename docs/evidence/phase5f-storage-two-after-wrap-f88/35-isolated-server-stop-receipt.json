@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "sourceRoot": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+  "sourceCopyRoot": "/tmp/phase5f-storage-candidate-section-wrap-two-write-copy-attempt11",
+  "fixtureDirectory": "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11",
+  "sourceHead": "f88fffea3ba0654b52ca90ee87efdafdb70cd48c",
+  "sourceTree": "df05a78afcdee28f7136a349001464c399531e9c",
+  "sessionId": "3923564d-c126-4a79-ade6-c6bb5a1d0633",
+  "sessionPid": 644147,
+  "isolationReceiptSha256": "a75d88f98902bf45c79d9fcab08c6296e6421133c113d6bfb75dc9ef9dc133dd",
+  "fixtureManifestSha256": "9c2efad2eacc645582cd67a6c5e8e7525ec3b984343d4d2f692a63959c43eaa3",
+  "status": "stopped",
+  "control": "stdin:stop",
+  "disposalAwaited": true,
+  "portClosed": true,
+  "startedAt": "2026-10-11T03:07:50.046Z",
+  "stoppedAt": "2026-10-11T03:07:50.078Z",
+  "startupReceiptSha256": "20814534a81d8c8b00f192ee8e05d895dd47571a8099edc0db16497d7604e061",
+  "helperSha256": "929eec612bf7ab8b266089553b5d56ce75e0abb192d24ab929222403cc5d3424"
+}
