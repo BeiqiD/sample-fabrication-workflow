@@ -1,5 +1,6 @@
 import { applicationFetch } from "./authentication-client";
 import type { CreateCommentSubmissionInput } from "../../shared/types";
+import { stableJson } from "../../shared/domain/content-addressing";
 import { canonicalCommentAcceptanceInput, validateCommentAcceptanceInput, validateCommentPublicationResult, MAX_COMMENT_ACCEPTANCE_INPUT_BYTES, type AcceptedCommentSubmissionInput, type CommentAcceptanceState } from "../../shared/contracts/comment-acceptance";
 
 const PREFIX = "comment-acceptance-v1:";
@@ -7,6 +8,7 @@ const MAX_CHECKPOINT_BYTES = MAX_COMMENT_ACCEPTANCE_INPUT_BYTES + 4096;
 interface Checkpoint { version: 1; sourceKey: string; input: AcceptedCommentSubmissionInput; inputSha256: string; attempted: boolean; observedReady: boolean; cancelling?: boolean; removing?: string[] }
 const known = new Map<string, Checkpoint>();
 const actions = new Map<string, Promise<unknown>>();
+const creates = new Map<string, { json: string; promise: Promise<{ id: string; deduplicated: boolean }> }>();
 const discarded = new Set<string>();
 function requireTracked(id: string) { if (discarded.has(id)) throw new CommentAcceptanceError("This local comment request was discarded. Submit a new comment to start another request."); }
 export class CommentAcceptanceError extends Error {
@@ -166,31 +168,41 @@ async function mutation(path: string, id: string, init: RequestInit): Promise<Co
 }
 export async function createDurableCommentSubmission(value: AcceptedCommentSubmissionInput): Promise<{ id: string; deduplicated: boolean }> {
   requireTracked(value.id); requireDigest();
-  const canonical = await canonicalCommentAcceptanceInput(JSON.parse(JSON.stringify(value)));
-  requireTracked(value.id);
-  return oneAction(`create:${value.id}:${canonical.sha256}`, async () => {
+  const frozen = validateCommentAcceptanceInput(JSON.parse(JSON.stringify(value)));
+  const json = stableJson(frozen);
+  const previous = creates.get(frozen.id);
+  if (previous) {
+    if (previous.json !== json) throw new CommentAcceptanceError("The accepted comment cannot be changed. Start a new comment for different content.");
+    return previous.promise;
+  }
+  const promise = (async () => {
+    const canonical = await canonicalCommentAcceptanceInput(frozen);
+    requireTracked(frozen.id);
     const prior = read(canonical.input.id);
     if (prior && prior.inputSha256 !== canonical.sha256) throw new CommentAcceptanceError("The accepted comment cannot be changed. Start a new comment for different content.");
     const checkpoint: Checkpoint = prior ?? { version: 1, sourceKey: commentComposerSource(canonical.input.context), input: canonical.input, inputSha256: canonical.sha256, attempted: false, observedReady: false };
     save(checkpoint);
     if (checkpoint.cancelling) {
-      const state = await getCommentAcceptance(value.id);
-      if (state?.status === "ready") return { id: value.id, deduplicated: true };
+      const state = await getCommentAcceptance(frozen.id);
+      if (state?.status === "ready") return { id: frozen.id, deduplicated: true };
       throw new CommentAcceptanceError("Cancellation is unresolved. Use Cancel again to check the same request before uploading more files.");
     }
     if (checkpoint.attempted) {
-      const state = await getCommentAcceptance(value.id);
+      const state = await getCommentAcceptance(frozen.id);
       if (state) {
-        if (state.status === "pending" || state.status === "ready") return { id: value.id, deduplicated: true };
+        if (state.status === "pending" || state.status === "ready") return { id: frozen.id, deduplicated: true };
         stateError(state);
       }
       if (checkpoint.observedReady) throw new CommentAcceptanceError("The completed comment could not be found. It will not be submitted again.");
     }
     checkpoint.attempted = true; save(checkpoint);
-    const state = await mutation("", value.id, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(checkpoint.input) });
+    const state = await mutation("", frozen.id, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(checkpoint.input) });
     if (state.status !== "pending" && state.status !== "ready") stateError(state);
-    return { id: value.id, deduplicated: false };
-  });
+    return { id: frozen.id, deduplicated: false };
+  })();
+  creates.set(frozen.id, { json, promise });
+  void promise.finally(() => { if (creates.get(frozen.id)?.promise === promise) creates.delete(frozen.id); }).catch(() => undefined);
+  return promise;
 }
 async function requireState(id: string) {
   requireTracked(id);
