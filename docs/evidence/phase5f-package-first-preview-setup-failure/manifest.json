@@ -1,0 +1,179 @@
+{
+  "status": "FAILED_PREBROWSER_SETUP_ORIGINAL_CLOSED_RELEASED",
+  "date": "2026-10-11",
+  "originalActualReceiptSha256": "67e15857d87e3321206ba3c91c60712d8c0a0eea9890f68b6acf559b690ef925",
+  "qaConsumerHead": "f50384811b2d16fd64847cf10f622719bed0481a",
+  "actualCausalProducerHead": "f88fffea3ba0654b52ca90ee87efdafdb70cd48c",
+  "curatedRecords": [
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/final-source-artifact-input-pins-command.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/final-source-artifact-input-pins-command.json",
+      "sha256": "c899f3240ba0e54a865ca6b4419f40df618575dfbfdf9c3276ff93d536487b7e",
+      "bytes": 1369
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/fresh-current-source-build-witness-command.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/fresh-current-source-build-witness-command.json",
+      "sha256": "5774d88b3560254b639dcd01c80889e1d9582423473256b609adf9ccfcedefa3",
+      "bytes": 1306
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/fresh-two-version-sentinel-command.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/fresh-two-version-sentinel-command.json",
+      "sha256": "c82babf112d25ac532e12cc032a29af74c5c13984602fc7fd5b01f42074e9627",
+      "bytes": 1642
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/genuine-enabled-Access-package-preview-two-command.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/genuine-enabled-Access-package-preview-two-command.json",
+      "sha256": "90d6bef95e408d5f80238eee218a0cbacd622d824ae5f88a1cf2079d4818cfd2",
+      "bytes": 2285
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/isolated-copy-command.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/isolated-copy-command.json",
+      "sha256": "fbd4c9171a18b3cd7575b647c68578778a612383efb9f52dbf18e365d78a22c5",
+      "bytes": 1150
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/mature-genuine-api-84-only-command.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/mature-genuine-api-84-only-command.json",
+      "sha256": "5ef38261888df04429d6f533730cefdeb68718b613e6bb32b5fb5fbd687bb192",
+      "bytes": 1033
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/ordinary-actual24-local-migrations-command.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/ordinary-actual24-local-migrations-command.json",
+      "sha256": "b5a1232b703faa7a6cc7a0d7c9326b38857d603b6b803f8bfda71597a1219099",
+      "bytes": 1817
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/owned-built-worker-command.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/owned-built-worker-command.json",
+      "sha256": "f409084008c270f50314c763873e074c49a52756db2008cb3b4b9781229d1e66",
+      "bytes": 1506
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/physical-after-command.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/physical-after-command.json",
+      "sha256": "ce1506207542e3abaee78161492176f2f9d9f79c485cdf212e94e72279109493",
+      "bytes": 1407
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/physical-before-command.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/physical-before-command.json",
+      "sha256": "5020c75cd3f495f7c88f97c28a75c1f08eed49a01ba567b0c893c2f44c1dc2a2",
+      "bytes": 1105
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/qualified-f88-producer-preflight-command.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/qualified-f88-producer-preflight-command.json",
+      "sha256": "7471ddeb394f8f2ccc1c7d36a60a05bd838a1d5126b5c355647f1f5061acd090",
+      "bytes": 1247
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/synthetic-template-sentinels-only-command.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/synthetic-template-sentinels-only-command.json",
+      "sha256": "1e26c274167cc467ec5a99ced56b519c6b8b2fade11383bb94e2d0eec981cd62",
+      "bytes": 1898
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/actual-package-two-first-prebrowser-failure-closed-and-released.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/actual-package-two-first-prebrowser-failure-closed-and-released.json",
+      "sha256": "67e15857d87e3321206ba3c91c60712d8c0a0eea9890f68b6acf559b690ef925",
+      "bytes": 20697
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/supplemental-source-artifact-pins-after-prebrowser-setup-failure.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/supplemental-source-artifact-pins-after-prebrowser-setup-failure.json",
+      "sha256": "f3859612d719a49d2e64ef85f742843cb8fab2f09415615da3e3b088867ffc1c",
+      "bytes": 516
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/genuine-enabled-Access-package-preview-two.log",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/genuine-enabled-Access-package-preview-two.log",
+      "sha256": "1c8e82ef6703debf5ce3f1a5b0520f3c124bcefd7f55f0e214335b30b19a8536",
+      "bytes": 630
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/final-source-artifact-input-pins.log",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/final-source-artifact-input-pins.log",
+      "sha256": "f27b04cdabcd463d002326e3b1fd176d18a53fa1027bc872eb3c72decc9d5718",
+      "bytes": 981
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-fixture-attempt1/physical-sqlite-before-api.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/physical-sqlite-before-api.json",
+      "sha256": "9a99e616ea1a7db3b666ae5907bc04e66184d11c916d24102c26b4757b918d32",
+      "bytes": 49186
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-fixture-attempt1/physical-sqlite-after-shutdown.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/physical-sqlite-after-shutdown.json",
+      "sha256": "c5cd429c269c9a17953df617d6e6ceb184354b27db563558e1f1cb64c42c4af3",
+      "bytes": 53910
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-fixture-attempt1/isolated-server-receipt.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/isolated-server-receipt.json",
+      "sha256": "3ee4a7314c2d00ec9933aa075edc8c35996883f83467a2c777de843c44a1e754",
+      "bytes": 3392
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-fixture-attempt1/isolated-server-stop-receipt.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/isolated-server-stop-receipt.json",
+      "sha256": "d86adfcc069d47a43ff1fd640ac329b8da83014fb4cb310290e884b153f1189a",
+      "bytes": 1015
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-fixture-attempt1/actual-api-fixture-receipt.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/actual-api-fixture-receipt.json",
+      "sha256": "ca9c7eee647642aa8eefdfabe95bbd660c66021941fcc0c037f88a739c298b69",
+      "bytes": 51605
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-fixture-attempt1/enabled-storage-draft-build-input-witness.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/enabled-storage-draft-build-input-witness.json",
+      "sha256": "b7f1bbb67e9b29b5096ee4a87c58ff5db2e187b5090f37310dc4006baa8e12df",
+      "bytes": 1355
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-finite-source-review-attempt1/source-handoff.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/source-handoff.json",
+      "sha256": "0439c5eb636b9da5c66b1f6db6b937d33b57e98c6e6e64c24427afdc2271fb27",
+      "bytes": 4766
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-finite-source-review-attempt1/finite-genuine-package-preview-two-plan.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/finite-genuine-package-preview-two-plan.json",
+      "sha256": "01f2fb9a5bb7a0a11b2216811ced7b8efff3241a5b044d469645981c0b080c6d",
+      "bytes": 17577
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-finite-source-review-attempt1/run-frozen-owned-stage.py",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/run-frozen-owned-stage.py",
+      "sha256": "8c5f5ceb66b00899bca416b458a93d9271d8f50ae23d4ee94604e6b3e533e7de",
+      "bytes": 11427
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-genuine-preview-finite-source-review-attempt1/verify-qualified-f88-producer-and-package-two-witness.py",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/verify-qualified-f88-producer-and-package-two-witness.py",
+      "sha256": "b6cf30a04c7e00fc3b5d6ad92b2cf9d43d32878da5281686338c9da6a87b5f1f",
+      "bytes": 9624
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-f503-finite13-independent-qualified-carry-source-peer.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/phase5f-package-f503-finite13-independent-qualified-carry-source-peer.json",
+      "sha256": "86a7f26b5b9fea4a1d52f859b9d307e55b17e619bf2629b9126a0b24aa407fc0",
+      "bytes": 2732
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-f503-root-finite13-source-review.json",
+      "curatedPath": "docs/evidence/phase5f-package-first-preview-setup-failure/phase5f-package-f503-root-finite13-source-review.json",
+      "sha256": "3099327ce2d0c9fedf63d49c9961b373a1e59a345dfca751231f8e103d0bd6e7",
+      "bytes": 788
+    }
+  ],
+  "rawBytes": 247966,
+  "scope": "No browsercase or previewPOST ran. Original rawlogs are byte-exact incl control characters/trailing whitespace; other original reference paths remain immutable/tmp. No copied SQLite databases, JWT, private signing keys or credentials."
+}

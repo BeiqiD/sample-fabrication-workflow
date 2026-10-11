@@ -1,0 +1,36 @@
+{
+  "stage": "owned-built-worker",
+  "cwd": "/tmp/phase5f-package-preview-focus-fresh-build-copy-attempt3",
+  "argv": [
+    "node",
+    "/tmp/phase5f-package-preview-focus-current1943-source-attempt3/scripts/qa/phase5f/start-built-server.mjs",
+    "/tmp/phase5f-package-preview-focus-fresh-build-copy-attempt3",
+    "/tmp/phase5f-package-preview-focus-fresh-build-fixture-attempt3"
+  ],
+  "control": "Keep owned stdin open, await actual ready health/ready200 and immutable owner/session; never start browser while readiness lacks",
+  "toolInvocation": {
+    "tty": true,
+    "yieldTimeMs": 1000,
+    "control": "PTY keeps originalstdin alive, sourceisatty guard BEFORE childspawn. Require originalready200/session/PID/startticks/noStop beforeseed. Explicitoriginalstop newline only originaltoolsession, thenactualdisposal/directwait."
+  },
+  "startedAt": "2026-10-11T04:12:36.119392+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-package-preview-focus-fresh-build-runtime-attempt3/owned-built-worker.log",
+  "pid": 730629,
+  "processGroup": 730629,
+  "originalStartTicks": "10521688",
+  "originalStdinStopSent": true,
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T04:12:52.756086+00:00",
+  "logSha256": "f3a14cfd639a45ced4698e3157f2960d7ce9013c31efabe50559f0cf05ca63e5"
+}

@@ -1,0 +1,39 @@
+{
+  "kind": "package-focus-final15-independent-fresh-producer-consumer-source-peer/1",
+  "status": "SOURCE_CLEAR_ALL15_UNRUN",
+  "checkedAt": "2026-10-11T04:09:39.791856+00:00",
+  "handoff": "/tmp/phase5f-package-preview-focus-fresh-build-finite-source-review-attempt5/source-handoff.json",
+  "handoffSha256": "f04c32dc75be9ac6bc4e6a9d7165f215da811d89ae0c23e506a95539ec0a2191",
+  "producerHead": "ffff956c68e64e20b91b773d3bcb064642a37410",
+  "consumerHead": "638fd7407a38fc24983b6014558ccaf1e80aae9e",
+  "all1879WorkingAndGitInputsExact": true,
+  "all1878NonhelperProducerConsumerInputsExact": true,
+  "copiedProducerHelper17d8SeparatelyPinned": true,
+  "newConsumerHelperSha256": "9e37a20d0f9a594086dc4e581958af2ce47d6fdb3ca3ebbb0a8b03eac7075ac9",
+  "original75eBrowserMeaningfulCaseAndOwnerTailExactOutsideLabels": true,
+  "matureRunnerDefinitionsAST": {
+    "unchangedOwnerUtilityAndClassDefs": 10,
+    "soleVerifySourceCount1792To1879": true,
+    "totalDefs": 11
+  },
+  "matureCarrierThreeDefsASTExact": true,
+  "reviewedFreshCarrierTopLevel": [
+    "Exact samehead fresh npm build receipt/exit0/directreap/log and all118 producer outputs; no old f88 carry.",
+    "Exact1879 tracked +121 copied artifact inventory/currentlocalR2namespace config and independent24/84seed/session/normalseedstop.",
+    "Current638 helper separate, exact1878 remaining inputs; producer copiedhelper17d8 explicit.",
+    "Final original browser/Worker/JWKS closure, retained old rows/catalog and real released HTTP permits; fresh command/pin carrier mandatory after failure."
+  ],
+  "finiteStages": 15,
+  "actualPlannedCommandChildren": 14,
+  "normalStdinStop": 1,
+  "mountedScope": "Whole28 default mounted5s/max1/bail1; no filter",
+  "browserScope": "Originaltwo native genuine previewPOST200 DTO/roots/dependencies/focus/geometry and original20/120s body/TTY budgets; no jobs/ZIP/provider/import/recovery/activation",
+  "independentRootsAbsentBeforeRun": true,
+  "allRetainedActualFailureHashesVerified": true,
+  "noCompilerRuntimeInvocationsByReviewer": true,
+  "scopeLimits": [
+    "All15 currentlyUNRUN; no browser success, newbuild witness or product CI acceptance claimed.",
+    "Public esbuild.stop API request is not native exit witness; actual mature child/group receipts remain necessary."
+  ],
+  "sourceFindings": []
+}

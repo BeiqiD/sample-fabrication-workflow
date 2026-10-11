@@ -117,6 +117,59 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); sessionStorage.clear(); });
 
 describe("native research package browser workflow", () => {
+  it("returns focus to an explicitly focused Preview export after its original deferred response", async () => {
+    let finishPreview!: (value: Response) => void;
+    let originalPreview!: Response;
+    network.mockImplementation(async (path, options) => {
+      if (String(path) === `${base}/plans` && options?.method === "POST") {
+        originalPreview = fallback(path, options);
+        return new Promise<Response>(resolve => { finishPreview = resolve; });
+      }
+      return fallback(path, options);
+    });
+    await mount("?rootType=sample&rootId=sample%3A1");
+    const preview = await enabled("Preview export");
+    expect(document.activeElement).not.toBe(preview);
+    preview.focus(); fireEvent.click(preview);
+    expect(preview.matches(":disabled")).toBe(true);
+    // Model the prior actual Chromium disabled-fieldset blur; this is not a new browser proof.
+    const originalTabIndex = document.body.getAttribute("tabindex");
+    try { document.body.tabIndex = -1; document.body.focus(); }
+    finally {
+      if (originalTabIndex === null) document.body.removeAttribute("tabindex");
+      else document.body.setAttribute("tabindex", originalTabIndex);
+    }
+    expect(document.activeElement).toBe(document.body);
+    await act(async () => finishPreview(originalPreview));
+    await screen.findByRole("button", { name: "Start data package export" });
+    await waitFor(() => expect(document.activeElement).toBe(preview));
+    expect(preview.isConnected).toBe(true); expect(preview.matches(":disabled")).toBe(false);
+    expect(callsTo("/plans", "POST")).toHaveLength(1); expect(savedMutations()).toHaveLength(0);
+    expect(sessionStorage.getItem(intentKey)).toBeNull();
+  });
+
+  it("preserves focus moved to another native control while Preview export is pending", async () => {
+    let finishPreview!: (value: Response) => void;
+    let originalPreview!: Response;
+    network.mockImplementation(async (path, options) => {
+      if (String(path) === `${base}/plans` && options?.method === "POST") {
+        originalPreview = fallback(path, options);
+        return new Promise<Response>(resolve => { finishPreview = resolve; });
+      }
+      return fallback(path, options);
+    });
+    await mount("?rootType=sample&rootId=sample%3A1&kind=report");
+    const preview = await enabled("Preview export");
+    preview.focus(); fireEvent.click(preview); expect(preview.matches(":disabled")).toBe(true);
+    const other = screen.getByRole("link", { name: "Storage settings" }); other.focus();
+    expect(document.activeElement).toBe(other);
+    await act(async () => finishPreview(originalPreview));
+    await screen.findByRole("button", { name: "Start report export" });
+    expect(preview.matches(":disabled")).toBe(false); expect(document.activeElement).toBe(other);
+    expect(callsTo("/plans", "POST")).toHaveLength(1); expect(savedMutations()).toHaveLength(0);
+    expect(sessionStorage.getItem(intentKey)).toBeNull();
+  });
+
   it.each(["data_package", "report"] as const)("prefills a selected Sample and previews %s before explicit acceptance", async kind => {
     await mount(`?rootType=sample&rootId=sample%3A1&kind=${kind}`);
     expect((screen.getByLabelText("Sample and Project roots") as HTMLTextAreaElement).value).toBe("sample:sample:1");

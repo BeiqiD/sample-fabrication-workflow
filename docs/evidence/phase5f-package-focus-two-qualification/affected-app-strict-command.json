@@ -1,0 +1,29 @@
+{
+  "stage": "affected-app-strict",
+  "cwd": "/tmp/phase5f-package-preview-focus-current1943-source-attempt3",
+  "argv": [
+    "node",
+    "node_modules/typescript/bin/tsc",
+    "-p",
+    "tsconfig.app.json"
+  ],
+  "startedAt": "2026-10-11T04:11:16.690220+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-package-preview-focus-fresh-build-runtime-attempt3/affected-app-strict.log",
+  "pid": 727415,
+  "processGroup": 727415,
+  "originalStartTicks": "10513746",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T04:11:18.239759+00:00",
+  "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

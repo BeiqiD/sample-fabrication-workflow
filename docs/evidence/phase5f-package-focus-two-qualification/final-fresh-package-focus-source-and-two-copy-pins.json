@@ -1,0 +1,25 @@
+{
+  "status": "PASS",
+  "actualProducerHead": "ffff956c68e64e20b91b773d3bcb064642a37410",
+  "all1879OriginalWorkingAndCopiedInputsExact": true,
+  "all118OriginalOutputAnd121CopiedArtifactHashesExact": true,
+  "originalBuildCommandReceiptSha256": "da269d5092da57f7c392b455b0100dc5216da2f976fabb9f8e467c336783e7d7",
+  "newBrowserStatus": "passed",
+  "qaConsumerHead": "638fd7407a38fc24983b6014558ccaf1e80aae9e",
+  "qaConsumerTree": "8476845653757f328ae5c86d8b5010ad114a47e9",
+  "retainedOriginalLeaseRowsExact": true,
+  "allOtherPackageRowsAndCatalogPreserved": true,
+  "newBrowserNormalClosure": {
+    "sessionId": "41a214a3-bcee-465b-bfcc-bfdfb8c9e5fa",
+    "startedAt": "2026-10-11T04:13:14.140Z",
+    "status": "closed",
+    "browserCloseAwaited": true,
+    "originalCatalogUnrelatedRowsAndOriginalPermitsVerified": true,
+    "workerDisposeAwaited": true,
+    "workerPortRefused": true,
+    "jwksCloseAwaited": true,
+    "jwksPortRefused": true,
+    "completedAt": "2026-10-11T04:13:15.218Z"
+  },
+  "newBuilds": 1
+}

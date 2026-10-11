@@ -1,0 +1,56 @@
+{
+  "stage": "one-fresh-final-QA-source-build",
+  "cwd": "/tmp/phase5f-package-preview-focus-current1943-source-attempt3",
+  "argv": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "control": "ONE genuine samehead focus product build; original f88 build cannot qualify changed Package page. Actual receipt/directexit/reap/log/dist118 bound by later carrier.",
+  "startedAt": "2026-10-11T04:11:33.779046+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-package-preview-focus-fresh-build-runtime-attempt3/one-fresh-final-QA-source-build.log",
+  "pid": 727576,
+  "processGroup": 727576,
+  "originalStartTicks": "10515454",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 727800,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 727576,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 727800,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 727576,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 727800,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 727576,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T04:11:38.865495+00:00",
+  "logSha256": "45e1ff6755e84dd70ddf683fa1b9b312560615754429a68a0bc438de38aa1b02"
+}

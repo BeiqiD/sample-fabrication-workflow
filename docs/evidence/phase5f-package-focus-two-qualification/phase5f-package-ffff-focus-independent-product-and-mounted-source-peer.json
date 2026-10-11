@@ -1,0 +1,38 @@
+{
+  "kind": "package-focus-ffff-independent-product-and-mounted-source-peer/1",
+  "status": "SOURCE_CLEAR_UNRUN",
+  "sourceRoot": "/tmp/phase5f-package-preview-focus-current1943-source-attempt3",
+  "head": "ffff956c68e64e20b91b773d3bcb064642a37410",
+  "tree": "6717c62026f486e241de222ae6d206e30a51ce96",
+  "handoff": "/tmp/phase5f-package-preview-focus-current1943-source-review-attempt3/source-handoff.json",
+  "handoffSha256": "2c5611d05807f8b463bc96fe197f781bbd72e136ce67959302ff0eac9936b4fb",
+  "checkedAt": "2026-10-11T04:08:51.393212+00:00",
+  "all1879WorkingAndSavedBlobsExact": true,
+  "protected1876BaseEntriesExact": true,
+  "productionChangedOnly": "src/pages/ResearchPackagesPage.tsx",
+  "originalMounted26BodiesExactOutsideTwoAdditions": true,
+  "newDeferredCases": 2,
+  "oldGenuineHelper17d8Exact": true,
+  "semantics": [
+    "Focused native Preview button and original lifetime signal captured synchronously only by genuine submitted Preview callback.",
+    "Restore runs after busy=false and clears capture; exact signal/current button/connected/enabled/denied guard, focus returns only from body or same original button.",
+    "No movement from another focused native control; no new API/status/data/history/policy change.",
+    "Two mounted controls explicitly model prior Chromium disabled-fieldset body blur and another focused link; original DTO/client parsing and one actual mocked original plan response retained.",
+    "Fresh affected app/mounted checks and samehead producer build required; old f88 outputs cannot qualify modified product."
+  ],
+  "scopeLimits": [
+    "Mounted new cases not yet executed; no new actual browser/engine/keyboarding proof until planned genuine two cases.",
+    "No jobs/ZIP/provider/import/recovery/activation/Group or full5F closure claim."
+  ],
+  "originalActualFailure": {
+    "path": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/actual-package-two-native-focus-failure-closed-and-released.json",
+    "sha256": "b4d5f14afa504bd8d546697d3efa207c164c8dc140bd9d3fe9dc3daaec1f62ea",
+    "cases": {
+      "pass": 0,
+      "fail": 1,
+      "unrun": 1
+    }
+  },
+  "reviewerCompilers": 0,
+  "reviewerRuntime": 0
+}
