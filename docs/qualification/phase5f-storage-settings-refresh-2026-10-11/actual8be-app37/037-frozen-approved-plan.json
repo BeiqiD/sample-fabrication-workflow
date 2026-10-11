@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "status": "SOURCE_ONLY_CURRENT553_STORAGE_FOCUS_APP_AND_AFFECTED37_PENDING_ROOT_GO",
+  "sourceRoot": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source",
+  "sourceHead": "8be4e74200096436eaa674a05d44dd772d23fc35",
+  "sourceTree": "e7a91951906a0733685489367e73d6d29f74b891",
+  "trackedFileCount": 3086,
+  "runtimeRoot": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/runtime",
+  "installedDependencies": {
+    "root": "/workspace/sample-fabrication-workflow/node_modules",
+    "package": "5c8a504d14b7208edb3d77b8c5049c713d55e4e7821d8e43b7b54e6dbeebe8fc",
+    "lock": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a",
+    "hiddenLock": "95202718d08fd50cc286bcddf0af66b08503d63b494e992006c50d4246d69a98",
+    "parentPackage": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+    "sourcePackageOnlyReviewedCommandDelta": {
+      "script": "test:node-http",
+      "sourceCommand": "node --experimental-transform-types --test --test-concurrency=1 server/http.test.mts server/http-lifetime.test.mts server/static-assets.test.mts",
+      "installedParentCommand": "node --test server/http.test.mts server/static-assets.test.mts",
+      "allOtherParsedFieldsExact": true,
+      "rawLockAndInstalledHiddenLockExact": true,
+      "sharedInstalledMetadataUnmodified": true
+    }
+  },
+  "commands": [
+    {
+      "stage": "affected-app-strict",
+      "cwd": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source",
+      "argv": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.app.json"
+      ],
+      "env": {
+        "TMPDIR": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1",
+        "SQLITE_TMPDIR": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1"
+      }
+    },
+    {
+      "stage": "affected-storage-settings-mounted-files",
+      "cwd": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source",
+      "argv": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.mounted.config.ts",
+        "src/current-storage-settings.mount.test.tsx",
+        "src/storage-settings.mount.test.tsx",
+        "--maxWorkers",
+        "1",
+        "--bail",
+        "1"
+      ],
+      "env": {
+        "TMPDIR": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1",
+        "SQLITE_TMPDIR": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1"
+      },
+      "cases": 37,
+      "originalTestTimeoutMs": 5000,
+      "caseCounts": {
+        "currentStorageSettings": 18,
+        "legacyReadOnlyStorageSettings": 19
+      },
+      "scope": "Exact original11 current plain+five parametrized +two deferred native DOM focus controls; existing7 legacy plain+ten invalid response+two default cases. Meaningful current/version2 Settings and StrictMode abort/stale lifecycle coverage; no configuration/page matrices."
+    }
+  ],
+  "sourceHandoff": {
+    "path": "/tmp/phase5f-storage-settings-refresh-focus-current553-source-preparation-attempt1/source-handoff.json",
+    "sha256": "b0ff2abb63fe54f227633bfd9fe5dce1d77b1fa5995a18d820bef4e786e00a23"
+  },
+  "currentSourceMaterialization": {
+    "path": "/tmp/phase5f-storage-settings-refresh-focus-current553-source-preparation-attempt1/current-source-materialization.json",
+    "sha256": "2532f530f4253972f8b68318dd02ca3102948e647ba62198726cc0b0bb9f8dfa"
+  },
+  "independentAffectedSourcePeer": {
+    "path": "/tmp/phase5f-storage-settings-refresh-focus-current553-source-preparation-attempt1/independent-current553-two-leaf-refresh-focus-source-peer.json",
+    "sha256": "2118999e877d305f14e386369d39ac5c772707fd2776cb6c49d0a5dd45a663a2"
+  },
+  "futureBuildOwnership": "Changed StorageSettings product requires exactly ONE new current8be CF Worker+frontend producer after compiler/mounted PASS and separate root GO. Old5e118 does not apply to changed product; later QA/read-only Refresh and Start202 bindings remain independently reviewed/gated.",
+  "scope": "Original stale/Abort/request/result semantics unchanged. Only explicit currently-focused action/current sequence+signal guarded useLayoutEffect return after enabled commit; no other-control steal/initial focus or extra requests. No compiler/mounted/build/Native/SQLite effects in preparation."
+}

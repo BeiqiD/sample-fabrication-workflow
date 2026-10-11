@@ -1,0 +1,110 @@
+{
+  "status": "ROOT_ONE_CURRENT8BE_CF_BUILD_FULL118_ORIGINAL_RAW_CLOSED_RELEASED",
+  "formal": {
+    "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/build-runtime/actual-one-current8be-cf-build-qualified-closed-release.json",
+    "sha256": "df880ac57d855e4208661077bcb0edcc2a6ef5191c993f3b955acc968e46c2e8"
+  },
+  "all6RawReferences": [
+    {
+      "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/build-runtime/one-fresh-final-QA-source-build-command.json",
+      "bytes": 1650,
+      "sha256": "ecf011cef96ba080e7eaec8d0a8883b666e2871fea8274d6754f36cfc57cc4a3"
+    },
+    {
+      "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/build-runtime/one-fresh-final-QA-source-build.log",
+      "bytes": 12737,
+      "sha256": "a3e736f0bd67e86ee43efaf6bca094d639c1a32260c90d7421d8cd5cf25afc86"
+    },
+    {
+      "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/build-runtime/fresh-build-artifact-manifest.json",
+      "bytes": 14601,
+      "sha256": "5afe10d664711d498d1b5d3967f815ee63524d4e2d7c934d246584448109faca"
+    },
+    {
+      "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/build-runtime/original-tool-responses.json",
+      "bytes": 5238,
+      "sha256": "6b7c8496f0bbcec99f5d3db3c9449b83c43ff28328978f706e9742092258b1cb"
+    },
+    {
+      "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/build-runtime/frozen-approved-plan.json",
+      "bytes": 3913,
+      "sha256": "7f50a2493bde230c8c16dab981b2a7743483e034c887327a8076eb46804b42da"
+    },
+    {
+      "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/runtime/actual-current8be-app-and-affected37-qualified-closed-release.json",
+      "bytes": 3257,
+      "sha256": "be8f13911b873405bcdb7913e50b6623c6efc3b189e5462e1ff9af7130bdc561"
+    }
+  ],
+  "actualCurrentArtifactManifest": {
+    "manifest": {
+      "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/build-runtime/fresh-build-artifact-manifest.json",
+      "bytes": 14601,
+      "sha256": "5afe10d664711d498d1b5d3967f815ee63524d4e2d7c934d246584448109faca"
+    },
+    "fileCount": 118,
+    "completeSetAndAllHashesRechecked": true
+  },
+  "originalChild": {
+    "stage": "one-fresh-final-QA-source-build",
+    "cwd": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source",
+    "argv": [
+      "npm",
+      "run",
+      "build"
+    ],
+    "env": {
+      "TMPDIR": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1",
+      "SQLITE_TMPDIR": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1"
+    },
+    "startedAt": "2026-10-11T21:42:51.410036+00:00",
+    "status": "PASS",
+    "log": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/build-runtime/one-fresh-final-QA-source-build.log",
+    "pid": 1566778,
+    "processGroup": 1566778,
+    "originalStartTicks": "16823218",
+    "exitCode": 0,
+    "ownedClosure": {
+      "before": [
+        {
+          "pid": 1567368,
+          "state": "Z",
+          "ppid": 1,
+          "processGroup": 1566778,
+          "kernelResourcesExited": true,
+          "fdInspection": "PermissionError"
+        }
+      ],
+      "after": [
+        {
+          "pid": 1567368,
+          "state": "Z",
+          "ppid": 1,
+          "processGroup": 1566778,
+          "kernelResourcesExited": true,
+          "fdInspection": "PermissionError"
+        }
+      ],
+      "ownedCleanupSignals": [],
+      "noActiveOwnedProcessOrFd": true,
+      "unexpectedLingeringOwner": false,
+      "directChildExitCode": 0,
+      "directChildReaped": true,
+      "afterDirectChildReap": [
+        {
+          "pid": 1567368,
+          "state": "Z",
+          "ppid": 1,
+          "processGroup": 1566778,
+          "kernelResourcesExited": true,
+          "fdInspection": "PermissionError"
+        }
+      ]
+    },
+    "endedAt": "2026-10-11T21:42:57.965039+00:00",
+    "logSha256": "a3e736f0bd67e86ee43efaf6bca094d639c1a32260c90d7421d8cd5cf25afc86"
+  },
+  "all118CurrentArtifactSetAndByteHashesRead": true,
+  "originalKnownZombieFDPermissionUnchangedNoGlobalQuiescenceClaim": true,
+  "exclusiveReleased": true
+}

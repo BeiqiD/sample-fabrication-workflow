@@ -1,0 +1,57 @@
+{
+  "kind": "INDEPENDENT_TWO_LEAF_CURRENT553_STORAGE_SETTINGS_REFRESH_FOCUS_SOURCE_PEER",
+  "status": "SOURCE_CLEAR",
+  "reviewedAtUtc": "2026-10-11T21:31:25.078757+00:00",
+  "sourceHead": "8be4e74200096436eaa674a05d44dd772d23fc35",
+  "sourceTree": "e7a91951906a0733685489367e73d6d29f74b891",
+  "parentPublishedSourceHead": "553be9e0d1dc9415bd4f3676a6121a9fbea5f056",
+  "sourceHandoffPath": "/tmp/phase5f-storage-settings-refresh-focus-current553-source-preparation-attempt1/source-handoff.json",
+  "sourceHandoffSha256": "b0ff2abb63fe54f227633bfd9fe5dce1d77b1fa5995a18d820bef4e786e00a23",
+  "pureIndependentProof": {
+    "path": "/tmp/phase5f-storage-settings-refresh-focus-current553-source-preparation-attempt1/independent-two-leaf-focus-pure-source-proof.json",
+    "sha256": "6606f720ad67e924e96e7fca8bad875dff552e0332d371c46bc20dab226f1496",
+    "scriptPath": "/tmp/phase5f-storage-settings-refresh-focus-current553-source-preparation-attempt1/independent-two-leaf-focus-source-proof.py",
+    "scriptSha256": "93f17bd3d544aec24081f4fb282537353ded23d9783d8dc8f9a8cb32867513b4"
+  },
+  "mechanicalScope": {
+    "currentEntries": 3086,
+    "unchangedProtectedEntries": 3084,
+    "ownedModifiedPaths": 2,
+    "allCurrentGitModesBlobsAndDeclaredSha256IndependentlyChecked": true,
+    "wholePatchForwardAndReverseReconstructBothCompleteFiles": true,
+    "originalMounted11BodiesExact": true,
+    "newDeferredMountedCases": 2,
+    "gitOnlyCommitNoPhysicalMaterializationClaim": true,
+    "workingHeadAndIndexUnchanged": true
+  },
+  "productReadScope": {
+    "completeStorageSettingsPageRead": true,
+    "fullTwoLeafDiffRead": true,
+    "originalReadLoop": "Same request sequence increment, abort of previous controller, original getCurrentStorageSettings(signal), current-result/current-error/current-finally guards preserved. No additional request, controller, timer, permission or state authority.",
+    "explicitIntent": "Only refresh(true) from original Refresh click captures intent and only if the current Refresh button is active. Initial effect refresh() and role-default onChanged refresh() clear/do not request focus. Intent contains exact request and original AbortSignal.",
+    "freshEnabledCommit": "useLayoutEffect waits loading false, consumes intent once, rejects stale request or aborted signal, uses current connected enabled button. It focuses only if activeElement is body or the button. No global focus observer or another-control focus override. Unmount increments request sequence, aborts original controller and clears intent.",
+    "failurePath": "Current failed reads retain original error state and settle loading false; the same bounded explicit focus policy applies. Superseded/aborted outcomes cannot settle loading or focus for a newer request."
+  },
+  "newControlReadScope": {
+    "deferredBodyBlur": "Initial version3 read does not focus Refresh; explicit focused Refresh becomes disabled. The test models previously observed Chromium disabled-button blur by native body.focus with body tabindex restored in finally, then resolves the original pending Response and requires connected/enabled original Refresh to regain focus, exactly two settings reads and zero PUT/POST. It does not claim new Chromium behavior.",
+    "deferredOtherLink": "During original pending read the real Data packages link is focused, then original Response resolves. Test requires enabled connected Refresh and connected original link with focus still on link, exactly two settings reads and zero mutations.",
+    "originalBodyClaims": "Only the two additive cases are new; original11 bodies/config/helpers/dependency contracts and all other current553 inputs are mechanically exact."
+  },
+  "findings": [],
+  "reviewerDiagnostic": {
+    "path": "/tmp/phase5f-storage-settings-refresh-focus-current553-source-preparation-attempt1/independent-reviewer-pure-metadata-assumption-diagnostics.json",
+    "sha256": "008723cba9d220ba24687616db87b002d5dca0747cde6e5b5288342fd207b48f",
+    "scope": "Initial introspection assumed entries rather than actual rows; initial patch comparison omitted declared full-index option. Both pure reviewer assumptions corrected without candidate source edits or effects."
+  },
+  "effects": {
+    "candidateImports": 0,
+    "compiler": 0,
+    "mountedTests": 0,
+    "Native": 0,
+    "build": 0,
+    "SQLite": 0,
+    "browser": 0,
+    "network": 0
+  },
+  "qualification": "SOURCE ONLY. Current affected compiler/mounted qualification and fresh CF build remain UNRUN. Historical5e118 is not reusable for this changed product. Earlier native failed9a closure is retained by the author and is not a new success or independently rehashed by this bounded peer."
+}

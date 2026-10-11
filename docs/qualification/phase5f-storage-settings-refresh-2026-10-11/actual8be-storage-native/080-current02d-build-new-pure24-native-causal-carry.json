@@ -1,0 +1,28 @@
+{
+  "status": "PASS",
+  "domain": "storage",
+  "producerHead": "8be4e74200096436eaa674a05d44dd772d23fc35",
+  "producerTree": "e7a91951906a0733685489367e73d6d29f74b891",
+  "qaConsumerHead": "8c460eb229edc1983867a7778a625793d1b852f0",
+  "qaConsumerTree": "28c9177c231c6a7f24e52a51d1bed7492ab3e0a4",
+  "originalBuildCommandReceiptSha256": "ecf011cef96ba080e7eaec8d0a8883b666e2871fea8274d6754f36cfc57cc4a3",
+  "originalBuildLogSha256": "a3e736f0bd67e86ee43efaf6bca094d639c1a32260c90d7421d8cd5cf25afc86",
+  "originalProducerCount": 3086,
+  "all3086ProducerInputsOnConsumerExact": true,
+  "extraNativeQaInputs": {
+    "scripts/qa/phase5f/browser-current-coherent-package-status-refresh-keyboard.mjs": "0029bef6732d31ba84e2055e73cb29234738a135d4c6ac44d6e36d9769f80726",
+    "scripts/qa/phase5f/browser-current-coherent-storage-settings-refresh-keyboard.mjs": "46f232c11dd7096d80ce3eefc69ecafa90f0348a6647b85b33e11b485d4ebf23",
+    "scripts/qa/phase5f/browser-current-file-start202-natural-focus-keyboard.mjs": "00ee820b61be055b921d59500a47047c7d8b392c2df1ffb568cf6bd31651e41c",
+    "scripts/qa/phase5f/browser-current-package-start202-natural-focus-keyboard.mjs": "344a5d9d7b0bf5b54830c5eadcb039349d0afbc04d501ce6613ead7cabd1ff2d",
+    "scripts/qa/phase5f/check-current-coherent-storage-package-refresh-physical-state.py": "8d023a320716160997764a5f7bfa41638041704109f7ae8b32cb8006f3e41c3e",
+    "scripts/qa/phase5f/check-current-start202-natural-focus-physical-state.py": "2d7897fd07d757b4ec1d4808632d1b23ea6e851e8b8f42a19489248d68b278e4"
+  },
+  "actualOriginalArtifacts": 118,
+  "newBuilds": 0,
+  "freshIndependentPure24FixtureRequired": true,
+  "disabledSeedRequests": 0,
+  "setupPOSTMaximum": 6,
+  "originalNativeMetadataPOSTMaximum": 0,
+  "maximumTotalPOSTs": 6,
+  "oldPausedLineagesNotOpenedOrChanged": true
+}
