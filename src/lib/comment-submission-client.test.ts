@@ -154,6 +154,38 @@ describe("durable Comment client", () => {
     const outcomes = await Promise.allSettled([createDurableCommentSubmission(source), createDurableCommentSubmission({ ...source, body: "different" })]);
     expect(outcomes.map((value) => value.status)).toEqual(["fulfilled", "rejected"]); expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+  it("reserves the first create before its digest completes and joins only unchanged input", async () => {
+    const source = input(); const accepted = await state(source);
+    const originalCrypto = crypto; const realDigest = crypto.subtle.digest.bind(crypto.subtle);
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const digest = vi.fn<typeof crypto.subtle.digest>().mockImplementation(realDigest)
+      .mockImplementationOnce(async (algorithm, bytes) => { await gate; return realDigest(algorithm, bytes); });
+    vi.stubGlobal("crypto", { getRandomValues: originalCrypto.getRandomValues.bind(originalCrypto), randomUUID: originalCrypto.randomUUID.bind(originalCrypto), subtle: { digest } });
+    fetchMock.mockResolvedValueOnce(json(accepted));
+    const first = createDurableCommentSubmission(source);
+    const unchanged = createDurableCommentSubmission(JSON.parse(JSON.stringify(source)));
+    let outcomes: PromiseSettledResult<{ id: string; deduplicated: boolean }>[] = [];
+    try {
+      await expect(createDurableCommentSubmission({ ...source, body: "different" })).rejects.toThrow("cannot be changed");
+      expect(digest).toHaveBeenCalledTimes(1); expect(fetchMock).not.toHaveBeenCalled();
+      source.body = "edited while hashing";
+    } finally { release(); outcomes = await Promise.allSettled([first, unchanged]); }
+    expect(outcomes.map((value) => value.status)).toEqual(["fulfilled", "fulfilled"]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body)).body).toBe("Frozen comment");
+  });
+  it("releases a failed digest reservation so the unchanged create can be retried", async () => {
+    const source = input(); const accepted = await state(source); const originalCrypto = crypto;
+    const digest = vi.fn<typeof crypto.subtle.digest>().mockImplementation(crypto.subtle.digest.bind(crypto.subtle))
+      .mockRejectedValueOnce(new Error("digest unavailable"));
+    vi.stubGlobal("crypto", { getRandomValues: originalCrypto.getRandomValues.bind(originalCrypto), randomUUID: originalCrypto.randomUUID.bind(originalCrypto), subtle: { digest } });
+    await expect(createDurableCommentSubmission(source)).rejects.toThrow("digest unavailable");
+    expect(fetchMock).not.toHaveBeenCalled();
+    fetchMock.mockResolvedValueOnce(json(accepted));
+    await expect(createDurableCommentSubmission(source)).resolves.toEqual({ id: source.id, deduplicated: false });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
   it("keeps an old identity fenced after explicit local discard", async () => {
     const source = input(); await prepareDurableCommentSubmission(source);
     fetchMock.mockResolvedValueOnce(json(await state(source))).mockRejectedValueOnce(new Error("cancel lost"));

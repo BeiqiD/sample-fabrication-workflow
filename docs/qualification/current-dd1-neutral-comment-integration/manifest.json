@@ -1,0 +1,67 @@
+[
+  {
+    "path": "docs/qualification/current-dd1-neutral-comment-integration/pr265-ordinary-merge-receipt.json",
+    "originalPath": "/tmp/phase5f-pr265-own-complete-ci-before-ordinary-merge-attempt1/ordinary-merge-receipt.json",
+    "sha256": "d713f53d89adf120fa0714026d43353ca0a7582bf16f1698edd7810175212f69"
+  },
+  {
+    "path": "docs/qualification/current-dd1-neutral-comment-integration/pr265-raw-pr-after-merge.json",
+    "originalPath": "/tmp/phase5f-pr265-own-complete-ci-before-ordinary-merge-attempt1/raw-pr-after-merge.json",
+    "sha256": "e8a307e1a2ba0818e9d31032de7383387bd1c621512435d465de8ace38828982"
+  },
+  {
+    "path": "docs/qualification/current-dd1-neutral-comment-integration/pr265-receipt.json",
+    "originalPath": "/tmp/phase5f-pr265-own-complete-ci-before-ordinary-merge-attempt1/receipt.json",
+    "sha256": "089b569f40d812a7d49b7b2546746e1377576d6777f5ae52fd4b14854b491622"
+  },
+  {
+    "path": "docs/qualification/current-dd1-neutral-comment-integration/pr265-38111287152-raw-run.json",
+    "originalPath": "/tmp/phase5f-pr265-own-complete-ci-before-ordinary-merge-attempt1/38111287152-raw-run.json",
+    "sha256": "b6793ab7761a0716f6b5f01967e2166c5320b611481230b12e71bdcfae37b8f4"
+  },
+  {
+    "path": "docs/qualification/current-dd1-neutral-comment-integration/pr265-38111215255-raw-run.json",
+    "originalPath": "/tmp/phase5f-pr265-own-complete-ci-before-ordinary-merge-attempt1/38111215255-raw-run.json",
+    "sha256": "28e2a37bb0899acb5a3c630f74a72848085708c48ec0379c6eb09c4402b8b18a"
+  },
+  {
+    "path": "docs/qualification/current-dd1-neutral-comment-integration/pr265-38111287151-raw-run.json",
+    "originalPath": "/tmp/phase5f-pr265-own-complete-ci-before-ordinary-merge-attempt1/38111287151-raw-run.json",
+    "sha256": "161f5d300f12f0040f5b6d1ddcfaf890654b14c6a11814ed3ba45be6f8b92cfb"
+  },
+  {
+    "path": "docs/qualification/current-dd1-neutral-comment-integration/pr265-38111215314-raw-run.json",
+    "originalPath": "/tmp/phase5f-pr265-own-complete-ci-before-ordinary-merge-attempt1/38111215314-raw-run.json",
+    "sha256": "31d9a52faa50ea44438b3eab5591db33826d0b2196aac52c6d1fee9680ea43bc"
+  },
+  {
+    "path": "docs/qualification/current-dd1-neutral-comment-integration/pr265-raw-status-before.json",
+    "originalPath": "/tmp/phase5f-pr265-own-complete-ci-before-ordinary-merge-attempt1/raw-status-before.json",
+    "sha256": "4a33c3bee51af26b451f404d02f252c10cc6d80b8954ecf6b1a2b6fd2f645dc1"
+  },
+  {
+    "path": "docs/qualification/current-dd1-neutral-comment-integration/pr265-raw-pr-before.json",
+    "originalPath": "/tmp/phase5f-pr265-own-complete-ci-before-ordinary-merge-attempt1/raw-pr-before.json",
+    "sha256": "6368c99fff54d421fa6df33234bb390496bca9dd19f0349b60d67b9b1b1ff12b"
+  },
+  {
+    "path": "docs/qualification/current-dd1-neutral-comment-integration/pr263-postmerge-receipt.json",
+    "originalPath": "/tmp/phase5f-pr263-postmerge-complete-ci-attempt1/receipt.json",
+    "sha256": "3372a2cc3eb8ebb7f78febb297f8ea8894c160b2754670c44d5259ac5bd88ec8"
+  },
+  {
+    "path": "docs/qualification/current-dd1-neutral-comment-integration/pr263-postmerge-all15-status-contexts-raw.json",
+    "originalPath": "/tmp/phase5f-pr263-postmerge-complete-ci-attempt1/all15-status-contexts-raw.json",
+    "sha256": "0c6acf57b9323e4fbb3ce77a7d54efea80c3ceb97c0dc1984f9652e0c216ce04"
+  },
+  {
+    "path": "docs/qualification/current-dd1-neutral-comment-integration/pr263-postmerge-run-38109722374-raw.json",
+    "originalPath": "/tmp/phase5f-pr263-postmerge-complete-ci-attempt1/run-38109722374-raw.json",
+    "sha256": "d6ea3927dfd4a612ee4597239f37d17dea49f2130b566ae00ac48341181ea19f"
+  },
+  {
+    "path": "docs/qualification/current-dd1-neutral-comment-integration/pr263-postmerge-run-38109722299-raw.json",
+    "originalPath": "/tmp/phase5f-pr263-postmerge-complete-ci-attempt1/run-38109722299-raw.json",
+    "sha256": "506cec7640fcdf1cf79c9affa957c799d1a65438bbe82dd8008238c2b7d65600"
+  }
+]

@@ -1,0 +1,127 @@
+{
+  "status": "OLD_756_OWN_PR_VERIFY_FAIL_RETAINED_NO_MERGE",
+  "sourceHead": "756ac6f3aa8872e6b799576eff4ee20d42aab476",
+  "ownRuns": [
+    {
+      "id": 38110759710,
+      "head_sha": "756ac6f3aa8872e6b799576eff4ee20d42aab476",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "push",
+      "html_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38110759710"
+    },
+    {
+      "id": 38110780625,
+      "head_sha": "756ac6f3aa8872e6b799576eff4ee20d42aab476",
+      "status": "completed",
+      "conclusion": "failure",
+      "event": "pull_request",
+      "html_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38110780625"
+    },
+    {
+      "id": 38110759664,
+      "head_sha": "756ac6f3aa8872e6b799576eff4ee20d42aab476",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "push",
+      "html_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38110759664"
+    },
+    {
+      "id": 38110780583,
+      "head_sha": "756ac6f3aa8872e6b799576eff4ee20d42aab476",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "pull_request",
+      "html_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38110780583"
+    }
+  ],
+  "contexts": [
+    {
+      "context": "pre-pr/install",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38110759710"
+    },
+    {
+      "context": "pre-pr/project-map-performance",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38110759664"
+    },
+    {
+      "context": "pre-pr/project-foundation",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38110759710"
+    },
+    {
+      "context": "pre-pr/tests",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38110759710"
+    },
+    {
+      "context": "pre-pr/blob-lifecycle",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38110759710"
+    },
+    {
+      "context": "pre-pr/reference-foundation",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38110759710"
+    },
+    {
+      "context": "pre-pr/build",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38110759710"
+    },
+    {
+      "context": "pre-pr/file-jobs",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38110759710"
+    },
+    {
+      "context": "pre-pr/project-map",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38110759710"
+    },
+    {
+      "context": "pre-pr/project-reference-placement",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38110759710"
+    },
+    {
+      "context": "pre-pr/project-persistence",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38110759710"
+    },
+    {
+      "context": "pre-pr/project-canvas-productivity",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38110759710"
+    },
+    {
+      "context": "pre-pr/project-owned-content",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38110759710"
+    },
+    {
+      "context": "pre-pr/project-reading",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38110759710"
+    },
+    {
+      "context": "pre-pr/project-edges",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38110759710"
+    }
+  ],
+  "failedAssertion": "comment-submission-client concurrent different same-id create expected fulfilled/rejected observed rejected/rejected at155",
+  "logDownload": "Original Azure job-log request returned HTTP403; signed error kept private, no inferred stage counts. Annotations/raw-run metadata authoritative.",
+  "repairCodeHead": "6d4cae69",
+  "repairActualReceiptSha256": "b257648a49d606ec06cb32464daa6b5fab7d7a576fa18956a3b6284e1c8f2fdc",
+  "rawPins": {
+    "raw-failure-annotations.json": "09c83156297fda5b1b858428a81f750ab09ce2478a2deb210f8ea38544877416",
+    "raw-combined-status.json": "a397d48ef86f3e6f503ed77dcd3a3c4d42ce716881a03cedf6409d71d8e750c0",
+    "38110780583-raw-run.json": "88eabcf225a664f51eec29d3cb95802346ad1862756dc43c9c153537b0580725",
+    "38110759664-raw-run.json": "e85591cbfb8f40e6316a54b755c617dcf3182148d0293846555a620a7cd98791",
+    "38110780625-raw-run.json": "3fef17364dbb4036badcce68989916514fcc1485398b03aee384126e298eaee7",
+    "38110759710-raw-run.json": "91ecd466b982588b2f8c6e73f5681ddd79230beadd2e0f79e687b1db33184e6d"
+  }
+}

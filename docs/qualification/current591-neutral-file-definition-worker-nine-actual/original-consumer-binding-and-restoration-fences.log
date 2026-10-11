@@ -1,0 +1,11 @@
+
+ RUN  v4.1.10 /workspace/portable-current591-neutral-file-definition-source-only-attempt1
+
+ ✓ worker/files/consumer-binding.test.ts > binds ordinary records, execution images, comments and verification to the accepted File atomically 3047ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  03:58:25
+   Duration  6.05s (transform 2.29s, setup 29ms, import 2.87s, tests 3.05s, environment 0ms)
+
+JSON report written to /tmp/portable-current591-neutral-file-definition-nine-owned-actual-attempt1/original-consumer-binding-and-restoration-fences.json

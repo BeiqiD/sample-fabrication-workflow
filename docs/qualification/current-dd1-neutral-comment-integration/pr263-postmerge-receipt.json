@@ -1,0 +1,55 @@
+{
+  "kind": "pr263-postmerge-complete-ci/1",
+  "observedAt": "2026-10-11T04:26:40.829891+00:00",
+  "status": "PASS",
+  "mergedHead": "1943f746332596220ed34edb5d4b0ac45d6db40d",
+  "workflowRuns": {
+    "38109722299": {
+      "path": "/tmp/phase5f-pr263-postmerge-complete-ci-attempt1/run-38109722299-raw.json",
+      "sha256": "506cec7640fcdf1cf79c9affa957c799d1a65438bbe82dd8008238c2b7d65600",
+      "name": "Verify",
+      "event": "push",
+      "headSha": "1943f746332596220ed34edb5d4b0ac45d6db40d",
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-10-11T03:51:25Z",
+      "updatedAt": "2026-10-11T04:22:48Z"
+    },
+    "38109722374": {
+      "path": "/tmp/phase5f-pr263-postmerge-complete-ci-attempt1/run-38109722374-raw.json",
+      "sha256": "d6ea3927dfd4a612ee4597239f37d17dea49f2130b566ae00ac48341181ea19f",
+      "name": "Project Map performance",
+      "event": "push",
+      "headSha": "1943f746332596220ed34edb5d4b0ac45d6db40d",
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-10-11T03:51:25Z",
+      "updatedAt": "2026-10-11T03:52:01Z"
+    }
+  },
+  "all15ContextsSuccess": true,
+  "statusContexts": {
+    "pre-pr/install": "success",
+    "pre-pr/project-map-performance": "success",
+    "pre-pr/project-foundation": "success",
+    "pre-pr/tests": "success",
+    "pre-pr/blob-lifecycle": "success",
+    "pre-pr/reference-foundation": "success",
+    "pre-pr/build": "success",
+    "pre-pr/file-jobs": "success",
+    "pre-pr/project-reference-placement": "success",
+    "pre-pr/project-map": "success",
+    "pre-pr/project-edges": "success",
+    "pre-pr/project-reading": "success",
+    "pre-pr/project-persistence": "success",
+    "pre-pr/project-canvas-productivity": "success",
+    "pre-pr/project-owned-content": "success"
+  },
+  "rawStatuses": {
+    "path": "/tmp/phase5f-pr263-postmerge-complete-ci-attempt1/all15-status-contexts-raw.json",
+    "sha256": "0c6acf57b9323e4fbb3ce77a7d54efea80c3ceb97c0dc1984f9652e0c216ce04"
+  },
+  "exactTreeMergeReceiptSha256": "d185c197afc04946ddd6d7b67d74b29e8c85c2ad001c6b15846ca3bdb15f7af1",
+  "counts": "Not inferred from workflow success; original raw stage logs unavailable through current download path.",
+  "limits": "Development integration postmerge complete Verify/Map only; no deployed traffic/schema/provider/device proof."
+}

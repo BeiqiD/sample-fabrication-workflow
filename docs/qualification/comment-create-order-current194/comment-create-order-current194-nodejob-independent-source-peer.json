@@ -1,0 +1,40 @@
+{
+  "kind": "comment-create-order-current194-nodejob-independent-source-peer/1",
+  "status": "CLEAR_SOURCE_ONLY",
+  "sourceRoot": "/workspace/comment-create-order-current194-source-attempt1",
+  "sourceHead": "6d4cae69eb429c1875e51b75b30b49ec6eaa6601",
+  "sourceTree": "d782dbf058e67d83111fcecc3a549d7aee7efca0",
+  "basisHead": "756ac6f3aa8872e6b799576eff4ee20d42aab476",
+  "reviewedAt": "2026-10-11T04:43:34.372158+00:00",
+  "ownedPins": [
+    {
+      "path": "src/lib/comment-submission-client.ts",
+      "sha256": "ffa5ef265e4a65e6bb771b40c32a245109e2262e162cecfc53dd98a0b1d21b16"
+    },
+    {
+      "path": "src/lib/comment-submission-client.test.ts",
+      "sha256": "411994b527f42e523b3d6a8100c330fc10251ce7f00df2c91a69eb8b110f5f3b"
+    }
+  ],
+  "allBaseEntries": 1909,
+  "protectedOtherModesBlobsWorkingVerified": 1907,
+  "entireOutsideCreateBodyInverseExact": true,
+  "entireOriginalTestFileInverseAfterRemovingOnly32NewLinesExact": true,
+  "sourceFindings": [
+    "Synchronous deep JSON copy and same original strict validation/body normalization produce the identical stable JSON used by canonical SHA; immutable captured id is used for every post-await action.",
+    "The first per-id canonical JSON reservation is registered before the first digest promise resumes. Unchanged calls join its exact stored work; distinct canonical input rejects before hashing/network/checkpoint.",
+    "First-outcome cleanup deletes only the identical stored promise, so digest/storage/network rejection permits exact retry without erasing a later reservation. Original requireTracked/digest, checkpoint hash/read/save, cancellation/attempted/observedReady, HTTP mutation and receipt validation are retained.",
+    "No unrelated action, storage, publication/item upload or finalization logic changed. The two new controls hold a genuine first WebCrypto digest then require same-input join/different-input rejection/mutated-caller snapshot, and require exact retry after a real digest rejection."
+  ],
+  "limits": [
+    "Public async function returns an adopting outer promise, while identical calls share the exact private original create work; no public strict promise-object-identity claim.",
+    "Source-only peer; two new cases/all current execution/CI remain unrun by reviewer."
+  ],
+  "effects": {
+    "compiler": 0,
+    "tests": 0,
+    "SQLite": 0,
+    "HTTP": 0,
+    "build": 0
+  }
+}
