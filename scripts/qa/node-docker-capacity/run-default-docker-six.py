@@ -231,6 +231,11 @@ def main():
             bad=fixture/'unavailable-keyring.json';bad.write_text('{"version":99}');bad.chmod(0o400)
             unavailable=main_container('bad-keyring',keys=bad);api(unavailable,'unavailable-keyring');stop(unavailable)
             # Lazy keyring availability fences credentials; it does not deny unrelated main readiness.
+            # Five original same-account clients have already logged in. The
+            # genuine runtime permits five attempts per60s, including successes.
+            # Wait one fixed61s BEFORE the sixth call; no denied-login retry,
+            # throttle mutation or product policy change is permitted.
+            time.sleep(61)
             check=main_container('after-negative');api(check,'verify');stop(check);installation_read('final-inspect')
             absent=fixture/'missing-keyring.json';assert not absent.exists()
             missing={'name':'nodeqa-'+nonce+'-missing','id':None,'kind':'missing-bind','closeAttempted':False,'expectedAbsent':True}
