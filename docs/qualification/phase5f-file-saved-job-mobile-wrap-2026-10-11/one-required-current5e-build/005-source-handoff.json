@@ -1,0 +1,91 @@
+{
+  "status": "SOURCE_ONLY_ONE_BUILD_UNRUN_WAIT_ROOT_NARROW_PEER_GO",
+  "sourceRoot": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source",
+  "head": "5e65f4d0355f375ca7fe949b8de15082c043c19a",
+  "tree": "4df8f0e910ef1fa085c1a74bad3b402cd266f73d",
+  "count": 2726,
+  "sourceReceipt": {
+    "path": "/workspace/phase5f-file-saved-mobile-layout-wrap-source-preparation-attempt1/materialized-full-5e-linked-worktree-source-receipt.json",
+    "sha256": "6d7070e3f4d50d443fa397103fe23a113bf2740872c345cb533a4bad965b0330"
+  },
+  "cssHandoff": {
+    "path": "/workspace/phase5f-file-saved-mobile-layout-wrap-source-preparation-attempt1/one-rule-virtual-source-handoff.json",
+    "sha256": "38a6a2c7e2f85203bbb4012d3ea3aa5250a09dfd3461737acae13aed15ce3601"
+  },
+  "runner": {
+    "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-one-cf-build-source-preparation-attempt1/run-frozen-owned-stage.py",
+    "sha256": "1bf16aa44910ea1cfeef78a150758d236eb32a0e5bc648bf4a8ce0532911205d"
+  },
+  "plan": {
+    "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-one-cf-build-source-preparation-attempt1/finite-one-fresh-file-mobile-wrap-cf-build-plan.json",
+    "sha256": "9194e359c7ff4002c13378e1d69a561471b9e764d2576dcb1814befd11fccdd9"
+  },
+  "originalBasis": {
+    "path": "/workspace/phase5f-saved-file-package-coherent-one-cf-build-source-preparation-attempt1/run-frozen-owned-stage.py",
+    "sha256": "9ce3657293d4d8ec57899c205d921360e5bf3d1a15bef187fab6bf36d2bb7ecb"
+  },
+  "definitions": [
+    "sha",
+    "utc",
+    "write",
+    "group_members",
+    "active_members",
+    "close_owned_group",
+    "RunnerInterrupted",
+    "interrupt_handler",
+    "close_and_reap",
+    "run_owned",
+    "verify_source"
+  ],
+  "soleRunnerChanges": [
+    [
+      "SOURCE_ROOT=Path('/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1')",
+      "SOURCE_ROOT=Path('/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source')"
+    ],
+    [
+      "RUNTIME=Path('/workspace/phase5f-saved-file-package-coherent-one-cf-build-runtime-attempt1')",
+      "RUNTIME=Path('/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime')"
+    ],
+    [
+      "PLAN=Path('/workspace/phase5f-saved-file-package-coherent-one-cf-build-source-preparation-attempt1/finite-one-coherent-saved-package-cf-build-plan.json')",
+      "PLAN=Path('/tmp/phase5f-file-saved-mobile-layout-wrap-one-cf-build-source-preparation-attempt1/finite-one-fresh-file-mobile-wrap-cf-build-plan.json')"
+    ],
+    [
+      "PLAN_SHA='5445c375672a8472a0aa238f76e10297ba7494e4afd83a706a59ce9ef196c914'",
+      "PLAN_SHA='9194e359c7ff4002c13378e1d69a561471b9e764d2576dcb1814befd11fccdd9'"
+    ],
+    [
+      "--exclusive-go-exact-02d6dfb-one-coherent-saved-package-cf-build-stage",
+      "--exclusive-go-exact-5e65f4d-one-file-mobile-wrap-cf-build-stage"
+    ]
+  ],
+  "startArgv": [
+    "python3",
+    "-B",
+    "/tmp/phase5f-file-saved-mobile-layout-wrap-one-cf-build-source-preparation-attempt1/run-frozen-owned-stage.py",
+    "--exclusive-go-exact-5e65f4d-one-file-mobile-wrap-cf-build-stage",
+    "one-fresh-final-QA-source-build"
+  ],
+  "runtime": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime",
+  "stageCount": 1,
+  "stages": [
+    {
+      "stage": "one-fresh-final-QA-source-build",
+      "cwd": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source",
+      "argv": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "env": {
+        "TMPDIR": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/build-tmp",
+        "SQLITE_TMPDIR": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/build-tmp"
+      },
+      "scope": "ONE fresh CF Worker+frontend build after the sole File saved-jobs wrapping CSS rule. Original npm run build and mature owner unchanged. All2726 tracked compiler/bundler/setup source files bind new5e producer; no old02d118 retag, redundant mounted/compiler qualification, Node target or browser/fixture startup."
+    }
+  ],
+  "currentAppAnd34AreHistoricalExactTSInputCarryNoRerun": true,
+  "freshBuildRequiredCssChanged": true,
+  "current118CountNotAssumed": "Manifest enumerates actual outputs after genuine original npm run build; no previous artifact reuse or retag.",
+  "all10TopLevelFunctionsAnd1ClassASTExact": true
+}

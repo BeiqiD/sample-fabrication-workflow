@@ -1,0 +1,38 @@
+{
+  "stage": "physical-before",
+  "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+  "argv": [
+    "python3",
+    "-B",
+    "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1/scripts/qa/phase5f/check-isolated-state.py",
+    "--source-copy",
+    "/workspace/coherent-file-saved-mobile02-private-attempt1/copy",
+    "--fixture-directory",
+    "/workspace/coherent-file-saved-mobile02-private-attempt1/fixture",
+    "--stage",
+    "before-api"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/coherent-file-saved-mobile02-private-attempt1",
+    "SQLITE_TMPDIR": "/workspace/coherent-file-saved-mobile02-private-attempt1"
+  },
+  "startedAt": "2026-10-11T18:32:36.105269+00:00",
+  "status": "PASS",
+  "log": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/physical-before.log",
+  "pid": 1460057,
+  "processGroup": 1460057,
+  "originalStartTicks": "15681687",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T18:32:36.961316+00:00",
+  "logSha256": "34f8cdc79c23afb4f364acdcab08e069841e2e2f3b1819f74d7838d9536224b2"
+}

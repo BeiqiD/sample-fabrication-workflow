@@ -1,0 +1,68 @@
+{
+  "stage": "synthetic-template-sentinels-only",
+  "cwd": "/workspace/coherent-file-saved-mobile02-private-attempt1/copy",
+  "argv": [
+    "node",
+    "node_modules/wrangler/bin/wrangler.js",
+    "d1",
+    "execute",
+    "DB",
+    "--local",
+    "--config",
+    ".wrangler/deploy.jsonc",
+    "--persist-to",
+    "/workspace/coherent-file-saved-mobile02-private-attempt1/copy/.wrangler/state",
+    "--file",
+    "/workspace/coherent-file-saved-mobile02-private-attempt1/fixture/process-fixture.sql"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/coherent-file-saved-mobile02-private-attempt1",
+    "SQLITE_TMPDIR": "/workspace/coherent-file-saved-mobile02-private-attempt1"
+  },
+  "startedAt": "2026-10-11T18:32:15.167605+00:00",
+  "status": "PASS",
+  "log": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/synthetic-template-sentinels-only.log",
+  "pid": 1459952,
+  "processGroup": 1459952,
+  "originalStartTicks": "15679593",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1459968,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1459952,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1459968,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1459952,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1459968,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1459952,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T18:32:16.490152+00:00",
+  "logSha256": "14879c790ec5c8e879dfa979c2b2bab1648f54c7854eba7ff693a688809d5d75"
+}
