@@ -86,6 +86,18 @@ application/container qualification remain in progress. Continue the active
 roadmap after its own coherent-head complete CI; do not equate this slice with
 operational File or migration acceptance.
 
+PR #264 subsequently merged normally at `31a2cfe2ecd033679229b6318a1bcf85a6b2425d`.
+Its exactc5b Verify push/PR, Map push/PR and all15 statuses passed before merge;
+the whole merged tree equals qualified `bcc2796847af6d4b159e871eb3827710616b5fc4`.
+The [current integration receipts](qualification/pr266-storage-layout-focus-current/README.md)
+retain original own gates, ordinary merge, PR265 post-merge success and PR266's
+first failed PR Verify. PR266 original4e push Verify and both Map checks passed,
+but its original Storage Refresh focus assertion failed in PR Verify. The
+separateff643 layout-focus repair passed one affected app compiler and the
+originaltwo mounted controls. Its new coherent complete CI remains required;
+old56 metadata tests and native browser builds retain their original source.
+Continue all independent Node/File/Job/Group and remaining5F development.
+
 ## Working order
 
 1. Preserve the completed [Metrology pending/session slice](PHASE_5F_METROLOGY_ACCEPTANCE.md)
