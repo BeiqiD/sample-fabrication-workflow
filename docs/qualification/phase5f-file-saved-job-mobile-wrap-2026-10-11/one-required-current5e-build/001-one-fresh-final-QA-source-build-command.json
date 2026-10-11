@@ -1,0 +1,60 @@
+{
+  "stage": "one-fresh-final-QA-source-build",
+  "cwd": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source",
+  "argv": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "env": {
+    "TMPDIR": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/build-tmp",
+    "SQLITE_TMPDIR": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/build-tmp"
+  },
+  "scope": "ONE fresh CF Worker+frontend build after the sole File saved-jobs wrapping CSS rule. Original npm run build and mature owner unchanged. All2726 tracked compiler/bundler/setup source files bind new5e producer; no old02d118 retag, redundant mounted/compiler qualification, Node target or browser/fixture startup.",
+  "startedAt": "2026-10-11T19:05:56.096875+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/one-fresh-final-QA-source-build.log",
+  "pid": 1466771,
+  "processGroup": 1466771,
+  "originalStartTicks": "15881686",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1466856,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1466771,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1466856,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1466771,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1466856,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1466771,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T19:06:01.611136+00:00",
+  "logSha256": "dfa13775e1102eee774625102080578adbf93bc1122c3f0bd8feb8b468014cde"
+}

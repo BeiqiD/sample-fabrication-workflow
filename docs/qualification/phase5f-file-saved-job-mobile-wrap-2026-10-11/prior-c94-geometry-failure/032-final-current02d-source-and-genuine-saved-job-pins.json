@@ -1,0 +1,88 @@
+{
+  "status": "PASS",
+  "domain": "file",
+  "producerHead": "02d6dfbe5f2bd98847b3d6f509c219de5ad816ad",
+  "qaConsumerHead": "c94b07c390af5fe34c0f8a25750bfcf44be872b1",
+  "all2726ProducerAndCopiedInputsExact": true,
+  "all2726OrdinaryQaInputsExact": true,
+  "sixOwnedDesktopAndMobileQaInputs": {
+    "scripts/qa/phase5f/browser-current-coherent-local-r2-file-saved-job-keyboard.mjs": "603bc4cb0eaaef1243fd3ac08ce2e00fa9517faebacc0ad34b98a732d962c525",
+    "scripts/qa/phase5f/browser-current-coherent-package-saved-job-keyboard.mjs": "8cc5643a8ac995ee5f859024524ce8e7a34e50c406eb110787abfcb0dc00dfc9",
+    "scripts/qa/phase5f/check-current-coherent-saved-job-physical-state.py": "f62ce9ff0ac39ce306df8fa409d14948971c0aad2ae4a03a5b1e6d4176610ee0",
+    "scripts/qa/phase5f/browser-current-coherent-local-r2-file-saved-job-keyboard-mobile.mjs": "167b2641fdaf422c9be92134124f1d6393d50d26a7b3e6bb63d46bdec4a490fd",
+    "scripts/qa/phase5f/browser-current-coherent-package-saved-job-keyboard-mobile.mjs": "b91ff7fb34d36db7f2fd01780e3c437365930638efb2f465092a3466d9bdc4d6",
+    "scripts/qa/phase5f/check-current-coherent-saved-job-mobile-physical-state.py": "a8eef502d35b2b439f2d02767e6fca08b2158e0cf681ddbd7b1d8d06c290cab3"
+  },
+  "all2732QaInputsBytePinned": true,
+  "actualOriginalArtifacts": 118,
+  "copiedArtifacts": 121,
+  "newBuilds": 0,
+  "disabledSeedRequests": 0,
+  "nativeQualification": {
+    "status": "failed",
+    "reportSha256": "e9bda97932eb8688e056d2a5b0fb1694811b55119982bea3e0d942951749320e",
+    "ownedClosure": {
+      "status": "closed",
+      "browserCloseAwaited": true,
+      "originalPreparationOwnerClosure": {
+        "status": "closed",
+        "startedAt": "2026-10-11T18:32:59.554Z",
+        "originalRequestsAwaited": {
+          "count": 12,
+          "rejected": 0
+        },
+        "workerDisposeAwaited": true,
+        "workerPortRefused": true,
+        "originalOutboundWorkAwaited": {
+          "count": 1,
+          "rejected": 0
+        },
+        "jwksCloseAwaited": true,
+        "jwksPortRefused": true,
+        "completedAt": "2026-10-11T18:33:00.594Z"
+      }
+    },
+    "actualCosts": {
+      "setupPOSTs": 6,
+      "readerGETs": 2,
+      "nativeGETs": 15,
+      "nativeMetadataPOSTs": 5,
+      "maxSetupPOSTs": 6,
+      "maxNativePOSTs": 5,
+      "observedAcceptedJobReceipts": 1,
+      "newExecutorSteps": 0
+    },
+    "unrunCases": [],
+    "genuinePreparationStatus": "prepared",
+    "originalPreparationOwnerClosure": {
+      "status": "closed",
+      "startedAt": "2026-10-11T18:32:59.554Z",
+      "originalRequestsAwaited": {
+        "count": 12,
+        "rejected": 0
+      },
+      "workerDisposeAwaited": true,
+      "workerPortRefused": true,
+      "originalOutboundWorkAwaited": {
+        "count": 1,
+        "rejected": 0
+      },
+      "jwksCloseAwaited": true,
+      "jwksPortRefused": true,
+      "completedAt": "2026-10-11T18:33:00.594Z"
+    }
+  },
+  "originalChildWaitReapAndGroup": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 1,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "physicalStatus": "passed",
+  "physicalActualSQLiteGroups": 5,
+  "oldPausedNamespacesSeparateAndUntouched": true
+}

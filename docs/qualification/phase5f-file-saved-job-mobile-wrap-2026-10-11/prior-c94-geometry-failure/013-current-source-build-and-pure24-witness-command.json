@@ -1,0 +1,34 @@
+{
+  "stage": "current-source-build-and-pure24-witness",
+  "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+  "argv": [
+    "python3",
+    "-B",
+    "/workspace/phase5f-coherent-saved-package-mobile-native-finite-source-preparation-attempt1/file/carry-current-coherent-saved-job.py",
+    "--current02d-coherent-saved-job",
+    "witness"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/coherent-file-saved-mobile02-private-attempt1",
+    "SQLITE_TMPDIR": "/workspace/coherent-file-saved-mobile02-private-attempt1"
+  },
+  "startedAt": "2026-10-11T18:32:40.700786+00:00",
+  "status": "PASS",
+  "log": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/current-source-build-and-pure24-witness.log",
+  "pid": 1460083,
+  "processGroup": 1460083,
+  "originalStartTicks": "15682147",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T18:32:41.210093+00:00",
+  "logSha256": "e125124d3165a3f50c78bdee3b115076c57e74d04a2d3269b4bf8e04364b52c5"
+}

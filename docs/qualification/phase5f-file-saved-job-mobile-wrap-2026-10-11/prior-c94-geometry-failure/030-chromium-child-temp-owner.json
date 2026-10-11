@@ -1,0 +1,14 @@
+{
+  "path": "/workspace/.sfmj1",
+  "mode": "0700",
+  "uid": 1000,
+  "dev": "27",
+  "ino": "1878965",
+  "freshCreated": true,
+  "sourceHead": "02d6dfbe5f2bd98847b3d6f509c219de5ad816ad",
+  "sourceCopyRoot": "/workspace/coherent-file-saved-mobile02-private-attempt1/copy",
+  "fixtureDirectory": "/workspace/coherent-file-saved-mobile02-private-attempt1/fixture",
+  "qaHelperSha256": "167b2641fdaf422c9be92134124f1d6393d50d26a7b3e6bb63d46bdec4a490fd",
+  "freeBytes": "508473344",
+  "scope": "Original Chromiumchildonly temporary leaf; parent TMPDIR/COPY/FIXTURE ownership unchanged."
+}
