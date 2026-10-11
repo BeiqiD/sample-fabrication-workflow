@@ -52,19 +52,26 @@ jobs:
           docker_group="$(getent group "$docker_gid" | cut -d: -f1)"
           test -n "$docker_group"
           sudo usermod -aG "$docker_group" "$qa_user"
-          run_root="$RUNNER_TEMP/node-docker-six-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
-          test ! -e "$run_root"
+          test "$(realpath /tmp)" = /tmp
+          stage_root="/tmp/node-docker-six-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          evidence_root="/tmp/node-docker-six-evidence-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          test ! -e "$stage_root" && test ! -L "$stage_root"
+          test ! -e "$evidence_root" && test ! -L "$evidence_root"
+          sudo install -d -m 0700 -o 1000 -g 1000 "$stage_root"
+          sudo cp -a "$GITHUB_WORKSPACE/qa-runner" "$stage_root/qa-runner"
+          sudo cp -a "$GITHUB_WORKSPACE/target-source" "$stage_root/target-source"
+          sudo chown -R 1000:1000 "$stage_root/qa-runner" "$stage_root/target-source"
+          sudo chmod 0700 "$stage_root/qa-runner" "$stage_root/target-source"
+          run_root="$stage_root/runtime"
           sudo install -d -m 0700 -o 1000 -g 1000 "$run_root"
-          test ! -e "$GITHUB_WORKSPACE/docker-six-evidence-parent"
-          sudo install -d -m 0755 -o 1000 -g 1000 "$GITHUB_WORKSPACE/docker-six-evidence-parent"
-          sudo chown -R 1000:1000 "$GITHUB_WORKSPACE/qa-runner" "$GITHUB_WORKSPACE/target-source"
-          printf 'NODE_DOCKER_SIX_ROOT=%s\n' "$run_root" >> "$GITHUB_ENV"
+          sudo install -d -m 0755 -o 1000 -g 1000 "$evidence_root"
+          printf 'NODE_DOCKER_SIX_ROOT=%s\nNODE_DOCKER_SIX_QA=%s\nNODE_DOCKER_SIX_SOURCE=%s\nNODE_DOCKER_SIX_EVIDENCE=%s\n' "$run_root" "$stage_root/qa-runner" "$stage_root/target-source" "$evidence_root" >> "$GITHUB_ENV"
       - name: Verify exact source and run original finite acceptance
         shell: bash
         run: |
           set -euo pipefail
-          qa="$GITHUB_WORKSPACE/qa-runner/scripts/qa/node-docker-capacity"
-          source="$GITHUB_WORKSPACE/target-source"
+          qa="$NODE_DOCKER_SIX_QA/scripts/qa/node-docker-capacity"
+          source="$NODE_DOCKER_SIX_SOURCE"
           sudo -u '#1000' -g '#1000' python3 -B "$qa/prepare-ci-source.py" --root "$NODE_DOCKER_SIX_ROOT" --source "$source" --invocation-head "$GITHUB_SHA"
           sudo -u '#1000' -g '#1000' env NODE_DOCKER_SIX_ROOT="$NODE_DOCKER_SIX_ROOT" NODE_DOCKER_SIX_SOURCE="$source" python3 -B "$NODE_DOCKER_SIX_ROOT/prepared/run-ci-network-prerequisite.py" --exclusive-go-ci-network-prerequisite
           sudo -u '#1000' -g '#1000' env NODE_DOCKER_SIX_ROOT="$NODE_DOCKER_SIX_ROOT" NODE_DOCKER_SIX_SOURCE="$source" python3 -B "$NODE_DOCKER_SIX_ROOT/prepared/run-default-docker-six.py" --exclusive-go-default-docker-six
@@ -73,12 +80,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sudo -u '#1000' -g '#1000' python3 -B "$GITHUB_WORKSPACE/qa-runner/scripts/qa/node-docker-capacity/export-bounded-artifacts.py" --root "$NODE_DOCKER_SIX_ROOT" --destination "$GITHUB_WORKSPACE/docker-six-evidence-parent/evidence"
+          sudo -u '#1000' -g '#1000' python3 -B "$NODE_DOCKER_SIX_QA/scripts/qa/node-docker-capacity/export-bounded-artifacts.py" --root "$NODE_DOCKER_SIX_ROOT" --destination "$NODE_DOCKER_SIX_EVIDENCE/evidence"
       - name: Retain bounded original evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: default-docker-six-${{ github.run_id }}-${{ github.run_attempt }}
-          path: docker-six-evidence-parent/evidence/
+          path: ${{ env.NODE_DOCKER_SIX_EVIDENCE }}/evidence/
           if-no-files-found: warn
           retention-days: 14
