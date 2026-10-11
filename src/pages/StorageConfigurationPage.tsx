@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { supportsExpectedS3BucketOwner, type SaveStorageCandidateInput, type StorageCandidate, type StorageConfigurationStatus } from "../../shared/contracts/storage-configuration";
 import { checkedStartStorageCandidateCheckInput, MAX_STORAGE_CANDIDATE_CHECKS, type StartStorageCandidateCheckInput, type StorageCandidateCheck,
   type StorageCandidateCheckList, type StorageCandidateCheckStage } from "../../shared/contracts/storage-candidate-check";
@@ -54,7 +54,9 @@ export function StorageConfigurationPage() {
       if (current === sequence.current && !pending.signal.aborted) setLoading(false);
     }
   }
-  useEffect(() => {
+  // Consume focus intent with the committed enabled button, before a later
+  // interaction can queue another refresh ahead of a deferred passive effect.
+  useLayoutEffect(() => {
     if (loading || !returnRefreshFocus.current) return;
     returnRefreshFocus.current = false;
     const button = refreshButton.current;
