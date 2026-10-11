@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /tmp/phase5f-package-preview-focus-current1943-source-attempt3
+
+
+ Test Files  1 passed (1)
+      Tests  28 passed (28)
+   Start at  04:11:24
+   Duration  2.01s (transform 190ms, setup 0ms, import 295ms, tests 1.34s, environment 267ms)
+

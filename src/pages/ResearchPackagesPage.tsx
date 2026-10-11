@@ -148,6 +148,8 @@ export function ResearchPackagesPage() {
   const [denied, setDenied] = useState(false), deniedRef = useRef(false), [message, setMessageText] = useState("");
   const [messageError, setMessageError] = useState(false);
   const lifetime = useRef<AbortController | null>(null), refreshSequence = useRef(0);
+  const exportPreviewButton = useRef<HTMLButtonElement>(null);
+  const returnExportPreviewFocus = useRef<{ button: HTMLButtonElement; signal: AbortSignal } | null>(null);
   const currentUpload = upload ? jobs.find(job => job.id === upload.jobId) : null;
 
   function setMessage(value: string) { setMessageText(value); setMessageError(false); }
@@ -280,6 +282,14 @@ export function ResearchPackagesPage() {
     })();
     return () => { controller.abort(); refreshSequence.current++; if (timer) clearTimeout(timer); };
   }, []);
+  useEffect(() => {
+    if (busy || !returnExportPreviewFocus.current) return;
+    const { button, signal } = returnExportPreviewFocus.current;
+    returnExportPreviewFocus.current = null;
+    if (signal !== lifetime.current?.signal || signal.aborted || deniedRef.current) return;
+    if (button === exportPreviewButton.current && button.isConnected && !button.matches(":disabled")
+      && (document.activeElement === document.body || document.activeElement === button)) button.focus();
+  }, [busy]);
   async function act(operation: (signal: AbortSignal) => Promise<void>, preserveMessage = false) {
     const controller = lifetime.current;
     if (!controller || controller.signal.aborted || deniedRef.current || busyRef.current) return;
@@ -363,13 +373,17 @@ export function ResearchPackagesPage() {
         <button className="button" disabled={busy} onClick={() => void act(signal => reconcile(signal, true))}>Check or retry original request</button></section>}
       <section className="card storage-settings-section"><h2 className="card-title">Export selected research</h2>
         <p className="muted">Choose Data package or Offline report from a <Link to="/samples">Sample</Link> or <Link to="/projects">Project</Link>, or enter up to 20 roots below.</p>
-        <form onSubmit={event => { event.preventDefault(); void act(async signal => { const preview = await researchPackagesClient.plan(exportInput(), signal); if (!signal.aborted) setExportPreview(preview); }); }}>
+        <form onSubmit={event => { event.preventDefault(); void act(async signal => {
+          const button = exportPreviewButton.current;
+          returnExportPreviewFocus.current = button && document.activeElement === button ? { button, signal } : null;
+          const preview = await researchPackagesClient.plan(exportInput(), signal); if (!signal.aborted) setExportPreview(preview);
+        }); }}>
           <fieldset disabled={blocked || executor?.supported === false}><div className="storage-candidate-fields">
             <label>Export format<select value={kind} onChange={event => { setKind(event.target.value as ResearchExportKind); setExportPreview(null); }}>
               <option value="data_package">Native data package</option><option value="report">Offline HTML and Markdown report</option></select></label>
             <label>Sample and Project roots<textarea rows={3} value={rootText} placeholder="sample:record-id or project:record-id, one per line"
               onChange={event => { setRootText(event.target.value); setExportPreview(null); }} required /></label>
-          </div><button className="button" type="submit">Preview export</button></fieldset>
+          </div><button ref={exportPreviewButton} className="button" type="submit">Preview export</button></fieldset>
         </form>
         {exportPreview && <><Preview value={exportPreview} />
           {!exportCapability?.available && <ul>{exportCapability?.reasons.map(code => <li key={code}>{reasonText(code)}</li>)}</ul>}

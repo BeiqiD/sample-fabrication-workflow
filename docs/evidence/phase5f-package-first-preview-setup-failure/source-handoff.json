@@ -1,0 +1,65 @@
+{
+  "status": "SOURCE_ONLY_FROZEN_ALL_PACKAGE2_THIRTEEN_STAGES_UNRUN",
+  "qaConsumerRoot": "/tmp/phase5f-package-two-preview-genuine-context-source-attempt2",
+  "qaConsumerHead": "f50384811b2d16fd64847cf10f622719bed0481a",
+  "qaConsumerTree": "7203dba65e001382fe12c90e81c0353de4aa1f25",
+  "qaConsumerTracked1793CleanWorkingBlobsExact": true,
+  "actualCausalProducerRoot": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+  "actualCausalProducerHead": "f88fffea3ba0654b52ca90ee87efdafdb70cd48c",
+  "all1792OriginalProducerInputsExactInQaConsumer": true,
+  "actualProducerClosedReceiptSha256": "51bac259cf336bf9c4e04b26ed88566a884e39e257c1d5e1d6082a09d9ae7727",
+  "actualStorageTwoPrerequisite": {
+    "path": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/actual-original-storage-two-after-wrap-pass-closed-and-released.json",
+    "sha256": "3c4076f1d942261f8e2099520a825840db1ecc74e8bb54fd60b071b5799535cb",
+    "all48RawSourceRecordsRehashed": true,
+    "actual2Passed": true,
+    "originalFixtureAndAcceptedHistoryPreserved": true
+  },
+  "helperSha256": "d62c4822bf0c15f3bf4e00ebb9e09d3ccd6edf0b71d1653655d59ea418d0fb87",
+  "files": {
+    "finite-genuine-package-preview-two-plan.json": {
+      "path": "/tmp/phase5f-package-two-genuine-preview-finite-source-review-attempt1/finite-genuine-package-preview-two-plan.json",
+      "sha256": "01f2fb9a5bb7a0a11b2216811ced7b8efff3241a5b044d469645981c0b080c6d"
+    },
+    "run-frozen-owned-stage.py": {
+      "path": "/tmp/phase5f-package-two-genuine-preview-finite-source-review-attempt1/run-frozen-owned-stage.py",
+      "sha256": "8c5f5ceb66b00899bca416b458a93d9271d8f50ae23d4ee94604e6b3e533e7de"
+    },
+    "verify-qualified-f88-producer-and-package-two-witness.py": {
+      "path": "/tmp/phase5f-package-two-genuine-preview-finite-source-review-attempt1/verify-qualified-f88-producer-and-package-two-witness.py",
+      "sha256": "b6cf30a04c7e00fc3b5d6ad92b2cf9d43d32878da5281686338c9da6a87b5f1f"
+    },
+    "runner-top-level-only-retarget.patch": {
+      "path": "/tmp/phase5f-package-two-genuine-preview-finite-source-review-attempt1/runner-top-level-only-retarget.patch",
+      "sha256": "e04f9befff88dd9a2c1dbbae336380897cdc1b1ebb3da668e443daf7ad7fe7e1"
+    },
+    "carrier-package-consumer-delta.patch": {
+      "path": "/tmp/phase5f-package-two-genuine-preview-finite-source-review-attempt1/carrier-package-consumer-delta.patch",
+      "sha256": "69726c1ed867881c72d805768dccab0e0119ef0f8c07d977d00e7765477d64c1"
+    }
+  },
+  "matureRunner": {
+    "all11FunctionsClassesASTExact": true,
+    "original": "/tmp/phase5f-storage-original-two-after-wrap-source-review-attempt11/run-frozen-owned-stage.py",
+    "originalSha256": "923621eb966e3d36bf38f936c1259a94f27758f25b1f64dad14df69b7d470b65",
+    "onlyTopLevelGlobalsDocTokenChanged": true,
+    "verifySource1792StillOriginalProducer": "QAconsumer1793 completeproof also checkedbycarrier producer/witness/finalpins; no fabricated sameheadproducer."
+  },
+  "sourcePeers": [
+    {
+      "path": "/tmp/phase5f-package-two-f800-independent-full-source-peer.json",
+      "sha256": "9746755c5258050cf08ca071fbb923819c4da9612e0ca4e1e105b2d3559b3c83",
+      "scope": "Whole445 source semantic review, soleProject oracleBLOCK preserved."
+    },
+    {
+      "path": "/tmp/phase5f-package-two-f503-independent-genuine-context-source-addendum.json",
+      "sha256": "b0185cde99e55918e4f6e0d8622694fb5417edd28eb1f9490df78f4518223b82",
+      "scope": "Exactthreeoracle successor CLEAR; allother source contracts unchanged."
+    }
+  ],
+  "sourceAuthoringOnlyGrammarAST": "PASS, no compiler/contracttranspile/SQLite/socket/browser/server/helpercarrier execution",
+  "startCommand": "python -B /tmp/phase5f-package-two-genuine-preview-finite-source-review-attempt1/run-frozen-owned-stage.py --exclusive-go-exact-f503848-package-preview-two-stage qualified-f88-producer-preflight",
+  "finiteScope": "13 stages/12 argv+originalseedstop; sameactualf88 build no repeattypes/mounted/build, distinctnew24/84 fixture, only2genuine plans POST/4expectedGET/2exactreleasedHTTPpermits, nativefocus/+2/longrealcontext labels/genuineDTO unsupported executor and role reasons. No jobs/ZIP/import/recovery/provider/activation. OriginalTTL/20s body131072 and120s retainedTTYcontrol unchanged.",
+  "firstFailure": "Stopnormalfirstfailure, preserveactualremainingUNRUN andacceptedPOSTpermits. Originalroute/body/context/browser/Worker/JWKS/directchildwait normalclosures+mandatoryphysical/pins. No globalquiescence or blindrerun.",
+  "independentFixtureReason": "ExistingactualStorage2after-shutdown checker/witness/report records are exclusivewrite immutable; distinctnewcopy+fresh24/84 needed toavoidcollision/alteringoldraw/state. PriorStorage2 is not rerun."
+}
