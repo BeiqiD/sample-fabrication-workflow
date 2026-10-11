@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.worker.json",
+  "files": [
+    "worker/d1-bulk.ts",
+    "worker/files/asset-input-service.ts",
+    "worker/files/asset-input.ts",
+    "worker/files/business-lifecycle-service.ts",
+    "worker/files/business-lifecycle.ts",
+    "worker/files/business-metadata-d1.ts",
+    "worker/files/business-metadata-sql.ts",
+    "worker/files/consumer-binding-service.ts",
+    "worker/files/consumer-binding.ts",
+    "worker/process-definition/reference-lifecycle-d1.ts",
+    "worker/process-definition/reference-lifecycle-service.ts",
+    "worker/process-definition/reference-lifecycle-sql.ts",
+    "worker/process-definition/routes.ts",
+    "worker/process-definition/template-content-d1.ts",
+    "worker/process-definition/template-content-service.ts",
+    "worker/process-definition/template-content-sql.ts",
+    "worker/runtime/bulk-insert.ts",
+    "worker/runtime/bulk-rows.ts"
+  ],
+  "include": [],
+  "exclude": []
+}
