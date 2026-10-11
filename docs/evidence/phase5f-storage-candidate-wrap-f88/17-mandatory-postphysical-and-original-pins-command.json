@@ -1,0 +1,32 @@
+{
+  "stage": "mandatory-postphysical-and-original-pins",
+  "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+  "argv": [
+    "python",
+    "-B",
+    "/tmp/phase5f-storage-candidate-section-wrap-source-review-attempt10/copy-and-postcheck-original-closed-storage-layout.py",
+    "--exclusive-go-read-only-retained-storage-layout-files",
+    "postphysical"
+  ],
+  "mandatoryAfterBrowserFailure": true,
+  "scope": "Only after originalhelperreport normalawaitedbrowser/Worker/JWKS closure+refusedports and originalchildactualexit/reap; copied4SQLite quick/FK,PNG/blobbytes,originalmain+WAL/SHMstat/source/artifactspins and trackedconsumer. Firstfailure retained; mandatorycleanup/physical stays required.",
+  "startedAt": "2026-10-11T02:50:52.841143+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/mandatory-postphysical-and-original-pins.log",
+  "pid": 619440,
+  "processGroup": 619440,
+  "originalStartTicks": "10031361",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T02:50:53.333305+00:00",
+  "logSha256": "f68560888cc08682e5a366838490dd5a877c3057c0c131914c907de45e0057f5"
+}

@@ -35,6 +35,48 @@ async function fillS3() {
 const saveCalls = () => network.mock.calls.filter(([, options]) => options?.method === "PUT");
 
 describe("administrator storage candidate Settings", () => {
+  it("returns an explicitly focused Refresh after its disabled interval without focusing the initial read", async () => {
+    let capabilityReads = 0, finishRefresh!: (value: Response) => void;
+    network.mockImplementation(async path => String(path).endsWith("/capability")
+      ? ++capabilityReads === 2 ? new Promise<Response>(resolve => { finishRefresh = resolve; }) : json({ canManage: true, credentialEditingAvailable: true })
+      : json(configuration()));
+    render(<StorageConfigurationPage />); await screen.findByRole("heading", { name: "New candidate" });
+    const refresh = screen.getByRole("button", { name: "Refresh" }) as HTMLButtonElement;
+    expect(document.activeElement).not.toBe(refresh);
+    refresh.focus(); fireEvent.click(refresh);
+    expect(refresh.disabled).toBe(true);
+    // Model the prior actual Chromium disabled-button blur; this is not a new browser proof.
+    // jsdom ignores blur() on a disabled button, so move native DOM focus to body.
+    const originalTabIndex = document.body.getAttribute("tabindex");
+    try { document.body.tabIndex = -1; document.body.focus(); }
+    finally {
+      if (originalTabIndex === null) document.body.removeAttribute("tabindex");
+      else document.body.setAttribute("tabindex", originalTabIndex);
+    }
+    expect(document.activeElement).toBe(document.body);
+    await act(async () => finishRefresh(json({ canManage: true, credentialEditingAvailable: true })));
+    await screen.findByRole("heading", { name: "New candidate" });
+    await waitFor(() => expect(document.activeElement).toBe(refresh));
+    expect(refresh.disabled).toBe(false); expect(refresh.isConnected).toBe(true);
+    expect(network.mock.calls.some(([, options]) => options?.method === "PUT" || options?.method === "POST")).toBe(false);
+  });
+
+  it("preserves focus moved to another native control while an explicitly focused Refresh is pending", async () => {
+    let capabilityReads = 0, finishRefresh!: (value: Response) => void;
+    network.mockImplementation(async path => String(path).endsWith("/capability")
+      ? ++capabilityReads === 2 ? new Promise<Response>(resolve => { finishRefresh = resolve; }) : json({ canManage: true, credentialEditingAvailable: true })
+      : json(configuration()));
+    render(<StorageConfigurationPage />); await screen.findByRole("heading", { name: "New candidate" });
+    const refresh = screen.getByRole("button", { name: "Refresh" }) as HTMLButtonElement;
+    refresh.focus(); fireEvent.click(refresh); expect(refresh.disabled).toBe(true);
+    const other = screen.getByRole("link", { name: "Current storage settings" }); other.focus();
+    expect(document.activeElement).toBe(other);
+    await act(async () => finishRefresh(json({ canManage: true, credentialEditingAvailable: true })));
+    await screen.findByRole("heading", { name: "New candidate" });
+    expect(refresh.disabled).toBe(false); expect(document.activeElement).toBe(other);
+    expect(network.mock.calls.some(([, options]) => options?.method === "PUT" || options?.method === "POST")).toBe(false);
+  });
+
   it("keeps an unconfigured administrator policy read only without requesting candidate metadata", async () => {
     network.mockResolvedValue(json({ canManage: false, credentialEditingAvailable: false }));
     render(<StorageConfigurationPage />); await screen.findByRole("heading", { name: "Read only" });

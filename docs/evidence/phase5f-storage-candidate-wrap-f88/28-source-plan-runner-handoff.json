@@ -1,0 +1,52 @@
+{
+  "status": "SOURCE_ONLY_FROZEN_ACTUAL8UNRUN",
+  "sourceRoot": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+  "sourceHead": "f88fffea3ba0654b52ca90ee87efdafdb70cd48c",
+  "sourceTree": "df05a78afcdee28f7136a349001464c399531e9c",
+  "trackedEntriesAndWorkingBlobs": 1792,
+  "protected1790EntriesExact558": true,
+  "changedPaths": [
+    "scripts/qa/phase5f/browser-enabled-storage-draft-actual-api.mjs",
+    "src/pages/storage-settings.css"
+  ],
+  "helperSha256": "903369b821e680c786fb6e9c77044de35410b3d639ddc7e2e0215508648eedb3",
+  "cssSha256": "c56f7a2fe5db78602e2455dfe6ddcae364fb0634c4347f8b943ccc7a422c3bb7",
+  "reviewedOldRunner": "/tmp/phase5f-storage-read-only-layout-tail-source-review-attempt7/run-frozen-owned-stage.py",
+  "all11RunnerFunctionsAndClassesASTExact": true,
+  "runnerTopLevelChanges": "Exactsource/review/runtime/planSHA/GO token and firststageaffectedappstrict. Samecommands/budgets/matureownercleanup/directreap/TTYcontrols; distmanifest writer unchanged.",
+  "carrierChanges": "Exactnewconsumer/diagnosticroots; original01 source/fixture/closedpins unchanged; old1791comparison becomes1790withonlyCSS/helper exceptions plusexactCSSSHA. No newSQLite ororiginalstatewrites.",
+  "freshWitnessSource": "Explicit8commandplan:appstrict\u2192mounted24\u2192actualbuild\u2192copy\u2192originalbuildwitness\u2192oldstatecopy\u2192one390\u2192mandatoryphysical. Newbuilderf88 andhistoricalstate01 namedseparately.",
+  "ownedFiles": [
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-source-review-attempt10/candidate-section-selector-and-pin-only.patch",
+      "sha256": "418885086ae4e453ec4fa8450ff09b65ce91376e0f7db7d4bb2fcb0e58ae6d7d"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-source-review-attempt10/copy-and-postcheck-original-closed-storage-layout.py",
+      "sha256": "b9d4d03c7f609296d840b3f55b68da1213a1afa7c3fd12abe14377b0a12168d4"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-source-review-attempt10/css-and-fresh-artifact-helper.patch",
+      "sha256": "c316f4dde274bf1427e3d2e9537da181297146407c4f00dd17bf0c27c67fd3f7"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-source-review-attempt10/finite-fresh-storage390-layout-repair-plan.json",
+      "sha256": "20d549143ab4730142119cc7f5aab513c64b990ba6069ea4e1dc7bb319e1e19d"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-source-review-attempt10/run-frozen-owned-stage.py",
+      "sha256": "628f629fc16281fca25a345a32bdc9076ccf2bff7b19affe24838ff5759ade8a"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-source-review-attempt10/write-fresh-layout-build-witness.py",
+      "sha256": "44ccdd09783e43d1c3b6eebfd4c9da5dd37e1fe09ce18f598673ba11f60ef4eb"
+    }
+  ],
+  "historical558ClosedReceipt": {
+    "path": "/tmp/phase5f-storage-read-only-layout-tail-runtime-attempt7/actual-read-only-layout558-first-overflow-failure-closed-and-released.json",
+    "sha256": "b6f11b38b394f24bc571f3c4de9f7676a2b08eea5989a0505743d67877f12e75"
+  },
+  "scope": "No applicationcompiler/mounted/build/SQLite/Worker/browser afterCSSproductchange. Awaitindependentpeer/rootexclusiveGO. Alloriginalassertions/budgets/labels/domain/CAS/authretained.",
+  "original3b6FreezePreservedActualUnrun": "/tmp/phase5f-storage-fresh-layout-source-review-attempt9/source-plan-runner-handoff.json",
+  "narrowSelectorSuccessor": "Use existing storage-settings-section[aria-labelledby=\"storage-candidates-title\"] to match only genuineconfiguration candidatebuttons, notsharedStorageSettings/FileMigrations profilelists. CSSnormal-wrap/max-width/anywhere andalllabels unchanged. SolehelperCSSSHA pin follows; all1790others exact."
+}
