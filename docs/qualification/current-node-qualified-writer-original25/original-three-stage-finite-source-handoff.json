@@ -1,0 +1,100 @@
+{
+  "kind": "current-qualified-writer-original-eight-eleven-six-finite/1",
+  "status": "SOURCE_ONLY_PEER_AND_EXCLUSIVE_ROOT_GO_REQUIRED",
+  "sourceRoot": "/workspace/portable-current-a5-qualified-writer-continuation-source-attempt1",
+  "sourceHead": "eaef0b5d1346faaa5cdf0fc8db0d9439919f1c42",
+  "sourceTree": "0908d3c9f3c17a46ca0c8c5459ed906e6ccd4512",
+  "sourceInputs": 2575,
+  "freshSelectedTotal": 25,
+  "nativeCaseCarry": 0,
+  "strictActualCurrentReceiptPath": "/workspace/current-a5-qualified-writer-continuation-source-handoffs/affected-node-types-attempt1/receipt.json",
+  "strictActualCurrentReceiptSha256": "f770147c48efa0fdc750a0a2b231af4a308eda83ea22e154e06dd73a31f8da95",
+  "executionOrder": [
+    "configured-eight",
+    "job-eleven",
+    "runtime-six"
+  ],
+  "stopAfterFirstActualStageFailure": true,
+  "requireFormalClosureBeforeNextStage": true,
+  "stages": [
+    {
+      "name": "configured-eight",
+      "freshCases": 8,
+      "config": "local-file-enabled-composer-qualification.vitest.config.mts",
+      "source": "server/files/local-file-enabled-composer.qualification.ts",
+      "planPath": "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/configured-eight/peerbound-executable-plan.json",
+      "planSha256": "c15c3499043056ff541dd08454eaf8f304b25b5566ce530cbc65728aaf0c44f7",
+      "runnerPath": "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/configured-eight/original-owned-runner.py",
+      "runnerSha256": "8611da94d2d2e3ebff66a4455e536e3c4b8a52705d534a8cbff99ec61e4a7d50",
+      "supervisorPath": "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/configured-eight/original-supervisor.py",
+      "supervisorSha256": "d4082849cbb870222a7ca9912b82b00a795ba88d1085e1203e266ac2d51eed7a",
+      "exactSupervisorCommand": [
+        "python3",
+        "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/configured-eight/original-supervisor.py"
+      ],
+      "requiredGoEnvironment": {
+        "NODE_CURRENT_NODE_FILE_JOB_RUNTIME_EXCLUSIVE_GO": "eaef0b5d1346faaa5cdf0fc8db0d9439919f1c42"
+      },
+      "outputDirectory": "/workspace/current-a5-qualified-writer-configured-eight-owned-actual-attempt1",
+      "outerBudgetSeconds": 180,
+      "caseDefaultMs": 5000,
+      "hookDefaultMs": 10000,
+      "explicitBeforeAllMs": 20000,
+      "runtimeStatus": "UNRUN_CURRENT_HEAD"
+    },
+    {
+      "name": "job-eleven",
+      "freshCases": 11,
+      "config": "node-job-http-request.vitest.config.mts",
+      "source": "server/files/jobs/request-http.qualification.ts",
+      "planPath": "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/job-eleven/peerbound-executable-plan.json",
+      "planSha256": "af84cead36b635819e5e4fe27e50c02b70d7bdc4fc9b4f0166a038171f49aad2",
+      "runnerPath": "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/job-eleven/original-owned-runner.py",
+      "runnerSha256": "86ad9696a2b4f3e339a2bc7c692aac28206d7f971c4ae98348567228aa5c803f",
+      "supervisorPath": "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/job-eleven/original-supervisor.py",
+      "supervisorSha256": "5578f19a736e722c22a550a59271c945a7a85708aedb49fb112d240a3867ffca",
+      "exactSupervisorCommand": [
+        "python3",
+        "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/job-eleven/original-supervisor.py"
+      ],
+      "requiredGoEnvironment": {
+        "NODE_CURRENT_NODE_FILE_JOB_RUNTIME_EXCLUSIVE_GO": "eaef0b5d1346faaa5cdf0fc8db0d9439919f1c42"
+      },
+      "outputDirectory": "/workspace/current-a5-qualified-writer-job-eleven-owned-actual-attempt1",
+      "outerBudgetSeconds": 180,
+      "caseDefaultMs": 5000,
+      "hookDefaultMs": 10000,
+      "explicitBeforeAllMs": null,
+      "runtimeStatus": "UNRUN_CURRENT_HEAD"
+    },
+    {
+      "name": "runtime-six",
+      "freshCases": 6,
+      "config": "local-file-runtime-optin-qualification.vitest.config.mts",
+      "source": "server/files/local-file-runtime-optin.qualification.ts",
+      "planPath": "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/runtime-six/peerbound-executable-plan.json",
+      "planSha256": "b194ba9a11b810fd10615a53847a171380eb93fb7bf5d7c8ec9ba71c8c83ef67",
+      "runnerPath": "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/runtime-six/original-owned-runner.py",
+      "runnerSha256": "98479bed3ed7482ed40bc9b9f364a31124dc36595eaff27c63fc4e35638e2e0e",
+      "supervisorPath": "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/runtime-six/original-supervisor.py",
+      "supervisorSha256": "0426d89aef7a5a53a201af7b2b954533dc4074484dd88ff16d0ecf3cab519590",
+      "exactSupervisorCommand": [
+        "python3",
+        "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/runtime-six/original-supervisor.py"
+      ],
+      "requiredGoEnvironment": {
+        "NODE_CURRENT_NODE_FILE_JOB_RUNTIME_EXCLUSIVE_GO": "eaef0b5d1346faaa5cdf0fc8db0d9439919f1c42"
+      },
+      "outputDirectory": "/workspace/current-a5-qualified-writer-runtime-six-owned-actual-attempt1",
+      "outerBudgetSeconds": 180,
+      "caseDefaultMs": 5000,
+      "hookDefaultMs": 10000,
+      "explicitBeforeAllMs": 20000,
+      "runtimeStatus": "UNRUN_CURRENT_HEAD"
+    }
+  ],
+  "noCompilerWorkerAppBuildRepeat": true,
+  "sourceFreezePath": "/workspace/current-a5-qualified-writer-continuation-source-handoffs/complete-before-affected-node-types-source-freeze.json",
+  "sourceFreezeSha256": "bd8f5568cd5abfd542c068884c83490721150a1d85316a553f5cf03efdd88ede",
+  "sourceSpecificDonorNativeResultsDoNotQualifyCurrentUnion": true
+}

@@ -90,6 +90,11 @@ export async function updateExecutionStepWithDatabase<Statement extends Executio
        SELECT 1 FROM run_steps rs JOIN runs r ON r.id = rs.run_id
        WHERE rs.id = ? AND r.id = ? AND r.sample_id = ? AND rs.last_mutation_id = ?
          AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+     ) AND NOT EXISTS (
+       SELECT 1 FROM run_step_assets existing
+       WHERE existing.id = ? AND existing.run_step_id = ? AND existing.asset_id = ?
+         AND existing.role = 'execution' AND existing.file_id IS ?
+         AND existing.superseded_by_occurrence_id IS NULL
      )`,
   ).bind(
     runStepAssetId,
@@ -106,6 +111,10 @@ export async function updateExecutionStepWithDatabase<Statement extends Executio
     runId,
     sampleId,
     mutationId,
+    runStepAssetId,
+    stepId,
+    asset.id,
+    assetFileId,
   ));
   if (asset && runStepAssetId) statements.push(db.prepare(
     `UPDATE run_step_assets

@@ -26,6 +26,9 @@ export interface OpenedStorageProfile<Adapter extends string> {
   writer?: ByteWriter;
   deleter?: ByteDeleter;
   createHash: Sha256Factory;
+  /** Release this opening's transport ownership after all original operations
+   * settle. Omitted by stateless providers; never releases installation lease. */
+  dispose?: () => Promise<void>;
 }
 export type RegisteredStorageProfile = Readonly<FrozenStorageProfile & {
   adapterType: string;
@@ -44,7 +47,26 @@ export interface StorageProfileOpeningCapabilities<Adapter extends string> {
     lifecycle: Readonly<{ signal?: AbortSignal; beforeRequest: (operation: FileByteOperation) => Promise<boolean> }>): Promise<OpenedStorageProfile<Adapter>>;
 }
 export class ShadowProfileUnavailableError extends Error {
-  constructor() { super("The recorded File storage profile is unavailable"); this.name = "ShadowProfileUnavailableError"; }
+  constructor(options?: ErrorOptions) { super("The recorded File storage profile is unavailable", options); this.name = "ShadowProfileUnavailableError"; }
+}
+/** A failed opening still owns unresolved provider cleanup. This classification
+ * retains actual in-process owners and exact causes for host quarantine; its
+ * public message remains sanitized. The disposer is evidence, never retry
+ * permission, and neither the descriptor nor opaque owner admits a capability. */
+export class StorageProfileCleanupError extends ShadowProfileUnavailableError {
+  declare readonly validationCause: unknown;
+  declare readonly cleanupCause: unknown;
+  declare readonly ownership: Readonly<{ owner: unknown; dispose: () => Promise<void> }>;
+  constructor(validationCause: unknown, cleanupCause: unknown,
+    ownership: Readonly<{ owner: unknown; dispose: () => Promise<void> }>) {
+    super({ cause: new AggregateError([validationCause, cleanupCause], "Storage profile opening cleanup is incomplete") });
+    this.name = "StorageProfileCleanupError";
+    Object.defineProperties(this, {
+      validationCause: { value: validationCause },
+      cleanupCause: { value: cleanupCause },
+      ownership: { value: Object.freeze({ owner: ownership.owner, dispose: ownership.dispose }) },
+    });
+  }
 }
 
 /** Open only an exact registered profile through a trusted runtime composer.
@@ -58,6 +80,8 @@ export async function openStorageProfile<Adapter extends string>(
   access: "read" | "write",
   lifecycle: StorageProfileLifecycle = {},
 ): Promise<OpenedStorageProfile<Adapter>> {
+  let dispose: (() => Promise<void>) | undefined;
+  let providerOwner: unknown;
   try {
     if (!frozen || typeof frozen.profileId !== "string" || !frozen.profileId
       || frozen.profileId.length > 256 || frozen.profileId.includes("\0")
@@ -87,6 +111,9 @@ export async function openStorageProfile<Adapter extends string>(
       return !signal?.aborted && isCurrent();
     };
     const opened = await openProvider(profile, access, Object.freeze({ signal, beforeRequest: callerFence }));
+    providerOwner = opened;
+    const disposeMethod = opened?.dispose;
+    if (typeof disposeMethod === "function") dispose = disposeMethod.bind(opened);
     if (signal?.aborted || !isCurrent() || !opened || opened.storage.profileId !== target.profileId
       || opened.storage.configurationRevision !== target.configurationRevision || opened.storage.adapterType !== profile.adapterType
       || opened.storage.namespaceIdentity !== profile.namespaceIdentity || typeof opened.reader?.read !== "function"
@@ -95,6 +122,16 @@ export async function openStorageProfile<Adapter extends string>(
     // Own the returned descriptor so a mutable provider result cannot retarget it.
     return { storage: Object.freeze({ ...target, adapterType: opened.storage.adapterType, namespaceIdentity: profile.namespaceIdentity }),
       reader: opened.reader, createHash: opened.createHash,
+      ...(dispose ? { dispose } : {}),
       ...(access === "write" ? { writer: opened.writer, deleter: opened.deleter } : {}) };
-  } catch { throw new ShadowProfileUnavailableError(); }
+  } catch (validationCause) {
+    // Already-classified failed ownership has completed its one cleanup
+    // attempt. Preserve it before considering another captured disposer.
+    if (validationCause instanceof StorageProfileCleanupError) throw validationCause;
+    if (dispose) {
+      try { await dispose(); }
+      catch (cleanupCause) { throw new StorageProfileCleanupError(validationCause, cleanupCause, { owner: providerOwner, dispose }); }
+    }
+    throw new ShadowProfileUnavailableError();
+  }
 }

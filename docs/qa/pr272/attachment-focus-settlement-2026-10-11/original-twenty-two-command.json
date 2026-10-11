@@ -1,0 +1,42 @@
+{
+  "stage": "affected-attachment-mounted-file",
+  "cwd": "/workspace/pr272-attachment-focus-settlement-source-attempt1",
+  "argv": [
+    "node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "vitest.mounted.config.ts",
+    "src/attachment-media.mount.test.tsx",
+    "--maxWorkers",
+    "1",
+    "--bail",
+    "1"
+  ],
+  "env": {
+    "TMPDIR": "/workspace",
+    "SQLITE_TMPDIR": "/workspace"
+  },
+  "cases": 22,
+  "originalTestTimeoutMs": 5000,
+  "scope": "Original whole22, same original assertions and default waitFor timeout; only missing original passive focus-settlement barrier corrected.",
+  "startedAt": "2026-10-11T15:15:56.733020+00:00",
+  "status": "PASS",
+  "log": "/workspace/pr272-attachment-focus-settlement-runtime-attempt1/affected-attachment-mounted-file.log",
+  "pid": 1302681,
+  "processGroup": 1302681,
+  "originalStartTicks": "14501750",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T15:15:58.754097+00:00",
+  "logSha256": "971eb4f362d4c7fbd0ca39ccaa37a4c4a24b5fa2ecc3ad4aa4a54f89050df917"
+}

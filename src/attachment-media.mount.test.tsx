@@ -69,7 +69,8 @@ describe("Comment attachment presentation and child lifecycle", () => {
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
     expect(screen.queryByText("file-a.tiff")).toBeNull(); expect(screen.getByText("file-b.tiff")).toBeTruthy();
     expect(screen.getByText("Canonical Comment body")).toBeTruthy();
-    expect(document.activeElement?.getAttribute("aria-label")).toBe("Comment attachments");
+    // Portal removal precedes the modal's passive cleanup that restores focus.
+    await waitFor(() => expect(document.activeElement?.getAttribute("aria-label")).toBe("Comment attachments"));
   });
 
   it("restores focus within a parent modal after the last child is removed", async () => {

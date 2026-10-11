@@ -1,0 +1,111 @@
+{
+  "status": "PASS_CLOSED_RELEASED",
+  "sourceHead": "28eec0973e12a770d4fd4f2f38c37c1c209eb672",
+  "workingSuccessorTestSha256": "497ec3804f81589d7db32a0b9365ce46cdd02a3deb231a86507fe55122a4042c",
+  "unchangedQualified25NotRetagged": true,
+  "startedAt": "2026-10-11T14:33:30.665674+00:00",
+  "durationSeconds": 0.856,
+  "originalChild": {
+    "pid": 1265785,
+    "pgid": 1265785,
+    "startTicks": "14247143",
+    "exitCode": 0,
+    "waitReturned": true,
+    "reaped": true,
+    "groupState": "EMPTY",
+    "members": [],
+    "unknown": [],
+    "signals": 0
+  },
+  "counts": {
+    "passed": 14,
+    "failed": 0,
+    "pending": 0,
+    "skipped": 0
+  },
+  "caseResults": [
+    {
+      "title": "explicit local capabilities through Fetch denies forged actor headers and unauthenticated bodies before privilege or service selection",
+      "status": "passed",
+      "failureMessages": []
+    },
+    {
+      "title": "explicit local capabilities through Fetch accepts a verified local actor with an explicit admin grant without granting File operator access",
+      "status": "passed",
+      "failureMessages": []
+    },
+    {
+      "title": "explicit local capabilities through Fetch keeps File operator grants independent and short-circuits administrator-only service ports",
+      "status": "passed",
+      "failureMessages": []
+    },
+    {
+      "title": "explicit local capabilities through Fetch resolves authorization from current bindings and rechecks revoked grants across requests",
+      "status": "passed",
+      "failureMessages": []
+    },
+    {
+      "title": "explicit local capabilities through Fetch retains endpoint parsing and the existing 48 KiB input ceiling before service writes",
+      "status": "passed",
+      "failureMessages": []
+    },
+    {
+      "title": "explicit local capabilities through Fetch retains mapped conflicts and fixed unavailable responses without leaking private service errors",
+      "status": "passed",
+      "failureMessages": []
+    },
+    {
+      "title": "explicit local capabilities through Fetch does not invent default grants and preserves the current cross-origin write guard",
+      "status": "passed",
+      "failureMessages": []
+    },
+    {
+      "title": "explicit local capabilities through Node HTTP denies forged actor headers and unauthenticated bodies before privilege or service selection",
+      "status": "passed",
+      "failureMessages": []
+    },
+    {
+      "title": "explicit local capabilities through Node HTTP accepts a verified local actor with an explicit admin grant without granting File operator access",
+      "status": "passed",
+      "failureMessages": []
+    },
+    {
+      "title": "explicit local capabilities through Node HTTP keeps File operator grants independent and short-circuits administrator-only service ports",
+      "status": "passed",
+      "failureMessages": []
+    },
+    {
+      "title": "explicit local capabilities through Node HTTP resolves authorization from current bindings and rechecks revoked grants across requests",
+      "status": "passed",
+      "failureMessages": []
+    },
+    {
+      "title": "explicit local capabilities through Node HTTP retains endpoint parsing and the existing 48 KiB input ceiling before service writes",
+      "status": "passed",
+      "failureMessages": []
+    },
+    {
+      "title": "explicit local capabilities through Node HTTP retains mapped conflicts and fixed unavailable responses without leaking private service errors",
+      "status": "passed",
+      "failureMessages": []
+    },
+    {
+      "title": "explicit local capabilities through Node HTTP does not invent default grants and preserves the current cross-origin write guard",
+      "status": "passed",
+      "failureMessages": []
+    }
+  ],
+  "rawLog": {
+    "path": "/workspace/pr272-original-request-regression-fourteen-owned-actual-attempt2/original-fourteen.log",
+    "sha256": "d456ebb5558d22f90d53ca9da275eea3a567d9d7f6cbfc24e2cfd2964c4f3f10"
+  },
+  "rawResult": {
+    "path": "/workspace/pr272-original-request-regression-fourteen-owned-actual-attempt2/fourteen-result.json",
+    "sha256": "f87d5ab30a9b32d32c171fd25f32cf235948bd3fbce105328b20b0e57c5e6c0e"
+  },
+  "rawClosure": {
+    "path": "/workspace/pr272-original-request-regression-fourteen-owned-actual-attempt2/original-child-closure.json",
+    "sha256": "a0e1adb48e532976e86e1ab10703695cbbdc90f19f4f14b5c5e609608b46db67"
+  },
+  "scope": "Original14 Fetch+NodeHTTP storage configuration surface controls with exact-original Request regression; no real SQLite/File/Group/default activation."
+}

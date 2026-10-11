@@ -23,6 +23,30 @@ export interface SqliteCapability {
   close(): void;
 }
 const connectionOwners = new WeakMap<SqliteCapability, DatabaseSync>();
+declare const sqliteBatchAdmissionBrand: unique symbol;
+/** Opaque, issued only for the actual core and its owned SELECT statements. */
+export interface SqliteBatchAdmission { readonly [sqliteBatchAdmissionBrand]: true }
+export interface SqliteBatchAdmissionCheck { readonly statement: SqliteStatement; readonly rejection: Error }
+const batchAdmissions = new WeakMap<SqliteBatchAdmission, {
+  owner: SqliteCapability; checks: readonly SqliteBatchAdmissionCheck[];
+}>();
+const admittedBatchOwners = new WeakMap<SqliteCapability, {
+  issue(checks: readonly SqliteBatchAdmissionCheck[]): SqliteBatchAdmission;
+  run(statements: readonly SqliteStatement[], checks: readonly SqliteBatchAdmissionCheck[]): SqliteResult[];
+}>();
+
+/** Trusted composer-owned predicates only. This narrows actual statement
+ * ownership; it does not infer any permission from a caller's SQL spelling. */
+export function createSqliteBatchAdmission(core: SqliteCapability, checks: readonly SqliteBatchAdmissionCheck[]): SqliteBatchAdmission {
+  const owner = admittedBatchOwners.get(core);
+  if (!owner) throw new Error("SQLite batch admission owner is unavailable");
+  return owner.issue(checks);
+}
+export async function runSqliteAdmittedBatch(core: SqliteCapability, statements: readonly SqliteStatement[], admission: SqliteBatchAdmission): Promise<SqliteResult[]> {
+  const issued = batchAdmissions.get(admission), owner = admittedBatchOwners.get(core);
+  if (!issued || issued.owner !== core || !owner) throw new Error("SQLite batch admission was not issued for this owner");
+  return owner.run(statements, issued.checks);
+}
 
 /** Admission and a query capability must refer to the same actual connection. */
 export function assertSqliteConnectionOwner(capability: SqliteCapability, database: DatabaseSync): void {
@@ -120,9 +144,11 @@ export function createSqliteCapability(database: DatabaseSync, options: { busyTi
   const mode = database.prepare("PRAGMA journal_mode=WAL").get();
   if (mode?.journal_mode !== "wal") throw new Error("File-backed SQLite WAL is required");
   const records = new WeakMap<SqliteStatement, { sql: string; values: SQLInputValue[] }>();
-  let closed = false, inBatch = false;
+  let closed = false, inBatch = false, quarantined = false;
+  let closeAttempted = false, closeRejected = false, firstCloseFailure: unknown;
   const active = () => {
     if (closed || !database.isOpen) throw new Error("SQLite capability is closed");
+    if (quarantined) throw new Error("SQLite capability is quarantined after uncertain rollback");
     if (database.isTransaction && !inBatch) throw new Error("SQLite connection has an unowned transaction");
   };
   const integer = (sql: string): bigint => {
@@ -157,33 +183,70 @@ export function createSqliteCapability(database: DatabaseSync, options: { busyTi
     };
     records.set(wrapped, { sql, values }); return wrapped;
   };
+  const runBatch = (statements: readonly SqliteStatement[], checks: readonly SqliteBatchAdmissionCheck[]): SqliteResult[] => {
+    active();
+    if (!Array.isArray(statements)) throw new Error("Foreign SQLite statement");
+    const originalStatements = [...statements];
+    if (originalStatements.some(item => !records.has(item))) throw new Error("Foreign SQLite statement");
+    if (!originalStatements.length && !checks.length) return [];
+    database.exec("BEGIN IMMEDIATE"); inBatch = true;
+    try {
+      // The guard is INSIDE the actual transaction that excludes independent
+      // SQLite writers, before any original mutation. No await or callback.
+      for (const check of checks) {
+        const result = execute(check.statement), selected = result.results[0];
+        if (result.results.length !== 1 || !selected || Object.keys(selected).length !== 1
+          || selected.admitted !== 1n) throw check.rejection;
+      }
+      const results = originalStatements.map(execute);
+      database.exec("COMMIT"); return results;
+    } catch (error) {
+      try { database.exec("ROLLBACK"); }
+      catch (rollbackError) {
+        quarantined = true;
+        throw new AggregateError([error, rollbackError], "Batch and rollback failed");
+      }
+      // Fixed typed guard errors retain identity after confirmed rollback.
+      throw error;
+    } finally { inBatch = false; }
+  };
   const capability: SqliteCapability = {
     prepare: statement,
-    async batch(statements) {
-      active();
-      if (!Array.isArray(statements) || statements.some(item => !records.has(item))) throw new Error("Foreign SQLite statement");
-      if (!statements.length) return [];
-      database.exec("BEGIN IMMEDIATE"); inBatch = true;
-      try {
-        // No await: provider/object I/O cannot occur inside this transaction.
-        const results = statements.map(execute);
-        database.exec("COMMIT"); return results;
-      } catch (error) {
-        try { database.exec("ROLLBACK"); }
-        catch (rollbackError) { throw new AggregateError([error, rollbackError], "Batch and rollback failed"); }
-        throw error;
-      } finally { inBatch = false; }
-    },
+    async batch(statements) { return runBatch(statements, []); },
     primary() { active(); return capability; },
     close() {
-      if (closed) return;
-      // The privileged maintenance owner may have checkpointed and closed the
-      // same native handle already. Query admission still rejects that handle.
-      if (!database.isOpen) { closed = true; return; }
-      active(); database.close(); closed = true;
+      if (closeAttempted) { if (closeRejected) throw firstCloseFailure; return; }
+      closeAttempted = true; // Cache even close-then-throw; native state cannot erase a failed ACK.
+      try {
+        // A privileged maintenance owner may have closed this same native
+        // before the FIRST close attempt. This existing path remains allowed.
+        if (!database.isOpen) { closed = true; return; }
+        if (!quarantined) active();
+        database.close();
+        if (database.isOpen) throw new Error("SQLite native close acknowledgement is unavailable");
+        closed = true;
+      } catch (error) {
+        quarantined = true; closeRejected = true; firstCloseFailure = error;
+        throw error; // Repeated close retains the exact first outcome; no retry.
+      }
     },
   };
   connectionOwners.set(capability, database);
+  admittedBatchOwners.set(capability, {
+    issue(checks) {
+      active();
+      if (!Array.isArray(checks) || !checks.length || checks.length > 8) throw new Error("SQLite admission requires bounded owned checks");
+      const captured = checks.map(check => {
+        const { statement: selected, rejection } = check, record = records.get(selected);
+        if (!record || !/^\s*SELECT\b/i.test(record.sql) || !(rejection instanceof Error)) throw new Error("SQLite admission requires owned code-selected read checks");
+        return Object.freeze({ statement: selected, rejection });
+      });
+      const admission = Object.freeze({}) as SqliteBatchAdmission;
+      batchAdmissions.set(admission, { owner: capability, checks: Object.freeze(captured) });
+      return admission;
+    },
+    run: runBatch,
+  });
   return capability;
 }
 

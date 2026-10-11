@@ -2,11 +2,13 @@ import { FILE_JOB_STEP_MS } from "../../../shared/contracts/file-jobs";
 import { verifyStoredBytes } from "../byte-verification";
 import { writeVerifiedBytes } from "../byte-writer";
 import type { FileJobCapabilities, MigrationAttempt, MigrationItem } from "./types";
+import { assertFileJobExecutionsOpen, drainFileJobExecutions, retainFileJobExecution } from "./execution-lifetime";
 
 /** A single independently invoked step. Neither an HTTP response nor a browser
  * owns the executor. Runtime, storage, persistence and administrator policy are
  * explicit capabilities; no Cloudflare Env or Node globals enter the service. */
 export async function runFileJobStep(capabilities: FileJobCapabilities): Promise<{ jobId: string | null; outcome: string }> {
+  assertFileJobExecutionsOpen(capabilities);
   const { repository } = capabilities;
   await repository.heartbeat(capabilities.incarnation);
   const claim = await repository.claim(capabilities.incarnation, capabilities.randomId(), capabilities.authorizeAdministrator);
@@ -22,12 +24,12 @@ export async function runFileJobStep(capabilities: FileJobCapabilities): Promise
     item = await repository.nextItem(claim);
     if (!item) { await repository.release(claim); return { jobId: claim.id, outcome: "settled" }; }
     attempt = await repository.attempt(item);
-    const work = async () => {
-      const source = await capabilities.openStorage({ profileId: item!.source_profile_id,
-        configurationRevision: item!.source_configuration_revision }, "read", current, abort.signal);
+    const original = retainFileJobExecution(capabilities, async scope => {
+      const source = scope.own(await capabilities.openStorage({ profileId: item!.source_profile_id,
+        configurationRevision: item!.source_configuration_revision }, "read", current, abort.signal));
       if (source.namespaceIdentity !== item!.source_namespace) throw new Error("source_namespace_unavailable");
-      const destination = await capabilities.openStorage({ profileId: claim.target_profile_id,
-        configurationRevision: claim.target_configuration_revision }, "write", current, abort.signal);
+      const destination = scope.own(await capabilities.openStorage({ profileId: claim.target_profile_id,
+        configurationRevision: claim.target_configuration_revision }, "write", current, abort.signal));
       if (destination.namespaceIdentity !== claim.target_namespace || !destination.writer) throw new Error("target_unavailable");
       const expected = { byteSize: item!.byte_size, sha256: item!.sha256 };
       if (attempt && item!.state !== "pending" && ["write_started", "unknown", "verified"].includes(attempt.state)) {
@@ -62,11 +64,11 @@ export async function runFileJobStep(capabilities: FileJobCapabilities): Promise
       await repository.verify(claim, item!, attempt!);
       if (!await current()) throw new Error("execution_not_authorized");
       return repository.cutover(claim, item!, attempt!);
-    };
+    });
     const timeout = new Promise<never>((_resolve, reject) => {
       timer = setTimeout(() => { expired = true; abort.abort(); reject(new Error("execution_budget_exhausted")); }, FILE_JOB_STEP_MS);
     });
-    const moved = await Promise.race([work(), timeout]);
+    const moved = await Promise.race([original.result, timeout]);
     await repository.release(claim);
     return { jobId: claim.id, outcome: moved ? "moved" : "stale" };
   } catch (error) {
@@ -84,8 +86,10 @@ export async function runFileJobLoop(capabilities: FileJobCapabilities,
   options: { once?: boolean; signal?: AbortSignal; intervalMs?: number } = {}) {
   do {
     if (options.signal?.aborted) return;
-    const cleanup = await runFileJobCleanupStep(capabilities);
-    if (["idle", "disabled"].includes(cleanup.outcome)) await runFileJobStep(capabilities);
+    try {
+      const cleanup = await runFileJobCleanupStep(capabilities);
+      if (["idle", "disabled"].includes(cleanup.outcome)) await runFileJobStep(capabilities);
+    } finally { await drainFileJobExecutions(capabilities); }
     if (options.once) return;
     await new Promise<void>(resolve => {
       const finish = () => { clearTimeout(timer); options.signal?.removeEventListener("abort", finish); resolve(); };
@@ -100,6 +104,7 @@ export async function runFileJobLoop(capabilities: FileJobCapabilities,
  * grace and uncertain DELETE reconciliation. Original actor revocation does
  * not turn a separately authorized maintenance obligation into a grant. */
 export async function runFileJobCleanupStep(capabilities: FileJobCapabilities) {
+  assertFileJobExecutionsOpen(capabilities);
   if (!capabilities.authorizeSystemCleanup()) return { outcome: "disabled" };
   const deadline = capabilities.now().getTime() + FILE_JOB_STEP_MS;
   const abort = new AbortController();
@@ -111,14 +116,14 @@ export async function runFileJobCleanupStep(capabilities: FileJobCapabilities) {
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       if (!artifact.io_settled_at && artifact.state !== "staged" && !["failed", "cancelled"].includes(artifact.state)) {
-        const reconcile = async () => {
-          const storage = await capabilities.openStorage({ profileId: artifact.profile_id,
-            configurationRevision: artifact.configuration_revision }, "read", () => allowed(artifact.job_id), abort.signal);
+        const original = retainFileJobExecution(capabilities, async scope => {
+          const storage = scope.own(await capabilities.openStorage({ profileId: artifact.profile_id,
+            configurationRevision: artifact.configuration_revision }, "read", () => allowed(artifact.job_id), abort.signal));
           if (!storage.atomicSinglePut || storage.namespaceIdentity !== artifact.namespace_identity) throw new Error("settlement_required");
           await verifyStoredBytes(storage.reader, artifact.object_key, { byteSize: artifact.byte_size, sha256: artifact.sha256 }, storage.createHash);
           await capabilities.repository.observeSettled(artifact);
-        };
-        await Promise.race([reconcile(), new Promise<never>((_resolve, reject) => {
+        });
+        await Promise.race([original.completed, new Promise<never>((_resolve, reject) => {
           timer = setTimeout(() => { abort.abort(); reject(new Error("cleanup_budget_exhausted")); }, FILE_JOB_STEP_MS);
         })]);
       }
@@ -133,20 +138,28 @@ export async function runFileJobCleanupStep(capabilities: FileJobCapabilities) {
   if (!copy) return { outcome: "idle" };
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    const verify = async () => {
-      const storage = await capabilities.openStorage({ profileId: copy.profile_id,
-        configurationRevision: copy.configuration_revision }, "read", () => allowed(copy.job_id), abort.signal);
-      return verifyStoredBytes(storage.reader, copy.object_key, { byteSize: copy.byte_size, sha256: copy.sha256 }, storage.createHash);
-    };
-    await Promise.race([
-      verify(),
+    let verified = false, outcome = { outcome: "pending" };
+    const original = retainFileJobExecution(capabilities, async scope => {
+      const storage = scope.own(await capabilities.openStorage({ profileId: copy.profile_id,
+        configurationRevision: copy.configuration_revision }, "read", () => allowed(copy.job_id), abort.signal));
+      await verifyStoredBytes(storage.reader, copy.object_key, { byteSize: copy.byte_size, sha256: copy.sha256 }, storage.createHash);
+      verified = true;
+    }, async () => {
+      // Verification success alone does not settle the provider descriptor.
+      // This callback runs only after its original disposer has succeeded.
+      try {
+        if (verified) {
+          try {
+            outcome = !await allowed(copy.job_id) ? { outcome: "paused" }
+              : { outcome: await capabilities.repository.releaseCleanup(copy, capabilities.incarnation) ? "released_to_gc" : "pending" };
+          } catch { outcome = { outcome: "pending" }; }
+        }
+      } finally { await capabilities.repository.releaseVerificationHold(copy); }
+    });
+    return await Promise.race([
+      original.completed.then(() => outcome),
       new Promise<never>((_resolve, reject) => { timer = setTimeout(() => { abort.abort(); reject(new Error("cleanup_budget_exhausted")); }, FILE_JOB_STEP_MS); }),
     ]);
-    if (!await allowed(copy.job_id)) return { outcome: "paused" };
-    return { outcome: await capabilities.repository.releaseCleanup(copy, capabilities.incarnation) ? "released_to_gc" : "pending" };
   } catch { return { outcome: "pending" }; }
-  finally {
-    if (timer) clearTimeout(timer);
-    await capabilities.repository.releaseVerificationHold(copy).catch(() => undefined);
-  }
+  finally { if (timer) clearTimeout(timer); }
 }

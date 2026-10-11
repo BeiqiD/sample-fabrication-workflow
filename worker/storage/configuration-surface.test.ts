@@ -51,7 +51,9 @@ class ServiceError extends Error {
   constructor(status: 400 | 409 | 503, message: string) { super(message); this.status = status; }
 }
 function composition() {
+  const ingressBodyUsed = new WeakMap<Request, boolean>();
   const authenticate = vi.fn(async (request: Request, env: Bindings) => {
+    ingressBodyUsed.set(request, request.bodyUsed);
     const authorization = request.headers.get("authorization");
     if (!authorization?.startsWith("Bearer ")) throw new Error("Fixture credential required");
     const { payload } = await jwtVerify(authorization.slice(7), env.verificationKey, { issuer, audience });
@@ -65,10 +67,10 @@ function composition() {
   const authorizeOperator = vi.fn((_request: Request, env: Bindings, verifiedActor: string) =>
     principalHasCapability(env.principals.get(verifiedActor), verifiedActor, "fileEvidenceOperator"));
   const credentialEditingAvailable = vi.fn(async (_env: Bindings) => true);
-  const read = vi.fn(async (_env: Bindings, _actor: string) => ({
+  const read = vi.fn(async (_env: Bindings, _actor: string, _request: Request) => ({
     scope: "system" as const, credentialEditingAvailable: true, candidates: { items: [], hasMore: false },
   }));
-  const save = vi.fn(async (_env: Bindings, value: SaveStorageCandidateInput, verifiedActor: string): Promise<StorageCandidate> => ({
+  const save = vi.fn(async (_env: Bindings, value: SaveStorageCandidateInput, verifiedActor: string, _request: Request): Promise<StorageCandidate> => ({
     profileId: "fixture-profile", revision: 1, label: value.label, namespace: value.namespace,
     credentials: { status: "configured", ref: "fixture-credential-ref" }, createdAt: "2026-10-10T00:00:00.000Z", createdBy: verifiedActor,
   }));
@@ -83,7 +85,7 @@ function composition() {
     routeError: error => error instanceof ServiceError ? { status: error.status, message: error.message } : null }));
   app.route("/", createFileEvidenceAccessRoutes(authorizeOperator));
   app.post("/fixture-evidence-action", createFileEvidenceOperatorMiddleware(authorizeOperator), c => c.json({ actor: c.get("userEmail") }));
-  return { app, authenticate, authorizeAdministrator, authorizeOperator, credentialEditingAvailable, read, save };
+  return { app, authenticate, ingressBodyUsed, authorizeAdministrator, authorizeOperator, credentialEditingAvailable, read, save };
 }
 type Composition = ReturnType<typeof composition>;
 type Requester = (path: string, env: Bindings, init?: RequestInit) => Promise<Response>;
@@ -126,7 +128,23 @@ describe.each(["Fetch", "Node HTTP"] as const)("explicit local capabilities thro
     expect(response.status).toBe(200); const body = await response.json();
     expect(body).toMatchObject({ createdBy: actor, credentials: { status: "configured", ref: "fixture-credential-ref" } });
     expect(JSON.stringify(body)).not.toContain("fixture-secret");
-    expect(c.read.mock.calls).toEqual([[env, actor]]); expect(c.save.mock.calls).toEqual([[env, input(), actor]]);
+    // Authentication sees each exact original ingress before bounded-body
+    // parsing; service ports must retain that same admitted Request object.
+    const readRequest = c.authenticate.mock.calls[1]![0], saveRequest = c.authenticate.mock.calls[2]![0];
+    expect(c.read.mock.calls).toEqual([[env, actor, readRequest]]);
+    expect(c.save.mock.calls).toEqual([[env, input(), actor, saveRequest]]);
+    expect(c.read.mock.calls[0]![2]).toBe(readRequest);
+    expect(c.save.mock.calls[0]![3]).toBe(saveRequest);
+    expect(c.authorizeAdministrator.mock.calls[1]![0]).toBe(readRequest);
+    expect(c.authorizeAdministrator.mock.calls[2]![0]).toBe(saveRequest);
+    expect(readRequest.url).toBe("https://fixture.test/api/storage/configuration");
+    expect(readRequest.method).toBe("GET"); expect(readRequest.body).toBeNull();
+    expect(saveRequest.url).toBe("https://fixture.test/api/storage/configuration/candidates");
+    expect(saveRequest.method).toBe("PUT"); expect(saveRequest.body).not.toBeNull();
+    for (const original of [readRequest, saveRequest]) {
+      expect(original.headers.get("authorization")).toBe(headers.authorization);
+      expect(c.ingressBodyUsed.get(original)).toBe(false);
+    }
     await answer(await request("/files/shadow/evidence/capabilities", env, { headers }), 200, { canAdjudicate: false }, false);
     const denied = await request("/fixture-evidence-action", env, { method: "POST", headers });
     await answer(denied, 403, { error: "File evidence operator access is required." }, false);

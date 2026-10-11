@@ -9,6 +9,13 @@ export interface FileBusinessMetadataStatement<Statement> {
   first<Row = Record<string, unknown>>(): Promise<Row | null>;
 }
 export interface FileBusinessMetadataDatabase<Statement extends FileBusinessMetadataStatement<Statement>> {
+  /** A closed code-owned metadata selector, never a Request/File grant.
+   * Omission preserves the original Worker S3 native-alias query. Only an
+   * independently issued physical local Request adapter selects local. */
+  readonly nativeAssetAdapter?: "s3" | "local";
+  /** Local metadata selection is restricted to these two genuinely captured
+   * physical role profiles. This remains metadata, never a grant or raw port. */
+  readonly nativeAssetProfileIds?: readonly [string, string];
   prepare(sql: string): Statement;
   /** Preserve the original independent fresh-primary selection. */
   primary(): FileBusinessMetadataDatabase<Statement>;
