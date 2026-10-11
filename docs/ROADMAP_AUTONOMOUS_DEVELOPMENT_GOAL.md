@@ -89,8 +89,13 @@ including real HTTP reads, original-owner draining and restart preservation.
 It does not enable the public application or certify whole Node/File/jobs.
 Node49 checkpoint729 passed strict and21 native cases before its business-SQL
 observer counted four real session-refresh statements in addition to49 business
-statements. Preserve that failed attempt and qualify the narrow observer repair;
-the business49/bind100/refused232-step boundaries remain unchanged. The first
+statements. The narrow observer repair subsequently passed the original Run
+cases. Later independent permission fixtures passed all seven Definition and
+seven Lifecycle cases, then stopped at a Project Step teardown timeout after
+one passing case. A normal-EOF request-body cancellation repair has passed
+source review; its baseline/fixed regression and complete fresh Node/HTTP
+qualification remain pending. Preserve every failed attempt; the
+business49/bind100/refused232-step boundaries remain unchanged. The first
 Storage focus mounted fixture and Sample permission strict failures are likewise
 retained separately. Storage source01ad passed fresh strict/24mounted/build and
 one lost-reply case but failed its conflict-case390 layout check after real
