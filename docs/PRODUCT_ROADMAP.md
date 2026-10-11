@@ -57,12 +57,29 @@ The separately qualified [Recovery metadata controls](PHASE5F_RECOVERY_METADATA_
 passed two genuine desktop/mobile cases at historical producer f228 and QA
 consumer21bb. Preview focus passed; keyboard continuity after replaced
 Pause/Resume/Cancel controls remains open. Original builds and failures retain
-their own source scopes. Current development integration: [PR #267](https://github.com/BeiqiD/sample-fabrication-workflow/pull/267)
+their own source scopes. Historical development integration: [PR #267](https://github.com/BeiqiD/sample-fabrication-workflow/pull/267)
 merged at `88b65b17305ee094c25349fbfb6d1e08e5182188`, preserving qualified
 tree `db28547598df7b10b07000dbd101edf4241d17ca`. Both own Verify runs, both
 own Map runs and all15 contexts passed before the ordinary squash merge.
-Its separate post-merge Verify38131526459 remains pending; Map38131526464 passed.
-The complete Node/File/jobs, Docker and resource-permission work has separate gates.
+Its separate post-merge Verify38131526459, Map38131526464 and all 15 contexts
+passed; [original post-merge records](qualification/pr267-postmerge-complete-ci/receipt.json)
+retain the exact merge head.
+
+Current development integration: [PR #268](https://github.com/BeiqiD/sample-fabrication-workflow/pull/268)
+merged at `b1975d22c9397bde82320209ae8c6f7b572f404e`, preserving the independently
+reviewed `5ca6ada` tree `1a0e7e6cd5c9d02def64dea46c46174ef2d92461`. Its two
+own Verify runs, two Map runs and all 15 contexts passed before ordinary merge.
+This adopts the exact Recovery QA helper and qualified/historical evidence;
+the original native product and build scopes remain on their recorded f228 head.
+The separate post-merge Verify38134192377 is pending at this snapshot;
+Map38134192341 passed.
+
+The next [Node HTTP stream lifetime candidate](NODE_HTTP_STREAM_LIFETIME_QUALIFICATION.md)
+adopts the exact qualified boundary, HTTP18/lifetime10 controls and existing
+static2 command. Original native30 passed with its recorder-format failure
+preserved; the current affected ServerTS compiler passed. Current default
+complete CI remains required. Node application/File/jobs composition, Docker
+and resource-permission work continue through their separate gates.
 
 Historical #258 integration merged at
 `e10849614afbb4807c86b3f0fc2fc357ba70ceda`, preserving its own-four-gate-qualified

@@ -14,6 +14,82 @@ export type NodeHttpOptions = {
   timeoutMs?: number;
 };
 
+interface HttpInvocation {
+  settlement: Promise<void>;
+  readonly owners: readonly unknown[];
+}
+interface HttpServerOwner {
+  phase: "open" | "stopping" | "closed" | "quarantined";
+  readonly invocations: Set<HttpInvocation>;
+  readonly listenerClosed: Promise<void>;
+  hasListened: boolean;
+  listenerSettled: boolean;
+  draining?: Promise<void>;
+  failure?: NodeHttpServerDrainError;
+}
+/** Failed original stream disposal retains its real owners. A response or
+ * socket close is not permission to close this host's database or lease. */
+export class NodeHttpServerDrainError extends AggregateError {
+  declare readonly retainedOwners: readonly unknown[];
+  constructor(errors: readonly unknown[], owners: readonly unknown[]) {
+    super(errors, "Original HTTP transport ownership could not drain");
+    this.name = "NodeHttpServerDrainError";
+    Object.defineProperty(this, "retainedOwners", { value: Object.freeze([...owners]) });
+  }
+}
+class HttpStreamCleanupError extends AggregateError {
+  constructor(error: unknown, readonly owner: unknown) {
+    super([error], "Original HTTP stream cleanup failed");
+  }
+}
+const issuedHttpServers = new WeakMap<Server, HttpServerOwner>();
+const retainedHttpOwners = new Set<HttpServerOwner>();
+
+/** Only the exact issued server owns this drain. Stop admission synchronously,
+ * then await original handlers, pumps and disposers, including late results.
+ * Rejection is retained and never causes a guessed cleanup retry. */
+export function stopNodeHttpServerAndDrain(server: Server): Promise<void> {
+  const owner = issuedHttpServers.get(server);
+  if (!owner) return Promise.reject(new Error("HTTP transport ownership is unavailable"));
+  if (owner.draining) return owner.draining;
+  if (owner.phase !== "quarantined") owner.phase = "stopping";
+  let listener: Promise<void>;
+  let initialCloseReturned = true;
+  if (server.listening) {
+    listener = new Promise<void>((resolve, reject) => {
+      initialCloseReturned = false;
+      server.close(error => error ? reject(error) : resolve());
+      server.closeIdleConnections();
+      initialCloseReturned = true;
+    });
+  } else listener = owner.hasListened && !owner.listenerSettled ? owner.listenerClosed : Promise.resolve();
+  void listener.catch(() => undefined); // Retain its original rejection while original invocations settle.
+  owner.draining = (async () => {
+    const invocations = await Promise.allSettled([...owner.invocations].map(value => value.settlement));
+    const idleErrors: unknown[] = [];
+    // An admitted request can become idle after the initial listener close.
+    // Drain its original handler/body cleanup before sweeping only idle sockets.
+    if (initialCloseReturned) {
+      try { server.closeIdleConnections(); } catch (error) { idleErrors.push(error); }
+    }
+    const results = [...await Promise.allSettled([listener]), ...invocations];
+    const errors = results.flatMap(value => value.status === "rejected" ? [value.reason as unknown] : []);
+    errors.push(...idleErrors);
+    if (errors.length || owner.failure) {
+      // Keep the first invocation failure as an exact cause when the listener
+      // or final idle sweep also reports a distinct cleanup failure.
+      if (!owner.failure || errors.some(error => error !== owner.failure)) {
+        owner.failure = new NodeHttpServerDrainError(errors, [server, owner, ...owner.invocations]);
+      }
+      owner.phase = "quarantined"; retainedHttpOwners.add(owner);
+      throw owner.failure;
+    }
+    owner.phase = "closed"; retainedHttpOwners.delete(owner);
+  })();
+  void owner.draining.catch(() => undefined); // Observe, without replacing its rejecting original promise.
+  return owner.draining;
+}
+
 class HttpBoundaryError extends Error {
   readonly status: number;
   constructor(status: number, message: string) { super(message); this.status = status; }
@@ -72,7 +148,10 @@ function writableDrain(outgoing: ServerResponse, signal: AbortSignal) {
   });
 }
 async function writeResponse(response: Response, incoming: IncomingMessage, outgoing: ServerResponse,
-  signal: AbortSignal, maxHeaderBytes: number) {
+  signal: AbortSignal, maxHeaderBytes: number,
+  ownBody: (reader: ReadableStreamDefaultReader<Uint8Array> | null) => void) {
+  if (response.body?.locked) throw new HttpStreamCleanupError(
+    new Error("Response body is owned by an external reader"), { response, body: response.body });
   const headers: Record<string, string | string[]> = {};
   let bytes = 0;
   const excluded = new Set([...hopHeaders,
@@ -89,10 +168,24 @@ async function writeResponse(response: Response, incoming: IncomingMessage, outg
   if (signal.aborted) throw new Error("Request aborted");
   outgoing.writeHead(response.status, headers);
   if (incoming.method === "HEAD" || !response.body) {
-    await response.body?.cancel(); outgoing.end(); return;
+    ownBody(null); // The original HEAD cancellation below owns this unlocked body.
+    try { await response.body?.cancel(); }
+    catch (error) { throw new HttpStreamCleanupError(error, response); }
+    outgoing.end(); return;
   }
-  const reader = response.body.getReader();
-  const cancelled = () => { void reader.cancel(signal.reason).catch(() => undefined); };
+  let reader: ReadableStreamDefaultReader<Uint8Array>;
+  try { reader = response.body.getReader(); }
+  catch (error) { throw new HttpStreamCleanupError(error, { response, body: response.body }); }
+  ownBody(reader); // Only this exact acquired reader owns the memoized pump/cancel.
+  let cancellation: Promise<void> | undefined;
+  const cancel = () => {
+    if (!cancellation) {
+      cancellation = reader.cancel(signal.reason);
+      void cancellation.catch(() => undefined);
+    }
+    return cancellation;
+  };
+  const cancelled = () => { cancel(); };
   signal.addEventListener("abort", cancelled, { once: true });
   try {
     while (!signal.aborted) {
@@ -103,7 +196,9 @@ async function writeResponse(response: Response, incoming: IncomingMessage, outg
     throw new Error("Request aborted");
   } finally {
     signal.removeEventListener("abort", cancelled);
-    await reader.cancel().catch(() => undefined); reader.releaseLock();
+    try { await cancel(); }
+    catch (error) { throw new HttpStreamCleanupError(error, { response, reader, cancellation }); }
+    finally { reader.releaseLock(); }
   }
 }
 
@@ -118,10 +213,16 @@ export function createNodeHttpServer(handler: FetchHandler, options: NodeHttpOpt
   const maxHeaderBytes = positive(options.maxHeaderBytes ?? 16 * 1024, "maxHeaderBytes");
   const maxHeaderCount = positive(options.maxHeaderCount ?? 128, "maxHeaderCount");
   const timeoutMs = positive(options.timeoutMs ?? 60_000, "timeoutMs");
+  let listenerClosed!: () => void;
+  const owner: HttpServerOwner = { phase: "open", invocations: new Set(), hasListened: false, listenerSettled: false,
+    listenerClosed: new Promise<void>(resolve => { listenerClosed = resolve; }) };
   const server = createServer({ maxHeaderSize: maxHeaderBytes, requestTimeout: timeoutMs,
     headersTimeout: Math.min(timeoutMs, 10_000), connectionsCheckingInterval: Math.min(timeoutMs, 1_000) }, (incoming, outgoing) => {
-    void handle(incoming, outgoing);
+    dispatch(incoming, outgoing);
   });
+  issuedHttpServers.set(server, owner);
+  server.on("listening", () => { owner.hasListened = true; });
+  server.on("close", () => { owner.listenerSettled = true; listenerClosed(); });
   // Keep all parsed fields available for our explicit count guard rather than truncating them.
   server.maxHeadersCount = 0;
   server.headersTimeout = Math.min(timeoutMs, 10_000);
@@ -129,7 +230,7 @@ export function createNodeHttpServer(handler: FetchHandler, options: NodeHttpOpt
   // Idle/incomplete headers also receive a bound before a Fetch owner exists.
   server.setTimeout(timeoutMs);
   server.keepAliveTimeout = 5_000;
-  server.on("checkContinue", (incoming, outgoing) => { void handle(incoming, outgoing, true); });
+  server.on("checkContinue", (incoming, outgoing) => { dispatch(incoming, outgoing, true); });
   server.on("clientError", (error, socket) => {
     if (!socket.writable) return;
     const code = (error as NodeJS.ErrnoException).code;
@@ -141,6 +242,23 @@ export function createNodeHttpServer(handler: FetchHandler, options: NodeHttpOpt
   });
   server.on("connect", (_incoming, socket) => { socket.end("HTTP/1.1 405 Method Not Allowed\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"); });
   server.on("upgrade", (_incoming, socket) => { socket.end("HTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"); });
+  function dispatch(incoming: IncomingMessage, outgoing: ServerResponse, continueRequested = false) {
+    if (owner.phase !== "open") {
+      errorResponse(outgoing, 503, "HTTP transport is stopping"); incoming.resume(); return;
+    }
+    const invocation: HttpInvocation = { settlement: Promise.resolve(), owners: Object.freeze([incoming, outgoing]) };
+    owner.invocations.add(invocation); retainedHttpOwners.add(owner);
+    // Register before invoking any original application/body owner.
+    invocation.settlement = Promise.resolve().then(() => handle(incoming, outgoing, continueRequested)).then(() => {
+      owner.invocations.delete(invocation);
+      if (!owner.invocations.size && !owner.failure) retainedHttpOwners.delete(owner);
+    }, error => {
+      owner.failure ??= new NodeHttpServerDrainError([error], [server, invocation, ...invocation.owners]);
+      owner.phase = "quarantined"; retainedHttpOwners.add(owner);
+      throw owner.failure;
+    });
+    void invocation.settlement.catch(() => undefined);
+  }
   async function handle(incoming: IncomingMessage, outgoing: ServerResponse, continueRequested = false) {
     const controller = new AbortController();
     const abort = () => controller.abort(new Error("Client disconnected"));
@@ -152,10 +270,37 @@ export function createNodeHttpServer(handler: FetchHandler, options: NodeHttpOpt
     failure.catch(() => undefined);
     const fail = (error: Error) => { controller.abort(error); rejectFailure(error); };
     const timeout = setTimeout(() => fail(new HttpBoundaryError(408, "Request timed out")), timeoutMs);
+    // The original request deadline is now armed. A competing socket idle
+    // timeout must not destroy this accepted connection before its 408 ACK.
+    incoming.socket.setTimeout(0);
     const disconnect = () => rejectFailure(new Error("Client disconnected"));
     controller.signal.addEventListener("abort", disconnect, { once: true });
     let limiter: PassThrough | undefined;
+    let limiterClosed: Promise<void> | undefined;
     let producedResponse: Response | undefined;
+    let applicationResponse: Promise<Response> | undefined, responsePump: Promise<void> | undefined;
+    let responseBodyOwner: { response: Response; reader: ReadableStreamDefaultReader<Uint8Array> | null } | undefined;
+    let responseCancellation: Promise<void> | undefined;
+    let cancelRequestBody: (() => Promise<void>) | undefined;
+    const requestPulls = new Set<Promise<void>>(), cleanupErrors: unknown[] = [];
+    const cancelResponse = () => {
+      if (responseCancellation) return responseCancellation;
+      if (!producedResponse?.body) return Promise.resolve();
+      if (producedResponse.body.locked) {
+        responseCancellation = Promise.reject(new HttpStreamCleanupError(
+          new Error("Response body is owned by an external reader"), { response: producedResponse, body: producedResponse.body }));
+        void responseCancellation.catch(() => undefined);
+        return responseCancellation;
+      }
+      if (!responseCancellation) {
+        const originalResponse = producedResponse;
+        responseCancellation = originalResponse.body!.cancel().catch(error => {
+          throw new HttpStreamCleanupError(error, originalResponse);
+        });
+        void responseCancellation.catch(() => undefined);
+      }
+      return responseCancellation;
+    };
     try {
       if (incoming.rawHeaders.length / 2 > maxHeaderCount) throw new HttpBoundaryError(431, "Too many request headers");
       const target = requestTarget(incoming.url ?? "/");
@@ -179,6 +324,7 @@ export function createNodeHttpServer(handler: FetchHandler, options: NodeHttpOpt
       const init: RequestInit & { duplex?: "half" } = { method, headers, signal: controller.signal };
       if (hasBody) {
         limiter = new PassThrough({ highWaterMark: 64 * 1024 });
+        limiterClosed = new Promise<void>(resolve => { limiter!.once("close", resolve); });
         const bodyStream = limiter;
         // A Fetch consumer may stop reading (for example after its smaller
         // credential limit). Only this privately owned cancellation ends the
@@ -194,25 +340,45 @@ export function createNodeHttpServer(handler: FetchHandler, options: NodeHttpOpt
           incoming.unpipe(bodyStream); incoming.pause(); fail(error);
         });
         const reader = (Readable.toWeb(limiter) as ReadableStream<Uint8Array>).getReader();
-        let consumptionCancelled = false;
-        init.body = new ReadableStream<Uint8Array>({
-          async pull(body) {
-            try {
-              const next = await reader.read();
-              if (consumptionCancelled) return;
-              if (next.done) { body.close(); reader.releaseLock(); }
-              else body.enqueue(next.value);
-            } catch (error) {
-              if (consumptionCancelled) return;
-              reader.releaseLock(); body.error(error);
-            }
-          },
-          async cancel() {
+        // This reader owns only our private PassThrough. Its ordinary read
+        // error is settled once that exact native buffer emits close; it is
+        // distinct from a provider's failed response-body disposer.
+        const readerCompleted = reader.closed.then(() => undefined, () => undefined);
+        let consumptionCancelled = false, readerReleased = false, cancellation: Promise<void> | undefined;
+        const releaseReader = () => { if (!readerReleased) { reader.releaseLock(); readerReleased = true; } };
+        cancelRequestBody = () => {
+          if (cancellation) return cancellation;
+          if (readerReleased) return Promise.resolve();
+          // Native normal EOF/autoDestroy does not consume the Web adapter's
+          // unread queue. Cancel that exact reader once; only premature/error
+          // destruction already owns its original error/closed settlement.
+          if (bodyStream.destroyed && (!bodyStream.readableEnded || bodyStream.errored)) return readerCompleted.then(releaseReader);
+          if (!cancellation) {
             consumptionCancelled = true;
             incoming.unpipe(bodyStream); incoming.resume();
-            try { await reader.cancel(consumptionEnded); }
-            finally { reader.releaseLock(); }
+            cancellation = reader.cancel(consumptionEnded).finally(releaseReader);
+            void cancellation.catch(() => undefined);
+          }
+          return cancellation;
+        };
+        init.body = new ReadableStream<Uint8Array>({
+          pull(body) {
+            const original = (async () => {
+              try {
+                const next = await reader.read();
+                if (consumptionCancelled) return;
+                if (next.done) { body.close(); releaseReader(); }
+                else body.enqueue(next.value);
+              } catch (error) {
+                if (consumptionCancelled) return;
+                releaseReader(); body.error(error);
+              }
+            })();
+            requestPulls.add(original);
+            void original.then(() => { requestPulls.delete(original); }, () => { /* Retain the failed original pull. */ });
+            return original;
           },
+          cancel: () => cancelRequestBody!(),
         }, { highWaterMark: 0 });
         init.duplex = "half";
         incoming.pipe(limiter);
@@ -220,36 +386,62 @@ export function createNodeHttpServer(handler: FetchHandler, options: NodeHttpOpt
       const request = new Request(publicOrigin + target, init);
       if (continueRequested) outgoing.writeContinue();
       const admitted = requestAdmission?.(request, incoming, server);
-      const applicationResponse = Promise.resolve(admitted instanceof Response ? admitted : handler(request)).then(response => {
+      applicationResponse = Promise.resolve(admitted instanceof Response ? admitted : handler(request)).then(async response => {
+        producedResponse = response;
         if (controller.signal.aborted) {
-          void response.body?.cancel().catch(() => undefined);
+          await cancelResponse();
           throw controller.signal.reason;
         }
-        producedResponse = response;
         return response;
       });
       const response = await Promise.race([applicationResponse, failure]);
       // Returning a Response ends handler ownership of upload consumption. Drain
       // unused bytes without queuing them in the Fetch body; validate before ACK.
-      if (limiter && !incoming.readableEnded) {
+      if (limiter) {
+        await cancelRequestBody?.();
         incoming.unpipe(limiter); limiter.destroy();
       }
       incoming.resume();
       if (!incoming.readableEnded) await Promise.race([complete, failure]);
-      await Promise.race([writeResponse(response, incoming, outgoing, controller.signal, maxHeaderBytes), failure]);
+      responsePump = writeResponse(response, incoming, outgoing, controller.signal, maxHeaderBytes,
+        reader => { responseBodyOwner = { response, reader }; });
+      await Promise.race([responsePump, failure]);
     } catch (error) {
       // Upload rejection can occur after the handler has produced a body but
       // before response streaming starts. Release that unconsumed body too.
-      if (producedResponse?.body && !producedResponse.body.locked) {
-        void producedResponse.body.cancel().catch(() => undefined);
-      }
+      if (!controller.signal.aborted) controller.abort(error);
+      // Unblock the original Fetch-body reader after a rejected ingress. This
+      // destroys only our transport buffer, never an application/provider owner.
+      if (limiter) { incoming.unpipe(limiter); limiter.destroy(); }
       const boundary = error instanceof HttpBoundaryError ? error
         : controller.signal.reason instanceof HttpBoundaryError ? controller.signal.reason : undefined;
       errorResponse(outgoing, boundary?.status ?? 500, boundary?.message ?? "Request failed");
     } finally {
-      clearTimeout(timeout); limiter?.destroy();
+      // An early error ACK does not abandon the original handler or a late
+      // returned body. Preserve each original pump/cancel promise until actual
+      // settlement; cleanup failures retain the host instead of releasing it.
+      if (applicationResponse) {
+        try { await applicationResponse; }
+        catch (error) { if (error instanceof HttpStreamCleanupError) cleanupErrors.push(error); }
+      }
+      if (responsePump) {
+        try { await responsePump; }
+        catch (error) { if (error instanceof HttpStreamCleanupError) cleanupErrors.push(error); }
+      }
+      if (!responseBodyOwner) {
+        // Header/signal/reader-acquisition failure never acquired body custody.
+        // Cancel only an unlocked unowned body; a foreign lock is quarantine.
+        try { await cancelResponse(); } catch (error) { cleanupErrors.push(error); }
+      }
+      try { await cancelRequestBody?.(); }
+      catch (error) { cleanupErrors.push(new HttpStreamCleanupError(error, { incoming, limiter, cancelRequestBody })); }
+      const pulls = await Promise.allSettled([...requestPulls]);
+      cleanupErrors.push(...pulls.flatMap(value => value.status === "rejected" ? [value.reason as unknown] : []));
+      limiter?.destroy(); await limiterClosed;
+      clearTimeout(timeout);
       controller.signal.removeEventListener("abort", disconnect);
       incoming.off("aborted", abort); outgoing.off("close", onClose);
+      if (cleanupErrors.length) throw new AggregateError(cleanupErrors, "Original HTTP stream owners remain retained");
     }
   }
   return server;

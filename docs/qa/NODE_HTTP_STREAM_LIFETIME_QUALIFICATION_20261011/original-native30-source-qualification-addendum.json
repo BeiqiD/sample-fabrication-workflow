@@ -1,0 +1,46 @@
+{
+  "kind": "original-http306-native-thirty-qualified-source-specific/1",
+  "status": "QUALIFIED_ORIGINAL_NODE30PASS_SPEC_OBSERVATION_WITH_RECORDER_FAILURE_RETAINED_CLOSED_RELEASED",
+  "createdAt": "2026-10-11T10:21:03.085395+00:00",
+  "sourceHead": "306773095a551ddfea27d3d35ec2ea6b573be3b9",
+  "sourceTree": "04f201a875cd8ec5df92e347f8d9008f2f1a81ec",
+  "httpProductionLeaf": {
+    "path": "server/http.ts",
+    "mode": "100644",
+    "blob": "3c8565db36976804290a35949a6e9c5b5f008e1b",
+    "sha256": "bc400f27ce56051af6c263917674d5c92d798ff5e7c286e1fe22bbf6d53201d3"
+  },
+  "counts": {
+    "tests": 30,
+    "pass": 30,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "originalExitCode": 0,
+  "originalSeconds": 1.568,
+  "originalRecorderReceipt": {
+    "path": "/workspace/node58-http30-original-owned-actual-attempt3/receipt.json",
+    "sha256": "8f811589cd463e8e2a916f48488afa5df1d35d3350539e340c175862dc0963ec",
+    "statusUnchanged": "FAIL_STOPPED_FIRST"
+  },
+  "originalRawLog": {
+    "path": "/workspace/node58-http30-original-owned-actual-attempt3/node58-http-original-thirty.log",
+    "sha256": "34c059ac3714db34cc02caf22dc5b8fe933ea95e41fa34dcb830fe6a09bd181b"
+  },
+  "separateReadOnlySpecObservation": {
+    "path": "/workspace/node58-http30-original-owned-actual-attempt3/original-spec-thirty-complete-raw-result-source-addendum.json",
+    "sha256": "ef101eb4d95da4eb84074e2bd5dcfdfcff6638d23754e54573e948571230995d"
+  },
+  "formalRelease": {
+    "path": "/workspace/node58-http30-original-owned-actual-attempt3/original-thirty-command-closed-and-released-with-format-failure-preserved.json",
+    "sha256": "c59c99bed080db339702cb7d4939285f28c283422860458ebd7b357a4de95cfa"
+  },
+  "independentRootEvidenceReview": "Root confirmed original exit0/all30 exact checkmark titles/unique specfooter/sourceTMP/groupEMPTY via subsequent parent task; no reread execution or rerun.",
+  "firstIdleNegativeDiagnostic": "Original failed HTTP drain remains cached/quarantined; Agent terminal cleanup and original native listener ACK separately observed, gracefulHttpDrain:false.",
+  "sourceSpecificScope": "Pure Node58-derived HTTP306 only. This qualification authorizes selective identical HTTP leaf source use; no other composer/core/auth/provider/domain qualification inferred.",
+  "runtimeRetry": 0,
+  "compilerRepeat": 0,
+  "newBuild": 0
+}

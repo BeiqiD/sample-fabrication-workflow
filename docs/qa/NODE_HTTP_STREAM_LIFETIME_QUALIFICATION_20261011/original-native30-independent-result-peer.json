@@ -1,0 +1,31 @@
+{
+  "status": "PASS_ORIGINAL_NATIVE30_WITH_RECORDER_FORMAT_FAILURE_PRESERVED",
+  "createdAt": "2026-10-11T10:21:09.308015+00:00",
+  "sourceHead": "306773095a551ddfea27d3d35ec2ea6b573be3b9",
+  "sourceTree": "04f201a875cd8ec5df92e347f8d9008f2f1a81ec",
+  "originalReceiptSha256": "8f811589cd463e8e2a916f48488afa5df1d35d3350539e340c175862dc0963ec",
+  "originalReceiptStatusUnchanged": "FAIL_STOPPED_FIRST",
+  "logSha256": "34c059ac3714db34cc02caf22dc5b8fe933ea95e41fa34dcb830fe6a09bd181b",
+  "exactAll30OriginalSortedTitles": true,
+  "uniqueCoherentSpecFooter": {
+    "tests": 30,
+    "suites": 0,
+    "pass": 30,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "nativeExitCode": 0,
+  "nativeSeconds": 1.568,
+  "originalWaitReapAndGroupEmpty": true,
+  "all2493BeforeAfterExact": true,
+  "privateTmpExact": true,
+  "formalReleaseSha256": "c59c99bed080db339702cb7d4939285f28c283422860458ebd7b357a4de95cfa",
+  "negativeInitialFailureStillGracefulDrainFalse": true,
+  "runtimeRepeats": 0,
+  "limits": [
+    "Reporter-specific recorder guard failed and remains immutable; original native assertions and independent raw spec interpretation passed.",
+    "Expected native-drain failures retain quarantine; terminal client cleanup is not graceful product disposal."
+  ]
+}
