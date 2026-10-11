@@ -1,0 +1,734 @@
+{
+  "kind": "current591-original-worker-nine-owned-actual/1",
+  "status": "PASS",
+  "sourceHead": "96e416fb00523e154bef6faff560733900c0aa7e",
+  "sourceTree": "a18b573e4b892a9404a68ebfd13fe7d0c960639b",
+  "sourceFreezeSha256": "ba2ea7e026c3a3e2542517e8203c7193167dda0fd75c8019feaa73305d703b4d",
+  "planSha256": "3ef500110e41715fcdf3aa06533d7a8b0138e328a15852d60f1437d63c32a738",
+  "runnerSha256": "078f417e6e715e8711da5f3236a654689e31a9af83d7ced75be5c986f52bebaa",
+  "independentPeerSha256": "85ac7142a88de69402cac785f99569d47aef7ed92f0a9bb97650704071163cab",
+  "sourcePinsVerifiedBefore": true,
+  "alreadyActualCompiler": {
+    "receiptPath": "/tmp/portable-current591-neutral-file-definition-owned-types-actual.json",
+    "receiptSha256": "61b212542b9dad894a871ade8b41f5fccdca9f60593b2c4bb565a4188aa6e342",
+    "executedSourceHead": "1b3e1d59480f8a1c09ddb33c2f434ab710607b56",
+    "scope": "One exact-input owned source compiler; no duplicate compiler planned and no case carry."
+  },
+  "defaultBudgetsUnchanged": true,
+  "expectedSelectedCases": 9,
+  "steps": [
+    {
+      "name": "original-bulk-contract",
+      "file": "worker/d1-bulk.test.ts",
+      "describe": "D1 bulk inserts",
+      "titles": [
+        "keeps every statement within D1's 100 parameter limit",
+        "accepts schema identifiers containing digits after the first character",
+        "rejects identifiers that could alter the generated SQL"
+      ],
+      "scope": "Original 100-bind row chunking and identifier injection negatives through unchanged D1 wrapper; pure algorithm with structural fake prepare/bind, not actual D1.",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/d1-bulk.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current591-neutral-file-definition-nine-owned-actual-attempt1/original-bulk-contract.json"
+      ],
+      "expectedSelectedCases": 3,
+      "status": "PASS",
+      "expectedTitlePaths": [
+        [
+          "D1 bulk inserts",
+          "keeps every statement within D1's 100 parameter limit"
+        ],
+        [
+          "D1 bulk inserts",
+          "accepts schema identifiers containing digits after the first character"
+        ],
+        [
+          "D1 bulk inserts",
+          "rejects identifiers that could alter the generated SQL"
+        ]
+      ],
+      "testFileSha256": "d17b0580d5a40d9ec59247c2cf0827d5f713b9a14a49f037d9f971bdd7a8faa2",
+      "startedAt": "2026-10-11T03:58:05.198924+00:00",
+      "logPath": "/tmp/portable-current591-neutral-file-definition-nine-owned-actual-attempt1/original-bulk-contract.log",
+      "pid": 709849,
+      "processGroup": 709849,
+      "exitCode": 0,
+      "actualOriginalChildWaited": true,
+      "durationSeconds": 0.516,
+      "logSha256": "20053497d3e3098449dec7079e8db9df5678482015fb4c4a46054c682fc7e58d",
+      "completionGroupSnapshot": [],
+      "normalCompletionHadActiveChildren": false,
+      "closureInitialSnapshot": [],
+      "actualExitCode": 0,
+      "closureFinalSnapshot": [],
+      "ownedClosureProven": true,
+      "rawJsonPath": "/tmp/portable-current591-neutral-file-definition-nine-owned-actual-attempt1/original-bulk-contract.json",
+      "rawJsonSha256": "171924c607fa4bafa5bdc5ca1503e6f39b134f46b985cbff9d81181b0c30149d",
+      "actualSelectedTotal": 3,
+      "actualSelectedPassed": 3,
+      "actualSelectedFailed": 0,
+      "actualSelectedUnrun": 0,
+      "actualSelectedAssertions": [
+        {
+          "titlePath": [
+            "D1 bulk inserts",
+            "keeps every statement within D1's 100 parameter limit"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "D1 bulk inserts",
+            "accepts schema identifiers containing digits after the first character"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "D1 bulk inserts",
+            "rejects identifiers that could alter the generated SQL"
+          ],
+          "status": "passed"
+        }
+      ],
+      "originalUnselectedAssertions": [],
+      "originalReporterCounts": {
+        "numTotalTests": 3,
+        "numPassedTests": 3,
+        "numFailedTests": 0,
+        "numPendingTests": 0
+      }
+    },
+    {
+      "name": "original-state-consumer-and-definition-steps",
+      "file": "worker/state-consumer-binding.test.ts",
+      "describe": null,
+      "titles": [
+        "binds active state consumers and checks the exact File when splitting: available",
+        "binds active state consumers and checks the exact File when splitting: unavailable-existing",
+        "binds active state consumers and checks the exact File when splitting: unavailable-inherited"
+      ],
+      "scope": "Original Worker template Step POST/PATCH and state consumer exact File binding; available and two quarantined inherited/existing negatives. Real SQLite compatibility adapter, original Map-backed R2 double, test-only synthetic active control.",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/state-consumer-binding.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current591-neutral-file-definition-nine-owned-actual-attempt1/original-state-consumer-and-definition-steps.json"
+      ],
+      "expectedSelectedCases": 3,
+      "status": "PASS",
+      "expectedTitlePaths": [
+        [
+          "binds active state consumers and checks the exact File when splitting: available"
+        ],
+        [
+          "binds active state consumers and checks the exact File when splitting: unavailable-existing"
+        ],
+        [
+          "binds active state consumers and checks the exact File when splitting: unavailable-inherited"
+        ]
+      ],
+      "testFileSha256": "88f9a889a8a286dfd35452262f6c85c545cf61a7e1aae061960840af5d26d110",
+      "startedAt": "2026-10-11T03:58:06.141320+00:00",
+      "logPath": "/tmp/portable-current591-neutral-file-definition-nine-owned-actual-attempt1/original-state-consumer-and-definition-steps.log",
+      "pid": 709905,
+      "processGroup": 709905,
+      "exitCode": 0,
+      "actualOriginalChildWaited": true,
+      "durationSeconds": 7.799,
+      "logSha256": "ffaf8895c96438965415400ce520ba2dc3e93f8a2063b6b6e1c6826fa44ce45c",
+      "completionGroupSnapshot": [],
+      "normalCompletionHadActiveChildren": false,
+      "closureInitialSnapshot": [],
+      "actualExitCode": 0,
+      "closureFinalSnapshot": [],
+      "ownedClosureProven": true,
+      "rawJsonPath": "/tmp/portable-current591-neutral-file-definition-nine-owned-actual-attempt1/original-state-consumer-and-definition-steps.json",
+      "rawJsonSha256": "e20d8673ca4ac873322dd6c064174777289d55c74d12c917dd7c75016e4c1b89",
+      "actualSelectedTotal": 3,
+      "actualSelectedPassed": 3,
+      "actualSelectedFailed": 0,
+      "actualSelectedUnrun": 0,
+      "actualSelectedAssertions": [
+        {
+          "titlePath": [
+            "binds active state consumers and checks the exact File when splitting: available"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "binds active state consumers and checks the exact File when splitting: unavailable-existing"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "binds active state consumers and checks the exact File when splitting: unavailable-inherited"
+          ],
+          "status": "passed"
+        }
+      ],
+      "originalUnselectedAssertions": [],
+      "originalReporterCounts": {
+        "numTotalTests": 3,
+        "numPassedTests": 3,
+        "numFailedTests": 0,
+        "numPendingTests": 0
+      }
+    },
+    {
+      "name": "original-metrology-reference-lifecycle",
+      "file": "worker/source-lifecycle-routes.test.ts",
+      "describe": "source lifecycle routes",
+      "titles": [
+        "soft-deletes and restores execution and metrology attachment occurrences"
+      ],
+      "scope": "Original DELETE/restore metrology reference routes with row identity and deletion fields, adjacent execution occurrence visibility checks; actual file-backed SQLite compatibility batch with original transaction/RETURNING/trigger counts.",
+      "testNamePattern": "soft-deletes and restores execution and metrology attachment occurrences$",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/source-lifecycle-routes.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--testNamePattern",
+        "soft-deletes and restores execution and metrology attachment occurrences$",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current591-neutral-file-definition-nine-owned-actual-attempt1/original-metrology-reference-lifecycle.json"
+      ],
+      "expectedSelectedCases": 1,
+      "status": "PASS",
+      "expectedTitlePaths": [
+        [
+          "source lifecycle routes",
+          "soft-deletes and restores execution and metrology attachment occurrences"
+        ]
+      ],
+      "testFileSha256": "990042e683134d918be3dd8ba6a619889cd537adb0273125c35c79f1a3a46c31",
+      "startedAt": "2026-10-11T03:58:14.354825+00:00",
+      "logPath": "/tmp/portable-current591-neutral-file-definition-nine-owned-actual-attempt1/original-metrology-reference-lifecycle.log",
+      "pid": 710000,
+      "processGroup": 710000,
+      "exitCode": 0,
+      "actualOriginalChildWaited": true,
+      "durationSeconds": 5.643,
+      "logSha256": "88df0e35ea46a00b9196af02773d6a6e52186b60f5fb8ad29fff71eef29dd759",
+      "completionGroupSnapshot": [],
+      "normalCompletionHadActiveChildren": false,
+      "closureInitialSnapshot": [],
+      "actualExitCode": 0,
+      "closureFinalSnapshot": [],
+      "ownedClosureProven": true,
+      "rawJsonPath": "/tmp/portable-current591-neutral-file-definition-nine-owned-actual-attempt1/original-metrology-reference-lifecycle.json",
+      "rawJsonSha256": "27c39a12f45f00ef1c28804b8b051855024cf5c8a229fffa5f602c9b38983460",
+      "actualSelectedTotal": 1,
+      "actualSelectedPassed": 1,
+      "actualSelectedFailed": 0,
+      "actualSelectedUnrun": 0,
+      "actualSelectedAssertions": [
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "soft-deletes and restores execution and metrology attachment occurrences"
+          ],
+          "status": "passed"
+        }
+      ],
+      "originalUnselectedAssertions": [
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "hides and restores a Sample without deleting its graph or detaching children"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "hides and restores a canonical Comment while retaining occurrences and managed files"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "exports managed attachment bytes after the item source is soft-deleted with archive schema 24"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "exports managed attachment bytes after the canonical source is soft-deleted with archive schema 24"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "exports managed attachment bytes after the item source is soft-deleted with archive schema 25"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "exports managed attachment bytes after the canonical source is soft-deleted with archive schema 25"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "exports managed attachment bytes after the item source is soft-deleted with archive schema 26"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "exports managed attachment bytes after the canonical source is soft-deleted with archive schema 26"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "hides a Sample Comment attachment download after the Sample enters trash but preserves export access"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "hides a run-step Comment attachment download after its only Run target enters trash but preserves export access"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "keeps a common Comment attachment downloadable while at least one target remains visible"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "requires the canonical Comment before restoring its occurrence or legacy image"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "rechecks canonical restore target visibility inside the mutation batch"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "enforces attachment ownership and restores a TIFF preview only after its original"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "counts legacy comment rows exactly despite shadow trigger writes"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "rejects a common-comment group mutation when any target ancestor is deleted"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "rechecks common-comment group visibility inside the restore batch"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "keeps Comment finalize atomic when a target Run moves to trash"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "does not orphan a ready Comment attachment when Finalize wins a Cancel race"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "does not add an ad-hoc Step after its Run moves to trash"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "does not reactivate a Run that finishes while an ad-hoc Step is being added"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "does not add an ad-hoc Step after its insertion point changes"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "does not add embedded metrology after the process Run finishes"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "keeps State verification atomic when its run moves to trash"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "keeps State verification atomic when its sample moves to trash"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "verifies state across 48 covered steps within D1's 100-parameter limit"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "verifies state across 180 covered steps within D1's 100-parameter limit"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "keeps execution-image restore atomic when the Run moves to trash"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "guards direct Comment-item restore at the mutation statement"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "keeps timeline attachment deletion atomic when its Run moves to trash"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "deletes one execution occurrence and every timeline event that references it"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "resolves a legacy execution-image event to one occurrence before deletion"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "uses deletion operation identity when timestamps and actors collide"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "keeps a deleted Recipe revision and restores the same identity"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "preserves Run Comment text while the 24-hour attachment retention edge expires"
+          ],
+          "status": "skipped"
+        }
+      ],
+      "originalReporterCounts": {
+        "numTotalTests": 36,
+        "numPassedTests": 1,
+        "numFailedTests": 0,
+        "numPendingTests": 35
+      }
+    },
+    {
+      "name": "original-imported-template-clone",
+      "file": "worker/imports/fabublox-authority.test.ts",
+      "describe": "active accepted import File publication",
+      "titles": [
+        "publishes every typed file atomically, separates equal bytes by purpose, and reconciles lost ACK without another PUT"
+      ],
+      "scope": "Whole original typed import publication, lost-ACK replay and template clone; exact provenance File retained on clone and no extra PUT. Original frozen0017 protocol, SQLite compatibility adapter and provider doubles; not new current-catalog or real R2 evidence.",
+      "testNamePattern": "publishes every typed file atomically, separates equal bytes by purpose, and reconciles lost ACK without another PUT$",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/imports/fabublox-authority.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--testNamePattern",
+        "publishes every typed file atomically, separates equal bytes by purpose, and reconciles lost ACK without another PUT$",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current591-neutral-file-definition-nine-owned-actual-attempt1/original-imported-template-clone.json"
+      ],
+      "expectedSelectedCases": 1,
+      "status": "PASS",
+      "expectedTitlePaths": [
+        [
+          "active accepted import File publication",
+          "publishes every typed file atomically, separates equal bytes by purpose, and reconciles lost ACK without another PUT"
+        ]
+      ],
+      "testFileSha256": "3e0dc56f9a57b3fd1144b46da23fa69a4636c1d912d5ab9bf0019f3f9483709d",
+      "startedAt": "2026-10-11T03:58:20.404449+00:00",
+      "logPath": "/tmp/portable-current591-neutral-file-definition-nine-owned-actual-attempt1/original-imported-template-clone.log",
+      "pid": 710087,
+      "processGroup": 710087,
+      "exitCode": 0,
+      "actualOriginalChildWaited": true,
+      "durationSeconds": 4.134,
+      "logSha256": "c7afceb6b5e79facf3d35e79c1372ea6e4d0f53259c1f57c8d9ec226bcf2cf22",
+      "completionGroupSnapshot": [],
+      "normalCompletionHadActiveChildren": false,
+      "closureInitialSnapshot": [],
+      "actualExitCode": 0,
+      "closureFinalSnapshot": [],
+      "ownedClosureProven": true,
+      "rawJsonPath": "/tmp/portable-current591-neutral-file-definition-nine-owned-actual-attempt1/original-imported-template-clone.json",
+      "rawJsonSha256": "9a71d21753f0ae5d0a8fbd23b3d558d751b83a29ae53a3a6c64c06410321b78d",
+      "actualSelectedTotal": 1,
+      "actualSelectedPassed": 1,
+      "actualSelectedFailed": 0,
+      "actualSelectedUnrun": 0,
+      "actualSelectedAssertions": [
+        {
+          "titlePath": [
+            "active accepted import File publication",
+            "publishes every typed file atomically, separates equal bytes by purpose, and reconciles lost ACK without another PUT"
+          ],
+          "status": "passed"
+        }
+      ],
+      "originalUnselectedAssertions": [
+        {
+          "titlePath": [
+            "active accepted import File publication",
+            "rolls first role initialization back when fresh import acceptance rejects with ABORT,'secret acceptance detail' before provider I/O"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "active accepted import File publication",
+            "rolls first role initialization back when fresh import acceptance rejects with IGNORE before provider I/O"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "active accepted import File publication",
+            "keeps paused execution from accepting a fresh import or initializing role defaults"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "active accepted import File publication",
+            "allows one owner for concurrent fresh requests while role initialization and the receipt commit together"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "active accepted import File publication",
+            "rejects a fresh import if its captured overlap mode changes before the acceptance batch"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "active accepted import File publication",
+            "returns a sanitized unavailable response when fresh authority selection cannot read the current mode"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "active accepted import File publication",
+            "rolls publications and typed bindings back when the original import completion fails"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "active accepted import File publication",
+            "recovers an interrupted private import without provider access or moving candidate ownership"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "active accepted import File publication",
+            "keeps a committed import intact when both finalization acknowledgement and readback were lost"
+          ],
+          "status": "skipped"
+        }
+      ],
+      "originalReporterCounts": {
+        "numTotalTests": 10,
+        "numPassedTests": 1,
+        "numFailedTests": 0,
+        "numPendingTests": 9
+      }
+    },
+    {
+      "name": "original-consumer-binding-and-restoration-fences",
+      "file": "worker/files/consumer-binding.test.ts",
+      "describe": null,
+      "titles": [
+        "binds ordinary records, execution images, comments and verification to the accepted File atomically"
+      ],
+      "scope": "Whole original cross-domain binding/visibility/delete/restore, purpose mismatch, no inferred derived preview, and quarantine restoration rollback. Original synthetic active SQLite/File fixture and Map-backed R2 double.",
+      "originalExplicitCaseTimeoutMilliseconds": 15000,
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/files/consumer-binding.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current591-neutral-file-definition-nine-owned-actual-attempt1/original-consumer-binding-and-restoration-fences.json"
+      ],
+      "expectedSelectedCases": 1,
+      "status": "PASS",
+      "expectedTitlePaths": [
+        [
+          "binds ordinary records, execution images, comments and verification to the accepted File atomically"
+        ]
+      ],
+      "testFileSha256": "8f2c02ea2e74df4138b2de9daca3abde24bd4a72088837b22e9ea7c1c8b39eee",
+      "startedAt": "2026-10-11T03:58:24.926975+00:00",
+      "logPath": "/tmp/portable-current591-neutral-file-definition-nine-owned-actual-attempt1/original-consumer-binding-and-restoration-fences.log",
+      "pid": 710205,
+      "processGroup": 710205,
+      "exitCode": 0,
+      "actualOriginalChildWaited": true,
+      "durationSeconds": 6.383,
+      "logSha256": "f904ba38a09e27f381ae20d01d864fd4af919d648432333f1d90750119230266",
+      "completionGroupSnapshot": [],
+      "normalCompletionHadActiveChildren": false,
+      "closureInitialSnapshot": [],
+      "actualExitCode": 0,
+      "closureFinalSnapshot": [],
+      "ownedClosureProven": true,
+      "rawJsonPath": "/tmp/portable-current591-neutral-file-definition-nine-owned-actual-attempt1/original-consumer-binding-and-restoration-fences.json",
+      "rawJsonSha256": "282be62973465e6752fb5e5981134f7420f2091c9af17e1f50c40c9ffb1dc51c",
+      "actualSelectedTotal": 1,
+      "actualSelectedPassed": 1,
+      "actualSelectedFailed": 0,
+      "actualSelectedUnrun": 0,
+      "actualSelectedAssertions": [
+        {
+          "titlePath": [
+            "binds ordinary records, execution images, comments and verification to the accepted File atomically"
+          ],
+          "status": "passed"
+        }
+      ],
+      "originalUnselectedAssertions": [],
+      "originalReporterCounts": {
+        "numTotalTests": 1,
+        "numPassedTests": 1,
+        "numFailedTests": 0,
+        "numPendingTests": 0
+      }
+    }
+  ],
+  "scope": "Original Worker SQLite compatibility/provider doubles; no actual workerd, installed operational File/Request authority or native lease ACK claim.",
+  "finalOwnedGroups": {
+    "709849": [],
+    "709905": [],
+    "710000": [],
+    "710087": [],
+    "710205": []
+  },
+  "noActiveOrUnknownOwnedGroups": true,
+  "sourcePinsVerifiedBeforeAfter": true,
+  "laterStagesUnrun": [],
+  "actualSelectedPassed": 9,
+  "actualSelectedFailed": 0,
+  "allExpectedSelectedNotPassedOrFailed": 0,
+  "originalCleanupScope": "Original selected fixture hooks and cached direct-child cleanup; kernel group state/FD observations retained. Signals/termination alone do not prove business rollback or original fixture finally completion.",
+  "endedAt": "2026-10-11T03:58:31.755031+00:00"
+}

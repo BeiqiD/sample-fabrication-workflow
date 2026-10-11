@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "command": [
+    "./node_modules/.bin/tsc",
+    "-b",
+    "tsconfig.app.json",
+    "--pretty",
+    "false"
+  ],
+  "toolSession": 83064,
+  "exitCode": 0,
+  "actualSourceHead": "6d4cae69eb429c1875e51b75b30b49ec6eaa6601",
+  "actualCompilerVersion": "7.0.2",
+  "affectedInputs": {
+    "src/lib/comment-submission-client.ts": "ffa5ef265e4a65e6bb771b40c32a245109e2262e162cecfc53dd98a0b1d21b16",
+    "src/lib/comment-submission-client.test.ts": "411994b527f42e523b3d6a8100c330fc10251ce7f00df2c91a69eb8b110f5f3b",
+    "tsconfig.app.json": "2a56d25a041e9e6d411c7e64a66d7c65880d6672f154458cdec33a5267c78bf5",
+    "package-lock.json": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a"
+  },
+  "actualRuntimeCases": 0,
+  "ordinaryCompilerOnly": true
+}

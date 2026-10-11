@@ -1,0 +1,217 @@
+{
+  "kind": "current194-neutral18-independent-adoption-causal-source-peer/1",
+  "status": "CLEAR_SOURCE_ONLY",
+  "observedAt": "2026-10-11T04:03:43.990845+00:00",
+  "sourceRoot": "/workspace/portable-current194-neutral-file-definition-integration-source-attempt1",
+  "sourceHead": "f5d2f38cb156fb8cf89d81e24f3d817c208aedb6",
+  "sourceTree": "023b11825ff1159e664203f86c4138060100623a",
+  "basisHead": "1943f746332596220ed34edb5d4b0ac45d6db40d",
+  "predecessorHead": "96e416fb00523e154bef6faff560733900c0aa7e",
+  "allCurrentTrackedWorkingBlobsModesExact": true,
+  "currentTrackedFiles": 1892,
+  "owned19ExactPredecessorModesBlobsAndBytes": true,
+  "owned19Pins": {
+    "tsconfig.current591-neutral-file-definition-owned-source.json": {
+      "mode": "100644",
+      "blob": "5a097bd574a5fcdd808d203b7fa0ce61f506839f",
+      "sha256": "05e5af37314f936c3a962ec11c43aa664cc0efdfa87c16edb2f5d510c1b4080e"
+    },
+    "worker/d1-bulk.ts": {
+      "mode": "100644",
+      "blob": "b9d4167c70ef33d862231f70536cf318b8ffab43",
+      "sha256": "ddd14b53da335d6c2029fecaecb22a5de881ca5faa02013dfed6633be4f325e6"
+    },
+    "worker/files/asset-input-service.ts": {
+      "mode": "100644",
+      "blob": "979e49f47ad31cd0ed91757478edafa8a42d788a",
+      "sha256": "f0e60c4ee5b3127fa8cdbdbd706190bfbe8745677a28752c86afc119b31d35cf"
+    },
+    "worker/files/asset-input.ts": {
+      "mode": "100644",
+      "blob": "0c974f6f391bc37f2b1eb6578259d496b338a25d",
+      "sha256": "760b77e2b34ce6f5a35d0be877a8dfaeae6c23d43079d235298902207e798935"
+    },
+    "worker/files/business-lifecycle-service.ts": {
+      "mode": "100644",
+      "blob": "c44a5dc108c9d81c071ba2535652388473adfbd5",
+      "sha256": "7daa78a44ed945baf5ca639a136bdd29f1035e02a844e3ac1b61fdfbb40f96e0"
+    },
+    "worker/files/business-lifecycle.ts": {
+      "mode": "100644",
+      "blob": "f2a4769fa603454e7784e1ff0e44ed362af2e3d7",
+      "sha256": "332e7e2952ca7edbbb3246ec14ca5d83136f0d65344b5c1dd33366f9441b57d5"
+    },
+    "worker/files/business-metadata-d1.ts": {
+      "mode": "100644",
+      "blob": "0d4aebade375b36fe0afd56f77bc17ac485161b2",
+      "sha256": "1eb9a2647aa1be4b3159fe8569918219052bbbf2e58ef32534fdbf131ba78003"
+    },
+    "worker/files/business-metadata-sql.ts": {
+      "mode": "100644",
+      "blob": "62a704d343d18df617b9cc992a137f54035798f0",
+      "sha256": "f7ad64d973b8b0f905550866b17620845f2c4aeacaef1942867c3d5dabd0cf63"
+    },
+    "worker/files/consumer-binding-service.ts": {
+      "mode": "100644",
+      "blob": "5c46da64792ff1ce3061ca88d0e50d17f91145ca",
+      "sha256": "b50be963032b49cd7bfd8b1484b57d364d5f9600e7c330f84ad86a348c58e8f2"
+    },
+    "worker/files/consumer-binding.ts": {
+      "mode": "100644",
+      "blob": "72cd03d0f28727aea1b90cfb1e97ab0ffd0cfa96",
+      "sha256": "cb70fbbfbdafab40e445630200108ff29fc2ea8530596c4f5722760ef6b87ddc"
+    },
+    "worker/process-definition/reference-lifecycle-d1.ts": {
+      "mode": "100644",
+      "blob": "61fb341aa34f00dce093e06d95936277871a3bd1",
+      "sha256": "c5ce41f1899708e8c6a138470dcf8982242c7b8c3a4a1be5e8cfea247cf34439"
+    },
+    "worker/process-definition/reference-lifecycle-service.ts": {
+      "mode": "100644",
+      "blob": "0a929470765612073557c631cfe5d6a9e4b13a5c",
+      "sha256": "1c7448305e01b87f50b0c06d1dde0bccb39287d0ae52f0fe0e106c714914b83c"
+    },
+    "worker/process-definition/reference-lifecycle-sql.ts": {
+      "mode": "100644",
+      "blob": "d9d9004a333265753e8b163200bdd88a18c699d5",
+      "sha256": "e90ae714a5b1b9807fc799f3d2b0fba6373df3e6c1ea353efcf6fc82329ce0b1"
+    },
+    "worker/process-definition/routes.ts": {
+      "mode": "100644",
+      "blob": "b4686cda363eb805c62ac5de4268f68102918440",
+      "sha256": "393e9f5f066f94dee4f464e1dbab6bd644fa2e9039a2dd9931b1109863017067"
+    },
+    "worker/process-definition/template-content-d1.ts": {
+      "mode": "100644",
+      "blob": "b665758877ab99b14322da2fb7ff79397978bd32",
+      "sha256": "1d5e9a410e411c6d3e1458475a6e63f60ae6158a950719e9835036599ba1494d"
+    },
+    "worker/process-definition/template-content-service.ts": {
+      "mode": "100644",
+      "blob": "4c00b277c05c9af5211848495ce8b03f36734774",
+      "sha256": "0cf717df5bebbcb8113edc227c8f9e2ef5de8554988bfebb412dc52e0869916a"
+    },
+    "worker/process-definition/template-content-sql.ts": {
+      "mode": "100644",
+      "blob": "c2cfd035944af7a4799efc14d290b42e192745c6",
+      "sha256": "4c2fe6e60a37cd16b0a958ba6f92462e4682b11946c83c0bc6e5e8d864675f62"
+    },
+    "worker/runtime/bulk-insert.ts": {
+      "mode": "100644",
+      "blob": "48c8bfe0cbc2146ac3883e0433ee29d20a8c1ebd",
+      "sha256": "502c30256c8a2877f430e1f7ad06a1c05dc4cae3c8729e384cb643f42a9ba5c5"
+    },
+    "worker/runtime/bulk-rows.ts": {
+      "mode": "100644",
+      "blob": "dde3e9a58bb50157f505c4dc90a2c4da0da186c9",
+      "sha256": "806cf7f593b76f081644236cd574643d028d2e64bcfbfdaaeffff8db648c6b55"
+    }
+  },
+  "allCurrent194UnownedExact": true,
+  "unownedCount": 1873,
+  "noExtraOwnedPathChanges": true,
+  "originalCurrent194RoutesWholeFileExact591": true,
+  "fiveFullOriginalRoutesAndPredecessorDelegateHashes": [
+    {
+      "marker": "routes.delete(\"/metrology-templates/:id/references/:referenceId\", async (c) => {",
+      "current194OriginalSha256": "26fa3e41533773406f5c085d47474ccf450e5eb37a64579419096107e9ae3e82",
+      "exactPredecessorDelegateSha256": "5447913fe1af0dba50901da2195a31fa218c982e8ea92311c73d9e19470c9e5f"
+    },
+    {
+      "marker": "routes.post(\"/metrology-templates/:id/references/:referenceId/restore\", async (c) => {",
+      "current194OriginalSha256": "05884691732f6daadf8c409a1787df8bee01df8ab933cf31448e1112fcd354f4",
+      "exactPredecessorDelegateSha256": "7f73a0bdc999e9c1f137e23929dcc5e26f0d1f7a0ae1e5bf9d7db48241e18f72"
+    },
+    {
+      "marker": "routes.post(\"/templates/:id/clone\", async (c) => {",
+      "current194OriginalSha256": "4ccef6a64dea8addc62796ff71ebd579b1b13d65bb3da94a1baac65e750148d5",
+      "exactPredecessorDelegateSha256": "b9d4b64f3c630d56e76b10f871406e293ac4379d602a9bfa90f71370eadf3377"
+    },
+    {
+      "marker": "routes.post(\"/templates/:id/steps\", async (c) => {",
+      "current194OriginalSha256": "7436312e13782b0bbe96e622a97e85750e2141a3f68a54a2e7050d29902342d3",
+      "exactPredecessorDelegateSha256": "dc2395eaba4772fb50c829b04da0282044c1f9628e7677e51ac28ce9a916be6a"
+    },
+    {
+      "marker": "routes.patch(\"/templates/:templateId/steps/:stepId\", async (c) => {",
+      "current194OriginalSha256": "130051f0aa4f2939d368894594c4a7e3980ae7e9b685b1e93676fdf38c6973b2",
+      "exactPredecessorDelegateSha256": "06a83b9778ba5fbfae4308d2adc0d5c4de562c1b3ebae3ffce55bcb7cde28c9a"
+    }
+  ],
+  "wholeRoutesOutsideFiveDelegatesImportsAndPublishedBridgeInverseExact194": true,
+  "bulkWholeOriginal100BindAlgorithmInverseExact194": true,
+  "originalBulkSha256": "c7a722adad32e6ca5b4bf101fd6eb801cbed91757898039415ad97cd761e2d73",
+  "recursiveRelativeCompiledScope": {
+    "modules": 97,
+    "edges": 313,
+    "unresolvedRelativeImports": [],
+    "allRelativeSourceModeBlobBytesExactActualCompiler1b3eAndPredecessor96": true,
+    "aggregateModulePinSha256": "5edb746fbd3589b239b8c4d4e01b0bb4705ffc8667a8d121422c3b99300d7eac",
+    "configAndLockPins": {
+      "tsconfig.current591-neutral-file-definition-owned-source.json": "05e5af37314f936c3a962ec11c43aa664cc0efdfa87c16edb2f5d510c1b4080e",
+      "tsconfig.worker.json": "7f8a8beb3115c839a0c9008b4949336a0a18517e351ad14f05431b0e73c424fc",
+      "package.json": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+      "package-lock.json": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a"
+    },
+    "actualCompilerImportedExternalSpecifiers": [
+      " ELSE ",
+      ")\n      ? detail\n      : undefined,\n  );\n}\n\nasync function verifyRegistrationOperation(operation: () => Promise<void>) {\n  try {\n    await operation();\n  } catch (error) {\n    // A caller",
+      "hono",
+      "hono/http-exception"
+    ],
+    "591To194ChangedPathsIntersectCompiled97": [],
+    "unrelatedUiStorageChangesOutsideOwnedWorkerCompilerScope": true
+  },
+  "dependencyBinding": {
+    "currentAliasObservedAfterRootAddition": "/workspace/portable-current194-neutral-file-definition-integration-source-attempt1/node_modules",
+    "resolvedTarget": "/workspace/sample-fabrication-workflow/node_modules",
+    "samePredecessorAlias": true,
+    "currentRootPrivate0700": true,
+    "canonicalPackageAndLockExact": true,
+    "recorded7DependencyEntrypointsAndNodeBinaryHashesExact": true,
+    "entireInstalledNpmTreeWasNotIndependentlyHashed": true
+  },
+  "historicalCompiler": {
+    "receiptPath": "/tmp/portable-current591-neutral-file-definition-owned-types-actual.json",
+    "receiptSha256": "61b212542b9dad894a871ade8b41f5fccdca9f60593b2c4bb565a4188aa6e342",
+    "actualSourceHead": "1b3e1d59480f8a1c09ddb33c2f434ab710607b56",
+    "actualExitCode": 0,
+    "compilerScope97ConfigsLockedAndRecordedDependencyClosureEquivalent": true,
+    "toolOriginalPidFdInventoryNotAvailableInOriginalReceipt": true,
+    "newCompilerAtCurrentF5dExecuted": false
+  },
+  "historicalWorkerNine": {
+    "receiptPath": "/tmp/portable-current591-neutral-file-definition-nine-owned-actual-attempt1/receipt.json",
+    "receiptSha256": "69e1920031ccdb96c5c72d88279f13b7ab90593b878204313c3eda8e7ed6ffac",
+    "actualSourceHead": "96e416fb00523e154bef6faff560733900c0aa7e",
+    "actualSelectedPassed": 9,
+    "actualSelectedFailed": 0,
+    "allOriginalLogsAndRawJsonHashVerified": true,
+    "actualSourceAndFixturePinsRemainUnchangedInCurrentAdoption": true,
+    "newRuntimeAtCurrentF5dExecuted": false,
+    "scope": "Original Worker SQLite compatibility/provider doubles; no actual workerd, installed operational File/Request authority or native lease ACK claim."
+  },
+  "inheritedProofReferences": [
+    {
+      "path": "/tmp/portable-current591-neutral-file-definition-adoption-map.json",
+      "sha256": "4f6f8e6ce1450648013a322ef9902fb5eef94741fe13493c8b292b318fb8c019"
+    },
+    {
+      "path": "/tmp/portable-current591-neutral18-worker9-independent-source-peer.json",
+      "sha256": "85ac7142a88de69402cac785f99569d47aef7ed92f0a9bb97650704071163cab"
+    },
+    {
+      "path": "/tmp/portable-current591-neutral-file-definition-owned-source.patch",
+      "sha256": "0a13e163e22ba05ce1bffb7231afdfe8212ce07ea276575a28de14ff9a473986"
+    }
+  ],
+  "reviewerCompilerInvocations": 0,
+  "reviewerNativeSocketProviderBuildInvocations": 0,
+  "missingCausalClosure": [],
+  "limits": [
+    "Source equivalence does not move actual compiler1b3e or runtime96 observations to currentf5d.",
+    "Historical Worker9 selected SQLite compatibility/provider-double controls remain their exact original scope; no actualworkerd, installed Node/FileRequest authority, real R2 or physical lease ACK claim.",
+    "Locked dependencies and all recorded entrypoint hashes are exact; the original receipts did not pin every installed npm file, so no stronger complete installed-dependency-tree claim is made.",
+    "No new public File capability, Group enforcement, LocalVolume alias/provider activation or Node catalog/core adoption."
+  ]
+}

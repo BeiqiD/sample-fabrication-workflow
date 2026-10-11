@@ -51,6 +51,41 @@ Continue from this development/test integration while retaining all distinct
 historical source, browser, failed and CI scopes. The ordinary development merges
 remain authorized; production main and real-provider admission retain their scope.
 
+PR #263 subsequently merged at `1943f746332596220ed34edb5d4b0ac45d6db40d`
+on 2026-10-11 03:51:22 UTC. Its exact final source31d207 passed both own
+Verify runs, both Map runs and all15 contexts before the ordinary squash merge;
+the merged tree equals that qualified tree. The original Storage draft lost-reply
+and stale-revision browser controls, genuine focus and390 layout receipts remain
+in their own qualification scopes. Post-merge Map38109722374 and
+Verify38109722299 subsequently passed, together with all15 contexts; their
+separate raw receipt is3372a2cc3eb8ebb7f78febb297f8ea8894c160b2754670c44d5259ac5bd88ec8.
+
+PR #265 subsequently merged at `dd1aa12711860faecf7f2c67a92935535c080c8f`
+on 2026-10-11 after exactd680 own Verify push/PR and Map push/PR plus all15
+contexts passed. Its merged tree exactly equals qualified tree
+`d1e234360013ee74213b2f896a4a911c12cff51f`; ordinary merge receiptd713f53d
+remains separate from the original Package browser receipt14bbb9d8. Post-merge
+checks are a new scope and are not inherited from these successful own runs.
+
+PR #264 original756 PR Verify failed the existing concurrent Comment creation
+assertion although its push Verify, both Map checks and all15 push contexts
+passed. The [invocation-order repair](COMMENT_CREATE_ORDER_QUALIFICATION.md)
+retains that failure and passed original15 plus new2 controls,17 total at6d4,
+after the new baseline pair exposed the old failure. Its affected app type
+check and independent source review passed. The neutral extraction and repair
+are now reconciled onto merged #265; their new coherent-head complete CI is
+required before ordinary merge. Historical service/compiler/browser receipts
+are not retagged as executions of this new head.
+
+The [neutral File/Definition extraction](CURRENT194_NEUTRAL_FILE_DEFINITION_ADOPTION.md)
+now has complete original metadata algorithms, nine original affected Worker
+controls passed at source96 and exact causal adoption onto current194 verified.
+The compiler and runtime observations retain their historical heads. This is a
+bounded service extraction; public Node File/Job Request authority and whole
+application/container qualification remain in progress. Continue the active
+roadmap after its own coherent-head complete CI; do not equate this slice with
+operational File or migration acceptance.
+
 ## Working order
 
 1. Preserve the completed [Metrology pending/session slice](PHASE_5F_METROLOGY_ACCEPTANCE.md)
@@ -65,7 +100,7 @@ remain authorized; production main and real-provider admission retain their scop
    initial Project GET Retry, three-owner group refresh and reduced-motion
    merge, both named actual browser scopes and final complete checks;
    they do not establish whole-5F acceptance.
-3. Continue from merged #262/currentV26. Preserve #259's one-timestamp fixture
+3. Continue from merged #265/currentV26. Preserve #259's one-timestamp fixture
    correction, UI changes and Execution metadata services, along with the
    separate six directory/creation cases, four Templates cases and current24
    Execution source4928 receipts. Preserve merged #261's Metrology Cancel/Escape/Close focus repair, its narrow

@@ -1,3 +1,8 @@
+import { d1FileBusinessMetadataDatabase } from "../files/business-metadata-d1";
+import { d1TemplateReferenceLifecycleDatabase } from "./reference-lifecycle-d1";
+import { requirePublishedTemplateVersionWithDatabase, removeMetrologyReferenceWithDatabase, restoreMetrologyReferenceWithDatabase } from "./reference-lifecycle-service";
+import { d1TemplateContentDatabase } from "./template-content-d1";
+import { cloneTemplateWithDatabase, createTemplateStepWithDatabase, updateTemplateStepWithDatabase } from "./template-content-service";
 import { templateReadHandlers } from "./read-worker";
 import { readReadyAssetInput } from "../files/asset-input";
 import { fileAuthorityActiveSql, prepareFileRestoration } from "../files/business-lifecycle";
@@ -16,12 +21,7 @@ import { acceptAndUploadMetrologyReference, boundedMetrologyReferenceUploadBody,
 export const routes = new Hono<{ Bindings: Env; Variables: { userEmail: string } }>();
 
 async function requirePublishedTemplateVersion(db: D1Database, id: string) {
-  const row = await db.prepare(`
-    SELECT 1 AS published
-    FROM template_versions tv
-    WHERE tv.id = ? AND ${publishedTemplateVersionSql("tv")}
-  `).bind(id).first<{ published: number }>();
-  if (!row) throw new HTTPException(404, { message: "Template version not found" });
+  return requirePublishedTemplateVersionWithDatabase(d1FileBusinessMetadataDatabase(db), id);
 }
 
 routes.get("/template-families/options", templateReadHandlers.captureIngressRequest, templateReadHandlers.options);
@@ -208,79 +208,16 @@ routes.get("/metrology-templates/:id/reference-upload-requests/:requestId", asyn
 
 routes.delete("/metrology-templates/:id/references/:referenceId", async (c) => {
   const { id, referenceId } = c.req.param();
-  await requirePublishedTemplateVersion(c.env.DB, id);
-  const now = new Date().toISOString();
-  const result = await c.env.DB.prepare(
-    `UPDATE metrology_template_references
-     SET deleted_at = ?, deleted_by = ?
-     WHERE id = ? AND template_version_id = ?
-       AND deleted_at IS NULL
-       AND EXISTS (
-         SELECT 1 FROM template_versions
-         WHERE id = ? AND template_kind = 'metrology'
-           AND archived_at IS NULL AND deleted_at IS NULL
-       )`,
-  ).bind(now, c.get("userEmail"), referenceId, id, id).run();
-  if (!result.meta.changes) throw new HTTPException(404, { message: "Template reference not found" });
-  return c.json({ ok: true });
+  return c.json(await removeMetrologyReferenceWithDatabase(d1TemplateReferenceLifecycleDatabase(c.env.DB), id, referenceId, c.get("userEmail")));
 });
 
 routes.post("/metrology-templates/:id/references/:referenceId/restore", async (c) => {
   const { id, referenceId } = c.req.param();
-  await requirePublishedTemplateVersion(c.env.DB, id);
-  const fences = await prepareFileRestoration(c.env.DB, "metrology_reference", [referenceId]);
-  const results = await c.env.DB.batch([...fences, c.env.DB.prepare(
-    `UPDATE metrology_template_references
-     SET deleted_at = NULL, deleted_by = NULL
-     WHERE id = ? AND template_version_id = ? AND deleted_at IS NOT NULL
-       AND superseded_by_occurrence_id IS NULL
-       AND EXISTS (
-         SELECT 1 FROM template_versions
-         WHERE id = ? AND template_kind = 'metrology'
-           AND archived_at IS NULL AND deleted_at IS NULL
-       )`,
-  ).bind(referenceId, id, id)]);
-  const result = results[fences.length];
-  if (!result.meta.changes) throw new HTTPException(404, { message: "Deleted template reference not found" });
-  return c.json({ ok: true });
+  return c.json(await restoreMetrologyReferenceWithDatabase(d1TemplateReferenceLifecycleDatabase(c.env.DB), id, referenceId));
 });
 
 routes.post("/templates/:id/clone", async (c) => {
-  const active = await fileAuthorityActiveSql(c.env.DB) === "1";
-  const sourceId = c.req.param("id");
-  const [source, steps] = await Promise.all([
-    c.env.DB.prepare(
-      `SELECT * FROM template_versions tv
-       WHERE tv.id = ? AND tv.deleted_at IS NULL
-         AND ${publishedTemplateVersionSql("tv")}`,
-    ).bind(sourceId).first<Record<string, unknown>>(),
-    c.env.DB.prepare("SELECT * FROM template_steps WHERE template_version_id = ? ORDER BY position").bind(sourceId).all<Record<string, unknown>>(),
-  ]);
-  if (!source) throw new HTTPException(404, { message: "Template version not found" });
-  const latest = await c.env.DB.prepare(
-    "SELECT COALESCE(MAX(version), 0) AS version FROM template_versions WHERE recipe_family_id = ?",
-  ).bind(source.recipe_family_id).first<{ version: number }>();
-  const id = crypto.randomUUID();
-  const version = Number(latest?.version ?? 0) + 1;
-  const now = new Date().toISOString();
-  const userEmail = c.get("userEmail");
-  const stepIds = new Map(steps.results.map((step) => [String(step.id), crypto.randomUUID()]));
-  const statements: D1PreparedStatement[] = [
-    c.env.DB.prepare(
-      `INSERT INTO template_versions
-        (id, recipe_family_id, name, template_type, template_kind, version, manifest_hash, initial_state_hash,
-         source_filename, source_asset_key${active ? ", source_file_id" : ""}, content_json, created_by, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?${active ? ", ?" : ""}, ?, ?, ?)`,
-    ).bind(id, source.recipe_family_id, source.name, source.template_type, source.template_kind, version, source.manifest_hash,
-      source.initial_state_hash, source.source_filename, source.source_asset_key, ...(active ? [source.source_file_id] : []), source.content_json, userEmail, now),
-    ...bulkInsertStatements(c.env.DB, "template_steps",
-      ["id", "template_version_id", "logical_step_key", "position", "source_row", "step_number", "section_name", "definition_hash", "expected_state_hash", "raw_json"],
-      steps.results.map((step) => [stepIds.get(String(step.id)), id, step.logical_step_key, step.position,
-        step.source_row, step.step_number, step.section_name, step.definition_hash, step.expected_state_hash, step.raw_json])),
-  ];
-  if (statements.length > 49) throw new HTTPException(413, { message: "This template is too large to clone on the current plan" });
-  await c.env.DB.batch(statements);
-  return c.json({ id, version }, 201);
+  return c.json(await cloneTemplateWithDatabase(d1TemplateContentDatabase(c.env.DB), c.req.param("id"), c.get("userEmail")), 201);
 });
 
 routes.get("/templates/:id", templateReadHandlers.captureIngressRequest, templateReadHandlers.detail);
@@ -313,123 +250,12 @@ routes.patch("/templates/:id", async (c) => {
 });
 
 routes.post("/templates/:id/steps", async (c) => {
-  const templateId = c.req.param("id");
-  await requirePublishedTemplateVersion(c.env.DB, templateId);
-  const input = await c.req.json<{ name?: string; toolName?: string; parametersText?: string; commentsText?: string; assetKey?: string; assetId?: string }>();
-  if (typeof input.name !== "string" || typeof input.toolName !== "string" || typeof input.parametersText !== "string" || typeof input.commentsText !== "string" || (input.assetKey !== undefined && typeof input.assetKey !== "string")) throw new HTTPException(400, { message: "Valid template step fields are required" });
-  const name = input.name.trim();
-  if (!name || name.length > 200 || input.toolName.length > 500 || input.parametersText.length > 10_000 || input.commentsText.length > 10_000) throw new HTTPException(400, { message: "One or more template step fields are invalid" });
-  const definition = await hashStepDefinition({ name, toolName: input.toolName, parametersText: input.parametersText, commentsText: input.commentsText });
-  const [template, existingSteps, asset] = await Promise.all([
-    c.env.DB.prepare(
-      "SELECT locked_at, archived_at, deleted_at FROM template_versions WHERE id = ?",
-    ).bind(templateId).first<{ locked_at: string | null; archived_at: string | null; deleted_at: string | null }>(),
-    c.env.DB.prepare("SELECT logical_step_key, definition_hash, expected_state_hash, position FROM template_steps WHERE template_version_id = ? ORDER BY position")
-      .bind(templateId).all<{ logical_step_key: string; definition_hash: string; expected_state_hash: string | null; position: number }>(),
-    readReadyAssetInput(c.env.DB, input),
-  ]);
-  if (!template || template.deleted_at) throw new HTTPException(404, { message: "Template version not found" });
-  if (template.archived_at || template.locked_at) throw new HTTPException(409, { message: "Only unused active template versions can be edited" });
-  if ((input.assetKey || input.assetId) && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
-  const fileId = asset ? await resolveConsumerFileId(c.env.DB, { assetId: asset.id, nativeAsset: asset.r2_key === null, purpose: "embedded_content" }) : null;
-  const stepId = crypto.randomUUID();
-  const now = new Date().toISOString();
-  const state = asset ? await hashStateRepresentation([asset.sha256]) : null;
-  const expectedStateHash = state?.hash ?? existingSteps.results.at(-1)?.expected_state_hash ?? null;
-  const logicalKey = `manual:${stepId}`;
-  const manifestHash = await hashRecipeManifest([
-    ...existingSteps.results.map((step) => ({ logicalStepKey: step.logical_step_key, definitionHash: step.definition_hash, expectedStateHash: step.expected_state_hash })),
-    { logicalStepKey: logicalKey, definitionHash: definition.hash, expectedStateHash },
-  ]);
-  const statements = [
-    c.env.DB.prepare(
-      `INSERT OR IGNORE INTO step_definitions
-       (hash, hash_scheme, name, tool_name, parameters_text, comments_text, canonical_json, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).bind(definition.hash, STEP_HASH_SCHEME, definition.canonical.name, definition.canonical.toolName,
-      definition.canonical.parametersText, definition.canonical.commentsText, stableJson(definition.canonical), now),
-  ];
-  if (asset) statements.unshift(consumerFileBindingFence(c.env.DB, { assetId: asset.id, nativeAsset: asset.r2_key === null, purpose: "embedded_content" }, fileId));
-  if (state) statements.push(c.env.DB.prepare(
-    `INSERT OR IGNORE INTO state_representations (hash, hash_scheme, representation_type, content_json, created_at)
-     VALUES (?, ?, 'diagram', ?, ?)`,
-  ).bind(state.hash, STATE_HASH_SCHEME, stableJson(state.canonical), now));
-  if (state && asset) statements.push(c.env.DB.prepare(
-    "INSERT OR IGNORE INTO state_representation_assets (state_hash, asset_id, position, file_id) VALUES (?, ?, 0, ?)",
-  ).bind(state.hash, asset.id, fileId));
-  statements.push(c.env.DB.prepare(
-    `INSERT INTO template_steps
-     (id, template_version_id, logical_step_key, position, definition_hash, expected_state_hash)
-     SELECT ?, id, ?, ?, ?, ? FROM template_versions
-     WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL AND deleted_at IS NULL`,
-  ).bind(stepId, logicalKey, Number(existingSteps.results.at(-1)?.position ?? -1) + 1, definition.hash, expectedStateHash, templateId));
-  statements.push(c.env.DB.prepare(
-    `UPDATE template_versions SET manifest_hash = ?
-     WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL AND deleted_at IS NULL`,
-  ).bind(manifestHash, templateId));
-  const results = await c.env.DB.batch(statements);
-  if (!results[results.length - 2].meta.changes || !results.at(-1)?.meta.changes) throw new HTTPException(409, { message: "This template version was used to start a process run while you were editing it. Clone it to continue." });
-  return c.json({ id: stepId }, 201);
+  return c.json(await createTemplateStepWithDatabase(d1TemplateContentDatabase(c.env.DB), c.req.param("id"), () => c.req.json<unknown>()), 201);
 });
 
 routes.patch("/templates/:templateId/steps/:stepId", async (c) => {
   const { templateId, stepId } = c.req.param();
-  await requirePublishedTemplateVersion(c.env.DB, templateId);
-  const input = await c.req.json<{ name?: string; toolName?: string; parametersText?: string; commentsText?: string; assetKey?: string; assetId?: string }>();
-  if (typeof input.name !== "string" || typeof input.toolName !== "string" || typeof input.parametersText !== "string" || typeof input.commentsText !== "string" || (input.assetKey !== undefined && typeof input.assetKey !== "string")) throw new HTTPException(400, { message: "Valid template step fields are required" });
-  const name = input.name.trim();
-  if (!name || name.length > 200 || input.toolName.length > 500 || input.parametersText.length > 10_000 || input.commentsText.length > 10_000) throw new HTTPException(400, { message: "One or more template step fields are invalid" });
-  const definition = await hashStepDefinition({ name, toolName: input.toolName, parametersText: input.parametersText, commentsText: input.commentsText });
-  const [template, step, allSteps, asset] = await Promise.all([
-    c.env.DB.prepare(
-      "SELECT locked_at, archived_at, deleted_at FROM template_versions WHERE id = ?",
-    ).bind(templateId).first<{ locked_at: string | null; archived_at: string | null; deleted_at: string | null }>(),
-    c.env.DB.prepare("SELECT id, logical_step_key, expected_state_hash FROM template_steps WHERE id = ? AND template_version_id = ?")
-      .bind(stepId, templateId).first<{ id: string; logical_step_key: string; expected_state_hash: string | null }>(),
-    c.env.DB.prepare("SELECT id, logical_step_key, definition_hash, expected_state_hash FROM template_steps WHERE template_version_id = ? ORDER BY position")
-      .bind(templateId).all<{ id: string; logical_step_key: string; definition_hash: string; expected_state_hash: string | null }>(),
-    readReadyAssetInput(c.env.DB, input),
-  ]);
-  if (!template || template.deleted_at || !step) throw new HTTPException(404, { message: "Template step not found" });
-  if (template.archived_at || template.locked_at) throw new HTTPException(409, { message: "Only unused active template versions can be edited" });
-  if ((input.assetKey || input.assetId) && !asset) throw new HTTPException(400, { message: "The uploaded diagram is unavailable" });
-  const fileId = asset ? await resolveConsumerFileId(c.env.DB, { assetId: asset.id, nativeAsset: asset.r2_key === null, purpose: "embedded_content" }) : null;
-  const now = new Date().toISOString();
-  const state = asset ? await hashStateRepresentation([asset.sha256]) : null;
-  const expectedStateHash = state?.hash ?? step.expected_state_hash;
-  const manifestHash = await hashRecipeManifest(allSteps.results.map((entry) => ({
-    logicalStepKey: entry.logical_step_key,
-    definitionHash: entry.id === stepId ? definition.hash : entry.definition_hash,
-    expectedStateHash: entry.id === stepId ? expectedStateHash : entry.expected_state_hash,
-  })));
-  const statements = [c.env.DB.prepare(
-    `INSERT OR IGNORE INTO step_definitions
-     (hash, hash_scheme, name, tool_name, parameters_text, comments_text, canonical_json, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(definition.hash, STEP_HASH_SCHEME, definition.canonical.name, definition.canonical.toolName,
-    definition.canonical.parametersText, definition.canonical.commentsText, stableJson(definition.canonical), now)];
-  if (asset) statements.unshift(consumerFileBindingFence(c.env.DB, { assetId: asset.id, nativeAsset: asset.r2_key === null, purpose: "embedded_content" }, fileId));
-  if (state) statements.push(c.env.DB.prepare(
-    `INSERT OR IGNORE INTO state_representations (hash, hash_scheme, representation_type, content_json, created_at)
-     VALUES (?, ?, 'diagram', ?, ?)`,
-  ).bind(state.hash, STATE_HASH_SCHEME, stableJson(state.canonical), now));
-  if (state && asset) statements.push(c.env.DB.prepare(
-    "INSERT OR IGNORE INTO state_representation_assets (state_hash, asset_id, position, file_id) VALUES (?, ?, 0, ?)",
-  ).bind(state.hash, asset.id, fileId));
-  statements.push(c.env.DB.prepare(
-    `UPDATE template_steps SET definition_hash = ?, expected_state_hash = ?
-     WHERE id = ? AND template_version_id = ? AND EXISTS (
-       SELECT 1 FROM template_versions
-       WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL AND deleted_at IS NULL
-     )`,
-  ).bind(definition.hash, expectedStateHash, stepId, templateId, templateId));
-  statements.push(c.env.DB.prepare(
-    `UPDATE template_versions SET manifest_hash = ?
-     WHERE id = ? AND locked_at IS NULL AND archived_at IS NULL AND deleted_at IS NULL`,
-  ).bind(manifestHash, templateId));
-  const results = await c.env.DB.batch(statements);
-  if (!results[results.length - 2].meta.changes || !results.at(-1)?.meta.changes) throw new HTTPException(409, { message: "This template version was used to start a process run while you were editing it. Clone it to continue." });
-  return c.json({ ok: true });
+  return c.json(await updateTemplateStepWithDatabase(d1TemplateContentDatabase(c.env.DB), templateId, stepId, () => c.req.json<unknown>()));
 });
 
 routes.delete("/templates/:templateId/steps/:stepId", async (c) => {

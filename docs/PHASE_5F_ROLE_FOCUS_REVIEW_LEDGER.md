@@ -71,3 +71,12 @@ preview qualification now close their named focus/layout gaps. Package sourcefff
 and QAconsumer638 retain separate historical identities and the exact actual
 15-stage receipt; this ledger edit is a source update, with no new browser run.
 Recovery and final coherent-head complete CI remain in progress.
+
+Dated integration follow-up on 2026-10-11: Package PR265 now merged atdd1aa127
+with exact own-head four Verify/Map checks and15 contexts successful and exact
+qualified merge-tree equality. The originalffff/638 browser receipt14bbb remains
+the actual focus/layout scope; this dated ledger edit runs no new browser.
+Storage PR263 post-merge Verify38109722299/Map38109722374 and15 contexts also
+passed (separate raw receipt3372a2cc). Recovery presentation and whole5F remain
+in progress. The concurrent Comment creation-order repair passed original15
+plus new2 at6d4; current reconciled neutral/Comment CI is still a separate gate.

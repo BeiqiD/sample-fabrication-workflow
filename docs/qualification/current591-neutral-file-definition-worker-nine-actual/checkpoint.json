@@ -1,0 +1,152 @@
+{
+  "kind": "current591-neutral-file-definition-worker-nine-qualified-checkpoint/1",
+  "codeHead": "96e416fb00523e154bef6faff560733900c0aa7e",
+  "codeTree": "a18b573e4b892a9404a68ebfd13fe7d0c960639b",
+  "receiptSha256": "69e1920031ccdb96c5c72d88279f13b7ab90593b878204313c3eda8e7ed6ffac",
+  "counts": {
+    "selectedPassed": 9,
+    "selectedFailed": 0,
+    "selectedUnrun": 0,
+    "unselectedSkipped": 44
+  },
+  "steps": [
+    {
+      "name": "original-bulk-contract",
+      "actualSelectedTotal": 3,
+      "actualSelectedPassed": 3,
+      "actualSelectedFailed": 0,
+      "actualSelectedUnrun": 0,
+      "pid": 709849,
+      "processGroup": 709849,
+      "exitCode": 0,
+      "actualOriginalChildWaited": true,
+      "originalReporterCounts": {
+        "numTotalTests": 3,
+        "numPassedTests": 3,
+        "numFailedTests": 0,
+        "numPendingTests": 0
+      }
+    },
+    {
+      "name": "original-state-consumer-and-definition-steps",
+      "actualSelectedTotal": 3,
+      "actualSelectedPassed": 3,
+      "actualSelectedFailed": 0,
+      "actualSelectedUnrun": 0,
+      "pid": 709905,
+      "processGroup": 709905,
+      "exitCode": 0,
+      "actualOriginalChildWaited": true,
+      "originalReporterCounts": {
+        "numTotalTests": 3,
+        "numPassedTests": 3,
+        "numFailedTests": 0,
+        "numPendingTests": 0
+      }
+    },
+    {
+      "name": "original-metrology-reference-lifecycle",
+      "actualSelectedTotal": 1,
+      "actualSelectedPassed": 1,
+      "actualSelectedFailed": 0,
+      "actualSelectedUnrun": 0,
+      "pid": 710000,
+      "processGroup": 710000,
+      "exitCode": 0,
+      "actualOriginalChildWaited": true,
+      "originalReporterCounts": {
+        "numTotalTests": 36,
+        "numPassedTests": 1,
+        "numFailedTests": 0,
+        "numPendingTests": 35
+      }
+    },
+    {
+      "name": "original-imported-template-clone",
+      "actualSelectedTotal": 1,
+      "actualSelectedPassed": 1,
+      "actualSelectedFailed": 0,
+      "actualSelectedUnrun": 0,
+      "pid": 710087,
+      "processGroup": 710087,
+      "exitCode": 0,
+      "actualOriginalChildWaited": true,
+      "originalReporterCounts": {
+        "numTotalTests": 10,
+        "numPassedTests": 1,
+        "numFailedTests": 0,
+        "numPendingTests": 9
+      }
+    },
+    {
+      "name": "original-consumer-binding-and-restoration-fences",
+      "actualSelectedTotal": 1,
+      "actualSelectedPassed": 1,
+      "actualSelectedFailed": 0,
+      "actualSelectedUnrun": 0,
+      "pid": 710205,
+      "processGroup": 710205,
+      "exitCode": 0,
+      "actualOriginalChildWaited": true,
+      "originalReporterCounts": {
+        "numTotalTests": 1,
+        "numPassedTests": 1,
+        "numFailedTests": 0,
+        "numPendingTests": 0
+      }
+    }
+  ],
+  "allFiveOriginalChildrenDirectlyWaitedAndGroupsEmpty": true,
+  "scope": "Nine original meaningful affected Worker controls on neutral18 current591 source. Bulk3 are structural prepare/bind tests, other6 retain actual fixture D1/business algorithms/provider doubles. No operational LocalFile/current Node Request/resource grant, wholeCI or production deployment.",
+  "compiler": "Previously actual exact owned-input compiler61b212, not repeated; original executed codeHead1b3 source inputs equal current96 docs-only completion.",
+  "runtimeFiles": {
+    "exact-commands.json": {
+      "sha256": "2c5dc4ddc3f7d6040a0a99c01710ac6995bee662f2790ed9cb06b6c9cd611820",
+      "bytes": 2638
+    },
+    "original-bulk-contract.json": {
+      "sha256": "171924c607fa4bafa5bdc5ca1503e6f39b134f46b985cbff9d81181b0c30149d",
+      "bytes": 1559
+    },
+    "original-bulk-contract.log": {
+      "sha256": "20053497d3e3098449dec7079e8db9df5678482015fb4c4a46054c682fc7e58d",
+      "bytes": 720
+    },
+    "original-consumer-binding-and-restoration-fences.json": {
+      "sha256": "282be62973465e6752fb5e5981134f7420f2091c9af17e1f50c40c9ffb1dc51c",
+      "bytes": 1040
+    },
+    "original-consumer-binding-and-restoration-fences.log": {
+      "sha256": "f904ba38a09e27f381ae20d01d864fd4af919d648432333f1d90750119230266",
+      "bytes": 566
+    },
+    "original-imported-template-clone.json": {
+      "sha256": "9a71d21753f0ae5d0a8fbd23b3d558d751b83a29ae53a3a6c64c06410321b78d",
+      "bytes": 4606
+    },
+    "original-imported-template-clone.log": {
+      "sha256": "c7afceb6b5e79facf3d35e79c1372ea6e4d0f53259c1f57c8d9ec226bcf2cf22",
+      "bytes": 2331
+    },
+    "original-metrology-reference-lifecycle.json": {
+      "sha256": "27c39a12f45f00ef1c28804b8b051855024cf5c8a229fffa5f602c9b38983460",
+      "bytes": 11838
+    },
+    "original-metrology-reference-lifecycle.log": {
+      "sha256": "88df0e35ea46a00b9196af02773d6a6e52186b60f5fb8ad29fff71eef29dd759",
+      "bytes": 5791
+    },
+    "original-state-consumer-and-definition-steps.json": {
+      "sha256": "e20d8673ca4ac873322dd6c064174777289d55c74d12c917dd7c75016e4c1b89",
+      "bytes": 1640
+    },
+    "original-state-consumer-and-definition-steps.log": {
+      "sha256": "ffaf8895c96438965415400ce520ba2dc3e93f8a2063b6b6e1c6826fa44ce45c",
+      "bytes": 832
+    },
+    "receipt.json": {
+      "sha256": "69e1920031ccdb96c5c72d88279f13b7ab90593b878204313c3eda8e7ed6ffac",
+      "bytes": 28322
+    }
+  }
+}
