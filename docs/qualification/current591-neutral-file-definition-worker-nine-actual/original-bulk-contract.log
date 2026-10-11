@@ -1,0 +1,13 @@
+
+ RUN  v4.1.10 /workspace/portable-current591-neutral-file-definition-source-only-attempt1
+
+ ✓ worker/d1-bulk.test.ts > D1 bulk inserts > keeps every statement within D1's 100 parameter limit 2ms
+ ✓ worker/d1-bulk.test.ts > D1 bulk inserts > accepts schema identifiers containing digits after the first character 1ms
+ ✓ worker/d1-bulk.test.ts > D1 bulk inserts > rejects identifiers that could alter the generated SQL 0ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  03:58:05
+   Duration  179ms (transform 39ms, setup 32ms, import 27ms, tests 4ms, environment 0ms)
+
+JSON report written to /tmp/portable-current591-neutral-file-definition-nine-owned-actual-attempt1/original-bulk-contract.json

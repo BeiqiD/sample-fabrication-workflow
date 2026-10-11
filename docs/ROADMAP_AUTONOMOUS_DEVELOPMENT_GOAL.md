@@ -51,6 +51,23 @@ Continue from this development/test integration while retaining all distinct
 historical source, browser, failed and CI scopes. The ordinary development merges
 remain authorized; production main and real-provider admission retain their scope.
 
+PR #263 subsequently merged at `1943f746332596220ed34edb5d4b0ac45d6db40d`
+on 2026-10-11 03:51:22 UTC. Its exact final source31d207 passed both own
+Verify runs, both Map runs and all15 contexts before the ordinary squash merge;
+the merged tree equals that qualified tree. The original Storage draft lost-reply
+and stale-revision browser controls, genuine focus and390 layout receipts remain
+in their own qualification scopes. Post-merge Map38109722374 passed;
+Verify38109722299 was still running when this note was saved.
+
+The [neutral File/Definition extraction](CURRENT194_NEUTRAL_FILE_DEFINITION_ADOPTION.md)
+now has complete original metadata algorithms, nine original affected Worker
+controls passed at source96 and exact causal adoption onto current194 verified.
+The compiler and runtime observations retain their historical heads. This is a
+bounded service extraction; public Node File/Job Request authority and whole
+application/container qualification remain in progress. Continue the active
+roadmap after its own coherent-head complete CI; do not equate this slice with
+operational File or migration acceptance.
+
 ## Working order
 
 1. Preserve the completed [Metrology pending/session slice](PHASE_5F_METROLOGY_ACCEPTANCE.md)
@@ -65,7 +82,7 @@ remain authorized; production main and real-provider admission retain their scop
    initial Project GET Retry, three-owner group refresh and reduced-motion
    merge, both named actual browser scopes and final complete checks;
    they do not establish whole-5F acceptance.
-3. Continue from merged #262/currentV26. Preserve #259's one-timestamp fixture
+3. Continue from merged #263/currentV26. Preserve #259's one-timestamp fixture
    correction, UI changes and Execution metadata services, along with the
    separate six directory/creation cases, four Templates cases and current24
    Execution source4928 receipts. Preserve merged #261's Metrology Cancel/Escape/Close focus repair, its narrow
