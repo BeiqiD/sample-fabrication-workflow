@@ -1,0 +1,90 @@
+{
+  "status": "SOURCE_ONLY_UNRUN",
+  "root": "/workspace/pr272-attachment-focus-settlement-source-attempt1",
+  "base": "93accfc494c770000de8b312621a0f32dab0fcd3",
+  "baseTree": "9a810a8d14c7d404503059108187d4823a0c0849",
+  "head": "966c5cbce014f724923caf68b545c7d3eb8fb82f",
+  "tree": "96ceb99ae3a15662ae77e05e68639e2ba8c1b088",
+  "fileCount": 2718,
+  "ownedPaths": [
+    "src/attachment-media.mount.test.tsx"
+  ],
+  "protectedEntryCount": 2717,
+  "fullOneSliceInverse": true,
+  "clean": true,
+  "productionChanges": 0,
+  "checks": {
+    "src/attachment-media.mount.test.tsx": {
+      "baseGitEntry": "100644 blob ed387aa0cc294e6bfdc766a30f8c308dfa11fbab",
+      "currentGitEntry": "100644 blob 05cad8294312f32cca633811bb57bd65c5595377",
+      "sha256": "623636f491a28ef473c4d90d46fbe775a0a007b14b10d2e46e59fa3d006f7a5b"
+    },
+    "src/components/CommentAttachmentList.tsx": {
+      "baseGitEntry": "100644 blob 7d740bb8f299dc2406f536c1450ac1f9e93c78ad",
+      "currentGitEntry": "100644 blob 7d740bb8f299dc2406f536c1450ac1f9e93c78ad",
+      "sha256": "a967546d8397b3001b40e221bfd86ed4b24c50cf245ef8aefe53c953caf3e9cb"
+    },
+    "src/components/ConfirmDeleteDialog.tsx": {
+      "baseGitEntry": "100644 blob f9523abf4bb819edbe4866b6542f6f4d10920038",
+      "currentGitEntry": "100644 blob f9523abf4bb819edbe4866b6542f6f4d10920038",
+      "sha256": "125d3271fb036090c4569c3b1e8eefa1e17da2e14e0fd2a6fc7ba0635a2e228c"
+    },
+    "src/lib/use-modal-dialog.ts": {
+      "baseGitEntry": "100644 blob f8d706c0248bbae5fa31352959ae3e19211a0da7",
+      "currentGitEntry": "100644 blob f8d706c0248bbae5fa31352959ae3e19211a0da7",
+      "sha256": "4e68326ff0514af623a67f173e7da7aa96db17f3c556dfe1536825d5f1eaf31c"
+    },
+    "vitest.mounted.config.ts": {
+      "baseGitEntry": "100644 blob 1858d15b8356d628cffbe74f6d7465ed1b63e497",
+      "currentGitEntry": "100644 blob 1858d15b8356d628cffbe74f6d7465ed1b63e497",
+      "sha256": "fd051a71b0bdc63992c3e6e05f184159a2a1b96518c3db54a112ea44c1f5b991"
+    }
+  },
+  "patch": {
+    "path": "/workspace/pr272-attachment-focus-settlement-source-preparation-attempt1/candidate.patch",
+    "sha256": "de93609052463d342ffc1cc51e7521e2bdbc0fdcd8516af8a46b24ffc46550af"
+  },
+  "originalFailure": {
+    "path": "/workspace/pr272-own93acc-original-pr-verify-failure-attempt1/original-failed-log.txt",
+    "sha256": "66138194216ad640ebacdf1a167b6896c9adb8f1f65145abbf3cf6d4d24a4b07",
+    "run": "38147825081",
+    "head": "93accfc494c770000de8b312621a0f32dab0fcd3",
+    "mountedPassed": 1011,
+    "mountedFailed": 1,
+    "mountedFilesPassed": 104,
+    "mountedFilesFailed": 1,
+    "sourceCasesPassed": 3907,
+    "downstream": "SKIPPED; no same-head retry"
+  },
+  "sourceDiagnosis": {
+    "portalRemoval": "Mutation visible before passive modal effect cleanup",
+    "focusOwner": "Original useModalDialog passive cleanup, detached original trigger selects persistent current listRef",
+    "existingAdjacentBarrier": "Original parent-modal case already awaits this same focus cleanup",
+    "limitation": "Source ordering explains the assertion gap; no new product defect or runtime reproduction claimed"
+  },
+  "finiteNext": {
+    "command": [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "--config",
+      "vitest.mounted.config.ts",
+      "src/attachment-media.mount.test.tsx",
+      "--maxWorkers",
+      "1",
+      "--bail",
+      "1"
+    ],
+    "expectedCases": 22,
+    "testTimeout": "unchanged default 5 seconds",
+    "waitForTimeout": "unchanged Testing Library default",
+    "compiler": 0,
+    "build": 0,
+    "Worker": 0,
+    "SQLite": 0,
+    "browser": 0,
+    "GO": "Required from root"
+  },
+  "sourceInspectionDiagnostic": "Initial substring inverse guard matched the same aria-label assertion in the adjacent existing case; stopped before Git mutation. Corrected guard binds the unique Canonical Comment body context; complete single-slice inverse now exact. Candidate source did not change between checks.",
+  "effects": "Only source read, isolated Git clone/edit/commit; no helper import, compiler, test, native, DB, build or browser invocation"
+}

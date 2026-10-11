@@ -1,0 +1,89 @@
+{
+  "status": "LOCAL_ORIGINAL_TWENTY_TWO_PASS_COMPLETE_CURRENT_CI_PENDING",
+  "qualifiedSourceHead": "966c5cbce014f724923caf68b545c7d3eb8fb82f",
+  "qualifiedSourceTree": "96ceb99ae3a15662ae77e05e68639e2ba8c1b088",
+  "qualifiedSourceCount": 2718,
+  "candidateParent": "93accfc494c770000de8b312621a0f32dab0fcd3",
+  "ownedQA": [
+    "src/attachment-media.mount.test.tsx"
+  ],
+  "productionDelta": 0,
+  "cases": {
+    "passed": 22,
+    "failed": 0,
+    "unrun": 0
+  },
+  "originalCommand": [
+    "node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "vitest.mounted.config.ts",
+    "src/attachment-media.mount.test.tsx",
+    "--maxWorkers",
+    "1",
+    "--bail",
+    "1"
+  ],
+  "defaultBudgetsUnchanged": true,
+  "originalChild": {
+    "pid": 1302681,
+    "startTicks": "14501750",
+    "exit": 0,
+    "directWaitReaped": true,
+    "ownedGroupEmpty": true,
+    "signals": []
+  },
+  "tool": {
+    "originalSession": 16322,
+    "terminalExit": 0
+  },
+  "originalPRVerify": {
+    "run": 38147825081,
+    "head": "93accfc494c770000de8b312621a0f32dab0fcd3",
+    "sourcePassedCases": 3907,
+    "mountedPassed": 1011,
+    "mountedFailed": 1,
+    "downstream": "SKIPPED",
+    "failureRetained": true
+  },
+  "scope": "No app/compiler/build/browser/Worker/SQLite invocation. Full2718 tracked source exact at original runner aftercheck; docs checkpoint not a new runtime head. Future full own CI required on actual updated PR272 head.",
+  "records": [
+    {
+      "path": "docs/qa/pr272/attachment-focus-settlement-2026-10-11/original-pr-verify-38147825081-failed.txt",
+      "originalPath": "/workspace/pr272-own93acc-original-pr-verify-failure-attempt1/original-failed-log.txt",
+      "sha256": "66138194216ad640ebacdf1a167b6896c9adb8f1f65145abbf3cf6d4d24a4b07",
+      "bytes": 582443
+    },
+    {
+      "path": "docs/qa/pr272/attachment-focus-settlement-2026-10-11/original-twenty-two-command.json",
+      "originalPath": "/workspace/pr272-attachment-focus-settlement-runtime-attempt1/affected-attachment-mounted-file-command.json",
+      "sha256": "54ec9c2cf6a559352bd6424d791db62193a3c0ad1751afe929435f935729d2f5",
+      "bytes": 1293
+    },
+    {
+      "path": "docs/qa/pr272/attachment-focus-settlement-2026-10-11/original-twenty-two.log",
+      "originalPath": "/workspace/pr272-attachment-focus-settlement-runtime-attempt1/affected-attachment-mounted-file.log",
+      "sha256": "971eb4f362d4c7fbd0ca39ccaa37a4c4a24b5fa2ecc3ad4aa4a54f89050df917",
+      "bytes": 249
+    },
+    {
+      "path": "docs/qa/pr272/attachment-focus-settlement-2026-10-11/original-twenty-two-closed-release.json",
+      "originalPath": "/workspace/pr272-attachment-focus-settlement-runtime-attempt1/original-attachment-twenty-two-actual-closed-release.json",
+      "sha256": "90b69ca97524c669e2206e0bacba6cc7ff60aaf95c24c6e82a87317f24c08106",
+      "bytes": 1805
+    },
+    {
+      "path": "docs/qa/pr272/attachment-focus-settlement-2026-10-11/original-approved-local-plan.json",
+      "originalPath": "/workspace/pr272-attachment-focus-settlement-runtime-attempt1/frozen-approved-plan.json",
+      "sha256": "6435cfa5e5a626e3e60338baf527d813def7942a85a814ef0fd5fadf56a75248",
+      "bytes": 2771
+    },
+    {
+      "path": "docs/qa/pr272/attachment-focus-settlement-2026-10-11/original-source-handoff.json",
+      "originalPath": "/workspace/pr272-attachment-focus-settlement-source-preparation-attempt1/source-handoff.json",
+      "sha256": "0ce4881c59b887e3850fb523a4560b7b8b82deb0dd04d9f4963de530d00e65d2",
+      "bytes": 4111
+    }
+  ]
+}
