@@ -1,0 +1,68 @@
+{
+  "stage": "synthetic-template-sentinels-only",
+  "cwd": "/workspace/coherent-package-saved-native02-private-attempt1/copy",
+  "argv": [
+    "node",
+    "node_modules/wrangler/bin/wrangler.js",
+    "d1",
+    "execute",
+    "DB",
+    "--local",
+    "--config",
+    ".wrangler/deploy.jsonc",
+    "--persist-to",
+    "/workspace/coherent-package-saved-native02-private-attempt1/copy/.wrangler/state",
+    "--file",
+    "/workspace/coherent-package-saved-native02-private-attempt1/fixture/process-fixture.sql"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/coherent-package-saved-native02-private-attempt1",
+    "SQLITE_TMPDIR": "/workspace/coherent-package-saved-native02-private-attempt1"
+  },
+  "startedAt": "2026-10-11T17:08:08.811589+00:00",
+  "status": "PASS",
+  "log": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/synthetic-template-sentinels-only.log",
+  "pid": 1387765,
+  "processGroup": 1387765,
+  "originalStartTicks": "15174958",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1387781,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1387765,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1387781,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1387765,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1387781,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1387765,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T17:08:10.249718+00:00",
+  "logSha256": "427594d39c2112a70f9115333a2c3d2f1fa656e5dc3f74d9391a50a196a062b4"
+}

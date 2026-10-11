@@ -1,0 +1,25 @@
+{
+  "status": "PASS",
+  "domain": "package",
+  "producerHead": "02d6dfbe5f2bd98847b3d6f509c219de5ad816ad",
+  "producerTree": "40f4a540901e7c49d28184bb8b27a1f808b4f6b8",
+  "qaConsumerHead": "a4d80bc69cce4e366ab7a7c6d2a4a61ca13b22fd",
+  "qaConsumerTree": "40e2bff88806f2d439089d40346654794a4141e1",
+  "originalBuildCommandReceiptSha256": "ae558f4ec6af56dd6d4632f02da485eb0a51b8b613abc21ea7c88f4b02581c65",
+  "originalBuildLogSha256": "00969b5ce2f703a4a293d4f854e0a391800e5dd15f50623d281e851e4cf75f89",
+  "originalProducerCount": 2726,
+  "all2726ProducerInputsOnConsumerExact": true,
+  "extraNativeQaInputs": {
+    "scripts/qa/phase5f/browser-current-coherent-local-r2-file-saved-job-keyboard.mjs": "603bc4cb0eaaef1243fd3ac08ce2e00fa9517faebacc0ad34b98a732d962c525",
+    "scripts/qa/phase5f/browser-current-coherent-package-saved-job-keyboard.mjs": "059fe43c645520b8ee4fddfce12a2f613d69c66cb7d4a0ddb4b18fa503c48d60",
+    "scripts/qa/phase5f/check-current-coherent-saved-job-physical-state.py": "f62ce9ff0ac39ce306df8fa409d14948971c0aad2ae4a03a5b1e6d4176610ee0"
+  },
+  "actualOriginalArtifacts": 118,
+  "newBuilds": 0,
+  "freshIndependentPure24FixtureRequired": true,
+  "disabledSeedRequests": 0,
+  "setupPOSTMaximum": 7,
+  "originalNativeMetadataPOSTMaximum": 5,
+  "maximumTotalPOSTs": 12,
+  "oldPausedLineagesNotOpenedOrChanged": true
+}

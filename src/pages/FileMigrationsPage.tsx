@@ -22,6 +22,61 @@ const jobReasons: Record<string, string> = {
   retry_limit_exhausted: "This job reached its five-attempt limit. Review the files before planning another migration",
 };
 const jobReason = (reason: string) => jobReasons[reason] ?? "Job needs attention; refresh its details";
+type FileJobControl = Parameters<typeof fileJobsClient.control>[1];
+function SavedJobControls({ job, busy, allowed, currentSignal, onControl }: {
+  job: FileJobStatus; busy: boolean; allowed: boolean; currentSignal: AbortSignal | null;
+  onControl: (action: FileJobControl, onStarting: (signal: AbortSignal) => void, onReceipt: (receipt: FileJobStatus) => void) => void;
+}) {
+  const buttons = useRef(new Map<FileJobControl, HTMLButtonElement>());
+  const status = useRef<HTMLParagraphElement>(null);
+  type FocusIntent = { action: FileJobControl; origin: HTMLButtonElement; source: FileJobStatus; signal: AbortSignal;
+    receipt: FileJobStatus | null; movedAway: boolean; stopObserving: () => void };
+  const returnFocus = useRef<FocusIntent | null>(null);
+  function clearFocusIntent() { returnFocus.current?.stopObserving(); returnFocus.current = null; }
+  useLayoutEffect(() => () => clearFocusIntent(), []);
+  useLayoutEffect(() => {
+    if (busy) return;
+    const intent = returnFocus.current; clearFocusIntent();
+    if (!intent || !allowed || intent.signal.aborted || intent.signal !== currentSignal || intent.movedAway
+      || job.id !== intent.source.id || job.target.profileId !== intent.source.target.profileId
+      || job.target.configurationRevision !== intent.source.target.configurationRevision
+      || document.activeElement !== document.body && document.activeElement !== intent.origin) return;
+    if (buttons.current.get(intent.action) === intent.origin && intent.origin.isConnected && !intent.origin.disabled
+      && job.state === intent.source.state && job.updatedAt === intent.source.updatedAt) { intent.origin.focus(); return; }
+    const receipt = intent.receipt;
+    if (!receipt || receipt.id !== job.id || receipt.state !== job.state || receipt.updatedAt !== job.updatedAt
+      || receipt.target.profileId !== job.target.profileId || receipt.target.configurationRevision !== job.target.configurationRevision) return;
+    const next = intent.action === "pause" && job.state === "paused" ? buttons.current.get(job.failed ? "retry" : "resume")
+      : (intent.action === "resume" || intent.action === "retry") && (job.state === "queued" || job.state === "running") ? buttons.current.get("pause")
+        : intent.action === "cancel" && (job.state === "cancelled" || job.state === "cancel_requested") ? status.current : null;
+    if (next?.isConnected && (!(next instanceof HTMLButtonElement) || !next.disabled)) next.focus();
+  }, [busy, allowed, currentSignal, job]);
+  const controls: FileJobControl[] = [];
+  if (job.state === "running" || job.state === "queued") controls.push("pause");
+  if (job.state === "paused") controls.push(job.failed ? "retry" : "resume");
+  if (!["completed", "cancelled", "cancel_requested"].includes(job.state)) controls.push("cancel");
+  if (job.cleanupPending > 0) controls.push("cleanup");
+  return <>
+    <p ref={status} role="status" tabIndex={-1}>{job.state} · {job.moved} moved · {job.remaining} remaining · {job.failed} failed · {job.cleanupPending} cleanup pending</p>
+    <p className="muted">Destination: {job.target.profileId}{job.reason && <> · {jobReason(job.reason)}</>}</p>
+    <div className="storage-candidate-actions">{controls.map(action => <button key={action} type="button" className="button" disabled={busy}
+      ref={button => { if (button) buttons.current.set(action, button); else buttons.current.delete(action); }}
+      onClick={event => {
+        const origin = event.currentTarget; const admitted: { current: FocusIntent | null } = { current: null };
+        onControl(action, signal => {
+          clearFocusIntent();
+          if (document.activeElement !== origin || buttons.current.get(action) !== origin || !origin.isConnected) return;
+          const moved = (event: FocusEvent) => { if (admitted.current && event.target !== origin && event.target !== document.body) admitted.current.movedAway = true; };
+          const blurred = () => { if (admitted.current) admitted.current.movedAway = true; };
+          admitted.current = { action, origin, source: job, signal, receipt: null, movedAway: false,
+            stopObserving: () => { document.removeEventListener("focusin", moved, true); window.removeEventListener("blur", blurred); } };
+          returnFocus.current = admitted.current;
+          document.addEventListener("focusin", moved, true); window.addEventListener("blur", blurred);
+        }, receipt => { if (admitted.current && returnFocus.current === admitted.current) admitted.current.receipt = receipt; });
+      }}>{action === "pause" ? "Pause job" : action === "resume" ? "Resume job" : action === "retry" ? "Retry failed files"
+        : action === "cancel" ? "Cancel remaining files" : "Request source cleanup"}</button>)}</div>
+  </>;
+}
 export function FileMigrationsPage() {
   const [authorized, setAuthorized] = useState<boolean | null>(null), [profiles, setProfiles] = useState<StorageSettingsProfile[]>([]);
   const [inventory, setInventory] = useState<MigrationInventory>({ items: [], nextCursor: null });
@@ -227,12 +282,12 @@ export function FileMigrationsPage() {
         {jobsRead && jobsError && <p className="muted">Previously read jobs remain listed below; their status has not been refreshed.</p>}
         {!jobsRead && !jobsLoading && !jobsError && <p className="muted">Saved migrations have not been read yet.</p>}
         {jobsRead && !jobsLoading && !jobsError && !jobs.length && <p className="muted">No migrations have been accepted.</p>}
-        <ul className="storage-profile-list">{jobs.map(job => <li key={job.id}><h3><code>{job.id}</code></h3><p>{job.state} · {job.moved} moved · {job.remaining} remaining · {job.failed} failed · {job.cleanupPending} cleanup pending</p>
-          <p className="muted">Destination: {job.target.profileId}{job.reason && <> · {jobReason(job.reason)}</>}</p>
-          <div className="storage-candidate-actions">{(job.state === "running" || job.state === "queued") && <button type="button" className="button" disabled={busy} onClick={() => void act(signal => fileJobsClient.control(job.id, "pause", signal))}>Pause job</button>}
-            {job.state === "paused" && <button type="button" className="button" disabled={busy} onClick={() => void act(signal => fileJobsClient.control(job.id, job.failed ? "retry" : "resume", signal))}>{job.failed ? "Retry failed files" : "Resume job"}</button>}
-            {!["completed", "cancelled", "cancel_requested"].includes(job.state) && <button type="button" className="button" disabled={busy} onClick={() => void act(signal => fileJobsClient.control(job.id, "cancel", signal))}>Cancel remaining files</button>}
-            {job.cleanupPending > 0 && <button type="button" className="button" disabled={busy} onClick={() => void act(signal => fileJobsClient.control(job.id, "cleanup", signal))}>Request source cleanup</button>}</div>
+        <ul className="storage-profile-list">{jobs.map(job => <li key={job.id}><h3><code>{job.id}</code></h3>
+          <SavedJobControls job={job} busy={busy} allowed={authorized === true && canManage.current} currentSignal={lifetime.current?.signal ?? null}
+            onControl={(action, onStarting, onReceipt) => void act(async signal => {
+              onStarting(signal); const receipt = await fileJobsClient.control(job.id, action, signal);
+              if (!signal.aborted && canManage.current) onReceipt(receipt);
+            })} />
           <button type="button" className="button" disabled={busy} onClick={() => void act(async signal => {
             detailJob.current = job.id; setDetailId(job.id); setDetails(null);
             const value = await fileJobsClient.items(job.id, signal); if (!signal.aborted && detailJob.current === job.id) setDetails(value);

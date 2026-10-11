@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   checkedResearchExportInput, checkedResearchExportPlanInput, checkedResearchImportInput, checkedResearchUploadInput,
@@ -58,7 +58,7 @@ const reasonLabels: Record<string, string> = {
   executor_disabled: "The independent executor is paused", executor_reconfigured: "Recovered work requires explicit resume",
   runtime_disabled: "The independent executor is paused", executor_stale: "No recent executor heartbeat",
   unsupported_runtime: "This runtime does not support package jobs", actor_not_authorized: "The initiating actor no longer has application access",
-  operator_paused: "Paused by the user", operator_cancelled: "Cancelled by the user",
+  actor_paused: "Paused by the user", operator_paused: "Paused by the user", operator_cancelled: "Cancelled by the user",
   source_unavailable: "A source file is unavailable", source_missing: "A required source is missing",
   source_changed: "The source changed before acceptance", target_unavailable: "A required storage destination is unavailable",
   unsupported_size: "The package exceeds supported limits", incomplete_package: "Required package content is unavailable",
@@ -101,23 +101,71 @@ function Preview({ value, accepted = false }: { value: ResearchPackagePreview; a
   </div>;
 }
 
-function Job({ job, busy, reused, onControl, onSelectUpload, onViewScope }: { job: ResearchJobStatus; busy: boolean; reused: boolean;
-  onControl: (id: string, action: ResearchJobControl) => void; onSelectUpload: (id: string) => void; onViewScope: (id: string) => void }) {
+function Job({ job, busy, allowed, currentSignal, reused, onControl, onSelectUpload, onViewScope }: {
+  job: ResearchJobStatus; busy: boolean; allowed: boolean; currentSignal: AbortSignal | null; reused: boolean;
+  onControl: (id: string, action: ResearchJobControl, onStarting: (signal: AbortSignal) => void,
+    onReceipt: (receipt: ResearchJobStatus) => void) => void;
+  onSelectUpload: (id: string) => void; onViewScope: (id: string) => void;
+}) {
+  const buttons = useRef(new Map<ResearchJobControl, HTMLButtonElement>());
+  const status = useRef<HTMLParagraphElement>(null);
+  type FocusIntent = { action: ResearchJobControl; origin: HTMLButtonElement; source: ResearchJobStatus; signal: AbortSignal;
+    receipt: ResearchJobStatus | null; movedAway: boolean; stopObserving: () => void };
+  const returnFocus = useRef<FocusIntent | null>(null);
+  function clearFocusIntent() { returnFocus.current?.stopObserving(); returnFocus.current = null; }
+  useLayoutEffect(() => () => clearFocusIntent(), []);
+  useLayoutEffect(() => {
+    if (busy) return;
+    const intent = returnFocus.current; clearFocusIntent();
+    if (!intent || !allowed || intent.signal.aborted || intent.signal !== currentSignal || intent.movedAway
+      || job.id !== intent.source.id || job.requestId !== intent.source.requestId || job.kind !== intent.source.kind
+      || job.acceptedAt !== intent.source.acceptedAt
+      || document.activeElement !== document.body && document.activeElement !== intent.origin) return;
+    if (buttons.current.get(intent.action) === intent.origin && intent.origin.isConnected && !intent.origin.disabled
+      && job.state === intent.source.state && job.reason === intent.source.reason && job.updatedAt === intent.source.updatedAt) {
+      intent.origin.focus(); return;
+    }
+    const receipt = intent.receipt;
+    if (!receipt || receipt.id !== job.id || receipt.requestId !== job.requestId || receipt.kind !== job.kind
+      || receipt.acceptedAt !== job.acceptedAt || receipt.state !== job.state || receipt.reason !== job.reason
+      || receipt.updatedAt !== job.updatedAt) return;
+    const next = intent.action === "pause" && job.state === "paused" ? buttons.current.get("resume")
+      : (intent.action === "resume" || intent.action === "retry") && (job.state === "queued" || job.state === "running") ? buttons.current.get("pause")
+        : intent.action === "cancel" && (job.state === "cancel_requested" || job.state === "cancelled") ? status.current : null;
+    if (next?.isConnected && (!(next instanceof HTMLButtonElement) || !next.disabled)) next.focus();
+  }, [busy, allowed, currentSignal, job]);
+  function controlButton(action: ResearchJobControl, label: string) {
+    return <button key={action} className="button" disabled={busy}
+      ref={button => { if (button) buttons.current.set(action, button); else buttons.current.delete(action); }}
+      onClick={event => {
+        const origin = event.currentTarget; const admitted: { current: FocusIntent | null } = { current: null };
+        onControl(job.id, action, signal => {
+          clearFocusIntent();
+          if (document.activeElement !== origin || buttons.current.get(action) !== origin || !origin.isConnected) return;
+          const moved = (event: FocusEvent) => { if (admitted.current && event.target !== origin && event.target !== document.body) admitted.current.movedAway = true; };
+          const blurred = () => { if (admitted.current) admitted.current.movedAway = true; };
+          admitted.current = { action, origin, source: job, signal, receipt: null, movedAway: false,
+            stopObserving: () => { document.removeEventListener("focusin", moved, true); window.removeEventListener("blur", blurred); } };
+          returnFocus.current = admitted.current;
+          document.addEventListener("focusin", moved, true); window.addEventListener("blur", blurred);
+        }, receipt => { if (admitted.current && returnFocus.current === admitted.current) admitted.current.receipt = receipt; });
+      }}>{label}</button>;
+  }
   const active = ["awaiting_upload", "queued", "running", "paused", "preview"].includes(job.state);
   return <article className="research-package-job">
     <div className="storage-profile-heading"><h3>{jobNames[job.kind]}</h3><span>{job.state.replaceAll("_", " ")}</span></div>
-    <p><code>{job.id}</code></p><p>{job.phase.replaceAll("_", " ")} · {job.progress.completedFiles} / {job.progress.totalFiles} files verified · {size(job.progress.bytesDone)} / {size(job.progress.bytesTotal)}.</p>
+    <p><code>{job.id}</code></p><p ref={status} role="status" tabIndex={-1}>{job.phase.replaceAll("_", " ")} · {job.progress.completedFiles} / {job.progress.totalFiles} files verified · {size(job.progress.bytesDone)} / {size(job.progress.bytesTotal)}.</p>
     {job.reason && <p role="status">{reasonText(job.reason)}.</p>}
     {job.state === "cancel_requested" && <p className="muted">Cancellation is awaiting a safe boundary. Written candidates remain protected until reconciliation; committed results are retained.</p>}
     <div className="storage-candidate-actions">
       {job.kind === "import" && <button className="button" disabled={busy} onClick={() => onViewScope(job.id)}>View accepted scope</button>}
       {job.kind === "upload" && job.state !== "cancelled" && job.state !== "cancel_requested" && <button className="button" disabled={busy}
         onClick={() => onSelectUpload(job.id)}>{job.state === "awaiting_upload" ? "Continue this upload" : "Review uploaded package"}</button>}
-      {["queued", "running"].includes(job.state) && <button className="button" disabled={busy} onClick={() => onControl(job.id, "pause")}>Pause</button>}
-      {job.state === "paused" && <><button className="button" disabled={busy} onClick={() => onControl(job.id, "resume")}>Resume</button>
-        {job.reason && job.reason !== "operator_paused" && <button className="button" disabled={busy} onClick={() => onControl(job.id, "retry")}>Retry failed work</button>}</>}
-      {active && <button className="button" disabled={busy} onClick={() => onControl(job.id, "cancel")}>Cancel</button>}
-      {["completed", "cancelled"].includes(job.state) && <button className="button" disabled={busy} onClick={() => onControl(job.id, "cleanup")}>Clean temporary job data</button>}
+      {["queued", "running"].includes(job.state) && controlButton("pause", "Pause")}
+      {job.state === "paused" && <>{controlButton("resume", "Resume")}
+        {job.reason && job.reason !== "actor_paused" && job.reason !== "operator_paused" && controlButton("retry", "Retry failed work")}</>}
+      {active && controlButton("cancel", "Cancel")}
+      {["completed", "cancelled"].includes(job.state) && controlButton("cleanup", "Clean temporary job data")}
       {job.output?.available && job.state === "completed" && <a className="button primary" href={researchPackagesClient.downloadUrl(job.id)}>Download {job.kind === "report" ? "offline report" : "data package"}</a>}
     </div>
     {job.output && <p className="muted">Output: {size(job.output.byteSize)}. {job.output.available ? "Expires" : "No longer available; expiry"} <time dateTime={job.output.expiresAt}>{job.output.expiresAt}</time>.</p>}
@@ -429,7 +477,8 @@ export function ResearchPackagesPage() {
         {!jobs.length && readPhase === "ready" && <p className="muted">No package jobs are recorded for your account.</p>}
         {acceptedScope && <div className="research-package-accepted-scope"><h3>Accepted import scope</h3><p><code>{acceptedScope.jobId}</code></p>
           <Preview value={acceptedScope.preview} accepted /><button className="text-button" onClick={() => setAcceptedScope(null)}>Close accepted scope</button></div>}
-        {jobs.map(job => <Job key={job.id} job={job} busy={blocked} reused={receipts.some(receipt => receipt.jobId === job.id && receipt.reused)}
+        {jobs.map(job => <Job key={job.id} job={job} busy={blocked} allowed={!denied && !pending} currentSignal={lifetime.current?.signal ?? null}
+          reused={receipts.some(receipt => receipt.jobId === job.id && receipt.reused)}
           onViewScope={id => void act(async signal => {
             const preview = await researchPackagesClient.preview(id, undefined, signal);
             if (!signal.aborted) setAcceptedScope({ jobId: id, preview });
@@ -442,8 +491,11 @@ export function ResearchPackagesPage() {
             const preview = await researchPackagesClient.preview(id, suffix, signal); if (!signal.aborted) setImportPreview(preview);
           }
           setMessage(value.state === "awaiting_upload" ? "Saved upload selected. Reselect the original ZIP to verify and continue it." : "Saved package selected. Its validated preview is available when validation finishes.");
-        })} onControl={(id, action) => void act(async signal => {
-          const value = await researchPackagesClient.control(id, action, signal); if (!signal.aborted && !deniedRef.current) { refreshSequence.current++; updateJob(value); setMessage("Saved job state updated. Check status to follow its independent progress."); }
+        })} onControl={(id, action, onStarting, onReceipt) => void act(async signal => {
+          onStarting(signal);
+          const value = await researchPackagesClient.control(id, action, signal); if (!signal.aborted && !deniedRef.current) {
+            refreshSequence.current++; updateJob(value); onReceipt(value); setMessage("Saved job state updated. Check status to follow its independent progress.");
+          }
         })} />)}
       </section>
     </>}
