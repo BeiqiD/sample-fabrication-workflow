@@ -1,0 +1,26 @@
+{
+  "status": "PASS",
+  "producerHead": "a7d64919f28477adcd3923809a63d1c1f9cc0561",
+  "producerTree": "5e3b9da99f834135f8ea011aa47f7a092e1a7ef5",
+  "qaConsumerHead": "e92c954c716ae33b9f945e8e523730c990a7a664",
+  "qaConsumerTree": "3493619c70d28f0e6b24275f243c25e09d124bc8",
+  "originalBuildCommandReceiptSha256": "e7e80f8ad8854e47867c3dbfd5a1510813c8d755d96e594a932a511a9f173bb8",
+  "originalBuildLogSha256": "abe13a26f960e3c91947930885d9e22f11c50091236cd3dc086665ee33a45e09",
+  "originalProducerCount": 2438,
+  "allOther2436ProducerInputsOnConsumerExact": true,
+  "ownedCurrentQaLeaves": {
+    "scripts/qa/phase5f/browser-genuine-two-r2-file-migration-preview.mjs": "26188a94a4085ae57e132a265a3e53a031d41fdd5a561d397219e603a59d7bb7",
+    "scripts/qa/phase5f/check-genuine-two-r2-migration-state.py": "c3b3cf7bb9c28f7163eb399d8054395a5ee99e739e4b8c38691d28938adcb99d"
+  },
+  "copiedProducerQaLeaves": {
+    "scripts/qa/phase5f/browser-genuine-two-r2-file-migration-preview.mjs": "ab28d1f9a029da6dd4280dff2e72abaa8b2a5311ba37306abaefb40f8ca73044",
+    "scripts/qa/phase5f/check-genuine-two-r2-migration-state.py": "023680c42275a421b7169d38741be870db80ca3d02d4ebc2e282a0aecb408798"
+  },
+  "actualOriginalArtifacts": 118,
+  "newBuilds": 0,
+  "freshPure24FixtureRequired": true,
+  "disabledSeedRequests": 0,
+  "setupPOSTMaximum": 6,
+  "originalNativePlanPOSTMaximum": 2,
+  "oldRecoveryNamespacesNotOpenedOrChanged": true
+}

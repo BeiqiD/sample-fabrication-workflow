@@ -99,14 +99,39 @@ def installed_dependencies(source, explicit_root):
     require(dependencies.is_dir(), "Explicit dependencies must be an existing real directory.")
     require((source / "node_modules").resolve(strict=True) == dependencies,
             "Explicit dependencies must match the source's actual installed dependency resolution.")
-    metadata = {}
+    metadata, source_metadata, dependency_metadata = {}, {}, {}
+    reviewed_command_inverse = None
+    installed_lock = regular_file(dependencies, ".package-lock.json")
     for name in ("package.json", "package-lock.json"):
         source_file = regular_file(source, name)
         dependency_file = regular_file(dependencies.parent, name)
-        require(source_file.read_bytes() == dependency_file.read_bytes(),
-                "Explicit dependency parent package metadata must exactly match the selected source.")
-        metadata[name] = sha256(source_file)
-    installed_lock = regular_file(dependencies, ".package-lock.json")
+        source_metadata[name], dependency_metadata[name] = sha256(source_file), sha256(dependency_file)
+        if source_file.read_bytes() == dependency_file.read_bytes():
+            metadata[name] = source_metadata[name]
+            continue
+        # One reviewed command-only package successor can reuse these exact
+        # installed dependencies. This is not a general scripts exclusion:
+        # pin both complete package bodies and both unchanged lock bodies.
+        require(name == "package.json"
+                and source_metadata[name] == "5c8a504d14b7208edb3d77b8c5049c713d55e4e7821d8e43b7b54e6dbeebe8fc"
+                and dependency_metadata[name] == "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233"
+                and sha256(regular_file(source, "package-lock.json"))
+                == sha256(regular_file(dependencies.parent, "package-lock.json"))
+                == "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a"
+                and sha256(installed_lock) == "95202718d08fd50cc286bcddf0af66b08503d63b494e992006c50d4246d69a98",
+                "Explicit dependency parent metadata must match exactly or the pinned reviewed command-only tuple.")
+        restored_source, dependency_package = read_json(source_file), read_json(dependency_file)
+        require(restored_source["scripts"]["test:node-http"]
+                == "node --experimental-transform-types --test --test-concurrency=1 server/http.test.mts server/http-lifetime.test.mts server/static-assets.test.mts"
+                and dependency_package["scripts"]["test:node-http"]
+                == "node --test server/http.test.mts server/static-assets.test.mts",
+                "The reviewed command-only delta must retain both original command bodies.")
+        restored_source["scripts"]["test:node-http"] = dependency_package["scripts"]["test:node-http"]
+        require(restored_source == dependency_package,
+                "Reversing only the reviewed test:node-http command must restore every parsed package field.")
+        reviewed_command_inverse = {"path": "scripts.test:node-http", "allOtherParsedPackageFieldsExact": True,
+                                    "sourcePackageSha256": source_metadata[name],
+                                    "dependencyParentPackageSha256": dependency_metadata[name]}
     return dependencies, {
         "mode": "explicit-existing-real-root",
         "root": str(dependencies),
@@ -114,8 +139,11 @@ def installed_dependencies(source, explicit_root):
         "sourceDependencyLink": (source / "node_modules").is_symlink(),
         "dependencyParentRoot": str(dependencies.parent),
         "matchingPackageMetadataSha256": metadata,
+        "sourcePackageMetadataSha256": source_metadata,
+        "dependencyParentPackageMetadataSha256": dependency_metadata,
+        "reviewedCommandOnlyInverse": reviewed_command_inverse,
         "installedHiddenLockSha256": sha256(installed_lock),
-        "scope": "Existing real installed directory, exact source/parent package metadata and installed hidden-lock byte identity; no installation, dependency copy or independent verification of every installed package.",
+        "scope": "Existing real installed directory; source/parent package metadata exact or the complete pinned reviewed test:node-http-only inverse with unchanged raw lock and pinned installed hidden lock. Both actual metadata identities are retained. No installation, dependency copy or independent verification of every installed package.",
     }
 
 

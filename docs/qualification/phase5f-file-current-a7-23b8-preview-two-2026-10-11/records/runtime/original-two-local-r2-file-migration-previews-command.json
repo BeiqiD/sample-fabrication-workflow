@@ -1,0 +1,48 @@
+{
+  "stage": "original-two-local-r2-file-migration-previews",
+  "cwd": "/workspace/portable-dev270-file-preview-focus-complete-native-helper-source-attempt2",
+  "argv": [
+    "node",
+    "/workspace/phase5f-file-preview-current-a7-native-qa-copy-gate-source-attempt9/scripts/qa/phase5f/browser-genuine-two-r2-file-migration-preview.mjs",
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/copy",
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture",
+    "a7d64919f28477adcd3923809a63d1c1f9cc0561",
+    "--exclusive-go-two-genuine-local-r2-file-migration-previews"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5",
+    "SQLITE_TMPDIR": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5",
+    "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+    "CHROMIUM_PATH": "/usr/bin/chromium",
+    "PHASE5F_FILE_MIGRATION_CHROMIUM_TEMP": "/workspace/.f2r2t5",
+    "PHASE5F_FILE_MIGRATION_RUNTIME_ROOT": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime"
+  },
+  "cases": [
+    "genuine-file-migration-preview-1280-light",
+    "genuine-file-migration-preview-390-dark"
+  ],
+  "toolInvocation": {
+    "tty": true,
+    "originalStdinControl": "Only explicit stop newline originalretainedTTY;120s supervision/noSIGTERM graceful claim"
+  },
+  "control": "Original setup six genuine accepted metadata writes/upload to real isolated localR2; two native Preview metadataPOSTs only. Current File layout-effect repair characterized with original focus assertion. No acceptance/executor/transfer/GC/ZIP/provider/mainTarget.",
+  "startedAt": "2026-10-11T13:00:48.408621+00:00",
+  "status": "PASS",
+  "log": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/original-two-local-r2-file-migration-previews.log",
+  "pid": 1196124,
+  "processGroup": 1196124,
+  "originalStartTicks": "13690917",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T13:01:02.293981+00:00",
+  "logSha256": "89711d0fab8f148e727a9c8537d5bd4178b181efb4aed7415b1162cce94056b8"
+}

@@ -1,0 +1,736 @@
+{
+  "status": "SOURCE_SPECIFIC_CURRENT_A7_23B8_FILE_PREVIEW_TWO_QUALIFIED_CURRENT51AB_ADOPTION_OWN_CI_UNRUN",
+  "date": "2026-10-11",
+  "baseHead": "51ab2b59fea69c2e033994ab6a02b146f9ab6071",
+  "baseTree": "ca40022eaf64147b876dfe457b55d36edcf47186",
+  "producerHead": "a7d64919f28477adcd3923809a63d1c1f9cc0561",
+  "qaConsumerHead": "23b8f368248ee5e21d78fb9f371de7ff9d0283a0",
+  "current51abOwnedSeven": {
+    "scripts/qa/phase5f/browser-genuine-two-r2-file-migration-preview.mjs": {
+      "mode": "100644",
+      "blob": "87817b465b1afd104530175e1669cbdb4e114064",
+      "sha256": "4edf99da354eab0b5c05afc0a60e6ff086fa8f2cfb52a2a1f40d7966394104fd"
+    },
+    "scripts/qa/phase5f/check-genuine-two-r2-migration-state.py": {
+      "mode": "100644",
+      "blob": "d04e9c5cf854bc1de21fd55b5ea02a2ccc0abd48",
+      "sha256": "c3b3cf7bb9c28f7163eb399d8054395a5ee99e739e4b8c38691d28938adcb99d"
+    },
+    "scripts/qa/phase5f/prepare-file-migration-historical-r2-profiles.mjs": {
+      "mode": "100644",
+      "blob": "e19b1cc5e4fdb7c3a09e20d87b26796080bc0b2d",
+      "sha256": "eb606cd3d2952e51346f508df4a1ea172080dd17d6403866fc006e5a3d22330f"
+    },
+    "scripts/qa/phase5f/prepare-genuine-two-r2-migration-runtime.mjs": {
+      "mode": "100644",
+      "blob": "86c11134466a819bba9f1d59bebfbbdf16c4941a",
+      "sha256": "095033e8c67ec1273c9d7c4f6723d2086fa386b9fba54cc3e9f10f516e4aeb0a"
+    },
+    "scripts/qa/phase5f/prepare-isolated-copy.py": {
+      "mode": "100644",
+      "blob": "0d3bf82ae1db399a38c274c524513a2324b532ca",
+      "sha256": "fba64e958ba1042a7ea406ef9d502ce12829c194c4ec3ea65ee447b3f3105292"
+    },
+    "src/file-migrations.mount.test.tsx": {
+      "mode": "100644",
+      "blob": "542694a3d45bc1ab7eab397009972016cf65ed71",
+      "sha256": "cd1b82989c4987887d38d807f04803ae73f73dd886a22a74d80ec661ee350211"
+    },
+    "src/pages/FileMigrationsPage.tsx": {
+      "mode": "100644",
+      "blob": "69dca80cd7b0b004a65e4fecbd4ae35bc1dafcee",
+      "sha256": "8f13ff72adccde5f2edca29ac4d158467b853944193bcfbdb6ab6a9734a365af"
+    }
+  },
+  "newActualCommands": {
+    "passed": 10,
+    "failed": 0,
+    "unrun": 0
+  },
+  "newNativeCases": {
+    "passed": 2,
+    "failed": 0,
+    "unrun": 0
+  },
+  "actualCurrentBuildCarry": {
+    "sourceHead": "a7d64919f28477adcd3923809a63d1c1f9cc0561",
+    "actualOutputs": 118,
+    "newCopiedArtifacts": 121,
+    "noNewBuildInNativeWindow": true
+  },
+  "priorCurrentC50TypeAndMountedCarry": {
+    "sourceHead": "c50e040f7db35c646115c66012f16c6a2642e381",
+    "appStrict": "PASS",
+    "wholeMountedFile": 11,
+    "defaultCaseTimeoutMs": 5000,
+    "noFreshA7OrCurrent51abCompilerClaim": true
+  },
+  "records": [
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/chromium-child-temp-owner.json",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/chromium-child-temp-owner.json",
+      "sha256": "af27a55e0fc089ca1c846385f5d71cefadcf43579e743e8324c0bd15d0690c53",
+      "bytes": 601
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/current-a7-build-new-pure24-file-fixture-causal-carry.json",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/current-a7-build-new-pure24-file-fixture-causal-carry.json",
+      "sha256": "57a61c14208df931982727b3199ca5aa23d30389b0ea7048652d29e27d5b0df8",
+      "bytes": 1657
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/current-source-build-and-pure24-witness-command.json",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/current-source-build-and-pure24-witness-command.json",
+      "sha256": "175cfe19145b361c887b14b2bbac54912961e36f9a0fdbba8db94e45a2c2ab87",
+      "bytes": 1307
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/current-source-build-and-pure24-witness.log",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/current-source-build-and-pure24-witness.log",
+      "sha256": "d34d7d9e7f1567f7fcfae8b0f774f0acf1b18f5df23516c93bed257f99d0201c",
+      "bytes": 204
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/final-a7-source-and-genuine-two-r2-file-preview-pins.json",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/final-a7-source-and-genuine-two-r2-file-preview-pins.json",
+      "sha256": "168edaaf7829f32a679133c33658fa3b0fa47f287ae8f66855357621b7fecd1a",
+      "bytes": 2798
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/final-source-artifact-input-pins-command.json",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/final-source-artifact-input-pins-command.json",
+      "sha256": "9a8a61edab88f9b15628915db28cad8d9ee3ff39bf030adbf436a81a722c94fa",
+      "bytes": 1296
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/final-source-artifact-input-pins.log",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/final-source-artifact-input-pins.log",
+      "sha256": "2fd1746b29511e4816b3d16369b3595c95a0ff6cece0fef864b86a029cb37384",
+      "bytes": 207
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/fresh-two-version-sentinel-command.json",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/fresh-two-version-sentinel-command.json",
+      "sha256": "8aba9aa7e55dafa94a337ff35dd810712a1a919eca07cb30168afe12c06799d1",
+      "bytes": 1934
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/fresh-two-version-sentinel.log",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/fresh-two-version-sentinel.log",
+      "sha256": "f28e855f48fe2cfb521bf2ad267db59b53eb100979004048ab36bb30a35261fb",
+      "bytes": 244
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/frozen-approved-plan.json",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/frozen-approved-plan.json",
+      "sha256": "5784597f5147dda1181ae77ae3a9698f68d04ed07a6954b96b3b426b2a38048a",
+      "bytes": 19078
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/isolated-copy-command.json",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/isolated-copy-command.json",
+      "sha256": "1a9e4b790f5bd7721e9ec231b64f4e631e5fe2cd7cae6a6570ee148cc06480be",
+      "bytes": 1438
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/isolated-copy.log",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/isolated-copy.log",
+      "sha256": "c1274e0088c09a57327105e49ff538292b26115fca5d4459f8099da502dbb563",
+      "bytes": 209
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/ordinary-actual24-local-migrations-command.json",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/ordinary-actual24-local-migrations-command.json",
+      "sha256": "50a32319286b047e7d510a8f09a67980c73a34b7b47a6c05e2321970916c015c",
+      "bytes": 2062
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/ordinary-actual24-local-migrations.log",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/ordinary-actual24-local-migrations.log",
+      "sha256": "a4c2ee4f147f8110883945240afdfc2a2814e352b98694a6814440398a2d4360",
+      "bytes": 147956
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/original-two-local-r2-file-migration-previews-command.json",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/original-two-local-r2-file-migration-previews-command.json",
+      "sha256": "2efc632e78a266accd93d87a5dcc75139f8ef55730b932817f772a09002a4dd1",
+      "bytes": 2375
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/original-two-local-r2-file-migration-previews.log",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/original-two-local-r2-file-migration-previews.log",
+      "sha256": "89711d0fab8f148e727a9c8537d5bd4178b181efb4aed7415b1162cce94056b8",
+      "bytes": 404
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/physical-after-command.json",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/physical-after-command.json",
+      "sha256": "ca79dc10409b0468a9150776bab6de7b752e42157c5b1faf5a208eb84c82bf34",
+      "bytes": 1759
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/physical-after.log",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/physical-after.log",
+      "sha256": "4ca420c4a68a92ca3a6900c07989e5d5307c7fbc3a9e3a4c83cfdad1412ccd02",
+      "bytes": 182
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/physical-before-command.json",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/physical-before-command.json",
+      "sha256": "2b9afe48d23f581d7fa1d115188d836d894b08d431280fd9adc0e9abb4ea565a",
+      "bytes": 1401
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/physical-before.log",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/physical-before.log",
+      "sha256": "4ac954995b4c4ffc8e8226174f3df3e3ef71d7b5eaebf368c10c35da5e3f25ec",
+      "bytes": 174
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/qualified-current-a7-build-producer-preflight-command.json",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/qualified-current-a7-build-producer-preflight-command.json",
+      "sha256": "809e95a032c18fd9dd51bb7b8571160f074aa198941de440afc6b87cbe9503fd",
+      "bytes": 1330
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/qualified-current-a7-build-producer-preflight.log",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/qualified-current-a7-build-producer-preflight.log",
+      "sha256": "44ebaa303713644672cafc49cfee64773c540ef7c1a048848ffbc026de299230",
+      "bytes": 99
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/synthetic-template-sentinels-only-command.json",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/synthetic-template-sentinels-only-command.json",
+      "sha256": "5608dd3f25d47adbe7658b1ca40dc1333b78fa7143a753e90bf884a0428ea191",
+      "bytes": 2159
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/synthetic-template-sentinels-only.log",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/synthetic-template-sentinels-only.log",
+      "sha256": "f7489c7ff80f5f56172be63e89f719891814ec556dbe2836fa0057fd32d2c066",
+      "bytes": 1611
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/fixture/enabled-storage-draft-build-input-witness.json",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture/enabled-storage-draft-build-input-witness.json",
+      "sha256": "6c38942732ec974b008876fcb3202a16175e9c621ad8c7697225a299d03b967a",
+      "bytes": 1338
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/fixture/fixture-hashing.mjs",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture/fixture-hashing.mjs",
+      "sha256": "6759a47bcc613bcae6cb75cefd6fdd3c89759920befd1d31fbca57736bb4311e",
+      "bytes": 2930
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/fixture/genuine-two-r2-file-migration-preview-artifacts/genuine-file-migration-preview-1280-light.geometry.json",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture/genuine-two-r2-file-migration-preview-artifacts/genuine-file-migration-preview-1280-light.geometry.json",
+      "sha256": "a34806aae4f53a2d6cbd210a29e6c42f959bc15e59a2516d9b970e8645000112",
+      "bytes": 72
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/fixture/genuine-two-r2-file-migration-preview-artifacts/genuine-file-migration-preview-390-dark.geometry.json",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture/genuine-two-r2-file-migration-preview-artifacts/genuine-file-migration-preview-390-dark.geometry.json",
+      "sha256": "0309ff9f2ce2bdf06bee71d370a2b7b0cec9639964561c17af1d147530057f7a",
+      "bytes": 68
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/fixture/genuine-two-r2-file-migration-preview-report.json",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture/genuine-two-r2-file-migration-preview-report.json",
+      "sha256": "8a2df17ccf77fdb634a88139c420dd003d0b6bb311eface0e00efd0467e748d1",
+      "bytes": 87632
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/fixture/genuine-two-r2-file-migration-preview-stop.json",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture/genuine-two-r2-file-migration-preview-stop.json",
+      "sha256": "e3897efc85005dc87ca362b1e4fd2f7877dac0fa51d730b1ab1aff97f6d68e5c",
+      "bytes": 500
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/fixture/physical-sqlite-after-two-local-r2-migration-preview.json",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture/physical-sqlite-after-two-local-r2-migration-preview.json",
+      "sha256": "ec22b2fe98062b0afcc6d7db515655ba5d3fe8d5e1b62204b6cd65bf391da6e4",
+      "bytes": 70230
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/fixture/physical-sqlite-before-api.json",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture/physical-sqlite-before-api.json",
+      "sha256": "4a8022486bd5f0c9152548850361bccf92670187ace3cb4725c99aa45f59aa1a",
+      "bytes": 63348
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/fixture/process-fixture.json",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture/process-fixture.json",
+      "sha256": "c8ac8fd02d6e0e86a2b12f55d72f79ba65124d6d274f9a3706f66cb7fca31128",
+      "bytes": 1589
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/fixture/process-fixture.sql",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture/process-fixture.sql",
+      "sha256": "0ad6d34fec4e7727b054b0f9529d9ea08ae0f200678bf1eaed2439c036b9c8e5",
+      "bytes": 5579
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/runtime/actual-current-a7-file-preview-two-qualified-closed-release.json",
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/actual-current-a7-file-preview-two-qualified-closed-release.json",
+      "sha256": "81cb610b241eb50a89d9dc7f46f3bd50584343f75eb3d274ae89bd54274cfa56",
+      "bytes": 13930
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/prior-current-a7-build/one-fresh-final-QA-source-build-command.json",
+      "originalPath": "/workspace/phase5f-file-preview-current-a7-one-cf-build-runtime-attempt5/one-fresh-final-QA-source-build-command.json",
+      "sha256": "e7e80f8ad8854e47867c3dbfd5a1510813c8d755d96e594a932a511a9f173bb8",
+      "bytes": 1708
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/prior-current-a7-build/one-fresh-final-QA-source-build.log",
+      "originalPath": "/workspace/phase5f-file-preview-current-a7-one-cf-build-runtime-attempt5/one-fresh-final-QA-source-build.log",
+      "sha256": "abe13a26f960e3c91947930885d9e22f11c50091236cd3dc086665ee33a45e09",
+      "bytes": 12752
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/prior-current-a7-build/fresh-build-artifact-manifest.json",
+      "originalPath": "/workspace/phase5f-file-preview-current-a7-one-cf-build-runtime-attempt5/fresh-build-artifact-manifest.json",
+      "sha256": "da9bb6b79352b4f31f9ec14b225bc30887b7f8b5b1108f595b321d0c79791814",
+      "bytes": 14601
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/prior-current-a7-build/actual-current-a7-one-cf-build-qualified-closed-release.json",
+      "originalPath": "/workspace/phase5f-file-preview-current-a7-one-cf-build-runtime-attempt5/actual-current-a7-one-cf-build-qualified-closed-release.json",
+      "sha256": "fa44be9a1823fa06b6464c59bbe37e5b30a24d4a32e9692833fe4b8179e52e2a",
+      "bytes": 2465
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/prior-current-c50-first-two/affected-app-strict-command.json",
+      "originalPath": "/workspace/phase5f-file-preview-current-c50-first-two-runtime-attempt4/affected-app-strict-command.json",
+      "sha256": "c430efa14ce9f9b501e597e2add00f03ddb1ec1a23b4bc9be40204a552153b34",
+      "bytes": 968
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/prior-current-c50-first-two/affected-app-strict.log",
+      "originalPath": "/workspace/phase5f-file-preview-current-c50-first-two-runtime-attempt4/affected-app-strict.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/prior-current-c50-first-two/affected-file-mounted-file-command.json",
+      "originalPath": "/workspace/phase5f-file-preview-current-c50-first-two-runtime-attempt4/affected-file-mounted-file-command.json",
+      "sha256": "6e7ec5049a6c493b924d73dc1fb8f474af6072a551f05d9dc51e18410a0da723",
+      "bytes": 1291
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/prior-current-c50-first-two/affected-file-mounted-file.log",
+      "originalPath": "/workspace/phase5f-file-preview-current-c50-first-two-runtime-attempt4/affected-file-mounted-file.log",
+      "sha256": "383065da1e39fffb87460faee828fdf2b580ff6fe11c6760bf5b9c80d13811b9",
+      "bytes": 259
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/prior-current-c50-first-two/actual-current-c50-file-preview-app-strict-whole11-qualified-closed-release.json",
+      "originalPath": "/workspace/phase5f-file-preview-current-c50-first-two-runtime-attempt4/actual-current-c50-file-preview-app-strict-whole11-qualified-closed-release.json",
+      "sha256": "2c8973edc003d2c47995348927789a2ad0efdb71ac6c0e8d0921b2b7f0128fe3",
+      "bytes": 2461
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/source-peer/file-preview-23b8-independent-complete-copy-helper-and-three-qa-source-peer.json",
+      "originalPath": "/workspace/file-preview-23b8-independent-complete-copy-helper-and-three-qa-source-peer.json",
+      "sha256": "203eff74e677817ce98f75806438bbd4ccf97ef8e8cdf125a1842d001a3f6212",
+      "bytes": 3954
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/source-peer/file-preview-23b8-independent-prepared-original-ten-copy-gate-finite-source-peer.json",
+      "originalPath": "/workspace/file-preview-23b8-independent-prepared-original-ten-copy-gate-finite-source-peer.json",
+      "sha256": "95d23db974f2b93b783e940def0d9cb8f3a61a05a45d4c6aefef8a0801807e3f",
+      "bytes": 2812
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/source-peer/file-preview-23b8-independent-final-two-peer-literal-seal-source-addendum.json",
+      "originalPath": "/workspace/file-preview-23b8-independent-final-two-peer-literal-seal-source-addendum.json",
+      "sha256": "1c9cb2f6fb49af15a2007860192a72cc13ee1c21ad12994fd67a93046a46ac7c",
+      "bytes": 2648
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/source-peer/root-final-current-file-preview10-source-binding-peer.json",
+      "originalPath": "/workspace/phase5f-file-preview-current-a7-native-copy-gate-final-peer-source-preparation-attempt11/root-final-current-file-preview10-source-binding-peer.json",
+      "sha256": "c36dd33764b01d9908e37f45c642c195c3a0638cc5a8706b78d7a0ba833d2c3e",
+      "bytes": 4789
+    }
+  ],
+  "historicalFailureAdoptions": [
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/README.md",
+      "sourceRoot": "/workspace/phase5f-file-preview-current-a7-copy-gate-failure-evidence-source-attempt8",
+      "sourceHead": "7c6833a6b6eebc5249ae3f245def933f4750933e",
+      "sha256": "a539b884f71bddcde6315121c607d74525c9c46c5881fc116e51f0f5eb1621a8",
+      "bytes": 1469
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/manifest.json",
+      "sourceRoot": "/workspace/phase5f-file-preview-current-a7-copy-gate-failure-evidence-source-attempt8",
+      "sourceHead": "7c6833a6b6eebc5249ae3f245def933f4750933e",
+      "sha256": "5a6d4c9472614f8f1d7ec0e89848ac5d2a25dfa92e1cb771bc16806850dd8347",
+      "bytes": 4776
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/original-records/actual-current-a7-copy-package-gate-setup-failure-closed-release.json",
+      "sourceRoot": "/workspace/phase5f-file-preview-current-a7-copy-gate-failure-evidence-source-attempt8",
+      "sourceHead": "7c6833a6b6eebc5249ae3f245def933f4750933e",
+      "sha256": "738c885e5f2c3f983584723d509c2d0205857b485b276a718c26fafe163563ed",
+      "bytes": 4670
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/original-records/current-a7-build-new-pure24-file-fixture-causal-carry.json",
+      "sourceRoot": "/workspace/phase5f-file-preview-current-a7-copy-gate-failure-evidence-source-attempt8",
+      "sourceHead": "7c6833a6b6eebc5249ae3f245def933f4750933e",
+      "sha256": "7e7f58994ed541c92e8861173320c86f2139c1d3335de30d22c5277398bc226b",
+      "bytes": 1419
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/original-records/final-source-artifact-input-pins-command.json",
+      "sourceRoot": "/workspace/phase5f-file-preview-current-a7-copy-gate-failure-evidence-source-attempt8",
+      "sourceHead": "7c6833a6b6eebc5249ae3f245def933f4750933e",
+      "sha256": "1a9efbece987d1cd6911008820137732c5de99ce18d5b86b864deb0f5e21a4a1",
+      "bytes": 1295
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/original-records/final-source-artifact-input-pins.log",
+      "sourceRoot": "/workspace/phase5f-file-preview-current-a7-copy-gate-failure-evidence-source-attempt8",
+      "sourceHead": "7c6833a6b6eebc5249ae3f245def933f4750933e",
+      "sha256": "a442140bf251c273dc8a95bee62ea0d990ee9a88a984638b7490575dc65351f8",
+      "bytes": 950
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/original-records/frozen-approved-plan.json",
+      "sourceRoot": "/workspace/phase5f-file-preview-current-a7-copy-gate-failure-evidence-source-attempt8",
+      "sourceHead": "7c6833a6b6eebc5249ae3f245def933f4750933e",
+      "sha256": "49eed0c9d3babfd4d7278baada7103ed6a284263d11a4b5476e24377f974caab",
+      "bytes": 17348
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/original-records/isolated-copy-command.json",
+      "sourceRoot": "/workspace/phase5f-file-preview-current-a7-copy-gate-failure-evidence-source-attempt8",
+      "sourceHead": "7c6833a6b6eebc5249ae3f245def933f4750933e",
+      "sha256": "1e79caf5a93b62b81576692368506225bfe5f469750c29091569112198fb5952",
+      "bytes": 1446
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/original-records/isolated-copy.log",
+      "sourceRoot": "/workspace/phase5f-file-preview-current-a7-copy-gate-failure-evidence-source-attempt8",
+      "sourceHead": "7c6833a6b6eebc5249ae3f245def933f4750933e",
+      "sha256": "05d2d8ac720ab3f3b11048ccd0ac6b7ec621eb89f027f3a26279dd0236e9dff7",
+      "bytes": 84
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/original-records/physical-after-command.json",
+      "sourceRoot": "/workspace/phase5f-file-preview-current-a7-copy-gate-failure-evidence-source-attempt8",
+      "sourceHead": "7c6833a6b6eebc5249ae3f245def933f4750933e",
+      "sha256": "9185f9ade5e6de7fa3faa44c10dc5442efcbedf5173845c9f284034081250f3c",
+      "bytes": 1760
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/original-records/physical-after.log",
+      "sourceRoot": "/workspace/phase5f-file-preview-current-a7-copy-gate-failure-evidence-source-attempt8",
+      "sourceHead": "7c6833a6b6eebc5249ae3f245def933f4750933e",
+      "sha256": "97aac1d7a2666f87e2ec4355ec3d9bc0910a7190fac0379c9e72c54630c40630",
+      "bytes": 1149
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/original-records/qualified-current-a7-build-producer-preflight-command.json",
+      "sourceRoot": "/workspace/phase5f-file-preview-current-a7-copy-gate-failure-evidence-source-attempt8",
+      "sourceHead": "7c6833a6b6eebc5249ae3f245def933f4750933e",
+      "sha256": "8f21866594917279dead3d61c14ab0c6bbc9ba4c0e32006e5b305e28ab3c77a2",
+      "bytes": 1327
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/original-records/qualified-current-a7-build-producer-preflight.log",
+      "sourceRoot": "/workspace/phase5f-file-preview-current-a7-copy-gate-failure-evidence-source-attempt8",
+      "sourceHead": "7c6833a6b6eebc5249ae3f245def933f4750933e",
+      "sha256": "44ebaa303713644672cafc49cfee64773c540ef7c1a048848ffbc026de299230",
+      "bytes": 99
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/README.md",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "a6b646b0aec779a1907a7bd406a3cbebdafdd403639474fec568b3250017b287",
+      "bytes": 2120
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/curation-manifest.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "01cf8c5020eb7b366c53f86511dfba13738bedfe2ea19e2f80143bdada27eccf",
+      "bytes": 13286
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/actual-file6e-genuine-preview200-keyboard-focus-failure-closed-release.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "cecfb35007e536cbca9eba13dea29bbd05e18db2c745b533add67aa382000849",
+      "bytes": 16542
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/chromium-child-temp-owner.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "c1769e91bbe4f31573fb57187e16fca6f120db31b5d89bdd1e4592816104cadd",
+      "bytes": 586
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/enabled-storage-draft-build-input-witness.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "55dfef592cada4419b9160c5d397c1a5fcebe86ef96d567fe922858bdbf9a2bb",
+      "bytes": 1337
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/file6e531-final-ten-independent-cross-file-mature-binding-source-addendum.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "daaf19069fb58f60c4598a4250eb08ab36184e313210f26fc7c568d02d821e9f",
+      "bytes": 2846
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/file6e531-independent-complete-dual-r2-route-contract-source-peer.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "bfe16ba97609e297b4b6e722fc92eef0dca37e9531695ad0ec1de884887221d5",
+      "bytes": 4770
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/final-f228-source-and-genuine-two-r2-file-preview-pins.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "7db6b2af144bcaffb70638024fb853267ad206f6e0ff68a8f4fc73416a9bad76",
+      "bytes": 3121
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/final-source-artifact-input-pins-command.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "8c5aee54334dd6a2ea251b6b6b3b3707fe5950822b9a36f0e008f755fa3ef7a3",
+      "bytes": 1261
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/final-source-artifact-input-pins.log",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "ad52b9ce593de734db53249bb841596bbf00d7e1696e6d19ee015c9c0cb48f81",
+      "bytes": 207
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/fresh-two-version-sentinel-command.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "8beab49a445a0b94130405233b1435098356decb02424d04ed1884f5029177af",
+      "bytes": 1900
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/fresh-two-version-sentinel.log",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "4d8a2d7fd6c7fdf4bef7120e2f6ef7f4f242543061ce67db069758719f24b1cd",
+      "bytes": 228
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/frozen-approved-plan.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "fd4620a8dfa35b396c033adfa0a0f6b3cd9da04f6839ddf5be1fc8ad5be8f9bb",
+      "bytes": 16511
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/genuine-two-r2-file-migration-preview-report.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "cb9b66bb5e4e13b6d6a6045ab49e173721bd8c877ca883f28cb133a579b94662",
+      "bytes": 82995
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/genuine-two-r2-file-migration-preview-stop.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "b07ea62552837d9eddb1b9a1c749278450ddebc4917f31ade95b2995686afd3c",
+      "bytes": 500
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/historical-current-source-build-and-pure24-witness-command.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "21d32fe376d5aa469b851d1a8f00388a250c8d8002abb7e18dc595c71d2f36c8",
+      "bytes": 1294
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/historical-current-source-build-and-pure24-witness.log",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "2accda108d4c6762a9a426388c83d95e2cbf3c9d7a6f20ba31ffd4fd1d90ebbc",
+      "bytes": 204
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/isolated-copy-command.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "6b35594da70f4a40fe27c32368b67382f1015be74f0e4935841a0d35363b7dc6",
+      "bytes": 1421
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/isolated-copy.log",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "309b9e5865e29b7a6dcfd2636f1446b6666db878d5e4737adc66060ab4f73d89",
+      "bytes": 201
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/ordinary-actual24-local-migrations-command.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "d15d4f85f2d0df4a646c51bc84ff2cab62faf200569e014d0cfd00d8bee9d6c7",
+      "bytes": 2014
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/ordinary-actual24-local-migrations.log",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "a4c2ee4f147f8110883945240afdfc2a2814e352b98694a6814440398a2d4360",
+      "bytes": 147956
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/original-f228-build-new-pure24-file-fixture-causal-carry.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "82ab4b013dd7424802eecc2f9154e1919746447719d933d5b3dc3629cea572f1",
+      "bytes": 1530
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/original-two-local-r2-file-migration-previews-command.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "f32fdaea76a38426166eaa51cd990cfb91c44356da64a889785d1290b0a49d02",
+      "bytes": 2353
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/original-two-local-r2-file-migration-previews.log",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "18ca8a260ef118c9b5e8b41ab4d5c1fbb7d41fe27dbe46d56216a2bd144aefbb",
+      "bytes": 300
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/physical-after-command.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "5528264c0ab2c5cb09532eba180e19a764d1b555f37267c7aebeced8515afd85",
+      "bytes": 1707
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/physical-after.log",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "9e968599f66a9e4b307b91f8dd6f384b959436e3837fc029514923836a11348d",
+      "bytes": 174
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/physical-before-command.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "10b9c8a9972e15dbd1436d29fefe1de01c22b5ac81bddc1b5b657a407cf67b57",
+      "bytes": 1367
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/physical-before.log",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "c81cd6f60626abe823939c2c472e0988fb4b17c0c443d350381981683dc090ce",
+      "bytes": 166
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/physical-sqlite-after-two-local-r2-migration-preview.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "7b61af2cc0e7708671e542e867e5e9d4dbd722c687f30f0385e5bc7de3956f31",
+      "bytes": 68768
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/physical-sqlite-before-api.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "5cd5d2248e0f90b3aaf7e094a9426e816873570f900c202675075329ba339535",
+      "bytes": 61887
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/process-fixture.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "3faa846afe33639e2e10f3da9e743ab66ec51448255e1d86d9e2457a178616e2",
+      "bytes": 1576
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/qualified-original-f228-build-producer-preflight-command.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "35e3bcd8cd02be0c043cbf228b78212fff19af44f68e24ac077515d9e26c3a52",
+      "bytes": 1301
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/qualified-original-f228-build-producer-preflight.log",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "44ebaa303713644672cafc49cfee64773c540ef7c1a048848ffbc026de299230",
+      "bytes": 99
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/synthetic-template-sentinels-only-command.json",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "d4d1d1408f9f1d9664fece2435df986abe14eead5b1b583a9aed999aa97f802c",
+      "bytes": 2103
+    },
+    {
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/synthetic-template-sentinels-only.log",
+      "sourceRoot": "/workspace/phase5f-file6e-native-preview-focus-failure-evidence-source-attempt3",
+      "sourceHead": "0d1eb4ec60476974783b25a0880db038cd9e410f",
+      "sha256": "769fd6f5b6fa2aecf50f3c9e6e84a4965331da91d3f65aac244d47ad083c4359",
+      "bytes": 1611
+    }
+  ],
+  "compactLatestDevelopmentCiReceipts": [
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/pr269-own-and-merge/receipt.json",
+      "originalPath": "/workspace/pr269-be67-own-ci-complete-premerge-attempt1/receipt.json",
+      "sha256": "418adf74fb31e6a281e8335435751777fd6c1c2a116ab0d697b2eeb1150f94ff",
+      "bytes": 921
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/pr269-own-and-merge/merge-receipt.json",
+      "originalPath": "/workspace/pr269-be67-own-ci-complete-premerge-attempt1/merge-receipt.json",
+      "sha256": "1f09a64421ead2f0c8097c3d9f0662e79c9a0bfaf967117cca38d65d14395662",
+      "bytes": 457
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/pr269-postmerge/receipt.json",
+      "originalPath": "/workspace/pr269-627-postmerge-complete-ci-attempt1/receipt.json",
+      "sha256": "b094854fbf1e88fceb148c44da01a14237accb72ad1bac20fa49809c068d95ed",
+      "bytes": 1652
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/pr270-own-and-merge/receipt.json",
+      "originalPath": "/workspace/pr270-bfeb-own-ci-complete-premerge-attempt1/receipt.json",
+      "sha256": "3051eb04a187f4db789b767c6133660951d4ab710a3dc6d91ca7a2b20b4a1f54",
+      "bytes": 1406
+    },
+    {
+      "path": "docs/qualification/phase5f-file-current-a7-23b8-preview-two-2026-10-11/records/pr270-own-and-merge/merge-receipt.json",
+      "originalPath": "/workspace/pr270-bfeb-own-ci-complete-premerge-attempt1/merge-receipt.json",
+      "sha256": "dc9039df29534876817e36f732c6369a46d44bdb3c3bbc4b574b9e946ab511cd",
+      "bytes": 1020
+    }
+  ],
+  "scope": "Exact isolated development fixture only; no migration acceptance/executor/transfer/GC/ZIP/provider/deployment/mainTarget/whole5F qualification. Original failed scopes remain failed. Published current-head complete Verify/Map still UNRUN.",
+  "allOther2431BaseEntriesExactAtSourceLeafAdoptionBeforeOwnedRoadmapRefresh": true,
+  "finalOwnedRoadmapRefresh": {
+    "path": "docs/PRODUCT_ROADMAP.md",
+    "sha256": "a61638a6d5ab207420ee366c937f4cdba457863c61761ad744b2ea010cc48251",
+    "baseBlob": "f890afbe2ccf2086c0484576df0c3eb00d2b3fcd",
+    "allOther2430BaseEntriesExact": true
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "stage": "isolated-copy",
+  "cwd": "/workspace/portable-dev270-file-preview-focus-complete-native-helper-source-attempt2",
+  "argv": [
+    "python3",
+    "/workspace/phase5f-file-preview-current-a7-native-qa-copy-gate-source-attempt9/scripts/qa/phase5f/prepare-isolated-copy.py",
+    "--source-root",
+    "/workspace/portable-dev270-file-preview-focus-complete-native-helper-source-attempt2",
+    "--destination",
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/copy",
+    "--dependency-root",
+    "/workspace/sample-fabrication-workflow/node_modules"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5",
+    "SQLITE_TMPDIR": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5"
+  },
+  "startedAt": "2026-10-11T12:59:34.745924+00:00",
+  "status": "PASS",
+  "log": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/isolated-copy.log",
+  "pid": 1195319,
+  "processGroup": 1195319,
+  "originalStartTicks": "13683551",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T12:59:36.322355+00:00",
+  "logSha256": "c1274e0088c09a57327105e49ff538292b26115fca5d4459f8099da502dbb563"
+}
