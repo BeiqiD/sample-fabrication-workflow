@@ -1,0 +1,263 @@
+{
+  "kind": "current-node-configured-eight-actual/1",
+  "status": "PASS",
+  "sourceHead": "eaef0b5d1346faaa5cdf0fc8db0d9439919f1c42",
+  "sourceTree": "0908d3c9f3c17a46ca0c8c5459ed906e6ccd4512",
+  "sourceFreezeSha256": "bd8f5568cd5abfd542c068884c83490721150a1d85316a553f5cf03efdd88ede",
+  "planSha256": "c15c3499043056ff541dd08454eaf8f304b25b5566ce530cbc65728aaf0c44f7",
+  "runnerSha256": "8611da94d2d2e3ebff66a4455e536e3c4b8a52705d534a8cbff99ec61e4a7d50",
+  "sourcePinsVerifiedBefore": true,
+  "strictCarry": {
+    "dependencyCanonicalTarget": "/workspace/sample-fabrication-workflow/node_modules",
+    "nodeExecutableSha256": "bc17c508ffeed0ec622934f9b7fa72f8e78da65350e63c3eceb56fa688aa5e12",
+    "typescriptEntrypointSha256": "2219f428a7e55aaf1f7ad85b9b0f0cf5078aeb76ccc9a7c6036c92d48f492ffd",
+    "actualOwnedFixtureCompilerReceiptPath": "/workspace/current-a5-qualified-writer-continuation-source-handoffs/affected-node-types-attempt1/receipt.json",
+    "actualOwnedFixtureCompilerReceiptSha256": "f770147c48efa0fdc750a0a2b231af4a308eda83ea22e154e06dd73a31f8da95",
+    "actualCompilerSourceHead": "eaef0b5d1346faaa5cdf0fc8db0d9439919f1c42",
+    "causalInputClosurePath": "/workspace/current-a5-qualified-writer-continuation-source-handoffs/complete-before-affected-node-types-source-freeze.json",
+    "causalInputClosureSha256": "bd8f5568cd5abfd542c068884c83490721150a1d85316a553f5cf03efdd88ede",
+    "scope": "Actual current Server strict PASS covers include server, including all three original fixture/support groups; all2575 current inputs/modes verified before and after on exact current head. No compiler repeated and no Native case carry.",
+    "actualCompilerSourceTree": "0908d3c9f3c17a46ca0c8c5459ed906e6ccd4512"
+  },
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "local-file-enabled-composer-qualification.vitest.config.mts",
+    "--reporter=verbose",
+    "--reporter=json",
+    "--outputFile.json=/workspace/current-a5-qualified-writer-configured-eight-owned-actual-attempt1/actual-native.json"
+  ],
+  "expectedTotal": 8,
+  "expectedSelected": 8,
+  "expectedUnselected": 0,
+  "caseDefaultMs": 5000,
+  "hookDefaultMs": 10000,
+  "observedFilesystemRootOwnerUid": 65534,
+  "runtimeResults": [
+    {
+      "name": "current-configured-eight",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "local-file-enabled-composer-qualification.vitest.config.mts",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/workspace/current-a5-qualified-writer-configured-eight-owned-actual-attempt1/actual-native.json"
+      ],
+      "pid": 1218121,
+      "processGroup": 1218121,
+      "exitCode": 0,
+      "durationSeconds": 29.092,
+      "actualOriginalChildWaited": true,
+      "logPath": "/workspace/current-a5-qualified-writer-configured-eight-owned-actual-attempt1/original-native.log",
+      "logSha256": "b3ea62bee23479d563bbb52c35e1018c3edc2e0f20c9f788a5f22832bf45ed88",
+      "rawJsonPath": "/workspace/current-a5-qualified-writer-configured-eight-owned-actual-attempt1/actual-native.json",
+      "ownedClosure": {
+        "processGroup": 1218121,
+        "processes": [],
+        "activeOrUnknownOwner": false,
+        "observedFixtureDescriptorCount": 0,
+        "kernelExitedUnreadableDescriptorsInformationalOnly": []
+      },
+      "rawJsonSha256": "095866d670c4223a91f24b27ed7504310eb84531ac0bb0cea403d608b2c77d9c",
+      "actualTotal": 8,
+      "actualPassed": 8,
+      "actualFailed": 0,
+      "actualPending": 0,
+      "actualReporterPending": 0,
+      "actualAssertions": [
+        {
+          "title": "mounts real ordinary upload and Definition writes on one original application File owner with exact SSOT bindings",
+          "status": "passed"
+        },
+        {
+          "title": "routes ordinary active File Sample lifecycle through its four exact Request operations without administrator bypass",
+          "status": "passed"
+        },
+        {
+          "title": "creates a mounted native File Sample record while preserving every inherited audit row and rejecting stale CAS",
+          "status": "passed"
+        },
+        {
+          "title": "returns original201 from mounted verify-state and preserves complete native evidence coverage and stale CAS",
+          "status": "passed"
+        },
+        {
+          "title": "denies embedded-content upload as a Project research source without fabricating an unavailable upload ingress",
+          "status": "passed"
+        },
+        {
+          "title": "rechecks the real mounted Request session inside native mutation BEGIN before any complete business cell changes",
+          "status": "passed"
+        },
+        {
+          "title": "retains the genuine first body chunk through original application drain until EOF and sole native physical ACK",
+          "status": "passed"
+        },
+        {
+          "title": "restarts one explicit configured owner and reads the same published bytes without rebuilding or reinitializing storage",
+          "status": "passed"
+        }
+      ],
+      "actualSelectedTotal": 8,
+      "actualSelectedPassed": 8,
+      "actualSelectedFailed": 0,
+      "actualSelectedPending": 0,
+      "actualUnselected": 0,
+      "status": "PASS"
+    }
+  ],
+  "authorityScope": "Current development joined Node source eaef0b5d1346faaa5cdf0fc8db0d9439919f1c42; original configured-eight wholly fresh, zero Native case carry. Same original Native/core/physical lease and current Request/session/role/incarnation/recovery fences, qualified active original writer continuation; source-specific donor results remain historical. No Group/V28/CLI/research/metrology grant or runtime default broadening.",
+  "privateTemporaryDirectoryBefore": {
+    "path": "/workspace/current-a5-qualified-writer-configured-eight-owned-actual-attempt1/private-tmp",
+    "dev": 27,
+    "ino": 1946288,
+    "uid": 1000,
+    "gid": 1000,
+    "mode": "0o700",
+    "freeBytesBeforeChild": 2933649408,
+    "childEnvOverrides": {
+      "TMPDIR": "/workspace/current-a5-qualified-writer-configured-eight-owned-actual-attempt1/private-tmp",
+      "SQLITE_TMPDIR": "/workspace/current-a5-qualified-writer-configured-eight-owned-actual-attempt1/private-tmp"
+    }
+  },
+  "privateFixtureDirectoryBefore": {
+    "path": "/workspace/current-a5-qualified-writer-configured-eight-owned-actual-attempt1/private-fixtures",
+    "dev": 27,
+    "ino": 1946289,
+    "uid": 1000,
+    "gid": 1000,
+    "mode": "0o700",
+    "childEnvOverride": {
+      "NODE_PROTOTYPE_FIXTURE_PARENT": "/workspace/current-a5-qualified-writer-configured-eight-owned-actual-attempt1/private-fixtures"
+    }
+  },
+  "explicitInheritedCatalogKdfBeforeAllMs": 20000,
+  "actualHistoricalCompilerReceipts": [
+    {
+      "path": "/workspace/current-a5-qualified-writer-continuation-source-handoffs/affected-node-types-attempt1/receipt.json",
+      "sha256": "f770147c48efa0fdc750a0a2b231af4a308eda83ea22e154e06dd73a31f8da95",
+      "actualSourceHead": "eaef0b5d1346faaa5cdf0fc8db0d9439919f1c42",
+      "actualSourceTree": "0908d3c9f3c17a46ca0c8c5459ed906e6ccd4512",
+      "scope": "Actual current Server strict PASS covers include server, including all three original fixture/support groups; all2575 current inputs/modes verified before and after on exact current head. No compiler repeated and no Native case carry."
+    }
+  ],
+  "originalChildCustody": {
+    "pid": 1218121,
+    "processGroup": 1218121,
+    "command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "--config",
+      "local-file-enabled-composer-qualification.vitest.config.mts",
+      "--reporter=verbose",
+      "--reporter=json",
+      "--outputFile.json=/workspace/current-a5-qualified-writer-configured-eight-owned-actual-attempt1/actual-native.json"
+    ],
+    "status": "RUNNING",
+    "normalCompletionSnapshot": [],
+    "normalCompletionHadActiveChildren": false,
+    "closureInitialSnapshot": [],
+    "actualExitCode": 0,
+    "closureFinalSnapshot": [],
+    "ownedClosureProven": true,
+    "actualOriginalChildWaited": true,
+    "exitCode": 0,
+    "helperSha256": "b623484a36325020644d64479cc41939c20a984a07a1ba585e4be1a17e812889"
+  },
+  "sourcePinsVerifiedBeforeAfter": true,
+  "retainedRuntimeFixtureArtifacts": [
+    {
+      "path": "/workspace/current-a5-qualified-writer-configured-eight-owned-actual-attempt1/private-fixtures/.node-local-file-enabled-composer-jnx4vC",
+      "uid": 1000,
+      "mode": "0o700",
+      "symlink": false,
+      "files": [
+        "case-1/00000083-0000-4000-8000-000000000001/namespace.json",
+        "case-1/00000083-0000-4000-8000-000000000001/objects/bfcd7fe423972c3e66b8d501d3e40aeb6f7ee386c164a880259e01f81b2202ee/data",
+        "case-1/00000083-0000-4000-8000-000000000001/objects/bfcd7fe423972c3e66b8d501d3e40aeb6f7ee386c164a880259e01f81b2202ee/metadata.json",
+        "case-1/00000083-0000-4000-8000-000000000002/namespace.json",
+        "case-1/client/index.html",
+        "case-1/data/application.sqlite",
+        "case-1/data/application.sqlite.writer-lock",
+        "case-1/runtime.json",
+        "case-2/00000083-0000-4000-8000-000000000001/namespace.json",
+        "case-2/00000083-0000-4000-8000-000000000002/namespace.json",
+        "case-2/client/index.html",
+        "case-2/data/application.sqlite",
+        "case-2/data/application.sqlite.writer-lock",
+        "case-2/runtime.json",
+        "case-3/00000083-0000-4000-8000-000000000001/namespace.json",
+        "case-3/00000083-0000-4000-8000-000000000001/objects/24e718d5e59ace6d17b719cf20cfce93c048796cef2392f8d19141514e8b055c/data",
+        "case-3/00000083-0000-4000-8000-000000000001/objects/24e718d5e59ace6d17b719cf20cfce93c048796cef2392f8d19141514e8b055c/metadata.json",
+        "case-3/00000083-0000-4000-8000-000000000002/namespace.json",
+        "case-3/client/index.html",
+        "case-3/data/application.sqlite",
+        "case-3/data/application.sqlite.writer-lock",
+        "case-3/runtime.json",
+        "case-4/00000083-0000-4000-8000-000000000001/namespace.json",
+        "case-4/00000083-0000-4000-8000-000000000001/objects/2dab9381be16fde4c79a83b37eaf0933f639e4ec93841cd120d79322a404b356/data",
+        "case-4/00000083-0000-4000-8000-000000000001/objects/2dab9381be16fde4c79a83b37eaf0933f639e4ec93841cd120d79322a404b356/metadata.json",
+        "case-4/00000083-0000-4000-8000-000000000002/namespace.json",
+        "case-4/client/index.html",
+        "case-4/data/application.sqlite",
+        "case-4/data/application.sqlite.writer-lock",
+        "case-4/runtime.json",
+        "case-5/00000083-0000-4000-8000-000000000001/namespace.json",
+        "case-5/00000083-0000-4000-8000-000000000001/objects/8b0e7763948420321dc5a00dcf2aeff892b12c97b1290eace2bbc1451f5df632/data",
+        "case-5/00000083-0000-4000-8000-000000000001/objects/8b0e7763948420321dc5a00dcf2aeff892b12c97b1290eace2bbc1451f5df632/metadata.json",
+        "case-5/00000083-0000-4000-8000-000000000002/namespace.json",
+        "case-5/client/index.html",
+        "case-5/data/application.sqlite",
+        "case-5/data/application.sqlite.writer-lock",
+        "case-5/runtime.json",
+        "case-6/00000083-0000-4000-8000-000000000001/namespace.json",
+        "case-6/00000083-0000-4000-8000-000000000002/namespace.json",
+        "case-6/client/index.html",
+        "case-6/data/application.sqlite",
+        "case-6/data/application.sqlite.writer-lock",
+        "case-6/runtime.json",
+        "case-7/00000083-0000-4000-8000-000000000001/namespace.json",
+        "case-7/00000083-0000-4000-8000-000000000002/namespace.json",
+        "case-7/client/index.html",
+        "case-7/data/application.sqlite",
+        "case-7/data/application.sqlite.writer-lock",
+        "case-7/runtime.json",
+        "case-8/00000083-0000-4000-8000-000000000001/namespace.json",
+        "case-8/00000083-0000-4000-8000-000000000001/objects/0e07b9f84360695b20cfe8488650794d821770b3b75499afc97295b183957431/data",
+        "case-8/00000083-0000-4000-8000-000000000001/objects/0e07b9f84360695b20cfe8488650794d821770b3b75499afc97295b183957431/metadata.json",
+        "case-8/00000083-0000-4000-8000-000000000002/namespace.json",
+        "case-8/client/index.html",
+        "case-8/data/application.sqlite",
+        "case-8/data/application.sqlite.writer-lock",
+        "case-8/runtime.json",
+        "installed-template.sqlite",
+        "installed-template.sqlite.writer-lock"
+      ]
+    }
+  ],
+  "privateTemporaryDirectoryAfter": {
+    "path": "/workspace/current-a5-qualified-writer-configured-eight-owned-actual-attempt1/private-tmp",
+    "dev": 27,
+    "ino": 1946288,
+    "uid": 1000,
+    "gid": 1000,
+    "mode": "0o700"
+  },
+  "privateFixtureDirectoryAfter": {
+    "path": "/workspace/current-a5-qualified-writer-configured-eight-owned-actual-attempt1/private-fixtures",
+    "dev": 27,
+    "ino": 1946289,
+    "uid": 1000,
+    "gid": 1000,
+    "mode": "0o700"
+  },
+  "finalClosureSha256": "5031589f26bb350ac67548eb474d0ac68581e664651d9056023a12c261a5b0a9",
+  "allOwnedProcessGroupsKernelClosedAfter": true,
+  "closureScope": "Original whole setup/case ALS roots retain original filesystem/acquire/socket/app/Response/body and secondary owners. Cached original successful full-body read or cancel and HTTP/component drain precede same Native/core ACK and physical lease release. Failed/quarantined original remains retained; no retry/fallback, provider/default activation or expanded budgets."
+}

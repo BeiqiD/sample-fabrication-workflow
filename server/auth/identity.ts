@@ -15,6 +15,24 @@ export interface LocalPrincipal {
 export interface LocalSessionDelivery { readonly token: string; readonly principal: LocalPrincipal; readonly absoluteExpiresAt: number }
 export interface IdentityPolicy { absoluteLifetimeMs: number; idleLifetimeMs: number; loginWindowMs: number; loginAttempts: number; throttleBuckets: number }
 export interface OfflineWriterFence { assertHeld(): void }
+interface InstalledIdentityOwner {
+  database: SqliteCapability; nativeDatabase: DatabaseSync; admission: ReviewedInstallationAdmission;
+  policy: Readonly<IdentityPolicy>;
+}
+const installedOwners = new WeakMap<object, Readonly<InstalledIdentityOwner>>();
+/** Identity facts can use only the genuinely constructed installed service and
+ * its captured session policy. A prototype, copied method bag or other actual
+ * connection is not an owner; this grants no role or research capability. */
+export function assertInstalledLocalIdentityOwner(service: object, database: SqliteCapability,
+  nativeDatabase: DatabaseSync, admission: ReviewedInstallationAdmission): Readonly<IdentityPolicy> {
+  const owner = installedOwners.get(service);
+  if (!owner || owner.database !== database || owner.nativeDatabase !== nativeDatabase || owner.admission !== admission) {
+    throw new Error('Installed local identity owner is unavailable');
+  }
+  assertSqliteConnectionOwner(database, nativeDatabase);
+  assertInstallationAdmission(nativeDatabase, admission);
+  return owner.policy;
+}
 export class IdentityError extends Error {
   readonly code: 'invalid_input' | 'login_denied' | 'bootstrap_unavailable' | 'account_unavailable';
   constructor(code: IdentityError['code']) {
@@ -89,7 +107,10 @@ export async function createInstalledLocalIdentity(options: PersistenceOptions &
     assertInstallationAdmission(nativeDatabase, admission);
     await assertExactLocalIdentityObjects(database);
   };
-  await validate(); return createIdentityPersistence({ database, hasher, policy: limits }, validate);
+  await validate();
+  const service = await createIdentityPersistence({ database, hasher, policy: limits }, validate);
+  installedOwners.set(service, Object.freeze({ database, nativeDatabase, admission, policy: limits }));
+  return service;
 }
 
 async function createIdentityPersistence(options: PersistenceOptions, validate: () => Promise<void>) {

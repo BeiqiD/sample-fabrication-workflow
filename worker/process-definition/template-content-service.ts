@@ -90,8 +90,12 @@ export async function createTemplateStepWithDatabase<Statement extends TemplateC
      VALUES (?, ?, 'diagram', ?, ?)`,
   ).bind(state.hash, STATE_HASH_SCHEME, stableJson(state.canonical), now));
   if (state && asset) statements.push(db.prepare(
-    "INSERT OR IGNORE INTO state_representation_assets (state_hash, asset_id, position, file_id) VALUES (?, ?, 0, ?)",
-  ).bind(state.hash, asset.id, fileId));
+    `INSERT OR IGNORE INTO state_representation_assets (state_hash, asset_id, position, file_id)
+     SELECT ?, ?, 0, ? WHERE NOT EXISTS (
+       SELECT 1 FROM state_representation_assets
+       WHERE state_hash = ? AND asset_id = ? AND position = 0 AND file_id IS ?
+     )`,
+  ).bind(state.hash, asset.id, fileId, state.hash, asset.id, fileId));
   statements.push(db.prepare(
     `INSERT INTO template_steps
      (id, template_version_id, logical_step_key, position, definition_hash, expected_state_hash)
@@ -149,8 +153,12 @@ export async function updateTemplateStepWithDatabase<Statement extends TemplateC
      VALUES (?, ?, 'diagram', ?, ?)`,
   ).bind(state.hash, STATE_HASH_SCHEME, stableJson(state.canonical), now));
   if (state && asset) statements.push(db.prepare(
-    "INSERT OR IGNORE INTO state_representation_assets (state_hash, asset_id, position, file_id) VALUES (?, ?, 0, ?)",
-  ).bind(state.hash, asset.id, fileId));
+    `INSERT OR IGNORE INTO state_representation_assets (state_hash, asset_id, position, file_id)
+     SELECT ?, ?, 0, ? WHERE NOT EXISTS (
+       SELECT 1 FROM state_representation_assets
+       WHERE state_hash = ? AND asset_id = ? AND position = 0 AND file_id IS ?
+     )`,
+  ).bind(state.hash, asset.id, fileId, state.hash, asset.id, fileId));
   statements.push(db.prepare(
     `UPDATE template_steps SET definition_hash = ?, expected_state_hash = ?
      WHERE id = ? AND template_version_id = ? AND EXISTS (

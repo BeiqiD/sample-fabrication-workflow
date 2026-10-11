@@ -1,0 +1,22 @@
+{
+  "status": "ROOT_CURRENT_EAEF_COMPLETE_SOURCE_BINDING_CLEAR_ACTUAL25_UNRUN",
+  "head": "eaef0b5d1346faaa5cdf0fc8db0d9439919f1c42",
+  "tree": "0908d3c9f3c17a46ca0c8c5459ed906e6ccd4512",
+  "inputs": 2575,
+  "baseProtected": 2574,
+  "qualifiedWriterSha256": "0d46f19c5d7dd0c9ba389fef932e22332c5ce68874f55b9a727c644251d09b9a",
+  "currentServerTypesReceipt": "f770147c48efa0fdc750a0a2b231af4a308eda83ea22e154e06dd73a31f8da95",
+  "finiteHandoffSha256": "11e791362b537dea35cde4d57b57ec0209759d76557fe7291149d4ac0f0f8111",
+  "stages": [
+    "configured-eight",
+    "job-eleven",
+    "runtime-six"
+  ],
+  "freshSelectedTotal": 25,
+  "nativeCarry": 0,
+  "allThreeMatureRunnerSupervisorExactDeclaredInverse": true,
+  "fullPinsAndReferencesExact": true,
+  "verifiedReferenceCount": 11,
+  "priorPlanFormalRelease": "97ce6e4a1601ecab8d7be2f4d652c3dd3530ceb0ebf0f694cc914bae6ceba6b5",
+  "scope": "All a5 Node/File/Job adoption retained; only exact qualified active-original same-issued writer continuation changed; drain rejects new/late/foreign admission. Original 8,11,6 bodies/default budgets preserved; unmounted job component is not active jobs acceptance. Each stage requires root formal closure read before next GO."
+}

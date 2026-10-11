@@ -1,0 +1,22 @@
+{
+  "kind": "current-node-runtime-six-supervision/1",
+  "status": "PASS",
+  "startedAt": "2026-10-11T13:30:45.981070+00:00",
+  "argv": [
+    "python3",
+    "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/runtime-six/original-owned-runner.py"
+  ],
+  "runnerSha256": "98479bed3ed7482ed40bc9b9f364a31124dc36595eaff27c63fc4e35638e2e0e",
+  "planSha256": "b194ba9a11b810fd10615a53847a171380eb93fb7bf5d7c8ec9ba71c8c83ef67",
+  "outerBudgetSeconds": 180,
+  "scope": "Current development joined Node source eaef0b5d1346faaa5cdf0fc8db0d9439919f1c42; original runtime-six wholly fresh, zero Native case carry. Same original Native/core/physical lease and current Request/session/role/incarnation/recovery fences, qualified active original writer continuation; source-specific donor results remain historical. No Group/V28/CLI/research/metrology grant or runtime default broadening.",
+  "originalHandleWaitRequired": true,
+  "pid": 1225033,
+  "processGroup": 1225033,
+  "exitCode": 0,
+  "originalRunnerWaitedReaped": true,
+  "endedAt": "2026-10-11T13:31:09.049348+00:00",
+  "seconds": 23.068,
+  "actualReceiptPath": "/workspace/current-a5-qualified-writer-runtime-six-owned-actual-attempt1/receipt.json",
+  "actualReceiptSha256": "f119a067877c72e025662a86d709dddd2130f2ff03a739ee7530771d77e9f44f"
+}

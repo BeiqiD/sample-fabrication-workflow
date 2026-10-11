@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.server.json",
+  "files": ["server/files/jobs/request-http.qualification.ts"],
+  "include": [],
+  "exclude": []
+}

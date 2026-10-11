@@ -7,6 +7,7 @@ import type { ByteMetadata, ByteReader } from "../../worker/files/byte-reader";
 import { ByteVerificationError, bufferByteStream, validateByteExpectation, verifyingStream } from "../../worker/files/byte-verification";
 import type { ByteWriteInput, ByteWriter } from "../../worker/files/byte-writer";
 import { nodeSha256 } from "./node-sha256";
+import type { FileByteOperation } from "../../worker/files/storage-profile-opening";
 
 export interface LocalByteNamespace {
   readonly volumeId: string;
@@ -24,6 +25,13 @@ export interface LocalByteStorage {
   readonly writer: ByteWriter;
   readonly deleter: ByteDeleter;
   close(): Promise<void>;
+}
+/** Optional owned runtime fencing. The final synchronous assertion runs after
+ * asynchronous authorization and immediately before destructive publication.
+ * Already-started filesystem operations cannot be revoked retroactively. */
+export interface LocalByteStorageMutationFence {
+  beforeMutation(operation: FileByteOperation): Promise<boolean>;
+  assertCurrent(operation: FileByteOperation): void;
 }
 export class LocalByteStorageError extends Error {
   constructor(readonly reason: "unavailable" | "conflict") {
@@ -112,6 +120,13 @@ async function writeAll(handle: FileHandle, value: Uint8Array) {
     offset += result.bytesWritten;
   }
 }
+async function closeHandles(handles: readonly FileHandle[]) {
+  // One early close rejection must not report settlement while another native
+  // close remains pending. Failed owners stay referenced for quarantine.
+  const results = await Promise.allSettled(handles.map(handle => handle.close()));
+  const failures = results.flatMap(result => result.status === "rejected" ? [result.reason] : []);
+  if (failures.length) throw new AggregateError(failures, "Local byte handles did not all close");
+}
 function metadata(value: unknown, namespace: LocalByteNamespace, key: string): ObjectMetadata {
   if (!exactKeys(value, ["format", "namespace", "key", "byteSize", "sha256", "contentType", "filename"])
     || value.format !== "local-byte-object-v1" || !sameNamespace(value.namespace, namespace) || value.key !== key
@@ -133,7 +148,22 @@ const headers = (value: ObjectMetadata): ByteMetadata => ({ contentType: value.c
  * Private local directories are required; hostile host-admin mutation and
  * network/multi-writer filesystem semantics are not qualified by these checks.
  */
-export async function openLocalByteStorage(binding: LocalByteBinding): Promise<LocalByteStorage> {
+export async function openLocalByteStorage(binding: LocalByteBinding, fence?: LocalByteStorageMutationFence): Promise<LocalByteStorage> {
+  const beforeMutation = fence?.beforeMutation.bind(fence), assertCurrent = fence?.assertCurrent.bind(fence);
+  function synchronousCurrent(operation: FileByteOperation) {
+    // A void callback type alone permits async functions. Reject a deferred
+    // assertion so a bad composition cannot publish before validation settles.
+    const result: unknown = assertCurrent?.(Object.freeze({ method: operation.method, key: operation.key }));
+    if (result !== undefined) {
+      if (result instanceof Promise) void result.catch(() => undefined);
+      fail();
+    }
+  }
+  async function mutation(operation: FileByteOperation) {
+    const captured = Object.freeze({ method: operation.method, key: operation.key });
+    if (beforeMutation && await beforeMutation(captured) !== true) fail();
+    synchronousCurrent(captured);
+  }
   validateNamespace(binding.namespace);
   if (!isAbsolute(binding.root) || resolve(binding.root) !== binding.root || !Number.isInteger(constants.O_NOFOLLOW)
     || typeof process.geteuid !== "function") fail();
@@ -146,7 +176,8 @@ export async function openLocalByteStorage(binding: LocalByteBinding): Promise<L
     const marker = await smallJson(markerPath);
     if (!exactKeys(marker, ["format", "namespace"]) || marker.format !== "local-byte-namespace-v1" || !sameNamespace(marker.namespace, namespace)) fail();
   } catch { await Promise.allSettled(opened.map(value => value.handle.close())); fail(); }
-  let closed = false;
+  let closed = false, closing: Promise<void> | undefined;
+  const selectedClosers = new Set<() => Promise<void>>();
   async function checkNamespace() {
     if (closed) fail();
     for (const [index, path] of [root, objectsPath, stagingPath].entries()) {
@@ -167,7 +198,18 @@ export async function openLocalByteStorage(binding: LocalByteBinding): Promise<L
       if ((await readdir(path)).sort().join("\0") !== [DATA, METADATA].sort().join("\0")) fail();
       const value = metadata(await smallJson(join(path, METADATA)), namespace, key);
       const data = await regular(join(path, DATA));
-      return { path, value, data, directory: selected.handle };
+      const pendingReads = new Set<Promise<unknown>>();
+      let releasing: Promise<void> | undefined;
+      const release = () => releasing ??= (async () => {
+        // Failed close cannot bypass already-started native read settlement.
+        // Track the actual read promises, not a pull/cancel that awaits release.
+        const results = await Promise.allSettled([closeHandles([data, selected.handle]), ...pendingReads]);
+        const closeResult = results[0]!;
+        if (closeResult.status === "rejected") throw closeResult.reason;
+        selectedClosers.delete(release);
+      })();
+      selectedClosers.add(release);
+      return { path, value, data, directory: selected.handle, release, pendingReads };
     } catch (error) { await selected.handle.close(); throw error; }
   }
   const reader: ByteReader = {
@@ -179,20 +221,26 @@ export async function openLocalByteStorage(binding: LocalByteBinding): Promise<L
         try {
           const size = (await selected.data.stat({ bigint: true })).size;
           return { outcome: "available", byteSize: size <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(size) : null, ...headers(selected.value) };
-        } finally { await Promise.all([selected.data.close(), selected.directory.close()]); }
+        } finally { await selected.release(); }
       } catch { return { outcome: "unavailable" }; }
     },
     async read(key) {
       try {
         const selected = await object(key);
         if (!selected) return { outcome: "missing" };
-        let released = false;
-        const release = async () => { if (!released) { released = true; await Promise.all([selected.data.close(), selected.directory.close()]); } };
+        // Concurrent EOF/cancellation must await the same actual handle-close
+        // promise, including any already-started native read.
+        const release = selected.release;
         const body = new ReadableStream<Uint8Array>({
           async pull(controller) {
             try {
               const buffer = new Uint8Array(CHUNK_BYTES);
-              const { bytesRead } = await selected.data.read(buffer, 0, buffer.byteLength, null);
+              if (closed) fail();
+              const nativeRead = selected.data.read(buffer, 0, buffer.byteLength, null);
+              selected.pendingReads.add(nativeRead);
+              let bytesRead: number;
+              try { bytesRead = (await nativeRead).bytesRead; }
+              finally { selected.pendingReads.delete(nativeRead); }
               if (!bytesRead) { await release(); controller.close(); }
               else controller.enqueue(buffer.subarray(0, bytesRead));
             } catch { await release(); controller.error(new LocalByteStorageError("unavailable")); }
@@ -243,6 +291,9 @@ export async function openLocalByteStorage(binding: LocalByteBinding): Promise<L
         try { await stagedDirectory.handle.sync(); }
         finally { await stagedDirectory.handle.close(); }
         await checkNamespace();
+        await mutation({ method: "PUT", key: request.key });
+        // Check synchronous owned state once more after the awaited fence.
+        synchronousCurrent({ method: "PUT", key: request.key });
         await rename(stage, destination);
         // Nonempty immutable object directories prevent a competing writer's
         // rename from replacing an accepted object. Errors after this point
@@ -269,17 +320,28 @@ export async function openLocalByteStorage(binding: LocalByteBinding): Promise<L
           await checkNamespace();
           const tomb = await mkdtemp(join(stagingPath, "delete-"));
           // Remove the empty generated placeholder before one exact rename.
-          await rmdir(tomb); await rename(selected.path, tomb);
+          await rmdir(tomb);
+          await mutation({ method: "DELETE", key });
+          synchronousCurrent({ method: "DELETE", key });
+          await rename(selected.path, tomb);
           await opened[1].handle.sync(); await opened[2].handle.sync();
           await unlink(join(tomb, DATA)); await unlink(join(tomb, METADATA)); await rmdir(tomb);
           await opened[2].handle.sync();
           return { outcome: "acknowledged" };
-        } finally { await Promise.all([selected.data.close(), selected.directory.close()]); }
+        } finally { await selected.release(); }
       } catch { return { outcome: "unavailable" }; }
     },
   };
-  return { reader, writer, deleter, async close() {
-    if (closed) return;
-    closed = true; await Promise.all(opened.map(value => value.handle.close()));
+  return { reader, writer, deleter, close() {
+    if (closing) return closing;
+    closed = true;
+    closing = (async () => {
+      const results = await Promise.allSettled([
+        ...[...selectedClosers].map(release => release()), closeHandles(opened.map(value => value.handle)),
+      ]);
+      const failures = results.flatMap(result => result.status === "rejected" ? [result.reason] : []);
+      if (failures.length) throw new AggregateError(failures, "Local byte cleanup is incomplete");
+    })();
+    return closing;
   } };
 }

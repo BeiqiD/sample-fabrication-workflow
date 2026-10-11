@@ -77,7 +77,7 @@ async function candidate(row: CandidateRow, keyring: StorageCredentialKeyring | 
     createdAt: row.created_at, createdBy: row.created_by };
 }
 
-class AdministratorDenied extends HTTPException {
+export class AdministratorDenied extends HTTPException {
   constructor() { super(403, { message: "System administrator access is required." }); }
 }
 /** Services independently recheck current administrator grants. SQL and keyring

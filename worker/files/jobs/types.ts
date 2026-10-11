@@ -63,6 +63,9 @@ export interface JobBoundStorage {
   /** Unique single PUT is atomically visible only after its completed commit.
    * Required to reconcile unknown writes without original positive settlement. */
   atomicSinglePut: boolean;
+  /** Await the provider's original transport/stream cleanup. A failed dispose
+   * keeps the runtime owner quarantined; abort is not settlement evidence. */
+  dispose?(): Promise<void>;
 }
 export interface FileJobCapabilities {
   repository: FileJobRepository;

@@ -14,7 +14,7 @@ export interface ConsumerFileInput {
   sourceFileId?: string | null;
 }
 
-function selection(input: ConsumerFileInput) {
+function selection(input: ConsumerFileInput, nativeAdapter: "s3" | "local", nativeProfiles?: readonly [string, string]) {
   if ([input.assetId, input.assetKey, input.storageObjectId].filter(value => value !== undefined).length !== 1) {
     throw new HTTPException(400, { message: "One exact file attachment is required" });
   }
@@ -22,7 +22,7 @@ function selection(input: ConsumerFileInput) {
     if (input.assetId === undefined || input.assetKey !== undefined || input.storageObjectId !== undefined) {
       throw new HTTPException(400, { message: "A native File requires its exact asset identifier" });
     }
-    return nativeSelection(input);
+    return nativeSelection(input, nativeAdapter, nativeProfiles);
   }
   const managed = input.storageObjectId !== undefined;
   const source = managed
@@ -63,13 +63,18 @@ function selection(input: ConsumerFileInput) {
   };
 }
 
-function nativeSelection(input: ConsumerFileInput) {
+function nativeSelection(input: ConsumerFileInput, nativeAdapter: "s3" | "local", nativeProfiles?: readonly [string, string]) {
+  if (nativeAdapter !== "s3" && nativeAdapter !== "local")
+    throw new HTTPException(503, { message: "File storage is unavailable" });
+  if (nativeAdapter === "local" && (!nativeProfiles || nativeProfiles.length !== 2
+    || nativeProfiles.some(value => typeof value !== "string" || !value || value.length > 256 || value.includes("\0"))))
+    throw new HTTPException(503, { message: "File storage is unavailable" });
   return {
     sql: `WITH source AS (
       SELECT a.id,a.file_id,a.storage_profile_id,a.storage_profile_revision,a.object_key,a.byte_size,a.sha256
       FROM assets a JOIN storage_profiles profile ON profile.id=a.storage_profile_id
-        AND profile.configuration_revision=a.storage_profile_revision AND profile.adapter_type='s3'
-      WHERE a.id=? AND a.r2_key IS NULL AND a.status='ready'
+        AND profile.configuration_revision=a.storage_profile_revision AND profile.adapter_type='${nativeAdapter}'
+      WHERE a.id=?${nativeAdapter === "local" ? " AND a.storage_profile_id IN (?,?)" : ""} AND a.r2_key IS NULL AND a.status='ready'
         AND (a.import_id IS NULL OR EXISTS(SELECT 1 FROM imports i WHERE i.id=a.import_id AND i.status='ready'))
         AND EXISTS(SELECT 1 FROM file_location_publications recorded WHERE recorded.file_id=a.file_id
           AND recorded.storage_profile_id=a.storage_profile_id AND recorded.object_key=a.object_key
@@ -104,7 +109,7 @@ function nativeSelection(input: ConsumerFileInput) {
           JOIN file_usable_publications original ON original.file_id=d.source_file_id
           WHERE d.derived_file_id=f.file_id AND d.source_file_id=? AND d.trust_state='verified'))
       ORDER BY f.file_id LIMIT 1`,
-    bindings: [input.assetId!, input.purpose, input.purpose, input.purpose, input.purpose, input.sourceFileId ?? null],
+    bindings: [input.assetId!, ...(nativeAdapter === "local" ? nativeProfiles! : []), input.purpose, input.purpose, input.purpose, input.purpose, input.sourceFileId ?? null],
   };
 }
 
@@ -115,7 +120,7 @@ export async function resolveConsumerFileIdWithDatabase<Statement extends FileBu
   try { mode = await db.authorityMode(); }
   catch { throw new HTTPException(503, { message: "File storage is unavailable" }); }
   if (mode !== "active") return null;
-  const query = selection(input);
+  const query = selection(input, db.nativeAssetAdapter ?? "s3", db.nativeAssetProfileIds);
   let row;
   try { row = await db.primary().prepare(query.sql).bind(...query.bindings).first<{ file_id: string }>(); }
   catch { throw new HTTPException(503, { message: "File storage is unavailable" }); }
@@ -128,7 +133,7 @@ export async function resolveConsumerFileIdWithDatabase<Statement extends FileBu
 export function consumerFileBindingFenceWithDatabase<Statement extends FileBusinessMetadataStatement<Statement>>(db: FileBusinessMetadataDatabase<Statement>, input: ConsumerFileInput, fileId: string | null): Statement {
   if (fileId === null) return db.prepare(`SELECT CASE WHEN EXISTS(SELECT 1 FROM file_authority_control
     WHERE singleton=1 AND mode IN('legacy','overlap')) THEN 1 ELSE json('File authority changed') END`);
-  const query = selection(input);
+  const query = selection(input, db.nativeAssetAdapter ?? "s3", db.nativeAssetProfileIds);
   return db.prepare(`SELECT CASE WHEN (SELECT file_id FROM (${query.sql}))=? THEN 1
     ELSE json('File attachment binding changed') END`).bind(...query.bindings, fileId);
 }

@@ -13,6 +13,20 @@ export type LocalIdentityHttpService = Pick<Awaited<ReturnType<typeof createInst
 export type LocalAuthEnvironment<Bindings extends object = object> = {
   Bindings: Bindings; Variables: { userEmail: string; currentPrincipal: LocalPrincipal };
 };
+/** Private ownership accessor for identity-only request facts. This does not
+ * convert a callback bag into an authentication owner or grant any capability. */
+interface LocalAuthenticationIdentityAuthority {
+  readonly identity: LocalIdentityHttpService;
+  captureSessionDigest(request: Request): string;
+  authenticateRequest(request: Request): Promise<LocalPrincipal>;
+  currentSessionPredicate(request: Request, actor: string): Readonly<{ tokenHash: string; actor: string }>;
+}
+const authenticationOwners = new WeakMap<object, Readonly<LocalAuthenticationIdentityAuthority>>();
+export function localAuthenticationIdentityAuthority(authentication: object): Readonly<LocalAuthenticationIdentityAuthority> {
+  const owner = authenticationOwners.get(authentication);
+  if (!owner) throw new Error('Local authentication owner is unavailable');
+  return owner;
+}
 export const MAX_LOCAL_LOGIN_BYTES = 4096;
 const CSRF_HEADER = 'x-sfw-csrf';
 const SAFE = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -107,6 +121,16 @@ export function createLocalAuthentication<Bindings extends object = object>(opti
   async function admitActor(request: Request, actor: string): Promise<void> {
     if ((await authenticateRequest(request)).actor !== actor) throw denied(403);
   }
+  /** Trusted composer predicate inputs, never an authority token or HTTP
+   * delivery. The actual account/session query must run inside its native
+   * mutation transaction; prior async authentication cannot close that race. */
+  function currentSessionPredicate(request: Request, actor: string): Readonly<{ tokenHash: string; actor: string }> {
+    const unsafe = !SAFE.has(request.method); originAdmission(request, unsafe);
+    const token = cookieToken(request, authority.cookieName); if (!token) throw denied(401);
+    if (unsafe && !csrfMatches(token, request.headers.get(CSRF_HEADER))) throw denied(403);
+    if (typeof actor !== 'string') throw new HTTPException(503, { message: 'Authentication is unavailable.' });
+    return Object.freeze({ tokenHash: hashSessionToken(token), actor });
+  }
   async function authorize(request: Request, actor: string, capability: PrivilegedCapability): Promise<boolean> {
     const principal = await authenticateRequest(request);
     return principal.actor === actor && principal.capabilities[capability] === true;
@@ -150,5 +174,8 @@ export function createLocalAuthentication<Bindings extends object = object>(opti
     c.header('Set-Cookie', sessionCookie(result.token, result.absoluteExpiresAt));
     return c.json({ principal: result.principal, csrf: csrf(result.token) });
   });
-  return Object.freeze({ routes, middleware, authenticateRequest, admitActor, authorize });
+  const authentication = Object.freeze({ routes, middleware, authenticateRequest, admitActor, authorize, currentSessionPredicate });
+  authenticationOwners.set(authentication, Object.freeze({ identity, authenticateRequest, currentSessionPredicate,
+    captureSessionDigest: (request: Request) => currentSessionPredicate(request, '').tokenHash }));
+  return authentication;
 }

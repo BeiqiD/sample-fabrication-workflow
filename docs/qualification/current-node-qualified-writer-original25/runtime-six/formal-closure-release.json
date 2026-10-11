@@ -1,0 +1,118 @@
+{
+  "kind": "current-original-runtime-six-formal-closure-release/1",
+  "status": "PASS_CLOSED_RELEASED",
+  "sourceHead": "eaef0b5d1346faaa5cdf0fc8db0d9439919f1c42",
+  "sourceTree": "0908d3c9f3c17a46ca0c8c5459ed906e6ccd4512",
+  "fullTrackedInputCount": 2575,
+  "fullModeGitBlobWorkingPinsVerified": true,
+  "actualFreshCases": 6,
+  "actualPassed": 6,
+  "actualFailed": 0,
+  "actualBailUnrun": 0,
+  "intentionalUnselected": 0,
+  "toolSessionId": 76597,
+  "originalToolWaitCompleted": true,
+  "originalToolExitCode": 0,
+  "observedOriginalLiveOwners": {
+    "kind": "original-runtime-six-live-tool-handle-observation/1",
+    "toolSessionId": 76597,
+    "recordedBeforeWaitAtEpoch": 1791725459.3639476,
+    "originalObservedOwners": [
+      {
+        "pid": 1225015,
+        "state": "S",
+        "parentPid": 1225010,
+        "processGroup": 1225010,
+        "startTicks": 13870671,
+        "exactOriginalArgv": [
+          "python3",
+          "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/runtime-six/original-supervisor.py"
+        ]
+      },
+      {
+        "pid": 1225033,
+        "state": "S",
+        "parentPid": 1225015,
+        "processGroup": 1225033,
+        "startTicks": 13870675,
+        "exactOriginalArgv": [
+          "python3",
+          "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/runtime-six/original-owned-runner.py"
+        ]
+      }
+    ],
+    "noSignalSent": true,
+    "sourceRoot": "/workspace/portable-current-a5-qualified-writer-continuation-source-attempt1",
+    "scope": "Original live metadata only; no missing owner reconstructed",
+    "actualChildOwner": {
+      "pid": 1225194,
+      "processGroup": 1225194,
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "local-file-runtime-optin-qualification.vitest.config.mts",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/workspace/current-a5-qualified-writer-runtime-six-owned-actual-attempt1/actual-native.json"
+      ],
+      "status": "RUNNING",
+      "stateAtObservation": "S",
+      "startTicks": 13870703
+    }
+  },
+  "originalChildWaitedReaped": true,
+  "originalRunnerWaitedReaped": true,
+  "originalGroupsAfterSameWait": [
+    {
+      "processGroup": 1225010,
+      "originalMembers": []
+    },
+    {
+      "processGroup": 1225033,
+      "originalMembers": []
+    },
+    {
+      "processGroup": 1225194,
+      "originalMembers": []
+    }
+  ],
+  "allOriginalGroupsEmpty": true,
+  "privateOriginalTmpAndFixtureIdentitiesUnchanged": true,
+  "explicitOriginalBeforeAllMs": 20000,
+  "noInterruptSignalsSent": true,
+  "ordinaryOriginalOwners": "Original whole setup/case ALS roots retain original filesystem/acquire/socket/app/Response/body and secondary owners. Cached original successful full-body read or cancel and HTTP/component drain precede same Native/core ACK and physical lease release. Failed/quarantined original remains retained; no retry/fallback, provider/default activation or expanded budgets.",
+  "artifacts": [
+    {
+      "path": "/workspace/current-a5-qualified-writer-runtime-six-owned-actual-attempt1/receipt.json",
+      "sha256": "f119a067877c72e025662a86d709dddd2130f2ff03a739ee7530771d77e9f44f"
+    },
+    {
+      "path": "/workspace/current-a5-qualified-writer-runtime-six-owned-actual-attempt1/actual-native.json",
+      "sha256": "be17fee79a6d68c6cf08baaa5e750bd5b1e132f5b848d87e1da498f3a12e324f"
+    },
+    {
+      "path": "/workspace/current-a5-qualified-writer-runtime-six-owned-actual-attempt1/original-native.log",
+      "sha256": "242eb6bc44032d83da3e1de30659e893487eccf2ee320716a445f6f1d6247852"
+    },
+    {
+      "path": "/workspace/current-a5-qualified-writer-runtime-six-owned-actual-attempt1/original-owner.json",
+      "sha256": "db5e1cc6ff25dc921a81ca2546444a9ade34f2377505c3f4412dd95e4192d2b1"
+    },
+    {
+      "path": "/workspace/current-a5-qualified-writer-runtime-six-owned-actual-attempt1/final-closure.json",
+      "sha256": "84421339d110e7b0a0dc472b199d6af15a49c92b70d660032dc7d8095f22594a"
+    },
+    {
+      "path": "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/runtime-six/original-supervisor-actual-attempt1.json",
+      "sha256": "44a9e2067a507938c0895c65c0251c6a0dfb5d91dba27d5006723e91dce7996e"
+    },
+    {
+      "path": "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/runtime-six/original-tool-live-owner-observation.json",
+      "sha256": "85f6da8558440a506e104f27f63c2bd82774ba8364455c0d7f921d6a7525050b"
+    }
+  ],
+  "noAdditionalRuntimeStarted": true,
+  "exclusiveWindowReleasedToRoot": true
+}
