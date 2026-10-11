@@ -1,0 +1,26 @@
+{
+  "kind": "same-app-local-job-first-node-static-type-failure/1",
+  "actualSourceHead": "4a2787e21fa350718b6575a034e11e492021b8bd",
+  "status": "FAILED_CLOSED",
+  "nodeOwnedCompiler": {
+    "pid": 1266429,
+    "exitCode": 1,
+    "actualOriginalChildWaitedReaped": true,
+    "errors": 4,
+    "cause": "Object.freeze generic inference does not contextually type four openStorage parameters"
+  },
+  "workerCompiler": "UNRUN_AFTER_FIRST_NODE_FAILURE",
+  "nativeCasesExecuted": 0,
+  "sourceInputsVerifiedBeforeAfter": 2582,
+  "rawReferences": [
+    {
+      "path": "docs/qualification/same-app-local-job-runtime/first-node-static-type-failure/receipt.json",
+      "sha256": "b0b912fa5faca8e3feb41e5527f03762d0750425781feeffdb02a78a18e8296c"
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-runtime/first-node-static-type-failure/node-job-runtime-owned-tests.log",
+      "sha256": "c1633a5fd4bc98158c98c3f1de92f8706ec09178d3213fed68d28999f661c023"
+    }
+  ],
+  "correction": "Explicit original FileJobCapabilities openStorage parameter types only; no algorithm/SQL/authority/budget change."
+}

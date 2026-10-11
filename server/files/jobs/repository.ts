@@ -4,6 +4,7 @@ import type { FileJobRepository, JobClaim } from "../../../worker/files/jobs/typ
 import { checkedSafeInteger, createSqliteBatchAdmission, runSqliteAdmittedBatch,
   type SqliteBatchAdmission, type SqliteRow, type SqliteStatement } from "../../sqlite";
 import { localJobPrincipalId, ownedJobPrincipalAuthority, type InstalledJobPrincipalAuthority, type JobPrincipalOwner } from "./principal-authority";
+import { nodeFileJobExecutionChecks, type NodeFileJobExecutionAdmission } from "./execution-admission";
 
 type Policy = Readonly<{ kind: "owner" }> | Readonly<{ kind: "principal"; actor: string; jobId?: string }>
   | Readonly<{ kind: "maintenance"; incarnation: string; jobId?: string }>;
@@ -11,7 +12,8 @@ const OWNER: Policy = Object.freeze({ kind: "owner" });
 const runtime = `EXISTS(SELECT 1 FROM file_job_runtime_guard g JOIN file_authority_runtime_guard fg
   ON fg.singleton=g.singleton AND fg.enabled=1 JOIN file_authority_control fc ON fc.singleton=g.singleton
   AND fc.mode='active' WHERE g.singleton=1 AND g.enabled=1 AND g.incarnation=?)`;
-function mutationAdmission(owner: JobPrincipalOwner, policy: Policy): SqliteBatchAdmission {
+function mutationAdmission(owner: JobPrincipalOwner, policy: Policy,
+  execution?: Readonly<{ token: NodeFileJobExecutionAdmission; authority: InstalledJobPrincipalAuthority }>): SqliteBatchAdmission {
   const i = owner.installation;
   const parts = [`EXISTS(SELECT 1 FROM node_installation WHERE singleton=1 AND installation_id=? AND catalog_id=?
     AND schema_checkpoint=? AND schema_sha256=? AND created_at=?)`];
@@ -34,19 +36,22 @@ function mutationAdmission(owner: JobPrincipalOwner, policy: Policy): SqliteBatc
     }
   }
   const statement = owner.database.prepare(`SELECT CASE WHEN ${parts.join(" AND ")} THEN 1 ELSE 0 END AS admitted`).bind(...values);
-  return createSqliteBatchAdmission(owner.database, [{ statement, rejection: new Error("Owned Node job mutation unavailable") }]);
+  return createSqliteBatchAdmission(owner.database, [
+    ...(execution ? nodeFileJobExecutionChecks(execution.token, execution.authority, policy.kind === "owner") : []),
+    { statement, rejection: new Error("Owned Node job mutation unavailable") }]);
 }
 /** This view is private to one mature repository operation. No SQL/name
  * inspection selects policy. Final guards and original mutations execute in
  * ONE real core BEGIN IMMEDIATE/COMMIT, without await inside that transaction. */
-function operationSql(owner: JobPrincipalOwner, selectPolicy: () => Policy): JobSqlDatabase {
+function operationSql(owner: JobPrincipalOwner, selectPolicy: () => Policy,
+  execution?: Readonly<{ token: NodeFileJobExecutionAdmission; authority: InstalledJobPrincipalAuthority }>): JobSqlDatabase {
   const core = owner.database, statements = new WeakMap<JobSqlStatement, SqliteStatement>();
   // Same checked Number compatibility as the existing genuine Node job view;
   // typed core cells are never rounded to satisfy a caller's generic row type.
   const safeRow = (row: SqliteRow) => Object.fromEntries(Object.entries(row).map(([key, cell]) =>
     [key, typeof cell === "bigint" ? checkedSafeInteger(cell, `Column ${key}`) : cell]));
   const execute = async (native: SqliteStatement) => {
-    owner.assertCurrent(); const admission = mutationAdmission(owner, selectPolicy());
+    owner.assertCurrent(); const admission = mutationAdmission(owner, selectPolicy(), execution);
     owner.assertCurrent(); const results = await runSqliteAdmittedBatch(core, [native], admission); owner.assertCurrent();
     const result = results[0]; if (!result) throw new Error("Owned Node job result is unavailable"); return result;
   };
@@ -68,7 +73,7 @@ function operationSql(owner: JobPrincipalOwner, selectPolicy: () => Policy): Job
     async batch(items) {
       const selected = items.map(item => { const native = statements.get(item);
         if (!native) throw new Error("Foreign owned Node job statement"); return native; });
-      owner.assertCurrent(); const admission = mutationAdmission(owner, selectPolicy());
+      owner.assertCurrent(); const admission = mutationAdmission(owner, selectPolicy(), execution);
       owner.assertCurrent(); const results = await runSqliteAdmittedBatch(core, selected, admission); owner.assertCurrent(); return results;
     },
     primary() { owner.assertCurrent(); return view; },
@@ -82,6 +87,7 @@ function unavailableHttp(): never { throw new Error("Node File job HTTP admissio
  * opening, executor enablement and source-maintenance admission are separate. */
 export function createOwnedNodeFileJobPort(options: {
   authority: InstalledJobPrincipalAuthority; incarnation: string;
+  executionAdmission?: NodeFileJobExecutionAdmission;
   now?: () => Date; randomId?: () => string;
 }): {
   repository: FileJobRepository;
@@ -92,7 +98,8 @@ export function createOwnedNodeFileJobPort(options: {
   const owner = ownedJobPrincipalAuthority(authority), authorize = authority.authorizeAdministrator.bind(authority);
   if (typeof incarnation !== "string" || !incarnation || incarnation.length > 128) throw new Error("Node job incarnation is unavailable");
   const repo = (policy: Policy | (() => Policy) = OWNER) => new SqlFileJobRepository(operationSql(owner,
-    typeof policy === "function" ? policy : () => policy), now, id);
+    typeof policy === "function" ? policy : () => policy,
+    options.executionAdmission ? Object.freeze({ token: options.executionAdmission, authority }) : undefined), now, id);
   const owned = repo();
   const sameIncarnation = (value: string) => { owner.assertCurrent(); if (value !== incarnation) throw new Error("Node job incarnation differs"); };
   const principal = (claim: JobClaim) => { sameIncarnation(claim.runtime_incarnation);

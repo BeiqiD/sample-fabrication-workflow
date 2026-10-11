@@ -58,7 +58,7 @@ export interface FileJobRepository {
   releaseUnneededSource(incarnation: string): Promise<boolean>;
 }
 export interface JobBoundStorage {
-  namespaceIdentity: string; adapterType: "r2" | "switchdrive" | "s3";
+  namespaceIdentity: string; adapterType: "r2" | "switchdrive" | "s3" | "local";
   reader: ByteReader; writer?: ByteWriter; createHash: Sha256Factory;
   /** Unique single PUT is atomically visible only after its completed commit.
    * Required to reconcile unknown writes without original positive settlement. */

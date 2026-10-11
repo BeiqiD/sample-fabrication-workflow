@@ -1,0 +1,105 @@
+{
+  "kind": "current-cli-job-original-producer-and-type-causal-differences/1",
+  "head": "f883e64086bee44b353f3840271fa3eaaafdcc7d",
+  "originalActualCliHead": "aea243fee4fc1a717f2c31e7c4d319674a0504c7",
+  "originalActualCliReceiptPath": "/workspace/current-cli-four-and-seventeen-actual-attempt1/receipt.json",
+  "originalActualCliReceiptSha256": "26e76a700e28892a06e7340219b21f52811ec58a956198aad75321fd8624479b",
+  "originalBackendDeclaredInputs": 826,
+  "originalBackendInputsCurrentExact": 821,
+  "changedOriginalBackendInputs": [
+    {
+      "path": "server/files/node-local-file-host.ts",
+      "original": {
+        "path": "server/files/node-local-file-host.ts",
+        "bytes": 16550,
+        "sha256": "7985cf11a4fc3b590d5b313a3c709b59d0a699fbf8fd8842d282232bad0419cb"
+      },
+      "currentSha256": "41149947b33b0034d10f18d720d304450b03b0d197f4c8f3626c0225e13cdde4",
+      "currentBytes": 17830
+    },
+    {
+      "path": "server/node-application.ts",
+      "original": {
+        "path": "server/node-application.ts",
+        "bytes": 52052,
+        "sha256": "1459c534e5a11d9aac2ad99eb7a55637b74e2e007e81e6bc400525c23b085da7"
+      },
+      "currentSha256": "f9ef7cc23ef1cac1437e8fb2d7a82aa014b0545b62555850f91c5f3c84d32e04",
+      "currentBytes": 52673
+    },
+    {
+      "path": "server/node-runtime-config.ts",
+      "original": {
+        "path": "server/node-runtime-config.ts",
+        "bytes": 12734,
+        "sha256": "d90a3f239a2b59044e48a8769501a524f430e4ddd2789e56384a8462801b3efe"
+      },
+      "currentSha256": "b9c61aacf3d22c89dfc53a69d140d891a4b38d67f385ffb7ebcdb403ca11da6f",
+      "currentBytes": 13114
+    },
+    {
+      "path": "server/storage/local-volume-profile-opening.ts",
+      "original": {
+        "path": "server/storage/local-volume-profile-opening.ts",
+        "bytes": 21512,
+        "sha256": "57fa09bf161a6045bb76d88799a432012afb2c1359d08fbd2e66dd87af7698b0"
+      },
+      "currentSha256": "cb54795851ca5f593e84bfd193d5b290910a846b7dddbec1403daab361620701",
+      "currentBytes": 22432
+    },
+    {
+      "path": "src/attachment-media.mount.test.tsx",
+      "original": {
+        "path": "src/attachment-media.mount.test.tsx",
+        "bytes": 23536,
+        "sha256": "852a6c0a74d23793ac9512c01aff0cb805e0e4a510dd2a45dba0d580a49d8bc0"
+      },
+      "currentSha256": "623636f491a28ef473c4d90d46fbe775a0a007b14b10d2e46e59fa3d006f7a5b",
+      "currentBytes": 23637
+    }
+  ],
+  "originalBackendMissingCurrentInputs": [],
+  "all27OriginalExternalPinsCurrentExact": true,
+  "frontendOriginal591ConservativeInputs": "Current existing src/attachment-media.mount.test.tsx differs from original producer; no old full sourceInput equality or artifacts retag. Current frontend producer/map must be fresh under separate GO.",
+  "frontendCurrentAttachmentQaPreserved": {
+    "path": "src/attachment-media.mount.test.tsx",
+    "mode": "100644",
+    "gitBlob": "05cad8294312f32cca633811bb57bd65c5595377",
+    "sha256": "623636f491a28ef473c4d90d46fbe775a0a007b14b10d2e46e59fa3d006f7a5b",
+    "bytes": 23637
+  },
+  "compilerActualOriginalInputs": 331,
+  "compilerCurrentExactInputs": 330,
+  "compilerChangedOriginalInputs": [
+    {
+      "actualOriginalPath": "/workspace/portable-current-cli-qualified-writer-source-attempt2/worker/files/jobs/types.ts",
+      "currentPath": "/workspace/current-dev57f-qualified-cli-mounted-jobs-source-attempt1/worker/files/jobs/types.ts",
+      "originalSha256": "90477246ec003636eaa74672f003be763dfabdb599dfa5a4d2db20feae79c903",
+      "currentSha256": "02dc275d2476582f17c481e3059190c83f2e9a3180854ded1152a45465a83782"
+    }
+  ],
+  "compilerMissingInputs": [],
+  "freshCompilerNeeded": true,
+  "newBackendProducerRequired": true,
+  "newFrontendProducerRequired": true,
+  "noActualMetafileOrArtifactInvented": true,
+  "newRuntimeModulesAreLexicalSourceInventoryOnly": [
+    "server/files/jobs/execution-admission.ts",
+    "server/files/jobs/local-runtime.ts",
+    "server/files/jobs/principal-authority.ts",
+    "server/files/jobs/repository.ts",
+    "server/files/jobs/request-http.ts",
+    "worker/files/authority-execution-service.ts",
+    "worker/files/jobs/execution-lifetime.ts",
+    "worker/files/jobs/executor-control-service.ts",
+    "worker/files/jobs/migration-kernel.ts",
+    "worker/files/migration-http-routes.ts"
+  ],
+  "effects": {
+    "compiler": 0,
+    "build": 0,
+    "Native": 0,
+    "moduleImport": 0,
+    "remotePublication": 0
+  }
+}

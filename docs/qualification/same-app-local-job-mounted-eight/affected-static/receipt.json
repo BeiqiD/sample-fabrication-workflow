@@ -1,0 +1,62 @@
+{
+  "kind": "same-app-local-job-affected-node-worker-static-actual/1",
+  "status": "PASS",
+  "sourceHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+  "sourceTree": "2a5c10a8190f6807f59d8a2282411b82f46c78e5",
+  "sourceFreezePath": "/workspace/same-app-local-job-mounted-typed-source-handoffs/complete-before-affected-node-worker-types-source-freeze.json",
+  "sourceFreezeSha256": "063a64ed0b236e1433cc6963c8e4690f99af16db0e21e23737d9477f2be73fa8",
+  "sourceInputCount": 2585,
+  "sourcePinsVerifiedBeforeAfter": true,
+  "compilerResults": [
+    {
+      "name": "node-job-runtime-owned-tests",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/typescript/bin/tsc",
+        "--project",
+        "tsconfig.local-job-runtime-owned-tests.json",
+        "--noEmit",
+        "--incremental",
+        "false"
+      ],
+      "actualSourceHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+      "actualSourceTree": "2a5c10a8190f6807f59d8a2282411b82f46c78e5",
+      "pid": 1266969,
+      "actualOriginalChildWaitedReaped": true,
+      "exitCode": 0,
+      "observedDirectChildWallSeconds": 0.899092,
+      "logPath": "/workspace/same-app-local-job-mounted-typed-source-handoffs/affected-node-worker-types-attempt1/node-job-runtime-owned-tests.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePinsVerifiedBeforeAfter": true
+    },
+    {
+      "name": "worker",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/typescript/bin/tsc",
+        "--project",
+        "tsconfig.worker.json",
+        "--noEmit",
+        "--incremental",
+        "false"
+      ],
+      "actualSourceHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+      "actualSourceTree": "2a5c10a8190f6807f59d8a2282411b82f46c78e5",
+      "pid": 1267001,
+      "actualOriginalChildWaitedReaped": true,
+      "exitCode": 0,
+      "observedDirectChildWallSeconds": 0.997222,
+      "logPath": "/workspace/same-app-local-job-mounted-typed-source-handoffs/affected-node-worker-types-attempt1/worker.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePinsVerifiedBeforeAfter": true
+    }
+  ],
+  "expectedStaticScopes": 2,
+  "actualStaticScopesExecuted": 2,
+  "remainingStaticScopesUnrun": 0,
+  "dependencyCanonicalTarget": "/workspace/sample-fabrication-workflow/node_modules",
+  "nodeExecutableSha256": "bc17c508ffeed0ec622934f9b7fa72f8e78da65350e63c3eceb56fa688aa5e12",
+  "typescriptEntrypointSha256": "2219f428a7e55aaf1f7ad85b9b0f0cf5078aeb76ccc9a7c6036c92d48f492ffd",
+  "nativeCasesExecuted": 0,
+  "scope": "Only affected genuine Node fixture/production and Worker environment TypeScript scopes. No runtime/module/SQLite/socket/provider/browser/build effects."
+}

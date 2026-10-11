@@ -1,0 +1,16 @@
+{
+  "status": "ROOT_SOURCE_CLEAR_QUEUED_NOT_GO",
+  "sourceHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+  "all2585ModeBlobWorkingShaExact": true,
+  "wholeRunnerAndSupervisorLiteralInverseExact": true,
+  "originalProductAndEightRead": {
+    "path": "/workspace/same-app-local-job-mounted-typed-source-handoffs/root-b131-current-product-genuine-eight-source-review.json",
+    "sha256": "ef411ae40e9792ef7dd55d854f6f297f0368f9781f9fc62234d1f7d03a007663"
+  },
+  "fresh8Default5Hook10Setup20Outer180": true,
+  "exclusiveOwner": "Dockerworkspace2 remains active; no invocation until root release",
+  "handoff": {
+    "path": "/workspace/same-app-local-job-mounted-typed-source-handoffs/finite-original-mounted-eight-peerbound-attempt1/final-mature-eight-source-handoff.json",
+    "sha256": "ddc6cac5516ec5e25c669e719e4a867df9fac13295eab40b007c5e02260b9f6d"
+  }
+}

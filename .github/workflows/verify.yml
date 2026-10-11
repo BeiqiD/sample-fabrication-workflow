@@ -62,6 +62,9 @@ jobs:
           VERIFY_PUBLISH_STATUSES: "1"
         run: npm run verify:ci
 
+      - name: Check closed offline distribution manifests
+        run: node --test --test-timeout=5000 scripts/node-distribution-v28.test.mjs
+
       - name: Close verification statuses when the gate did not run
         if: ${{ always() && (steps.verification.outcome == 'skipped' || steps.verification.outcome == 'cancelled') }}
         continue-on-error: true
