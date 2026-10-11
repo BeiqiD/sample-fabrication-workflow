@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.worker.json",
+  "files": [
+    "worker/application.ts",
+    "worker/application/sample-structure.ts",
+    "worker/sample-split-state.ts",
+    "worker/samples/routes.ts",
+    "worker/execution/routes.ts",
+    "worker/evidence/legacy-routes.ts",
+    "worker/evidence/comment-operation-group.ts"
+  ],
+  "include": [],
+  "exclude": []
+}

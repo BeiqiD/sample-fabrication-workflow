@@ -1,0 +1,11 @@
+
+ RUN  v4.1.10 /workspace/portable-current194-coherent-metadata-source-only-attempt1
+
+ ✓ worker/files/consumer-binding.test.ts > binds ordinary records, execution images, comments and verification to the accepted File atomically 2940ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  04:47:59
+   Duration  6.13s (transform 2.45s, setup 29ms, import 3.06s, tests 2.94s, environment 0ms)
+
+JSON report written to /tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/09-consumer-binding.test.json

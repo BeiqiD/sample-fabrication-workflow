@@ -1,0 +1,47 @@
+{
+  "kind": "storage-refresh-layout-original-two-mounted/1",
+  "head": "ff643e2709e9348dee304971ebdd4031a6e123dd",
+  "atUtc": "2026-10-11T06:00:21.237180+00:00",
+  "status": "PASS",
+  "selectedPassed": 2,
+  "selectedFailed": 0,
+  "actualOtherUnselected": 22,
+  "wholeFileReportedTotal": 24,
+  "frontendBuilds": 0,
+  "compilerRepeated": false,
+  "originalChild": {
+    "pid": 866871,
+    "exitCode": 0,
+    "originalWaitedReaped": true,
+    "remainingGroupRows": [],
+    "kernelExitedRowsDoNotProveZeroDescriptors": true
+  },
+  "seconds": 1.22,
+  "source2126BeforeAfterExact": true,
+  "privateTempIdentityBeforeAfter": [
+    27,
+    454946,
+    1000,
+    448
+  ],
+  "argv": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "vitest.mounted.config.ts",
+    "src/storage-configuration.mount.test.tsx",
+    "--maxWorkers=1",
+    "--no-file-parallelism",
+    "--bail=1",
+    "--testNamePattern=returns an explicitly focused Refresh after its disabled interval without focusing the initial read|preserves focus moved to another native control while an explicitly focused Refresh is pending",
+    "--reporter=verbose",
+    "--reporter=json",
+    "--outputFile.json=/workspace/storage-refresh-focus-commit-current4e-original-two-mounted-actual-attempt1/original-two.json"
+  ],
+  "rawJsonSha256": "0a690eb31fe5f28cb01a4b7ff7f2f9e9e4ecc847985909d239d3a40155511eaf",
+  "logSha256": "0a1fcb345e610c97d1491ae61c98cfb3489cabe7d57e3677f2e1735a0d58e21b",
+  "peerSha256": "42d0c8a7e0353b837faea4c7adee8c623218a3eaeae96ebb324b630560704335",
+  "compilerSha256": "6f3133b554e2415accff7332525e9c859e499ae60ef013a8de67a954d86d9644",
+  "scope": "Two original mounted focus controls only; other cases unselected. Current native browser/build/completeCI not claimed."
+}

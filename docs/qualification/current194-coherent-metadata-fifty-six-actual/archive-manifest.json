@@ -1,0 +1,144 @@
+{
+  "kind": "current194-coherent-metadata56-immutable-actual-archive/1",
+  "actualSourceHead": "ccc7478f6045b38421f4e35def3360d7a031dd88",
+  "actualSourceTree": "f713dd1ff9f0cf6b3a5a154a6bf1cab89c692a58",
+  "rawActualReceiptSha256": "74cc650ffc8715b1fe5b9973bf788d54205d03154ee1b94b65ac6318f2b249a0",
+  "originalFiles": [
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/01-sample-split-routes.test.json",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/01-sample-split-routes.test.json",
+      "sha256": "770149f306d4e5d6a8b89b5835454125e877f69fff9ff876a54ba6024f96bae7"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/02-state-consumer-binding.test.json",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/02-state-consumer-binding.test.json",
+      "sha256": "d2f41359b0f9f4fe001d0fc48df1cc06f051175177eba230ea6963d71e8e62bb"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/03-native-sample-record.test.json",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/03-native-sample-record.test.json",
+      "sha256": "4b8a57800d1b8e11ff119c3ca09ca862f6b464ad655ac4d0e649e1449f0524d8"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/04-comment-canonical-read-bridge.test.json",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/04-comment-canonical-read-bridge.test.json",
+      "sha256": "ae2881f6cf8be46d86d2ef86abe4ff75372c001f4c8d8dfaf14049647dd8269e"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/05-native-file-ingress.test.json",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/05-native-file-ingress.test.json",
+      "sha256": "c8ece4076b3a03efe742f0fd623e0c5ccce1d51c113ea6a0e905c32e7d30cae8"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/06-attachment-occurrence-metadata.test.json",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/06-attachment-occurrence-metadata.test.json",
+      "sha256": "3fe50135a2d4e4068f745b8aeebeee9c2cbd08bb3e1a5581cd63294f39ae5778"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/07-legacy-comment-settlement.test.json",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/07-legacy-comment-settlement.test.json",
+      "sha256": "25725fb03f7f61240c492002a5eb44bf1f8c7c8d6ec42e11286ad399f9b15bfd"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/08-source-lifecycle-routes.test.json",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/08-source-lifecycle-routes.test.json",
+      "sha256": "f65e14f2c8e580aed6378587b8c6dedb5f3aa40e9e0cc8e88166f71fc9fa76da"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/09-consumer-binding.test.json",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/09-consumer-binding.test.json",
+      "sha256": "77c029085f7112a32db66b297ea072b29e80c1f4b8f85e3fb3662475373f8b7d"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/exact-commands.json",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/exact-commands.json",
+      "sha256": "616bd45348e8c3df1b182ccddfa69168c175c5de8a31c5f66e83e19ef4f34176"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/receipt.json",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/receipt.json",
+      "sha256": "74cc650ffc8715b1fe5b9973bf788d54205d03154ee1b94b65ac6318f2b249a0"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/01-sample-split-routes.test.log",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/01-sample-split-routes.test.log",
+      "sha256": "f73e61c8c4afae9a1ab21f42344db858f6ac7a3628bdab6d0c08338f07f95c92"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/02-state-consumer-binding.test.log",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/02-state-consumer-binding.test.log",
+      "sha256": "af7fc18f05d8cd2e4464f1f3bb00c123a174266db1e65aa8d7b8dbb135a2696e"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/03-native-sample-record.test.log",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/03-native-sample-record.test.log",
+      "sha256": "ec005d884fa429e0ee68cc198a9d6c0bc8fcef364a893e5ea4d06339f103a140"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/04-comment-canonical-read-bridge.test.log",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/04-comment-canonical-read-bridge.test.log",
+      "sha256": "0fbe799eb6230e802915f4b2f9d02700d6a41bbc56a8aef8089d6e6ca0f305bd"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/05-native-file-ingress.test.log",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/05-native-file-ingress.test.log",
+      "sha256": "63c1672e48056ad888700dcb42cdf57a284d42424b9aa4899e8fecb409fbb5d0"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/06-attachment-occurrence-metadata.test.log",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/06-attachment-occurrence-metadata.test.log",
+      "sha256": "3be8e9a4aa19b1ec74301f5124792b1bfbe0fa276cbab64de7990d6bc0625be8"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/07-legacy-comment-settlement.test.log",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/07-legacy-comment-settlement.test.log",
+      "sha256": "7548c6d0bf526597a1ca1e725fb480f7003bfcf315f21aa931f6439b722b8075"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/08-source-lifecycle-routes.test.log",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/08-source-lifecycle-routes.test.log",
+      "sha256": "c0239625218b7d50e24ee6044687727dca818ae85c244e0cb477d48ecda9cde3"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/09-consumer-binding.test.log",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/09-consumer-binding.test.log",
+      "sha256": "66ae5d02b3c65a103e1bb19c8eceec92c3dd1c4ee1f9aee9211252a490ff85a9"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-owned-types-actual.json",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/portable-current194-coherent-metadata-owned-types-actual.json",
+      "sha256": "7e00f2e4a7f675a4ea21fb99e6e3bc145894538ce5974d72e5bb9d5548c692b7"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-owned-types-actual.log",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/portable-current194-coherent-metadata-owned-types-actual.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-fifty-six-executable-source-plan.json",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/portable-current194-coherent-metadata-fifty-six-executable-source-plan.json",
+      "sha256": "2c5bcf173f1240f5efe4745c0f1677dab8e92873504451fb230cffb0d4d28e0a"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-launcher.py",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/portable-current194-coherent-metadata-fifty-six-owned-launcher.py",
+      "sha256": "dff8ceb4b57fb0257f522227a561c8629fbe4f882b7b58b00e47702f09a395a8"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent-metadata-fifty-six-launcher-source-handoff.json",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/portable-current194-coherent-metadata-fifty-six-launcher-source-handoff.json",
+      "sha256": "8e6da9d64b3cdd95b8940473616ebacdfb1f0bbf0135ebb66bbfe6d29e5f0ac2"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent25-independent-complete-extraction-and56-source-selection-peer.json",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/portable-current194-coherent25-independent-complete-extraction-and56-source-selection-peer.json",
+      "sha256": "664fac369d9db631a573912af97c548d130900b2e9c80948fea4689b355d9af5"
+    },
+    {
+      "originalPath": "/tmp/portable-current194-coherent56-independent-mature-launcher-source-addendum.json",
+      "relativePath": "docs/qualification/current194-coherent-metadata-fifty-six-actual/portable-current194-coherent56-independent-mature-launcher-source-addendum.json",
+      "sha256": "7d362c8c8a5d82227280f963f544c96a894a50f134fd4c0f180991dddd28304a"
+    }
+  ],
+  "actualScope": "Current Worker algorithms in original SQLite-backed D1 compatibility transactions/RETURNING and original provider doubles. No workerd, installed Node/LocalFile/resource/Group/HTTP operational grant or host/physical lease ACK."
+}

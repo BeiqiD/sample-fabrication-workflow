@@ -1,0 +1,316 @@
+{
+  "kind": "current-c5b-coherent25-exact-selective-source-adoption-map/1",
+  "status": "SOURCE_ONLY_CURRENT_BASE_OWN_CI_SEPARATE",
+  "basisRoot": "/workspace/portable-current-dd1-neutral-definition-comment-integration-attempt1",
+  "basisHead": "c5b59dec5208ec9a57ffdaf301c1d7918dbd2fd4",
+  "basisTree": "bcc2796847af6d4b159e871eb3827710616b5fc4",
+  "actuallyMergedDevelopmentBase": "dd1aa12711860faecf7f2c67a92935535c080c8f",
+  "pr264ReconciliationNotYetClaimedMerged": true,
+  "selectedCodeHead": "ccc7478f6045b38421f4e35def3360d7a031dd88",
+  "selectedQualifiedDocsHead": "a590861911a738c6db78a7a220de56bd90407c10",
+  "productPaths": [
+    {
+      "path": "worker/application/sample-structure.ts",
+      "mode": "100644",
+      "sha256": "c774a1f70991c2511d253ec105e11459dc760058c034b8e8f9489f44ac7cfb15",
+      "modifiedExisting": true
+    },
+    {
+      "path": "worker/evidence/comment-metadata-d1.ts",
+      "mode": "100644",
+      "sha256": "db71759dfc270e969fb88d937e7c9a900649f933ff527cd6f38578ba8860d0e0",
+      "modifiedExisting": false
+    },
+    {
+      "path": "worker/evidence/comment-metadata-service.ts",
+      "mode": "100644",
+      "sha256": "5b8993e5d02cd7ebda73f4e362c62fa2074e0a027b631eaeb7c88224550b288e",
+      "modifiedExisting": false
+    },
+    {
+      "path": "worker/evidence/comment-metadata-sql.ts",
+      "mode": "100644",
+      "sha256": "595650535dca599f8557387dc20fedd8dbaee7994ea661f97b2a8403db18a6f4",
+      "modifiedExisting": false
+    },
+    {
+      "path": "worker/evidence/comment-operation-group-service.ts",
+      "mode": "100644",
+      "sha256": "44641b224e48fea1b9947055021079a73ce7e32c86a133ed5e22848b625acdd3",
+      "modifiedExisting": false
+    },
+    {
+      "path": "worker/evidence/comment-operation-group.ts",
+      "mode": "100644",
+      "sha256": "557074222673efc82dbeb8394b9be0d7618c4c90f146a1cd6a1dc5bea8eaa69a",
+      "modifiedExisting": true
+    },
+    {
+      "path": "worker/evidence/legacy-routes.ts",
+      "mode": "100644",
+      "sha256": "f86c9336faaf00ec17792cddef7c9c20ee510dfe1047ba7056df715ea8b788ec",
+      "modifiedExisting": true
+    },
+    {
+      "path": "worker/execution/asset-presentation-service.ts",
+      "mode": "100644",
+      "sha256": "2547c84ed0752e864fd1d71b7c641e7fbe59a89e7dfdb7ef6ec98ba0d148a91a",
+      "modifiedExisting": false
+    },
+    {
+      "path": "worker/execution/file-metadata-d1.ts",
+      "mode": "100644",
+      "sha256": "bd1e5d7457ca28d7392fc1864fbf5903c530d8045912a26311c114302ace41fc",
+      "modifiedExisting": false
+    },
+    {
+      "path": "worker/execution/file-metadata-service.ts",
+      "mode": "100644",
+      "sha256": "01aa84c36994f73bac105d9b2e92663dc8824561a945032513621558235abe64",
+      "modifiedExisting": false
+    },
+    {
+      "path": "worker/execution/file-metadata-sql.ts",
+      "mode": "100644",
+      "sha256": "c621e101ff3da523f9f6b3319f95014be6085479d8abc6aa435500676b3fe637",
+      "modifiedExisting": false
+    },
+    {
+      "path": "worker/execution/insertion-verification-service.ts",
+      "mode": "100644",
+      "sha256": "3213f695edaa5bd140a2dbeb0ad527205debdd6b4a53586a7e4ca945b3724f22",
+      "modifiedExisting": false
+    },
+    {
+      "path": "worker/execution/native-asset-lifecycle-service.ts",
+      "mode": "100644",
+      "sha256": "d192e5e9c981edc4b32eae64028c67f308d5cf834518f603ceb7a34b64d01303",
+      "modifiedExisting": false
+    },
+    {
+      "path": "worker/execution/native-asset-lifecycle.ts",
+      "mode": "100644",
+      "sha256": "d1b9a39be93b219cb8c367ab03fa8f3a8483e861cd93b44b57a1f7ab28ef6c52",
+      "modifiedExisting": true
+    },
+    {
+      "path": "worker/execution/routes.ts",
+      "mode": "100644",
+      "sha256": "64ed4a0181f55314de7e9e015b504ccd94a8e982217f622bfb27b7c7393b0875",
+      "modifiedExisting": true
+    },
+    {
+      "path": "worker/sample-split-state.ts",
+      "mode": "100644",
+      "sha256": "644a5934b46e2c3455e78619b786321f995b103c79e7a4151186a9c3c577973f",
+      "modifiedExisting": true
+    },
+    {
+      "path": "worker/samples/file-metadata-d1.ts",
+      "mode": "100644",
+      "sha256": "3cf57bff610ac1c27240f310c65c06dc80a1160304c4781cf6f1270fe5b9cd23",
+      "modifiedExisting": false
+    },
+    {
+      "path": "worker/samples/file-metadata-service.ts",
+      "mode": "100644",
+      "sha256": "8e6c5b77cff981275a8e0beb4691199969023e33c98b50fc158671b7c6240d8d",
+      "modifiedExisting": false
+    },
+    {
+      "path": "worker/samples/file-metadata-sql.ts",
+      "mode": "100644",
+      "sha256": "01c44e7e46ebae806b2dc2da2f1f1515775d0c11727ed80c3a56b79aa7eabb6d",
+      "modifiedExisting": false
+    },
+    {
+      "path": "worker/samples/routes.ts",
+      "mode": "100644",
+      "sha256": "caa3fc46d03b3d390be86fb2251705fd02c370a5e4e19d38db93e81de1b5f83c",
+      "modifiedExisting": true
+    },
+    {
+      "path": "worker/samples/split-state-service.ts",
+      "mode": "100644",
+      "sha256": "2e0083db7b00da6cd6ba962ddbcc2065acc1a02ff854fff250275847b77d6b25",
+      "modifiedExisting": false
+    },
+    {
+      "path": "worker/samples/structure-service.ts",
+      "mode": "100644",
+      "sha256": "da006ea7b245c9a7f8047febcc376dca9820569dedebd1440d9a75061beba121",
+      "modifiedExisting": false
+    },
+    {
+      "path": "worker/samples/timeline-attachment-d1.ts",
+      "mode": "100644",
+      "sha256": "754a57582b2b342044e2fc80c957c0f43ff59d6f245ef1fc554f457964e5fce0",
+      "modifiedExisting": false
+    },
+    {
+      "path": "worker/samples/timeline-attachment-service.ts",
+      "mode": "100644",
+      "sha256": "e308448914dd6dad22a117dfab9f0cc89553aa3caa6ad54960d66768e3556c4c",
+      "modifiedExisting": false
+    },
+    {
+      "path": "worker/samples/timeline-attachment-sql.ts",
+      "mode": "100644",
+      "sha256": "72cccd9753ba473a498184821e5592148e0f6709745f4f8f2372ec2b7ec49e34",
+      "modifiedExisting": false
+    }
+  ],
+  "exactOwnedCompilerConfiguration": {
+    "path": "tsconfig.current194-coherent-metadata-owned-source.json",
+    "sha256": "43a93ae363a2d67ef65819bfc2ae50b1180c4aeab54ed2a95304c35d2a7bca06"
+  },
+  "historicalDocumentationAndEvidence33": [
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/01-sample-split-routes.test.json",
+      "sha256": "770149f306d4e5d6a8b89b5835454125e877f69fff9ff876a54ba6024f96bae7"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/01-sample-split-routes.test.log",
+      "sha256": "f73e61c8c4afae9a1ab21f42344db858f6ac7a3628bdab6d0c08338f07f95c92"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/02-state-consumer-binding.test.json",
+      "sha256": "d2f41359b0f9f4fe001d0fc48df1cc06f051175177eba230ea6963d71e8e62bb"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/02-state-consumer-binding.test.log",
+      "sha256": "af7fc18f05d8cd2e4464f1f3bb00c123a174266db1e65aa8d7b8dbb135a2696e"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/03-native-sample-record.test.json",
+      "sha256": "4b8a57800d1b8e11ff119c3ca09ca862f6b464ad655ac4d0e649e1449f0524d8"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/03-native-sample-record.test.log",
+      "sha256": "ec005d884fa429e0ee68cc198a9d6c0bc8fcef364a893e5ea4d06339f103a140"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/04-comment-canonical-read-bridge.test.json",
+      "sha256": "ae2881f6cf8be46d86d2ef86abe4ff75372c001f4c8d8dfaf14049647dd8269e"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/04-comment-canonical-read-bridge.test.log",
+      "sha256": "0fbe799eb6230e802915f4b2f9d02700d6a41bbc56a8aef8089d6e6ca0f305bd"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/05-native-file-ingress.test.json",
+      "sha256": "c8ece4076b3a03efe742f0fd623e0c5ccce1d51c113ea6a0e905c32e7d30cae8"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/05-native-file-ingress.test.log",
+      "sha256": "63c1672e48056ad888700dcb42cdf57a284d42424b9aa4899e8fecb409fbb5d0"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/06-attachment-occurrence-metadata.test.json",
+      "sha256": "3fe50135a2d4e4068f745b8aeebeee9c2cbd08bb3e1a5581cd63294f39ae5778"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/06-attachment-occurrence-metadata.test.log",
+      "sha256": "3be8e9a4aa19b1ec74301f5124792b1bfbe0fa276cbab64de7990d6bc0625be8"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/07-legacy-comment-settlement.test.json",
+      "sha256": "25725fb03f7f61240c492002a5eb44bf1f8c7c8d6ec42e11286ad399f9b15bfd"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/07-legacy-comment-settlement.test.log",
+      "sha256": "7548c6d0bf526597a1ca1e725fb480f7003bfcf315f21aa931f6439b722b8075"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/08-source-lifecycle-routes.test.json",
+      "sha256": "f65e14f2c8e580aed6378587b8c6dedb5f3aa40e9e0cc8e88166f71fc9fa76da"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/08-source-lifecycle-routes.test.log",
+      "sha256": "c0239625218b7d50e24ee6044687727dca818ae85c244e0cb477d48ecda9cde3"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/09-consumer-binding.test.json",
+      "sha256": "77c029085f7112a32db66b297ea072b29e80c1f4b8f85e3fb3662475373f8b7d"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/09-consumer-binding.test.log",
+      "sha256": "66ae5d02b3c65a103e1bb19c8eceec92c3dd1c4ee1f9aee9211252a490ff85a9"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/README.md",
+      "sha256": "8780ba0cd8cd91a7fcb9205254a86ac68dac9aca8bc9a6031519737d12776d39"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/archive-manifest.json",
+      "sha256": "8fd1de40c8e87d8a9980affb49cf111c52644ba7acfec43111aaf23ddbe04703"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/exact-commands.json",
+      "sha256": "616bd45348e8c3df1b182ccddfa69168c175c5de8a31c5f66e83e19ef4f34176"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/portable-current194-coherent-metadata-fifty-six-executable-source-plan.json",
+      "sha256": "2c5bcf173f1240f5efe4745c0f1677dab8e92873504451fb230cffb0d4d28e0a"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/portable-current194-coherent-metadata-fifty-six-launcher-source-handoff.json",
+      "sha256": "8e6da9d64b3cdd95b8940473616ebacdfb1f0bbf0135ebb66bbfe6d29e5f0ac2"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/portable-current194-coherent-metadata-fifty-six-owned-launcher.py",
+      "sha256": "dff8ceb4b57fb0257f522227a561c8629fbe4f882b7b58b00e47702f09a395a8"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/portable-current194-coherent-metadata-owned-types-actual.json",
+      "sha256": "7e00f2e4a7f675a4ea21fb99e6e3bc145894538ce5974d72e5bb9d5548c692b7"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/portable-current194-coherent-metadata-owned-types-actual.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/portable-current194-coherent25-independent-complete-extraction-and56-source-selection-peer.json",
+      "sha256": "664fac369d9db631a573912af97c548d130900b2e9c80948fea4689b355d9af5"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/portable-current194-coherent56-independent-mature-launcher-source-addendum.json",
+      "sha256": "7d362c8c8a5d82227280f963f544c96a894a50f134fd4c0f180991dddd28304a"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata-fifty-six-actual/receipt.json",
+      "sha256": "74cc650ffc8715b1fe5b9973bf788d54205d03154ee1b94b65ac6318f2b249a0"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata/exact-adoption-and-fixture-source-proof.json",
+      "sha256": "29417a9b26e2ab79d19b3da23ec818f5b9b0fa8bc347570602b5dcb58f8e0146"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata/fixture-readiness.md",
+      "sha256": "02f97ce62cf01909496a9b516d447bdde3c0e416ab73ac47ae8cb0517c1719e6"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata/original-worker-fifty-six-source-plan.json",
+      "sha256": "7c33f03f32aaf2712b9a28de8fbfeb736b696dfcbce74ab5c548d0f0bbb16129"
+    },
+    {
+      "path": "docs/qualification/current194-coherent-metadata/owned-source-types-actual.json",
+      "sha256": "7e00f2e4a7f675a4ea21fb99e6e3bc145894538ce5974d72e5bb9d5548c692b7"
+    }
+  ],
+  "historicalActual56ReceiptSha256": "74cc650ffc8715b1fe5b9973bf788d54205d03154ee1b94b65ac6318f2b249a0",
+  "historicalActualCompiler07ReceiptSha256": "7e00f2e4a7f675a4ea21fb99e6e3bc145894538ce5974d72e5bb9d5548c692b7",
+  "original56CompilerAndRuntimeClosure418RelativeEdges1826Exact": true,
+  "original25SourcePeer": {
+    "path": "/tmp/portable-current194-coherent25-independent-complete-extraction-and56-source-selection-peer.json",
+    "sha256": "664fac369d9db631a573912af97c548d130900b2e9c80948fea4689b355d9af5"
+  },
+  "allCurrentPackageAndClientInputsProtected": true,
+  "newFixtureBodiesConfigsBudgetsAndSelectors": 0,
+  "newCompilerOrRuntimeBuildBrowserCiEffects": 0,
+  "scope": "Original Worker metadata algorithms/SQLite-backed D1 compatibility/provider doubles. No actual workerd/Node Request/LocalFile/resource/Group authority, whole-host lease ACK or deployment.",
+  "limits": [
+    "The source equality is causal proof, not a new head execution or complete installed npm-tree digest.",
+    "Final ordinary integration waits genuine PR264 own CI/development merge, then new candidate current-head complete gates."
+  ]
+}
