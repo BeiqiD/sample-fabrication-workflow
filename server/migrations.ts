@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import { constants, type DatabaseSync } from "node:sqlite";
+import { types as nativeTypes } from "node:util";
 
 import { NODE_INSTALLATION_DDL, NODE_MIGRATIONS_DDL, NODE_PLATFORM_OBJECTS, type InstallationSchemaObject } from "../shared/contracts/node-installation-schema";
 export { NODE_INSTALLATION_DDL, NODE_MIGRATIONS_DDL, NODE_PLATFORM_OBJECTS, type InstallationSchemaObject } from "../shared/contracts/node-installation-schema";
@@ -76,7 +77,52 @@ function validateCheckpoint(checkpoint: ReviewedInstallationCheckpoint) {
     || admission.kind !== "node-installation-recovery-admission/1" || admission.checkpointId !== checkpoint.id
     || admission.schemaSha256 !== schemaSha256 || JSON.stringify(objects(admission.platformObjects)) !== JSON.stringify(objects(NODE_PLATFORM_OBJECTS))) fail("checkpoint_recovery_pair_not_reviewed");
 }
+// Reuse only static validation whose entire input graph cannot change. This
+// never caches a database snapshot, connection, installation or admission.
+const validatedImmutableCatalogs = new WeakSet<ReviewedInstallationCatalog>();
+const immutableExpectedCheckpointSchemas = new WeakMap<ReviewedInstallationCheckpoint, string>();
+function immutableDataGraph(value: unknown, seen = new WeakSet<object>()): boolean {
+  if (value === null || typeof value !== "object") return typeof value !== "function";
+  if (seen.has(value)) return true;
+  // A frozen Proxy can still change its traps or start throwing. Its target
+  // invariants do not make the original validation path immutable.
+  if (nativeTypes.isProxy(value)) return false;
+  if (!Object.isFrozen(value)) return false;
+  if (Array.isArray(value)) {
+    // A frozen hole can still read a changing Array.prototype index. Every
+    // consumed element must be owned data before the array can be reused.
+    for (let index = 0; index < value.length; index++) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+      if (!descriptor || !("value" in descriptor)) return false;
+    }
+  }
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== Array.prototype && prototype !== null) return false;
+  seen.add(value);
+  for (const key of Reflect.ownKeys(value)) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    // Frozen accessors can still return changing data; never invoke or cache
+    // them. Collections, class instances and functions are also ineligible.
+    if (!descriptor || !("value" in descriptor) || !immutableDataGraph(descriptor.value, seen)) return false;
+  }
+  return true;
+}
+function ownsDataFields(value: object, names: readonly string[]): boolean {
+  return names.every(name => {
+    const descriptor = Object.getOwnPropertyDescriptor(value, name);
+    return descriptor !== undefined && "value" in descriptor;
+  });
+}
+function ownsStaticCheckpoint(checkpoint: ReviewedInstallationCheckpoint): boolean {
+  const schema = (values: readonly InstallationSchemaObject[]) => values.every(value =>
+    ownsDataFields(value, ["type", "name", "tableName", "sql"]));
+  return ownsDataFields(checkpoint, ["id", "applicationObjects", "schemaSha256", "recoveryAdmission"])
+    && schema(checkpoint.applicationObjects)
+    && ownsDataFields(checkpoint.recoveryAdmission, ["kind", "checkpointId", "schemaSha256", "platformObjects"])
+    && schema(checkpoint.recoveryAdmission.platformObjects);
+}
 function validateCatalog(catalog: ReviewedInstallationCatalog) {
+  if (validatedImmutableCatalogs.has(catalog)) return;
   if (!catalog || typeof catalog.id !== "string" || !/^[A-Za-z0-9._/-]{1,160}$/.test(catalog.id)
     || !Array.isArray(catalog.migrations) || catalog.migrations.length > 256) fail("catalog_not_reviewed");
   validateCheckpoint(catalog.emptyCheckpoint);
@@ -93,6 +139,29 @@ function validateCatalog(catalog: ReviewedInstallationCatalog) {
     if (checkpoints.has(migration.checkpoint.id)) fail("duplicate_checkpoint");
     checkpoints.add(migration.checkpoint.id);
   }
+  // A foreign Proxy may throw during descriptor inspection. Ineligibility
+  // only disables this optimization; the original successful validation and
+  // its original failure semantics remain authoritative.
+  try {
+    // Required fields must also be owned data. An inherited field on a
+    // mutable prototype is outside the frozen input graph.
+    if (immutableDataGraph(NODE_PLATFORM_OBJECTS) && immutableDataGraph(catalog)
+      && ownsDataFields(catalog, ["id", "emptyCheckpoint", "migrations"])
+      && ownsStaticCheckpoint(catalog.emptyCheckpoint)
+      && catalog.migrations.every(migration => ownsDataFields(migration, ["name", "sql", "rawSha256", "checkpoint"])
+        && ownsStaticCheckpoint(migration.checkpoint))) validatedImmutableCatalogs.add(catalog);
+  } catch { /* Revalidate the original input on the next call. */ }
+}
+// Only the expected code-owned schema is reused, and only after the whole
+// catalog was proved deeply immutable. Current observed schema and ledger
+// checks remain fresh; mutable checkpoints retain the original expression.
+function expectedCheckpointSchema(catalog: ReviewedInstallationCatalog, checkpoint: ReviewedInstallationCheckpoint): string {
+  if (!validatedImmutableCatalogs.has(catalog)) return JSON.stringify(fullSchema(checkpoint));
+  const previous = immutableExpectedCheckpointSchemas.get(checkpoint);
+  if (previous !== undefined) return previous;
+  const expected = JSON.stringify(fullSchema(checkpoint));
+  immutableExpectedCheckpointSchemas.set(checkpoint, expected);
+  return expected;
 }
 function observedSchema(database: DatabaseSync): InstallationSchemaObject[] {
   return objects(database.prepare("SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*' ORDER BY type,name").all() as unknown as InstallationSchemaObject[]);
@@ -126,7 +195,7 @@ function inspect(database: DatabaseSync, catalog: ReviewedInstallationCatalog): 
       || row.status !== "applied" || !validClock(row.applied_at)) fail("migration_ledger_mismatch_or_partial");
   }
   const checkpoint = checkpointAt(catalog, ledger.length);
-  if (JSON.stringify(observedSchema(database)) !== JSON.stringify(fullSchema(checkpoint))) fail("schema_checkpoint_mismatch");
+  if (JSON.stringify(observedSchema(database)) !== expectedCheckpointSchema(catalog, checkpoint)) fail("schema_checkpoint_mismatch");
   const rows = database.prepare("SELECT * FROM node_installation").all(), row = rows[0];
   if (rows.length !== 1 || !row || row.singleton !== 1 || row.catalog_id !== catalog.id
     || row.schema_checkpoint !== checkpoint.id || row.schema_sha256 !== checkpoint.schemaSha256

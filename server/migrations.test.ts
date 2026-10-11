@@ -52,6 +52,139 @@ afterEach(() => {
 const schema = (database: DatabaseSync) => database.prepare("SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*' ORDER BY type,name").all();
 const ledger = (database: DatabaseSync) => database.prepare("SELECT * FROM node_migrations ORDER BY ordinal").all();
 
+function freezeData<T>(value: T): T {
+  if (value !== null && typeof value === "object" && !Object.isFrozen(value)) {
+    for (const descriptor of Object.values(Object.getOwnPropertyDescriptors(value))) {
+      if ("value" in descriptor) freezeData(descriptor.value);
+    }
+    Object.freeze(value);
+  }
+  return value;
+}
+
+describe("immutable catalog validation and fresh native admission", () => {
+  it("rejects a changed live migration ledger after fully frozen static validation", () => {
+    const { database } = fixture(), definition = freezeData(structuredClone(catalog()));
+    installReviewedSqliteCatalog(database, definition);
+    const admission = admitInstallationRecoverySource(database, definition);
+    assertInstallationAdmission(database, admission);
+    database.prepare("UPDATE node_migrations SET raw_sha256=? WHERE ordinal=1").run("0".repeat(64));
+    expect(() => assertInstallationAdmission(database, admission)).toThrow(/migration_ledger_mismatch_or_partial/);
+  });
+
+  it("revalidates shallow-frozen catalogs after a mutable nested SQL operand changes", () => {
+    const { database } = fixture(), definition = Object.freeze(structuredClone(catalog()));
+    installReviewedSqliteCatalog(database, definition);
+    definition.migrations[0]!.sql += ";SELECT 1";
+    expect(() => admitInstallationRecoverySource(database, definition)).toThrow(/migration_digest_or_name_not_reviewed/);
+  });
+
+  it("revalidates a frozen accessor catalog when its returned migration array changes", () => {
+    const { database } = fixture(), original = freezeData(structuredClone(catalog()));
+    let migrations = freezeData([...original.migrations]);
+    const definition = Object.freeze({ ...original, get migrations() { return migrations; } });
+    installReviewedSqliteCatalog(database, definition);
+    migrations = freezeData([{ ...original.migrations[0]!, sql: original.migrations[0]!.sql + ";SELECT 1" }, ...original.migrations.slice(1)]);
+    expect(() => admitInstallationRecoverySource(database, definition)).toThrow(/migration_digest_or_name_not_reviewed/);
+  });
+
+  it("keeps current connection, schema and foreign-key checks after immutable validation", () => {
+    const { database } = fixture(), definition = freezeData(structuredClone(catalog()));
+    installReviewedSqliteCatalog(database, definition);
+    const admission = admitInstallationRecoverySource(database, definition);
+    database.exec("PRAGMA foreign_keys=OFF");
+    expect(() => assertInstallationAdmission(database, admission)).toThrow(/foreign_keys_required/);
+    database.prepare("INSERT INTO labels VALUES(99,'invalid')").run();
+    database.exec("PRAGMA foreign_keys=ON");
+    expect(() => assertInstallationAdmission(database, admission)).toThrow(/integrity_failed/);
+    database.exec("DELETE FROM labels;ALTER TABLE records ADD COLUMN extra TEXT");
+    expect(() => assertInstallationAdmission(database, admission)).toThrow(/schema_checkpoint_mismatch/);
+  });
+
+  it("preserves a frozen Proxy's original later validation error without caching its target", () => {
+    const { database } = fixture(), original = structuredClone(catalog());
+    const originalError = new Error("fixture_proxy_validation_failure");
+    let reject = false;
+    const observed = new Proxy(original.migrations[0]!, { get(target, key, receiver) {
+      if (reject && key === "sql") throw originalError;
+      return Reflect.get(target, key, receiver);
+    } });
+    const definition = freezeData({ ...original, migrations: [observed, ...original.migrations.slice(1)] });
+    installReviewedSqliteCatalog(database, definition);
+    reject = true;
+    expect(() => admitInstallationRecoverySource(database, definition)).toThrow(originalError);
+  });
+
+  it("revalidates frozen migrations whose SQL comes from a mutable prototype", () => {
+    const { database } = fixture(), original = structuredClone(catalog());
+    const migration = { ...original.migrations[0]! };
+    delete (migration as Partial<typeof migration>).sql;
+    const definition = freezeData({ ...original, migrations: [migration, ...original.migrations.slice(1)] });
+    const previous = Object.getOwnPropertyDescriptor(Object.prototype, "sql");
+    try {
+      Object.defineProperty(Object.prototype, "sql", { value: recordDdl, writable: true, configurable: true });
+      installReviewedSqliteCatalog(database, definition);
+      Object.defineProperty(Object.prototype, "sql", { value: recordDdl + ";SELECT 1", writable: true, configurable: true });
+      expect(() => admitInstallationRecoverySource(database, definition)).toThrow(/migration_digest_or_name_not_reviewed/);
+    } finally {
+      if (previous) Object.defineProperty(Object.prototype, "sql", previous);
+      else Reflect.deleteProperty(Object.prototype, "sql");
+    }
+  });
+
+  it("revalidates frozen sparse migration arrays with mutable inherited elements", () => {
+    const { database } = fixture(), original = structuredClone(catalog());
+    const migrations = new Array<typeof original.migrations[number]>(2);
+    migrations[1] = original.migrations[1]!;
+    const inherited = freezeData(original.migrations[0]!);
+    const definition = freezeData({ ...original, migrations });
+    const previous = Object.getOwnPropertyDescriptor(Array.prototype, "0");
+    try {
+      Object.defineProperty(Array.prototype, "0", { value: inherited, writable: true, configurable: true });
+      installReviewedSqliteCatalog(database, definition);
+      Object.defineProperty(Array.prototype, "0", { value: freezeData({ ...inherited, sql: inherited.sql + ";SELECT 1" }), writable: true, configurable: true });
+      expect(() => admitInstallationRecoverySource(database, definition)).toThrow(/migration_digest_or_name_not_reviewed/);
+    } finally {
+      if (previous) Object.defineProperty(Array.prototype, "0", previous);
+      else Reflect.deleteProperty(Array.prototype, "0");
+    }
+  });
+
+  it("revalidates a mutable final checkpoint before and after its genuine matching index DDL", () => {
+    const { database } = fixture(), original = structuredClone(catalog());
+    const finalCheckpoint = original.migrations.at(-1)!.checkpoint;
+    freezeData(finalCheckpoint.applicationObjects); freezeData(finalCheckpoint.recoveryAdmission);
+    const definition = Object.freeze({ ...original, emptyCheckpoint: freezeData(original.emptyCheckpoint),
+      migrations: Object.freeze(original.migrations.map(migration => Object.freeze({ ...migration,
+        checkpoint: migration.checkpoint === finalCheckpoint ? finalCheckpoint : freezeData(migration.checkpoint) }))) });
+    expect(Object.isFrozen(definition)).toBe(true); expect(Object.isFrozen(definition.migrations)).toBe(true);
+    expect(Object.isFrozen(finalCheckpoint)).toBe(false);
+    installReviewedSqliteCatalog(database, definition);
+    const originalAdmission = admitInstallationRecoverySource(database, definition);
+    expect(originalAdmission.receipt.checkpointId).toBe(finalCheckpoint.id);
+    const indexDdl = "CREATE INDEX records_extra_idx ON records(value)";
+    const indexObject: InstallationSchemaObject = { type: "index", name: "records_extra_idx", tableName: "records", sql: indexDdl };
+    finalCheckpoint.applicationObjects = freezeData([...finalCheckpoint.applicationObjects, indexObject]);
+    finalCheckpoint.schemaSha256 = installationSchemaDigest([...finalCheckpoint.applicationObjects, ...NODE_PLATFORM_OBJECTS]);
+    finalCheckpoint.recoveryAdmission = freezeData({ ...finalCheckpoint.recoveryAdmission, schemaSha256: finalCheckpoint.schemaSha256 });
+    expect(database.prepare("UPDATE node_migrations SET schema_sha256=? WHERE ordinal=?")
+      .run(finalCheckpoint.schemaSha256, definition.migrations.length).changes).toBe(1);
+    expect(database.prepare("UPDATE node_installation SET schema_sha256=? WHERE singleton=1")
+      .run(finalCheckpoint.schemaSha256).changes).toBe(1);
+    const beforeSchema = schema(database), beforeLedger = ledger(database);
+    expect(() => admitInstallationRecoverySource(database, definition)).toThrow(/schema_checkpoint_mismatch/);
+    expect(schema(database)).toEqual(beforeSchema); expect(ledger(database)).toEqual(beforeLedger);
+    expect(database.isTransaction).toBe(false);
+    database.exec(indexDdl);
+    const current = admitInstallationRecoverySource(database, definition);
+    expect(current.receipt.schemaSha256).toBe(finalCheckpoint.schemaSha256);
+    expect(current.applicationObjects).toContainEqual(indexObject);
+    expect(current.receipt.installationId).toBe(originalAdmission.receipt.installationId);
+    expect(ledger(database)).toEqual(beforeLedger); expect(database.isTransaction).toBe(false);
+  });
+
+});
+
 describe("reviewed identified Node installation", () => {
   it("atomically installs a fresh catalog with raw digests, exact checkpoints and paired current admission", () => {
     const { database } = fixture(), definition = catalog();
