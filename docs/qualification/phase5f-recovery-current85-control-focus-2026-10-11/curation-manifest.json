@@ -1,0 +1,425 @@
+{
+  "status": "SOURCE_AND_ACTUAL_SCOPE_SPECIFIC_LOCAL_QUALIFICATION",
+  "sourceProducerHead": "85f70fd4f22530b98e6ceaafc7c1663f201e5b7a",
+  "sourceQaHead": "b498aa01b3742e15438fd8c8a9dd9383637d9bf0",
+  "originalActualQualifiedReceipt": "72144cd34779e75b4f58b681a111b9268cf224b4bc5216132efd6a1468f0b680",
+  "curationDate": "2026-10-11T11:39:34.151893+00:00",
+  "rawRecords": [
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/actual-current85-b498-two-native-control-focus-qualified-closed-release.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/actual-current85-b498-two-native-control-focus-qualified-closed-release.json",
+      "sha256": "72144cd34779e75b4f58b681a111b9268cf224b4bc5216132efd6a1468f0b680",
+      "bytes": 15060,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/chromium-child-temp-owner.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/chromium-child-temp-owner.json",
+      "sha256": "d1ced599a8e4adc6f44013eef28124c4e84c5f188aaaf43b0f7e27a23145e147",
+      "bytes": 624,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/current85-build-new-physical-fixture-causal-carry.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/current85-build-new-physical-fixture-causal-carry.json",
+      "sha256": "b73042b2632e9ea2a9922a2ffa570b37f4a5f10bb2e335f43c39479cee2fb15f",
+      "bytes": 1151,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/final-causal-current85-source-and-job-controls-focus-pins.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/final-causal-current85-source-and-job-controls-focus-pins.json",
+      "sha256": "449ebeeaa164b9d0cb75854bea53d0f4b44bc5c41e8f7cd2497ff19ed9887aa8",
+      "bytes": 3854,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/final-source-artifact-input-pins-command.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/final-source-artifact-input-pins-command.json",
+      "sha256": "2765167cecb24b32e14b7becb879fd9c5c608315bb4b2e09988f02516c18d7c4",
+      "bytes": 1533,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/final-source-artifact-input-pins.log",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/final-source-artifact-input-pins.log",
+      "sha256": "b16014a32acb9c720d83e1d917bcb57bb45e439bfa1b1cbb8c1713e098cc61ab",
+      "bytes": 201,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/fresh-current-source-build-witness-command.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/fresh-current-source-build-witness-command.json",
+      "sha256": "0fe2c14251939e440dacd6eba089145b05f6744fdc5b6405508785a4a621ab0c",
+      "bytes": 1534,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/fresh-current-source-build-witness.log",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/fresh-current-source-build-witness.log",
+      "sha256": "58f1a2b8b374018aa4d97d66640e27ba966463bfc4e70b2a589bddf93db0e397",
+      "bytes": 198,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/fresh-two-version-sentinel-command.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/fresh-two-version-sentinel-command.json",
+      "sha256": "154c62a96eeab41993d01e6a7d5f00b523c5401e281ca23f96d2228ab5fee285",
+      "bytes": 1886,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/fresh-two-version-sentinel.log",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/fresh-two-version-sentinel.log",
+      "sha256": "c6784f8551ae06023cda48be46f3d6ed9d20498e16d7ec147d8c9f8223ff98e7",
+      "bytes": 228,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/frozen-approved-plan.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/frozen-approved-plan.json",
+      "sha256": "4071f347971202437e6d070ec1a24057269ffa4ec9984bc8688ea2084997f05a",
+      "bytes": 25178,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/genuine-signed-admin-recovery-job-controls-two-command.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/genuine-signed-admin-recovery-job-controls-two-command.json",
+      "sha256": "3a90114dca9f80a74e991f9c3dfde9a44f24be5c41a7a8bb7674987dec402e99",
+      "bytes": 2672,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/genuine-signed-admin-recovery-job-controls-two.log",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/genuine-signed-admin-recovery-job-controls-two.log",
+      "sha256": "dfa27711f36051e645c7cba062fc189da87bf7e7c22571757ebae1b81f8c9f2e",
+      "bytes": 254,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/isolated-copy-command.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/isolated-copy-command.json",
+      "sha256": "133b51b078f7f01784552c4492bd1cddcaa7dfba8468c3778c2bfaeb9ded3bfd",
+      "bytes": 1400,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/isolated-copy.log",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/isolated-copy.log",
+      "sha256": "05b62c6c0b66ac25f87505e052613891628f0c33eb15fac1f8714783e1958128",
+      "bytes": 201,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/mature-genuine-api-84-only-command.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/mature-genuine-api-84-only-command.json",
+      "sha256": "33d67c02f7b59ef5bf45bded7927fb8d062ddefbe7ce67147343b9dc69e0b3b2",
+      "bytes": 1263,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/mature-genuine-api-84-only.log",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/mature-genuine-api-84-only.log",
+      "sha256": "42d02090747ff2ddfafacf2e169c9454d720679ebb639a46a7f640e64b8fb2f6",
+      "bytes": 188,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/ordinary-actual24-local-migrations-command.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/ordinary-actual24-local-migrations-command.json",
+      "sha256": "38a86a72fc057318fffc9661f3d21edad340d1b8c2e5a065ad2a3a530d324115",
+      "bytes": 2014,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/ordinary-actual24-local-migrations.log",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/ordinary-actual24-local-migrations.log",
+      "sha256": "a4c2ee4f147f8110883945240afdfc2a2814e352b98694a6814440398a2d4360",
+      "bytes": 147956,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/owned-built-worker-command.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/owned-built-worker-command.json",
+      "sha256": "c7b8c2af05a9e624db0a788f6b01f98cae180e86f7aaf8ff7af9e820ec5a610b",
+      "bytes": 1732,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/owned-built-worker.log",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/owned-built-worker.log",
+      "sha256": "4264d5066d8700878618fb676130562657e17ad71e2e53575bad5775eff48e6f",
+      "bytes": 511,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/physical-after-command.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/physical-after-command.json",
+      "sha256": "a8118f4f069b5d26c927628e405750a3dc6e5167886a8ef00d3afee10bd74541",
+      "bytes": 1659,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/physical-after.log",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/physical-after.log",
+      "sha256": "e08bc970f71cfb93ff553c27e30dfcb6b1c204995f05b0d1095946e60f84025d",
+      "bytes": 170,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/physical-before-command.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/physical-before-command.json",
+      "sha256": "464af218c8e2428a44f98c6d7e03965846722189c340f25a5da0f1bf2d5d9a84",
+      "bytes": 1343,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/physical-before.log",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/physical-before.log",
+      "sha256": "31c7c3fffe97dcff7fa52a2bfc4811f1ddb1485e304f7f9711ec2fae71bd406e",
+      "bytes": 166,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/qualified-current85-build-producer-preflight-command.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/qualified-current85-build-producer-preflight-command.json",
+      "sha256": "3e560d76555036a9170caca2f3d560b12a5a7d7594372e873e25a7ae51038512",
+      "bytes": 1505,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/qualified-current85-build-producer-preflight.log",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/qualified-current85-build-producer-preflight.log",
+      "sha256": "1526840294dc311b819362a317d612b4942985bbdf52dc2dcc06a534e4a8af3f",
+      "bytes": 104,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/synthetic-template-sentinels-only-command.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/synthetic-template-sentinels-only-command.json",
+      "sha256": "bd0b4554a848be394ae3a5fe0674dd6643846654166297696116b4b338c65026",
+      "bytes": 2103,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/runtime/synthetic-template-sentinels-only.log",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/synthetic-template-sentinels-only.log",
+      "sha256": "8c3c17e8a92eb165d1a7987c9d05fd19576d41b5783ddc3dfa1d99a6df40f47b",
+      "bytes": 1611,
+      "scope": "native13"
+    },
+    {
+      "original": "/workspace/phase5f-recovery-control-focus-one-current-cf-build-runtime-attempt3/actual-current85-one-fresh-cf-build-qualified-closed-release.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/one-build/actual-current85-one-fresh-cf-build-qualified-closed-release.json",
+      "sha256": "e74bfafba2da6208aaccf4adc0e154be816fb66e88a1b124eba3cb6f4740550b",
+      "bytes": 1791,
+      "scope": "one-build"
+    },
+    {
+      "original": "/workspace/phase5f-recovery-control-focus-one-current-cf-build-runtime-attempt3/fresh-build-artifact-manifest.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/one-build/fresh-build-artifact-manifest.json",
+      "sha256": "e3f5fc798e60488ad99d2b1feee0535737d238b655bf5bf99ee67f08be8f87f9",
+      "bytes": 14601,
+      "scope": "one-build"
+    },
+    {
+      "original": "/workspace/phase5f-recovery-control-focus-one-current-cf-build-runtime-attempt3/frozen-approved-plan.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/one-build/frozen-approved-plan.json",
+      "sha256": "c6836e1f5f4f807d816e31aa3c28e5a0159a0288b00f82a7fefdcb550de02581",
+      "bytes": 2448,
+      "scope": "one-build"
+    },
+    {
+      "original": "/workspace/phase5f-recovery-control-focus-one-current-cf-build-runtime-attempt3/one-fresh-final-QA-source-build-command.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/one-build/one-fresh-final-QA-source-build-command.json",
+      "sha256": "d5eb4baacb3044512c64e2ce927fa42cb622cc5d39635451bcd41764dee014d3",
+      "bytes": 1746,
+      "scope": "one-build"
+    },
+    {
+      "original": "/workspace/phase5f-recovery-control-focus-one-current-cf-build-runtime-attempt3/one-fresh-final-QA-source-build.log",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/one-build/one-fresh-final-QA-source-build.log",
+      "sha256": "3b23e8497b1af79b21d10ee83ca5dbdeba96ea67ae2c07940a8d27632842fe0b",
+      "bytes": 12748,
+      "scope": "one-build"
+    },
+    {
+      "original": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt2/actual-85-corrected-whole22-qualified-closed-release.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/mounted22/actual-85-corrected-whole22-qualified-closed-release.json",
+      "sha256": "9fdefa1b7fd80e6e6be850d1a236cad61a7348f35620139d1c12bad25fde9730",
+      "bytes": 1254,
+      "scope": "mounted22"
+    },
+    {
+      "original": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt2/affected-recovery-mounted-file-command.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/mounted22/affected-recovery-mounted-file-command.json",
+      "sha256": "6e03bb89bdb986dd6b6ecc0b0ee518a11fac57c07dacffee01743860627c7160",
+      "bytes": 1314,
+      "scope": "mounted22"
+    },
+    {
+      "original": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt2/affected-recovery-mounted-file.log",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/mounted22/affected-recovery-mounted-file.log",
+      "sha256": "65fddcb98e08d80f36e4851b72739a16cf5cfc46a186d4e53e02b835414d95dd",
+      "bytes": 269,
+      "scope": "mounted22"
+    },
+    {
+      "original": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt2/frozen-approved-plan.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/mounted22/frozen-approved-plan.json",
+      "sha256": "0e2827ee2db4149ae2b724dbedd5c33bd5f86b069064d3da527531837222ed5a",
+      "bytes": 2196,
+      "scope": "mounted22"
+    },
+    {
+      "original": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt1/actual-28e-strict-pass-mounted-label-firstfailure-closed-release.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/original-strict-and-label-failure/actual-28e-strict-pass-mounted-label-firstfailure-closed-release.json",
+      "sha256": "efb5fe7a0d8ee1471fe0421697d547287715c1b728a3f40b7caeaf1531426068",
+      "bytes": 2471,
+      "scope": "original-strict-and-label-failure"
+    },
+    {
+      "original": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt1/affected-app-strict-command.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/original-strict-and-label-failure/affected-app-strict-command.json",
+      "sha256": "8a69918e84c197d0d14fd24ab088dc6c54a76f8b9a4b21bd0eaced24e76808c9",
+      "bytes": 969,
+      "scope": "original-strict-and-label-failure"
+    },
+    {
+      "original": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt1/affected-app-strict.log",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/original-strict-and-label-failure/affected-app-strict.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "scope": "original-strict-and-label-failure"
+    },
+    {
+      "original": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt1/affected-recovery-mounted-file-command.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/original-strict-and-label-failure/affected-recovery-mounted-file-command.json",
+      "sha256": "c93fd6519a0df40a991f9a0bcb613df747d04f4f0d4f50a5d89b6a1f27f599b8",
+      "bytes": 1289,
+      "scope": "original-strict-and-label-failure"
+    },
+    {
+      "original": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt1/affected-recovery-mounted-file.log",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/original-strict-and-label-failure/affected-recovery-mounted-file.log",
+      "sha256": "6fc85a22585dd58544fdb07161dcdb5938c89d78bc8480d7913a14b86eb93319",
+      "bytes": 1519,
+      "scope": "original-strict-and-label-failure"
+    },
+    {
+      "original": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt1/frozen-approved-plan.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/original-strict-and-label-failure/frozen-approved-plan.json",
+      "sha256": "108f81bd50221b981e8862f1c8cf031789ecd78b23f06ade0f836beda0197c8c",
+      "bytes": 2137,
+      "scope": "original-strict-and-label-failure"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/fixture/genuine-recovery-job-controls-browser-report-original-native-byte-proof-attempt5.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/fixture/genuine-recovery-job-controls-browser-report-original-native-byte-proof-attempt5.json",
+      "sha256": "5f3f0a4a458c3b89c83a72c19e669796201ad2545a408f7c6b9331038de10c68",
+      "bytes": 104835,
+      "scope": "native13-fixture"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/fixture/genuine-recovery-job-controls-runtime-stop-original-native-byte-proof-attempt5.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/fixture/genuine-recovery-job-controls-runtime-stop-original-native-byte-proof-attempt5.json",
+      "sha256": "6d73304ad1734c910d605d2ae58297d3e426f130c43d722593fa6093bbce0459",
+      "bytes": 579,
+      "scope": "native13-fixture"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/fixture/genuine-recovery-job-controls-browser-progress-original-native-byte-proof-attempt5.ndjson",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/fixture/genuine-recovery-job-controls-browser-progress-original-native-byte-proof-attempt5.ndjson",
+      "sha256": "c00456e039b9cccd326a7ee8beb3c3c851ae01239d76cd939a0522d0d7b1c053",
+      "bytes": 300,
+      "scope": "native13-fixture"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/fixture/physical-sqlite-before-api.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/fixture/physical-sqlite-before-api.json",
+      "sha256": "4a64dd2a22ec24167842ab805ebaa237464d8541038da2abc3a564447fad49dd",
+      "bytes": 61760,
+      "scope": "native13-fixture"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/fixture/physical-sqlite-after-shutdown.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/fixture/physical-sqlite-after-shutdown.json",
+      "sha256": "9f478322d213b66bd6f464df61c304da09481e16c22b5b26bd7fda647353b459",
+      "bytes": 66425,
+      "scope": "native13-fixture"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/fixture/actual-api-fixture-receipt.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/fixture/actual-api-fixture-receipt.json",
+      "sha256": "9a4765504c2d77ee1bbc4ae5b2782d27b69549b396b33e1a5a3735c06f3d2731",
+      "bytes": 51641,
+      "scope": "native13-fixture"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/fixture/isolated-server-receipt.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/fixture/isolated-server-receipt.json",
+      "sha256": "9d1a68a76ac480dafa889f7494c287f376d4a261fa3ee7ea5f094a47aa604f7c",
+      "bytes": 3461,
+      "scope": "native13-fixture"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/fixture/isolated-server-stop-receipt.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/fixture/isolated-server-stop-receipt.json",
+      "sha256": "113c884a854666588b93d39c84493c99250eb06f3290a5848ac24b163be61ef3",
+      "bytes": 1052,
+      "scope": "native13-fixture"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/fixture/enabled-storage-draft-build-input-witness.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/fixture/enabled-storage-draft-build-input-witness.json",
+      "sha256": "5f2828204c40fd8d68b8c35ba65f5f399a655f5cdd57234395c285b5dd2f7014",
+      "bytes": 1713,
+      "scope": "native13-fixture"
+    },
+    {
+      "original": "/workspace/recovery-current-focus-native-private-attempt7/copy/isolation-receipt.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/copy/isolation-receipt.json",
+      "sha256": "04b59fd8b5173f12dc7fcc9a42502930a4640df051ecafcd3618c63bebfa4851",
+      "bytes": 330231,
+      "scope": "copy"
+    },
+    {
+      "original": "/workspace/recovery28e5-root-independent-two-leaf-current-focus-source-peer.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/source-peer/recovery28e5-root-independent-two-leaf-current-focus-source-peer.json",
+      "sha256": "de6ed4c46be385e0551571d607ea9abbcc8d612b39b62ac4d68c1fec4b67b124",
+      "bytes": 1370,
+      "scope": "source-peer"
+    },
+    {
+      "original": "/workspace/recovery85f-root-independent-single-state-literal-source-addendum.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/source-peer/recovery85f-root-independent-single-state-literal-source-addendum.json",
+      "sha256": "43d75e00550d4296d0e13cddb3cf41be2bbcd9b98567f8092632efa310e91c9e",
+      "bytes": 909,
+      "scope": "source-peer"
+    },
+    {
+      "original": "/workspace/recovery-current85-b498-final6-independent-complete-native13-source-peer.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/source-peer/recovery-current85-b498-final6-independent-complete-native13-source-peer.json",
+      "sha256": "98a9754ea4698a2a3a4189720a0a9a2319013b111cbd7b11f11a7559e61e12b9",
+      "bytes": 7423,
+      "scope": "source-peer"
+    },
+    {
+      "original": "/workspace/recovery-b498-independent-same-native-focus-settlement-source-addendum.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/source-peer/recovery-b498-independent-same-native-focus-settlement-source-addendum.json",
+      "sha256": "0fee410eb4ae59a5dcbf85e97505e2ab29daf24b527a95df3b8d76893133974c",
+      "bytes": 1868,
+      "scope": "source-peer"
+    },
+    {
+      "original": "/workspace/recovery2a-independent-complete-current-native-helper-source-peer.json",
+      "copied": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/historical-source-finding/recovery2a-independent-complete-current-native-helper-source-peer.json",
+      "sha256": "f8eac9db724c4ad89aaf3c5eea8b0ba0bae2599b644e519b7aa60a442aeed595",
+      "bytes": 4841,
+      "scope": "historical-source-finding"
+    }
+  ],
+  "inputScope": "All2346 parent Git modes/blobs/working bytes unchanged; docs only in this checkpoint. Source current5ca all2344 outside page+mounted protected on product85; QA only exact helper differs producer85.",
+  "qualifiedScopes": "Original28e appstrictPASS; original28e mounted20P1labelF1bailU retained; fixture85 original22PASS; ONE current85 CF build118; b498 original13logical/12commands/native2/physical4PASS. Separate source helper timing2aBLOCK\u2192b498 exactnode remaining20s sourceCLEAR.",
+  "scopeLimits": "12 sameoriginalResponse/reader/readPromise EOF/hash proofs primary; CDPdesktop6/mobile5complete+1failure separately; no inferred old abort cause. No execution/ZIP/provider/target/richreport/device/serving/whole5F acceptance or fresh ownheadCI."
+}

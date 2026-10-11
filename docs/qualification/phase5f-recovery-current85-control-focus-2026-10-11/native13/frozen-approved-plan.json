@@ -1,0 +1,419 @@
+{
+  "version": 1,
+  "status": "SOURCE_ONLY_FINAL_B498_CURRENT85_ACTUAL_BUILD_NATIVE13_UNRUN_NO_GO",
+  "commands": [
+    {
+      "stage": "qualified-current85-build-producer-preflight",
+      "cwd": "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-recovery-current-focus-final-b498-thirteen-source-preparation-attempt6/bind-current85-fresh-cf-build-and-job-control-focus.py",
+        "--coherent-cf-producer-for-genuine-job-controls-two",
+        "producer-preflight"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7",
+        "SQLITE_TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7"
+      },
+      "control": "Verify ONE actual current85 CF Worker/frontend build command/directreap/full output hashes; this thirteen-stage fixture has zero additional builds. Never borrow historical f228118/Node artifacts."
+    },
+    {
+      "stage": "isolated-copy",
+      "cwd": "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2",
+      "argv": [
+        "python3",
+        "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2/scripts/qa/phase5f/prepare-isolated-copy.py",
+        "--source-root",
+        "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2",
+        "--destination",
+        "/workspace/recovery-current-focus-native-private-attempt7/copy",
+        "--dependency-root",
+        "/workspace/sample-fabrication-workflow/node_modules"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7",
+        "SQLITE_TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7"
+      }
+    },
+    {
+      "stage": "fresh-two-version-sentinel",
+      "cwd": "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2",
+      "argv": [
+        "node",
+        "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2/scripts/qa/phase5f/generate-process-fixture.mjs",
+        "/workspace/recovery-current-focus-native-private-attempt7/copy",
+        "/workspace/recovery-current-focus-native-private-attempt7/fixture"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7",
+        "SQLITE_TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7"
+      }
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "cwd": "/workspace/recovery-current-focus-native-private-attempt7/copy",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "migrations",
+        "apply",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/workspace/recovery-current-focus-native-private-attempt7/copy/.wrangler/state"
+      ],
+      "env": {
+        "WRANGLER_SEND_METRICS": "false",
+        "WRANGLER_LOG_PATH": "/workspace/recovery-current-focus-native-private-attempt7/fixture/wrangler-logs",
+        "TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7",
+        "SQLITE_TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7"
+      }
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "cwd": "/workspace/recovery-current-focus-native-private-attempt7/copy",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "execute",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/workspace/recovery-current-focus-native-private-attempt7/copy/.wrangler/state",
+        "--file",
+        "/workspace/recovery-current-focus-native-private-attempt7/fixture/process-fixture.sql"
+      ],
+      "env": {
+        "WRANGLER_SEND_METRICS": "false",
+        "WRANGLER_LOG_PATH": "/workspace/recovery-current-focus-native-private-attempt7/fixture/wrangler-logs",
+        "TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7",
+        "SQLITE_TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7"
+      }
+    },
+    {
+      "stage": "physical-before",
+      "cwd": "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2",
+      "argv": [
+        "python3",
+        "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2/scripts/qa/phase5f/check-isolated-state.py",
+        "--source-copy",
+        "/workspace/recovery-current-focus-native-private-attempt7/copy",
+        "--fixture-directory",
+        "/workspace/recovery-current-focus-native-private-attempt7/fixture",
+        "--stage",
+        "before-api"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7",
+        "SQLITE_TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7"
+      }
+    },
+    {
+      "stage": "owned-built-worker",
+      "cwd": "/workspace/recovery-current-focus-native-private-attempt7/copy",
+      "argv": [
+        "node",
+        "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2/scripts/qa/phase5f/start-built-server.mjs",
+        "/workspace/recovery-current-focus-native-private-attempt7/copy",
+        "/workspace/recovery-current-focus-native-private-attempt7/fixture"
+      ],
+      "control": "Keep owned stdin open, await actual ready health/ready200 and immutable owner/session; never start browser while readiness lacks",
+      "toolInvocation": {
+        "tty": true,
+        "yieldTimeMs": 1000,
+        "control": "PTY keeps originalstdin alive, sourceisatty guard BEFORE childspawn. Require originalready200/session/PID/startticks/noStop beforeseed. Explicitoriginalstop newline only originaltoolsession, thenactualdisposal/directwait."
+      },
+      "env": {
+        "TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7",
+        "SQLITE_TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7"
+      }
+    },
+    {
+      "stage": "mature-genuine-api-84-only",
+      "cwd": "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2",
+      "argv": [
+        "node",
+        "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2/scripts/qa/phase5f/seed-actual-api.mjs",
+        "http://127.0.0.1:4219/",
+        "/workspace/recovery-current-focus-native-private-attempt7/fixture"
+      ],
+      "expectedRequests": 84,
+      "env": {
+        "TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7",
+        "SQLITE_TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7"
+      }
+    },
+    {
+      "stage": "original-disabled-seed-Worker-stop",
+      "control": "After genuine mature84 setup succeeds or any firstfailure, send originalstdin stop only originalttytoolsession; await originaldisposal/stoppedreceipt/directexit0/PIDabsence/4219refusal. No focus/browser runs on this seedWorker. Recovery2 requires mature84PASS and originalseedownerCLOSED."
+    },
+    {
+      "stage": "fresh-current-source-build-witness",
+      "control": "Bind ONE actually completed current85 freshbuild to new physical24+mature84 after normal original seedowner stop. QA helper only differs, all2345 nonhelper inputs exact; full six original native EOF/body proofs and same-job focus assertions remain strict.",
+      "cwd": "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-recovery-current-focus-final-b498-thirteen-source-preparation-attempt6/bind-current85-fresh-cf-build-and-job-control-focus.py",
+        "--coherent-cf-producer-for-genuine-job-controls-two",
+        "witness"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7",
+        "SQLITE_TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7"
+      }
+    },
+    {
+      "stage": "genuine-signed-admin-recovery-job-controls-two",
+      "cwd": "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2",
+      "argv": [
+        "node",
+        "/workspace/phase5f-recovery-job-control-focus-current5ca-browser-settlement-source-attempt5/scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs",
+        "/workspace/recovery-current-focus-native-private-attempt7/copy",
+        "/workspace/recovery-current-focus-native-private-attempt7/fixture",
+        "85f70fd4f22530b98e6ceaafc7c1663f201e5b7a",
+        "2346",
+        "--exclusive-go-two-genuine-recovery-job-controls"
+      ],
+      "env": {
+        "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+        "CHROMIUM_PATH": "/usr/bin/chromium",
+        "TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7",
+        "SQLITE_TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7",
+        "PHASE5F_CHROMIUM_PRIVATE_TEMP": "/workspace/.rcf6tmp",
+        "PHASE5F_JOB_CONTROL_RUNTIME_ROOT": "/workspace/recovery-current-focus-native-private-attempt7/runtime"
+      },
+      "cases": [
+        "historical-backup-controls-1280-light",
+        "historical-backup-controls-390-dark"
+      ],
+      "control": "Sharedenable/disable once + each genuine historicalpreview/backup/Pause/Resume/Cancel max10POST. Original nativeapplication bytes primary for6 exactplannedfetches; originalCDPattempt separately retained always, others strictCDP. Original DTO/status/backendhash/focus/+2/readiness/20s/TTY120 and fullacceptedhistory/normalownerclosures preserved; no clone/newread/request/fallback/provider/ZIP/steps/targets. Current product genuine same-job focus after busyfalse: Pause\u2192Resume, Resume\u2192Pause, Cancel\u2192always-present same-job status; surviving Previewfocus remains strict.",
+      "toolInvocation": {
+        "tty": true,
+        "originalControl": "Only explicitstop newline originalretainedTTY; awaitoriginalclosure/report/childexit120s guard, no SIGTERM-as-finally assumption."
+      }
+    },
+    {
+      "stage": "physical-after",
+      "cwd": "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2",
+      "argv": [
+        "python3",
+        "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2/scripts/qa/phase5f/check-isolated-state.py",
+        "--source-copy",
+        "/workspace/recovery-current-focus-native-private-attempt7/copy",
+        "--fixture-directory",
+        "/workspace/recovery-current-focus-native-private-attempt7/fixture",
+        "--stage",
+        "after-shutdown"
+      ],
+      "require": "Only after original helper body/route/shared configure callbacks/context/browser/Worker/JWKS normalclose, actual directwait/reap and portsrefused. Physical4 is mandatory after fixture/browser failure; accepted job/request history remains retained. No original Recovery/Package outputs overwritten.",
+      "env": {
+        "TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7",
+        "SQLITE_TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7"
+      }
+    },
+    {
+      "stage": "final-source-artifact-input-pins",
+      "control": "Bind ONE actually completed current85 freshbuild to new physical24+mature84 after normal original seedowner stop. QA helper only differs, all2345 nonhelper inputs exact; full six original native EOF/body proofs and same-job focus assertions remain strict.",
+      "cwd": "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-recovery-current-focus-final-b498-thirteen-source-preparation-attempt6/bind-current85-fresh-cf-build-and-job-control-focus.py",
+        "--coherent-cf-producer-for-genuine-job-controls-two",
+        "final-pins"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7",
+        "SQLITE_TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7"
+      }
+    }
+  ],
+  "sourceHead": "85f70fd4f22530b98e6ceaafc7c1663f201e5b7a",
+  "sourceTree": "b3c41095d9aec295df8693ebd69ab3a20f9dd7a0",
+  "trackedFileCount": 2346,
+  "sourceRoot": "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2",
+  "runtimeRoot": "/workspace/recovery-current-focus-native-private-attempt7/runtime",
+  "roots": {
+    "copy": "/workspace/recovery-current-focus-native-private-attempt7/copy",
+    "fixture": "/workspace/recovery-current-focus-native-private-attempt7/fixture",
+    "runtime": "/workspace/recovery-current-focus-native-private-attempt7/runtime"
+  },
+  "installedDependencies": {
+    "root": "/workspace/sample-fabrication-workflow/node_modules",
+    "package": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+    "dependencyParentPackage": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+    "lock": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a",
+    "hiddenLock": "95202718d08fd50cc286bcddf0af66b08503d63b494e992006c50d4246d69a98"
+  },
+  "originalOwnerPreparation": "/workspace/phase5f-recovery-job-controls-current-coherent-finite-preparation-attempt1/original-mature-owner-preparation.json",
+  "futureActualOwnership": "ONE new actual current85 CF build118 passed/e74bf; this new13 performs zero extra builds. New24/84 isolated fixture, original2 genuine job controls with unchangedbody/DTO/history/budgets plus explicit same-job nativefocus waited on exactoriginalnode within remaining originalaction20s. No old artifact/current-HEAD retag.",
+  "expectedCosts": {
+    "rawLocalMigrations": 24,
+    "disabledOrdinarySeedRequests": 84,
+    "readerAuxiliaryGETs": 2,
+    "browserBaselineGETs": 8,
+    "originalPollingMayAddOnlyStatusGETs": true,
+    "sharedPOSTs": 2,
+    "browserNativePOSTs": 8,
+    "totalOriginalPOSTMaximum": 10,
+    "newScheduledSteps": 0,
+    "newExecutionSteps": 0,
+    "newProviderTargets": 0,
+    "newCFBuilds": 0
+  },
+  "budgets": {
+    "nativeOperationBodyAndReadinessMs": 20000,
+    "originalTTYSupervisionMs": 120000,
+    "supervisionProgressEveryMs": 20000,
+    "bodyMaximumExclusiveBytes": 131072,
+    "overflowPx": 2
+  },
+  "currentBinding": "Current85 source2346 andQAb498 solehelper/all2345 other inputs exact. Actual22PASS9fdefa/strict28ePASS8a699 and ONE actual current85 freshbuild118PASSe74bf are source-specific closed scopes; no build repeated in13. Full2native currentfocus remainsUNRUN. No oldf228118/history/CDPcause or Node target artifact borrowed.",
+  "freezeBeforeGO": [
+    "Final retarget sourcepeer/root plan review",
+    "Explicit root exclusive runtime GO"
+  ],
+  "sourceReviewRoot": "/workspace/phase5f-recovery-current-focus-final-b498-thirteen-source-preparation-attempt6",
+  "helper": {
+    "path": "scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs",
+    "sha256": "e81728958e5cf6ec8d375a0f29ba47b976ca90b3311dbab5e5057e037d0202d3",
+    "wholeSourcePeer": "5d9a48499c684bacca2e199f4af169b231e6774a409e3f5a6b8e68d8bd9b6592",
+    "readinessPeer": "e18cff7d17e8c913e940f223043622e7f8b9bbaaf74db77e4eb31f32da1b4529",
+    "historicalPassiveInitializerPeer": {
+      "path": "/workspace/phase5f83ca-independent-original-initial-reader-source-peer.json",
+      "sha256": "c4e2a2de3401c8075ab168ca9194ecc7e4d6163d75973268c69e20003257e296"
+    },
+    "originalNativeByteProofSourceHandoff": {
+      "version": 1,
+      "status": "FROZEN_SOURCE_ONLY_UNRUN",
+      "root": "/workspace/phase5f-recovery-job-controls-native-application-byte-proof-source-attempt6",
+      "head": "21bb149da250ef249d2bef7ddb365feb63532503",
+      "tree": "c7bafcec3e2d9251dc4c6b675dab872db09f5645",
+      "basisHead": "83ca5d0c1ea0d170febd36e3043b37512478e60c",
+      "changedPaths": [
+        "scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs"
+      ],
+      "protected2488InputsExact": true,
+      "helper": {
+        "path": "scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs",
+        "sha256": "4f2873425d2bc40b3825f061a8e2d92da9ee193f694215fcd3bf0c9bcdd2e834"
+      },
+      "patch": {
+        "path": "/workspace/phase5f-recovery-job-controls-native-application-byte-proof-source-review-attempt6/native-application-byte-proof-source.patch",
+        "sha256": "c78e8ac9ae7ba4adf77530220e95684e4d11b3d836b5e312250c233abbfb06d1"
+      },
+      "freeze": {
+        "path": "/workspace/phase5f-recovery-job-controls-native-application-byte-proof-source-review-attempt6/complete-2489-source-freeze.json",
+        "sha256": "8233fcdaaf77fd789253dbbf3260d9336b85e7f4acdcab3a60fdc2861a76b730"
+      },
+      "criterion": "Always primary exact originalapplicationResponse/getReader/readPromise EOF/fullboundedbytes proof for6 planned initializer2+backup/Pause/Resume/Cancel4 fetches; originalCDP attempt separately retained. Other native bodies unchanged strictCDP. No fallback/no body clone/new read/newHTTP/changed request/product edits. Exact native request sequentialordinal/path/method/bodyhash binds private originalResponse/reader. Nativebody bytes always checkedDTO/state/status and POST originalbackend hash; available CDPbytes must also match/bound.",
+      "custody": "New proof Promise registered in original bodies registry before page.evaluate microtask invocation; original20s boundedOriginal retained. Private same originalResponse/reader/Promise owners, frozen metadata/bytes cut before digest, cap6/64chunks/131072exclusive, original context-first body/route/wait settlement/normalclose preserved. No arbitrary payload/JWT/secret serialized; only proof metadata/hashes returned publicly.",
+      "actualBasis": {
+        "receipt": "/workspace/recovery-initial-reader-f228-private-attempt4/runtime/actual-83ca-original-pause-native-body-failure-closed-release.json",
+        "sha256": "15ddc5076cd81ae72af734737d9731a62d21903b2f759b79d47cc5a8143ac99c",
+        "scope": "0P1F1U nativePauseCDPNoData despite sameoriginalapplication366 EOF/backendhash match/no observedsignalabort; reader timestamps absent/no old cause inference"
+      },
+      "future": "Freshnamespace/current24+mature84/max10 genuinePOST2cases with historical same-input f228118 producer causalcarry. New finite retarget/sourcepeer/rootGO still required; old paused histories/83ca source/failures immutable.",
+      "runtimeInvocations": 0
+    },
+    "uniformOriginalNativeApplicationByteProofPeer": {
+      "path": "/workspace/ui21bb-root-independent-uniform-native-application-byte-source-peer.json",
+      "sha256": "18a3788eba5e765e69941dc0c8daae7f478e2e81a3dcf60388e404214c445ac7"
+    },
+    "currentFocusAndFreshTempHandoff": {
+      "path": "/workspace/phase5f-recovery-control-focus-native-settlement-source-preparation-attempt5/source-handoff.json",
+      "sha256": "64a615756a0ea8c511ce4750b49fa13dd27d1bd8da82b3493ba2e3e194b6d065"
+    }
+  },
+  "copyGate": {
+    "path": "scripts/qa/phase5f/prepare-isolated-copy.py",
+    "sha256": "45d6096ade96f69502da95eb929a0a24b49ca2100032e856a4972875b40f0168",
+    "peer": "f56f85f07fc6dcc25d8980872913721c696cd558850d086f11bb10d8cfd985c1",
+    "scope": "Current85 original helper/default strict real installed root package is raw byte-equal parentfcb3be; no be611 command inverse exception required. Historicalf32 peer remains historical, no new helper invocation."
+  },
+  "originalStdinControlTimeGuard": {
+    "tool": "tools.exec_command tty:true for both original seed/controller and genuine browser helper",
+    "progressEveryMs": 20000,
+    "overallMs": 120000,
+    "stop": "Only explicit original stop newline once on original retainedTTY; await original helper closure/report/directchild exit/reap/ports. Never classify SIGTERM as graceful or normalfinally.",
+    "firstFailure": "Stop later normal stages; still mandatory original seedstop/original body/route/context/shared configure settlement/disable/history/disposal and postphysical+finalpins. Retain source/app/test/cleanup failures distinctly."
+  },
+  "qaConsumerHead": "b498aa01b3742e15438fd8c8a9dd9383637d9bf0",
+  "qaConsumerTree": "5a850325b06e609f9bbef37131daee9e1311afc1",
+  "qaConsumerRoot": "/workspace/phase5f-recovery-job-control-focus-current5ca-browser-settlement-source-attempt5",
+  "sourceHelper": {
+    "path": "scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs",
+    "sha256": "e81728958e5cf6ec8d375a0f29ba47b976ca90b3311dbab5e5057e037d0202d3"
+  },
+  "shortChildTemporaryLeaf": "/workspace/.rcf6tmp",
+  "sourcePeerRequired": "Root current28e de6ed +85 tiny43d/actual22+current85build clear; current b498focussettlement/helper fullsource peer and final13bindings/rootGO stillrequired. All source helper/body/requests/DTO/action budgets remain original. Original2a/267 plans retained UNRUN; original21bb18a proofbase historical.",
+  "priorActualInitialFailure": {
+    "path": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/actual-bfea-fresh-namespace-initial-body-failure-closed-release.json",
+    "sha256": "843258754c8ef7b859bf695000c7984202749a52338541d1946ec49e597f0a20",
+    "actualCases": "0PASS1FAIL1UNRUN, initialcaps200/maintenance200 native ERR_ABORTED before backup/control; no initial control-reader observations, jobs0/newpermits0; normalclose+physical/source pins pass"
+  },
+  "primaryNativeBodyCriterion": "Always primary6 originalfetches:2 initializer+backup/Pause/Resume/Cancel4. Exact originalRequest ordinal/path/method/requestbodyhash, private originalResponse/reader/readPromise EOF/fullboundednativebytes/backendhash/DTO; no CDPfailure fallback. CDP attempt/outcome recorded separately; other native responses strictCDP and any CDP-suppliedbytes must agree.",
+  "priorActualCurrentSourceFailure": {
+    "path": "/workspace/recovery-initial-reader-f228-private-attempt4/runtime/actual-83ca-original-pause-native-body-failure-closed-release.json",
+    "sha256": "15ddc5076cd81ae72af734737d9731a62d21903b2f759b79d47cc5a8143ac99c",
+    "scope": "NativePause200CDPFAIL vs originalapplication366EOF/hashmatch/no callerabort beforecontextclose; reader timestamp ordering not observed;0P1F1U/allnormalowners/physical/pinsclosed"
+  },
+  "carrierCriterionScope": "Actual current85 CF source2346/artifacts counted from actual command manifest; QAconsumerb498 helper only/all2345 nonhelper exact. Zero build in13. Six primary originalapplicationResponse/reader/readPromise EOF/fullboundedbytes/requestbodyidentity + DTO/backendhash, separate CDP, plus3 same-job focused controls per nativecase; no fallback/no newread/request.",
+  "carrier": {
+    "path": "/workspace/phase5f-recovery-current-focus-final-b498-thirteen-source-preparation-attempt6/bind-current85-fresh-cf-build-and-job-control-focus.py",
+    "sha256": "0b4ef188836f18601b1c4e59b7ef19b4f2912395fc224f5ec0d56462b193b441",
+    "threeMatureDefinitionsAstExact": [
+      "sha",
+      "digest",
+      "saved"
+    ]
+  },
+  "currentPrerequisites": {
+    "strictActual": {
+      "path": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt1/affected-app-strict-command.json",
+      "sha256": "8a69918e84c197d0d14fd24ab088dc6c54a76f8b9a4b21bd0eaced24e76808c9",
+      "scope": "Historical28e actual PASS, unchanged product85; not rerun."
+    },
+    "whole22Actual": {
+      "path": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt2/actual-85-corrected-whole22-qualified-closed-release.json",
+      "sha256": "9fdefa1b7fd80e6e6be850d1a236cad61a7348f35620139d1c12bad25fde9730"
+    },
+    "freshCurrentBuild": {
+      "runtime": "/workspace/phase5f-recovery-control-focus-one-current-cf-build-runtime-attempt3",
+      "command": "one-fresh-final-QA-source-build-command.json",
+      "manifest": "fresh-build-artifact-manifest.json",
+      "status": "ACTUAL_PASS_CLOSED_RELEASED",
+      "expectedArgv": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "countFromActualOutputOnly": true,
+      "actualQualifiedReceipt": {
+        "path": "/workspace/phase5f-recovery-control-focus-one-current-cf-build-runtime-attempt3/actual-current85-one-fresh-cf-build-qualified-closed-release.json",
+        "sha256": "e74bfafba2da6208aaccf4adc0e154be816fb66e88a1b124eba3cb6f4740550b"
+      },
+      "actualCommandSha256": "d5eb4baacb3044512c64e2ce927fa42cb622cc5d39635451bcd41764dee014d3",
+      "actualArtifactManifestSha256": "e3f5fc798e60488ad99d2b1feee0535737d238b655bf5bf99ee67f08be8f87f9",
+      "actualArtifactCount": 118
+    }
+  },
+  "nativeFocusSettlement": "Capture originalEnter monotonic actionstart; await same exact connected native focusTarget document.activeElement with remaining original20s, then retain immediate active/connected/tag/role assertions on SAME handle. No focus call/request/replay/newbudget.",
+  "historicalCarrierBasis": {
+    "path": "/workspace/phase5f-recovery-job-controls-native-byte-proof-final-finite-source-review-attempt7/carry-original-f228-new-fixture-native-byte-proof.py",
+    "sha256": "33753e9594dec7c7e671910dc5e4a00326d4e9cf9530d06f5e35d85dad061d80",
+    "threeMatureDefinitionsAstExact": [
+      "sha",
+      "digest",
+      "saved"
+    ]
+  }
+}

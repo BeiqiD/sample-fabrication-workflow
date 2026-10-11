@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "status": "SOURCE_ONLY_TINY_CORRECTED22_WAIT_ROOT_PEER_AND_EXCLUSIVE_GO",
+  "sourceRoot": "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2",
+  "sourceHead": "85f70fd4f22530b98e6ceaafc7c1663f201e5b7a",
+  "sourceTree": "b3c41095d9aec295df8693ebd69ab3a20f9dd7a0",
+  "trackedFileCount": 2346,
+  "runtimeRoot": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt2",
+  "installedDependencies": {
+    "root": "/workspace/sample-fabrication-workflow/node_modules",
+    "package": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+    "lock": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a",
+    "hiddenLock": "95202718d08fd50cc286bcddf0af66b08503d63b494e992006c50d4246d69a98",
+    "parentPackage": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233"
+  },
+  "commands": [
+    {
+      "stage": "affected-recovery-mounted-file",
+      "cwd": "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2",
+      "argv": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.mounted.config.ts",
+        "src/system-recovery.mount.test.tsx",
+        "--maxWorkers",
+        "1",
+        "--bail",
+        "1"
+      ],
+      "env": {
+        "TMPDIR": "/workspace",
+        "SQLITE_TMPDIR": "/workspace"
+      },
+      "cases": 22,
+      "originalTestTimeoutMs": 5000,
+      "scope": "Whole corrected affected22 under unchanged original config/default5s; original28e20P1labelF1U retained, strict actual28e PASS distinct."
+    }
+  ],
+  "rootSourcePeer": {
+    "path": "/workspace/recovery28e5-root-independent-two-leaf-current-focus-source-peer.json",
+    "sha256": "de6ed4c46be385e0551571d607ea9abbcc8d612b39b62ac4d68c1fec4b67b124"
+  },
+  "historicalStrictCarry": {
+    "path": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt1/affected-app-strict-command.json",
+    "sha256": "8a69918e84c197d0d14fd24ab088dc6c54a76f8b9a4b21bd0eaced24e76808c9",
+    "scope": "Product unchanged; only fixture lowercase expected text correction. Historical source28e PASS; no new compiler invocation."
+  }
+}

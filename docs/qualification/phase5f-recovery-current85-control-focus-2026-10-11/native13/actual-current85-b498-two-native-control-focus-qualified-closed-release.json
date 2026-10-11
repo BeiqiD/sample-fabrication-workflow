@@ -1,0 +1,355 @@
+{
+  "status": "PASS",
+  "window": "CLOSED/RELEASED",
+  "closedAt": "2026-10-11T11:37:37.481001+00:00",
+  "sourceProducerHead": "85f70fd4f22530b98e6ceaafc7c1663f201e5b7a",
+  "sourceProducerTree": "b3c41095d9aec295df8693ebd69ab3a20f9dd7a0",
+  "sourceQaConsumerHead": "b498aa01b3742e15438fd8c8a9dd9383637d9bf0",
+  "sourceQaConsumerTree": "5a850325b06e609f9bbef37131daee9e1311afc1",
+  "sourceProducerCount": 2346,
+  "sourceQaConsumerCount": 2346,
+  "all2345NonHelperInputsExact": true,
+  "oneCurrentActualCFBuildReceipt": "e74bfafba2da6208aaccf4adc0e154be816fb66e88a1b124eba3cb6f4740550b",
+  "actualFreshCFArtifacts": 118,
+  "actualCopiedArtifacts": 121,
+  "newBuildsInThis13": 0,
+  "strictScope": "Prior original28e PASS8a699; not rerun.",
+  "mountedScope": "Current85 correctedwhole22 PASS9fdefa; not rerun in13. Original28e20P1labelF1U remains separate.",
+  "logicalStages": 13,
+  "actualCommands": 12,
+  "actualCommandCounts": {
+    "passed": 12,
+    "failed": 0,
+    "pending": 0
+  },
+  "nativeCaseCounts": {
+    "passed": 2,
+    "failed": 0,
+    "unrun": 0
+  },
+  "nativeReport": "/workspace/recovery-current-focus-native-private-attempt7/fixture/genuine-recovery-job-controls-browser-report-original-native-byte-proof-attempt5.json",
+  "nativeReportSha256": "5f3f0a4a458c3b89c83a72c19e669796201ad2545a408f7c6b9331038de10c68",
+  "nativeToolSession": 49177,
+  "originalNativePid": 1132046,
+  "nativeOriginalStartTicks": "13180413",
+  "actualNativeBodyProofs": {
+    "primarySameOriginalResponseReaderReadPromisesEOF": 12,
+    "cdpSeparate": {
+      "historical-backup-controls-1280-light": {
+        "complete": 6,
+        "failed": 0
+      },
+      "historical-backup-controls-390-dark": {
+        "complete": 5,
+        "failed": 1
+      }
+    },
+    "noInferenceOfOldAbortCause": true
+  },
+  "currentSameJobControlFocus": {
+    "checked": 6,
+    "allActiveConnectedAndFocusVisible": true,
+    "targets": [
+      "resume",
+      "pause",
+      "cancelled-job-status"
+    ],
+    "nativePreviewFocus": 2
+  },
+  "actualCosts": {
+    "auxiliaryGets": 2,
+    "browserGets": 8,
+    "browserMutationIntents": 8,
+    "originalServerMutationRequestsIssued": 10,
+    "sharedMutationRequests": 2,
+    "originalMutationRequestsMaximum": 10,
+    "acceptedMetadataMutationResponses": 10,
+    "productionPollingMayAddReadOnlyGets": true,
+    "originalRouteFetchForwardsOneNativeIntentOnce": true,
+    "scheduledOrStepInvocationsByHelper": 0,
+    "zipOrProviderOrTargetOperationsByHelper": 0
+  },
+  "acceptedHistory": {
+    "stage": "after-original-shared-disable",
+    "schemaExact": true,
+    "onlyThreeExplicitMetadataTablesMayDiffer": true,
+    "allOtherApplicationTablesExact": true,
+    "original63WritePermitsExact": true,
+    "addedPermits": 0,
+    "acceptedJobs": 2,
+    "requestRows": 2,
+    "runtimeEnabled": 0,
+    "runtimeIncarnationSha256": "cfb8b5e9f6fe2ff161507941a952cbde2de21c403dbbe5cbee6a9eb0fbe167af",
+    "runtimeRowSha256": "52f4e911fbb63d270e7813a22cacbb979c0cbe643f6f80c5d3c01df724bbde4c",
+    "lineages": [
+      {
+        "jobId": "52c43c7a-27b4-4f53-b7fc-a282e82b844a",
+        "requestId": "53a63164-ba6c-46e2-8885-be3a6d9c998f",
+        "actorMatchesCurrentSignedSubject": true,
+        "actorSha256": "5e685ebf41964f639f7cfd400fdfe7af27235920b84afae43456490d57625260",
+        "inputSha256": "bfd705573f44e7625a691f426561d3d4f4023f257e21b3c2f6e09bb5b461c830",
+        "checkpointSha256": "90eac223e090171e754240edc6523614e031a413d4c77cf82b512237b9f1a4fe",
+        "state": "cancelled",
+        "generation": 3,
+        "reason": null,
+        "jobSha256": "6a2077743baab99439a3fc317b9bc2fb3c66fa3c3365ac806ca603d2293440c6",
+        "requestSha256": "1276f9c9e585653d0f0125d9d8bdf4cc86f9a38226237db936326a09331a8bff",
+        "noExecutionOrTargetOrArtifactWork": true
+      },
+      {
+        "jobId": "756d20ae-1b04-4f5c-a468-fd4830e0a5b6",
+        "requestId": "5016b650-2ba8-4950-9f26-510a25b8dfc7",
+        "actorMatchesCurrentSignedSubject": true,
+        "actorSha256": "5e685ebf41964f639f7cfd400fdfe7af27235920b84afae43456490d57625260",
+        "inputSha256": "9559caa8b0c01d68cb9e1fc0ac4f77fecd14c181af5053cabba8c5a120322e3d",
+        "checkpointSha256": "90eac223e090171e754240edc6523614e031a413d4c77cf82b512237b9f1a4fe",
+        "state": "cancelled",
+        "generation": 3,
+        "reason": null,
+        "jobSha256": "fb0a5c80434a0e0c034971c216c89d2a57d54788736ce795811b05f86d975bdf",
+        "requestSha256": "e82c6702af57b2a641c53649273bbe9f9a388fe5060a3075076d71e6435cc630",
+        "noExecutionOrTargetOrArtifactWork": true
+      }
+    ]
+  },
+  "normalHelperClosure": {
+    "sessionId": "46d8d9ae-f946-4e2b-b874-6f813903f82f",
+    "startedAt": "2026-10-11T11:35:56.091Z",
+    "status": "closed",
+    "browserCloseAwaited": true,
+    "originalSharedWorkBeforeDisableAwaited": 1,
+    "originalDisableAwaited": true,
+    "originalSharedWorkAwaited": {
+      "count": 2,
+      "rejected": 0
+    },
+    "originalApplicationCatalogRowsPermitsAndAcceptedHistoryVerified": true,
+    "executorDisabledReadBack": true,
+    "workerDisposeAwaited": true,
+    "workerPortRefused": true,
+    "jwksCloseAwaited": true,
+    "jwksPortRefused": true,
+    "completedAt": "2026-10-11T11:35:58.452Z"
+  },
+  "normalSeedStop": {
+    "originalToolSession": 61735,
+    "originalPid": 1131726,
+    "explicitStdinStop": true,
+    "sameOriginalDisposalAwaited": true,
+    "portClosed": true,
+    "directChildExitCode": 0,
+    "directChildReaped": true
+  },
+  "physicalAfter": {
+    "path": "/workspace/recovery-current-focus-native-private-attempt7/fixture/physical-sqlite-after-shutdown.json",
+    "sha256": "9f478322d213b66bd6f464df61c304da09481e16c22b5b26bd7fda647353b459",
+    "actualSQLiteGroups": 4,
+    "status": "passed"
+  },
+  "ownedCommands": [
+    {
+      "stage": "qualified-current85-build-producer-preflight",
+      "pid": 1126518,
+      "processGroup": 1126518,
+      "originalStartTicks": "13168959",
+      "status": "PASS",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "afterDirectChildReap": [],
+      "receipt": "/workspace/recovery-current-focus-native-private-attempt7/runtime/qualified-current85-build-producer-preflight-command.json",
+      "receiptSha256": "3e560d76555036a9170caca2f3d560b12a5a7d7594372e873e25a7ae51038512",
+      "log": "/workspace/recovery-current-focus-native-private-attempt7/runtime/qualified-current85-build-producer-preflight.log",
+      "logSha256": "1526840294dc311b819362a317d612b4942985bbdf52dc2dcc06a534e4a8af3f"
+    },
+    {
+      "stage": "isolated-copy",
+      "pid": 1126597,
+      "processGroup": 1126597,
+      "originalStartTicks": "13170068",
+      "status": "PASS",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "afterDirectChildReap": [],
+      "receipt": "/workspace/recovery-current-focus-native-private-attempt7/runtime/isolated-copy-command.json",
+      "receiptSha256": "133b51b078f7f01784552c4492bd1cddcaa7dfba8468c3778c2bfaeb9ded3bfd",
+      "log": "/workspace/recovery-current-focus-native-private-attempt7/runtime/isolated-copy.log",
+      "logSha256": "05b62c6c0b66ac25f87505e052613891628f0c33eb15fac1f8714783e1958128"
+    },
+    {
+      "stage": "fresh-two-version-sentinel",
+      "pid": 1126646,
+      "processGroup": 1126646,
+      "originalStartTicks": "13171026",
+      "status": "PASS",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "afterDirectChildReap": [
+        {
+          "pid": 1126657,
+          "state": "Z",
+          "ppid": 1,
+          "processGroup": 1126646,
+          "kernelResourcesExited": true,
+          "fdInspection": "PermissionError"
+        }
+      ],
+      "receipt": "/workspace/recovery-current-focus-native-private-attempt7/runtime/fresh-two-version-sentinel-command.json",
+      "receiptSha256": "154c62a96eeab41993d01e6a7d5f00b523c5401e281ca23f96d2228ab5fee285",
+      "log": "/workspace/recovery-current-focus-native-private-attempt7/runtime/fresh-two-version-sentinel.log",
+      "logSha256": "c6784f8551ae06023cda48be46f3d6ed9d20498e16d7ec147d8c9f8223ff98e7"
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "pid": 1126696,
+      "processGroup": 1126696,
+      "originalStartTicks": "13171789",
+      "status": "PASS",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "afterDirectChildReap": [
+        {
+          "pid": 1126712,
+          "state": "Z",
+          "ppid": 1,
+          "processGroup": 1126696,
+          "kernelResourcesExited": true,
+          "fdInspection": "PermissionError"
+        }
+      ],
+      "receipt": "/workspace/recovery-current-focus-native-private-attempt7/runtime/ordinary-actual24-local-migrations-command.json",
+      "receiptSha256": "38a86a72fc057318fffc9661f3d21edad340d1b8c2e5a065ad2a3a530d324115",
+      "log": "/workspace/recovery-current-focus-native-private-attempt7/runtime/ordinary-actual24-local-migrations.log",
+      "logSha256": "a4c2ee4f147f8110883945240afdfc2a2814e352b98694a6814440398a2d4360"
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "pid": 1129642,
+      "processGroup": 1129642,
+      "originalStartTicks": "13173601",
+      "status": "PASS",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "afterDirectChildReap": [
+        {
+          "pid": 1129658,
+          "state": "Z",
+          "ppid": 1,
+          "processGroup": 1129642,
+          "kernelResourcesExited": true,
+          "fdInspection": "PermissionError"
+        }
+      ],
+      "receipt": "/workspace/recovery-current-focus-native-private-attempt7/runtime/synthetic-template-sentinels-only-command.json",
+      "receiptSha256": "bd0b4554a848be394ae3a5fe0674dd6643846654166297696116b4b338c65026",
+      "log": "/workspace/recovery-current-focus-native-private-attempt7/runtime/synthetic-template-sentinels-only.log",
+      "logSha256": "8c3c17e8a92eb165d1a7987c9d05fd19576d41b5783ddc3dfa1d99a6df40f47b"
+    },
+    {
+      "stage": "physical-before",
+      "pid": 1131042,
+      "processGroup": 1131042,
+      "originalStartTicks": "13174429",
+      "status": "PASS",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "afterDirectChildReap": [],
+      "receipt": "/workspace/recovery-current-focus-native-private-attempt7/runtime/physical-before-command.json",
+      "receiptSha256": "464af218c8e2428a44f98c6d7e03965846722189c340f25a5da0f1bf2d5d9a84",
+      "log": "/workspace/recovery-current-focus-native-private-attempt7/runtime/physical-before.log",
+      "logSha256": "31c7c3fffe97dcff7fa52a2bfc4811f1ddb1485e304f7f9711ec2fae71bd406e"
+    },
+    {
+      "stage": "owned-built-worker",
+      "pid": 1131726,
+      "processGroup": 1131726,
+      "originalStartTicks": "13175949",
+      "status": "PASS",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "afterDirectChildReap": [],
+      "receipt": "/workspace/recovery-current-focus-native-private-attempt7/runtime/owned-built-worker-command.json",
+      "receiptSha256": "c7b8c2af05a9e624db0a788f6b01f98cae180e86f7aaf8ff7af9e820ec5a610b",
+      "log": "/workspace/recovery-current-focus-native-private-attempt7/runtime/owned-built-worker.log",
+      "logSha256": "4264d5066d8700878618fb676130562657e17ad71e2e53575bad5775eff48e6f"
+    },
+    {
+      "stage": "mature-genuine-api-84-only",
+      "pid": 1131790,
+      "processGroup": 1131790,
+      "originalStartTicks": "13178154",
+      "status": "PASS",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "afterDirectChildReap": [],
+      "receipt": "/workspace/recovery-current-focus-native-private-attempt7/runtime/mature-genuine-api-84-only-command.json",
+      "receiptSha256": "33d67c02f7b59ef5bf45bded7927fb8d062ddefbe7ce67147343b9dc69e0b3b2",
+      "log": "/workspace/recovery-current-focus-native-private-attempt7/runtime/mature-genuine-api-84-only.log",
+      "logSha256": "42d02090747ff2ddfafacf2e169c9454d720679ebb639a46a7f640e64b8fb2f6"
+    },
+    {
+      "stage": "fresh-current-source-build-witness",
+      "pid": 1131934,
+      "processGroup": 1131934,
+      "originalStartTicks": "13179403",
+      "status": "PASS",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "afterDirectChildReap": [],
+      "receipt": "/workspace/recovery-current-focus-native-private-attempt7/runtime/fresh-current-source-build-witness-command.json",
+      "receiptSha256": "0fe2c14251939e440dacd6eba089145b05f6744fdc5b6405508785a4a621ab0c",
+      "log": "/workspace/recovery-current-focus-native-private-attempt7/runtime/fresh-current-source-build-witness.log",
+      "logSha256": "58f1a2b8b374018aa4d97d66640e27ba966463bfc4e70b2a589bddf93db0e397"
+    },
+    {
+      "stage": "genuine-signed-admin-recovery-job-controls-two",
+      "pid": 1132046,
+      "processGroup": 1132046,
+      "originalStartTicks": "13180413",
+      "status": "PASS",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "afterDirectChildReap": [],
+      "receipt": "/workspace/recovery-current-focus-native-private-attempt7/runtime/genuine-signed-admin-recovery-job-controls-two-command.json",
+      "receiptSha256": "3a90114dca9f80a74e991f9c3dfde9a44f24be5c41a7a8bb7674987dec402e99",
+      "log": "/workspace/recovery-current-focus-native-private-attempt7/runtime/genuine-signed-admin-recovery-job-controls-two.log",
+      "logSha256": "dfa27711f36051e645c7cba062fc189da87bf7e7c22571757ebae1b81f8c9f2e"
+    },
+    {
+      "stage": "physical-after",
+      "pid": 1132442,
+      "processGroup": 1132442,
+      "originalStartTicks": "13184630",
+      "status": "PASS",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "afterDirectChildReap": [],
+      "receipt": "/workspace/recovery-current-focus-native-private-attempt7/runtime/physical-after-command.json",
+      "receiptSha256": "a8118f4f069b5d26c927628e405750a3dc6e5167886a8ef00d3afee10bd74541",
+      "log": "/workspace/recovery-current-focus-native-private-attempt7/runtime/physical-after.log",
+      "logSha256": "e08bc970f71cfb93ff553c27e30dfcb6b1c204995f05b0d1095946e60f84025d"
+    },
+    {
+      "stage": "final-source-artifact-input-pins",
+      "pid": 1132466,
+      "processGroup": 1132466,
+      "originalStartTicks": "13185066",
+      "status": "PASS",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "afterDirectChildReap": [],
+      "receipt": "/workspace/recovery-current-focus-native-private-attempt7/runtime/final-source-artifact-input-pins-command.json",
+      "receiptSha256": "2765167cecb24b32e14b7becb879fd9c5c608315bb4b2e09988f02516c18d7c4",
+      "log": "/workspace/recovery-current-focus-native-private-attempt7/runtime/final-source-artifact-input-pins.log",
+      "logSha256": "b16014a32acb9c720d83e1d917bcb57bb45e439bfa1b1cbb8c1713e098cc61ab"
+    }
+  ],
+  "ownershipScope": "All12 direct children exit0/reaped/no signals;9 groupsEMPTY+3 kernelZ/PPID1/FDPermission records retained. No observedzeroFD/globalquiescence claim.",
+  "excluded": [
+    "recovery step execution",
+    "ZIP/provider/target operations",
+    "rich recovery report",
+    "physical device/IME/other engine",
+    "deployment/whole5F acceptance"
+  ],
+  "originalHistoriesAndOtherNamespacesUntouched": true
+}

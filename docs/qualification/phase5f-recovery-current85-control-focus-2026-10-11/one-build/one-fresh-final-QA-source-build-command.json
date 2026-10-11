@@ -1,0 +1,60 @@
+{
+  "stage": "one-fresh-final-QA-source-build",
+  "cwd": "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2",
+  "argv": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "env": {
+    "TMPDIR": "/workspace",
+    "SQLITE_TMPDIR": "/workspace"
+  },
+  "scope": "ONE current85 default coherent CF Worker/frontend build; no Node artifact interchange or historical f228118 reuse. Default original npm build flags/dependencies unchanged.",
+  "startedAt": "2026-10-11T11:19:47.340912+00:00",
+  "status": "PASS",
+  "log": "/workspace/phase5f-recovery-control-focus-one-current-cf-build-runtime-attempt3/one-fresh-final-QA-source-build.log",
+  "pid": 1111958,
+  "processGroup": 1111958,
+  "originalStartTicks": "13084811",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1112074,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1111958,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1112074,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1111958,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1112074,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1111958,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T11:19:55.912446+00:00",
+  "logSha256": "3b23e8497b1af79b21d10ee83ca5dbdeba96ea67ae2c07940a8d27632842fe0b"
+}

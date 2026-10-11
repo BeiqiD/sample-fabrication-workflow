@@ -119,6 +119,59 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); sessionStorage.clear(); });
 
 describe("privileged website system backup and recovery workflow", () => {
+  it("returns focus to an explicitly focused Preview system backup after its original deferred GET", async () => {
+    let finishPreview!: (value: Response) => void;
+    let originalPreview!: Response;
+    network.mockImplementation(async (path, options) => {
+      if (String(path) === `${base}/backup-preview` && options?.method === "GET") {
+        originalPreview = fallback(path, options);
+        return new Promise<Response>(resolve => { finishPreview = resolve; });
+      }
+      return fallback(path, options);
+    });
+    await mount();
+    const preview = await enabled("Preview system backup");
+    expect(document.activeElement).not.toBe(preview);
+    preview.focus(); fireEvent.click(preview);
+    expect(preview.matches(":disabled")).toBe(true);
+    // Model the prior actual Chromium disabled-button blur; this is not a new browser proof.
+    const originalTabIndex = document.body.getAttribute("tabindex");
+    try { document.body.tabIndex = -1; document.body.focus(); }
+    finally {
+      if (originalTabIndex === null) document.body.removeAttribute("tabindex");
+      else document.body.setAttribute("tabindex", originalTabIndex);
+    }
+    expect(document.activeElement).toBe(document.body);
+    await act(async () => finishPreview(originalPreview));
+    await screen.findByRole("button", { name: "Start durable system backup" });
+    await waitFor(() => expect(document.activeElement).toBe(preview));
+    expect(preview.isConnected).toBe(true); expect(preview.matches(":disabled")).toBe(false);
+    expect(calls("/backup-preview", "GET")).toHaveLength(1); expect(mutations()).toHaveLength(0);
+    expect(sessionStorage.getItem(intentKey)).toBeNull();
+  });
+
+  it("preserves focus moved to another native control while Preview system backup is pending", async () => {
+    let finishPreview!: (value: Response) => void;
+    let originalPreview!: Response;
+    network.mockImplementation(async (path, options) => {
+      if (String(path) === `${base}/backup-preview` && options?.method === "GET") {
+        originalPreview = fallback(path, options);
+        return new Promise<Response>(resolve => { finishPreview = resolve; });
+      }
+      return fallback(path, options);
+    });
+    await mount();
+    const preview = await enabled("Preview system backup");
+    preview.focus(); fireEvent.click(preview); expect(preview.matches(":disabled")).toBe(true);
+    const other = screen.getByRole("link", { name: "Research packages and reports" }); other.focus();
+    expect(document.activeElement).toBe(other);
+    await act(async () => finishPreview(originalPreview));
+    await screen.findByRole("button", { name: "Start durable system backup" });
+    expect(preview.matches(":disabled")).toBe(false); expect(document.activeElement).toBe(other);
+    expect(calls("/backup-preview", "GET")).toHaveLength(1); expect(mutations()).toHaveLength(0);
+    expect(sessionStorage.getItem(intentKey)).toBeNull();
+  });
+
   it("reads administrator capability first and exposes no backup or target state to an ordinary actor", async () => {
     capability.canManage = false; await mount();
     expect(screen.getByRole("heading", { name: "Administrator access required" })).toBeTruthy();
@@ -277,5 +330,49 @@ describe("privileged website system backup and recovery workflow", () => {
     const view = await mount(); fireEvent.click(await enabled("Preview system backup"));
     await waitFor(() => expect(calls("/backup-preview")).toHaveLength(1)); const signal = calls("/backup-preview")[0][1]?.signal;
     view.unmount(); expect(signal?.aborted).toBe(true); await act(async () => resolve(json(backupPreview()))); expect(mutations()).toHaveLength(0);
+  });
+
+  it("returns keyboard focus within the same job after deferred pause, resume and cancellation without replay", async () => {
+    jobs = [job()]; await mount();
+    let resolve!: (value: Response) => void;
+    network.mockImplementation(async (path, options) => String(path) === `${base}/jobs/backup%3Ajob/control` && options?.method === "POST"
+      ? new Promise<Response>(accept => { resolve = accept; }) : fallback(path, options));
+    const pause = await enabled("Pause"); pause.focus(); fireEvent.click(pause);
+    await waitFor(() => expect(calls("/jobs/backup%3Ajob/control", "POST")).toHaveLength(1));
+    expect(pause.matches(":disabled")).toBe(true);
+    await act(async () => resolve(fallback(...calls("/jobs/backup%3Ajob/control", "POST")[0])));
+    const resume = await enabled("Resume"); await waitFor(() => expect(document.activeElement).toBe(resume));
+    expect(pause.isConnected).toBe(false);
+    fireEvent.click(resume);
+    await waitFor(() => expect(calls("/jobs/backup%3Ajob/control", "POST")).toHaveLength(2));
+    expect(resume.matches(":disabled")).toBe(true);
+    await act(async () => resolve(fallback(...calls("/jobs/backup%3Ajob/control", "POST")[1])));
+    const nextPause = await enabled("Pause"); await waitFor(() => expect(document.activeElement).toBe(nextPause));
+    expect(resume.isConnected).toBe(false);
+    const cancel = await enabled("Cancel"); const article = cancel.closest("article"); expect(article).not.toBeNull();
+    cancel.focus(); fireEvent.click(cancel);
+    await waitFor(() => expect(calls("/jobs/backup%3Ajob/control", "POST")).toHaveLength(3));
+    expect(cancel.matches(":disabled")).toBe(true);
+    await act(async () => resolve(fallback(...calls("/jobs/backup%3Ajob/control", "POST")[2])));
+    const status = article!.querySelector('p[role="status"]'); expect(status).not.toBeNull();
+    await waitFor(() => expect(document.activeElement).toBe(status));
+    expect(status!.textContent).toContain("backup:job"); expect(status!.textContent).toContain("cancelled");
+    expect(cancel.isConnected).toBe(false); expect(status!.getAttribute("tabindex")).toBe("-1");
+    expect(calls("/jobs/backup%3Ajob/control", "POST").map(([, options]) => JSON.parse(String(options?.body)).action))
+      .toEqual(["pause", "resume", "cancel"]);
+    expect(mutations()).toHaveLength(3); expect(sessionStorage.getItem(intentKey)).toBeNull();
+  });
+  it("preserves focus moved to another native control while the same job pause response is pending", async () => {
+    jobs = [job()]; await mount();
+    let resolve!: (value: Response) => void;
+    network.mockImplementation(async (path, options) => String(path) === `${base}/jobs/backup%3Ajob/control` && options?.method === "POST"
+      ? new Promise<Response>(accept => { resolve = accept; }) : fallback(path, options));
+    const pause = await enabled("Pause"); pause.focus(); fireEvent.click(pause);
+    await waitFor(() => expect(calls("/jobs/backup%3Ajob/control", "POST")).toHaveLength(1));
+    const other = screen.getByRole("link", { name: "Research packages and reports" }); other.focus();
+    expect(document.activeElement).toBe(other);
+    await act(async () => resolve(fallback(...calls("/jobs/backup%3Ajob/control", "POST")[0])));
+    await enabled("Resume"); expect(pause.isConnected).toBe(false); expect(document.activeElement).toBe(other);
+    expect(calls("/jobs/backup%3Ajob/control", "POST")).toHaveLength(1); expect(mutations()).toHaveLength(1);
   });
 });

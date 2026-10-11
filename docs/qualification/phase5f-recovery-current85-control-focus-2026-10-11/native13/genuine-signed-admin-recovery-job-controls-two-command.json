@@ -1,0 +1,49 @@
+{
+  "stage": "genuine-signed-admin-recovery-job-controls-two",
+  "cwd": "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2",
+  "argv": [
+    "node",
+    "/workspace/phase5f-recovery-job-control-focus-current5ca-browser-settlement-source-attempt5/scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs",
+    "/workspace/recovery-current-focus-native-private-attempt7/copy",
+    "/workspace/recovery-current-focus-native-private-attempt7/fixture",
+    "85f70fd4f22530b98e6ceaafc7c1663f201e5b7a",
+    "2346",
+    "--exclusive-go-two-genuine-recovery-job-controls"
+  ],
+  "env": {
+    "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+    "CHROMIUM_PATH": "/usr/bin/chromium",
+    "TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7",
+    "SQLITE_TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7",
+    "PHASE5F_CHROMIUM_PRIVATE_TEMP": "/workspace/.rcf6tmp",
+    "PHASE5F_JOB_CONTROL_RUNTIME_ROOT": "/workspace/recovery-current-focus-native-private-attempt7/runtime"
+  },
+  "cases": [
+    "historical-backup-controls-1280-light",
+    "historical-backup-controls-390-dark"
+  ],
+  "control": "Sharedenable/disable once + each genuine historicalpreview/backup/Pause/Resume/Cancel max10POST. Original nativeapplication bytes primary for6 exactplannedfetches; originalCDPattempt separately retained always, others strictCDP. Original DTO/status/backendhash/focus/+2/readiness/20s/TTY120 and fullacceptedhistory/normalownerclosures preserved; no clone/newread/request/fallback/provider/ZIP/steps/targets. Current product genuine same-job focus after busyfalse: Pause\u2192Resume, Resume\u2192Pause, Cancel\u2192always-present same-job status; surviving Previewfocus remains strict.",
+  "toolInvocation": {
+    "tty": true,
+    "originalControl": "Only explicitstop newline originalretainedTTY; awaitoriginalclosure/report/childexit120s guard, no SIGTERM-as-finally assumption."
+  },
+  "startedAt": "2026-10-11T11:35:43.366801+00:00",
+  "status": "PASS",
+  "log": "/workspace/recovery-current-focus-native-private-attempt7/runtime/genuine-signed-admin-recovery-job-controls-two.log",
+  "pid": 1132046,
+  "processGroup": 1132046,
+  "originalStartTicks": "13180413",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T11:35:58.571925+00:00",
+  "logSha256": "dfa27711f36051e645c7cba062fc189da87bf7e7c22571757ebae1b81f8c9f2e"
+}

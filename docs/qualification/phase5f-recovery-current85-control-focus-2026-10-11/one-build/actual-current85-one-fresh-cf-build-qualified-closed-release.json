@@ -1,0 +1,38 @@
+{
+  "status": "PASS",
+  "window": "CLOSED/RELEASED",
+  "closedAt": "2026-10-11T11:20:18.801644+00:00",
+  "sourceRoot": "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2",
+  "sourceHead": "85f70fd4f22530b98e6ceaafc7c1663f201e5b7a",
+  "sourceTree": "b3c41095d9aec295df8693ebd69ab3a20f9dd7a0",
+  "all2346GitModesBlobsWorkingBytesExact": true,
+  "sourceClean": true,
+  "command": "/workspace/phase5f-recovery-control-focus-one-current-cf-build-runtime-attempt3/one-fresh-final-QA-source-build-command.json",
+  "commandSha256": "d5eb4baacb3044512c64e2ce927fa42cb622cc5d39635451bcd41764dee014d3",
+  "originalToolSession": 44834,
+  "originalPid": 1111958,
+  "originalProcessGroup": 1111958,
+  "originalStartTicks": "13084811",
+  "actualExitCode": 0,
+  "directChildReaped": true,
+  "ownedCleanupSignals": [],
+  "ownedGroupScope": [
+    {
+      "pid": 1112074,
+      "state": "Z",
+      "ppid": 1,
+      "processGroup": 1111958,
+      "kernelResourcesExited": true,
+      "fdInspection": "PermissionError"
+    }
+  ],
+  "nativeResourceScope": "One actual kernelZ/PPID1 PID1112074 retains PermissionError FD metadata; no active original group member observed, no zeroFD/globalquiescence claim.",
+  "oneActualCFBuildOnly": true,
+  "actualFreshArtifactCount": 118,
+  "actualFreshArtifactManifestSha256": "e3f5fc798e60488ad99d2b1feee0535737d238b655bf5bf99ee67f08be8f87f9",
+  "allActualOutputsRehashedExact": true,
+  "strictScope": "Prior actual28e strict8a699; product unchanged on85 fixtureliteral successor, not rerun.",
+  "mountedScope": "Actual corrected85 WHOLE22 PASS9fdefa distinct from original28e20P1F1U.",
+  "nativeScope": "Current2a native2/source13 remainUNRUN untilpeer/separate rootGO; no oldf228118 artifact retag.",
+  "noWorkerBrowserSQLiteStarted": true
+}

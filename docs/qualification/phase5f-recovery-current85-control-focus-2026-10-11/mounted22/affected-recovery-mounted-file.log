@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2
+
+
+ Test Files  1 passed (1)
+      Tests  22 passed (22)
+   Start at  11:12:50
+   Duration  1.95s (transform 205ms, setup 0ms, import 315ms, tests 1.23s, environment 287ms)
+
