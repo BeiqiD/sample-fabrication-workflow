@@ -1,0 +1,25 @@
+{
+  "status": "PASS",
+  "domain": "storage",
+  "producerHead": "5e65f4d0355f375ca7fe949b8de15082c043c19a",
+  "producerTree": "4df8f0e910ef1fa085c1a74bad3b402cd266f73d",
+  "qaConsumerHead": "9a5f3217bbd55b0171a4568e90425bc4dc5517e9",
+  "qaConsumerTree": "08cea52c4b61625d9c2809066fbdd21b78c71f5e",
+  "originalBuildCommandReceiptSha256": "860a3f0c63ac38a7e162246f466ef4ef906e16d9aef0b56fc570fa9cd83d763e",
+  "originalBuildLogSha256": "dfa13775e1102eee774625102080578adbf93bc1122c3f0bd8feb8b468014cde",
+  "originalProducerCount": 2726,
+  "all2726ProducerInputsOnConsumerExact": true,
+  "extraNativeQaInputs": {
+    "scripts/qa/phase5f/browser-current-coherent-package-status-refresh-keyboard.mjs": "d2d9e85468d795637844b617492f963484ba115b4eeb245630c6ce3f6761a1ae",
+    "scripts/qa/phase5f/browser-current-coherent-storage-settings-refresh-keyboard.mjs": "d82881d249731d52dc351d3e42ac739b11dacc2c8b682975e79cc0ad9cc41557",
+    "scripts/qa/phase5f/check-current-coherent-storage-package-refresh-physical-state.py": "21cf6669d163c92baf50870ed91c1c2240940cdcd7b562ece5d160ec4dafa073"
+  },
+  "actualOriginalArtifacts": 118,
+  "newBuilds": 0,
+  "freshIndependentPure24FixtureRequired": true,
+  "disabledSeedRequests": 0,
+  "setupPOSTMaximum": 6,
+  "originalNativeMetadataPOSTMaximum": 0,
+  "maximumTotalPOSTs": 6,
+  "oldPausedLineagesNotOpenedOrChanged": true
+}

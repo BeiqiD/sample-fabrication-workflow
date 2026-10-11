@@ -1,0 +1,224 @@
+{
+  "kind": "current8be-six-qa-independent-affected-compatibility-source-peer/1",
+  "status": "SOURCE_CLEAR_COMPATIBILITY_ONLY_ALL_FOUR_NATIVE_SCENARIOS_UNRUN",
+  "reviewer": "/root/v26_qualification",
+  "time": "2026-10-11T21:58:28.087417+00:00",
+  "handoff": {
+    "path": "/tmp/phase5f-refresh-start202-current8be-six-qa-source-preparation-attempt1/source-handoff.json",
+    "sha256": "7e84129912d86ac8d6a7f40fe399a874e18d09464c333acbeec663fcac56c062"
+  },
+  "source": {
+    "repository": "/workspace/current-dev57f-qualified-cli-mounted-jobs-source-attempt1",
+    "ref": "refs/heads/qa/current8be-refresh-and-start202-six-helpers",
+    "head": "8c460eb229edc1983867a7778a625793d1b852f0",
+    "tree": "28c9177c231c6a7f24e52a51d1bed7492ab3e0a4",
+    "allGitObjectBlobModesAndShaVerified": 3092,
+    "allProducer8beProtectedEntriesExact": 3086,
+    "workingBefore": {
+      "head": "f883e64086bee44b353f3840271fa3eaaafdcc7d",
+      "indexSha256": "ca3d74a19561f7c054edee4a38a615a51fa0d650fe60c5f0cecdba722a4ab85c",
+      "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "workingAfter": {
+      "head": "f883e64086bee44b353f3840271fa3eaaafdcc7d",
+      "indexSha256": "ca3d74a19561f7c054edee4a38a615a51fa0d650fe60c5f0cecdba722a4ab85c",
+      "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "GitOnlyNoMaterialization": true
+  },
+  "independentProof": {
+    "path": "/tmp/phase5f-refresh-start202-current8be-six-qa-source-preparation-attempt1/independent-six-helper-git-and-whole-inverse-proof.json",
+    "sha256": "11a6ff826096df197fc45cf257c31eb9a0c9420c2b76c97835e7430854f2aaf9"
+  },
+  "sixCompleteForwardAndBackwardWholeByteInverses": [
+    {
+      "path": "scripts/qa/phase5f/browser-current-coherent-storage-settings-refresh-keyboard.mjs",
+      "oldSha256": "d82881d249731d52dc351d3e42ac739b11dacc2c8b682975e79cc0ad9cc41557",
+      "newSha256": "46f232c11dd7096d80ce3eefc69ecafa90f0348a6647b85b33e11b485d4ebf23",
+      "changes": [
+        {
+          "old": "5e65f4d0355f375ca7fe949b8de15082c043c19a",
+          "new": "8be4e74200096436eaa674a05d44dd772d23fc35",
+          "occurrences": 1
+        },
+        {
+          "old": "length,2726",
+          "new": "length,3086",
+          "occurrences": 1
+        },
+        {
+          "old": "producerOrdinaryTrackedCount:2726",
+          "new": "producerOrdinaryTrackedCount:3086",
+          "occurrences": 1
+        },
+        {
+          "old": "/workspace/.ssrf1",
+          "new": "/workspace/.ssrf2",
+          "occurrences": 1
+        },
+        {
+          "old": "// Original02d product/build provenance remains unchanged; no native write or accepted job.",
+          "new": "// Current8be changed product requires its original fresh producer; no native write or accepted job.",
+          "occurrences": 1
+        }
+      ],
+      "wholeForwardExact": true,
+      "wholeReverseExact": true,
+      "newBytes": 27013
+    },
+    {
+      "path": "scripts/qa/phase5f/browser-current-coherent-package-status-refresh-keyboard.mjs",
+      "oldSha256": "d2d9e85468d795637844b617492f963484ba115b4eeb245630c6ce3f6761a1ae",
+      "newSha256": "0029bef6732d31ba84e2055e73cb29234738a135d4c6ac44d6e36d9769f80726",
+      "changes": [
+        {
+          "old": "5e65f4d0355f375ca7fe949b8de15082c043c19a",
+          "new": "8be4e74200096436eaa674a05d44dd772d23fc35",
+          "occurrences": 1
+        },
+        {
+          "old": "length,2726",
+          "new": "length,3086",
+          "occurrences": 1
+        },
+        {
+          "old": "producerOrdinaryTrackedCount:2726",
+          "new": "producerOrdinaryTrackedCount:3086",
+          "occurrences": 1
+        },
+        {
+          "old": "/workspace/.pkrf1",
+          "new": "/workspace/.pkrf2",
+          "occurrences": 1
+        },
+        {
+          "old": "// Original02d product/build provenance remains unchanged; no native write or accepted job.",
+          "new": "// Current8be changed product requires its original fresh producer; no native write or accepted job.",
+          "occurrences": 1
+        }
+      ],
+      "wholeForwardExact": true,
+      "wholeReverseExact": true,
+      "newBytes": 27224
+    },
+    {
+      "path": "scripts/qa/phase5f/check-current-coherent-storage-package-refresh-physical-state.py",
+      "oldSha256": "21cf6669d163c92baf50870ed91c1c2240940cdcd7b562ece5d160ec4dafa073",
+      "newSha256": "8d023a320716160997764a5f7bfa41638041704109f7ae8b32cb8006f3e41c3e",
+      "changes": [
+        {
+          "old": "5e65f4d0355f375ca7fe949b8de15082c043c19a",
+          "new": "8be4e74200096436eaa674a05d44dd772d23fc35",
+          "occurrences": 1
+        }
+      ],
+      "wholeForwardExact": true,
+      "wholeReverseExact": true,
+      "newBytes": 12797
+    },
+    {
+      "path": "scripts/qa/phase5f/browser-current-file-start202-natural-focus-keyboard.mjs",
+      "oldSha256": "ea9bbf9c9d5e4647a035da30f856a8a64ede24e82ed9c032ae3c23b3f8c2ed30",
+      "newSha256": "00ee820b61be055b921d59500a47047c7d8b392c2df1ffb568cf6bd31651e41c",
+      "changes": [
+        {
+          "old": "5e65f4d0355f375ca7fe949b8de15082c043c19a",
+          "new": "8be4e74200096436eaa674a05d44dd772d23fc35",
+          "occurrences": 1
+        },
+        {
+          "old": "length,2726",
+          "new": "length,3086",
+          "occurrences": 1
+        },
+        {
+          "old": "producerOrdinaryTrackedCount:2726",
+          "new": "producerOrdinaryTrackedCount:3086",
+          "occurrences": 1
+        }
+      ],
+      "wholeForwardExact": true,
+      "wholeReverseExact": true,
+      "newBytes": 39872
+    },
+    {
+      "path": "scripts/qa/phase5f/browser-current-package-start202-natural-focus-keyboard.mjs",
+      "oldSha256": "96ebc9de976cdde5147e1b53529d159736c8447cc634c3df527f40d49b6ba7ee",
+      "newSha256": "344a5d9d7b0bf5b54830c5eadcb039349d0afbc04d501ce6613ead7cabd1ff2d",
+      "changes": [
+        {
+          "old": "5e65f4d0355f375ca7fe949b8de15082c043c19a",
+          "new": "8be4e74200096436eaa674a05d44dd772d23fc35",
+          "occurrences": 1
+        },
+        {
+          "old": "length,2726",
+          "new": "length,3086",
+          "occurrences": 1
+        },
+        {
+          "old": "producerOrdinaryTrackedCount:2726",
+          "new": "producerOrdinaryTrackedCount:3086",
+          "occurrences": 1
+        }
+      ],
+      "wholeForwardExact": true,
+      "wholeReverseExact": true,
+      "newBytes": 45682
+    },
+    {
+      "path": "scripts/qa/phase5f/check-current-start202-natural-focus-physical-state.py",
+      "oldSha256": "86952f36fbbd236754f1493775f472496491e3f2ee9d382be729b189df439f3a",
+      "newSha256": "2d7897fd07d757b4ec1d4808632d1b23ea6e851e8b8f42a19489248d68b278e4",
+      "changes": [
+        {
+          "old": "5e65f4d0355f375ca7fe949b8de15082c043c19a",
+          "new": "8be4e74200096436eaa674a05d44dd772d23fc35",
+          "occurrences": 1
+        }
+      ],
+      "wholeForwardExact": true,
+      "wholeReverseExact": true,
+      "newBytes": 12735
+    }
+  ],
+  "inheritedExactSourceScopes": {
+    "refresh": {
+      "path": "/tmp/phase5f-refresh-current5e-readonly-physical-git-only-source-preparation-attempt7/independent-affected-current5e-refresh-two-header-and-seven-physical-selector-source-peer.json",
+      "sha256": "53f974d94516716c3bb0a7c25c5bfc0da72a7ac8145b9e86f84928c0e23feb13"
+    },
+    "start202": {
+      "path": "/tmp/phase5f-start202-natural-focus-git-only-source-preparation-attempt2/independent-complete-start202-two-browser-and-physical-source-peer.json",
+      "sha256": "111de3e4cd3219601cb0036506d99bf5f307394c8a24d824328585166e1cb2b6"
+    }
+  },
+  "changedGuardsReviewed": "All four browser original producer checks now require 8be4e742 and exact3086 ordinary tracked input count. Both original physical selectors bind the same 8be. Refresh browser exact private temp asserts move ssrf1/pkrf1 to fresh ssrf2/pkrf2; Start202 retains absent sfst1/pkst1. Only these literals plus accurate changed-product provenance comments differ.",
+  "semanticCarry": "Original Refresh read-only routes/DTO/body hashes/focus/geometry/current Package5s polling, and original Start202 Preview200\u2192accept202/trusted Enter/natural successor Pause focus before any focus helper, are complete byte-exact to their independently reviewed donor scopes. No additional actions, native reads, accepted controls, executor, polling, authority or budget changes. Original cached first response/body/owner wait/disposal/error handling and physical algorithms are untouched.",
+  "freshTemporaryPaths": {
+    "/workspace/.ssrf2": "ABSENT",
+    "/workspace/.pkrf2": "ABSENT",
+    "/workspace/.sfst1": "ABSENT",
+    "/workspace/.pkst1": "ABSENT"
+  },
+  "originalProducerDeclaration": "Immutable source handoff was saved before current8be build and correctly records UNRUN then; this source peer does not rewrite that historical declaration.",
+  "subsequentRootBuildEvidenceSeparate": {
+    "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/build-runtime/root-one-current8be-cf-build-full-original118-raw-owner-release.json",
+    "sha256": "6aeda8b7f1c1f7d98faa771c2a44bed44942bf2ec7f4e9b24ba71c14b01ecd53",
+    "status": "Root independently qualified and released one current8be CF118 build; artifact/physical/finite binding for each new scenario is still required, no old5e118 reuse."
+  },
+  "findings": [],
+  "limits": [
+    "Affected compatibility source review only; no broad donor algorithm re-review or actual scenario PASS.",
+    "All four new browser scenarios and their finite runtime gates remain UNRUN; original Storage9a and Start202 characterization histories stay separate.",
+    "Fresh actual current8be manifest/full current artifact source binding and distinct native namespaces/future physical checks/root finite review and separate exclusive GO remain prerequisites.",
+    "Working HEAD/index/source untouched; candidate helpers were never imported, compiled, materialized or executed."
+  ],
+  "effects": {
+    "candidateModuleImports": 0,
+    "compiler": 0,
+    "SQLNativeSdkBrowser": 0,
+    "build": 0,
+    "runtimeMaterialization": 0,
+    "gitMutation": 0
+  }
+}

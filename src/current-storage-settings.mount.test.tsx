@@ -43,6 +43,47 @@ async function saveButton() {
 }
 const mutations = () => network.mock.calls.filter(([, options]) => ["PUT", "POST"].includes(options?.method ?? ""));
 describe("current storage Settings controls", () => {
+  it("returns an explicitly focused Refresh after the original disabled interval without focusing the initial read", async () => {
+    let settingsReads = 0, finishRefresh!: (value: Response) => void;
+    network.mockImplementation(async path => String(path) === settingsPath
+      ? ++settingsReads === 2 ? new Promise<Response>(resolve => { finishRefresh = resolve; }) : json(snapshot())
+      : json({ canManage: true, credentialEditingAvailable: true }));
+    render(<StorageSettingsPage />); await screen.findByText("Registered; activation required");
+    const refresh = screen.getByRole("button", { name: "Refresh" }) as HTMLButtonElement;
+    expect(document.activeElement).not.toBe(refresh);
+    refresh.focus(); fireEvent.click(refresh); expect(refresh.disabled).toBe(true);
+    // Model the prior actual Chromium disabled-button blur; this is not a new browser proof.
+    // jsdom ignores blur() on a disabled button, so move native DOM focus to body.
+    const originalTabIndex = document.body.getAttribute("tabindex");
+    try { document.body.tabIndex = -1; document.body.focus(); }
+    finally {
+      if (originalTabIndex === null) document.body.removeAttribute("tabindex");
+      else document.body.setAttribute("tabindex", originalTabIndex);
+    }
+    expect(document.activeElement).toBe(document.body);
+    await act(async () => finishRefresh(json(snapshot())));
+    await screen.findByText("Registered; activation required");
+    expect(refresh.isConnected).toBe(true); expect(refresh.disabled).toBe(false);
+    expect(document.activeElement).toBe(refresh); expect(settingsReads).toBe(2); expect(mutations()).toHaveLength(0);
+  });
+
+  it("preserves focus moved to another native control while the original Refresh response is pending", async () => {
+    let settingsReads = 0, finishRefresh!: (value: Response) => void;
+    network.mockImplementation(async path => String(path) === settingsPath
+      ? ++settingsReads === 2 ? new Promise<Response>(resolve => { finishRefresh = resolve; }) : json(snapshot())
+      : json({ canManage: true, credentialEditingAvailable: true }));
+    render(<StorageSettingsPage />); await screen.findByText("Registered; activation required");
+    const refresh = screen.getByRole("button", { name: "Refresh" }) as HTMLButtonElement;
+    refresh.focus(); fireEvent.click(refresh); expect(refresh.disabled).toBe(true);
+    const other = screen.getByRole("link", { name: "Data packages, reports and import" }); other.focus();
+    expect(document.activeElement).toBe(other);
+    await act(async () => finishRefresh(json(snapshot())));
+    await screen.findByText("Registered; activation required");
+    expect(refresh.isConnected).toBe(true); expect(refresh.disabled).toBe(false);
+    expect(other.isConnected).toBe(true); expect(document.activeElement).toBe(other);
+    expect(settingsReads).toBe(2); expect(mutations()).toHaveLength(0);
+  });
+
   it("shows exact unavailable S3 choices and registration while keeping a nonadministrator read only", async () => {
     const value = snapshot(); value.roleDefaults.originals!.availability = "unavailable"; value.profiles.items[1].availability = "unavailable";
     value.profiles.items[1].bindingMatch = "mismatch"; value.profiles.items[1].bindingRevision = null;

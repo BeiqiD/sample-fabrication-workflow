@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { CurrentStorageSettings, CurrentStorageSettingsStatus } from "../../shared/contracts/current-storage-settings";
 import { api } from "../lib/api";
 import { storageConfigurationClient, StorageConfigurationRequestError } from "../lib/storage-configuration-client";
@@ -15,10 +15,15 @@ export function StorageSettingsPage() {
   const [loading, setLoading] = useState(true), [error, setError] = useState(false);
   const sequence = useRef(0), controller = useRef<AbortController | null>(null);
 
-  async function refresh() {
+  const refreshButton = useRef<HTMLButtonElement>(null);
+  const returnRefreshFocus = useRef<{ request: number; signal: AbortSignal } | null>(null);
+
+  async function refresh(returnFocus = false) {
     const request = ++sequence.current;
     controller.current?.abort();
     const pending = new AbortController(); controller.current = pending;
+    returnRefreshFocus.current = returnFocus && document.activeElement === refreshButton.current
+      ? { request, signal: pending.signal } : null;
     setLoading(true); setError(false); setStatus(null);
     try {
       const value = await api.getCurrentStorageSettings(pending.signal);
@@ -29,15 +34,22 @@ export function StorageSettingsPage() {
       if (request === sequence.current && !pending.signal.aborted) setLoading(false);
     }
   }
+  useLayoutEffect(() => {
+    if (loading) return;
+    const intent = returnRefreshFocus.current; returnRefreshFocus.current = null;
+    if (!intent || intent.request !== sequence.current || intent.signal.aborted) return;
+    const button = refreshButton.current;
+    if (button?.isConnected && !button.disabled && (document.activeElement === document.body || document.activeElement === button)) button.focus();
+  }, [loading]);
   useEffect(() => {
     void refresh();
-    return () => { sequence.current += 1; controller.current?.abort(); };
+    return () => { sequence.current += 1; controller.current?.abort(); returnRefreshFocus.current = null; };
   }, []);
 
   return <div className="page storage-settings-page">
     <div className="page-heading"><div><p className="eyebrow">Settings</p><h1>Storage</h1>
       <p className="lead">View current upload destinations and registered storage profiles.</p></div>
-      <button className="button" type="button" disabled={loading} onClick={() => void refresh()}>{loading ? "Refreshing…" : "Refresh"}</button></div>
+      <button ref={refreshButton} className="button" type="button" disabled={loading} onClick={() => void refresh(true)}>{loading ? "Refreshing…" : "Refresh"}</button></div>
     <p><a href="/settings/data">Data packages, reports and import</a></p>
     {loading && <p role="status">Reading storage configuration…</p>}
     {error && <div className="error-banner" role="alert"><p>Storage information is unavailable. Refresh to try again.</p></div>}

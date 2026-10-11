@@ -1,0 +1,34 @@
+{
+  "stage": "qualified-current02d-coherent-build-producer-preflight",
+  "cwd": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source",
+  "argv": [
+    "python3",
+    "-B",
+    "/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/storage/carry-current8be-genuine-readonly-refresh.py",
+    "--current02d-coherent-saved-job",
+    "producer-preflight"
+  ],
+  "env": {
+    "TMPDIR": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2",
+    "SQLITE_TMPDIR": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2"
+  },
+  "startedAt": "2026-10-11T22:02:03.958247+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/qualified-current02d-coherent-build-producer-preflight.log",
+  "pid": 1572324,
+  "processGroup": 1572324,
+  "originalStartTicks": "16938472",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T22:02:04.336167+00:00",
+  "logSha256": "811fc33b462a648eb40b3d9fa8daccec7b45c556cafa10699b4aafd36202afd8"
+}

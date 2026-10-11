@@ -1,0 +1,46 @@
+[
+  {
+    "stage": "affected-app-strict",
+    "action": "exec_command",
+    "result": {
+      "chunk_id": "6923b5",
+      "wall_time_seconds": 1.00111765,
+      "session_id": 38769,
+      "original_token_count": 30,
+      "output": "{\"stage\": \"affected-app-strict\", \"ownedPid\": 1560001, \"ownedProcessGroup\": 1560001, \"originalStartTicks\": \"16800178\"}\n"
+    }
+  },
+  {
+    "stage": "affected-app-strict",
+    "action": "write_stdin",
+    "result": {
+      "chunk_id": "8cc3a1",
+      "wall_time_seconds": 0.000026049,
+      "exit_code": 0,
+      "original_token_count": 244,
+      "output": "{\"stage\": \"affected-app-strict\", \"cwd\": \"/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source\", \"argv\": [\"node\", \"node_modules/typescript/bin/tsc\", \"-p\", \"tsconfig.app.json\"], \"env\": {\"TMPDIR\": \"/tmp/phase5f-storage-refresh-focus-current553-private-attempt1\", \"SQLITE_TMPDIR\": \"/tmp/phase5f-storage-refresh-focus-current553-private-attempt1\"}, \"startedAt\": \"2026-10-11T21:39:01.011030+00:00\", \"status\": \"PASS\", \"log\": \"/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/runtime/affected-app-strict.log\", \"pid\": 1560001, \"processGroup\": 1560001, \"originalStartTicks\": \"16800178\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [], \"after\": [], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": []}, \"endedAt\": \"2026-10-11T21:39:02.839730+00:00\", \"logSha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}\n\n"
+    }
+  },
+  {
+    "stage": "affected-storage-settings-mounted-files",
+    "action": "exec_command",
+    "result": {
+      "chunk_id": "7398ee",
+      "wall_time_seconds": 1.001219073,
+      "session_id": 69485,
+      "original_token_count": 35,
+      "output": "{\"stage\": \"affected-storage-settings-mounted-files\", \"ownedPid\": 1560244, \"ownedProcessGroup\": 1560244, \"originalStartTicks\": \"16801408\"}\n"
+    }
+  },
+  {
+    "stage": "affected-storage-settings-mounted-files",
+    "action": "write_stdin",
+    "result": {
+      "chunk_id": "7f8111",
+      "wall_time_seconds": 0.000025427,
+      "exit_code": 0,
+      "original_token_count": 456,
+      "output": "{\"stage\": \"affected-storage-settings-mounted-files\", \"cwd\": \"/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source\", \"argv\": [\"node\", \"node_modules/vitest/vitest.mjs\", \"run\", \"--config\", \"vitest.mounted.config.ts\", \"src/current-storage-settings.mount.test.tsx\", \"src/storage-settings.mount.test.tsx\", \"--maxWorkers\", \"1\", \"--bail\", \"1\"], \"env\": {\"TMPDIR\": \"/tmp/phase5f-storage-refresh-focus-current553-private-attempt1\", \"SQLITE_TMPDIR\": \"/tmp/phase5f-storage-refresh-focus-current553-private-attempt1\"}, \"cases\": 37, \"originalTestTimeoutMs\": 5000, \"caseCounts\": {\"currentStorageSettings\": 18, \"legacyReadOnlyStorageSettings\": 19}, \"scope\": \"Exact original11 current plain+five parametrized +two deferred native DOM focus controls; existing7 legacy plain+ten invalid response+two default cases. Meaningful current/version2 Settings and StrictMode abort/stale lifecycle coverage; no configuration/page matrices.\", \"startedAt\": \"2026-10-11T21:39:13.310254+00:00\", \"status\": \"PASS\", \"log\": \"/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/runtime/affected-storage-settings-mounted-files.log\", \"pid\": 1560244, \"processGroup\": 1560244, \"originalStartTicks\": \"16801408\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [], \"after\": [], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": []}, \"endedAt\": \"2026-10-11T21:39:15.924631+00:00\", \"logSha256\": \"913168c4e2971d654ab836dfb2fe248a9d6d4e6c6d51436446edc9397affa6f3\"}\n\n RUN  v4.1.10 /tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source\n\n\n Test Files  2 passed (2)\n      Tests  37 passed (37)\n   Start at  21:39:13\n   Duration  2.22s (transform 278ms, setup 0ms, import 497ms, tests 998ms, environment 515ms)\n\n\n"
+    }
+  }
+]
