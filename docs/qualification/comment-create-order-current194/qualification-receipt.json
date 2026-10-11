@@ -1,0 +1,35 @@
+{
+  "status": "QUALIFIED_COMMENT_CREATE_ORDER_PASS_CLOSED",
+  "fixedSourceHead": "6d4cae69eb429c1875e51b75b30b49ec6eaa6601",
+  "baselineProductHead": "756ac6f3aa8872e6b799576eff4ee20d42aab476",
+  "baselineNewTwoPassed": 1,
+  "baselineNewTwoFailed": 1,
+  "fixedCompleteOriginalPassed": 15,
+  "fixedNewRegressionPassed": 2,
+  "fixedTotalPassed": 17,
+  "fixedFailed": 0,
+  "expectedCountCorrectedWithoutTestRerun": "Original source has15 rather than earlier guessed16; full original+2 actual17 PASS. Initial receipt assertion rejected assumed18 and preserved original raw17 unchanged.",
+  "originalDefaultCaseAndHookBudgetsUnchanged": true,
+  "directToolExitCodes": [
+    1,
+    0
+  ],
+  "originalChildPids": [
+    793668,
+    793717
+  ],
+  "bothOriginalPidsAbsent": true,
+  "directToolsOriginalNormalExitReapObserved": true,
+  "processGroupCompleteScanClaim": false,
+  "noSQLiteSocketProviderBrowserFilePermissionScope": true,
+  "compilerReceiptSha256": "2268e40d00cacfd5f49f81cd8534c80fa6b8c4239b13e571c3cc1c898060e656",
+  "independentSourcePeerSha256": "a01b46bffd385f9ccf136f71705e66a5f64868d6574a95a8bbaf90ed1954e314",
+  "rawPins": {
+    "fixed-complete-result.json": "7c249c33713b5f21fff91b759eee7f3717c9e67dc5e5c72a6018f9bc6a31bc57",
+    "fixed-complete-raw.log": "83e859ff15bf5d4a434ac3080f1a3b4f07558033ab3dc70eddaad26bd5edaaff",
+    "fixed-original-child.json": "67486ea2cb00a4ad81d032bba0eb8ad43839aa83d9cde99a3d07005c216471fa",
+    "baseline-two-result.json": "e8f819936b2e5431dd6808d4d2cb0e0a861e7c579afa19e0945f382311dc66d3",
+    "baseline-two-raw.log": "8050312a0353c6cf4143c2e92c9d38fc2b97bc02a5ce86a0ea35d167bf429630",
+    "baseline-original-child.json": "9bc2dcaee2d0534ed2295b8dde3dce4553229c22b77a1ac1e57651c5db7dcd53"
+  }
+}
