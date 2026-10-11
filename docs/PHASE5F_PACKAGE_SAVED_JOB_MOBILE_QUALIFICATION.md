@@ -1,0 +1,17 @@
+# Package saved-job mobile keyboard qualification
+
+The original390×844/dark Package saved-job case passed at historical actual producer `5e65f4d` and QA consumer `177eb79`. All ten serial stages passed on a new pure24 installation. This adopts the exact qualified browser helper and original records onto merged#275; the existing physical checker remains unchanged.
+
+The case issued six genuine localR2 setup POSTs, one ordinary Sample201 and five native Preview200/accept202/Pause200/Resume200/Cancel200 POSTs. The Sample and its accepted event changed the shadow control epoch by exactly2 and introduced exactly one bounded Sample dependency; all earlier control cells and dependency rows remained exact. The earlier desktop setup failure remains retained in its existing qualification and was not retried.
+
+Two reader GETs and four native GETs were observed. All9 original native bodies,24 routes and7 waits settled without rejection; full original bytes/hash and typed DTO assertions remained strict. Preview retained native visible focus. Pause transferred to Resume, Resume to Pause and Cancel to the same job's persistent status, with connected visible focus. Width/root/body were390/390/390; the original2-pixel tolerance was unchanged. Initial Start202-to-job focus remains uncharacterized because the helper explicitly focuses Pause before the control sequence.
+
+The final audit preserved the original six permits and old holds, allowing exactly six new released HTTP permits, one cancel_requested/generation3 Package job/request and two captured records. The source PNG remained exact and the target empty. No Package files/attempts, executor step, copy, ZIP, provider activation, operational restore or recovery target was exercised. Two before and five after physical SQLite checks passed.
+
+Original context/browser/Worker/JWKS acknowledgements and refused ports, all body/route/wait work, mandatory physical-after and final pins passed. All ten original direct children were observed with their PID/start ticks, waited and reaped with exit0 and no signals. Seven owned groups were empty; three PPID1 kernel zombies retain FD PermissionError. This does not claim observed zero FDs or global process quiescence. The root independently read all36 original references, complete source/artifact inputs and owner records before releasing the window.
+
+No new app compiler, mounted test or build ran for this QA-only successor. It carries the one genuine5e118-artifact build and121 copied artifacts in their original source-specific scope. The current public404 frontend files match5e, but the full integrated Worker/Node source is not relabelled as that build. Existing current development inputs are protected; this new public head requires its own Verify push/PR, Map push/PR and all15 checks before ordinary merge.
+
+[#275](https://github.com/BeiqiD/sample-fabrication-workflow/pull/275) independently passed all four own workflows and15 checks before merging at `99b51d29`. The compact original receipt and merge API are retained separately. Current Storage/Package status Refresh, initial Start202 focus and whole5F/provider/device acceptance remain open.
+
+Original qualified receipts/logs, closure and physical records plus the independent source/finite reads are retained byte-for-byte in [the curation manifest](qualification/phase5f-package-saved-job-mobile-2026-10-11/curation-manifest.json). Prior desktop and File-mobile histories are preserved without duplication.
