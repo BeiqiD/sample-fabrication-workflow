@@ -1,5 +1,5 @@
 {
-  "status": "source correction; actual affected tests and replacement complete CI pending",
+  "status": "two affected files qualified; replacement final-head complete CI pending",
   "previousSourceHead": "ff033cd1b67610844b55b5820c8e2b83a3e06b8d",
   "failedRun": 38096212017,
   "failedRunUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38096212017",
@@ -29,5 +29,16 @@
     }
   ],
   "historicalNarrowQualification": "41 mounted focus/picker tests and fresh build at d191; does not replace final-head full CI",
-  "browserAttempt2": "actual auxiliary GET404 to absent /metrology-templates/:id; zero UI actions, next cases unrun, owned closure preserved separately"
+  "browserAttempt2": "actual auxiliary GET404 to absent /metrology-templates/:id; zero UI actions, next cases unrun, owned closure preserved separately",
+  "actualQualification": {
+    "sourceHead": "954c048351f330d15f91cb1a185892f03eb75918",
+    "files": 2,
+    "tests": 9,
+    "defaultCaseBudgetMs": 5000,
+    "seconds": 46.748,
+    "receiptSha256": "b71209beaa4c69fbb7d9a22d6d6098d60f7be3450f60095c7c2646480f44dff0",
+    "sourceStillClean": true,
+    "originalChildReaped": true,
+    "scope": "four static modal controls plus five genuine current24 Worker confirmation controls; distinct from 41 mounted focus cases"
+  }
 }
