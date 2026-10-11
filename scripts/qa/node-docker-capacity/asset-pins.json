@@ -1,0 +1,12 @@
+{
+  "container-native-api-client.mjs": "bd8619774ab12f1ea25d4a83eb21fb5c9426895fdc00bd2934a9a346484ca067",
+  "context-map.json": "36f2d588ee6b8d18a3e88f08a60f718c8d5cf168e9eb5fde50f032060288b70e",
+  "export-bounded-artifacts.py": "a97137f7a5f6451fb4606b854a0f84068aff4a84a81a0ed950b0e732b01367a2",
+  "original-owned-process.py": "b623484a36325020644d64479cc41939c20a984a07a1ba585e4be1a17e812889",
+  "prepare-ci-source.py": "500a2f5ba3b8bf6ec24a14c8996c869124358047758eed6d0b70858fab5a158e",
+  "recipes/.dockerignore": "8e1de57846d7bdb5315f536b77aa270fba9e6ceac809a3dbcb659f3556a7fdb9",
+  "recipes/Dockerfile": "6469be4940a070edf086f5050a7c10a41526311533e922e2263c88f5b13bcfdf",
+  "run-ci-network-prerequisite.py": "25bdf041267fa6e064078a3bfb110fc67cbd154801aeb21643d87e312c528310",
+  "run-default-docker-six.py": "0546b5726ee8296753a31815587454890e9cb542bcd5d68564ea01fe3ca11737",
+  "source-freeze.json": "c1daaea40ad52dbb72cdc2107a1308aed436d6ccffb10e0c39ccf849315209cf"
+}

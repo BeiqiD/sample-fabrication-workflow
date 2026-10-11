@@ -1,0 +1,13 @@
+# Qualified historical default Docker six
+
+The original six default Docker cases all passed in [run 38169765719](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38169765719) on 2026-10-11. Acceptance code `52eeb92b2cebbfb6811e4eebd539007a7949ade4` built the exact published target `f883e64086bee44b353f3840271fa3eaaafdcc7d` once, with the pinned Node24.19.0 base, strict TLS registry prerequisite, UID1000, private volumes and unchanged600s image/120s API budgets. No image was pushed or deployed.
+
+The original87 CLI children were waited and reaped. Fourteen actual containers reached final stopped states with PID0; a fifteenth registry entry represents the rejected missing bind. The busy-main and wrong-installation negatives have no `originalExitObserved` field, so their terminal state does not add an application native/physical graceful ACK claim. Source/context and private keyring pins stayed exact.
+
+Two prior failures remain separate: `f100` observed the sixth same-account login returning401 after five successful clients, and `0514` failed a stale driver inventory hash before running any case. The QA driver now waits61s after the fifth original stop ACK before its one sixth login, preserving the product's original60s/five-attempt policy. Its inventory now pins that exact driver. Neither failure is rewritten as a pass.
+
+This curation preserves every byte of current public parent `dbd003e2b2c18efe6a7a57857de59d6f58632568`. Its Node/core/lease/HTTP/build components and361-module closed input graph equal the historical target. Five selected frontend inputs differ, so the historical image and frontend artifacts remain tied to `f883`; a current-image build is unrun. The fixed workflow continues to test that explicit historical fixture and only runs for its named QA branch or an authorized manual invocation. Ordinary PR checks qualify this source adoption separately.
+
+These six cases cover default V26 main with File and Jobs disabled, stopped inspection/bootstrap, same-image persistence, physical writer exclusion and private-bind/keyring denials. Enabled runtime pairs, Group public routes and a restored V28 target runtime require their separate integration checks.
+
+The original public job log, metadata, manifest-validated whitelist facts and owner boundary record are retained alongside `qualification.json`. The raw receipt artifact was not downloaded locally; its exact receipt/manifest hashes were validated by the reviewed remote viewer before printing the fixed facts. No database, volume contents, keyring, stdin or usable credential is published here.
