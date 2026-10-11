@@ -49,7 +49,7 @@ whose original15 plus new2 controls passed17 at6d4. Original756 PR Verify's
 concurrent-input failure remains retained. Recovery presentation and
 Node/File/jobs development continue; no deployed/provider claim follows.
 
-Current development integration: [PR #266](https://github.com/BeiqiD/sample-fabrication-workflow/pull/266)
+Historical development integration: [PR #266](https://github.com/BeiqiD/sample-fabrication-workflow/pull/266)
 merged at `3104c7c1f68b8851afac024e93d4f8b7a0038b0f`, preserving qualified
 tree `f6062e1f99e6435e0265f2da754181439e1551d0`. Its separate post-merge
 Verify38119574382, Map38119574440 and all15 contexts passed.
@@ -57,8 +57,12 @@ The separately qualified [Recovery metadata controls](PHASE5F_RECOVERY_METADATA_
 passed two genuine desktop/mobile cases at historical producer f228 and QA
 consumer21bb. Preview focus passed; keyboard continuity after replaced
 Pause/Resume/Cancel controls remains open. Original builds and failures retain
-their own source scopes. PR #267's immutable-cache proposal and the complete
-Node/File/jobs, Docker and resource-permission work have separate gates.
+their own source scopes. Current development integration: [PR #267](https://github.com/BeiqiD/sample-fabrication-workflow/pull/267)
+merged at `88b65b17305ee094c25349fbfb6d1e08e5182188`, preserving qualified
+tree `db28547598df7b10b07000dbd101edf4241d17ca`. Both own Verify runs, both
+own Map runs and all15 contexts passed before the ordinary squash merge.
+Its separate post-merge Verify38131526459 remains pending; Map38131526464 passed.
+The complete Node/File/jobs, Docker and resource-permission work has separate gates.
 
 Historical #258 integration merged at
 `e10849614afbb4807c86b3f0fc2fc357ba70ceda`, preserving its own-four-gate-qualified
