@@ -1,0 +1,311 @@
+{
+  "status": "EXACT_PR275_OWN_FOUR_AND_ALL15_PASS_ORIGINAL_LOGS_READY_ROOT_REVIEW",
+  "head": "dbd003e2b2c18efe6a7a57857de59d6f58632568",
+  "pr": {
+    "number": 275,
+    "state": "open",
+    "draft": false,
+    "head": "dbd003e2b2c18efe6a7a57857de59d6f58632568",
+    "mergeable": true,
+    "mergeable_state": "clean",
+    "merged": false,
+    "html_url": "https://github.com/BeiqiD/sample-fabrication-workflow/pull/275"
+  },
+  "allFourCompleteSuccess": true,
+  "all15Success": true,
+  "basisReceipt": {
+    "path": "/tmp/phase5f-pr275-own-complete-ci-readonly-attempt1/progress-20261011T202528936430Z/receipt.json",
+    "sha256": "2ced1b7fac8b1bad78602f3c1a08d2b692138317d5282b20728635906c1f1967"
+  },
+  "contexts": [
+    {
+      "context": "pre-pr/install",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38169821223",
+      "description": "npm ci passed"
+    },
+    {
+      "context": "pre-pr/project-map-performance",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38169821196",
+      "description": "All required verification checks passed"
+    },
+    {
+      "context": "pre-pr/project-foundation",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38169821223",
+      "description": "All required verification checks passed"
+    },
+    {
+      "context": "pre-pr/tests",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38169821223",
+      "description": "All required verification checks passed"
+    },
+    {
+      "context": "pre-pr/blob-lifecycle",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38169821223",
+      "description": "All required verification checks passed"
+    },
+    {
+      "context": "pre-pr/reference-foundation",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38169821223",
+      "description": "All required verification checks passed"
+    },
+    {
+      "context": "pre-pr/build",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38169821223",
+      "description": "All required verification checks passed"
+    },
+    {
+      "context": "pre-pr/file-jobs",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38169821223",
+      "description": "All required verification checks passed"
+    },
+    {
+      "context": "pre-pr/project-map",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38169821223",
+      "description": "All required verification checks passed"
+    },
+    {
+      "context": "pre-pr/project-reference-placement",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38169821223",
+      "description": "All required verification checks passed"
+    },
+    {
+      "context": "pre-pr/project-reading",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38169821223",
+      "description": "All required verification checks passed"
+    },
+    {
+      "context": "pre-pr/project-persistence",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38169821223",
+      "description": "All required verification checks passed"
+    },
+    {
+      "context": "pre-pr/project-owned-content",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38169821223",
+      "description": "All required verification checks passed"
+    },
+    {
+      "context": "pre-pr/project-canvas-productivity",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38169821223",
+      "description": "All required verification checks passed"
+    },
+    {
+      "context": "pre-pr/project-edges",
+      "state": "success",
+      "target_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38169821223",
+      "description": "All required verification checks passed"
+    }
+  ],
+  "originalRawApis": {
+    "verify-push": {
+      "path": "/tmp/phase5f-pr275-own-complete-ci-readonly-attempt1/progress-20261011T202528936430Z/verify-push.json",
+      "sha256": "3e5495999d772512b6f85b797678285a67eeaa3db7dbbe1014565ad4718bde30",
+      "bytes": 14037
+    },
+    "verify-pr": {
+      "path": "/tmp/phase5f-pr275-own-complete-ci-readonly-attempt1/progress-20261011T202528936430Z/verify-pr.json",
+      "sha256": "f48a500a9168f5f757f0bf454c2410202a340f171967a4dc361c840964e29ba3",
+      "bytes": 14040
+    },
+    "map-push": {
+      "path": "/tmp/phase5f-pr275-own-complete-ci-readonly-attempt1/progress-20261011T202528936430Z/map-push.json",
+      "sha256": "4e0f4aac39c1963b718995622948df2b4bb343461c5afcc25de64f23989b101a",
+      "bytes": 14071
+    },
+    "map-pr": {
+      "path": "/tmp/phase5f-pr275-own-complete-ci-readonly-attempt1/progress-20261011T202528936430Z/map-pr.json",
+      "sha256": "95e8b34104c516d8e4ae4bd3e0163d9f847e4c9a53521d48c6e70bb4464fbba2",
+      "bytes": 14074
+    },
+    "commit-status": {
+      "path": "/tmp/phase5f-pr275-own-complete-ci-readonly-attempt1/progress-20261011T202528936430Z/commit-status.json",
+      "sha256": "24ccf371047df5825f6728d5d2ac04c1b8cdb12ae39e02a308f9ed89c21e97a2",
+      "bytes": 12937
+    },
+    "check-runs": {
+      "path": "/tmp/phase5f-pr275-own-complete-ci-readonly-attempt1/progress-20261011T202528936430Z/check-runs.json",
+      "sha256": "a9fb32c3f3191030c4bc54feb4ed691dd826449c226c8c1debcf196558a73486",
+      "bytes": 14792
+    },
+    "pr275": {
+      "path": "/tmp/phase5f-pr275-own-complete-ci-readonly-attempt1/progress-20261011T202528936430Z/pr275.json",
+      "sha256": "d340be1da0402ef7bd705ccafee25f64f7c2c4f71eaf751342bd4938b84b1551",
+      "bytes": 17894
+    }
+  },
+  "runs": {
+    "verify-push": {
+      "run": 38169821223,
+      "head": "dbd003e2b2c18efe6a7a57857de59d6f58632568",
+      "event": "push",
+      "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38169821223",
+      "conclusion": "success",
+      "jobs": {
+        "path": "/tmp/phase5f-pr275-own-complete-ci-readonly-attempt1/complete-original-logs-20261011T202616556038Z/verify-push-original-jobs.json",
+        "sha256": "b19fc0ab47fd8fb42b8a7923f0a343698b8be0872ec724b6636b92ac7a378591",
+        "bytes": 2992
+      },
+      "originalLogArchive": {
+        "path": "/tmp/phase5f-pr275-own-complete-ci-readonly-attempt1/complete-original-logs-20261011T202616556038Z/verify-push-original-logs.zip",
+        "sha256": "24d0da2ee60ab2849fc47c1a398067f6ebb4ce637e62f2ace8b328cf4cc87159",
+        "bytes": 250919
+      },
+      "completeOriginalJobLogs": [
+        {
+          "path": "/tmp/phase5f-pr275-own-complete-ci-readonly-attempt1/complete-original-logs-20261011T202616556038Z/verify-push-complete-job-0.log",
+          "sha256": "09754e7b8936a0579305786c3684a0804e550caa254223ab59a39b66379cb44e",
+          "bytes": 706873,
+          "originalArchiveMember": "0_verify.txt"
+        }
+      ],
+      "requiredVerificationSteps": [
+        {
+          "name": "Run shared verification checks",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check closed offline distribution manifests",
+          "conclusion": "success"
+        }
+      ],
+      "skippedStepNames": [
+        "Close verification statuses when the gate did not run"
+      ],
+      "rawSummaryLines": [
+        "2026-10-11T20:19:39.2805583Z  Test Files  421 passed (421)",
+        "2026-10-11T20:19:39.2825679Z       Tests  3913 passed (3913)",
+        "2026-10-11T20:21:11.6640481Z  Test Files  105 passed (105)",
+        "2026-10-11T20:21:11.6647818Z       Tests  1022 passed (1022)"
+      ]
+    },
+    "verify-pr": {
+      "run": 38169849928,
+      "head": "dbd003e2b2c18efe6a7a57857de59d6f58632568",
+      "event": "pull_request",
+      "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38169849928",
+      "conclusion": "success",
+      "jobs": {
+        "path": "/tmp/phase5f-pr275-own-complete-ci-readonly-attempt1/complete-original-logs-20261011T202616556038Z/verify-pr-original-jobs.json",
+        "sha256": "ebcfd2c1f664336cd46286ae4c48d050652873898fb03fd1562f7e5f72344254",
+        "bytes": 2992
+      },
+      "originalLogArchive": {
+        "path": "/tmp/phase5f-pr275-own-complete-ci-readonly-attempt1/complete-original-logs-20261011T202616556038Z/verify-pr-original-logs.zip",
+        "sha256": "30ea82c2d1c2ba98ace8ceac951f25eb57f5745dba2065abf182bb1ba345ea3b",
+        "bytes": 252732
+      },
+      "completeOriginalJobLogs": [
+        {
+          "path": "/tmp/phase5f-pr275-own-complete-ci-readonly-attempt1/complete-original-logs-20261011T202616556038Z/verify-pr-complete-job-0.log",
+          "sha256": "063152e3673695d632d26a89feba7402a3f2cdf3075b701c6b209caa93223428",
+          "bytes": 709667,
+          "originalArchiveMember": "0_verify.txt"
+        }
+      ],
+      "requiredVerificationSteps": [
+        {
+          "name": "Run shared verification checks",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check closed offline distribution manifests",
+          "conclusion": "success"
+        }
+      ],
+      "skippedStepNames": [
+        "Close verification statuses when the gate did not run"
+      ],
+      "rawSummaryLines": [
+        "2026-10-11T20:21:00.1498697Z  Test Files  421 passed (421)",
+        "2026-10-11T20:21:00.1517201Z       Tests  3913 passed (3913)",
+        "2026-10-11T20:22:33.4207359Z  Test Files  105 passed (105)",
+        "2026-10-11T20:22:33.4214476Z       Tests  1022 passed (1022)"
+      ]
+    },
+    "map-push": {
+      "run": 38169821196,
+      "head": "dbd003e2b2c18efe6a7a57857de59d6f58632568",
+      "event": "push",
+      "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38169821196",
+      "conclusion": "success",
+      "jobs": {
+        "path": "/tmp/phase5f-pr275-own-complete-ci-readonly-attempt1/complete-original-logs-20261011T202616556038Z/map-push-original-jobs.json",
+        "sha256": "020ebdb491f24e678caa5b3481061603aa3a763e97fe69b563c0d635c6893883",
+        "bytes": 2676
+      },
+      "originalLogArchive": {
+        "path": "/tmp/phase5f-pr275-own-complete-ci-readonly-attempt1/complete-original-logs-20261011T202616556038Z/map-push-original-logs.zip",
+        "sha256": "0897fd4b984f7fc570233936928b5246b50315ff6decd9aa3a15f5a541b47e7b",
+        "bytes": 21779
+      },
+      "completeOriginalJobLogs": [
+        {
+          "path": "/tmp/phase5f-pr275-own-complete-ci-readonly-attempt1/complete-original-logs-20261011T202616556038Z/map-push-complete-job-0.log",
+          "sha256": "d19ada4cf0659617eb3565f9bc6408147afb7f24f5dd0097ba55e826819a3968",
+          "bytes": 34654,
+          "originalArchiveMember": "0_verify.txt"
+        }
+      ],
+      "requiredVerificationSteps": [],
+      "skippedStepNames": [
+        "Close verification statuses when the gate did not run"
+      ],
+      "rawSummaryLines": [
+        "2026-10-11T19:52:30.9257379Z  Test Files  2 passed (2)",
+        "2026-10-11T19:52:30.9258989Z       Tests  13 passed (13)",
+        "2026-10-11T19:52:37.1917484Z  Test Files  1 passed (1)",
+        "2026-10-11T19:52:37.1918576Z       Tests  5 passed (5)"
+      ]
+    },
+    "map-pr": {
+      "run": 38169849957,
+      "head": "dbd003e2b2c18efe6a7a57857de59d6f58632568",
+      "event": "pull_request",
+      "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38169849957",
+      "conclusion": "success",
+      "jobs": {
+        "path": "/tmp/phase5f-pr275-own-complete-ci-readonly-attempt1/complete-original-logs-20261011T202616556038Z/map-pr-original-jobs.json",
+        "sha256": "2220f5a15bc2fef635b6973f7315031dc04f8e344e539dbdecb59c9c25db9f19",
+        "bytes": 2676
+      },
+      "originalLogArchive": {
+        "path": "/tmp/phase5f-pr275-own-complete-ci-readonly-attempt1/complete-original-logs-20261011T202616556038Z/map-pr-original-logs.zip",
+        "sha256": "b7483a402d24af8149fcb67c79d051201fed9f4bf0d81f9e486f025ce2f8d4df",
+        "bytes": 22704
+      },
+      "completeOriginalJobLogs": [
+        {
+          "path": "/tmp/phase5f-pr275-own-complete-ci-readonly-attempt1/complete-original-logs-20261011T202616556038Z/map-pr-complete-job-0.log",
+          "sha256": "9fadd1c5c7baa8376a6995d8c6b8b479d10354e364a5fb372c7ace4282b8ec73",
+          "bytes": 35856,
+          "originalArchiveMember": "0_verify.txt"
+        }
+      ],
+      "requiredVerificationSteps": [],
+      "skippedStepNames": [
+        "Close verification statuses when the gate did not run"
+      ],
+      "rawSummaryLines": [
+        "2026-10-11T19:52:58.5437683Z  Test Files  2 passed (2)",
+        "2026-10-11T19:52:58.5439092Z       Tests  13 passed (13)",
+        "2026-10-11T19:53:03.8664183Z  Test Files  1 passed (1)",
+        "2026-10-11T19:53:03.8665149Z       Tests  5 passed (5)"
+      ]
+    }
+  },
+  "skipInterpretation": "Verify shared checks and closed offline distribution gates actually success. Conditional failure-only cleanup skipped, if present, is not a skipped verification leaf. Original job steps retained.",
+  "scope": "Read-only exact published dbd PR275 runs/jobs/check/status/log APIs. No dispatch/rerun/push/PR-edit/merge or local product/helper/compiler/build/SQLite/browser effect. Root ordinary review/merge remains separate."
+}

@@ -1,0 +1,375 @@
+{
+  "version": 1,
+  "installedDependencies": {
+    "root": "/workspace/sample-fabrication-workflow/node_modules",
+    "package": "5c8a504d14b7208edb3d77b8c5049c713d55e4e7821d8e43b7b54e6dbeebe8fc",
+    "dependencyParentPackage": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+    "lock": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a",
+    "hiddenLock": "95202718d08fd50cc286bcddf0af66b08503d63b494e992006c50d4246d69a98"
+  },
+  "budgets": {
+    "nativeOperationBodyAndReadinessMs": 20000,
+    "originalTTYSupervisionMs": 120000,
+    "supervisionProgressEveryMs": 20000,
+    "bodyMaximumExclusiveBytes": 131072,
+    "overflowPx": 2
+  },
+  "status": "SOURCE_CLEAR_ORIGINAL_TEN_PENDING_ROOT_FINAL_READ_AND_EXCLUSIVE_GO",
+  "domain": "package",
+  "sourceRoot": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source",
+  "sourceHead": "5e65f4d0355f375ca7fe949b8de15082c043c19a",
+  "sourceTree": "4df8f0e910ef1fa085c1a74bad3b402cd266f73d",
+  "trackedFileCount": 2726,
+  "qaConsumerRoot": "/tmp/phase5f-package-mobile-reviewed-custody-qa-private-attempt2/source",
+  "qaConsumerHead": "177eb79fe583f201cdf8b38eef7085b4028b970a",
+  "qaConsumerTree": "3ea252d3c3613ba08786f485bb5978d356ad05eb",
+  "qaConsumerTrackedCount": 2728,
+  "runtimeRoot": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime",
+  "roots": {
+    "copy": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/copy",
+    "fixture": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/fixture",
+    "runtime": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime",
+    "parent": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2",
+    "shortChromiumChildTemp": "/workspace/.sfmk2"
+  },
+  "ownedExtraQaLeaves": {
+    "scripts/qa/phase5f/browser-current-coherent-package-saved-job-keyboard-mobile.mjs": "482d47b7472358442a43877cc33962896c498ff01f921628b336f73bc7399f1b",
+    "scripts/qa/phase5f/check-current-coherent-saved-job-mobile-physical-state.py": "92772d9505d300a49cea7dbede3fee26adcf682dfc3d0321a2781a9793ed342c"
+  },
+  "copiedOrdinaryPrepareHelperSha256": "fba64e958ba1042a7ea406ef9d502ce12829c194c4ec3ea65ee447b3f3105292",
+  "nativeHelperPath": "/tmp/phase5f-package-mobile-reviewed-custody-qa-private-attempt2/source/scripts/qa/phase5f/browser-current-coherent-package-saved-job-keyboard-mobile.mjs",
+  "nativeStage": "original-one-current-package-saved-job-keyboard",
+  "nativePermit": "--exclusive-go-one-current-coherent-package-saved-job-keyboard-mobile",
+  "cases": [
+    "current-coherent-package-saved-job-keyboard-390-dark"
+  ],
+  "expectedCosts": {
+    "domain": "package",
+    "id": "current-coherent-package-saved-job-keyboard-390-dark",
+    "viewport": [
+      390,
+      844
+    ],
+    "theme": "dark",
+    "setupPOSTs": 7,
+    "setupIncludes": "Six original genuine dualR2 then one ordinary research Sample201+created event; reader owns researchjob, admin onlysetup.",
+    "maxNativePOSTs": 5,
+    "totalPOSTs": 12,
+    "mutationSequence": [
+      "Preview200",
+      "accept202",
+      "Pause200",
+      "Resume200",
+      "Cancel200"
+    ],
+    "expectedFinalSqlState": "cancel_requested",
+    "expectedRawGeneration": 3,
+    "expectedNativeChangedTables": [
+      "system_recovery_write_leases",
+      "research_package_jobs",
+      "research_package_requests",
+      "research_package_records"
+    ],
+    "capturedRecords": [
+      "genuineSample",
+      "genuineCreatedEvent"
+    ],
+    "capturedFiles": 0,
+    "oldSixSetupPermitsExact": true,
+    "oneUniqueReleasedSampleAndFiveNativeHTTPPermits": true,
+    "namespace": "FUTURE_FRESH_INDEPENDENT_MOBILE_PACKAGE_NO_ACCEPTED_DESKTOP_LINEAGE_REPLAY",
+    "shortChildTemp": "/workspace/.sfmk2"
+  },
+  "actualFreshCurrentBuild": {
+    "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/actual-one-current5e-file-mobile-wrap-cf-build-qualified-closed-release.json",
+    "sha256": "c85c13e7ebb479b90e1e71e068c5ddb0a5481080438ee2782a58f673ff845727"
+  },
+  "actualBuildManifest": {
+    "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/fresh-build-artifact-manifest.json",
+    "sha256": "09e3b5b80cea5e001a6c98323611f2b212325b931085f1f0d1af0d0ac992781d",
+    "actualFiles": 118
+  },
+  "currentAppAndPackage34Formal": {
+    "path": "/workspace/phase5f-saved-package-typed-role-name-first-two-runtime-attempt2/actual-current02d-app-strict-and-whole-package34-qualified-closed-release.json",
+    "sha256": "9100d8754ab1601919a2ad5b485ba9b4c9a98cf0df600810b11f4c5de9de1726"
+  },
+  "nativeSourceHandoff": {
+    "path": "/tmp/phase5f-package-mobile-reviewed-custody-source-preparation-attempt2/source-handoff.json",
+    "sha256": "0a0227e17645e5ef8dec3457d5157c21fe048a1624c7b0448c52b20007d730c6"
+  },
+  "nativeSourceFreeze": {
+    "path": "/tmp/phase5f-package-mobile-reviewed-custody-source-preparation-attempt2/complete-package-mobile-consumer-source-freeze.json",
+    "sha256": "8f85c87ea2a4520b0425e888ccff2973e644d4fc740df15b50a139ba658d3104"
+  },
+  "runtimePreparation": {
+    "parent": {
+      "path": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2",
+      "mode": "0700",
+      "uid": 1000,
+      "dev": "34",
+      "ino": "1994954"
+    },
+    "runtime": {
+      "path": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime",
+      "mode": "0700",
+      "uid": 1000,
+      "dev": "34",
+      "ino": "1994955"
+    }
+  },
+  "stopControl": "Exact originalTTY, <=120s outer supervisor/progress20s; only explicitstop newline to samehandle, wait original body/route/context/browser/Worker/JWKS ACK/directchild/reap/group/ports. Firstfailure stopnormal, mandatoryphysicalafter+finalpins after originalsettlement evenfailednative; no rollback/history deletion.",
+  "scope": "Original actual5e required CSS-affected ONECF118/copy121/source2726; mobile QA2728 with all2726 ordinary producer inputs exact plus2 QA. Fresh independent pure24/sentinel namespace,390x844/dark genuine original five controls. No compiler/mounted/build/84seed/executor/ZIP/provider/recovery target. Original20body/120TTY/+2 retained, original02d App34/desktop scope remains historical; current public integrated artifacts are not claimed.",
+  "independentNamespace": "Never share copy/fixture/runtime/installation/R2 namespace with otherdomain or historicalfailedPausedJob; expected newlineage metadata only.",
+  "commands": [
+    {
+      "stage": "qualified-current02d-coherent-build-producer-preflight",
+      "cwd": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source",
+      "argv": [
+        "python3",
+        "-B",
+        "/tmp/phase5f-package-mobile-six-custody-native-final-peer-source-preparation-attempt4/carry-current-coherent-saved-job.py",
+        "--current02d-coherent-saved-job",
+        "producer-preflight"
+      ],
+      "env": {
+        "TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2",
+        "SQLITE_TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2"
+      }
+    },
+    {
+      "stage": "isolated-copy",
+      "cwd": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source",
+      "argv": [
+        "python3",
+        "-B",
+        "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source/scripts/qa/phase5f/prepare-isolated-copy.py",
+        "--source-root",
+        "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source",
+        "--destination",
+        "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/copy",
+        "--dependency-root",
+        "/workspace/sample-fabrication-workflow/node_modules"
+      ],
+      "env": {
+        "TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2",
+        "SQLITE_TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2"
+      }
+    },
+    {
+      "stage": "fresh-two-version-sentinel",
+      "cwd": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source",
+      "argv": [
+        "node",
+        "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source/scripts/qa/phase5f/generate-process-fixture.mjs",
+        "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/copy",
+        "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/fixture"
+      ],
+      "env": {
+        "TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2",
+        "SQLITE_TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2"
+      }
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "cwd": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/copy",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "migrations",
+        "apply",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/copy/.wrangler/state"
+      ],
+      "env": {
+        "TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2",
+        "SQLITE_TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2"
+      }
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "cwd": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/copy",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "execute",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/copy/.wrangler/state",
+        "--file",
+        "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/fixture/process-fixture.sql"
+      ],
+      "env": {
+        "TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2",
+        "SQLITE_TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2"
+      }
+    },
+    {
+      "stage": "physical-before",
+      "cwd": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source",
+      "argv": [
+        "python3",
+        "-B",
+        "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source/scripts/qa/phase5f/check-isolated-state.py",
+        "--source-copy",
+        "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/copy",
+        "--fixture-directory",
+        "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/fixture",
+        "--stage",
+        "before-api"
+      ],
+      "env": {
+        "TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2",
+        "SQLITE_TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2"
+      }
+    },
+    {
+      "stage": "current-source-build-and-pure24-witness",
+      "cwd": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source",
+      "argv": [
+        "python3",
+        "-B",
+        "/tmp/phase5f-package-mobile-six-custody-native-final-peer-source-preparation-attempt4/carry-current-coherent-saved-job.py",
+        "--current02d-coherent-saved-job",
+        "witness"
+      ],
+      "env": {
+        "TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2",
+        "SQLITE_TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2"
+      }
+    },
+    {
+      "stage": "original-one-current-package-saved-job-keyboard",
+      "cwd": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source",
+      "argv": [
+        "node",
+        "/tmp/phase5f-package-mobile-reviewed-custody-qa-private-attempt2/source/scripts/qa/phase5f/browser-current-coherent-package-saved-job-keyboard-mobile.mjs",
+        "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/copy",
+        "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/fixture",
+        "5e65f4d0355f375ca7fe949b8de15082c043c19a",
+        "--exclusive-go-one-current-coherent-package-saved-job-keyboard-mobile"
+      ],
+      "env": {
+        "TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2",
+        "SQLITE_TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2",
+        "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+        "CHROMIUM_PATH": "/usr/bin/chromium",
+        "PHASE5F_FILE_MIGRATION_CHROMIUM_TEMP": "/workspace/.sfmk2",
+        "PHASE5F_FILE_MIGRATION_RUNTIME_ROOT": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime"
+      },
+      "cases": [
+        "current-coherent-package-saved-job-keyboard-390-dark"
+      ],
+      "toolInvocation": {
+        "tty": true,
+        "originalStdinControl": "Only explicit stop newline originalretainedTTY;120s supervision/noSIGTERM graceful claim"
+      },
+      "control": "ONE genuine mobile390/dark current package originalPreview200/accept202/Pause200/Resume200/Cancel200 once; firstfailure/acceptedhistory and originalnativebody/focus/+2 preserved."
+    },
+    {
+      "stage": "physical-after",
+      "cwd": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source",
+      "argv": [
+        "python3",
+        "-B",
+        "/tmp/phase5f-package-mobile-reviewed-custody-qa-private-attempt2/source/scripts/qa/phase5f/check-current-coherent-saved-job-mobile-physical-state.py",
+        "--domain",
+        "package",
+        "--source-copy",
+        "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/copy",
+        "--fixture-directory",
+        "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/fixture",
+        "--runtime-directory",
+        "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime"
+      ],
+      "env": {
+        "TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2",
+        "SQLITE_TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2"
+      },
+      "control": "Mandatory after original native child/directwait/reap and context/route/body/controller/browser/Worker/JWKS settlement. New physical output alias; preserve any accepted job/item/hold/permit partial history. Failed native case stays failed."
+    },
+    {
+      "stage": "final-source-artifact-input-pins",
+      "cwd": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source",
+      "argv": [
+        "python3",
+        "-B",
+        "/tmp/phase5f-package-mobile-six-custody-native-final-peer-source-preparation-attempt4/carry-current-coherent-saved-job.py",
+        "--current02d-coherent-saved-job",
+        "final-pins"
+      ],
+      "env": {
+        "TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2",
+        "SQLITE_TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2"
+      }
+    }
+  ],
+  "actualCommandCount": 10,
+  "matureRecorderBasis": {
+    "path": "/workspace/phase5f-package-exact-sample-shadow-native-finite-source-preparation-attempt2/run-frozen-owned-stage.py",
+    "sha256": "bcb865eadec76c55a819b3e943c26f610da93e7d023dfe0088144065d7acec85",
+    "scope": "10 functions+1 class; all11 exact. Current producer2726 verify census unchanged. Top-level mobile source/plan/runtime/permit separately compared."
+  },
+  "carrierPath": "/tmp/phase5f-package-mobile-six-custody-native-final-peer-source-preparation-attempt4/carry-current-coherent-saved-job.py",
+  "carrierSha256": "96b02d3ca28003b0f10c6f0a00386a05af228c09659e5bfcf50ad3570cd2113c",
+  "originalBuildCommand": {
+    "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/one-fresh-final-QA-source-build-command.json",
+    "sha256": "860a3f0c63ac38a7e162246f466ef4ef906e16d9aef0b56fc570fa9cd83d763e",
+    "scope": "Actual original5e required CSS-affected build once. Original directchild exit0/samewait/reaped, one retained PPID1 kernelZ/FDPermission metadata; no full-current tree/artifact retag, no observed0FD/globalempty claim."
+  },
+  "priorOriginalFailure": {
+    "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/actual-current02d-package-original-ten-setup-first-failure-closed-release.json",
+    "sha256": "bd528a2cc1ab7f2429545792c05bb5aca6c5244ffb85d2c12e114f52804dffaa",
+    "scope": "Original10 ninePASS/one pre-case setupFAILED, native0P0F1UNRUN; seven accepted setup POSTs remain immutable; normal Worker/JWKS ACK successful, finalcatalogACK FAILED; no reuse/rollback."
+  },
+  "newNamespaceNecessity": "Complementary mobile390/dark on a new genuine same-source installation, with neither accepted desktop/failed lineage reopened or replayed. Each domain has its own copy, fixture, installation, R2 namespace, private shorttemp and context/Worker/JWKS owners. No new product build.",
+  "mobileDesktopInverseFreeze": {
+    "path": "/workspace/phase5f-coherent-saved-package-mobile-source-preparation-attempt1/complete-mobile-two-qa-source-freeze.json",
+    "sha256": "cf7f917cd9e2e4d296d7569f4ad9847cbaada23c4a7bc71554cbaa7349890fe3",
+    "scope": "Only4 browser literals and4 physicalfilename/permit literals; originalcase bodies/actions/assertions/budgets exact."
+  },
+  "originalUninvokedMobileBasis": {
+    "path": "/workspace/phase5f-coherent-saved-package-mobile-native-finite-source-preparation-attempt1/package/finite-current-coherent-native-ten-plan.json",
+    "sha256": "95007bf602d247400548a54c798668379bc2e5a61e8d280785301d71c34b54be"
+  },
+  "actualRootBuildRelease": {
+    "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/root-one-fresh5e-cf-build-full-source-raw-original-owner-kernel-read-release.json",
+    "sha256": "9b026c2dd891990279ca6b6f716eff86fbb52f4ea87cc3dc1c357b671245fb03"
+  },
+  "sourceCustodyDelta": {
+    "exactSplices": {
+      "path": "/tmp/phase5f-package-mobile-reviewed-custody-source-preparation-attempt2/package-mobile-eight-source-splices.json",
+      "sha256": "f9d382a4c740676dd55924d065688166647269bb2f717bccb8e40bddc5fb4d7c"
+    },
+    "wholeInverse": {
+      "path": "/tmp/phase5f-package-mobile-reviewed-custody-source-preparation-attempt2/package-mobile-whole-original-inverse.patch",
+      "sha256": "f90183f4ce8207ada3d7a62e2e83b7d004219690dd58ddd7f6e94b5a2f87ca0a"
+    },
+    "scope": "Six original first-error custody sites and producer/temp bindings; no native requests, acceptance, DTO, assertion or time budget changes. Old c94 Package mobile never started."
+  },
+  "presealDescriptionCorrection": {
+    "status": "SOURCE_ONLY_TWO_DOCSTRINGS_NO_COMMAND_SEMANTIC_CHANGE",
+    "originalPreparedHandoff": {
+      "path": "/tmp/phase5f-package-mobile-reviewed-custody-finite-source-preparation-attempt2/source-handoff.json",
+      "sha256": "ab1d2ba0ece985117c6627d35b2fc535c7aa2c18af7c68e60e8bd52fb021647f"
+    },
+    "scope": "Only original5e descriptive producer scope replaces inherited actual02d docstrings; original preseal preserved UNRUN."
+  },
+  "independentHelperPeer": {
+    "path": "/tmp/phase5f-package-mobile-reviewed-custody-source-preparation-attempt2/independent-complete-package-mobile-six-custody-source-peer.json",
+    "sha256": "428f113858381d1f7b222bcbcd2974ddb0d1f8f0ac3d708351a093c6a57dde56"
+  },
+  "independentPreparedFinitePeer": {
+    "path": "/tmp/phase5f-package-mobile-reviewed-custody-finite-source-preparation-attempt3/independent-complete-original-ten-six-custody-finite-binding-source-peer.json",
+    "sha256": "cb768a7bd6732239c52449d83a7b152b51711e70ce57a576fe1fc36da82a7bb2"
+  },
+  "peerScope": "Whole Package177eb source428f and exact prepared TEN cb768 are independent SOURCE CLEAR only; root owns original120s supervision/current capacity/window. No actual peer/browser/fixture/compiler/build invocation."
+}

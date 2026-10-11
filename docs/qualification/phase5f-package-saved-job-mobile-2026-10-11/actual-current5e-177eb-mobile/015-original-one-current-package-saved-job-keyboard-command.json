@@ -1,0 +1,47 @@
+{
+  "stage": "original-one-current-package-saved-job-keyboard",
+  "cwd": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source",
+  "argv": [
+    "node",
+    "/tmp/phase5f-package-mobile-reviewed-custody-qa-private-attempt2/source/scripts/qa/phase5f/browser-current-coherent-package-saved-job-keyboard-mobile.mjs",
+    "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/copy",
+    "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/fixture",
+    "5e65f4d0355f375ca7fe949b8de15082c043c19a",
+    "--exclusive-go-one-current-coherent-package-saved-job-keyboard-mobile"
+  ],
+  "env": {
+    "TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2",
+    "SQLITE_TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2",
+    "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+    "CHROMIUM_PATH": "/usr/bin/chromium",
+    "PHASE5F_FILE_MIGRATION_CHROMIUM_TEMP": "/workspace/.sfmk2",
+    "PHASE5F_FILE_MIGRATION_RUNTIME_ROOT": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime"
+  },
+  "cases": [
+    "current-coherent-package-saved-job-keyboard-390-dark"
+  ],
+  "toolInvocation": {
+    "tty": true,
+    "originalStdinControl": "Only explicit stop newline originalretainedTTY;120s supervision/noSIGTERM graceful claim"
+  },
+  "control": "ONE genuine mobile390/dark current package originalPreview200/accept202/Pause200/Resume200/Cancel200 once; firstfailure/acceptedhistory and originalnativebody/focus/+2 preserved.",
+  "startedAt": "2026-10-11T20:28:47.334244+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/original-one-current-package-saved-job-keyboard.log",
+  "pid": 1520167,
+  "processGroup": 1520167,
+  "originalStartTicks": "16378810",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T20:29:11.571326+00:00",
+  "logSha256": "4a80956cd185bf7d760c4bb3aaae214f1bc433dfa0dfc24c9ef8db948838abfc"
+}
