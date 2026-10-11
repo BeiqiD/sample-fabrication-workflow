@@ -1,0 +1,24 @@
+
+ RUN  v4.1.10 /workspace/portable-current194-coherent-metadata-source-only-attempt1
+
+ ✓ worker/legacy-comment-settlement.test.ts > legacy Comment creation settlement > acknowledges the exact individual occurrence set despite BEFORE trigger changes 1299ms
+ ✓ worker/legacy-comment-settlement.test.ts > legacy Comment creation settlement > acknowledges the exact common occurrence set despite BEFORE trigger changes 1319ms
+ ✓ worker/legacy-comment-settlement.test.ts > legacy Comment creation settlement > acknowledges the exact individual occurrence set despite AFTER trigger changes 1391ms
+ ✓ worker/legacy-comment-settlement.test.ts > legacy Comment creation settlement > acknowledges the exact common occurrence set despite AFTER trigger changes 1408ms
+ ✓ worker/legacy-comment-settlement.test.ts > legacy Comment creation settlement > rejects missing results proof even when the reported change count looks correct 1360ms
+ ✓ worker/legacy-comment-settlement.test.ts > legacy Comment creation settlement > rejects null results proof even when the reported change count looks correct 1388ms
+ ✓ worker/legacy-comment-settlement.test.ts > legacy Comment creation settlement > rejects non-array results proof even when the reported change count looks correct 1352ms
+ ✓ worker/legacy-comment-settlement.test.ts > legacy Comment creation settlement > rejects missing occurrence proof even when the reported change count looks correct 1340ms
+ ✓ worker/legacy-comment-settlement.test.ts > legacy Comment creation settlement > rejects wrong occurrence proof even when the reported change count looks correct 1452ms
+ ✓ worker/legacy-comment-settlement.test.ts > legacy Comment creation settlement > rejects duplicate occurrence proof even when the reported change count looks correct 1376ms
+ ✓ worker/legacy-comment-settlement.test.ts > legacy Comment creation settlement > rejects missing id proof even when the reported change count looks correct 1343ms
+ ✓ worker/legacy-comment-settlement.test.ts > legacy Comment creation settlement > rejects non-string id proof even when the reported change count looks correct 1374ms
+ ✓ worker/legacy-comment-settlement.test.ts > legacy Comment creation settlement > rejects extra occurrence proof even when the reported change count looks correct 1352ms
+ ✓ worker/legacy-comment-settlement.test.ts > legacy Comment creation settlement > preserves the all-target write guard when a step changes after validation 1482ms
+
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+   Start at  04:47:24
+   Duration  22.26s (transform 2.33s, setup 28ms, import 2.88s, tests 19.24s, environment 0ms)
+
+JSON report written to /tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/07-legacy-comment-settlement.test.json

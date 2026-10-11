@@ -1,0 +1,54 @@
+{
+  "reviewer": "/root/roadmap_performance_probe",
+  "reviewedAt": "2026-10-11T04:42:18.654015+00:00",
+  "status": "SOURCE_CLEAR_MATURE_LAUNCHER_RETARGET_ONLY_56_UNRUN",
+  "sourceHead": "ccc7478f6045b38421f4e35def3360d7a031dd88",
+  "sourceTree": "f713dd1ff9f0cf6b3a5a154a6bf1cab89c692a58",
+  "sourceInputsRehashed": 1932,
+  "sourcePeer": {
+    "path": "/tmp/portable-current194-coherent25-independent-complete-extraction-and56-source-selection-peer.json",
+    "sha256": "664fac369d9db631a573912af97c548d130900b2e9c80948fea4689b355d9af5"
+  },
+  "retarget": "Complete18 declared substitutions inversely reconstruct every byte of original078f mature Worker9 launcher. Original helper b623 hash and runpy side-effect boundary inspected: only definitions/globals and guarded __main__; no helper actual main invoked by import. Full new launcher and reporting/firstfailure/partial counts read.",
+  "finitePlan": "All29 original finite-plan fields are exact except truthful kind becomes executable source-plan. Nine original selections and concrete argv/env/reporters/counts are unchanged; meaningful56 exact title-path statuses verified separately from unselected skips. Outer600/poll30 already explicit in reviewed original56 plan. No case/hook/consumer budget/retry change.",
+  "compilerCarry": "Actual07 compiler receipt7e00 exit0 rehashed;all1928 original committed inputs match current immutableCCC tree. Zero compiler repeat or case carry.",
+  "ownedClosure": "Original Popen retained with signals blocked around launch, original wait deadline/cached close outcome, interrupted/partial receipts, direct reap/group snapshots and post-source pins preserved. Unknown/active owners fail closure. Kernel process exit is not original fixture finally/HTTP/provider/physical lease ACK.",
+  "pins": {
+    "handoff": {
+      "path": "/tmp/portable-current194-coherent-metadata-fifty-six-launcher-source-handoff.json",
+      "sha256": "8e6da9d64b3cdd95b8940473616ebacdfb1f0bbf0135ebb66bbfe6d29e5f0ac2"
+    },
+    "plan": {
+      "path": "/tmp/portable-current194-coherent-metadata-fifty-six-executable-source-plan.json",
+      "sha256": "2c5bcf173f1240f5efe4745c0f1677dab8e92873504451fb230cffb0d4d28e0a"
+    },
+    "runner": {
+      "path": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-launcher.py",
+      "sha256": "dff8ceb4b57fb0257f522227a561c8629fbe4f882b7b58b00e47702f09a395a8"
+    },
+    "originalLauncher": {
+      "path": "/tmp/portable-current591-neutral-file-definition-worker-nine-owned-launcher.py",
+      "sha256": "078f417e6e715e8711da5f3236a654689e31a9af83d7ced75be5c986f52bebaa"
+    },
+    "helper": {
+      "path": "/tmp/portable-rt3-local-upload-gate-qualification-runner-source-only-attempt4.py",
+      "sha256": "b623484a36325020644d64479cc41939c20a984a07a1ba585e4be1a17e812889"
+    }
+  },
+  "executionAfterRootGO": "NODE_CURRENT194_COHERENT_METADATA_EXCLUSIVE_GO=ccc7478f6045b38421f4e35def3360d7a031dd88 python3 -B /tmp/portable-current194-coherent-metadata-fifty-six-owned-launcher.py --run",
+  "output": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1",
+  "outputObservedAbsent": true,
+  "effects": {
+    "childrenOrCompilersLaunched": 0,
+    "databaseConnections": 0,
+    "serverBrowserProviderStarts": 0,
+    "sourceChanges": 0
+  },
+  "diagnostics": [
+    "Initial generic plan equality check included intentionally changed kind and exited before runtime. Confirmed kind is sole differing original field;exact29-field remainder and full launcher inverse subsequently pass."
+  ],
+  "limitations": [
+    "Separate root exclusive actual GO still required;all56 UNRUN.",
+    "Historical SQLite-backed D1 compatibility and provider doubles only;no liveworkerd,Nodeinstalledsession/resource authority,LocalFile/JobHTTP mount or grant."
+  ]
+}

@@ -1,0 +1,23 @@
+
+ RUN  v4.1.10 /workspace/portable-current194-coherent-metadata-source-only-attempt1
+
+ ↓ worker/comment-canonical-read-bridge.test.ts > canonical Comment reading on retained S1 data > reads the processing directory before typed File columns exist
+ ✓ worker/comment-canonical-read-bridge.test.ts > canonical Comment reading on retained S1 data > rejects a partial typed File schema before preparing native or historical projections 126ms
+ ✓ worker/comment-canonical-read-bridge.test.ts > canonical Comment reading on retained S1 data > deletes a retained S1 record without querying future File columns or changing stored assets 101ms
+ ✓ worker/comment-canonical-read-bridge.test.ts > canonical Comment reading on retained S1 data > deletes a retained S1 image without querying future File columns or changing stored assets 97ms
+ ↓ worker/comment-canonical-read-bridge.test.ts > canonical Comment reading on retained S1 data > reads canonical text and legacy text by ownership without rewriting either stored row
+ ↓ worker/comment-canonical-read-bridge.test.ts > canonical Comment reading on retained S1 data > keeps an empty canonical body empty instead of reviving the duplicated text
+ ↓ worker/comment-canonical-read-bridge.test.ts > canonical Comment reading on retained S1 data > marks a dangling canonical submission inconsistent rather than treating it as legacy text
+ ↓ worker/comment-canonical-read-bridge.test.ts > canonical Comment reading on retained S1 data > keeps canonical search singular and preserves legacy body search
+ ↓ worker/comment-canonical-read-bridge.test.ts > canonical Comment reading on retained S1 data > uses canonical text for common occurrence lifecycle summaries and preserves identity
+ ↓ worker/comment-canonical-read-bridge.test.ts > canonical Comment reading on retained S1 data > uses canonical text for individual occurrence lifecycle summaries and preserves identity
+ ↓ worker/comment-canonical-read-bridge.test.ts > canonical Comment reading on retained S1 data > uses canonical text for common image deletion without deleting the Comment
+ ↓ worker/comment-canonical-read-bridge.test.ts > canonical Comment reading on retained S1 data > uses canonical text for individual image deletion without deleting the Comment
+ ↓ worker/comment-canonical-read-bridge.test.ts > canonical Comment reading on retained S1 data > keeps legacy schema-7 stored values and columns exact in the offline catalog
+
+ Test Files  1 passed (1)
+      Tests  3 passed | 10 skipped (13)
+   Start at  04:47:05
+   Duration  3.40s (transform 2.40s, setup 28ms, import 2.94s, tests 325ms, environment 0ms)
+
+JSON report written to /tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/04-comment-canonical-read-bridge.test.json

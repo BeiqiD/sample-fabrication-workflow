@@ -1,0 +1,571 @@
+{
+  "kind": "current194-coherent-metadata-original-worker-fifty-six-source-plan/1",
+  "status": "SOURCE_ONLY_ALL_FIFTY_SIX_UNRUN",
+  "productionCodeHead": "07e35907e989464701eb40d801399c9e80f0b7b1",
+  "basisHead": "756ac6f3aa8872e6b799576eff4ee20d42aab476",
+  "rawCurrentDevelopmentBase": "1943f746332596220ed34edb5d4b0ac45d6db40d",
+  "rawOriginalCounts": {
+    "sample": 19,
+    "timeline": 7,
+    "execution": 14,
+    "comment": 20
+  },
+  "rawSelectedInvocations": 60,
+  "expectedUniqueSelectedCases": 56,
+  "deduplicatedOriginalCases": [
+    {
+      "file": "worker/uploads/native-sample-record.test.ts",
+      "titlePath": [
+        "native File sample records",
+        "attaches by exact native asset ID, renders its URL and unlinks only the occurrence"
+      ],
+      "originalPlans": [
+        "sample19",
+        "timeline7"
+      ],
+      "removedDuplicateInvocations": 1
+    },
+    {
+      "file": "worker/source-lifecycle-routes.test.ts",
+      "titlePath": [
+        "source lifecycle routes",
+        "rejects a common-comment group mutation when any target ancestor is deleted"
+      ],
+      "originalPlans": [
+        "timeline7",
+        "comment20"
+      ],
+      "removedDuplicateInvocations": 1
+    },
+    {
+      "file": "worker/files/consumer-binding.test.ts",
+      "titlePath": [
+        "binds ordinary records, execution images, comments and verification to the accepted File atomically"
+      ],
+      "originalPlans": [
+        "timeline7",
+        "execution14",
+        "comment20"
+      ],
+      "removedDuplicateInvocations": 2
+    }
+  ],
+  "serialStageCounts": [
+    11,
+    3,
+    3,
+    3,
+    1,
+    3,
+    14,
+    17,
+    1
+  ],
+  "stages": [
+    {
+      "name": "01-sample-split-routes.test",
+      "file": "worker/sample-split-routes.test.ts",
+      "sourceSha256": "dcc0fe7d0cbb5ff657f0ff60eb49ab5200e74984746fb828effa0fd4e8567512",
+      "expectedTitlePaths": [
+        [
+          "Sample split route characterization",
+          "inherits the completed process structure instead of the parent's inherited or initial state"
+        ],
+        [
+          "Sample split route characterization",
+          "rejects a stale parent revision without changing samples, structures, or audit events"
+        ],
+        [
+          "execution-image structure inheritance",
+          "materializes an ordered persistent diagram, downloads child images, and reuses its immutable identity"
+        ],
+        [
+          "execution-image structure inheritance",
+          "rejects a changed parent revision at the transaction boundary without publishing a state or children"
+        ],
+        [
+          "execution-image structure inheritance",
+          "rejects a changed execution order at the transaction boundary without publishing a state or children"
+        ],
+        [
+          "execution-image structure inheritance",
+          "rejects a changed completed step at the transaction boundary without publishing a state or children"
+        ],
+        [
+          "execution-image structure inheritance",
+          "rolls the materialized state back when a child code collides"
+        ],
+        [
+          "execution-image structure inheritance",
+          "preserves and rejects an inconsistent existing canonical content"
+        ],
+        [
+          "execution-image structure inheritance",
+          "preserves and rejects an inconsistent existing partial mapping"
+        ],
+        [
+          "execution-image structure inheritance",
+          "preserves and rejects an inconsistent existing empty mapping"
+        ],
+        [
+          "execution-image structure inheritance",
+          "rejects an incomplete representation that appears after the pre-read without filling its empty mapping"
+        ]
+      ],
+      "expectedSelectedCases": 11,
+      "status": "UNRUN",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/sample-split-routes.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--testNamePattern",
+        "(?:inherits\\ the\\ completed\\ process\\ structure\\ instead\\ of\\ the\\ parent's\\ inherited\\ or\\ initial\\ state|rejects\\ a\\ stale\\ parent\\ revision\\ without\\ changing\\ samples,\\ structures,\\ or\\ audit\\ events|materializes\\ an\\ ordered\\ persistent\\ diagram,\\ downloads\\ child\\ images,\\ and\\ reuses\\ its\\ immutable\\ identity|rejects\\ a\\ changed\\ parent\\ revision\\ at\\ the\\ transaction\\ boundary\\ without\\ publishing\\ a\\ state\\ or\\ children|rejects\\ a\\ changed\\ execution\\ order\\ at\\ the\\ transaction\\ boundary\\ without\\ publishing\\ a\\ state\\ or\\ children|rejects\\ a\\ changed\\ completed\\ step\\ at\\ the\\ transaction\\ boundary\\ without\\ publishing\\ a\\ state\\ or\\ children|rolls\\ the\\ materialized\\ state\\ back\\ when\\ a\\ child\\ code\\ collides|preserves\\ and\\ rejects\\ an\\ inconsistent\\ existing\\ canonical\\ content|preserves\\ and\\ rejects\\ an\\ inconsistent\\ existing\\ partial\\ mapping|preserves\\ and\\ rejects\\ an\\ inconsistent\\ existing\\ empty\\ mapping|rejects\\ an\\ incomplete\\ representation\\ that\\ appears\\ after\\ the\\ pre\\-read\\ without\\ filling\\ its\\ empty\\ mapping)$",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/01-sample-split-routes.test.json"
+      ],
+      "originalExplicitCaseMilliseconds": null
+    },
+    {
+      "name": "02-state-consumer-binding.test",
+      "file": "worker/state-consumer-binding.test.ts",
+      "sourceSha256": "88f9a889a8a286dfd35452262f6c85c545cf61a7e1aae061960840af5d26d110",
+      "expectedTitlePaths": [
+        [
+          "binds active state consumers and checks the exact File when splitting: available"
+        ],
+        [
+          "binds active state consumers and checks the exact File when splitting: unavailable-existing"
+        ],
+        [
+          "binds active state consumers and checks the exact File when splitting: unavailable-inherited"
+        ]
+      ],
+      "expectedSelectedCases": 3,
+      "status": "UNRUN",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/state-consumer-binding.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--testNamePattern",
+        "(?:binds\\ active\\ state\\ consumers\\ and\\ checks\\ the\\ exact\\ File\\ when\\ splitting:\\ available|binds\\ active\\ state\\ consumers\\ and\\ checks\\ the\\ exact\\ File\\ when\\ splitting:\\ unavailable\\-existing|binds\\ active\\ state\\ consumers\\ and\\ checks\\ the\\ exact\\ File\\ when\\ splitting:\\ unavailable\\-inherited)$",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/02-state-consumer-binding.test.json"
+      ],
+      "originalExplicitCaseMilliseconds": null
+    },
+    {
+      "name": "03-native-sample-record.test",
+      "file": "worker/uploads/native-sample-record.test.ts",
+      "sourceSha256": "05329b525cd59243cc8653cdfb096cda8133c2da81e54dd49412b73814ec1738",
+      "expectedTitlePaths": [
+        [
+          "native File sample records",
+          "attaches by exact native asset ID, renders its URL and unlinks only the occurrence"
+        ],
+        [
+          "native File sample records",
+          "deletes a native photo note with the File binding retained and a photo audit label"
+        ],
+        [
+          "native File sample records",
+          "rejects contradictory or unavailable asset inputs without changing sample details"
+        ]
+      ],
+      "expectedSelectedCases": 3,
+      "status": "UNRUN",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/uploads/native-sample-record.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--testNamePattern",
+        "(?:attaches\\ by\\ exact\\ native\\ asset\\ ID,\\ renders\\ its\\ URL\\ and\\ unlinks\\ only\\ the\\ occurrence|deletes\\ a\\ native\\ photo\\ note\\ with\\ the\\ File\\ binding\\ retained\\ and\\ a\\ photo\\ audit\\ label|rejects\\ contradictory\\ or\\ unavailable\\ asset\\ inputs\\ without\\ changing\\ sample\\ details)$",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/03-native-sample-record.test.json"
+      ],
+      "originalExplicitCaseMilliseconds": null
+    },
+    {
+      "name": "04-comment-canonical-read-bridge.test",
+      "file": "worker/comment-canonical-read-bridge.test.ts",
+      "sourceSha256": "7e02b063b299cb8c9d2656f7e15c3b32027c85ce293829f011ab87d00f7cf649",
+      "expectedTitlePaths": [
+        [
+          "canonical Comment reading on retained S1 data",
+          "rejects a partial typed File schema before preparing native or historical projections"
+        ],
+        [
+          "canonical Comment reading on retained S1 data",
+          "deletes a retained S1 record without querying future File columns or changing stored assets"
+        ],
+        [
+          "canonical Comment reading on retained S1 data",
+          "deletes a retained S1 image without querying future File columns or changing stored assets"
+        ]
+      ],
+      "expectedSelectedCases": 3,
+      "status": "UNRUN",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/comment-canonical-read-bridge.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--testNamePattern",
+        "(?:rejects\\ a\\ partial\\ typed\\ File\\ schema\\ before\\ preparing\\ native\\ or\\ historical\\ projections|deletes\\ a\\ retained\\ S1\\ record\\ without\\ querying\\ future\\ File\\ columns\\ or\\ changing\\ stored\\ assets|deletes\\ a\\ retained\\ S1\\ image\\ without\\ querying\\ future\\ File\\ columns\\ or\\ changing\\ stored\\ assets)$",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/04-comment-canonical-read-bridge.test.json"
+      ],
+      "originalExplicitCaseMilliseconds": null
+    },
+    {
+      "name": "05-native-file-ingress.test",
+      "file": "worker/uploads/native-file-ingress.test.ts",
+      "sourceSha256": "16652941dc198ca8ff95a094ee8ed021262717c5a266135536a7da00579682b8",
+      "expectedTitlePaths": [
+        [
+          "FabuBlox frozen per-file native targets",
+          "binds native planned, execution and verification assets by File and preserves them through occurrence delete/restore"
+        ]
+      ],
+      "expectedSelectedCases": 1,
+      "status": "UNRUN",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/uploads/native-file-ingress.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--testNamePattern",
+        "(?:binds\\ native\\ planned,\\ execution\\ and\\ verification\\ assets\\ by\\ File\\ and\\ preserves\\ them\\ through\\ occurrence\\ delete/restore)$",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/05-native-file-ingress.test.json"
+      ],
+      "originalExplicitCaseMilliseconds": null
+    },
+    {
+      "name": "06-attachment-occurrence-metadata.test",
+      "file": "worker/attachment-occurrence-metadata.test.ts",
+      "sourceSha256": "2791bd1841694f05c5b0434b9124456b758648aa0631de06aa65ebedeb3d7847",
+      "expectedTitlePaths": [
+        [
+          "attachment occurrence metadata",
+          "stores contextual Run metadata through the real update route and rejects size mismatch"
+        ],
+        [
+          "attachment occurrence metadata",
+          "rejects unsafe occurrence MIME before persistence and serves validated MIME without header failure"
+        ],
+        [
+          "attachment occurrence metadata",
+          "keeps safe parameterized legacy MIME compatible while new Run JSON stays canonical"
+        ]
+      ],
+      "expectedSelectedCases": 3,
+      "status": "UNRUN",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/attachment-occurrence-metadata.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--testNamePattern",
+        "(?:stores\\ contextual\\ Run\\ metadata\\ through\\ the\\ real\\ update\\ route\\ and\\ rejects\\ size\\ mismatch|rejects\\ unsafe\\ occurrence\\ MIME\\ before\\ persistence\\ and\\ serves\\ validated\\ MIME\\ without\\ header\\ failure|keeps\\ safe\\ parameterized\\ legacy\\ MIME\\ compatible\\ while\\ new\\ Run\\ JSON\\ stays\\ canonical)$",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/06-attachment-occurrence-metadata.test.json"
+      ],
+      "originalExplicitCaseMilliseconds": null
+    },
+    {
+      "name": "07-legacy-comment-settlement.test",
+      "file": "worker/legacy-comment-settlement.test.ts",
+      "sourceSha256": "2fcd39c88a9045c98160893887098b080bcb1c3e51eecd543896b49983618a1a",
+      "expectedTitlePaths": [
+        [
+          "legacy Comment creation settlement",
+          "acknowledges the exact individual occurrence set despite BEFORE trigger changes"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "acknowledges the exact common occurrence set despite BEFORE trigger changes"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "acknowledges the exact individual occurrence set despite AFTER trigger changes"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "acknowledges the exact common occurrence set despite AFTER trigger changes"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "rejects missing results proof even when the reported change count looks correct"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "rejects null results proof even when the reported change count looks correct"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "rejects non-array results proof even when the reported change count looks correct"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "rejects missing occurrence proof even when the reported change count looks correct"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "rejects wrong occurrence proof even when the reported change count looks correct"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "rejects duplicate occurrence proof even when the reported change count looks correct"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "rejects missing id proof even when the reported change count looks correct"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "rejects non-string id proof even when the reported change count looks correct"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "rejects extra occurrence proof even when the reported change count looks correct"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "preserves the all-target write guard when a step changes after validation"
+        ]
+      ],
+      "expectedSelectedCases": 14,
+      "status": "UNRUN",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/legacy-comment-settlement.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--testNamePattern",
+        "(?:acknowledges\\ the\\ exact\\ individual\\ occurrence\\ set\\ despite\\ BEFORE\\ trigger\\ changes|acknowledges\\ the\\ exact\\ common\\ occurrence\\ set\\ despite\\ BEFORE\\ trigger\\ changes|acknowledges\\ the\\ exact\\ individual\\ occurrence\\ set\\ despite\\ AFTER\\ trigger\\ changes|acknowledges\\ the\\ exact\\ common\\ occurrence\\ set\\ despite\\ AFTER\\ trigger\\ changes|rejects\\ missing\\ results\\ proof\\ even\\ when\\ the\\ reported\\ change\\ count\\ looks\\ correct|rejects\\ null\\ results\\ proof\\ even\\ when\\ the\\ reported\\ change\\ count\\ looks\\ correct|rejects\\ non\\-array\\ results\\ proof\\ even\\ when\\ the\\ reported\\ change\\ count\\ looks\\ correct|rejects\\ missing\\ occurrence\\ proof\\ even\\ when\\ the\\ reported\\ change\\ count\\ looks\\ correct|rejects\\ wrong\\ occurrence\\ proof\\ even\\ when\\ the\\ reported\\ change\\ count\\ looks\\ correct|rejects\\ duplicate\\ occurrence\\ proof\\ even\\ when\\ the\\ reported\\ change\\ count\\ looks\\ correct|rejects\\ missing\\ id\\ proof\\ even\\ when\\ the\\ reported\\ change\\ count\\ looks\\ correct|rejects\\ non\\-string\\ id\\ proof\\ even\\ when\\ the\\ reported\\ change\\ count\\ looks\\ correct|rejects\\ extra\\ occurrence\\ proof\\ even\\ when\\ the\\ reported\\ change\\ count\\ looks\\ correct|preserves\\ the\\ all\\-target\\ write\\ guard\\ when\\ a\\ step\\ changes\\ after\\ validation)$",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/07-legacy-comment-settlement.test.json"
+      ],
+      "originalExplicitCaseMilliseconds": null
+    },
+    {
+      "name": "08-source-lifecycle-routes.test",
+      "file": "worker/source-lifecycle-routes.test.ts",
+      "sourceSha256": "990042e683134d918be3dd8ba6a619889cd537adb0273125c35c79f1a3a46c31",
+      "expectedTitlePaths": [
+        [
+          "source lifecycle routes",
+          "rejects a common-comment group mutation when any target ancestor is deleted"
+        ],
+        [
+          "source lifecycle routes",
+          "keeps timeline attachment deletion atomic when its Run moves to trash"
+        ],
+        [
+          "source lifecycle routes",
+          "deletes one execution occurrence and every timeline event that references it"
+        ],
+        [
+          "source lifecycle routes",
+          "resolves a legacy execution-image event to one occurrence before deletion"
+        ],
+        [
+          "source lifecycle routes",
+          "soft-deletes and restores execution and metrology attachment occurrences"
+        ],
+        [
+          "source lifecycle routes",
+          "keeps execution-image restore atomic when the Run moves to trash"
+        ],
+        [
+          "source lifecycle routes",
+          "does not add an ad-hoc Step after its Run moves to trash"
+        ],
+        [
+          "source lifecycle routes",
+          "does not reactivate a Run that finishes while an ad-hoc Step is being added"
+        ],
+        [
+          "source lifecycle routes",
+          "does not add an ad-hoc Step after its insertion point changes"
+        ],
+        [
+          "source lifecycle routes",
+          "keeps State verification atomic when its run moves to trash"
+        ],
+        [
+          "source lifecycle routes",
+          "keeps State verification atomic when its sample moves to trash"
+        ],
+        [
+          "source lifecycle routes",
+          "verifies state across 48 covered steps within D1's 100-parameter limit"
+        ],
+        [
+          "source lifecycle routes",
+          "verifies state across 180 covered steps within D1's 100-parameter limit"
+        ],
+        [
+          "source lifecycle routes",
+          "requires the canonical Comment before restoring its occurrence or legacy image"
+        ],
+        [
+          "source lifecycle routes",
+          "rechecks canonical restore target visibility inside the mutation batch"
+        ],
+        [
+          "source lifecycle routes",
+          "counts legacy comment rows exactly despite shadow trigger writes"
+        ],
+        [
+          "source lifecycle routes",
+          "rechecks common-comment group visibility inside the restore batch"
+        ]
+      ],
+      "expectedSelectedCases": 17,
+      "status": "UNRUN",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/source-lifecycle-routes.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--testNamePattern",
+        "(?:rejects\\ a\\ common\\-comment\\ group\\ mutation\\ when\\ any\\ target\\ ancestor\\ is\\ deleted|keeps\\ timeline\\ attachment\\ deletion\\ atomic\\ when\\ its\\ Run\\ moves\\ to\\ trash|deletes\\ one\\ execution\\ occurrence\\ and\\ every\\ timeline\\ event\\ that\\ references\\ it|resolves\\ a\\ legacy\\ execution\\-image\\ event\\ to\\ one\\ occurrence\\ before\\ deletion|soft\\-deletes\\ and\\ restores\\ execution\\ and\\ metrology\\ attachment\\ occurrences|keeps\\ execution\\-image\\ restore\\ atomic\\ when\\ the\\ Run\\ moves\\ to\\ trash|does\\ not\\ add\\ an\\ ad\\-hoc\\ Step\\ after\\ its\\ Run\\ moves\\ to\\ trash|does\\ not\\ reactivate\\ a\\ Run\\ that\\ finishes\\ while\\ an\\ ad\\-hoc\\ Step\\ is\\ being\\ added|does\\ not\\ add\\ an\\ ad\\-hoc\\ Step\\ after\\ its\\ insertion\\ point\\ changes|keeps\\ State\\ verification\\ atomic\\ when\\ its\\ run\\ moves\\ to\\ trash|keeps\\ State\\ verification\\ atomic\\ when\\ its\\ sample\\ moves\\ to\\ trash|verifies\\ state\\ across\\ 48\\ covered\\ steps\\ within\\ D1's\\ 100\\-parameter\\ limit|verifies\\ state\\ across\\ 180\\ covered\\ steps\\ within\\ D1's\\ 100\\-parameter\\ limit|requires\\ the\\ canonical\\ Comment\\ before\\ restoring\\ its\\ occurrence\\ or\\ legacy\\ image|rechecks\\ canonical\\ restore\\ target\\ visibility\\ inside\\ the\\ mutation\\ batch|counts\\ legacy\\ comment\\ rows\\ exactly\\ despite\\ shadow\\ trigger\\ writes|rechecks\\ common\\-comment\\ group\\ visibility\\ inside\\ the\\ restore\\ batch)$",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/08-source-lifecycle-routes.test.json"
+      ],
+      "originalExplicitCaseMilliseconds": null
+    },
+    {
+      "name": "09-consumer-binding.test",
+      "file": "worker/files/consumer-binding.test.ts",
+      "sourceSha256": "8f2c02ea2e74df4138b2de9daca3abde24bd4a72088837b22e9ea7c1c8b39eee",
+      "expectedTitlePaths": [
+        [
+          "binds ordinary records, execution images, comments and verification to the accepted File atomically"
+        ]
+      ],
+      "expectedSelectedCases": 1,
+      "status": "UNRUN",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/files/consumer-binding.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--testNamePattern",
+        "(?:binds\\ ordinary\\ records,\\ execution\\ images,\\ comments\\ and\\ verification\\ to\\ the\\ accepted\\ File\\ atomically)$",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/09-consumer-binding.test.json"
+      ],
+      "originalExplicitCaseMilliseconds": 15000
+    }
+  ],
+  "originalPlanPins": [
+    {
+      "name": "sample19",
+      "path": "/workspace/portable-current591-sample-file-metadata-three-source-only-attempt1/docs/qualification/current591-sample-file-three/existing-worker-source-plan.json",
+      "sha256": "e5a09937bcd5825ab5daf70e308ecb5498c96374fce114fed3a2ff19642ce42d"
+    },
+    {
+      "name": "timeline7",
+      "path": "/tmp/portable-current591-sample-timeline-attachment-original-worker-seven-finite-plan.json",
+      "sha256": "c5cedb4c8a3cb76f362b44a36d54dc30b605f4271b38a4a3286e620548ad5082"
+    },
+    {
+      "name": "execution14",
+      "path": "/workspace/portable-current591-execution-insertion-verification-source-only-attempt1/docs/qualification/current591-execution-insertion-verification/original-worker-fourteen-source-plan.json",
+      "sha256": "d981abd9063c9603c6766c0cfa743d6243610069f2e0af250e6f2055937632ec"
+    },
+    {
+      "name": "comment20",
+      "path": "/workspace/portable-current591-legacy-comment-metadata-five-source-only-attempt1/docs/qualification/current591-comment-metadata-five/original-worker-twenty-source-plan.json",
+      "sha256": "0a0d1c4a70f472933df9c406bb7067c6bb7c0138273bc5ce03fd9c262fb2bb61"
+    }
+  ],
+  "sourceFixtureCompatibility": "Current adopted Worker algorithms run with the actual original SQLite-backed D1 compatibility batch/RETURNING adapters, frozen schema7/18/22 and reviewed portable26 fixture branches, and original provider doubles. This does not qualify live workerd/D1 SDK, current installed Node identity, LocalFile or resource/Group permission.",
+  "budgets": {
+    "originalDefaultCaseMilliseconds": 5000,
+    "originalDefaultHookMilliseconds": 10000,
+    "originalConsumerCaseMilliseconds": 15000,
+    "maxWorkers": 1,
+    "fileParallelism": false,
+    "bail": 1,
+    "originalTestsConfigCryptoAndBudgetsUnchanged": true
+  },
+  "outputDirectory": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1",
+  "actualGo": "HELD_UNTIL_PARENT_EXCLUSIVE_GO",
+  "actualAcceptance": "Use existing mature original-direct-child cached signal capture/wait/close. Verify exact selected title paths/counts and native raw statuses separately from unselected skips. Stop at first unexpected failure/count; retain original log/JSON/individual pending and leave later stages UNRUN. Record actual wait/reap/group/source pins. Compatibility fixture failure permits only observed kernel closure claims; no physical lease ACK, original HTTP/provider settlement or active Request grant is inferred.",
+  "ownedCompilerAlreadyActual": {
+    "path": "/tmp/portable-current194-coherent-metadata-owned-types-actual.json",
+    "sha256": "7e00f2e4a7f675a4ea21fb99e6e3bc145894538ce5974d72e5bb9d5548c692b7",
+    "actualSourceHead": "07e35907e989464701eb40d801399c9e80f0b7b1",
+    "status": "PASS",
+    "rerunRequired": false
+  },
+  "noCaseCarry": "Prior Worker9/File6/Definition6 historical actuals and four original source plans do not carry any of these 56 new cases.",
+  "excluded": [
+    "Node HTTP mounts",
+    "LocalFile/Group/resource grants",
+    "real provider IO",
+    "live Cloudflare workerd/D1 qualification",
+    "catalog/role/File activation",
+    "whole CI/build/browser/container/deployment"
+  ]
+}
