@@ -18,6 +18,8 @@ Each original child and supervisor was waited and reaped; all three owned proces
 
 The source adoption preserves qualified production/fixture/configuration bytes. This development note and the roadmap describe the resulting integration; they do not retag native reports onto the later integration commit. Own-head development CI is required separately before ordinary merge.
 
+The shared storage configuration test now checks the required original Request at both read and save ports. It proves that authentication, administrator authorization and the service receive the same GET or PUT object, with its body still unread at authentication. Both Fetch and Node HTTP retain independent File operator denial and credential redaction. The [separate regression record](qualification/current-node-original-request-regression14/receipt.json) records 14 fresh passing controls; it does not change the original 25-case source identity. The initial integration CI exposed two stale mock argument assertions; the corrected development commit requires fresh CI.
+
 ## Runtime boundary and next work
 
 `enableLocalFile` defaults to false and true requires explicitly configured local volumes. It passes the same opaque configuration to the original composer; it does not provision profiles or roles. The configured composer retains its restricted 69-method scope, and the default retains the restricted Node scope.

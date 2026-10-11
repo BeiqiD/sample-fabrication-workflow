@@ -1,0 +1,12 @@
+{
+  "pid": 1265785,
+  "pgid": 1265785,
+  "startTicks": "14247143",
+  "exitCode": 0,
+  "waitReturned": true,
+  "reaped": true,
+  "groupState": "EMPTY",
+  "members": [],
+  "unknown": [],
+  "signals": 0
+}
