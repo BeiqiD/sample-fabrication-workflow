@@ -117,6 +117,128 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); sessionStorage.clear(); });
 
 describe("native research package browser workflow", () => {
+  it("moves a focused Start to only the accepted package job's Pause after its original receipt body settles", async () => {
+    let finishBody!: (value: unknown) => void;
+    const body = new Promise<unknown>(resolve => { finishBody = resolve; }), other = job("report", "queued", "other:job"); jobs = [other];
+    network.mockImplementation(async (path, options) => {
+      if (String(path) === `${base}/jobs` && options?.method === "POST") {
+        const response = json({}, 202); vi.spyOn(response, "json").mockImplementation(() => body); return response;
+      }
+      return fallback(path, options);
+    });
+    await mount("?rootType=sample&rootId=sample%3A1"); const start = await previewExport(); start.focus(); fireEvent.click(start);
+    await waitFor(() => expect(start.matches(":disabled")).toBe(true));
+    const input = JSON.parse(String(callsTo("/jobs", "POST")[0][1]?.body)), accepted = { ...job(input.kind), requestId: input.requestId };
+    // Model the prior Start202 Chromium body focus. The original native response still owns its deferred json promise.
+    const originalTabIndex = document.body.getAttribute("tabindex");
+    try {
+      document.body.tabIndex = -1; document.body.focus(); expect(document.activeElement).toBe(document.body);
+      expect(screen.queryByText(accepted.id)).toBeNull(); expect(callsTo("/jobs", "POST")).toHaveLength(1);
+      await act(async () => finishBody({ requestId: input.requestId, job: accepted, reused: false }));
+      const row = screen.getByText(accepted.id).closest("article")!, pause = within(row).getByRole("button", { name: "Pause" });
+      await waitFor(() => expect(document.activeElement).toBe(pause)); expect(start.isConnected).toBe(false);
+      expect(pause.isConnected).toBe(true); expect(pause.matches(":disabled")).toBe(false);
+      expect(document.activeElement).not.toBe(within(screen.getByText(other.id).closest("article")!).getByRole("button", { name: "Pause" }));
+      expect(savedMutations()).toHaveLength(1); expect(callsTo("/jobs", "POST")).toHaveLength(1); expect(sessionStorage.getItem(intentKey)).toBeNull();
+      expect(JSON.parse(sessionStorage.getItem(receiptsKey)!)).toContainEqual({ requestId: input.requestId, jobId: accepted.id, reused: false });
+    } finally {
+      if (originalTabIndex === null) document.body.removeAttribute("tabindex"); else document.body.setAttribute("tabindex", originalTabIndex);
+    }
+  });
+
+  it("preserves focus moved away from pending Package Start even when it returns to body before the accepted receipt", async () => {
+    let finish!: (value: Response) => void;
+    network.mockImplementation(async (path, options) => String(path) === `${base}/jobs` && options?.method === "POST"
+      ? new Promise<Response>(resolve => { finish = resolve; }) : fallback(path, options));
+    await mount("?rootType=sample&rootId=sample%3A1"); const start = await previewExport(); start.focus(); fireEvent.click(start);
+    await waitFor(() => expect(start.matches(":disabled")).toBe(true));
+    const input = JSON.parse(String(callsTo("/jobs", "POST")[0][1]?.body)), accepted = { ...job(input.kind), requestId: input.requestId };
+    const other = screen.getByRole("link", { name: "Storage settings" }); other.focus(); expect(document.activeElement).toBe(other);
+    const originalTabIndex = document.body.getAttribute("tabindex");
+    try {
+      document.body.tabIndex = -1; document.body.focus(); expect(document.activeElement).toBe(document.body);
+      await act(async () => finish(json({ requestId: input.requestId, job: accepted, reused: false }, 202)));
+      const pause = await enabled("Pause"); expect(pause.isConnected).toBe(true); expect(start.isConnected).toBe(false);
+      expect(document.activeElement).toBe(document.body); expect(savedMutations()).toHaveLength(1); expect(sessionStorage.getItem(intentKey)).toBeNull();
+    } finally {
+      if (originalTabIndex === null) document.body.removeAttribute("tabindex"); else document.body.setAttribute("tabindex", originalTabIndex);
+    }
+  });
+
+  it("does not transfer late prior-page Package Start focus into a remounted job with the same id", async () => {
+    let finish!: (value: Response) => void;
+    network.mockImplementation(async (path, options) => String(path) === `${base}/jobs` && options?.method === "POST"
+      ? new Promise<Response>(resolve => { finish = resolve; }) : fallback(path, options));
+    const first = await mount("?rootType=sample&rootId=sample%3A1"); const start = await previewExport(); start.focus(); fireEvent.click(start);
+    await waitFor(() => expect(start.matches(":disabled")).toBe(true));
+    const input = JSON.parse(String(callsTo("/jobs", "POST")[0][1]?.body)), accepted = { ...job(input.kind), requestId: input.requestId };
+    const signal = callsTo("/jobs", "POST")[0][1]?.signal; first.unmount(); expect(signal?.aborted).toBe(true);
+    jobs = [accepted]; const receipt = { requestId: input.requestId, job: accepted, reused: false }; receipts.set(input.requestId, receipt);
+    await mount(); const pause = await enabled("Pause"), other = screen.getByRole("link", { name: "Storage settings" }); other.focus();
+    await act(async () => finish(json(receipt, 202)));
+    expect(document.activeElement).toBe(other); expect(pause.isConnected).toBe(true); expect(savedMutations()).toHaveLength(1);
+    expect(sessionStorage.getItem(intentKey)).toBeNull();
+  });
+
+  it("returns a focused Package Refresh only after its original list and executor responses settle without starting saved work", async () => {
+    let finishList!: (value: Response) => void, finishExecutor!: (value: Response) => void;
+    await mount(); const refresh = await enabled("Refresh status"); expect(document.activeElement).not.toBe(refresh);
+    network.mockImplementation(async (path, options) => String(path) === `${base}/jobs` && options?.method === "GET"
+      ? new Promise<Response>(resolve => { finishList = resolve; }) : String(path) === `${base}/executor`
+        ? new Promise<Response>(resolve => { finishExecutor = resolve; }) : fallback(path, options));
+    refresh.focus(); fireEvent.click(refresh); await waitFor(() => expect(refresh.matches(":disabled")).toBe(true));
+    const originalTabIndex = document.body.getAttribute("tabindex");
+    try {
+      document.body.tabIndex = -1; document.body.focus(); expect(document.activeElement).toBe(document.body);
+      await act(async () => finishList(json({ jobs }))); expect(document.activeElement).toBe(document.body); expect(refresh.matches(":disabled")).toBe(true);
+      await act(async () => finishExecutor(json(executor)));
+      await waitFor(() => expect(document.activeElement).toBe(refresh)); expect(refresh.isConnected).toBe(true); expect(refresh.matches(":disabled")).toBe(false);
+      expect(callsTo("/jobs", "GET")).toHaveLength(2); expect(callsTo("/executor", "GET")).toHaveLength(2); expect(savedMutations()).toHaveLength(0);
+    } finally {
+      if (originalTabIndex === null) document.body.removeAttribute("tabindex"); else document.body.setAttribute("tabindex", originalTabIndex);
+    }
+  });
+
+  it("does not reclaim focused Package Refresh after a move to another control and then back to body", async () => {
+    let finishList!: (value: Response) => void;
+    await mount(); const refresh = await enabled("Refresh status");
+    network.mockImplementation(async (path, options) => String(path) === `${base}/jobs` && options?.method === "GET"
+      ? new Promise<Response>(resolve => { finishList = resolve; }) : fallback(path, options));
+    refresh.focus(); fireEvent.click(refresh); await waitFor(() => expect(refresh.matches(":disabled")).toBe(true));
+    const other = screen.getByRole("link", { name: "Storage settings" }); other.focus(); expect(document.activeElement).toBe(other);
+    const originalTabIndex = document.body.getAttribute("tabindex");
+    try {
+      document.body.tabIndex = -1; document.body.focus(); expect(document.activeElement).toBe(document.body);
+      await act(async () => finishList(json({ jobs }))); await waitFor(() => expect(refresh.matches(":disabled")).toBe(false));
+      expect(document.activeElement).toBe(document.body); expect(savedMutations()).toHaveLength(0); expect(callsTo("/jobs", "GET")).toHaveLength(2);
+    } finally {
+      if (originalTabIndex === null) document.body.removeAttribute("tabindex"); else document.body.setAttribute("tabindex", originalTabIndex);
+    }
+  });
+
+  it("does not apply an obsolete manual Refresh focus intent after a newer genuine polling read supersedes it", async () => {
+    vi.useFakeTimers(); let finishOld!: (value: Response) => void;
+    await act(async () => { render(<MemoryRouter><ResearchPackagesPage /></MemoryRouter>); for (let i = 0; i < 30; i++) await Promise.resolve(); });
+    expect(screen.getByText("No package jobs are recorded for your account.")).toBeTruthy();
+    network.mockImplementation(async (path, options) => String(path) === `${base}/jobs` && options?.method === "GET" && callsTo("/jobs", "GET").length === 2
+      ? new Promise<Response>(resolve => { finishOld = resolve; }) : fallback(path, options));
+    const refresh = screen.getByRole("button", { name: "Refresh status" });
+    await act(async () => { refresh.focus(); fireEvent.click(refresh); for (let i = 0; i < 10; i++) await Promise.resolve(); });
+    expect(refresh.matches(":disabled")).toBe(true);
+    const originalTabIndex = document.body.getAttribute("tabindex");
+    try {
+      document.body.tabIndex = -1; document.body.focus(); expect(document.activeElement).toBe(document.body);
+      jobs = [job("report", "queued", "newer:polled:job")];
+      await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+      expect(screen.getByText("newer:polled:job")).toBeTruthy(); expect(refresh.matches(":disabled")).toBe(true);
+      await act(async () => { finishOld(json({ jobs: [] })); for (let i = 0; i < 10; i++) await Promise.resolve(); });
+      expect(refresh.matches(":disabled")).toBe(false); expect(document.activeElement).toBe(document.body);
+      expect(screen.getByText("newer:polled:job")).toBeTruthy(); expect(savedMutations()).toHaveLength(0); expect(callsTo("/jobs", "GET")).toHaveLength(3);
+    } finally {
+      if (originalTabIndex === null) document.body.removeAttribute("tabindex"); else document.body.setAttribute("tabindex", originalTabIndex);
+    }
+  });
+
 
   it("returns a settled saved Package control to the same job's next control and clears that intent before an explicit refresh", async () => {
     const id = "focus:package", controlPath = `${base}/jobs/focus%3Apackage/control`;
@@ -154,7 +276,8 @@ describe("native research package browser workflow", () => {
           await waitFor(() => expect(refresh.matches(":disabled")).toBe(true));
           document.body.focus(); expect(document.activeElement).toBe(document.body);
           await act(async () => { finishRefresh!(json({ jobs })); finishRefresh = null; });
-          await waitFor(() => expect(refresh.matches(":disabled")).toBe(false)); expect(document.activeElement).toBe(document.body);
+          await waitFor(() => expect(refresh.matches(":disabled")).toBe(false)); expect(document.activeElement).toBe(refresh);
+          expect(document.activeElement).not.toBe(next);
         }
         if (action === "cancel") {
           expect(next.getAttribute("role")).toBe("status"); expect(next.getAttribute("tabindex")).toBe("-1");

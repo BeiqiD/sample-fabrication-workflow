@@ -1,0 +1,29 @@
+--- /tmp/phase5f-package-file-current2d07-three-native-finite-source-preparation-attempt1/file-start202/carry-current2d07-original-native.py
++++ /tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-source-preparation-attempt1/check-original-closed-file-ordered-reader-finalpins.py
+@@ -10,7 +10,7 @@
+ CURRENT_RUNTIME=pathlib.Path('/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime')
+ ORIGINAL_RUNTIME=pathlib.Path('/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime')
+ SHORT_TEMP=pathlib.Path('/workspace/.sfst2')
+-PLAN=pathlib.Path('/tmp/phase5f-package-file-current2d07-three-native-finite-source-preparation-attempt1/file-start202/finite-current2d07-original-ten-plan.json')
++PLAN=pathlib.Path('/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-source-preparation-attempt1/finite-one-original-closed-file-ordered-reader-finalpins-plan.json')
+ HEAD='2d07b57c4e79403099261528ae8988c0072d28c6'
+ TREE='bf96bbcadd4c4d8a0ada525f639cf768d2d4eb90'
+ CONSUMER_HEAD='c316fe89ce79cd9d4d40627763bbe7ed029debbe'
+@@ -130,7 +130,7 @@
+                 assert costs['ordinaryResearchPreparationPOSTs']==1
+                 sample=report['ordinarySamplePreparation'];assert sample['state']=='accepted' and sample['status']==201 and sample['body']=='completed'
+                 assert re.fullmatch(r'[a-f0-9]{64}',sample['responseSha256']) and sample['exactSampleShadowEffects']['epochDelta']==2 and sample['exactSampleShadowEffects']['allEarlierDependencyRowsExact']
+-            assert len(report['readerRequests'])==2 and all(item['method']=='GET' and item['status']==200 and item['body']=='completed' and re.fullmatch(r'[a-f0-9]{64}',item['sha256']) for item in report['readerRequests'])
++            assert len(report['readerRequests'])==2 and [(item['path'],item['method'],item['status']) for item in report['readerRequests']]==[('/api/storage/configuration/capability','GET',200),('/api/files/migrations','GET',403)] and all(item['body']=='completed' and re.fullmatch(r'[a-f0-9]{64}',item['sha256']) for item in report['readerRequests'])
+             for audit in [report['finalCatalog'],*[case['originalCatalogAndSourceBytes'] for case in report['cases']],*[case['acceptedJobHistory'] for case in report['cases']]]:
+                 assert audit['old6PermitsExact'] and audit['oldHoldsExact'] and audit['newReleasedPermits']==(2 if DOMAIN=='file' else 3)
+                 assert audit['jobState']=='queued' and audit['jobGeneration']==0 and audit['executorDisabled'] and audit['sourceBytesExact'] and audit['targetEmpty']
+@@ -158,7 +158,7 @@
+     else:
+         assert owner['status']=='FAILED' and owner['exitCode']==1 and physical.get('nativeReportObserved') is False
+         native['scope']='No application lifecycle report; physical/directchild cleanup only, no normalfinally or nativecase qualification.'
+-    saved(CURRENT_RUNTIME/'final-current2d07-source-and-genuine-start202-pins.json',{'status':'PASS','domain':DOMAIN,'producerHead':HEAD,'qaConsumerHead':CONSUMER_HEAD,
++    saved(pathlib.Path('/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-private-attempt1/runtime/final-current2d07-file-start202-ordered-reader-source-pins.json'),{'status':'PASS','domain':DOMAIN,'producerHead':HEAD,'qaConsumerHead':CONSUMER_HEAD,
+       'all3181ProducerAndCopiedInputsExact':True,'all3181OrdinaryQaInputsExact':True,'fiveOwnedCurrentPackageFileFocusQaInputs':plan['ownedExtraQaLeaves'],'all3186QaInputsBytePinned':True,'actualOriginalArtifacts':118,'copiedArtifacts':121,
+       'newBuilds':0,'disabledSeedRequests':0,'nativeQualification':native,'originalChildWaitReapAndGroup':owner['ownedClosure'],
+       'physicalStatus':physical['status'],'physicalActualSQLiteGroups':len(physical['results']),'oldAcceptedNamespacesSeparateAndUntouched':True})

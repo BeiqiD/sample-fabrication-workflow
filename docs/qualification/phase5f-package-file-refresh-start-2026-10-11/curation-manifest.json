@@ -1,0 +1,1265 @@
+{
+  "status": "BYTE_EXACT_ORIGINAL_CURRENT2D07_THREE_NATIVE_AND_FILE_OFFLINE_QUALIFICATION_CURATIONS",
+  "baseHead": "2620608aa32948accfe68d48f57e3cbf39791e74",
+  "baseTree": "0d36cac4b09edffc89efc6fa608651061c101d23",
+  "producerHead": "2d07b57c4e79403099261528ae8988c0072d28c6",
+  "consumerHead": "c316fe89ce79cd9d4d40627763bbe7ed029debbe",
+  "originalCount": 153,
+  "originals": [
+    {
+      "originalPath": "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/actual-current8be-package-refresh-original-ten-focus-failure-closed-release.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/prior8be-package-refresh-focus-failure/001-actual-current8be-package-refresh-original-ten-focus-failure-closed-release.json",
+      "sha256": "78ac612f615b1d6c4b2266038f80ed480a027e3ba2b47c7d5648119953ce5f24",
+      "bytes": 35309,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/root-current8be-package-original-ten-focus-failure-full-raw-source-owner-release.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/prior8be-package-refresh-focus-failure/002-root-current8be-package-original-ten-focus-failure-full-raw-source-owner-release.json",
+      "sha256": "c93d6da1d2275494e77286446e05e57ec8b052e2637ef7b25d3a8ec6c840ad2a",
+      "bytes": 14322,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/original-one-current-package-status-refresh-keyboard-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/prior8be-package-refresh-focus-failure/003-original-one-current-package-status-refresh-keyboard-command.json",
+      "sha256": "cfc9dbb5b370dbc90c56a1cd2fd14113bec9f97a4d02e84e36229f9eabdad89e",
+      "bytes": 2300,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/original-one-current-package-status-refresh-keyboard.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/prior8be-package-refresh-focus-failure/004-original-one-current-package-status-refresh-keyboard.log",
+      "sha256": "d3d764a5492db50df1eceb688621fc4c103906e63134eb50d7c62b1b3ed4ab13",
+      "bytes": 333,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/fixture/genuine-package-status-refresh-keyboard-report.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/prior8be-package-refresh-focus-failure/005-genuine-package-status-refresh-keyboard-report.json",
+      "sha256": "326974b7d7444d98bde164413ac441d0cce13f816041f61ed3e37b5893ad13ee",
+      "bytes": 82289,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/fixture/genuine-package-status-refresh-keyboard-stop.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/prior8be-package-refresh-focus-failure/006-genuine-package-status-refresh-keyboard-stop.json",
+      "sha256": "3324e3f6380fd7d2b36f8c6b91bd63ff9f6cd0f5330b6aec19dca34742fc2dad",
+      "bytes": 500,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/actual-current8be-file-start202-original-ten-natural-focus-failure-closed-release.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/prior8be-file-start-focus-failure/007-actual-current8be-file-start202-original-ten-natural-focus-failure-closed-release.json",
+      "sha256": "bbea2bc4aaab95df371a89239794e5e6c813c5cc1514fa4cba86fb26d4200439",
+      "bytes": 43275,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/root-current8be-file-start202-original-ten-natural-focus-failure-full-raw-source-owner-release.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/prior8be-file-start-focus-failure/008-root-current8be-file-start202-original-ten-natural-focus-failure-full-raw-source-owner-release.json",
+      "sha256": "dd40a814e5e4762af18a125285840c6e17fcfc9d96a5603ad9fd68f8495e2d73",
+      "bytes": 19746,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/original-one-current-file-start202-natural-focus-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/prior8be-file-start-focus-failure/009-original-one-current-file-start202-natural-focus-command.json",
+      "sha256": "4547bf5d7b9f1f3beed2f9f2ee61c9692255beb51acc57f71e712690034365ec",
+      "bytes": 2384,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/original-one-current-file-start202-natural-focus.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/prior8be-file-start-focus-failure/010-original-one-current-file-start202-natural-focus.log",
+      "sha256": "8f8670095d19554aaae39579f17806fdf743c768db4ccae5cb41bd2aaa1f24d5",
+      "bytes": 321,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/fixture/genuine-file-start202-natural-focus-report.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/prior8be-file-start-focus-failure/011-genuine-file-start202-natural-focus-report.json",
+      "sha256": "5230721051a2d75b89ffad6db25464ab3bf536a480f4769e0706aeb601b424ce",
+      "bytes": 87927,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/fixture/genuine-file-start202-natural-focus-stop.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/prior8be-file-start-focus-failure/012-genuine-file-start202-natural-focus-stop.json",
+      "sha256": "69e8fc0a5a41e0fbdc1bd195c8b059fd7760ec49578fd5948ce22c3876dc2128",
+      "bytes": 500,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/actual-current8be-package-start202-original-ten-natural-focus-failure-closed-release.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/prior8be-package-start-focus-failure/013-actual-current8be-package-start202-original-ten-natural-focus-failure-closed-release.json",
+      "sha256": "cf59d683a07146bc27664531561307c7c0931595a85b4e33969bf44f7597c36e",
+      "bytes": 39523,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/root-current8be-package-start202-original-ten-natural-focus-failure-full-raw-source-owner-release.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/prior8be-package-start-focus-failure/014-root-current8be-package-start202-original-ten-natural-focus-failure-full-raw-source-owner-release.json",
+      "sha256": "a3fa52e3eb76919622cc149711bdfd79bbddf77d1eb24d93fd687dc0b38a7460",
+      "bytes": 17611,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/original-one-current-package-start202-natural-focus-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/prior8be-package-start-focus-failure/015-original-one-current-package-start202-natural-focus-command.json",
+      "sha256": "9c5eeae65ec2dcbd66cfb2eabe1c201c2b8ee2e72e7d2d3df1979d3f9f512a5c",
+      "bytes": 2417,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/original-one-current-package-start202-natural-focus.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/prior8be-package-start-focus-failure/016-original-one-current-package-start202-natural-focus.log",
+      "sha256": "cf34f465d547320611373c5333d410a172f688ffd56c8fe1d2bdc06e35f834dc",
+      "bytes": 330,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/fixture/genuine-package-start202-natural-focus-report.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/prior8be-package-start-focus-failure/017-genuine-package-start202-natural-focus-report.json",
+      "sha256": "ebfa5d5aef514191315523dd64247b31339e7c001d9e5b363472d89615ff380e",
+      "bytes": 86762,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/fixture/genuine-package-start202-natural-focus-stop.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/prior8be-package-start-focus-failure/018-genuine-package-start202-natural-focus-stop.json",
+      "sha256": "1ce1936b27aefd6e6c372ab8c707577ec968a9a687331d5330832db0739b2a8e",
+      "bytes": 500,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/actual-current2d07-app-and-affected59-qualified-closed-release.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-app59/019-actual-current2d07-app-and-affected59-qualified-closed-release.json",
+      "sha256": "c6e30d88652cacb803398b6c90d46bf2f14543ac40970370b39610fe482e079c",
+      "bytes": 11700,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/frozen-approved-plan.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-app59/020-frozen-approved-plan.json",
+      "sha256": "cb9a0fd0fa7ba3557b1d5ded0677a65919b434b5c87d57f3ec3f300ea7ef6d21",
+      "bytes": 4897,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/original-tool-responses.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-app59/021-original-tool-responses.json",
+      "sha256": "d42ec09ac9d45548974f895d04db7d9fdd4354bb4b91dfd2179a227289e98e2e",
+      "bytes": 4307,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/affected-app-strict-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-app59/022-affected-app-strict-command.json",
+      "sha256": "b0cdd46e14892d3e632b0104319c005dd4d9ed5cde7dc76a7f75feea9a3005f9",
+      "bytes": 1119,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/affected-app-strict.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-app59/023-affected-app-strict.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/affected-package-file-mounted-files-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-app59/024-affected-package-file-mounted-files-command.json",
+      "sha256": "585bd5aa92cc078b7ceea3b5b7317d82de42eb1d3fdee542d052f157d0971c4b",
+      "bytes": 1694,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/affected-package-file-mounted-files.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-app59/025-affected-package-file-mounted-files.log",
+      "sha256": "022bc02aa26ac5d3cbafe481beff624febb5db86f1901ab27110e0766277baeb",
+      "bytes": 270,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/root-current2d07-app-and-whole59-full-source-raw-owner-release.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-app59/026-root-current2d07-app-and-whole59-full-source-raw-owner-release.json",
+      "sha256": "7729cc4cf30346cc4f674c67f3af52662aa32b8dedcddb6b2fa8b1cf69c44a06",
+      "bytes": 1917,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/actual-one-current2d07-cf-build-qualified-closed-release.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-one-cf-build/027-actual-one-current2d07-cf-build-qualified-closed-release.json",
+      "sha256": "c9547f20329863d3859f1c5e40a75debbf84717440d82459cc3a508672717ad5",
+      "bytes": 11789,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/frozen-approved-plan.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-one-cf-build/028-frozen-approved-plan.json",
+      "sha256": "55dd23a43ebf1cd6a43875a5276da1c86da5a3b7d1df6552780f34ff4ae0e2f9",
+      "bytes": 3424,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/original-tool-responses.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-one-cf-build/029-original-tool-responses.json",
+      "sha256": "6256cd8ee2b1c0dc96cf5b29a379b3fd07460ea9965e7b880be2c6da7597afc5",
+      "bytes": 5185,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/one-fresh-final-QA-source-build-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-one-cf-build/030-one-fresh-final-QA-source-build-command.json",
+      "sha256": "ccf435b9bb164cc97815d7dacfc090d454f9cbce935bc096e3f8d4c8f838a978",
+      "bytes": 1698,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/one-fresh-final-QA-source-build.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-one-cf-build/031-one-fresh-final-QA-source-build.log",
+      "sha256": "6b70efeab75adb8e93e5d9912a43098824731a8fb974053835416914387768e1",
+      "bytes": 12749,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/fresh-build-artifact-manifest.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-one-cf-build/032-fresh-build-artifact-manifest.json",
+      "sha256": "597c4bc6edc4b4174abc45ece58d815f6d6e38e587710b01f267d084a7cfe7ae",
+      "bytes": 14601,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/root-one-current2d07-cf-build-full-source-118-artifacts-original-owner-release.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-one-cf-build/033-root-one-current2d07-cf-build-full-source-118-artifacts-original-owner-release.json",
+      "sha256": "b1cb83bb82248f03794703e3b1f516ca7a68343e3abab985e4668a4738f75e22",
+      "bytes": 16803,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/actual-current2d07-package-refresh-original-ten-qualified-closed-release.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/034-actual-current2d07-package-refresh-original-ten-qualified-closed-release.json",
+      "sha256": "62627823f41f2e40af3bc912537529e1fbd378ffe38d9baad4b0781043df21fb",
+      "bytes": 24097,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/frozen-approved-plan.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/035-frozen-approved-plan.json",
+      "sha256": "bb06b420d11b30e77ded841916d597c3bf473e012d585584112802eab858b23b",
+      "bytes": 21372,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/original-tool-responses.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/036-original-tool-responses.json",
+      "sha256": "78850400aeb45ac76d8cdaf2413e741443bc06cf7dfd74150cc01d4b433cd7b2",
+      "bytes": 35714,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/037-qualified-current02d-coherent-build-producer-preflight-command.json",
+      "sha256": "31cd8e9c05c78b2f26086e9401e3b67d4f1b75f811c6b2af6d22d40c495debc5",
+      "bytes": 1327,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/038-qualified-current02d-coherent-build-producer-preflight.log",
+      "sha256": "3cdc53eb58a874d63edb9b707f58cfa2f802fd75cc9892e72330fb84f24aef10",
+      "bytes": 120,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/isolated-copy-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/039-isolated-copy-command.json",
+      "sha256": "40eeb0cc558a80123773ca1e849040fb57d140a4458d7d999b6e2f75906029b2",
+      "bytes": 1465,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/isolated-copy.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/040-isolated-copy.log",
+      "sha256": "239595ac481d6c12f1ee15b1db5daa716892a03ba30d67298c342a50045fffa0",
+      "bytes": 214,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/fresh-two-version-sentinel-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/041-fresh-two-version-sentinel-command.json",
+      "sha256": "2f95a7dbfd8fcd2907869469b24bdd7ff3e525d76a04380553032e62b7410944",
+      "bytes": 1953,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/fresh-two-version-sentinel.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/042-fresh-two-version-sentinel.log",
+      "sha256": "9eb0c3f5adaff1e709c6e54404009805a7cc35386caec7631dc9ea1d3880f350",
+      "bytes": 254,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/ordinary-actual24-local-migrations-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/043-ordinary-actual24-local-migrations-command.json",
+      "sha256": "d44b28b6c8c4e37f50a1ac256b9f1324bfab386da6e53b855f94dc953c65ba72",
+      "bytes": 1933,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/ordinary-actual24-local-migrations.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/044-ordinary-actual24-local-migrations.log",
+      "sha256": "02df43a5dbd6eaf62c26d5b26e7f6f2966918ba64fcc726850d83e4cd7c27f66",
+      "bytes": 149092,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/synthetic-template-sentinels-only-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/045-synthetic-template-sentinels-only-command.json",
+      "sha256": "0ca31b3208ed5e15e7f01a90dad39f1075a53ea3fe4c2684c7bc94dd62219cb8",
+      "bytes": 2035,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/synthetic-template-sentinels-only.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/046-synthetic-template-sentinels-only.log",
+      "sha256": "101bd2870cf0711b9a50d127fa7d11beaf8b41fb37d7b52a634c01a80f0cbdc4",
+      "bytes": 2747,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/physical-before-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/047-physical-before-command.json",
+      "sha256": "9d08b8021c841bc3b28ccb09ef8f4ad747fac33f0c1a245b2dad6361ae765811",
+      "bytes": 1420,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/physical-before.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/048-physical-before.log",
+      "sha256": "c775584f9590ce1f11b5d084d14caacdf6af801c8265f9a05fe3a474f7c50901",
+      "bytes": 179,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/current-source-build-and-pure24-witness-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/049-current-source-build-and-pure24-witness-command.json",
+      "sha256": "c10ada4e0c8ec82cb28387da94c8f323ecbc3500229411ea67eee0ecb1fc4d71",
+      "bytes": 1286,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/current-source-build-and-pure24-witness.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/050-current-source-build-and-pure24-witness.log",
+      "sha256": "1340c9417aed55ba8d153e7d490ade987a59694542dc44471b2b8e79b65d4fe3",
+      "bytes": 225,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/original-one-current-package-status-refresh-keyboard-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/051-original-one-current-package-status-refresh-keyboard-command.json",
+      "sha256": "f0db48086efdeaa770c0bd780bfd6276091f5010c9562f439b1d5d43ef5c36a9",
+      "bytes": 2325,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/original-one-current-package-status-refresh-keyboard.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/052-original-one-current-package-status-refresh-keyboard.log",
+      "sha256": "8abc2996a4cf95d79120750c178e573e77f65f8d3572099a9203f273206060e6",
+      "bytes": 333,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/physical-after-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/053-physical-after-command.json",
+      "sha256": "7329d6b0f06fffc8de319299ac843be491206eb5dd2bbe174ec9e01178992d7d",
+      "bytes": 1823,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/physical-after.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/054-physical-after.log",
+      "sha256": "33de1b6eec1b117f3c702d9c0708d3d8fdb332ffd88b26f7907b041a87f779bb",
+      "bytes": 196,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/final-source-artifact-input-pins-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/055-final-source-artifact-input-pins-command.json",
+      "sha256": "f6d39d81892ffede0750bb52dd76d95e204289e0fb4d44c6b1afd1259d27113f",
+      "bytes": 1275,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/final-source-artifact-input-pins.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/056-final-source-artifact-input-pins.log",
+      "sha256": "45382915f950bd7304ec26c0a215c50a1d3259aa9ba30bed5665d15141908582",
+      "bytes": 228,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/current02d-build-new-pure24-native-causal-carry.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/057-current02d-build-new-pure24-native-causal-carry.json",
+      "sha256": "eb79f57c08cfa24953c591d3995fe87d5c2272a14626d9f1c4541b4e1c2eeaaf",
+      "bytes": 1720,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/chromium-child-temp-owner.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/058-chromium-child-temp-owner.json",
+      "sha256": "00882b96d5a93446c284a69f7e2f3ca31e243353232c555e9627de401bba12dd",
+      "bytes": 610,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/final-current2d07-source-and-genuine-refresh-pins.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/059-final-current2d07-source-and-genuine-refresh-pins.json",
+      "sha256": "edff497bf2d0faea2bca9294039e462c042fde85275785b03b73143cbba6460e",
+      "bytes": 3225,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/fixture/process-fixture.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/060-process-fixture.json",
+      "sha256": "74fa8da33742318084f58c7394fd8d98a73581f0075156446b74a579edd237e4",
+      "bytes": 1596,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/fixture/process-fixture.sql",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/061-process-fixture.sql",
+      "sha256": "a56f5d8d3df885f6a073440ef4ffcf8f06f964eec8a4e9156e41a9614f737c90",
+      "bytes": 5579,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/fixture/physical-sqlite-before-api.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/062-physical-sqlite-before-api.json",
+      "sha256": "63d04cd1395cae23ef783fe0dfcfe4a06f8630293bf984d631c61654ea635fc6",
+      "bytes": 68910,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/fixture/enabled-storage-draft-build-input-witness.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/063-enabled-storage-draft-build-input-witness.json",
+      "sha256": "a61c766213b3e039f2c926ede6aeaebc2437cb20949197f7691c81ee675151c6",
+      "bytes": 1441,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/fixture/genuine-package-status-refresh-keyboard-report.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/064-genuine-package-status-refresh-keyboard-report.json",
+      "sha256": "3963c0be42952babb5497bfa13cc66d3d6d8cef6abb0efdbee86985363d63018",
+      "bytes": 80097,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/fixture/genuine-package-status-refresh-keyboard-stop.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/065-genuine-package-status-refresh-keyboard-stop.json",
+      "sha256": "66ab906bd78bef1fc982fb6d203e6b9e34fc968e73730aea6e5f502c91066f1c",
+      "bytes": 500,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/fixture/physical-sqlite-after-current-package-status-refresh-keyboard.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/066-physical-sqlite-after-current-package-status-refresh-keyboard.json",
+      "sha256": "4efc87521cb310a82b63a33cc2eb440f9e2ac9722dad062fbea3fcfb4c7338d9",
+      "bytes": 75804,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/copy/isolation-receipt.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/067-isolation-receipt.json",
+      "sha256": "a0bca064eab182ede25c997abf0991bafb36bfbc22e43db33dee7ff2971d1f0b",
+      "bytes": 480871,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/root-current2d07-package-refresh-full-original-ten-source-raw-physical-owner-release.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-refresh/068-root-current2d07-package-refresh-full-original-ten-source-raw-physical-owner-release.json",
+      "sha256": "45bffefec6c97c5759fc5c75c3b526c7ba9db923efc955011c91d0412d21ea00",
+      "bytes": 12829,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/actual-current2d07-file-start202-final-carrier-failure-body-range-corrected-closed-release.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/069-actual-current2d07-file-start202-final-carrier-failure-body-range-corrected-closed-release.json",
+      "sha256": "e4c9e7cf35c0ee1ac9869d6e1a1cf43e524a8e2d15c8bd676d318e45bf817743",
+      "bytes": 27984,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/frozen-approved-plan.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/070-frozen-approved-plan.json",
+      "sha256": "3fbd169fc353cdbcb8722c37d761871983990b2d503ed3064c274b47e3f92b74",
+      "bytes": 21909,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/original-tool-responses.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/071-original-tool-responses.json",
+      "sha256": "85f78258256e9dbe6e5d31469cfd4e8022b1af7d56085797c888e8634dc336db",
+      "bytes": 36043,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/072-qualified-current02d-coherent-build-producer-preflight-command.json",
+      "sha256": "150edbfdac43105b7e8e33a8b056569882380f6add907fc711a175f16d908166",
+      "bytes": 1319,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/073-qualified-current02d-coherent-build-producer-preflight.log",
+      "sha256": "c4160a0c49b75db63594624dca05981b158dcd67cebbe588ffb3e5bebed64e0f",
+      "bytes": 117,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/isolated-copy-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/074-isolated-copy-command.json",
+      "sha256": "26ad8e784cd428a74a4327ab5d313df3bdc4b1cba497046aea9e079dbc14e461",
+      "bytes": 1457,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/isolated-copy.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/075-isolated-copy.log",
+      "sha256": "44ff3c9e7ee9d610f16931f45a6c38d4d56b0ccb8500b3352aa58545556c2bc7",
+      "bytes": 212,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/fresh-two-version-sentinel-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/076-fresh-two-version-sentinel-command.json",
+      "sha256": "c167e3fc8dfc05f24b093116f74faf377587cca03a0ea95a9d7cddc8f5ca580c",
+      "bytes": 1943,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/fresh-two-version-sentinel.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/077-fresh-two-version-sentinel.log",
+      "sha256": "d75886248c1e82985e076586346541f2f78b76d030b4677029f0fc0b707e7271",
+      "bytes": 250,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/ordinary-actual24-local-migrations-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/078-ordinary-actual24-local-migrations-command.json",
+      "sha256": "c85e92de2bf4a53cfeec2ec71e679138d47f1872b8adcc1e1b383fada701ed70",
+      "bytes": 1923,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/ordinary-actual24-local-migrations.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/079-ordinary-actual24-local-migrations.log",
+      "sha256": "26138ceb0cf9dca1ef18c2cd72fa299a15255445a694cbdd8639b5aee3a3714b",
+      "bytes": 149092,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/synthetic-template-sentinels-only-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/080-synthetic-template-sentinels-only-command.json",
+      "sha256": "30d47a3dc8b9f73a927066b2d5fe88766b68f18f0b4ad68ff2e5c7dc023026d2",
+      "bytes": 2023,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/synthetic-template-sentinels-only.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/081-synthetic-template-sentinels-only.log",
+      "sha256": "4e0393ae928a1bd42b3ab3015c5bb59798b9c483fb45f202d0946baa625837d8",
+      "bytes": 2747,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/physical-before-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/082-physical-before-command.json",
+      "sha256": "f7c34241862e2f722d9e8952201b6026b9c6e63b9bc98a7fa1679e14546b8a79",
+      "bytes": 1410,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/physical-before.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/083-physical-before.log",
+      "sha256": "1913b7a4698a003c4e7dae73630284075fd0967d22227b7afc162d5e2eb25c88",
+      "bytes": 177,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/current-source-build-and-pure24-witness-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/084-current-source-build-and-pure24-witness-command.json",
+      "sha256": "07c0b25b51b0ef743240381f546b66d8889b23382e5acc5ee0f2c2a5749a6af0",
+      "bytes": 1278,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/current-source-build-and-pure24-witness.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/085-current-source-build-and-pure24-witness.log",
+      "sha256": "58a003b836270b1a2c7521719aa1c0fbd2b4a96c53448166a32c5fcaa494666d",
+      "bytes": 222,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/original-one-current-file-start202-natural-focus-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/086-original-one-current-file-start202-natural-focus-command.json",
+      "sha256": "3b30f6239e9c71c8609817032ba066e9057d870b85e5ef6266ad3c1ff3e0b752",
+      "bytes": 2376,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/original-one-current-file-start202-natural-focus.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/087-original-one-current-file-start202-natural-focus.log",
+      "sha256": "c969399d6ef776e1483f963454f13692997c1bd4bdaa246c5aaf84ab37d310eb",
+      "bytes": 314,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/physical-after-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/088-physical-after-command.json",
+      "sha256": "eb2ed92edd44210ebae86c20c7dd38e8d0a7ee2f7eef65dfedf2689746b356a4",
+      "bytes": 1815,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/physical-after.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/089-physical-after.log",
+      "sha256": "77f0471291c4cbd249caffea9ee1e343bb14986efe504c02ec61d787e9505455",
+      "bytes": 191,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/final-source-artifact-input-pins-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/090-final-source-artifact-input-pins-command.json",
+      "sha256": "056d9a00bdd43f1ea7c2e100af8a67f12cea5e5550898b70b28c1828d3aef8cf",
+      "bytes": 1269,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/final-source-artifact-input-pins.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/091-final-source-artifact-input-pins.log",
+      "sha256": "9bca656a91db6dfaa2a2e1dda6b4cfc8441aef52cf0d9d33f6ad444d0e493a1a",
+      "bytes": 649,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/current02d-build-new-pure24-native-causal-carry.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/092-current02d-build-new-pure24-native-causal-carry.json",
+      "sha256": "c9577e98bcb88c1ee810d444e440175b5f97d917cf75f56d7242135614162b88",
+      "bytes": 1717,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/chromium-child-temp-owner.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/093-chromium-child-temp-owner.json",
+      "sha256": "0b0a0b031d4c32f2af45b120fbab7735a50480f218852c96179ec11f2330ee60",
+      "bytes": 606,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/fixture/process-fixture.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/094-process-fixture.json",
+      "sha256": "566eb7121dc1319e8a3c24fbc05ad23ee9701da61cc4f7bfce780b7cc188f0bf",
+      "bytes": 1592,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/fixture/process-fixture.sql",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/095-process-fixture.sql",
+      "sha256": "c826b3f63305e0828e2ee11710dc42aa24d19fbde44768a076eb25791a92af76",
+      "bytes": 5579,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/fixture/physical-sqlite-before-api.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/096-physical-sqlite-before-api.json",
+      "sha256": "6d25b82047eb945dab2a801d18d14d5ec05fe8269ce8d664e1f388ac35790650",
+      "bytes": 69084,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/fixture/enabled-storage-draft-build-input-witness.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/097-enabled-storage-draft-build-input-witness.json",
+      "sha256": "791a58d3156b89bb74c41e569db839aba19f6c7768f6e3454793756d7f2e98fb",
+      "bytes": 1546,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/fixture/genuine-file-start202-natural-focus-report.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/098-genuine-file-start202-natural-focus-report.json",
+      "sha256": "503b85f232d43207f9d64a14cd97a42a76e6201e06b9441e6fa18a8f4ddd4b0c",
+      "bytes": 85809,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/fixture/genuine-file-start202-natural-focus-stop.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/099-genuine-file-start202-natural-focus-stop.json",
+      "sha256": "e11ae7665e958c833f30503badd8ae136b5518fbb5b172bbeeac439691351bd1",
+      "bytes": 500,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/fixture/physical-sqlite-after-current-file-status-refresh-keyboard.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/100-physical-sqlite-after-current-file-status-refresh-keyboard.json",
+      "sha256": "3012c67a4b95a09601f6ea5bacc7319b1a77d8bac396d3f07070b8ebdac28943",
+      "bytes": 75974,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/copy/isolation-receipt.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/101-isolation-receipt.json",
+      "sha256": "a793674e1948fbfcef3726ee171cb35fc38769517a6e97d7427600493672b640",
+      "bytes": 480869,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/root-current2d07-file-start-native1pass-final-carrier9p1f-full-original-release.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/102-root-current2d07-file-start-native1pass-final-carrier9p1f-full-original-release.json",
+      "sha256": "99566653a83c5064dedabd006ba268bfe47e582aa0e9d22df0f8462e94008db6",
+      "bytes": 4501,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/actual-current2d07-package-start202-original-ten-qualified-closed-release.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/103-actual-current2d07-package-start202-original-ten-qualified-closed-release.json",
+      "sha256": "bbfde2eedbcc40a697c71380df6ca2df3d660bb8b92547d471f04c36a55f2c45",
+      "bytes": 27072,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/frozen-approved-plan.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/104-frozen-approved-plan.json",
+      "sha256": "4e754fc7d7b15f2be737d6b47581c0c5a946b15cd0a796738d85f6959ee1e586",
+      "bytes": 22169,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/original-tool-responses.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/105-original-tool-responses.json",
+      "sha256": "b342df959df8d860c2731e725ea829c1304c70bbb59e1b408fb1dfb06cce008f",
+      "bytes": 35693,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/106-qualified-current02d-coherent-build-producer-preflight-command.json",
+      "sha256": "886cb4b35dac16046fa541528af4c6a665be071ae83a98d5f7a7587fdf911d8e",
+      "bytes": 1331,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/107-qualified-current02d-coherent-build-producer-preflight.log",
+      "sha256": "3cdc53eb58a874d63edb9b707f58cfa2f802fd75cc9892e72330fb84f24aef10",
+      "bytes": 120,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/isolated-copy-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/108-isolated-copy-command.json",
+      "sha256": "1d145f2fb40a5d633e7b514f3869da5bc4d1bfd880e5a36c389f2c53d9a20ed6",
+      "bytes": 1469,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/isolated-copy.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/109-isolated-copy.log",
+      "sha256": "54d0791c19f36d26c0e305a85e49d5b0f5a75d9c20ee0f990b077dc14f3c9408",
+      "bytes": 215,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/fresh-two-version-sentinel-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/110-fresh-two-version-sentinel-command.json",
+      "sha256": "bfc35ac7f588f4f884528a0c97041d901e526fad3aae889fd49afad2cba69cb7",
+      "bytes": 1958,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/fresh-two-version-sentinel.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/111-fresh-two-version-sentinel.log",
+      "sha256": "03a6970f9147d3aeab2f520d424387494ac39fb21a8286eac9d3cd4d848bf87a",
+      "bytes": 256,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/ordinary-actual24-local-migrations-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/112-ordinary-actual24-local-migrations-command.json",
+      "sha256": "d1da852584177ea849fe8d6e6d1089dc1514fe90c948399120b771f4e2624601",
+      "bytes": 1938,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/ordinary-actual24-local-migrations.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/113-ordinary-actual24-local-migrations.log",
+      "sha256": "c70797b611826bcd63b91f139c5ddb428b2d14b05509b700432ce2428d62485b",
+      "bytes": 149092,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/synthetic-template-sentinels-only-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/114-synthetic-template-sentinels-only-command.json",
+      "sha256": "78f42ed545ef3cfe060401652570dc96ef13f07b78d1ec308885bb27c9e10a14",
+      "bytes": 2041,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/synthetic-template-sentinels-only.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/115-synthetic-template-sentinels-only.log",
+      "sha256": "b95b794de3facb404e584aab6d4457c28b55d590ae2e696964ae4bde6a963006",
+      "bytes": 2747,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/physical-before-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/116-physical-before-command.json",
+      "sha256": "01ea0921ec05526f2ee4c4aba45417f1470987103ca4b2c638c34249efcc7a39",
+      "bytes": 1425,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/physical-before.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/117-physical-before.log",
+      "sha256": "960c1df9ea6506ab2d518f2e3a9cca7f37fd565eed7c3090d359cd3eda6f19d5",
+      "bytes": 180,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/current-source-build-and-pure24-witness-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/118-current-source-build-and-pure24-witness-command.json",
+      "sha256": "061cf39c2008735919b6efdb014d72ff3a3adcab31a0a73080aab4364ab35fd0",
+      "bytes": 1290,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/current-source-build-and-pure24-witness.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/119-current-source-build-and-pure24-witness.log",
+      "sha256": "1340c9417aed55ba8d153e7d490ade987a59694542dc44471b2b8e79b65d4fe3",
+      "bytes": 225,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/original-one-current-package-start202-natural-focus-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/120-original-one-current-package-start202-natural-focus-command.json",
+      "sha256": "b21d098d0db4c69cc79f900f1b702800080b07d43ef38d999bb68bb3073b301e",
+      "bytes": 2409,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/original-one-current-package-start202-natural-focus.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/121-original-one-current-package-start202-natural-focus.log",
+      "sha256": "73608fefb6bc73ead9673637f020ab01166701d21ed3799f047428598b0289f7",
+      "bytes": 323,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/physical-after-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/122-physical-after-command.json",
+      "sha256": "a78ec40532044da2b8db96aeb9113f40112fc1e6ddfe4f59760c78d86e4ca0f5",
+      "bytes": 1836,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/physical-after.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/123-physical-after.log",
+      "sha256": "ec304c8b0d4a00f014c3f37686be8211f3eecf3f44f2344c41f233ed9e85deed",
+      "bytes": 197,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/final-source-artifact-input-pins-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/124-final-source-artifact-input-pins-command.json",
+      "sha256": "4abf598369f032962a8a8968033ed2c49a491cf77fea27e36f9f4fd8807e32c2",
+      "bytes": 1279,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/final-source-artifact-input-pins.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/125-final-source-artifact-input-pins.log",
+      "sha256": "45382915f950bd7304ec26c0a215c50a1d3259aa9ba30bed5665d15141908582",
+      "bytes": 228,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/current02d-build-new-pure24-native-causal-carry.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/126-current02d-build-new-pure24-native-causal-carry.json",
+      "sha256": "414df05a9807fe2ce3cd572590a1c2654b0d3fc62c8bcebb42ec1716ccab3d1f",
+      "bytes": 1720,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/chromium-child-temp-owner.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/127-chromium-child-temp-owner.json",
+      "sha256": "3149ec16cdb7d12db87f2d655efcc0c0f115e1539671daeaab12223910af2a39",
+      "bytes": 612,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/final-current2d07-source-and-genuine-start202-pins.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/128-final-current2d07-source-and-genuine-start202-pins.json",
+      "sha256": "bb0e1e33ec59e8ed341033cf4882b8719ee988d4b8d9fed8a948fefac09f6345",
+      "bytes": 3297,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/fixture/process-fixture.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/129-process-fixture.json",
+      "sha256": "c890df4a16249f5f8a7e4c7b2a1b31bdba8f4590d7191a19ff8a0ab860847789",
+      "bytes": 1598,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/fixture/process-fixture.sql",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/130-process-fixture.sql",
+      "sha256": "5a4bb525fdd48872aeeaeb035a6bbb09e664209bb5c4a57d3de72d78f3dda480",
+      "bytes": 5579,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/fixture/physical-sqlite-before-api.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/131-physical-sqlite-before-api.json",
+      "sha256": "434abeccea7cf9dc144b166d277cdc5c35af47146be3e5bddb5dc082e4d72bd1",
+      "bytes": 69273,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/fixture/enabled-storage-draft-build-input-witness.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/132-enabled-storage-draft-build-input-witness.json",
+      "sha256": "d278d62715b304513f7b279ab6e5fd6c333547bae429011dc8c344f204e8ad39",
+      "bytes": 1549,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/fixture/genuine-package-start202-natural-focus-report.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/133-genuine-package-start202-natural-focus-report.json",
+      "sha256": "c41a4008b75db2d63ca101f87b1ab6e5cc0553400155e5f7804306d95f1ae6cc",
+      "bytes": 85415,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/fixture/genuine-package-start202-natural-focus-stop.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/134-genuine-package-start202-natural-focus-stop.json",
+      "sha256": "1cad948719b64acdb45937aba687e86a82fa7c5e7f4b1d2645b63a8a1ad8a063",
+      "bytes": 500,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/fixture/physical-sqlite-after-current-package-status-refresh-keyboard.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/135-physical-sqlite-after-current-package-status-refresh-keyboard.json",
+      "sha256": "3376108b57f31fe99e5eba5801e7d97002bbcf4e0c93224154dbada721127dc7",
+      "bytes": 76160,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/copy/isolation-receipt.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/136-isolation-receipt.json",
+      "sha256": "bbba3ffa581ff07c4dc51846c8793e9fac1ed86efb831e6aea07b7c125bd3c24",
+      "bytes": 480872,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/root-current2d07-package-start202-full-original-ten-source-raw-physical-owner-release.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-package-start/137-root-current2d07-package-start202-full-original-ten-source-raw-physical-owner-release.json",
+      "sha256": "34c6c1b86e51f0f8e7137e19a31f737c79d4571a408b6c2aa99063232bfe22c4",
+      "bytes": 14602,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/actual-current2d07-file-start202-native-pass-final-carrier-failure-closed-release.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/actual2d07-file-start-native-pass-carrier-failure/138-actual-current2d07-file-start202-native-pass-final-carrier-failure-closed-release.json",
+      "sha256": "7da4580761bcf6758695b1fffb0a17ef4427369dcccdb947ebb701efdb5683ae",
+      "bytes": 27304,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-private-attempt1/runtime/actual-one-original-closed-file-ordered-reader-finalpins-qualified-closed-release.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/corrected-file-offline-finalpins/139-actual-one-original-closed-file-ordered-reader-finalpins-qualified-closed-release.json",
+      "sha256": "dd87dc145122851e93e583e69ff756a115d43a95d847af6c724e1f8b7f89ae9c",
+      "bytes": 4349,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-private-attempt1/runtime/frozen-approved-plan.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/corrected-file-offline-finalpins/140-frozen-approved-plan.json",
+      "sha256": "532836f3422b4f38b5a322bb9558e501838761d8f9bd44bfa0d51a63ab1b0b7d",
+      "bytes": 16640,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-private-attempt1/runtime/original-tool-responses.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/corrected-file-offline-finalpins/141-original-tool-responses.json",
+      "sha256": "e955950a1de8087418c4978f166594c9efc8bfb021efad3700ce977bd41537a6",
+      "bytes": 1847,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-private-attempt1/runtime/original-closed-file-ordered-reader-finalpins-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/corrected-file-offline-finalpins/142-original-closed-file-ordered-reader-finalpins-command.json",
+      "sha256": "e2f522579337746f409a0bc35ee791d9907a3dbcce39cd8e4b4174d7a9d3e7ca",
+      "bytes": 1315,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-private-attempt1/runtime/original-closed-file-ordered-reader-finalpins.log",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/corrected-file-offline-finalpins/143-original-closed-file-ordered-reader-finalpins.log",
+      "sha256": "959b7dc94e1c974ddfcdd537f48e10914aa1a265af7a3e859f3c50102928a164",
+      "bytes": 225,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-private-attempt1/runtime/final-current2d07-file-start202-ordered-reader-source-pins.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/corrected-file-offline-finalpins/144-final-current2d07-file-start202-ordered-reader-source-pins.json",
+      "sha256": "033550b3d4196f7677014edeb15e78ceb582b6125acd140b3a0a0af6f7e7bd27",
+      "bytes": 3222,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-private-attempt1/runtime/root-one-file-original-closed-ordered-reader-finalpins-full-raw-original-release.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/corrected-file-offline-finalpins/145-root-one-file-original-closed-ordered-reader-finalpins-full-raw-original-release.json",
+      "sha256": "3d71e67db0b875a7053c0914d835a6d8679bb7389e2d471f5ed6054ec62fe1d3",
+      "bytes": 1563,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-source-preparation-attempt1/source-handoff.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/corrected-file-offline-finalpins/146-source-handoff.json",
+      "sha256": "e4e3a09804294f409056bf7a570adc514d836bc024c622d3d00e03330aa98761",
+      "bytes": 3801,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-source-preparation-attempt1/check-original-closed-file-ordered-reader-finalpins.py",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/corrected-file-offline-finalpins/147-check-original-closed-file-ordered-reader-finalpins.py",
+      "sha256": "28a2f9b02154460d72cd2f29803ae732728379b811e6f7111c69a66be1fa032b",
+      "bytes": 17655,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-source-preparation-attempt1/carrier-ordered-reader-and-two-output-bindings.patch",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/corrected-file-offline-finalpins/148-carrier-ordered-reader-and-two-output-bindings.patch",
+      "sha256": "e11933172ec109ae7edfd4b051c705827b220ff0732f090c89f460d8f7d11632",
+      "bytes": 3845,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-source-preparation-attempt1/whole-three-carrier-four-runner-binding-and-ordered-reader-inverses.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/corrected-file-offline-finalpins/149-whole-three-carrier-four-runner-binding-and-ordered-reader-inverses.json",
+      "sha256": "6dac06fed8a159f3c326fd6c5042936e8b41d03a73e5358e27e402c19df83dca",
+      "bytes": 3738,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-source-preparation-attempt1/root-after-file-original995-full-release-one-offline-finalpins-exclusive-go.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/corrected-file-offline-finalpins/150-root-after-file-original995-full-release-one-offline-finalpins-exclusive-go.json",
+      "sha256": "dd7856b0a2194b90e82ae8b18a24e29b2f87e2e7a05ed530701c08d24da90c88",
+      "bytes": 1506,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-source-preparation-attempt1/independent-root-four-leaf-combined-focus-substantive-source-peer.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/independent-source-and-finite/151-independent-root-four-leaf-combined-focus-substantive-source-peer.json",
+      "sha256": "edc21adb3be4e17341ccfee1a9a222e35c8e03a4dcad83f64b08d8aef565375e",
+      "bytes": 4764,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/current2d07-c316-independent-five-native-qa-whole-inverse-source-peer.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/independent-source-and-finite/152-current2d07-c316-independent-five-native-qa-whole-inverse-source-peer.json",
+      "sha256": "650afcf015a010c6102cef50f5cec0af9727fc8a7135d2082ba1b73165b25095",
+      "bytes": 9867,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-file-current2d07-three-native-finite-source-preparation-attempt1/root-current2d07-three-original-ten-finite-static-clear.json",
+      "repositoryPath": "docs/qualification/phase5f-package-file-refresh-start-2026-10-11/independent-source-and-finite/153-root-current2d07-three-original-ten-finite-static-clear.json",
+      "sha256": "89760523fbfef6adf7c49e154b007ab1cb9adf1d6f323865876ae716efa40082",
+      "bytes": 17480,
+      "mode": "100644",
+      "originalOwnerMode": "0o600"
+    }
+  ],
+  "actualNativeCases": {
+    "passed": 3,
+    "failed": 0,
+    "unrun": 0
+  },
+  "originalTenCommandCounts": [
+    {
+      "passed": 10,
+      "failed": 0,
+      "unrun": 0
+    },
+    {
+      "passed": 9,
+      "failed": 1,
+      "unrun": 0
+    },
+    {
+      "passed": 10,
+      "failed": 0,
+      "unrun": 0
+    }
+  ],
+  "separateFileOfflineChecks": {
+    "passed": 1,
+    "failed": 0,
+    "unrun": 0
+  },
+  "allOriginalLogsExplicitlyTracked": true,
+  "temporaryCorrectedFileCarrierDocsOnly": true,
+  "newPublicOwnCI": "UNRUN",
+  "scope": "Original3focusFAILs preserved. App59/ONECF118/current3native and originalFile9P1F+offline1PASS distinct. No new execution/provider/whole5F claim."
+}

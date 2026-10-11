@@ -66,6 +66,83 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); sessionStorage.clear(); });
 
 describe("saved File migrations", () => {
+  it("moves a focused Start to only its accepted migration's Pause after the original receipt and saved-job refresh settle", async () => {
+    const acceptance = deferred<Response>(), list = deferred<Response>(); let holdList = false;
+    const other = { ...job(), id: "other:job" }; jobs = [other];
+    network.mockImplementation(async (path, options) => {
+      if (String(path) === base && options?.method === "POST") return acceptance.promise;
+      if (String(path) === base && options?.method === "GET" && holdList) return list.promise;
+      return fallback(path, options);
+    });
+    render(<FileMigrationsPage />); const start = await preview(); start.focus(); fireEvent.click(start);
+    await waitFor(() => expect(start.matches(":disabled")).toBe(true));
+    const submitted = JSON.parse(String(acceptCalls()[0][1]?.body)), accepted = { ...job(), target: submitted.target };
+    // Model the body focus seen in the original Start202 Chromium failure, without claiming another browser run.
+    const originalTabIndex = document.body.getAttribute("tabindex");
+    try {
+      document.body.tabIndex = -1; document.body.focus(); expect(document.activeElement).toBe(document.body);
+      jobs = [accepted, other]; holdList = true; await act(async () => acceptance.resolve(json(accepted, 202)));
+      await waitFor(() => expect(start.isConnected).toBe(false));
+      expect(document.activeElement).toBe(document.body);
+      expect(screen.queryByRole("heading", { name: "job:1" })).toBeNull();
+      await act(async () => { holdList = false; list.resolve(json({ jobs })); });
+      const row = screen.getByRole("heading", { name: "job:1" }).closest("li")!, pause = within(row).getByRole("button", { name: "Pause job" });
+      await waitFor(() => expect(document.activeElement).toBe(pause)); expect(pause.isConnected).toBe(true); expect(pause.matches(":disabled")).toBe(false);
+      expect(document.activeElement).not.toBe(within(screen.getByRole("heading", { name: "other:job" }).closest("li")!).getByRole("button", { name: "Pause job" }));
+      expect(acceptCalls()).toHaveLength(1); expect(mutations().map(([path]) => path)).toEqual([`${base}/plans`, base]);
+      expect(JSON.parse(String(acceptCalls()[0][1]?.body))).toEqual(submitted); expect(sessionStorage.getItem(intentKey)).toBeNull();
+    } finally {
+      if (originalTabIndex === null) document.body.removeAttribute("tabindex"); else document.body.setAttribute("tabindex", originalTabIndex);
+    }
+  });
+
+  it("preserves a move away from pending Start even if focus returns to the body before its accepted migration appears", async () => {
+    const acceptance = deferred<Response>();
+    network.mockImplementation(async (path, options) => String(path) === base && options?.method === "POST" ? acceptance.promise : fallback(path, options));
+    render(<FileMigrationsPage />); const start = await preview(); start.focus(); fireEvent.click(start);
+    await waitFor(() => expect(start.matches(":disabled")).toBe(true));
+    const other = screen.getByRole("link", { name: "Storage settings" }); other.focus(); expect(document.activeElement).toBe(other);
+    const originalTabIndex = document.body.getAttribute("tabindex");
+    try {
+      document.body.tabIndex = -1; document.body.focus(); expect(document.activeElement).toBe(document.body);
+      jobs = [job()]; await act(async () => acceptance.resolve(json(jobs[0], 202)));
+      const pause = await screen.findByRole("button", { name: "Pause job" }); await waitFor(() => expect(pause.matches(":disabled")).toBe(false));
+      expect(document.activeElement).toBe(document.body); expect(acceptCalls()).toHaveLength(1); expect(sessionStorage.getItem(intentKey)).toBeNull();
+    } finally {
+      if (originalTabIndex === null) document.body.removeAttribute("tabindex"); else document.body.setAttribute("tabindex", originalTabIndex);
+    }
+  });
+
+  it("does not transfer accepted Start focus to a refreshed job with the same id but a different acceptance", async () => {
+    const acceptance = deferred<Response>(), accepted = job();
+    network.mockImplementation(async (path, options) => String(path) === base && options?.method === "POST" ? acceptance.promise : fallback(path, options));
+    render(<FileMigrationsPage />); const start = await preview(); start.focus(); fireEvent.click(start);
+    await waitFor(() => expect(start.matches(":disabled")).toBe(true));
+    const originalTabIndex = document.body.getAttribute("tabindex");
+    try {
+      document.body.tabIndex = -1; document.body.focus();
+      jobs = [{ ...accepted, acceptedAt: "2026-10-05T00:00:01.000Z", updatedAt: "2026-10-05T00:00:01.000Z" }];
+      await act(async () => acceptance.resolve(json(accepted, 202)));
+      const pause = await screen.findByRole("button", { name: "Pause job" }); await waitFor(() => expect(pause.matches(":disabled")).toBe(false));
+      expect(document.activeElement).toBe(document.body); expect(acceptCalls()).toHaveLength(1); expect(sessionStorage.getItem(intentKey)).toBeNull();
+    } finally {
+      if (originalTabIndex === null) document.body.removeAttribute("tabindex"); else document.body.setAttribute("tabindex", originalTabIndex);
+    }
+  });
+
+  it("does not apply a late prior page's accepted Start focus after the same migration identifier is remounted", async () => {
+    const acceptance = deferred<Response>();
+    network.mockImplementation(async (path, options) => String(path) === base && options?.method === "POST" ? acceptance.promise : fallback(path, options));
+    const first = render(<FileMigrationsPage />); const start = await preview(); start.focus(); fireEvent.click(start);
+    await waitFor(() => expect(start.matches(":disabled")).toBe(true));
+    const signal = acceptCalls()[0][1]?.signal; first.unmount(); expect(signal?.aborted).toBe(true);
+    jobs = [job()]; render(<FileMigrationsPage />); await screen.findByRole("button", { name: "Pause job" });
+    const other = screen.getByRole("link", { name: "Storage settings" }); other.focus();
+    await act(async () => acceptance.resolve(json(jobs[0], 202)));
+    expect(document.activeElement).toBe(other); expect(acceptCalls()).toHaveLength(1);
+    expect(sessionStorage.getItem(intentKey)).not.toBeNull(); expect(screen.getByRole("button", { name: "Check or retry accepted request" })).toBeTruthy();
+  });
+
   it("denies nonadministrators before reading inventory or invoking saved work", async () => {
     sessionStorage.setItem(intentKey, JSON.stringify({ requestId: "previous", fileIds: ["file:1"], target: job().target }));
     network.mockResolvedValue(json({ canManage: false, credentialEditingAvailable: false }));

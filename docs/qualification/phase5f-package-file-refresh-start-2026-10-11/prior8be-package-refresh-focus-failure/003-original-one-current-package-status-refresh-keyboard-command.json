@@ -1,0 +1,47 @@
+{
+  "stage": "original-one-current-package-status-refresh-keyboard",
+  "cwd": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source",
+  "argv": [
+    "node",
+    "/tmp/phase5f-refresh-start202-current8be-six-qa-private-attempt1/source/scripts/qa/phase5f/browser-current-coherent-package-status-refresh-keyboard.mjs",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/copy",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/fixture",
+    "8be4e74200096436eaa674a05d44dd772d23fc35",
+    "--exclusive-go-one-current-coherent-package-status-refresh-keyboard"
+  ],
+  "env": {
+    "TMPDIR": "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2",
+    "SQLITE_TMPDIR": "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2",
+    "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+    "CHROMIUM_PATH": "/usr/bin/chromium",
+    "PHASE5F_FILE_MIGRATION_CHROMIUM_TEMP": "/workspace/.pkrf2",
+    "PHASE5F_FILE_MIGRATION_RUNTIME_ROOT": "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime"
+  },
+  "cases": [
+    "current-coherent-package-status-refresh-keyboard-1280-light"
+  ],
+  "toolInvocation": {
+    "tty": true,
+    "originalStdinControl": "Only explicit stop newline originalretainedTTY;120s supervision/noSIGTERM graceful claim"
+  },
+  "control": "ONE original genuine1280/light Refresh via keyboardEnter; GET-only original replies/strictbody/focus/+2. No write/accept/test/activate. Firstfailure and realpolling retained.",
+  "startedAt": "2026-10-11T22:17:24.919370+00:00",
+  "status": "FAILED",
+  "log": "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/original-one-current-package-status-refresh-keyboard.log",
+  "pid": 1577174,
+  "processGroup": 1577174,
+  "originalStartTicks": "17030568",
+  "exitCode": 1,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 1,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T22:17:56.248964+00:00",
+  "logSha256": "d3d764a5492db50df1eceb688621fc4c103906e63134eb50d7c62b1b3ed4ab13"
+}

@@ -1,0 +1,216 @@
+{
+  "status": "CLOSED_RELEASED_QUALIFIED_CURRENT2D07_APP_AND_WHOLE59",
+  "sourceRoot": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+  "sourceHead": "2d07b57c4e79403099261528ae8988c0072d28c6",
+  "sourceTree": "bf96bbcadd4c4d8a0ada525f639cf768d2d4eb90",
+  "sourceCount": 3181,
+  "sourceAll3181AfterExact": true,
+  "commands": {
+    "passed": 2,
+    "failed": 0,
+    "unrun": 0,
+    "originalStages": [
+      {
+        "stage": "affected-app-strict",
+        "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+        "argv": [
+          "node",
+          "node_modules/typescript/bin/tsc",
+          "-p",
+          "tsconfig.app.json"
+        ],
+        "env": {
+          "TMPDIR": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1",
+          "SQLITE_TMPDIR": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1"
+        },
+        "startedAt": "2026-10-11T22:54:08.412062+00:00",
+        "status": "PASS",
+        "log": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/affected-app-strict.log",
+        "pid": 1600693,
+        "processGroup": 1600693,
+        "originalStartTicks": "17250918",
+        "exitCode": 0,
+        "ownedClosure": {
+          "before": [],
+          "after": [],
+          "ownedCleanupSignals": [],
+          "noActiveOwnedProcessOrFd": true,
+          "unexpectedLingeringOwner": false,
+          "directChildExitCode": 0,
+          "directChildReaped": true,
+          "afterDirectChildReap": []
+        },
+        "endedAt": "2026-10-11T22:54:10.262815+00:00",
+        "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "stage": "affected-package-file-mounted-files",
+        "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+        "argv": [
+          "node",
+          "node_modules/vitest/vitest.mjs",
+          "run",
+          "--config",
+          "vitest.mounted.config.ts",
+          "src/file-migrations.mount.test.tsx",
+          "src/research-packages.mount.test.tsx",
+          "--maxWorkers",
+          "1",
+          "--bail",
+          "1"
+        ],
+        "env": {
+          "TMPDIR": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1",
+          "SQLITE_TMPDIR": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1"
+        },
+        "cases": 59,
+        "originalTestTimeoutMs": 5000,
+        "caseCounts": {
+          "fileMigrations": 19,
+          "researchPackages": 40
+        },
+        "scope": "Original15 File+34 Package; new4+6 meaningful deferred/no-steal/stale focus checks. All original fixture inverse exact except one stricter manual Refresh expected target. Whole two files once, original default5/max1/bail1. No Storage37 repeat.",
+        "startedAt": "2026-10-11T22:54:21.460595+00:00",
+        "status": "PASS",
+        "log": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/affected-package-file-mounted-files.log",
+        "pid": 1600790,
+        "processGroup": 1600790,
+        "originalStartTicks": "17252223",
+        "exitCode": 0,
+        "ownedClosure": {
+          "before": [],
+          "after": [],
+          "ownedCleanupSignals": [],
+          "noActiveOwnedProcessOrFd": true,
+          "unexpectedLingeringOwner": false,
+          "directChildExitCode": 0,
+          "directChildReaped": true,
+          "afterDirectChildReap": []
+        },
+        "endedAt": "2026-10-11T22:54:25.863906+00:00",
+        "logSha256": "022bc02aa26ac5d3cbafe481beff624febb5db86f1901ab27110e0766277baeb"
+      }
+    ]
+  },
+  "mounted": {
+    "originalWholeFiles": 2,
+    "individualPassed": 59,
+    "individualFailed": 0,
+    "unrun": 0,
+    "fileMigrations": 19,
+    "researchPackages": 40,
+    "newMeaningfulDeferredNoStealStaleCases": 10,
+    "defaultTestBudgetMs": 5000,
+    "maxWorkers": 1,
+    "bail": 1
+  },
+  "originalToolRecords": {
+    "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/original-tool-responses.json",
+    "sha256": "d42ec09ac9d45548974f895d04db7d9fdd4354bb4b91dfd2179a227289e98e2e",
+    "bytes": 4307
+  },
+  "originalToolCount": 4,
+  "originalExecAndSameWait": [
+    {
+      "stage": "affected-app-strict",
+      "kind": "exec",
+      "result": {
+        "chunk_id": "c2ee2e",
+        "wall_time_seconds": 1.000692883,
+        "session_id": 50002,
+        "original_token_count": 30,
+        "output": "{\"stage\": \"affected-app-strict\", \"ownedPid\": 1600693, \"ownedProcessGroup\": 1600693, \"originalStartTicks\": \"17250918\"}\n"
+      }
+    },
+    {
+      "stage": "affected-app-strict",
+      "kind": "same-original-wait",
+      "result": {
+        "chunk_id": "b4aa48",
+        "wall_time_seconds": 3.1828e-05,
+        "exit_code": 0,
+        "original_token_count": 256,
+        "output": "{\"stage\": \"affected-app-strict\", \"cwd\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source\", \"argv\": [\"node\", \"node_modules/typescript/bin/tsc\", \"-p\", \"tsconfig.app.json\"], \"env\": {\"TMPDIR\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1\", \"SQLITE_TMPDIR\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1\"}, \"startedAt\": \"2026-10-11T22:54:08.412062+00:00\", \"status\": \"PASS\", \"log\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/affected-app-strict.log\", \"pid\": 1600693, \"processGroup\": 1600693, \"originalStartTicks\": \"17250918\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [], \"after\": [], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": []}, \"endedAt\": \"2026-10-11T22:54:10.262815+00:00\", \"logSha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}\n\n"
+      }
+    },
+    {
+      "stage": "affected-package-file-mounted-files",
+      "kind": "exec",
+      "result": {
+        "chunk_id": "682735",
+        "wall_time_seconds": 1.001221802,
+        "session_id": 69683,
+        "original_token_count": 34,
+        "output": "{\"stage\": \"affected-package-file-mounted-files\", \"ownedPid\": 1600790, \"ownedProcessGroup\": 1600790, \"originalStartTicks\": \"17252223\"}\n"
+      }
+    },
+    {
+      "stage": "affected-package-file-mounted-files",
+      "kind": "same-original-wait",
+      "result": {
+        "chunk_id": "c3c131",
+        "wall_time_seconds": 4.6108e-05,
+        "exit_code": 0,
+        "original_token_count": 455,
+        "output": "{\"stage\": \"affected-package-file-mounted-files\", \"cwd\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source\", \"argv\": [\"node\", \"node_modules/vitest/vitest.mjs\", \"run\", \"--config\", \"vitest.mounted.config.ts\", \"src/file-migrations.mount.test.tsx\", \"src/research-packages.mount.test.tsx\", \"--maxWorkers\", \"1\", \"--bail\", \"1\"], \"env\": {\"TMPDIR\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1\", \"SQLITE_TMPDIR\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1\"}, \"cases\": 59, \"originalTestTimeoutMs\": 5000, \"caseCounts\": {\"fileMigrations\": 19, \"researchPackages\": 40}, \"scope\": \"Original15 File+34 Package; new4+6 meaningful deferred/no-steal/stale focus checks. All original fixture inverse exact except one stricter manual Refresh expected target. Whole two files once, original default5/max1/bail1. No Storage37 repeat.\", \"startedAt\": \"2026-10-11T22:54:21.460595+00:00\", \"status\": \"PASS\", \"log\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/affected-package-file-mounted-files.log\", \"pid\": 1600790, \"processGroup\": 1600790, \"originalStartTicks\": \"17252223\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [], \"after\": [], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": []}, \"endedAt\": \"2026-10-11T22:54:25.863906+00:00\", \"logSha256\": \"022bc02aa26ac5d3cbafe481beff624febb5db86f1901ab27110e0766277baeb\"}\n\n RUN  v4.1.10 /tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source\n\n\n Test Files  2 passed (2)\n      Tests  59 passed (59)\n   Start at  22:54:21\n   Duration  4.02s (transform 391ms, setup 0ms, import 622ms, tests 2.64s, environment 551ms)\n\n\n"
+      }
+    }
+  ],
+  "closure": {
+    "normalExit0": 2,
+    "originalDirectChildrenReaped": 2,
+    "groupsEmpty": 2,
+    "cleanupSignals": [],
+    "globalQuiescenceClaim": false
+  },
+  "rawReferences": [
+    {
+      "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/frozen-approved-plan.json",
+      "sha256": "cb9a0fd0fa7ba3557b1d5ded0677a65919b434b5c87d57f3ec3f300ea7ef6d21",
+      "bytes": 4897
+    },
+    {
+      "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/original-tool-responses.json",
+      "sha256": "d42ec09ac9d45548974f895d04db7d9fdd4354bb4b91dfd2179a227289e98e2e",
+      "bytes": 4307
+    },
+    {
+      "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/affected-app-strict-command.json",
+      "sha256": "b0cdd46e14892d3e632b0104319c005dd4d9ed5cde7dc76a7f75feea9a3005f9",
+      "bytes": 1119
+    },
+    {
+      "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/affected-app-strict.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/affected-package-file-mounted-files-command.json",
+      "sha256": "585bd5aa92cc078b7ceea3b5b7317d82de42eb1d3fdee542d052f157d0971c4b",
+      "bytes": 1694
+    },
+    {
+      "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/affected-package-file-mounted-files.log",
+      "sha256": "022bc02aa26ac5d3cbafe481beff624febb5db86f1901ab27110e0766277baeb",
+      "bytes": 270
+    }
+  ],
+  "scope": "Only current source affected APP once + whole two mounted files once. No repeated Storage37. Three original browser FAIL histories preserved. Build and all new Native scenarios UNRUN and require distinct root GO. No browser/Worker/JWKS/socket/SQLite was started under this two-stage GO.",
+  "plan": {
+    "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-first-two-source-preparation-attempt1/finite-currentcb19-combined-focus-app-and-affected59-plan.json",
+    "sha256": "cb9a0fd0fa7ba3557b1d5ded0677a65919b434b5c87d57f3ec3f300ea7ef6d21",
+    "bytes": 4897
+  },
+  "runner": {
+    "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-first-two-source-preparation-attempt1/run-frozen-owned-stage.py",
+    "sha256": "873a79487065607cf6ad10c60ca5ea58a7b631db7c350288d54684af2fa4a310",
+    "bytes": 11556
+  },
+  "rootGO": {
+    "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-first-two-source-preparation-attempt1/root-after-local8-full-release-current2d07-first-two-exclusive-go.json",
+    "sha256": "bae6e008c892098b37d6954be6027df8a6f04d421e160491fe8ff22229175611",
+    "bytes": 1955
+  },
+  "buildStatus": "UNRUN_SEPARATE_GO_REQUIRED",
+  "nativeStatus": "UNRUN_SEPARATE_SOURCE_BINDING_AND_GO_REQUIRED"
+}

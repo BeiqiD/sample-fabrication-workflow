@@ -23,8 +23,9 @@ const jobReasons: Record<string, string> = {
 };
 const jobReason = (reason: string) => jobReasons[reason] ?? "Job needs attention; refresh its details";
 type FileJobControl = Parameters<typeof fileJobsClient.control>[1];
-function SavedJobControls({ job, busy, allowed, currentSignal, onControl }: {
+function SavedJobControls({ job, busy, allowed, currentSignal, onControl, onPauseTarget }: {
   job: FileJobStatus; busy: boolean; allowed: boolean; currentSignal: AbortSignal | null;
+  onPauseTarget: (job: FileJobStatus, button: HTMLButtonElement | null) => void;
   onControl: (action: FileJobControl, onStarting: (signal: AbortSignal) => void, onReceipt: (receipt: FileJobStatus) => void) => void;
 }) {
   const buttons = useRef(new Map<FileJobControl, HTMLButtonElement>());
@@ -60,7 +61,8 @@ function SavedJobControls({ job, busy, allowed, currentSignal, onControl }: {
     <p ref={status} role="status" tabIndex={-1}>{job.state} · {job.moved} moved · {job.remaining} remaining · {job.failed} failed · {job.cleanupPending} cleanup pending</p>
     <p className="muted">Destination: {job.target.profileId}{job.reason && <> · {jobReason(job.reason)}</>}</p>
     <div className="storage-candidate-actions">{controls.map(action => <button key={action} type="button" className="button" disabled={busy}
-      ref={button => { if (button) buttons.current.set(action, button); else buttons.current.delete(action); }}
+      ref={button => { if (button) buttons.current.set(action, button); else buttons.current.delete(action);
+        if (action === "pause") onPauseTarget(job, button); }}
       onClick={event => {
         const origin = event.currentTarget; const admitted: { current: FocusIntent | null } = { current: null };
         onControl(action, signal => {
@@ -95,6 +97,41 @@ export function FileMigrationsPage() {
   const metadataSequence = useRef(0), retryInitialRead = useRef<() => void>(() => {});
   const previewButton = useRef<HTMLButtonElement>(null);
   const returnPreviewFocus = useRef<{ button: HTMLButtonElement; signal: AbortSignal } | null>(null);
+  const startButton = useRef<HTMLButtonElement>(null);
+  const pauseTargets = useRef(new Map<string, { job: FileJobStatus; button: HTMLButtonElement }>());
+  type StartFocusIntent = { origin: HTMLButtonElement; signal: AbortSignal; sequence: number; receipt: FileJobStatus | null;
+    movedAway: boolean; stopObserving: () => void };
+  const returnStartFocus = useRef<StartFocusIntent | null>(null);
+  function clearStartFocus() { returnStartFocus.current?.stopObserving(); returnStartFocus.current = null; }
+  function beginStartFocus(origin: HTMLButtonElement, signal: AbortSignal) {
+    if (document.activeElement !== origin || origin !== startButton.current || !origin.isConnected) return null;
+    const intent: StartFocusIntent = { origin, signal, sequence: sequence.current, receipt: null, movedAway: false,
+      stopObserving: () => { document.removeEventListener("focusin", moved, true); window.removeEventListener("blur", blurred); } };
+    const moved = (event: FocusEvent) => { if (event.target !== origin && event.target !== document.body) intent.movedAway = true; };
+    const blurred = () => { intent.movedAway = true; };
+    returnStartFocus.current = intent;
+    document.addEventListener("focusin", moved, true); window.addEventListener("blur", blurred);
+    return intent;
+  }
+  useLayoutEffect(() => () => clearStartFocus(), []);
+  useLayoutEffect(() => {
+    if (busy) return;
+    const intent = returnStartFocus.current; clearStartFocus();
+    if (!intent || intent.signal !== lifetime.current?.signal || intent.signal.aborted || !canManage.current || authorized !== true
+      || intent.sequence !== sequence.current || intent.movedAway
+      || document.activeElement !== document.body && document.activeElement !== intent.origin) return;
+    const receipt = intent.receipt;
+    if (!receipt) {
+      if (intent.origin === startButton.current && intent.origin.isConnected && !intent.origin.disabled) intent.origin.focus();
+      return;
+    }
+    const target = pauseTargets.current.get(receipt.id), presented = jobs.find(job => job.id === receipt.id);
+    if (!target || !presented || target.job !== presented || presented.actor !== receipt.actor || presented.acceptedAt !== receipt.acceptedAt
+      || presented.target.profileId !== receipt.target.profileId || presented.target.configurationRevision !== receipt.target.configurationRevision
+      || presented.state !== receipt.state || presented.updatedAt !== receipt.updatedAt
+      || !["queued", "running"].includes(presented.state) || !target.button.isConnected || target.button.disabled) return;
+    target.button.focus();
+  }, [busy, authorized, jobs]);
   function checkAccessError(error: unknown) {
     if ((error instanceof FileMigrationRequestError || error instanceof StorageConfigurationRequestError || error instanceof StoragePolicyRequestError)
       && (error.status === 401 || error.status === 403)) {
@@ -200,7 +237,7 @@ export function FileMigrationsPage() {
   }, [busy]);
   async function act(operation: (signal: AbortSignal) => Promise<unknown>, preserveMessage = false) {
     if (!canManage.current || busyRef.current || !lifetime.current || lifetime.current.signal.aborted) return;
-    const signal = lifetime.current.signal, current = ++sequence.current; busyRef.current = true; setBusy(true);
+    const signal = lifetime.current.signal, current = ++sequence.current; clearStartFocus(); busyRef.current = true; setBusy(true);
     if (!preserveMessage) { setMessage(""); setMessageIsError(false); }
     try { await operation(signal); if (!signal.aborted) await refresh(signal); }
     catch (error) {
@@ -222,6 +259,7 @@ export function FileMigrationsPage() {
     sessionStorage.removeItem(intentKey); setPending(null); setPlan(null); setSelection([]);
     setMessageIsError(false);
     setMessage(`Migration ${value.id} accepted. You can leave this page while the executor continues.`);
+    return value;
   }
   return <div className="page storage-settings-page">
     <div className="page-heading"><div><p className="eyebrow">Settings</p><h1>File migrations</h1>
@@ -266,8 +304,11 @@ export function FileMigrationsPage() {
             returnPreviewFocus.current = button && document.activeElement === button ? { button, signal } : null;
             const value = await fileJobsClient.plan(input(), signal); if (!signal.aborted) setPlan(value);
           })}>Preview migration</button>
-          {(plan || pending) && <button type="button" className="button primary" disabled={busy || !pending && plan!.items.some(item => item.status !== "eligible")}
-            onClick={() => void act(accept)}>{pending ? "Check or retry accepted request" : "Start migration"}</button>}</div>
+          {(plan || pending) && <button ref={startButton} type="button" className="button primary" disabled={busy || !pending && plan!.items.some(item => item.status !== "eligible")}
+            onClick={event => { const origin = event.currentTarget; void act(async signal => {
+              const intent = beginStartFocus(origin, signal), receipt = await accept(signal);
+              if (intent && returnStartFocus.current === intent && receipt) intent.receipt = receipt;
+            }); }}>{pending ? "Check or retry accepted request" : "Start migration"}</button>}</div>
         {pending && <p className="muted">An acceptance result is awaiting confirmation for {pending.fileIds.length} files to <code>{pending.target.profileId}</code>.
           Retry keeps the original files, destination and request identity.</p>}
         {plan && <><p>{plan.items.length} files · {size(plan.bytes)} total · up to {size(plan.stagingBytes)} staging.</p>
@@ -283,7 +324,9 @@ export function FileMigrationsPage() {
         {!jobsRead && !jobsLoading && !jobsError && <p className="muted">Saved migrations have not been read yet.</p>}
         {jobsRead && !jobsLoading && !jobsError && !jobs.length && <p className="muted">No migrations have been accepted.</p>}
         <ul className="storage-profile-list">{jobs.map(job => <li key={job.id}><h3><code>{job.id}</code></h3>
-          <SavedJobControls job={job} busy={busy} allowed={authorized === true && canManage.current} currentSignal={lifetime.current?.signal ?? null}
+          <SavedJobControls job={job} onPauseTarget={(presented, button) => {
+            if (button) pauseTargets.current.set(presented.id, { job: presented, button }); else pauseTargets.current.delete(presented.id);
+          }} busy={busy} allowed={authorized === true && canManage.current} currentSignal={lifetime.current?.signal ?? null}
             onControl={(action, onStarting, onReceipt) => void act(async signal => {
               onStarting(signal); const receipt = await fileJobsClient.control(job.id, action, signal);
               if (!signal.aborted && canManage.current) onReceipt(receipt);

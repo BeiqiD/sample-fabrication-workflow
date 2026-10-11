@@ -1,0 +1,47 @@
+{
+  "stage": "affected-package-file-mounted-files",
+  "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+  "argv": [
+    "node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "vitest.mounted.config.ts",
+    "src/file-migrations.mount.test.tsx",
+    "src/research-packages.mount.test.tsx",
+    "--maxWorkers",
+    "1",
+    "--bail",
+    "1"
+  ],
+  "env": {
+    "TMPDIR": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1",
+    "SQLITE_TMPDIR": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1"
+  },
+  "cases": 59,
+  "originalTestTimeoutMs": 5000,
+  "caseCounts": {
+    "fileMigrations": 19,
+    "researchPackages": 40
+  },
+  "scope": "Original15 File+34 Package; new4+6 meaningful deferred/no-steal/stale focus checks. All original fixture inverse exact except one stricter manual Refresh expected target. Whole two files once, original default5/max1/bail1. No Storage37 repeat.",
+  "startedAt": "2026-10-11T22:54:21.460595+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/affected-package-file-mounted-files.log",
+  "pid": 1600790,
+  "processGroup": 1600790,
+  "originalStartTicks": "17252223",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T22:54:25.863906+00:00",
+  "logSha256": "022bc02aa26ac5d3cbafe481beff624febb5db86f1901ab27110e0766277baeb"
+}

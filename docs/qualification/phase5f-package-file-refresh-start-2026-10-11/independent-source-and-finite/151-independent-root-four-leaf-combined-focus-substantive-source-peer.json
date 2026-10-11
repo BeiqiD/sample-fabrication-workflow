@@ -1,0 +1,42 @@
+{
+  "status": "INDEPENDENT_ROOT_AFFECTED_FOUR_LEAF_SUBSTANTIVE_SOURCE_CLEAR_CHECKS_UNRUN",
+  "utc": "2026-10-11T22:46:11.778416+00:00",
+  "head": "2d07b57c4e79403099261528ae8988c0072d28c6",
+  "tree": "bf96bbcadd4c4d8a0ada525f639cf768d2d4eb90",
+  "handoff": {
+    "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-source-preparation-attempt1/source-handoff.json",
+    "sha256": "d56c5947c73fdae6fa73f66f525e728521ddd6e987b35335a9f73609be02f05c"
+  },
+  "all3181GitModesBlobsBytesHashesRead": true,
+  "all3177ProtectedExact": true,
+  "wholeForwardReverseOperationsExact": 23,
+  "references": {
+    "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-source-preparation-attempt1/candidate-four-leaf-source.patch": "87dea225f788baf0e09286209784805f44327d0c8ad0ae888d386de015bcfc08",
+    "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-source-preparation-attempt1/complete-current3181-git-source-freeze.json": "90a8fd306425d4a573c58271a4e7050c4714b245f97c5c64953550a17c706591",
+    "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-source-preparation-attempt1/product-whole-literal-inverse.json": "24286516216bc3b23f03ed7579186779512ee53e1d916ba688ea34aa4d6a561d",
+    "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-source-preparation-attempt1/fixtures-whole-literal-inverse.json": "50e8106e9e07fca18139c8fec6dfa3f8a5a569058395e4cf7f0a0cd8f5ed9bf7",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/actual-current8be-package-refresh-original-ten-focus-failure-closed-release.json": "78ac612f615b1d6c4b2266038f80ed480a027e3ba2b47c7d5648119953ce5f24",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/root-current8be-package-original-ten-focus-failure-full-raw-source-owner-release.json": "c93d6da1d2275494e77286446e05e57ec8b052e2637ef7b25d3a8ec6c840ad2a",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/actual-current8be-file-start202-original-ten-natural-focus-failure-closed-release.json": "bbea2bc4aaab95df371a89239794e5e6c813c5cc1514fa4cba86fb26d4200439",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/root-current8be-file-start202-original-ten-natural-focus-failure-full-raw-source-owner-release.json": "dd40a814e5e4762af18a125285840c6e17fcfc9d96a5603ad9fd68f8495e2d73",
+    "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/actual-current8be-package-start202-original-ten-natural-focus-failure-closed-release.json": "cf59d683a07146bc27664531561307c7c0931595a85b4e33969bf44f7597c36e",
+    "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/root-current8be-package-start202-original-ten-natural-focus-failure-full-raw-source-owner-release.json": "a3fa52e3eb76919622cc149711bdfd79bbddf77d1eb24d93fd687dc0b38a7460"
+  },
+  "substantiveReview": [
+    "Admitted act increments current sequence and clears prior focus. Only a connected actually focused origin creates intent; no extra HTTP, DTO, polling or capability change.",
+    "Current non-aborted page signal, permissions, sequence and enabled layout commit are required. Focusin to another element and window blur permanently discard intent; body focus caused by disable/removal does not.",
+    "Start result is captured only by the same intent and same operation. Native Pause ref is indexed by exact presented job object, with current accepted identity and state/update equality. File includes actor/acceptedAt/target revision; Package includes requestId/kind/acceptedAt. No invented DTO generation.",
+    "Refresh captures exactly the next original list/executor read sequence; a newer five-second poll supersedes intent. Initial reads and remount/reconciliation cannot manufacture focus.",
+    "Layout effects consume intent once and remove listeners; unmount removes listeners, original lifetime cleanup aborts requests. Existing Preview and saved-job per-action custody reconstruct exactly.",
+    "Four new File and six Package tests delay original response/body/list settlement, assert same accepted target, preserved moved-away/body focus, stale acceptance/remount refusal and polling supersession, and retain request/checkpoint counts.",
+    "Only one old expectation changes: explicitly focused manual Package Refresh now returns to that button; prior saved Job focus remains consumed. Other49 historical fixtures reconstruct exactly."
+  ],
+  "blockers": [],
+  "checks": {
+    "compiler": "UNRUN",
+    "mountedExpected": 59,
+    "freshCfBuild": "UNRUN",
+    "threeNativeScenarios": "UNRUN"
+  },
+  "scope": "Necessary correction of three preserved genuine focus failures; source clearance is not runtime qualification"
+}

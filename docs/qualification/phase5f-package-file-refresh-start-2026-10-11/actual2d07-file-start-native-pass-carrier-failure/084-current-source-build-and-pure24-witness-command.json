@@ -1,0 +1,34 @@
+{
+  "stage": "current-source-build-and-pure24-witness",
+  "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+  "argv": [
+    "python3",
+    "-B",
+    "/tmp/phase5f-package-file-current2d07-three-native-finite-source-preparation-attempt1/file-start202/carry-current2d07-original-native.py",
+    "--current02d-coherent-saved-job",
+    "witness"
+  ],
+  "env": {
+    "TMPDIR": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1",
+    "SQLITE_TMPDIR": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1"
+  },
+  "startedAt": "2026-10-11T23:19:52.407919+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/current-source-build-and-pure24-witness.log",
+  "pid": 1609555,
+  "processGroup": 1609555,
+  "originalStartTicks": "17405317",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T23:19:52.879268+00:00",
+  "logSha256": "58a003b836270b1a2c7521719aa1c0fbd2b4a96c53448166a32c5fcaa494666d"
+}
