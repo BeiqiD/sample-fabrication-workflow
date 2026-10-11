@@ -702,7 +702,8 @@ async function caseRun(id,width,theme) {
     for(let index=0;index<labels.length;index++) {
       const button=article.getByRole('button',{name:labels[index],exact:true});await visible(button);await nativeEnabled(page,button);assert(await button.isEnabled());
       const originalNode=await button.elementHandle();assert(originalNode);
-      wait=waitResponse(`/api/system-recovery/jobs/${record.jobId}/control`,'POST');await button.focus();assert(await button.evaluate(node=>document.activeElement===node));await page.keyboard.press('Enter');
+      wait=waitResponse(`/api/system-recovery/jobs/${record.jobId}/control`,'POST');await button.focus();assert(await button.evaluate(node=>document.activeElement===node));
+      const originalActionStartedMono=performance.now();await page.keyboard.press('Enter');
       response=await wait;assert.equal(response.status(),200);capture=captures.get(response);assert(capture);publicJob(JSON.parse(await originalResponseBody(capture)),states[index],record.requestId,record.jobId);
       const next=article.getByRole('button',{name:index===0?'Resume':index===1?'Pause':'Clean up job artifacts',exact:true});await visible(next);
       await nativeEnabled(page,next);
@@ -710,11 +711,26 @@ async function caseRun(id,width,theme) {
       const focus=await originalNode.evaluate(node=>({originalTriggerConnected:node.isConnected,originalTriggerDisabled:node.disabled,
         originalTriggerFocused:document.activeElement===node,bodyFocused:document.activeElement===document.body,
         activeTag:document.activeElement?.tagName.toLowerCase()??null}));
-      // These state transitions remove the original Pause/Resume/Cancel node.
-      // Record native disposition rather than inventing a desired new target.
-      // Focus return of a surviving original trigger remains meaningful.
-      record.assertions.push({action:labels[index].toLowerCase(),genuineControl200:true,state:states[index],nativeFocus:focus});
+      // Explicit current-product intent keeps focus in this same keyed job.
+      // Cancel returns to its always-present state/status, never artifact cleanup.
+      const focusTarget=index<2?next:article.locator('p[role="status"]').filter({has:page.getByText(record.jobId,{exact:true})});
+      await visible(focusTarget);assert.equal(await focusTarget.count(),1);
+      // Enabled DOM can precede the product's passive focus effect. Observe the
+      // same original native node within the remaining original20s action budget.
+      const originalFocusTarget=await focusTarget.elementHandle();assert(originalFocusTarget);
+      let targetFocus,focusSettled;
+      try {
+        const remaining=20000-(performance.now()-originalActionStartedMono);
+        assert(remaining>0,'Original control focus exceeds the original20s action budget.');
+        focusSettled=await page.waitForFunction(node=>node.isConnected&&document.activeElement===node,originalFocusTarget,{timeout:remaining});
+        targetFocus=await originalFocusTarget.evaluate(node=>({active:document.activeElement===node,connected:node.isConnected,
+          focusVisible:node.matches(':focus-visible'),tag:node.tagName.toLowerCase(),role:node.getAttribute('role')}));
+      } finally {try {if(focusSettled)await focusSettled.dispose();}finally {await originalFocusTarget.dispose();}}
+      record.assertions.push({action:labels[index].toLowerCase(),genuineControl200:true,state:states[index],nativeFocus:focus,
+        sameJobReturnFocus:targetFocus,target:index===0?'resume':index===1?'pause':'cancelled-job-status'});
       if(focus.originalTriggerConnected&&!focus.originalTriggerDisabled)assert.equal(focus.originalTriggerFocused,true);
+      assert.equal(targetFocus.connected,true);assert.equal(targetFocus.active,true);
+      if(index===2){assert.equal(targetFocus.tag,'p');assert.equal(targetFocus.role,'status');}
       await originalNode.dispose();await geometry(page,record,`job-${labels[index].toLowerCase()}`,theme);
     }
     await absent(article.getByRole('button',{name:'Pause',exact:true}));await absent(article.getByRole('button',{name:'Resume',exact:true}));await absent(article.getByRole('button',{name:'Cancel',exact:true}));
@@ -811,7 +827,7 @@ try {
   // profile directory. Only Chromium's child tmpdir is shortened for its native
   // SingletonSocket; this does not change the browser actions or product input.
   const chromiumTemp=process.env.PHASE5F_CHROMIUM_PRIVATE_TEMP;
-  assert.equal(chromiumTemp,'/workspace/.r2b9tmp');
+  assert.equal(chromiumTemp,'/workspace/.rcf6tmp');
   const chromiumTempOwner=await json(await privateRoot(process.env.PHASE5F_JOB_CONTROL_RUNTIME_ROOT),'chromium-child-temp-owner.json');
   const tempInfo=await lstat(chromiumTemp,{bigint:true});
   assert(tempInfo.isDirectory()&&!tempInfo.isSymbolicLink());assert.equal(await realpath(chromiumTemp),chromiumTemp);

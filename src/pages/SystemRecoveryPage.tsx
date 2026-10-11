@@ -110,20 +110,39 @@ function Report({ value }: { value: SystemRecoveryPreview }) {
     <p className="muted">Archive SHA-256: <code>{value.archive.sha256}</code>.</p>
   </div>;
 }
-function Job({ value, busy, onControl, onReport, onSelectUpload, onCutover }: {
-  value: SystemRecoveryJobStatus; busy: boolean; onControl: (action: SystemRecoveryJobControl) => void;
+function Job({ value, busy, currentSignal, onControl, onReport, onSelectUpload, onCutover }: {
+  value: SystemRecoveryJobStatus; busy: boolean; currentSignal: AbortSignal | null;
+  onControl: (action: SystemRecoveryJobControl, onStarting: (signal: AbortSignal) => void) => void;
   onReport: () => void; onSelectUpload: () => void; onCutover: () => void;
 }) {
+  const controlButtons = useRef(new Map<SystemRecoveryJobControl, HTMLButtonElement>());
+  const status = useRef<HTMLParagraphElement | null>(null);
+  const returnFocus = useRef<{ action: SystemRecoveryJobControl; origin: HTMLButtonElement; signal: AbortSignal } | null>(null);
+  useEffect(() => {
+    if (busy) return;
+    const intent = returnFocus.current; returnFocus.current = null;
+    if (!intent || intent.signal.aborted || intent.signal !== currentSignal
+      || document.activeElement !== document.body && document.activeElement !== intent.origin) return;
+    if (intent.origin.isConnected && !intent.origin.disabled) { intent.origin.focus(); return; }
+    const next = intent.action === "pause" ? controlButtons.current.get("resume")
+      : intent.action === "resume" || intent.action === "retry" ? controlButtons.current.get("pause")
+        : intent.action === "cancel" && value.state === "cancelled" ? status.current : null;
+    if (next?.isConnected && (!(next instanceof HTMLButtonElement) || !next.disabled)) next.focus();
+  }, [busy, currentSignal, value.state]);
   const controls: SystemRecoveryJobControl[] = [];
   if (["queued", "running"].includes(value.state)) controls.push("pause");
   if (value.state === "paused") controls.push("resume", "retry");
   if (!["completed", "cancelled"].includes(value.state)) controls.push("cancel");
   if (["completed", "cancelled", "preview"].includes(value.state)) controls.push("cleanup");
   return <article className="system-recovery-job"><h3>{value.kind === "backup" ? "System backup" : value.kind === "upload" ? "Archive validation" : "Isolated system recovery"}</h3>
-    <p><code>{value.id}</code> · {reasonText(value.state)} · {reasonText(value.phase)}</p>
+    <p ref={status} role="status" tabIndex={-1}><code>{value.id}</code> · {reasonText(value.state)} · {reasonText(value.phase)}</p>
     <p>Files: {value.progress.completedFiles} / {value.progress.totalFiles}. Bytes: {size(value.progress.bytesDone)} / {size(value.progress.bytesTotal)}.</p>
     {value.reason && <p className="warning-card">{reasonText(value.reason)}.</p>}
-    <div className="storage-candidate-actions">{controls.map(action => <button key={action} className="button" disabled={busy} onClick={() => onControl(action)}>
+    <div className="storage-candidate-actions">{controls.map(action => <button key={action} className="button" disabled={busy}
+      ref={button => { if (button) controlButtons.current.set(action, button); else controlButtons.current.delete(action); }}
+      onClick={event => { const origin = event.currentTarget; onControl(action, signal => {
+        if (document.activeElement === origin) returnFocus.current = { action, origin, signal };
+      }); }}>
       {action === "cleanup" ? "Clean up job artifacts" : action[0].toUpperCase() + action.slice(1)}</button>)}
       {value.kind === "upload" && <button className="button" disabled={busy} onClick={onSelectUpload}>Select saved upload</button>}
       {(value.state === "preview" || value.state === "completed" || value.result) && <button className="button" disabled={busy} onClick={onReport}>View recovery report</button>}
@@ -158,6 +177,8 @@ export function SystemRecoveryPage() {
   const [jobsLoaded, setJobsLoaded] = useState(false), [busy, setBusy] = useState(false), busyRef = useRef(false);
   const [denied, setDenied] = useState(false), deniedRef = useRef(false), [message, setMessageText] = useState("");
   const [messageError, setMessageError] = useState(false);
+  const backupPreviewButton = useRef<HTMLButtonElement>(null);
+  const returnBackupPreviewFocus = useRef<{ button: HTMLButtonElement; signal: AbortSignal } | null>(null);
   const lifetime = useRef<AbortController | null>(null), refreshSequence = useRef(0), reportSequence = useRef(0), reportIdentity = useRef("");
   const currentUpload = upload ? jobs.find(job => job.id === upload.jobId) : null;
 
@@ -294,6 +315,14 @@ export function SystemRecoveryPage() {
     })();
     return () => { controller.abort(); refreshSequence.current++; reportSequence.current++; if (timer) clearTimeout(timer); };
   }, []);
+  useEffect(() => {
+    if (busy || !returnBackupPreviewFocus.current) return;
+    const { button, signal } = returnBackupPreviewFocus.current;
+    returnBackupPreviewFocus.current = null;
+    if (signal !== lifetime.current?.signal || signal.aborted || deniedRef.current) return;
+    if (button === backupPreviewButton.current && button.isConnected && !button.matches(":disabled")
+      && (document.activeElement === document.body || document.activeElement === button)) button.focus();
+  }, [busy]);
   async function act(operation: (signal: AbortSignal) => Promise<unknown>, preserveMessage = false) {
     const controller = lifetime.current;
     if (!controller || controller.signal.aborted || deniedRef.current || busyRef.current) return;
@@ -446,7 +475,9 @@ export function SystemRecoveryPage() {
         <p className="muted">Includes canonical identities, history, recoverable deletion states, promised files and eligible protected settings. Encrypted external credentials require a separately provisioned recovery key. Protect the downloaded archive accordingly.</p>
         <label>System backup mode<select value={backupMode} disabled={blocked} onChange={event => { setBackupMode(event.target.value as "historical" | "planned"); setBackupPreview(null); }}>
           <option value="historical">Ordinary historical backup</option><option value="planned">Final planned migration snapshot</option></select></label>
-        <button className="button" disabled={blocked || !capability.supported} onClick={() => void act(async signal => {
+        <button ref={backupPreviewButton} className="button" disabled={blocked || !capability.supported} onClick={() => void act(async signal => {
+          const button = backupPreviewButton.current;
+          returnBackupPreviewFocus.current = button && document.activeElement === button ? { button, signal } : null;
           const value = await systemRecoveryClient.backupPreview(signal); if (!signal.aborted && !deniedRef.current) setBackupPreview(value);
         })}>Preview system backup</button>
         {backupPreview && <><p>Source maintenance: {reasonText(backupPreview.maintenance.state)}. {backupPreview.available ? "The bounded backup can be accepted." : "Backup acceptance is unavailable."}</p>
@@ -509,7 +540,9 @@ export function SystemRecoveryPage() {
           ? "Showing previously read system work. Its current status could not be refreshed."
           : "Showing previously read system work while status is refreshed."}</p>}
         {!jobs.length && readPhase === "ready" && <p className="muted">No system backup or recovery jobs are recorded.</p>}
-        {jobs.map(job => <Job key={job.id} value={job} busy={blocked} onControl={action => void act(async signal => {
+        {jobs.map(job => <Job key={job.id} value={job} busy={blocked} currentSignal={lifetime.current?.signal ?? null}
+          onControl={(action, onStarting) => void act(async signal => {
+          onStarting(signal);
           const value = await systemRecoveryClient.control(job.id, action, signal); if (!signal.aborted && !deniedRef.current) { refreshSequence.current++; updateJob(value); }
         })} onReport={() => void act(signal => loadReport(job.id, signal))} onSelectUpload={() => void act(async signal => {
           const [input, value] = await Promise.all([systemRecoveryClient.uploadIntent(job.id, signal), systemRecoveryClient.status(job.id, signal)]);
