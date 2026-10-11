@@ -17,7 +17,19 @@ CASES = (
 )
 HEAD = 'f883e64086bee44b353f3840271fa3eaaafdcc7d'
 HEX = re.compile(r'[0-9a-f]{64}')
-NAME = re.compile(r'[A-Za-z0-9_-]{1,160}')
+FAILURE_TYPES = frozenset((
+    'AssertionError', 'AttributeError', 'BrokenPipeError', 'BufferError',
+    'CalledProcessError', 'ChildProcessError', 'ConnectionAbortedError',
+    'ConnectionError', 'ConnectionRefusedError', 'ConnectionResetError',
+    'EOFError', 'FileExistsError', 'FileNotFoundError', 'IndexError',
+    'InterruptedError', 'IsADirectoryError', 'JSONDecodeError', 'KeyError',
+    'KeyboardInterrupt', 'MemoryError', 'NotADirectoryError',
+    'NotImplementedError', 'OSError', 'OverflowError', 'PermissionError',
+    'ProcessLookupError', 'QualificationInterrupted', 'RecursionError',
+    'RuntimeError', 'SubprocessError', 'SystemError', 'SystemExit',
+    'TimeoutError', 'TimeoutExpired', 'TypeError', 'UnicodeDecodeError',
+    'UnicodeEncodeError', 'UnicodeError', 'ValueError', 'ZeroDivisionError',
+))
 KINDS = (
     'artifact', 'daemon-bind', 'bootstrap', 'initial-inspect', 'main-a',
     'busy-inspect', 'busy-main', 'after-stop-inspect', 'main-b',
@@ -95,7 +107,7 @@ def selected_facts(evidence):
         'containers': [],
     }
     if 'failureType' in original:
-        assert re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]{0,95}', original['failureType'])
+        assert original['failureType'] in FAILURE_TYPES
         output['failureType'] = original['failureType']
     output.update(boolean_fields(original, (
         'originalImageBuildCompletionAcknowledged', 'imageBuildCompletionUnproven',
@@ -104,20 +116,28 @@ def selected_facts(evidence):
         'noDockerSIGKILLOrRemoval',
     )))
     output.update(integer_fields(original, ('actualCasesPassed', 'imageBuilds')))
-    for row in commands:
+    for command_index, row in enumerate(commands):
         number, separator, label = row['id'].partition('-')
-        assert separator and number.isascii() and number.isdecimal() and int(number) < 256 and label in COMMANDS
+        assert separator and number == str(command_index) and label in COMMANDS
         assert row['status'] in ('RUNNING', 'PASS', 'FAIL', 'FAILED_PARTIAL')
         item = {'id': row['id'], 'status': row['status']}
         item.update(integer_fields(row, ('pid', 'processGroup', 'exitCode')))
         item.update(boolean_fields(row, ('directChildReaped', 'forcedTerminationForOwnedCleanup', 'ownedClosureProven')))
         output['commands'].append(item)
+    identifiers = set()
+    nonces = set()
     for row in containers:
         assert row['kind'] in KINDS
+        suffix = 'missing' if row['kind'] == 'missing-bind' else row['kind']
+        name = re.fullmatch(r'nodeqa-([0-9a-f]{32})-' + re.escape(suffix), row['name'])
+        assert name is not None
+        identifiers.add(row['name'])
+        nonces.add(name.group(1))
         item = {'kind': row['kind']}
         if row['id'] is not None:
             assert HEX.fullmatch(row['id'])
             item['id'] = row['id']
+            identifiers.add(row['id'])
         item.update(integer_fields(row, ('generation',)))
         item.update(boolean_fields(row, ('closeAttempted', 'originalExitObserved', 'expectedAbsent', 'constructionAbsenceObserved')))
         if 'lastState' in row:
@@ -125,9 +145,11 @@ def selected_facts(evidence):
             item['lastState'] = boolean_fields(state, ('Running', 'Paused', 'Restarting', 'OOMKilled', 'Dead'))
             item['lastState'].update(integer_fields(state, ('Pid', 'ExitCode')))
         output['containers'].append(item)
+    assert len(nonces) <= 1
     if 'containerClosureUnproven' in original:
         values = original['containerClosureUnproven']
-        assert isinstance(values, list) and len(values) <= 64 and all(NAME.fullmatch(value) for value in values)
+        assert isinstance(values, list) and len(values) <= 64
+        assert all(type(value) is str and value in identifiers for value in values)
         output['containerClosureUnproven'] = values
     image = manifest['files'].get('actual-six/image.id')
     if image is not None:
