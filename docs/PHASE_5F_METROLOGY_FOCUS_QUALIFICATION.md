@@ -37,9 +37,13 @@ metadata. Its observed kernel state establishes exited resources, not an observe
 zero-FD count or whole-host quiescence. No cleanup signals were needed. Tracked
 source pins stayed unchanged.
 
-This proves DOM focus in the genuine mounted grid with typed API stubs. Two
-separate native-Chromium controls at390dark/1280light remain UNRUN pending a fresh
-isolated current Worker/API fixture and owned physical closure. Enabled-admin
-JOSE/JWKS, own-head CI and an ordinary reviewed development merge remain separate.
-No historical browser matrix was rerun; whole5F, physical devices, IME, live
-providers and production deployment are not declared complete.
+This proves DOM focus in the genuine mounted grid with typed API stubs. The later
+[native focus and enabled Storage administrator qualification](PHASE_5F_NATIVE_FOCUS_AND_ENABLED_ADMIN_QUALIFICATION.md)
+records two actual native-Chromium controls at390dark/1280light on source36, with
+genuine current Worker/API reads and physical closure. Those two cases are carried
+by explicit source/Worker/frontend equivalence, not rerun on63d. Its separate
+four-case local enabled-Access Storage read/role/retry qualification also passed;
+neither replaces own-head complete CI or reviewed development integration.
+No historical browser matrix was rerun; whole5F, authenticated writes/recovery
+handoff, physical devices, IME, live providers and production deployment are not
+declared complete.

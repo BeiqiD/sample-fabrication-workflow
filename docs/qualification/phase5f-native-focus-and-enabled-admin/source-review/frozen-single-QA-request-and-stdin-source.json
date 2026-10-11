@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "status": "FROZEN_SOURCE_ONLY_ALL_NEW_OBSERVER_STDIN_BROWSER_UNRUN",
+  "at": "2026-10-11T00:33:29.991346+00:00",
+  "sourceRoot": "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5",
+  "head": "ffcaccb5622bff6ebffe2747b0b3ae3da062ebb2",
+  "tree": "59d1ef3f41c563bf5caa5b5223fbb10c41574f1d",
+  "parent95": "95ad6b88d833c16d6f9e62f4787101c7919b31c5",
+  "changedPath": "scripts/qa/phase5f/browser-enabled-admin-actual-api.mjs",
+  "helperSha256": "34c3b7ae1e55e8012834aad1fac46609f6c949dd2ce367e153fd08eb554a351c",
+  "patchSha256": "375185dd3db05e0ca1f014de95edd3a10201e9c0b125331b40b78bcd03535bc4",
+  "trackedCount": 1707,
+  "unchangedModeBlobWorkingByteCount": 1706,
+  "preservedTrackedFileInventorySha256": "46ccb104c44bfbaa6af7c4c9665d0ce5646093f8f7f23738d237023c22019057",
+  "producer": {
+    "sourceRoot": "/tmp/phase5f-enabled-admin-original-body-barrier-source-attempt4",
+    "sourceHead": "95ad6b88d833c16d6f9e62f4787101c7919b31c5",
+    "sourceTree": "b2b18885a5b91c05b1272384897e24c8bf58476a",
+    "commandReceipt": "/tmp/phase5f-enabled-admin-original-body-barrier-runtime-attempt4/one-fresh-final-QA-source-build-command.json",
+    "commandReceiptSha256": "6334349862c338c34370ac2a4ec83354d30dae17f13e798d1151e4b5eb074d0e",
+    "artifactManifest": "/tmp/phase5f-enabled-admin-original-body-barrier-runtime-attempt4/fresh-build-artifact-manifest.json",
+    "artifactManifestSha256": "491bb8208e6ac94da0266a12c98e8db2d713787e22acc1c329702422dc8f7562",
+    "artifactsActualRehashed": 118,
+    "copiedInventoryActualRehashed": 121,
+    "sameHeadClaim": false
+  },
+  "consumerWitnessContract": {
+    "sourceHeadAndTree": "Original95 actual producer retained; never rewritten to consumer",
+    "consumerSourceHeadTreeRoot": "Distinct future consumer Git pins",
+    "purpose": "original95-actual-producer-single-QA-observer-equivalence-v1",
+    "excludedQaPaths": [
+      "scripts/qa/phase5f/browser-enabled-admin-actual-api.mjs"
+    ],
+    "preservedTrackedFileCount": 1706,
+    "preservedTrackedFileInventorySha256": "Matches original95 and newconsumer all other tracked inputs",
+    "sourceEquivalenceReceiptSha256": "This reviewed frozen source receipt hash",
+    "artifactHashes": "Same original118 + copied121, activeWorker/config exact"
+  },
+  "observerContract": {
+    "oneOriginalBodyCall": true,
+    "nativeOriginalRequestIdentity": "failedRequest===original503Response.request()",
+    "nativeError": "net::ERR_ABORTED",
+    "terminalOriginalBodyError": "response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier",
+    "ordering": "Pre-refresh failure null; arm exact original requestfailed event; Focus Refresh Enter and actual200; then exact native cancellation+sameoriginal body terminalerror",
+    "otherResponseBodies": "Still strict completed and hashed/131072 limit; no other exceptions",
+    "requestsAndBudget": "OriginalGETs/readerdeniedPUT/20s unchanged, no extra HTTP/new replay/fallback"
+  },
+  "shutdownContract": {
+    "preflight": "original stdin.isTTY required before servers/browser",
+    "onlyGracefulControl": "Explicit stop newline on original inherited tty",
+    "order": "report interrupted; original faultRestore first while D1 alive; cached original context/browser closes interrupt action; finally cached Worker/JWKS close, full snapshot, ports, original reports",
+    "signals": "Installed Miniflare SIGTERM synchronous process.exit143 is external interruption; no graceful-finally claim"
+  },
+  "retainedFacts": {
+    "attempt3FullReportSha256": "8b290fc944a42d8ffb42fef48ecbef24d47a03b0312ee48a4ac8a402a67f4ceb",
+    "attempt4FailedClosedReceipt": "/tmp/phase5f-enabled-admin-original-body-barrier-runtime-attempt4/first-failure-closed-and-released-receipt.json",
+    "attempt4FailedClosedReceiptSha256": "fe8300c7b809dc06115bc717751fc570c29450f618a6c0b71c731862475ea5e1",
+    "attempt4": "Progress3PASS/fourthpending interrupted143; auth/fullcapture/finally not observed; post-hoc physical restored only",
+    "historicalSnapshotShm": "Readonly reader coordination changed; originalmain/WAL exact; not applicationdata drift"
+  },
+  "noRuntime": "No new compile/build/Worker/browser/SQLite after actual release. Source-only candidate. Old95 build genuine causally eligible carry, not newhead freshbuild."
+}

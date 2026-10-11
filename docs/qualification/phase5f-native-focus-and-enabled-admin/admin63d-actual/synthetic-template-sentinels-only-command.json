@@ -1,0 +1,68 @@
+{
+  "stage": "synthetic-template-sentinels-only",
+  "cwd": "/tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5",
+  "argv": [
+    "node",
+    "node_modules/wrangler/bin/wrangler.js",
+    "d1",
+    "execute",
+    "DB",
+    "--local",
+    "--config",
+    ".wrangler/deploy.jsonc",
+    "--persist-to",
+    "/tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/.wrangler/state",
+    "--file",
+    "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5/process-fixture.sql"
+  ],
+  "env": {
+    "WRANGLER_SEND_METRICS": "false",
+    "WRANGLER_LOG_PATH": "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5/wrangler-logs"
+  },
+  "startedAt": "2026-10-11T00:46:51.134959+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/synthetic-template-sentinels-only.log",
+  "pid": 399804,
+  "processGroup": 399804,
+  "originalStartTicks": "9287190",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 399820,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 399804,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 399820,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 399804,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 399820,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 399804,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T00:46:52.546169+00:00",
+  "logSha256": "10d17e5d126b305aa52bea40310b1bd934992468680925a32cc3cbca69bd4a15"
+}

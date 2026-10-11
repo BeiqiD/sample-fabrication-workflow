@@ -1,0 +1,41 @@
+{
+  "stage": "native-idle-Cancel-Escape-Close-two",
+  "cwd": "/tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3",
+  "argv": [
+    "node",
+    "/tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3/scripts/qa/phase5f/browser-metrology-cancel-focus-actual-api.mjs",
+    "http://127.0.0.1:4219/",
+    "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3",
+    "/tmp/phase5f-idle-focus-enabled-admin-copy-attempt3"
+  ],
+  "env": {
+    "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+    "CHROMIUM_PATH": "/usr/bin/chromium"
+  },
+  "cases": [
+    "metrology-cancel-focus-390-dark",
+    "metrology-cancel-focus-1280-light"
+  ],
+  "expectedBrowserMutations": 0,
+  "newAuxiliaryApiReads": 10,
+  "notes": "Two sentinelGET +four actual before/after readbacks per case=10auxAPIreads; native original menu unmount, Cancel Search remount, Escape sameoriginalStepAdd, newactualdirectoryGET/newdrawer then Close sameoriginalStepAdd. Actual browserAPIread cost captured separately, zero UI mutations; no latency/device claim.",
+  "startedAt": "2026-10-11T00:11:18.345837+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/native-idle-Cancel-Escape-Close-two.log",
+  "pid": 368176,
+  "processGroup": 368176,
+  "originalStartTicks": "9073911",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T00:11:23.707335+00:00",
+  "logSha256": "6b75cf337034bb32ad2968971f68892e9bfaba040d9edc74efc339dabc922a10"
+}

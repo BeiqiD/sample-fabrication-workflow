@@ -1,0 +1,56 @@
+{
+  "stage": "one-fresh-final-QA-source-build",
+  "cwd": "/tmp/phase5f-enabled-admin-original-body-barrier-source-attempt4",
+  "argv": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "qualification": "Actual one fresh command receipt must capture exact frozen finalHEAD/tree, directchildexit/reap/ownedgroup and regular artifact hashes. Originald191 new118 build remains earlier qualification and is not relabelled finalhead. No strict41/native/source/perf/oldbrowser reruns.",
+  "startedAt": "2026-10-11T00:18:21.737084+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-enabled-admin-original-body-barrier-runtime-attempt4/one-fresh-final-QA-source-build.log",
+  "pid": 380049,
+  "processGroup": 380049,
+  "originalStartTicks": "9116250",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 380172,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 380049,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 380172,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 380049,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 380172,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 380049,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T00:18:26.959206+00:00",
+  "logSha256": "376a273343dd1e44bab9f64d3c841599d654c4bf9e3f28a795cb32646eacc64a"
+}
