@@ -1,0 +1,33 @@
+{
+  "status": "source correction; actual affected tests and replacement complete CI pending",
+  "previousSourceHead": "ff033cd1b67610844b55b5820c8e2b83a3e06b8d",
+  "failedRun": 38096212017,
+  "failedRunUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38096212017",
+  "failedRawLogSha256": "8964f23c1e7055c68b75069e5da6549d95fe47826eb5021818f4685a596857fb",
+  "observedFailures": [
+    "grid-modal-behavior.test.ts stale ref={searchRef} source assertion; callback still assigns genuine initial-focus ref",
+    "step-confirmation.qualification.test.ts eight rejection/ancestor requests exceeded unchanged 5000ms case budget; no observed SQL or state assertion failure"
+  ],
+  "changes": [
+    "Assert the current callback ref assignment and modal initialFocusRef linkage",
+    "Keep five malformed-target requests and three deleted-ancestor requests in two independently migrated fresh Worker fixtures; retain every response, full metadata, lease, pending-state, empty-provider and FK assertion"
+  ],
+  "productionChangedByThisCorrection": false,
+  "globalTestTimeoutChanged": false,
+  "casesBefore": 4,
+  "candidateCasesAfter": 5,
+  "inputs": [
+    {
+      "path": "src/grid-modal-behavior.test.ts",
+      "beforeSha256": "b8246de763e127d1c52b17c970727a4b46fe2b2a4a88461bcc73474a5f25d876",
+      "candidateSha256": "4414e52701b4e28566a08727698c74e12bd3a5b77ac78fbe204239887d279b72"
+    },
+    {
+      "path": "worker/step-confirmation.qualification.test.ts",
+      "beforeSha256": "d8bfffbde7222bb970a7631cec10738e73a097dd02db76fc55586eb8ec1c170a",
+      "candidateSha256": "67ee6ff84e4abc36dc84d19845a1dab502edcc651a9700f11d7e2962c53d6535"
+    }
+  ],
+  "historicalNarrowQualification": "41 mounted focus/picker tests and fresh build at d191; does not replace final-head full CI",
+  "browserAttempt2": "actual auxiliary GET404 to absent /metrology-templates/:id; zero UI actions, next cases unrun, owned closure preserved separately"
+}

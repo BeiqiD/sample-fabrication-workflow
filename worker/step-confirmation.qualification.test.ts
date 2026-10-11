@@ -188,7 +188,7 @@ async function exactConfirmationShadow(before: Awaited<ReturnType<typeof shadowE
     .toEqual(expectedClosures.sort((a, b) => shadowTextOrder(String(a.occurrence_id), String(b.occurrence_id))));
 }
 
-describe("Grouped Step confirmation through the actual current Worker: four finite scopes", () => {
+describe("Grouped Step confirmation through the actual current Worker: five finite scopes", () => {
   it("accepts two cross-Sample targets with one operation group, exact audits, monotonic time and genuine rollup effects", async () => {
     const selected = targets(); selected[0].expectedUpdatedAt = "2098-01-01T00:00:00.000Z";
     selected[1].expectedUpdatedAt = "2099-01-01T00:00:00.000Z";
@@ -239,7 +239,7 @@ describe("Grouped Step confirmation through the actual current Worker: four fini
     expect(await closedLeases()).toBe(1); await emptyProvider();
   });
 
-  it("rejects stale timestamps, incorrect associations and every deleted ancestor without confirming either target", async () => {
+  it("rejects stale timestamps and incorrect associations without confirming either target", async () => {
     const selected = targets();
     const wrongTargets = [
       [selected[0], { ...selected[1], expectedUpdatedAt: "2026-08-01T01:59:59.999Z" }],
@@ -260,6 +260,21 @@ describe("Grouped Step confirmation through the actual current Worker: four fini
     // starts at this same baseline. Re-reading it five times adds no assertion.
     const wrongBaseline = await metadata(["system_recovery_write_leases"]);
     for (const input of wrongTargets) await rejected(input, wrongBaseline);
+    expect((await database.prepare("SELECT id,status,last_mutation_id FROM run_steps ORDER BY id").all()).results).toEqual([
+      { id: "reference-step-a", status: "pending", last_mutation_id: null }, { id: "reference-step-b", status: "pending", last_mutation_id: null }]);
+    await emptyProvider();
+  });
+
+  it("rejects every deleted ancestor without confirming either target", async () => {
+    const selected = targets();
+    let requests = 0;
+    async function rejected(input: unknown, before: Awaited<ReturnType<typeof metadata>>) {
+      const response = await post({ targets: input }); requests += 1;
+      expect(response.status).toBe(409);
+      expect(await response.json()).toEqual({ error: "One or more steps changed elsewhere. Reload before confirming." });
+      expect(await metadata(["system_recovery_write_leases"])).toEqual(before);
+      expect(await closedLeases()).toBe(requests);
+    }
     for (const [table, id] of [["samples", "reference-sample-b"], ["runs", "reference-run-b"], ["run_steps", "reference-step-b"]]) {
       // Ordinary logical deletion in this isolated genuine fixture; no mature
       // schema/physical-delete/publication guard is disabled or removed.

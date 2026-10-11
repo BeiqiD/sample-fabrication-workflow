@@ -40,7 +40,8 @@ describe("grid modal behavior", () => {
     expect(drawer).toContain('className="button" disabled={saving} onClick={onClose}');
 
     expect(picker).toContain("blocked: saving");
-    expect(picker).toContain("ref={searchRef}");
+    expect(picker).toContain("searchRef.current = node");
+    expect(picker).toContain("initialFocusRef: searchRef");
     expect(picker).toContain('className="drawer-close" aria-label="Close" disabled={saving}');
   });
 
