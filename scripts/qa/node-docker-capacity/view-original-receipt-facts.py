@@ -42,6 +42,21 @@ COMMANDS = {
     'missing-bind', 'missing-bind-absence',
 } | {prefix + kind for prefix in ('create-', 'attach-', 'start-', 'term-', 'wait-') for kind in KINDS}
 COMMANDS |= {'api-' + kind + '-' + phase for kind in KINDS for phase in ('exercise', 'verify', 'unavailable-keyring')}
+API_COMMAND = '63-api-after-negative-verify'
+FIXED_API_ACTIONS = frozenset((
+    'stdin', 'GET /api/health readiness', 'GET /api/ready',
+    'POST /api/auth/login', 'GET /api/storage/configuration/capability',
+    'POST /api/samples', 'GET /api/projects', 'POST /api/projects',
+    'GET /api/files/fixture', 'POST /api/file-jobs', 'POST /api/auth/logout',
+))
+
+def fixed_api_action(value):
+    assert type(value) is str
+    if value in FIXED_API_ACTIONS:
+        return value
+    sample = re.fullmatch(r'(GET|PATCH) /api/samples/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}', value)
+    assert sample is not None
+    return sample.group(1) + ' /api/samples/{uuid}'
 
 def read_original(path, limit):
     before = path.lstat()
@@ -124,6 +139,33 @@ def selected_facts(evidence):
         item.update(integer_fields(row, ('pid', 'processGroup', 'exitCode')))
         item.update(boolean_fields(row, ('directChildReaped', 'forcedTerminationForOwnedCleanup', 'ownedClosureProven')))
         output['commands'].append(item)
+    failed_api = [row for row in commands if row['id'] == API_COMMAND and row['status'] == 'FAIL']
+    assert len(failed_api) <= 1
+    if failed_api:
+        # Read only this already-recorded command's exported stdout. A PASS
+        # client can include persisted domain values and is never decoded here.
+        relative = 'actual-six/' + API_COMMAND + '.log'
+        pin = manifest['files'][relative]
+        assert type(pin['bytes']) is int and HEX.fullmatch(pin['sha256'])
+        api_bytes = read_original(evidence / relative, 2097152)
+        assert len(api_bytes) == pin['bytes'] and hashlib.sha256(api_bytes).hexdigest() == pin['sha256']
+        lines = [line for line in api_bytes.decode('utf-8').splitlines() if line.startswith('{')]
+        assert len(lines) == 1
+        api = json.loads(lines[0])
+        assert type(api) is dict and set(api) == {'status', 'action', 'observations'} and api['status'] == 'FAIL'
+        observations = api['observations']
+        assert type(observations) is list and len(observations) <= 512
+        selected = []
+        for observation in observations:
+            assert type(observation) is dict and set(observation) == {'action', 'status'}
+            status = observation['status']
+            assert type(status) is int and 100 <= status <= 599 or status == 'unavailable'
+            selected.append({'action': fixed_api_action(observation['action']), 'status': status})
+        output['originalApiFailure'] = {
+            'commandId': API_COMMAND, 'status': 'FAIL',
+            'originalLogSha256': pin['sha256'], 'originalLogBytes': len(api_bytes),
+            'action': fixed_api_action(api['action']), 'observations': selected,
+        }
     identifiers = set()
     nonces = set()
     for row in containers:
