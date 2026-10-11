@@ -89,3 +89,9 @@ jobs:
           path: ${{ env.NODE_DOCKER_SIX_EVIDENCE }}/evidence/
           if-no-files-found: warn
           retention-days: 14
+      - name: Publish whitelisted original receipt facts
+        if: ${{ always() && env.NODE_DOCKER_SIX_EVIDENCE != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo -u '#1000' -g '#1000' python3 -B "$NODE_DOCKER_SIX_QA/scripts/qa/node-docker-capacity/view-original-receipt-facts.py" --evidence "$NODE_DOCKER_SIX_EVIDENCE/evidence"
