@@ -334,6 +334,68 @@ describe("Metrology picker full-chain pending and original-session ownership", (
     expect(dialog.contains(document.activeElement)).toBe(true);
   });
 
+  it("returns idle Escape focus to the same Step Add control after its Metrology menu action unmounts", async () => {
+    const owner = renderGrid();
+    const add = screen.getByRole("button", { name: "Add after this entry" });
+    add.focus(); expect(document.activeElement).toBe(add); fireEvent.click(add);
+    const menuAction = screen.getByRole("button", { name: "Metrology" });
+    menuAction.focus(); expect(document.activeElement).toBe(menuAction); fireEvent.click(menuAction);
+    const dialog = screen.getByRole("dialog", { name: "Add metrology" });
+    await within(dialog).findByRole("button", { name: /SEM.*Add/ });
+    expect(menuAction.isConnected).toBe(false);
+    const search = within(dialog).getByRole("textbox", { name: "Search templates" });
+    expect(document.activeElement).toBe(search);
+    fireEvent.keyDown(search, { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: "Add metrology" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Add after this entry" })).toBe(add);
+    expect(add.isConnected).toBe(true);
+    expect(api.createMetrologyTemplate).not.toHaveBeenCalled();
+    expect(api.createMetrologyRunEntry).not.toHaveBeenCalled();
+    expect(owner.onSaved).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(add);
+  });
+
+  it("returns idle Close focus to the same Step Add control after its Metrology menu action unmounts", async () => {
+    const owner = renderGrid();
+    const add = screen.getByRole("button", { name: "Add after this entry" });
+    add.focus(); expect(document.activeElement).toBe(add); fireEvent.click(add);
+    const menuAction = screen.getByRole("button", { name: "Metrology" });
+    menuAction.focus(); expect(document.activeElement).toBe(menuAction); fireEvent.click(menuAction);
+    const dialog = screen.getByRole("dialog", { name: "Add metrology" });
+    await within(dialog).findByRole("button", { name: /SEM.*Add/ });
+    expect(menuAction.isConnected).toBe(false);
+    const search = within(dialog).getByRole("textbox", { name: "Search templates" });
+    expect(document.activeElement).toBe(search);
+    const close = within(dialog).getByRole("button", { name: "Close" });
+    close.focus(); expect(document.activeElement).toBe(close); fireEvent.click(close);
+    expect(screen.queryByRole("dialog", { name: "Add metrology" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Add after this entry" })).toBe(add);
+    expect(add.isConnected).toBe(true);
+    expect(api.createMetrologyTemplate).not.toHaveBeenCalled();
+    expect(api.createMetrologyRunEntry).not.toHaveBeenCalled();
+    expect(owner.onSaved).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(add);
+  });
+
+  it("returns focus to picker Search after cancelling an idle embedded create form", async () => {
+    const owner = renderGrid(); const dialog = await openPicker();
+    const create = within(dialog).getByRole("button", { name: "Create new metrology template" });
+    create.focus(); fireEvent.click(create);
+    const title = within(dialog).getByLabelText("Template title");
+    expect(document.activeElement).toBe(title);
+    const cancel = within(dialog).getByRole("button", { name: "Cancel" });
+    cancel.focus(); expect(document.activeElement).toBe(cancel);
+    fireEvent.click(cancel);
+    const search = within(dialog).getByRole("textbox", { name: "Search templates" });
+    expect(screen.getByRole("dialog", { name: "Add metrology" })).toBe(dialog);
+    expect(within(dialog).queryByLabelText("Template title")).toBeNull();
+    expect(document.activeElement).toBe(search);
+    expect(api.listMetrologyTemplates).toHaveBeenCalledTimes(1);
+    expect(api.createMetrologyTemplate).not.toHaveBeenCalled();
+    expect(api.createMetrologyRunEntry).not.toHaveBeenCalled();
+    expect(owner.onSaved).not.toHaveBeenCalled();
+  });
+
   it.each(["read-only", "completed"] as const)("keeps Add unavailable for a %s run", mode => {
     renderGrid(undefined, { readOnly: mode === "read-only", completed: mode === "completed" });
     const add = screen.queryByRole("button", { name: "Add after this entry" }) as HTMLButtonElement | null;

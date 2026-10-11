@@ -1,0 +1,54 @@
+{
+  "stage": "fresh-combined-metrology-focus-build",
+  "argv": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "cwd": "/tmp/phase5f-metrology-focus-combined7ba-source-attempt1",
+  "startedAt": "2026-10-10T23:42:42.650571+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/finite-runtime-attempt1/fresh-combined-metrology-focus-build.log",
+  "pid": 338597,
+  "processGroup": 338597,
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 338688,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 338597,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 338688,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 338597,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 338688,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 338597,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-10T23:42:47.426652+00:00",
+  "logSha256": "f02975189bcbefdf7072b8e2ae73f4ff6ad27bfb7676adfb1c8fb5a0cbfd0911"
+}

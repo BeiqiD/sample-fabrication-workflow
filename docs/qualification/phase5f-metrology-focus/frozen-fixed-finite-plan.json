@@ -1,0 +1,64 @@
+{
+  "kind": "phase5f-metrology-Cancel-Escape-Close-finite-affected-plan/1",
+  "head": "d191eac9aab2f5b89037a3630eb68e417e8046e2",
+  "tree": "7b858579d85008e7c6ba08b9e48105286ea7679a",
+  "root": "/tmp/phase5f-metrology-focus-combined7ba-source-attempt1",
+  "runtime": "/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/finite-runtime-attempt1",
+  "sourceReceipt": {
+    "path": "/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/fixed-source-receipt.json",
+    "sha256": "aaa8264a0299dfd69e72df245fa64a4b386717067c96ba278f3714858bce6a68"
+  },
+  "runtimeStatus": "Newcombined41/strict/build UNRUN explicitGO required",
+  "commands": [
+    {
+      "stage": "current-app-strict",
+      "argv": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.app.json"
+      ],
+      "cwd": "/tmp/phase5f-metrology-focus-combined7ba-source-attempt1"
+    },
+    {
+      "stage": "real-grid-picker-pending41",
+      "argv": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.mounted.config.ts",
+        "src/phase5f-metrology-pending.mount.test.tsx",
+        "src/phase5f-metrology-picker-read.mount.test.tsx",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile=/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/finite-runtime-attempt1/mounted41.vitest.json"
+      ],
+      "cwd": "/tmp/phase5f-metrology-focus-combined7ba-source-attempt1",
+      "expectedStaticCases": 41
+    },
+    {
+      "stage": "fresh-combined-metrology-focus-build",
+      "argv": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "/tmp/phase5f-metrology-focus-combined7ba-source-attempt1"
+    }
+  ],
+  "budgets": "Original config/default5s/assertions. No retry/testTimeout/flag weakening; stop first failure, all laterstagesUNRUN; own child/group finally+reap and actualZ/inaccessibleFD metadata kept separate.",
+  "scope": "Exactly current real-grid Cancel1+Escape1+Close1+originalpending26+picker12=41, currentappstrict/newfreshbuild; all old budgets/assertions remain. Existing sharedmodal/api/SQL/revisions/operation ownership unchanged. Old7ba39/build stays independent exactsource.",
+  "queuedBrowserSupplement": {
+    "status": "UNRUN original98c helper requires finite sameStepEscape/Close additions/newcombined source then freshartifact proof before futureexclusiveGO",
+    "finiteCases": [
+      "390dark Cancel\u2192newSearch/query +Escape\u2192same originalStepAdd +nativeClose\u2192sameStepAdd",
+      "1280light same originalkeyboard controls/readonlyreadbacks/theme/documentbounds"
+    ],
+    "fixture": "Fresh genuine current24 Worker/mature84 only, no legacybrowsermatrix/perf/backend/nativecases",
+    "ownership": "Mature own browser/Worker stdin-stop awaited disposition and pre/postphysical, firstfailure/UNRUN preserved"
+  }
+}
