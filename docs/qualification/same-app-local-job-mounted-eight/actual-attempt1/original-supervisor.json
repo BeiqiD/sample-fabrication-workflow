@@ -1,0 +1,22 @@
+{
+  "kind": "same-app-mounted-local-job-eight-supervision/1",
+  "status": "PASS",
+  "startedAt": "2026-10-11T15:42:00.946387+00:00",
+  "argv": [
+    "python3",
+    "/workspace/same-app-local-job-mounted-typed-source-handoffs/finite-original-mounted-eight-peerbound-attempt1/original-owned-runner.py"
+  ],
+  "runnerSha256": "21e260db7744e49004e78d6b9ba432cd136ed49f6249c20be75d1e57a69c3963",
+  "planSha256": "901d349f20f479a3d48463ed3ee36b324e75ddd4806c2a445c1f4ab803bc11b9",
+  "outerBudgetSeconds": 180,
+  "scope": "Same original configured application mounts ten current administrator Job HTTP endpoints and exact trusted scheduler slots on its one Native/core/opening/physical writer. Eight wholly fresh controls; no elapsed120s cadence or terminal-negative fault qualification. Default Job opt-in and persisted executor remain disabled unless genuinely configured. Original private Request/current administrator/Job incarnation/recovery/profile/body/provider and cached first-close ACK boundaries remain required. No Group/V28, other domain, CLI/Docker or Native case carry.",
+  "originalHandleWaitRequired": true,
+  "pid": 1314870,
+  "processGroup": 1314870,
+  "exitCode": 0,
+  "originalRunnerWaitedReaped": true,
+  "endedAt": "2026-10-11T15:42:36.772898+00:00",
+  "seconds": 35.826,
+  "actualReceiptPath": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/receipt.json",
+  "actualReceiptSha256": "775123487d0a8181a560bd558f997b6054d156456411cf22641e4ebafb5b8c07"
+}

@@ -220,6 +220,8 @@ export async function createNodeDevelopmentPrototype(options: {
 }): Promise<{
   server: Server;
   close(): Promise<void>;
+  /** Explicit trusted scheduler slot, never a request-supplied execution grant. */
+  dispatchFileJobsOnce(): Promise<{ readonly jobId: string | null; readonly outcome: string }>;
   readonly unsupportedRouteOwners: readonly string[];
 }> {
   // Capture one actual owner tuple and policy before any constructor KDF.
@@ -295,19 +297,19 @@ async function constructLeasedDevelopmentPrototype(options: Parameters<typeof cr
     idleLifetimeMs: identityPolicy.idleLifetimeMs, sessionPredicate: auth.currentSessionPredicate });
   const projectSubjectScope = Object.freeze({ authenticationFamily: "node-local" as const, installationContext: installation.installationId });
   const bindings = Object.freeze({ database });
+  let active = true;
   let localFile: ReturnType<typeof createNodeLocalFileHost> | undefined;
   if (localFileConfiguration !== undefined) {
     fileCustody.hostAttempted = true;
     // Own the original returned host before the next async static-assets step.
     localFile = createNodeLocalFileHost({ configuration: localFileConfiguration, database, nativeDatabase,
-      admission, writerLease, authentication: auth });
+      admission, writerLease, authentication: auth, stopApplicationAdmission: () => { active = false; } });
     fileCustody.host = localFile;
   }
   const localFileAdmissions = localFile?.admittedRoutes.map(route => ({ method: route.method,
     pattern: new RegExp(`^/api${route.path.replace(/:[A-Za-z]+/g, "[^/]+")}$`) })) ?? [];
   const localFileMethodAdmitted = (method: string, path: string): boolean =>
     localFileAdmissions.some(route => route.method === method && route.pattern.test(path));
-  let active = true;
   const cache = createStorageConfigurationCacheControl<NodeApplicationBindings, NodeApplicationEnvironment["Variables"]>();
   const authenticate: MiddlewareHandler<NodeApplicationEnvironment> = (c, next) =>
     c.req.path === "/api/health" ? next() : auth.middleware(c, next);
@@ -620,7 +622,8 @@ async function constructLeasedDevelopmentPrototype(options: Parameters<typeof cr
     maintenance: "unavailable", systemRecovery: "unavailable", storageConfiguration: app => { app.route("/", configuration); },
     platform: app => { app.route("/", platform); }, storageSettings: "unavailable",
     fileAuthority: mountedLocalFile ? application => { application.route("/", mountedLocalFile.routes); } : "unavailable",
-    migration: "unavailable", package: "unavailable", commentSubmission: "unavailable", projectFoundation: "unavailable",
+    migration: mountedLocalFile?.jobRoutes ? application => { application.route("/", mountedLocalFile.jobRoutes!); } : "unavailable",
+    package: "unavailable", commentSubmission: "unavailable", projectFoundation: "unavailable",
     exportSnapshot: "unavailable", shadow: "unavailable", fileEvidenceAccess: app => { app.route("/", evidence); },
     shadowAdjudication: "unavailable", project: app => { app.route("/", projectReads); app.route("/", projectWrites); }, reference: app => { app.route("/", referenceReads); },
     sample: app => { app.route("/", sampleReads); app.route("/", sampleMetadata); },
@@ -666,8 +669,13 @@ async function constructLeasedDevelopmentPrototype(options: Parameters<typeof cr
     },
   });
   fileCustody.server = server;
+  localFile?.startJobsOnListening(server);
   let closing: Promise<void> | undefined;
   const prototype: Awaited<ReturnType<typeof createNodeDevelopmentPrototype>> = Object.freeze({ server,
+    dispatchFileJobsOnce() {
+      if (!active) return Promise.reject(new Error("Local runtime admission is closed"));
+      return localFile ? localFile.dispatchJobsOnce() : Promise.resolve({ jobId: null, outcome: "disabled" });
+    },
     unsupportedRouteOwners: Object.freeze([...BEFORE_FILE_AUTHORITY_ROUTE_OWNERS, ...AFTER_FILE_AUTHORITY_ROUTE_OWNERS]
       .filter(name => mounts[name] === "unavailable")),
     close() {

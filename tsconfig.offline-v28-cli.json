@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.server.json",
+  "include": [
+    "server/operations/restore-v28-cli.ts",
+    "server/operations/restore-v28-operator.test.ts",
+    "server/operations/restore-v28-cli.qualification.ts"
+  ],
+  "exclude": []
+}

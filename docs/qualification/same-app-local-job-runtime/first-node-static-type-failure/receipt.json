@@ -1,0 +1,41 @@
+{
+  "kind": "same-app-local-job-affected-node-worker-static-actual/1",
+  "status": "FAILED",
+  "sourceHead": "4a2787e21fa350718b6575a034e11e492021b8bd",
+  "sourceTree": "841afc6ee3029c426812495bcefe269dbd5e9cea",
+  "sourceFreezePath": "/workspace/same-app-local-job-mounted-source-handoffs/complete-before-affected-node-worker-types-source-freeze.json",
+  "sourceFreezeSha256": "08c809aa957ad60db30576cfd51bb0949768e645c8099278f73afe42a5baaf06",
+  "sourceInputCount": 2582,
+  "sourcePinsVerifiedBeforeAfter": true,
+  "compilerResults": [
+    {
+      "name": "node-job-runtime-owned-tests",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/typescript/bin/tsc",
+        "--project",
+        "tsconfig.local-job-runtime-owned-tests.json",
+        "--noEmit",
+        "--incremental",
+        "false"
+      ],
+      "actualSourceHead": "4a2787e21fa350718b6575a034e11e492021b8bd",
+      "actualSourceTree": "841afc6ee3029c426812495bcefe269dbd5e9cea",
+      "pid": 1266429,
+      "actualOriginalChildWaitedReaped": true,
+      "exitCode": 1,
+      "observedDirectChildWallSeconds": 1.003594,
+      "logPath": "/workspace/same-app-local-job-mounted-source-handoffs/affected-node-worker-types-attempt1/node-job-runtime-owned-tests.log",
+      "logSha256": "c1633a5fd4bc98158c98c3f1de92f8706ec09178d3213fed68d28999f661c023",
+      "sourcePinsVerifiedBeforeAfter": true
+    }
+  ],
+  "expectedStaticScopes": 2,
+  "actualStaticScopesExecuted": 1,
+  "remainingStaticScopesUnrun": 1,
+  "dependencyCanonicalTarget": "/workspace/sample-fabrication-workflow/node_modules",
+  "nodeExecutableSha256": "bc17c508ffeed0ec622934f9b7fa72f8e78da65350e63c3eceb56fa688aa5e12",
+  "typescriptEntrypointSha256": "2219f428a7e55aaf1f7ad85b9b0f0cf5078aeb76ccc9a7c6036c92d48f492ffd",
+  "nativeCasesExecuted": 0,
+  "scope": "Only affected genuine Node fixture/production and Worker environment TypeScript scopes. No runtime/module/SQLite/socket/provider/browser/build effects."
+}

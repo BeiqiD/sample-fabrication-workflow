@@ -29,6 +29,8 @@ export interface NodeRuntimeConfiguration {
   readonly localVolumes: readonly Readonly<NodeConfiguredLocalVolumeDescriptor>[];
   /** Explicit host opt-in only; existing current profile/role/File authority is still required. */
   readonly enableLocalFile: boolean;
+  /** Explicit independent Job host opt-in; never enables or resumes persisted work. */
+  readonly enableLocalJobs: boolean;
   readonly filesystemRootOwnerUid: number;
 }
 interface Identity { dev: bigint; ino: bigint; uid: bigint; gid: bigint; mode: bigint }
@@ -82,7 +84,7 @@ function exactKeys(value: unknown): value is Record<string, unknown> {
   const fields = ['format', 'dataDirectory', 'expectedInstallationId', 'publicOrigin', 'clientDirectory'];
   const names = Object.keys(value);
   return fields.every(name => names.includes(name)) && names.every(name => fields.includes(name)
-    || name === 'storageKeyringPath' || name === 'localVolumes' || name === 'enableLocalFile');
+    || name === 'storageKeyringPath' || name === 'localVolumes' || name === 'enableLocalFile' || name === 'enableLocalJobs');
 }
 
 function overlaps(a: string, b: string): boolean {
@@ -158,6 +160,8 @@ export function loadNodeRuntimeConfiguration(path: string, options: { filesystem
       [path, raw.dataDirectory, raw.clientDirectory, ...(raw.storageKeyringPath === undefined ? [] : [raw.storageKeyringPath])], directories);
     if (raw.enableLocalFile !== undefined && typeof raw.enableLocalFile !== 'boolean'
       || raw.enableLocalFile === true && localVolumes.length === 0) unavailable();
+    if (raw.enableLocalJobs !== undefined && typeof raw.enableLocalJobs !== 'boolean'
+      || raw.enableLocalJobs === true && raw.enableLocalFile !== true) unavailable();
     const after = fstatSync(descriptor, { bigint: true }), afterPath = lstatSync(path, { bigint: true });
     privateConfiguration(after, owner); privateConfiguration(afterPath, owner);
     if (!sameFile(fileIdentity(opened), fileIdentity(after)) || !sameFile(fileIdentity(opened), fileIdentity(afterPath))) unavailable();
@@ -165,7 +169,8 @@ export function loadNodeRuntimeConfiguration(path: string, options: { filesystem
       expectedInstallationId: raw.expectedInstallationId, publicOrigin: raw.publicOrigin,
       host: origin.hostname === '[::1]' ? '::1' as const : '127.0.0.1' as const, port,
       clientDirectory: raw.clientDirectory, ...(raw.storageKeyringPath === undefined ? {} : { storageKeyringPath: raw.storageKeyringPath }),
-      localVolumes, enableLocalFile: raw.enableLocalFile === true, filesystemRootOwnerUid: configuredRoot });
+      localVolumes, enableLocalFile: raw.enableLocalFile === true, enableLocalJobs: raw.enableLocalJobs === true,
+      filesystemRootOwnerUid: configuredRoot });
     const token = Object.freeze({ kind: 'loaded-node-loopback-development/1' as const });
     issued.set(token, { value, path, owner, file: fileIdentity(opened), directories });
     assertNodeRuntimeConfiguration(token); return token;

@@ -9,7 +9,7 @@ import { createLocalProfileRegistration } from "../../worker/storage/local-profi
 import { assertInstallationAdmission, type ReviewedInstallationAdmission } from "../migrations";
 import { V26_NODE_INSTALLATION_CATALOG } from "../installation-catalog-v26";
 import { assertLinuxWriterLeaseBinding, type LinuxWriterLease } from "../operations/writer-lease";
-import { asJobSqlDatabase, type SqliteBatchAdmission, type SqliteCapability } from "../sqlite";
+import { asJobSqlDatabase, type SqliteBatchAdmission, type SqliteCapability, type SqliteStatement } from "../sqlite";
 import { asAdmittedFileAuthoritySqlDatabase, asFileAuthoritySqlDatabase, assertNativeFileAuthoritySqlOwner,
   type NativeFileAuthoritySqlDatabase } from "../file-authority-sql";
 import type { FileAuthoritySqlStatement } from "../../worker/runtime/file-authority-sql";
@@ -137,6 +137,19 @@ export function prepareLocalVolumeProfileAuthorityFence(authority: LocalVolumePr
   return database.prepare(`SELECT CASE WHEN EXISTS(SELECT 1 FROM (${LOCAL_VOLUME_PROFILE_SOURCE_SQL}) current
     WHERE ${LOCAL_VOLUME_PROFILE_SOURCE_COLUMNS.map(column => `current.${column} IS ?`).join(" AND ")})
     THEN 1 ELSE json('Captured local File authority changed') END`)
+    .bind(...localVolumeProfileSourceBindings(record.owner.installationId, record.profile, record.descriptor, record.access),
+      ...LOCAL_VOLUME_PROFILE_SOURCE_COLUMNS.map(column => record.captured[column]));
+}
+
+/** A background Job batch can fence the same privately issued profile tuple
+ * on its exact original core. This admits no new provider, role or mutation;
+ * the caller still owns separate installed Job and scheduled-source guards. */
+export function prepareLocalVolumeProfileSqliteFence(authority: LocalVolumeProfileAuthority,
+  database: SqliteCapability): SqliteStatement {
+  const record = profileAuthority(authority);
+  if (database !== record.owner.database) unavailable();
+  return database.prepare(`SELECT 1 AS admitted FROM (${LOCAL_VOLUME_PROFILE_SOURCE_SQL}) current
+    WHERE ${LOCAL_VOLUME_PROFILE_SOURCE_COLUMNS.map(column => `current.${column} IS ?`).join(" AND ")}`)
     .bind(...localVolumeProfileSourceBindings(record.owner.installationId, record.profile, record.descriptor, record.access),
       ...LOCAL_VOLUME_PROFILE_SOURCE_COLUMNS.map(column => record.captured[column]));
 }

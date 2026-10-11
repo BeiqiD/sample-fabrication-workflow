@@ -19,6 +19,7 @@ import { createLocalAcceptedUpload, LocalUploadConflictError, LocalUploadUnavail
 import { createLocalUploadExecution } from "./local-upload-execution";
 import { readOwnedUploadBody } from "./owned-upload-body";
 import { createLocalFileMetadataComposition } from "./local-file-metadata-composition";
+import { createNodeLocalFileJobs } from "./jobs/local-runtime";
 
 type FileEnvironment = { Bindings: { readonly database: SqliteCapability }; Variables: { userEmail: string } };
 type ExecutionScope = ReturnType<typeof createLocalUploadExecution>;
@@ -65,6 +66,7 @@ export function createNodeLocalFileHost(options: {
   readonly admission: ReviewedInstallationAdmission;
   readonly writerLease: LinuxWriterLease;
   readonly authentication: object;
+  readonly stopApplicationAdmission?: () => void;
 }) {
   const { configuration, database, nativeDatabase, admission, writerLease, authentication } = options;
   const config = assertNodeRuntimeConfiguration(configuration);
@@ -85,12 +87,22 @@ export function createNodeLocalFileHost(options: {
     // cannot use its underlying opening to exercise any admin metadata method.
     authorizeAdministrator: () => false });
   let metadata: ReturnType<typeof createLocalFileMetadataComposition>;
-  try { metadata = createLocalFileMetadataComposition({ opening, authentication, admission, publicOrigin: config.publicOrigin }); }
-  catch (error) { throw new NodeLocalFileDrainError([error], [configuration, auth, identity, opening]); }
-  const scopes = new Set<ScopeOwner>();
+  let jobs: ReturnType<typeof createNodeLocalFileJobs> | undefined;
   let phase: "open" | "stopping" | "closed" | "quarantined" = "open";
+  try {
+    metadata = createLocalFileMetadataComposition({ opening, authentication, admission, publicOrigin: config.publicOrigin });
+    if (config.enableLocalJobs) jobs = createNodeLocalFileJobs({ configuration, opening, authentication, admission,
+      stopApplicationAdmission() {
+        phase = "quarantined"; metadata.stopAdmission(); options.stopApplicationAdmission?.();
+      } });
+  }
+  catch (error) { throw new NodeLocalFileDrainError([error], [configuration, auth, identity, opening, jobs]); }
+  const scopes = new Set<ScopeOwner>();
   let closing: Promise<void> | undefined;
   let dispatched = false;
+  function stopJobsAfterFileQuarantine(): void {
+    if (jobs) { jobs.stopAdmission(); options.stopApplicationAdmission?.(); }
+  }
   const assertCurrent = () => {
     if (assertNodeRuntimeConfiguration(configuration) !== config
       || localAuthenticationIdentityAuthority(authentication) !== auth)
@@ -109,14 +121,15 @@ export function createNodeLocalFileHost(options: {
       record.failure = error;
       // Ordinary business denial follows proved original provider/hold drain.
       // Typed failed cleanup is retained even after Hono sanitizes its reply.
-      if (cleanupUnproven(error)) phase = "quarantined";
+      if (cleanupUnproven(error)) { phase = "quarantined"; stopJobsAfterFileQuarantine(); }
       else scopes.delete(record);
     });
     return record;
   }
   const routes = new Hono<FileEnvironment>();
   const admittedRoutes = Object.freeze([{ method: "POST", path: "/assets" }, { method: "GET", path: "/r2-upload-requests/:requestId" },
-    { method: "GET", path: "/file-assets/:assetId" }, ...metadata.admittedRoutes].map(route => Object.freeze(route)));
+    { method: "GET", path: "/file-assets/:assetId" }, ...metadata.admittedRoutes,
+    ...(jobs?.admittedRoutes ?? [])].map(route => Object.freeze(route)));
   // Scope ingress to actual host methods. A wildcard child middleware would
   // accidentally gate the unrelated legacy methods when mounted at /api.
   for (const route of admittedRoutes) routes.on(route.method, route.path, async (_c, next) => {
@@ -200,23 +213,31 @@ export function createNodeLocalFileHost(options: {
   routes.route("/", metadata.routes);
   return Object.freeze({ routes,
     admittedRoutes,
-    stopAdmission(): void { if (phase === "open") phase = "stopping"; metadata.stopAdmission(); },
+    jobRoutes: jobs?.routes,
+    startJobsOnListening(server: Server): void { jobs?.startOnListening(server); },
+    dispatchJobsOnce(): Promise<Readonly<{jobId: string | null; outcome: string}>> {
+      return jobs ? jobs.dispatchOnce() : Promise.resolve({jobId:null,outcome:"disabled"});
+    },
+    stopAdmission(): void { if (phase === "open") phase = "stopping"; metadata.stopAdmission(); jobs?.stopAdmission(); },
     /** Cached constructor cleanup before a transport has been published.
      * This proves zero original dispatch; it never substitutes for HTTP drain. */
     closeBeforeTransport(): Promise<void> {
       if (closing) return closing;
       if (phase === "open") phase = "stopping";
       metadata.stopAdmission();
+      jobs?.stopAdmission();
       closing = (async () => {
         try {
           if (dispatched || scopes.size || phase === "quarantined")
             throw new Error("Original File transport ownership is required");
           await metadata.closeBeforeTransport();
+          await jobs?.drain();
           await opening.close();
           assertCurrent(); phase = "closed";
         } catch (error) {
           phase = "quarantined";
-          throw new NodeLocalFileDrainError([error], [configuration, auth, identity, opening, metadata, scopes]);
+          stopJobsAfterFileQuarantine();
+          throw new NodeLocalFileDrainError([error], [configuration, auth, identity, opening, metadata, jobs, scopes]);
         }
       })();
       closing.then(() => undefined, () => undefined);
@@ -229,6 +250,7 @@ export function createNodeLocalFileHost(options: {
       if (closing) return closing;
       if (phase === "open") phase = "stopping";
       metadata.stopAdmission();
+      jobs?.stopAdmission();
       closing = (async () => {
         const errors: unknown[] = [];
         try { await stopNodeHttpServerAndDrain(server); } catch (error) { errors.push(error); }
@@ -240,17 +262,20 @@ export function createNodeLocalFileHost(options: {
         const disposal = await Promise.allSettled(current.flatMap(record => [record.dispose(), ...[...record.reads].map(read => read.dispose())]));
         for (const value of disposal) if (value.status === "rejected" && cleanupUnproven(value.reason)) errors.push(value.reason);
         try { await metadata.drainAfterTransport(server); } catch (error) { errors.push(error); }
+        try { await jobs?.drain(); } catch (error) { errors.push(error); }
         // A reported original HTTP/domain/provider failure retains this exact
         // opening and all physical owners. Closing the opening cannot certify
         // settlement of those original promises.
         if (errors.length || phase === "quarantined") {
           phase = "quarantined";
-          throw new NodeLocalFileDrainError(errors, [configuration, auth, identity, opening, metadata, scopes, server]);
+          stopJobsAfterFileQuarantine();
+          throw new NodeLocalFileDrainError(errors, [configuration, auth, identity, opening, metadata, jobs, scopes, server]);
         }
         try { await opening.close(); } catch (error) { errors.push(error); }
         if (errors.length) {
           phase = "quarantined";
-          throw new NodeLocalFileDrainError(errors, [configuration, auth, identity, opening, metadata, scopes, server]);
+          stopJobsAfterFileQuarantine();
+          throw new NodeLocalFileDrainError(errors, [configuration, auth, identity, opening, metadata, jobs, scopes, server]);
         }
         assertCurrent(); phase = "closed";
       })();

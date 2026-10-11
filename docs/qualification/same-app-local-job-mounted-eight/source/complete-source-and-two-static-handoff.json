@@ -1,0 +1,66 @@
+{
+  "kind": "same-app-mounted-local-job-complete-source-handoff/1",
+  "status": "SOURCE_FROZEN_TWO_AFFECTED_STATIC_SCOPES_PASS_EIGHT_NATIVE_UNRUN",
+  "root": "/workspace/portable-current-node-mounted-local-jobs-typed-source-attempt2",
+  "head": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+  "tree": "2a5c10a8190f6807f59d8a2282411b82f46c78e5",
+  "basisHead": "eaef0b5d1346faaa5cdf0fc8db0d9439919f1c42",
+  "sourceInputCount": 2585,
+  "ownedInputCount": 16,
+  "protectedBasisInputCount": 2569,
+  "productionPaths": [
+    "server/files/jobs/execution-admission.ts",
+    "server/files/jobs/local-runtime.ts",
+    "server/files/jobs/repository.ts",
+    "server/files/node-local-file-host.ts",
+    "server/node-application.ts",
+    "server/node-runtime-config.ts",
+    "server/storage/local-volume-profile-opening.ts",
+    "worker/files/jobs/types.ts"
+  ],
+  "qaPaths": [
+    "server/files/jobs/local-runtime.qualification.ts",
+    "server/files/jobs/local-runtime.qualification-support.ts",
+    "local-job-runtime-qualification.vitest.config.mts",
+    "tsconfig.local-job-runtime-owned-tests.json"
+  ],
+  "evidencePaths": [
+    "docs/qualification/same-app-local-job-runtime/first-node-static-type-failure/failure.json",
+    "docs/qualification/same-app-local-job-runtime/first-node-static-type-failure/node-job-runtime-owned-tests.log",
+    "docs/qualification/same-app-local-job-runtime/first-node-static-type-failure/receipt.json",
+    "docs/qualification/same-app-local-job-runtime/source-scope.md"
+  ],
+  "sourceFreeze": {
+    "path": "/workspace/same-app-local-job-mounted-typed-source-handoffs/complete-before-affected-node-worker-types-source-freeze.json",
+    "sha256": "063a64ed0b236e1433cc6963c8e4690f99af16db0e21e23737d9477f2be73fa8"
+  },
+  "sourcePatch": {
+    "path": "/workspace/same-app-local-job-mounted-typed-source-handoffs/complete-owned-source.patch",
+    "sha256": "ae4e9f6a269162b97750c8465958e45bdf31aca549f1869f9ff7d152514cef11"
+  },
+  "sourcePreservationProof": {
+    "path": "/workspace/same-app-local-job-mounted-typed-source-handoffs/complete-original-source-preservation-proof.json",
+    "sha256": "a500390d531ebfa33a7f0fb9ad18259b4636e045c767115d67a5b8de555f7320"
+  },
+  "finiteSourcePlan": {
+    "path": "/workspace/same-app-local-job-mounted-typed-source-handoffs/genuine-eight-source-finite-plan.json",
+    "sha256": "27ff707c8bc8071fdb16f2f32f0d8b6de5c6df9523cfe634fccb147acf6eb08a"
+  },
+  "actualCurrentAffectedStaticReceipt": {
+    "path": "/workspace/same-app-local-job-mounted-typed-source-handoffs/affected-node-worker-types-attempt1/receipt.json",
+    "sha256": "04efb5ce2f9e1189a0fa9df66eae318fada40660c4c5f0056cce353d46cdce1e"
+  },
+  "genuineQualifiedFixtureDonorEditProof": {
+    "path": "/workspace/same-app-local-job-mounted-source-handoffs/qualified-composer-full-fixture-donor-declared-edit-proof.json",
+    "sha256": "397c28a80d8885e14129ca4585f3f62c0edf74b35bc4608667fcdf6492647850"
+  },
+  "priorFirstNodeTypeFailure": {
+    "head": "4a2787e21fa350718b6575a034e11e492021b8bd",
+    "receiptPath": "/workspace/same-app-local-job-mounted-source-handoffs/affected-node-worker-types-attempt1/receipt.json",
+    "receiptSha256": "b0b912fa5faca8e3feb41e5527f03762d0750425781feeffdb02a78a18e8296c",
+    "workerCompilerUnrun": true
+  },
+  "nativeCasesExecuted": 0,
+  "wholeSourcePeer": "PENDING",
+  "limitations": "Automatic real120s cadence has source binding and no eager startup; finite controls execute the exact trusted original scheduler slot and actual providers, not an elapsed120s timer qualification. Terminal failed provider cleanup uses the original strong error graph but no terminal-negative test is executed in normal8. Fenced physical GC, Group/V28 rights and CLI/Docker are separate."
+}

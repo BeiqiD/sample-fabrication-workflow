@@ -1,0 +1,15 @@
+{
+  "kind": "original-active-direct-child-kernel-observation/1",
+  "observedWhileActive": true,
+  "runnerPid": 1314870,
+  "children": [
+    {
+      "pid": 1314879,
+      "state": "S",
+      "ppid": 1314870,
+      "pgid": 1314879,
+      "startTicks": 14658198,
+      "cmdline": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node node_modules/vitest/vitest.mjs run --config local-job-runtime-qualification.vitest.config.mts --reporter=verbose --reporter=json --outputFile.json=/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/actual-native.json "
+    }
+  ]
+}
