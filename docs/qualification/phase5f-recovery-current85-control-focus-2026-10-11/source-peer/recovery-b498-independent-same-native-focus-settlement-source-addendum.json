@@ -1,0 +1,21 @@
+{
+  "kind": "recovery-b498-independent-same-native-focus-settlement-source-addendum/1",
+  "status": "SOURCE_CLEAR",
+  "root": "/workspace/phase5f-recovery-job-control-focus-current5ca-browser-settlement-source-attempt5",
+  "head": "b498aa01b3742e15438fd8c8a9dd9383637d9bf0",
+  "tree": "5a850325b06e609f9bbef37131daee9e1311afc1",
+  "allGitPhysicalModeInputs": 2346,
+  "protectedOriginal2aAndProducer85Inputs": 2345,
+  "helperSha256": "e81728958e5cf6ec8d375a0f29ba47b976ca90b3311dbab5e5057e037d0202d3",
+  "wholeHelperTwoSliceInverseExact2a": true,
+  "priorCompleteHelperSourcePeer": {
+    "path": "/workspace/recovery2a-independent-complete-current-native-helper-source-peer.json",
+    "sha256": "f8eac9db724c4ad89aaf3c5eea8b0ba0bae2599b644e519b7aa60a442aeed595",
+    "status": "OriginalBLOCKED retained; exact F1 resolved by this successor"
+  },
+  "resolvedFinding": "Original control action monotonic start captured immediately before original Enter. Exact same native focusTarget handle retained; wait observes connected && document.activeElement===node under only remaining original20s. Metadata/assertions use that same handle. No focus movement, new request/retry/body read/waiver. Returned settledJSHandle and target ElementHandle disposed by nestedfinally on success or error. Original immediate connected/active/tag/role and surviving-trigger focus assertions retained.",
+  "inheritedFullClear": "All original6 EOF/CDP/full actions/Response-reader-Promise identities/hash/3-table63permit/history/owners/current85 fresh-producer proof/+2/20+120 and shortchildTMP source remain byte-identical outside the two exact slices. No product change or build replay.",
+  "concreteBlockers": [],
+  "reviewerCompilerNativeBrowserSQLiteSocketModuleHelperRunnerPreflightCommands": 0,
+  "nativeTwoCases": "UNRUN; final consumer/13plan retarget and separate root GO required"
+}

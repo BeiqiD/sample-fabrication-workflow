@@ -1,0 +1,40 @@
+{
+  "stage": "owned-built-worker",
+  "cwd": "/workspace/recovery-current-focus-native-private-attempt7/copy",
+  "argv": [
+    "node",
+    "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2/scripts/qa/phase5f/start-built-server.mjs",
+    "/workspace/recovery-current-focus-native-private-attempt7/copy",
+    "/workspace/recovery-current-focus-native-private-attempt7/fixture"
+  ],
+  "control": "Keep owned stdin open, await actual ready health/ready200 and immutable owner/session; never start browser while readiness lacks",
+  "toolInvocation": {
+    "tty": true,
+    "yieldTimeMs": 1000,
+    "control": "PTY keeps originalstdin alive, sourceisatty guard BEFORE childspawn. Require originalready200/session/PID/startticks/noStop beforeseed. Explicitoriginalstop newline only originaltoolsession, thenactualdisposal/directwait."
+  },
+  "env": {
+    "TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7",
+    "SQLITE_TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7"
+  },
+  "startedAt": "2026-10-11T11:34:58.721071+00:00",
+  "status": "PASS",
+  "log": "/workspace/recovery-current-focus-native-private-attempt7/runtime/owned-built-worker.log",
+  "pid": 1131726,
+  "processGroup": 1131726,
+  "originalStartTicks": "13175949",
+  "originalStdinStopSent": true,
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T11:35:29.459498+00:00",
+  "logSha256": "4264d5066d8700878618fb676130562657e17ad71e2e53575bad5775eff48e6f"
+}

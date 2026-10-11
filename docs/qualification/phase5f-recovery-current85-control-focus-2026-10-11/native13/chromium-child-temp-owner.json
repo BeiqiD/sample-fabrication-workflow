@@ -1,0 +1,14 @@
+{
+  "path": "/workspace/.rcf6tmp",
+  "mode": "0700",
+  "uid": 1000,
+  "dev": "27",
+  "ino": "2029715",
+  "freshCreated": true,
+  "sourceHead": "85f70fd4f22530b98e6ceaafc7c1663f201e5b7a",
+  "sourceCopyRoot": "/workspace/recovery-current-focus-native-private-attempt7/copy",
+  "fixtureDirectory": "/workspace/recovery-current-focus-native-private-attempt7/fixture",
+  "qaHelperSha256": "e81728958e5cf6ec8d375a0f29ba47b976ca90b3311dbab5e5057e037d0202d3",
+  "freeBytes": "6318313472",
+  "scope": "Only this original future Chromium child temporary leaf; parent helper tmpdir and original COPY/FIXTURE paths remain unchanged."
+}

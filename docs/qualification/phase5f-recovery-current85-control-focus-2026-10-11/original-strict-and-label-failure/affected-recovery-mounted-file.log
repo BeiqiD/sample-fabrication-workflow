@@ -1,0 +1,30 @@
+
+ RUN  v4.1.10 /workspace/phase5f-recovery-job-control-focus-current5ca-source-attempt1
+
+ ❯ src/system-recovery.mount.test.tsx (22 tests | 1 failed) 1019ms
+     × returns keyboard focus within the same job after deferred pause, resume and cancellation without replay 64ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/system-recovery.mount.test.tsx > privileged website system backup and recovery workflow > returns keyboard focus within the same job after deferred pause, resume and cancellation without replay
+AssertionError: expected 'backup:job · cancelled · snapshot' to contain 'Cancelled'
+
+Expected: "Cancelled"
+Received: "backup:job · cancelled · snapshot"
+
+ ❯ src/system-recovery.mount.test.tsx:359:86
+    357|     const status = article!.querySelector('p[role="status"]'); expect(…
+    358|     await waitFor(() => expect(document.activeElement).toBe(status));
+    359|     expect(status!.textContent).toContain("backup:job"); expect(status…
+       |                                                                                      ^
+    360|     expect(cancel.isConnected).toBe(false); expect(status!.getAttribut…
+    361|     expect(calls("/jobs/backup%3Ajob/control", "POST").map(([, options…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 20 passed (22)
+   Start at  11:00:36
+   Duration  1.73s (transform 180ms, setup 0ms, import 294ms, tests 1.02s, environment 293ms)
+

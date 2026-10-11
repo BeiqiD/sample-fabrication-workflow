@@ -1,0 +1,56 @@
+{
+  "status": "CLOSED_RELEASED_FIRST_MOUNTED_FIXTURE_LABEL_FAILURE",
+  "sourceHead": "28e5f6e7f401dd95938153fd477a6d37af6ea38e",
+  "sourceCount": 2346,
+  "actualCommands": {
+    "passed": 1,
+    "failed": 1,
+    "strictActualPass": true
+  },
+  "mounted": {
+    "expectedCases": 22,
+    "actualPassed": 20,
+    "actualFailed": 1,
+    "bailUnrun": 1,
+    "failedCase": "returns keyboard focus within the same job after deferred pause, resume and cancellation without replay",
+    "specificFirstFailure": "new fixture expects capitalized Cancelled but unchanged actual state text is cancelled",
+    "observedPriorFocusAssertions": "same original deferred Pause\u2192Resume\u2192Pause\u2192Cancel/status focus reached and asserted; case still FAIL at label; no native browser proof",
+    "newOtherControlNoStealCase": "UNRUN under original bail1"
+  },
+  "closure": {
+    "originalStrictPid": 1090688,
+    "originalMountedPid": 1095546,
+    "bothDirectChildrenReaped": true,
+    "bothOriginalGroupsEmpty": true,
+    "signalsSent": 0,
+    "sourceClean": true
+  },
+  "notRun": {
+    "newBuild": 0,
+    "SQLiteWorkerBrowser": 0,
+    "additionalTests": 0
+  },
+  "raw": {
+    "affected-recovery-mounted-file-command.json": {
+      "path": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt1/affected-recovery-mounted-file-command.json",
+      "sha256": "c93fd6519a0df40a991f9a0bcb613df747d04f4f0d4f50a5d89b6a1f27f599b8"
+    },
+    "affected-app-strict.log": {
+      "path": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt1/affected-app-strict.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "affected-app-strict-command.json": {
+      "path": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt1/affected-app-strict-command.json",
+      "sha256": "8a69918e84c197d0d14fd24ab088dc6c54a76f8b9a4b21bd0eaced24e76808c9"
+    },
+    "frozen-approved-plan.json": {
+      "path": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt1/frozen-approved-plan.json",
+      "sha256": "108f81bd50221b981e8862f1c8cf031789ecd78b23f06ade0f836beda0197c8c"
+    },
+    "affected-recovery-mounted-file.log": {
+      "path": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt1/affected-recovery-mounted-file.log",
+      "sha256": "6fc85a22585dd58544fdb07161dcdb5938c89d78bc8480d7913a14b86eb93319"
+    }
+  },
+  "closedAt": "2026-10-11T11:01:18.894526+00:00"
+}

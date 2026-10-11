@@ -1,0 +1,35 @@
+{
+  "stage": "qualified-current85-build-producer-preflight",
+  "cwd": "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2",
+  "argv": [
+    "python3",
+    "-B",
+    "/workspace/phase5f-recovery-current-focus-final-b498-thirteen-source-preparation-attempt6/bind-current85-fresh-cf-build-and-job-control-focus.py",
+    "--coherent-cf-producer-for-genuine-job-controls-two",
+    "producer-preflight"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7",
+    "SQLITE_TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7"
+  },
+  "control": "Verify ONE actual current85 CF Worker/frontend build command/directreap/full output hashes; this thirteen-stage fixture has zero additional builds. Never borrow historical f228118/Node artifacts.",
+  "startedAt": "2026-10-11T11:33:48.825926+00:00",
+  "status": "PASS",
+  "log": "/workspace/recovery-current-focus-native-private-attempt7/runtime/qualified-current85-build-producer-preflight.log",
+  "pid": 1126518,
+  "processGroup": 1126518,
+  "originalStartTicks": "13168959",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T11:33:49.154898+00:00",
+  "logSha256": "1526840294dc311b819362a317d612b4942985bbdf52dc2dcc06a534e4a8af3f"
+}
