@@ -1,0 +1,147 @@
+{
+  "schema": "current-f883-original-seven-stage-formal-closure-release/1",
+  "status": "PASS_CLOSED_RELEASED",
+  "sourceCommit": "f883e64086bee44b353f3840271fa3eaaafdcc7d",
+  "sourceTree": "dda4d903cab9f410073ccb88d98e372f6f8d3fbd",
+  "originalTool": {
+    "sessionId": 85222,
+    "terminalChunk": "ce3247",
+    "exitCode": 0,
+    "originalWaitCompleted": true,
+    "runnerActivePidAndStartTicks": "UNKNOWN: active observation missed during context compaction; no posthoc reconstruction"
+  },
+  "actualStages": 7,
+  "actualFreshCases": {
+    "manifest": 8,
+    "parser": 6,
+    "genuineBundledCli": 3,
+    "total": 17
+  },
+  "historicalNativeCarry": 0,
+  "children": [
+    {
+      "stage": "current-node-client-build",
+      "pid": 1376186,
+      "processGroup": 1376186,
+      "exitCode": 0,
+      "ownedClosureProven": true,
+      "finalSnapshot": [],
+      "activeStartTicks": "UNKNOWN: not captured while active"
+    },
+    {
+      "stage": "current-node-client-map-verifier",
+      "pid": 1376258,
+      "processGroup": 1376258,
+      "exitCode": 0,
+      "ownedClosureProven": true,
+      "finalSnapshot": [],
+      "activeStartTicks": "UNKNOWN: not captured while active"
+    },
+    {
+      "stage": "closed-manifest-eight",
+      "pid": 1376310,
+      "processGroup": 1376310,
+      "exitCode": 0,
+      "ownedClosureProven": true,
+      "finalSnapshot": [],
+      "activeStartTicks": "UNKNOWN: not captured while active"
+    },
+    {
+      "stage": "closed-parser-six",
+      "pid": 1376350,
+      "processGroup": 1376350,
+      "exitCode": 0,
+      "ownedClosureProven": true,
+      "finalSnapshot": [],
+      "activeStartTicks": "UNKNOWN: not captured while active"
+    },
+    {
+      "stage": "current-fixed-four-bundle-build",
+      "pid": 1376397,
+      "processGroup": 1376397,
+      "exitCode": 0,
+      "ownedClosureProven": true,
+      "finalSnapshot": [
+        {
+          "pid": 1376408,
+          "state": "Z",
+          "openFileDescriptors": null,
+          "fdInspectionError": "PermissionError",
+          "kernelResourceOwnerExited": true,
+          "activeOrOwnershipUnproven": false
+        }
+      ],
+      "activeStartTicks": "UNKNOWN: not captured while active"
+    },
+    {
+      "stage": "current-v3-runtime-verifier",
+      "pid": 1376433,
+      "processGroup": 1376433,
+      "exitCode": 0,
+      "ownedClosureProven": true,
+      "finalSnapshot": [],
+      "activeStartTicks": "UNKNOWN: not captured while active"
+    },
+    {
+      "stage": "genuine-bundled-v5-cli-three",
+      "pid": 1376460,
+      "processGroup": 1376460,
+      "exitCode": 0,
+      "ownedClosureProven": true,
+      "finalSnapshot": [],
+      "activeStartTicks": "UNKNOWN: not captured while active"
+    }
+  ],
+  "sourceAndTemporaryPins": {
+    "originalReceiptRecordsBeforeAfter": true,
+    "verification": "See unchanged original receipt; no new checks or runtime introduced"
+  },
+  "refs": [
+    {
+      "path": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/closed-manifest-eight.log",
+      "sha256": "ef78196dca76cb3c75aafc750ce7a8377af7e3bc52d3b8c240ea4fc6b3c058de"
+    },
+    {
+      "path": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/closed-parser-six.json",
+      "sha256": "9748e518a947d355b2b0bba62afc51085213328e138a14fd11c652a60146d491"
+    },
+    {
+      "path": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/closed-parser-six.log",
+      "sha256": "515864dc7fa97420dfe7a64a40284de0920e008a9186840aba984684e0e69ac0"
+    },
+    {
+      "path": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/current-client-build-map-pair.json",
+      "sha256": "aa4191da34765335d1c0c0f1f4e266e06a9031110d661c8115c1f1e75f3b6ac0"
+    },
+    {
+      "path": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/current-fixed-four-bundle-build.log",
+      "sha256": "bcfec97df88810339358b5ff72d9cfa06ef304e253ffdfcd2ee384075d398d50"
+    },
+    {
+      "path": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/current-node-client-build.log",
+      "sha256": "300358c2b5bb3acb6b5f1d00a8b10d198e9f5457c8488fb695233e799185c232"
+    },
+    {
+      "path": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/current-node-client-map-verifier.log",
+      "sha256": "10c166b70cd96883311a8a6c744ce142738afb3c3aeacdd83192a32c3ca65260"
+    },
+    {
+      "path": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/current-v3-runtime-verifier.log",
+      "sha256": "4a12961a5ed5ee7a4a076e7f18c6a2e982db7423319f7f6bd81d757143992cdf"
+    },
+    {
+      "path": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/genuine-bundled-v5-cli-three.json",
+      "sha256": "f37c2ad4d8b68fc03801a80addcdf474b560e0230fe97de0c84d6e3543726790"
+    },
+    {
+      "path": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/genuine-bundled-v5-cli-three.log",
+      "sha256": "78d01b311c820acdde3277271d89bc94f20b83a49e13353359bb8041ad19ef0d"
+    },
+    {
+      "path": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/receipt.json",
+      "sha256": "f24bba824e6800152808c0379b11ec4bedbcc46a2dd3db7ef088dbb8a871bf6f"
+    }
+  ],
+  "recordedAt": "2026-10-11T16:45:57.713665+00:00",
+  "noOtherActualStarted": true
+}

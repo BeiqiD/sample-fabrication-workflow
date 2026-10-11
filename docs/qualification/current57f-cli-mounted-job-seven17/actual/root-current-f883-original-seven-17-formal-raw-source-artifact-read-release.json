@@ -1,0 +1,26 @@
+{
+  "status": "PASS_17_ORIGINAL7_FULLREAD_ROOT_RELEASED",
+  "head": "f883e64086bee44b353f3840271fa3eaaafdcc7d",
+  "formal": {
+    "path": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/formal-closure-release.json",
+    "sha256": "cfd27b84306358629dc8c4f23545d3a198b0d45d710ac9abaee1e2f1c6f87970"
+  },
+  "actualReceipt": {
+    "path": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/receipt.json",
+    "sha256": "f24bba824e6800152808c0379b11ec4bedbcc46a2dd3db7ef088dbb8a871bf6f"
+  },
+  "originalToolSession": 85222,
+  "originalTerminalChunk": "ce3247",
+  "originalToolExit": 0,
+  "sevenOriginalWaitReapsConfirmed": true,
+  "startTicks": "UNKNOWN_MISSED_DURING_ACTIVE_CONTEXT_COMPACTION_NOT_RECONSTRUCTED",
+  "builderZ1376408FdPermissionErrorRetained": true,
+  "all7RawLogsAnd17StatusesRead": true,
+  "all2794CurrentSourceHashesVerified": true,
+  "actualFreshFrontendArtifacts": 114,
+  "actualDistributionArtifacts": 123,
+  "actualBundlerSourceInputs": 837,
+  "artifactsAllRehashed": true,
+  "noSignalsOrHistoricalRetag": true,
+  "releasedAt": "2026-10-11T16:46:35.453706+00:00"
+}
