@@ -1,0 +1,360 @@
+// Source-only accept202 natural focus characterization; no Pause/Resume/Cancel is invoked.
+// One genuine Package saved job keyboard acceptance on a NEW independent isolated installation.
+// Producer is current coherent Saved/Package focus source; original paused failure history is never reopened.
+// Six genuine setup POSTs + one ordinary Sample POST + only two native metadata POSTs; executor stays disabled.
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { lstat, realpath, readFile, mkdir, writeFile } from 'node:fs/promises';
+import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
+import { resolve, relative, isAbsolute, sep } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { prepareGenuineTwoR2MigrationRuntime } from './prepare-genuine-two-r2-migration-runtime.mjs';
+
+const [sourceValue,fixtureValue,producerHead,permit,...extra]=process.argv.slice(2);
+assert(sourceValue&&fixtureValue&&producerHead==='2d07b57c4e79403099261528ae8988c0072d28c6'
+  &&permit==='--exclusive-go-one-current-package-start202-natural-focus'&&!extra.length);
+assert(process.stdin.isTTY,'Retain original interactive control before any owner startup.');
+const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
+const canonical=value=>JSON.stringify(value,(_key,item)=>item instanceof ArrayBuffer?{bytes:Buffer.from(item).toString('hex')}
+  :ArrayBuffer.isView(item)?{bytes:Buffer.from(item.buffer,item.byteOffset,item.byteLength).toString('hex')}:item);
+const temporary=await realpath(resolve(tmpdir()));
+const within=(root,value)=>{const part=relative(root,value);return part&&!part.startsWith(`..${sep}`)&&part!=='..'&&!isAbsolute(part);};
+async function privateRoot(value){assert(isAbsolute(value)&&!value.split(/[\\/]/).includes('..'));const path=resolve(value);assert(within(temporary,path));
+  let current=temporary;for(const part of relative(temporary,path).split(sep)){current=resolve(current,part);const info=await lstat(current);assert(info.isDirectory()&&!info.isSymbolicLink());}
+  const info=await lstat(path);assert.equal(info.mode&0o777,0o700);assert.equal(info.uid,process.getuid());assert.equal(await realpath(path),path);return path;}
+const source=await privateRoot(sourceValue),fixtureRoot=await privateRoot(fixtureValue);assert(source!==fixtureRoot&&!within(source,fixtureRoot)&&!within(fixtureRoot,source));
+async function file(root,name){assert(name&&!isAbsolute(name)&&!name.split(/[\\/]/).includes('..'));const path=resolve(root,name);assert(within(root,path));
+  let current=root;for(const part of relative(root,path).split(sep)){current=resolve(current,part);assert(!(await lstat(current)).isSymbolicLink());}
+  assert((await lstat(path)).isFile());return path;}
+async function json(root,name){return JSON.parse(await readFile(await file(root,name),'utf8'));}
+async function writeOnce(path,value){await writeFile(path,JSON.stringify(value,null,2)+'\n',{flag:'wx',mode:0o600});}
+async function absentFile(path){try{await lstat(path);assert.fail('Preserve old outputs; require new isolated fixture.');}catch(error){if(error.code!=='ENOENT')throw error;}}
+const isolation=await json(source,'isolation-receipt.json'),fixture=await json(fixtureRoot,'process-fixture.json');
+assert.equal(isolation.sourceHead,producerHead);assert.equal(isolation.sourceCopyRoot,source);assert.equal(isolation.copiedState,false);
+assert.equal(Object.keys(isolation.trackedFiles).length,3181);
+const consumer=resolve(fileURLToPath(new URL('../../../',import.meta.url)));
+const currentQaInputScope={producerOrdinaryTrackedCount:3181,allProducerTrackedBytesExact:true,
+  executedIsolationHelperSha256:'fba64e958ba1042a7ea406ef9d502ce12829c194c4ec3ea65ee447b3f3105292',
+  addedBrowserHelperSha256:sha(await readFile(new URL(import.meta.url)))};
+assert.equal(isolation.helperSha256,currentQaInputScope.executedIsolationHelperSha256);
+for(const [name,value] of Object.entries(isolation.trackedFiles)){
+  assert.equal(sha(await readFile(await file(source,name))),value,name);
+  assert.equal(sha(await readFile(await file(consumer,name))),value,name);
+}
+for(const [name,value] of Object.entries(isolation.copiedArtifactFiles))assert.equal(sha(await readFile(await file(source,name))),value,name);
+assert.equal(fixture.sourceCopyRoot,source);assert.equal(fixture.fixtureDirectory,fixtureRoot);assert.equal(fixture.sourceHead,producerHead);
+const isolationHash=sha(await readFile(await file(source,'isolation-receipt.json')));assert.equal(fixture.isolationReceiptSha256,isolationHash);
+assert.equal(sha(await readFile(await file(fixtureRoot,'process-fixture.sql'))),fixture.sqlSha256);
+for(const name of ['actual-api-fixture-receipt.json','isolated-server-session.json','isolated-server-receipt.json','isolated-server-stop-receipt.json'])await absentFile(resolve(fixtureRoot,name));
+const physical=await json(fixtureRoot,'physical-sqlite-before-api.json');assert.equal(physical.status,'passed');assert.equal(physical.sourceHead,producerHead);assert.equal(physical.isolationReceiptSha256,isolationHash);
+assert.equal(Object.keys(physical.results).length,2);assert(Object.values(physical.results).every(value=>value.quickCheck.length===1&&value.quickCheck[0][0]==='ok'&&!value.foreignKeyCheck.length));
+const witness=await json(fixtureRoot,'enabled-storage-draft-build-input-witness.json');assert.equal(witness.status,'passed');assert.deepEqual(witness.command,['npm','run','build']);
+assert.equal(witness.actualExitCode,0);assert.equal(witness.directChildReaped,true);assert.equal(witness.sourceHead,producerHead);assert.equal(witness.sourceTree,isolation.sourceTree);
+assert.equal(witness.sourceRoot,isolation.sourceRoot);assert.equal(witness.trackedInputInventorySha256,sha(JSON.stringify(isolation.trackedFiles)));
+assert.equal(witness.workerSha256,isolation.activeBuild.scriptSha256);assert.equal(witness.activeBuildConfigSha256,isolation.activeBuild.configSha256);
+assert.equal(witness.copiedArtifactInventorySha256,sha(JSON.stringify(isolation.copiedArtifactFiles)));assert.match(witness.originalCommandReceiptSha256,/^[a-f0-9]{64}$/);
+const config=await json(source,'.wrangler/deploy.jsonc');
+const {productionWorkerArtifact}=await import(pathToFileURL(await file(source,'scripts/production-worker-artifact.mjs')));const artifact=await productionWorkerArtifact(source);
+assert.equal(artifact.scriptPath,await file(source,isolation.activeBuild.scriptPath));assert.equal(sha(await readFile(artifact.scriptPath)),isolation.activeBuild.scriptSha256);
+const require=createRequire(resolve(source,'package.json'));assert.equal(await realpath(resolve(source,'node_modules')),isolation.nodeModulesRoot);
+const {chromium}=require(resolve(process.env.PLAYWRIGHT_MODULE_PATH));assert(process.env.CHROMIUM_PATH);
+const {build,stop}=require('esbuild');let checkedInput,checkedPlanInput,checkedPreview,checkedReceipt,checkedJob,checkedRecord;
+try{for(const [name,exportName] of [['shared/contracts/research-package-api.ts','checkedResearchExportInput'],['shared/contracts/research-package-api.ts','checkedResearchExportPlanInput'],['shared/contracts/research-package-api.ts','checkedResearchPackagePreview'],['shared/contracts/research-package-api.ts','checkedResearchRequestReceipt'],['shared/contracts/research-package-api.ts','checkedResearchJobStatus'],['shared/contracts/research-package.ts','checkedResearchDomainRecord']]){
+  const contents=await readFile(await file(source,name),'utf8');const compiled=await build({stdin:{contents,loader:'ts',sourcefile:name,resolveDir:resolve(source,name.slice(0,name.lastIndexOf('/')))},bundle:true,
+    write:false,platform:'node',format:'esm',target:'es2022',logLevel:'silent'});assert.equal(compiled.outputFiles.length,1);assert.equal(compiled.warnings.length,0);
+  const executable=compiled.outputFiles[0].text;assert(!/\bimport\s*(?:\(|[^;]*\bfrom\b)/.test(executable));
+  const value=(await import(`data:text/javascript;base64,${Buffer.from(executable).toString('base64')}`))[exportName];
+  if(exportName==='checkedResearchExportInput')checkedInput=value;else if(exportName==='checkedResearchExportPlanInput')checkedPlanInput=value;else if(exportName==='checkedResearchPackagePreview')checkedPreview=value;
+  else if(exportName==='checkedResearchRequestReceipt')checkedReceipt=value;else if(exportName==='checkedResearchDomainRecord')checkedRecord=value;else checkedJob=value;
+}}finally{await stop();} // Public stop request only; actual native groups are separately supervised.
+
+const base=new URL('http://127.0.0.1:4219/'),ids=['current-package-start202-natural-focus-390-dark'];
+const output=resolve(fixtureRoot,'genuine-package-start202-natural-focus-artifacts'),reportPath=resolve(fixtureRoot,'genuine-package-start202-natural-focus-report.json'),stopPath=resolve(fixtureRoot,'genuine-package-start202-natural-focus-stop.json');
+for(const path of [output,reportPath,stopPath])await absentFile(path);await mkdir(output,{mode:0o700});
+const report={status:'running',sourceCopyRoot:source,fixtureDirectory:fixtureRoot,sourceHead:producerHead,sourceTree:isolation.sourceTree,
+  sessionPid:process.pid,helperSha256:sha(await readFile(new URL(import.meta.url))),isolationReceiptSha256:isolationHash,currentQaInputScope,expectedCases:ids,cases:[],readerRequests:[],startedAt:new Date().toISOString(),
+  scope:'One genuine current coherent Package saved jobs keyboard metadata acceptance; independent fresh current24/pure template sentinels and exact two localR2 capabilities. Actual ordinary Sample201 then Preview200/accept202 only; natural same-job Pause focus before helper focus, at most seven setup and two nativePOSTs. Original executor guard stays disabled; zero executor step/attempt/copy/GC/ZIP/provider/recovery target. First failure preserves exact queued acceptance history; no control request is attempted, no rollback or cleanup mutation.'};
+let owner,browser,originalBrowserClose,originalStop;const contexts=new Set(),closes=new WeakMap();
+const privateValues=new Set(['migration-administrator@two-r2-fixture.invalid','migration-reader@two-r2-fixture.invalid']);
+let baselineHolds,acceptedInput,packageBaseline,sample,roleDefaults;const acceptedWrites=[],setupSampleWrites=[];
+const readerActorSha256=sha('migration-reader@two-r2-fixture.invalid');
+function privateError(error){
+  // Report every thrown value without invoking its getters/toJSON/toString.
+  // The original ordered failures remain in the AggregateError; this is bounded private evidence only.
+  try{
+    const data=(value,name)=>{try{return Object.getOwnPropertyDescriptor(value,name)?.value;}catch{return undefined;}};
+    const redact=value=>{if(typeof value!=='string')return undefined;for(const item of privateValues)if(typeof item==='string'&&item)value=value.split(item).join('[private fixture input]');return value.slice(0,2048);};
+    const describe=(value,depth)=>{
+      if(value===null)return{kind:'null',value:null};if(value===undefined)return{kind:'undefined'};
+      if(typeof value==='string')return{kind:'string',value:redact(value)};
+      if(typeof value==='boolean')return{kind:'boolean',value};if(typeof value==='number')return{kind:'number',value:Number.isFinite(value)?value:'non-finite'};
+      if(typeof value!=='object')return{kind:typeof value};
+      const item={kind:'object',name:redact(data(value,'name')),message:redact(data(value,'message')),stack:redact(data(value,'stack'))},errors=data(value,'errors');
+      if(Array.isArray(errors)){
+        const length=data(errors,'length');item.aggregate=true;item.constituentCount=Number.isInteger(length)&&length>=0?length:'unobserved';item.constituents=[];
+        if(depth<3&&Number.isInteger(length)&&length>=0){for(let index=0;index<Math.min(length,8);index++){
+          const descriptor=Object.getOwnPropertyDescriptor(errors,String(index));item.constituents.push(descriptor&&Object.hasOwn(descriptor,'value')?describe(descriptor.value,depth+1):{kind:'unobserved-constituent-accessor-or-missing'});
+        }}item.constituentsLimited=depth>=3||!Number.isInteger(length)||length<0||length>8;
+      }
+      return item;
+    };
+    return JSON.stringify(describe(error,0));
+  }catch{return '{"kind":"unformattable-original-thrown-value"}';}
+}
+function throwOrderedFailures(errors,message){if(errors.length===1)throw errors[0];if(errors.length)throw new AggregateError(errors,message);}
+function closeContext(context){let work=closes.get(context);if(!work){work=context.close();closes.set(context,work);}return work;}
+function closeBrowser(){return originalBrowserClose??=browser.close();}
+function notInterrupted(){assert(!report.interrupted,'Qualification interrupted; later native case remains unrun.');}
+function explicitStop(){return originalStop??=(async()=>{report.interrupted='original-stdin-stop';report.status='failed';
+  const originalContexts=[...contexts],results=await Promise.allSettled(originalContexts.map(context=>{try{return closeContext(context);}catch(error){return Promise.reject(error);}}));
+  report.controlContextsCloseOutcomes=results.map((value,index)=>({index,status:value.status,...(value.status==='rejected'?{error:privateError(value.reason)}:{})}));
+  const errors=results.filter(value=>value.status==='rejected').map(value=>value.reason);
+  if(browser){try{await closeBrowser();report.controlBrowserCloseOutcome={status:'fulfilled'};}catch(error){report.controlBrowserCloseOutcome={status:'rejected',error:privateError(error)};errors.push(error);}}
+  throwOrderedFailures(errors,'Original cached context closes and original cached browser close failed.');})();}
+function originalControl(value){if(value!=='stop\n')report.controlInputError=true;void explicitStop().catch(error=>{report.controlStopError=privateError(error);});}
+process.stdin.setEncoding('utf8');process.stdin.once('data',originalControl);process.stdin.resume();
+async function rows(name){assert(/^[a-zA-Z0-9_]+$/.test(name));const value=await owner.database.prepare(`SELECT * FROM "${name}"`).all();assert.equal(value.success,true);return value.results;}
+function validatedJob(value,input){
+  const job=checkedJob(value);assert.equal(job.requestId,input.requestId);assert.equal(job.kind,'data_package');assert.equal(job.phase,'snapshot');
+  assert.equal(job.progress.completedFiles,0);assert.equal(job.progress.totalFiles,0);assert.equal(job.progress.bytesDone,0);assert.equal(job.progress.bytesTotal,0);
+  assert.equal(job.output,null);assert.equal(job.result,null);return job;
+}
+function validatedReceipt(value,input){const receipt=checkedReceipt(value);assert.equal(receipt.requestId,input.requestId);assert.equal(receipt.reused,false);
+  return validatedJob(receipt.job,input);}
+function safeJob(job){return job;}
+async function exactPermit(before,entry,actor){
+  const after=await rows('system_recovery_write_leases'),known=new Set(before.map(item=>item.id)),added=after.filter(item=>!known.has(item.id));assert.equal(added.length,1);
+  assert.equal(sha(after.filter(item=>known.has(item.id)).map(canonical).sort().join('\n')),sha(before.map(canonical).sort().join('\n')));
+  const permit=added[0];assert.equal(sha(permit.owner),actor);assert.equal(permit.kind,'http');assert.equal(permit.generation,owner.report.maintenanceGeneration);assert(permit.released_at);
+  assert.equal(Date.parse(permit.expires_at)-Date.parse(permit.created_at),300000);
+  assert(Date.parse(permit.created_at)>=Date.parse(entry.startedAt)&&Date.parse(permit.released_at)<=Date.parse(entry.completedAt));
+  return{id:permit.id,sha256:sha(canonical(permit)),allEarlierRowsExact:true,requestWindowMatched:true};
+}
+async function prepareSample(){
+  const entry={path:'/api/samples',method:'POST',startedAt:new Date().toISOString(),state:'issued'};report.ordinarySamplePreparation=entry;
+  const before=await owner.snapshot(),leases=await rows('system_recovery_write_leases');
+  const shadowControl=await rows('file_shadow_control'),shadowDependencies=await rows('file_shadow_dependency_versions');
+  assert.equal(shadowControl.length,1);assert.equal(shadowControl[0].singleton,1);assert(Number.isSafeInteger(shadowControl[0].epoch));
+  assert.equal(sha(shadowControl.map(canonical).sort().join('\n')),before.tables.file_shadow_control.sha256);
+  assert.equal(shadowDependencies.length,before.tables.file_shadow_dependency_versions.count);
+  assert.equal(sha(shadowDependencies.map(canonical).sort().join('\n')),before.tables.file_shadow_dependency_versions.sha256);
+  const response=await fetch(new URL(entry.path,base),{method:'POST',headers:{'cf-access-jwt-assertion':owner.readerToken,'content-type':'application/json'},
+    body:JSON.stringify({code:'package-keyboard-root',title:'Independent Package keyboard root'}),redirect:'error',signal:AbortSignal.timeout(20000)});
+  const bytes=Buffer.from(await response.arrayBuffer());assert.equal(response.status,201);assert(bytes.length<131072);const value=JSON.parse(bytes.toString('utf8'));
+  assert.deepEqual(Object.keys(value),['id']);assert.match(value.id,/^[a-f0-9-]{36}$/);sample={id:value.id};
+  entry.status=response.status;entry.responseSha256=sha(bytes);entry.body='completed';entry.completedAt=new Date().toISOString();
+  entry.exactOriginalReleasedPermit=await exactPermit(leases,entry,readerActorSha256);entry.state='accepted';setupSampleWrites.push(entry);
+  const after=await owner.snapshot();assert.equal(after.schemaSha256,before.schemaSha256);
+  for(const [name,original] of Object.entries(before.tables))if(!['samples','events','system_recovery_write_leases','file_shadow_control','file_shadow_dependency_versions'].includes(name))assert.deepEqual(after.tables[name],original,name);
+  const samples=await rows('samples'),events=await rows('events');assert.equal(samples.length,before.tables.samples.count+1);assert.equal(events.length,before.tables.events.count+1);
+  const created=samples.find(item=>item.id===sample.id),event=events.find(item=>item.sample_id===sample.id&&item.kind==='created');assert(created&&event);
+  assert.equal(created.code,'package-keyboard-root');assert.equal(created.title,'Independent Package keyboard root');assert.equal(sha(created.created_by),readerActorSha256);
+  assert.equal(sha(created.updated_by),readerActorSha256);assert.equal(sha(event.actor_email),readerActorSha256);assert.equal(event.created_at,created.created_at);
+  const oldSamples=samples.filter(item=>item.id!==created.id),oldEvents=events.filter(item=>item.id!==event.id);
+  assert.equal(sha(oldSamples.map(canonical).sort().join('\n')),before.tables.samples.sha256);assert.equal(sha(oldEvents.map(canonical).sort().join('\n')),before.tables.events.sha256);
+  // The actual current24 Sample INSERT and created-event INSERT each advance the retained shadow epoch.
+  const afterControl=await rows('file_shadow_control');
+  assert.deepEqual(afterControl,[{...shadowControl[0],epoch:shadowControl[0].epoch+2}]);
+  assert.equal(sha(afterControl.map(canonical).sort().join('\n')),after.tables.file_shadow_control.sha256);
+  const afterDependencies=await rows('file_shadow_dependency_versions'),sampleKey=JSON.stringify([created.id]);
+  const addedDependencies=afterDependencies.filter(row=>row.dependency_kind==='samples'&&row.dependency_key===sampleKey);
+  assert.equal(addedDependencies.length,1);assert.equal(afterDependencies.length,shadowDependencies.length+1);
+  const dependency=addedDependencies[0];
+  assert.deepEqual(dependency,{dependency_kind:'samples',dependency_key:sampleKey,revision:1,present:1,
+    snapshot_json:JSON.stringify({id:created.id,status:created.status,deleted_at:created.deleted_at,updated_at:created.updated_at})});
+  assert.equal(sha(afterDependencies.filter(row=>row!==dependency).map(canonical).sort().join('\n')),before.tables.file_shadow_dependency_versions.sha256);
+  assert.equal(sha(afterDependencies.map(canonical).sort().join('\n')),after.tables.file_shadow_dependency_versions.sha256);
+  entry.exactSampleShadowEffects={epochDelta:2,originalControlSha256:before.tables.file_shadow_control.sha256,
+    acceptedControlSha256:after.tables.file_shadow_control.sha256,uniqueDependencySha256:sha(canonical(dependency)),allEarlierDependencyRowsExact:true};
+  sample.eventId=event.id;sample.sourceSampleSha256=sha(canonical(created));sample.sourceEventSha256=sha(canonical(event));
+  packageBaseline=after;baselineHolds=await rows('file_location_holds');roleDefaults=await rows('storage_role_defaults');
+  report.ordinarySamplePreparation.scope='One genuine ordinary authenticated research create; exact original Sample+created event and unique released permit. No SQL authority grant.';
+}
+async function verifyAcceptedHistory(stage){
+  const after=await owner.snapshot(),before=packageBaseline||owner.report.browserBaseline;assert.equal(after.schemaSha256,before.schemaSha256);
+  const changed=new Set(['system_recovery_write_leases','research_package_jobs','research_package_requests','research_package_records']);
+  for(const [name,value] of Object.entries(before.tables))if(!changed.has(name))assert.deepEqual(after.tables[name],value,name);
+  const permits=await rows('system_recovery_write_leases'),known=new Set(owner.originalBaselinePermits.map(item=>item.id));
+  assert.equal(sha(permits.filter(item=>known.has(item.id)).map(canonical).sort().join('\n')),sha(owner.originalBaselinePermits.map(canonical).sort().join('\n')));
+  const added=permits.filter(item=>!known.has(item.id)),writes=[...setupSampleWrites,...acceptedWrites];assert.equal(added.length,writes.length);
+  for(const entry of writes){const permit=added.find(item=>item.id===entry.exactOriginalReleasedPermit.id);assert(permit);
+    assert.equal(sha(canonical(permit)),entry.exactOriginalReleasedPermit.sha256);assert.equal(permit.kind,'http');assert.equal(sha(permit.owner),readerActorSha256);
+    assert.equal(permit.generation,owner.report.maintenanceGeneration);assert(permit.released_at);assert.equal(Date.parse(permit.expires_at)-Date.parse(permit.created_at),300000);}
+  const jobs=await rows('research_package_jobs'),requests=await rows('research_package_requests'),records=await rows('research_package_records');
+  const jobWrites=acceptedWrites.filter(item=>item.action!=='preview'),latest=jobWrites.at(-1);let state=null,generation=null;
+  if(!latest){assert.equal(jobs.length,0);assert.equal(requests.length,0);assert.equal(records.length,0);}
+  else{
+    assert.equal(jobs.length,1);assert.equal(requests.length,1);assert.equal(records.length,2);const job=jobs[0],request=requests[0];
+    assert.equal(job.id,latest.job.id);assert.equal(job.request_id,acceptedInput.requestId);assert.equal(job.kind,'data_package');assert.equal(sha(job.actor),readerActorSha256);
+    assert.deepEqual(JSON.parse(job.input_json),acceptedInput);assert.equal(job.phase,'snapshot');assert.equal(job.state,latest.job.state);
+    assert.equal(job.generation,jobWrites.length-1);for(const name of ['owner_token','runtime_incarnation','lease_expires_at','actor_checked_at','source_upload_job_id','package_digest','copy_identity','domain_plan_json','frozen_archive_json','result_json','expires_at'])assert.equal(job[name],null);
+    assert.equal(job.accepted_at,jobWrites[0].job.acceptedAt);assert.equal(job.updated_at,latest.job.updatedAt);assert.equal(job.reason,latest.job.reason);
+    assert.equal(request.job_id,job.id);assert.equal(request.request_id,acceptedInput.requestId);assert.equal(sha(request.actor),readerActorSha256);
+    assert.deepEqual(JSON.parse(request.input_json),acceptedInput);assert.equal(request.accepted_at,job.accepted_at);assert.equal(request.reused,0);
+    const captured=records.map(row=>{assert.equal(row.job_id,job.id);const value=checkedRecord(JSON.parse(row.record_json));assert.equal(value.kind,row.record_kind);assert.equal(value.sourceId,row.source_id);return value;});
+    const selected=captured.find(value=>value.kind==='sample'),event=captured.find(value=>value.kind==='event');assert(selected&&event);
+    assert.equal(selected.sourceId,sample.id);assert.equal(selected.data.code,'package-keyboard-root');assert.equal(selected.data.title,'Independent Package keyboard root');
+    assert.equal(event.sourceId,sample.eventId);assert.equal(event.data.sample_id,sample.id);assert.equal(event.data.kind,'created');
+    assert.equal(event.sourceRevision.value,job.accepted_at);assert.equal(sha(event.data.actor_email),readerActorSha256);
+    const targets=JSON.parse(job.target_policy_json);assert.deepEqual(Object.keys(targets).sort(),['research_source','provenance','embedded_content','derived_preview','job_output'].sort());
+    const internal=roleDefaults.find(item=>item.role==='internal');assert(internal);assert.equal(targets.job_output.profileId,internal.storage_profile_id);
+    assert.equal(targets.job_output.configurationRevision,internal.storage_profile_revision);assert.equal(targets.job_output.policyRevision,internal.policy_revision);
+    state=job.state;generation=job.generation;
+  }
+  const sourceObjects=await owner.sourceBucket.list(),targetObjects=await owner.targetBucket.list();assert(!sourceObjects.truncated&&!targetObjects.truncated);
+  assert.equal(sourceObjects.objects.length,1);assert.equal(sourceObjects.objects[0].key,owner.report.sourceFile.objectKey);assert.equal(targetObjects.objects.length,0);
+  const original=await owner.sourceBucket.get(owner.report.sourceFile.objectKey);assert(original);const bytes=Buffer.from(await original.arrayBuffer());
+  assert.equal(bytes.length,owner.report.sourceFile.byteSize);assert.equal(sha(bytes),owner.report.sourceFile.sha256);
+  return{stage,onlyExactPackageJobRequestTwoCapturedRecordsAndReleasedPermitsChanged:true,old6PermitsExact:true,oldHoldsExact:true,newReleasedPermits:added.length,
+    jobState:state,jobGeneration:generation,packageFiles:0,packageAttempts:0,executorDisabled:true,sourceBytesExact:true,targetEmpty:true,
+    addedRowsSha256:sha(canonical({jobs:jobs.map(value=>({...value,actor:sha(value.actor)})),requests:requests.map(value=>({...value,actor:sha(value.actor)})),records,permits:added.map(value=>({...value,owner:sha(value.owner)}))}))};
+}
+async function enabled(page,locator){const original=await locator.elementHandle();assert(original);const errors=[];
+  try{const settled=await page.waitForFunction(node=>node.isConnected&&!node.matches(':disabled'),original,{timeout:20000});await settled.dispose();}catch(error){errors.push(error);}
+  try{await original.dispose();}catch(error){errors.push(error);}throwOrderedFailures(errors,'Original enabled wait and original handle disposal failed.');}
+async function originalBody(capture){let timer;try{await Promise.race([capture.work,new Promise((_done,fail)=>{timer=setTimeout(()=>fail(new Error('Original native response exceeds20s.')),20000);})]);}finally{clearTimeout(timer);}assert.equal(capture.item.body,'completed');return capture.bytes;}
+function plan(value,input){const preview=checkedPreview(value);assert.equal(preview.kind,'data_package');assert.deepEqual(preview.roots,input.roots);
+  assert.equal(preview.complete,true);assert.equal(preview.counts.records,2);assert.equal(preview.counts.files,0);assert.equal(preview.counts.bytes,0);
+  assert.equal(preview.archiveBytes,null);assert.equal(preview.capabilities.dataPackage.available,true);assert.equal(preview.capabilities.report.available,true);
+  assert(preview.dependencies.some(item=>item.targetType==='sample'&&item.id===sample.id&&item.outcome==='included'));
+  assert.equal(preview.targets.length,1);assert.equal(preview.targets[0].purpose,'job_output');assert.equal(preview.targets[0].role,'internal');assert.equal(preview.targets[0].available,true);
+  const internal=roleDefaults.find(item=>item.role==='internal');assert(internal);assert.equal(preview.targets[0].profileId,internal.storage_profile_id);
+  assert.equal(preview.targets[0].configurationRevision,internal.storage_profile_revision);assert.equal(preview.rolePolicyRevision,internal.policy_revision);return preview;}
+async function caseRun(id,width,height,theme){
+  notInterrupted();const record={id,width,height,theme,status:'running',requests:[],api:[],backendResponses:[],assertions:[],pageErrors:[],externalRequests:[],startedAt:new Date().toISOString()};report.cases.push(record);
+  let context;const routes=[],bodies=[],waits=[],captures=new WeakMap(),nativePost=new WeakMap();
+  try{
+    context=await browser.newContext({viewport:{width,height},colorScheme:theme,isMobile:width===390,hasTouch:width===390,serviceWorkers:'block'});contexts.add(context);
+    await context.addInitScript(value=>localStorage.setItem('sample-workflow-theme',value),theme);
+    await context.route('**/*',route=>{const work=Promise.resolve().then(async()=>{
+      const request=route.request(),url=new URL(request.url());if(['http:','https:'].includes(url.protocol)&&url.origin!==base.origin){record.externalRequests.push({origin:url.origin});await route.abort('blockedbyclient');return;}
+      if(url.origin!==base.origin||!url.pathname.startsWith('/api/')){await route.continue();return;}
+      const headers={...request.headers(),'cf-access-jwt-assertion':owner.readerToken};
+      if(request.method()==='GET'){
+        const accepted=acceptedWrites.find(item=>item.action==='accept');
+        assert(['/api/packages/jobs','/api/packages/executor'].includes(url.pathname)
+          ||accepted&&url.pathname===`/api/packages/jobs/${encodeURIComponent(accepted.job.id)}`);
+        await route.continue({headers});return;
+      }
+      assert.equal(request.method(),'POST');assert(record.backendResponses.length<2,'At most two original native metadata POSTs: Preview and accept.');let action,input;
+      if(url.pathname==='/api/packages/plans'){assert.equal(record.backendResponses.length,0);action='preview';input=checkedPlanInput(request.postDataJSON());record.input=input;}
+      else if(url.pathname==='/api/packages/jobs'){assert.equal(record.backendResponses.length,1);action='accept';input=checkedInput(request.postDataJSON());acceptedInput=input;
+        assert.equal(input.kind,record.input.kind);assert.deepEqual(input.roots,record.input.roots);assert.match(input.requestId,/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/);}
+      else assert.fail('Acceptance-only characterization must never submit a job control.');
+      assert.equal(input.kind,'data_package');assert.deepEqual(input.roots,[{kind:'sample',id:sample.id}]);
+      const entry={action,path:url.pathname,method:'POST',startedAt:new Date().toISOString(),state:'issued'};nativePost.set(request,entry);record.backendResponses.push(entry);
+      const before=await rows('system_recovery_write_leases');
+      const response=await route.fetch({headers,maxRedirects:0,maxRetries:0,timeout:20000});const bytes=await response.body();assert(bytes.length<131072);
+      entry.status=response.status();entry.body='completed';entry.responseSha256=sha(bytes);entry.completedAt=new Date().toISOString();
+      assert.equal(entry.status,action==='accept'?202:200);
+      entry.exactOriginalReleasedPermit=await exactPermit(before,entry,readerActorSha256);
+      const value=JSON.parse(bytes.toString('utf8'));
+      if(action==='preview')plan(value,input);else{
+        const job=action==='accept'?validatedReceipt(value,input):validatedJob(value,input),expectedState=action==='pause'?'paused':action==='cancel'?'cancel_requested':'queued';
+        assert.equal(job.state,expectedState);assert.equal(job.reason,action==='pause'?'actor_paused':null);
+        const prior=acceptedWrites.find(item=>item.action==='accept');if(prior)assert.equal(job.id,prior.job.id);entry.job=safeJob(job);
+      }
+      entry.state='accepted';acceptedWrites.push(entry);
+      await route.fulfill({status:response.status(),headers:response.headers(),body:bytes});entry.nativeDelivery='fulfilled';
+    });routes.push(work);work.catch(()=>{});return work;});
+    const page=await context.newPage();page.setDefaultTimeout(20000);page.setDefaultNavigationTimeout(20000);page.on('pageerror',error=>record.pageErrors.push(privateError(error)));
+    page.on('request',request=>{const url=new URL(request.url());if(url.origin===base.origin&&url.pathname.startsWith('/api/'))record.requests.push({path:url.pathname,method:request.method()});});
+    page.on('response',response=>{const url=new URL(response.url());if(url.origin!==base.origin||!url.pathname.startsWith('/api/'))return;
+      const item={path:url.pathname,method:response.request().method(),status:response.status(),body:'pending'};record.api.push(item);const capture={item};captures.set(response,capture);
+      capture.work=response.body().then(bytes=>{assert(bytes.length<131072);capture.bytes=bytes;item.body='completed';item.sha256=sha(bytes);
+        if(item.method==='POST'){const entry=nativePost.get(response.request());assert(entry);assert.equal(item.sha256,entry.responseSha256);item.exactOriginalBackendMatches=true;}
+      }).catch(error=>{item.body='failed';item.error=privateError(error);});bodies.push(capture.work);
+    });
+    const wait=(path,method='GET')=>{const work=page.waitForResponse(response=>new URL(response.url()).pathname===path&&response.request().method()===method);waits.push(work);work.catch(()=>{});return work;};
+    const initial=['/api/packages/jobs','/api/packages/executor'].map(path=>wait(path));
+    const href=new URL('/settings/data',base);href.searchParams.set('rootType','sample');href.searchParams.set('rootId',sample.id);
+    await page.goto(href.href,{waitUntil:'networkidle',timeout:20000});const values=[];
+    for(const response of await Promise.all(initial)){assert.equal(response.status(),200);const capture=captures.get(response);assert(capture);values.push(JSON.parse(await originalBody(capture)));}
+    assert.deepEqual(values[0],{jobs:[]});assert.equal(values[1].supported,true);assert.equal(values[1].enabled,false);assert.equal(values[1].canManage,false);
+    const section=page.getByRole('heading',{name:'Export selected research',exact:true}).locator('..');
+    assert.equal(await section.getByLabel('Sample and Project roots').inputValue(),`sample:${sample.id}`);
+    const preview=section.getByRole('button',{name:'Preview export',exact:true});await enabled(page,preview);assert(await preview.isEnabled());
+    const responseWait=wait('/api/packages/plans','POST');await preview.focus();assert(await preview.evaluate(node=>document.activeElement===node));const previewStartedAt=Date.now();await page.keyboard.press('Enter');
+    const response=await responseWait;assert.equal(response.status(),200);const capture=captures.get(response);assert(capture);plan(JSON.parse(await originalBody(capture)),record.input);
+    const start=section.getByRole('button',{name:'Start data package export',exact:true});await start.waitFor({state:'visible',timeout:20000});await enabled(page,start);
+    await enabled(page,preview);assert(await preview.isEnabled());
+    const previewHandle=await preview.elementHandle();assert(previewHandle);
+    const previewErrors=[];
+    try{const remaining=20000-(Date.now()-previewStartedAt);assert(remaining>0,'Original Preview focus budget is exhausted.');
+      const settled=await page.waitForFunction(node=>node.isConnected&&document.activeElement===node,previewHandle,{timeout:remaining});await settled.dispose();}catch(error){previewErrors.push(error);}
+    try{await previewHandle.dispose();}catch(error){previewErrors.push(error);}throwOrderedFailures(previewErrors,'Original Preview focus wait and original handle disposal failed.');
+    const focus=await preview.evaluate(node=>({active:document.activeElement===node,focusVisible:node.matches(':focus-visible'),disabled:node.disabled}));
+    record.assertions.push({genuineOriginalPlan200:true,nativePreviewFocus:focus});assert.equal(focus.active,true);assert.equal(focus.focusVisible,true);
+    const acceptWait=wait('/api/packages/jobs','POST');await start.focus();assert(await start.evaluate(node=>document.activeElement===node));const acceptStartedAt=Date.now();await page.keyboard.press('Enter');
+    const acceptedResponse=await acceptWait;assert.equal(acceptedResponse.status(),202);const acceptedCapture=captures.get(acceptedResponse);assert(acceptedCapture);
+    const acceptedJob=validatedReceipt(JSON.parse(await originalBody(acceptedCapture)),acceptedInput);assert.equal(acceptedJob.state,'queued');
+    const jobSection=page.getByRole('heading',{name:'Saved package work',exact:true}).locator('..');
+    const jobRow=jobSection.locator('article.research-package-job').filter({has:page.getByText(acceptedJob.id,{exact:true})});assert.equal(await jobRow.count(),1);
+    await jobRow.waitFor({state:'visible',timeout:20000});
+    // Observe the original accepted request's successor without moving focus or issuing a control.
+    const pause=jobRow.getByRole('button',{name:'Pause',exact:true});await enabled(page,pause);assert(await pause.isEnabled());
+    const observed=await pause.evaluate(node=>({connected:node.isConnected,active:document.activeElement===node,body:document.activeElement===document.body,tag:node.tagName,focusVisible:node.matches(':focus-visible'),disabled:node.disabled}));
+    const startRemoved=await start.count()===0;const assertion={originalAccept202:true,acceptedJobId:acceptedJob.id,initialJobState:acceptedJob.state,startRemoved,immediateNaturalFocus:observed};record.assertions.push(assertion);assert(startRemoved);
+    const originalTarget=await pause.elementHandle();assert(originalTarget);const focusErrors=[];
+    try{const remaining=20000-(Date.now()-acceptStartedAt);assert(remaining>0,'Original acceptance focus budget is exhausted.');
+      const settled=await page.waitForFunction(node=>node.isConnected&&document.activeElement===node&&!node.matches(':disabled'),originalTarget,{timeout:remaining});await settled.dispose();
+      assertion.settledNaturalFocus=await pause.evaluate(node=>({connected:node.isConnected,active:document.activeElement===node,focusVisible:node.matches(':focus-visible'),disabled:node.disabled}));
+      assert(assertion.settledNaturalFocus.connected&&assertion.settledNaturalFocus.active&&assertion.settledNaturalFocus.focusVisible&&!assertion.settledNaturalFocus.disabled);
+    }catch(error){focusErrors.push(error);}
+    try{await originalTarget.dispose();}catch(error){focusErrors.push(error);}throwOrderedFailures(focusErrors,'Original acceptance focus wait and original handle disposal failed.');
+    record.acceptedJobHistory=await verifyAcceptedHistory('settled-original-accept202-natural-focus');
+    assert.equal(acceptedWrites.length,2);assert.equal(acceptedWrites.at(-1).action,'accept');
+    assert.equal(record.acceptedJobHistory.jobState,'queued');assert.equal(record.acceptedJobHistory.jobGeneration,0);
+    const geometry=await page.evaluate(()=>({width:document.documentElement.clientWidth,root:document.documentElement.scrollWidth,body:document.body.scrollWidth,theme:document.documentElement.dataset.theme}));
+    record.assertions.push({geometry});await writeOnce(resolve(output,`${id}.geometry.json`),geometry);assert.equal(geometry.theme,theme);assert(geometry.root<=geometry.width+2&&geometry.body<=geometry.width+2);
+    await Promise.all(bodies);assert(record.api.every(item=>item.body==='completed'&&[200,202].includes(item.status)));assert.equal(record.requests.filter(item=>item.method==='POST').length,2);
+    assert.equal(record.pageErrors.length,0);assert.equal(record.externalRequests.length,0);record.status='passed';
+  }catch(error){record.status='failed';record.error=privateError(error);}
+  finally{
+    if(context){try{await closeContext(context);record.contextCloseAwaited=true;}catch(error){record.contextCloseError=privateError(error);record.status='failed';}contexts.delete(context);}
+    const routeResults=await Promise.allSettled(routes),bodyResults=await Promise.allSettled(bodies),waitResults=await Promise.allSettled(waits);
+    record.originalRoutesAwaited={count:routeResults.length,rejected:routeResults.filter(x=>x.status==='rejected').length};record.originalBodiesAwaited={count:bodyResults.length,rejected:bodyResults.filter(x=>x.status==='rejected').length};record.originalWaitsAwaited={count:waitResults.length,rejected:waitResults.filter(x=>x.status==='rejected').length};
+    if([...routeResults,...bodyResults,...waitResults].some(x=>x.status==='rejected')||record.api.some(item=>item.body!=='completed'))record.status='failed';
+    try{record.originalCatalogAndSourceBytes=await verifyAcceptedHistory(`settled-${id}`);}catch(error){record.acceptedHistoryError=privateError(error);record.status='failed';}
+    record.completedAt=new Date().toISOString();console.log(JSON.stringify({id,status:record.status,originalContextClosed:record.contextCloseAwaited}));
+  }
+  if(record.status!=='passed')throw new Error(record.error||record.acceptedHistoryError||'Original current Package keyboard case failed after owner settlement.');
+}
+
+try{
+  owner=await prepareGenuineTwoR2MigrationRuntime({source,artifact,config});privateValues.add(owner.adminToken);privateValues.add(owner.readerToken);report.genuinePreparation=owner.report;
+  assert.equal((await rows('research_package_jobs')).length,0);assert.equal((await rows('research_package_requests')).length,0);assert.equal((await rows('research_package_records')).length,0);notInterrupted();
+  await prepareSample();notInterrupted();
+  // Actual ordinary application reader owns this research job; no administrator resource-right inference.
+  for(const [path,status] of [['/api/storage/configuration/capability',200],['/api/packages/executor',200]]){
+    const response=await fetch(new URL(path,base),{headers:{'cf-access-jwt-assertion':owner.readerToken},redirect:'error',signal:AbortSignal.timeout(20000)});
+    const bytes=Buffer.from(await response.arrayBuffer());assert(bytes.length<131072);assert.equal(response.status,status);assert.equal(JSON.parse(bytes.toString('utf8')).canManage,false);
+    report.readerRequests.push({path,method:'GET',status,body:'completed',sha256:sha(bytes)});
+  }
+  const childTemp=process.env.PHASE5F_FILE_MIGRATION_CHROMIUM_TEMP;assert.equal(childTemp,'/workspace/.pkstm1');
+  const tempInfo=await lstat(childTemp);assert(tempInfo.isDirectory()&&!tempInfo.isSymbolicLink());assert.equal(await realpath(childTemp),childTemp);assert.equal(tempInfo.mode&0o777,0o700);assert.equal(tempInfo.uid,process.getuid());
+  const tempOwner=await json(await privateRoot(process.env.PHASE5F_FILE_MIGRATION_RUNTIME_ROOT),'chromium-child-temp-owner.json');
+  assert.equal(tempOwner.path,childTemp);assert.equal(tempOwner.dev,String(tempInfo.dev));assert.equal(tempOwner.ino,String(tempInfo.ino));assert.equal(tempOwner.freshCreated,true);
+  assert.equal(tempOwner.sourceHead,producerHead);assert.equal(tempOwner.sourceCopyRoot,source);assert.equal(tempOwner.fixtureDirectory,fixtureRoot);assert.equal(tempOwner.qaHelperSha256,report.helperSha256);
+  browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH,headless:true,args:['--no-sandbox'],env:{...process.env,TMPDIR:childTemp,SQLITE_TMPDIR:childTemp}});notInterrupted();
+  await caseRun(ids[0],390,844,'dark');notInterrupted();assert(report.cases.every(item=>item.status==='passed'));report.status='passed';
+}catch(error){report.status='failed';report.error=privateError(error);
+  let originalFixtureReport;try{if(error!==null&&(typeof error==='object'||typeof error==='function')){
+    const descriptor=Object.getOwnPropertyDescriptor(error,'fixtureReport');if(descriptor&&Object.hasOwn(descriptor,'value'))originalFixtureReport=descriptor.value;
+  }}catch{} // Optional fixture metadata cannot replace the original recorded failure; Proxy trap effects are not attested absent.
+  if(originalFixtureReport)report.genuinePreparation=originalFixtureReport;
+}
+finally{
+  process.stdin.removeListener('data',originalControl);process.stdin.pause();const closure={status:'closing'};
+  if(originalStop){try{await originalStop;closure.originalStdinStopAwaited=true;}catch(error){closure.originalStopError=privateError(error);}}
+  if(browser){try{await closeBrowser();closure.browserCloseAwaited=true;}catch(error){closure.browserCloseError=privateError(error);}}else closure.noReturnedBrowserHandle=true;
+  if(owner){try{report.finalCatalog=await verifyAcceptedHistory('before-original-Worker-dispose');}catch(error){closure.finalCatalogError=privateError(error);}
+    closure.originalPreparationOwnerClosure=await owner.close();if(closure.originalPreparationOwnerClosure.status!=='closed')closure.preparationOwnerCloseError=true;}
+  closure.status=Object.keys(closure).some(name=>name.endsWith('Error'))?'failed':'closed';report.ownedClosure=closure;if(closure.status!=='closed')report.status='failed';
+  report.unrunCases=ids.filter(id=>!report.cases.some(item=>item.id===id));report.actualCosts={setupPOSTs:(owner?.report.requests.filter(item=>item.method==='POST').length??0)+(report.ordinarySamplePreparation?1:0),
+    readerGETs:report.readerRequests.length,nativeGETs:report.cases.reduce((n,item)=>n+item.requests.filter(request=>request.method==='GET').length,0),nativeMetadataPOSTs:report.cases.reduce((n,item)=>n+item.requests.filter(request=>request.method==='POST').length,0),
+    ordinaryResearchPreparationPOSTs:setupSampleWrites.length,maxSetupPOSTs:7,maxNativePOSTs:2,maxTotalPOSTs:12,observedAcceptedJobReceipts:acceptedWrites.some(item=>item.action==='accept')?1:0,newExecutorSteps:0};report.completedAt=new Date().toISOString();await writeOnce(stopPath,closure);await writeOnce(reportPath,report);
+}
+console.log(JSON.stringify({status:report.status,passed:report.cases.filter(item=>item.status==='passed').length,failed:report.cases.filter(item=>item.status==='failed').length,unrun:report.unrunCases.length,reportPath,closure:report.ownedClosure.status}));
+if(report.status!=='passed')process.exitCode=1;

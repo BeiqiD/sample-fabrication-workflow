@@ -1,0 +1,67 @@
+{
+  "stage": "ordinary-actual24-local-migrations",
+  "cwd": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/copy",
+  "argv": [
+    "node",
+    "node_modules/wrangler/bin/wrangler.js",
+    "d1",
+    "migrations",
+    "apply",
+    "DB",
+    "--local",
+    "--config",
+    ".wrangler/deploy.jsonc",
+    "--persist-to",
+    "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/copy/.wrangler/state"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1",
+    "SQLITE_TMPDIR": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1"
+  },
+  "startedAt": "2026-10-12T02:20:40.122876+00:00",
+  "status": "PASS",
+  "log": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/ordinary-actual24-local-migrations.log",
+  "pid": 1685842,
+  "processGroup": 1685842,
+  "originalStartTicks": "18490089",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1685858,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1685842,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1685858,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1685842,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1685858,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1685842,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-12T02:20:53.390688+00:00",
+  "logSha256": "b74866903b1b5358cc6c0cb8f51478844afc51d732cfba6cd2a2e44501d85253"
+}

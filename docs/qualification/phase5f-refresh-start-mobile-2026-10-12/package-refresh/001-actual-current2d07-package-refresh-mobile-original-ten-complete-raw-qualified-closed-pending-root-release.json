@@ -1,0 +1,898 @@
+{
+  "status": "CURRENT2D07_C3_MOBILE_PACKAGE_REFRESH_ORIGINAL_TEN_PASS_NATIVE_ONE_PASS_CLOSED_PENDING_ROOT_FULL_RELEASE",
+  "completedAt": "2026-10-12T01:49:30.304891+00:00",
+  "source": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+  "producerHead": "2d07b57c4e79403099261528ae8988c0072d28c6",
+  "producerInputs": 3181,
+  "consumerHead": "c3c1027b66cca605c7d1ee5e9b7d30427d5c3ca4",
+  "consumerInputs": 3191,
+  "mutableRoots": {
+    "parent": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1",
+    "copy": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy",
+    "fixture": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture",
+    "runtime": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime",
+    "shortChromiumChildTemp": "/workspace/.pkrfm1"
+  },
+  "actualCommandCounts": {
+    "passed": 10,
+    "failed": 0,
+    "unrun": 0
+  },
+  "actualNativeCounts": {
+    "passed": 1,
+    "failed": 0,
+    "unrun": 0
+  },
+  "actualOriginalToolResponses": 18,
+  "actualCosts": {
+    "setupPOSTs": 6,
+    "readerGETs": 2,
+    "nativeGETs": 4,
+    "nativeMetadataPOSTs": 0,
+    "maxSetupPOSTs": 6,
+    "maxNativePOSTs": 0,
+    "observedAcceptedJobReceipts": 0,
+    "newExecutorSteps": 0
+  },
+  "nativeCase": {
+    "id": "current-coherent-package-status-refresh-keyboard-390-dark",
+    "width": 390,
+    "height": 844,
+    "theme": "dark",
+    "status": "passed"
+  },
+  "actualAssertions": [
+    {
+      "initialSavedPackageWork": {
+        "emptyJobs": true,
+        "supported": true,
+        "enabled": false,
+        "canManage": true,
+        "originalBodiesCompleted": true
+      }
+    },
+    {
+      "refreshedSavedPackageWork": {
+        "emptyJobs": true,
+        "supported": true,
+        "enabled": false,
+        "canManage": true,
+        "originalBodiesCompleted": true
+      }
+    },
+    {
+      "nativeRefreshFocus": {
+        "connected": true,
+        "active": true,
+        "focusVisible": true,
+        "disabled": false
+      }
+    },
+    {
+      "geometry": {
+        "width": 390,
+        "root": 390,
+        "body": 390,
+        "theme": "dark"
+      }
+    }
+  ],
+  "nativeReadAccounting": {
+    "initialAndPostKeyboardResponseObservations": 4,
+    "totalObservedGETs": 4,
+    "additionalObservedReadResponses": 0,
+    "scope": "The real page retains its five-second status polling. Additional original GETs remain fully captured; no poll suppression or invented caller attribution."
+  },
+  "readerOriginalComplete200Bodies": [
+    {
+      "path": "/api/packages/jobs",
+      "method": "GET",
+      "status": 200,
+      "body": "completed",
+      "sha256": "0a5796e93f9b57ddf7c45f860485cbb7353fc0eda3dca753a444d0fd2a1573fe"
+    },
+    {
+      "path": "/api/packages/executor",
+      "method": "GET",
+      "status": 200,
+      "body": "completed",
+      "sha256": "b5ca5ba0d41fbc1e5515e94c133fd5ec74022112761b5c3da0a8ea0151104481"
+    }
+  ],
+  "nativeOriginalComplete200Bodies": [
+    {
+      "path": "/api/packages/jobs",
+      "method": "GET",
+      "status": 200,
+      "body": "completed",
+      "sha256": "0a5796e93f9b57ddf7c45f860485cbb7353fc0eda3dca753a444d0fd2a1573fe"
+    },
+    {
+      "path": "/api/packages/executor",
+      "method": "GET",
+      "status": 200,
+      "body": "completed",
+      "sha256": "6d9e0b15dc01d07a7e22150c4f05d4815a532ba2a15efb0a54f753a60b16037f"
+    },
+    {
+      "path": "/api/packages/jobs",
+      "method": "GET",
+      "status": 200,
+      "body": "completed",
+      "sha256": "0a5796e93f9b57ddf7c45f860485cbb7353fc0eda3dca753a444d0fd2a1573fe"
+    },
+    {
+      "path": "/api/packages/executor",
+      "method": "GET",
+      "status": 200,
+      "body": "completed",
+      "sha256": "6d9e0b15dc01d07a7e22150c4f05d4815a532ba2a15efb0a54f753a60b16037f"
+    }
+  ],
+  "originalRoutesAwaited": {
+    "count": 19,
+    "rejected": 0
+  },
+  "originalBodiesAwaited": {
+    "count": 4,
+    "rejected": 0
+  },
+  "originalWaitsAwaited": {
+    "count": 4,
+    "rejected": 0
+  },
+  "allOriginalContextsClosed": true,
+  "originalFirstNormalACK": {
+    "status": "closed",
+    "browserCloseAwaited": true,
+    "originalPreparationOwnerClosure": {
+      "status": "closed",
+      "startedAt": "2026-10-12T01:46:35.861Z",
+      "originalRequestsAwaited": {
+        "count": 12,
+        "rejected": 0
+      },
+      "workerDisposeAwaited": true,
+      "workerPortRefused": true,
+      "originalOutboundWorkAwaited": {
+        "count": 1,
+        "rejected": 0
+      },
+      "jwksCloseAwaited": true,
+      "jwksPortRefused": true,
+      "completedAt": "2026-10-12T01:46:37.104Z"
+    }
+  },
+  "setupSixReleasedPermitEvidence": {
+    "count": 6,
+    "actorSha256": "a0c568ef8e9db85a1f4cbc595c820cf580a06159f7f75715a9b1514a62f68bf8",
+    "kind": "http",
+    "generation": 0,
+    "allReleased": true,
+    "expiryMs": 300000,
+    "rowsSha256": "e789a8c22d6b991aceaaa45de91bf71dd8dbe99a93eb5315723ad85d1f4d0f6a"
+  },
+  "finalAllRowsReadonlyCatalog": {
+    "stage": "before-original-Worker-dispose",
+    "allSchemaAndTypedTableRowsExact": true,
+    "old6PermitsExact": true,
+    "newReleasedPermits": 0,
+    "sourceBytesExact": true,
+    "targetEmpty": true,
+    "executorSteps": 0
+  },
+  "physicalBefore": {
+    "status": "passed",
+    "groups": 2
+  },
+  "physicalAfter": {
+    "status": "passed",
+    "groups": 5,
+    "originalStateBytesUnchanged": true
+  },
+  "all10OriginalDirectWaitsReapedNoSignals": true,
+  "originalCommands": [
+    {
+      "stage": "qualified-current02d-coherent-build-producer-preflight",
+      "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-current2d07-mobile-package-refresh-workspace-placement-source-preparation-attempt3/carry-current2d07-mobile-original-native.py",
+        "--current02d-coherent-saved-job",
+        "producer-preflight"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1"
+      },
+      "startedAt": "2026-10-12T01:44:02.367141+00:00",
+      "status": "PASS",
+      "log": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight.log",
+      "pid": 1673353,
+      "processGroup": 1673353,
+      "originalStartTicks": "18270313",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-12T01:44:02.811931+00:00",
+      "logSha256": "3cdc53eb58a874d63edb9b707f58cfa2f802fd75cc9892e72330fb84f24aef10"
+    },
+    {
+      "stage": "isolated-copy",
+      "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+      "argv": [
+        "python3",
+        "-B",
+        "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source/scripts/qa/phase5f/prepare-isolated-copy.py",
+        "--source-root",
+        "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+        "--destination",
+        "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy",
+        "--dependency-root",
+        "/workspace/sample-fabrication-workflow/node_modules"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1"
+      },
+      "startedAt": "2026-10-12T01:44:13.918961+00:00",
+      "status": "PASS",
+      "log": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/isolated-copy.log",
+      "pid": 1673467,
+      "processGroup": 1673467,
+      "originalStartTicks": "18271468",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-12T01:44:15.668766+00:00",
+      "logSha256": "4bb0541cd30f69be442ebc59232356b00164944385587f322b040fe870cbdbab"
+    },
+    {
+      "stage": "fresh-two-version-sentinel",
+      "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+      "argv": [
+        "node",
+        "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source/scripts/qa/phase5f/generate-process-fixture.mjs",
+        "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy",
+        "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1"
+      },
+      "startedAt": "2026-10-12T01:44:26.596495+00:00",
+      "status": "PASS",
+      "log": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/fresh-two-version-sentinel.log",
+      "pid": 1673654,
+      "processGroup": 1673654,
+      "originalStartTicks": "18272736",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 1673665,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1673654,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 1673665,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1673654,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 1673665,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1673654,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "endedAt": "2026-10-12T01:44:28.682373+00:00",
+      "logSha256": "085fa099c56de4d8ffd69b6772782d2f83d16496f077b4d0cf60e30e3d2adfa5"
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "cwd": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "migrations",
+        "apply",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy/.wrangler/state"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1"
+      },
+      "startedAt": "2026-10-12T01:44:42.277485+00:00",
+      "status": "PASS",
+      "log": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/ordinary-actual24-local-migrations.log",
+      "pid": 1673700,
+      "processGroup": 1673700,
+      "originalStartTicks": "18274304",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 1673716,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1673700,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 1673716,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1673700,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 1673716,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1673700,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "endedAt": "2026-10-12T01:44:56.187801+00:00",
+      "logSha256": "d7a4512db7e0c9e8f900b340ccacd2f43d6572b6d915da4a8fe49bc2fbd19198"
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "cwd": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "execute",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy/.wrangler/state",
+        "--file",
+        "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/process-fixture.sql"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1"
+      },
+      "startedAt": "2026-10-12T01:45:11.172054+00:00",
+      "status": "PASS",
+      "log": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/synthetic-template-sentinels-only.log",
+      "pid": 1674069,
+      "processGroup": 1674069,
+      "originalStartTicks": "18277194",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 1674085,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1674069,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 1674085,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1674069,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 1674085,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1674069,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "endedAt": "2026-10-12T01:45:12.486864+00:00",
+      "logSha256": "21e54fe0ed1bd23c4c0691519d3298e3fe313d19f4e64f619d6de1b454657186"
+    },
+    {
+      "stage": "physical-before",
+      "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+      "argv": [
+        "python3",
+        "-B",
+        "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source/scripts/qa/phase5f/check-isolated-state.py",
+        "--source-copy",
+        "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy",
+        "--fixture-directory",
+        "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture",
+        "--stage",
+        "before-api"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1"
+      },
+      "startedAt": "2026-10-12T01:45:35.936527+00:00",
+      "status": "PASS",
+      "log": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/physical-before.log",
+      "pid": 1674174,
+      "processGroup": 1674174,
+      "originalStartTicks": "18279670",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-12T01:45:36.821561+00:00",
+      "logSha256": "22542e39b9e067144934201b325012082b01c794dc7c5668efc5b7e3f2477ac8"
+    },
+    {
+      "stage": "current-source-build-and-pure24-witness",
+      "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-current2d07-mobile-package-refresh-workspace-placement-source-preparation-attempt3/carry-current2d07-mobile-original-native.py",
+        "--current02d-coherent-saved-job",
+        "witness"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1"
+      },
+      "startedAt": "2026-10-12T01:45:50.782087+00:00",
+      "status": "PASS",
+      "log": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/current-source-build-and-pure24-witness.log",
+      "pid": 1674239,
+      "processGroup": 1674239,
+      "originalStartTicks": "18281155",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-12T01:45:51.288668+00:00",
+      "logSha256": "997e4a0f3060ccbd36c87990c87798b41254330d957496f0645b17024564c652"
+    },
+    {
+      "stage": "original-one-current-package-status-refresh-keyboard",
+      "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+      "argv": [
+        "node",
+        "/tmp/phase5f-current2d07-three-mobile-five-qa-private-attempt1/source/scripts/qa/phase5f/browser-current-package-file-focus-package-status-refresh-keyboard-mobile.mjs",
+        "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy",
+        "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture",
+        "2d07b57c4e79403099261528ae8988c0072d28c6",
+        "--exclusive-go-one-current-coherent-package-status-refresh-keyboard"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1",
+        "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+        "CHROMIUM_PATH": "/usr/bin/chromium",
+        "PHASE5F_FILE_MIGRATION_CHROMIUM_TEMP": "/workspace/.pkrfm1",
+        "PHASE5F_FILE_MIGRATION_RUNTIME_ROOT": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime"
+      },
+      "cases": [
+        "current-coherent-package-status-refresh-keyboard-390-dark"
+      ],
+      "toolInvocation": {
+        "tty": true,
+        "originalStdinControl": "Only explicit stop newline originalretainedTTY;120s supervision/noSIGTERM graceful claim"
+      },
+      "control": "ONE original genuine1280/light Refresh via keyboardEnter; GET-only original replies/strictbody/focus/+2. No write/accept/test/activate. Firstfailure and realpolling retained.",
+      "startedAt": "2026-10-12T01:46:25.403955+00:00",
+      "status": "PASS",
+      "log": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/original-one-current-package-status-refresh-keyboard.log",
+      "pid": 1674314,
+      "processGroup": 1674314,
+      "originalStartTicks": "18284617",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-12T01:46:37.249177+00:00",
+      "logSha256": "2b208c81d156b96a36e7f5f39843159751094c2a46b6cc03a256944beb13d84e"
+    },
+    {
+      "stage": "physical-after",
+      "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+      "argv": [
+        "python3",
+        "-B",
+        "/tmp/phase5f-current2d07-three-mobile-five-qa-private-attempt1/source/scripts/qa/phase5f/check-current-package-file-focus-package-refresh-mobile-physical-state.py",
+        "--domain",
+        "package",
+        "--source-copy",
+        "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy",
+        "--fixture-directory",
+        "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture",
+        "--runtime-directory",
+        "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1"
+      },
+      "control": "Mandatory after original native child/directwait/reap and context/route/body/controller/browser/Worker/JWKS settlement. New physical output alias; preserve any accepted job/item/hold/permit partial history. Failed native case stays failed.",
+      "startedAt": "2026-10-12T01:46:56.539843+00:00",
+      "status": "PASS",
+      "log": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/physical-after.log",
+      "pid": 1674533,
+      "processGroup": 1674533,
+      "originalStartTicks": "18287731",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-12T01:46:57.542243+00:00",
+      "logSha256": "392906688ad288ffcd674a362e318c4e717275192c9a89cee40fb128dc11567b"
+    },
+    {
+      "stage": "final-source-artifact-input-pins",
+      "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-current2d07-mobile-package-refresh-workspace-placement-source-preparation-attempt3/carry-current2d07-mobile-original-native.py",
+        "--current02d-coherent-saved-job",
+        "final-pins"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1"
+      },
+      "startedAt": "2026-10-12T01:47:22.164688+00:00",
+      "status": "PASS",
+      "log": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/final-source-artifact-input-pins.log",
+      "pid": 1674596,
+      "processGroup": 1674596,
+      "originalStartTicks": "18290293",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-12T01:47:22.707940+00:00",
+      "logSha256": "128244a858c9c65f5546b38121be562884ec2495d168aa33f04d0fc210a8b8a0"
+    }
+  ],
+  "nativeKernelGroup": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "knownExitedKernelZ": [
+    {
+      "pid": 1673665,
+      "state": "Z",
+      "ppid": 1,
+      "processGroup": 1673654,
+      "kernelResourcesExited": true,
+      "fdInspection": "PermissionError"
+    },
+    {
+      "pid": 1673716,
+      "state": "Z",
+      "ppid": 1,
+      "processGroup": 1673700,
+      "kernelResourcesExited": true,
+      "fdInspection": "PermissionError"
+    },
+    {
+      "pid": 1674085,
+      "state": "Z",
+      "ppid": 1,
+      "processGroup": 1674069,
+      "kernelResourcesExited": true,
+      "fdInspection": "PermissionError"
+    }
+  ],
+  "allStageGroupEmptyClaim": false,
+  "FD0Claim": false,
+  "rawRefs": [
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/enabled-storage-draft-build-input-witness.json",
+      "sha256": "5cc8e436a14883152c84b56b821de8b485d3b0bcf8d49a06aa5c4a3b3b8deecb",
+      "bytes": 1464
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/genuine-package-status-refresh-keyboard-report.json",
+      "sha256": "338e089388eb3f4f287f23b472f823a6a3a5ef1b42dc4578feea3a409ece2233",
+      "bytes": 80105
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/genuine-package-status-refresh-keyboard-stop.json",
+      "sha256": "e9cc3624a33e46d75e85dbc7632d7d6e42844d79180664cba6f00c37715480f9",
+      "bytes": 500
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/physical-sqlite-after-current-package-status-refresh-keyboard.json",
+      "sha256": "664a7ebe461fccbaa561d331ae0b401e8caf498ba7450dfca4d045ec14d6cc7e",
+      "bytes": 76455
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/physical-sqlite-before-api.json",
+      "sha256": "a3ffdda5d2af7468a3348efbacf1ca3bd03fda99a34348f2cfa536f2fdaec223",
+      "bytes": 69561
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/process-fixture.json",
+      "sha256": "5d7b310ad63fc449b3073402bb014373eee3f8ab8b10af12ec4b2a767cb5d9bd",
+      "bytes": 1610
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/chromium-child-temp-owner.json",
+      "sha256": "c958cc4b94bad777ee7407b93bb4a027bb78f07fa5ba007a3a6d29ed419d9454",
+      "bytes": 625
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/current-source-build-and-pure24-witness-command.json",
+      "sha256": "f2e86e98ad5850c839683cefbb6d3a9778b91f05dc2bb17000a95fb0a883570c",
+      "bytes": 1314
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/current-source-build-and-pure24-witness.log",
+      "sha256": "997e4a0f3060ccbd36c87990c87798b41254330d957496f0645b17024564c652",
+      "bytes": 225
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/current02d-build-new-pure24-native-causal-carry.json",
+      "sha256": "9cfe9dc73ee9b0dd2be6123b9f6666db37715a57b0793ef80d3130f7c0b84e95",
+      "bytes": 2592
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/final-current2d07-source-and-genuine-refresh-pins.json",
+      "sha256": "5c8272d440a5f09cbeb74d7135b4277b30bd6feafba9ef020babe7b26cda30fd",
+      "bytes": 4096
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/final-source-artifact-input-pins-command.json",
+      "sha256": "77ed21f32916106a78504494603a0d8ec8fbfc7cfdb9132cb4fa30922dc8eb02",
+      "bytes": 1303
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/final-source-artifact-input-pins.log",
+      "sha256": "128244a858c9c65f5546b38121be562884ec2495d168aa33f04d0fc210a8b8a0",
+      "bytes": 228
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/fresh-two-version-sentinel-command.json",
+      "sha256": "4fd656d795cfa1715ca72b74866a40a5873196d0f9e25cc27dff86e2e8966722",
+      "bytes": 1988
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/fresh-two-version-sentinel.log",
+      "sha256": "085fa099c56de4d8ffd69b6772782d2f83d16496f077b4d0cf60e30e3d2adfa5",
+      "bytes": 268
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/frozen-approved-plan.json",
+      "sha256": "08cf3807eeee507bf644803f08543a72e78d1bc7f580bcb9b6948dd99fc80a92",
+      "bytes": 22885
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/isolated-copy-command.json",
+      "sha256": "c6cad6020b524d12574d14533b61ec7991b8ea163862462c0aeb8675fe88e698",
+      "bytes": 1493
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/isolated-copy.log",
+      "sha256": "4bb0541cd30f69be442ebc59232356b00164944385587f322b040fe870cbdbab",
+      "bytes": 221
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/ordinary-actual24-local-migrations-command.json",
+      "sha256": "3399f4dfa07deda41ab964b235ef3eea8328684681323b176f4b72bbcd945d3d",
+      "bytes": 1968
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/ordinary-actual24-local-migrations.log",
+      "sha256": "d7a4512db7e0c9e8f900b340ccacd2f43d6572b6d915da4a8fe49bc2fbd19198",
+      "bytes": 149092
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/original-one-current-package-status-refresh-keyboard-command.json",
+      "sha256": "d88b47481a269f62d5ee9abb67439425458cf0867d0848b04d5407db649a757f",
+      "bytes": 2366
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/original-one-current-package-status-refresh-keyboard.log",
+      "sha256": "2b208c81d156b96a36e7f5f39843159751094c2a46b6cc03a256944beb13d84e",
+      "bytes": 338
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/original-tool-responses.json",
+      "sha256": "af31c5a42c81717e71707373fbec5f11281ebac3b25093b9a0e6b1067f46d7a5",
+      "bytes": 37988
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/physical-after-command.json",
+      "sha256": "db63e3778509e3fe4d42244d20540edbed6cfc1e297ae166cef549f2e3a64a84",
+      "bytes": 1865
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/physical-after.log",
+      "sha256": "392906688ad288ffcd674a362e318c4e717275192c9a89cee40fb128dc11567b",
+      "bytes": 203
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/physical-before-command.json",
+      "sha256": "6f29ee6cfd3c131705b88bc5e77ac196f0ff96c13f8cd4419166a0f456c9ca5c",
+      "bytes": 1455
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/physical-before.log",
+      "sha256": "22542e39b9e067144934201b325012082b01c794dc7c5668efc5b7e3f2477ac8",
+      "bytes": 186
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight-command.json",
+      "sha256": "bd3d166c5ae4befeff278c0868fa7f1395eede7a358aab5986c6b5fab628f6f3",
+      "bytes": 1355
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight.log",
+      "sha256": "3cdc53eb58a874d63edb9b707f58cfa2f802fd75cc9892e72330fb84f24aef10",
+      "bytes": 120
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/synthetic-template-sentinels-only-command.json",
+      "sha256": "5deb2b755ddf75ca0795976ffb405a1d8fa3957d7a0494f1477a1a030158945a",
+      "bytes": 2077
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/synthetic-template-sentinels-only.log",
+      "sha256": "21e54fe0ed1bd23c4c0691519d3298e3fe313d19f4e64f619d6de1b454657186",
+      "bytes": 2747
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/process-fixture.sql",
+      "sha256": "fb63d207cb83485fd70facdf9f58baace7c5bfd36acfbec71a15be67b745a9e5",
+      "bytes": 5579
+    },
+    {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/fixture-hashing.mjs",
+      "sha256": "c12a9fcb13570ac9230c528cb98090369dea6348602165697c5077f4dddb2c10",
+      "bytes": 2958
+    }
+  ],
+  "originalActualBuildManifest": {
+    "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/fresh-build-artifact-manifest.json",
+    "sha256": "597c4bc6edc4b4174abc45ece58d815f6d6e38e587710b01f267d084a7cfe7ae",
+    "bytes": 14601
+  },
+  "originalActualBuildRootRelease": {
+    "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/root-one-current2d07-cf-build-full-source-118-artifacts-original-owner-release.json",
+    "sha256": "b1cb83bb82248f03794703e3b1f516ca7a68343e3abab985e4668a4738f75e22",
+    "bytes": 16803
+  },
+  "workspacePlacementHandoff": {
+    "path": "/workspace/phase5f-current2d07-mobile-package-refresh-workspace-placement-source-preparation-attempt3/source-handoff.json",
+    "sha256": "13e8a94534243c4f09551e7350676bd1d4dfd10e275eaffebacb284776db8878",
+    "bytes": 4881
+  },
+  "rootExclusiveGO": {
+    "path": "/workspace/phase5f-current2d07-mobile-package-refresh-workspace-placement-source-preparation-attempt3/root-first-mobile-workspace-original-ten-superseding-unused-tmp-exclusive-go.json",
+    "sha256": "dfea29e6f1fa6d2db64d201cacffb8c6742c981a475fdf45d092e17b03dc273e",
+    "bytes": 4741
+  },
+  "oldTMPFirstGOAndAllStagesRemainUninvoked": true,
+  "oldDesktopThreeNotRepeated": true,
+  "newBuilds": 0,
+  "disabled84SeedRequests": 0,
+  "otherMobileFileAndPackageStart202": "UNRUN; separate capacity/rootGOs required",
+  "inheritedScopeProse": "Frozen donor command.control still describes1280/light; actual newcaseID, recorded viewport390x844/theme dark and exact assertions are authoritative. Original prose is preserved, no retrospective source retag.",
+  "exclusiveReleased": false,
+  "scope": "Source-specific current2d07 actual118/copy121 and c3 additiveQA3191, one new390dark PackageRefresh only. Normal original owners already closed; root full original raw/source/artifact/kernel read required before control release. No whole5F/deployed/provider/device/FPS claim.",
+  "formalMetadataClarification": {
+    "originalFormal": {
+      "path": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/actual-current2d07-package-refresh-mobile-original-ten-qualified-closed-pending-root-release.json",
+      "sha256": "858bfcf9bf29177469d7caa5aa1546c22b544d6b86858dd707ac530ff0d7399a",
+      "bytes": 35543
+    },
+    "scope": "The first formal source field held the exact producerHead rather than producer root. This metadata successor records the actual root and includes originalSQL/generated hashing module as two additional rawreferences. Original tool/request/body/commands/counts/ACK/physical facts unchanged, no actual stages rerun."
+  }
+}

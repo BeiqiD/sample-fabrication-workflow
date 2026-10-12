@@ -1,0 +1,149 @@
+{
+  "status": "SOURCE_CLEAR_INDEPENDENT_C3C102_FIVE_ADDITIVE_MOBILE_QA_ONLY",
+  "createdAtUtc": "2026-10-12T00:29:32.312890+00:00",
+  "handoff": {
+    "path": "/tmp/phase5f-current2d07-three-mobile-complementary-qa-source-preparation-attempt1/source-handoff.json",
+    "sha256": "dffba0630f5938d817fc137fb74fbbe1d35e6ee4a6dc703f8f5f3ecb27e11483"
+  },
+  "head": "c3c1027b66cca605c7d1ee5e9b7d30427d5c3ca4",
+  "tree": "7e267469efe57b9e72ceeab205a6633b60526735",
+  "parent": "c316fe89ce79cd9d4d40627763bbe7ed029debbe",
+  "sourceStructureProof": {
+    "path": "/tmp/currentc3c102-independent-mobile-complementary-source-peer-attempt1/independent-whole-five-source-git-producer-and-inverse-proof.json",
+    "sha256": "1c773cc053df6ec3af66ca6cdfa912d3224297468c18aaec19fd55ebf4585637"
+  },
+  "verified": {
+    "all3191GitModeBlobRawBytesExact": true,
+    "all3186ParentProtectedExact": true,
+    "all3181ProducerGitAndPhysicalOrdinaryBytesExact": true,
+    "actual118Current2d07ArtifactBytesExact": true,
+    "fiveCompleteCurrentQaBodiesRead": true,
+    "wholeFiveBidirectionalDonorInversesExact": true,
+    "workingHeadAndIndexUnchanged": true
+  },
+  "wholeFiveDonorChecks": [
+    {
+      "path": "scripts/qa/phase5f/browser-current-package-file-focus-package-status-refresh-keyboard-mobile.mjs",
+      "mode": "100644",
+      "sha256": "be04e25c8e82e39f9f41d1737cd79eb86a2fdba8e39afccfc5e36cf899db3eb0",
+      "donorPath": "scripts/qa/phase5f/browser-current-package-file-focus-package-status-refresh-keyboard.mjs",
+      "donorHead": "c316fe89ce79cd9d4d40627763bbe7ed029debbe",
+      "donorSha256": "fdc76a198b6d364fe4b63feaaa57e8b1fbf3b974f1225f31eb2d498bef13db51",
+      "wholeBidirectionalInverseExact": true,
+      "literalSites": 3
+    },
+    {
+      "path": "scripts/qa/phase5f/browser-current-package-file-focus-file-start202-natural-focus-keyboard-mobile.mjs",
+      "mode": "100644",
+      "sha256": "eceeb804409c169f5788e0a7255e254caf588e13fa7285a0b7b42fc8132c3e28",
+      "donorPath": "scripts/qa/phase5f/browser-current-package-file-focus-file-start202-natural-focus-keyboard.mjs",
+      "donorHead": "c316fe89ce79cd9d4d40627763bbe7ed029debbe",
+      "donorSha256": "11f0e926242a36023418c28d499b289ec7f7c17b7c8404e340a98607331c065d",
+      "wholeBidirectionalInverseExact": true,
+      "literalSites": 3
+    },
+    {
+      "path": "scripts/qa/phase5f/browser-current-package-file-focus-package-start202-natural-focus-keyboard-mobile.mjs",
+      "mode": "100644",
+      "sha256": "9a9dfe06f17336fd75f83e3e2e5d2c4bffaef92187d733d1242c0cafe781287f",
+      "donorPath": "scripts/qa/phase5f/browser-current-package-file-focus-package-start202-natural-focus-keyboard.mjs",
+      "donorHead": "c316fe89ce79cd9d4d40627763bbe7ed029debbe",
+      "donorSha256": "e5086d1524d47eee1643ee7108b385f9bb9b6e780d2525d90b8c056319bd3c3e",
+      "wholeBidirectionalInverseExact": true,
+      "literalSites": 3
+    },
+    {
+      "path": "scripts/qa/phase5f/check-current-package-file-focus-package-refresh-mobile-physical-state.py",
+      "mode": "100755",
+      "sha256": "7c0b76aabe0bb91f31a8c40bb71883bdb325eabee2e4af64622cc5a69137f8b9",
+      "donorPath": "scripts/qa/phase5f/check-current-package-file-focus-package-refresh-physical-state.py",
+      "donorHead": "c316fe89ce79cd9d4d40627763bbe7ed029debbe",
+      "donorSha256": "7e60fce30fa71eb67e58296222b39d7fd9456a9e083167345989ca965bf17d30",
+      "wholeBidirectionalInverseExact": true,
+      "literalSites": 1
+    },
+    {
+      "path": "scripts/qa/phase5f/check-current-package-file-focus-start202-natural-focus-mobile-physical-state.py",
+      "mode": "100755",
+      "sha256": "7c73e3f8cd85ae566004846d7b5365d8c5be638b37f6591d97ec4564bc521378",
+      "donorPath": "scripts/qa/phase5f/check-current-package-file-focus-start202-natural-focus-physical-state.py",
+      "donorHead": "c316fe89ce79cd9d4d40627763bbe7ed029debbe",
+      "donorSha256": "45804fc8a3ef74906fc31a77a627b8fae5958eff709ac65c59355a722710ccb8",
+      "wholeBidirectionalInverseExact": true,
+      "literalSites": 2
+    }
+  ],
+  "substantiveReview": [
+    "Exactly five ADD leaves. Three browser helpers change only their closed scenario ID, fresh short child TMP, and sole caseRun to 390x844 dark. Two physical readers change only the appropriate new sibling browser basenames. Parent original three desktop helpers/physical readers and all3181 producer entries remain exact.",
+    "Chromium viewport emulation sets isMobile and hasTouch from width390, plus actual colorScheme and saved theme. Geometry requires actual dataset theme dark and document/body scroll width <= viewport+2. It is not physical-device, IME, other browser engine or mobile runtime qualification.",
+    "Package Refresh retains genuine six localR2 setupPOSTs plus original reader GETs. Native interception admits only jobs/executor GETs, empty jobs and disabled executor are checked against both original full200 bodies. Enter starts on actually focused Refresh and original connected/enabled/focus-visible focus target must return. Existing five-second automatic polling is recorded truthfully; no fixed4 totalGET assumption or poll suppression.",
+    "File Start retains genuine administrator migration setup, original Preview200 and accept202 only, checked samefile/target/request IDs, exact backend response hash matched to delivered full body. The actual accepted queued generation0 job controls the same-row Pause natural-focus observation before any helper Pause focus or job-control request. Original old6 permits/holds/sourcePNG/schema/tables, one exactjob/item/hold and two releasedHTTP permits are checked. No executor/copy/retry/rollback/Pause/Resume/Cancel action.",
+    "Package Start retains real ordinary reader Sample201 with exact original Sample/event identities and one released permit, shadow epoch+2 and unique dependency revision1, followed by Preview200/accept202. Actual reader-owned queued generation0 job/request/two captured records and original internal role policy remain checked. No administrator research-resource grant or SQL authority seed.",
+    "Hard native Start route cap remains2POSTs each; setup maxima6 Refresh,6 File,7 Package including realSample. Separate namespaces total6+8+9=23POSTs at most. Original 20s body/navigation/readiness/focus budgets and residual natural-focus20s,120s nativeTTY and overflow+2 remain unchanged. Inherited Package maxTotalPOSTs12 is an unchanged ceiling, not twelve performed; actual scenario maximum9.",
+    "Each original route.fetch uses maxRetries0/maxRedirects0 and original fulfilled status/headers/body; complete original response.body/hash, route/body/wait settlement, original context/browser/preparation cached firstclose and ordered failures are unchanged by the five full inverses. Bounded own-descriptor/redacted private formatting and optional fixture metadata cannot replace original recorded failure. No helper or module was invoked by the reviewer.",
+    "Physical algorithms remain whole-byte exact after basename inverse: original command PID/argv/hash/directwait/reap/no emergency signals, report-stop equality, actual Worker/JWKS port refusal and no original open state handles. Diagnosis occurs on private byte-identical SQLite/WAL/SHM copies with current24/schema/sentinels/sourcePNG and unchanged before/after source bytes. Independent physical PASS cannot qualify failed Native or invent absent normal finally/ACK.",
+    "File helper itself retains ordered reader GET capability200 and migrations403 with completed original bodies/hashes. Later mobile finite carrier MUST inherit the corrected exact ordered tuple oracle from e4e3/28a2, not the original desktop all200 finalpins defect. This source review does not review or authorize an as-yet unfrozen finite carrier."
+  ],
+  "observations": [
+    {
+      "severity": "nonblocking-inherited-prose",
+      "site": "Package Refresh report.scope at line75",
+      "detail": "The inherited prose still says characterization1280light. Actual closed case ID/caseRun/record viewport are390x844dark, and hand explicitly identifies emulation. It is preserved to maintain the literal-only whole inverse; it cannot be cited as an actual mobile/desktop result."
+    }
+  ],
+  "concreteBlockers": [],
+  "freshShortTemps": {
+    "/workspace/.pkrfm1": "ABSENT_READ_ONLY_OBSERVATION_NOT_CREATED",
+    "/workspace/.sfstm1": "ABSENT_READ_ONLY_OBSERVATION_NOT_CREATED",
+    "/workspace/.pkstm1": "ABSENT_READ_ONLY_OBSERVATION_NOT_CREATED"
+  },
+  "carriedHistoricalReferences": [
+    {
+      "path": "/workspace/current2d07-c316-independent-five-native-qa-whole-inverse-source-peer.json",
+      "sha256": "650afcf015a010c6102cef50f5cec0af9727fc8a7135d2082ba1b73165b25095"
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-source-preparation-attempt1/source-handoff.json",
+      "sha256": "e4e3a09804294f409056bf7a570adc514d836bc024c622d3d00e03330aa98761"
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-private-attempt1/runtime/root-one-file-original-closed-ordered-reader-finalpins-full-raw-original-release.json",
+      "sha256": "3d71e67db0b875a7053c0914d835a6d8679bb7389e2d471f5ed6054ec62fe1d3"
+    },
+    {
+      "path": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/runtime/root-current2d07-package-refresh-full-original-ten-source-raw-physical-owner-release.json",
+      "sha256": "45bffefec6c97c5759fc5c75c3b526c7ba9db923efc955011c91d0412d21ea00"
+    },
+    {
+      "path": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/root-current2d07-package-start202-full-original-ten-source-raw-physical-owner-release.json",
+      "sha256": "34c6c1b86e51f0f8e7137e19a31f737c79d4571a408b6c2aa99063232bfe22c4"
+    }
+  ],
+  "qualification": {
+    "threeNewMobileCases": "UNRUN",
+    "newMobileCompilerBuildNative": "UNRUN_NOT_INVOKED",
+    "physicalConsumerMaterialization": "NOT_CREATED",
+    "oldDesktopReruns": 0,
+    "currentProducer": "Existing actual current2d07 source and118 artifact bytes independently rehashed; no fresh build claim",
+    "finiteSourceBinding": "NOT_YET_PREPARED_REVIEWED_OR_AUTHORIZED"
+  },
+  "remainingGates": [
+    "Per-scenario original finite source binding using reviewed five sources/current3181+118, fresh independent copy/fixture/TMP and original owner/budget controls",
+    "File finalpins carrier exact orderedGET capability200/migrations403 plus full original body/hash",
+    "Root exclusive GO for each scenario after prior normal full release; then genuine outcomes and original physical/source/owner closure"
+  ],
+  "reviewerEffects": {
+    "candidateImport": 0,
+    "helperInvocation": 0,
+    "compiler": 0,
+    "build": 0,
+    "Native": 0,
+    "SQLiteSqlSdk": 0,
+    "browser": 0,
+    "socket": 0,
+    "GitMutation": 0,
+    "fullCandidateMaterialization": 0,
+    "newPrivateOwnedSourceCopies": 5
+  },
+  "reviewerDiagnostic": "A bounded metadata reader initially iterated a list as a dict and stopped with AttributeError after printing the complete inverse list. The authoritative list was then handled directly; no candidate/runtime effects or source mutation resulted."
+}
