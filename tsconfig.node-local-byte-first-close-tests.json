@@ -1,0 +1,24 @@
+{
+  "extends": "./tsconfig.server.json",
+  "compilerOptions": {
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [
+      "node",
+      "vitest/globals"
+    ]
+  },
+  "include": [
+    "server/storage/local-byte-first-close.qualification.ts",
+    "server/storage/local-byte-first-close.process-fixture.ts",
+    "server/storage/local-byte-storage.ts",
+    "server/storage/local-volume-profile-opening.ts",
+    "worker/files/byte-verification.ts",
+    "worker/files/byte-writer.ts",
+    "server/storage/local-profile-first-close.qualification.ts",
+    "server/storage/local-profile-first-close.process-fixture.ts"
+  ]
+}
