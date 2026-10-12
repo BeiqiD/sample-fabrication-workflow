@@ -132,14 +132,13 @@ The recommended workflow needs no persistent local checkout:
    ```
 
    `ALLOWED_EMAILS` is an optional comma-separated second allowlist. Store passwords and tokens as encrypted Worker Secrets.
-8. Merge only a tested release into the configured production branch. The normal deploy command runs the blob-lifecycle, Reference, Project persistence, and Project Map gates, Wrangler migration and Worker/D1 smokes, complete tests, deployment build, remote D1 migrations, and Worker deployment in that order.
+8. Run complete validation locally or in GitHub Actions with `npm run verify:ci` before merging a release. For D1 schema changes, run `npm run build:deploy` and then `npm run db:migrate:remote` separately with the intended deployment variables. Workers Builds runs one Vite build, then `deploy:remote` uploads its Worker bundle and static assets without tests, type checks, migration checks, or another build. For a standalone build and deploy, use `npm run deploy`.
 9. Sign in through Access and confirm `/api/ready` returns `{"ok":true}`.
 
 `v2/backend-foundation` is the isolated development/test integration branch.
 The owner already authorizes ordinary reviewed development integration and its
-existing Workers build path. Execute remote development migrations/deployment
-only after the exact tree passes the dedicated v3 gate and the intended resource
-and forward-migration configuration is verified. The current build configuration,
+existing Workers build path. Run the dedicated v3 validation locally or in CI;
+apply development schema migrations separately when the schema changes. The current build configuration,
 serving version and actual remote schema still need operational evidence.
 
 See [the full deployment guide](./docs/DEPLOYMENT.md) for resource setup, first-deployment checks, upgrades, recovery, and optional SWITCHdrive setup. See [blob lifecycle activation and operations](./docs/BLOB_LIFECYCLE_OPERATIONS.md) for the integration-head gate, GC monitoring, incident rules, and explicit implementation limits.

@@ -71,10 +71,10 @@ Cloudflare references: [build watch paths](https://developers.cloudflare.com/wor
    baseline can initialize it. The baseline must never be applied on top of the
    non-empty old schema. Do not falsify migration-ledger entries.
 3. With access and maintenance still paused, merge the reviewed, passing #202
-   head and run the existing `build:deploy` and `deploy:remote` commands on that
-   final source. The complete verification gate remains enabled, followed by
-   the ordinary baseline migration and deployment. It creates the new migration
-   ledger normally. Use the same D1/R2 Build Variables and unchanged runtime
+   head and run complete validation locally or in CI. On that final source,
+   run `build:deploy`, `db:migrate:remote`, then `deploy:remote` separately. The
+   migration command initializes the ordinary baseline and creates its migration
+   ledger; the final command only uploads the built artifact. Use the same D1/R2 Build Variables and unchanged runtime
    file-storage settings. Temporarily set only `DEPLOY_WORKERS_DEV=false` so
    the deployment itself does not reopen workers.dev before database checks;
    restore its original value when reopening access. The configured daily Cron

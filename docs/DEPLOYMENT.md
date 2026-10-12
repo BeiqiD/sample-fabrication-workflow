@@ -74,20 +74,24 @@ In **Cloudflare Dashboard → Workers & Pages**:
 
 5. Under **Settings → Build → Branch control**, disable builds for non-production branches.
 
-The deploy command runs the complete deployment gate, regenerates the configuration,
-and verifies that its account, Worker, D1, R2 bucket and namespace match the built
-Worker configuration before applying remote D1 migrations. It then deploys that
-Worker bundle and its static assets. A mismatch or failed migration stops deployment.
+Workers Builds generates the deployment configuration and runs one Vite build.
+The deploy command uploads that existing Worker bundle and its static assets.
+Tests, TypeScript checks, migration checks, Worker smokes and artifact validation
+run separately with `npm run verify:ci` locally or in GitHub Actions.
+
+Apply schema changes separately with `npm run db:migrate:remote` before deploying
+a release that needs them. A normal code deployment does not run migrations.
+For a standalone build and deploy, run `npm run deploy`; `deploy:remote` consumes
+the artifact already produced by `build:deploy`.
 
 Do not use that remote-migration command for preview branches. If previews are introduced later, give them a separate Worker, hostname, D1 database, R2 bucket, and deploy command.
 
 ### v3 integration branch gate
 
 `v2/backend-foundation` is an integration branch, not the production branch.
-Even with dedicated preview resources, do not run its remote migrations or
-deploy it until the
-[v3 backend deployment gate](./V3_BACKEND_FOUNDATION.md#v3-deployment-gate) is
-complete.
+Use its dedicated development resources and run the
+[v3 backend validation](./V3_BACKEND_FOUNDATION.md#v3-deployment-gate)
+locally or in GitHub Actions. Apply its schema changes as a separate operation.
 
 The normative requirements are in
 [blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md), and the current code
@@ -111,7 +115,7 @@ npm run verify:ci
 npm run verify:v3-deployment
 ```
 
-The complete CI and deployment gates use the same leaf-check inventory in
+The complete CI and explicit local deployment-validation commands use the same leaf-check inventory in
 `scripts/verification-plan.mjs`. Each runs the source and mounted suites, export
 type contract, migrations, required Worker smokes and one production build. The
 deployment profile selects `build:deploy`; its final Project smoke consumes that
@@ -131,10 +135,9 @@ checks, with details and timing in the workflow log/summary.
 The reference gate combines detailed host-SQLite tests, the ordered Wrangler
 local D1 migration check, and a Miniflare/workerd smoke that invokes the unified
 Worker's resolver endpoint with all nine v1 adapters and 200 distinct targets.
-The normal v3 remote-migration and deployment commands execute these
-checks, the complete test suite, and the deployment build before touching
-remote D1 or storage. Passing an ordinary build or using resources isolated
-from `main` does not waive the gate.
+Run these checks and the complete test suite locally or in GitHub Actions.
+They are excluded from the Cloudflare build and deploy commands so the hosted
+pipeline only generates configuration, bundles, and uploads the existing artifact.
 
 Until the exact integration head passes this gate and an operator explicitly
 authorizes activation:
@@ -192,11 +195,14 @@ The application is fail-closed when `AUTH_MODE=access`: protected API routes rej
 Push or merge the application version to the production branch configured in Workers Builds. It should:
 
 1. Install dependencies.
-2. Run the repository's required verification and deployment build.
-3. Apply every unapplied file in `migrations/` to the bound remote D1 database.
-4. Deploy the Worker only after verification and migrations succeed.
+2. Generate the deployment bindings and build the Worker and client assets once.
+3. Upload those artifacts with Wrangler.
 
-Check the build log for the required status checks and either applied migration names or `No migrations to apply`.
+Run complete verification separately before merging. When the release changes
+the schema, run `npm run build:deploy` and `npm run db:migrate:remote` from a
+checkout with the intended deployment variables before uploading that release.
+Check the build log for bundle completion and deployment success; migration
+results are in the separate migration command's output.
 
 Then verify:
 
@@ -236,7 +242,7 @@ The browser never receives the WebDAV credentials. Original bytes are streamed u
 For an existing installation:
 
 1. Review the release diff and new migrations before merging.
-2. Keep the production deploy command verification- and migration-first.
+2. Run verification locally or in GitHub Actions, and apply new schema migrations separately.
 3. Merge the tested version into the configured production branch.
 4. Confirm the build log and `/api/ready`.
 5. Run a small workflow smoke test when a release changes imports, Comments, Runs, or storage.
@@ -258,8 +264,8 @@ maintenance operation against the explicitly confirmed disposable database.
 Stop old application writers and serialize builds before executing that
 procedure, then initialize the final S2 schema, deploy the verified matching
 application and complete acceptance before restoring normal access. Ordinary
-`deploy:remote` remains verification- and migration-first; it does not reset
-an existing database automatically. This one installation's authorized rebuild
+`deploy:remote` uploads the already built artifacts; database maintenance and
+schema migration are separate commands. This one installation's authorized rebuild
 does not change the upgrade or recovery procedure for installations that must
 preserve their data.
 
@@ -279,13 +285,14 @@ npm run dev
 An operator who prefers Wrangler can export the required `DEPLOY_*` values in a trusted shell and deploy from a trusted checkout:
 
 ```bash
-npm run verify
+npm run verify:ci
 npm run deploy
 ```
 
-For v3, use the dedicated lifecycle/deployment gate added by the implementation
-slice rather than bypassing it with a direct Wrangler command. Confirm the
-active Cloudflare account and every binding before applying remote migrations.
+For a schema-changing release, run `npm run build:deploy` followed by
+`npm run db:migrate:remote` before `npm run deploy:remote`. Complete v3 lifecycle
+validation can also be run explicitly with `npm run verify:v3-deployment` in the
+local checkout; Cloudflare Workers Builds does not execute it.
 
 ## Backup and recovery
 

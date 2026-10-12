@@ -208,8 +208,10 @@ permitted only from the exact merged `v2/backend-foundation` commit.
 5. Confirm the generated Wrangler config points only to the isolated v3 Worker,
    D1 database, and R2 bucket.
 6. List the pending D1 migrations and verify their order before applying them.
-7. Use the gated `db:migrate:remote` or `deploy:remote` command. Do not call the
-   internal Wrangler migration command directly.
+7. Apply schema changes explicitly with `db:migrate:remote`, then upload the
+   matching built artifact with `deploy:remote`. The upload command does not
+   run validation or migrations. Do not call the internal Wrangler migration
+   command directly.
 
 Cloudflare D1 records migration paths and applies discovered migration files in
 sequential order. Migration files with the same numeric prefix are ordered by

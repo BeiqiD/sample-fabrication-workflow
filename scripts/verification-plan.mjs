@@ -1,7 +1,7 @@
-// Leaf checks are shared by CI and deployment. Domain scripts remain convenient
-// local entry points; the complete gate runs each underlying check only once.
+// Complete validation is an explicit local/CI command. Workers Builds bundles
+// once and deploys that artifact without running this verification plan.
 const testLeaves = ["verification-scripts", "source", "mounted", "rich-text", "node-http", "server-types", "node-client"];
-const mapLeaves = ["source", "mounted", "build", "map-bundle"];
+const mapLeaves = ["source", "mounted", "types", "build", "map-bundle"];
 const mutationLeaves = [...mapLeaves, "project-worker"];
 export const verificationContexts = {
   "pre-pr/blob-lifecycle": ["source", "export-contract", "migrations"],
@@ -15,8 +15,8 @@ export const verificationContexts = {
   "pre-pr/project-edges": mutationLeaves,
   "pre-pr/project-reading": mutationLeaves,
   "pre-pr/tests": testLeaves,
-  "pre-pr/file-jobs": ["verification-scripts", "source", "mounted", "export-contract", "file-jobs-node", "server-types", "migrations", "build"],
-  "pre-pr/build": ["build", "node-client"],
+  "pre-pr/file-jobs": ["verification-scripts", "source", "mounted", "types", "export-contract", "file-jobs-node", "server-types", "migrations", "build"],
+  "pre-pr/build": ["types", "build", "node-client"],
 };
 
 export function verificationPlan(mode) {
@@ -25,6 +25,7 @@ export function verificationPlan(mode) {
     leaves: [
       { id: "source", script: "test:project-map-performance" },
       { id: "mounted", script: "test:project-map-performance-mounted" },
+      { id: "types", script: "typecheck" },
       { id: "build", script: "build" },
       { id: "map-bundle", script: "test:project-map-bundle" },
     ],
@@ -37,6 +38,7 @@ export function verificationPlan(mode) {
       { id: "mounted", script: "test:reference-mounted" },
       { id: "rich-text", script: "test:rich-text-bundle" },
       { id: "node-http", script: "test:node-http" },
+      { id: "types", script: "typecheck" },
       { id: "server-types", script: "typecheck:server" },
       { id: "node-client", script: "verify:node-client" },
       { id: "export-contract", script: "typecheck:export-contract" },
