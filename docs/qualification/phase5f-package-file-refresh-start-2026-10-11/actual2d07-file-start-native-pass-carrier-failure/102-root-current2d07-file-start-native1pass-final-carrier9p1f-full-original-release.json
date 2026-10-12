@@ -1,0 +1,129 @@
+{
+  "status": "ROOT_CURRENT2D07_FILE_START_NATIVE_ONE_PASS_ORIGINAL_TEN_9PASS1FAIL_FULL_CLOSED_RELEASE",
+  "formal": {
+    "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/actual-current2d07-file-start202-final-carrier-failure-body-range-corrected-closed-release.json",
+    "sha256": "e4c9e7cf35c0ee1ac9869d6e1a1cf43e524a8e2d15c8bd676d318e45bf817743",
+    "bytes": 27984
+  },
+  "originalRawReferencesRead": 32,
+  "originalNativeCounts": {
+    "passed": 1,
+    "failed": 0,
+    "unrun": 0
+  },
+  "originalCommandCounts": {
+    "passed": 9,
+    "failed": 1,
+    "unrun": 0
+  },
+  "full3181Producer3186ConsumerAnd3181Copy121ArtifactBytesModes": true,
+  "readerTupleExact200And403": true,
+  "native11FullBodies200And202": true,
+  "naturalInitialFocus": {
+    "originalAccept202": true,
+    "acceptedJobId": "04f32d22-3ec7-4ece-8541-b0ba4e813718",
+    "initialJobState": "queued",
+    "startRemoved": true,
+    "immediateNaturalFocus": {
+      "connected": true,
+      "active": true,
+      "body": false,
+      "tag": "BUTTON",
+      "focusVisible": true,
+      "disabled": false
+    },
+    "settledNaturalFocus": {
+      "connected": true,
+      "active": true,
+      "focusVisible": true,
+      "disabled": false
+    }
+  },
+  "actualQueuedGen0History": {
+    "stage": "settled-original-accept202-natural-focus",
+    "onlyExactOneJobOneItemOneHoldAndReleasedPermitsChanged": true,
+    "old6PermitsExact": true,
+    "oldHoldsExact": true,
+    "newReleasedPermits": 2,
+    "jobState": "queued",
+    "jobGeneration": 0,
+    "migrationAttempts": 0,
+    "executorDisabled": true,
+    "sourceBytesExact": true,
+    "targetEmpty": true,
+    "addedRowsSha256": "2b66c1e05ff11088723b4c3f7aede8c00b3626998787d1721f3d0eba5a141936"
+  },
+  "normalFirstACK": {
+    "status": "closed",
+    "browserCloseAwaited": true,
+    "originalPreparationOwnerClosure": {
+      "status": "closed",
+      "startedAt": "2026-10-11T23:20:35.013Z",
+      "originalRequestsAwaited": {
+        "count": 12,
+        "rejected": 0
+      },
+      "workerDisposeAwaited": true,
+      "workerPortRefused": true,
+      "originalOutboundWorkAwaited": {
+        "count": 1,
+        "rejected": 0
+      },
+      "jwksCloseAwaited": true,
+      "jwksPortRefused": true,
+      "completedAt": "2026-10-11T23:20:36.026Z"
+    }
+  },
+  "all10OriginalSameWaitReapedNoSignals": true,
+  "retainedKernelZ": [
+    {
+      "pid": 1608806,
+      "state": "Z",
+      "ppid": 1,
+      "processGroup": 1608795,
+      "kernelResourcesExited": true,
+      "fdInspection": "PermissionError",
+      "owningOriginalStage": "fresh-two-version-sentinel"
+    },
+    {
+      "pid": 1608857,
+      "state": "Z",
+      "ppid": 1,
+      "processGroup": 1608841,
+      "kernelResourcesExited": true,
+      "fdInspection": "PermissionError",
+      "owningOriginalStage": "ordinary-actual24-local-migrations"
+    },
+    {
+      "pid": 1609480,
+      "state": "Z",
+      "ppid": 1,
+      "processGroup": 1609464,
+      "kernelResourcesExited": true,
+      "fdInspection": "PermissionError",
+      "owningOriginalStage": "synthetic-template-sentinels-only"
+    }
+  ],
+  "allPGEmptyClaim": false,
+  "FD0Claim": false,
+  "originalFailure": {
+    "originalCommand": {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/final-source-artifact-input-pins-command.json",
+      "sha256": "056d9a00bdd43f1ea7c2e100af8a67f12cea5e5550898b70b28c1828d3aef8cf",
+      "bytes": 1269
+    },
+    "originalLog": {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/final-source-artifact-input-pins.log",
+      "sha256": "9bca656a91db6dfaa2a2e1dda6b4cfc8441aef52cf0d9d33f6ad444d0e493a1a",
+      "bytes": 649
+    },
+    "stage": "final-source-artifact-input-pins",
+    "line": 133,
+    "originalFinalPinsOutputAbsent": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/final-current2d07-source-and-genuine-start202-pins.json",
+    "wholePipelinePASS": false,
+    "nativeCaseResultRemainsPASS": true,
+    "sourceInputLoopsPassedBeforeReaderOracle": "Carrier reached133 after exact producer/consumer/copied/artifact loops and native normalclose/status checks; no completed finalpins JSON claim"
+  },
+  "exclusiveReleased": true,
+  "scope": "Native product behavior passed; original final carrier falsely required reader-denial403 to be200. Only a new reviewed offline finalpins check can qualify the whole current evidence; original9P1F is immutable."
+}

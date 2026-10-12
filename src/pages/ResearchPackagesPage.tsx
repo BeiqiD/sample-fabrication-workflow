@@ -101,11 +101,12 @@ function Preview({ value, accepted = false }: { value: ResearchPackagePreview; a
   </div>;
 }
 
-function Job({ job, busy, allowed, currentSignal, reused, onControl, onSelectUpload, onViewScope }: {
+function Job({ job, busy, allowed, currentSignal, reused, onControl, onSelectUpload, onViewScope, onPauseTarget }: {
   job: ResearchJobStatus; busy: boolean; allowed: boolean; currentSignal: AbortSignal | null; reused: boolean;
   onControl: (id: string, action: ResearchJobControl, onStarting: (signal: AbortSignal) => void,
     onReceipt: (receipt: ResearchJobStatus) => void) => void;
   onSelectUpload: (id: string) => void; onViewScope: (id: string) => void;
+  onPauseTarget: (job: ResearchJobStatus, button: HTMLButtonElement | null) => void;
 }) {
   const buttons = useRef(new Map<ResearchJobControl, HTMLButtonElement>());
   const status = useRef<HTMLParagraphElement>(null);
@@ -136,7 +137,8 @@ function Job({ job, busy, allowed, currentSignal, reused, onControl, onSelectUpl
   }, [busy, allowed, currentSignal, job]);
   function controlButton(action: ResearchJobControl, label: string) {
     return <button key={action} className="button" disabled={busy}
-      ref={button => { if (button) buttons.current.set(action, button); else buttons.current.delete(action); }}
+      ref={button => { if (button) buttons.current.set(action, button); else buttons.current.delete(action);
+        if (action === "pause") onPauseTarget(job, button); }}
       onClick={event => {
         const origin = event.currentTarget; const admitted: { current: FocusIntent | null } = { current: null };
         onControl(job.id, action, signal => {
@@ -199,6 +201,46 @@ export function ResearchPackagesPage() {
   const exportPreviewButton = useRef<HTMLButtonElement>(null);
   const returnExportPreviewFocus = useRef<{ button: HTMLButtonElement; signal: AbortSignal } | null>(null);
   const currentUpload = upload ? jobs.find(job => job.id === upload.jobId) : null;
+  const refreshButton = useRef<HTMLButtonElement>(null), startButton = useRef<HTMLButtonElement>(null), actionSequence = useRef(0);
+  const pauseTargets = useRef(new Map<string, { job: ResearchJobStatus; button: HTMLButtonElement }>());
+  type PageFocusIntent = { action: "refresh" | "start"; origin: HTMLButtonElement; signal: AbortSignal; sequence: number;
+    refreshSequence: number; receipt: ResearchJobStatus | null; movedAway: boolean; stopObserving: () => void };
+  const returnPageFocus = useRef<PageFocusIntent | null>(null);
+  function clearPageFocus() { returnPageFocus.current?.stopObserving(); returnPageFocus.current = null; }
+  function beginPageFocus(action: PageFocusIntent["action"], origin: HTMLButtonElement, signal: AbortSignal) {
+    if (document.activeElement !== origin || origin !== (action === "refresh" ? refreshButton.current : startButton.current) || !origin.isConnected) return null;
+    const intent: PageFocusIntent = { action, origin, signal, sequence: actionSequence.current,
+      refreshSequence: refreshSequence.current + (action === "refresh" ? 1 : 0), receipt: null, movedAway: false,
+      stopObserving: () => { document.removeEventListener("focusin", moved, true); window.removeEventListener("blur", blurred); } };
+    const moved = (event: FocusEvent) => { if (event.target !== origin && event.target !== document.body) intent.movedAway = true; };
+    const blurred = () => { intent.movedAway = true; };
+    returnPageFocus.current = intent;
+    document.addEventListener("focusin", moved, true); window.addEventListener("blur", blurred);
+    return intent;
+  }
+  useLayoutEffect(() => () => clearPageFocus(), []);
+  useLayoutEffect(() => {
+    if (busy) return;
+    const intent = returnPageFocus.current; clearPageFocus();
+    if (!intent || intent.signal !== lifetime.current?.signal || intent.signal.aborted || deniedRef.current || denied
+      || intent.sequence !== actionSequence.current || intent.movedAway
+      || document.activeElement !== document.body && document.activeElement !== intent.origin) return;
+    if (intent.action === "refresh") {
+      if (intent.refreshSequence === refreshSequence.current && intent.origin === refreshButton.current
+        && intent.origin.isConnected && !intent.origin.disabled) intent.origin.focus();
+      return;
+    }
+    const receipt = intent.receipt;
+    if (!receipt) {
+      if (!pendingRef.current && intent.origin === startButton.current && intent.origin.isConnected && !intent.origin.disabled) intent.origin.focus();
+      return;
+    }
+    const target = pauseTargets.current.get(receipt.id), presented = jobs.find(job => job.id === receipt.id);
+    if (!target || !presented || target.job !== presented || pendingRef.current || presented.requestId !== receipt.requestId || presented.kind !== receipt.kind
+      || presented.acceptedAt !== receipt.acceptedAt || presented.state !== receipt.state || presented.updatedAt !== receipt.updatedAt
+      || !["queued", "running"].includes(presented.state) || !target.button.isConnected || target.button.disabled) return;
+    target.button.focus();
+  }, [busy, denied, jobs]);
 
   function setMessage(value: string) { setMessageText(value); setMessageError(false); }
 
@@ -341,7 +383,7 @@ export function ResearchPackagesPage() {
   async function act(operation: (signal: AbortSignal) => Promise<void>, preserveMessage = false) {
     const controller = lifetime.current;
     if (!controller || controller.signal.aborted || deniedRef.current || busyRef.current) return;
-    busyRef.current = true; setBusy(true); if (!preserveMessage) setMessage("");
+    actionSequence.current++; clearPageFocus(); busyRef.current = true; setBusy(true); if (!preserveMessage) setMessage("");
     try { await operation(controller.signal); }
     catch (error) { if (!controller.signal.aborted) reportFailure(error); }
     finally { if (!controller.signal.aborted) { busyRef.current = false; setBusy(false); } }
@@ -357,7 +399,7 @@ export function ResearchPackagesPage() {
     const capability = kind === "report" ? exportPreview.capabilities.report : exportPreview.capabilities.dataPackage;
     if (!capability.available || kind === "data_package" && !exportPreview.complete) return;
     const intent: Intent = { action: "export", input: checkedResearchExportInput({ requestId: crypto.randomUUID(), ...exportInput() }) };
-    remember(intent); await submit(intent, signal);
+    remember(intent); return submit(intent, signal);
   }
   async function prepareUpload(signal: AbortSignal) {
     if (!file || pendingRef.current) return;
@@ -397,7 +439,9 @@ export function ResearchPackagesPage() {
   return <div className="page storage-settings-page research-packages-page">
     <div className="page-heading"><div><p className="eyebrow">Settings</p><h1>Data</h1>
       <p className="lead">Export research packages and offline reports, or import a native package as a new research copy.</p></div>
-      <button className="button" disabled={busy || denied} onClick={() => void act(signal => refresh(signal, true), true)}>Refresh status</button></div>
+      <button ref={refreshButton} className="button" disabled={busy || denied} onClick={event => {
+        const origin = event.currentTarget; void act(async signal => { beginPageFocus("refresh", origin, signal); await refresh(signal, true); }, true);
+      }}>Refresh status</button></div>
     <nav className="research-package-navigation" aria-label="Data settings"><Link to="/settings/storage">Storage settings</Link><Link to="/export">Full content backup</Link>
       <Link to="/settings/data/system">System backup and recovery</Link>
       <Link to="/imports/fabublox">FabuBlox workbook import</Link></nav>
@@ -436,8 +480,11 @@ export function ResearchPackagesPage() {
         {exportPreview && <><Preview value={exportPreview} />
           {!exportCapability?.available && <ul>{exportCapability?.reasons.map(code => <li key={code}>{reasonText(code)}</li>)}</ul>}
           {kind === "data_package" && !exportPreview.complete && <p className="warning-card">This scope cannot produce a complete native package. Export an available report or resolve the missing dependencies.</p>}
-          <button className="button primary" disabled={blocked || !exportCapability?.available || kind === "data_package" && !exportPreview.complete}
-            onClick={() => void act(startExport)}>Start {kind === "report" ? "report" : "data package"} export</button></>}
+          <button ref={startButton} className="button primary" disabled={blocked || !exportCapability?.available || kind === "data_package" && !exportPreview.complete}
+            onClick={event => { const origin = event.currentTarget; void act(async signal => {
+              const intent = beginPageFocus("start", origin, signal), receipt = await startExport(signal);
+              if (intent && returnPageFocus.current === intent && receipt) intent.receipt = receipt;
+            }); }}>Start {kind === "report" ? "report" : "data package"} export</button></>}
       </section>
       <section className="card storage-settings-section"><h2 className="card-title">Import a native data package</h2>
         <p className="muted">Native research packages create fresh business identities and retain source provenance. Existing readable ZIPs, FabuBlox workbooks and whole-installation backups are separate formats.</p>
@@ -477,7 +524,9 @@ export function ResearchPackagesPage() {
         {!jobs.length && readPhase === "ready" && <p className="muted">No package jobs are recorded for your account.</p>}
         {acceptedScope && <div className="research-package-accepted-scope"><h3>Accepted import scope</h3><p><code>{acceptedScope.jobId}</code></p>
           <Preview value={acceptedScope.preview} accepted /><button className="text-button" onClick={() => setAcceptedScope(null)}>Close accepted scope</button></div>}
-        {jobs.map(job => <Job key={job.id} job={job} busy={blocked} allowed={!denied && !pending} currentSignal={lifetime.current?.signal ?? null}
+        {jobs.map(job => <Job key={job.id} job={job} onPauseTarget={(presented, button) => {
+          if (button) pauseTargets.current.set(presented.id, { job: presented, button }); else pauseTargets.current.delete(presented.id);
+        }} busy={blocked} allowed={!denied && !pending} currentSignal={lifetime.current?.signal ?? null}
           reused={receipts.some(receipt => receipt.jobId === job.id && receipt.reused)}
           onViewScope={id => void act(async signal => {
             const preview = await researchPackagesClient.preview(id, undefined, signal);

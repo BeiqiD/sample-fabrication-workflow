@@ -1,0 +1,14 @@
+{
+  "path": "/workspace/.sfst2",
+  "mode": "0700",
+  "uid": 1000,
+  "dev": "27",
+  "ino": "1874149",
+  "freshCreated": true,
+  "sourceHead": "2d07b57c4e79403099261528ae8988c0072d28c6",
+  "sourceCopyRoot": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/copy",
+  "fixtureDirectory": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/fixture",
+  "qaHelperSha256": "11f0e926242a36023418c28d499b289ec7f7c17b7c8404e340a98607331c065d",
+  "freeBytes": "619335680",
+  "scope": "Original Chromiumchildonly temporary leaf; parent TMPDIR/COPY/FIXTURE ownership unchanged."
+}

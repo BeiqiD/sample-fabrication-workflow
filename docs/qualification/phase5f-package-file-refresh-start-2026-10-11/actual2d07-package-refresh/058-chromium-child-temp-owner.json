@@ -1,0 +1,14 @@
+{
+  "path": "/workspace/.pkrf3",
+  "mode": "0700",
+  "uid": 1000,
+  "dev": "27",
+  "ino": "1874137",
+  "freshCreated": true,
+  "sourceHead": "2d07b57c4e79403099261528ae8988c0072d28c6",
+  "sourceCopyRoot": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/copy",
+  "fixtureDirectory": "/tmp/phase5f-package-current2d07-refresh-focus-native-private-attempt1/fixture",
+  "qaHelperSha256": "fdc76a198b6d364fe4b63feaaa57e8b1fbf3b974f1225f31eb2d498bef13db51",
+  "freeBytes": "619737088",
+  "scope": "Original Chromiumchildonly temporary leaf; parent TMPDIR/COPY/FIXTURE ownership unchanged."
+}
