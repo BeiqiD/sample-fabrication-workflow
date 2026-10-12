@@ -184,7 +184,7 @@ export async function genuineWorkbook(): Promise<GenuineWorkbook> {
   zip.file("xl/_rels/workbook.xml.rels", '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>');
   zip.file("xl/worksheets/sheet1.xml", `<?xml version="1.0"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${rows.map((row, i) => `<row r="${i + 1}">${row.map((cell, j) => `<c r="${String.fromCharCode(65 + j)}${i + 1}" t="inlineStr"><is><t>${xml(cell)}</t></is></c>`).join("")}</row>`).join("")}</sheetData></worksheet>`);
   const bytes = Uint8Array.from(await zip.generateAsync({ type: "uint8array" }));
-  const workbook = new File([bytes.buffer], filename, { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const workbook = new File([bytes], filename, { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const workbookSha256 = createHash("sha256").update(bytes).digest("hex");
   const rawCells = (row: string[]) => Object.fromEntries(rows[0]!.slice(0, 5).map((key, i) => [key, row[i]!]));
   const manifest = { schemaVersion: 2, title, recipeFamilyId: null,
