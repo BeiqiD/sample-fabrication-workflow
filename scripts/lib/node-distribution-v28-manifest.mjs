@@ -11,7 +11,7 @@ export const distributionCapabilityScope = "restricted-development";
 /** Immutable code-owned schema input tuple, not runtime readiness or File grant. */
 export const distributionInstallationCheckpoint = Object.freeze({
   id: "portable-runtime/v26", migrationCount: 24,
-  catalogSourceSha256: "55688ec4bbfea94423bdc00ae58a5097ed277e4d3169be3ba070b4f09a537aff",
+  catalogSourceSha256: "92affab2cdae59aa4543e7b7657f0686990cfd3f842d935f83d7e574fb49cc53",
   operationalSelectorSha256: "eb07706e3145278645d1b2077da37e6c247ea605dcc9d8125b7341479ca87100",
   lastMigrationSourceSha256: "010414ba121247175e3bf6fe2eb88028ff8557035b123cfa12970c37e3985533",
 });
@@ -22,11 +22,11 @@ export const distributionOfflineRecoveryCheckpoint = Object.freeze({
   constructionProvenance: "reviewed-final-schema", rawMigrationExecution: false, executionEnabled: false,
   nodeSchemaSha256: "6f09258e8e2a46799e149000a64ab2363696d689fbda68be8816f01d89de46cb",
   imageSchemaSha256: "604e3b04fefed5d3d8aa8281c4fd728cd73cd69dd40056d268ee1880ed558efd",
-  catalogSourceSha256: "c56ca021886fa4036854fbb2f5b25e2638b2f8e75b9d8d782f1ebe7aa6103dd7",
+  catalogSourceSha256: "45d19298f2599ccfb52e4c244012b5798482ca1e78fb47a7fd4a26fd9f677e2c",
   emptyTargetSourceSha256: "ceea8f9c104f75546c875b1df340fd32715e64a0a2094c2a51828e9aad102c54",
   restorerSourceSha256: "723693919899e96ace0168048bcc6ffa57a56cb4a93fd7368fa459e07b5cf517",
   archiveAdmissionSourceSha256: "c8cafb0a0eb740c6b057c5207a116e31fd3f914bab3bcf7d0e0eb3a0c9be2d81",
-  recoveryCatalogSourceSha256: "b3e522c6ef10e0d9c999e76db7f3aacb8d6327d34376f6898e8058b5f5d3ca73",
+  recoveryCatalogSourceSha256: "22984be55812e8229889455e5b8c708e54063655273688cdaf48a9b7e4c18661",
   trustedSchemaSourceSha256: "1116030f9cf61e1e6d808a76cc2a83c4944aedb83cafb3df07086166f162f219",
   archiveRestorerSourceSha256: "5160e50da45733da132b8cbb8972a0c6462e526935481726d1bd949e960780ed",
 });
