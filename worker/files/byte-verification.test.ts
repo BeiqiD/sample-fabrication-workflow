@@ -12,7 +12,7 @@ const stream = (value = bytes) => new Response(value).body!;
 const input = (body: ByteWriteInput["body"] = bytes.buffer): ByteWriteInput => ({
   ...expected(), key: "opaque/key", body, contentType: "application/octet-stream", filename: "source.bin",
 });
-function fixture(options: { destination?: Uint8Array; consume?: boolean; loseResponse?: boolean } = {}) {
+function fixture(options: { destination?: Uint8Array<ArrayBuffer>; consume?: boolean; loseResponse?: boolean } = {}) {
   const read = vi.fn(async () => ({ outcome: "available" as const,
     body: stream(options.destination), contentType: "application/octet-stream", etag: expected().sha256, httpMetadata: {} }));
   const write = vi.fn(async (request: ByteWriteInput) => {
@@ -99,12 +99,30 @@ describe("full-object byte verification", () => {
 
   it("late stream errors cannot certify a matching prefix", async () => {
     let pulls = 0;
+    let lateFailure: Error | undefined;
     const body = new ReadableStream<Uint8Array>({ pull(controller) {
       if (pulls++ === 0) controller.enqueue(bytes);
-      else controller.error(new Error("secret provider endpoint"));
+      else {
+        lateFailure = new Error("secret provider endpoint");
+        controller.error(lateFailure);
+      }
     } }, { highWaterMark: 0 });
     await expect(verifyByteStream(body, expected(), cloudflareSha256, "destination"))
-      .rejects.toEqual(new ByteVerificationError("destination", "unavailable"));
+      .rejects.toSatisfy((error: unknown) => {
+        expect(lateFailure).toBeInstanceOf(Error);
+        expect(error).toBeInstanceOf(AggregateError);
+        if (!(error instanceof AggregateError)) return false;
+        expect(error.errors).toHaveLength(2);
+        const [work, cleanup] = error.errors;
+        expect(work).toBeInstanceOf(ByteVerificationError);
+        if (!(work instanceof ByteVerificationError)) return false;
+        expect(work.phase).toBe("destination");
+        expect(work.reason).toBe("unavailable");
+        expect(work.cause).toBe(lateFailure);
+        expect(cleanup).toBe(lateFailure);
+        return true;
+      });
+    expect(pulls).toBe(2);
   });
 
   it("stops and cancels an oversized producer at the first excess chunk", async () => {

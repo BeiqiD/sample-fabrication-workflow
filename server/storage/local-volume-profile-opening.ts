@@ -217,14 +217,17 @@ export function createLocalVolumeProfileOpening(options: LocalVolumeProfileOwner
   function dispose(record: RecordOwner): Promise<void> {
     if (record.close) return record.close;
     record.disposed = true;
-    record.close = (async () => {
+    record.close = Promise.resolve().then(async () => {
       const cancelled = await Promise.allSettled([...record.cancel].map(cancel => cancel()));
       for (const result of cancelled) if (result.status === "rejected") record.cleanupFailures.add(result.reason);
       await Promise.allSettled([...record.pending]);
+      // A rejected original body cancellation cannot authorize closing its
+      // parent byte adapter. Keep the same record and cached rejection.
+      if (record.cleanupFailures.size) throw new AggregateError([...record.cleanupFailures], "Local volume cleanup is incomplete");
       if (record.bytes) { try { await record.bytes.close(); } catch (error) { record.cleanupFailures.add(error); } }
       if (record.cleanupFailures.size) throw new AggregateError([...record.cleanupFailures], "Local volume cleanup is incomplete");
       records.delete(record);
-    })();
+    });
     return record.close;
   }
   function source(profile: RegisteredStorageProfile, descriptor: CapturedLocalVolumeDescriptor, access: "read" | "write"): Readonly<Source> {
@@ -262,11 +265,20 @@ export function createLocalVolumeProfileOpening(options: LocalVolumeProfileOwner
               const delivered = deferred<ByteReadResult>();
               const operation = track(record, async () => {
                 await request({ method: "GET", key }); const result = await bytes.reader.read(key);
-                try { current(); } catch (error) { if (result.outcome === "available") await result.body.cancel(); throw error; }
+                try { current(); } catch (error) {
+                  if (result.outcome === "available") {
+                    try { await result.body.cancel(); }
+                    catch (cleanup) {
+                      const original = error === cleanup ? error : new AggregateError([error, cleanup], "Local volume read and body cleanup failed");
+                      record.cleanupFailures.add(original); throw original;
+                    }
+                  }
+                  throw error;
+                }
                 if (result.outcome !== "available") { delivered.resolve(result); return; }
                 const input = result.body.getReader(), ended = deferred<void>(); let ending: Promise<void> | undefined;
                 const abort = () => { void finish().catch(() => undefined); };
-                const finish = () => ending ??= (async () => {
+                const finish = () => ending ??= Promise.resolve().then(async () => {
                   let released = false;
                   try { await input.cancel(); input.releaseLock(); released = true; }
                   catch (error) { record.cleanupFailures.add(error); throw error; }
@@ -276,13 +288,20 @@ export function createLocalVolumeProfileOpening(options: LocalVolumeProfileOwner
                     // retain the failed cancellation closure and adapter owner.
                     if (released) record.cancel.delete(finish); ended.resolve();
                   }
-                })();
+                });
                 record.cancel.add(finish);
                 lifecycle.signal?.addEventListener("abort", abort, { once: true });
                 const body = new ReadableStream<Uint8Array>({ async pull(controller) {
                   try { current(); const next = await input.read(); current();
                     if (next.done) { await finish(); controller.close(); } else controller.enqueue(next.value as Uint8Array);
-                  } catch { await finish(); controller.error(new Error("Local volume profile is unavailable")); }
+                  } catch (error) {
+                    try { await finish(); }
+                    catch (cleanup) {
+                      const original = error === cleanup ? error : new AggregateError([error, cleanup], "Local volume body and cleanup failed");
+                      record.cleanupFailures.add(original); controller.error(original); return;
+                    }
+                    controller.error(new Error("Local volume profile is unavailable", { cause: error }));
+                  }
                 }, cancel: finish }, { highWaterMark: 0 });
                 delivered.resolve({ ...result, body }); await ended.promise;
               });
@@ -293,7 +312,7 @@ export function createLocalVolumeProfileOpening(options: LocalVolumeProfileOwner
           ...(access === "write" ? {
             writer: { accepts: "both" as const, write(input: ByteWriteInput) { return track(record, async () => {
               await request({ method: "PUT", key: input.key }); await bytes.writer.write(input); current();
-            }).catch(error => { if (error instanceof ByteVerificationError) throw error; throw new ByteVerificationError("destination", "unavailable"); }); } },
+            }).catch(error => { if (error instanceof ByteVerificationError) throw error; throw new ByteVerificationError("destination", "unavailable", { cause: error }); }); } },
             deleter: { delete(key: string) { return track(record, async () => {
               await request({ method: "DELETE", key }); const result = await bytes.deleter.delete(key); current(); return result;
             }).catch(() => ({ outcome: "unavailable" } as const)); } },
@@ -301,6 +320,14 @@ export function createLocalVolumeProfileOpening(options: LocalVolumeProfileOwner
         };
         return opened;
       } catch (validationCause) {
+        if (validationCause instanceof StorageProfileCleanupError) {
+          // A failed constructor has already attempted its original cleanup.
+          // Keep this exact owner/outcome in the same profile record; absence
+          // of a returned byte adapter is never proof that cleanup succeeded.
+          record.cleanupFailures.add(validationCause);
+          void dispose(record).catch(() => undefined);
+          throw validationCause;
+        }
         const cleanup = () => dispose(record);
         try { await cleanup(); }
         catch (cleanupCause) { throw new StorageProfileCleanupError(validationCause, cleanupCause, { owner: record, dispose: cleanup }); }

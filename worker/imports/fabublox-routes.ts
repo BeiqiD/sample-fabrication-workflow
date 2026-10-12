@@ -11,7 +11,7 @@ import type { Env } from "../types";
 import { normalizedSubstrateStepName } from "../process-definition/substrate";
 import { digestSha256, reusableR2Asset, safeObjectName } from "../application/r2-upload-support";
 import { verifyR2Bytes, writeR2Bytes } from "../files/legacy-byte-writer";
-import { ByteVerificationError } from "../files/byte-verification";
+import { originalByteVerificationError } from "../files/byte-verification";
 import { FABUBLOX_IMPORT_REQUEST_HEADER, MAX_FABUBLOX_REQUEST_INPUT_BYTES, normalizeFabubloxImportRequestId } from "../../shared/contracts/fabublox-import";
 import type { FabubloxImportInput } from "../../shared/contracts/fabublox-import-input";
 import { acceptFabubloxImport, acceptedImportState, readAcceptedImport, FabubloxImportAcceptanceUnavailableError, FabubloxImportRequestConflictError, type AcceptedFabubloxImportRow, type AcceptedImportFileTarget } from "./fabublox-acceptance";
@@ -616,11 +616,13 @@ routes.post("/imports/fabublox", async (c) => {
         console.error("Could not queue failed FabuBlox import recovery", recoveryError);
       }
     }
-    if (error instanceof ByteVerificationError) {
-      const badSource = error.phase === "source"
-        && (error.reason === "size_mismatch" || error.reason === "hash_mismatch");
+    const originalWork = originalByteVerificationError(error);
+    if (originalWork) {
+      const badSource = originalWork.phase === "source"
+        && (originalWork.reason === "size_mismatch" || originalWork.reason === "hash_mismatch");
       throw new HTTPException(badSource ? 400 : 503, {
-        message: error.message,
+        message: originalWork.message,
+        cause: error,
       });
     }
     throw error;

@@ -1,6 +1,7 @@
 import type { ByteReader } from "./byte-reader";
 import {
-  ByteVerificationError, bufferByteStream, validateByteExpectation, verifyByteStream,
+  ByteVerificationError, bufferByteStream, disposeByteVerificationFailure, originalByteVerificationError,
+  preserveByteVerificationWorkAndCleanup, validateByteExpectation, verifyByteStream,
   verifyStoredBytes, verifyingStream, type ByteExpectation, type Sha256Factory,
 } from "./byte-verification";
 
@@ -19,12 +20,22 @@ export interface ByteWriter {
   write(input: ByteWriteInput): Promise<void>;
 }
 
+const failedByteWriteOwners = new Set<object>();
+
 export async function writeVerifiedBytes(
   storage: { reader: Pick<ByteReader, "read">; writer: ByteWriter; createHash: Sha256Factory },
   input: ByteWriteInput,
 ) {
   const buffered = input.body instanceof ArrayBuffer;
   let source: ReturnType<typeof verifyingStream> | undefined;
+  let rejected = false, workError: unknown, result: ByteExpectation | undefined;
+  let closing: Promise<void> | undefined;
+  const owner = { storage, input, close: (): Promise<void> => cleanup() };
+  const cleanup: () => Promise<void> = () => closing ??= Promise.resolve().then(async () => {
+    if (source) await source.dispose();
+    else if (!buffered) await (disposeByteVerificationFailure(workError)
+      ?? (input.body as ReadableStream<Uint8Array>).cancel());
+  });
   try {
     validateByteExpectation(input, "source");
     if (storage.writer.accepts !== "both"
@@ -42,16 +53,21 @@ export async function writeVerifiedBytes(
       // the generic network rejection caused by that stream failing.
       if (source) {
         try { source.result(); } catch (sourceError) {
-          if (sourceError instanceof ByteVerificationError
-            && ["size_mismatch", "hash_mismatch"].includes(sourceError.reason)) throw sourceError;
+          const originalWork = originalByteVerificationError(sourceError);
+          if (originalWork && ["size_mismatch", "hash_mismatch"].includes(originalWork.reason)) throw sourceError;
         }
       }
-      throw error instanceof ByteVerificationError ? error : new ByteVerificationError("destination", "unavailable");
+      throw originalByteVerificationError(error) ? error : new ByteVerificationError("destination", "unavailable", { cause: error });
     }
     source?.result(); // An early acknowledgement cannot certify an unread body.
-    return await verifyStoredBytes(storage.reader, input.key, input, storage.createHash);
-  } finally {
-    if (source) await source.dispose();
-    else if (!buffered) await (input.body as ReadableStream<Uint8Array>).cancel().catch(() => undefined);
+    result = await verifyStoredBytes(storage.reader, input.key, input, storage.createHash);
+  } catch (error) { rejected = true; workError = error; }
+  try { await cleanup(); }
+  catch (cleanup) {
+    failedByteWriteOwners.add(owner);
+    if (rejected && workError !== cleanup) throw preserveByteVerificationWorkAndCleanup(workError, cleanup, "Byte write work and cleanup failed");
+    throw cleanup;
   }
+  if (rejected) throw workError;
+  return result!;
 }
