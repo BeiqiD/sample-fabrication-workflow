@@ -1,0 +1,2 @@
+// SOURCE-ONLY reviewed forward identity audit extension; no installer/default imports.
+export const LOCAL_AUTH_EVENTS_DDL_V28 = "CREATE TABLE local_auth_events (\n    sequence INTEGER PRIMARY KEY,\n    principal_id TEXT,\n    kind TEXT NOT NULL CHECK(kind IN ('bootstrap','destination_bootstrap','login','login_denied','session_rotated','password_reset','account_disabled','administrator_revoked','account_created')),\n    happened_at INTEGER NOT NULL CHECK(happened_at >= 0)\n  ) STRICT" as const;

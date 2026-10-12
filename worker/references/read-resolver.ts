@@ -16,6 +16,13 @@ import { buildReferenceDestination } from "../../shared/reference-destinations";
 import { REFERENCE_ADAPTERS } from "./adapters";
 
 type ReferenceResolutionWithoutDestination = Omit<ReferenceResolution, "destination">;
+/** Optional actual owner scope; this interface issues no authority. Default
+ * Worker calls use their original database and full nine adapter algorithms. */
+export interface ReferenceSourceReadDatabase extends ReadSqlDatabase {
+  referenceSourceDatabase?(type: ReferenceTargetType): ReadSqlDatabase;
+  /** The private owner can scope registry history independently of source rows. */
+  referenceRegistryDatabase?(): ReadSqlDatabase;
+}
 
 export class ReferenceResolutionInputError extends Error {
   constructor(
@@ -107,7 +114,7 @@ export async function getReferenceTargetsReadOnly(
 }
 
 export async function resolveReferencesReadOnly(
-  db: ReadSqlDatabase,
+  db: ReferenceSourceReadDatabase,
   targets: readonly ReferenceTarget[],
 ): Promise<ReferenceResolution[]> {
   if (!targets.length) return [];
@@ -121,10 +128,10 @@ export async function resolveReferencesReadOnly(
   }
 
   const [registry, resolvedGroups] = await Promise.all([
-    getReferenceTargetsReadOnly(db, targets),
+    getReferenceTargetsReadOnly(db.referenceRegistryDatabase?.() ?? db, targets),
     Promise.all([...grouped.entries()].map(async ([type, ids]) => [
       type,
-      await REFERENCE_ADAPTERS[type](db, [...ids]),
+      await REFERENCE_ADAPTERS[type](db.referenceSourceDatabase?.(type) ?? db, [...ids]),
     ] as const)),
   ]);
   const resolvedByType = new Map(resolvedGroups);

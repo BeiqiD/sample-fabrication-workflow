@@ -18,6 +18,7 @@ import {
   type ReferenceTarget,
   type ReferenceTargetType,
 } from "../../shared/reference-types";
+import type { ReferenceCandidateReadDatabase } from "./read-policy-sql";
 import { referenceResolutionIsEligible } from "./eligibility";
 import { referenceTargetKey, resolveReferencesReadOnly as resolveReferences } from "./read-resolver";
 import { publishedAssetSql, publishedTemplateVersionSql } from "../template-publication";
@@ -384,7 +385,9 @@ function makeSearchAdapter(spec: SearchSourceSpec): ReferenceSearchAdapter {
       candidateLimit + 1,
     ];
 
-    const rows = await db.prepare(sql).bind(...bindings).all();
+    const owned = db as typeof db & ReferenceCandidateReadDatabase;
+    const rows = await (owned.referenceSearchStatement?.(spec.type, spec.idSql, sql) ?? db.prepare(sql))
+      .bind(...bindings).all();
     const truncated = rows.results.length > candidateLimit;
     const candidates = rows.results.slice(0, candidateLimit).map((source): ReferenceSearchCandidate => {
       const row = configurationSqlRow(source);

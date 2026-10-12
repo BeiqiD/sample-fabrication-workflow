@@ -40,7 +40,7 @@ function startStep(row: ReadSqlRow) {
 function captureConfirmation(value: SubstrateTransitionConfirmation | undefined) {
   return value === undefined ? undefined : Object.freeze({ ...value });
 }
-function captureStartInput(value: unknown): StartProcessRunInput | null {
+export function captureStartInput(value: unknown): StartProcessRunInput | null {
   if (!value || typeof value !== "object") return null;
   const candidate = value as StartProcessRunInput;
   return Object.freeze({ templateVersionId: candidate.templateVersionId, substrateConfirmation: captureConfirmation(candidate.substrateConfirmation) });
