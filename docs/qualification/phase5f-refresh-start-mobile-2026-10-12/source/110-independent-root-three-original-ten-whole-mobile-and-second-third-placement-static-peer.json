@@ -1,0 +1,74 @@
+{
+  "status": "ROOT_SOURCE_CLEAR_MOBILE_THREE_UNRUN_SEPARATE_CAPACITY_GOS_REQUIRED",
+  "sourceHandoff": {
+    "path": "/tmp/phase5f-current2d07-three-mobile-native-finite-source-preparation-attempt1/source-handoff.json",
+    "sha256": "4aa20112f4c45a13ed0ec12122c9c9df7bf184c8a1598607a80207526ae901dd",
+    "bytes": 2713
+  },
+  "placementHandoff": {
+    "path": "/tmp/phase5f-current2d07-three-mobile-capacity-placement-source-preparation-attempt2/source-handoff.json",
+    "sha256": "11f4e23ff9c628d20b4f20e6e5a2a2f5d07979c5cdadf5a50e8a8eae38450011",
+    "bytes": 1809
+  },
+  "priorOriginalDesktopFinitePeer": {
+    "path": "/tmp/phase5f-package-file-current2d07-three-native-finite-source-preparation-attempt1/root-current2d07-three-original-ten-finite-static-clear.json",
+    "sha256": "89760523fbfef6adf7c49e154b007ab1cb9adf1d6f323865876ae716efa40082",
+    "bytes": 17480
+  },
+  "all3191Consumer3181ProducerActualGitBytesModeExact": true,
+  "all118OriginalProducerBuildBytesExact": true,
+  "fiveMobileSubstantiveSolePeer": {
+    "path": "/tmp/currentc3c102-independent-mobile-complementary-source-peer-attempt1/independent-complete-c3c102-five-mobile-complementary-source-peer.json",
+    "sha256": "d0f5853e057de7118418b7c1f560d2a87af130002f0b0525e091dccafa0bdc99",
+    "bytes": 11178
+  },
+  "scenarios": [
+    {
+      "scenario": "package-refresh",
+      "handoff": {
+        "path": "/tmp/phase5f-current2d07-three-mobile-native-finite-source-preparation-attempt1/package-refresh/source-handoff.json",
+        "sha256": "6d10aca223cca1ad7ae7a4cf0dc5125646c1418bfd7ee2304c2029f67dd31297",
+        "bytes": 4586
+      },
+      "originalTenBudgetsCostsSame": true,
+      "all11RunnerAnd3CarrierDefinitionsExact": true,
+      "wholeTextAndJsonBothLayersForwardReverseExact": true,
+      "copyFixtureTempAbsent": true,
+      "actualPlacement": "/tmp/phase5f-package-current2d07-refresh-mobile-native-private-attempt1",
+      "namespaceConservativeReserveBytes": 117440512
+    },
+    {
+      "scenario": "file-start202",
+      "handoff": {
+        "path": "/tmp/phase5f-current2d07-three-mobile-capacity-placement-source-preparation-attempt2/file-start202/source-handoff.json",
+        "sha256": "2958869ca3f0d29557e4cdcc4f4e870d10eea2cf03d20c2bd30caf0c082f1570",
+        "bytes": 4648
+      },
+      "originalTenBudgetsCostsSame": true,
+      "all11RunnerAnd3CarrierDefinitionsExact": true,
+      "wholeTextAndJsonBothLayersForwardReverseExact": true,
+      "copyFixtureTempAbsent": true,
+      "actualPlacement": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1",
+      "namespaceConservativeReserveBytes": 117440512
+    },
+    {
+      "scenario": "package-start202",
+      "handoff": {
+        "path": "/tmp/phase5f-current2d07-three-mobile-capacity-placement-source-preparation-attempt2/package-start202/source-handoff.json",
+        "sha256": "227ec45d8f04bce1bf3fa4f107e02948d9cc95a432da75335134c9638a43601d",
+        "bytes": 4680
+      },
+      "originalTenBudgetsCostsSame": true,
+      "all11RunnerAnd3CarrierDefinitionsExact": true,
+      "wholeTextAndJsonBothLayersForwardReverseExact": true,
+      "copyFixtureTempAbsent": true,
+      "actualPlacement": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1",
+      "namespaceConservativeReserveBytes": 117440512
+    }
+  ],
+  "newCompilerBuild": 0,
+  "nativeActual": 0,
+  "capacityGate": "Both mounts minimum536870912; reserve112MiB on each scenario namespace filesystem before separate GO. No permission/default/profile/runtime change.",
+  "refreshInheritedProse": "Report scope/command prose inherited1280light is historical metadata. The frozen current exact case/geometry assertion and QA source require390x844dark; no original actual report retag.",
+  "originalDesktopFileOracleFailureRetained": "One exact ordered capability200/migrations403 finalpins correction already separately qualified. No all200 repeat or fresh wholedesktopTEN claim."
+}

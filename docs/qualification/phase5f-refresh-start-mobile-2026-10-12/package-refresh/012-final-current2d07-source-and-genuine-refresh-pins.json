@@ -1,0 +1,92 @@
+{
+  "status": "PASS",
+  "domain": "package",
+  "producerHead": "2d07b57c4e79403099261528ae8988c0072d28c6",
+  "qaConsumerHead": "c3c1027b66cca605c7d1ee5e9b7d30427d5c3ca4",
+  "all3181ProducerAndCopiedInputsExact": true,
+  "all3181OrdinaryQaInputsExact": true,
+  "tenOwnedCurrentPackageFileFocusQaInputs": {
+    "scripts/qa/phase5f/browser-current-package-file-focus-file-start202-natural-focus-keyboard-mobile.mjs": "eceeb804409c169f5788e0a7255e254caf588e13fa7285a0b7b42fc8132c3e28",
+    "scripts/qa/phase5f/browser-current-package-file-focus-file-start202-natural-focus-keyboard.mjs": "11f0e926242a36023418c28d499b289ec7f7c17b7c8404e340a98607331c065d",
+    "scripts/qa/phase5f/browser-current-package-file-focus-package-start202-natural-focus-keyboard-mobile.mjs": "9a9dfe06f17336fd75f83e3e2e5d2c4bffaef92187d733d1242c0cafe781287f",
+    "scripts/qa/phase5f/browser-current-package-file-focus-package-start202-natural-focus-keyboard.mjs": "e5086d1524d47eee1643ee7108b385f9bb9b6e780d2525d90b8c056319bd3c3e",
+    "scripts/qa/phase5f/browser-current-package-file-focus-package-status-refresh-keyboard-mobile.mjs": "be04e25c8e82e39f9f41d1737cd79eb86a2fdba8e39afccfc5e36cf899db3eb0",
+    "scripts/qa/phase5f/browser-current-package-file-focus-package-status-refresh-keyboard.mjs": "fdc76a198b6d364fe4b63feaaa57e8b1fbf3b974f1225f31eb2d498bef13db51",
+    "scripts/qa/phase5f/check-current-package-file-focus-package-refresh-mobile-physical-state.py": "7c0b76aabe0bb91f31a8c40bb71883bdb325eabee2e4af64622cc5a69137f8b9",
+    "scripts/qa/phase5f/check-current-package-file-focus-package-refresh-physical-state.py": "7e60fce30fa71eb67e58296222b39d7fd9456a9e083167345989ca965bf17d30",
+    "scripts/qa/phase5f/check-current-package-file-focus-start202-natural-focus-mobile-physical-state.py": "7c73e3f8cd85ae566004846d7b5365d8c5be638b37f6591d97ec4564bc521378",
+    "scripts/qa/phase5f/check-current-package-file-focus-start202-natural-focus-physical-state.py": "45804fc8a3ef74906fc31a77a627b8fae5958eff709ac65c59355a722710ccb8"
+  },
+  "all3191QaInputsBytePinned": true,
+  "actualOriginalArtifacts": 118,
+  "copiedArtifacts": 121,
+  "newBuilds": 0,
+  "disabledSeedRequests": 0,
+  "nativeQualification": {
+    "status": "passed",
+    "reportSha256": "338e089388eb3f4f287f23b472f823a6a3a5ef1b42dc4578feea3a409ece2233",
+    "ownedClosure": {
+      "status": "closed",
+      "browserCloseAwaited": true,
+      "originalPreparationOwnerClosure": {
+        "status": "closed",
+        "startedAt": "2026-10-12T01:46:35.861Z",
+        "originalRequestsAwaited": {
+          "count": 12,
+          "rejected": 0
+        },
+        "workerDisposeAwaited": true,
+        "workerPortRefused": true,
+        "originalOutboundWorkAwaited": {
+          "count": 1,
+          "rejected": 0
+        },
+        "jwksCloseAwaited": true,
+        "jwksPortRefused": true,
+        "completedAt": "2026-10-12T01:46:37.104Z"
+      }
+    },
+    "actualCosts": {
+      "setupPOSTs": 6,
+      "readerGETs": 2,
+      "nativeGETs": 4,
+      "nativeMetadataPOSTs": 0,
+      "maxSetupPOSTs": 6,
+      "maxNativePOSTs": 0,
+      "observedAcceptedJobReceipts": 0,
+      "newExecutorSteps": 0
+    },
+    "unrunCases": [],
+    "genuinePreparationStatus": "prepared",
+    "originalPreparationOwnerClosure": {
+      "status": "closed",
+      "startedAt": "2026-10-12T01:46:35.861Z",
+      "originalRequestsAwaited": {
+        "count": 12,
+        "rejected": 0
+      },
+      "workerDisposeAwaited": true,
+      "workerPortRefused": true,
+      "originalOutboundWorkAwaited": {
+        "count": 1,
+        "rejected": 0
+      },
+      "jwksCloseAwaited": true,
+      "jwksPortRefused": true,
+      "completedAt": "2026-10-12T01:46:37.104Z"
+    }
+  },
+  "originalChildWaitReapAndGroup": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "physicalStatus": "passed",
+  "physicalActualSQLiteGroups": 5,
+  "oldAcceptedNamespacesSeparateAndUntouched": true
+}
