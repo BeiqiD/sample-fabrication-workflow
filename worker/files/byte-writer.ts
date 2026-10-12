@@ -1,6 +1,7 @@
 import type { ByteReader } from "./byte-reader";
 import {
-  ByteVerificationError, bufferByteStream, disposeByteVerificationFailure, validateByteExpectation, verifyByteStream,
+  ByteVerificationError, bufferByteStream, disposeByteVerificationFailure, originalByteVerificationError,
+  preserveByteVerificationWorkAndCleanup, validateByteExpectation, verifyByteStream,
   verifyStoredBytes, verifyingStream, type ByteExpectation, type Sha256Factory,
 } from "./byte-verification";
 
@@ -52,11 +53,11 @@ export async function writeVerifiedBytes(
       // the generic network rejection caused by that stream failing.
       if (source) {
         try { source.result(); } catch (sourceError) {
-          if (sourceError instanceof ByteVerificationError
-            && ["size_mismatch", "hash_mismatch"].includes(sourceError.reason)) throw sourceError;
+          const originalWork = originalByteVerificationError(sourceError);
+          if (originalWork && ["size_mismatch", "hash_mismatch"].includes(originalWork.reason)) throw sourceError;
         }
       }
-      throw error instanceof ByteVerificationError ? error : new ByteVerificationError("destination", "unavailable", { cause: error });
+      throw originalByteVerificationError(error) ? error : new ByteVerificationError("destination", "unavailable", { cause: error });
     }
     source?.result(); // An early acknowledgement cannot certify an unread body.
     result = await verifyStoredBytes(storage.reader, input.key, input, storage.createHash);
@@ -64,7 +65,7 @@ export async function writeVerifiedBytes(
   try { await cleanup(); }
   catch (cleanup) {
     failedByteWriteOwners.add(owner);
-    if (rejected && workError !== cleanup) throw new AggregateError([workError, cleanup], "Byte write work and cleanup failed");
+    if (rejected && workError !== cleanup) throw preserveByteVerificationWorkAndCleanup(workError, cleanup, "Byte write work and cleanup failed");
     throw cleanup;
   }
   if (rejected) throw workError;

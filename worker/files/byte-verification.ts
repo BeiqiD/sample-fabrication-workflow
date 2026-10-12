@@ -46,7 +46,14 @@ export function validateByteExpectation(expected: ByteExpectation, phase: Verifi
 // Exact failed verification owners remain private. These promises are cleanup
 // outcomes, never byte evidence or permission to retry an original operation.
 const failedVerifications = new Set<object>();
+const verificationWork = new WeakMap<object, ByteVerificationError>();
 const constructionCleanups = new WeakMap<ByteVerificationError, () => Promise<void>>();
+/** Classify only direct typed work or an exact compound issued by this module.
+ * Never inspect arbitrary AggregateError operands, causes or status properties. */
+export function originalByteVerificationError(error: unknown): ByteVerificationError | undefined {
+  if (error instanceof ByteVerificationError) return error;
+  return error !== null && typeof error === "object" ? verificationWork.get(error) : undefined;
+}
 export function disposeByteVerificationFailure(error: unknown): Promise<void> | undefined {
   return error instanceof ByteVerificationError ? constructionCleanups.get(error)?.() : undefined;
 }
@@ -54,11 +61,18 @@ function cleanupFailure(failures: unknown[], message: string): unknown {
   const distinct = [...new Set(failures)];
   return distinct.length === 1 ? distinct[0] : new AggregateError(distinct, message);
 }
-function workAndCleanup(work: unknown, cleanup: unknown): unknown {
-  return work === cleanup ? work : new AggregateError([work, cleanup], "Byte verification work and cleanup failed");
+/** Preserve original identity and ordered complete causes; classification is
+ * bound to the original work operand, never to a cleanup-only typed failure. */
+export function preserveByteVerificationWorkAndCleanup(work: unknown, cleanup: unknown,
+  message = "Byte verification work and cleanup failed"): unknown {
+  if (work === cleanup) return work;
+  const retained = new AggregateError([work, cleanup], message);
+  const originalWork = originalByteVerificationError(work);
+  if (originalWork) verificationWork.set(retained, originalWork);
+  return retained;
 }
 function failure(error: unknown, phase: VerificationPhase) {
-  return error instanceof ByteVerificationError ? error : new ByteVerificationError(phase, "unavailable", { cause: error });
+  return originalByteVerificationError(error) ? error : new ByteVerificationError(phase, "unavailable", { cause: error });
 }
 
 /** A single backpressured consumer, without tee or whole-object accumulation.
@@ -148,7 +162,7 @@ export function verifyingStream(
       } catch (cause) {
         error ??= failure(cause, phase);
         try { await dispose(); }
-        catch (cleanup) { error = workAndCleanup(error, cleanup); }
+        catch (cleanup) { error = preserveByteVerificationWorkAndCleanup(error, cleanup); }
       }
     },
     cancel: dispose,
@@ -174,7 +188,7 @@ export async function verifyByteStream(
     try { await originalCleanup; }
     catch (cleanup) {
       failedVerifications.add({ input, expected, createHash, error, originalCleanup, cleanup });
-      throw workAndCleanup(error, cleanup);
+      throw preserveByteVerificationWorkAndCleanup(error, cleanup);
     }
     throw error;
   }
@@ -189,7 +203,7 @@ export async function verifyByteStream(
   try { reader.releaseLock(); } catch (cleanup) { failures.push(cleanup); }
   if (failures.length) {
     const cleanup = cleanupFailure(failures, "Byte verification consumer cleanup failed");
-    throw rejected ? workAndCleanup(workError, cleanup) : cleanup;
+    throw rejected ? preserveByteVerificationWorkAndCleanup(workError, cleanup) : cleanup;
   }
   if (rejected) throw workError;
   return result!;

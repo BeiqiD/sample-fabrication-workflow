@@ -1,7 +1,7 @@
 import type { ByteReader } from "./byte-reader";
 import { writeVerifiedBytes, type ByteWriter } from "./byte-writer";
 import {
-  ByteVerificationError, validateByteExpectation, verifyByteStream,
+  ByteVerificationError, originalByteVerificationError, validateByteExpectation, verifyByteStream,
   type ByteExpectation, type Sha256Factory, type VerificationPhase,
   type VerificationReason, type VerifiedBytes,
 } from "./byte-verification";
@@ -68,8 +68,9 @@ export class ShadowByteTransferError extends Error {
     readonly phase: VerificationPhase | "binding",
     readonly reason: ShadowTransferReason,
     readonly writeMayHaveCommitted: boolean,
+    options?: ErrorOptions,
   ) {
-    super("Shadow file bytes could not be verified.");
+    super("Shadow file bytes could not be verified.", options);
     this.name = "ShadowByteTransferError";
   }
 }
@@ -112,12 +113,13 @@ function expectation(value: ByteExpectation, phase: VerificationPhase): Readonly
 
 function failure(error: unknown, writeMayHaveCommitted: boolean, phase: VerificationPhase) {
   if (error instanceof ShadowByteTransferError) {
-    return new ShadowByteTransferError(error.phase, error.reason, writeMayHaveCommitted);
+    return new ShadowByteTransferError(error.phase, error.reason, writeMayHaveCommitted, { cause: error });
   }
-  if (error instanceof ByteVerificationError) {
-    return new ShadowByteTransferError(error.phase, error.reason, writeMayHaveCommitted);
+  const originalWork = originalByteVerificationError(error);
+  if (originalWork) {
+    return new ShadowByteTransferError(originalWork.phase, originalWork.reason, writeMayHaveCommitted, { cause: error });
   }
-  return new ShadowByteTransferError(phase, "unavailable", writeMayHaveCommitted);
+  return new ShadowByteTransferError(phase, "unavailable", writeMayHaveCommitted, { cause: error });
 }
 
 async function readBody(reader: Pick<ByteReader, "read">, key: string, phase: VerificationPhase) {
