@@ -4,9 +4,13 @@ import { isSampleStatus, type FileAssetMediaRef, type SampleDirectorySort } from
 import { sampleDetail, sampleEvent, sampleSummary } from "../serializers";
 import { escapedLikePattern } from "../request-guards";
 import { directoryFilterValue, likeBindings, paginationMeta, processingDirectoryFilter, readPagination, repeatedLikeSql, sampleDirectorySort, searchTokens } from "../directory-query";
+import { publishedTemplateVersionSql } from "../template-publication";
 import { serializeCommentSubmissions } from "../comment-submission-serialization";
 import { configurationSqlInteger } from "../runtime/configuration-sql";
-import type { ReadSqlDatabase } from "../runtime/read-sql";
+import type { ReadSqlDatabase, ReadSqlRow, ReadSqlStatement } from "../runtime/read-sql";
+import type { RequestSubjectFacts } from "../../shared/contracts/request-subject";
+import { sampleVisibilityProjection } from "../collaboration/sample-visibility";
+import { sampleDetailVisibilityProjection } from "../collaboration/sample-detail-visibility";
 import { sampleCommentSubmissionItemRow, sampleCommentSubmissionRow, sampleCommentTargetRow, sampleEventRow, sampleIdentityRow, sampleReadDecimal, sampleReadText, sampleRunAssetRow, sampleRunCommentRow, sampleRunInitialAssetRow, sampleSerializerRow, sampleVerificationStepRow } from "./read-decoding";
 
 /** Fixed Samples SELECT projections over exact cells; write methods are not exposed. */
@@ -16,6 +20,16 @@ export interface SampleReadDependencies {
   /** The trusted composer checks this request's current account/read fence.
    * Reads do not acquire a File execution/write lease. */
   admit(actor: string): Promise<void>;
+  /** Pure query projection parameters, never authentication or a grant.
+   * The unmounted owned adapter separately guards the original Request. */
+  visibility?: Readonly<RequestSubjectFacts>;
+  /** Pure code-owned projection spelling; never an authorization switch. */
+  visibilitySchemaVersion?: 1 | 2;
+  /** Pure fixed projection spelling, not authorization. The separate owned
+   * adapter must issue and check the original Request and each source root. */
+  detailProjection?: "text-history-v28";
+  /** Optional same-snapshot owned read transaction; preserves default reads. */
+  readMany?(statements: readonly ReadSqlStatement[]): Promise<ReadSqlRow[][]>;
 }
 export type SampleReadQuery = (key: string) => string | undefined;
 
@@ -40,10 +54,12 @@ async function sampleHasFileBindings(db: SampleReadDatabase): Promise<boolean> {
   throw new HTTPException(503, { message: "Sample File metadata is unavailable" });
 }
 
-const sampleOverviewSelect = (hasFileBindings: boolean) => `
-  SELECT s.*,
-         COALESCE(ptv.name, r.template_name_snapshot) AS latest_workflow_name,
-         COALESCE(ptv.version, r.template_version_snapshot) AS latest_workflow_version,
+const sampleOverviewSelect = (hasFileBindings: boolean, detailVisible = false) => `
+  SELECT ${detailVisible ? `s.id,s.code,s.title,s.status,s.description,s.location,
+    CASE WHEN s.parent_id IN(SELECT id FROM visible_samples) THEN s.parent_id ELSE NULL END AS parent_id,
+    s.inherited_state_hash,s.pinned,s.created_at,s.updated_at` : "s.*"},
+         ${detailVisible ? "r.template_name_snapshot" : "COALESCE(ptv.name, r.template_name_snapshot)"} AS latest_workflow_name,
+         ${detailVisible ? "r.template_version_snapshot" : "COALESCE(ptv.version, r.template_version_snapshot)"} AS latest_workflow_version,
          r.status AS latest_run_status,
          (
            SELECT COALESCE(rs.title, sd.name)
@@ -123,16 +139,18 @@ const sampleOverviewSelect = (hasFileBindings: boolean) => `
     )
   LEFT JOIN run_plan_revisions rpr ON rpr.id = r.current_plan_revision_id
   LEFT JOIN template_versions ptv ON ptv.id = rpr.template_version_id
-  WHERE s.deleted_at IS NULL`;
+  WHERE s.deleted_at IS NULL${detailVisible ? " AND s.id IN(SELECT id FROM visible_samples)" : ""}`;
 
-const sampleDirectoryBaseSelect = `
-  SELECT s.id, s.code, s.title, s.status, s.location, s.parent_id, s.pinned,
+const directoryWorkflowVisible = `r.recipe_family_id IN(SELECT id FROM visible_sample_templates)
+  AND ptv.recipe_family_id=r.recipe_family_id AND ptv.deleted_at IS NULL AND ${publishedTemplateVersionSql("ptv")}`;
+const sampleDirectoryBaseSelect = (visible = false) => `
+  SELECT s.id, s.code, s.title, s.status, s.location, ${visible ? 'CASE WHEN s.parent_id IN(SELECT id FROM visible_samples) THEN s.parent_id ELSE NULL END AS parent_id' : 's.parent_id'}, s.pinned,
          s.created_at, s.updated_at, s.inherited_state_hash,
          r.id AS latest_run_id,
          r.sequence_no AS latest_run_sequence,
          r.initial_state_hash AS latest_run_initial_state_hash,
-         COALESCE(ptv.name, r.template_name_snapshot) AS latest_workflow_name,
-         COALESCE(ptv.version, r.template_version_snapshot) AS latest_workflow_version,
+         ${visible ? `CASE WHEN ${directoryWorkflowVisible} THEN COALESCE(ptv.name, r.template_name_snapshot) END` : 'COALESCE(ptv.name, r.template_name_snapshot)'} AS latest_workflow_name,
+         ${visible ? `CASE WHEN ${directoryWorkflowVisible} THEN COALESCE(ptv.version, r.template_version_snapshot) END` : 'COALESCE(ptv.version, r.template_version_snapshot)'} AS latest_workflow_version,
          r.status AS latest_run_status
   FROM samples s
   LEFT JOIN runs r ON r.id = (
@@ -144,7 +162,7 @@ const sampleDirectoryBaseSelect = `
   )
   LEFT JOIN run_plan_revisions rpr ON rpr.id = r.current_plan_revision_id
   LEFT JOIN template_versions ptv ON ptv.id = rpr.template_version_id
-  WHERE s.deleted_at IS NULL`;
+  WHERE s.deleted_at IS NULL${visible ? ' AND s.id IN(SELECT id FROM visible_samples)' : ''}`;
 
 function sampleDirectorySearch(query: string) {
   const tokens = searchTokens(query);
@@ -170,7 +188,7 @@ function sampleDirectoryFilters(input: {
   location: string;
   parent: string;
   workflow: string;
-}) {
+}, visible = false) {
   const sql: string[] = [];
   const bindings: string[] = [];
   if (isSampleStatus(input.status)) {
@@ -185,7 +203,7 @@ function sampleDirectoryFilters(input: {
     sql.push(`EXISTS (
       SELECT 1 FROM samples parent
       WHERE parent.id = sample_base.parent_id
-        AND parent.deleted_at IS NULL
+        AND parent.deleted_at IS NULL${visible ? ' AND parent.id IN(SELECT id FROM visible_samples)' : ''}
         AND LOWER(COALESCE(parent.code, '') || ' ' || COALESCE(parent.title, '')) LIKE ? ESCAPE '\\'
     )`);
     bindings.push(escapedLikePattern(input.parent.toLocaleLowerCase()));
@@ -237,33 +255,40 @@ function sampleDirectoryOrder(sort: SampleDirectorySort, tokens: string[]) {
 
 /** Existing directory/detail SQL and wire projections, without provider I/O. */
 export function createSampleReadService(dependencies: SampleReadDependencies) {
+  const visibility = dependencies.visibility ? sampleVisibilityProjection(dependencies.visibility, dependencies.visibilitySchemaVersion ?? 1) : undefined;
+  const visibilityCte = visibility ? `${visibility.cte}, ` : "";
+  const visibilityBindings = visibility?.bindings ?? [];
+  const visibleStatement = (statement: ReadSqlStatement) => visibility ? statement.bind(...visibilityBindings) : statement;
   return {
     async directoryOptions(actor: string) {
       await dependencies.admit(actor);
       const db = dependencies.database();
       const d1Started = performance.now();
-      const [locations, parents, workflows] = await Promise.all([
-        db.prepare(
-          `SELECT DISTINCT location
+      const optionStatements = [
+        visibleStatement(db.prepare(
+          `${visibility ? `WITH ${visibility.cte} ` : ""}SELECT DISTINCT location
        FROM samples
-       WHERE deleted_at IS NULL AND location IS NOT NULL AND TRIM(location) <> ''
+       WHERE deleted_at IS NULL AND location IS NOT NULL AND TRIM(location) <> ''${visibility ? ' AND id IN(SELECT id FROM visible_samples)' : ''}
        ORDER BY location COLLATE NOCASE`,
-        ).all(),
-        db.prepare(
-          `SELECT DISTINCT parent.id, parent.code, parent.title
+        )),
+        visibleStatement(db.prepare(
+          `${visibility ? `WITH ${visibility.cte} ` : ""}SELECT DISTINCT parent.id, parent.code, parent.title
        FROM samples child
        JOIN samples parent ON parent.id = child.parent_id
-       WHERE child.deleted_at IS NULL AND parent.deleted_at IS NULL
+       WHERE child.deleted_at IS NULL AND parent.deleted_at IS NULL${visibility ? ' AND child.id IN(SELECT id FROM visible_samples) AND parent.id IN(SELECT id FROM visible_samples)' : ''}
        ORDER BY parent.code COLLATE NOCASE, parent.id`,
-        ).all(),
-        db.prepare(
-          `WITH sample_base AS (${sampleDirectoryBaseSelect})
+        )),
+        visibleStatement(db.prepare(
+          `WITH ${visibilityCte}sample_base AS (${sampleDirectoryBaseSelect(Boolean(visibility))})
        SELECT DISTINCT latest_workflow_name AS name
        FROM sample_base
        WHERE latest_workflow_name IS NOT NULL AND TRIM(latest_workflow_name) <> ''
        ORDER BY latest_workflow_name COLLATE NOCASE`,
-        ).all(),
-      ]);
+        )),
+      ];
+      const [locations, parents, workflows] = dependencies.readMany
+        ? (await dependencies.readMany(optionStatements)).map(results => ({ results }))
+        : await Promise.all(optionStatements.map(statement => statement.all()));
       const d1Duration = performance.now() - d1Started;
       const payload = {
         locations: locations.results.map((row) => sampleReadText(row.location, "location")),
@@ -290,6 +315,7 @@ export function createSampleReadService(dependencies: SampleReadDependencies) {
       await dependencies.admit(actor);
       const db = dependencies.database();
       const processingView = queryValue("view") === "processing";
+      if (visibility && processingView) throw new HTTPException(503, { message: "Sample processing media permissions are not installed" });
       const hasFileBindings = processingView ? await sampleHasFileBindings(db) : false;
       const filter = processingDirectoryFilter(queryValue("status"));
       const { page, pageSize, offset } = readPagination(queryValue("page"), queryValue("pageSize"));
@@ -299,7 +325,7 @@ export function createSampleReadService(dependencies: SampleReadDependencies) {
         location: processingView ? "" : directoryFilterValue(queryValue("location")),
         parent: processingView ? "" : directoryFilterValue(queryValue("parent")),
         workflow: processingView ? "" : directoryFilterValue(queryValue("process")),
-      });
+      }, Boolean(visibility));
       const baseFilterSql = processingView ? processingDirectoryWhere(filter) : sampleFilters.sql;
       const matchingRunFilterSql = matchingRunFamilyId
         ? ` AND EXISTS (
@@ -386,7 +412,7 @@ export function createSampleReadService(dependencies: SampleReadDependencies) {
          NULL AS current_state_step_title,
          NULL AS current_state_thumbnail_key`;
       const pageSql = `
-    WITH sample_base AS (${sampleDirectoryBaseSelect}),
+    WITH ${visibilityCte}sample_base AS (${sampleDirectoryBaseSelect(Boolean(visibility))}),
     filtered_samples AS (
       SELECT *
       FROM sample_base
@@ -410,19 +436,20 @@ export function createSampleReadService(dependencies: SampleReadDependencies) {
     FROM filtered_samples
     ORDER BY ${ordering.sql}`;
       const countSql = processingView
-        ? `WITH sample_base AS (${sampleDirectoryBaseSelect})
+        ? `WITH ${visibilityCte}sample_base AS (${sampleDirectoryBaseSelect(Boolean(visibility))})
        SELECT COUNT(*) AS all_count,
               COALESCE(SUM(CASE WHEN status = 'active' AND (latest_run_status = 'active' OR latest_run_status IS NULL) THEN 1 ELSE 0 END), 0) AS active_count,
               COALESCE(SUM(CASE WHEN latest_run_status = 'complete' THEN 1 ELSE 0 END), 0) AS complete_count,
               COALESCE(SUM(CASE WHEN latest_run_status = 'cancelled' THEN 1 ELSE 0 END), 0) AS cancelled_count
        FROM sample_base WHERE ${search.sql}${matchingRunFilterSql}`
-        : `WITH sample_base AS (${sampleDirectoryBaseSelect})
+        : `WITH ${visibilityCte}sample_base AS (${sampleDirectoryBaseSelect(Boolean(visibility))})
        SELECT COUNT(*) AS all_count FROM sample_base WHERE ${search.sql} AND ${filterSql}`;
       const d1Started = performance.now();
-      const [result, countRow] = await Promise.all([
-        db.prepare(pageSql).bind(...search.bindings, ...sampleFilters.bindings, ...matchingRunBindings, ...ordering.bindings, pageSize, offset, ...ordering.bindings).all(),
-        db.prepare(countSql).bind(...search.bindings, ...sampleFilters.bindings, ...matchingRunBindings).first(),
-      ]);
+      const pageStatement = db.prepare(pageSql).bind(...visibilityBindings, ...search.bindings, ...sampleFilters.bindings, ...matchingRunBindings, ...ordering.bindings, pageSize, offset, ...ordering.bindings);
+      const countStatement = db.prepare(countSql).bind(...visibilityBindings, ...search.bindings, ...sampleFilters.bindings, ...matchingRunBindings);
+      const [result, countRow] = dependencies.readMany
+        ? await dependencies.readMany([pageStatement, countStatement]).then(([pageRows, countRows]) => [{ results: pageRows! }, countRows![0] ?? null] as const)
+        : await Promise.all([pageStatement.all(), countStatement.first()]);
       const d1Duration = performance.now() - d1Started;
       const facets = processingView ? {
         active: configurationSqlInteger(countRow?.active_count ?? 0, "sample.active_count"),
@@ -442,51 +469,56 @@ export function createSampleReadService(dependencies: SampleReadDependencies) {
       return { payload, serverTiming: `d1;dur=${d1Duration.toFixed(1)}, serialize;dur=${serializeDuration.toFixed(1)}` };
     },
     async detail(id: string, queryValue: SampleReadQuery, actor: string) {
+      const detailVisible = visibility !== undefined && dependencies.detailProjection === "text-history-v28";
+      if (visibility && (!detailVisible || !dependencies.readMany)) {
+        throw new HTTPException(503, { message: "Sample detail resource permissions are not installed" });
+      }
       await dependencies.admit(actor);
       const db = dependencies.database();
       const processingView = queryValue("view") === "processing";
       const hasFileBindings = await sampleHasFileBindings(db);
-      const [
-        sample,
-        children,
-        events,
-        runRows,
-        runAssetRows,
-        runInitialAssetRows,
-        runCommentRows,
-        verificationRows,
-        verificationStepRows,
-        commentSubmissionRows,
-        commentSubmissionItemRows,
-        commentSubmissionTargetRows,
-      ] = await Promise.all([
-        db.prepare(
-          `WITH sample_overview AS (${sampleOverviewSelect(hasFileBindings)})
+      const detailProjection = detailVisible ? sampleDetailVisibilityProjection(dependencies.visibility!) : undefined;
+      const detailBindings = detailProjection?.bindings ?? [];
+      // Default first/all calls keep their original immediate order. Only the
+      // expressly owned detail queues original statements for one readMany BEGIN;
+      // every queued Promise settles from its corresponding actual SQL outcome.
+      const detailQueue: Array<{ statement: ReadSqlStatement; resolve(rows: ReadSqlRow[]): void; reject(error: unknown): void }> = [];
+      const first = (statement: ReadSqlStatement): Promise<ReadSqlRow | null> => {
+        if (!detailVisible) return statement.first();
+        return new Promise((resolve, reject) => detailQueue.push({ statement, resolve: rows => resolve(rows[0] ?? null), reject }));
+      };
+      const all = (statement: ReadSqlStatement): Promise<{ results: ReadSqlRow[] }> => {
+        if (!detailVisible) return statement.all();
+        return new Promise((resolve, reject) => detailQueue.push({ statement, resolve: rows => resolve({ results: rows }), reject }));
+      };
+      const pendingDetail = Promise.all([
+        first(db.prepare(
+          `WITH ${detailProjection ? detailProjection.cte + ", " : ""}sample_overview AS (${sampleOverviewSelect(hasFileBindings, detailVisible)})
        SELECT s.*, p.id AS p_id, p.code AS p_code, p.title AS p_title
        FROM sample_overview s
-       LEFT JOIN samples p ON p.id = s.parent_id AND p.deleted_at IS NULL
+       LEFT JOIN samples p ON p.id = s.parent_id AND p.deleted_at IS NULL${detailVisible ? " AND p.id IN(SELECT id FROM visible_samples)" : ""}
        WHERE s.id = ?`,
-        ).bind(id).first(),
+        ).bind(...detailBindings, id)),
         processingView
           ? Promise.resolve({ results: [] })
-          : db.prepare(
-            "SELECT id, code, title FROM samples WHERE parent_id = ? AND deleted_at IS NULL ORDER BY created_at",
-          ).bind(id).all(),
+          : all(db.prepare(
+            `${detailProjection ? "WITH " + detailProjection.cte + " " : ""}SELECT id, code, title FROM samples WHERE parent_id = ? AND deleted_at IS NULL${detailVisible ? " AND id IN(SELECT id FROM visible_samples)" : ""} ORDER BY created_at`,
+          ).bind(...detailBindings, id)),
         processingView
           ? Promise.resolve({ results: [] })
-          : db.prepare("SELECT * FROM events WHERE sample_id = ? ORDER BY created_at DESC").bind(id).all(),
-        db.prepare(
+          : all(db.prepare(`${detailProjection ? "WITH " + detailProjection.cte + " " : ""}SELECT * FROM ${detailVisible ? "visible_detail_events" : "events"} WHERE sample_id = ? ORDER BY created_at DESC`).bind(...detailBindings, id)),
+        all(db.prepare(
           `SELECT r.id AS run_id, r.recipe_family_id, r.template_version_id, r.run_kind,
               r.status AS run_status,
               r.created_at AS run_created_at, r.completed_at,
               r.current_plan_revision_id, COALESCE(rpr.revision_no, 1) AS plan_revision_no,
               r.predecessor_run_id, r.anchor_step_id, r.sequence_no, r.run_group_id,
               r.initial_state_hash,
-              CASE WHEN r.run_kind = 'metrology' THEN r.template_name_snapshot
-                   ELSE COALESCE(ptv.name, r.template_name_snapshot) END AS template_name,
-              COALESCE(ptv.template_type, r.template_type_snapshot) AS template_type,
-              COALESCE(ptv.version, r.template_version_snapshot) AS template_version,
-              COALESCE(ptv.id, r.template_version_id) AS current_template_version_id,
+              ${detailVisible ? "r.template_name_snapshot" : `CASE WHEN r.run_kind = 'metrology' THEN r.template_name_snapshot
+                   ELSE COALESCE(ptv.name, r.template_name_snapshot) END`} AS template_name,
+              ${detailVisible ? "r.template_type_snapshot" : "COALESCE(ptv.template_type, r.template_type_snapshot)"} AS template_type,
+              ${detailVisible ? "r.template_version_snapshot" : "COALESCE(ptv.version, r.template_version_snapshot)"} AS template_version,
+              ${detailVisible ? "r.template_version_id" : "COALESCE(ptv.id, r.template_version_id)"} AS current_template_version_id,
               rs.id AS step_id, rs.template_step_id, rs.logical_step_key, rs.definition_hash,
               rs.expected_state_hash, rs.position, current_ts.position AS plan_position,
               COALESCE(rs.title, sd.name) AS step_title,
@@ -517,8 +549,8 @@ export function createSampleReadService(dependencies: SampleReadDependencies) {
        LEFT JOIN step_definitions current_sd ON current_sd.hash = current_ts.definition_hash
        WHERE r.sample_id = ? AND r.deleted_at IS NULL
        ORDER BY r.sequence_no DESC, rs.position ASC`,
-        ).bind(id).all(),
-        db.prepare(
+        ).bind(id)),
+        all(db.prepare(
           `SELECT run_step_id, role, r2_key, asset_id, file_id FROM (
          SELECT rs.id AS run_step_id, 'planned' AS role, a.r2_key, a.id AS asset_id, ${hasFileBindings ? "sra.file_id" : "NULL"} AS file_id, sra.position, a.created_at
          FROM run_steps rs
@@ -540,20 +572,20 @@ export function createSampleReadService(dependencies: SampleReadDependencies) {
          WHERE r.sample_id = ? AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
            AND rsa.role = 'execution' AND rsa.deleted_at IS NULL
        ) ORDER BY run_step_id, role, position, created_at`,
-        ).bind(id, id).all(),
-        db.prepare(
+        ).bind(id, id)),
+        all(db.prepare(
           `SELECT r.id AS run_id, a.r2_key, a.id AS asset_id, ${hasFileBindings ? "sra.file_id" : "NULL"} AS file_id
        FROM runs r
        JOIN state_representation_assets sra ON sra.state_hash = r.initial_state_hash
        JOIN assets a ON a.id = sra.asset_id AND a.status = 'ready'
        WHERE r.sample_id = ? AND r.deleted_at IS NULL
        ORDER BY r.sequence_no DESC, sra.position, a.id`,
-        ).bind(id).all(),
-        db.prepare(
-          `SELECT rsc.id, rsc.run_step_id, rsc.scope, rsc.operation_group_id,
+        ).bind(id)),
+        all(db.prepare(
+          `${detailProjection ? "WITH " + detailProjection.cte + " " : ""}SELECT rsc.id, rsc.run_step_id, rsc.scope, rsc.operation_group_id,
               CASE WHEN rsc.submission_id IS NULL THEN rsc.legacy_body ELSE cs.body END AS body,
               ca.r2_key AS asset_key, ca.id AS asset_id, ${hasFileBindings ? "rsc.file_id" : "NULL"} AS file_id, rsc.submission_id, rsc.actor_email, rsc.created_at
-       FROM run_step_comments rsc
+       FROM ${detailVisible ? "visible_detail_comments" : "run_step_comments"} rsc
        JOIN run_steps rs ON rs.id = rsc.run_step_id
        JOIN runs r ON r.id = rs.run_id
        LEFT JOIN comment_submissions cs ON cs.id = rsc.submission_id
@@ -566,16 +598,16 @@ export function createSampleReadService(dependencies: SampleReadDependencies) {
            OR (cs.status = 'ready' AND cs.deleted_at IS NULL)
          )
        ORDER BY rsc.created_at, rsc.id`,
-        ).bind(id).all(),
-        db.prepare(
+        ).bind(...detailBindings, id)),
+        all(db.prepare(
           `SELECT sv.* FROM state_verifications sv
        JOIN run_steps endpoint ON endpoint.id = sv.after_run_step_id
        JOIN runs endpoint_run ON endpoint_run.id = endpoint.run_id
        WHERE sv.sample_id = ? AND endpoint_run.deleted_at IS NULL
          AND endpoint.deleted_at IS NULL
        ORDER BY sv.created_at, sv.id`,
-        ).bind(id).all(),
-        db.prepare(
+        ).bind(id)),
+        all(db.prepare(
           `SELECT svs.verification_id, svs.run_step_id, svs.ordinal
        FROM state_verification_steps svs
        JOIN state_verifications sv ON sv.id = svs.verification_id
@@ -584,15 +616,15 @@ export function createSampleReadService(dependencies: SampleReadDependencies) {
        WHERE sv.sample_id = ? AND covered_run.deleted_at IS NULL
          AND covered_step.deleted_at IS NULL
        ORDER BY sv.created_at, svs.ordinal`,
-        ).bind(id).all(),
-        db.prepare(
+        ).bind(id)),
+        all(db.prepare(
           `SELECT DISTINCT cs.*
        FROM comment_submissions cs
        LEFT JOIN comment_submission_targets cst ON cst.submission_id = cs.id
        WHERE cs.deleted_at IS NULL AND (cs.sample_id = ? OR cst.sample_id = ?)
        ORDER BY cs.created_at, cs.id`,
-        ).bind(id, id).all(),
-        db.prepare(
+        ).bind(id, id)),
+        all(db.prepare(
           `SELECT DISTINCT csi.*, a.r2_key AS asset_key
        FROM comment_submission_items csi
        JOIN comment_submissions cs ON cs.id = csi.submission_id
@@ -601,8 +633,8 @@ export function createSampleReadService(dependencies: SampleReadDependencies) {
        WHERE cs.deleted_at IS NULL AND csi.deleted_at IS NULL
          AND (cs.sample_id = ? OR cst.sample_id = ?)
        ORDER BY csi.submission_id, csi.position`,
-        ).bind(id, id).all(),
-        db.prepare(
+        ).bind(id, id)),
+        all(db.prepare(
           `SELECT cst.submission_id, cst.run_step_id
        FROM comment_submission_targets cst
        JOIN comment_submissions cs ON cs.id = cst.submission_id
@@ -611,8 +643,18 @@ export function createSampleReadService(dependencies: SampleReadDependencies) {
        WHERE cst.sample_id = ? AND cs.status <> 'cancelled'
          AND cs.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
        ORDER BY cs.created_at, cst.run_step_id`,
-        ).bind(id).all(),
+        ).bind(id)),
       ]);
+      if (detailVisible) {
+        try {
+          const results = await dependencies.readMany!(detailQueue.map(read => read.statement));
+          if (results.length !== detailQueue.length) throw new HTTPException(503, { message: "Incomplete Sample detail snapshot" });
+          detailQueue.forEach((read, index) => read.resolve(results[index]!));
+        } catch (error) { detailQueue.forEach(read => read.reject(error)); }
+      }
+      const [sample, children, events, runRows, runAssetRows, runInitialAssetRows, runCommentRows,
+        verificationRows, verificationStepRows, commentSubmissionRows, commentSubmissionItemRows,
+        commentSubmissionTargetRows] = await pendingDetail;
       if (!sample) throw new HTTPException(404, { message: "Sample not found" });
       const parent = sample.p_id
         ? { id: String(sample.p_id), code: String(sample.p_code), title: String(sample.p_title) }

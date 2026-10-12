@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.server.json",
+  "include": [
+    "server/collaboration-sample-record-history-v28.qualification.ts",
+    "server/collaboration-sample-record-history-v28-fixture.qualification.ts",
+    "collaboration-sample-record-history-v28.vitest.config.mts",
+    "server/collaboration-sample-record-remove-history-v28.qualification.ts",
+    "server/collaboration-sample-record-remove-history-v28-fixture.qualification.ts",
+    "collaboration-sample-record-remove-history-v28.vitest.config.mts"
+  ]
+}

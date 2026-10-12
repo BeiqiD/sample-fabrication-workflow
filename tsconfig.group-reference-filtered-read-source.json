@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.server.json",
+  "files": [
+    "server/collaboration/local-reference-read-v28-candidate.ts",
+    "server/collaboration/reference-filtered-read-sql.ts",
+    "server/collaboration/canonical-comment-read-roots.ts",
+    "worker/references/read-policy-sql.ts",
+    "worker/references/read-resolver.ts",
+    "worker/references/read-search.ts",
+    "worker/references/read-children.ts"
+  ],
+  "include": [],
+  "exclude": []
+}

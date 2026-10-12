@@ -1,8 +1,9 @@
 import { createHash, randomUUID, randomBytes } from 'node:crypto';
 import type { SqliteCapability, SqliteRow, SqliteStatement } from '../sqlite';
-import { checkedSafeInteger, assertSqliteConnectionOwner } from '../sqlite';
+import { checkedSafeInteger, assertSqliteConnectionOwner, createSqliteBatchAdmission, runSqliteAdmittedBatch } from '../sqlite';
 import type { DatabaseSync } from 'node:sqlite';
-import { assertInstallationAdmission, type ReviewedInstallationAdmission } from '../migrations';
+import { assertInstallationAdmission, type ReviewedInstallationAdmission, type InstallationReceipt } from '../migrations';
+import { assertExactLocalIdentityV28CandidateObjects } from './identity-v28-catalog-candidate';
 import type { PasswordHasher } from './passwords';
 import { createSessionToken, hashSessionToken, SessionTokenError } from './tokens';
 import { assertExactLocalIdentityObjects, assertPrototypeIdentityAdmission, inspectPrototypeIdentityCatalog, type PrototypeIdentityCatalogAdmission } from './identity-catalog';
@@ -102,18 +103,24 @@ export async function createInstalledLocalIdentity(options: PersistenceOptions &
   // Capture one tuple before any await; a mutable caller options object cannot
   // switch the validated owner while persistence keeps an earlier database.
   const { database, nativeDatabase, admission, hasher } = options, limits = policy(options.policy);
+  assertSqliteConnectionOwner(database, nativeDatabase);
+  const receipt = Object.freeze({ ...assertInstallationAdmission(nativeDatabase, admission) });
+  // A genuine reviewed forward checkpoint selects one exact audit enum extension;
+  // a caller flag/structural object cannot widen the frozen v1 prototype schema.
+  const provisioning = receipt.checkpointId === "portable-runtime/v28" ? receipt : undefined;
   const validate = async () => {
     assertSqliteConnectionOwner(database, nativeDatabase);
     assertInstallationAdmission(nativeDatabase, admission);
-    await assertExactLocalIdentityObjects(database);
+    if (provisioning) await assertExactLocalIdentityV28CandidateObjects(database);
+    else await assertExactLocalIdentityObjects(database);
   };
   await validate();
-  const service = await createIdentityPersistence({ database, hasher, policy: limits }, validate);
+  const service = await createIdentityPersistence({ database, hasher, policy: limits }, validate, provisioning);
   installedOwners.set(service, Object.freeze({ database, nativeDatabase, admission, policy: limits }));
   return service;
 }
 
-async function createIdentityPersistence(options: PersistenceOptions, validate: () => Promise<void>) {
+async function createIdentityPersistence(options: PersistenceOptions, validate: () => Promise<void>, provisioning?: Readonly<InstallationReceipt>) {
   const db = options.database, limits = policy(options.policy), hasher = options.hasher;
   const dummyVerifier = await hasher.hash(randomBytes(32).toString('base64url'));
   // The bounded KDF awaits outside transactions. A changed installation/catalog
@@ -252,6 +259,34 @@ async function createIdentityPersistence(options: PersistenceOptions, validate: 
           ]);
           if (result[0]!.results.length !== 1) throw new IdentityError('bootstrap_unavailable');
           return principal({ principal_id: id, is_administrator: 1 });
+        },
+        /** Explicit stopped-operator ordinary account creation. No administrator,
+         * browser session, collaboration member/map/root/grant is inserted. Old
+         * checkpoint factories refuse before KDF or persistence. The physical
+         * composer owns the complete original KDF/mutation promise withWriter. */
+        async provisionAccount(input: { username: string; password: string; now: number }): Promise<LocalPrincipal> {
+          if (!provisioning) throw new IdentityError('account_unavailable');
+          fence.assertHeld(); const name = username(input.username), now = time(input.now), id = `local_${randomUUID()}`;
+          const authority = await statement("SELECT bootstrap_principal_id,initialized_at FROM local_identity_installation WHERE singleton=1 AND catalog_id='local-identity-v1'").first();
+          if (typeof authority?.bootstrap_principal_id !== 'string' || !ID.test(authority.bootstrap_principal_id)
+            || (typeof authority.initialized_at !== 'bigint' && typeof authority.initialized_at !== 'number')) throw new IdentityError('account_unavailable');
+          const bootstrapId = authority.bootstrap_principal_id, initializedAt = time(checkedSafeInteger(authority.initialized_at));
+          fence.assertHeld();
+          const verifier = await hasher.hash(input.password); fence.assertHeld();
+          const guarded = createSqliteBatchAdmission(db, [{ statement: statement(`SELECT 1 admitted WHERE
+            EXISTS(SELECT 1 FROM local_identity_installation WHERE singleton=1 AND catalog_id='local-identity-v1' AND bootstrap_principal_id=? AND initialized_at=?)
+            AND EXISTS(SELECT 1 FROM node_installation WHERE singleton=1 AND installation_id=? AND catalog_id=?
+              AND schema_checkpoint=? AND schema_sha256=? AND created_at=?)`, bootstrapId, initializedAt, provisioning.installationId,
+              provisioning.catalogId, provisioning.checkpointId, provisioning.schemaSha256, provisioning.createdAt),
+            rejection: new IdentityError('account_unavailable') }]);
+          const result = await runSqliteAdmittedBatch(db, [
+            statement(`INSERT INTO local_accounts(principal_id,username,password_verifier,credential_revision,enabled,created_at)
+              VALUES(?,?,?,1,1,?) RETURNING principal_id`, id, name, verifier, now),
+            audit('account_created', id, now, 'changes()=1 AND EXISTS(SELECT 1 FROM local_accounts WHERE principal_id=? AND password_verifier=?)', [id, verifier]),
+            trimAudit(), readPrincipal(id),
+          ], guarded);
+          if (result[0]!.results.length !== 1 || result[3]!.results.length !== 1) throw new IdentityError('account_unavailable');
+          return principal(result[3]!.results[0]!);
         },
         async resetPassword(idInput: string, password: string, at: number): Promise<void> {
           fence.assertHeld(); const id = identity(idInput), now = time(at), verifier = await hasher.hash(password); fence.assertHeld();

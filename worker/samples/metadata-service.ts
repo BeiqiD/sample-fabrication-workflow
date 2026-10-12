@@ -2,7 +2,7 @@ import { HTTPException } from "hono/http-exception";
 import { DEFAULT_SAMPLE_STATUS, isSampleStatus } from "../../shared/types";
 import { validateCreateSampleInput, validateUpdateSampleInput } from "../sample-input";
 import { titleChangeAudit } from "../sample-update";
-import { configurationSqlInteger, type ConfigurationSqlDatabase, type ConfigurationSqlRow } from "../runtime/configuration-sql";
+import { configurationSqlInteger, type ConfigurationSqlDatabase, type ConfigurationSqlRow, type ConfigurationSqlStatement } from "../runtime/configuration-sql";
 
 /** Reuses the reviewed exact-cell, top-level-mutation capability. This slice
  * does not admit execution CTEs, RETURNING batches, schema or provider work. */
@@ -14,6 +14,10 @@ export interface SampleMetadataCapabilities {
   admit(actor: string): Promise<void>;
   now(): number;
   randomId(): string;
+  /** Optional owned creation transaction. The original id and two statements
+   * are explicit; an adapter may atomically add its initial root/manager rows.
+   * Default Worker behavior continues to use the original database batch. */
+  commitCreation?(id: string, statements: readonly ConfigurationSqlStatement[]): Promise<void>;
 }
 export type SampleMetadataWrite = { ok: true; updatedAt: string };
 export type SampleMetadataDeletion = SampleMetadataWrite & {
@@ -45,6 +49,7 @@ function confirmation(value: unknown): { confirmationCode: string; expectedUpdat
 /** Four existing Samples metadata mutations. SQL owns each atomic write;
  * uncertain acknowledgements propagate as before, without guessing a replay. */
 export function createSampleMetadataService(capabilities: SampleMetadataCapabilities) {
+  const commitCreation = capabilities.commitCreation?.bind(capabilities);
   return {
     async create(value: unknown, actor: string): Promise<{ id: string }> {
       const validation = validateCreateSampleInput(value);
@@ -61,7 +66,10 @@ export function createSampleMetadataService(capabilities: SampleMetadataCapabili
           .bind(eventId, id, `Sample ${code} created`, actor, now),
       ];
       await capabilities.admit(actor);
-      try { await db.batch(statements); }
+      try {
+        if (commitCreation) await commitCreation(id, statements);
+        else await db.batch(statements);
+      }
       catch (error) {
         if (String(error).includes("UNIQUE")) throw new HTTPException(409, { message: `Sample code ${code} already exists` });
         throw error;

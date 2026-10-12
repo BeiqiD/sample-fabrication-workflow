@@ -25,7 +25,7 @@ function previewTemplateRow(row: ReadSqlRow) {
     version: configurationSqlInteger(row.version, "template.version", 1),
     initial_state_hash: nullableText(row.initial_state_hash, "template.initialStateHash"), content_json: nullableText(row.content_json, "template.contentJson") };
 }
-function templateInput(input: unknown, message: string): string | number {
+export function templateInput(input: unknown, message: string): string | number {
   // Preserve the mature truthiness guard/bind semantics; a malformed non-cell
   // is an internal parse/bind failure, not invented authorization or fallback.
   if (input === null || input === undefined) throw new TypeError("Invalid preview request body");

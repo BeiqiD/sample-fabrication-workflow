@@ -10,6 +10,7 @@ import {
   MAX_REFERENCE_RESOLUTION_TARGETS,
   type ReferenceTarget,
 } from "../../shared/reference-types";
+import { referenceChildrenStatement } from "./read-policy-sql";
 import { referenceResolutionIsEligible } from "./eligibility";
 import {
   referenceTargetKey,
@@ -49,10 +50,11 @@ export function normalizeReferenceChildrenInput(
 
 async function rows(
   db: ReadSqlDatabase,
+  parent: ReferenceTarget,
   sql: string,
   bindings: ReadSqlCell[],
 ) {
-  const result = await db.prepare(sql).bind(...bindings).all();
+  const result = await referenceChildrenStatement(db, parent, sql).bind(...bindings).all();
   // Only identity cells cross this boundary; the mature shared target predicate
   // below still skips malformed candidate identities before deduplication.
   return result.results.map(row => ({target_type:row.target_type,target_id:row.target_id}));
@@ -65,7 +67,7 @@ async function directChildRows(
   const candidateLimit = MAX_REFERENCE_RESOLUTION_TARGETS + 1;
   switch (parent.type) {
     case "sample":
-      return rows(db, `
+      return rows(db, parent, `
         SELECT target_type, target_id
         FROM (
           SELECT 'run' AS target_type, r.id AS target_id,
@@ -88,7 +90,7 @@ async function directChildRows(
       `, [parent.id, parent.id, candidateLimit]);
 
     case "run":
-      return rows(db, `
+      return rows(db, parent, `
         SELECT 'run_step' AS target_type, rs.id AS target_id
         FROM run_steps rs
         WHERE rs.run_id = ? AND rs.deleted_at IS NULL
@@ -97,7 +99,7 @@ async function directChildRows(
       `, [parent.id, candidateLimit]);
 
     case "run_step":
-      return rows(db, `
+      return rows(db, parent, `
         SELECT target_type, target_id
         FROM (
           SELECT DISTINCT
@@ -130,7 +132,7 @@ async function directChildRows(
       `, [parent.id, parent.id, candidateLimit]);
 
     case "comment":
-      return rows(db, `
+      return rows(db, parent, `
         SELECT target_type, target_id
         FROM (
           SELECT 'comment_occurrence' AS target_type, rsc.id AS target_id,
@@ -156,7 +158,7 @@ async function directChildRows(
       `, [parent.id, parent.id, candidateLimit]);
 
     case "comment_occurrence":
-      return rows(db, `
+      return rows(db, parent, `
         SELECT 'comment_attachment' AS target_type, csi.id AS target_id
         FROM run_step_comments rsc
         JOIN comment_submissions cs
@@ -174,7 +176,7 @@ async function directChildRows(
       `, [parent.id, candidateLimit]);
 
     case "recipe_revision":
-      return rows(db, `
+      return rows(db, parent, `
         SELECT 'metrology_reference' AS target_type, mtr.id AS target_id
         FROM metrology_template_references mtr
         WHERE mtr.template_version_id = ?
