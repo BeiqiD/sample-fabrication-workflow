@@ -1,0 +1,107 @@
+name: Current V28 explicit runtime profile startup
+
+on:
+  push:
+    branches: [codex/node-v28-main-profiles]
+
+permissions:
+  contents: read
+
+jobs:
+  original-startup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      NO_COLOR: '1'
+      FORCE_COLOR: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+          cache: npm
+      - name: Install the exact committed lock
+        run: npm ci
+      - name: Reserve a new private evidence namespace
+        shell: bash
+        run: |
+          printf 'V28_RUN_ROOT=%s/.current-v28-runtime-profile-%s-%s\n' "$HOME" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+      - name: Original complete server type check
+        run: python3 scripts/qa/run-current-v28-runtime-profile-startup.py --stage types --output "$V28_RUN_ROOT/types"
+      - name: Original three parser cases
+        run: python3 scripts/qa/run-current-v28-runtime-profile-startup.py --stage parser --output "$V28_RUN_ROOT/parser"
+      - name: Build the current fixed Node client
+        shell: bash
+        run: |
+          mkdir -m 700 "$V28_RUN_ROOT/producer"
+          npm run build:node-client 2>&1 | tee "$V28_RUN_ROOT/producer/node-client-build.log"
+      - name: Build the same-candidate complete Node distribution
+        shell: bash
+        run: node scripts/build-node.mjs 2>&1 | tee "$V28_RUN_ROOT/producer/node-distribution-build.log"
+      - name: Verify through the actual embedded distribution verifier
+        shell: bash
+        run: |
+          node dist-node/distribution/tools/verify-node-distribution.mjs dist-node/distribution --runtime 2>&1 | tee "$V28_RUN_ROOT/producer/embedded-distribution-verifier.log"
+          cp dist-node/distribution/manifest.json "$V28_RUN_ROOT/producer/manifest.json"
+          cp dist-node/distribution/source-inputs.json "$V28_RUN_ROOT/producer/source-inputs.json"
+      - name: Require exact help and actual exit zero from all four compiled executables
+        shell: bash
+        run: |
+          python3 - <<'PYHELP'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          checks = json.loads('{"server/main.mjs":"Usage: node main.mjs --config <canonical-private-config> [--filesystem-root-owner-uid UID] [--runtime-profile v28-metadata|v28-fabublox]\\nRestricted local development runtime only; exact numeric loopback HTTP origin and existing current installation required.\\nOffline identities: use identity-cli.cjs bootstrap, restore-administrator or reset-password while this server is stopped; password comes only from stdin or a hidden terminal.\\n","server/identity-cli.cjs":"Usage: local-identity <bootstrap|restore-administrator|reset-password> --database <canonical-private-db> <--username name|--principal local_UUID> [--filesystem-root-owner-uid UID]\\nPassword: one UTF-8 line through stdin, or hidden terminal input. Database and its empty private .writer-lock file must already exist.\\n","server/installation-cli.cjs":"Usage: local-installation upgrade --database <canonical-private-db> [--filesystem-root-owner-uid UID]\\nStop the local development server first. An exact V25 or V26 installation and its empty private .writer-lock file must already exist. This metadata operation reads no password and creates no administrator or File/provider authority.\\nUsage: local-installation inspect --database <canonical-private-db> [--filesystem-root-owner-uid UID]\\nInspection requires an exact current V26/24 installation and prints only installationId, catalogId and checkpointId after the stopped writer closes and releases. It never installs or upgrades a schema.\\n","server/restore-v28-cli.cjs":"Usage: offline-v28 restore --archive <canonical-private-v5-zip> --destination <new-private-directory> --sha256 <archive-sha256> [--filesystem-root-owner-uid UID]\\nFixed V5 complete archive to an inert V28 destination only. Existing destinations are refused. No startup, migration of an existing installation, administrator, File profile binding or Group grant is activated.\\n"}')
+          root = Path('dist-node/distribution')
+          out = Path(os.environ['V28_RUN_ROOT']) / 'producer'
+          rows = [{'executable': executable, 'status': 'UNRUN'} for executable in checks]
+          target = out / 'four-help-original-results.json'
+          def save():
+              target.write_text(json.dumps({'kind': 'same-candidate-fixed-four-compiled-help/1', 'sourceHead': os.environ['GITHUB_SHA'],
+                  'sourceBranch': os.environ['GITHUB_REF'], 'scope': 'Compiled module load and exact help only; no actual server startup, recovery, restored RT6 destination or runtime authority claim',
+                  'results': rows}, indent=2) + '\n')
+          save()
+          for row in rows:
+              name = row['executable']
+              try:
+                  result = subprocess.run(['node', str(root / name), '--help'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30, check=False)
+                  row.update(exitCode=result.returncode, stdoutSha256=hashlib.sha256(result.stdout).hexdigest(), stderrSha256=hashlib.sha256(result.stderr).hexdigest(),
+                             exactExpectedHelp=result.stdout == checks[name].encode())
+                  (out / (Path(name).name + '.help.stdout.log')).write_bytes(result.stdout)
+                  (out / (Path(name).name + '.help.stderr.log')).write_bytes(result.stderr)
+                  row['status'] = 'PASS' if result.returncode == 0 and row['exactExpectedHelp'] else 'FAIL'
+              except subprocess.TimeoutExpired as error:
+                  row.update(status='FAIL', firstFailure='Original compiled help exceeded its finite 30s wait')
+                  (out / (Path(name).name + '.help.stdout.log')).write_bytes(error.stdout or b'')
+                  (out / (Path(name).name + '.help.stderr.log')).write_bytes(error.stderr or b'')
+              except Exception as error:
+                  row.update(status='FAIL', firstFailure=type(error).__name__ + ': ' + str(error))
+              finally:
+                  save()
+              print(json.dumps(row), flush=True)
+              if row['status'] != 'PASS':
+                  raise SystemExit(1)
+          PYHELP
+      - name: Original four genuine startup cases
+        run: python3 scripts/qa/run-current-v28-runtime-profile-startup.py --stage startup --output "$V28_RUN_ROOT/startup"
+      - name: Preserve original logs, results and custody records
+        if: ${{ always() && env.V28_RUN_ROOT != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: current-v28-profile-startup-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 14
+          include-hidden-files: true
+          path: |
+            ${{ env.V28_RUN_ROOT }}/*/supervisor.json
+            ${{ env.V28_RUN_ROOT }}/*/receipt.json
+            ${{ env.V28_RUN_ROOT }}/*/original-owner.json
+            ${{ env.V28_RUN_ROOT }}/*/original.log
+            ${{ env.V28_RUN_ROOT }}/*/original-results.json
+            ${{ env.V28_RUN_ROOT }}/producer/*.log
+            ${{ env.V28_RUN_ROOT }}/producer/four-help-original-results.json
+            ${{ env.V28_RUN_ROOT }}/producer/manifest.json
+            ${{ env.V28_RUN_ROOT }}/producer/source-inputs.json
