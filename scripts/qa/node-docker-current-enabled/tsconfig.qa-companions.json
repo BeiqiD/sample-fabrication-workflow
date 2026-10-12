@@ -1,0 +1,5 @@
+{
+  "extends": "../../../tsconfig.server.json",
+  "compilerOptions": { "noEmit": true, "incremental": false, "composite": false },
+  "include": ["trusted-local-file-setup.ts", "inspect-local-file-state.ts", "prepare-populated-v25.ts", "inspect-upgrade-preservation.ts"]
+}
