@@ -1,5 +1,7 @@
 # Phase 5 frontend refinement implementation plan
 
+**Historical integration/candidate checkpoint (2026-10-10/11; superseded as current status):**
+
 Status: historical Phase 5A–5C slices through PR #185 merged/deployed.
 **C4, 5D and 5E and bounded 5F repairs are integrated** through
 [PR #251](https://github.com/BeiqiD/sample-fabrication-workflow/pull/251) at
@@ -47,6 +49,18 @@ skipped, and no deployed serving/schema claim.
 Post-merge #251 Verify/Map and all 15 contexts and Workers Build
 `114224522096` succeeded; three anonymous routes still returned Access 302.
 Authenticated serving/schema and whole-phase device gates stay open.
+
+**Earlier merged development checkpoint:** [PR #282](https://github.com/BeiqiD/sample-fabrication-workflow/pull/282) merged at `e6a4dbe8098d3557510831531bd2fc534fe9e26b`. Its own-head four Verify/Map runs and all 15 contexts, then the e6 post-merge two runs and all 15 contexts, succeeded; its actual Workers Build also succeeded. Those results retain their exact source scope.
+
+**Build optimization now in the development baseline:** [PR #283](https://github.com/BeiqiD/sample-fabrication-workflow/pull/283) merged at `879145ec1e74c853d079ba49503bcad199a3b768`, with its own-head and post-merge CI and actual [Workers Build 114914679495](https://github.com/BeiqiD/sample-fabrication-workflow/runs/114914679495) successful. Default `npm run build` uses `npm run config:local && vite build`; TypeScript checking remains the separate `npm run typecheck` prerequisite in `verify`. The fast build result does not replace serving, schema or provider acceptance.
+
+**Merged FabuBlox development checkpoint:** [PR #284](https://github.com/BeiqiD/sample-fabrication-workflow/pull/284) is merged at `784aeb5c14cb2e2c776a27f6f9a5ef9a6ba4dfcd`, whose tree equals qualified candidate `762616906a0cc569567cc4d73242163642310c70`. Its actual post-merge [Verify 38320273223](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38320273223), [Map 38320273213](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38320273213), all 15 contexts and Cloudflare build succeeded. The candidate's four genuine Process/body tests, full server typecheck, fresh build and four fixed local Chromium shell/accessibility cases retain their original local scopes; earlier failures and browser receipts remain recorded separately.
+
+**Merged Node producer:** [PR #285](https://github.com/BeiqiD/sample-fabrication-workflow/pull/285) merged at `8d832ba7af5f1554d61f34fe726ffd8b9de46336`, with the exact tree of `cbe0fd3`. Both own Verify runs, both Map runs and all 15 contexts passed. The full Node V3 package, eight distribution tests, embedded verifier and four bundled CLI help checks passed at cbe0; its package has 123 files and 858 source inputs. The new merge's Workers Build succeeded; its ordinary post-merge Verify is a separate pending scope. Docker/image/17-case and restored-target acceptance remain open.
+
+**Explicit V28 profile draft:** [PR #286](https://github.com/BeiqiD/sample-fabrication-workflow/pull/286), source `4ef7a9d`, passed full server type checking, three parser cases, fresh Node client/distribution build, embedded verification, four compiled CLI help checks and four genuine programmatic runtime-startup cases in [run 38323352244](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38323352244). This new package has 123 files and 928 source inputs. Ordinary complete CI remains pending. The original workflow logs and stage PASS reports were read; the separate artifact download returned 403 and its detailed receipt files were not read back. Compiled-server startup, restored-target startup and cross-runtime recovery are not established by these tests.
+
+The four named local shell/accessibility cases passed for the #284 qualified candidate before its merge; that original receipt retains its scope. Whole5F final disposition, applicable physical IME/touch/other-engine evidence, actual old-document/new-serving-version handover, and selected fresh/populated and enabled-provider/operational 6A6/6B exits remain open. Retain the existing server admission restrictions and versioned failures/counts.
 
 The historical 2026-09-13 Project/Worker checkpoint below remains evidence,
 not today's phase queue. C4's [local completion](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/PROJECT_C4_ACCEPTANCE.md),
@@ -569,6 +583,8 @@ their intentional density and workflow differences.
 
 ### Phase 5F — cross-product integration review
 
+**Historical integration/candidate checkpoint (superseded as current status):**
+
 Status: **bounded development in progress** after qualified #251 integration.
 Read-state, preview ownership, modal focus, narrow-grid, research control,
 Metrology session/read, projection and explicit route-recovery repairs are
@@ -590,6 +606,8 @@ Whole-phase physical-input/authenticated/provider qualification remains open. Se
 and the [Product checkpoint](./PRODUCT_ROADMAP.md#current-checkpoint) for bounded
 historical local results and exact `af8f374` complete local/default remote
 qualification; do not replace live/provider/device evidence with those receipts.
+The latest merged checkpoint is 784/#284, with complete post-merge CI and Cloudflare build success. Draft #285's Node producer has the actual local package results and partial workflow disposition above; draft #286's explicit-profile hosted details are still under review. The #258/#259 pending-gate statements retain their historical scope; whole5F and physical-input/serving/provider boundaries remain open.
+
 Divide the work into 5F-1 (cross-page semantics and action ownership),
 5F-2 (navigation, focus, fresh/old GETs, uncertain writes, permissions and
 recovery identity), and 5F-3 (representative mixed-domain browser,

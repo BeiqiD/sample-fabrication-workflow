@@ -1,5 +1,11 @@
 # Autonomous roadmap development goal
 
+Dated development progress — 2026-10-12 (UTC): Cloudflare build optimization #283 is merged; the default deployment path performs configuration, one Vite bundle and upload. Complex verification stays local or in GitHub CI. Subsequent Workers builds at #284 and #285 succeeded.
+
+FabuBlox local import #284 is merged at `784aeb5c`; its complete own/post-merge CI passed. Node V3 producer repair #285 is merged at `8d832ba7` after both own Verify/Map pairs and all 15 checks passed; its full package build, eight distribution tests, embedded verifier and four CLI help checks passed. Its new post-merge Verify is pending separately.
+
+Explicit V28 startup [draft #286](https://github.com/BeiqiD/sample-fabrication-workflow/pull/286) has genuine four-case programmatic startup and fresh-package qualification in [run 38323352244](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38323352244); ordinary complete CI remains pending. The default entry remains V26. The next independent work is the current-image 17-case Docker baseline, explicit administrator/Group setup for restored V28 targets, and the real 200-node Project browser case. Whole File/Job/Backup/recovery, complete 5F and conditional 6A6/6B acceptance remain open. Historical records below retain their own sources and limits.
+
 Status: **active**, authorized on 2026-10-10.
 
 Continue the accepted [product roadmap](PRODUCT_ROADMAP.md) without routine user
