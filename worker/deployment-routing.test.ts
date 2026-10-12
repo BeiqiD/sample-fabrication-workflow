@@ -108,7 +108,7 @@ describe("deployment routing", () => {
     expect(result.stderr).toContain("DEPLOY_WORKER_NAME");
   });
 
-  it("gates remote migration and deployment before touching Cloudflare resources", () => {
+  it("uploads the built artifact and keeps validation and migrations explicit", () => {
     const packageConfiguration = JSON.parse(
       readFileSync(new URL("../package.json", import.meta.url), "utf8"),
     ) as { scripts?: Record<string, string> };
@@ -121,16 +121,15 @@ describe("deployment routing", () => {
     expect(packageConfiguration.scripts?.["verify:ci"]).toBe(
       "node scripts/run-verification.mjs --mode ci",
     );
-    // Coverage and configuration parity are exercised by verification.test.mjs;
-    // this route contract preserves the ordering before any remote side effect.
-    expect(migrateCommand).toBe(
-      "npm run verify:v3-deployment && npm run internal:db:migrate:remote",
-    );
+    // Complete validation remains available locally and in CI. Workers Builds
+    // bundles once, then uploads that artifact without repeating those checks.
+    expect(migrateCommand).toBe("npm run internal:db:migrate:remote");
     expect(internalMigrate).toContain(
       "wrangler d1 migrations apply DB --remote --config .wrangler/deploy.jsonc",
     );
-    expect(deployCommand).toBe(
-      "npm run verify:v3-deployment && npm run internal:db:migrate:remote && wrangler deploy",
+    expect(deployCommand).toBe("wrangler deploy");
+    expect(packageConfiguration.scripts?.deploy).toBe(
+      "npm run build:deploy && npm run deploy:remote",
     );
     expect(deployCommand).not.toContain(
       "wrangler deploy --config .wrangler/deploy.jsonc",
