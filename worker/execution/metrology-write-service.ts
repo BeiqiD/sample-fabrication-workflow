@@ -12,12 +12,12 @@ export interface MetrologyWriteCapabilities {
   now(): number;
   randomId(): string;
 }
-function startInput(value: unknown): Readonly<{ templateVersionId: string }> {
+export function startInput(value: unknown): Readonly<{ templateVersionId: string }> {
   const templateVersionId = value && typeof value === "object" && "templateVersionId" in value ? value.templateVersionId : undefined;
   if (typeof templateVersionId !== "string" || !templateVersionId) throw new HTTPException(400, { message: "A metrology template is required" });
   return Object.freeze({ templateVersionId });
 }
-function entryInput(value: unknown): Readonly<{ templateVersionId: string; afterStepId?: string }> {
+export function entryInput(value: unknown): Readonly<{ templateVersionId: string; afterStepId?: string }> {
   const templateVersionId = value && typeof value === "object" && "templateVersionId" in value ? value.templateVersionId : undefined;
   const afterStepId = value && typeof value === "object" && "afterStepId" in value ? value.afterStepId : undefined;
   if (typeof templateVersionId !== "string" || !templateVersionId || afterStepId !== undefined && typeof afterStepId !== "string") {

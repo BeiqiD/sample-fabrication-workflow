@@ -1,0 +1,29 @@
+{
+  "kind": "current-v28-active-Local-File-run-start-preview-source-scope/1",
+  "status": "SOURCE_DRAFT_ONLY_TYPES_NATIVE_HTTP_PROVIDER_PROCESS_UNRUN",
+  "baseHead": "d399c138f5189d05f3cdf6be26e40823fa08a68c",
+  "baseFinalizerOverlay": "83d394f2d82e2187e235f6df784372500775e699804cabd3b66b5fbad4bbea66",
+  "newGitObjectsRefs": false,
+  "ownedADD": [
+    "server/collaboration/local-run-start-preview-active-file-permission-v28-candidate.ts",
+    "worker/application/run-start-file-affiliation-sql.ts",
+    "docs/qualification/current-v28-active-file-run-start-preview/README.md",
+    "docs/qualification/current-v28-active-file-run-start-preview/source-scope.json"
+  ],
+  "legacyFactoryUnchanged": "server/collaboration/local-run-start-preview-permission-v28-candidate.ts",
+  "originalBusinessServicesUnchanged": [
+    "worker/execution/run-plan-service.ts",
+    "worker/execution/preview-service.ts",
+    "worker/run-start.ts"
+  ],
+  "explicitOptIn": true,
+  "maximumAdmissionChecks": 8,
+  "maximumOriginalBusinessStatements": 49,
+  "profileFences": "Actual issued Local read authorities and unchanged original physical fence statements in the same Native BEGIN",
+  "previewFileBodyGrant": false,
+  "filePurposes": {"state": "embedded_content", "execution": "embedded_content", "templateSource": "provenance"},
+  "defaultModeSchemaRoutesCapabilitiesChanged": false,
+  "relatedFinalizerCorrection": "Separate minimal F1 successor ec62fa4c; requires its own peer and Root admission before composition",
+  "actualCases": {"pass": 0, "fail": 0, "status": "UNRUN"},
+  "genuineProcessBaseline": "FUTURE_UNRUN_REAL_IMPORT_STEP0_SAMPLE_PREVIEW_RUNSTART_INSTALLED_LOCK_TRIGGER_REQUIRED"
+}

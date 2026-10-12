@@ -12,7 +12,7 @@ export interface StepConfirmationCapabilities {
   now(): number;
   randomId(): string;
 }
-function captureTargets(value: unknown): readonly Readonly<RunStepTarget>[] {
+export function captureTargets(value: unknown): readonly Readonly<RunStepTarget>[] {
   const targets = value && typeof value === "object" ? (value as { targets?: unknown }).targets : undefined;
   if (!validRunStepTargets(targets)) throw new HTTPException(400, { message: "Between 1 and 12 step targets are required" });
   return Object.freeze(targets.map(({ sampleId, runId, stepId, expectedUpdatedAt }) => Object.freeze({ sampleId, runId, stepId, expectedUpdatedAt })));

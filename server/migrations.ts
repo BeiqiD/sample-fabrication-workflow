@@ -2,8 +2,8 @@ import { createHash, randomUUID } from "node:crypto";
 import { constants, type DatabaseSync } from "node:sqlite";
 import { types as nativeTypes } from "node:util";
 
-import { NODE_INSTALLATION_DDL, NODE_MIGRATIONS_DDL, NODE_PLATFORM_OBJECTS, type InstallationSchemaObject } from "../shared/contracts/node-installation-schema";
-export { NODE_INSTALLATION_DDL, NODE_MIGRATIONS_DDL, NODE_PLATFORM_OBJECTS, type InstallationSchemaObject } from "../shared/contracts/node-installation-schema";
+import { NODE_INSTALLATION_DDL, NODE_MIGRATIONS_DDL, NODE_PLATFORM_OBJECTS, type InstallationSchemaObject } from "../shared/contracts/node-installation-schema.ts";
+export { NODE_INSTALLATION_DDL, NODE_MIGRATIONS_DDL, NODE_PLATFORM_OBJECTS, type InstallationSchemaObject } from "../shared/contracts/node-installation-schema.ts";
 
 export interface ReviewedInstallationCheckpoint {
   id: string;
@@ -163,6 +163,35 @@ function expectedCheckpointSchema(catalog: ReviewedInstallationCatalog, checkpoi
   immutableExpectedCheckpointSchemas.set(checkpoint, expected);
   return expected;
 }
+// Cache only code-owned expected objects from an already validated deeply
+// immutable catalog. Never cache observed rows, a statement or a live check.
+const immutableExpectedCheckpointObjects = new WeakMap<ReviewedInstallationCheckpoint, ReadonlyMap<string, Readonly<InstallationSchemaObject>>>();
+function immutableCheckpointSchemaMatches(database: DatabaseSync, checkpoint: ReviewedInstallationCheckpoint): boolean {
+  const rows = database.prepare("SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*' ORDER BY type,name").all() as unknown as InstallationSchemaObject[];
+  if (!Array.isArray(rows)) fail("schema_not_reviewed");
+  const names = new Set<string>();
+  // Validate every actual row before deciding mismatch, retaining objects()'s
+  // malformed-row/duplicate-name failure before any valid-but-different row.
+  for (const value of rows) {
+    if (!value || !["table", "index", "view", "trigger"].includes(value.type)
+      || typeof value.name !== "string" || !value.name || names.has(value.name)
+      || typeof value.tableName !== "string" || !value.tableName || typeof value.sql !== "string" || !value.sql) fail("schema_not_reviewed");
+    names.add(value.name);
+  }
+  let expected = immutableExpectedCheckpointObjects.get(checkpoint);
+  if (expected === undefined) {
+    expected = Object.freeze(new Map(fullSchema(checkpoint).map(value => [value.name, Object.freeze(value)] as const)));
+    immutableExpectedCheckpointObjects.set(checkpoint, expected);
+  }
+  let matches = rows.length === expected.size;
+  for (const value of rows) {
+    const reviewed = expected.get(value.name);
+    if (!reviewed || value.type !== reviewed.type || value.name !== reviewed.name
+      || value.tableName !== reviewed.tableName || value.sql !== reviewed.sql) matches = false;
+  }
+  return matches;
+}
+
 function observedSchema(database: DatabaseSync): InstallationSchemaObject[] {
   return objects(database.prepare("SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*' ORDER BY type,name").all() as unknown as InstallationSchemaObject[]);
 }
@@ -195,7 +224,9 @@ function inspect(database: DatabaseSync, catalog: ReviewedInstallationCatalog): 
       || row.status !== "applied" || !validClock(row.applied_at)) fail("migration_ledger_mismatch_or_partial");
   }
   const checkpoint = checkpointAt(catalog, ledger.length);
-  if (JSON.stringify(observedSchema(database)) !== expectedCheckpointSchema(catalog, checkpoint)) fail("schema_checkpoint_mismatch");
+  if (validatedImmutableCatalogs.has(catalog)
+    ? !immutableCheckpointSchemaMatches(database, checkpoint)
+    : JSON.stringify(observedSchema(database)) !== expectedCheckpointSchema(catalog, checkpoint)) fail("schema_checkpoint_mismatch");
   const rows = database.prepare("SELECT * FROM node_installation").all(), row = rows[0];
   if (rows.length !== 1 || !row || row.singleton !== 1 || row.catalog_id !== catalog.id
     || row.schema_checkpoint !== checkpoint.id || row.schema_sha256 !== checkpoint.schemaSha256
@@ -266,7 +297,9 @@ export function installReviewedSqliteCatalog(database: DatabaseSync, catalog: Re
       try { database.exec(migration.sql); }
       finally { authorizer.native.setAuthorizer(null); }
       if (!database.isTransaction) fail("migration_escaped_transaction");
-      if (JSON.stringify(observedSchema(database)) !== JSON.stringify(fullSchema(migration.checkpoint))) fail("migration_schema_not_reviewed");
+      if (validatedImmutableCatalogs.has(catalog)
+        ? !immutableCheckpointSchemaMatches(database, migration.checkpoint)
+        : JSON.stringify(observedSchema(database)) !== JSON.stringify(fullSchema(migration.checkpoint))) fail("migration_schema_not_reviewed");
       healthy(database);
       const now = new Date().toISOString();
       database.prepare("INSERT INTO node_migrations VALUES(?,?,?,?,?,'applied',?)")
@@ -314,13 +347,33 @@ export function admitInstallationRecoverySource(database: DatabaseSync, catalog:
   }
 }
 
+// Assertion reuses only a fresh checked receipt for previously eligible
+// immutable catalogs. The public admission mint and mutable paths stay whole.
+function inspectCurrentInstallationReceipt(database: DatabaseSync, catalog: ReviewedInstallationCatalog): Readonly<InstallationReceipt> {
+  validateCatalog(catalog); assertConnection(database);
+  database.exec("BEGIN");
+  try {
+    const receipt = inspect(database, catalog);
+    if (receipt.appliedMigrations !== catalog.migrations.length) fail("recovery_requires_current_checkpoint");
+    healthy(database);
+    const current = Object.freeze(receipt);
+    database.exec("COMMIT");
+    return current;
+  } catch (error) {
+    if (database.isTransaction) database.exec("ROLLBACK");
+    throw error;
+  }
+}
+
 /** An explicit full-application consumer receives a token minted by this
  * inspector, bound to this native connection. Fresh inspection fences schema,
  * ledger, installation identity and upgrades after issuance. */
 export function assertInstallationAdmission(database: DatabaseSync, admission: ReviewedInstallationAdmission): Readonly<InstallationReceipt> {
   const issued = issuedAdmissions.get(admission);
   if (!issued || issued.database !== database) fail("admission_not_issued_for_connection");
-  const current = admitInstallationRecoverySource(database, issued.catalog).receipt;
+  const current = validatedImmutableCatalogs.has(issued.catalog)
+    ? inspectCurrentInstallationReceipt(database, issued.catalog)
+    : admitInstallationRecoverySource(database, issued.catalog).receipt;
   if (JSON.stringify(current) !== JSON.stringify(issued.receipt)) fail("admission_identity_or_checkpoint_changed");
   return current;
 }

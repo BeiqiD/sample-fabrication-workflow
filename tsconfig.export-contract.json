@@ -9,6 +9,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "types": ["@cloudflare/workers-types", "vite/client"]
   },
   "files": ["worker/blob-export.test.ts"]

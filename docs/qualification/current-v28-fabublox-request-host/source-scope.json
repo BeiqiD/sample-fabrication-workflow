@@ -1,0 +1,14 @@
+{
+  "kind": "current-v28-explicit-fabublox-same-request-host-source/1",
+  "status": "SOURCE_ONLY_ACTUALS_UNRUN",
+  "baseHead": "d399c138f5189d05f3cdf6be26e40823fa08a68c",
+  "explicitComposition": ["83d394f2", "ec62fa4c", "0764d616", "f6aa29c1", "aff4a4d4", "9854c41c"],
+  "routes": ["POST /api/imports/fabublox", "GET /api/imports/fabublox/requests/:requestId", "POST /api/samples/:sampleId/runs/preview", "POST /api/samples/:sampleId/runs"],
+  "sameOriginalRequest": true,
+  "mandatoryApplicationCachedMultipartFirstClose": true,
+  "fileByteGrantFromStatusOrPreview": false,
+  "defaultActivation": false,
+  "newGitHeadTreeRef": null,
+  "actualCompilerNativeHttpProviderProcess": "UNRUN",
+  "productionEffects": false
+}

@@ -1,6 +1,6 @@
 import type { OfflineWriterFence } from "../auth/identity";
 import type { SqliteCapability } from "../sqlite";
-import { asStorageConfigurationSqlDatabase } from "../storage-configuration-sql";
+import { asStorageConfigurationSqlDatabase } from "../storage-configuration-sql.ts";
 import type { ConfigurationSqlDatabase, ConfigurationSqlStatement } from "../../worker/runtime/configuration-sql";
 
 /** Node-only metadata capability. Composition must supply the real held

@@ -30,7 +30,15 @@ export interface SampleReadDependencies {
   detailProjection?: "text-history-v28";
   /** Optional same-snapshot owned read transaction; preserves default reads. */
   readMany?(statements: readonly ReadSqlStatement[]): Promise<ReadSqlRow[][]>;
+  /** Optional fixed statements for the distinct Group full-detail owner.
+   * Query spelling carries no permission; the original Request owner guards,
+   * batches and rechecks all twelve native projections before delivery. */
+  detailStatementProjection?(projection: SampleDetailProjection, originalSql: string): ReadSqlStatement;
+  /** Optional processing metadata only. Media needs a genuine separate
+   * consumer/File-purpose owner; unselected Worker behavior stays exact. */
+  processingProjection?(projection: "page" | "count", originalSql: string): ReadSqlStatement;
 }
+export type SampleDetailProjection = "overview" | "children" | "events" | "runs" | "step_assets" | "initial_assets" | "step_comments" | "verifications" | "verification_steps" | "submissions" | "submission_items" | "submission_targets";
 export type SampleReadQuery = (key: string) => string | undefined;
 
 async function sampleHasFileBindings(db: SampleReadDatabase): Promise<boolean> {
@@ -315,7 +323,7 @@ export function createSampleReadService(dependencies: SampleReadDependencies) {
       await dependencies.admit(actor);
       const db = dependencies.database();
       const processingView = queryValue("view") === "processing";
-      if (visibility && processingView) throw new HTTPException(503, { message: "Sample processing media permissions are not installed" });
+      if (visibility && processingView && !dependencies.processingProjection) throw new HTTPException(503, { message: "Sample processing media permissions are not installed" });
       const hasFileBindings = processingView ? await sampleHasFileBindings(db) : false;
       const filter = processingDirectoryFilter(queryValue("status"));
       const { page, pageSize, offset } = readPagination(queryValue("page"), queryValue("pageSize"));
@@ -445,8 +453,8 @@ export function createSampleReadService(dependencies: SampleReadDependencies) {
         : `WITH ${visibilityCte}sample_base AS (${sampleDirectoryBaseSelect(Boolean(visibility))})
        SELECT COUNT(*) AS all_count FROM sample_base WHERE ${search.sql} AND ${filterSql}`;
       const d1Started = performance.now();
-      const pageStatement = db.prepare(pageSql).bind(...visibilityBindings, ...search.bindings, ...sampleFilters.bindings, ...matchingRunBindings, ...ordering.bindings, pageSize, offset, ...ordering.bindings);
-      const countStatement = db.prepare(countSql).bind(...visibilityBindings, ...search.bindings, ...sampleFilters.bindings, ...matchingRunBindings);
+      const pageStatement = (processingView && dependencies.processingProjection ? dependencies.processingProjection("page", pageSql) : db.prepare(pageSql)).bind(...visibilityBindings, ...search.bindings, ...sampleFilters.bindings, ...matchingRunBindings, ...ordering.bindings, pageSize, offset, ...ordering.bindings);
+      const countStatement = (processingView && dependencies.processingProjection ? dependencies.processingProjection("count", countSql) : db.prepare(countSql)).bind(...visibilityBindings, ...search.bindings, ...sampleFilters.bindings, ...matchingRunBindings);
       const [result, countRow] = dependencies.readMany
         ? await dependencies.readMany([pageStatement, countStatement]).then(([pageRows, countRows]) => [{ results: pageRows! }, countRows![0] ?? null] as const)
         : await Promise.all([pageStatement.all(), countStatement.first()]);
@@ -470,11 +478,19 @@ export function createSampleReadService(dependencies: SampleReadDependencies) {
     },
     async detail(id: string, queryValue: SampleReadQuery, actor: string) {
       const detailVisible = visibility !== undefined && dependencies.detailProjection === "text-history-v28";
-      if (visibility && (!detailVisible || !dependencies.readMany)) {
+      // These two code-owned query selectors have distinct owner contracts.
+      // Combining them is unavailable rather than selecting a weaker path.
+      if (dependencies.detailProjection && dependencies.detailStatementProjection) {
+        throw new HTTPException(503, { message: "Ambiguous Sample detail projection owners" });
+      }
+      if (visibility && ((!detailVisible && !dependencies.detailStatementProjection)
+        || (detailVisible && !dependencies.readMany))) {
         throw new HTTPException(503, { message: "Sample detail resource permissions are not installed" });
       }
       await dependencies.admit(actor);
       const db = dependencies.database();
+      const detailStatement = (projection: SampleDetailProjection, originalSql: string) => dependencies.detailStatementProjection
+        ? dependencies.detailStatementProjection(projection, originalSql) : db.prepare(originalSql);
       const processingView = queryValue("view") === "processing";
       const hasFileBindings = await sampleHasFileBindings(db);
       const detailProjection = detailVisible ? sampleDetailVisibilityProjection(dependencies.visibility!) : undefined;
@@ -492,7 +508,7 @@ export function createSampleReadService(dependencies: SampleReadDependencies) {
         return new Promise((resolve, reject) => detailQueue.push({ statement, resolve: rows => resolve({ results: rows }), reject }));
       };
       const pendingDetail = Promise.all([
-        first(db.prepare(
+        first(detailStatement("overview",
           `WITH ${detailProjection ? detailProjection.cte + ", " : ""}sample_overview AS (${sampleOverviewSelect(hasFileBindings, detailVisible)})
        SELECT s.*, p.id AS p_id, p.code AS p_code, p.title AS p_title
        FROM sample_overview s
@@ -501,13 +517,13 @@ export function createSampleReadService(dependencies: SampleReadDependencies) {
         ).bind(...detailBindings, id)),
         processingView
           ? Promise.resolve({ results: [] })
-          : all(db.prepare(
+          : all(detailStatement("children",
             `${detailProjection ? "WITH " + detailProjection.cte + " " : ""}SELECT id, code, title FROM samples WHERE parent_id = ? AND deleted_at IS NULL${detailVisible ? " AND id IN(SELECT id FROM visible_samples)" : ""} ORDER BY created_at`,
           ).bind(...detailBindings, id)),
         processingView
           ? Promise.resolve({ results: [] })
-          : all(db.prepare(`${detailProjection ? "WITH " + detailProjection.cte + " " : ""}SELECT * FROM ${detailVisible ? "visible_detail_events" : "events"} WHERE sample_id = ? ORDER BY created_at DESC`).bind(...detailBindings, id)),
-        all(db.prepare(
+          : all(detailStatement("events",`${detailProjection ? "WITH " + detailProjection.cte + " " : ""}SELECT * FROM ${detailVisible ? "visible_detail_events" : "events"} WHERE sample_id = ? ORDER BY created_at DESC`).bind(...detailBindings, id)),
+        all(detailStatement("runs",
           `SELECT r.id AS run_id, r.recipe_family_id, r.template_version_id, r.run_kind,
               r.status AS run_status,
               r.created_at AS run_created_at, r.completed_at,
@@ -550,7 +566,7 @@ export function createSampleReadService(dependencies: SampleReadDependencies) {
        WHERE r.sample_id = ? AND r.deleted_at IS NULL
        ORDER BY r.sequence_no DESC, rs.position ASC`,
         ).bind(id)),
-        all(db.prepare(
+        all(detailStatement("step_assets",
           `SELECT run_step_id, role, r2_key, asset_id, file_id FROM (
          SELECT rs.id AS run_step_id, 'planned' AS role, a.r2_key, a.id AS asset_id, ${hasFileBindings ? "sra.file_id" : "NULL"} AS file_id, sra.position, a.created_at
          FROM run_steps rs
@@ -573,7 +589,7 @@ export function createSampleReadService(dependencies: SampleReadDependencies) {
            AND rsa.role = 'execution' AND rsa.deleted_at IS NULL
        ) ORDER BY run_step_id, role, position, created_at`,
         ).bind(id, id)),
-        all(db.prepare(
+        all(detailStatement("initial_assets",
           `SELECT r.id AS run_id, a.r2_key, a.id AS asset_id, ${hasFileBindings ? "sra.file_id" : "NULL"} AS file_id
        FROM runs r
        JOIN state_representation_assets sra ON sra.state_hash = r.initial_state_hash
@@ -581,7 +597,7 @@ export function createSampleReadService(dependencies: SampleReadDependencies) {
        WHERE r.sample_id = ? AND r.deleted_at IS NULL
        ORDER BY r.sequence_no DESC, sra.position, a.id`,
         ).bind(id)),
-        all(db.prepare(
+        all(detailStatement("step_comments",
           `${detailProjection ? "WITH " + detailProjection.cte + " " : ""}SELECT rsc.id, rsc.run_step_id, rsc.scope, rsc.operation_group_id,
               CASE WHEN rsc.submission_id IS NULL THEN rsc.legacy_body ELSE cs.body END AS body,
               ca.r2_key AS asset_key, ca.id AS asset_id, ${hasFileBindings ? "rsc.file_id" : "NULL"} AS file_id, rsc.submission_id, rsc.actor_email, rsc.created_at
@@ -599,7 +615,7 @@ export function createSampleReadService(dependencies: SampleReadDependencies) {
          )
        ORDER BY rsc.created_at, rsc.id`,
         ).bind(...detailBindings, id)),
-        all(db.prepare(
+        all(detailStatement("verifications",
           `SELECT sv.* FROM state_verifications sv
        JOIN run_steps endpoint ON endpoint.id = sv.after_run_step_id
        JOIN runs endpoint_run ON endpoint_run.id = endpoint.run_id
@@ -607,7 +623,7 @@ export function createSampleReadService(dependencies: SampleReadDependencies) {
          AND endpoint.deleted_at IS NULL
        ORDER BY sv.created_at, sv.id`,
         ).bind(id)),
-        all(db.prepare(
+        all(detailStatement("verification_steps",
           `SELECT svs.verification_id, svs.run_step_id, svs.ordinal
        FROM state_verification_steps svs
        JOIN state_verifications sv ON sv.id = svs.verification_id
@@ -617,14 +633,14 @@ export function createSampleReadService(dependencies: SampleReadDependencies) {
          AND covered_step.deleted_at IS NULL
        ORDER BY sv.created_at, svs.ordinal`,
         ).bind(id)),
-        all(db.prepare(
+        all(detailStatement("submissions",
           `SELECT DISTINCT cs.*
        FROM comment_submissions cs
        LEFT JOIN comment_submission_targets cst ON cst.submission_id = cs.id
        WHERE cs.deleted_at IS NULL AND (cs.sample_id = ? OR cst.sample_id = ?)
        ORDER BY cs.created_at, cs.id`,
         ).bind(id, id)),
-        all(db.prepare(
+        all(detailStatement("submission_items",
           `SELECT DISTINCT csi.*, a.r2_key AS asset_key
        FROM comment_submission_items csi
        JOIN comment_submissions cs ON cs.id = csi.submission_id
@@ -634,7 +650,7 @@ export function createSampleReadService(dependencies: SampleReadDependencies) {
          AND (cs.sample_id = ? OR cst.sample_id = ?)
        ORDER BY csi.submission_id, csi.position`,
         ).bind(id, id)),
-        all(db.prepare(
+        all(detailStatement("submission_targets",
           `SELECT cst.submission_id, cst.run_step_id
        FROM comment_submission_targets cst
        JOIN comment_submissions cs ON cs.id = cst.submission_id

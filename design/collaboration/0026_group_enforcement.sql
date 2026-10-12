@@ -5,6 +5,7 @@
 DROP TRIGGER collaboration_control_update_guard;
 DROP TRIGGER collaboration_control_delete_guard;
 DROP TRIGGER collaboration_control_insert_guard;
+PRAGMA legacy_alter_table=ON;
 ALTER TABLE collaboration_control RENAME TO collaboration_control_v27;
 CREATE TABLE collaboration_control (
  singleton INTEGER PRIMARY KEY CHECK(singleton=1),
@@ -24,6 +25,7 @@ INSERT INTO collaboration_control(singleton,schema_version,enforcement,revision)
    AND NOT EXISTS(SELECT 1 FROM collaboration_grants) THEN 1 ELSE NULL END,2,'disabled',1
  FROM collaboration_control_v27;
 DROP TABLE collaboration_control_v27;
+PRAGMA legacy_alter_table=OFF;
 CREATE TRIGGER collaboration_control_update_guard BEFORE UPDATE ON collaboration_control BEGIN
  SELECT RAISE(ABORT,'Collaboration control identity is immutable')
   WHERE NEW.singleton IS NOT OLD.singleton OR NEW.schema_version IS NOT OLD.schema_version;
@@ -38,6 +40,7 @@ CREATE TRIGGER collaboration_control_insert_guard BEFORE INSERT ON collaboration
 -- Ordinary local-account provisioning is an explicit stopped-writer operation,
 -- separate from installation bootstrap and every administrator/resource grant.
 -- Retain original local audit provenance while admitting one precise new kind.
+PRAGMA legacy_alter_table=ON;
 ALTER TABLE local_auth_events RENAME TO local_auth_events_v27;
 CREATE TABLE local_auth_events (
     sequence INTEGER PRIMARY KEY,
@@ -48,3 +51,4 @@ CREATE TABLE local_auth_events (
 INSERT INTO local_auth_events(sequence,principal_id,kind,happened_at)
  SELECT sequence,principal_id,kind,happened_at FROM local_auth_events_v27 ORDER BY sequence;
 DROP TABLE local_auth_events_v27;
+PRAGMA legacy_alter_table=OFF;

@@ -1,7 +1,7 @@
 import type { ConfigurationSqlDatabase, ConfigurationSqlStatement } from "../worker/runtime/configuration-sql";
-import { configurationSqlInteger, configurationSqlMutation, configurationSqlRow } from "../worker/runtime/configuration-sql";
+import { configurationSqlInteger, configurationSqlMutation, configurationSqlRow } from "../worker/runtime/configuration-sql.ts";
 import type { SqliteCapability, SqliteStatement } from "./sqlite";
-import { runSqliteAdmittedBatch, type SqliteBatchAdmission } from "./sqlite";
+import { runSqliteAdmittedBatch, type SqliteBatchAdmission } from "./sqlite.ts";
 
 /** Genuine exact Node SQLite capability, not a D1-shaped adapter. BigInt cells
  * remain exact until the storage domain checks a named integer field. */

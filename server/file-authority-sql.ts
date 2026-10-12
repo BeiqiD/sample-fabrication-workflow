@@ -1,6 +1,6 @@
-import { configurationSqlCell, configurationSqlRow } from "../worker/runtime/configuration-sql";
+import { configurationSqlCell, configurationSqlRow } from "../worker/runtime/configuration-sql.ts";
 import type { FileAuthoritySqlDatabase, FileAuthoritySqlResult, FileAuthoritySqlStatement } from "../worker/runtime/file-authority-sql";
-import { runSqliteAdmittedBatch, type SqliteBatchAdmission, type SqliteCapability, type SqliteStatement } from "./sqlite";
+import { runSqliteAdmittedBatch, type SqliteBatchAdmission, type SqliteCapability, type SqliteResult, type SqliteStatement } from "./sqlite.ts";
 import type { OfflineWriterFence } from "./auth/identity";
 
 export interface NativeFileAuthoritySqlDatabase extends FileAuthoritySqlDatabase {
@@ -9,6 +9,18 @@ export interface NativeFileAuthoritySqlDatabase extends FileAuthoritySqlDatabase
 const databaseOwners = new WeakMap<NativeFileAuthoritySqlDatabase, SqliteCapability>();
 export function assertNativeFileAuthoritySqlOwner(database: NativeFileAuthoritySqlDatabase, core: SqliteCapability): void {
   if (databaseOwners.get(database) !== core) throw new Error("Foreign File authority database");
+}
+const nativeBatchResults = new WeakMap<NativeFileAuthoritySqlDatabase,
+  (statements: readonly FileAuthoritySqlStatement[]) => Promise<SqliteResult[]>>();
+/** Internal same-BEGIN result bridge for complete original business algorithms.
+ * Only the genuine issued Native view can supply its original result ordinal
+ * and top-level change ACK. No second transaction, SELECT changes(), mutable
+ * result bag or structural provider capability substitutes that result. */
+export function runOwnedFileAuthorityBatchWithNativeResults(database: NativeFileAuthoritySqlDatabase,
+  statements: readonly FileAuthoritySqlStatement[]): Promise<SqliteResult[]> {
+  const run = nativeBatchResults.get(database);
+  if (!run) throw new Error("Original native File result ownership is required");
+  return run(statements);
 }
 /** View of the existing exact owned native core. Typed int64/BLOB cells stay
  * exact; named File fields check their domain bounds after SQL selection. */
@@ -75,6 +87,10 @@ function fileAuthoritySqlDatabase(core: SqliteCapability, owner?: OfflineWriterF
     primary() { assertHeld(); primary(); return view; },
     nativeStatement,
   };
+  nativeBatchResults.set(view, async items => {
+    const selected = items.map(nativeStatement);
+    assertHeld(); const values = await executeBatch(selected); assertHeld(); return values;
+  });
   databaseOwners.set(view, core);
   return Object.freeze(view);
 }

@@ -3,7 +3,7 @@ import { MAX_REFERENCE_RESOLUTION_TARGETS, type ReferenceResolution, type Refere
 import { PROJECT_SCHEMA_VERSION } from "../../shared/project-types";
 import { referenceTargetKey, resolveReferencesReadOnly } from "../references/read-resolver";
 import { ProjectServiceError } from "./errors";
-import type { ProjectReadDatabase } from "./read-sql";
+import { projectSnapshotStatement, type ProjectReadDatabase } from "./read-sql";
 import { projectReadProjectRow, projectReadContentRow, projectReadAttachmentRow, projectReadItemRow, projectReadPlacementRow, projectReadEdgeRow, projectReadRegistryRow } from "./read-decoding";
 import { serializeProject, serializeProjectContent, serializeProjectAttachment, serializeProjectItem, serializeProjectPlacement, serializeProjectEdge } from "./serializers";
 
@@ -27,12 +27,12 @@ export async function readProjectSnapshot(
   includeDeleted = false,
 ): Promise<ProjectSnapshot> {
   const results = await db.readBatch([
-    db.prepare(`
+    projectSnapshotStatement(db, "project", `
       SELECT * FROM projects
       WHERE id = ? AND (? = 1 OR deleted_at IS NULL)
       LIMIT 1
     `).bind(projectId, includeDeleted ? 1 : 0),
-    db.prepare(`
+    projectSnapshotStatement(db, "contents", `
       SELECT pc.*
       FROM project_contents pc
       JOIN project_items pi ON pi.project_content_id = pc.id
@@ -40,7 +40,7 @@ export async function readProjectSnapshot(
     AND (? = 1 OR (pc.deleted_at IS NULL AND pi.deleted_at IS NULL))
   ORDER BY pi.created_sequence, pc.id
 `).bind(projectId, includeDeleted ? 1 : 0),
-    db.prepare(`
+    projectSnapshotStatement(db, "attachments", `
       SELECT pca.*, pc.project_id
       FROM project_content_attachments pca
       JOIN project_contents pc ON pc.id = pca.project_content_id
@@ -49,19 +49,19 @@ export async function readProjectSnapshot(
     AND (? = 1 OR (pc.deleted_at IS NULL AND pi.deleted_at IS NULL))
   ORDER BY pi.created_sequence, pca.project_content_id
 `).bind(projectId, includeDeleted ? 1 : 0),
-    db.prepare(`
+    projectSnapshotStatement(db, "items", `
       SELECT * FROM project_items
   WHERE project_id = ? AND (? = 1 OR deleted_at IS NULL)
   ORDER BY created_sequence, id
 `).bind(projectId, includeDeleted ? 1 : 0),
-    db.prepare(`
+    projectSnapshotStatement(db, "placements", `
       SELECT pmp.*
       FROM project_map_placements pmp
       JOIN project_items pi ON pi.id = pmp.project_item_id
       WHERE pi.project_id = ? AND (? = 1 OR pi.deleted_at IS NULL)
   ORDER BY pi.created_sequence, pmp.id
 `).bind(projectId, includeDeleted ? 1 : 0),
-    db.prepare(`
+    projectSnapshotStatement(db, "edges", `
       SELECT pe.*
       FROM project_edges pe
       JOIN project_items source ON source.id = pe.source_item_id
@@ -74,7 +74,7 @@ export async function readProjectSnapshot(
     ))
   ORDER BY pe.created_at, pe.id
 `).bind(projectId, includeDeleted ? 1 : 0),
-    db.prepare(`
+    projectSnapshotStatement(db, "registry", `
       SELECT DISTINCT rt.id, rt.target_type, rt.target_id
       FROM project_items pi
       JOIN reference_targets rt ON rt.id = pi.reference_target_id

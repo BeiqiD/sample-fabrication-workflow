@@ -902,6 +902,7 @@ function CommentComposerSession({
         ref={imageInputRef}
         className="comment-file-input"
         type="file"
+        aria-label="Add comment images"
         accept="image/*,.tif,.tiff,image/tiff"
         multiple
         disabled={preparing}
@@ -914,6 +915,7 @@ function CommentComposerSession({
         ref={attachmentInputRef}
         className="comment-file-input"
         type="file"
+        aria-label="Add comment attachments"
         multiple
         disabled={!storageReady || preparing}
         onChange={(event) => {

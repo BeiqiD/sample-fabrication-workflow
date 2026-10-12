@@ -3,7 +3,7 @@ import { constants, openSync, closeSync, fstatSync, lstatSync, realpathSync, typ
 import { dirname, isAbsolute, resolve } from 'node:path';
 import { spawn, type ChildProcess } from 'node:child_process';
 import type { DatabaseSync } from 'node:sqlite';
-import { assertSqliteConnectionOwner, type SqliteCapability } from '../sqlite';
+import { assertSqliteConnectionOwner, type SqliteCapability } from '../sqlite.ts';
 
 export class WriterLeaseError extends Error {
   readonly code: 'unavailable' | 'busy' | 'closed' | 'database_open' | 'capacity';

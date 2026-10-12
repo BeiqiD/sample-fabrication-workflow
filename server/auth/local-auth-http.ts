@@ -2,10 +2,10 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { Hono, type MiddlewareHandler } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import type { LocalPrincipal, createInstalledLocalIdentity } from './identity';
-import { IdentityError } from './identity';
-import { PasswordHashError, MAX_PASSWORD_BYTES } from './passwords';
-import { hashSessionToken } from './tokens';
-import { localAuthTransportAuthority, type LoopbackLocalAuthTransport } from './local-auth-transport';
+import { IdentityError } from './identity.ts';
+import { PasswordHashError, MAX_PASSWORD_BYTES } from './passwords.ts';
+import { hashSessionToken } from './tokens.ts';
+import { localAuthTransportAuthority, type LoopbackLocalAuthTransport } from './local-auth-transport.ts';
 import type { PrivilegedCapability } from '../../worker/runtime/authorization';
 
 export type LocalIdentityHttpService = Pick<Awaited<ReturnType<typeof createInstalledLocalIdentity>>,

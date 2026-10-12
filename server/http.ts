@@ -1,5 +1,6 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { PassThrough, Readable } from "node:stream";
+import { readFabubloxWireRouteAdmission, type FabubloxWireRouteAdmission } from "./imports/fabublox-wire-route-admission.ts";
 
 export type FetchHandler = (request: Request) => Promise<Response> | Response;
 export type NodeHttpOptions = {
@@ -8,6 +9,8 @@ export type NodeHttpOptions = {
   /** Trusted composition-owned admission of this exact request and actual ingress.
    * Returning a fixed denial prevents handler dispatch; omitted keeps transport behavior. */
   requestAdmission?: (request: Request, incoming: IncomingMessage, server: Server) => void | Response;
+  /** Genuine fixed-route child token; supplies no authentication or provider grant. */
+  fabubloxWireAdmission?:FabubloxWireRouteAdmission;
   maxBodyBytes?: number;
   maxHeaderBytes?: number;
   maxHeaderCount?: number;
@@ -209,6 +212,8 @@ export function createNodeHttpServer(handler: FetchHandler, options: NodeHttpOpt
     || origin.pathname !== "/" || origin.search || origin.hash) throw new Error("Configure a public origin without credentials or path");
   const publicOrigin = origin.origin;
   const requestAdmission = options.requestAdmission;
+  const fabubloxMaximum=options.fabubloxWireAdmission===undefined?undefined
+    :readFabubloxWireRouteAdmission(options.fabubloxWireAdmission,publicOrigin);
   const maxBodyBytes = positive(options.maxBodyBytes ?? 100 * 1024 * 1024, "maxBodyBytes");
   const maxHeaderBytes = positive(options.maxHeaderBytes ?? 16 * 1024, "maxHeaderBytes");
   const maxHeaderCount = positive(options.maxHeaderCount ?? 128, "maxHeaderCount");
@@ -305,14 +310,16 @@ export function createNodeHttpServer(handler: FetchHandler, options: NodeHttpOpt
       if (incoming.rawHeaders.length / 2 > maxHeaderCount) throw new HttpBoundaryError(431, "Too many request headers");
       const target = requestTarget(incoming.url ?? "/");
       const method = incoming.method ?? "GET";
+      const selectedBodyMaximum=fabubloxMaximum!==undefined && method==="POST" && target==="/api/imports/fabublox"
+        ?fabubloxMaximum:maxBodyBytes;
       const declaredLength = incoming.headers["content-length"];
-      if (declaredLength && BigInt(declaredLength) > BigInt(maxBodyBytes)) throw new HttpBoundaryError(413, "Request body exceeds the runtime limit");
+      if (declaredLength && BigInt(declaredLength) > BigInt(selectedBodyMaximum)) throw new HttpBoundaryError(413, "Request body exceeds the runtime limit");
       const hasBody = Boolean(incoming.headers["transfer-encoding"] || declaredLength && BigInt(declaredLength) !== 0n);
       if ((method === "GET" || method === "HEAD") && hasBody) throw new HttpBoundaryError(400, "GET and HEAD bodies are unsupported");
       let consumed = 0;
       const count = (chunk: Buffer) => {
         consumed += chunk.byteLength;
-        if (consumed > maxBodyBytes) throw new HttpBoundaryError(413, "Request body exceeds the runtime limit");
+        if (consumed > selectedBodyMaximum) throw new HttpBoundaryError(413, "Request body exceeds the runtime limit");
       };
       const complete = new Promise<void>((resolve, reject) => {
         incoming.once("end", resolve);
