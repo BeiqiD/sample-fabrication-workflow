@@ -1,5 +1,5 @@
 import type { InitialSubstrateStep } from "../../shared/types";
-import { normalizedStepName } from "../../shared/content-addressing";
+import { normalizedStepName } from "../../shared/content-addressing.ts";
 
 export function normalizedSubstrateStepName(name: string) {
   return normalizedStepName(name).replace(/[-_]+/g, " ");

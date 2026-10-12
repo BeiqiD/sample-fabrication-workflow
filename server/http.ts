@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { PassThrough, Readable } from "node:stream";
-import { readFabubloxWireRouteAdmission, type FabubloxWireRouteAdmission } from "./imports/fabublox-wire-route-admission";
+import { readFabubloxWireRouteAdmission, type FabubloxWireRouteAdmission } from "./imports/fabublox-wire-route-admission.ts";
 
 export type FetchHandler = (request: Request) => Promise<Response> | Response;
 export type NodeHttpOptions = {

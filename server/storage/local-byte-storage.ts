@@ -4,10 +4,10 @@ import { lstat, mkdtemp, open, realpath, readdir, rename, rmdir, unlink, type Fi
 import { isAbsolute, join, resolve } from "node:path";
 import type { ByteDeleter } from "../../worker/files/byte-deleter";
 import type { ByteMetadata, ByteReader } from "../../worker/files/byte-reader";
-import { ByteVerificationError, bufferByteStream, disposeByteVerificationFailure, validateByteExpectation, verifyingStream } from "../../worker/files/byte-verification";
+import { ByteVerificationError, bufferByteStream, disposeByteVerificationFailure, validateByteExpectation, verifyingStream } from "../../worker/files/byte-verification.ts";
 import type { ByteWriteInput, ByteWriter } from "../../worker/files/byte-writer";
-import { nodeSha256 } from "./node-sha256";
-import { StorageProfileCleanupError, type FileByteOperation } from "../../worker/files/storage-profile-opening";
+import { nodeSha256 } from "./node-sha256.ts";
+import { StorageProfileCleanupError, type FileByteOperation } from "../../worker/files/storage-profile-opening.ts";
 
 export interface LocalByteNamespace {
   readonly volumeId: string;

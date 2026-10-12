@@ -2,26 +2,26 @@ import type { DatabaseSync } from "node:sqlite";
 import type { OfflineWriterFence } from "../auth/identity";
 import type { ByteReadResult } from "../../worker/files/byte-reader";
 import type { ByteWriteInput } from "../../worker/files/byte-writer";
-import { ByteVerificationError } from "../../worker/files/byte-verification";
+import { ByteVerificationError } from "../../worker/files/byte-verification.ts";
 import { StorageProfileCleanupError, type FileByteOperation, type OpenedStorageProfile, type RegisteredStorageProfile,
-  type StorageProfileOpeningCapabilities } from "../../worker/files/storage-profile-opening";
-import { createLocalProfileRegistration } from "../../worker/storage/local-profile-registration";
-import { assertInstallationAdmission, type ReviewedInstallationAdmission, type ReviewedInstallationCatalog } from "../migrations";
-import { V26_NODE_INSTALLATION_CATALOG } from "../installation-catalog-v26";
-import { V28_NODE_INSTALLATION_CATALOG_CANDIDATE } from "../installation-catalog-v28-candidate";
-import { localAuthenticationIdentityAuthority } from "../auth/local-auth-http";
-import { captureInstalledIdentityExecutionOwnerV28Candidate } from "../auth/installed-identity-execution-owner-v28-candidate";
-import { assertLinuxWriterLeaseBinding, type LinuxWriterLease } from "../operations/writer-lease";
-import { asJobSqlDatabase, type SqliteBatchAdmission, type SqliteCapability, type SqliteStatement } from "../sqlite";
+  type StorageProfileOpeningCapabilities } from "../../worker/files/storage-profile-opening.ts";
+import { createLocalProfileRegistration } from "../../worker/storage/local-profile-registration.ts";
+import { assertInstallationAdmission, type ReviewedInstallationAdmission, type ReviewedInstallationCatalog } from "../migrations.ts";
+import { V26_NODE_INSTALLATION_CATALOG } from "../installation-catalog-v26.ts";
+import { V28_NODE_INSTALLATION_CATALOG_CANDIDATE } from "../installation-catalog-v28-candidate.ts";
+import { localAuthenticationIdentityAuthority } from "../auth/local-auth-http.ts";
+import { captureInstalledIdentityExecutionOwnerV28Candidate } from "../auth/installed-identity-execution-owner-v28-candidate.ts";
+import { assertLinuxWriterLeaseBinding, type LinuxWriterLease } from "../operations/writer-lease.ts";
+import { asJobSqlDatabase, type SqliteBatchAdmission, type SqliteCapability, type SqliteStatement } from "../sqlite.ts";
 import { asAdmittedFileAuthoritySqlDatabase, asFileAuthoritySqlDatabase, assertNativeFileAuthoritySqlOwner,
-  type NativeFileAuthoritySqlDatabase } from "../file-authority-sql";
+  type NativeFileAuthoritySqlDatabase } from "../file-authority-sql.ts";
 import type { FileAuthoritySqlStatement } from "../../worker/runtime/file-authority-sql";
-import { createOwnedLocalProfileRegistrationSql } from "./local-profile-registration-sql";
-import { captureLocalVolumeDescriptor, type CapturedLocalVolumeDescriptor, type TrustedLocalVolumeDescriptor } from "./local-volume-descriptor";
-import { openLocalByteStorage, type LocalByteStorage } from "./local-byte-storage";
-import { nodeSha256 } from "./node-sha256";
+import { createOwnedLocalProfileRegistrationSql } from "./local-profile-registration-sql.ts";
+import { captureLocalVolumeDescriptor, type CapturedLocalVolumeDescriptor, type TrustedLocalVolumeDescriptor } from "./local-volume-descriptor.ts";
+import { openLocalByteStorage, type LocalByteStorage } from "./local-byte-storage.ts";
+import { nodeSha256 } from "./node-sha256.ts";
 import { LOCAL_VOLUME_PROFILE_SOURCE_COLUMNS, LOCAL_VOLUME_PROFILE_SOURCE_SQL, localVolumeProfileSourceBindings,
-  readLocalVolumeProfileSource, type LocalVolumeProfileSource } from "./local-volume-profile-source";
+  readLocalVolumeProfileSource, type LocalVolumeProfileSource } from "./local-volume-profile-source.ts";
 
 export interface LocalVolumeProfileOwnerOptions {
   readonly database: SqliteCapability;

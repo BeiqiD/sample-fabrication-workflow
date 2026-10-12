@@ -2,8 +2,8 @@ import { createHash, randomUUID } from "node:crypto";
 import { constants, type DatabaseSync } from "node:sqlite";
 import { types as nativeTypes } from "node:util";
 
-import { NODE_INSTALLATION_DDL, NODE_MIGRATIONS_DDL, NODE_PLATFORM_OBJECTS, type InstallationSchemaObject } from "../shared/contracts/node-installation-schema";
-export { NODE_INSTALLATION_DDL, NODE_MIGRATIONS_DDL, NODE_PLATFORM_OBJECTS, type InstallationSchemaObject } from "../shared/contracts/node-installation-schema";
+import { NODE_INSTALLATION_DDL, NODE_MIGRATIONS_DDL, NODE_PLATFORM_OBJECTS, type InstallationSchemaObject } from "../shared/contracts/node-installation-schema.ts";
+export { NODE_INSTALLATION_DDL, NODE_MIGRATIONS_DDL, NODE_PLATFORM_OBJECTS, type InstallationSchemaObject } from "../shared/contracts/node-installation-schema.ts";
 
 export interface ReviewedInstallationCheckpoint {
   id: string;

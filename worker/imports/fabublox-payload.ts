@@ -1,9 +1,9 @@
 import { HTTPException } from "hono/http-exception";
 import type { InitialSubstrateStep } from "../../shared/types";
-import { stableJson, sha256Hex } from "../../shared/content-addressing";
-import { MAX_FABUBLOX_REQUEST_INPUT_BYTES } from "../../shared/contracts/fabublox-import";
+import { stableJson, sha256Hex } from "../../shared/content-addressing.ts";
+import { MAX_FABUBLOX_REQUEST_INPUT_BYTES } from "../../shared/contracts/fabublox-import.ts";
 import type { FabubloxImportInput } from "../../shared/contracts/fabublox-import-input";
-import { normalizedSubstrateStepName } from "../process-definition/substrate";
+import { normalizedSubstrateStepName } from "../process-definition/substrate.ts";
 
 export const MAX_FABUBLOX_IMPORT_STEPS = 180;
 export const MAX_FABUBLOX_IMPORT_IMAGES = MAX_FABUBLOX_IMPORT_STEPS;

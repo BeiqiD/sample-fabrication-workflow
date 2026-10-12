@@ -1,6 +1,6 @@
-import { configurationSqlCell, configurationSqlRow } from "../worker/runtime/configuration-sql";
+import { configurationSqlCell, configurationSqlRow } from "../worker/runtime/configuration-sql.ts";
 import type { FileAuthoritySqlDatabase, FileAuthoritySqlResult, FileAuthoritySqlStatement } from "../worker/runtime/file-authority-sql";
-import { runSqliteAdmittedBatch, type SqliteBatchAdmission, type SqliteCapability, type SqliteResult, type SqliteStatement } from "./sqlite";
+import { runSqliteAdmittedBatch, type SqliteBatchAdmission, type SqliteCapability, type SqliteResult, type SqliteStatement } from "./sqlite.ts";
 import type { OfflineWriterFence } from "./auth/identity";
 
 export interface NativeFileAuthoritySqlDatabase extends FileAuthoritySqlDatabase {

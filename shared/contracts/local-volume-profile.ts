@@ -1,6 +1,6 @@
 // Canonical metadata contract. Registration never admits a provider or writer.
 // This private V26 source remains uncomposed until paired schema qualification.
-import { sha256Hex } from "../domain/content-addressing";
+import { sha256Hex } from "../domain/content-addressing.ts";
 
 export interface LocalVolumeNamespace {
   readonly kind: "local-volume";

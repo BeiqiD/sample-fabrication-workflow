@@ -1,7 +1,7 @@
 import { constants, closeSync, fstatSync, lstatSync, openSync, readSync, realpathSync, type BigIntStats } from 'node:fs';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
-import { canonicalLocalVolumeNamespace, checkedLocalVolumeNamespace, type LocalVolumeNamespace } from '../shared/contracts/local-volume-profile';
-import { createLoopbackLocalAuthTransport } from './auth/local-auth-transport';
+import { canonicalLocalVolumeNamespace, checkedLocalVolumeNamespace, type LocalVolumeNamespace } from '../shared/contracts/local-volume-profile.ts';
+import { createLoopbackLocalAuthTransport } from './auth/local-auth-transport.ts';
 
 export class NodeRuntimeConfigurationError extends Error {
   constructor() { super('Local runtime configuration is unavailable.'); this.name = 'NodeRuntimeConfigurationError'; }

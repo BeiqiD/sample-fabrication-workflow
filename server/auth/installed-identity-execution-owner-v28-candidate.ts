@@ -1,9 +1,9 @@
 import type { DatabaseSync } from "node:sqlite";
-import { assertInstalledLocalIdentityOwner, type IdentityPolicy } from "./identity";
+import { assertInstalledLocalIdentityOwner, type IdentityPolicy } from "./identity.ts";
 import type { InstallationReceipt, ReviewedInstallationAdmission } from "../migrations";
-import { assertSqliteConnectionOwner, type SqliteCapability } from "../sqlite";
+import { assertSqliteConnectionOwner, type SqliteCapability } from "../sqlite.ts";
 
-import { V28_NODE_INSTALLATION_CATALOG_CANDIDATE } from "../installation-catalog-v28-candidate";
+import { V28_NODE_INSTALLATION_CATALOG_CANDIDATE } from "../installation-catalog-v28-candidate.ts";
 
 // Only this code-owned frozen V28 catalog selects the complete ledger length.
 // A checkpoint version is not a migration count or a caller-provided catalog.

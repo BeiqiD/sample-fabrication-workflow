@@ -1,9 +1,9 @@
 // EXPLICIT inactive candidate only. Startup/offline default remains fixed V26.
-import { V26_NODE_INSTALLATION_CATALOG } from "./installation-catalog-v26";
-import { NODE_PLATFORM_OBJECTS } from "../shared/contracts/node-installation-schema";
+import { V26_NODE_INSTALLATION_CATALOG } from "./installation-catalog-v26.ts";
+import { NODE_PLATFORM_OBJECTS } from "../shared/contracts/node-installation-schema.ts";
 import { COLLABORATION_SCHEMA_OBJECTS_V27, COLLABORATION_MIGRATION_SQL_V27, COLLABORATION_MIGRATION_NAME_V27,
-  COLLABORATION_MIGRATION_RAW_SHA256_V27 } from "../shared/contracts/collaboration-schema-v27";
-import { PORTABLE_RUNTIME_CHECKPOINT_ID, PORTABLE_NODE_CHECKPOINT_SCHEMA_SHA256 } from "../shared/contracts/portable-runtime-v27-recovery-catalog";
+  COLLABORATION_MIGRATION_RAW_SHA256_V27 } from "../shared/contracts/collaboration-schema-v27.ts";
+import { PORTABLE_RUNTIME_CHECKPOINT_ID, PORTABLE_NODE_CHECKPOINT_SCHEMA_SHA256 } from "../shared/contracts/portable-runtime-v27-recovery-catalog.ts";
 import type { ReviewedInstallationCatalog } from "./migrations";
 const previous = V26_NODE_INSTALLATION_CATALOG.migrations.at(-1)!;
 const applicationObjects = Object.freeze([...previous.checkpoint.applicationObjects, ...COLLABORATION_SCHEMA_OBJECTS_V27]

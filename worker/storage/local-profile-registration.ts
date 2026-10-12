@@ -1,9 +1,9 @@
 import { HTTPException } from "hono/http-exception";
 import { checkedRegisterLocalProfileInput, LocalProfileRegistrationInputError,
-  type LocalProfileRegistrationReceipt, type RegisterLocalProfileInput } from "../../shared/contracts/local-profile-registration";
+  type LocalProfileRegistrationReceipt, type RegisterLocalProfileInput } from "../../shared/contracts/local-profile-registration.ts";
 import { canonicalLocalVolumeNamespace, checkedLocalVolumeNamespace, checkedStoredLocalVolumeNamespace,
-  localVolumeStorageProfileId, type LocalVolumeNamespace } from "../../shared/contracts/local-volume-profile";
-import { configurationSqlInteger, type ConfigurationSqlDatabase, type ConfigurationSqlRow } from "../runtime/configuration-sql";
+  localVolumeStorageProfileId, type LocalVolumeNamespace } from "../../shared/contracts/local-volume-profile.ts";
+import { configurationSqlInteger, type ConfigurationSqlDatabase, type ConfigurationSqlRow } from "../runtime/configuration-sql.ts";
 
 /** Only trusted installation composition resolves this opaque descriptor. The
  * namespace excludes the physical path and does not attest a physical volume. */

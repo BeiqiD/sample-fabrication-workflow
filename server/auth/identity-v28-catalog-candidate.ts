@@ -1,8 +1,8 @@
 // SOURCE-ONLY exact forward identity extension; old prototype/v1 admission is frozen.
 import { createHash } from "node:crypto";
 import type { SqliteCapability } from "../sqlite";
-import { PROTOTYPE_IDENTITY_STATEMENTS } from "./identity-catalog";
-import { LOCAL_AUTH_EVENTS_DDL_V28 } from "../../shared/contracts/local-identity-v28-extension";
+import { PROTOTYPE_IDENTITY_STATEMENTS } from "./identity-catalog.ts";
+import { LOCAL_AUTH_EVENTS_DDL_V28 } from "../../shared/contracts/local-identity-v28-extension.ts";
 const statements = Object.freeze(PROTOTYPE_IDENTITY_STATEMENTS.map(sql => sql.startsWith("CREATE TABLE local_auth_events (") ? LOCAL_AUTH_EVENTS_DDL_V28 : sql));
 const normalize = (sql: string) => sql.replace(/\s+/g, " ").trim();
 const expected = createHash("sha256").update(statements.map(normalize).sort().join("\n")).digest("hex");

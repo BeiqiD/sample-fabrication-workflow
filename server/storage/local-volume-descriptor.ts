@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { constants, closeSync, fstatSync, lstatSync, openSync, readFileSync, realpathSync, type BigIntStats } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
-import { canonicalLocalVolumeNamespace, checkedLocalVolumeNamespace, type LocalVolumeNamespace } from "../../shared/contracts/local-volume-profile";
+import { canonicalLocalVolumeNamespace, checkedLocalVolumeNamespace, type LocalVolumeNamespace } from "../../shared/contracts/local-volume-profile.ts";
 import type { LocalByteBinding } from "./local-byte-storage";
 
 /** Installation configuration only. A descriptor is not a binding/admission. */

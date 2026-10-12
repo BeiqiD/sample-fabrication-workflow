@@ -1,5 +1,5 @@
 import { createLocalVolumeProfileOpeningV28, assertLocalVolumeProfileOpeningV28,
-  type LocalVolumeProfileOwnerOptions, type LocalVolumeProfileOpening } from "./local-volume-profile-opening";
+  type LocalVolumeProfileOwnerOptions, type LocalVolumeProfileOpening } from "./local-volume-profile-opening.ts";
 
 declare const v28OpeningBrand: unique symbol;
 /** This compile-time brand is backed by the original private opening registry;

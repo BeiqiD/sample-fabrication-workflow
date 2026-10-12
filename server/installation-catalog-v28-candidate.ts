@@ -1,9 +1,9 @@
 // SOURCE-ONLY forward candidate. No current startup/offline selector imports this.
-import { V27_INERT_NODE_INSTALLATION_CATALOG_CANDIDATE as previousCatalog } from "./installation-catalog-v27-candidate";
-import { NODE_PLATFORM_OBJECTS } from "../shared/contracts/node-installation-schema";
+import { V27_INERT_NODE_INSTALLATION_CATALOG_CANDIDATE as previousCatalog } from "./installation-catalog-v27-candidate.ts";
+import { NODE_PLATFORM_OBJECTS } from "../shared/contracts/node-installation-schema.ts";
 import { COLLABORATION_REPLACEMENT_SCHEMA_OBJECTS_V28, COLLABORATION_MIGRATION_SQL_V28, COLLABORATION_MIGRATION_NAME_V28,
-  COLLABORATION_MIGRATION_RAW_SHA256_V28 } from "../shared/contracts/collaboration-schema-v28";
-import { PORTABLE_RUNTIME_CHECKPOINT_ID, PORTABLE_NODE_CHECKPOINT_SCHEMA_SHA256 } from "../shared/contracts/portable-runtime-v28-recovery-catalog";
+  COLLABORATION_MIGRATION_RAW_SHA256_V28 } from "../shared/contracts/collaboration-schema-v28.ts";
+import { PORTABLE_RUNTIME_CHECKPOINT_ID, PORTABLE_NODE_CHECKPOINT_SCHEMA_SHA256 } from "../shared/contracts/portable-runtime-v28-recovery-catalog.ts";
 import type { ReviewedInstallationCatalog } from "./migrations";
 const replacements = new Map(COLLABORATION_REPLACEMENT_SCHEMA_OBJECTS_V28.map(object => [object.name, object]));
 const applicationObjects = Object.freeze(previousCatalog.migrations.at(-1)!.checkpoint.applicationObjects.map(object => replacements.get(object.name) ?? object));

@@ -1,12 +1,12 @@
 import { createHash, randomUUID, randomBytes } from 'node:crypto';
 import type { SqliteCapability, SqliteRow, SqliteStatement } from '../sqlite';
-import { checkedSafeInteger, assertSqliteConnectionOwner, createSqliteBatchAdmission, runSqliteAdmittedBatch } from '../sqlite';
+import { checkedSafeInteger, assertSqliteConnectionOwner, createSqliteBatchAdmission, runSqliteAdmittedBatch } from '../sqlite.ts';
 import type { DatabaseSync } from 'node:sqlite';
-import { assertInstallationAdmission, type ReviewedInstallationAdmission, type InstallationReceipt } from '../migrations';
-import { assertExactLocalIdentityV28CandidateObjects } from './identity-v28-catalog-candidate';
+import { assertInstallationAdmission, type ReviewedInstallationAdmission, type InstallationReceipt } from '../migrations.ts';
+import { assertExactLocalIdentityV28CandidateObjects } from './identity-v28-catalog-candidate.ts';
 import type { PasswordHasher } from './passwords';
-import { createSessionToken, hashSessionToken, SessionTokenError } from './tokens';
-import { assertExactLocalIdentityObjects, assertPrototypeIdentityAdmission, inspectPrototypeIdentityCatalog, type PrototypeIdentityCatalogAdmission } from './identity-catalog';
+import { createSessionToken, hashSessionToken, SessionTokenError } from './tokens.ts';
+import { assertExactLocalIdentityObjects, assertPrototypeIdentityAdmission, inspectPrototypeIdentityCatalog, type PrototypeIdentityCatalogAdmission } from './identity-catalog.ts';
 
 export interface LocalPrincipal {
   readonly id: string;

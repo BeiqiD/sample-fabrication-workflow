@@ -1,6 +1,6 @@
-import { MAX_FABUBLOX_IMPORT_BODY_BYTES } from "../../worker/imports/fabublox-payload";
-import { assertNodeRuntimeConfiguration, type LoadedNodeRuntimeConfiguration } from "../node-runtime-config";
-import { ownedLocalVolumeProfileContextV28Candidate, type LocalVolumeProfileOpeningV28Candidate } from "../storage/local-volume-profile-opening-v28-candidate";
+import { MAX_FABUBLOX_IMPORT_BODY_BYTES } from "../../worker/imports/fabublox-payload.ts";
+import { assertNodeRuntimeConfiguration, type LoadedNodeRuntimeConfiguration } from "../node-runtime-config.ts";
+import { ownedLocalVolumeProfileContextV28Candidate, type LocalVolumeProfileOpeningV28Candidate } from "../storage/local-volume-profile-opening-v28-candidate.ts";
 
 declare const brand:unique symbol;
 /** Only a fixed wire ceiling, never authentication or File permission. */
