@@ -13,13 +13,13 @@ export class StoppedDomainRootOperationUnavailable extends Error {
 }
 type Base = Readonly<{ databasePath: string; filesystemRootOwnerUid?: number; principalId: string; expectedMemberRevision: number; expectedControlRevision: number }>;
 export type DomainRootOperatorV28Command = Base & Readonly<
-  { kind: "allocate-existing-root"; rootKind: "project" | "template"; rootId: string; visibility: "restricted" | "workspace" }
+  { kind: "allocate-existing-root"; rootKind: "sample" | "project" | "template"; rootId: string; visibility: "restricted" | "workspace" }
   | { kind: "set-creation-flags"; canCreateSamples: boolean; canCreateProjects: boolean; canCreateTemplates: boolean }
 >;
 export type DomainRootOperatorV28Receipt = Readonly<{
   checkpointId: "portable-runtime/v28"; installationId: string; operation: DomainRootOperatorV28Command["kind"];
   principalId: string; memberId: string; memberRevision: number;
-  root?: Readonly<{ kind: "project" | "template"; id: string; resourceRevision: 1; grantRevision: 1 }>;
+  root?: Readonly<{ kind: "sample" | "project" | "template"; id: string; resourceRevision: 1; grantRevision: 1 }>;
   creationFlags?: Readonly<{ sample: boolean; project: boolean; template: boolean }>;
 }>;
 function requireInput(value: unknown): asserts value { if (!value) throw new StoppedDomainRootOperationUnavailable(); }
@@ -33,7 +33,7 @@ function capture(input: DomainRootOperatorV28Command): DomainRootOperatorV28Comm
   requireInput(typeof selected.databasePath === "string" && selected.databasePath.length > 0 && selected.databasePath.length <= 4000 && !selected.databasePath.includes("\0"));
   requireInput(selected.filesystemRootOwnerUid === undefined || Number.isSafeInteger(selected.filesystemRootOwnerUid) && selected.filesystemRootOwnerUid >= 0 && selected.filesystemRootOwnerUid <= 0xffff_ffff);
   requireInput(typeof selected.principalId === "string" && principalPattern.test(selected.principalId) && revision(selected.expectedMemberRevision) && revision(selected.expectedControlRevision));
-  if (selected.kind === "allocate-existing-root") requireInput(["project", "template"].includes(selected.rootKind) && canonicalIdentityText(selected.rootId, 256) && ["restricted", "workspace"].includes(selected.visibility));
+  if (selected.kind === "allocate-existing-root") requireInput(["sample", "project", "template"].includes(selected.rootKind) && canonicalIdentityText(selected.rootId, 256) && ["restricted", "workspace"].includes(selected.visibility));
   else requireInput(typeof selected.canCreateSamples === "boolean" && typeof selected.canCreateProjects === "boolean" && typeof selected.canCreateTemplates === "boolean");
   return Object.freeze(selected);
 }
@@ -104,8 +104,9 @@ export async function executeDomainRootV28OperatorCandidate(input: DomainRootOpe
       ];
       const statements: SqliteStatement[] = [];
       if (selected.kind === "allocate-existing-root") {
-        checks.push({ statement: prepare(selected.rootKind === "project"
-          ? "SELECT 1 admitted FROM projects WHERE id=? AND deleted_at IS NULL"
+        checks.push({ statement: prepare(selected.rootKind === "sample"
+          ? "SELECT 1 admitted FROM samples WHERE id=? AND deleted_at IS NULL"
+          : selected.rootKind === "project" ? "SELECT 1 admitted FROM projects WHERE id=? AND deleted_at IS NULL"
           : "SELECT 1 admitted FROM recipe_families WHERE id=? AND archived_at IS NULL", selected.rootId), rejection: denied() });
         checks.push({ statement: prepare("SELECT 1 admitted WHERE NOT EXISTS(SELECT 1 FROM collaboration_resources WHERE root_kind=? AND root_id=?)", selected.rootKind, selected.rootId), rejection: denied() });
         statements.push(prepare("INSERT INTO collaboration_resources(root_kind,root_id,visibility,revision) VALUES(?,?,?,1)", selected.rootKind, selected.rootId, selected.visibility),

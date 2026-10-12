@@ -45,7 +45,7 @@ export function captureStartInput(value: unknown): StartProcessRunInput | null {
   const candidate = value as StartProcessRunInput;
   return Object.freeze({ templateVersionId: candidate.templateVersionId, substrateConfirmation: captureConfirmation(candidate.substrateConfirmation) });
 }
-function capturePlanInput(value: unknown): ApplyPlanUpdateInput | null {
+export function capturePlanInput(value: unknown): ApplyPlanUpdateInput | null {
   if (!value || typeof value !== "object") return null;
   const candidate = value as ApplyPlanUpdateInput;
   return Object.freeze({ templateVersionId: candidate.templateVersionId, reason: candidate.reason, substrateConfirmation: Object.freeze({ ...candidate.substrateConfirmation }) });

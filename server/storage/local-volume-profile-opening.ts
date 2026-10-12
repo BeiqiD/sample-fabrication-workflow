@@ -6,8 +6,11 @@ import { ByteVerificationError } from "../../worker/files/byte-verification";
 import { StorageProfileCleanupError, type FileByteOperation, type OpenedStorageProfile, type RegisteredStorageProfile,
   type StorageProfileOpeningCapabilities } from "../../worker/files/storage-profile-opening";
 import { createLocalProfileRegistration } from "../../worker/storage/local-profile-registration";
-import { assertInstallationAdmission, type ReviewedInstallationAdmission } from "../migrations";
+import { assertInstallationAdmission, type ReviewedInstallationAdmission, type ReviewedInstallationCatalog } from "../migrations";
 import { V26_NODE_INSTALLATION_CATALOG } from "../installation-catalog-v26";
+import { V28_NODE_INSTALLATION_CATALOG_CANDIDATE } from "../installation-catalog-v28-candidate";
+import { localAuthenticationIdentityAuthority } from "../auth/local-auth-http";
+import { captureInstalledIdentityExecutionOwnerV28Candidate } from "../auth/installed-identity-execution-owner-v28-candidate";
 import { assertLinuxWriterLeaseBinding, type LinuxWriterLease } from "../operations/writer-lease";
 import { asJobSqlDatabase, type SqliteBatchAdmission, type SqliteCapability, type SqliteStatement } from "../sqlite";
 import { asAdmittedFileAuthoritySqlDatabase, asFileAuthoritySqlDatabase, assertNativeFileAuthoritySqlOwner,
@@ -43,6 +46,7 @@ export interface LocalVolumeProfileOwner {
   readonly nativeDatabase: DatabaseSync;
   readonly writerLease: LinuxWriterLease;
   readonly installationId: string;
+  readonly installationCheckpointId: string;
   descriptor(id: string): Readonly<CapturedLocalVolumeDescriptor>;
   assertCurrent(): void;
   assertAdministrator(actor: string): void;
@@ -159,12 +163,31 @@ export function prepareLocalVolumeProfileSqliteFence(authority: LocalVolumeProfi
  * exact primary binding/probe/activation rows and physical pins are rechecked
  * for each operation. Migration/recovery requires closing and a fresh owner. */
 export function createLocalVolumeProfileOpening(options: LocalVolumeProfileOwnerOptions): LocalVolumeProfileOpening {
+  return createCatalogLocalVolumeProfileOpening(options, V26_NODE_INSTALLATION_CATALOG, "portable-runtime/v26");
+}
+/** Trusted V28 composition only. Its actual installed identity and complete
+ * code-owned V28 ledger owner are captured before any byte owner can issue.
+ * It creates no member/root grant, activation, profile or provider receipt. */
+export function createLocalVolumeProfileOpeningV28(options: LocalVolumeProfileOwnerOptions & { authentication: object }): LocalVolumeProfileOpening {
+  if (Object.keys(options).sort().join(",") !== "admission,authentication,authorizeAdministrator,database,descriptors,filesystemRootOwnerUid,nativeDatabase,writerLease") unavailable();
+  const auth = localAuthenticationIdentityAuthority(options.authentication);
+  const identity = captureInstalledIdentityExecutionOwnerV28Candidate(auth.identity, options.database, options.nativeDatabase, options.admission);
+  return createCatalogLocalVolumeProfileOpening(options, V28_NODE_INSTALLATION_CATALOG_CANDIDATE, "portable-runtime/v28", identity);
+}
+export function assertLocalVolumeProfileOpeningV28(opening: LocalVolumeProfileOpening): LocalVolumeProfileOwner {
+  const owner = ownedLocalVolumeProfileContext(opening);
+  if (owner.installationCheckpointId !== "portable-runtime/v28") unavailable();
+  owner.assertCurrent(); return owner;
+}
+function createCatalogLocalVolumeProfileOpening(options: LocalVolumeProfileOwnerOptions,
+  catalog: ReviewedInstallationCatalog, expectedCheckpoint: "portable-runtime/v26" | "portable-runtime/v28",
+  installedIdentity?: Readonly<{ assertCurrent(): void }>): LocalVolumeProfileOpening {
   const { database, nativeDatabase, admission, writerLease, filesystemRootOwnerUid } = options;
   const authorize = options.authorizeAdministrator.bind(options);
   assertLinuxWriterLeaseBinding(writerLease, database, nativeDatabase);
   const installation = assertInstallationAdmission(nativeDatabase, admission);
-  const catalog = V26_NODE_INSTALLATION_CATALOG, checkpoint = catalog.migrations.at(-1)?.checkpoint;
-  if (!checkpoint || checkpoint.id !== "portable-runtime/v26" || installation.checkpointId !== checkpoint.id
+  const checkpoint = catalog.migrations.at(-1)?.checkpoint;
+  if (!checkpoint || checkpoint.id !== expectedCheckpoint || installation.checkpointId !== checkpoint.id
     || installation.catalogId !== catalog.id || installation.schemaSha256 !== checkpoint.schemaSha256
     || installation.appliedMigrations !== catalog.migrations.length) unavailable();
   if (!Array.isArray(options.descriptors) || options.descriptors.length > MAX_VOLUME_DESCRIPTORS) unavailable();
@@ -175,6 +198,7 @@ export function createLocalVolumeProfileOpening(options: LocalVolumeProfileOwner
   const records = new Set<RecordOwner>();
   function assertCurrent() {
     if (closed) unavailable();
+    installedIdentity?.assertCurrent();
     assertLinuxWriterLeaseBinding(writerLease, database, nativeDatabase);
     database.primary();
     const row = nativeDatabase.prepare("SELECT installation_id,catalog_id,schema_checkpoint,schema_sha256,created_at FROM node_installation WHERE singleton=1").get();
@@ -189,6 +213,7 @@ export function createLocalVolumeProfileOpening(options: LocalVolumeProfileOwner
         .get(actor.slice("local-account:".length))) unavailable();
   }
   const owner: LocalVolumeProfileOwner = Object.freeze({ database, nativeDatabase, writerLease, installationId: installation.installationId,
+    installationCheckpointId: installation.checkpointId,
     descriptor(id: string) { assertCurrent(); const value = byId.get(id); if (!value) unavailable(); value.assertCurrent(); return value; },
     assertCurrent, assertAdministrator,
     async authorizeAdministrator(actor: string) { assertAdministrator(actor); if (await authorize(actor) !== true) unavailable(); assertAdministrator(actor); },

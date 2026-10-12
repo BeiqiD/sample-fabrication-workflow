@@ -3,7 +3,7 @@
   "checkpointId": "portable-runtime/v28",
   "rawMigrationPath": "design/collaboration/0026_group_enforcement.sql",
   "rawMigrationName": "0026_group_enforcement.sql",
-  "rawMigrationSha256": "9b0702724f9cebbd2676ee69e0902b0bc9c5618887f47b59b6130af51ae7ba23",
+  "rawMigrationSha256": "a9d8c46e53ff0f0c5d7d39472454c72e8b544dec50b14c3e91e9014ac46b1dfd",
   "expectedApplicationSchemaSha256": "604e3b04fefed5d3d8aa8281c4fd728cd73cd69dd40056d268ee1880ed558efd",
   "expectedLexicalSchemaSha256": "f8e87a2a7c6fa6c0e89d0e02f8cca81e0880598ce6ded5a1dce99e7d4b7a83ca",
   "expectedNodeSchemaSha256": "6f09258e8e2a46799e149000a64ab2363696d689fbda68be8816f01d89de46cb",

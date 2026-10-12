@@ -42,6 +42,21 @@ export function createSqliteBatchAdmission(core: SqliteCapability, checks: reado
   if (!owner) throw new Error("SQLite batch admission owner is unavailable");
   return owner.issue(checks);
 }
+/** Join exactly two genuine receipts for this same actual core. No predicate,
+ * SQL spelling, callback or caller-supplied authority escapes either receipt.
+ * The original issuer revalidates every owned check and retains its existing
+ * max-eight/native/active/Error bounds; this does not expand admission powers. */
+export function joinSqliteBatchAdmissions(core: SqliteCapability,
+  admissions: readonly [SqliteBatchAdmission, SqliteBatchAdmission]): SqliteBatchAdmission {
+  const owner = admittedBatchOwners.get(core);
+  if (!owner || !Array.isArray(admissions) || admissions.length !== 2)
+    throw new Error("SQLite admission join requires exactly two issued receipts");
+  // Capture the selected original receipts once before their private records.
+  const first = batchAdmissions.get(admissions[0]), second = batchAdmissions.get(admissions[1]);
+  if (!first || !second || first.owner !== core || second.owner !== core)
+    throw new Error("SQLite admission join was not issued for this same owner");
+  return owner.issue([...first.checks, ...second.checks]);
+}
 export async function runSqliteAdmittedBatch(core: SqliteCapability, statements: readonly SqliteStatement[], admission: SqliteBatchAdmission): Promise<SqliteResult[]> {
   const issued = batchAdmissions.get(admission), owner = admittedBatchOwners.get(core);
   if (!issued || issued.owner !== core || !owner) throw new Error("SQLite batch admission was not issued for this owner");
