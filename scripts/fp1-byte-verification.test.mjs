@@ -22,7 +22,7 @@ function fixtureSha256(byteSize) {
 }
 
 const workerSource = `
-import { MAX_VERIFIED_BYTES } from "./worker/files/byte-verification.ts";
+import { ByteVerificationError, MAX_VERIFIED_BYTES } from "./worker/files/byte-verification.ts";
 import { writeVerifiedBytes } from "./worker/files/byte-writer.ts";
 import { cloudflareSha256 } from "./worker/files/storage-adapters/cloudflare-sha256.ts";
 import { managedByteWriter } from "./worker/files/storage-adapters/managed-writer.ts";
@@ -41,6 +41,7 @@ export default {
       limit: MAX_VERIFIED_BYTES,
     };
     let bufferedBody;
+    let destinationFailure;
     function fixture(destination = false) {
       let offset = 0;
       let index = 0;
@@ -49,7 +50,8 @@ export default {
         pull(controller) {
           if (offset === length) {
             if (destination && mode === "tail-error") {
-              controller.error(new Error("fixture destination failed after its final bytes"));
+              destinationFailure = new Error("fixture destination failed after its final bytes");
+              controller.error(destinationFailure);
             } else controller.close();
             return;
           }
@@ -145,7 +147,21 @@ export default {
       });
       return Response.json({ outcome: "verified", evidence, stats });
     } catch (error) {
-      return Response.json({ outcome: "rejected", phase: error.phase, reason: error.reason, stats });
+      // First cleanup can reject with the original errored input. Retain and
+      // expose its ordered shape; the typed work operand still classifies the
+      // rejected verification. No aggregate is treated as successful evidence.
+      const aggregate = error instanceof AggregateError;
+      const work = mode === "tail-error" && aggregate ? error.errors[0] : error;
+      const typedWork = work instanceof ByteVerificationError;
+      const failureShape = {
+        aggregate, typedWork, errorCount: aggregate ? error.errors.length : 1,
+        ...(mode === "tail-error" ? {
+          workCauseIsOriginalDestinationFailure: typedWork && work.cause === destinationFailure,
+          cleanupIsOriginalDestinationFailure: aggregate && error.errors[1] === destinationFailure,
+        } : {}),
+      };
+      return Response.json({ outcome: "rejected", phase: typedWork ? work.phase : undefined,
+        reason: typedWork ? work.reason : undefined, failureShape, stats });
     }
   },
 };
@@ -223,10 +239,20 @@ test("native workerd verifies bounded streaming writes and rejects incomplete ev
         assert.equal(result.outcome, "rejected");
         assert.equal(result.phase, "destination");
         assert.equal(result.reason, reason);
+        assert.deepEqual(result.failureShape, mode === "tail-error" ? {
+          aggregate: true, typedWork: true, errorCount: 2,
+          workCauseIsOriginalDestinationFailure: true,
+          cleanupIsOriginalDestinationFailure: true,
+        } : { aggregate: false, typedWork: true, errorCount: 1 });
         assert.equal(result.stats.puts, 1);
         assert.equal(result.stats.gets, 1);
         assert.equal(result.stats.hashes[0].finished, true);
         assert.equal(result.stats.hashes[1].bytes, smallSize - (mode === "truncated" ? 1 : 0));
+        if (mode === "tail-error") {
+          assert.equal(result.stats.hashes[1].finished, false);
+          assert.equal(result.stats.hashes[1].aborted, true);
+          assert.equal(result.stats.destinationChunks, Math.ceil(smallSize / CHUNK_BYTES));
+        }
       });
     }
     await t.test("a declared size above 100 MiB rejects before opening a hash or doing I/O", async () => {
