@@ -51,6 +51,8 @@ test("CI and deployment cover the same unique leaves; only deployment build uses
   for (const plan of [ci, deploy]) {
     assert.equal(new Set(plan.leaves.map(({ id }) => id)).size, plan.leaves.length);
     assert.equal(plan.leaves.filter(({ id }) => id === "build").length, 1);
+    assert.equal(plan.leaves.filter(({ script }) => script === "typecheck").length, 1);
+    assert(plan.contexts["pre-pr/build"].includes("types"));
     assert(plan.leaves.some(({ script }) => script === "typecheck:export-contract"));
     assert(plan.leaves.some(({ script }) => script === "typecheck:file-jobs-node"));
     assert(plan.leaves.some(({ script }) => script === "typecheck:server"));

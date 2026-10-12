@@ -54,13 +54,16 @@ unknown until inspected**. Do not infer it from a GitHub Cloudflare check, copy
 the fresh-production example, or assume a plain `wrangler deploy` applied D1
 migrations.
 
-The repository's `package.json` defines this controlled remote path:
+The repository's `package.json` separates validation, schema migration and upload:
 
-1. `deploy:remote` runs `verify:v3-deployment`.
+1. Run `verify:ci` locally or in GitHub Actions. Workers Builds runs
+   `build:deploy` once; `deploy:remote` uploads that existing artifact.
 2. `internal:db:migrate:remote` regenerates deploy configuration, verifies built
    and migration bootstrap agreement, then applies reviewed migrations to `DB`.
-3. `wrangler deploy` publishes the verified Worker and static assets only after
-   migration succeeds.
+   Invoke it through the separate `db:migrate:remote` command after a matching
+   `build:deploy` when the release changes the schema.
+3. `deploy:remote` runs only `wrangler deploy`; it does not repeat validation,
+   rebuild artifacts, or apply database migrations.
 
 The generator requires complete installation-owned `DEPLOY_*` inputs and a safely
 resolved Cloudflare account. It does not create resources. The bootstrap check
@@ -152,9 +155,9 @@ case limits; a larger job budget is not evidence of a performance repair.
 2. Qualify the exact PR head with the full default Verify gate and required Map
    gate. Merge through a reviewed PR against development integration; do not
    bypass failed or unexecuted required checks.
-3. Confirm the automatic build uses the verified migration-first path and the
-   development identities captured above. If it does not, complete a reviewed
-   development handoff before applying the missing suffix. Do not guess or run
+3. Confirm the automatic build uses the single-build/upload path and the
+   development identities captured above. For schema changes, complete the
+   separate migration handoff before uploading the matching release. Do not guess or run
    an additional remote deployment concurrently with a queued automatic build.
 4. Capture actual applied names/final ledger, built commit, serving version and
    authenticated development readiness. `/api/ready` checks database reachability
