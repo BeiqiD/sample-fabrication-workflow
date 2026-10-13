@@ -149,6 +149,7 @@ async function caseWork(kind: Negative): Promise<void> {
     let identity!: Awaited<ReturnType<typeof createInstalledLocalIdentity>>;
     let authentication!: ReturnType<typeof createLocalAuthentication>;
     let permissions!: ReturnType<typeof createLocalPackagePermissionV28Candidate>;
+    let candidateOpening: ReturnType<typeof createLocalVolumeProfileOpeningV28Candidate> | undefined;
     const admission = admitInstallationRecoverySource(native, V28_NODE_INSTALLATION_CATALOG_CANDIDATE);
     await lease.withWriter(async () => {
       identity = await createInstalledLocalIdentity({ database: core, nativeDatabase: native, admission,
@@ -158,22 +159,24 @@ async function caseWork(kind: Negative): Promise<void> {
         sourceKey: "genuine-package-prepared-view-opening", now: Date.now() });
       expect(operator.principal.actor).toBe(baseline.operatorActor); expect(operator.principal.capabilities.systemAdministrator).toBe(true);
       owner.openingAttempted = true;
-      owner.opening = createLocalVolumeProfileOpeningV28Candidate({ database: core, nativeDatabase: native, admission,
+      const candidate = createLocalVolumeProfileOpeningV28Candidate({ database: core, nativeDatabase: native, admission,
         writerLease: lease, descriptors: baseline.descriptors, filesystemRootOwnerUid: baseline.rootOwnerUid, authentication,
         async authorizeAdministrator(actor) { const current = await identity.authenticate(operator.token, Date.now());
           return current?.actor === actor && current.capabilities.systemAdministrator; } });
-      permissions = createLocalPackagePermissionV28Candidate({ opening: owner.opening, authentication, admission });
+      candidateOpening = candidate; owner.opening = candidate;
+      permissions = createLocalPackagePermissionV28Candidate({ opening: candidate, authentication, admission });
     });
+    ensure(candidateOpening); const actualOpening = candidateOpening;
     const held = newHeld(kind), app = new Hono();
     app.route("/api/auth", authentication.routes);
     app.onError(() => Response.json({ error: "Original Package qualification request failed" }, { status: 503 }));
     app.post("/api/packages/jobs", async c => {
       const request = c.req.raw;
       try {
-        ensure(owner.opening && !held.scope);
+        ensure(owner.opening === actualOpening && !held.scope);
         const principal = await authentication.authenticateRequest(request);
         expect(principal.id).toBe(baseline.alice.principalId); expect(principal.capabilities.systemAdministrator).toBe(false);
-        const token = await permissions.capture(request), opening = owner.opening;
+        const token = await permissions.capture(request), opening = actualOpening;
         const permission = ownedLocalPackagePermissionV28Candidate(token, opening, request, principal.actor);
         const scope = held.scope = createLocalPackageRequestExecutionV28Candidate({ opening, request, actor: principal.actor,
           admission, authentication, permission: token });
