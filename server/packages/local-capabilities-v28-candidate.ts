@@ -143,7 +143,7 @@ export function createNodePackageCapabilitiesV28Candidate(options: {
   },nodeSha256));
   const originalImportPublication=capabilities.importPublication.bind(capabilities);
   const groupCapabilities:PackageCapabilities=Object.freeze({...capabilities,
-    async importPublication(claim){
+    async importPublication(claim: PackageClaim){
       const actual=await originalImportPublication(claim);
       return{statements:groupPurpose.publication(claim,owned.database.primary(),actual.statements),result:actual.result};
     },

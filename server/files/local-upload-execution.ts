@@ -530,7 +530,7 @@ function createOwnedLocalUploadExecution(options: {
             openProfile(frozen: Parameters<AuthorityProfileOpener>[0], access: Parameters<AuthorityProfileOpener>[1],
               lifecycle: Parameters<AuthorityProfileOpener>[2]) {
               executionLifetime.assertHeld();
-              if (permission?.access === "read" && access !== "read")
+              if (permission && "access" in permission && permission.access === "read" && access !== "read")
                 throw new HTTPException(403, { message: "The original Comment request selects read access only." });
               // Capture the issued physical/source tuple before the first open
               // await; returned label/JSON cannot substitute its ownership.
