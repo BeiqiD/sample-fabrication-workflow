@@ -28,10 +28,15 @@ export async function planV5LocalR2FilesCandidate(records: SystemBackupRecordsV5
     "complete_native_local_source_required");
     ensure(payload.fileIds.length === 1 && payload.fileIds[0] === source.fileId && payload.purposes.length === 1
       && payload.purposes[0] === source.purpose && source.accessScope === "system", "canonical_file_identity");
-    // This finite first byte-publication slice preserves ordinary opaque Files.
-    // Imported preview-origin conversion and legacy identity creation are later.
+    // Reviewed native consumers already point to this canonical File. Preserve
+    // their exact business cells/rowids and acceptance receipts; the recovered
+    // address is published on that same File, never by rewriting a consumer.
+    // Native-only consumers need no manufactured legacy shadow occurrence.
+    // Nonzero current legacy heads remain separately denied above until their
+    // global profileRevision successor events have an admitted append owner.
     ensure(source.purpose !== "derived_preview", "preview_origin_conversion_not_admitted");
-    ensure(payload.bindings.length === 0 && source.consumerBindings.length === 0, "bound_files_not_admitted");
+    ensure(payload.bindings.length <= 16 && stableJson(payload.bindings) === stableJson(source.consumerBindings),
+      "bounded_exact_native_consumers");
     const file = records.content.tables.files.find(row => row.id === source.fileId);
     const publication = records.content.tables.file_publications.find(row => row.file_id === source.fileId);
     const location = records.content.tables.file_locations.find(row => row.id === source.locationId);
@@ -51,6 +56,7 @@ export async function planV5LocalR2FilesCandidate(records: SystemBackupRecordsV5
       destination: profile.id, namespace: profile.namespaceIdentity }));
     const aliases = records.content.tables.assets.filter(row => row.file_id === source.fileId)
       .map(row => ({ table: "assets" as const, row: { ...row } }));
+    ensure(aliases.length <= 16, "bounded_original_aliases");
     const bindings = payload.bindings.map(binding => {
       const spec = reviewedRecoveryBinding(binding);
       ensure(binding.fileId === source.fileId && spec.purpose === source.purpose, "preserved_binding_identity");
@@ -69,6 +75,9 @@ export async function planV5LocalR2FilesCandidate(records: SystemBackupRecordsV5
       nativePublicationExists: true, publishAsActive: publication.active_location_id === source.locationId,
       locationId: "fp5-location:" + incarnation + ":" + id.slice(3), objectKey: selected.objectKey,
       byteSize: payload.byteSize, sha256: payload.sha256, contentType: "application/octet-stream", filename: payload.id,
+      // Canonical native pointers and original aliases are immutable here.
+      // bindingEvidence records their exact original tuple and row digest;
+      // empty mutable lists deliberately issue no consumer/alias UPDATE.
       bindings: [], aliases: [], backupId: records.backupId, sourceImageSha256,
       destinationMetadataSha256: profile.metadataSha256 ?? await sha256Hex(stableJson(profile)),
       sourceLocatorJson: stableJson({ sourceId: payload.id, locatorId: source.locatorId, storeKind: source.storeKind,
