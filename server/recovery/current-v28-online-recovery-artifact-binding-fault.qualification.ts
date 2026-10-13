@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { isAbsolute, join, resolve } from 'node:path';
 import type { DatabaseSync } from 'node:sqlite';
 import { verifyNodeDistribution } from '../../scripts/lib/node-distribution-v28-manifest.mjs';
+import { NodeRuntimeConfigurationError } from '../node-runtime-config.ts';
 import { NODE_RECOVERY_ARCHIVE_OPTIONS, nodeRecoveryArchiveSource } from '../../scripts/lib/system-backup-node-io.ts';
 import { validateV28SystemBackupArchiveCandidate } from '../../shared/contracts/system-backup-v5-archive-admission.ts';
 import { stableJson } from '../../shared/domain/content-addressing.ts';
@@ -175,6 +176,8 @@ async function run(): Promise<void> {
   let oldRootIdentity: { dev: string; ino: string } | undefined, replacementRootIdentity: { dev: string; ino: string } | undefined;
   let pendingCursor: Record<string, unknown> | undefined, retainedFile: Record<string, unknown> | undefined;
   let expectedRetention: ReturnType<typeof retention> | undefined;
+  let originalQueuedJob: Record<string, unknown> | undefined, originalTargetClaim: Record<string, unknown> | undefined;
+  let clearedCursor: Record<string, unknown> | undefined;
   await target.withDispatcher(async (app, client, native) => {
     let phase = 'claim';
     for (let count = 0; phase !== 'files'; count++) {
@@ -186,6 +189,9 @@ async function run(): Promise<void> {
     const originalClaim = native.prepare('SELECT * FROM system_recovery_target_claim WHERE job_id=?').get(recoveryId); ensure(originalClaim);
     ensure(typeof originalClaim.cursor_json === 'string'); const originalCursor = object(JSON.parse(originalClaim.cursor_json));
     expect(originalCursor).toMatchObject({ stage: 'files', pending: false, cleared: true, file: 0 });
+    clearedCursor = originalCursor; originalTargetClaim = originalClaim;
+    originalQueuedJob = native.prepare('SELECT * FROM system_recovery_jobs WHERE id=?').get(recoveryId); ensure(originalQueuedJob);
+    expect(originalQueuedJob).toMatchObject({ state: 'queued', phase: 'files', owner_token: null, runtime_incarnation: null, result_json: null });
     expectedRetention = retention(native, data.backupId, uploadId, recoveryId);
     expect(native.prepare('SELECT count(*) n FROM system_recovery_target_files WHERE job_id=?').get(recoveryId)?.n).toBe(0);
     ensure(await absent(retainedRoot)); const oldRoot = await lstat(originalRoot, { bigint: true });
@@ -202,28 +208,24 @@ async function run(): Promise<void> {
     expect(replacementRootIdentity).not.toEqual(oldRootIdentity); expect({ dev: String(retained.dev), ino: String(retained.ino) }).toEqual(oldRootIdentity);
     expect(await privateInventory(retainedRoot)).toEqual(originalFiles);
     expect(await readdir(join(originalRoot, 'objects'))).toEqual([]); expect(await readdir(join(originalRoot, 'staging'))).toEqual([]);
-    expect(await app.dispatchRecoveryJobsOnce()).toEqual({ jobId: recoveryId, outcome: 'paused' });
-    expect(native.prepare('SELECT state,phase,result_json FROM system_recovery_jobs WHERE id=?').get(recoveryId))
-      .toEqual({ state: 'paused', phase: 'files', result_json: null });
-    retainedFile = native.prepare('SELECT * FROM system_recovery_target_files WHERE job_id=?').get(recoveryId); ensure(retainedFile);
-    expect(retainedFile.state).toBe('unknown'); expect(retainedFile.byte_size).toBe(source.payloadBytes); expect(retainedFile.sha256).toBe(source.payloadSha256);
-    const afterClaim = native.prepare('SELECT * FROM system_recovery_target_claim WHERE job_id=?').get(recoveryId); ensure(afterClaim);
-    ensure(typeof afterClaim.cursor_json === 'string'); pendingCursor = object(JSON.parse(afterClaim.cursor_json));
-    expect(pendingCursor).toEqual({ ...originalCursor, pending: true }); expect(afterClaim.status).toBe('files');
-    expect(retainedFile.owner_token).toBe(afterClaim.owner_token); expect(retainedFile.generation).toBe(afterClaim.generation);
-    ensure(typeof originalClaim.generation === 'number' && Number.isSafeInteger(originalClaim.generation));
-    expect(afterClaim.generation).toBe(originalClaim.generation + 1);
-    expect(native.prepare("SELECT count(*) n FROM system_recovery_target_files WHERE job_id=? AND state IN('verified','published')").get(recoveryId)?.n).toBe(0);
-    expect(await app.dispatchRecoveryJobsOnce()).toEqual({ jobId: null, outcome: 'idle' });
-    expect(native.prepare('SELECT * FROM system_recovery_target_files WHERE job_id=?').get(recoveryId)).toEqual(retainedFile);
+    // This original config token captured the OLD physical root inode. The
+    // whole-config guard refuses before claim, lease or files-stage admission;
+    // it must preserve the exact queued job/cleared claim and issue NO intent.
+    await expect(app.dispatchRecoveryJobsOnce()).rejects.toBeInstanceOf(NodeRuntimeConfigurationError);
+    expect(native.prepare('SELECT * FROM system_recovery_jobs WHERE id=?').get(recoveryId)).toEqual(originalQueuedJob);
+    expect(native.prepare('SELECT * FROM system_recovery_target_claim WHERE job_id=?').get(recoveryId)).toEqual(originalTargetClaim);
+    expect(native.prepare('SELECT * FROM system_recovery_target_files WHERE job_id=?').all(recoveryId)).toEqual([]);
+    expect(native.prepare('SELECT count(*) n FROM system_recovery_write_leases WHERE released_at IS NULL').get()?.n).toBe(0);
+    await expect(app.dispatchRecoveryJobsOnce()).rejects.toBeInstanceOf(NodeRuntimeConfigurationError);
+    expect(native.prepare('SELECT * FROM system_recovery_jobs WHERE id=?').get(recoveryId)).toEqual(originalQueuedJob);
+    expect(native.prepare('SELECT * FROM system_recovery_target_claim WHERE job_id=?').get(recoveryId)).toEqual(originalTargetClaim);
+    expect(native.prepare('SELECT * FROM system_recovery_target_files WHERE job_id=?').all(recoveryId)).toEqual([]);
     expect(retention(native, data.backupId, uploadId, recoveryId)).toEqual(expectedRetention);
-    for (const id of [uploadId, recoveryId])
-      expect((await client.request(`/api/system-recovery/jobs/${id}/control`, 'POST', { action: 'cleanup' }, session)).status).toBe(409);
     expect(await absent(join(target.destination, 'files/b_0000'))).toBe(true);
     expect(await readdir(join(originalRoot, 'objects'))).toEqual([]); expect(await readdir(join(originalRoot, 'staging'))).toEqual([]);
   });
   assertCanonicalFileOwnersReleased();
-  ensure(expectedRetention && retainedFile && pendingCursor && oldRootIdentity && replacementRootIdentity);
+  ensure(expectedRetention && originalQueuedJob && originalTargetClaim && clearedCursor && oldRootIdentity && replacementRootIdentity);
   expect(await privateInventory(retainedRoot)).toEqual(originalFiles);
   // Fresh genuine main/HTTP/auth/physical owner sees only the explicit empty
   // replacement. It may report old metadata; actual original download refuses
@@ -232,13 +234,46 @@ async function run(): Promise<void> {
     const session = await loginCurrentRecoveryCli(owner, data.origin, 'operator', CANONICAL_FILE_PASSWORD);
     const status = checkedSystemRecoveryJobStatus((await recoveryCliJson(owner, data.origin,
       `/api/system-recovery/jobs/${recoveryId}`, 'GET', undefined, session)).value);
-    expect(status).toMatchObject({ kind: 'recovery', state: 'paused', phase: 'files', result: null });
+    expect(status).toMatchObject({ kind: 'recovery', state: 'queued', phase: 'files', result: null });
     expect((await recoveryCliBytes(owner, data.origin, `/api/system-recovery/jobs/${data.backupId}/download`, 'GET', undefined, session)).status).toBe(404);
+    expect((await recoveryCliJson(owner, data.origin, `/api/system-recovery/jobs/${recoveryId}/report`, 'GET', undefined, session)).status).toBe(404);
     for (const id of [uploadId, recoveryId]) expect((await recoveryCliJson(owner, data.origin,
       `/api/system-recovery/jobs/${id}/control`, 'POST', { action: 'cleanup' }, session)).status).toBe(409);
-    expect((await recoveryCliJson(owner, data.origin, '/api/system-recovery/executor', 'POST', { enabled: false }, session)).status).toBe(200);
   });
   assertCanonicalFileOwnersReleased();
+  // Explicit fresh operator opening captures the replacement's NEW inode.
+  // The genuine newly issued dispatcher can now claim the existing job, but
+  // its required private archive is absent. Only THIS new attempt may become
+  // paused/unknown/pending; it never follows retainedRoot or canonical bytes.
+  await target.withDispatcher(async (app, client, native) => {
+    expect(native.prepare('SELECT * FROM system_recovery_jobs WHERE id=?').get(recoveryId)).toEqual(originalQueuedJob);
+    expect(native.prepare('SELECT * FROM system_recovery_target_claim WHERE job_id=?').get(recoveryId)).toEqual(originalTargetClaim);
+    expect(native.prepare('SELECT * FROM system_recovery_target_files WHERE job_id=?').all(recoveryId)).toEqual([]);
+    expect(await app.dispatchRecoveryJobsOnce()).toEqual({ jobId: recoveryId, outcome: 'paused' });
+    expect(native.prepare('SELECT state,phase,result_json FROM system_recovery_jobs WHERE id=?').get(recoveryId))
+      .toEqual({ state: 'paused', phase: 'files', result_json: null });
+    retainedFile = native.prepare('SELECT * FROM system_recovery_target_files WHERE job_id=?').get(recoveryId); ensure(retainedFile);
+    expect(retainedFile.state).toBe('unknown'); expect(retainedFile.byte_size).toBe(source.payloadBytes); expect(retainedFile.sha256).toBe(source.payloadSha256);
+    const afterClaim = native.prepare('SELECT * FROM system_recovery_target_claim WHERE job_id=?').get(recoveryId); ensure(afterClaim);
+    ensure(typeof afterClaim.cursor_json === 'string'); pendingCursor = object(JSON.parse(afterClaim.cursor_json));
+    expect(pendingCursor).toEqual({ ...clearedCursor, pending: true }); expect(afterClaim.status).toBe('files');
+    expect(retainedFile.owner_token).toBe(afterClaim.owner_token); expect(retainedFile.generation).toBe(afterClaim.generation);
+    ensure(typeof originalTargetClaim?.generation === 'number' && Number.isSafeInteger(originalTargetClaim.generation));
+    expect(afterClaim.generation).toBe(originalTargetClaim.generation + 1);
+    expect(native.prepare("SELECT count(*) n FROM system_recovery_target_files WHERE job_id=? AND state IN('verified','published')").get(recoveryId)?.n).toBe(0);
+    expect(await app.dispatchRecoveryJobsOnce()).toEqual({ jobId: null, outcome: 'idle' });
+    expect(native.prepare('SELECT * FROM system_recovery_target_files WHERE job_id=?').get(recoveryId)).toEqual(retainedFile);
+    expect(retention(native, data.backupId, uploadId, recoveryId)).toEqual(expectedRetention);
+    const session = await client.login('operator');
+    expect((await client.request('/api/auth/session', 'GET', undefined, session)).status).toBe(200);
+    for (const id of [uploadId, recoveryId])
+      expect((await client.request(`/api/system-recovery/jobs/${id}/control`, 'POST', { action: 'cleanup' }, session)).status).toBe(409);
+    expect((await client.request('/api/system-recovery/executor', 'POST', { enabled: false }, session)).status).toBe(200);
+    expect(await absent(join(target.destination, 'files/b_0000'))).toBe(true);
+    expect(await readdir(join(originalRoot, 'objects'))).toEqual([]); expect(await readdir(join(originalRoot, 'staging'))).toEqual([]);
+  });
+  assertCanonicalFileOwnersReleased();
+  ensure(retainedFile && pendingCursor);
   await withCanonicalFileDatabase(source.baseline.path, async (_owner, lease, native) => lease.withWriter(async () => {
     expect(native.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
     expect(native.prepare('SELECT * FROM system_recovery_target_files WHERE job_id=?').get(recoveryId)).toEqual(retainedFile);
@@ -284,11 +319,13 @@ async function run(): Promise<void> {
     backupId: data.backupId, uploadId, recoveryId, archiveSha256: data.archiveSha256, archiveFiles: backupFiles,
     actualPayloadBytes: source.payloadBytes, actualPayloadSha256: source.payloadSha256, oldRootIdentity, replacementRootIdentity,
     genuineOpenedRootInodeReplacement: true, originalPrivateTreeInodesAndHashesRetained: true, replacementObjectsAndStagingEmpty: true,
-    originalRequiredProviderRefused: true, actualFreshMainUnavailableDownload404: true, noAlternateProviderOrFileFallback: true,
-    pausedFilesIntentUnknownAndCursorPending: true, noTargetPayloadIssued: true, noTargetVerifiedPublicationReadyOrHandoff: true,
+    originalCapturedConfigurationRefusedBeforeClaim: true, originalQueuedJobAndClearedClaimExact: true, originalTargetIntentsAbsent: true,
+    actualFreshMainUnavailableDownload404: true, actualFreshMainUnavailableReport404: true, noAlternateProviderOrFileFallback: true,
+    freshIssuedDispatcherRequiredArtifactRefused: true, freshPausedFilesIntentUnknownAndCursorPending: true,
+    noTargetPayloadIssued: true, noTargetVerifiedPublicationReadyOrHandoff: true,
     existingFileAndLegacyHoldRowsExact: true, actualAcceptedArchiveDependencyHeld: true, originalVerifiedUploadAttemptAndArtifactKeyRetained: true,
     backupCapturePolicy: data.admitted.records.origin.capturePolicy, backupHoldOwner: data.admitted.records.content.backupHoldOwner,
-    recoveryAndUploadCleanup409BeforeAndAfterOriginalCloseAndRestart: true,
+    recoveryAndUploadCleanup409AfterFreshOpeningAndPausedAttempt: true,
     originalKernelProviderHttpNativeAndFirstOwnerClosesAcknowledged: true, sourceCanonicalAndPhysicalBindingsUnchanged: true,
     exactTargetPartialSchemaAndTypedRows: true, protectedActivationHistoryExact: true, destinationBindingsEmptyAndRuntimeOff: true,
     fakeClock: false, rawBusinessIdentityOrGrantSeed: false, permissionCallbackDenial: false, fullApplicationRecoveryQualified: false }),
@@ -296,6 +333,6 @@ async function run(): Promise<void> {
 }
 
 describe('current genuine F5 required private artifact binding unavailable', () => {
-  it('pauses the original target when its actual opened artifact namespace inode is replaced, retaining original archive and holds with no fallback across original close and fresh main restart',
+  it('refuses the original captured artifact root before claim and pauses a fresh-issued target attempt when required archive bytes remain unavailable, with retained holds and no fallback',
     () => retainedCanonicalFileCase(run), 120_000);
 });
