@@ -21,7 +21,7 @@ import { hashSessionToken } from '../auth/tokens.ts';
 import { CANONICAL_FILE_PASSWORD, CANONICAL_FILE_IDENTITY_POLICY, assertCanonicalFileOwnersReleased, canonicalFileClient,
   canonicalFilePrivateOrigin, listenCanonicalFileApplication, retainedCanonicalFileCase, withCanonicalFileDatabase,
   type CanonicalFileSession } from '../collaboration/current-v28-canonical-comment-file.qualification-support.ts';
-import { prepareCurrentV28OnlineRecoverySource, currentV28RecoveryTypedRows, CURRENT_V28_RECOVERY_PHYSICAL_TABLES,
+import { prepareCurrentV28OnlineRecoverySource, currentV28RecoveryImageRows, currentV28RecoveryTypedRows, CURRENT_V28_RECOVERY_PHYSICAL_TABLES,
   type CurrentV28OnlineRecoverySource } from './current-v28-online-recovery.qualification-support.ts';
 import { loginCurrentRecoveryCli, recoveryCliJson, recoveryCliBytes,
   type CurrentRecoveryCliOwner, type CurrentRecoveryCliSession } from './current-v28-recovery-cli.qualification-support.ts';
@@ -136,7 +136,7 @@ async function prepared(fault: Fault) {
       mode: fault === 'F6' ? 'planned' : 'historical', acknowledgeLaterChanges: fault !== 'F6', acknowledgePartial: false }, session);
     expect(reply.status).toBe(202); return checkedSystemRecoveryReceipt(reply.value).job.id;
   });
-  return { source, target, origin, backupId, uploadId, recoveryId, archive, archiveSha256: downloaded.sha256 };
+  return { source, target, origin, backupId, uploadId, recoveryId, archive, archiveSha256: downloaded.sha256, admitted };
 }
 
 async function cleanupRefused(client: Client, session: CanonicalFileSession, uploadId: string, recoveryId: string) {
@@ -299,8 +299,16 @@ async function run(fault: Fault) {
   await withCanonicalFileDatabase(retainedDatabase, async (_owner, lease, native) => lease.withWriter(async () => {
     for (const name of ['file_shadow_runtime_guard', 'file_authority_runtime_guard', 'file_job_runtime_guard', 'system_recovery_runtime'])
       expect(native.prepare(`SELECT enabled FROM ${name} WHERE singleton=1`).get()?.enabled).toBe(0);
-    for (const name of ['local_storage_profile_bindings', 'local_storage_profile_activations', 'system_storage_native_bindings'])
+    for (const name of ['local_storage_profile_bindings', 'system_storage_native_bindings'])
       expect(native.prepare(`SELECT count(*) n FROM ${name}`).get()?.n).toBe(0);
+    // Frozen catalog: activation rows are protected source history, whereas
+    // installation bindings and runtime authority remain absent/off. Compare
+    // every typed cell of the original WITHOUT ROWID image; do not clear or
+    // synthesize history to make an inert destination appear empty.
+    const activationHistory = data.admitted.records.image.tables.local_storage_profile_activations; ensure(activationHistory);
+    expect(activationHistory.rows.every(row => row.rowid === null)).toBe(true);
+    expect(currentV28RecoveryTypedRows(native, ['local_storage_profile_activations']).local_storage_profile_activations)
+      .toEqual(currentV28RecoveryImageRows(activationHistory));
   }));
   assertCanonicalFileOwnersReleased();
   if (fault === 'F5') { ensure(retainedDatabaseSha256); expect(digest(await readFile(retainedDatabase))).toBe(retainedDatabaseSha256); }
