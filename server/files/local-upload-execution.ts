@@ -1,3 +1,5 @@
+import { consumeLocalPackageExecutionPermissionV28Candidate, ownedLocalPackagePermissionV28Candidate,
+  type LocalPackagePermissionV28Candidate } from "../packages/local-permission-v28-candidate";
 import { consumeLocalFabubloxExecutionPermissionV28Candidate, ownedLocalFabubloxPermissionV28Candidate,
   type LocalFabubloxPermissionV28Candidate } from "../imports/local-fabublox-permission-v28-candidate";
 import type { PreparedFabubloxPayload } from "../../worker/imports/fabublox-payload";
@@ -114,6 +116,18 @@ export function createLocalPackageRequestExecution(options: {
   auth.currentSessionPredicate(options.request, options.actor);
   return createOwnedLocalUploadExecution(options, undefined, true);
 }
+/** Original source/provider/settlement lifetime with a consumed genuine V28
+ * Package-purpose receipt. V26/default constructors remain separate. */
+export function createLocalPackageRequestExecutionV28Candidate(options: {
+  opening: LocalVolumeProfileOpeningV28Candidate; request: Request; actor: string;
+  admission: ReviewedInstallationAdmission; authentication: object; permission: LocalPackagePermissionV28Candidate;
+}) {
+  if (Object.keys(options).sort().join(",") !== "actor,admission,authentication,opening,permission,request")
+    throw new Error("Local V28 Package execution configuration is unavailable");
+  const permission = consumeLocalPackageExecutionPermissionV28Candidate(options.permission,options.opening,options.request,options.actor);
+  return createOwnedLocalUploadExecution({opening:options.opening,request:options.request,actor:options.actor,
+    admission:options.admission,authentication:options.authentication},permission,true);
+}
 export function assertLocalPackageRequestExecutionOwner(execution: LocalUploadExecution,
   opening: LocalVolumeProfileOpening, request: Request, actor: string): void {
   const issued = executions.get(execution);
@@ -145,11 +159,12 @@ export function createLocalFabubloxUploadExecutionV28Candidate(options: {
 function createOwnedLocalUploadExecution(options: {
   opening: LocalVolumeProfileOpening; request: Request; actor: string;
   admission: ReviewedInstallationAdmission; authentication: object;
-}, permission?: ReturnType<typeof ownedLocalCommentPermissionV28Candidate> | ReturnType<typeof ownedLocalFabubloxPermissionV28Candidate>, packageRequest = false) {
+}, permission?: ReturnType<typeof ownedLocalCommentPermissionV28Candidate> | ReturnType<typeof ownedLocalFabubloxPermissionV28Candidate> | ReturnType<typeof ownedLocalPackagePermissionV28Candidate>, packageRequest = false) {
   const keys = Object.keys(options).sort();
   if (keys.join(",") !== "actor,admission,authentication,opening,request")
     throw new Error("Local upload configuration is unavailable");
   const { opening, request, actor, admission, authentication } = options;
+  const packagePermission = permission && "kind" in permission && permission.kind === "package" ? permission : undefined;
   if (!(request instanceof Request) || request.bodyUsed)
     throw new HTTPException(403, { message: "Request admission is required." });
   const owner = ownedLocalVolumeProfileContext(opening);
@@ -213,7 +228,7 @@ function createOwnedLocalUploadExecution(options: {
     // Expiry remains diagnostic, just as in the mature source-write lease.
     // Draining allows only this exact previously acquired unreleased owner.
     return createSqliteBatchAdmission(owner.database, [
-      { statement: authentication, rejection: new HTTPException(401, { message: "Authentication is required." }) },
+      ...(packagePermission ? [] : [{ statement: authentication, rejection: new HTTPException(401, { message: "Authentication is required." }) }]),
       { statement: currentInstallation, rejection: new HTTPException(503, { message: "Installation write admission is unavailable." }) },
       { statement: file, rejection: new HTTPException(503, { message: "File execution is paused on this installation." }) },
       { statement: maintenance, rejection: new HTTPException(503, { message: "Source mutations are paused for system recovery." }) },
@@ -471,13 +486,14 @@ function createOwnedLocalUploadExecution(options: {
               packageActorAllowed() {
                 try {
                   executionLifetime.assertHeld();
+                  if (packagePermission) return packagePermission.authorized();
                   const row = owner.nativeDatabase.prepare(LOCAL_REQUEST_SESSION_SQL)
                     .get(session.tokenHash, actor, idleLifetimeMs);
                   return row?.admitted === 1;
                 } catch { return false; }
               },
             } : {}),
-            ...(permission ? "kind" in permission ? {
+            ...(permission && !packagePermission ? "kind" in permission && permission.kind === "fabublox" ? {
               readFabubloxImportPayload: () => permission.preparePayload(execution),
               async assertFabubloxRequestCurrent() { await runSqliteAdmittedBatch(owner.database, [], admitted(lease, "final")); },
               fabubloxAcceptanceDatabase(authorities: readonly LocalVolumeProfileAuthority[]) {
@@ -485,7 +501,7 @@ function createOwnedLocalUploadExecution(options: {
                 return createAdmittedLocalVolumeFileAuthorityDatabase(opening, authorities, admitted(lease, "final"), executionLifetime);
               },
             } : {
-              readCommentAcceptanceBody: permission.boundedBody.bind(permission),
+              readCommentAcceptanceBody: "boundedBody" in permission ? permission.boundedBody.bind(permission) : undefined,
               async assertCommentRequestCurrent() { await runSqliteAdmittedBatch(owner.database, [], admitted(lease, "final")); },
             } : {}),
             openRead(input: Readonly<{ fileId: string | null; purpose: FilePurpose }>) {
