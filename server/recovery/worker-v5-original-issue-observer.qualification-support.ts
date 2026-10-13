@@ -64,7 +64,7 @@ function selectedSql(sql){
   return gate.kind==='held-original-ack'&&trace.readers>0&&/FROM file_location_holds h JOIN file_locations l/.test(sql);
 }
 function selected(sql,method,stack){
-  if(!gate||gate.entered||method!=='first')return false;
+  if(!gate||gate.entered||gate.released||method!=='first')return false;
   if(gate.kind==='namespace-actor')return /^SELECT\s+\*\s+FROM\s+system_recovery_jobs\s+WHERE\s+id\s*=\s*\?\s*$/i.test(sql.trim())
     &&stack.includes('assertPrivateKeyNamespace');
   if(gate.kind==='profile-actor')return /SELECT 1 FROM storage_profiles p JOIN storage_profile_runtime r/.test(sql);
@@ -82,7 +82,12 @@ function nativeStatement(statement,sql){
       void Promise.resolve(originalPromise).catch(error=>nativeFailure('selected-first',error));
       if(!matching)return originalPromise;
       // Reserve the single original identity synchronously before the first await.
-      const selectedGate=gate;selectedGate.entered=true;selectedGate.enteredAt=Date.now();
+      const selectedGate=gate;
+      // The ACK waiter belongs to THIS still-live original business request,
+      // not to the earlier completed private arm request.
+      require(selectedGate.pending===undefined&&selectedGate.release===undefined,'original_waiter_unreserved');
+      selectedGate.pending=new Promise(resolve=>{selectedGate.release=resolve;});
+      selectedGate.entered=true;selectedGate.enteredAt=Date.now();
       return Promise.resolve(originalPromise).then(async value=>{
         selectedGate.originalAcknowledged=true;
         await selectedGate.pending;
@@ -134,13 +139,12 @@ async function control(request,env){
     require(!gate||gate.released,'old_original_gate_unsettled');const kind=await request.text();
     require(['namespace-actor','profile-actor','held-original-ack'].includes(kind),'closed_gate_selection');
     for(const name of Object.keys(trace))trace[name]=name==='actorRevoked'?false:0;
-    let release;const pending=new Promise(resolve=>{release=resolve;});
-    gate={kind,pending,release,entered:false,originalAcknowledged:false,released:false};return Response.json({armed:true});
+    gate={kind,entered:false,originalAcknowledged:false,released:false};return Response.json({armed:true});
   }
   if(action==='revoke-administrator'){env.SYSTEM_ADMIN_EMAILS='';trace.actorRevoked=true;return Response.json({actualEnvironmentPolicyRevoked:true});}
   if(action==='release'||action==='stop-observer'){
     if(action==='stop-observer'){env.SYSTEM_ADMIN_EMAILS='';trace.actorRevoked=true;}
-    if(gate&&!gate.released){gate.released=true;gate.release();}
+    if(gate&&!gate.released){gate.released=true;if(gate.release!==undefined)gate.release();}
     return Response.json({originalGateReleased:true});
   }
   if(action==='restore-administrator'){
