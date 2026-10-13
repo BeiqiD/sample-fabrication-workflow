@@ -73,7 +73,20 @@ def archive_facts(archive_bytes, proof):
   assert records['image']['checkpointId'] == 'portable-runtime/v28'
   assert records['origin'] == {'format':'native','schemaVersion':28,'capturePolicy':'quiesced-writers-and-bytes/1'}
   assert records['sourceMigrationLedger']['kind'] == 'node-reviewed-migrations/1'
-  assert records['sourceMigrationLedger']['installationId'] == manifest['sourceInstallationId'] == proof['sourceInstallationId']
+  # Node migration provenance and research-package source identity are separate
+  # original identities. The stopped capture checks the former against the
+  # admitted Native installation; the frozen V5 manifest derives the latter
+  # from this same content/image. Never retag the original producer's Native ID.
+  assert records['sourceMigrationLedger']['installationId'] == proof['sourceInstallationId']
+  package_identity = records['content']['tables']['research_package_source_identity']
+  assert isinstance(package_identity,list) and len(package_identity) == 1
+  package_source_id = package_identity[0]['installation_id']
+  assert isinstance(package_source_id,str) and 1 <= len(package_source_id) <= 128
+  assert package_identity == [{'singleton':1,'installation_id':package_source_id}]
+  assert manifest['sourceInstallationId'] == package_source_id
+  assert records['image']['tables']['research_package_source_identity'] == {
+   'columns':['singleton','installation_id'],'rows':[{'rowid':None,'cells':[
+    {'type':'integer','value':'1'},{'type':'text','value':package_source_id}]}]}
   assert records['sourceMigrationLedger']['checkpointId'] == 'portable-runtime/v28'
   assert hashlib.sha256(records_raw).hexdigest() == manifest['recordsSha256']
   assert len(manifest['files']) == 1; file = manifest['files'][0]
