@@ -192,9 +192,21 @@ describe('current genuine bound canonical Comment File through compiled strict V
       const configuration = join(baseline.root, 'bound-current-capture.json'), archive = join(baseline.root, 'genuine-bound-original-v5.zip');
       await writeFile(configuration, JSON.stringify({ schema: 'stopped-local-v28-capture/1', databasePath: baseline.path,
         descriptors: baseline.descriptors }), { flag: 'wx', mode: 0o600 });
-      const capture = await originalProducerPhase('stopped-capture', () => runCurrentCli(distribution, 'installation-cli.cjs', ['capture-local-backup', '--runtime-profile', 'v28',
+      const captureArguments = ['capture-local-backup', '--runtime-profile', 'v28',
         '--configuration', configuration, '--archive', archive, '--installation', baseline.installationId,
-        '--filesystem-root-owner-uid', String(baseline.rootOwnerUid)]));
+        '--filesystem-root-owner-uid', String(baseline.rootOwnerUid)];
+      const capture = await originalProducerPhase('stopped-capture', () => runCurrentCli(distribution, 'installation-cli.cjs', captureArguments));
+      // Private failure attribution from this exact invocation, after its SAME
+      // original child close returned and before any outcome assertion. The
+      // registered helper bounds combined original output to 16 KiB; a
+      // nonzero exit remains a failure, and is never retried on this fixture.
+      await writeFile(join(baseline.root, 'original-stopped-capture-cli-result.json'), stableJson({
+        schema: 'current-bound-comment-original-stopped-capture-cli-result/1',
+        executable: process.execPath, entry: join(distribution, 'server', 'installation-cli.cjs'),
+        arguments: captureArguments, distribution, originalCloseAcknowledged: true,
+        originalOutputBytes: Buffer.byteLength(capture.stdout) + Buffer.byteLength(capture.stderr),
+        originalOutputByteLimit: 16 * 1024, result: capture,
+      }), { flag: 'wx', mode: 0o600 });
       expect(capture.code).toBe(0); expect(capture.signal).toBeNull(); expect(capture.stderr).toBe('');
       const captured = canonicalFileObject(JSON.parse(capture.stdout));
       expect(captured).toMatchObject({ kind: 'stopped-local-v28-v5-capture/1', nodeInstallationId: baseline.installationId,
