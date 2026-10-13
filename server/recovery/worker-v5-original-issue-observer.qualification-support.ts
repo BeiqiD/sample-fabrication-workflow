@@ -51,6 +51,18 @@ function nativeBucket(bucket){
     };
   }});
 }
+function nativeFailure(operation,error){
+  const name=error&&['Error','TypeError','RangeError','DataCloneError'].includes(error.name)?error.name:'NativeError';
+  const message=error&&typeof error.message==='string'?error.message:'';
+  const code=/\b(SQLITE_ERROR|SQLITE_AUTH|SQLITE_NOMEM|SQLITE_CONSTRAINT|SQLITE_BUSY|SQLITE_LOCKED|SQLITE_CORRUPT|SQLITE_NOTADB|SQLITE_IOERR|SQLITE_READONLY|SQLITE_FULL|D1_ERROR|D1_TYPE_ERROR|D1_EXEC_ERROR|D1_COLUMN_NOTFOUND|D1_SESSION_ERROR)\b/.exec(message)?.[1]??(message.includes('Illegal invocation')?'ILLEGAL_INVOCATION':'CODE_UNAVAILABLE');
+  console.error('Original native observer failure',{operation,kind:name,code}); // no SQL/bindings/headers/identity
+}
+function selectedSql(sql){
+  if(!gate||gate.entered||gate.released)return false;
+  if(gate.kind==='namespace-actor')return /^SELECT\s+\*\s+FROM\s+system_recovery_jobs\s+WHERE\s+id\s*=\s*\?\s*$/i.test(sql.trim());
+  if(gate.kind==='profile-actor')return /SELECT 1 FROM storage_profiles p JOIN storage_profile_runtime r/.test(sql);
+  return gate.kind==='held-original-ack'&&trace.readers>0&&/FROM file_location_holds h JOIN file_locations l/.test(sql);
+}
 function selected(sql,method,stack){
   if(!gate||gate.entered||method!=='first')return false;
   if(gate.kind==='namespace-actor')return /^SELECT\s+\*\s+FROM\s+system_recovery_jobs\s+WHERE\s+id\s*=\s*\?\s*$/i.test(sql.trim())
@@ -65,7 +77,9 @@ function nativeStatement(statement,sql){
     if(key!=='first')return typeof value==='function'?value.bind(target):value;
     return (...args)=>{
       const matching=selected(sql,key,new Error().stack??'');
-      const originalPromise=Reflect.apply(value,target,args);
+      let originalPromise;
+      try{originalPromise=Reflect.apply(value,target,args);}catch(error){nativeFailure('selected-first',error);throw error;}
+      void Promise.resolve(originalPromise).catch(error=>nativeFailure('selected-first',error));
       if(!matching)return originalPromise;
       // Reserve the single original identity synchronously before the first await.
       const selectedGate=gate;selectedGate.entered=true;selectedGate.enteredAt=Date.now();
@@ -82,9 +96,23 @@ function nativeStatement(statement,sql){
 function nativeDatabase(database){
   return new Proxy(database,{get(target,key){
     const value=Reflect.get(target,key,target);
-    if(key==='prepare')return sql=>nativeStatement(Reflect.apply(value,target,[sql]),sql);
-    if(key==='withSession')return (...args)=>nativeDatabase(Reflect.apply(value,target,args));
-    if(key==='batch')return values=>Reflect.apply(value,target,[values.map(statement=>statements.get(statement)??statement)]);
+    if(key==='prepare')return sql=>{
+      const originalStatement=Reflect.apply(value,target,[sql]);
+      return selectedSql(sql)?nativeStatement(originalStatement,sql):originalStatement;
+    };
+    if(key==='withSession')return (...args)=>{
+      const originalSession=Reflect.apply(value,target,args);
+      return gate&&!gate.released?nativeDatabase(originalSession):originalSession;
+    };
+    if(key==='batch')return values=>{
+      // Preserve the SAME native array and statement receivers unless this
+      // exact batch actually contains a selected first() observer statement.
+      const selected=values.some(statement=>statements.has(statement));
+      const originalValues=selected?values.map(statement=>statements.get(statement)??statement):values;
+      let originalPromise;
+      try{originalPromise=Reflect.apply(value,target,[originalValues]);}catch(error){nativeFailure('native-batch',error);throw error;}
+      void Promise.resolve(originalPromise).catch(error=>nativeFailure('native-batch',error));return originalPromise;
+    };
     return typeof value==='function'?value.bind(target):value;
   }});
 }
