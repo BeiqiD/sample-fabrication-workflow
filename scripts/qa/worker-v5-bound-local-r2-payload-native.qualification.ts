@@ -14,7 +14,7 @@ const originalProducerHead = process.env.WORKER_V5_NATIVE_BOUND_PRODUCER_HEAD ??
 if (!/^[a-f0-9]{40}$/.test(originalProducerHead)) throw new Error("worker_v5_native_bound_original_producer_head_required");
 const SOURCE_ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const hash = (value: Uint8Array | string) => createHash("sha256").update(value).digest("hex");
-const title = "publishes one original genuine bound LOCAL canonical File to native R2 while preserving exact consumer cells, rowids and head-zero shadow history";
+const title = "publishes one original genuine bound LOCAL Comment File to native R2 while preserving exact consumer cells, rowids and its two-event present-head successor history";
 function ensure(value: unknown, reason: string): asserts value {
   if (!value) throw new Error("worker_v5_native_" + reason);
 }
@@ -33,6 +33,7 @@ const workerCode = String.raw`
   import {recoveryTableSnapshotSql} from '../../shared/contracts/system-recovery-image';
   import {PORTABLE_RUNTIME_RECOVERY_TABLES as sourceSpecs} from '../../shared/contracts/portable-runtime-v26-recovery-catalog';
   import {V5_RECOVERY_CATALOG_CANDIDATE as catalog} from './v5-catalog-candidate';
+  import {FILE_SHADOW_HEAD_INTEGRITY_SQL} from '../../shared/contracts/export-file-shadow';
   import {reviewedRecoveryBinding} from './target-files';
   import {inspectV28CloudflareSchemaCandidate} from './v28-cloudflare-schema-candidate';
   import {inspectRecoveryMigrationLedger} from './target-migrations';
@@ -69,7 +70,79 @@ const workerCode = String.raw`
   }
   const rowKey=(spec,row)=>spec.withoutRowid?stableJson((spec.primaryKeyColumns??spec.columns).map(name=>row.cells[spec.columns.indexOf(name)])):row.rowid;
   const cellValue=cell=>cell.type==='null'?null:cell.value;
+  // Read every original and added cell independently after the actual target
+  // constructor. This does not call the product history plan or its serializer.
+  async function independentShadowProof(target,records){
+    const originalHeads=records.content.tables.file_shadow_heads.filter(row=>row.present===1);
+    require(records.content.tables.file_shadow_heads.length===1&&originalHeads.length===1,'original_one_present_head');const before=originalHeads[0];
+    require(before.generation===14&&before.generation===14&&before.consumer_kind==='comment_submission_item'&&before.consumer_sub_id===''&&before.file_slot==='primary','original_supported_head');
+    const originalItem=records.content.tables.comment_submission_items.find(row=>row.id===before.consumer_id);
+    require(originalItem&&originalItem.kind==='attachment'&&originalItem.status==='ready'&&originalItem.file_id===records.content.tables.files[0]?.id
+      &&typeof originalItem.asset_id==='string'&&originalItem.storage_object_id===null,'original_canonical_only_comment');
+    const originalAlias=records.content.tables.assets.find(row=>row.id===originalItem.asset_id);
+    require(originalAlias&&originalAlias.file_id===originalItem.file_id&&originalAlias.r2_key===null&&originalAlias.status==='ready','original_native_alias_without_legacy_locator');
+    const keys=['consumer_kind','consumer_id','consumer_sub_id','file_slot'];
+    const sameTuple=row=>keys.every(key=>row[key]===before[key]);
+    const targetHeads=await target.prepare('SELECT * FROM file_shadow_heads').all();
+    require(targetHeads.success&&targetHeads.results.length===1,'target_one_present_head');const after=targetHeads.results[0];
+    const originalControl=records.content.tables.file_shadow_control;
+    require(originalControl.length===1&&Number.isSafeInteger(originalControl[0].epoch),'original_control');
+    const epoch=originalControl[0].epoch;
+    const revision=records.content.tables.file_shadow_dependency_versions.filter(row=>['storage_profiles','storage_profile_runtime'].includes(row.dependency_kind)).length;
+    require(sameTuple(after)&&after.present===1&&Number.isSafeInteger(before.generation)
+      &&after.generation===before.generation+2&&after.source_rowid===before.source_rowid&&after.observed_epoch===epoch+2,'final_head_two_events');
+    function sourceAt(value,next){
+      const matches=[...value.matchAll(/"profileRevision":(0|[1-9][0-9]*)(?=[,}])/g)];
+      require(matches.length===1&&Number(matches[0][1])===revision,'one_original_profile_revision_token');
+      const index=matches[0].index+'"profileRevision":'.length;
+      return value.slice(0,index)+String(next)+value.slice(index+matches[0][1].length);
+    }
+    const firstSource=sourceAt(before.source_json,revision+1),finalSource=sourceAt(before.source_json,revision+2);
+    require(after.source_json===finalSource,'exact_final_source_token');
+    const originalOccurrences=new Map(records.content.tables.file_shadow_occurrences.map(row=>[row.id,row]));
+    const originalClosures=new Set(records.content.tables.file_shadow_closures.map(row=>row.occurrence_id));
+    const allOccurrences=await target.prepare('SELECT * FROM file_shadow_occurrences').all();
+    const allClosures=await target.prepare('SELECT * FROM file_shadow_closures').all();
+    require(allOccurrences.success&&allClosures.success,'actual_history_read');
+    const occurrences=allOccurrences.results.filter(row=>!originalOccurrences.has(row.id));
+    const closures=allClosures.results.filter(row=>!originalClosures.has(row.occurrence_id));
+    require(occurrences.length===2&&closures.length===2,'closed_two_event_history_inventory');
+    const predecessor=originalOccurrences.get(before.occurrence_id);
+    const firstClosure=closures.find(row=>row.occurrence_id===before.occurrence_id);
+    const first=occurrences.find(row=>row.id===firstClosure?.successor_occurrence_id);
+    const finalClosure=closures.find(row=>row.occurrence_id===first?.id);
+    const final=occurrences.find(row=>row.id===after.occurrence_id);
+    require(predecessor&&firstClosure&&first&&finalClosure&&final&&first.id!==final.id
+      &&finalClosure.successor_occurrence_id===final.id,'exact_original_successor_chain');
+    for(const [event,occurrence,closure,previous,source] of [[1,first,firstClosure,predecessor,firstSource],[2,final,finalClosure,first,finalSource]]){
+      const expected={...previous,id:occurrence.id,generation:before.generation+event,source_json:source,
+        observed_epoch:epoch+event,observed_at:occurrence.observed_at};
+      require(sameTuple(occurrence)&&stableJson(occurrence)===stableJson(expected)
+        &&Number.isFinite(Date.parse(occurrence.observed_at)),'exact_per_event_occurrence');
+      require(stableJson(closure)===stableJson({occurrence_id:previous.id,successor_occurrence_id:occurrence.id,
+        closed_epoch:epoch+event,closed_at:occurrence.observed_at}),'exact_per_event_closure');
+    }
+    require(first.observed_at===final.observed_at,'one_frozen_event_clock');
+    const control=await target.prepare('SELECT epoch FROM file_shadow_control WHERE singleton=1').first();
+    require(control?.epoch===epoch+2,'two_metadata_epoch_events');
+    const integrity=await target.prepare(FILE_SHADOW_HEAD_INTEGRITY_SQL).first();
+    require(integrity?.invalid_count===0,'independent_final_shadow_head_integrity');
+    const allowedCell=(spec,row,name,cell)=>{
+      if(spec.name==='file_shadow_control'&&name==='epoch')return cell.type==='integer'&&cell.value===String(epoch+2);
+      if(spec.name!=='file_shadow_heads'||!keys.every(key=>cellValue(row.cells[spec.columns.indexOf(key)])===before[key]))return false;
+      if(name==='generation')return cell.type==='integer'&&cell.value===String(before.generation+2);
+      if(name==='occurrence_id')return cell.type==='text'&&cell.value===final.id;
+      if(name==='source_json')return cell.type==='text'&&cell.value===finalSource;
+      if(name==='observed_epoch')return cell.type==='integer'&&cell.value===String(epoch+2);
+      return false;
+    };
+    return {allowedCell,proof:{presentHeads:1,metadataEvents:2,generationBefore:before.generation,generationAfter:after.generation,
+      profileRevisionBefore:revision,profileRevisionAfter:revision+2,epochBefore:epoch,epochAfter:epoch+2,
+      eachEventAdvancesOneGeneration:true,exactOriginalSuccessorChain:true,immutableOccurrenceFieldsPreserved:true,
+      sourceJsonOnlyProfileRevisionTokenChanged:true,independentFinalHeadIntegrity:true,addedOccurrences:2,addedClosures:2}};
+  }
   async function independentProof(target,records,admission,archive){
+    const shadow=await independentShadowProof(target,records);
     const objects=await target.prepare('SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema ORDER BY type,name').all();
     require(objects.success,'target_schema_read');const inspected=await inspectV28CloudflareSchemaCandidate(objects.results);
     require(stableJson(inspected.applicationObjects.filter(object=>object.type==='table').map(object=>object.name).sort())
@@ -89,7 +162,7 @@ const workerCode = String.raw`
       &&locator.storageProfileRevision===1&&locator.locationId===payload.source.locationId&&locator.objectKey===payload.source.objectKey,'original_local_locator');
     const aliases=records.content.tables.assets.filter(row=>row.file_id===fileId),bindings=payload.bindings;
     const expectedAppends={storage_profiles:1,storage_profile_runtime:1,file_locations:1,file_location_publications:1,
-      recovery_file_evidence:1,recovery_file_alias_evidence:aliases.length,recovery_file_binding_evidence:bindings.length,file_registry_rowid_claims:2,file_shadow_dependency_versions:2};
+      recovery_file_evidence:1,recovery_file_alias_evidence:aliases.length,recovery_file_binding_evidence:bindings.length,file_registry_rowid_claims:2,file_shadow_dependency_versions:2,file_shadow_occurrences:2,file_shadow_closures:2};
     let oldRowsExact=true,oldRowidsExact=true,appendsClosed=true,accountRows=0,disabledAccounts=0;
     for(const spec of catalog.tables.filter(spec=>!spec.local)){
       const expected=records.image.tables[spec.name],actual=await table(target,spec);
@@ -104,6 +177,7 @@ const workerCode = String.raw`
           if(spec.name==='local_accounts'&&name==='enabled')allowed=right.type==='integer'&&right.value==='0';
           if(spec.name==='file_publications'&&name==='active_location_id')allowed=cellValue(before.cells[spec.columns.indexOf('file_id')])===fileId
             &&right.type==='text'&&right.value===proof.location_id;
+          if(shadow.allowedCell(spec,before,name,right))allowed=true;
           oldRowsExact&&=Boolean(allowed);
         }
       }
@@ -175,7 +249,7 @@ const workerCode = String.raw`
       require(quick.success&&quick.results.length===1&&Object.values(quick.results[0])[0]==='ok','native_table_consistency');}
     return {oldRowsExact,oldRowidsExact,appendsClosed,accountRows,disabledAccounts,emptyLocal,inertDefaults,foreignKeys:fk.success&&fk.results.length===0,
       tableIntegrity:true,checkedTables,globalNativeIntegrity:false,canonicalFileId:fileId,destinationLocationId:proof.location_id,
-      originalBoundConsumers:bindings.length,canonicalConsumerEvidenceExact:true,noManufacturedLegacyHeads:true};
+      originalBoundConsumers:bindings.length,canonicalConsumerEvidenceExact:true,noManufacturedLegacyHeads:true,shadowHistory:shadow.proof};
   }
   export default{async fetch(request,bindings){
     let phase='setup';
@@ -204,8 +278,11 @@ const workerCode = String.raw`
       require(archive.manifest.files[0].source.provider==='local','original_local_payload');
       require(archive.manifest.files[0].bindings.length>0&&archive.manifest.files[0].bindings.length<=16
         &&stableJson(archive.manifest.files[0].bindings)===stableJson(archive.manifest.files[0].source.consumerBindings),'original_genuine_native_bound_consumer');
-      const heads=archive.records.image.tables.file_shadow_heads,present=heads.columns.indexOf('present');
-      require(present>=0&&heads.rows.every(row=>row.cells[present].type==='integer'&&row.cells[present].value==='0'),'original_native_head_zero');
+      const heads=archive.records.content.tables.file_shadow_heads;
+      require(heads.length===1&&heads[0].present===1&&heads[0].consumer_kind==='comment_submission_item'
+        &&heads[0].consumer_sub_id===''&&heads[0].file_slot==='primary'
+        &&archive.manifest.files[0].bindings.some(binding=>binding.consumerKind==='comment_submission_item'
+          &&binding.consumerId===heads[0].consumer_id&&binding.consumerSubId===''&&binding.fileSlot==='primary'),'original_natural_comment_head');
       const sourceBefore=await sourceHash(bindings.DB),calls={put:0,delete:0};
       // Observe actual native R2 calls; every method forwards to that binding.
       // D1 is passed directly, without a host or isolate SQL adapter.
@@ -287,26 +364,53 @@ const workerCode = String.raw`
   }};
 `;
 
-interface Owner { native?: Miniflare; work: Promise<unknown>[]; closing?: Promise<void> }
-const owners = new Set<Owner>();
+interface Owner {
+  native?: Miniflare; nativeConstructionStarted?: true; originalDispose?: Promise<void>;
+  work: Promise<unknown>[]; closing?: Promise<void>;
+}
+interface ReadonlyOwner {
+  native?: DatabaseSync; nativeConstructionStarted?: true; closing?: Promise<void>;
+  failed: boolean; failure?: unknown;
+}
+const owners = new Set<Owner>(), readonlyOwners = new Set<ReadonlyOwner>();
 function original<T>(owner: Owner, operation: () => Promise<T>): Promise<T> {
   let result: Promise<T>; try { result = operation(); } catch (error) { result = Promise.reject(error); }
   owner.work.push(result); void result.catch(() => undefined); return result;
 }
 function close(owner: Owner): Promise<void> {
-  return owner.closing ??= (async () => {
-    const failures: unknown[] = [];
-    // Rejected operation identities belong to the caller; join them before
-    // native disposal without replacing its already preserved first failure.
+  // Reserve the one close before any original disposer can synchronously throw.
+  return owner.closing ??= Promise.resolve().then(async () => {
     await Promise.allSettled(owner.work);
-    if (owner.native) try { await owner.native.dispose(); } catch (error) { failures.push(error); }
-    if (failures.length) throw new AggregateError(failures, "Original native V5 close failed");
+    if (owner.nativeConstructionStarted && !owner.native)
+      throw new Error("Original Miniflare constructor returned no acknowledged owner");
+    if (owner.native) {
+      try { owner.originalDispose = owner.native.dispose(); }
+      catch (error) { owner.originalDispose = Promise.reject(error); }
+      void owner.originalDispose.catch(() => undefined);
+      await owner.originalDispose;
+    }
     owners.delete(owner);
-  })();
+  });
 }
-afterEach(() => { expect(owners.size, "Original native V5 owner remains retained").toBe(0); });
+function closeReadonly(owner: ReadonlyOwner): Promise<void> {
+  return owner.closing ??= Promise.resolve().then(() => {
+    if (owner.nativeConstructionStarted && !owner.native)
+      throw new Error("Original readonly Native constructor returned no acknowledged owner");
+    if (owner.native) {
+      owner.native.close();
+      if (owner.native.isOpen) throw new Error("Original readonly Native close is unproven");
+    }
+    readonlyOwners.delete(owner);
+  }).catch(error => { owner.failed = true; owner.failure = error; throw error; });
+}
+afterEach(() => {
+  expect(owners.size, "Original native V5 owner remains retained").toBe(0);
+  expect(readonlyOwners.size, "Original readonly Native owner remains retained").toBe(0);
+});
 afterAll(async () => {
-  const results = await Promise.allSettled([...owners].map(close));
+  // Previously rejected first closes remain the same promises; no fallback
+  // disposer, raw close or constructor replacement is attempted here.
+  const results = await Promise.allSettled([...owners].map(close).concat([...readonlyOwners].map(closeReadonly)));
   const errors = results.flatMap(result => result.status === "rejected" ? [result.reason as unknown] : []);
   if (errors.length) throw new AggregateError(errors, "Original native V5 teardown remains unproven");
 });
@@ -346,14 +450,20 @@ async function verifyClosedNativeD1(directory: string, identities: { source: str
   }
   const observed: string[] = [];
   for (const name of files) {
-    const native = new DatabaseSync(join(directory, name), { readOnly: true });
+    const owner: ReadonlyOwner = { failed: false }; readonlyOwners.add(owner);
+    let failed = false, failure: unknown;
     try {
+      owner.nativeConstructionStarted = true;
+      const native = owner.native = new DatabaseSync(join(directory, name), { readOnly: true });
       const identity = native.prepare("SELECT installation_id FROM system_recovery_runtime WHERE singleton=1").get();
       ensure(identity && typeof identity.installation_id === "string", "closed_native_identity");
       observed.push(identity.installation_id);
       expect(native.prepare("PRAGMA quick_check").all()).toEqual([{ quick_check: "ok" }]);
       expect(native.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
-    } finally { native.close(); }
+    } catch (error) { failed = true; failure = error; }
+    try { await closeReadonly(owner); }
+    catch (cleanup) { throw failed ? new AggregateError([failure, cleanup], "Original readonly Native query and first close failed") : cleanup; }
+    if (failed) throw failure;
   }
   expect(observed.sort()).toEqual([identities.source, identities.target].sort());
   const after = (await readdir(directory, { recursive: true })).filter(name => /\.sqlite(?:-wal|-shm)?$/.test(name)).sort();
@@ -397,6 +507,7 @@ async function run(fault: boolean) {
     ensure(bundle?.outputFiles?.length === 1, "bundle"); expect(bundle.warnings).toEqual([]);
     const bucketName = "v5-target-" + randomUUID().replaceAll("-", "");
     const namespace = JSON.stringify({ kind: "local-r2", installationId: randomUUID(), bucketName });
+    owner.nativeConstructionStarted = true;
     owner.native = new Miniflare({ modules: true, script: bundle.outputFiles[0]!.text, compatibilityDate: "2026-07-20",
       d1Databases: { DB: randomUUID(), RECOVERY_DB: randomUUID() }, d1Persist: join(root, "d1"),
       r2Buckets: { ASSETS: bucketName }, r2Persist: join(root, "r2"), log: new Log(LogLevel.ERROR),
@@ -440,6 +551,14 @@ async function run(fault: boolean) {
       const proof = object(answer.proof);
       expect(proof.originalBoundConsumers).toBeGreaterThan(0); expect(proof.canonicalConsumerEvidenceExact).toBe(true);
       expect(proof.noManufacturedLegacyHeads).toBe(true);
+      const shadow = object(proof.shadowHistory);
+      expect(shadow).toMatchObject({ presentHeads: 1, metadataEvents: 2, addedOccurrences: 2, addedClosures: 2,
+        eachEventAdvancesOneGeneration: true, exactOriginalSuccessorChain: true, immutableOccurrenceFieldsPreserved: true,
+        sourceJsonOnlyProfileRevisionTokenChanged: true, independentFinalHeadIntegrity: true });
+      ensure(typeof shadow.generationBefore === 'number' && typeof shadow.profileRevisionBefore === 'number' && typeof shadow.epochBefore === 'number', 'original_shadow_integer_proof');
+      expect(shadow.generationAfter).toBe(shadow.generationBefore + 2);
+      expect(shadow.profileRevisionAfter).toBe(shadow.profileRevisionBefore + 2);
+      expect(shadow.epochAfter).toBe(shadow.epochBefore + 2);
       for (const key of ["oldRowsExact", "oldRowidsExact", "appendsClosed", "emptyLocal", "inertDefaults", "foreignKeys", "tableIntegrity"]) expect(proof[key], key).toBe(true);
       expect(proof.globalNativeIntegrity).toBe(false); expect(proof.accountRows).toBeGreaterThan(0); expect(proof.disabledAccounts).toBe(proof.accountRows);
     }
@@ -453,9 +572,20 @@ async function run(fault: boolean) {
     await input.recheckProducer();
   } catch (error) { failed = true; failure = error; }
   try { await close(owner); } catch (cleanup) { throw failed ? new AggregateError([failure, cleanup], "Original operation and close failed") : cleanup; }
+  // Actual original disposal must ACK before the source/SDK/controller inputs
+  // are checked again. A prior operation failure remains the primary rejection.
+  async function recheckOriginalInputs() {
+    expect(hash(await readFile(input.archive))).toBe(input.expectedSha256);
+    expect(hash(await readFile(input.receiptPath))).toBe(input.receiptHash);
+    await input.recheckProducer();
+  }
+  try { await recheckOriginalInputs(); }
+  catch (custody) { throw failed ? new AggregateError([failure, custody], "Original operation and post-dispose input custody failed") : custody; }
   if (failed) throw failure;
   ensure(persistedD1 && closedIdentities && !owners.has(owner), "original_native_close_before_whole_check");
   await verifyClosedNativeD1(persistedD1, closedIdentities, join(root, "closed-native-file-consistency.json"));
+  ensure(readonlyOwners.size === 0, "original_readonly_native_close_before_final_custody");
+  await recheckOriginalInputs();
 }
 // This NEW target case keeps the original actual native D1/R2 custody and
 // positive closed-file whole consistency proof. Old unbound/unknown cases and

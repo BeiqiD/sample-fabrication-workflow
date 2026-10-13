@@ -20,9 +20,9 @@ CASES = {
  'worker-v5-held': ('scripts/qa/worker-v5-held-r2-node-roundtrip.qualification.ts', [
   'captures the original held native R2 V28 V5 archive and restores exact recovery evidence into a fresh coherent Node distribution']),
  'worker-v5-bound-producer': ('server/operations/current-v28-bound-comment-backup.qualification.ts', [
-  'captures one real bound LOCAL attachment without creating a legacy shadow head or changing its typed canonical consumer']),
+  'captures one real bound LOCAL Comment attachment with its naturally issued present head and exact immutable typed history']),
  'worker-v5-bound-payload': ('scripts/qa/worker-v5-bound-local-r2-payload-native.qualification.ts', [
-  'publishes one original genuine bound LOCAL canonical File to native R2 while preserving exact consumer cells, rowids and head-zero shadow history']),
+  'publishes one original genuine bound LOCAL Comment File to native R2 while preserving exact consumer cells, rowids and its two-event present-head successor history']),
 }
 CONFIGS = dict(zip(CASES, (
  'current-v28-post-restore-source-preparation.vitest.config.mts', 'current-v28-nonempty-backup-restore.vitest.config.mts',
@@ -41,8 +41,8 @@ CASE_BUDGETS = {'worker-v5-zero': [20000], 'worker-v5-nonempty': [20000],
  'worker-v5-held': [120000], 'worker-v5-bound-producer': [60000], 'worker-v5-bound-payload': [120000]}
 SCOPE = ('Fresh current committed producers and fixed distribution; zero/nonempty Node V5 to native D1 V28 constructor; '
  'unbound LOCAL to R2 and original committed PUT-ACK unknown retention; real held R2 V5 to fresh inert current Node; '
- 'one native-bound canonical File with zero present legacy heads. Cold candidate APIs only; no public Recovery routing, '
- 'combined live application, elapsed cadence, nonzero-head transfer, all-provider parity or activation qualification.')
+ 'one native-bound canonical Comment File with its natural present head and exact two-event profile/runtime successors. Cold candidate APIs only; no public Recovery routing, '
+ 'combined live application, elapsed cadence, arbitrary nonzero-head transfer, all-provider parity or activation qualification.')
 
 def tree(head):
  env = dict(os.environ, GIT_OPTIONAL_LOCKS='0')
@@ -134,8 +134,10 @@ def finish(stage, record, run_root, fixture):
   else:
    assert proof['schema'] == 'current-genuine-bound-node-comment-v5-producer/1' and proof['runtime'] == '24.19.0'
    assert all(proof[key] is True for key in ('genuineOriginalCommentProducer','currentVerifiedCompiledStoppedCapture','noBusinessSqlSeed',
-    'oldTypedRowsAndRowidsUnchanged','noManufacturedLegacyHeads','sourceUnchanged','originalCloseAcknowledged'))
+    'oldTypedRowsAndRowidsUnchanged','noManufacturedLegacyHeads','naturallyIssuedCommentHead','immutableSourceShadowChainExact','sourceUnchanged','originalCloseAcknowledged'))
    assert len(proof['nativeConsumerBindings']) > 0 and proof['payloadBytes'] > 0
+   assert proof['presentHeads'] == 1 and isinstance(proof['headGeneration'],int) and proof['headGeneration'] == 14
+   assert isinstance(proof['headOccurrenceId'],str) and proof['headOccurrenceId']
   archive = Path(proof['archive']); assert archive.is_relative_to(fixture)
   archive_bytes = read_private(archive,8*1024*1024); archive_sha = hashlib.sha256(archive_bytes).hexdigest()
   assert re.fullmatch('[0-9a-f]{64}',proof['archiveSha256']) and archive_sha == proof['archiveSha256']
@@ -144,7 +146,7 @@ def finish(stage, record, run_root, fixture):
    'archive':str(archive),'archiveSha256':archive_sha,'archiveBytes':len(archive_bytes),
    'distribution':built['distribution'],'distributionManifestSha256':built['distributionManifestSha256'],
    'distributionSourceInputsSha256':built['distributionSourceInputsSha256'],'sourceFileCount':0 if kind == 'ZERO' else 1,
-   'nativeBoundHeadZero':kind == 'BOUND'}
+   'nativeBoundCommentPresentHead':kind == 'BOUND'}
  else:
   paths = sorted(fixture.glob('.native-v5-target-*/closed-native-file-consistency.json'))
   fresh = [path for path in paths if str(path) not in record['workerV5ProofPathsBefore']]
@@ -182,7 +184,7 @@ def public_receipt(record, summary):
   if key in record: value[key] = record[key]
  if 'currentProducer' in record:
   value['currentProducer'] = {key:record['currentProducer'][key] for key in ('inputsSha256','inputsBytes','archiveSha256','archiveBytes',
-   'distributionManifestSha256','distributionSourceInputsSha256','sourceFileCount','nativeBoundHeadZero')}
+   'distributionManifestSha256','distributionSourceInputsSha256','sourceFileCount','nativeBoundCommentPresentHead')}
  if 'actualOwnedTools' in record:
   tools = record['actualOwnedTools']; value['actualOwnedTools'] = {key:tools[key] for key in ('schema','stage','originalChildren',
    'distributionManifestSha256','distributionSourceInputsSha256','distributionVersion','distributionFiles','checkpoint') if key in tools}

@@ -84,7 +84,7 @@ export async function assertWorkerV5OriginalProducerInput(rootInput: string, pre
   const expectedTitle = ({
     ZERO: "captures all actual typed data before any business POST and restores through the current fixed CLI into a fresh inert destination",
     NONEMPTY: "preserves one real ordinary HTTP upload through stopped upgrade, compiled complete capture and compiled inert restore without destination File authority",
-    BOUND: "captures one real bound LOCAL attachment without creating a legacy shadow head or changing its typed canonical consumer",
+    BOUND: "captures one real bound LOCAL Comment attachment with its naturally issued present head and exact immutable typed history",
   }[kind]);
   requireFact(results.actualTotal === 1 && results.actualPassed === 1 && results.actualFailed === 0
     && results.actualPending === 0 && results.reporterSuccess === true && results.exactOriginalSelection === true
@@ -99,7 +99,7 @@ export async function assertWorkerV5OriginalProducerInput(rootInput: string, pre
   const producer = object(receipt.currentProducer), path = process.env[prefix + "_PRODUCER_INPUTS"];
   requireFact(typeof path === "string" && path === producer.inputsPath && producer.archive === archive
     && producer.archiveSha256 === archiveSha256 && typeof producer.distribution === "string"
-    && producer.sourceFileCount === (kind === "ZERO" ? 0 : 1) && producer.nativeBoundHeadZero === (kind === "BOUND"), "producer_input_binding");
+    && producer.sourceFileCount === (kind === "ZERO" ? 0 : 1) && producer.nativeBoundCommentPresentHead === (kind === "BOUND"), "producer_input_binding");
   const distribution = producer.distribution;
   const recheck = async () => {
     committedSource(root, currentHead, currentTree);
