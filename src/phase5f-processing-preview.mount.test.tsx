@@ -367,11 +367,14 @@ describe("Phase 5F Processing transition dialog keyboard and focus", () => {
   it("hands focus to structure confirmation and back to template selection before closing", async () => {
     workspace(); await openUpdate();
     await waitFor(() => expect(compare().matches(":disabled")).toBe(false));
-    compare().focus(); fireEvent.click(compare());
+    const originalCompare = compare();
+    originalCompare.focus(); fireEvent.click(originalCompare);
     const confirmation = screen.getByRole("dialog", { name: "Does this structure handoff match what you expect?" });
     expect(document.activeElement).toBe(within(confirmation).getByRole("button", { name: "Cancel" }));
     fireEvent.keyDown(confirmation, { key: "Escape" });
-    expect(document.activeElement).toBe(within(picker()).getByRole("button", { name: "Cancel" }));
+    expect(originalCompare.isConnected).toBe(true);
+    expect(compare()).toBe(originalCompare);
+    expect(document.activeElement).toBe(originalCompare);
     expect(document.body.style.overflow).toBe("hidden");
     fireEvent.keyDown(picker(), { key: "Escape" });
     expect(screen.queryByRole("dialog")).toBeNull();
