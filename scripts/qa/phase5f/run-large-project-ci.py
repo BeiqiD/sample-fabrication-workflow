@@ -14,8 +14,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", required=True)
     parser.add_argument("--root", required=True)
+    parser.add_argument("--scenario", choices=("large200", "eightSamples"), default="large200")
     parser.add_argument("--physical-python-tools", help="Hosted pinned pysqlite3-binary target for the original physical checker")
     args = parser.parse_args()
+    eight_samples = args.scenario == "eightSamples"
+    case_ids = (["samples-keyboard-1200-light", "samples-keyboard-720-dark"]
+                if eight_samples else ["project-large-1200-light"])
+    qualification_label = "eight-sample" if eight_samples else "200-node"
+    seed_env = {"PHASE5F_PROJECT_NODE_COUNT": "" if eight_samples else "200"}
+    browser_env = {"PHASE5F_CASE_ID": "" if eight_samples else case_ids[0],
+                   "PHASE5F_BROWSER_SCENARIO": "eightSamples" if eight_samples else ""}
     source = Path(args.source).resolve(strict=True)
     root = Path(args.root).resolve(strict=True)
     qa = source / "scripts/qa/phase5f"
@@ -72,16 +80,16 @@ def main():
                     raise RuntimeError("Worker did not publish readiness within 90s; see server.log")
                 time.sleep(0.1)
             ready = True
-            run("200-node API seed", ["node", str(qa / "seed-actual-api.mjs"),
+            run(f"{qualification_label} API seed", ["node", str(qa / "seed-actual-api.mjs"),
                                       "http://127.0.0.1:4219/", str(fixture)],
-                extra_env={"PHASE5F_PROJECT_NODE_COUNT": "200"})
-            run("200-node native case", ["node", str(qa / "browser-actual-api.mjs"),
+                extra_env=seed_env)
+            run(f"{qualification_label} native case", ["node", str(qa / "browser-actual-api.mjs"),
                                          "http://127.0.0.1:4219/", str(fixture), str(copied)],
-                extra_env={"PHASE5F_CASE_ID": "project-large-1200-light"})
+                extra_env=browser_env)
             summary = json.loads((fixture / "actual-api-browser-summary.json").read_text())
-            if (summary["status"] != "passed" or summary["passedCount"] != 1
+            if (summary["status"] != "passed" or summary["passedCount"] != len(case_ids)
                     or summary["failedCount"] != 0 or not summary["browserClosed"]
-                    or summary["requestedCaseIds"] != ["project-large-1200-light"]):
+                    or summary["requestedCaseIds"] != case_ids):
                 raise RuntimeError("The original browser summary did not complete the selected native case")
         except BaseException as error:
             errors.append(error)
@@ -114,7 +122,7 @@ def main():
                 except BaseException as error:
                     errors.append(error)
     for error in errors:
-        print(f"200-node qualification failed: {type(error).__name__}: {error}", file=sys.stderr)
+        print(f"{qualification_label} qualification failed: {type(error).__name__}: {error}", file=sys.stderr)
     return 1 if errors else 0
 
 
