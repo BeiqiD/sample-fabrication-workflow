@@ -1,4 +1,5 @@
 import { afterAll, afterEach, expect } from 'vitest';
+import { WORKER_V5_ORIGINAL_ISSUE_OBSERVER_SOURCE } from './worker-v5-original-issue-observer.qualification-support';
 import { chmod, mkdtemp, readFile, readdir } from 'node:fs/promises';
 import { createHash, randomUUID } from 'node:crypto';
 import { createServer, type Server } from 'node:http';
@@ -43,6 +44,7 @@ interface PairOwner {
   persistedD1?: string; nativeDatabaseConsistency?: NativeDatabaseConsistency;
   closedDatabaseConsistency?: ClosedDatabaseConsistency;
   recoveryTarget?: { consistency?: NativeDatabaseConsistency; closed?: ClosedDatabaseConsistency };
+  stopOriginalIssueObservers?: () => Promise<void>;
 }
 const owners = new Set<PairOwner>();
 const RESERVE = 603_979_776n;
@@ -133,6 +135,11 @@ function close(owner: PairOwner): Promise<void> {
   owner.accepting = false;
   owner.closing = (async () => {
     const failures: unknown[] = [];
+    // Stop only this optional fixture observer before joining its original held ACK.
+    // A rejected stop remains failed; no cleanup retry or database removal.
+    if (owner.stopOriginalIssueObservers) {
+      try { await owner.stopOriginalIssueObservers(); } catch (error) { failures.push(error); }
+    }
     const work = await Promise.allSettled(owner.originalWork);
     for (const result of work) if (result.status === 'rejected') failures.push(result.reason);
     const clients = await Promise.allSettled([...owner.client.clients].map(client => closeCanonicalFileClient(owner.client, client)));
@@ -171,6 +178,16 @@ afterAll(async () => {
   if (failures.length) throw new AggregateError(failures, 'Original R2 pair teardown remains unproven');
 });
 
+export type WorkerV5OriginalIssueGate = 'namespace-actor' | 'profile-actor' | 'held-original-ack';
+export type WorkerV5OriginalIssueControl = 'stats' | 'arm' | 'revoke-administrator' | 'release' | 'restore-administrator';
+export interface WorkerV5OriginalIssueObserver {
+  /** Private fixture control, never a product route or public actor grant. */
+  control(action: WorkerV5OriginalIssueControl, gate?: WorkerV5OriginalIssueGate): Promise<unknown>;
+  /** Same SDK production fetch under this NEW observer's fixed 90s transport budget. */
+  request: GenuineR2Pair['request'];
+  /** Preserve exact original SDK outcome; this does not assert provider first-close. */
+  scheduleOutcome(): Promise<string>;
+}
 export interface GenuineR2Pair {
   readonly root: string; readonly wranglerLedgerPresent: boolean;
   readonly sourceNamespaceInstallationId: string; readonly actor: string;
@@ -187,8 +204,10 @@ export interface GenuineR2Pair {
   closedDatabaseConsistency(): ClosedDatabaseConsistency;
   schedule(): Promise<void>;
   close(): Promise<void>;
+  readonly originalIssueObserver?: WorkerV5OriginalIssueObserver;
   readonly recoveryTarget?: {
     readonly id: string;
+    readonly originalIssueObserver?: WorkerV5OriginalIssueObserver;
     request: GenuineR2Pair["request"];
     readRows: GenuineR2Pair["readRows"];
     schedule(): Promise<void>;
@@ -196,7 +215,7 @@ export interface GenuineR2Pair {
     closedDatabaseConsistency(): ClosedDatabaseConsistency;
   };
 }
-export interface GenuineR2PairOptions { fileEvidenceOperator?: boolean; recoveryTargetId?: string }
+export interface GenuineR2PairOptions { fileEvidenceOperator?: boolean; recoveryTargetId?: string; originalIssueObserver?: true }
 export async function prepareGenuineCurrentV26R2Pair(parent: string, options: GenuineR2PairOptions = {}): Promise<GenuineR2Pair> {
   const owner: PairOwner = { client: { clients: new Set(), quarantined: false }, originalWork: [], outbound: [], accepting: true, closed: false };
   owners.add(owner);
@@ -207,9 +226,13 @@ export async function prepareGenuineCurrentV26R2Pair(parent: string, options: Ge
     await original(owner, () => chmod(root, 0o700));
     console.info('Retained genuine V26 R2 pair fixture:', root);
     const source = fileURLToPath(new URL('../../', import.meta.url));
+    const observerLoader: 'ts' = 'ts';
     const bundled = await original(owner, async () => {
       let result: Awaited<ReturnType<typeof build>> | undefined, failed = false, failure: unknown;
-      try { result = await build({ absWorkingDir: source, entryPoints: [join(source, 'worker/index.ts')],
+      try { result = await build({ absWorkingDir: source,
+        ...(options.originalIssueObserver === true
+          ? { stdin: { contents: WORKER_V5_ORIGINAL_ISSUE_OBSERVER_SOURCE, resolveDir: join(source, 'worker'), loader: observerLoader } }
+          : { entryPoints: [join(source, 'worker/index.ts')] }),
         bundle: true, platform: 'browser', format: 'esm', target: 'es2022', write: false, logLevel: 'silent' }); }
       catch (error) { failed = true; failure = error; }
       // Stop belongs to the original compilation even if fixture admission was
@@ -241,10 +264,12 @@ export async function prepareGenuineCurrentV26R2Pair(parent: string, options: Ge
     const sourceNamespaceInstallationId = randomUUID(), bucketName = `current-r2-pair-${randomUUID().replaceAll('-', '')}`;
     ensure(owner.accepting);
     const sourceDatabaseId = randomUUID(), targetDatabaseId = randomUUID();
+    const observerNonce = options.originalIssueObserver === true ? randomUUID() : undefined;
     const nativeOptions = { modules: true, script, compatibilityDate: '2026-07-20', host: '127.0.0.1', port: Number(new URL(origin).port),
       d1Databases: { DB: sourceDatabaseId }, d1Persist: join(root, 'd1'), r2Buckets: { ASSETS: bucketName }, r2Persist: join(root, 'r2'),
       bindings: { AUTH_MODE: 'access', ACCESS_TEAM_DOMAIN: issuer, ACCESS_AUD: audience, ALLOWED_EMAILS: `${actor},${reader}`, SYSTEM_ADMIN_EMAILS: actor,
         ...(options.fileEvidenceOperator === true ? { FILE_EVIDENCE_OPERATOR_EMAILS: actor } : {}),
+        ...(observerNonce === undefined ? {} : { V5_QUALIFICATION_CONTROL_NONCE: observerNonce }),
         R2_BOOTSTRAP_NAMESPACE: JSON.stringify({ kind: 'local-r2', installationId: sourceNamespaceInstallationId, bucketName }) },
       log: new Log(LogLevel.ERROR), outboundService(request: MiniflareRequest) {
         const work = (async () => {
@@ -290,8 +315,43 @@ export async function prepareGenuineCurrentV26R2Pair(parent: string, options: Ge
     }
     const targetDatabase = owner.recoveryTarget ? await original(owner, () => owner.runtime!.getD1Database('DB', 'original-v5-public-restored')) : undefined;
     const targetWorker = owner.recoveryTarget ? await original(owner, () => owner.runtime!.getWorker('original-v5-public-restored')) : undefined;
+    const observerStops: (() => Promise<void>)[] = [];
+    function issueObserver(originalWorker: typeof worker): WorkerV5OriginalIssueObserver | undefined {
+      if (observerNonce === undefined) return undefined;
+      const controlFetch = async (action: WorkerV5OriginalIssueControl | 'stop-observer', gate?: WorkerV5OriginalIssueGate) => {
+        const response = await originalWorker.fetch('https://original-v5-observer.invalid/__original_native_qualification/' + action,
+          { method: action === 'stats' ? 'GET' : 'POST', headers: { 'x-original-native-control': observerNonce },
+            ...(gate === undefined ? {} : { body: gate }), signal: AbortSignal.timeout(5000) });
+        expect(response.status).toBe(200); return JSON.parse(await response.text()) as unknown;
+      };
+      let originalStop: Promise<void> | undefined;
+      observerStops.push(() => originalStop ??= (async () => { await controlFetch('stop-observer'); })());
+      return Object.freeze({
+        control: (action: WorkerV5OriginalIssueControl, gate?: WorkerV5OriginalIssueGate) => original(owner, () => controlFetch(action, gate)),
+        request: (path: string, method = 'GET', body?: HttpBody, headers: Record<string, string> = {}, identity: 'admin' | 'reader' | 'none' = 'admin') => original(owner, async () => {
+          const response = await originalWorker.fetch('https://original-v5-observer.invalid' + path, { method,
+            headers: { ...headers, ...(identity === 'none' ? {} : { 'cf-access-jwt-assertion': identity === 'admin' ? adminToken : readerToken }) },
+            ...(body === undefined ? {} : { body }), redirect: 'manual', signal: AbortSignal.timeout(90_000) });
+          const value = await response.arrayBuffer();
+          return { response: new Response(value, { status: response.status, headers: response.headers }), value };
+        }),
+        scheduleOutcome: () => original(owner, async () => {
+          const value = await originalWorker.scheduled({ scheduledTime: new Date(), cron: '*/2 * * * *' });
+          return value.outcome;
+        }),
+      });
+    }
+    const originalIssueObserver = issueObserver(worker), targetIssueObserver = targetWorker ? issueObserver(targetWorker) : undefined;
+    if (observerStops.length) {
+      let firstStop: Promise<void> | undefined;
+      owner.stopOriginalIssueObservers = () => firstStop ??= (async () => {
+        const outcomes = await Promise.allSettled(observerStops.map(stopObserver => stopObserver()));
+        const failures = outcomes.flatMap(value => value.status === 'rejected' ? [value.reason as unknown] : []);
+        if (failures.length) throw new AggregateError(failures, 'Original issue observer first stop failed');
+      })();
+    }
     const recoveryTarget = owner.recoveryTarget && targetDatabase && targetWorker && options.recoveryTargetId ? {
-      id: options.recoveryTargetId,
+      id: options.recoveryTargetId, originalIssueObserver: targetIssueObserver,
       request: (path: string, method = 'GET', body?: HttpBody, headers: Record<string, string> = {}, identity: 'admin' | 'reader' | 'none' = 'admin') => original(owner, async () => {
         // Same original compiled production handler, actual target D1/R2 bindings
         // and signed Access middleware. No actor setter or authority callback.
@@ -310,7 +370,7 @@ export async function prepareGenuineCurrentV26R2Pair(parent: string, options: Ge
       verifyNativeDatabaseConsistency: () => original(owner, async () => { ensure(owner.recoveryTarget); owner.recoveryTarget.consistency = await verifyNativeDatabaseConsistency(targetDatabase, true); }),
       closedDatabaseConsistency() { ensure(owner.closed && owner.recoveryTarget?.closed); return structuredClone(owner.recoveryTarget.closed); },
     } : undefined;
-    return Object.freeze({ root, wranglerLedgerPresent, sourceNamespaceInstallationId, actor, request, recoveryTarget,
+    return Object.freeze({ root, wranglerLedgerPresent, sourceNamespaceInstallationId, actor, request, recoveryTarget, originalIssueObserver,
       readRows: (sql: string, bindings: readonly (string | number | null)[] = []) => original(owner, async () => {
         ensure(!/[;]|--|\/\*/.test(sql) && (/^SELECT\b/i.test(sql.trim())
           || /^PRAGMA (?:foreign_key_check|integrity_check|defer_foreign_keys)$/i.test(sql.trim())));
