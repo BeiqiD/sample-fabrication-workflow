@@ -14,8 +14,10 @@ NONEMPTY_BRANCH = 'refs/heads/codex/node-v28-nonempty-backup-restore'
 PACKAGE_BRANCH = 'refs/heads/codex/node-research-package-http'
 PACKAGE_BASE = 'f55faa56baa2781457d6d6a8f06127fd38db00d6'
 NONEMPTY_BASE = 'ab4f6cfa9721a5bf7fdcd8e7940a916ea8d520cf'
+R2_PAIR_BRANCH = 'refs/heads/codex/portable-v26-r2-node-backup-one'
+R2_PAIR_BASE = '33be3642ed8e72efba8269a4ea718b37b0eafd44'
 MAINTENANCE_BASE = 'ebc19cf3f61b12625bc2a36086667376b41b9255'
-NATIVE_STAGES = ('preparation', 'operators', 'maintenance', 'main', 'nonempty', 'package-http')
+NATIVE_STAGES = ('preparation', 'operators', 'maintenance', 'main', 'nonempty', 'r2pair', 'package-http')
 TIMED_CASE_STAGES = (*(stage for stage in NATIVE_STAGES if stage != 'package-http'), 'maintenance-parser', 'config-unit', 'capture-parser')
 FLOOR, NATIVE_BEFORE = 536870912, 603979776
 HELP = {'help-main': ('main.mjs', 'Usage: node main.mjs --config '),
@@ -27,6 +29,8 @@ CASES = {
   'keeps Package HTTP unavailable when localJobs opt-in is omitted',
   'requires original CSRF and admits ordinary actor history without startup execution',
   'copies all15 verified Files through HTTP, publishes one typed graph and downloads its captured native ZIP']),
+ 'r2pair': ('server/recovery/current-v26-r2-node-pair.qualification.ts', [
+  'backs up one real ordinary R2 HTTP upload through the original scheduled recovery job and restores exact V3 content into a fresh inert Node target']),
  'nonempty': ('server/operations/current-v28-nonempty-backup-restore.qualification.ts', [
   'preserves one real ordinary HTTP upload through stopped upgrade, compiled complete capture and compiled inert restore without destination File authority']),
  'parser': ('server/operations/v28-post-restore-command.test.ts', [
@@ -58,11 +62,11 @@ def save(path, value):
  path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
 
 def source():
- assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH, PACKAGE_BRANCH)
+ assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH, R2_PAIR_BRANCH, PACKAGE_BRANCH)
  head = os.environ['GITHUB_SHA']; assert re.fullmatch('[0-9a-f]{40}', head)
  env = dict(os.environ, GIT_OPTIONAL_LOCKS='0')
  assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, env=env).decode().strip() == head
- base = PACKAGE_BASE if os.environ['GITHUB_REF'] == PACKAGE_BRANCH else NONEMPTY_BASE if os.environ['GITHUB_REF'] == NONEMPTY_BRANCH else MAINTENANCE_BASE if os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH) else BASE
+ base = PACKAGE_BASE if os.environ['GITHUB_REF'] == PACKAGE_BRANCH else R2_PAIR_BASE if os.environ['GITHUB_REF'] == R2_PAIR_BRANCH else NONEMPTY_BASE if os.environ['GITHUB_REF'] == NONEMPTY_BRANCH else MAINTENANCE_BASE if os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH) else BASE
  subprocess.check_call(['git', 'merge-base', '--is-ancestor', base, head], cwd=ROOT, env=env)
  return head
 
@@ -94,9 +98,10 @@ def census(stage, path):
 def run(stage, out, run_root):
  head = source()
  if stage == 'package-http': assert os.environ['GITHUB_REF'] == PACKAGE_BRANCH
- if stage in ('maintenance-parser', 'maintenance', 'config-unit', 'main'): assert os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH)
- if stage == 'capture-parser': assert os.environ['GITHUB_REF'] in (CAPTURE_BRANCH, NONEMPTY_BRANCH)
- if stage == 'nonempty': assert os.environ['GITHUB_REF'] == NONEMPTY_BRANCH
+ if stage in ('maintenance-parser', 'maintenance', 'config-unit', 'main'): assert os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH, R2_PAIR_BRANCH)
+ if stage == 'capture-parser': assert os.environ['GITHUB_REF'] in (CAPTURE_BRANCH, NONEMPTY_BRANCH, R2_PAIR_BRANCH)
+ if stage == 'nonempty': assert os.environ['GITHUB_REF'] in (NONEMPTY_BRANCH, R2_PAIR_BRANCH)
+ if stage == 'r2pair': assert os.environ['GITHUB_REF'] == R2_PAIR_BRANCH
  assert not out.exists(); out.mkdir(mode=0o700)
  private(out); private(run_root)
  tmp, fixture = run_root / 'private-tmp', run_root / 'private-fixture'
@@ -120,6 +125,14 @@ def run(stage, out, run_root):
   assert main['actualResults']['pass'] and main['actualResults']['actualPassed'] == main['actualResults']['actualTotal'] == 1
   assert main['originalChildWaited'] and main['exitCode'] == 0 and main['noFixtureRemoval']
   env['CURRENT_V28_NONEMPTY_BACKUP_RECEIPT'] = str(run_root / 'nonempty-inputs.json')
+ if stage == 'r2pair':
+  # The complete same-head24-test chain is required before this separate new
+  # source. Its Node endpoint is the current programmatic V3/V26 restorer API.
+  prior = json.loads((run_root / 'nonempty/receipt.json').read_bytes())
+  assert prior['status'] == 'PASS' and prior['stage'] == 'nonempty' and prior['head'] == head
+  assert prior['actualResults']['pass'] and prior['actualResults']['actualPassed'] == prior['actualResults']['actualTotal'] == 1
+  assert prior['originalChildWaited'] and prior['exitCode'] == 0 and prior['noFixtureRemoval'] and prior['sourceFileBackupQualified']
+  env['CURRENT_V26_R2_NODE_PAIR_RECEIPT'] = str(run_root / 'r2pair-inputs.json')
  if stage in ('operators', 'maintenance-parser', 'maintenance', 'main'):
   prior = json.loads((run_root / 'preparation/receipt.json').read_bytes()); assert prior['status'] == 'PASS'
   if stage in ('maintenance-parser', 'maintenance', 'main'):
@@ -157,6 +170,7 @@ def run(stage, out, run_root):
    'maintenance': 'current-restored-v28-maintenance-release.vitest.config.mts',
    'main': 'current-restored-v28-main.vitest.config.mts',
    'nonempty': 'current-v28-nonempty-backup-restore.vitest.config.mts',
+   'r2pair': 'current-v26-r2-node-pair.vitest.config.mts',
    'package-http': 'node-package-http-qualification.vitest.config.mts'}[stage],
   '--reporter=verbose', '--reporter=json', '--outputFile.json=' + str(raw)]
  budget = 20 if stage in HELP else 60 if stage == 'types' else 90 if stage == 'capture-parser' else 180
@@ -165,6 +179,7 @@ def run(stage, out, run_root):
   'status': 'RESERVED_BEFORE_EFFECTS', 'outerSeconds': budget, 'caseMs': 5000 if stage == 'package-http' else 20000 if stage in TIMED_CASE_STAGES else None,
   'hookMs': 10000 if stage == 'package-http' else 20000 if stage in TIMED_CASE_STAGES else None, 'minimumBeforeChild': minimum,
   'filesystemRootOwnerUid': Path('/').lstat().st_uid, 'noFixtureRemoval': True, 'sourceFileBackupQualified': False}
+ if stage == 'r2pair': record['r2NodePairQualified'] = False
  if stage == 'package-http': record.update(originalTemplateBeforeAllMs=20000,
   scope='Current V26 original mounted Package HTTP/session/CSRF + independent original dispatcher + nonempty15File local copy/export/download only; no compiled-main, cross-runtime/R2, elapsed120s cadence, recovery activation or prior qualification carry.')
  def original_close():
@@ -207,6 +222,21 @@ def run(stage, out, run_root):
    record['actualNonemptyInertRestore'] = {'sourceFileCount': 1, 'payloadBytes': proof['payloadBytes'],
     'payloadSha256': proof['payloadSha256'], 'archiveSha256': proof['archiveSha256'],
     'recoveryReportSha256': proof['recoveryReportSha256'], 'destinationExecutionEnabled': False, 'destinationProfileBound': False}
+  if stage == 'r2pair':
+   proof = json.loads((run_root / 'r2pair-inputs.json').read_bytes())
+   assert proof['kind'] == 'current-genuine-v26-d1-r2-node-inert-pair/1'
+   assert proof['sourceCheckpoint'] == 'portable-runtime/v26' and proof['archiveFormat'] == 'v3' and proof['sourceProvider'] == 'r2'
+   assert all(proof[key] is True for key in ('actualR2SourceBytesVerified', 'originalScheduledJobCompleted', 'actualR2ArchiveBytesVerified'))
+   assert isinstance(proof['payloadBytes'], int) and not isinstance(proof['payloadBytes'], bool) and proof['payloadBytes'] > 0
+   for key in ('payloadSha256', 'archiveSha256'):
+    assert isinstance(proof[key], str) and re.fullmatch('[0-9a-f]{64}', proof[key])
+   assert isinstance(proof['destinationInstallationId'], str) and re.fullmatch('[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}', proof['destinationInstallationId'])
+   assert proof['executionEnabled'] is False and proof['nativeBindingsRestored'] is False and proof['reverseNodeLocalToD1Qualified'] is False
+   assert proof['maintenanceState'] == 'fenced' and proof['originalReadPathsRetained'] is True
+   record['actualR2NodeInertPair'] = {'sourceCheckpoint': 'portable-runtime/v26', 'archiveFormat': 'v3', 'sourceProvider': 'r2',
+    'payloadBytes': proof['payloadBytes'], 'payloadSha256': proof['payloadSha256'], 'archiveSha256': proof['archiveSha256'],
+    'destinationInstallationId': proof['destinationInstallationId'], 'actualR2SourceAndArchiveBytesVerified': True,
+    'nodeRestoreEntry': 'existing-programmatic-V3-Node-V26-restorer', 'reverseNodeLocalToD1Qualified': False, 'executionEnabled': False}
   if stage in HELP:
    text = (out / 'original.log').read_bytes(); errors = (out / 'original.stderr.log').read_bytes()
    assert len(text) + len(errors) <= 16384
@@ -234,6 +264,7 @@ def run(stage, out, run_root):
     assert all(shutil.disk_usage(path).free >= FLOOR for path in (tmp, fixture))
    except BaseException as error: okay = False; record['floorOrPrivateIdentityFailure'] = type(error).__name__ + ': ' + str(error)
    if stage == 'nonempty': record['sourceFileBackupQualified'] = bool(okay)
+   if stage == 'r2pair': record['r2NodePairQualified'] = bool(okay)
    record['status'] = 'PASS' if okay else 'FAILED_OR_UNRESOLVED'
    save(out / 'receipt.json', record)
   finally:
@@ -251,6 +282,6 @@ def run(stage, out, run_root):
  return 0 if okay else 1
 
 if __name__ == '__main__':
- parser = argparse.ArgumentParser(); parser.add_argument('--stage', choices=('types', 'parser', 'capture-parser', 'preparation', 'operators', 'maintenance-parser', 'maintenance', 'config-unit', 'main', 'nonempty', 'package-http', *HELP), required=True)
+ parser = argparse.ArgumentParser(); parser.add_argument('--stage', choices=('types', 'parser', 'capture-parser', 'preparation', 'operators', 'maintenance-parser', 'maintenance', 'config-unit', 'main', 'nonempty', 'r2pair', 'package-http', *HELP), required=True)
  parser.add_argument('--run-root', type=Path, required=True); args = parser.parse_args()
  raise SystemExit(run(args.stage, args.run_root / args.stage, args.run_root))
