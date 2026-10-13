@@ -408,3 +408,6 @@ export function currentCanonicalFileTarget(native: DatabaseSync, target: Readonl
 export function assertCanonicalFileOwnersReleased(): void {
   expect(owners.size).toBe(0); guardCanonicalFileReserve();
 }
+
+// Reuse the original client/probe first-close barriers in the isolated R2 pair.
+export { closeClient as closeCanonicalFileClient, closeProbe as closeCanonicalFileProbe };
