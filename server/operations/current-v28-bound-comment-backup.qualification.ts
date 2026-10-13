@@ -42,6 +42,7 @@ describe('current genuine bound canonical Comment File through compiled strict V
       try {
       acknowledgements.phase('compose original canonical application');
       const produced = await withCanonicalFileDatabase(baseline.path, async (owner, lease, native, core) => {
+        acknowledgements.database(native);
         const app = await composeCanonicalCommentFileV28(owner, lease, native, core, baseline);
         acknowledgements.phase('original Alice login'); const session = await app.login('alice');
         const input = { protocol: 'comment-submission/1', id: submissionId, body: 'Genuine bound recovery source',
@@ -121,6 +122,8 @@ describe('current genuine bound canonical Comment File through compiled strict V
         sourceUnchanged: true, originalCloseAcknowledged: true }), { flag: 'wx', mode: 0o600 });
       } finally {
         acknowledgements.report('original case work returned or rejected; observation does not settle custody');
+        await acknowledgements.joinAlreadyIssuedOriginals();
+        acknowledgements.report('already-issued original observed promises settled; parent custody is unchanged');
         acknowledgements.restore();
         acknowledgements.report('instrumentation restored; pending original ACKs remain reported');
       }

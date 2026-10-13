@@ -21,8 +21,11 @@ interface Observed {
 }
 const object = (value: unknown): value is object => value !== null && (typeof value === "object" || typeof value === "function");
 function errorFact(error: unknown) {
-  return error instanceof Error ? { name: error.name, message: error.message.slice(0, 240) }
-    : { name: "non-Error", message: typeof error };
+  if (!(error instanceof Error)) return { name: "non-Error", message: typeof error };
+  const code = (error as Error & { code?: unknown }).code;
+  // Original errors remain unchanged. The private fact selects only the class
+  // and a closed OS code; no original message/stack/path is copied here.
+  return { name: error.name.slice(0, 80), message: typeof code === "string" && /^[A-Z0-9_]{1,64}$/.test(code) ? code : "original-error-text-omitted" };
 }
 
 /** The one extra private FD establishes the genuine FileHandle prototype and
@@ -37,17 +40,21 @@ export async function observeBoundProducerOriginalAcks(root: string) {
   probeOwner.originalClose = probe.close(); void probeOwner.originalClose.catch(() => undefined);
   await probeOwner.originalClose; probeOwner.closeAcknowledged = true; probes.delete(probeOwner);
 
-  let phase = "installed", sequence = 0, restored = false;
-  const pending = new Map<number, Observed>(), recent: Observed[] = [];
+  let phase = "installed", phaseStartedAt = Date.now(), sequence = 0, restored = false;
+  const phaseHistory: Array<{ phase: string; startedAt: number }> = [];
+  const pending = new Map<number, Observed>(), originalPromises = new Map<number, Promise<unknown>>(), recent: Observed[] = [];
+  const synchronousCalls: Array<{ phase: string; operation: string; startedAt: number; elapsedMs: number; outcome: string }> = [];
   const promiseIds = new WeakMap<object, number>(), installed = new WeakMap<object, Set<string>>();
   const readers = new WeakSet<object>(), bodies = new WeakSet<object>();
   const restorers: Array<() => void> = [], issues: Array<{ operation: string; error: { name: string; message: string } }> = [];
   const counts: Record<string, { calls: number; originalPromises: number; acknowledged: number; rejected: number }> = {};
+  const synchronousCounts: Record<string, { calls: number; totalMs: number; maximumMs: number }> = {};
   function issue(operation: string, error: unknown) {
     if (issues.length < 16) issues.push({ operation, error: errorFact(error) });
   }
   function finish(observation: Observed, outcome: "acknowledged" | "rejected", error?: unknown) {
-    pending.delete(observation.id); observation.settledAt = Date.now(); observation.outcome = outcome;
+    pending.delete(observation.id); originalPromises.delete(observation.id);
+    observation.settledAt = Date.now(); observation.outcome = outcome;
     if (outcome === "rejected") observation.error = errorFact(error);
     counts[observation.operation][outcome]++;
     recent.push(observation); if (recent.length > 32) recent.shift();
@@ -64,7 +71,7 @@ export async function observeBoundProducerOriginalAcks(root: string) {
     const observation: Observed = { id: ++sequence, phase, operation, startedAt: Date.now(),
       ...(typeof fd === "number" ? { fd } : {}) };
     promiseIds.set(value, observation.id); pending.set(observation.id, observation); count.originalPromises++;
-    const original = value as Promise<unknown>;
+    const original = value as Promise<unknown>; originalPromises.set(observation.id, original);
     const reaction = original.then(() => finish(observation, "acknowledged"), error => finish(observation, "rejected", error));
     void reaction.catch(error => issue(operation + ".observer", error));
   }
@@ -77,6 +84,7 @@ export async function observeBoundProducerOriginalAcks(root: string) {
     before?: (args: unknown[]) => void, after?: (value: unknown) => void) {
     const names = installed.get(target) ?? new Set<string>();
     if (names.has(name)) return; names.add(name); installed.set(target, names);
+    if (restorers.length >= 8192) { issue(operation + ".instrumentation", new Error("Original method observation inventory exceeded")); return; }
     try {
       const record = target as Record<string, OriginalCall>, original = record[name];
       if (typeof original !== "function") return;
@@ -85,9 +93,18 @@ export async function observeBoundProducerOriginalAcks(root: string) {
         let fd: unknown;
         try { fd = object(this) ? (this as { fd?: unknown }).fd : undefined; }
         catch (error) { issue(operation + ".receiver-observer", error); }
-        let value: unknown;
-        try { value = Reflect.apply(original, this, args); }
-        catch (error) { issue(operation + ".original-synchronous-rejection", error); throw error; }
+        let value: unknown; const calledAt = Date.now();
+        function synchronous(outcome: string) {
+          const elapsedMs = Date.now() - calledAt, count = synchronousCounts[operation] ??= { calls: 0, totalMs: 0, maximumMs: 0 };
+          count.calls++; count.totalMs += elapsedMs; count.maximumMs = Math.max(count.maximumMs, elapsedMs);
+          if (elapsedMs) {
+            synchronousCalls.push({ phase, operation, startedAt: calledAt, elapsedMs, outcome });
+            synchronousCalls.sort((left, right) => right.elapsedMs - left.elapsedMs);
+            if (synchronousCalls.length > 32) synchronousCalls.pop();
+          }
+        }
+        try { value = Reflect.apply(original, this, args); synchronous("returned"); }
+        catch (error) { synchronous("original-synchronous-rejection"); issue(operation + ".original-synchronous-rejection", error); throw error; }
         try { observe(operation, value, typeof fd === "number" ? { fd } : undefined); }
         catch (error) { issue(operation + ".promise-observer", error); }
         if (after) try { returned(value, after, operation); }
@@ -128,9 +145,11 @@ export async function observeBoundProducerOriginalAcks(root: string) {
     if (!object(value) || Object.getPrototypeOf(value) !== prototype) {
       issue("native-file.open.handle", new Error("Original native FileHandle prototype differs")); return;
     }
-    for (const name of ["sync", "read", "write", "close"])
+    for (const name of ["sync", "read", "write", "stat", "close"])
       method(value, name, "native-file-handle." + name);
   });
+  for (const name of ["rename", "lstat", "realpath", "readdir", "mkdtemp"])
+    method(fileSystem, name, "native-file." + name);
   syncBuiltinESMExports();
   method(localBytes, "openLocalByteStorage", "local-byte.open", args => {
     const fence = args[1];
@@ -146,14 +165,32 @@ export async function observeBoundProducerOriginalAcks(root: string) {
 
   function snapshot() {
     const now = Date.now();
-    return { schema: "bound-producer-original-ack-observation/1", phase, prototypeProbeOriginalCloseAcknowledged: probeOwner.closeAcknowledged,
+    return { schema: "bound-producer-original-ack-observation/2", phase, phaseStartedAt, phaseElapsedMs: now - phaseStartedAt,
+      phaseHistory, prototypeProbeOriginalCloseAcknowledged: probeOwner.closeAcknowledged,
       originalCallsForwardedOnceWithSameReceiverArgumentsAndReturn: true, originalBudgetsAndCleanupUnchanged: true,
-      counts, pendingOriginalTotal: pending.size,
+      counts, synchronousCounts, slowestSynchronousCalls: synchronousCalls, pendingOriginalTotal: pending.size,
       pending: [...pending.values()].slice(0, 64).map(value => ({ ...value, elapsedMs: now - value.startedAt })), recent,
       observationIssues: issues, restorationIsNotIoSettlement: true };
   }
   return Object.freeze({
-    phase(name: string) { phase = name; },
+    phase(name: string) {
+      phase = name; phaseStartedAt = Date.now(); phaseHistory.push({ phase, startedAt: phaseStartedAt });
+      if (phaseHistory.length > 32) phaseHistory.shift();
+    },
+    database(native: object) {
+      method(native, "prepare", "native-sqlite.prepare", undefined, value => {
+        if (object(value)) for (const name of ["get", "all", "run", "columns"])
+          method(value, name, "native-sqlite.statement." + name);
+      });
+      method(native, "exec", "native-sqlite.exec");
+    },
+    async joinAlreadyIssuedOriginals() {
+      // Join only already-issued actual promises. This does not issue a read,
+      // timer, cancel, disposer, close, replay or new admission. Their exact
+      // work/rejection remains with the original caller and its retained owner.
+      // Continue across late child promises from those original operations.
+      while (originalPromises.size) await Promise.allSettled([...originalPromises.values()]);
+    },
     report(event: string) {
       try { console.error("Original bound producer ACK observation: " + JSON.stringify({ event, ...snapshot() })); }
       catch (error) { issue("report", error); }
