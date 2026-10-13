@@ -532,8 +532,9 @@ async function run() {
       nativeCalls: { put: 1, delete: 0 } });
     const distribution = await coherentDistribution();
     const destination = join(root, "fresh-node-v5-inert");
+    const filesystemRootOwnerUid = String((await original(owner, () => lstat("/"))).uid);
     const restored = await original(owner, () => runCurrentCli(distribution.path, "restore-v28-cli.cjs", ["restore", "--archive", capturedArchive,
-      "--destination", destination, "--sha256", capturedHash, "--filesystem-root-owner-uid", String((await lstat("/")).uid)]));
+      "--destination", destination, "--sha256", capturedHash, "--filesystem-root-owner-uid", filesystemRootOwnerUid]));
     expect(restored.code).toBe(0); expect(restored.signal).toBeNull(); expect(restored.stderr).toBe("");
     const restoredReceipt = object(JSON.parse(restored.stdout)); expect(restoredReceipt.kind).toBe("offline-v28-inert-restore/1");
     expect(restoredReceipt.sourceArchiveSha256).toBe(capturedHash); expect(restoredReceipt.destinationCheckpoint).toBe("portable-runtime/v28");
