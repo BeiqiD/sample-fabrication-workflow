@@ -33,7 +33,7 @@ async function planV5NativeFiles(records: SystemBackupRecordsV5, manifest: Syste
     nativeR2?"complete_native_local_or_r2_source_required":"complete_native_local_source_required");
     ensure(payload.fileIds.length === 1 && payload.purposes.length === 1,"canonical_file_identity");
     const fileId=payload.fileIds[0],purpose=payload.purposes[0];
-    if(source.provider === "local") ensure(fileId === source.fileId && purpose === source.purpose && source.accessScope === "system","canonical_file_identity");
+    if(source.storeKind === "file" && source.provider === "local") ensure(fileId === source.fileId && purpose === source.purpose && source.accessScope === "system","canonical_file_identity");
     // Reviewed native consumers already point to this canonical File. Preserve
     // their exact business cells/rowids and acceptance receipts; the recovered
     // address is published on that same File, never by rewriting a consumer.
@@ -41,7 +41,7 @@ async function planV5NativeFiles(records: SystemBackupRecordsV5, manifest: Syste
     // Nonzero current legacy heads remain separately denied above until their
     // global profileRevision successor events have an admitted append owner.
     ensure(purpose !== "derived_preview", "preview_origin_conversion_not_admitted");
-    ensure(payload.bindings.length <= 16 && (source.provider !== "local" || stableJson(payload.bindings) === stableJson(source.consumerBindings)),
+    ensure(payload.bindings.length <= 16 && (source.storeKind !== "file" || source.provider !== "local" || stableJson(payload.bindings) === stableJson(source.consumerBindings)),
       "bounded_exact_native_consumers");
     const file = records.content.tables.files.find(row => row.id === fileId);
     const publication = records.content.tables.file_publications.find(row => row.file_id === fileId);
