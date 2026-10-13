@@ -780,21 +780,44 @@ function createRecoveryEngine(options: Omit<OriginalRecoveryOptions, "hasher"> &
       sessionCurrent(c.req.raw, actor); return c.json(result);
     });
     app.post("/api/system-recovery/source-resume", async c => {
-      const actor = c.get("userEmail"); requestOwner(c.req.raw, actor);
-      const input = await checkedInput(c.req.raw, checkedNodeV28SourceResumeInput, 4096);
-      const control = sourceResume(c.req.raw, actor), prior = await control.accepted(input);
-      if (prior) { sessionCurrent(c.req.raw, actor); return c.json(prior); }
-      const quiet = () => {
-        sessionCurrent(c.req.raw, actor);
-        if (owner.dispatch || owner.pending.size !== 1 || owner.bodies.size || owner.artifactScopes.size || owner.ingressBodies.size !== 1)
-          throw fail("Original Recovery work must acknowledge its drain before source resume", 409);
-        control.assertCurrent(input);
-      };
-      quiet(); stages!.assertDrained();
-      const job = await control.backup(input); owner.artifacts!.assertJob(job); quiet();
-      const records = await stages!.verifySourceResume(job, async () => { quiet(); return true; }, c.req.raw.signal, c.req.raw);
-      quiet(); stages!.assertDrained(); owner.artifacts!.assertJob(job);
-      const result = await control.commit(input, records); sessionCurrent(c.req.raw, actor); return c.json(result);
+      let stage: "current" | "backup" | "strict-archive-validation" | "commit" = "current";
+      try {
+        const actor = c.get("userEmail"); requestOwner(c.req.raw, actor);
+        const input = await checkedInput(c.req.raw, checkedNodeV28SourceResumeInput, 4096);
+        const control = sourceResume(c.req.raw, actor), prior = await control.accepted(input);
+        if (prior) { sessionCurrent(c.req.raw, actor); return c.json(prior); }
+        const quiet = () => {
+          sessionCurrent(c.req.raw, actor);
+          if (owner.dispatch || owner.pending.size !== 1 || owner.bodies.size || owner.artifactScopes.size || owner.ingressBodies.size !== 1)
+            throw fail("Original Recovery work must acknowledge its drain before source resume", 409);
+          control.assertCurrent(input);
+        };
+        quiet(); stages!.assertDrained();
+        stage = "backup";
+        const job = await control.backup(input); owner.artifacts!.assertJob(job); quiet();
+        stage = "strict-archive-validation";
+        const records = await stages!.verifySourceResume(job, async () => { quiet(); return true; }, c.req.raw.signal, c.req.raw);
+        quiet(); stages!.assertDrained(); owner.artifacts!.assertJob(job);
+        stage = "commit";
+        const result = await control.commit(input, records); sessionCurrent(c.req.raw, actor); return c.json(result);
+      } catch (error) {
+        // Fixed diagnostic facts only. Preserve the SAME original error and
+        // public response; no data, selectors, SQL, IDs, secrets or raw cause
+        // text enters this observation, and it issues no new work or queries.
+        try {
+          const known = new Set(["source_resume_backup_required", "source_resume_original_installation_required",
+            "source_resume_metadata_changed", "source_resume_inventory_changed", "source_resume_publication_changed",
+            "source_resume_writable_local_required", "source_resume_payload_unavailable", "source_resume_payload_budget",
+            "source_resume_payload_changed", "administrator_revoked", "source_checkpoint_changed", "source_unavailable"]);
+          const message = error instanceof Error ? error.message : undefined;
+          const code = error instanceof HTTPException ? "http-conflict"
+            : typeof message === "string" && known.has(message) ? message
+            : error instanceof Error && "code" in error && error.code === "ERR_SQLITE_ERROR" ? "original-sqlite-error"
+            : "original-operation-error";
+          console.error("Original Node source resume refusal:", JSON.stringify({ stage, code }));
+        } catch { /* Diagnostic inspection/delivery never replaces the original failure. */ }
+        throw error;
+      }
     });
     app.post("/api/system-recovery/executor", async c => { const actor = c.get("userEmail"), repo = requestOwner(c.req.raw, actor);
       const input = await checkedInput(c.req.raw, value => {
