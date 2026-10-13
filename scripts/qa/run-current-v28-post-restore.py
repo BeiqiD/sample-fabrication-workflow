@@ -9,9 +9,10 @@ BASE = '4ef7a9d59c4c5e8b10e2fa060bf20c7b16b37878'
 BRANCH = 'refs/heads/codex/node-v28-post-restore-operators'
 MAINTENANCE_BRANCH = 'refs/heads/codex/node-v28-restored-maintenance-release'
 HEALTH_BRANCH = 'refs/heads/codex/node-v28-operational-health-ready'
+CAPTURE_BRANCH = 'refs/heads/codex/node-v28-public-local-backup-capture'
 MAINTENANCE_BASE = 'ebc19cf3f61b12625bc2a36086667376b41b9255'
 NATIVE_STAGES = ('preparation', 'operators', 'maintenance', 'main')
-TIMED_CASE_STAGES = (*NATIVE_STAGES, 'maintenance-parser', 'config-unit')
+TIMED_CASE_STAGES = (*NATIVE_STAGES, 'maintenance-parser', 'config-unit', 'capture-parser')
 FLOOR, NATIVE_BEFORE = 536870912, 603979776
 HELP = {'help-main': ('main.mjs', 'Usage: node main.mjs --config '),
  'help-identity': ('identity-cli.cjs', 'Usage: local-identity '),
@@ -22,6 +23,10 @@ CASES = {
   'keeps absent-profile identity commands V26 and accepts only explicit V28 restore/reset',
   'requires explicit Group profile, role, creation flag and control CAS without caller authority inputs',
   'rejects secret, upgrade, recovery and resource-grant options before any owner can be acquired']),
+ 'capture-parser': ('server/operations/v28-maintenance-capture-command.test.ts', [
+  'issues only the original branded stopped capture token for an explicit V28 selector',
+  'refuses implicit or duplicate profiles and authority or executable overrides before opening a source',
+  'preserves original canonical configuration/archive/installation/root validation and rejects fabricated tokens before I/O']),
  'preparation': ('server/operations/current-v28-post-restore-source-preparation.qualification.ts', [
   'captures all actual typed data before any business POST and restores through the current fixed CLI into a fresh inert destination']),
  'operators': ('server/operations/current-v28-post-restore-operators.qualification.ts', [
@@ -43,11 +48,11 @@ def save(path, value):
  path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
 
 def source():
- assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH, HEALTH_BRANCH)
+ assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH)
  head = os.environ['GITHUB_SHA']; assert re.fullmatch('[0-9a-f]{40}', head)
  env = dict(os.environ, GIT_OPTIONAL_LOCKS='0')
  assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, env=env).decode().strip() == head
- base = MAINTENANCE_BASE if os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH) else BASE
+ base = MAINTENANCE_BASE if os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH) else BASE
  subprocess.check_call(['git', 'merge-base', '--is-ancestor', base, head], cwd=ROOT, env=env)
  return head
 
@@ -78,7 +83,8 @@ def census(stage, path):
 
 def run(stage, out, run_root):
  head = source()
- if stage in ('maintenance-parser', 'maintenance', 'config-unit', 'main'): assert os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH)
+ if stage in ('maintenance-parser', 'maintenance', 'config-unit', 'main'): assert os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH)
+ if stage == 'capture-parser': assert os.environ['GITHUB_REF'] == CAPTURE_BRANCH
  assert not out.exists(); out.mkdir(mode=0o700)
  private(out); private(run_root)
  tmp, fixture = run_root / 'private-tmp', run_root / 'private-fixture'
@@ -120,17 +126,17 @@ def run(stage, out, run_root):
  raw = out / 'original-results.json'
  if stage in HELP: argv = [str(node), str(ROOT / 'dist-node/distribution/server' / HELP[stage][0]), '--help']
  elif stage == 'types': argv = [shutil.which('npm'), 'run', 'typecheck:server']
- elif stage in ('parser', 'maintenance-parser', 'config-unit'):
+ elif stage in ('parser', 'maintenance-parser', 'config-unit', 'capture-parser'):
   argv = [str(node), str(ROOT / 'node_modules/vitest/vitest.mjs'), 'run', '--config', 'vitest.config.ts', CASES[stage][0],
    '--maxWorkers', '1', '--no-file-parallelism', '--reporter=verbose', '--reporter=json', '--outputFile.json=' + str(raw)]
-  if stage in ('maintenance-parser', 'config-unit'): argv += ['--testTimeout', '20000', '--hookTimeout', '20000']
+  if stage in ('maintenance-parser', 'config-unit', 'capture-parser'): argv += ['--testTimeout', '20000', '--hookTimeout', '20000']
  else: argv = [str(node), str(ROOT / 'node_modules/vitest/vitest.mjs'), 'run', '--config',
   {'preparation': 'current-v28-post-restore-source-preparation.vitest.config.mts',
    'operators': 'current-v28-post-restore-operators.vitest.config.mts',
    'maintenance': 'current-restored-v28-maintenance-release.vitest.config.mts',
    'main': 'current-restored-v28-main.vitest.config.mts'}[stage],
   '--reporter=verbose', '--reporter=json', '--outputFile.json=' + str(raw)]
- budget = 20 if stage in HELP else 60 if stage == 'types' else 180
+ budget = 20 if stage in HELP else 60 if stage == 'types' else 90 if stage == 'capture-parser' else 180
  custody = inherited_custody(); child = None; close_attempted = False; close_result = None; close_error = None
  record = {'kind': 'current-v28-post-restore-original-owned-stage/1', 'stage': stage, 'head': head, 'command': argv,
   'status': 'RESERVED_BEFORE_EFFECTS', 'outerSeconds': budget, 'caseMs': 20000 if stage in TIMED_CASE_STAGES else None,
@@ -207,6 +213,6 @@ def run(stage, out, run_root):
  return 0 if okay else 1
 
 if __name__ == '__main__':
- parser = argparse.ArgumentParser(); parser.add_argument('--stage', choices=('types', 'parser', 'preparation', 'operators', 'maintenance-parser', 'maintenance', 'config-unit', 'main', *HELP), required=True)
+ parser = argparse.ArgumentParser(); parser.add_argument('--stage', choices=('types', 'parser', 'capture-parser', 'preparation', 'operators', 'maintenance-parser', 'maintenance', 'config-unit', 'main', *HELP), required=True)
  parser.add_argument('--run-root', type=Path, required=True); args = parser.parse_args()
  raise SystemExit(run(args.stage, args.run_root / args.stage, args.run_root))

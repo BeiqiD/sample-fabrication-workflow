@@ -2,7 +2,7 @@ name: Current V28 genuine restore and explicit destination operators
 
 on:
   push:
-    branches: [codex/node-v28-post-restore-operators, codex/node-v28-restored-maintenance-release, codex/node-v28-operational-health-ready]
+    branches: [codex/node-v28-post-restore-operators, codex/node-v28-restored-maintenance-release, codex/node-v28-operational-health-ready, codex/node-v28-public-local-backup-capture]
 
 permissions:
   contents: read
@@ -35,10 +35,13 @@ jobs:
       - name: Full current server and runtime test types
         run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage types --run-root "$POST_RESTORE_RUN_ROOT"
       - name: Seven strict restored configuration unit cases
-        if: ${{ github.ref == 'refs/heads/codex/node-v28-restored-maintenance-release' || github.ref == 'refs/heads/codex/node-v28-operational-health-ready' }}
+        if: ${{ github.ref == 'refs/heads/codex/node-v28-restored-maintenance-release' || github.ref == 'refs/heads/codex/node-v28-operational-health-ready' || github.ref == 'refs/heads/codex/node-v28-public-local-backup-capture' }}
         run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage config-unit --run-root "$POST_RESTORE_RUN_ROOT"
       - name: Original three strict operational parser cases
         run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage parser --run-root "$POST_RESTORE_RUN_ROOT"
+      - name: Original three strict explicit public stopped capture parser cases
+        if: ${{ github.ref == 'refs/heads/codex/node-v28-public-local-backup-capture' }}
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage capture-parser --run-root "$POST_RESTORE_RUN_ROOT"
       - name: Build the current Node client and unchanged fixed package
         shell: bash
         run: |
@@ -61,13 +64,13 @@ jobs:
       - name: Original two destination identity and Group cases while maintenance stays fenced
         run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage operators --run-root "$POST_RESTORE_RUN_ROOT"
       - name: Original three strict stopped maintenance-release parser cases
-        if: ${{ github.ref == 'refs/heads/codex/node-v28-restored-maintenance-release' || github.ref == 'refs/heads/codex/node-v28-operational-health-ready' }}
+        if: ${{ github.ref == 'refs/heads/codex/node-v28-restored-maintenance-release' || github.ref == 'refs/heads/codex/node-v28-operational-health-ready' || github.ref == 'refs/heads/codex/node-v28-public-local-backup-capture' }}
         run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage maintenance-parser --run-root "$POST_RESTORE_RUN_ROOT"
       - name: Original three genuine stopped maintenance-release cases
-        if: ${{ github.ref == 'refs/heads/codex/node-v28-restored-maintenance-release' || github.ref == 'refs/heads/codex/node-v28-operational-health-ready' }}
+        if: ${{ github.ref == 'refs/heads/codex/node-v28-restored-maintenance-release' || github.ref == 'refs/heads/codex/node-v28-operational-health-ready' || github.ref == 'refs/heads/codex/node-v28-public-local-backup-capture' }}
         run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage maintenance --run-root "$POST_RESTORE_RUN_ROOT"
       - name: Actual compiled main on the same released restored target
-        if: ${{ github.ref == 'refs/heads/codex/node-v28-restored-maintenance-release' || github.ref == 'refs/heads/codex/node-v28-operational-health-ready' }}
+        if: ${{ github.ref == 'refs/heads/codex/node-v28-restored-maintenance-release' || github.ref == 'refs/heads/codex/node-v28-operational-health-ready' || github.ref == 'refs/heads/codex/node-v28-public-local-backup-capture' }}
         run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage main --run-root "$POST_RESTORE_RUN_ROOT"
       - name: Retain only raw logs, results, small receipts and the package manifest
         if: always()
@@ -80,6 +83,8 @@ jobs:
             ${{ env.POST_RESTORE_RUN_ROOT }}/types/receipt.json
             ${{ env.POST_RESTORE_RUN_ROOT }}/parser/original-results.json
             ${{ env.POST_RESTORE_RUN_ROOT }}/parser/receipt.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/capture-parser/original-results.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/capture-parser/receipt.json
             ${{ env.POST_RESTORE_RUN_ROOT }}/producer/*.log
             ${{ env.POST_RESTORE_RUN_ROOT }}/producer/manifest.json
             ${{ env.POST_RESTORE_RUN_ROOT }}/help-*/receipt.json
