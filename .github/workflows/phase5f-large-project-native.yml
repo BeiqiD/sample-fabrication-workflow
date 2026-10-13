@@ -1,0 +1,67 @@
+name: Phase 5F 200-node native Project
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [v2/backend-foundation]
+    paths:
+      - .github/workflows/phase5f-large-project-native.yml
+      - scripts/qa/phase5f/run-large-project-ci.py
+      - scripts/qa/phase5f/check-isolated-state-modern-sqlite.py
+      - scripts/qa/phase5f/seed-actual-api.mjs
+      - scripts/qa/phase5f/browser-actual-api.mjs
+
+permissions:
+  contents: read
+
+jobs:
+  native-project:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.19.0
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install repository dependencies
+        run: npm ci
+      - name: Build the selected local Worker and UI
+        run: npm run build
+      - name: Prepare dedicated native tools and paths
+        shell: bash
+        run: |
+          qa_root="$(mktemp -d /tmp/phase5f-large200-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-XXXXXX)"
+          echo "PHASE5F_NATIVE_ROOT=$qa_root" >> "$GITHUB_ENV"
+          echo "PLAYWRIGHT_BROWSERS_PATH=$qa_root/browser-tools/browsers" >> "$GITHUB_ENV"
+          echo "PLAYWRIGHT_MODULE_PATH=$qa_root/browser-tools/node_modules/playwright" >> "$GITHUB_ENV"
+          cat > "$qa_root/pysqlite3-requirements.txt" <<'PYSQLITE'
+          pysqlite3-binary==0.5.4.post2 --hash=sha256:b6162cd966fa563fe85b5372c3e61d11dd7903bd0f09cc185cb0a4c9125f4a0f
+          PYSQLITE
+          python3 -m pip install --only-binary=:all: --no-deps --require-hashes --target "$qa_root/python-tools" -r "$qa_root/pysqlite3-requirements.txt"
+          npm install --prefix "$qa_root/browser-tools" --no-package-lock --no-audit --no-fund --save-exact playwright@1.57.0
+          PLAYWRIGHT_BROWSERS_PATH="$qa_root/browser-tools/browsers" "$qa_root/browser-tools/node_modules/.bin/playwright" install --with-deps chromium
+          PLAYWRIGHT_BROWSERS_PATH="$qa_root/browser-tools/browsers" node - "$qa_root/browser-tools/node_modules/playwright" >> "$GITHUB_ENV" <<'JS'
+          process.stdout.write(`CHROMIUM_PATH=${require(process.argv[2]).chromium.executablePath()}\n`);
+          JS
+      - name: Run the fresh 200-node namespace and original normal stop
+        run: |
+          "$CHROMIUM_PATH" --version
+          python3 scripts/qa/phase5f/run-large-project-ci.py --source "$GITHUB_WORKSPACE" --root "$PHASE5F_NATIVE_ROOT" --physical-python-tools "$PHASE5F_NATIVE_ROOT/python-tools"
+      - name: Retain original receipts and browser result
+        if: ${{ always() && env.PHASE5F_NATIVE_ROOT != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase5f-large200-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          path: |
+            ${{ env.PHASE5F_NATIVE_ROOT }}/server.log
+            ${{ env.PHASE5F_NATIVE_ROOT }}/fixture/*.json
+            ${{ env.PHASE5F_NATIVE_ROOT }}/fixture/actual-api-browser-progress.ndjson
+            ${{ env.PHASE5F_NATIVE_ROOT }}/fixture/browser-artifacts/*.png
