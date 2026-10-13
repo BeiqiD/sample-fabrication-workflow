@@ -390,6 +390,49 @@ function createRecoveryEngine(options: Omit<OriginalRecoveryOptions, "hasher"> &
     }, cancel() { return closeReader(); } }, { highWaterMark: 0 });
   }
   function ownBody(body: ReadableStream<Uint8Array>, current: () => Promise<boolean>, finish: () => void, invocation?: InvocationOwner): ReadableStream<Uint8Array> {
+    if (borrowed) {
+      if (!holdsOriginal()) throw new Error("Original admitted Recovery body custody is required");
+      // A delivered Response outlives its handler. Only this captured body's
+      // pull/first close enters this private frame; no new ingress is admitted.
+      const context = { owner, active: true }, reader = body.getReader();
+      let ended = false, closing: Promise<void> | undefined;
+      function bodyOriginal<T>(operation: () => Promise<T>): Promise<T> {
+        if (!context.active) return Promise.reject(new Error("Original Recovery body custody is closed"));
+        return originalOwners.run(context, operation);
+      }
+      const retainedBody: BodyOwner = { close(reason) {
+        if (closing) return closing;
+        // Cache before invoking an original cancel/disposer, including any
+        // reentrant call. Every caller retains that same first ACK or failure.
+        closing = Promise.resolve().then(() => bodyOriginal(async () => {
+          try {
+            if (!ended) { ended = true; await reader.cancel(reason); }
+            reader.releaseLock(); finish(); owner.bodies.delete(retainedBody);
+          } catch (error) { quarantine(error); throw error; }
+          finally { context.active = false; }
+        }));
+        void closing.catch(() => undefined); return closing;
+      } };
+      owner.bodies.add(retainedBody); invocation?.bodies.add(retainedBody);
+      return new ReadableStream<Uint8Array>({ async pull(controller) {
+        if (ended) return;
+        return bodyOriginal(async () => {
+          try {
+            const admitted = await current(); if (ended) return;
+            if (!admitted) throw new Error("administrator_revoked");
+            const next = await reader.read(); if (ended) return;
+            const continued = await current(); if (ended) return;
+            if (!continued) throw new Error("administrator_revoked");
+            if (next.done) { ended = true; await retainedBody.close(); controller.close(); }
+            else controller.enqueue(next.value);
+          } catch (error) {
+            try { await retainedBody.close(error); }
+            catch (cleanup) { controller.error(new AggregateError([error, cleanup])); return; }
+            controller.error(error);
+          }
+        });
+      }, cancel(reason) { return retainedBody.close(reason); } }, { highWaterMark: 0 });
+    }
     const reader = body.getReader(); let ended = false, closing: Promise<void> | undefined;
     const retainedBody: BodyOwner = { close(reason) { return closing ??= (async () => {
       try { if (!ended) { ended = true; await reader.cancel(reason); } reader.releaseLock(); finish(); owner.bodies.delete(retainedBody); }
