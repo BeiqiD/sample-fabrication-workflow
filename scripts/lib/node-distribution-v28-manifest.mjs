@@ -24,7 +24,7 @@ export const distributionOfflineRecoveryCheckpoint = Object.freeze({
   imageSchemaSha256: "604e3b04fefed5d3d8aa8281c4fd728cd73cd69dd40056d268ee1880ed558efd",
   catalogSourceSha256: "45d19298f2599ccfb52e4c244012b5798482ca1e78fb47a7fd4a26fd9f677e2c",
   emptyTargetSourceSha256: "ceea8f9c104f75546c875b1df340fd32715e64a0a2094c2a51828e9aad102c54",
-  restorerSourceSha256: "723693919899e96ace0168048bcc6ffa57a56cb4a93fd7368fa459e07b5cf517",
+  restorerSourceSha256: "8ac2eba1170fa1a1e8d7400e560925e5fd8118af50dc8fdd01a82db18da89b80",
   archiveAdmissionSourceSha256: "c8cafb0a0eb740c6b057c5207a116e31fd3f914bab3bcf7d0e0eb3a0c9be2d81",
   recoveryCatalogSourceSha256: "22984be55812e8229889455e5b8c708e54063655273688cdaf48a9b7e4c18661",
   trustedSchemaSourceSha256: "1116030f9cf61e1e6d808a76cc2a83c4944aedb83cafb3df07086166f162f219",
