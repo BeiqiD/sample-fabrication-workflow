@@ -78,6 +78,7 @@ systemRecoveryRoutes.post("/system-recovery/recoveries",async c=>{const accepted
   const id=crypto.randomUUID(),selection={jobId:id,incarnation:id.replaceAll("-",""),expectedTargetId:acceptedInput.expectedTargetId,mapping:acceptedInput.mapping,mode:acceptedInput.mode};
   let preview;
   if(records.schema==="system-backup-records/5"){
+    if(acceptedInput.mode==="planned")throw fail("Planned V5 recovery requires a durable original source maintenance window.",409);
     if(manifest.schema!=="system-backup/5")throw fail("Recovery archive version pair is invalid",409);
     preview=await createWorkerV5RecoveryTargetEngine(c.env).preview({...selection,records,manifest});
   }else{
@@ -160,6 +161,10 @@ async function assertV5RecoveryCleanupClosed(env:Env,job:RecoveryJob){
   if(!sourceId)return;
   const records=await repository.metadata(sourceId,"records") as VersionedRecoveryRecords|null;
   if(records?.schema!=="system-backup-records/5")return;
+  // A paused job or an empty archive-attempt list cannot prove the original
+  // native source body first-close acknowledged. Keep every source hold until
+  // a durable positive close proof is part of the original public protocol.
+  if(job.kind==="backup")throw fail("V5 backup cleanup requires durable original source body closure proof.",409);
   const dependents=job.kind==="recovery"?[job]:(await repository.db().prepare("SELECT * FROM system_recovery_jobs WHERE source_upload_job_id=?").bind(sourceId).all<RecoveryJob>()).results;
   for(const dependent of dependents){
     if(dependent.kind!=="recovery")continue;

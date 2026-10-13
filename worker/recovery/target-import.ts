@@ -281,6 +281,7 @@ function originalRecoveryTargetEngine(env: TargetEnvironment, workerV5: boolean)
   const targetBinding = env.RECOVERY_DB, sourceBinding = env.DB;
   async function originalPublicV5Claim(input:WorkerRecoveryTargetInput){
     if(!workerV5)return;
+    ensure(input.mode==="historical","recovery_v5_planned_source_window_unavailable");
     ensure(env.DB===sourceBinding&&!input.signal?.aborted,"recovery_source_binding_changed");
     const db=primaryD1(sourceBinding),job=await db.prepare(`SELECT j.actor,j.input_json,j.source_upload_job_id,j.target_id,j.target_incarnation
       FROM system_recovery_jobs j JOIN system_recovery_runtime r ON r.singleton=1 AND r.enabled=1 AND r.incarnation=j.runtime_incarnation
@@ -300,6 +301,10 @@ function originalRecoveryTargetEngine(env: TargetEnvironment, workerV5: boolean)
     ensure(!input.signal?.aborted&&env.DB===sourceBinding&&await input.current(),"recovery_actor_or_lease_changed");
   }
   async function prepare(input: WorkerRecoveryTargetPreviewInput) {
+    // Accepted-time maintenance alone cannot survive source release during
+    // awaited provider work. V5 planned stays closed until its exact durable
+    // generation/token/checkpoint/backup owner is captured and rechecked.
+    ensure(!workerV5||input.mode==="historical","recovery_v5_planned_source_window_unavailable");
     id(input.jobId); id(input.incarnation); id(input.expectedTargetId);
     const catalog = selectReviewedRecoveryCatalog(input.records);
     ensure((catalog.imageVersion === 5) === workerV5, "recovery_version_pair");
