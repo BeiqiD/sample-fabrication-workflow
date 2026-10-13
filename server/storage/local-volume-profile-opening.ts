@@ -10,7 +10,8 @@ import { assertInstallationAdmission, type ReviewedInstallationAdmission, type R
 import { V26_NODE_INSTALLATION_CATALOG } from "../installation-catalog-v26.ts";
 import { V28_NODE_INSTALLATION_CATALOG_CANDIDATE } from "../installation-catalog-v28-candidate.ts";
 import { localAuthenticationIdentityAuthority } from "../auth/local-auth-http.ts";
-import { captureInstalledIdentityExecutionOwnerV28Candidate } from "../auth/installed-identity-execution-owner-v28-candidate.ts";
+import { captureInstalledIdentityExecutionOwnerV28Candidate, createInstalledIdentityExecutionGuardGroupV28Candidate,
+  type InstalledIdentityExecutionOwnerV28Candidate } from "../auth/installed-identity-execution-owner-v28-candidate.ts";
 import { assertLinuxWriterLeaseBinding, type LinuxWriterLease } from "../operations/writer-lease.ts";
 import { asJobSqlDatabase, type SqliteBatchAdmission, type SqliteCapability, type SqliteStatement } from "../sqlite.ts";
 import { asAdmittedFileAuthoritySqlDatabase, asFileAuthoritySqlDatabase, assertNativeFileAuthoritySqlOwner,
@@ -70,6 +71,15 @@ interface ProfileAuthorityOwner {
 const profileAuthorities = new WeakMap<LocalVolumeProfileAuthority, ProfileAuthorityOwner>();
 const authorityDatabases = new WeakMap<NativeFileAuthoritySqlDatabase, ReadonlySet<LocalVolumeProfileAuthority>>();
 const owners = new WeakMap<LocalVolumeProfileOpening, LocalVolumeProfileOwner>();
+const physicalAssertions = new WeakMap<LocalVolumeProfileOpening, () => void>();
+interface V28IdentityOwner {
+  readonly owner: LocalVolumeProfileOwner;
+  readonly authentication: object;
+  readonly auth: ReturnType<typeof localAuthenticationIdentityAuthority>;
+  readonly admission: ReviewedInstallationAdmission;
+  readonly identity: Readonly<InstalledIdentityExecutionOwnerV28Candidate>;
+}
+const v28IdentityOwners = new WeakMap<LocalVolumeProfileOpening, Readonly<V28IdentityOwner>>();
 const v28Bindings = new WeakMap<object, Readonly<{ database: SqliteCapability; nativeDatabase: DatabaseSync;
   writerLease: LinuxWriterLease; authentication: object }>>();
 function unavailable(): never { throw new Error("Local volume profile is unavailable"); }
@@ -172,12 +182,44 @@ export function createLocalVolumeProfileOpening(options: LocalVolumeProfileOwner
  * It creates no member/root grant, activation, profile or provider receipt. */
 export function createLocalVolumeProfileOpeningV28(options: LocalVolumeProfileOwnerOptions & { authentication: object }): LocalVolumeProfileOpening {
   if (Object.keys(options).sort().join(",") !== "admission,authentication,authorizeAdministrator,database,descriptors,filesystemRootOwnerUid,nativeDatabase,writerLease") unavailable();
-  const auth = localAuthenticationIdentityAuthority(options.authentication);
-  const identity = captureInstalledIdentityExecutionOwnerV28Candidate(auth.identity, options.database, options.nativeDatabase, options.admission);
+  const { authentication, admission, database, nativeDatabase, writerLease } = options;
+  const auth = localAuthenticationIdentityAuthority(authentication);
+  const identity = captureInstalledIdentityExecutionOwnerV28Candidate(auth.identity, database, nativeDatabase, admission);
   const opening = createCatalogLocalVolumeProfileOpening(options, V28_NODE_INSTALLATION_CATALOG_CANDIDATE, "portable-runtime/v28", identity);
+  const owner = ownedLocalVolumeProfileContext(opening);
+  if (owner.database !== database || owner.nativeDatabase !== nativeDatabase || owner.writerLease !== writerLease
+    || options.authentication !== authentication || options.admission !== admission) unavailable();
+  v28IdentityOwners.set(opening, Object.freeze({ owner, authentication, auth, admission, identity }));
   v28Bindings.set(opening, Object.freeze({ database: options.database, nativeDatabase: options.nativeDatabase,
     writerLease: options.writerLease, authentication: options.authentication }));
   return opening;
+}
+function v28IdentityOwner(opening: LocalVolumeProfileOpening, authentication: object,
+  admission: ReviewedInstallationAdmission): Readonly<V28IdentityOwner> {
+  const selected = v28IdentityOwners.get(opening), owner = ownedLocalVolumeProfileContext(opening);
+  if (!selected || selected.owner !== owner || selected.authentication !== authentication
+    || selected.auth !== localAuthenticationIdentityAuthority(authentication) || selected.admission !== admission
+    || owner.installationCheckpointId !== "portable-runtime/v28") unavailable();
+  return selected;
+}
+/** Consume only the actual opening-issued owner and its original auth/admission
+ * tuple. A copied opening, different authentication or new admission cannot
+ * substitute a remembered inspection success for this live capability. */
+export function ownedLocalVolumeIdentityV28Candidate(opening: LocalVolumeProfileOpening,
+  authentication: object, admission: ReviewedInstallationAdmission): Readonly<InstalledIdentityExecutionOwnerV28Candidate> {
+  const selected = v28IdentityOwner(opening, authentication, admission);
+  selected.owner.assertCurrent(); return selected.identity;
+}
+/** No caller callback enters this closed all-read guard. Actual opening state
+ * and physical/native binding remain current, while equivalent registered
+ * identity owners share one fresh original schema/ledger proof per invocation. */
+export function createLocalVolumeIdentityGuardV28Candidate(opening: LocalVolumeProfileOpening,
+  authentication: object, admission: ReviewedInstallationAdmission,
+  issued: readonly InstalledIdentityExecutionOwnerV28Candidate[]): Readonly<{ assertCurrent(): void }> {
+  const selected = v28IdentityOwner(opening, authentication, admission);
+  const physical = physicalAssertions.get(opening); if (!physical) unavailable();
+  const group = createInstalledIdentityExecutionGuardGroupV28Candidate([selected.identity, ...issued]);
+  return Object.freeze({ assertCurrent() { physical(); group.assertCurrent(); } });
 }
 /** Borrow only the original V28 opening from the same installed parent. A
  * structurally compatible opening or different auth service cannot satisfy it. */
@@ -210,15 +252,19 @@ function createCatalogLocalVolumeProfileOpening(options: LocalVolumeProfileOwner
   if (byId.size !== descriptors.length || byProfile.size !== descriptors.length) unavailable();
   let closed = false, closing: Promise<void> | undefined;
   const records = new Set<RecordOwner>();
-  function assertCurrent() {
+  function assertPhysicalCurrent() {
     if (closed) unavailable();
-    installedIdentity?.assertCurrent();
     assertLinuxWriterLeaseBinding(writerLease, database, nativeDatabase);
     database.primary();
     const row = nativeDatabase.prepare("SELECT installation_id,catalog_id,schema_checkpoint,schema_sha256,created_at FROM node_installation WHERE singleton=1").get();
     if (!row || row.installation_id !== installation.installationId || row.catalog_id !== installation.catalogId
       || row.schema_checkpoint !== installation.checkpointId || row.schema_sha256 !== installation.schemaSha256
       || row.created_at !== installation.createdAt) unavailable();
+  }
+  function assertCurrent() {
+    if (closed) unavailable();
+    installedIdentity?.assertCurrent();
+    assertPhysicalCurrent();
   }
   function assertAdministrator(actor: string) {
     assertCurrent();
@@ -389,5 +435,5 @@ function createCatalogLocalVolumeProfileOpening(options: LocalVolumeProfileOwner
       closing = (async () => { await Promise.all([...records].map(dispose)); })(); return closing;
     },
   });
-  owners.set(opening, owner); return opening;
+  owners.set(opening, owner); physicalAssertions.set(opening, assertPhysicalCurrent); return opening;
 }

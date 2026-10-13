@@ -5,7 +5,7 @@ import { consumeLocalFabubloxExecutionPermissionV28Candidate, ownedLocalFabublox
 import type { PreparedFabubloxPayload } from "../../worker/imports/fabublox-payload";
 import { localAuthenticationIdentityAuthority } from "../auth/local-auth-http";
 import { captureInstalledIdentityExecutionOwner } from "../auth/installed-identity-execution-owner";
-import { captureInstalledIdentityExecutionOwnerV28Candidate } from "../auth/installed-identity-execution-owner-v28-candidate";
+import { ownedLocalVolumeIdentityV28Candidate } from "../storage/local-volume-profile-opening";
 import { consumeLocalCommentExecutionPermissionV28Candidate, ownedLocalCommentPermissionV28Candidate,
   type LocalCommentPermissionV28Candidate } from "./local-comment-permission-v28-candidate";
 import type { LocalVolumeProfileOpeningV28Candidate } from "../storage/local-volume-profile-opening-v28-candidate";
@@ -174,15 +174,17 @@ function createOwnedLocalUploadExecution(options: {
   // lifetime comes only from this genuine identity owner's immutable policy.
   const auth = localAuthenticationIdentityAuthority(authentication);
   const identityOwner = permission
-    ? captureInstalledIdentityExecutionOwnerV28Candidate(auth.identity, owner.database, owner.nativeDatabase, admission)
+    ? ownedLocalVolumeIdentityV28Candidate(opening, authentication, admission)
     : captureInstalledIdentityExecutionOwner(auth.identity, owner.database, owner.nativeDatabase, admission);
   const capturedPolicy = identityOwner.policy, installation = identityOwner.installation;
   const idleLifetimeMs = capturedPolicy.idleLifetimeMs;
   const session = Object.freeze({ tokenHash: auth.captureSessionDigest(request), actor });
   function assertAuthenticationOwner(): void {
-    owner.assertCurrent();
-    identityOwner.assertCurrent();
-    permission?.assertCurrent();
+    // A consumed V28 permission owns the concrete opening-bound issuer: its
+    // synchronous current check covers this same privately issued opening
+    // identity and physical lifetime. Generic/V26 keeps its original guards.
+    if (permission) permission.assertCurrent();
+    else { owner.assertCurrent(); identityOwner.assertCurrent(); }
     if (packageRequest) auth.currentSessionPredicate(request, actor);
     if (localAuthenticationIdentityAuthority(authentication) !== auth
       || auth.captureSessionDigest(request) !== session.tokenHash)
