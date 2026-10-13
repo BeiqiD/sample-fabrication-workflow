@@ -199,8 +199,8 @@ def main():
         # Keep both inputs empty and private, with distinct fresh identities.
         qa_user_config = qa_npm_cache/'empty-user.npmrc'
         qa_global_config = qa_npm_cache/'empty-global.npmrc'
-        for config in (qa_user_config, qa_global_config):
-            fd = os.open(config, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        for qa_config_path in (qa_user_config, qa_global_config):
+            fd = os.open(qa_config_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
             os.close(fd)
         command('qa-locked-dependencies',['npm','ci','--no-audit','--no-fund','--prefix',str(QA),'--cache',str(qa_npm_cache),'--userconfig='+str(qa_user_config),'--globalconfig='+str(qa_global_config),'--strict-ssl=true','--registry=https://registry.npmjs.org'],timeout=180)
         command('qa-companion-types',['node',str(QA/'node_modules/typescript/bin/tsc'),'--noEmit','-p',str(QA/'scripts/qa/node-docker-current-enabled/tsconfig.qa-companions.json')],timeout=90)
