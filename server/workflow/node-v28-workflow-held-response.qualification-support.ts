@@ -92,6 +92,7 @@ record('preload-ready',{actualReadPrototype:true,originalProbeCloseAcknowledged:
 interface HoldOwner {
   readonly root: string; readonly armPath: string; readonly releasePath: string;
   workflow?: WorkflowCliOwner; arm?: Promise<void>; release?: Promise<void>; finish?: Promise<ClosedWorkflowCli>;
+  startupObservation?: Promise<void>;
   failed: boolean; failure?: unknown;
 }
 export interface HeldReadProof {
@@ -215,7 +216,34 @@ export async function launchHeldWorkflowCli(options: {
         return proof;
       },
     });
-  } catch (error) { remember(owner, error); throw error; }
+  } catch (error) {
+    remember(owner, error);
+    // Startup rejection previously discarded the already closed original
+    // child's fixed diagnostics. Preserve them privately before propagating
+    // the same failure; this observation neither cleans up nor admits work.
+    owner.startupObservation ??= Promise.resolve().then(async () => {
+      const workflow = owner.workflow;
+      if (workflow?.ended && workflow.originalClose) {
+        const closed = await workflow.originalClose;
+        await publishControl(join(root, "held-read-startup-original-child.json"), {
+          schema: "actual-held-workflow-startup-original-child/1", originalChildCloseAcknowledged: true,
+          pid: workflow.child?.pid ?? null, stopSent: workflow.stopSent,
+          code: closed.code, signal: closed.signal, stdout: closed.stdout, stderr: closed.stderr,
+          applicationCloseAcknowledged: false, qualificationPassed: false,
+        });
+      } else {
+        await publishControl(join(root, "held-read-startup-original-child.json"), {
+          schema: "actual-held-workflow-startup-original-child/1", originalChildCloseAcknowledged: false,
+          pid: workflow?.child?.pid ?? null, stopSent: workflow?.stopSent ?? false,
+          applicationCloseAcknowledged: false, qualificationPassed: false,
+        });
+      }
+    });
+    void owner.startupObservation.catch(() => undefined);
+    try { await owner.startupObservation; }
+    catch (observation) { throw new AggregateError([error, observation], "Original held Workflow startup and private child observation failed"); }
+    throw error;
+  }
 }
 
 /** Read-only selection of an actual immutable private archive, never a seeded
