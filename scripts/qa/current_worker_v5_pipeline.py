@@ -19,6 +19,9 @@ CASES = {
   'retains the original committed native R2 PUT rejection and unknown V5 attempt without replay or deletion']),
  'worker-v5-held': ('scripts/qa/worker-v5-held-r2-node-roundtrip.qualification.ts', [
   'captures the original held native R2 V28 V5 archive and restores exact recovery evidence into a fresh coherent Node distribution']),
+ 'worker-v5-public-historical': ('scripts/qa/worker-v5-public-historical-native.qualification.ts', [
+  'restores the original zero-File V5 archive through genuine Access public FP5 upload, jobs and inert report',
+  'restores the original nonempty V5 through genuine Access public FP5 and recaptures held native R2 through a real backup job into fresh current Node']),
  'worker-v5-bound-producer': ('server/operations/current-v28-bound-comment-backup.qualification.ts', [
   'captures one real bound LOCAL attachment without creating a legacy shadow head or changing its typed canonical consumer']),
  'worker-v5-bound-payload': ('scripts/qa/worker-v5-bound-local-r2-payload-native.qualification.ts', [
@@ -27,7 +30,7 @@ CASES = {
 CONFIGS = dict(zip(CASES, (
  'current-v28-post-restore-source-preparation.vitest.config.mts', 'current-v28-nonempty-backup-restore.vitest.config.mts',
  'worker-v5-fresh-target-native.vitest.config.mts', 'worker-v5-local-r2-payload-native.vitest.config.mts',
- 'worker-v5-held-r2-node-roundtrip.vitest.config.mts', 'current-v28-bound-comment-backup.vitest.config.mts',
+ 'worker-v5-held-r2-node-roundtrip.vitest.config.mts', 'worker-v5-public-historical-native.vitest.config.mts', 'current-v28-bound-comment-backup.vitest.config.mts',
  'worker-v5-bound-local-r2-payload-native.vitest.config.mts')))
 STAGES = (*TOOLS, *CASES)
 ORDER = ('types', *TOOLS, *CASES)
@@ -35,14 +38,16 @@ PRODUCERS = {'worker-v5-zero': 'ZERO', 'worker-v5-nonempty': 'NONEMPTY', 'worker
 INPUT_NAMES = {'worker-v5-zero': 'worker-v5-zero-inputs.json', 'worker-v5-nonempty': 'worker-v5-nonempty-inputs.json',
  'worker-v5-bound-producer': 'worker-v5-bound-inputs.json'}
 BUDGETS = {'worker-v5-types': 300, 'worker-v5-build': 300, 'worker-v5-constructor': 240,
- 'worker-v5-payload': 300, 'worker-v5-bound-producer': 120}
+ 'worker-v5-payload': 300, 'worker-v5-bound-producer': 120, 'worker-v5-public-historical': 300}
 CASE_BUDGETS = {'worker-v5-zero': [20000], 'worker-v5-nonempty': [20000],
  'worker-v5-constructor': [60000,120000], 'worker-v5-payload': [120000,120000],
- 'worker-v5-held': [120000], 'worker-v5-bound-producer': [60000], 'worker-v5-bound-payload': [120000]}
+ 'worker-v5-held': [120000], 'worker-v5-public-historical': [120000,120000], 'worker-v5-bound-producer': [60000], 'worker-v5-bound-payload': [120000]}
 SCOPE = ('Fresh current committed producers and fixed distribution; zero/nonempty Node V5 to native D1 V28 constructor; '
  'unbound LOCAL to R2 and original committed PUT-ACK unknown retention; real held R2 V5 to fresh inert current Node; '
  'one native-bound canonical File with zero present legacy heads. Cold candidate APIs only; no public Recovery routing, '
  'combined live application, elapsed cadence, nonzero-head transfer, all-provider parity or activation qualification.')
+
+PUBLIC_HISTORICAL_SCOPE = ('Genuine authenticated Access public FP5 V5 zero/nonempty upload/validation/original job/ready report; fresh inert native D1/R2; actual public held R2 backup job and fresh compiled current Node restore. Original scheduled dispatch only; no elapsed cadence, planned-window, durable backup-cleanup, all-provider or automatic cutover qualification.')
 
 def tree(head):
  env = dict(os.environ, GIT_OPTIONAL_LOCKS='0')
@@ -156,6 +161,29 @@ def finish(stage, record, run_root, fixture):
    proofs.append({'originalProofSha256':hashlib.sha256(raw).hexdigest(),'originalProofBytes':len(raw),
     'originalNativeDisposed':True,'wholeQuickCheck':True,'foreignKeys':True,'durableMainAndWalUnchanged':True,'physicalPathsAndInodesUnchanged':True})
   record['actualClosedNativeProofs'] = proofs
+  if stage == 'worker-v5-public-historical':
+   originals = []
+   for path in fresh:
+    raw = read_private(path.parent / 'original-public-v5-historical-receipt.json'); value = json.loads(raw)
+    assert value['schema'] == 'genuine-access-public-v5-historical-native/1' and value['files'] in (0,1)
+    assert value['cadenceSeconds'] == 120 and value['maxStepMs'] == 60000 and value['elapsedCadenceQualified'] is False
+    assert all(value[key] is True for key in ('authenticatedActualProductionHandler','actualDurablePublicUploadAndRecovery',
+     'exactOriginalTypedCellsAndRowids','closedAppendCensus','accountsDisabled','groupDefaultDisabled','executionDefaultsDisabled',
+     'originalPairFirstCloseAcknowledged','originalNativeDisposed')) and value['automaticCutover'] is False
+    assert value['sourceFullIntegrity'] == value['targetFullIntegrity'] == 'ok'
+    capture = value['captureProof']
+    if value['files'] == 1:
+     assert capture['realAcceptedBackupJob'] and capture['archiveFormat'] == 'v5' and capture['payloads'] == 1 and capture['payloadBytes'] == 68
+     assert capture['exactTypedRowsAndRowids'] and capture['holdsRetainedUntilDurableCleanupProof'] and capture['compiledCurrentNodeRestore']
+     assert capture['coherentDistributionManifestSha256'] == distribution(run_root,head,source_tree)['distributionManifestSha256']
+    else: assert capture is None
+    originals.append({'originalProofSha256':hashlib.sha256(raw).hexdigest(),'originalProofBytes':len(raw),'files':value['files'],
+     'authenticatedActualProductionHandler':True,'actualDurablePublicUploadAndRecovery':True,'exactOriginalTypedCellsAndRowids':True,
+     'closedAppendCensus':True,'originalPairFirstCloseAcknowledged':True,'originalNativeDisposed':True,
+     'sourceFullIntegrity':'ok','targetFullIntegrity':'ok','actualPublicHeldR2ToCurrentNode':value['files'] == 1,
+     'cadenceSeconds':120,'maxStepMs':60000,'elapsedCadenceQualified':False,'automaticCutover':False})
+   assert sorted(value['files'] for value in originals) == [0,1]
+   record['actualPublicHistoricalV5'] = originals
   if stage == 'worker-v5-held':
    original = fresh[0].parent / 'original-node-restore-receipt.json'; raw = read_private(original); value = json.loads(raw)
    assert value['archiveFormat'] == 'v5' and value['actualBytes'] == 68
@@ -167,7 +195,7 @@ def finish(stage, record, run_root, fixture):
 
 def public_receipt(record, summary):
  stage = record['stage']; value = {'schema':'current-worker-v5-original-owned-ci/1','stage':stage,'head':record['head'],
-  'tree':record['tree'],'status':record['status'],'scope':SCOPE,'outerSeconds':record['outerSeconds'],
+  'tree':record['tree'],'status':record['status'],'scope':PUBLIC_HISTORICAL_SCOPE if stage=='worker-v5-public-historical' else SCOPE,'outerSeconds':record['outerSeconds'],
   'caseTimeoutsMs':CASE_BUDGETS.get(stage),'minimumBeforeChild':record['minimumBeforeChild'],'minimumAfterChild':536870912,
   'originalChildWaitObservationPresent':'originalChildWaited' in record,'originalChildWaited':record.get('originalChildWaited') is True,
   'originalCloseObservationPresent':'ownedClosureProven' in record,'ownedClosureProven':record.get('ownedClosureProven') is True,
@@ -178,7 +206,7 @@ def public_receipt(record, summary):
   value.update(selectedFile=CASES[stage][0],selectedTitles=CASES[stage][1],qualificationSourceSha256=record['qualificationSourceSha256'])
  if 'actualResults' in record:
   value['actualResults'] = {key:record['actualResults'][key] for key in ('actualTotal','actualPassed','actualFailed','actualPending','reporterSuccess','exactOriginalSelection','pass')}
- for key in ('actualClosedNativeProofs','actualHeldNodeRestore','originalOwnedToolsProofSha256'):
+ for key in ('actualClosedNativeProofs','actualHeldNodeRestore','actualPublicHistoricalV5','originalOwnedToolsProofSha256'):
   if key in record: value[key] = record[key]
  if 'currentProducer' in record:
   value['currentProducer'] = {key:record['currentProducer'][key] for key in ('inputsSha256','inputsBytes','archiveSha256','archiveBytes',

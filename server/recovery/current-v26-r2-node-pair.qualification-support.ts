@@ -17,6 +17,8 @@ import { recoveryTableSnapshotSql } from '../../shared/contracts/system-recovery
 import type { ExportSchemaObject } from '../../shared/contracts/export';
 import { stripReviewedCurrentCloudflarePlatformSchema } from '../../shared/contracts/cloudflare-platform-schema';
 import { checkedPortableApplicationSchemaV26 } from '../../shared/contracts/export-portable-runtime-v26';
+import { checkedPortableApplicationSchemaV28 } from '../../shared/contracts/export-portable-runtime-v28';
+import { PORTABLE_RUNTIME_RECOVERY_TABLES as V28_TABLES } from '../../shared/contracts/portable-runtime-v28-recovery-catalog';
 import { PORTABLE_RUNTIME_RECOVERY_TABLES, PORTABLE_RUNTIME_RECOVERY_MIGRATIONS } from '../../shared/contracts/portable-runtime-v26-recovery-catalog';
 import { canonicalFileObject, canonicalFilePrivateOrigin, closeCanonicalFileClient, closeCanonicalFileProbe,
   consumeCanonicalFileClient, fetchCanonicalFileClient, type CanonicalFileFixtureOwner } from '../collaboration/current-v28-canonical-comment-file.qualification-support';
@@ -40,6 +42,7 @@ interface PairOwner {
   closing?: Promise<void>; accepting: boolean; closed: boolean;
   persistedD1?: string; nativeDatabaseConsistency?: NativeDatabaseConsistency;
   closedDatabaseConsistency?: ClosedDatabaseConsistency;
+  recoveryTarget?: { consistency?: NativeDatabaseConsistency; closed?: ClosedDatabaseConsistency };
 }
 const owners = new Set<PairOwner>();
 const RESERVE = 603_979_776n;
@@ -66,19 +69,19 @@ async function refused(port: number) {
 }
 const schemaSql = "SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema ORDER BY type,name";
 const sha256 = (bytes: string | Uint8Array) => createHash('sha256').update(bytes).digest('hex');
-async function checkedNativeDatabaseSchema(schema: ExportSchemaObject[]) {
+async function checkedNativeDatabaseSchema(schema: ExportSchemaObject[], v28 = false) {
   ensure(schema.length <= 2048 && Buffer.byteLength(JSON.stringify(schema)) <= 2 * 1024 * 1024);
   const platform = stripReviewedCurrentCloudflarePlatformSchema(schema);
-  const admitted = { applicationObjects: await checkedPortableApplicationSchemaV26(platform.applicationObjects), ledgerPresent: platform.ledgerPresent };
+  const admitted = { applicationObjects: await (v28 ? checkedPortableApplicationSchemaV28 : checkedPortableApplicationSchemaV26)(platform.applicationObjects), ledgerPresent: platform.ledgerPresent };
   const names = admitted.applicationObjects.filter(row => row.type === 'table').map(row => row.name).sort();
-  expect(names).toEqual(PORTABLE_RUNTIME_RECOVERY_TABLES.map(row => row.name).sort());
+  expect(names).toEqual((v28 ? V28_TABLES : PORTABLE_RUNTIME_RECOVERY_TABLES).map(row => row.name).sort());
   const checkedTables = ['sqlite_schema', ...names, ...(admitted.ledgerPresent ? ['d1_migrations'] : [])].sort();
   ensure(checkedTables.every(name => /^[a-z][a-z0-9_]*$/.test(name)) && new Set(checkedTables).size === checkedTables.length);
   return { checkedTables, observedSchemaSha256: sha256(JSON.stringify(schema)) };
 }
-async function verifyNativeDatabaseConsistency(database: NativeD1): Promise<NativeDatabaseConsistency> {
+async function verifyNativeDatabaseConsistency(database: NativeD1, v28 = false): Promise<NativeDatabaseConsistency> {
   const schema = await database.prepare(schemaSql).all<ExportSchemaObject>(); ensure(schema.success);
-  const observed = await checkedNativeDatabaseSchema(schema.results);
+  const observed = await checkedNativeDatabaseSchema(schema.results, v28);
   const foreignKeys = await database.prepare('PRAGMA foreign_key_check').all(); ensure(foreignKeys.success);
   expect(foreignKeys.results).toEqual([]);
   // The installed workerd caps one statement's compiler opcodes. Each admitted
@@ -90,21 +93,29 @@ async function verifyNativeDatabaseConsistency(database: NativeD1): Promise<Nati
   }
   return { ...observed, foreignKeyCheckRows: 0 };
 }
-async function verifyClosedOriginalDatabase(owner: PairOwner): Promise<ClosedDatabaseConsistency> {
-  ensure(owner.persistedD1 && owner.nativeDatabaseConsistency);
+async function verifyClosedOriginalDatabase(owner: PairOwner, v28 = false): Promise<ClosedDatabaseConsistency> {
+  const consistency = v28 ? owner.recoveryTarget?.consistency : owner.nativeDatabaseConsistency;
+  ensure(owner.persistedD1 && consistency);
   const files = (await readdir(owner.persistedD1, { recursive: true })).filter((file): file is string =>
     typeof file === 'string' && file.endsWith('.sqlite') && !file.endsWith('metadata.sqlite'));
-  expect(files).toHaveLength(1);
-  const originalDatabaseFile = join(owner.persistedD1, files[0]!);
+  expect(files).toHaveLength(owner.recoveryTarget ? 2 : 1);
+  const matching: string[] = [];
+  for (const name of files) {
+    const path = join(owner.persistedD1, name), database = new DatabaseSync(path, { readOnly: true });
+    try { if (sha256(JSON.stringify(database.prepare(schemaSql).all())) === consistency.observedSchemaSha256) matching.push(path); }
+    finally { database.close(); }
+  }
+  expect(matching).toHaveLength(1);
+  const originalDatabaseFile = matching[0]!;
   const databaseSha256Before = sha256(readFileSync(originalDatabaseFile));
   const exactNative = new DatabaseSync(originalDatabaseFile, { readOnly: true });
   let observed: Awaited<ReturnType<typeof checkedNativeDatabaseSchema>> | undefined;
   try {
     // Read only the exact persisted native file, after original dispose ACK.
     // Complete schema identity prevents substituting a metadata DB or catalog.
-    observed = await checkedNativeDatabaseSchema(exactNative.prepare(schemaSql).all() as unknown as ExportSchemaObject[]);
-    expect(observed).toEqual({ checkedTables: owner.nativeDatabaseConsistency.checkedTables,
-      observedSchemaSha256: owner.nativeDatabaseConsistency.observedSchemaSha256 });
+    observed = await checkedNativeDatabaseSchema(exactNative.prepare(schemaSql).all() as unknown as ExportSchemaObject[], v28);
+    expect(observed).toEqual({ checkedTables: consistency.checkedTables,
+      observedSchemaSha256: consistency.observedSchemaSha256 });
     expect(exactNative.prepare('PRAGMA integrity_check').all()).toEqual([{ integrity_check: 'ok' }]);
     expect(exactNative.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
   } finally { exactNative.close(); }
@@ -144,6 +155,10 @@ function close(owner: PairOwner): Promise<void> {
       try { ensure(runtimeClosed); owner.closedDatabaseConsistency = await verifyClosedOriginalDatabase(owner); }
       catch (error) { failures.push(error); }
     }
+    if (owner.recoveryTarget?.consistency) {
+      try { ensure(runtimeClosed); owner.recoveryTarget.closed = await verifyClosedOriginalDatabase(owner, true); }
+      catch (error) { failures.push(error); }
+    }
     if (failures.length) throw new AggregateError(failures, 'Original genuine R2 pair work or first close failed');
     owner.closed = true; owners.delete(owner);
   })();
@@ -172,15 +187,23 @@ export interface GenuineR2Pair {
   closedDatabaseConsistency(): ClosedDatabaseConsistency;
   schedule(): Promise<void>;
   close(): Promise<void>;
+  readonly recoveryTarget?: {
+    readonly id: string;
+    request: GenuineR2Pair["request"];
+    readRows: GenuineR2Pair["readRows"];
+    schedule(): Promise<void>;
+    verifyNativeDatabaseConsistency(): Promise<void>;
+    closedDatabaseConsistency(): ClosedDatabaseConsistency;
+  };
 }
-export interface GenuineR2PairOptions { fileEvidenceOperator?: boolean }
+export interface GenuineR2PairOptions { fileEvidenceOperator?: boolean; recoveryTargetId?: string }
 export async function prepareGenuineCurrentV26R2Pair(parent: string, options: GenuineR2PairOptions = {}): Promise<GenuineR2Pair> {
   const owner: PairOwner = { client: { clients: new Set(), quarantined: false }, originalWork: [], outbound: [], accepting: true, closed: false };
   owners.add(owner);
   let failed = false, failure: unknown;
   try {
     assertPairReserve(parent);
-    const root = await original(owner, () => mkdtemp(join(parent, '.current-v26-r2-node-pair-')));
+    const root = await original(owner, () => mkdtemp(join(parent, options.recoveryTargetId===undefined?'.current-v26-r2-node-pair-':'.native-v5-target-')));
     await original(owner, () => chmod(root, 0o700));
     console.info('Retained genuine V26 R2 pair fixture:', root);
     const source = fileURLToPath(new URL('../../', import.meta.url));
@@ -217,8 +240,9 @@ export async function prepareGenuineCurrentV26R2Pair(parent: string, options: Ge
     const origin = await original(owner, () => canonicalFilePrivateOrigin(owner.client)); owner.origin = origin;
     const sourceNamespaceInstallationId = randomUUID(), bucketName = `current-r2-pair-${randomUUID().replaceAll('-', '')}`;
     ensure(owner.accepting);
-    owner.runtime = new Miniflare({ modules: true, script, compatibilityDate: '2026-07-20', host: '127.0.0.1', port: Number(new URL(origin).port),
-      d1Databases: { DB: randomUUID() }, d1Persist: join(root, 'd1'), r2Buckets: { ASSETS: bucketName }, r2Persist: join(root, 'r2'),
+    const sourceDatabaseId = randomUUID(), targetDatabaseId = randomUUID();
+    const nativeOptions = { modules: true, script, compatibilityDate: '2026-07-20', host: '127.0.0.1', port: Number(new URL(origin).port),
+      d1Databases: { DB: sourceDatabaseId }, d1Persist: join(root, 'd1'), r2Buckets: { ASSETS: bucketName }, r2Persist: join(root, 'r2'),
       bindings: { AUTH_MODE: 'access', ACCESS_TEAM_DOMAIN: issuer, ACCESS_AUD: audience, ALLOWED_EMAILS: `${actor},${reader}`, SYSTEM_ADMIN_EMAILS: actor,
         ...(options.fileEvidenceOperator === true ? { FILE_EVIDENCE_OPERATOR_EMAILS: actor } : {}),
         R2_BOOTSTRAP_NAMESPACE: JSON.stringify({ kind: 'local-r2', installationId: sourceNamespaceInstallationId, bucketName }) },
@@ -228,9 +252,21 @@ export async function prepareGenuineCurrentV26R2Pair(parent: string, options: Ge
           const response = await fetch(request.url, { redirect: 'error', signal: AbortSignal.timeout(5000) });
           return new Response(await response.arrayBuffer(), { status: response.status, headers: response.headers });
         })(); owner.outbound.push(work); void work.catch(() => undefined); return work;
-      } });
+      } };
+    let sourceWorkerName: string | undefined;
+    if (options.recoveryTargetId === undefined) owner.runtime = new Miniflare(nativeOptions);
+    else {
+      ensure(/^[A-Za-z0-9][A-Za-z0-9-]{0,127}$/.test(options.recoveryTargetId));
+      sourceWorkerName = 'original-v5-public-source'; owner.recoveryTarget = {};
+      const { host, port, d1Persist, r2Persist, log, ...workerOptions } = nativeOptions;
+      owner.runtime = new Miniflare({ host, port, d1Persist, r2Persist, log, workers: [
+        { ...workerOptions, name: sourceWorkerName, d1Databases: { DB: sourceDatabaseId, RECOVERY_DB: targetDatabaseId },
+          bindings: { ...workerOptions.bindings, RECOVERY_TARGET_ID: options.recoveryTargetId } },
+        { ...workerOptions, name: 'original-v5-public-restored', d1Databases: { DB: targetDatabaseId } },
+      ] });
+    }
     expect((await original(owner, () => owner.runtime!.ready)).origin).toBe(origin);
-    const database = await original(owner, () => owner.runtime!.getD1Database('DB'));
+    const database = await original(owner, () => owner.runtime!.getD1Database('DB', sourceWorkerName));
     const migrationDirectory = join(source, 'migrations');
     const names = (await original(owner, () => readdir(migrationDirectory))).filter(name => name.endsWith('.sql')).sort();
     expect(names).toEqual(PORTABLE_RUNTIME_RECOVERY_MIGRATIONS.map(migration => migration.name));
@@ -241,8 +277,8 @@ export async function prepareGenuineCurrentV26R2Pair(parent: string, options: Ge
       expect(result.every(item => item.success)).toBe(true);
     } // Original reviewed D1 bootstrap only. No business/profile/authority/ledger SQL is seeded.
     const wranglerLedgerPresent = Boolean(await original(owner, () => database.prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='d1_migrations'").first()));
-    const bucket = await original(owner, () => owner.runtime!.getR2Bucket('ASSETS'));
-    const worker = await original(owner, () => owner.runtime!.getWorker());
+    const bucket = await original(owner, () => owner.runtime!.getR2Bucket('ASSETS', sourceWorkerName));
+    const worker = await original(owner, () => owner.runtime!.getWorker(sourceWorkerName));
     owner.persistedD1 = join(root, 'd1');
     async function request(path: string, method = 'GET', body?: HttpBody, headers: Record<string, string> = {}, identity: 'admin' | 'reader' | 'none' = 'admin') {
       ensure(owner.accepting);
@@ -252,7 +288,29 @@ export async function prepareGenuineCurrentV26R2Pair(parent: string, options: Ge
       const value = await consumeCanonicalFileClient(response.client, 'arrayBuffer'); ensure(value instanceof ArrayBuffer);
       return { response: response.response, value };
     }
-    return Object.freeze({ root, wranglerLedgerPresent, sourceNamespaceInstallationId, actor, request,
+    const targetDatabase = owner.recoveryTarget ? await original(owner, () => owner.runtime!.getD1Database('DB', 'original-v5-public-restored')) : undefined;
+    const targetWorker = owner.recoveryTarget ? await original(owner, () => owner.runtime!.getWorker('original-v5-public-restored')) : undefined;
+    const recoveryTarget = owner.recoveryTarget && targetDatabase && targetWorker && options.recoveryTargetId ? {
+      id: options.recoveryTargetId,
+      request: (path: string, method = 'GET', body?: HttpBody, headers: Record<string, string> = {}, identity: 'admin' | 'reader' | 'none' = 'admin') => original(owner, async () => {
+        // Same original compiled production handler, actual target D1/R2 bindings
+        // and signed Access middleware. No actor setter or authority callback.
+        const response = await targetWorker.fetch('https://original-v5-restored.invalid' + path, { method,
+          headers: { ...headers, ...(identity === 'none' ? {} : { 'cf-access-jwt-assertion': identity === 'admin' ? adminToken : readerToken }) },
+          ...(body === undefined ? {} : { body }), redirect: 'manual', signal: AbortSignal.timeout(5000) });
+        const value = await response.arrayBuffer();
+        return { response: new Response(value, { status: response.status, headers: response.headers }), value };
+      }),
+      readRows: (sql: string, bindings: readonly (string | number | null)[] = []) => original(owner, async () => {
+        ensure(!/[;]|--|\/\*/.test(sql) && /^SELECT\b/i.test(sql.trim()));
+        const result = await targetDatabase.prepare(sql).bind(...bindings).all<Record<string, unknown>>();
+        ensure(result.success); return result.results;
+      }),
+      async schedule() { const result = await original(owner, () => targetWorker.scheduled({ scheduledTime: new Date(), cron: '*/2 * * * *' })); expect(result.outcome).toBe('ok'); },
+      verifyNativeDatabaseConsistency: () => original(owner, async () => { ensure(owner.recoveryTarget); owner.recoveryTarget.consistency = await verifyNativeDatabaseConsistency(targetDatabase, true); }),
+      closedDatabaseConsistency() { ensure(owner.closed && owner.recoveryTarget?.closed); return structuredClone(owner.recoveryTarget.closed); },
+    } : undefined;
+    return Object.freeze({ root, wranglerLedgerPresent, sourceNamespaceInstallationId, actor, request, recoveryTarget,
       readRows: (sql: string, bindings: readonly (string | number | null)[] = []) => original(owner, async () => {
         ensure(!/[;]|--|\/\*/.test(sql) && (/^SELECT\b/i.test(sql.trim())
           || /^PRAGMA (?:foreign_key_check|integrity_check|defer_foreign_keys)$/i.test(sql.trim())));
