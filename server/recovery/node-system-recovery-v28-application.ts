@@ -27,6 +27,7 @@ import { checkedSystemRecoveryBackupInput, checkedSystemRecoveryUploadInput, che
   type SystemRecoveryCapabilities, type SystemRecoveryJobStatus } from "../../shared/contracts/system-recovery.ts";
 import { openNodePrivateRecoveryArtifacts, type NodePrivateRecoveryArtifacts } from "./node-private-artifacts.ts";
 import { createNodeV28ArchiveStages } from "./node-v28-archive-stages.ts";
+import { createNodeV28OriginalSourceResume, checkedNodeV28SourceResumeInput } from "./node-v28-original-source-resume.ts";
 import { createNodeRecoverySourceMaintenance } from "./node-source-maintenance.ts";
 import { openNodeV28RecoveryTarget, type NodeV28RecoveryTarget } from "./node-v28-recovery-target.ts";
 import { createNodeV28TargetStages } from "./node-v28-target-stages.ts";
@@ -98,12 +99,28 @@ const issuedChildren = new WeakMap<object, Readonly<{
   database: SqliteCapability; nativeDatabase: DatabaseSync; writerLease: LinuxWriterLease;
   authentication: object; sourceBarrier: object; opening: LocalVolumeProfileOpening; assertCurrent(): void;
 }>>();
+declare const sourceResumeHostBrand: unique symbol;
+export interface NodeV28OriginalSourceResumeHost { readonly [sourceResumeHostBrand]: true }
+const sourceResumeHosts = new WeakMap<NodeV28OriginalSourceResumeHost, Readonly<{
+  opening: LocalVolumeProfileOpening; authentication: object; admission: ReviewedInstallationAdmission; request: Request; actor: string;
+  current(): void; quiet(): void;
+}>>();
+/** Original Recovery-only request ownership, never a caller callback bag. */
+export function assertNodeV28OriginalSourceResumeHost(scope: NodeV28OriginalSourceResumeHost, opening: LocalVolumeProfileOpening,
+  authentication: object, admission: ReviewedInstallationAdmission, request: Request, actor: string, quiet = false): void {
+  const original = sourceResumeHosts.get(scope);
+  if (!original || original.opening !== opening || original.authentication !== authentication || original.admission !== admission
+    || original.request !== request || original.actor !== actor) throw fail("Original source resume host is unavailable", 503);
+  original.current(); if (quiet) original.quiet();
+}
+
 const routes = Object.freeze([
   ["POST", "/api/auth/login"], ["GET", "/api/auth/session"], ["POST", "/api/auth/logout"], ["POST", "/api/auth/rotate"],
   ["GET", "/api/health"], ["GET", "/api/ready"],
   ["GET", "/api/system-recovery/capabilities"], ["POST", "/api/system-recovery/executor"],
   ["GET", "/api/system-recovery/maintenance"], ["POST", "/api/system-recovery/maintenance"],
   ["GET", "/api/system-recovery/maintenance/requests/:requestId"],
+  ["POST", "/api/system-recovery/source-resume"], ["GET", "/api/system-recovery/source-resume/requests/:requestId"],
   ["GET", "/api/system-recovery/backup-preview"], ["GET", "/api/system-recovery/jobs"], ["POST", "/api/system-recovery/jobs"],
   ["POST", "/api/system-recovery/recoveries"],
   ["GET", "/api/system-recovery/jobs/:jobId/report"], ["POST", "/api/system-recovery/jobs/:jobId/cutover"],
@@ -744,6 +761,41 @@ function createRecoveryEngine(options: Omit<OriginalRecoveryOptions, "hasher"> &
         }
       }
       sessionCurrent(c.req.raw, actor); return c.json(result); });
+    const sourceResume = (request: Request, actor: string) => {
+      if (borrowed) throw fail("Explicit source resume requires the stopped-business Recovery-only profile", 409);
+      const scope = Object.freeze({}) as NodeV28OriginalSourceResumeHost;
+      sourceResumeHosts.set(scope, Object.freeze({ opening: owner.opening!, authentication: auth!, admission, request, actor,
+        current() { sessionCurrent(request, actor); owner.artifacts!.checkpoint(); if (request.signal.aborted) throw fail("Source resume request has ended", 409); },
+        quiet() {
+          if (owner.dispatch || owner.pending.size !== 1 || owner.bodies.size || owner.artifactScopes.size || owner.ingressBodies.size !== 1)
+            throw fail("Original Recovery work must acknowledge its drain before source resume", 409);
+        },
+      }));
+      return createNodeV28OriginalSourceResume({ scope, opening: owner.opening!, authentication: auth!, admission, request, actor });
+    };
+    app.get("/api/system-recovery/source-resume/requests/:requestId", async c => {
+      const actor = c.get("userEmail"); requestOwner(c.req.raw, actor);
+      const result = await sourceResume(c.req.raw, actor).receipt(c.req.param("requestId"));
+      if (!result) throw fail("Source resume request has not been accepted", 404);
+      sessionCurrent(c.req.raw, actor); return c.json(result);
+    });
+    app.post("/api/system-recovery/source-resume", async c => {
+      const actor = c.get("userEmail"); requestOwner(c.req.raw, actor);
+      const input = await checkedInput(c.req.raw, checkedNodeV28SourceResumeInput, 4096);
+      const control = sourceResume(c.req.raw, actor), prior = await control.accepted(input);
+      if (prior) { sessionCurrent(c.req.raw, actor); return c.json(prior); }
+      const quiet = () => {
+        sessionCurrent(c.req.raw, actor);
+        if (owner.dispatch || owner.pending.size !== 1 || owner.bodies.size || owner.artifactScopes.size || owner.ingressBodies.size !== 1)
+          throw fail("Original Recovery work must acknowledge its drain before source resume", 409);
+        control.assertCurrent(input);
+      };
+      quiet(); stages!.assertDrained();
+      const job = await control.backup(input); owner.artifacts!.assertJob(job); quiet();
+      const records = await stages!.verifySourceResume(job, async () => { quiet(); return true; }, c.req.raw.signal, c.req.raw);
+      quiet(); stages!.assertDrained(); owner.artifacts!.assertJob(job);
+      const result = await control.commit(input, records); sessionCurrent(c.req.raw, actor); return c.json(result);
+    });
     app.post("/api/system-recovery/executor", async c => { const actor = c.get("userEmail"), repo = requestOwner(c.req.raw, actor);
       const input = await checkedInput(c.req.raw, value => {
         if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).join() !== "enabled"
