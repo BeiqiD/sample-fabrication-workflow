@@ -113,9 +113,12 @@ export function createNodeV28JobScheduler(options: {
     if (active) return Promise.reject(new Error("V28 scheduler is busy"));
     const original = Promise.resolve().then(() => writerLease.withWriter(async () => {
       physical();
+      // Visit each fixed family once. Receipt acknowledgements update the
+      // next dispatch's cursor without changing this dispatch's cycle.
+      const firstChoice = index;
       for (let offset = 0; offset < families.length; offset++) {
         if (phase !== "open") throw failed ? failure : new Error("V28 scheduler admission is closed");
-        const selected = (index + offset) % families.length, family = families[selected]!, port = ports[family];
+        const selected = (firstChoice + offset) % families.length, family = families[selected]!, port = ports[family];
         if (await port.eligible() !== true) { physical(); continue; }
         physical(); activeFamily = family;
         const reserved = await cursorOwner.reserve(family); physical();
