@@ -207,7 +207,7 @@ export function canonicalFileObject(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Actual JSON object required");
   return value as Record<string, unknown>;
 }
-async function listenCanonicalFileApplication(owner: CanonicalFileFixtureOwner, origin: string) {
+export async function listenCanonicalFileApplication(owner: CanonicalFileFixtureOwner, origin: string) {
   const server = owner.application!.server;
   await new Promise<void>((resolveListen, reject) => {
     server.once("error", reject); server.listen(Number(new URL(origin).port), "127.0.0.1", () => {
@@ -215,7 +215,7 @@ async function listenCanonicalFileApplication(owner: CanonicalFileFixtureOwner, 
     });
   });
 }
-function canonicalFileClient(owner: CanonicalFileFixtureOwner, origin: string) {
+export function canonicalFileClient(owner: CanonicalFileFixtureOwner, origin: string) {
   async function request(path: string, method = "GET", input?: unknown, session?: CanonicalFileSession, extra: Record<string, string> = {}) {
     const delivery = await fetchCanonicalFileClient(owner, `${origin}${path}`, { method,
       headers: { ...(session ? { cookie: session.cookie } : {}), ...(method === "GET" ? {} : { origin, "content-type": "application/json",
@@ -225,7 +225,7 @@ function canonicalFileClient(owner: CanonicalFileFixtureOwner, origin: string) {
     const value: unknown = text ? JSON.parse(text) : null;
     return { status: delivery.response.status, headers: delivery.response.headers, text, value };
   }
-  async function raw(path: string, method: "GET" | "PUT", session: CanonicalFileSession, body?: Uint8Array<ArrayBuffer>, extra: Record<string, string> = {}) {
+  async function raw(path: string, method: "GET" | "POST" | "PUT", session: CanonicalFileSession, body?: Uint8Array<ArrayBuffer>, extra: Record<string, string> = {}) {
     return fetchCanonicalFileClient(owner, `${origin}${path}`, { method,
       headers: { cookie: session.cookie, ...(method === "GET" ? {} : { origin, "x-sfw-csrf": session.csrf }), ...extra },
       ...(body === undefined ? {} : { body }), signal: AbortSignal.timeout(5000), redirect: "manual" });

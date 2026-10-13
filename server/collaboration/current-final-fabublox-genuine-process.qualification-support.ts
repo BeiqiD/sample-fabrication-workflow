@@ -37,6 +37,7 @@ export interface GenuineFabubloxBaseline {
   readonly descriptors: readonly Readonly<NodeConfiguredLocalVolumeDescriptor>[];
   readonly internalProfileId: string; readonly originalsProfileId: string;
 }
+export type GenuineLocalFileV26Baseline = Omit<GenuineFabubloxBaseline, "memberId" | "bobMemberId">;
 const password = CANONICAL_FILE_PASSWORD, policy = CANONICAL_FILE_IDENTITY_POLICY;
 function genuineInputs() {
   const parent = process.env.CURRENT_V28_CANONICAL_COMMENT_FIXTURE_PARENT, pin = process.env.NODE_PROTOTYPE_FILESYSTEM_ROOT_OWNER_UID;
@@ -48,7 +49,7 @@ function genuineInputs() {
 /** Setup has its own retained beforeAll. No V26 Sample/Template/Run baseline is
  * reused: all business rows below are created only by the later real V28 HTTP.
  * Reviewed installation is fixture bootstrap only, never domain SQL seeding. */
-export async function prepareGenuineFabubloxBaseline(): Promise<GenuineFabubloxBaseline> {
+export async function prepareGenuineLocalFileV26Baseline(): Promise<GenuineLocalFileV26Baseline> {
   const { parent, rootOwnerUid } = genuineInputs();
   const root = await mkdtemp(join(parent, ".current-final-fabublox-process-")); await chmod(root, 0o700);
   console.info("Retained genuine final Fabu Process fixture:", root);
@@ -113,6 +114,16 @@ export async function prepareGenuineFabubloxBaseline(): Promise<GenuineFabubloxB
       internalProfileId: volumes[0]!.profileId, originalsProfileId: volumes[1]!.profileId }, capturedActor);
     const first = owner.openingClose = opening.close(); expect(opening.close()).toBe(first); await first;
   });
+  return Object.freeze({ root, dataDirectory, clientDirectory, path, rootOwnerUid, installationId: capturedInstallation,
+    operatorActor: capturedActor, principalId: capturedPrincipal, descriptors: Object.freeze(descriptors),
+    internalProfileId: volumes[0]!.profileId, originalsProfileId: volumes[1]!.profileId });
+}
+
+/** The existing Process baseline retains its original stopped upgrade and
+ * genuine Group operations after the shared fresh V26 setup has closed. */
+export async function prepareGenuineFabubloxBaseline(): Promise<GenuineFabubloxBaseline> {
+  const baseline = await prepareGenuineLocalFileV26Baseline();
+  const { path, rootOwnerUid, principalId: capturedPrincipal } = baseline;
   const base = { databasePath: path, filesystemRootOwnerUid: rootOwnerUid };
   await executeCollaborationV28OperatorCandidate({ ...base, kind: "upgrade-metadata" });
   const bob = await executeV28OrdinaryAccountOperatorCandidate({ ...base, kind: "provision-account", username: "bob" }, password);
@@ -124,9 +135,10 @@ export async function prepareGenuineFabubloxBaseline(): Promise<GenuineFabubloxB
   await executeDomainRootV28OperatorCandidate({ ...base, kind: "set-creation-flags", principalId: capturedPrincipal,
     expectedMemberRevision: 1, expectedControlRevision: 1, canCreateSamples: true, canCreateProjects: false, canCreateTemplates: true });
   await executeCollaborationV28OperatorCandidate({ ...base, kind: "set-enforcement", enforcement: "enabled", expectedControlRevision: 1 });
-  return Object.freeze({ root, dataDirectory, clientDirectory, path, rootOwnerUid, installationId: capturedInstallation,
-    operatorActor: capturedActor, principalId: capturedPrincipal, memberId: member.memberId, bobMemberId: bobMember.memberId,
-    descriptors: Object.freeze(descriptors), internalProfileId: volumes[0]!.profileId, originalsProfileId: volumes[1]!.profileId });
+  return Object.freeze({ root: baseline.root, dataDirectory: baseline.dataDirectory, clientDirectory: baseline.clientDirectory,
+    path, rootOwnerUid, installationId: baseline.installationId, operatorActor: baseline.operatorActor,
+    principalId: capturedPrincipal, memberId: member.memberId, bobMemberId: bobMember.memberId,
+    descriptors: baseline.descriptors, internalProfileId: baseline.internalProfileId, originalsProfileId: baseline.originalsProfileId });
 }
 
 export async function composeGenuineFabubloxHost(owner: CanonicalFileFixtureOwner, lease: LinuxWriterLease,
