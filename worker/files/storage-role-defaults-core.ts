@@ -1,3 +1,4 @@
+import type { FilePurpose } from "../../shared/contracts/files";
 import { configurationSqlInteger } from "../runtime/configuration-sql";
 import type { FileAuthoritySqlDatabase } from "../runtime/file-authority-sql";
 
@@ -12,6 +13,21 @@ export interface StorageRoleDefaults { internal: StorageRoleDefault; originals: 
 export class StorageRoleDefaultsUnavailableError extends Error {
   constructor() { super("The selected storage role is unavailable."); this.name = "StorageRoleDefaultsUnavailableError"; }
 }
+
+type StorageRole = StorageRoleDefault["role"];
+const PURPOSE_ROLES = Object.freeze({
+  research_source: "originals",
+  provenance: "originals",
+  embedded_content: "internal",
+  derived_preview: "internal",
+  job_output: "internal",
+} satisfies Record<FilePurpose, StorageRole>);
+
+export function roleForFilePurpose(purpose: FilePurpose): StorageRole {
+  if (typeof purpose !== "string" || !Object.hasOwn(PURPOSE_ROLES, purpose)) throw new StorageRoleDefaultsUnavailableError();
+  return PURPOSE_ROLES[purpose];
+}
+
 
 /** Pure metadata read. Empty means the first active binary acceptance has not
  * initialized the policy; an incomplete policy is never silently repaired. */

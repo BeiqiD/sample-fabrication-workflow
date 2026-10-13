@@ -1,4 +1,5 @@
 import type { FilePurpose } from "../../shared/contracts/files";
+import { roleForFilePurpose } from "./storage-role-defaults-core";
 import type { FileAuthorityMode } from "./authority-reader";
 import type { Env } from "../types";
 import type { R2BootstrapProfile } from "./r2-bootstrap-profile";
@@ -6,18 +7,7 @@ import { prepareR2StorageRoleDefaults, StorageRoleDefaultsUnavailableError, type
 import { hasNativeStoragePolicy, prepareCurrentRolePolicy, type SelectedStorageProfile } from "../storage/storage-role-policy";
 
 type StorageRole = StorageRoleDefault["role"];
-const PURPOSE_ROLES = Object.freeze({
-  research_source: "originals",
-  provenance: "originals",
-  embedded_content: "internal",
-  derived_preview: "internal",
-  job_output: "internal",
-} satisfies Record<FilePurpose, StorageRole>);
-
-export function roleForFilePurpose(purpose: FilePurpose): StorageRole {
-  if (typeof purpose !== "string" || !Object.hasOwn(PURPOSE_ROLES, purpose)) throw new StorageRoleDefaultsUnavailableError();
-  return PURPOSE_ROLES[purpose];
-}
+export { roleForFilePurpose } from "./storage-role-defaults-core";
 
 interface StorageRoleProfiles {
   profileFor(purpose: FilePurpose): SelectedStorageProfile;

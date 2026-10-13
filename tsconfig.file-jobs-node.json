@@ -8,6 +8,7 @@
     "moduleResolution": "Bundler",
     "isolatedModules": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "types": ["node"]
   },
   "files": ["scripts/lib/file-job-node-runtime.ts"]

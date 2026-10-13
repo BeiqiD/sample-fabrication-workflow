@@ -623,7 +623,7 @@ async function constructLeasedDevelopmentPrototype(options: Parameters<typeof cr
     platform: app => { app.route("/", platform); }, storageSettings: "unavailable",
     fileAuthority: mountedLocalFile ? application => { application.route("/", mountedLocalFile.routes); } : "unavailable",
     migration: mountedLocalFile?.jobRoutes ? application => { application.route("/", mountedLocalFile.jobRoutes!); } : "unavailable",
-    package: "unavailable", commentSubmission: "unavailable", projectFoundation: "unavailable",
+    package: mountedLocalFile?.packageRoutes ? application => { application.route("/", mountedLocalFile.packageRoutes!); } : "unavailable", commentSubmission: "unavailable", projectFoundation: "unavailable",
     exportSnapshot: "unavailable", shadow: "unavailable", fileEvidenceAccess: app => { app.route("/", evidence); },
     shadowAdjudication: "unavailable", project: app => { app.route("/", projectReads); app.route("/", projectWrites); }, reference: app => { app.route("/", referenceReads); },
     sample: app => { app.route("/", sampleReads); app.route("/", sampleMetadata); },

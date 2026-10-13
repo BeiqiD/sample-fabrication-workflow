@@ -96,7 +96,7 @@ function retainOriginalOperation<T>(run: () => Promise<T>): Promise<T> {
 function beforeAll(body: () => Promise<void>, timeout: number): void {
   registerBeforeAll(() => retainOriginalOperation(body), timeout);
 }
-export function it(name: string, body: () => Promise<void>): void { registerCase(name, () => retainOriginalOperation(body)); }
+export function it(name: string, body: () => Promise<void>, timeout?: number): void { registerCase(name, () => retainOriginalOperation(body), timeout); }
 async function drainFixtures(): Promise<void> {
   for (const cleanup of [...cleanups].reverse()) await settleCleanup(cleanup);
 }
@@ -159,7 +159,7 @@ beforeAll(async () => {
     throw cleanupFailure;
   }
   if (setupFailure) throw setupFailure;
-}, 20_000); // Existing genuine schema/KDF setup boundary; cases keep default5s.
+}, 20_000); // Existing genuine schema/KDF setup boundary; cases keep default5s unless explicitly overridden.
 afterEach(async () => { try { await drainFixtures(); } finally { vi.restoreAllMocks(); } });
 afterAll(async () => {
   await drainFixtures();
@@ -240,8 +240,10 @@ export async function fixture(options: { enableLocalJobs?: boolean; administrato
       const response = await fetch(`${origin}${pathname}`, { method,
         headers: { cookie, origin, "x-sfw-csrf": csrf, "content-type": "application/json", connection: "close", ...extraHeaders },
         ...(body === undefined ? {} : { body: body instanceof ReadableStream || body instanceof Uint8Array ? body : JSON.stringify(body), duplex: "half" }) } as RequestInit);
-      const text = await response.text();
       const type = response.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
+      if (type === "application/zip") return { status: response.status, headers: response.headers,
+        value: new Uint8Array(await response.arrayBuffer()) };
+      const text = await response.text();
       return { status: response.status, headers: response.headers,
         value: text ? (type === "application/json" ? JSON.parse(text) as unknown : text) : null };
     });

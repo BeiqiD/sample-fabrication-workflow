@@ -79,6 +79,28 @@ export function nodeFileJobExecutionChecks(token: NodeFileJobExecutionAdmission,
     ...[...source.profiles].map(profile => ({ statement: prepareLocalVolumeProfileSqliteFence(profile, core),
       rejection: new Error("Captured File job profile authority changed") }))] : [])];
 }
+/** Same privately issued scheduled owner, reused by a concrete package adapter.
+ * A copied source method bag cannot omit its physical profile SQL snapshot.
+ * Four distinct profile/access tuples leave one of the original eight checks
+ * for ordinary Package actor admission; no global admission bound expands. */
+export function captureNodeJobProfileAuthority(token: NodeFileJobExecutionAdmission,
+  authority: InstalledJobPrincipalAuthority,
+  frozen: Readonly<{profileId: string; configurationRevision: number}>, access: "read" | "write",
+  maximum = 5): LocalVolumeProfileAuthority {
+  const current = owned(token, authority);
+  if (current.phase !== "held" || !Number.isInteger(maximum) || maximum < 1 || maximum > 5) unavailable();
+  const owner = ownedJobPrincipalAuthority(authority), profile = ownedLocalVolumeProfileContext(current.opening);
+  const existing = [...current.profiles].find(value => value.profile.profileId === frozen.profileId
+    && value.profile.configurationRevision === frozen.configurationRevision && value.access === access);
+  if (existing) {
+    // Revalidate the original captured tuple; never replace it with a new live
+    // binding merely because another archive scan reopens the same profile.
+    prepareLocalVolumeProfileSqliteFence(existing, owner.database); return existing;
+  }
+  if (current.profiles.size >= maximum) throw new Error("Original job profile admission budget is unavailable");
+  const captured = profile.captureProfileAuthority(frozen, access);
+  current.profiles.add(captured); return captured;
+}
 export function createNodeFileJobExecutionAdmission(options: {
   authority: InstalledJobPrincipalAuthority; writerLease: LinuxWriterLease;
   opening: LocalVolumeProfileOpening; incarnation: string;
@@ -134,8 +156,7 @@ export function createNodeFileJobExecutionAdmission(options: {
       owned(token, authority);
     },
     captureProfile(frozen: Readonly<{profileId: string; configurationRevision: number}>, access: "read" | "write") {
-      const current = owned(token, authority); if (current.phase !== "held") unavailable();
-      const captured = profile.captureProfileAuthority(frozen, access); current.profiles.add(captured); return captured;
+      return captureNodeJobProfileAuthority(token, authority, frozen, access);
     },
     close(): Promise<void> {
       if (source.release) return source.release;

@@ -1,4 +1,6 @@
 import type { FileJobCapabilities, JobBoundStorage } from "./types";
+import type { PackageCapabilities } from "../../packages/jobs/types";
+type OriginalJobCapabilities = FileJobCapabilities | PackageCapabilities;
 import { StorageProfileCleanupError } from "../storage-profile-opening";
 
 interface ExecutionEntry {
@@ -40,8 +42,8 @@ export function requiresFileJobExecutionQuarantine(error: unknown): boolean {
   }
   return false;
 }
-const executions = new WeakMap<FileJobCapabilities, ExecutionState>();
-function stateFor(capabilities: FileJobCapabilities): ExecutionState {
+const executions = new WeakMap<OriginalJobCapabilities, ExecutionState>();
+function stateFor(capabilities: OriginalJobCapabilities): ExecutionState {
   let state = executions.get(capabilities);
   if (!state) { state = { entries: new Set(), sealed: false, quarantined: false }; executions.set(capabilities, state); }
   return state;
@@ -49,7 +51,7 @@ function stateFor(capabilities: FileJobCapabilities): ExecutionState {
 
 /** The exact capabilities object identifies one runtime owner. A shallow copy
  * is another owner and cannot be used to drain an existing invocation. */
-export function assertFileJobExecutionsOpen(capabilities: FileJobCapabilities): void {
+export function assertFileJobExecutionsOpen(capabilities: OriginalJobCapabilities): void {
   const state = stateFor(capabilities);
   if (state.sealed || state.draining || state.quarantined) throw new Error("File job execution owner is closed or draining");
 }
@@ -58,6 +60,8 @@ export interface FileJobExecutionScope {
   /** Called immediately after a successful open, including partial/late opens.
    * An already admitted operation can acquire its result during owner drain. */
   own(storage: JobBoundStorage): JobBoundStorage;
+  /** One original ingress cleanup, retained alongside actual provider owners. */
+  ownCleanup(dispose: () => Promise<void>): void;
 }
 export interface RetainedFileJobExecution<T> {
   /** Original business result, without provider disposal changing its deadline. */
@@ -71,7 +75,7 @@ export interface RetainedFileJobExecution<T> {
  * and never writes a migration attempt's io_settled_at. Ordinary operation
  * failures remain the kernel's status decision; cleanup failures quarantine
  * the owner and are surfaced by drain/close. */
-export function retainFileJobExecution<T>(capabilities: FileJobCapabilities,
+export function retainFileJobExecution<T>(capabilities: OriginalJobCapabilities,
   operation: (scope: FileJobExecutionScope) => Promise<T>,
   afterSettled?: () => Promise<void>,
 ): RetainedFileJobExecution<T> {
@@ -90,6 +94,9 @@ export function retainFileJobExecution<T>(capabilities: FileJobCapabilities,
       }
     }
     return storage;
+  }, ownCleanup(dispose) {
+    if (cleaning || typeof dispose !== "function") throw new Error("Invalid original job cleanup owner");
+    entry.disposers.push(dispose);
   } };
   const cleanup = async () => {
     cleaning = true;
@@ -128,7 +135,7 @@ export function retainFileJobExecution<T>(capabilities: FileJobCapabilities,
  * New invocations are refused while draining. A failed cleanup keeps its owner
  * closures retained and makes this runtime unavailable until the host repairs
  * it; neither this function nor close retries an uncertain provider close. */
-export function drainFileJobExecutions(capabilities: FileJobCapabilities): Promise<void> {
+export function drainFileJobExecutions(capabilities: OriginalJobCapabilities): Promise<void> {
   const state = stateFor(capabilities);
   if (state.failure) return Promise.reject(state.failure);
   if (state.draining) return state.draining;
@@ -149,7 +156,7 @@ export function drainFileJobExecutions(capabilities: FileJobCapabilities): Promi
  * before its host closes native SQL or releases its writer lease. This byte
  * lifetime registry does not admit concurrent shutdown during SQL preflight.
  * Rejection requires host quarantine, not optimistic close. */
-export function closeFileJobExecutions(capabilities: FileJobCapabilities): Promise<void> {
+export function closeFileJobExecutions(capabilities: OriginalJobCapabilities): Promise<void> {
   stateFor(capabilities).sealed = true;
   return drainFileJobExecutions(capabilities);
 }

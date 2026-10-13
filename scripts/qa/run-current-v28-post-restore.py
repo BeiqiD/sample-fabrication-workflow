@@ -11,18 +11,24 @@ MAINTENANCE_BRANCH = 'refs/heads/codex/node-v28-restored-maintenance-release'
 HEALTH_BRANCH = 'refs/heads/codex/node-v28-operational-health-ready'
 CAPTURE_BRANCH = 'refs/heads/codex/node-v28-public-local-backup-capture'
 NONEMPTY_BRANCH = 'refs/heads/codex/node-v28-nonempty-backup-restore'
+PACKAGE_BRANCH = 'refs/heads/codex/node-research-package-http'
+PACKAGE_BASE = 'f55faa56baa2781457d6d6a8f06127fd38db00d6'
 NONEMPTY_BASE = 'ab4f6cfa9721a5bf7fdcd8e7940a916ea8d520cf'
 R2_PAIR_BRANCH = 'refs/heads/codex/portable-v26-r2-node-backup-one'
 R2_PAIR_BASE = '33be3642ed8e72efba8269a4ea718b37b0eafd44'
 MAINTENANCE_BASE = 'ebc19cf3f61b12625bc2a36086667376b41b9255'
-NATIVE_STAGES = ('preparation', 'operators', 'maintenance', 'main', 'nonempty', 'r2pair')
-TIMED_CASE_STAGES = (*NATIVE_STAGES, 'maintenance-parser', 'config-unit', 'capture-parser')
+NATIVE_STAGES = ('preparation', 'operators', 'maintenance', 'main', 'nonempty', 'r2pair', 'package-http')
+TIMED_CASE_STAGES = (*(stage for stage in NATIVE_STAGES if stage != 'package-http'), 'maintenance-parser', 'config-unit', 'capture-parser')
 FLOOR, NATIVE_BEFORE = 536870912, 603979776
 HELP = {'help-main': ('main.mjs', 'Usage: node main.mjs --config '),
  'help-identity': ('identity-cli.cjs', 'Usage: local-identity '),
  'help-installation': ('installation-cli.cjs', 'Usage: local-installation upgrade '),
  'help-restore': ('restore-v28-cli.cjs', 'Usage: offline-v28 restore ')}
 CASES = {
+ 'package-http': ('server/packages/request-http.qualification.ts', [
+  'keeps Package HTTP unavailable when localJobs opt-in is omitted',
+  'requires original CSRF and admits ordinary actor history without startup execution',
+  'copies all15 verified Files through HTTP, publishes one typed graph and downloads its captured native ZIP']),
  'r2pair': ('server/recovery/current-v26-r2-node-pair.qualification.ts', [
   'backs up one real ordinary R2 HTTP upload through the original scheduled recovery job and restores exact V3 content into a fresh inert Node target']),
  'nonempty': ('server/operations/current-v28-nonempty-backup-restore.qualification.ts', [
@@ -56,11 +62,11 @@ def save(path, value):
  path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
 
 def source():
- assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH, R2_PAIR_BRANCH)
+ assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH, R2_PAIR_BRANCH, PACKAGE_BRANCH)
  head = os.environ['GITHUB_SHA']; assert re.fullmatch('[0-9a-f]{40}', head)
  env = dict(os.environ, GIT_OPTIONAL_LOCKS='0')
  assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, env=env).decode().strip() == head
- base = R2_PAIR_BASE if os.environ['GITHUB_REF'] == R2_PAIR_BRANCH else NONEMPTY_BASE if os.environ['GITHUB_REF'] == NONEMPTY_BRANCH else MAINTENANCE_BASE if os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH) else BASE
+ base = PACKAGE_BASE if os.environ['GITHUB_REF'] == PACKAGE_BRANCH else R2_PAIR_BASE if os.environ['GITHUB_REF'] == R2_PAIR_BRANCH else NONEMPTY_BASE if os.environ['GITHUB_REF'] == NONEMPTY_BRANCH else MAINTENANCE_BASE if os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH) else BASE
  subprocess.check_call(['git', 'merge-base', '--is-ancestor', base, head], cwd=ROOT, env=env)
  return head
 
@@ -89,8 +95,90 @@ def census(stage, path):
  result['pass'] = result['exactOriginalSelection'] and value.get('success') is True and result['actualPassed'] == len(titles) and result['actualFailed'] == result['actualPending'] == value.get('numPendingTests') == 0
  return result
 
+def original_diagnostic_lines(message):
+ # Allow only diagnostic text with closed scalar/status values and source paths.
+ # Arbitrary error text, object/array dumps, code frames and secrets stay private.
+ scalar = r"(?:-?\d+(?:\.\d+)?|true|false|null|undefined|NaN|'(?:awaiting_upload|queued|running|preview|completed|failed|cancelled|paused|disabled|idle)'|\[ Array\(\d+\) \]|\[ Object \])"
+ assertion = re.compile(r'AssertionError: expected ' + scalar + r' (?:not )?to (?:be|equal|deeply equal|have a length of|be greater than|be less than) ' + scalar + r'(?: but got ' + scalar + r')?(?: // (?:Object.is|deep) equality)?')
+ scalar_diff = re.compile(r'\s*(?:[-+]\s+|Expected:?\s+|Received:?\s+)' + scalar)
+ source_path = r'(?:(?:file://)?' + re.escape(str(ROOT)) + r'/|(?:server|shared|worker|scripts|test|node_modules)/)[A-Za-z0-9_./@+-]+\.(?:[cm]?[jt]sx?|py):\d+(?::\d+)?'
+ location = re.compile(r'\s*(?:at (?:[A-Za-z0-9_.$<> ]+\()?|❯ )' + source_path + r'\)?')
+ timeout = re.compile(r'Error: (?:Test|Hook) timed out in \d+ms\.?')
+ package_phase = re.compile(r'PACKAGE_PHASE_V1 (?:import_accept|import_drain|publish_graph|export_accept|export_drain|download|validate) (?:start|end) ms=\d{1,9}|PACKAGE_PHASE_V1 (?:import_drain|export_drain) (?:state|step_start|step) ms=\d{1,9} i=(?:[0-9]|[12][0-9]|3[0-5]) state=(?:awaiting_upload|queued|running|preview|completed|failed|cancel_requested|cancelled|paused|other) step=(?:none|idle|disabled|paused|cleaned|preview|measured|file_verified|completed|moved|unsupported|other)')
+ registration, substantive, phases = [], [], []; is_registration = False
+ for line in re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', message).splitlines():
+  if package_phase.fullmatch(line):
+   phases.append(line)
+  elif line == 'Error: STACK_TRACE_ERROR':
+   is_registration = True; registration.append(line)
+  elif assertion.fullmatch(line) or scalar_diff.fullmatch(line) or timeout.fullmatch(line) or line == 'Error: Bounded original Package dispatcher did not reach its checkpoint':
+   is_registration = False; substantive.append(line)
+  elif re.match(r'^(?:[A-Za-z]*Error|AssertionError):', line):
+   is_registration = False
+   substantive.append(line.split(':', 1)[0] + ': [text withheld; original private result retained]')
+  elif location.fullmatch(line):
+   (registration if is_registration else substantive).append(line)
+ # Preserve only the last16 closed-grammar public phase facts within the
+ # existing diagnostic byte caps; parsing/printing stays after original close.
+ substantive.extend(phases[-16:])
+ return '\n'.join(registration), '\n'.join(substantive)
+
+def bounded_original_diagnostic(index, text, remaining):
+ encoded = text.encode('utf-8'); diagnostic = encoded[:8192].decode('utf-8', errors='ignore')
+ entry = {'index': index, 'diagnosticText': diagnostic, 'truncated': len(encoded) > 8192}
+ # Bound serialized bytes as well as original UTF-8 bytes, including escaping.
+ while len(json.dumps(entry).encode('utf-8')) > remaining and diagnostic:
+  diagnostic = diagnostic[:len(diagnostic) // 2]
+  entry.update(diagnosticText=diagnostic, truncated=True)
+ size = len(json.dumps(entry).encode('utf-8'))
+ return (entry, remaining - size) if size <= remaining else (None, remaining)
+
+def original_failed_diagnostics(stage, results):
+ # All reads/printing occur after the original cached first close, wait/census.
+ # At most the original case count and32 messages; max16KiB serialized entries.
+ remaining = 16384; slots = 32; failed = []
+ for file in results.get('testResults', []):
+  for row in file.get('assertionResults', []):
+   if row.get('status') != 'failed' or len(failed) >= len(CASES[stage][1]): continue
+   messages = row.get('failureMessages', [])
+   if not isinstance(messages, list): messages = []
+   title = row.get('title')
+   item = {'title': title if title in CASES[stage][1] else '[unselected title withheld]',
+    'failureMessageCount': len(messages), 'registrationStacks': [], 'substantiveMessages': []}
+   inspected = 0
+   for index, message in enumerate(messages):
+    if not slots or remaining < 160: break
+    slots -= 1; inspected += 1
+    if not isinstance(message, str): continue
+    registration, substantive = original_diagnostic_lines(message)
+    for key, text in (('registrationStacks', registration), ('substantiveMessages', substantive)):
+     if not text: continue
+     entry, remaining = bounded_original_diagnostic(index, text, remaining)
+     if entry is not None: item[key].append(entry)
+   item['messagesNotInspected'] = len(messages) - inspected
+   failed.append(item)
+ return failed
+
+def original_native_failure_diagnostics(out):
+ # Vitest JSON may select a registration stack over the substantive message.
+ # Read only the last16KiB of each already-closed original native log. Each
+ # allowlisted stdout/stderr diagnostic entry has a4KiB serialized byte cap.
+ result = []
+ for name in ('original.log', 'original.stderr.log'):
+  path = out / name
+  try:
+   with path.open('rb') as log:
+    log.seek(0, os.SEEK_END); size = log.tell(); log.seek(max(0, size - 16384))
+    tail = log.read(16384)
+   registration, substantive = original_diagnostic_lines(tail.decode('utf-8', errors='replace'))
+   entry, unused = bounded_original_diagnostic(name, substantive + ('\n' if substantive and registration else '') + registration, 4096)
+   result.append({'path': str(path), 'tailBytesRead': len(tail), 'tailWindowBytes': 16384, 'diagnostic': entry})
+  except OSError as error: result.append({'path': str(path), 'readFailureKind': type(error).__name__})
+ return result
+
 def run(stage, out, run_root):
  head = source()
+ if stage == 'package-http': assert os.environ['GITHUB_REF'] == PACKAGE_BRANCH
  if stage in ('maintenance-parser', 'maintenance', 'config-unit', 'main'): assert os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH, R2_PAIR_BRANCH)
  if stage == 'capture-parser': assert os.environ['GITHUB_REF'] in (CAPTURE_BRANCH, NONEMPTY_BRANCH, R2_PAIR_BRANCH)
  if stage == 'nonempty': assert os.environ['GITHUB_REF'] in (NONEMPTY_BRANCH, R2_PAIR_BRANCH)
@@ -109,6 +197,7 @@ def run(stage, out, run_root):
   CURRENT_V28_CANONICAL_COMMENT_FIXTURE_PARENT=str(fixture), NODE_PROTOTYPE_FILESYSTEM_ROOT_OWNER_UID=str(Path('/').lstat().st_uid),
   NODE_OFFLINE_V28_DISTRIBUTION=str(ROOT / 'dist-node/distribution'),
   CURRENT_V28_POST_RESTORE_PREPARATION_RECEIPT=str(run_root / 'preparation-inputs.json'), NO_COLOR='1', FORCE_COLOR='0')
+ if stage == 'package-http': env['NODE_PROTOTYPE_FIXTURE_PARENT'] = str(fixture)
  if stage == 'nonempty':
   # This case creates its OWN new V26 upload source and inert V28 target. The
   # earlier zero-File target is only a completed same-head pipeline prerequisite.
@@ -162,15 +251,21 @@ def run(stage, out, run_root):
    'maintenance': 'current-restored-v28-maintenance-release.vitest.config.mts',
    'main': 'current-restored-v28-main.vitest.config.mts',
    'nonempty': 'current-v28-nonempty-backup-restore.vitest.config.mts',
-   'r2pair': 'current-v26-r2-node-pair.vitest.config.mts'}[stage],
+   'r2pair': 'current-v26-r2-node-pair.vitest.config.mts',
+   'package-http': 'node-package-http-qualification.vitest.config.mts'}[stage],
   '--reporter=verbose', '--reporter=json', '--outputFile.json=' + str(raw)]
  budget = 20 if stage in HELP else 60 if stage == 'types' else 90 if stage == 'capture-parser' else 180
  custody = inherited_custody(); child = None; close_attempted = False; close_result = None; close_error = None
  record = {'kind': 'current-v28-post-restore-original-owned-stage/1', 'stage': stage, 'head': head, 'command': argv,
-  'status': 'RESERVED_BEFORE_EFFECTS', 'outerSeconds': budget, 'caseMs': 20000 if stage in TIMED_CASE_STAGES else None,
-  'hookMs': 20000 if stage in TIMED_CASE_STAGES else None, 'minimumBeforeChild': minimum,
+  'status': 'RESERVED_BEFORE_EFFECTS', 'outerSeconds': budget, 'caseMs': 5000 if stage == 'package-http' else 20000 if stage in TIMED_CASE_STAGES else None,
+  'hookMs': 10000 if stage == 'package-http' else 20000 if stage in TIMED_CASE_STAGES else None, 'minimumBeforeChild': minimum,
   'filesystemRootOwnerUid': Path('/').lstat().st_uid, 'noFixtureRemoval': True, 'sourceFileBackupQualified': False}
  if stage == 'r2pair': record['r2NodePairQualified'] = False
+ # Original d723 default5s failure retained full work through strict15payload validation at12.265s.
+ # Only the final case overrides20s; the stage argv/default5s, hook10s and outer180s remain.
+ if stage == 'package-http': record.update(defaultCaseMs=5000,
+  caseTimeoutOverrides=[{'title': CASES[stage][1][-1], 'caseMs': 20000}], originalTemplateBeforeAllMs=20000,
+  scope='Current V26 original mounted Package HTTP/session/CSRF + independent original dispatcher + nonempty15File local copy/export/download only; no compiled-main, cross-runtime/R2, elapsed120s cadence, recovery activation or prior qualification carry.')
  def original_close():
   nonlocal close_attempted, close_result, close_error
   if not close_attempted:
@@ -261,16 +356,16 @@ def run(stage, out, run_root):
  summary = {'stage': stage, 'status': record['status'], 'receipt': str(out / 'receipt.json')}
  for key in ('actualResults', 'actualHelp', 'firstFailure', 'rawCensusFailure', 'originalCloseError', 'floorOrPrivateIdentityFailure'):
   if key in record: summary[key] = record[key]
- if not okay and raw.exists():
+ if not okay and raw.exists() and stage in CASES and close_result is True and record.get('originalChildWaited') is True and 'actualResults' in record and not custody.active(record['finalGroupSnapshot']):
   try:
    results = json.loads(raw.read_bytes())
-   summary['originalFailedTitles'] = [{'title': row.get('title'), 'firstMessage': str(row.get('failureMessages', [''])[0])[:1024]}
-    for file in results.get('testResults', []) for row in file.get('assertionResults', []) if row.get('status') == 'failed']
+   summary['originalFailedTitles'] = original_failed_diagnostics(stage, results)
+   summary['originalNativeFailureDiagnostics'] = original_native_failure_diagnostics(out)
   except (ValueError, KeyError, IndexError) as error: summary['failureSummaryUnavailable'] = type(error).__name__
  print(json.dumps(summary), flush=True)
  return 0 if okay else 1
 
 if __name__ == '__main__':
- parser = argparse.ArgumentParser(); parser.add_argument('--stage', choices=('types', 'parser', 'capture-parser', 'preparation', 'operators', 'maintenance-parser', 'maintenance', 'config-unit', 'main', 'nonempty', 'r2pair', *HELP), required=True)
+ parser = argparse.ArgumentParser(); parser.add_argument('--stage', choices=('types', 'parser', 'capture-parser', 'preparation', 'operators', 'maintenance-parser', 'maintenance', 'config-unit', 'main', 'nonempty', 'r2pair', 'package-http', *HELP), required=True)
  parser.add_argument('--run-root', type=Path, required=True); args = parser.parse_args()
  raise SystemExit(run(args.stage, args.run_root / args.stage, args.run_root))

@@ -1,6 +1,9 @@
 import { primaryD1 } from "../d1-primary";
 import type { Env } from "../types";
 import { assertR2BootstrapProfile, ensureR2BootstrapProfile, type R2BootstrapProfile } from "./r2-bootstrap-profile";
+import { StorageRoleDefaultsUnavailableError } from "./storage-role-defaults-core";
+
+export { StorageRoleDefaultsUnavailableError } from "./storage-role-defaults-core";
 
 export interface StorageRoleDefault {
   role: "internal" | "originals";
@@ -10,9 +13,6 @@ export interface StorageRoleDefault {
   createdAt: string;
 }
 export interface StorageRoleDefaults { internal: StorageRoleDefault; originals: StorageRoleDefault }
-export class StorageRoleDefaultsUnavailableError extends Error {
-  constructor() { super("The selected storage role is unavailable."); this.name = "StorageRoleDefaultsUnavailableError"; }
-}
 
 /** Pure metadata read. Empty means the first active binary acceptance has not
  * initialized the policy; an incomplete policy is never silently repaired. */

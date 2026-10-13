@@ -13,6 +13,8 @@ import { createNodeFileJobExecutionAdmission } from "./execution-admission";
 import { createInstalledJobPrincipalAuthority } from "./principal-authority";
 import { createOwnedNodeFileJobPort } from "./repository";
 import { createNodeFileJobHttpRoutes } from "./request-http";
+import { createNodePackageCapabilities } from "../../packages/local-capabilities";
+import { runPackageJobStep } from "../../../worker/packages/jobs/kernel";
 
 export const NODE_LOCAL_FILE_JOB_CADENCE_MS = 120_000;
 type FileJobStorageArguments = Parameters<FileJobCapabilities["openStorage"]>;
@@ -102,19 +104,38 @@ export function createNodeLocalFileJobs(options: {
           ...(opened.dispose ? {dispose:opened.dispose.bind(opened)} : {})};
       },
     });
+    const packagePort=createNodePackageCapabilities({configuration,opening,authentication,admission,
+      authority,executionAdmission:source.token,incarnation});
     const original=local.writerLease.withWriter(async ()=>{
       await source.acquire();
       let workFailed=false,workError: unknown;
       try {
-        const cleanup=await runFileJobCleanupStep(capabilities);
-        if (!["idle","disabled"].includes(cleanup.outcome)) return {jobId:null,outcome:cleanup.outcome};
-        return await runFileJobStep(capabilities);
+        const migration=async()=>{
+          const cleanup=await runFileJobCleanupStep(capabilities);
+          if (!["idle","disabled"].includes(cleanup.outcome)) return {jobId:null,outcome:cleanup.outcome};
+          return await runFileJobStep(capabilities);
+        };
+        const packages=async()=>{
+          if(await packagePort.maintain())return {jobId:null,outcome:"cleaned"};
+          return runPackageJobStep(packagePort.capabilities);
+        };
+        // One action under the existing original 120-second cadence; an idle
+        // first queue yields its slot. No HTTP GET/poll creates this invocation.
+        const packageFirst=Math.floor(Date.now()/NODE_LOCAL_FILE_JOB_CADENCE_MS)%2===0;
+        const first=packageFirst?packages:migration,second=packageFirst?migration:packages;
+        const result=await first();
+        return ["idle","unsupported"].includes(result.outcome)?await second():result;
       } catch(error) {workFailed=true;workError=error;throw error;}
       finally {
         // No source release until every original byte/provider operation has
         // settled and its first disposer acknowledged. Failed close keeps the
         // durable scheduled source and the application's physical owner.
-        try {await closeFileJobExecutions(capabilities);await source.close();}
+        try {
+          const drains=await Promise.allSettled([closeFileJobExecutions(capabilities),closeFileJobExecutions(packagePort.capabilities)]);
+          const failures=drains.flatMap(result=>result.status==="rejected"?[result.reason as unknown]:[]);
+          if(failures.length)throw new AggregateError(failures,"Original Local job provider owners did not drain");
+          await source.close();
+        }
         catch(error) {if(workFailed) throw new AggregateError([workError,error],"Local File Job work and original close failed");throw error;}
       }
     });

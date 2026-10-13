@@ -2,13 +2,14 @@ name: Current V28 genuine restore and explicit destination operators
 
 on:
   push:
-    branches: [codex/node-v28-post-restore-operators, codex/node-v28-restored-maintenance-release, codex/node-v28-operational-health-ready, codex/node-v28-public-local-backup-capture, codex/node-v28-nonempty-backup-restore, codex/portable-v26-r2-node-backup-one]
+    branches: [codex/node-v28-post-restore-operators, codex/node-v28-restored-maintenance-release, codex/node-v28-operational-health-ready, codex/node-v28-public-local-backup-capture, codex/node-v28-nonempty-backup-restore, codex/portable-v26-r2-node-backup-one, codex/node-research-package-http]
 
 permissions:
   contents: read
 
 jobs:
   genuine-current-restore:
+    if: ${{ github.ref != 'refs/heads/codex/node-research-package-http' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
@@ -84,6 +85,7 @@ jobs:
         with:
           name: current-v28-post-restore-${{ github.run_id }}-${{ github.run_attempt }}
           if-no-files-found: warn
+          include-hidden-files: true
           path: |
             ${{ env.POST_RESTORE_RUN_ROOT }}/*/original*.log
             ${{ env.POST_RESTORE_RUN_ROOT }}/types/receipt.json
@@ -113,3 +115,46 @@ jobs:
             ${{ env.POST_RESTORE_RUN_ROOT }}/r2pair/original-results.json
             ${{ env.POST_RESTORE_RUN_ROOT }}/r2pair/receipt.json
             ${{ env.POST_RESTORE_RUN_ROOT }}/r2pair-inputs.json
+
+  genuine-current-package-http:
+    if: ${{ github.ref == 'refs/heads/codex/node-research-package-http' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      NO_COLOR: '1'
+      FORCE_COLOR: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+          cache: npm
+      - name: Install the exact current committed lock
+        run: npm ci
+      - name: Reserve a fresh private original-owned Package fixture namespace
+        shell: bash
+        run: |
+          run_root="$HOME/.current-node-package-http-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir -m 700 "$run_root"
+          printf 'PACKAGE_HTTP_RUN_ROOT=%s\n' "$run_root" >> "$GITHUB_ENV"
+      - name: Full current server and runtime test types
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage types --run-root "$PACKAGE_HTTP_RUN_ROOT"
+      - name: Three genuine original Package HTTP and independent executor cases
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage package-http --run-root "$PACKAGE_HTTP_RUN_ROOT"
+      - name: Preserve original raw logs, exact results and custody receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: current-node-package-http-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          include-hidden-files: true
+          path: |
+            ${{ env.PACKAGE_HTTP_RUN_ROOT }}/types/receipt.json
+            ${{ env.PACKAGE_HTTP_RUN_ROOT }}/types/original*.log
+            ${{ env.PACKAGE_HTTP_RUN_ROOT }}/package-http/receipt.json
+            ${{ env.PACKAGE_HTTP_RUN_ROOT }}/package-http/original*.log
+            ${{ env.PACKAGE_HTTP_RUN_ROOT }}/package-http/original-results.json

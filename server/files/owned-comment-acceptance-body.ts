@@ -5,7 +5,7 @@ import { StorageProfileCleanupError } from "../../worker/files/storage-profile-o
 /** One consumer of the exact ingress body, without tee/clone or a second read.
  * The returned stream preserves backpressure; its original read, cancellation
  * and release outcomes stay retained until the one original cleanup settles. */
-export function ownedCommentAcceptanceBody(request: Request) {
+export function ownedCommentAcceptanceBody(request: Request, readAdmission?: () => Promise<void>) {
   const body = request.body;
   if (!body) throw new HTTPException(400, { message: "The upload body is missing" });
   let reader: ReadableStreamDefaultReader<Uint8Array>;
@@ -47,12 +47,13 @@ export function ownedCommentAcceptanceBody(request: Request) {
     async pull(controller) {
       if (closing) { await closing; controller.close(); return; }
       let original: Promise<ReadableStreamReadResult<Uint8Array>>;
-      try { original = reader.read(); }
+      try { await readAdmission?.(); original = reader.read(); }
       catch (error) { original = Promise.reject(error); }
       pending.add(original);
       original.then(() => pending.delete(original), () => pending.delete(original));
       try {
         const next = await original;
+        await readAdmission?.();
         if (next.done) { finished = true; await close(); controller.close(); }
         else if (!(next.value instanceof Uint8Array)) throw new HTTPException(400, { message: "The Comment upload body is invalid" });
         else controller.enqueue(next.value);

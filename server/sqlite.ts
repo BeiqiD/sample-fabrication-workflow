@@ -1,6 +1,7 @@
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
 import type { JobSqlDatabase, JobSqlStatement } from "../worker/files/jobs/sql-repository";
 import type { ReadinessDatabase } from "../worker/runtime/sql";
+import type { OfflineWriterFence } from "./auth/identity";
 
 export type SqliteValue = null | string | number | bigint | Uint8Array;
 export type SqliteRow = Record<string, SqliteValue>;
@@ -33,6 +34,7 @@ const batchAdmissions = new WeakMap<SqliteBatchAdmission, {
 const admittedBatchOwners = new WeakMap<SqliteCapability, {
   issue(checks: readonly SqliteBatchAdmissionCheck[]): SqliteBatchAdmission;
   run(statements: readonly SqliteStatement[], checks: readonly SqliteBatchAdmissionCheck[]): SqliteResult[];
+  deferredForeignKeys(): SqliteStatement;
 }>();
 
 /** Trusted composer-owned predicates only. This narrows actual statement
@@ -158,7 +160,7 @@ export function createSqliteCapability(database: DatabaseSync, options: { busyTi
   database.exec(`PRAGMA foreign_keys=ON; PRAGMA busy_timeout=${timeout}`);
   const mode = database.prepare("PRAGMA journal_mode=WAL").get();
   if (mode?.journal_mode !== "wal") throw new Error("File-backed SQLite WAL is required");
-  const records = new WeakMap<SqliteStatement, { sql: string; values: SQLInputValue[] }>();
+  const records = new WeakMap<SqliteStatement, { sql: string; values: SQLInputValue[]; deferredForeignKeys: boolean }>();
   let closed = false, inBatch = false, quarantined = false;
   let closeAttempted = false, closeRejected = false, firstCloseFailure: unknown;
   const active = () => {
@@ -176,6 +178,7 @@ export function createSqliteCapability(database: DatabaseSync, options: { busyTi
     active();
     const record = records.get(statement);
     if (!record) throw new Error("Foreign SQLite statement");
+    if (record.deferredForeignKeys && !inBatch) throw new Error("Deferred foreign keys require the original atomic batch");
     const native = database.prepare(record.sql); native.setReadBigInts(true);
     const before = integer("SELECT total_changes()"), returnsRows = native.columns().length > 0;
     const results = returnsRows ? native.all(...record.values).map(row) : (native.run(...record.values), []);
@@ -188,21 +191,27 @@ export function createSqliteCapability(database: DatabaseSync, options: { busyTi
       totalChanges: checkedSafeInteger(total, "Total change count"),
     } };
   };
-  const statement = (sql: string, values: SQLInputValue[] = []): SqliteStatement => {
-    active(); checkedSql(sql);
+  const statement = (sql: string, values: SQLInputValue[] = [], deferredForeignKeys = false): SqliteStatement => {
+    active();
+    if (deferredForeignKeys) {
+      if (sql !== "PRAGMA defer_foreign_keys=ON" || values.length) throw new Error("Foreign deferred-FK directive");
+    } else checkedSql(sql);
     const wrapped: SqliteStatement = {
-      bind(...bindings) { return statement(sql, bindings.map(input)); },
+      bind(...bindings) { return statement(sql, bindings.map(input), deferredForeignKeys); },
       async first() { return execute(wrapped).results[0] ?? null; },
       async all() { return execute(wrapped); },
       async run() { return execute(wrapped); },
     };
-    records.set(wrapped, { sql, values }); return wrapped;
+    records.set(wrapped, { sql, values, deferredForeignKeys }); return wrapped;
   };
   const runBatch = (statements: readonly SqliteStatement[], checks: readonly SqliteBatchAdmissionCheck[]): SqliteResult[] => {
     active();
     if (!Array.isArray(statements)) throw new Error("Foreign SQLite statement");
     const originalStatements = [...statements];
     if (originalStatements.some(item => !records.has(item))) throw new Error("Foreign SQLite statement");
+    const directives = originalStatements.filter(item => records.get(item)!.deferredForeignKeys);
+    if (directives.length && (directives.length !== 1 || !checks.length))
+      throw new Error("Deferred foreign keys require one issued directive and admission");
     if (!originalStatements.length && !checks.length) return [];
     database.exec("BEGIN IMMEDIATE"); inBatch = true;
     try {
@@ -226,7 +235,7 @@ export function createSqliteCapability(database: DatabaseSync, options: { busyTi
     } finally { inBatch = false; }
   };
   const capability: SqliteCapability = {
-    prepare: statement,
+    prepare(sql) { return statement(sql); },
     async batch(statements) { return runBatch(statements, []); },
     primary() { active(); return capability; },
     close() {
@@ -261,6 +270,7 @@ export function createSqliteCapability(database: DatabaseSync, options: { busyTi
       return admission;
     },
     run: runBatch,
+    deferredForeignKeys: () => statement("PRAGMA defer_foreign_keys=ON", [], true),
   });
   return capability;
 }
@@ -268,26 +278,60 @@ export function createSqliteCapability(database: DatabaseSync, options: { busyTi
 /** Exact cells remain in the core. The existing job domain expects safe Number
  * integers, so this explicit compatibility view checks every conversion. */
 export function asJobSqlDatabase(core: SqliteCapability): JobSqlDatabase {
+  return jobSqlDatabase(core);
+}
+/** Trusted same-core package publisher adapter only. Every operation captures
+ * fresh issued SQL admission; only this private view recognizes the existing
+ * formatter's fixed deferred-FK directive at its declared ordinal in one atomic batch.
+ * It cannot run connection PRAGMA or infer actor/provider permission from SQL. */
+export function asAdmittedJobSqlDatabase(core: SqliteCapability,
+  admission: () => SqliteBatchAdmission, owner: OfflineWriterFence): JobSqlDatabase {
+  return jobSqlDatabase(core, admission, owner);
+}
+function jobSqlDatabase(core: SqliteCapability, admission?: () => SqliteBatchAdmission,
+  owner?: OfflineWriterFence): JobSqlDatabase {
+  const held = owner?.assertHeld.bind(owner);
+  const assertHeld = () => {
+    const answer: unknown = held?.();
+    if (answer !== undefined) {
+      if (answer instanceof Promise) void answer.catch(() => undefined);
+      throw new TypeError("Job SQL owner assertion must be synchronous");
+    }
+  };
+  const execute = async (items: readonly SqliteStatement[]) => {
+    assertHeld();
+    const result = admission ? await runSqliteAdmittedBatch(core, items, admission()) : await core.batch(items);
+    assertHeld(); return result;
+  };
   const statements = new WeakMap<JobSqlStatement, SqliteStatement>();
   const safeRow = (value: SqliteRow) => Object.fromEntries(Object.entries(value).map(([key, cell]) =>
     [key, typeof cell === "bigint" ? checkedSafeInteger(cell, `Column ${key}`) : cell]));
   const wrap = (native: SqliteStatement): JobSqlStatement => {
     const wrapped: JobSqlStatement = {
       bind(...values) { return wrap(native.bind(...values)); },
-      async first<T>() { const value = await native.first(); return value === null ? null : safeRow(value) as T; },
-      async all<T>() { return { results: (await native.all()).results.map(safeRow) as T[] }; },
-      run() { return native.run(); },
+      async first<T>() { const value = admission ? (await execute([native]))[0]!.results[0] ?? null : await native.first(); return value === null ? null : safeRow(value) as T; },
+      async all<T>() { return { results: (admission ? (await execute([native]))[0]! : await native.all()).results.map(safeRow) as T[] }; },
+      run() { return admission ? execute([native]).then(results => results[0]!) : native.run(); },
     };
     statements.set(wrapped, native); return wrapped;
   };
   const view: JobSqlDatabase = {
-    prepare(sql) { return wrap(core.prepare(sql)); },
+    prepare(sql) {
+      assertHeld();
+      if (admission && sql === "PRAGMA defer_foreign_keys=ON") {
+        const receipt = batchAdmissions.get(admission()), original = admittedBatchOwners.get(core);
+        if (!receipt || receipt.owner !== core || !receipt.checks.length || !original)
+          throw new Error("Deferred-FK package admission is unavailable");
+        return wrap(original.deferredForeignKeys());
+      }
+      return wrap(core.prepare(sql));
+    },
     async batch(items) {
-      return core.batch(items.map(item => {
+      return execute(items.map(item => {
         const native = statements.get(item); if (!native) throw new Error("Foreign JobSqlDatabase statement"); return native;
       }));
     },
-    primary() { core.primary(); return view; },
+    primary() { assertHeld(); core.primary(); return view; },
   };
   return view;
 }

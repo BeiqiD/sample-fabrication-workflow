@@ -24,6 +24,7 @@ import { LocalByteStorageError } from "../storage/local-byte-storage.ts";
 import { createLocalUploadExecution } from "./local-upload-execution";
 import { readOwnedUploadBody } from "./owned-upload-body";
 import { createLocalFileMetadataComposition } from "./local-file-metadata-composition";
+import { createNodePackageHttpRoutes } from "../packages/request-http";
 import { createNodeLocalFileJobs } from "./jobs/local-runtime";
 
 type FileEnvironment = { Bindings: { readonly database: SqliteCapability }; Variables: { userEmail: string } };
@@ -136,6 +137,7 @@ export function createNodeLocalFileHost(options: {
     authorizeAdministrator: () => false });
   let metadata: ReturnType<typeof createLocalFileMetadataComposition>;
   let jobs: ReturnType<typeof createNodeLocalFileJobs> | undefined;
+  let packages: ReturnType<typeof createNodePackageHttpRoutes<FileEnvironment["Bindings"]>> | undefined;
   let phase: "open" | "stopping" | "closed" | "quarantined" = "open";
   try {
     metadata = createLocalFileMetadataComposition({ opening, authentication, admission, publicOrigin: config.publicOrigin });
@@ -143,6 +145,8 @@ export function createNodeLocalFileHost(options: {
       stopApplicationAdmission() {
         phase = "quarantined"; metadata.stopAdmission(); options.stopApplicationAdmission?.();
       } });
+    if (config.enableLocalJobs) packages = createNodePackageHttpRoutes<FileEnvironment["Bindings"]>({ configuration, opening, authentication, admission,
+      stopApplicationAdmission() { phase = "quarantined"; metadata.stopAdmission(); jobs?.stopAdmission(); options.stopApplicationAdmission?.(); } });
   }
   catch (error) { throw new NodeLocalFileDrainError([error], [configuration, auth, identity, opening, jobs]); }
   const scopes = new Set<ScopeOwner>();
@@ -177,7 +181,7 @@ export function createNodeLocalFileHost(options: {
   const routes = new Hono<FileEnvironment>();
   const admittedRoutes = Object.freeze([{ method: "POST", path: "/assets" }, { method: "GET", path: "/r2-upload-requests/:requestId" },
     { method: "GET", path: "/file-assets/:assetId" }, ...metadata.admittedRoutes,
-    ...(jobs?.admittedRoutes ?? [])].map(route => Object.freeze(route)));
+    ...(jobs?.admittedRoutes ?? []), ...(packages?.admittedRoutes ?? [])].map(route => Object.freeze(route)));
   // Scope ingress to actual host methods. A wildcard child middleware would
   // accidentally gate the unrelated legacy methods when mounted at /api.
   for (const route of admittedRoutes) routes.on(route.method, route.path, async (_c, next) => {
@@ -277,11 +281,12 @@ export function createNodeLocalFileHost(options: {
   return Object.freeze({ routes,
     admittedRoutes,
     jobRoutes: jobs?.routes,
+    packageRoutes: packages?.routes,
     startJobsOnListening(server: Server): void { jobs?.startOnListening(server); },
     dispatchJobsOnce(): Promise<Readonly<{jobId: string | null; outcome: string}>> {
       return jobs ? jobs.dispatchOnce() : Promise.resolve({jobId:null,outcome:"disabled"});
     },
-    stopAdmission(): void { if (phase === "open") phase = "stopping"; metadata.stopAdmission(); jobs?.stopAdmission(); },
+    stopAdmission(): void { if (phase === "open") phase = "stopping"; metadata.stopAdmission(); jobs?.stopAdmission(); packages?.stopAdmission(); },
     /** Cached constructor cleanup before a transport has been published.
      * This proves zero original dispatch; it never substitutes for HTTP drain. */
     closeBeforeTransport(): Promise<void> {
@@ -289,10 +294,12 @@ export function createNodeLocalFileHost(options: {
       if (phase === "open") phase = "stopping";
       metadata.stopAdmission();
       jobs?.stopAdmission();
+      packages?.stopAdmission();
       closing = (async () => {
         try {
           if (dispatched || scopes.size || phase === "quarantined")
             throw new Error("Original File transport ownership is required");
+          await packages?.closeBeforeTransport();
           await metadata.closeBeforeTransport();
           await jobs?.drain();
           await opening.close();
@@ -314,6 +321,7 @@ export function createNodeLocalFileHost(options: {
       if (phase === "open") phase = "stopping";
       metadata.stopAdmission();
       jobs?.stopAdmission();
+      packages?.stopAdmission();
       closing = (async () => {
         const errors: unknown[] = [];
         try { await stopNodeHttpServerAndDrain(server); } catch (error) { errors.push(error); }
@@ -324,6 +332,7 @@ export function createNodeLocalFileHost(options: {
         // has finished owning delivered bodies before any disposal is invoked.
         const disposal = await Promise.allSettled(current.flatMap(record => [record.dispose(), ...[...record.reads].map(read => read.dispose())]));
         for (const value of disposal) if (value.status === "rejected" && cleanupUnproven(value.reason)) errors.push(value.reason);
+        try { await packages?.drain(); } catch (error) { errors.push(error); }
         try { await metadata.drainAfterTransport(server); } catch (error) { errors.push(error); }
         try { await jobs?.drain(); } catch (error) { errors.push(error); }
         // A reported original HTTP/domain/provider failure retains this exact
