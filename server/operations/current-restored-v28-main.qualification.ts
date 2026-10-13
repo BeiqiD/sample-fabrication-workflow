@@ -38,6 +38,9 @@ function stopped(native: DatabaseSync) {
   expect(native.prepare('SELECT state FROM system_recovery_maintenance WHERE singleton=1').get()?.state).toBe('open');
   expect(native.prepare('SELECT enforcement,revision FROM collaboration_control WHERE singleton=1').get())
     .toEqual({ enforcement: 'enabled', revision: 2 });
+  // The real source initializer activated File before the zero-File archive;
+  // recovery preserves that content mode while resetting destination guards.
+  expect(native.prepare('SELECT mode FROM file_authority_control WHERE singleton=1').get()?.mode).toBe('active');
   for (const name of ['file_shadow_runtime_guard', 'file_authority_runtime_guard', 'file_job_runtime_guard', 'system_recovery_runtime'])
     expect(native.prepare(`SELECT enabled FROM ${name}`).get()?.enabled).toBe(0);
   for (const name of ['collaboration_resources', 'collaboration_grants', 'local_storage_profile_bindings', 'system_storage_native_bindings'])

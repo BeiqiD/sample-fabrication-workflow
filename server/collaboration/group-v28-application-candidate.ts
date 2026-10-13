@@ -214,6 +214,8 @@ export function createGroupV28ApplicationCandidate(options: {
       const state = owner.native.prepare(`SELECT c.schema_version,c.enforcement,m.state,
         (SELECT count(*) FROM system_recovery_write_leases WHERE released_at IS NULL) writers,
         (SELECT mode FROM file_authority_control WHERE singleton=1) file_mode,
+        (SELECT enabled FROM file_authority_runtime_guard WHERE singleton=1) file_enabled,
+        (SELECT enabled FROM file_shadow_runtime_guard WHERE singleton=1) shadow_enabled,
         (SELECT enabled FROM file_job_runtime_guard WHERE singleton=1) jobs_enabled,
         (SELECT enabled FROM system_recovery_runtime WHERE singleton=1) recovery_enabled,
         EXISTS(SELECT 1 FROM local_identity_installation i
@@ -221,9 +223,13 @@ export function createGroupV28ApplicationCandidate(options: {
           JOIN local_admin_grants g ON g.principal_id=a.principal_id
           WHERE i.singleton=1 AND a.enabled=1) initialized
         FROM collaboration_control c JOIN system_recovery_maintenance m ON m.singleton=1 WHERE c.singleton=1`).get();
-      const expectedFileMode = owner.commentChild || owner.fabubloxChild ? "active" : "legacy";
+      // Restored content may retain an active File control row while its
+      // destination execution guards are disabled. Metadata readiness never
+      // treats that historical mode as a selected or granted File capability.
+      const fileScopeUnavailable = owner.commentChild || owner.fabubloxChild
+        ? state?.file_mode !== "active" : state?.file_enabled !== 0 || state?.shadow_enabled !== 0;
       if (state?.schema_version !== 2 || state.enforcement !== "enabled" || state.state !== "open"
-        || state.writers !== 0 || state.file_mode !== expectedFileMode || state.jobs_enabled !== 0
+        || state.writers !== 0 || fileScopeUnavailable || state.jobs_enabled !== 0
         || state.recovery_enabled !== 0 || state.initialized !== 1) throw new HTTPException(503,
         { message: "The selected V28 service is unavailable." });
       if (captured.canonicalCommentConfiguration) assertNodeRuntimeConfiguration(captured.canonicalCommentConfiguration);
