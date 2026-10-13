@@ -1,11 +1,13 @@
 import { ByteVerificationError, verifyStoredBytes } from "../../files/byte-verification";
 import { writeVerifiedBytes } from "../../files/byte-writer";
 import type { PackageAttempt, PackageCapabilities, PackageClaim } from "./types";
+import { assertFileJobExecutionsOpen, retainFileJobExecution } from "../../files/jobs/execution-lifetime";
 
 export const PACKAGE_STEP_MS=60_000;
 /** One durable action, composed from persistence, format and exact transport
  * capabilities. Closing an HTTP request is unrelated to this executor. */
 export async function runPackageJobStep(capabilities:PackageCapabilities) {
+  assertFileJobExecutionsOpen(capabilities);
   const repository=capabilities.repository;
   const claim=await repository.claim(capabilities.incarnation,capabilities.randomId(),capabilities.authorizeActor);
   if(!claim) return {jobId:null,outcome:"idle"};
@@ -14,16 +16,16 @@ export async function runPackageJobStep(capabilities:PackageCapabilities) {
   let expired=false,timer:ReturnType<typeof setTimeout>|undefined;
   const current=async()=>!expired&&!abort.signal.aborted&&capabilities.now().getTime()<deadline
     && capabilities.authorizeActor(claim.actor)&&await repository.owns(claim);
-  const perform=async()=>{
+  const perform=async(active:PackageCapabilities)=>{
     if(!await current()) throw new Error("actor_or_lease_unavailable");
     if(claim.kind==="upload"&&claim.phase==="validate") {
-      const validated=await capabilities.validateUpload(claim,current,abort.signal);
+      const validated=await active.validateUpload(claim,current,abort.signal);
       if(!await current()) throw new Error("actor_or_lease_unavailable");
       await repository.checkpoint(claim,"preview",{archive:validated});
       return "preview";
     }
     if((claim.kind==="data_package"||claim.kind==="report")&&["snapshot","measure"].includes(claim.phase)) {
-      const measured=await capabilities.measureExport(claim,current,abort.signal) as {byteSize?:unknown;sha256?:unknown};
+      const measured=await active.measureExport(claim,current,abort.signal) as {byteSize?:unknown;sha256?:unknown};
       if(!Number.isSafeInteger(measured.byteSize)||Number(measured.byteSize)<0||Number(measured.byteSize)>100*1024*1024
         ||typeof measured.sha256!=="string"||!/^[a-f0-9]{64}$/.test(measured.sha256)) throw new Error("archive_budget_or_integrity");
       if(!await current()) throw new Error("actor_or_lease_unavailable");
@@ -40,7 +42,7 @@ export async function runPackageJobStep(capabilities:PackageCapabilities) {
     }
     if(file) {
       attempt=await repository.attempt(file);
-      const destination=await capabilities.openStorage({profileId:file.target_profile_id!,configurationRevision:file.target_profile_revision!},"write",current,abort.signal);
+      const destination=await active.openStorage({profileId:file.target_profile_id!,configurationRevision:file.target_profile_revision!},"write",current,abort.signal);
       if(destination.namespaceIdentity!==file.target_namespace||!destination.writer) throw new Error("frozen_target_unavailable");
       const expected={byteSize:file.byte_size,sha256:file.sha256};
       if(attempt&&["write_started","unknown","verified"].includes(attempt.state)) {
@@ -57,7 +59,7 @@ export async function runPackageJobStep(capabilities:PackageCapabilities) {
             .bind(capabilities.now().toISOString(),attempt.id)]); attempt=null;
         }
         if(!attempt||attempt.state!=="staged") attempt=await repository.stage(claim,file);
-        const body=claim.kind==="import"?await capabilities.importBody(claim,file,current,abort.signal):await capabilities.exportBody(claim,current,abort.signal);
+        const body=claim.kind==="import"?await active.importBody(claim,file,current,abort.signal):await active.exportBody(claim,current,abort.signal);
         if(!await current()) {await body.cancel();throw new Error("actor_or_lease_unavailable");}
         try {await repository.startWrite(claim,attempt);} catch(error){await body.cancel().catch(()=>undefined);throw error;}
         const transport=destination.writer,ownedAttempt=attempt;
@@ -71,7 +73,7 @@ export async function runPackageJobStep(capabilities:PackageCapabilities) {
       return "file_verified";
     }
     if(claim.kind==="import") {
-      const publication=await capabilities.importPublication(claim);
+      const publication=await active.importPublication(claim);
       if(!await current()) throw new Error("actor_or_lease_unavailable");
       await repository.publish(claim,publication.statements,publication.result);
       return "completed";
@@ -79,7 +81,9 @@ export async function runPackageJobStep(capabilities:PackageCapabilities) {
     await repository.publish(claim,[],{roots:JSON.parse(claim.input_json).roots ?? [],reused:false});
     return "completed";
   };
-  const work=perform();
+  const original=retainFileJobExecution(capabilities,async scope=>perform({...capabilities,
+    async openStorage(...args){return scope.own(await capabilities.openStorage(...args));}}));
+  const work=original.result;
   // The timeout aborts provider calls and sources. It does not certify an R2 or
   // remote non-atomic PUT stopped; the registered attempt remains held unknown.
   const timeout=new Promise<never>((_,reject)=>{timer=setTimeout(()=>{expired=true;abort.abort();reject(new Error("execution_budget_exhausted"));},PACKAGE_STEP_MS);});
