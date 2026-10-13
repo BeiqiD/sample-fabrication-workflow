@@ -245,6 +245,20 @@ function createRecoveryEngine(options: Omit<OriginalRecoveryOptions, "hasher"> &
   let auth: ReturnType<typeof createLocalAuthentication> | undefined = borrowed?.authentication;
   let authentication: ReturnType<typeof localAuthenticationIdentityAuthority> | undefined = auth ? localAuthenticationIdentityAuthority(auth) : undefined;
   const invocations = new AsyncLocalStorage<InvocationOwner>();
+  // Only this engine's admitted borrowed originals can continue after ingress
+  // stops. A settled original or another engine cannot inherit this custody.
+  const originalOwners = new AsyncLocalStorage<{ readonly owner: object; active: boolean }>();
+  function runOriginal<T>(operation: () => Promise<T>): Promise<T> {
+    if (!borrowed) return operation();
+    const context = { owner, active: true };
+    return originalOwners.run(context, async () => {
+      try { return await operation(); } finally { context.active = false; }
+    });
+  }
+  function holdsOriginal(): boolean {
+    const context = originalOwners.getStore();
+    return borrowed !== undefined && context?.owner === owner && context.active;
+  }
   let sourceWindow: Readonly<{ generation: number; token: string | null }> | undefined;
   async function pauseSource(window: Readonly<{ generation: number; token: string | null }>): Promise<void> {
     if (!borrowed) return;
@@ -260,7 +274,7 @@ function createRecoveryEngine(options: Omit<OriginalRecoveryOptions, "hasher"> &
     if (first && borrowed) try { borrowed.quarantine(error); } catch (notification) { owner.failure = new AggregateError([error, notification], "Recovery parent quarantine notification failed"); }
     if (owner.timer !== undefined) { clearTimeout(owner.timer); owner.timer = undefined; } };
   function physical(): void {
-    if (!owner.active || owner.failed || assertNodeRuntimeConfigurationForProfile(configuration, profile) !== config) throw fail("Recovery admission is unavailable", 503);
+    if (!owner.active && !holdsOriginal() || owner.failed || assertNodeRuntimeConfigurationForProfile(configuration, profile) !== config) throw fail("Recovery admission is unavailable", 503);
     identity?.assertCurrent(); assertLinuxWriterLeaseBinding(lease, database, native);
     if (authentication && localAuthenticationIdentityAuthority(auth!) !== authentication) throw fail("Recovery authentication is unavailable", 503);
     if (borrowed) assertNodeV28SourceBarrierBinding(borrowed.sourceBarrier, database, native, lease, borrowed.authentication);
@@ -478,8 +492,9 @@ function createRecoveryEngine(options: Omit<OriginalRecoveryOptions, "hasher"> &
     return { requestId, job: await status(repo, accepted.job), reused: accepted.reused };
   }
   async function dispatchRecoveryJobsOnce(): Promise<{ jobId: string | null; outcome: string }> {
+    if (borrowed && !owner.active) throw fail("Recovery admission is unavailable", 503);
     physical(); if (owner.dispatch) throw new Error("Recovery dispatcher is busy");
-    const original = lease.withWriter(async () => {
+    const original = lease.withWriter(() => runOriginal(async () => {
       const next = await base.next(), runtime = await base.runtime();
       if (!runtime || runtime.enabled !== 1) return { jobId: null, outcome: "disabled" };
       await base.db().prepare("UPDATE system_recovery_runtime SET last_heartbeat_at=? WHERE singleton=1 AND enabled=1 AND incarnation=?")
@@ -500,14 +515,15 @@ function createRecoveryEngine(options: Omit<OriginalRecoveryOptions, "hasher"> &
       }
       if (failed) throw failure;
       physical(); return result!;
-    });
+    }));
     owner.dispatch = original; owner.pending.add(original);
     try { return await original; } finally { owner.pending.delete(original); owner.dispatch = undefined; }
   }
   async function eligible(): Promise<boolean> {
+    if (borrowed && !owner.active) return false;
     physical(); if (owner.dispatch) return false;
-    return lease.withWriter(async () => { physical(); const runtime = await base.runtime(), next = await base.next();
-      physical(); return runtime?.enabled === 1 && next !== null; });
+    return lease.withWriter(() => runOriginal(async () => { physical(); const runtime = await base.runtime(), next = await base.next();
+      physical(); return (!borrowed || owner.active) && runtime?.enabled === 1 && next !== null; }));
   }
   function stopAdmission(): void {
     owner.active = false; if (owner.timer !== undefined) { clearTimeout(owner.timer); owner.timer = undefined; }
@@ -544,12 +560,12 @@ function createRecoveryEngine(options: Omit<OriginalRecoveryOptions, "hasher"> &
   async function handle(request: Request): Promise<Response> {
     if (!owner.active || !routes.some(route => (!borrowed || route.path.startsWith("/api/system-recovery/"))
       && route.method === request.method && route.pattern.test(new URL(request.url).pathname))) return unavailable();
-    const original = lease.withWriter(async () => {
+    const original = lease.withWriter(() => runOriginal(async () => {
       if (!application || !owner.active) return unavailable();
       const body = createGroupV28RequestBodyCustody(request); owner.ingressBodies.add(body);
       try { return await application.fetch(request, {}); }
       finally { try { await body.close(); owner.ingressBodies.delete(body); } catch (error) { quarantine(error); throw error; } }
-    });
+    }));
     owner.pending.add(original); try { return await original; } finally { owner.pending.delete(original); }
   }
   const construction = lease.withWriter(async () => {
