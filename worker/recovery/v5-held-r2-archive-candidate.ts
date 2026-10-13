@@ -48,34 +48,8 @@ export function createWorkerV5HeldR2ArchiveCandidate(env: Env) {
     ensure((closing || !owner.closing) && !owner.signal?.aborted && env.DB === binding && await owner.current() === true
       && !owner.signal?.aborted && env.DB === binding, "current_source_authority");
   }
-  function ownedStream(owner: Owner, input: ReadableStream<Uint8Array>, before?: () => Promise<void>): OriginalStream {
-    const reader = input.getReader(); let ended = false, closing: Promise<void> | undefined;
-    let resolveDone!: () => void, rejectDone!: (error: unknown) => void;
-    const done = new Promise<void>((resolve, reject) => { resolveDone = resolve; rejectDone = reject; }); void done.catch(() => undefined);
-    async function closeOriginal() {
-      return closing ??= (async () => {
-        if (ended) return await done;
-        try { await reader.cancel(); await reader.closed; ended = true; reader.releaseLock(); resolveDone(); }
-        catch (error) { rejectDone(error); throw error; }
-      })();
-    }
-    const body = new ReadableStream<Uint8Array>({
-      async pull(controller) {
-        if (ended) return;
-        try {
-          await before?.(); const next = await reader.read(); await before?.();
-          if (ended) return;
-          if (next.done) { await reader.closed; ended = true; reader.releaseLock(); resolveDone(); controller.close(); }
-          else controller.enqueue(next.value);
-        } catch (error) {
-          let failure = error;
-          try { await closeOriginal(); } catch (cleanup) { failure = new AggregateError([error, cleanup], "Original held source read and close failed"); }
-          controller.error(failure);
-        }
-      },
-      async cancel() { await closeOriginal(); },
-    }, { highWaterMark: 0 });
-    const stream = Object.freeze({ body, done, close: closeOriginal }); owner.streams.add(stream); return stream;
+  function ownedStream(owner: Owner,input: ReadableStream<Uint8Array>,before?:()=>Promise<void>):OriginalStream {
+    const stream=ownWorkerV5SourceStream(input,before);owner.streams.add(stream);return stream;
   }
   async function actualHold(owner: Owner, source: SystemBackupSourceV28) {
     await available(owner); const entry = source.source;
@@ -186,3 +160,35 @@ export function createWorkerV5HeldR2ArchiveCandidate(env: Env) {
   }
   return Object.freeze({ prepare, measure, stream, closeAll });
 }
+
+// The exact original body/first-close implementation is shared with public V5
+// byte reads. This owns a supplied body only; it issues no provider/actor grant.
+export function ownWorkerV5SourceStream(input: ReadableStream<Uint8Array>, before?: () => Promise<void>): OriginalStream {
+    const reader = input.getReader(); let ended = false, closing: Promise<void> | undefined;
+    let resolveDone!: () => void, rejectDone!: (error: unknown) => void;
+    const done = new Promise<void>((resolve, reject) => { resolveDone = resolve; rejectDone = reject; }); void done.catch(() => undefined);
+    async function closeOriginal() {
+      return closing ??= (async () => {
+        if (ended) return await done;
+        try { await reader.cancel(); await reader.closed; ended = true; reader.releaseLock(); resolveDone(); }
+        catch (error) { rejectDone(error); throw error; }
+      })();
+    }
+    const body = new ReadableStream<Uint8Array>({
+      async pull(controller) {
+        if (ended) return;
+        try {
+          await before?.(); const next = await reader.read(); await before?.();
+          if (ended) return;
+          if (next.done) { await reader.closed; ended = true; reader.releaseLock(); resolveDone(); controller.close(); }
+          else controller.enqueue(next.value);
+        } catch (error) {
+          let failure = error;
+          try { await closeOriginal(); } catch (cleanup) { failure = new AggregateError([error, cleanup], "Original held source read and close failed"); }
+          controller.error(failure);
+        }
+      },
+      async cancel() { await closeOriginal(); },
+    }, { highWaterMark: 0 });
+    return Object.freeze({ body, done, close: closeOriginal });
+  }

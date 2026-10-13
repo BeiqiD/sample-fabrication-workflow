@@ -42,8 +42,8 @@ export function requiresFileJobExecutionQuarantine(error: unknown): boolean {
   }
   return false;
 }
-const executions = new WeakMap<OriginalJobCapabilities, ExecutionState>();
-function stateFor(capabilities: OriginalJobCapabilities): ExecutionState {
+const executions = new WeakMap<object, ExecutionState>();
+function stateFor(capabilities: object): ExecutionState {
   let state = executions.get(capabilities);
   if (!state) { state = { entries: new Set(), sealed: false, quarantined: false }; executions.set(capabilities, state); }
   return state;
@@ -51,7 +51,8 @@ function stateFor(capabilities: OriginalJobCapabilities): ExecutionState {
 
 /** The exact capabilities object identifies one runtime owner. A shallow copy
  * is another owner and cannot be used to drain an existing invocation. */
-export function assertFileJobExecutionsOpen(capabilities: OriginalJobCapabilities): void {
+export function assertFileJobExecutionsOpen(capabilities: OriginalJobCapabilities): void { assertOriginalExecutionsOpen(capabilities); }
+function assertOriginalExecutionsOpen(capabilities: object):void {
   const state = stateFor(capabilities);
   if (state.sealed || state.draining || state.quarantined) throw new Error("File job execution owner is closed or draining");
 }
@@ -78,8 +79,9 @@ export interface RetainedFileJobExecution<T> {
 export function retainFileJobExecution<T>(capabilities: OriginalJobCapabilities,
   operation: (scope: FileJobExecutionScope) => Promise<T>,
   afterSettled?: () => Promise<void>,
-): RetainedFileJobExecution<T> {
-  assertFileJobExecutionsOpen(capabilities);
+): RetainedFileJobExecution<T> { return retainOriginalExecution(capabilities,operation,afterSettled); }
+function retainOriginalExecution<T>(capabilities:object,operation:(scope:FileJobExecutionScope)=>Promise<T>,afterSettled?:()=>Promise<void>):RetainedFileJobExecution<T>{
+  assertOriginalExecutionsOpen(capabilities);
   const state = stateFor(capabilities), owners = new Set<JobBoundStorage>();
   const entry: ExecutionEntry = { settlement: Promise.resolve(), disposers: [], cleanupFailed: false };
   let cleaning = false;
@@ -135,7 +137,8 @@ export function retainFileJobExecution<T>(capabilities: OriginalJobCapabilities,
  * New invocations are refused while draining. A failed cleanup keeps its owner
  * closures retained and makes this runtime unavailable until the host repairs
  * it; neither this function nor close retries an uncertain provider close. */
-export function drainFileJobExecutions(capabilities: OriginalJobCapabilities): Promise<void> {
+export function drainFileJobExecutions(capabilities: OriginalJobCapabilities): Promise<void> { return drainOriginalExecutions(capabilities); }
+function drainOriginalExecutions(capabilities:object):Promise<void>{
   const state = stateFor(capabilities);
   if (state.failure) return Promise.reject(state.failure);
   if (state.draining) return state.draining;
@@ -159,4 +162,42 @@ export function drainFileJobExecutions(capabilities: OriginalJobCapabilities): P
 export function closeFileJobExecutions(capabilities: OriginalJobCapabilities): Promise<void> {
   stateFor(capabilities).sealed = true;
   return drainFileJobExecutions(capabilities);
+}
+
+
+// Reuse this exact original invocation/provider first-close registry for the
+// fixed Worker V5 Recovery lane. These receipts issue lifetime ownership only,
+// never an actor, job claim, SQL predicate, destination or provider grant.
+const workerRecoveryOwners=new WeakMap<object,object>();
+const workerRecoveryScopes=new WeakMap<object,FileJobExecutionScope>();
+const workerRecoveryPending=new WeakSet<object>();
+export function registerWorkerRecoveryExecutionOwner(capabilities:object):void{
+  assertOriginalExecutionsOpen(capabilities);workerRecoveryOwners.set(capabilities,capabilities);
+}
+export function retainWorkerRecoveryInvocation<T>(original:object,operation:()=>Promise<T>):Promise<T>{
+  const owner=workerRecoveryOwners.get(original);
+  if(!owner)return operation();
+  if(workerRecoveryPending.has(original))throw new Error("Original Worker Recovery invocation is busy");
+  workerRecoveryPending.add(original);
+  try{
+    const retained=retainOriginalExecution(owner,async scope=>{
+      workerRecoveryScopes.set(original,scope);
+      try{return await operation();}finally{workerRecoveryScopes.delete(original);}
+    });
+    void retained.completed.then(()=>workerRecoveryPending.delete(original),()=>workerRecoveryPending.delete(original));
+    return retained.result;
+  }catch(error){workerRecoveryPending.delete(original);throw error;}
+}
+export function ownWorkerRecoveryBodyClose(original:object,dispose:()=>Promise<void>):void{
+  const scope=workerRecoveryScopes.get(original);
+  if(!workerRecoveryOwners.has(original)||!scope)throw new Error("Original Worker Recovery body owner is unavailable");
+  scope.ownCleanup(dispose);
+}
+
+/** Only the exact privately registered Worker owner can use this neutral
+ * lifetime close. No Worker/D1/Env types flow into Node's shared byte registry. */
+export function closeWorkerRecoveryExecutionOwner(original:object):Promise<void>{
+  const owner=workerRecoveryOwners.get(original);
+  if(!owner)throw new Error("Original Worker Recovery execution owner is unavailable");
+  stateFor(owner).sealed=true;return drainOriginalExecutions(owner);
 }

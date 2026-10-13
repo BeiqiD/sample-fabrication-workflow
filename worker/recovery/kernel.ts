@@ -1,3 +1,4 @@
+import { retainWorkerRecoveryInvocation } from "../files/jobs/execution-lifetime";
 import type { JobSqlStatement } from "../files/jobs/sql-repository";
 import type { RecoveryAttempt, RecoveryClaim, RecoveryJob, SqlSystemRecoveryRepository, SystemRecoverySqlStatement } from "./sql-repository";
 import { SystemRecoveryConflict } from "./sql-repository";
@@ -47,7 +48,7 @@ async function timed<T,Statement extends SystemRecoverySqlStatement<Statement>>(
   operation:(current:()=>Promise<boolean>,signal:AbortSignal)=>Promise<T>,attempt:()=>RecoveryAttempt|null){
   const abort=new AbortController(),deadline=capabilities.now().getTime()+SYSTEM_RECOVERY_MAX_STEP_MS;let expired=false,timer:ReturnType<typeof setTimeout>|undefined;
   const current=async()=>!expired&&!abort.signal.aborted&&capabilities.now().getTime()<deadline&&capabilities.authorizeActor(claim.actor)&&await capabilities.repository.current(claim);
-  const work=operation(current,abort.signal),timeout=new Promise<never>((_,reject)=>{timer=setTimeout(()=>{expired=true;abort.abort();reject(new Error("execution_budget_exhausted"));},SYSTEM_RECOVERY_MAX_STEP_MS);});
+  const work=retainWorkerRecoveryInvocation(capabilities,()=>operation(current,abort.signal)),timeout=new Promise<never>((_,reject)=>{timer=setTimeout(()=>{expired=true;abort.abort();reject(new Error("execution_budget_exhausted"));},SYSTEM_RECOVERY_MAX_STEP_MS);});
   try{return await Promise.race([work,timeout]);}
   catch(error){abort.abort();await capabilities.repository.pause(claim,safeReason(error),attempt());throw error;}
   finally{if(timer)clearTimeout(timer);abort.abort();}

@@ -5,14 +5,14 @@ import { assertSystemAdministrator } from "../storage/system-administrator";
 import { checkedSystemRecoveryBackupInput, checkedSystemRecoveryUploadInput, checkedSystemRecoveryImportInput, checkedSystemRecoveryCutoverInput,
   checkedSystemRecoveryJobControl, checkedSystemRecoveryJobStatus, checkedSystemRecoveryCapabilities, checkedSystemRecoveryPreview,
   type SystemRecoveryBackupPreview, type SystemRecoveryReceipt, type SystemRecoveryPublicReport } from "../../shared/contracts/system-recovery";
-import { recoveryRepository,recoveryActorAllowed,systemRecoveryCapabilities,systemRecoveryJobStatus,systemRecoveryPreview,workerSystemRecoveryCapabilities,freezeRecoveryArtifactNamespace,assertRecoveryArtifactNamespace } from "./service";
+import { recoveryRepository,recoveryActorAllowed,systemRecoveryCapabilities,systemRecoveryJobStatus,systemRecoveryPreview,workerSystemRecoveryCapabilities, closeWorkerV5RecoveryExecutions,freezeRecoveryArtifactNamespace,assertRecoveryArtifactNamespace } from "./service";
 import { writeSystemRecoveryUpload, runBoundedSystemRecoveryReadAction } from "./jobs";
 import type { RecoveryJob } from "./repository";
 import { readSourceMaintenance, verifySourceCheckpoint } from "./maintenance";
 import { captureVersionedSystemBackupSnapshot, sourceVersionedBackupCheckpoint } from "./portable-backup-snapshot";
-import type { VersionedRecoveryRecords, VersionedRecoveryManifest } from "./versioned-catalog";
-import { createRecoveryTargetEngine, recoveryTargetRestoreBudget } from "./target-import";
-import { stableJson } from "../../shared/domain/content-addressing";
+import type { WorkerRecoveryRecords as VersionedRecoveryRecords, WorkerRecoveryManifest as VersionedRecoveryManifest } from "./versioned-catalog";
+import { createRecoveryTargetEngine, createWorkerV5RecoveryTargetEngine, recoveryTargetRestoreBudget } from "./target-import";
+import { stableJson, sha256Hex } from "../../shared/domain/content-addressing";
 import type { SystemRecoveryReport } from "./report";
 
 type ApiEnv={Bindings:Env;Variables:{userEmail:string}};
@@ -62,7 +62,7 @@ systemRecoveryRoutes.put("/system-recovery/jobs/:jobId/upload",async c=>{const a
   const acceptedInput=checkedSystemRecoveryUploadInput(JSON.parse(job.input_json)),length=c.req.header("content-length");if(length!==undefined&&(!/^[1-9][0-9]*$/.test(length)||Number(length)!==acceptedInput.byteSize))throw fail("Upload size differs from accepted identity",400);
   if(!c.req.raw.body)throw fail("Recovery upload body is required",400);const capabilities=await workerSystemRecoveryCapabilities(c.env);if(!capabilities)throw fail("Recovery executor is disabled or unavailable",503);
   const claim=await capabilities.repository.claim(job.id,actor,capabilities.incarnation,crypto.randomUUID(),true);if(!claim)throw fail("Another attempt owns this recovery upload",409);
-  await writeSystemRecoveryUpload(capabilities,claim,c.req.raw.body);return c.json(checkedSystemRecoveryJobStatus(await systemRecoveryJobStatus(c.env,(await capabilities.repository.job(job.id))!)));});
+  try{await writeSystemRecoveryUpload(capabilities,claim,c.req.raw.body);}finally{await closeWorkerV5RecoveryExecutions(capabilities);}return c.json(checkedSystemRecoveryJobStatus(await systemRecoveryJobStatus(c.env,(await capabilities.repository.job(job.id))!)));});
 systemRecoveryRoutes.get("/system-recovery/jobs/:jobId/preview",async c=>{const job=await owned(c.env,c.req.param("jobId"),c.get("userEmail"));
   if(!(job.kind==="upload"&&job.state==="preview"||job.kind==="backup"&&job.state==="completed"||job.kind==="recovery"))throw fail("Recovery archive validation has not completed",409);
   return c.json(checkedSystemRecoveryPreview(await systemRecoveryPreview(c.env,job)));});
@@ -75,12 +75,21 @@ systemRecoveryRoutes.post("/system-recovery/recoveries",async c=>{const accepted
   if(!recoveryTargetRestoreBudget(records).available)throw fail("Recovery image exceeds the website atomic restore budget; use an independently reviewed offline recovery path",409);
   if(acceptedInput.mode==="planned"){const source=await repository.job(records.backupId),maintenance=await readSourceMaintenance(c.env);
     if(source?.kind!=="backup"||source.state!=="completed"||source.source_checkpoint!==manifest.sourceCheckpoint||maintenance.state!=="fenced"||maintenance.backupJobId!==records.backupId||maintenance.checkpoint!==manifest.sourceCheckpoint)throw fail("Planned recovery requires the current final source checkpoint",409);}
-  const id=crypto.randomUUID(),preview=await createRecoveryTargetEngine(c.env).preview({jobId:id,incarnation:id.replaceAll("-",""),expectedTargetId:acceptedInput.expectedTargetId,records,manifest,mapping:acceptedInput.mapping,mode:acceptedInput.mode});
+  const id=crypto.randomUUID(),selection={jobId:id,incarnation:id.replaceAll("-",""),expectedTargetId:acceptedInput.expectedTargetId,mapping:acceptedInput.mapping,mode:acceptedInput.mode};
+  let preview;
+  if(records.schema==="system-backup-records/5"){
+    if(manifest.schema!=="system-backup/5")throw fail("Recovery archive version pair is invalid",409);
+    preview=await createWorkerV5RecoveryTargetEngine(c.env).preview({...selection,records,manifest});
+  }else{
+    if(manifest.schema==="system-backup/5")throw fail("Recovery archive version pair is invalid",409);
+    preview=await createRecoveryTargetEngine(c.env).preview({...selection,records,manifest});
+  }
   if(!preview.available)throw fail("Recovery target or storage mapping is unavailable",409);
   const accepted=await repository.accept({id,requestId:acceptedInput.requestId,actor,kind:"recovery",input:acceptedInput,sourceUploadJobId:upload.id,targetId:acceptedInput.expectedTargetId,
     sourceCheckpoint:manifest.sourceCheckpoint,totalFiles:manifest.files.length,bytesTotal:manifest.counts.bytes},()=>recoveryActorAllowed(c.env,actor));return c.json(await receipt(c.env,acceptedInput.requestId,accepted),202);});
 systemRecoveryRoutes.post("/system-recovery/jobs/:jobId/control",async c=>{const action=await input(c.req.raw,checkedSystemRecoveryJobControl),actor=c.get("userEmail"),repository=recoveryRepository(c.env),job=await owned(c.env,c.req.param("jobId"),actor);
   if(action==="cleanup"){
+    await assertV5RecoveryCleanupClosed(c.env,job);
     if(job.kind!=="recovery")await assertRecoveryArtifactNamespace(c.env,job);
     if(["queued","running","awaiting_upload"].includes(job.state))throw fail("Stop the recovery job before cleanup",409);
     if(await repository.db().prepare("SELECT 1 FROM system_recovery_jobs WHERE source_upload_job_id=? AND state IN('queued','running','paused')").bind(job.id).first())throw fail("An accepted recovery still holds this archive",409);
@@ -123,6 +132,8 @@ systemRecoveryRoutes.post("/system-recovery/jobs/:jobId/cutover",async c=>{const
   const prior=await repository.request(acceptedInput.requestId,actor,acceptedInput);if(prior)return c.json(await receipt(c.env,acceptedInput.requestId,{job:prior,reused:true}));
   if(job.kind!=="recovery"||job.state!=="completed"||job.phase!=="ready"||!job.target_incarnation||job.target_id!==acceptedInput.expectedTargetId||JSON.parse(job.result_json??"null")?.checkpoint!==acceptedInput.expectedCheckpoint)throw fail("Recovery target is not ready at this checkpoint",409);
   const frozenInput=checkedSystemRecoveryImportInput(JSON.parse(job.input_json)),records=await repository.metadata(job.source_upload_job_id!,"records") as VersionedRecoveryRecords,manifest=await repository.metadata(job.source_upload_job_id!,"manifest") as VersionedRecoveryManifest;
+  if(records.schema==="system-backup-records/5")throw fail("The verified inert V5 report requires its separately reviewed operator handoff.",409);
+  if(manifest.schema==="system-backup/5")throw fail("Recovery archive version pair is invalid",409);
   const maintenance=await readSourceMaintenance(c.env);if(maintenance.state!=="fenced"||maintenance.activeWriters)throw fail("Prepared handoff requires drained source maintenance",409);
   if(frozenInput.mode==="historical"&&!frozenInput.acknowledgeLaterChanges)throw fail("Historical recovery requires explicit later-change acknowledgement",409);
   const accepted=await runBoundedSystemRecoveryReadAction(async()=>{if(!recoveryActorAllowed(c.env,actor))return false;const status=await readSourceMaintenance(c.env),live=await repository.job(job.id);
@@ -139,3 +150,28 @@ systemRecoveryRoutes.post("/system-recovery/jobs/:jobId/cutover",async c=>{const
     if(report.targetCheckpoint!==acceptedInput.expectedCheckpoint||!await current())throw fail("Recovery verification checkpoint changed",409);
     return repository.recordCutover(job,acceptedInput,{generation:maintenance.generation,token:maintenance.token,deadlineAt},()=>!signal.aborted&&Date.now()<Date.parse(deadlineAt)&&recoveryActorAllowed(c.env,actor));
   });return c.json(await receipt(c.env,acceptedInput.requestId,accepted));});
+
+
+/** Public V5 retains the source archive through every accepted target owner,
+ * including a cancelled/paused unknown PUT or publication ACK. No positive
+ * original target proof is inferred from an absent/reconfigured binding. */
+async function assertV5RecoveryCleanupClosed(env:Env,job:RecoveryJob){
+  const repository=recoveryRepository(env),sourceId=job.kind==="recovery"?job.source_upload_job_id:job.id;
+  if(!sourceId)return;
+  const records=await repository.metadata(sourceId,"records") as VersionedRecoveryRecords|null;
+  if(records?.schema!=="system-backup-records/5")return;
+  const dependents=job.kind==="recovery"?[job]:(await repository.db().prepare("SELECT * FROM system_recovery_jobs WHERE source_upload_job_id=?").bind(sourceId).all<RecoveryJob>()).results;
+  for(const dependent of dependents){
+    if(dependent.kind!=="recovery")continue;
+    if(!env.RECOVERY_DB||env.RECOVERY_DB===env.DB||dependent.target_id!==env.RECOVERY_TARGET_ID||!dependent.target_incarnation)
+      throw fail("The original V5 target owner still holds this archive.",409);
+    const present=await env.RECOVERY_DB.prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='system_recovery_target_claim'").first();
+    if(!present)throw fail("The original V5 target owner still holds this archive.",409);
+    const original=await env.RECOVERY_DB.prepare("SELECT status,image_sha256 FROM system_recovery_target_claim WHERE singleton=1 AND target_id=? AND job_id=? AND incarnation=?")
+      .bind(dependent.target_id,dependent.id,dependent.target_incarnation).first<{status:string;image_sha256:string}>();
+    const unsettled=await env.RECOVERY_DB.prepare("SELECT 1 FROM system_recovery_target_files WHERE job_id=? AND state<>'published' LIMIT 1").bind(dependent.id).first();
+    if(dependent.state!=="completed"||dependent.phase!=="ready"||original?.status!=="ready"
+      ||original.image_sha256!==await sha256Hex(stableJson(records.image))||unsettled)
+      throw fail("The original V5 target owner still holds this archive.",409);
+  }
+}

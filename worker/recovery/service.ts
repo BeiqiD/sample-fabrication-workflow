@@ -1,3 +1,10 @@
+import { registerWorkerRecoveryExecutionOwner, ownWorkerRecoveryBodyClose, closeWorkerRecoveryExecutionOwner } from "../files/jobs/execution-lifetime";
+import { captureWorkerV5PublicSnapshot } from "./v28-held-backup-snapshot-candidate";
+import { sourceBackupCheckpointV5 } from "../../shared/contracts/system-backup-v5";
+import { planSystemBackupSourcesV28 } from "../../shared/contracts/system-backup-v28-content";
+import { prepareWorkerSystemBackupArchive, validateWorkerSystemBackupArchive } from "./archive-format";
+import { openWorkerV5BackupSource } from "./backup-archive";
+import type { WorkerRecoveryRecords, WorkerRecoveryManifest, WorkerRecoveryFile, WorkerRecoverySource } from "./versioned-catalog";
 import { planSystemBackupSourcesV26 } from "../../shared/contracts/system-backup-v26-content";
 import type { Env } from "../types";
 import { canAdministerSystemSettings } from "../storage/system-administrator";
@@ -10,13 +17,13 @@ import { stableJson,sha256Hex } from "../../shared/domain/content-addressing";
 import { planSystemBackupSources, type SystemBackupSource, type SystemBackupFile } from "../../shared/contracts/system-backup";
 import type { SystemRecoveryCapabilities, SystemRecoveryPreview, SystemRecoveryJobStatus, SystemRecoveryImportInput } from "../../shared/contracts/system-recovery";
 import { captureVersionedSystemBackupSnapshot, sourceVersionedBackupCheckpoint } from "./portable-backup-snapshot";
-import { selectReviewedRecoveryCatalog, type VersionedRecoveryRecords, type VersionedRecoveryManifest } from "./versioned-catalog";
+import { selectWorkerRecoveryCatalog as selectReviewedRecoveryCatalog } from "./versioned-catalog";
 import { portableBusinessManifestV24 } from "../../shared/contracts/export-portable-runtime";
-import { prepareSystemBackupArchive, validateSystemBackupArchive, openSystemBackupSource } from "./backup-archive";
+import { openSystemBackupSource } from "./backup-archive";
 import { createSystemBackupArchiveStream, measureSystemBackupArchive } from "../../shared/domain/system-backup-archive";
 import { sourceFromStream, openStoreArchiveEntry, type ArchiveSource, type ArchiveIndexEntry } from "../../shared/domain/research-archive";
 import { readSourceMaintenance, recordSourceCheckpoint } from "./maintenance";
-import { createRecoveryTargetEngine,inspectRecoveryTargetFreshness,RecoveryTargetError,recoveryTargetRestoreBudget } from "./target-import";
+import { createRecoveryTargetEngine,createWorkerV5RecoveryTargetEngine,inspectRecoveryTargetFreshness,RecoveryTargetError,recoveryTargetRestoreBudget } from "./target-import";
 import { recoverySourceProfileId } from "./target-files";
 import { r2BootstrapNamespace } from "../files/r2-bootstrap-profile";
 
@@ -53,10 +60,10 @@ export async function systemRecoveryJobStatus(env:Env,job:RecoveryJob):Promise<S
     output:job.archive_byte_size&&job.archive_sha256&&job.expires_at?{available,byteSize:job.archive_byte_size,sha256:job.archive_sha256,expiresAt:job.expires_at}:null,
     result:job.result_json?JSON.parse(job.result_json):null};
 }
-async function records(repository:SystemRecoveryRepository,jobId:string){const value=await repository.metadata(jobId,"records");if(!value)throw new Error("archive_invalid");const records=value as VersionedRecoveryRecords;selectReviewedRecoveryCatalog(records);return records;}
-async function manifest(repository:SystemRecoveryRepository,jobId:string){const value=await repository.metadata(jobId,"manifest");if(!value)throw new Error("archive_invalid");const manifest=value as VersionedRecoveryManifest;if(!["system-backup/1","system-backup/2","system-backup/3"].includes(manifest.schema))throw new Error("archive_invalid");return manifest;}
-async function terminalFiles(repository:SystemRecoveryRepository,jobId:string){return(await repository.files(jobId)).map(row=>JSON.parse(row.file_json) as SystemBackupFile);}
-function groupFileStatements(repository:SystemRecoveryRepository,claim:RecoveryClaim,sources:readonly SystemBackupSource[]){
+async function records(repository:SystemRecoveryRepository,jobId:string){const value=await repository.metadata(jobId,"records");if(!value)throw new Error("archive_invalid");const records=value as WorkerRecoveryRecords;selectReviewedRecoveryCatalog(records);return records;}
+async function manifest(repository:SystemRecoveryRepository,jobId:string){const value=await repository.metadata(jobId,"manifest");if(!value)throw new Error("archive_invalid");const manifest=value as WorkerRecoveryManifest;if(!["system-backup/1","system-backup/2","system-backup/3","system-backup/5"].includes(manifest.schema))throw new Error("archive_invalid");return manifest;}
+async function terminalFiles(repository:SystemRecoveryRepository,jobId:string){return(await repository.files(jobId)).map(row=>JSON.parse(row.file_json) as WorkerRecoveryFile);}
+function groupFileStatements(repository:SystemRecoveryRepository,claim:RecoveryClaim,sources:readonly WorkerRecoverySource[]){
   const db=repository.db(),groups:Array<Array<{id:string;ordinal:number;json:string}>>=[];let group:Array<{id:string;ordinal:number;json:string}>=[];
   sources.forEach((source,ordinal)=>{const row={id:source.id,ordinal,json:stableJson(source)};
     if(new TextEncoder().encode(row.json).byteLength>65536)throw new SystemRecoveryConflict("metadata_budget");
@@ -66,9 +73,9 @@ function groupFileStatements(repository:SystemRecoveryRepository,claim:RecoveryC
     SELECT ?,json_extract(value,'$.id'),json_extract(value,'$.ordinal'),'pending',json_extract(value,'$.json') FROM json_each(?)`)
     .bind(claim.id,stableJson(rows)));
 }
-async function measureSource(env:Env,source:SystemBackupSource,current:()=>Promise<boolean>,signal:AbortSignal,backupId:string):Promise<SystemBackupFile>{
-  const unavailable=(outcome:SystemBackupFile["outcome"]):SystemBackupFile=>({...source,path:null,outcome,byteSize:null,sha256:null});
-  let read;try{read=await openSystemBackupSource(env,source,current,signal,backupId);}catch{if(signal.aborted||!await current())throw new Error("administrator_revoked");return unavailable("download_failed");}
+async function measureSource(env:Env,source:WorkerRecoverySource,current:()=>Promise<boolean>,signal:AbortSignal,claim:RecoveryClaim,installationId:string,v5:boolean,owner:SystemRecoveryCapabilitiesAdapter):Promise<WorkerRecoveryFile>{
+  const unavailable=(outcome:SystemBackupFile["outcome"]):WorkerRecoveryFile=>({...source,path:null,outcome,byteSize:null,sha256:null});
+  let read;try{read=await openClaimedBackupSource(env,source,claim,installationId,current,signal,v5,owner);}catch{if(signal.aborted||!await current())throw new Error("administrator_revoked");return unavailable("download_failed");}
   if(read.outcome!=="available")return unavailable(read.outcome);
   const hash=cloudflareSha256(),reader=read.body.getReader();let size=0,complete=false;
   try{while(true){const next=await reader.read();if(next.done){complete=true;break;}size+=next.value.byteLength;
@@ -78,7 +85,7 @@ async function measureSource(env:Env,source:SystemBackupSource,current:()=>Promi
     if(read.expected.sha256!==null&&read.expected.sha256.toLowerCase()!==sha256)return unavailable("hash_mismatch");
     return{...source,path:`files/${source.id}`,outcome:"packaged",byteSize:size,sha256};
   }catch(error){if(signal.aborted||!await current())throw error;if(error instanceof Error&&error.message==="archive_budget")throw error;return unavailable("download_failed");}
-  finally{if(!complete)void reader.cancel().catch(()=>undefined);reader.releaseLock();await hash.abort();}
+  finally{if(!complete){if(read.dispose)await reader.cancel();else void reader.cancel().catch(()=>undefined);}reader.releaseLock();await hash.abort();await read.dispose?.();}
 }
 export async function recoveryArchiveSource(env:Env,job:RecoveryJob,current:()=>Promise<boolean>,signal?:AbortSignal):Promise<ArchiveSource>{
   await assertRecoveryArtifactNamespace(env,job);
@@ -89,7 +96,7 @@ export async function recoveryArchiveSource(env:Env,job:RecoveryJob,current:()=>
     await assertRecoveryArtifactNamespace(env,job);
     const object=await env.ASSETS.get(job.artifact_key!);if(!object)throw new Error("source_unavailable");return object.body;});
 }
-async function openFrozenPayload(env:Env,upload:RecoveryJob,file:SystemBackupFile,current:()=>Promise<boolean>,signal:AbortSignal){
+async function openFrozenPayload(env:Env,upload:RecoveryJob,file:WorkerRecoveryFile,current:()=>Promise<boolean>,signal:AbortSignal){
   const repository=recoveryRepository(env),index=await repository.metadata(upload.id,"index") as ArchiveIndexEntry[]|null;
   const entry=index?.find(row=>row.path===file.path);if(!entry||entry.sha256!==file.sha256||entry.byteSize!==file.byteSize)throw new Error("archive_invalid");
   const source=await recoveryArchiveSource(env,upload,current,signal);return openStoreArchiveEntry(source,entry,{signal,createHash:cloudflareSha256});
@@ -97,38 +104,48 @@ async function openFrozenPayload(env:Env,upload:RecoveryJob,file:SystemBackupFil
 export async function workerSystemRecoveryCapabilities(env:Env):Promise<SystemRecoveryCapabilitiesAdapter|null>{
   const repository=recoveryRepository(env);if(!await repository.installed())return null;const runtime=await repository.runtime();if(!runtime||runtime.enabled!==1)return null;
   try{await freezeRecoveryArtifactNamespace(env);}catch{return null;}
+  const originalSourceBinding=env.DB;
+  const sourceInstallationId=runtime.installation_id;
   const capabilities:SystemRecoveryCapabilitiesAdapter={repository,incarnation:runtime.incarnation,authorizeActor:actor=>recoveryActorAllowed(env,actor),now:()=>new Date(),randomId:()=>crypto.randomUUID(),hash:cloudflareSha256,
     async put(key,body,byteSize){await assertPrivateKeyNamespace(env,key);const {FixedLengthStream}=globalThis as typeof globalThis&{FixedLengthStream:new(length:number)=>{readable:ReadableStream<Uint8Array>;writable:WritableStream<Uint8Array>}};
       const fixed=new FixedLengthStream(byteSize),pipe=body.pipeTo(fixed.writable);void pipe.catch(()=>undefined);
       try{await env.ASSETS.put(key,fixed.readable,{httpMetadata:{contentType:"application/zip"}});await pipe;}catch(error){void fixed.readable.cancel().catch(()=>undefined);throw error;}},
     async read(key){await assertPrivateKeyNamespace(env,key);return(await env.ASSETS.get(key))?.body??null;},
-    async exportBody(claim,current,signal){const frozen=await records(repository,claim.id),files=await terminalFiles(repository,claim.id),metadata=await prepareSystemBackupArchive(frozen,files);
+    async exportBody(claim,current,signal){const frozen=await records(repository,claim.id);
+      const files=await terminalFiles(repository,claim.id),metadata=await prepareWorkerSystemBackupArchive(frozen,files);
       return createSystemBackupArchiveStream(metadata,async entry=>{const file=files.find(row=>row.path===entry.path);if(!file)throw new Error("archive_invalid");
-        const read=await openSystemBackupSource(env,file,current,signal,claim.id);if(read.outcome!=="available")throw new Error("source_unavailable");return read.body;},{signal,createHash:cloudflareSha256});},
+        const read=await openClaimedBackupSource(env,file,claim,sourceInstallationId,current,signal,frozen.schema==="system-backup-records/5",capabilities);if(read.outcome!=="available")throw new Error("source_unavailable");return read.body;},{signal,createHash:cloudflareSha256});},
     async step(claim,current,signal){
       if(claim.kind!=="recovery")await assertRecoveryArtifactNamespace(env,claim);
+      if(env.DB!==originalSourceBinding)throw new Error("archive_invalid");
       const db=repository.db();
       if(claim.kind==="backup"&&claim.phase==="snapshot"){
         const input=JSON.parse(claim.input_json) as {mode:"historical"|"planned"};
         if(input.mode==="planned"){const status=await readSourceMaintenance(env);if(status.state!=="fenced"||status.activeWriters)throw new Error("source_maintenance_required");}
-        const frozen=await captureVersionedSystemBackupSnapshot(env.DB,{backupId:claim.id,createdAt:claim.accepted_at});if(!await current())throw new Error("administrator_revoked");
-        const checkpoint=await sourceVersionedBackupCheckpoint(frozen);if(input.mode==="planned")await recordSourceCheckpoint(env,claim.id,checkpoint);
-        const sources=frozen.content.schemaVersion===26?planSystemBackupSourcesV26(frozen.content):planSystemBackupSources(frozen.content.schemaVersion===25?portableBusinessManifestV24(frozen.content):frozen.content),statements=[...repository.metadataStatements(claim.id,"records",frozen),...groupFileStatements(repository,claim,sources)];
+        const v5=Boolean(await db.prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='collaboration_control'").first())
+          &&Boolean(await db.prepare("SELECT 1 FROM collaboration_control WHERE singleton=1 AND schema_version=2").first());
+        const frozen=v5?await captureWorkerV5PublicSnapshot(env,claim,sourceInstallationId,current,signal)
+          :await captureVersionedSystemBackupSnapshot(env.DB,{backupId:claim.id,createdAt:claim.accepted_at});if(!await current())throw new Error("administrator_revoked");
+        const checkpoint=frozen.schema==="system-backup-records/5"?await sourceBackupCheckpointV5(frozen):await sourceVersionedBackupCheckpoint(frozen);if(input.mode==="planned")await recordSourceCheckpoint(env,claim.id,checkpoint);
+        const sources=frozen.schema==="system-backup-records/5"?planSystemBackupSourcesV28(frozen.content):frozen.content.schemaVersion===26?planSystemBackupSourcesV26(frozen.content):planSystemBackupSources(frozen.content.schemaVersion===25?portableBusinessManifestV24(frozen.content):frozen.content),statements=[...repository.metadataStatements(claim.id,"records",frozen),...groupFileStatements(repository,claim,sources)];
         if(statements.length+2>128)throw new SystemRecoveryConflict("metadata_budget");
         return{patch:{state:"queued",phase:"inventory",source_checkpoint:checkpoint,total_files:sources.length},statements,outcome:"snapshot"};
       }
       if(claim.kind==="backup"&&claim.phase==="inventory"){
         const all=await repository.files(claim.id),pending=all.find(row=>row.outcome==="pending");
         if(!pending)return{patch:{state:"queued",phase:"measure"},outcome:"inventoried"};
-        const source=JSON.parse(pending.file_json) as SystemBackupSource,file=await measureSource(env,source,current,signal,claim.id);
-        const packaged=all.filter(row=>row.outcome==="packaged").reduce((sum,row)=>sum+((JSON.parse(row.file_json) as SystemBackupFile).byteSize??0),0)+(file.byteSize??0);
+        const frozen=await records(repository,claim.id);
+        const source=JSON.parse(pending.file_json) as WorkerRecoverySource,
+          file=await measureSource(env,source,current,signal,claim,sourceInstallationId,frozen.schema==="system-backup-records/5",capabilities);
+        const packaged=all.filter(row=>row.outcome==="packaged").reduce((sum,row)=>sum+((JSON.parse(row.file_json) as WorkerRecoveryFile).byteSize??0),0)+(file.byteSize??0);
         if(packaged>96*1024*1024)throw new Error("archive_budget");
         return{patch:{state:"queued",phase:all.filter(row=>row.outcome==="pending").length===1?"measure":"inventory",completed_files:claim.completed_files+1,bytes_total:packaged},
           statements:[db.prepare("UPDATE system_recovery_files SET outcome=?,file_json=? WHERE job_id=? AND id=? AND outcome='pending'").bind(file.outcome,stableJson(file),claim.id,file.id)],outcome:"source_measured"};
       }
       if(claim.kind==="backup"&&claim.phase==="measure"){
-        const frozen=await records(repository,claim.id),files=await terminalFiles(repository,claim.id),metadata=await prepareSystemBackupArchive(frozen,files);
-        const measured=await measureSystemBackupArchive(metadata,async entry=>{const file=files.find(row=>row.path===entry.path);if(!file)throw new Error("archive_invalid");const read=await openSystemBackupSource(env,file,current,signal,claim.id);
+        const frozen=await records(repository,claim.id);
+      const files=await terminalFiles(repository,claim.id),metadata=await prepareWorkerSystemBackupArchive(frozen,files);
+        const measured=await measureSystemBackupArchive(metadata,async entry=>{const file=files.find(row=>row.path===entry.path);if(!file)throw new Error("archive_invalid");const read=await openClaimedBackupSource(env,file,claim,sourceInstallationId,current,signal,frozen.schema==="system-backup-records/5",capabilities);
           if(read.outcome!=="available")throw new Error("source_unavailable");return read.body;},{signal,createHash:cloudflareSha256});
         return{patch:{state:"queued",phase:"write",archive_byte_size:measured.byteSize,archive_sha256:measured.sha256},
           statements:[...repository.metadataStatements(claim.id,"manifest",metadata.manifest),...repository.metadataStatements(claim.id,"index",measured.entries)],outcome:"measured"};
@@ -142,7 +159,7 @@ export async function workerSystemRecoveryCapabilities(env:Env):Promise<SystemRe
             if(length<=prefix.byteLength-30){const path=new TextDecoder("utf-8",{fatal:true}).decode(prefix.subarray(30,30+length));
               if(path==="export-manifest.json"||/^tables\/[a-z_]+\.json$/.test(path)||path==="tables/")throw new Error("legacy_requires_conversion");}
           }
-          const validated=await validateSystemBackupArchive(source,{expectedSha256:claim.archive_sha256!,signal,createHash:cloudflareSha256});
+          const validated=await validateWorkerSystemBackupArchive(source,{expectedSha256:claim.archive_sha256!,signal,createHash:cloudflareSha256});
           const statements=[...repository.metadataStatements(claim.id,"records",validated.records),...repository.metadataStatements(claim.id,"manifest",validated.manifest),...repository.metadataStatements(claim.id,"index",validated.entries)];
           if(statements.length+2>128)throw new SystemRecoveryConflict("metadata_budget");
           return{patch:{state:"preview",phase:"done",total_files:validated.manifest.files.length,completed_files:validated.manifest.counts.packagedFiles,bytes_total:validated.manifest.counts.bytes,bytes_done:validated.manifest.counts.bytes},statements,outcome:"preview"};
@@ -152,22 +169,32 @@ export async function workerSystemRecoveryCapabilities(env:Env):Promise<SystemRe
         const input=JSON.parse(claim.input_json) as SystemRecoveryImportInput,upload=await repository.job(claim.source_upload_job_id!);
         if(!upload||upload.actor!==claim.actor||upload.state!=="preview")throw new Error("archive_invalid");
         await assertRecoveryArtifactNamespace(env,upload);
-        const frozen=await records(repository,upload.id),backup=await manifest(repository,upload.id);if(backup.completeness!=="complete")throw new Error("partial_backup");
+        const frozen=await records(repository,upload.id);
+        const backup=await manifest(repository,upload.id);if(backup.completeness!=="complete")throw new Error("partial_backup");
         if(!claim.target_incarnation){const incarnation=crypto.randomUUID().replaceAll("-","");return{patch:{state:"queued",target_incarnation:incarnation},outcome:"target_identity_frozen"};}
-        const result=await createRecoveryTargetEngine(env).step({jobId:claim.id,incarnation:claim.target_incarnation,ownerToken:claim.owner_token,generation:claim.generation,
-          expectedTargetId:input.expectedTargetId,records:frozen,manifest:backup,mapping:input.mapping,mode:input.mode,current,signal,runtimeIncarnation:claim.runtime_incarnation,leaseExpiresAt:claim.lease_expires_at,
-          openPayload:(file,payloadSignal)=>openFrozenPayload(env,upload,file,current,payloadSignal)});
+        const shared={jobId:claim.id,incarnation:claim.target_incarnation,ownerToken:claim.owner_token,generation:claim.generation,
+          expectedTargetId:input.expectedTargetId,mapping:input.mapping,mode:input.mode,current,signal,runtimeIncarnation:claim.runtime_incarnation,leaseExpiresAt:claim.lease_expires_at,
+          openPayload:(file:WorkerRecoveryFile,payloadSignal:AbortSignal)=>openFrozenPayload(env,upload,file,current,payloadSignal)};
+        let result;
+        if(frozen.schema==="system-backup-records/5"){
+          if(backup.schema!=="system-backup/5")throw new Error("archive_invalid");
+          result=await createWorkerV5RecoveryTargetEngine(env).step({...shared,records:frozen,manifest:backup});
+        }else{
+          if(backup.schema==="system-backup/5")throw new Error("archive_invalid");
+          result=await createRecoveryTargetEngine(env).step({...shared,records:frozen,manifest:backup});
+        }
         return{patch:{state:result.done?"completed":"queued",phase:result.phase,completed_files:Math.min(result.completedFiles,claim.total_files),bytes_done:Math.min(result.bytesDone,claim.bytes_total),
           ...(result.done&&result.report?{result_json:stableJson({targetId:input.expectedTargetId,ready:true,cutover:false,checkpoint:result.report.targetCheckpoint})}: {})},
           statements:result.report?repository.metadataStatements(claim.id,"report",result.report):[],outcome:result.done?"ready":"recovery_step"};
       }
       throw new Error("archive_invalid");
     }};
+  registerWorkerRecoveryExecutionOwner(capabilities);
   return capabilities;
 }
 export async function dispatchSystemRecoveryJobs(env:Env){const capabilities=await workerSystemRecoveryCapabilities(env);if(!capabilities)return{jobId:null,outcome:"disabled"};
   await capabilities.repository.db().prepare("UPDATE system_recovery_runtime SET last_heartbeat_at=? WHERE singleton=1 AND enabled=1 AND incarnation=?").bind(new Date().toISOString(),capabilities.incarnation).run();
-  return runSystemRecoveryJobStep(capabilities);
+  try{return await runSystemRecoveryJobStep(capabilities);}finally{await closeWorkerV5RecoveryExecutions(capabilities);}
 }
 export async function systemRecoveryPreview(env:Env,job:RecoveryJob):Promise<SystemRecoveryPreview>{
   const repository=recoveryRepository(env),sourceId=job.kind==="recovery"?job.source_upload_job_id!:job.id,frozen=await records(repository,sourceId),backup=await manifest(repository,sourceId),source=await repository.job(sourceId);
@@ -188,7 +215,25 @@ export async function systemRecoveryPreview(env:Env,job:RecoveryJob):Promise<Sys
   return{schema:"system-recovery-preview/1",archive:{schema:backup.schema,byteSize:source.archive_byte_size,sha256:source.archive_sha256,complete,legacy:frozen.origin.format==="legacy-converted",recoveryPoint},
     counts:{tables:backup.counts.tables,rows:backup.counts.rows,files:backup.counts.sources,bytes:backup.counts.bytes,availableFiles:backup.counts.packagedFiles,unavailableFiles:backup.counts.unavailableFiles},
     files:backup.files.map(file=>({id:file.id,purpose:file.purposes.join(",")||"unknown",byteSize:file.byteSize??file.source.expectedByteSize??0,status:file.outcome,reason:file.outcome==="packaged"?null:file.outcome,sourceProfileId:recoverySourceProfileId(file)})),profiles,
-    protectedSettings:{included:frozen.protectedConfiguration.status==="included_encrypted",credentialRecovery:frozen.protectedConfiguration.status==="included_encrypted"?"quarantined":"excluded",warnings:[...(frozen.protectedConfiguration.keyIds.length?["separate_root_keys_required"]:[]),...(["system-backup-records/2","system-backup-records/3"].includes(frozen.schema)?["protected_local_accounts_disabled_offline_bootstrap_required"]:[]),...(frozen.schema==="system-backup-records/3"&&frozen.content.tables.storage_profiles.some(profile=>profile.adapter_type==="local")?["local_profiles_require_fresh_destination_binding"]:[])]},
+    protectedSettings:{included:frozen.protectedConfiguration.status==="included_encrypted",credentialRecovery:frozen.protectedConfiguration.status==="included_encrypted"?"quarantined":"excluded",warnings:[...(frozen.protectedConfiguration.keyIds.length?["separate_root_keys_required"]:[]),...(["system-backup-records/2","system-backup-records/3","system-backup-records/5"].includes(frozen.schema)?["protected_local_accounts_disabled_offline_bootstrap_required"]:[]),...((frozen.schema==="system-backup-records/3"||frozen.schema==="system-backup-records/5")&&frozen.content.tables.storage_profiles.some(profile=>profile.adapter_type==="local")?["local_profiles_require_fresh_destination_binding"]:[])]},
     oldJobs:{paused,automaticReplay:false},target:{id:configured?env.RECOVERY_TARGET_ID!:null,available:targetAvailable,reason:targetReason},
-    source:{maintenanceRequired:true,checkpoint:job.source_checkpoint??maintenance.checkpoint,mode:input.mode??"historical"},canRecover:complete&&!expired&&archiveAvailable&&restoreBudget.available&&targetAvailable&&job.kind!=="recovery",canCutover:complete&&targetAvailable&&Boolean(job.result_json)&&maintenance.state==="fenced"&&maintenance.activeWriters===0,reasons:reason?[reason]:[]};
+    source:{maintenanceRequired:true,checkpoint:job.source_checkpoint??maintenance.checkpoint,mode:input.mode??"historical"},canRecover:complete&&!expired&&archiveAvailable&&restoreBudget.available&&targetAvailable&&job.kind!=="recovery",canCutover:frozen.schema!=="system-backup-records/5"&&complete&&targetAvailable&&Boolean(job.result_json)&&maintenance.state==="fenced"&&maintenance.activeWriters===0,reasons:reason?[reason]:[]};
+}
+
+
+function originalSource(source:WorkerRecoverySource):source is SystemBackupSource{return source.source.provider!=="local";}
+async function openClaimedBackupSource(env:Env,source:WorkerRecoverySource,claim:RecoveryClaim,installationId:string,
+  current:()=>Promise<boolean>,signal:AbortSignal,v5:boolean,owner:SystemRecoveryCapabilitiesAdapter){
+  if(v5){return openWorkerV5BackupSource(env,source,claim,installationId,current,signal,dispose=>ownWorkerRecoveryBodyClose(owner,dispose));}
+  if(!originalSource(source))throw new Error("archive_invalid");
+  return openSystemBackupSource(env,source,current,signal,claim.id);
+}
+
+/** After the original bounded result, join the exact retained V5 work and first
+ * body/provider close. This never retries cleanup or releases durable holds. */
+export async function closeWorkerV5RecoveryExecutions(capabilities:SystemRecoveryCapabilitiesAdapter){
+  // The format can become known only after a late metadata/ZIP operation. Join
+  // this exact registered owner even then; no timeout or false marker is a body
+  // close ACK. Historical format/actor/lease grants remain the original ones.
+  await closeWorkerRecoveryExecutionOwner(capabilities);
 }
