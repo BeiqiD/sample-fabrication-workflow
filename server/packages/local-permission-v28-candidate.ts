@@ -10,8 +10,8 @@ import type { PackageAcceptance } from "../../worker/packages/jobs/sql-repositor
 import type { PackageClaim, PackageJob } from "../../worker/packages/jobs/types";
 import type { JobSqlDatabase, JobSqlStatement } from "../../worker/files/jobs/sql-repository";
 import { localAuthenticationIdentityAuthority } from "../auth/local-auth-http";
-import { captureInstalledIdentityExecutionOwnerV28Candidate } from "../auth/installed-identity-execution-owner-v28-candidate";
-import { createLocalRequestSubjectIssuer, type LocalRequestSubject } from "../auth/local-request-subject";
+import { ownedLocalVolumeIdentityV28Candidate } from "../storage/local-volume-profile-opening";
+import { createLocalVolumeRequestSubjectIssuerV28Candidate, type LocalRequestSubject } from "../auth/local-request-subject";
 import { localJobPrincipalId, ownedJobPrincipalAuthority, type InstalledJobPrincipalAuthority } from "../files/jobs/principal-authority";
 import type { ReviewedInstallationAdmission } from "../migrations";
 import { type SqliteBatchAdmissionCheck } from "../sqlite";
@@ -99,12 +99,12 @@ export function createLocalPackagePermissionV28Candidate(options: {
   const { opening, authentication, admission } = options, physical = ownedLocalVolumeProfileContextV28Candidate(opening);
   const { database, nativeDatabase, writerLease } = physical, auth = localAuthenticationIdentityAuthority(authentication);
   assertLocalVolumeProfileOpeningV28Binding(opening,database,nativeDatabase,writerLease,authentication);
-  const identity = captureInstalledIdentityExecutionOwnerV28Candidate(auth.identity, database, nativeDatabase, admission);
-  const installation = identity.installation, issuer = createLocalRequestSubjectIssuer({ database, nativeDatabase, writerLease, authentication, admission });
+  const identity = ownedLocalVolumeIdentityV28Candidate(opening, authentication, admission);
+  const installation = identity.installation, issuer = createLocalVolumeRequestSubjectIssuerV28Candidate({ opening, authentication, admission });
   if (physical.installationCheckpointId !== "portable-runtime/v28" || physical.installationId !== installation.installationId) throw unavailable();
   const pending = new Set<Promise<unknown>>(); let active = true, closing: Promise<void> | undefined;
   function track<T>(value: Promise<T>) { pending.add(value); void value.then(() => pending.delete(value), () => pending.delete(value)); return value; }
-  function current() { if (!active || localAuthenticationIdentityAuthority(authentication) !== auth) throw denied(); assertLocalVolumeProfileOpeningV28Binding(opening,database,nativeDatabase,writerLease,authentication); identity.assertCurrent(); }
+  function current() { if (!active || localAuthenticationIdentityAuthority(authentication) !== auth) throw denied(); assertLocalVolumeProfileOpeningV28Binding(opening,database,nativeDatabase,writerLease,authentication); }
   function capture(request: Request): Promise<LocalPackagePermissionV28Candidate> {
     current(); if (closing || !(request instanceof Request) || request.bodyUsed || request.body?.locked) throw denied();
     const url = new URL(request.url), method = request.method, originalUrl = request.url;
@@ -123,7 +123,10 @@ export function createLocalPackagePermissionV28Candidate(options: {
       const session: Session = Object.freeze({ subject, principalId: facts.subject, actor, tokenHash, credentialRevision: row.credential_revision, createdAt: row.created_at });
       let selected: Purpose = EMPTY, input: unknown, inputSeen = false, inputRequestId: string | undefined;
       function assertCurrent() {
-        current(); if (request.url !== originalUrl || request.method !== method) throw denied();
+        if (!active || localAuthenticationIdentityAuthority(authentication) !== auth
+          || request.url !== originalUrl || request.method !== method) throw denied();
+        // The concrete grouped issuer retains the exact original opening,
+        // installed identity and physical binding proof on every current read.
         const now = issuer.read(request, session.subject);
         if (now.provider !== "local" || now.issuer !== facts.issuer || now.subject !== session.principalId
           || auth.currentSessionPredicate(request, actor).tokenHash !== tokenHash) throw denied();
@@ -196,10 +199,10 @@ export function createNodePackagePurposeV28Candidate(options: {
   if (Object.keys(options).sort().join(",") !== "admission,authentication,authority,opening") throw unavailable();
   const { authority, opening, authentication, admission } = options, owner = ownedJobPrincipalAuthority(authority), physical = ownedLocalVolumeProfileContextV28Candidate(opening);
   assertLocalVolumeProfileOpeningV28Binding(opening,owner.database,owner.nativeDatabase,physical.writerLease,authentication);
-  const auth = localAuthenticationIdentityAuthority(authentication), identity = captureInstalledIdentityExecutionOwnerV28Candidate(auth.identity,owner.database,owner.nativeDatabase,admission);
+  const auth = localAuthenticationIdentityAuthority(authentication), identity = ownedLocalVolumeIdentityV28Candidate(opening,authentication,admission);
   if (owner.database !== physical.database || owner.nativeDatabase !== physical.nativeDatabase || physical.installationCheckpointId !== "portable-runtime/v28"
     || identity.installation.installationId !== physical.installationId) throw unavailable();
-  function current() { owner.assertCurrent(); assertLocalVolumeProfileOpeningV28Binding(opening,owner.database,owner.nativeDatabase,physical.writerLease,authentication); identity.assertCurrent(); if (localAuthenticationIdentityAuthority(authentication) !== auth) throw unavailable(); }
+  function current() { owner.assertCurrent(); assertLocalVolumeProfileOpeningV28Binding(opening,owner.database,owner.nativeDatabase,physical.writerLease,authentication); if (localAuthenticationIdentityAuthority(authentication) !== auth) throw unavailable(); }
   function selection(actor: string, id?: string) {
     current(); const principalId = localJobPrincipalId(actor); if (!principalId) throw denied();
     const actual = id === undefined ? undefined : owner.nativeDatabase.prepare("SELECT * FROM research_package_jobs WHERE id=? AND actor=?").get(id,actor);
