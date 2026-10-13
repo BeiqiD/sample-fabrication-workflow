@@ -22,7 +22,7 @@ import type { JobSqlDatabase, JobSqlStatement } from "../../worker/files/jobs/sq
 import { runSystemRecoveryJobStep, runSystemRecoveryJobStepAndDrain, writeSystemRecoveryUpload, type SystemRecoveryCapabilitiesAdapter } from "../../worker/recovery/kernel.ts";
 import { SqlSystemRecoveryRepository, type RecoveryAttempt, type RecoveryClaim, type RecoveryJob } from "../../worker/recovery/sql-repository.ts";
 import { checkedSystemRecoveryBackupInput, checkedSystemRecoveryUploadInput, checkedSystemRecoveryJobControl,
-  checkedSystemRecoveryCapabilities, checkedSystemRecoveryJobStatus, checkedSystemRecoveryPreview, checkedSystemRecoveryMaintenanceInput,
+  checkedSystemRecoveryCapabilities, checkedSystemRecoveryJobStatus, checkedSystemRecoveryPreview, checkedSystemRecoveryMaintenanceInput, checkedSystemRecoveryMaintenanceStatus,
   checkedSystemRecoveryImportInput, checkedSystemRecoveryCutoverInput,
   type SystemRecoveryCapabilities, type SystemRecoveryJobStatus } from "../../shared/contracts/system-recovery.ts";
 import { openNodePrivateRecoveryArtifacts, type NodePrivateRecoveryArtifacts } from "./node-private-artifacts.ts";
@@ -283,11 +283,13 @@ function createRecoveryEngine(options: Omit<OriginalRecoveryOptions, "hasher"> &
     physical(); const row = native.prepare(`SELECT state,generation,token,checkpoint_sha256,backup_job_id,
       (SELECT count(*) FROM system_recovery_write_leases WHERE released_at IS NULL) writers
       FROM system_recovery_maintenance WHERE singleton=1`).get();
-    if (!row || !["open", "draining", "fenced"].includes(String(row.state)) || typeof row.generation !== "number" || !Number.isSafeInteger(row.generation)
-      || row.generation < 0 || typeof row.writers !== "number" || !Number.isSafeInteger(row.writers) || row.writers < 0)
-      throw fail("Source maintenance is unavailable", 503);
-    return { state: row.state as "open" | "draining" | "fenced", generation: row.generation, token: row.token,
-      checkpoint: row.checkpoint_sha256 as string | null, backupJobId: row.backup_job_id, writers: row.writers };
+    if (!row) throw fail("Source maintenance is unavailable", 503);
+    try {
+      const observed = checkedSystemRecoveryMaintenanceStatus({ state: row.state, generation: row.generation,
+        token: row.token, checkpoint: row.checkpoint_sha256, backupJobId: row.backup_job_id, activeWriters: row.writers });
+      return { state: observed.state, generation: observed.generation, token: observed.token,
+        checkpoint: observed.checkpoint, backupJobId: observed.backupJobId, writers: observed.activeWriters };
+    } catch { throw fail("Source maintenance is unavailable", 503); }
   }
   function assertQuiesced(): void {
     const state = maintenance();
