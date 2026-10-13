@@ -1,8 +1,9 @@
 import { afterAll, afterEach, expect, it } from "vitest";
 import { createHash, randomUUID } from "node:crypto";
-import { chmod, lstat, mkdtemp, readFile, realpath, writeFile } from "node:fs/promises";
+import { chmod, lstat, mkdtemp, readFile, readdir, realpath, writeFile } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { DatabaseSync } from "node:sqlite";
 import { build, stop } from "esbuild";
 import { Log, LogLevel, Miniflare } from "miniflare";
 import { unstable_splitSqlQuery as splitSql } from "wrangler";
@@ -70,7 +71,9 @@ const workerCode = String.raw`
   async function independentProof(target,records,admission){
     const objects=await target.prepare('SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema ORDER BY type,name').all();
     require(objects.success,'target_schema_read');
-    await inspectV28CloudflareSchemaCandidate(objects.results);
+    const inspected=await inspectV28CloudflareSchemaCandidate(objects.results);
+    const tableNames=inspected.applicationObjects.filter(object=>object.type==='table').map(object=>object.name).sort();
+    require(stableJson(tableNames)===stableJson(catalog.tables.map(spec=>spec.name).sort()),'native_table_catalog_coverage');
     await inspectRecoveryMigrationLedger(target,true,catalog.migrations);
     let exactNonlocal=true,accountRows=0,disabledAccounts=0,typedRows=0,nulCells=0,blobCells=0,wideIntegerCells=0;
     for(const spec of catalog.tables.filter(spec=>!spec.local)){
@@ -114,9 +117,17 @@ const workerCode = String.raw`
       }
     }
     const fk=await target.prepare('PRAGMA foreign_key_check').all();
-    const quick=await target.prepare('PRAGMA quick_check').all();
+    const checkedTables=['sqlite_schema',...objects.results.filter(object=>object.type==='table'
+      &&object.name!=='_cf_KV'&&object.name!=='_cf_METADATA').map(object=>object.name)].sort();
+    require(new Set(checkedTables).size===checkedTables.length,'native_table_inventory');
+    let tableIntegrity=true;
+    for(const name of checkedTables){
+      const quoted='"'+name.replaceAll('"','""')+'"';
+      const quick=await target.prepare('PRAGMA quick_check('+quoted+')').all();
+      tableIntegrity&&=quick.success&&quick.results.length===1&&Object.values(quick.results[0])[0]==='ok';
+    }
     return {exactNonlocal,accountRows,disabledAccounts,typedRows,nulCells,blobCells,wideIntegerCells,emptyLocal,singletonsExact,
-      foreignKeys:fk.success&&fk.results.length===0,integrity:quick.success&&quick.results.length===1&&Object.values(quick.results[0])[0]==='ok'};
+      foreignKeys:fk.success&&fk.results.length===0,tableIntegrity,checkedTables,globalNativeIntegrity:false};
   }
   export default{async fetch(request,bindings){
     let phase='setup';
@@ -184,6 +195,7 @@ const workerCode = String.raw`
       const sourceIdentity=await bindings.DB.prepare('SELECT installation_id FROM system_recovery_runtime WHERE singleton=1').first();
       return Response.json({format:archive.format,sourceFileCount:count,archiveSha256:archive.sha256,receipt,proof,
         mappingCount:admission.mappings.length,mappingExact,missingMappingRejected,calls,sourceUnchanged:sourceBefore===sourceAfter,
+        sourceInstallationId:sourceIdentity.installation_id,targetInstallationId:targetIdentity.installation_id,
         freshIdentity:targetIdentity.installation_id!==sourceIdentity.installation_id
           &&targetIdentity.installation_id!==archive.records.sourceMigrationLedger.installationId.replaceAll('-','')});
     }catch(error){
@@ -238,12 +250,44 @@ async function retainedInput(kind: "ZERO" | "NONEMPTY") {
   expect(results.actualPending).toBe(0); expect(results.exactOriginalSelection).toBe(true);
   return { archive, expectedSha256, receiptPath, receiptHash: hash(receiptBytes), bytes };
 }
+/** Read-only whole checks of the exact original files, after owned Miniflare
+ * disposal. These are neither a reconstructed expected catalog nor a host D1
+ * adapter. Include platform tables and global page ownership/unused-page checks
+ * unavailable from workerd's bounded table quick_check operations. */
+async function verifyClosedNativeD1(directory: string, identities: { source: string; target: string }) {
+  ensure(isAbsolute(directory) && resolve(directory) === directory && await realpath(directory) === directory, "closed_native_path");
+  const entries = await readdir(directory, { recursive: true });
+  const files = entries.filter(name => name.endsWith(".sqlite") && !name.endsWith("metadata.sqlite")).sort();
+  expect(files, "Exactly the two original native D1 files must remain").toHaveLength(2);
+  const before = new Map<string, string>();
+  for (const name of entries.filter(name => /\.sqlite(?:-wal|-shm)?$/.test(name)).sort()) {
+    const path = join(directory, name), stat = await lstat(path);
+    ensure(stat.isFile() && !stat.isSymbolicLink() && stat.nlink === 1 && await realpath(path) === path, "closed_native_file");
+    before.set(name, hash(await readFile(path)));
+  }
+  const observed: string[] = [];
+  for (const name of files) {
+    const native = new DatabaseSync(join(directory, name), { readOnly: true });
+    try {
+      const identity = native.prepare("SELECT installation_id FROM system_recovery_runtime WHERE singleton=1").get();
+      ensure(identity && typeof identity.installation_id === "string", "closed_native_identity");
+      observed.push(identity.installation_id);
+      expect(native.prepare("PRAGMA quick_check").all()).toEqual([{ quick_check: "ok" }]);
+      expect(native.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    } finally { native.close(); }
+  }
+  expect(observed.sort()).toEqual([identities.source, identities.target].sort());
+  const after = (await readdir(directory, { recursive: true })).filter(name => /\.sqlite(?:-wal|-shm)?$/.test(name)).sort();
+  expect(after).toEqual([...before.keys()].sort());
+  for (const [name, expected] of before) expect(hash(await readFile(join(directory, name))), "Read-only original native file changed: " + name).toBe(expected);
+}
 async function run(kind: "ZERO" | "NONEMPTY") {
   const input = await retainedInput(kind), parent = process.env.WORKER_V5_NATIVE_FIXTURE_PARENT;
   ensure(parent && isAbsolute(parent) && resolve(parent) === parent && await realpath(parent) === parent, "private_parent");
   const root = await mkdtemp(join(parent, ".native-v5-target-")); await chmod(root, 0o700);
   const owner: Owner = { work: [] }; owners.add(owner);
-  let failed = false, failure: unknown;
+  let failed = false, failure: unknown, persistedD1: string | undefined;
+  let closedIdentities: { source: string; target: string } | undefined;
   try {
     let bundle: Awaited<ReturnType<typeof build>> | undefined, buildFailed = false, buildFailure: unknown;
     try { bundle = await original(owner, () => build({ stdin: { resolveDir: join(SOURCE_ROOT, "worker/recovery"),
@@ -258,6 +302,8 @@ async function run(kind: "ZERO" | "NONEMPTY") {
       d1Databases: { DB: randomUUID(), RECOVERY_DB: randomUUID() }, d1Persist: join(root, "d1"),
       r2Buckets: { ASSETS: bucketName }, r2Persist: join(root, "r2"), log: new Log(LogLevel.ERROR),
       bindings: { R2_BOOTSTRAP_NAMESPACE: namespace, RECOVERY_TARGET_ID: "isolated-v5-native-target", AUTH_MODE: "access" } });
+    persistedD1 = owner.native.unsafeGetPersistPaths().get("d1");
+    ensure(persistedD1, "original_persisted_d1_path");
     await original(owner, () => owner.native!.ready);
     const source = await original(owner, () => owner.native!.getD1Database("DB"));
     for (const migration of PORTABLE_RUNTIME_RECOVERY_MIGRATIONS) {
@@ -277,14 +323,22 @@ async function run(kind: "ZERO" | "NONEMPTY") {
     expect(response.status, JSON.stringify({ phase: answer.phase, reason: answer.reason })).toBe(200);
     expect(answer.format).toBe("v5"); expect(answer.sourceFileCount).toBe(kind === "ZERO" ? 0 : 1);
     expect(answer.archiveSha256).toBe(input.expectedSha256); expect(answer.sourceUnchanged).toBe(true);
-    expect(answer.freshIdentity).toBe(true); expect(answer.mappingExact).toBe(true); expect(answer.missingMappingRejected).toBe(true);
+    expect(answer.freshIdentity).toBe(true);
+    ensure(typeof answer.sourceInstallationId === "string" && /^[a-f0-9]{32}$/.test(answer.sourceInstallationId)
+      && typeof answer.targetInstallationId === "string" && /^[a-f0-9]{32}$/.test(answer.targetInstallationId)
+      && answer.sourceInstallationId !== answer.targetInstallationId, "closed_native_identities");
+    closedIdentities = { source: answer.sourceInstallationId, target: answer.targetInstallationId };
+    expect(answer.mappingExact).toBe(true); expect(answer.missingMappingRejected).toBe(true);
     expect(answer.mappingCount).toBe(kind === "ZERO" ? 0 : 1); expect(answer.calls).toEqual({ put: 0, delete: 0 });
     expect(answer.receipt).toMatchObject({ checkpointId: "portable-runtime/v28", accountsDisabled: true, collaborationEnabled: false,
       localBindingsRestored: false, executionEnabled: false, maintenanceState: "fenced", payloadPublication: false,
       recoveryReady: false, rawMigrationExecution: false, targetLedger: "reviewed-code-catalog", deploymentChanged: false });
     const proof = object(answer.proof);
     expect(proof.exactNonlocal).toBe(true); expect(proof.emptyLocal).toBe(true); expect(proof.singletonsExact).toBe(true);
-    expect(proof.foreignKeys).toBe(true); expect(proof.integrity).toBe(true);
+    expect(proof.foreignKeys).toBe(true); expect(proof.tableIntegrity).toBe(true);
+    expect(proof.globalNativeIntegrity).toBe(false);
+    ensure(Array.isArray(proof.checkedTables) && proof.checkedTables.includes("sqlite_schema")
+      && proof.checkedTables.includes("d1_migrations") && proof.checkedTables.includes("sqlite_sequence"), "native_ledger_table_coverage");
     expect(proof.accountRows).toBeGreaterThan(0); expect(proof.disabledAccounts).toBe(proof.accountRows);
     const bucket = await original(owner, () => owner.native!.getR2Bucket("ASSETS"));
     const objects = await original(owner, () => bucket.list());
@@ -296,6 +350,8 @@ async function run(kind: "ZERO" | "NONEMPTY") {
   } catch (error) { failed = true; failure = error; }
   try { await close(owner); } catch (cleanup) { throw failed ? new AggregateError([failure, cleanup], "Original operation and close failed") : cleanup; }
   if (failed) throw failure;
+  ensure(persistedD1 && closedIdentities && !owners.has(owner), "original_native_close_before_whole_check");
+  await verifyClosedNativeD1(persistedD1, closedIdentities);
 }
 it(titles[0], () => run("ZERO"), 60_000);
 it(titles[1], () => run("NONEMPTY"), 120_000);

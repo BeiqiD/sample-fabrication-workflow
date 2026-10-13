@@ -230,7 +230,10 @@ export function createWorkerV5FreshTargetCandidate(env: Env) {
         catalog.schemaSha256, record.admission.sourceImageSha256, record.claimToken, record.admission.destinationIncarnation);
   }
   async function verifyImage(target: D1Database, record: OwnedAdmission, claimPresent: boolean): Promise<string> {
-    await inspectV28CloudflareSchemaCandidate(await schema(target));
+    const objects = await schema(target);
+    const inspection = await inspectV28CloudflareSchemaCandidate(objects);
+    const applicationTables = inspection.applicationObjects.filter(object => object.type === "table").map(object => object.name).sort();
+    ensure(stableJson(applicationTables) === stableJson(catalog.tables.map(table => table.name).sort()), "consistency_catalog_coverage");
     const observed: Record<string, SystemRecoveryTable> = {};
     for (const spec of catalog.tables) {
       if (claimPresent && spec.name === "system_recovery_target_claim") continue;
@@ -240,8 +243,21 @@ export function createWorkerV5FreshTargetCandidate(env: Env) {
     }
     const keys = await target.prepare("PRAGMA foreign_key_check").all<Record<string, unknown>>();
     ensure(keys.success && keys.results.length === 0, "foreign_keys_invalid");
-    const integrity = await target.prepare("PRAGMA quick_check").all<Record<string, unknown>>();
-    ensure(integrity.success && integrity.results.length === 1 && Object.values(integrity.results[0])[0] === "ok", "integrity_invalid");
+    // The complete V28 schema exceeds workerd's SQLite VDBE compiler budget
+    // for a whole quick_check. Check every reviewed application/ledger/sequence
+    // table and its indexes individually, plus SQLite's schema/freelist check.
+    // Exact schema admission above permits only the two separately reviewed
+    // Cloudflare platform tables to be omitted from native partial checks.
+    // Cross-table page ownership/unused pages require a whole check on the
+    // exact closed native file; the original qualification supplies that proof.
+    const checkedTables = ["sqlite_schema", ...objects.filter(object => object.type === "table"
+      && object.name !== "_cf_KV" && object.name !== "_cf_METADATA").map(object => object.name)].sort();
+    ensure(new Set(checkedTables).size === checkedTables.length, "consistency_table_coverage");
+    for (const name of checkedTables) {
+      const integrity = await target.prepare(`PRAGMA quick_check(${quote(name)})`).all<Record<string, unknown>>();
+      ensure(integrity.success && integrity.results.length === 1 && Object.values(integrity.results[0])[0] === "ok",
+        `table_integrity_invalid:${name}`);
+    }
     return sha256Hex(stableJson(observed));
   }
   async function constructOwned(record: OwnedAdmission, current: () => Promise<boolean>, signal?: AbortSignal): Promise<V5FreshTargetConstructionCandidate> {
