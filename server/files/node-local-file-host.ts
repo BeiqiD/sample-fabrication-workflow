@@ -5,7 +5,10 @@ import type { DatabaseSync } from "node:sqlite";
 import { normalizeR2UploadRequestId } from "../../shared/contracts/r2-upload";
 import { safeMediaResponseHeaders } from "../../worker/media-response";
 import { ordinaryAssetUploadMetadata } from "../../worker/uploads/ordinary-asset-request";
-import { StorageProfileCleanupError } from "../../worker/files/storage-profile-opening";
+import { StorageProfileCleanupError, ShadowProfileUnavailableError } from "../../worker/files/storage-profile-opening";
+import { AuthorityCandidateUnavailableError } from "../../worker/files/authority-candidates-core.ts";
+import { ByteVerificationError } from "../../worker/files/byte-verification.ts";
+import { FileAuthorityUnavailableError } from "../../worker/files/authority-mode.ts";
 import type { OwnedPublishedFileRead } from "../../worker/files/authority-reader-core";
 import { localAuthenticationIdentityAuthority } from "../auth/local-auth-http";
 import { captureInstalledIdentityExecutionOwner } from "../auth/installed-identity-execution-owner";
@@ -47,6 +50,45 @@ function denied(error: unknown, cacheControl = "private, no-store"): Response {
   const message = error instanceof HTTPException || error instanceof LocalUploadConflictError || error instanceof LocalUploadUnavailableError
     ? error.message : "File storage is unavailable";
   return Response.json({ error: message }, { status, headers: { "Cache-Control": cacheControl } });
+}
+// Fixed Node failure observability only. No request identity, body, message,
+// cause, stack, SQL, path, credential or authorization input is projected.
+type UploadFailurePhase = "host_route_admission" | "metadata_admission" | "request_metadata" | "request_owner"
+  | "execution_admission" | "body_read" | "upload_accept" | "execution_settlement" | "result_delivery";
+function uploadFailureClass(error: unknown): string {
+  if (error instanceof HTTPException) return error.status === 503 ? "http_503" : "http_other";
+  if (error instanceof StorageProfileCleanupError) return "storage_cleanup";
+  if (error instanceof ByteVerificationError) return "byte_verification";
+  if (error instanceof AuthorityCandidateUnavailableError) return "authority_candidate";
+  if (error instanceof ShadowProfileUnavailableError) return "shadow_profile";
+  if (error instanceof FileAuthorityUnavailableError) return "file_authority";
+  if (error instanceof LocalUploadUnavailableError) return "upload_outcome_unavailable";
+  if (error instanceof TypeError) return "type_error";
+  if (error instanceof ReferenceError) return "reference_error";
+  if (error instanceof RangeError) return "range_error";
+  if (error instanceof AggregateError) return "aggregate_error";
+  if (error instanceof Error && Object.getOwnPropertyDescriptor(error, "code")?.value === "ERR_SQLITE_ERROR") {
+    const code = Object.getOwnPropertyDescriptor(error, "errcode")?.value;
+    if (code === 787) return "native_sqlite_foreign_key";
+    if (typeof code === "number" && Number.isInteger(code) && code >= 0 && code <= 0x7fff_ffff) {
+      switch (code & 255) {
+        case 17: return "native_sqlite_schema";
+        case 19: return "native_sqlite_constraint";
+        case 5: return "native_sqlite_busy";
+        case 6: return "native_sqlite_locked";
+      }
+    }
+    return "native_sqlite_error";
+  }
+  return "unknown";
+}
+function observeUpload503(phase: UploadFailurePhase, error: unknown): void {
+  // Exactly the existing denied() status selection: no successful/4xx work logs.
+  if (error instanceof LocalUploadConflictError || error instanceof HTTPException && error.status !== 503) return;
+  try {
+    process.stderr.write(JSON.stringify({ kind: "node-local-file-upload-failure/1", phase,
+      errorClass: uploadFailureClass(error) }) + "\n");
+  } catch { /* Diagnostics cannot replace the original response or close outcome. */ }
 }
 function json(value: unknown, status = 200): Response {
   return Response.json(value, { status, headers: { "Cache-Control": "no-store" } });
@@ -133,27 +175,42 @@ export function createNodeLocalFileHost(options: {
   // Scope ingress to actual host methods. A wildcard child middleware would
   // accidentally gate the unrelated legacy methods when mounted at /api.
   for (const route of admittedRoutes) routes.on(route.method, route.path, async (_c, next) => {
-    if (phase !== "open") return denied(new HTTPException(503, { message: "File storage is unavailable" }));
+    if (phase !== "open") {
+      const error = new HTTPException(503, { message: "File storage is unavailable" });
+      if (route.method === "POST" && route.path === "/assets") observeUpload503("host_route_admission", error);
+      return denied(error);
+    }
     try { metadata.assertAdmissionOpen(); }
-    catch (error) { return denied(error); }
+    catch (error) {
+      if (route.method === "POST" && route.path === "/assets") observeUpload503("metadata_admission", error);
+      return denied(error);
+    }
     dispatched = true;
     return next();
   });
   routes.post("/assets", async c => {
+    let failurePhase: UploadFailurePhase = "request_metadata";
     try {
       const request = c.req.raw, actor = c.get("userEmail");
       const metadata = ordinaryAssetUploadMetadata(request);
       // Capture genuine auth/original digest before body consumption or await.
+      failurePhase = "request_owner";
       const record = createExecution(request, actor);
+      failurePhase = "execution_admission";
       const uploaded = await record.scope.run(async execution => {
+        failurePhase = "body_read";
         const bytes = await readOwnedUploadBody(request);
-        return createLocalAcceptedUpload(opening, execution).accept({ ...metadata, bytes });
+        failurePhase = "upload_accept";
+        const answer = await createLocalAcceptedUpload(opening, execution).accept({ ...metadata, bytes });
+        failurePhase = "execution_settlement";
+        return answer;
       });
+      failurePhase = "result_delivery";
       if (uploaded.state.status === "ready") return json(uploaded.state.result,
         uploaded.fresh && !uploaded.state.result.deduplicated ? 201 : 200);
       return json(uploaded.state, uploaded.state.status === "pending" ? 202
         : uploaded.state.status === "expired" ? 410 : uploaded.state.status === "failed" ? 409 : 503);
-    } catch (error) { return denied(error, "no-store"); }
+    } catch (error) { observeUpload503(failurePhase, error); return denied(error, "no-store"); }
   });
   routes.get("/r2-upload-requests/:requestId", async c => {
     try {
