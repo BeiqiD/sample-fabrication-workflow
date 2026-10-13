@@ -4,7 +4,7 @@ import type { ResearchPackageV1 } from "../../shared/contracts/research-package"
 import type { JobSqlDatabase } from "../files/jobs/sql-repository";
 import type { ImportDestinationColumn, ImportDestinationSnapshot, ImportDestinationStateMedia } from "./import-domain-types";
 import { ImportDomainError } from "./import-domain-identity";
-import { hasRecoveryAssetAliasEvidence, qualifiedRecoveryLegacyAssetAliasSql } from "../files/native-asset-alias";
+import { hasRecoveryAssetAliasEvidence, qualifiedRecoveryLegacyAssetAliasSql } from "../files/recovery-asset-alias-sql";
 
 /** The finite suffix space is part of preview qualification, not an unbounded
  * scan of destination business rows. Exhaustion is an explicit preflight error. */
