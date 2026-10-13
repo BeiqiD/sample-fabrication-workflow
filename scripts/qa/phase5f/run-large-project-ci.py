@@ -14,6 +14,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", required=True)
     parser.add_argument("--root", required=True)
+    parser.add_argument("--physical-python-tools", help="Hosted pinned pysqlite3-binary target for the original physical checker")
     args = parser.parse_args()
     source = Path(args.source).resolve(strict=True)
     root = Path(args.root).resolve(strict=True)
@@ -39,8 +40,11 @@ def main():
     local = ["DB", "--local", "--config", ".wrangler/deploy.jsonc", "--persist-to", str(copied / ".wrangler/state")]
     run("migrations", [*wrangler, "migrations", "apply", *local], cwd=copied)
     run("template SQL", [*wrangler, "execute", *local, "--file", str(fixture / "process-fixture.sql")], cwd=copied)
-    physical = [sys.executable, str(qa / "check-isolated-state.py"),
-                "--source-copy", str(copied), "--fixture-directory", str(fixture), "--stage"]
+    physical_entry = [sys.executable, str(qa / "check-isolated-state.py")]
+    if args.physical_python_tools:
+        physical_entry = [sys.executable, str(qa / "check-isolated-state-modern-sqlite.py"),
+                          "--python-tools", args.physical_python_tools, "--"]
+    physical = [*physical_entry, "--source-copy", str(copied), "--fixture-directory", str(fixture), "--stage"]
     run("before API", [*physical, "before-api"])
 
     errors = []
