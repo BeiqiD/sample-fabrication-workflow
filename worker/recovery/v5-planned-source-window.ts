@@ -8,7 +8,7 @@ import { canAdministerSystemSettings } from "../storage/system-administrator";
 import { allowedEmail } from "../auth";
 import { workerV5PlannedOriginalCloseReleaseGuards, workerV5PlannedBackupOriginalCloseReleaseGuards, workerV5PlannedOwnerReleaseStatements, workerV5PlannedOwnerRetiredCleanupGuards } from "./v5-source-close-owner";
 
-const NAME="v5-planned-source-window/1",BACKUP_NAME="v5-planned-backup-window/1",MAX_JOBS=32;
+const NAME="v5-planned-source-window/1",SCHEMA="worker-v5-planned-source-window/1",BACKUP_NAME="v5-planned-backup-window/1",MAX_JOBS=32;
 interface PlannedBackupWindow { readonly schema:"worker-v5-planned-backup-window/1";readonly sourceInstallationId:string;
   readonly maintenanceGeneration:number;readonly maintenanceToken:string;readonly backupId:string }
 const backupCaptures=new WeakMap<PlannedBackupWindow,{env:Env;database:D1Database;actor:string}>();
@@ -98,7 +98,7 @@ const iso=(value:string)=>Number.isFinite(Date.parse(value))&&new Date(value).to
 function decode(text:string):WorkerV5PlannedSourceWindow {
   ensure(new TextEncoder().encode(text).byteLength<=8192,"window_budget");const parsed:unknown=JSON.parse(text);
   ensure(parsed&&typeof parsed==="object"&&!Array.isArray(parsed),"window_shape");const row=parsed as Record<string,unknown>;
-  ensure(Object.keys(row).sort().join(",")===KEYS.slice().sort().join(",")&&row.schema===NAME
+  ensure(Object.keys(row).sort().join(",")===KEYS.slice().sort().join(",")&&row.schema===SCHEMA
     &&typeof row.sourceInstallationId==="string"&&/^[a-f0-9]{32}$/.test(row.sourceInstallationId)
     &&typeof row.archiveSourceInstallationId==="string"&&row.archiveSourceInstallationId.length>0&&row.archiveSourceInstallationId.length<=128&&!row.archiveSourceInstallationId.includes("\0")
     &&typeof row.maintenanceGeneration==="number"&&Number.isSafeInteger(row.maintenanceGeneration)&&row.maintenanceGeneration>0
@@ -113,7 +113,7 @@ function decode(text:string):WorkerV5PlannedSourceWindow {
     &&typeof row.uploadId==="string"&&/^[A-Za-z0-9-]{1,128}$/.test(row.uploadId)
     &&typeof row.uploadAcceptedAt==="string"&&iso(row.uploadAcceptedAt),"window_shape");
   // Decode only the exact reviewed fields; SQL below must still re-admit it.
-  return Object.freeze({schema:NAME,sourceInstallationId:row.sourceInstallationId,archiveSourceInstallationId:row.archiveSourceInstallationId,maintenanceGeneration:row.maintenanceGeneration,
+  return Object.freeze({schema:SCHEMA,sourceInstallationId:row.sourceInstallationId,archiveSourceInstallationId:row.archiveSourceInstallationId,maintenanceGeneration:row.maintenanceGeneration,
     maintenanceToken:row.maintenanceToken,checkpoint:row.checkpoint,backupId:row.backupId,backupGeneration:row.backupGeneration,
     backupActor:row.backupActor,backupAcceptedAt:row.backupAcceptedAt,archiveSha256:row.archiveSha256,archiveByteSize:row.archiveByteSize,
     uploadId:row.uploadId,uploadAcceptedAt:row.uploadAcceptedAt});
@@ -146,13 +146,13 @@ export async function captureWorkerV5PlannedSourceWindow(env:Env,actor:string,up
   ensure(upload.actor===actor&&upload.kind==="upload"&&upload.state==="preview"&&records.backupId===manifest.backupId
     &&records.createdAt===manifest.createdAt&&records.origin.format==="native"&&records.origin.schemaVersion===28
     &&records.origin.capturePolicy==="atomic-primary-with-byte-holds/1","original_native_backup");
-  const rows=await db.batch([db.prepare("SELECT generation,token,checkpoint_sha256,backup_job_id FROM system_recovery_maintenance WHERE singleton=1 AND state='fenced'"),
+  const rows=await db.batch<Record<string,unknown>>([db.prepare("SELECT generation,token,checkpoint_sha256,backup_job_id FROM system_recovery_maintenance WHERE singleton=1 AND state='fenced'"),
     db.prepare("SELECT installation_id FROM system_recovery_runtime WHERE singleton=1"),
     db.prepare("SELECT * FROM system_recovery_jobs WHERE id=? AND kind='backup' AND state='completed'").bind(records.backupId),
     db.prepare("SELECT installation_id FROM research_package_source_identity WHERE singleton=1")]);
   ensure(rows.length===4&&rows.every(row=>row.success&&row.results.length===1),"original_window_rows");
   const m=rows[0]!.results[0]!,r=rows[1]!.results[0]!,b=rows[2]!.results[0]!;
-  const window=decode(stableJson({schema:NAME,sourceInstallationId:r.installation_id,archiveSourceInstallationId:rows[3]!.results[0]!.installation_id,maintenanceGeneration:m.generation,maintenanceToken:m.token,
+  const window=decode(stableJson({schema:SCHEMA,sourceInstallationId:r.installation_id,archiveSourceInstallationId:rows[3]!.results[0]!.installation_id,maintenanceGeneration:m.generation,maintenanceToken:m.token,
     checkpoint:m.checkpoint_sha256,backupId:b.id,backupGeneration:b.generation,backupActor:b.actor,backupAcceptedAt:b.accepted_at,
     archiveSha256:b.archive_sha256,archiveByteSize:b.archive_byte_size,uploadId:upload.id,uploadAcceptedAt:upload.accepted_at}));
   ensure(window.archiveSourceInstallationId===manifest.sourceInstallationId&&window.archiveSourceInstallationId===records.content.tables.research_package_source_identity[0]?.installation_id&&window.backupActor===actor&&window.backupId===records.backupId
@@ -317,7 +317,7 @@ async function originalPlannedCleanupGuards(env:Env,job:RecoveryJob):Promise<D1P
   if((input as Record<string,unknown>).mode!=="planned"){
     const checkpoint:unknown=JSON.parse(job.checkpoint_json??"null");
     const protocol=checkpoint&&typeof checkpoint==="object"&&!Array.isArray(checkpoint)
-      &&((checkpoint as Record<string,unknown>).schema===NAME||(checkpoint as Record<string,unknown>).plannedSourceWindow!==undefined);
+      &&((checkpoint as Record<string,unknown>).schema===SCHEMA||(checkpoint as Record<string,unknown>).plannedSourceWindow!==undefined);
     const reservation=await primaryD1(database).prepare("SELECT 1 FROM system_recovery_metadata_chunks WHERE job_id=? AND name IN(?,?,?) LIMIT 1")
       .bind(job.id,NAME,BACKUP_NAME,"v5-planned-original-retirement/1").first();
     ensure(!protocol&&!reservation&&env.DB===database,"cleanup_original_mode_changed");return [];
