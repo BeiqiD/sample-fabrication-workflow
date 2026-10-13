@@ -12,6 +12,8 @@ HEALTH_BRANCH = 'refs/heads/codex/node-v28-operational-health-ready'
 CAPTURE_BRANCH = 'refs/heads/codex/node-v28-public-local-backup-capture'
 NONEMPTY_BRANCH = 'refs/heads/codex/node-v28-nonempty-backup-restore'
 PACKAGE_BRANCH = 'refs/heads/codex/node-research-package-http'
+PACKAGE_PROCESS_BRANCH = 'refs/heads/codex/node-package-process'
+PACKAGE_PROCESS_BASE = '4776095f4351c2d108f485600bd43933d7dc69c6'
 PACKAGE_BASE = 'f55faa56baa2781457d6d6a8f06127fd38db00d6'
 NONEMPTY_BASE = 'ab4f6cfa9721a5bf7fdcd8e7940a916ea8d520cf'
 R2_PAIR_BRANCH = 'refs/heads/codex/portable-v26-r2-node-backup-one'
@@ -64,11 +66,11 @@ def save(path, value):
  path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
 
 def source():
- assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH, R2_PAIR_BRANCH, PACKAGE_BRANCH)
+ assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH, R2_PAIR_BRANCH, PACKAGE_BRANCH, PACKAGE_PROCESS_BRANCH)
  head = os.environ['GITHUB_SHA']; assert re.fullmatch('[0-9a-f]{40}', head)
  env = dict(os.environ, GIT_OPTIONAL_LOCKS='0')
  assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, env=env).decode().strip() == head
- base = PACKAGE_BASE if os.environ['GITHUB_REF'] == PACKAGE_BRANCH else R2_PAIR_BASE if os.environ['GITHUB_REF'] == R2_PAIR_BRANCH else NONEMPTY_BASE if os.environ['GITHUB_REF'] == NONEMPTY_BRANCH else MAINTENANCE_BASE if os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH) else BASE
+ base = PACKAGE_PROCESS_BASE if os.environ['GITHUB_REF'] == PACKAGE_PROCESS_BRANCH else PACKAGE_BASE if os.environ['GITHUB_REF'] == PACKAGE_BRANCH else R2_PAIR_BASE if os.environ['GITHUB_REF'] == R2_PAIR_BRANCH else NONEMPTY_BASE if os.environ['GITHUB_REF'] == NONEMPTY_BRANCH else MAINTENANCE_BASE if os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH) else BASE
  subprocess.check_call(['git', 'merge-base', '--is-ancestor', base, head], cwd=ROOT, env=env)
  return head
 
@@ -180,7 +182,8 @@ def original_native_failure_diagnostics(out):
 
 def run(stage, out, run_root):
  head = source()
- if stage in ('package-http', 'package-process'): assert os.environ['GITHUB_REF'] == PACKAGE_BRANCH
+ if stage == 'package-http': assert os.environ['GITHUB_REF'] == PACKAGE_BRANCH
+ if stage == 'package-process': assert os.environ['GITHUB_REF'] == PACKAGE_PROCESS_BRANCH
  if stage in ('maintenance-parser', 'maintenance', 'config-unit', 'main'): assert os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH, R2_PAIR_BRANCH)
  if stage == 'capture-parser': assert os.environ['GITHUB_REF'] in (CAPTURE_BRANCH, NONEMPTY_BRANCH, R2_PAIR_BRANCH)
  if stage == 'nonempty': assert os.environ['GITHUB_REF'] in (NONEMPTY_BRANCH, R2_PAIR_BRANCH)
