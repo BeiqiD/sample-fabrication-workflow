@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { build, stop } from 'esbuild';
 import { generateKeyPair, exportJWK, SignJWT } from 'jose';
 import { Log, LogLevel, Miniflare } from 'miniflare';
+import type { Request as MiniflareRequest } from 'miniflare';
 import { unstable_splitSqlQuery as splitSql } from 'wrangler';
 import { recoveryTableSnapshotSql } from '../../shared/contracts/system-recovery-image';
 import { PORTABLE_RUNTIME_RECOVERY_TABLES, PORTABLE_RUNTIME_RECOVERY_MIGRATIONS } from '../../shared/contracts/portable-runtime-v26-recovery-catalog';
@@ -140,7 +141,7 @@ export async function prepareGenuineCurrentV26R2Pair(parent: string): Promise<Ge
       d1Databases: { DB: randomUUID() }, d1Persist: join(root, 'd1'), r2Buckets: { ASSETS: bucketName }, r2Persist: join(root, 'r2'),
       bindings: { AUTH_MODE: 'access', ACCESS_TEAM_DOMAIN: issuer, ACCESS_AUD: audience, ALLOWED_EMAILS: `${actor},${reader}`, SYSTEM_ADMIN_EMAILS: actor,
         R2_BOOTSTRAP_NAMESPACE: JSON.stringify({ kind: 'local-r2', installationId: sourceNamespaceInstallationId, bucketName }) },
-      log: new Log(LogLevel.ERROR), outboundService(request) {
+      log: new Log(LogLevel.ERROR), outboundService(request: MiniflareRequest) {
         const work = (async () => {
           ensure(request.url === `${issuer}/cdn-cgi/access/certs` && request.method === 'GET');
           const response = await fetch(request.url, { redirect: 'error', signal: AbortSignal.timeout(5000) });
