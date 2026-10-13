@@ -2,11 +2,26 @@ import { configurationSqlCell, configurationSqlRow } from "../worker/runtime/con
 import type { FileAuthoritySqlDatabase, FileAuthoritySqlResult, FileAuthoritySqlStatement } from "../worker/runtime/file-authority-sql";
 import { runSqliteAdmittedBatch, type SqliteBatchAdmission, type SqliteCapability, type SqliteResult, type SqliteStatement } from "./sqlite.ts";
 import type { OfflineWriterFence } from "./auth/identity";
+import type { LocalUploadExecution } from "./files/local-upload-execution";
+import { ownedLocalUploadV28FileAuthorityScope, type LocalUploadV28FileAuthorityScope,
+  type LocalVolumeProfileOpening } from "./storage/local-volume-profile-opening";
 
 export interface NativeFileAuthoritySqlDatabase extends FileAuthoritySqlDatabase {
   nativeStatement(statement: FileAuthoritySqlStatement): SqliteStatement;
 }
 const databaseOwners = new WeakMap<NativeFileAuthoritySqlDatabase, SqliteCapability>();
+const preparationOwners = new WeakMap<NativeFileAuthoritySqlDatabase,
+  ReturnType<typeof ownedLocalUploadV28FileAuthorityScope>["preparation"]>();
+/** This private opaque scope belongs to one original actual V28 execution and
+ * opening. Preparation eligibility is fixed at new issuance; no generic-view
+ * attachment/rebinding API or callback/owner option is accepted. */
+export function asLocalUploadV28FileAuthoritySqlDatabase(scope: LocalUploadV28FileAuthorityScope,
+  execution: LocalUploadExecution, opening: LocalVolumeProfileOpening,
+  admission: SqliteBatchAdmission): NativeFileAuthoritySqlDatabase {
+  const original = ownedLocalUploadV28FileAuthorityScope(scope, execution, opening);
+  const view = fileAuthoritySqlDatabase(original.database, original.fullFence, admission);
+  preparationOwners.set(view, original.preparation); return view;
+}
 export function assertNativeFileAuthoritySqlOwner(database: NativeFileAuthoritySqlDatabase, core: SqliteCapability): void {
   if (databaseOwners.get(database) !== core) throw new Error("Foreign File authority database");
 }
@@ -49,9 +64,21 @@ function fileAuthoritySqlDatabase(core: SqliteCapability, owner?: OfflineWriterF
     }
   };
   assertHeld();
+  const assertPreparing = () => {
+    const preparation = preparationOwners.get(view);
+    if (preparation) { preparation.assertHeld(); primary(); }
+    else assertHeld();
+  };
   const statements = new WeakMap<FileAuthoritySqlStatement, SqliteStatement>();
   const nativeStatement = (statement: FileAuthoritySqlStatement) => {
     assertHeld();
+    const native = statements.get(statement); if (!native) throw new Error("Foreign File authority statement"); return native;
+  };
+  // Private selection cannot escape the original batch wrapper. Public
+  // nativeStatement retains its full original guard for direct Native users.
+  const selectBatchStatement = (statement: FileAuthoritySqlStatement) => {
+    if (!preparationOwners.has(view)) return nativeStatement(statement);
+    assertPreparing();
     const native = statements.get(statement); if (!native) throw new Error("Foreign File authority statement"); return native;
   };
   const result = (value: Awaited<ReturnType<SqliteStatement["all"]>>): FileAuthoritySqlResult =>
@@ -60,7 +87,7 @@ function fileAuthoritySqlDatabase(core: SqliteCapability, owner?: OfflineWriterF
     const bind = native.bind.bind(native), first = native.first.bind(native),
       all = native.all.bind(native), run = native.run.bind(native);
     const statement: FileAuthoritySqlStatement = {
-      bind(...values) { assertHeld(); return wrap(bind(...values.map(configurationSqlCell))); },
+      bind(...values) { assertPreparing(); return wrap(bind(...values.map(configurationSqlCell))); },
       async first() {
         assertHeld(); const row = admission ? (await executeBatch([native]))[0]!.results[0] ?? null : await first();
         assertHeld(); return row === null ? null : configurationSqlRow(row);
@@ -77,9 +104,9 @@ function fileAuthoritySqlDatabase(core: SqliteCapability, owner?: OfflineWriterF
     statements.set(statement, native); return Object.freeze(statement);
   };
   const view: NativeFileAuthoritySqlDatabase = {
-    prepare(sql) { assertHeld(); return wrap(prepare(sql)); },
+    prepare(sql) { assertPreparing(); return wrap(prepare(sql)); },
     async batch(items) {
-      const selected = items.map(nativeStatement);
+      const selected = items.map(selectBatchStatement);
       // This assertion and the existing core's BEGIN IMMEDIATE have no await
       // between them. All selected SQL executes synchronously in that core.
       assertHeld(); const values = await executeBatch(selected); assertHeld(); return values.map(result);
@@ -88,7 +115,7 @@ function fileAuthoritySqlDatabase(core: SqliteCapability, owner?: OfflineWriterF
     nativeStatement,
   };
   nativeBatchResults.set(view, async items => {
-    const selected = items.map(nativeStatement);
+    const selected = items.map(selectBatchStatement);
     assertHeld(); const values = await executeBatch(selected); assertHeld(); return values;
   });
   databaseOwners.set(view, core);

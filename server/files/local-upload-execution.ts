@@ -3,7 +3,8 @@ import { consumeLocalFabubloxExecutionPermissionV28Candidate, ownedLocalFabublox
 import type { PreparedFabubloxPayload } from "../../worker/imports/fabublox-payload";
 import { localAuthenticationIdentityAuthority } from "../auth/local-auth-http";
 import { captureInstalledIdentityExecutionOwner } from "../auth/installed-identity-execution-owner";
-import { ownedLocalVolumeIdentityV28Candidate } from "../storage/local-volume-profile-opening";
+import { ownedLocalVolumeIdentityV28Candidate, assertLocalVolumeIdentityPreparationV28Candidate,
+  createAdmittedLocalUploadV28FileAuthorityDatabase } from "../storage/local-volume-profile-opening";
 import { consumeLocalCommentExecutionPermissionV28Candidate, ownedLocalCommentPermissionV28Candidate,
   type LocalCommentPermissionV28Candidate } from "./local-comment-permission-v28-candidate";
 import type { LocalVolumeProfileOpeningV28Candidate } from "../storage/local-volume-profile-opening-v28-candidate";
@@ -51,7 +52,17 @@ export interface LocalUploadExecution {
   openRead(input: Readonly<{ fileId: string | null; purpose: FilePurpose }>): Promise<OwnedPublishedFileRead>;
 }
 const executions = new WeakMap<LocalUploadExecution, Readonly<{ opening: LocalVolumeProfileOpening; request: Request; actor: string;
-  packageRequest: boolean; assertHeld(): void; assertPhysicalHeld(): void }>>();
+  packageRequest: boolean; assertHeld(): void; assertPhysicalHeld(): void;
+  preparation?: Readonly<{ fullFence: Readonly<{ assertHeld(): void }>;
+    matchesCore(database: ReturnType<typeof ownedLocalVolumeProfileContext>["database"]): boolean; assertHeld(): void }> }>>();
+/** Construction capability from the actual consumed V28 execution only. It
+ * exposes no raw core/Native/statement and accepts no supplied guard callback. */
+export function localUploadV28PreparationOwner(execution: LocalUploadExecution, opening: LocalVolumeProfileOpening) {
+  const issued = executions.get(execution);
+  if (!issued || issued.opening !== opening || !issued.preparation)
+    throw new Error("Original V28 upload preparation lifetime is unavailable");
+  issued.preparation.assertHeld(); return issued.preparation;
+}
 /** Additional internal composer check: a copied callback bag cannot stand in
  * for an original currently held authenticated execution. No new grant issues. */
 export function assertLocalUploadExecutionOwner(execution: LocalUploadExecution, opening: LocalVolumeProfileOpening): void {
@@ -431,10 +442,11 @@ function createOwnedLocalUploadExecution(options: {
           const execution: LocalUploadExecution = Object.freeze({ actor, incarnation,
             database(authorities: readonly LocalVolumeProfileAuthority[]) {
               executionLifetime.assertHeld();
-              return createAdmittedLocalVolumeFileAuthorityDatabase(opening, authorities, permission ? admitted(lease) : continuing, executionLifetime);
+              return permission ? createAdmittedLocalUploadV28FileAuthorityDatabase(opening, authorities, admitted(lease), execution)
+                : createAdmittedLocalVolumeFileAuthorityDatabase(opening, authorities, continuing, executionLifetime);
             },
             historyDatabase() {
-              if (permission) return asAdmittedFileAuthoritySqlDatabase(owner.database, admitted(lease, "final"), executionLifetime);
+              if (permission) return createAdmittedLocalUploadV28FileAuthorityDatabase(opening, undefined, admitted(lease, "final"), execution);
               historyDatabase.primary(); return historyDatabase;
             },
             ...(packageRequest ? {
@@ -484,7 +496,7 @@ function createOwnedLocalUploadExecution(options: {
               async assertFabubloxRequestCurrent() { await runSqliteAdmittedBatch(owner.database, [], admitted(lease, "final")); },
               fabubloxAcceptanceDatabase(authorities: readonly LocalVolumeProfileAuthority[]) {
                 executionLifetime.assertHeld();
-                return createAdmittedLocalVolumeFileAuthorityDatabase(opening, authorities, admitted(lease, "final"), executionLifetime);
+                return createAdmittedLocalUploadV28FileAuthorityDatabase(opening, authorities, admitted(lease, "final"), execution);
               },
             } : {
               readCommentAcceptanceBody: permission.boundedBody.bind(permission),
@@ -494,8 +506,8 @@ function createOwnedLocalUploadExecution(options: {
               executionLifetime.assertHeld();
               const captured = Object.freeze({ ...input });
               const original = (async () => {
-                const selectedRead = permission ? asAdmittedFileAuthoritySqlDatabase(owner.database,
-                  admitted(lease, "business", captured.fileId === null ? undefined : { fileId: captured.fileId, purpose: captured.purpose }), executionLifetime) : historyDatabase;
+                const selectedRead = permission ? createAdmittedLocalUploadV28FileAuthorityDatabase(opening, undefined,
+                  admitted(lease, "business", captured.fileId === null ? undefined : { fileId: captured.fileId, purpose: captured.purpose }), execution) : historyDatabase;
                 const read = await readPublishedFileOwned({ database: selectedRead, openProfile: execution.openProfile,
                   // Only this trusted core receives the newly allocated hold
                   // ID. No raw cleanup database/callback escapes the execution.
@@ -521,7 +533,8 @@ function createOwnedLocalUploadExecution(options: {
               // Capture the issued physical/source tuple before the first open
               // await; returned label/JSON cannot substitute its ownership.
               const authority = captureLocalVolumeProfileAuthority(opening, frozen, access);
-              const selected = createAdmittedLocalVolumeFileAuthorityDatabase(opening, [authority], permission ? admitted(lease) : continuing, executionLifetime);
+              const selected = permission ? createAdmittedLocalUploadV28FileAuthorityDatabase(opening, [authority], admitted(lease), execution)
+                : createAdmittedLocalVolumeFileAuthorityDatabase(opening, [authority], continuing, executionLifetime);
               const original = (async () => {
                 const profile = await openStorageProfile(opening.capabilities, frozen, access, {
                   ...lifecycle, async beforeRequest(operation) {
@@ -553,6 +566,12 @@ function createOwnedLocalUploadExecution(options: {
             },
           });
           executions.set(execution, Object.freeze({ opening, request, actor, packageRequest, assertHeld: executionLifetime.assertHeld,
+            ...(permission ? { preparation: Object.freeze({ fullFence: Object.freeze({ assertHeld: executionLifetime.assertHeld.bind(executionLifetime) }),
+              matchesCore(database: ReturnType<typeof ownedLocalVolumeProfileContext>["database"]) { return database === owner.database; },
+              assertHeld() {
+                if (closing || !lease) throw new Error("The original V28 upload preparation lifetime has closed");
+                assertLocalVolumeIdentityPreparationV28Candidate(opening, authentication, admission);
+              } }) } : {}),
             assertPhysicalHeld() {
               owner.assertCurrent();
               if (closing || !lease) throw new Error("The original local upload source lifetime has closed");

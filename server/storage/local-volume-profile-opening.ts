@@ -1,5 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { OfflineWriterFence } from "../auth/identity";
+import { localUploadV28PreparationOwner, type LocalUploadExecution } from "../files/local-upload-execution";
 import type { ByteReadResult } from "../../worker/files/byte-reader";
 import type { ByteWriteInput } from "../../worker/files/byte-writer";
 import { ByteVerificationError } from "../../worker/files/byte-verification.ts";
@@ -14,7 +15,7 @@ import { captureInstalledIdentityExecutionOwnerV28Candidate, createInstalledIden
   type InstalledIdentityExecutionOwnerV28Candidate } from "../auth/installed-identity-execution-owner-v28-candidate.ts";
 import { assertLinuxWriterLeaseBinding, type LinuxWriterLease } from "../operations/writer-lease.ts";
 import { asJobSqlDatabase, type SqliteBatchAdmission, type SqliteCapability, type SqliteStatement } from "../sqlite.ts";
-import { asAdmittedFileAuthoritySqlDatabase, asFileAuthoritySqlDatabase, assertNativeFileAuthoritySqlOwner,
+import { asAdmittedFileAuthoritySqlDatabase, asFileAuthoritySqlDatabase, asLocalUploadV28FileAuthoritySqlDatabase, assertNativeFileAuthoritySqlOwner,
   type NativeFileAuthoritySqlDatabase } from "../file-authority-sql.ts";
 import type { FileAuthoritySqlStatement } from "../../worker/runtime/file-authority-sql";
 import { createOwnedLocalProfileRegistrationSql } from "./local-profile-registration-sql.ts";
@@ -72,6 +73,47 @@ const profileAuthorities = new WeakMap<LocalVolumeProfileAuthority, ProfileAutho
 const authorityDatabases = new WeakMap<NativeFileAuthoritySqlDatabase, ReadonlySet<LocalVolumeProfileAuthority>>();
 const owners = new WeakMap<LocalVolumeProfileOpening, LocalVolumeProfileOwner>();
 const physicalAssertions = new WeakMap<LocalVolumeProfileOpening, () => void>();
+const preparationAssertions = new WeakMap<LocalVolumeProfileOpening, () => void>();
+declare const v28FileScopeBrand: unique symbol;
+export interface LocalUploadV28FileAuthorityScope { readonly [v28FileScopeBrand]: true }
+const v28FileScopes = new WeakMap<LocalUploadV28FileAuthorityScope, Readonly<{
+  opening: LocalVolumeProfileOpening; execution: LocalUploadExecution;
+  database: SqliteCapability; fullFence: OfflineWriterFence;
+  preparation: ReturnType<typeof localUploadV28PreparationOwner>;
+}>>();
+/** Only this concrete factory mints the opaque scope. Generic views and views
+ * from another execution can never acquire or rebind preparation eligibility. */
+export function createAdmittedLocalUploadV28FileAuthorityDatabase(opening: LocalVolumeProfileOpening,
+  authorities: readonly LocalVolumeProfileAuthority[] | undefined, admission: SqliteBatchAdmission,
+  execution: LocalUploadExecution): NativeFileAuthoritySqlDatabase {
+  const owner = ownedLocalVolumeProfileContext(opening), preparation = localUploadV28PreparationOwner(execution, opening);
+  if (!preparation.matchesCore(owner.database)) unavailable();
+  let selected: Set<LocalVolumeProfileAuthority> | undefined;
+  let fullFence: OfflineWriterFence = preparation.fullFence;
+  if (authorities !== undefined) {
+    if (!Array.isArray(authorities) || !authorities.length || authorities.length > MAX_VOLUME_DESCRIPTORS) unavailable();
+    selected = new Set(authorities);
+    const records = [...selected].map(authority => {
+      const record = profileAuthority(authority); if (record.owner !== owner) unavailable(); return record;
+    });
+    fullFence = Object.freeze({ assertHeld() {
+      owner.assertCurrent(); for (const record of records) record.assertCurrent();
+      return preparation.fullFence.assertHeld();
+    } });
+  }
+  const scope = Object.freeze({}) as LocalUploadV28FileAuthorityScope;
+  v28FileScopes.set(scope, Object.freeze({ opening, execution, database: owner.database, fullFence, preparation }));
+  const view = asLocalUploadV28FileAuthoritySqlDatabase(scope, execution, opening, admission);
+  if (selected) authorityDatabases.set(view, selected); return view;
+}
+/** Exact private issuance accessor; no raw scope, callback bag, generic view or
+ * replacement execution can stand in for the originally captured frame. */
+export function ownedLocalUploadV28FileAuthorityScope(scope: LocalUploadV28FileAuthorityScope,
+  execution: LocalUploadExecution, opening: LocalVolumeProfileOpening) {
+  const original = v28FileScopes.get(scope);
+  if (!original || original.execution !== execution || original.opening !== opening) unavailable();
+  original.preparation.assertHeld(); return original;
+}
 interface V28IdentityOwner {
   readonly owner: LocalVolumeProfileOwner;
   readonly authentication: object;
@@ -206,6 +248,13 @@ export function ownedLocalVolumeIdentityV28Candidate(opening: LocalVolumeProfile
   const selected = v28IdentityOwner(opening, authentication, admission);
   selected.owner.assertCurrent(); return selected.identity;
 }
+/** Pure statement construction only. This private opening/core/Native/lease
+ * tuple cannot issue SQL or substitute for the full current execution proof. */
+export function assertLocalVolumeIdentityPreparationV28Candidate(opening: LocalVolumeProfileOpening,
+  authentication: object, admission: ReviewedInstallationAdmission): void {
+  v28IdentityOwner(opening, authentication, admission);
+  const preparation = preparationAssertions.get(opening); if (!preparation) unavailable(); preparation();
+}
 /** No caller callback enters this closed all-read guard. Actual opening state
  * and physical/native binding remain current, while equivalent registered
  * identity owners share one fresh original schema/ledger proof per invocation. */
@@ -239,6 +288,10 @@ function createCatalogLocalVolumeProfileOpening(options: LocalVolumeProfileOwner
   if (byId.size !== descriptors.length || byProfile.size !== descriptors.length) unavailable();
   let closed = false, closing: Promise<void> | undefined;
   const records = new Set<RecordOwner>();
+  function assertPreparing() {
+    if (closed) unavailable();
+    assertLinuxWriterLeaseBinding(writerLease, database, nativeDatabase); database.primary();
+  }
   function assertPhysicalCurrent() {
     if (closed) unavailable();
     assertLinuxWriterLeaseBinding(writerLease, database, nativeDatabase);
@@ -422,5 +475,6 @@ function createCatalogLocalVolumeProfileOpening(options: LocalVolumeProfileOwner
       closing = (async () => { await Promise.all([...records].map(dispose)); })(); return closing;
     },
   });
-  owners.set(opening, owner); physicalAssertions.set(opening, assertPhysicalCurrent); return opening;
+  owners.set(opening, owner); physicalAssertions.set(opening, assertPhysicalCurrent);
+  preparationAssertions.set(opening, assertPreparing); return opening;
 }
