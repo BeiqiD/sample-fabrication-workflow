@@ -28,7 +28,8 @@ async function original(argv) {
 if (stage === "worker-v5-types") {
   for (const configuration of ["tsconfig.worker.json", "tsconfig.worker-v5-native-qualification.json",
     "tsconfig.worker-v5-local-r2-native-qualification.json", "tsconfig.worker-v5-held-node-roundtrip-qualification.json",
-    "tsconfig.worker-v5-bound-local-r2-native-qualification.json"])
+    "tsconfig.worker-v5-bound-local-r2-native-qualification.json",
+    "tsconfig.worker-v5-present-head-bound-local-r2-native-qualification.json"])
     await original(["node_modules/typescript/bin/tsc", "-p", configuration]);
 } else {
   try { await lstat(join(root, "dist-node")); throw new Error("worker_v5_owned_distribution_already_exists"); }

@@ -1,6 +1,7 @@
 """Additive cold/native V5 CI lane; imported definitions perform no effects."""
 import hashlib, json, os, re, stat, subprocess
 from pathlib import Path
+import current_worker_v5_present_head_pipeline as present_head
 
 ROOT = Path(__file__).resolve().parents[2]
 BRANCH = 'refs/heads/codex/node-worker-v5-inert-roundtrip'
@@ -37,6 +38,8 @@ CONFIGS = dict(zip(CASES, (
  'worker-v5-held-r2-node-roundtrip.vitest.config.mts', 'worker-v5-public-historical-native.vitest.config.mts',
  'worker-v5-original-issue-negative.vitest.config.mts', 'current-v28-bound-comment-backup.vitest.config.mts',
  'worker-v5-bound-local-r2-payload-native.vitest.config.mts')))
+CASES.update(present_head.CASES)
+CONFIGS.update(present_head.CONFIGS)
 STAGES = (*TOOLS, *CASES)
 ORDER = ('types', *TOOLS, *CASES)
 PRODUCERS = {'worker-v5-zero': 'ZERO', 'worker-v5-nonempty': 'NONEMPTY', 'worker-v5-bound-producer': 'BOUND'}
@@ -47,6 +50,8 @@ BUDGETS = {'worker-v5-types': 300, 'worker-v5-build': 300, 'worker-v5-constructo
 CASE_BUDGETS = {'worker-v5-zero': [20000], 'worker-v5-nonempty': [20000],
  'worker-v5-constructor': [60000,120000], 'worker-v5-payload': [120000,120000],
  'worker-v5-held': [120000], 'worker-v5-public-historical': [120000,120000], 'worker-v5-original-issue-negative': [120000,120000,180000], 'worker-v5-bound-producer': [60000], 'worker-v5-bound-payload': [120000]}
+BUDGETS.update(present_head.BUDGETS)
+CASE_BUDGETS.update(present_head.CASE_BUDGETS)
 SCOPE = ('Fresh current committed producers and fixed distribution; zero/nonempty Node V5 to native D1 V28 constructor; '
  'unbound LOCAL to R2 and original committed PUT-ACK unknown retention; real held R2 V5 to fresh inert current Node; '
  'one native-bound canonical Comment File with its natural present head and exact two-event profile/runtime successors. Cold candidate APIs only; no public Recovery routing, '
@@ -98,6 +103,7 @@ def configure(stage, env, run_root, fixture, head, source_tree):
  for previous in ORDER[:ORDER.index(stage)]: original_receipt(run_root, previous, head, source_tree)
  env.update(WORKER_V5_CURRENT_PRODUCER_HEAD=head, WORKER_V5_CURRENT_PRODUCER_TREE=source_tree,
   WORKER_V5_NATIVE_FIXTURE_PARENT=str(fixture), WORKER_V5_COHERENT_NODE_DISTRIBUTION=str(ROOT / 'dist-node/distribution'))
+ if stage in present_head.CASES: return present_head.configure(stage,env,run_root,fixture,head,source_tree)
  if stage in TOOLS:
   path = run_root / (stage + '-tools.json'); assert not path.exists(); env['WORKER_V5_OWNED_TOOL_RECEIPT'] = str(path)
  elif stage in PRODUCERS:
@@ -127,10 +133,11 @@ def command(stage, node, raw):
 
 def finish(stage, record, run_root, fixture):
  head, source_tree = record['head'],record['tree']; assert tree(head) == source_tree
+ if stage in present_head.CASES: return present_head.finish(stage,record,run_root,fixture)
  if stage in TOOLS:
   raw = read_private(run_root / (stage+'-tools.json')); value = json.loads(raw)
   assert value['schema'] == 'current-worker-v5-original-owned-tools/1' and value['stage'] == stage
-  assert len(value['originalChildren']) == (5 if stage == 'worker-v5-types' else 4)
+  assert len(value['originalChildren']) == (6 if stage == 'worker-v5-types' else 4)
   assert all(row['code'] == 0 and row['signal'] is None and row['originalCloseAcknowledged'] is True for row in value['originalChildren'])
   record['actualOwnedTools'] = value; record['originalOwnedToolsProofSha256'] = hashlib.sha256(raw).hexdigest()
  elif stage in PRODUCERS:
@@ -240,6 +247,7 @@ def finish(stage, record, run_root, fixture):
     'coherentDistributionManifestSha256':value['coherentDistributionManifestSha256'],'automaticActivation':False}
 
 def public_receipt(record, summary):
+ if record['stage'] in present_head.CASES: return present_head.public_receipt(record,summary)
  stage = record['stage']; value = {'schema':'current-worker-v5-original-owned-ci/1','stage':stage,'head':record['head'],
   'tree':record['tree'],'status':record['status'],'scope':ORIGINAL_ISSUE_NEGATIVE_SCOPE if stage=='worker-v5-original-issue-negative' else PUBLIC_HISTORICAL_SCOPE if stage=='worker-v5-public-historical' else SCOPE,'outerSeconds':record['outerSeconds'],
   'caseTimeoutsMs':CASE_BUDGETS.get(stage),'minimumBeforeChild':record['minimumBeforeChild'],'minimumAfterChild':536870912,
