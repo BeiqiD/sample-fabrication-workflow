@@ -395,6 +395,17 @@ async function verifyClosedNativeD1(directory: string, identities: { source: str
     durableMainAndWalUnchanged: true, physicalPathsAndInodesUnchanged: true, files: observations }, null, 2) + "\n",
   { flag: "wx", mode: 0o600 });
 }
+let dependencyCustody: string | undefined;
+async function coherentDependencyRoot(): Promise<string> {
+  const logical = join(SOURCE_ROOT, "node_modules"), logicalStat = await lstat(logical);
+  const actual = await realpath(logical), actualStat = await lstat(actual);
+  ensure((logicalStat.isDirectory() || logicalStat.isSymbolicLink()) && actualStat.isDirectory()
+    && !actualStat.isSymbolicLink() && await realpath(actual) === actual, "coherent_dependency_root");
+  const identity = stableJson({ logical, actual, logicalDev: logicalStat.dev, logicalIno: logicalStat.ino,
+    actualDev: actualStat.dev, actualIno: actualStat.ino, owner: actualStat.uid, mode: actualStat.mode });
+  dependencyCustody ??= identity;
+  ensure(identity === dependencyCustody, "coherent_dependency_root_changed"); return actual;
+}
 async function verifyDistributionSourcePins(directory: string) {
   const manifestBytes = await readFile(join(directory, "manifest.json"));
   // The original verifier already admits the closed canonical manifest/input
@@ -404,13 +415,20 @@ async function verifyDistributionSourcePins(directory: string) {
   expect(hash(sourceBytes)).toBe(manifest.sourceInputsSha256);
   expect(hash(await readFile(join(SOURCE_ROOT, "package-lock.json")))).toBe(manifest.packageLockSha256);
   const source = object(JSON.parse(sourceBytes.toString("utf8"))); ensure(Array.isArray(source.inputs), "coherent_source_inventory");
-  const inputs = source.inputs.map(object);
+  const inputs = source.inputs.map(object), dependencyRoot = await coherentDependencyRoot();
   for (const input of inputs) {
     ensure(typeof input.path === "string" && typeof input.bytes === "number" && typeof input.sha256 === "string", "coherent_source_input");
     const path = join(SOURCE_ROOT, input.path), stat = await lstat(path);
-    ensure(stat.isFile() && !stat.isSymbolicLink() && stat.nlink === 1 && await realpath(path) === path, "coherent_source_file");
+    // The exact admitted SDK may be a single shared node_modules alias in
+    // local qualification. Current tracked application inputs remain fresh,
+    // single-link canonical files; dependencies must resolve under that one
+    // captured canonical SDK root and retain every declared byte/hash check.
+    const expected = input.path.startsWith("node_modules/")
+      ? join(dependencyRoot, input.path.slice("node_modules/".length)) : path;
+    ensure(stat.isFile() && !stat.isSymbolicLink() && stat.nlink === 1 && await realpath(path) === expected, "coherent_source_file");
     expect(stat.size).toBe(input.bytes); expect(hash(await readFile(path)), "Coherent original Node source input: " + input.path).toBe(input.sha256);
   }
+  await coherentDependencyRoot();
   for (const required of ["shared/contracts/export-system-recovery-evidence-v28.ts", "shared/contracts/export-local-file-runtime-v28.ts",
     "shared/contracts/system-backup-v5.ts", "server/recovery/restore-v28-candidate.ts"]) expect(inputs.some(input => input.path === required), required).toBe(true);
 }
