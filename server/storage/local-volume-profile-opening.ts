@@ -70,6 +70,8 @@ interface ProfileAuthorityOwner {
 const profileAuthorities = new WeakMap<LocalVolumeProfileAuthority, ProfileAuthorityOwner>();
 const authorityDatabases = new WeakMap<NativeFileAuthoritySqlDatabase, ReadonlySet<LocalVolumeProfileAuthority>>();
 const owners = new WeakMap<LocalVolumeProfileOpening, LocalVolumeProfileOwner>();
+const v28Bindings = new WeakMap<object, Readonly<{ database: SqliteCapability; nativeDatabase: DatabaseSync;
+  writerLease: LinuxWriterLease; authentication: object }>>();
 function unavailable(): never { throw new Error("Local volume profile is unavailable"); }
 const MAX_OPEN_ADAPTERS = 32;
 const MAX_VOLUME_DESCRIPTORS = 32;
@@ -172,7 +174,19 @@ export function createLocalVolumeProfileOpeningV28(options: LocalVolumeProfileOw
   if (Object.keys(options).sort().join(",") !== "admission,authentication,authorizeAdministrator,database,descriptors,filesystemRootOwnerUid,nativeDatabase,writerLease") unavailable();
   const auth = localAuthenticationIdentityAuthority(options.authentication);
   const identity = captureInstalledIdentityExecutionOwnerV28Candidate(auth.identity, options.database, options.nativeDatabase, options.admission);
-  return createCatalogLocalVolumeProfileOpening(options, V28_NODE_INSTALLATION_CATALOG_CANDIDATE, "portable-runtime/v28", identity);
+  const opening = createCatalogLocalVolumeProfileOpening(options, V28_NODE_INSTALLATION_CATALOG_CANDIDATE, "portable-runtime/v28", identity);
+  v28Bindings.set(opening, Object.freeze({ database: options.database, nativeDatabase: options.nativeDatabase,
+    writerLease: options.writerLease, authentication: options.authentication }));
+  return opening;
+}
+/** Borrow only the original V28 opening from the same installed parent. A
+ * structurally compatible opening or different auth service cannot satisfy it. */
+export function assertLocalVolumeProfileOpeningV28Binding(opening: LocalVolumeProfileOpening, database: SqliteCapability,
+  nativeDatabase: DatabaseSync, writerLease: LinuxWriterLease, authentication: object): LocalVolumeProfileOwner {
+  const binding = v28Bindings.get(opening);
+  if (!binding || binding.database !== database || binding.nativeDatabase !== nativeDatabase
+    || binding.writerLease !== writerLease || binding.authentication !== authentication) unavailable();
+  return assertLocalVolumeProfileOpeningV28(opening);
 }
 export function assertLocalVolumeProfileOpeningV28(opening: LocalVolumeProfileOpening): LocalVolumeProfileOwner {
   const owner = ownedLocalVolumeProfileContext(opening);

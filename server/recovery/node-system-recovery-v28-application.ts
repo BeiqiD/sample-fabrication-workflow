@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { AsyncLocalStorage } from "node:async_hooks";
 import type { Server } from "node:http";
 import type { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
@@ -15,10 +16,10 @@ import { assertInstallationAdmission, type ReviewedInstallationAdmission } from 
 import { assertNodeRuntimeConfigurationForProfile, type LoadedNodeRuntimeConfiguration } from "../node-runtime-config.ts";
 import { assertLinuxWriterLeaseBinding, type LinuxWriterLease } from "../operations/writer-lease.ts";
 import { asAdmittedJobSqlDatabase, createSqliteBatchAdmission, type SqliteCapability } from "../sqlite.ts";
-import { createLocalVolumeProfileOpeningV28, type LocalVolumeProfileOpening } from "../storage/local-volume-profile-opening.ts";
+import { createLocalVolumeProfileOpeningV28, assertLocalVolumeProfileOpeningV28Binding, type LocalVolumeProfileOpening } from "../storage/local-volume-profile-opening.ts";
 import { nodeSha256 } from "../storage/node-sha256.ts";
 import type { JobSqlDatabase, JobSqlStatement } from "../../worker/files/jobs/sql-repository.ts";
-import { runSystemRecoveryJobStep, writeSystemRecoveryUpload, type SystemRecoveryCapabilitiesAdapter } from "../../worker/recovery/kernel.ts";
+import { runSystemRecoveryJobStep, runSystemRecoveryJobStepAndDrain, writeSystemRecoveryUpload, type SystemRecoveryCapabilitiesAdapter } from "../../worker/recovery/kernel.ts";
 import { SqlSystemRecoveryRepository, type RecoveryAttempt, type RecoveryClaim, type RecoveryJob } from "../../worker/recovery/sql-repository.ts";
 import { checkedSystemRecoveryBackupInput, checkedSystemRecoveryUploadInput, checkedSystemRecoveryJobControl,
   checkedSystemRecoveryCapabilities, checkedSystemRecoveryJobStatus, checkedSystemRecoveryPreview, checkedSystemRecoveryMaintenanceInput,
@@ -33,6 +34,8 @@ import { stableJson } from "../../shared/domain/content-addressing.ts";
 import { runBoundedSystemRecoveryReadAction } from "../../worker/recovery/kernel.ts";
 import { captureQuiescedNodeSystemBackupV28Candidate } from "./snapshot-v28-candidate.ts";
 import { sourceBackupCheckpointV5 } from "../../shared/contracts/system-backup-v5.ts";
+import { assertNodeV28SourceBarrierBinding, type createNodeV28SourceBarrier } from "./node-v28-source-barrier.ts";
+import type { NodeV28OwnedJobPort } from "../jobs/node-v28-job-scheduler.ts";
 
 export const NODE_V28_RECOVERY_SURFACE = Object.freeze({ kind: "node-v28-recovery-only/1" as const,
   backup: "fenced-quiesced-v5" as const, upload: "strict-v5" as const, maintenance: "explicit-source-control" as const,
@@ -44,6 +47,38 @@ export interface NodeSystemRecoveryV28Application {
   dispatchRecoveryJobsOnce(): Promise<{ jobId: string | null; outcome: string }>;
   close(): Promise<void>;
 }
+interface OriginalRecoveryOptions {
+  configuration: LoadedNodeRuntimeConfiguration; database: SqliteCapability; nativeDatabase: DatabaseSync;
+  writerLease: LinuxWriterLease; admission: ReviewedInstallationAdmission; hasher: PasswordHasher;
+  identityPolicy: IdentityPolicy; publicOrigin: string;
+}
+export interface NodeSystemRecoveryV28BorrowedChild {
+  readonly routes: readonly Readonly<{ method: string; path: string }>[];
+  readonly surfaceCapabilities: Omit<NodeV28RecoverySurface, "kind" | "sourceBusinessWriters"> & {
+    readonly kind: "node-v28-borrowed-recovery-child/1"; readonly sourceBusinessWriters: true };
+  readonly schedulerPort: NodeV28OwnedJobPort;
+  handles(request: Request): boolean;
+  handle(request: Request): Promise<Response>;
+  dispatchRecoveryJobsOnce(): Promise<{ jobId: string | null; outcome: string }>;
+  stopAdmission(): void;
+  /** Parent first stops admission and joins its actual HTTP/body drain. This
+   * joins only original Recovery children; it never closes parent resources. */
+  drain(): Promise<void>;
+}
+interface BorrowedContext {
+  authentication: ReturnType<typeof createLocalAuthentication>;
+  identity: ReturnType<typeof captureInstalledIdentityExecutionOwnerV28Candidate>;
+  sourceBarrier: ReturnType<typeof createNodeV28SourceBarrier>;
+  opening: LocalVolumeProfileOpening;
+  quarantine(error: unknown): void;
+}
+interface RecoveryEngine {
+  readonly server?: Server; readonly surfaceCapabilities: NodeV28RecoverySurface;
+  handle(request: Request): Promise<Response>;
+  dispatchRecoveryJobsOnce(): Promise<{ jobId: string | null; outcome: string }>;
+  eligible(): Promise<boolean>; stopAdmission(): void; close(): Promise<void>; assertCurrent(): void;
+}
+interface InvocationOwner { readonly work: Set<Promise<unknown>>; readonly bodies: Set<BodyOwner> }
 type ApiEnvironment = LocalAuthEnvironment;
 type ArtifactScope = { readonly actor: string; readonly request?: Request; readonly claim?: RecoveryClaim; readonly cleanup?: string };
 type BodyOwner = { close(reason?: unknown): Promise<void> };
@@ -58,6 +93,10 @@ function plannedSourceWindow(job: RecoveryJob): PlannedSourceWindow | null {
   return value;
 }
 const claimed = new WeakSet<LinuxWriterLease>(), retained = new Set<object>();
+const issuedChildren = new WeakMap<object, Readonly<{
+  database: SqliteCapability; nativeDatabase: DatabaseSync; writerLease: LinuxWriterLease;
+  authentication: object; sourceBarrier: object; opening: LocalVolumeProfileOpening; assertCurrent(): void;
+}>>();
 const routes = Object.freeze([
   ["POST", "/api/auth/login"], ["GET", "/api/auth/session"], ["POST", "/api/auth/logout"], ["POST", "/api/auth/rotate"],
   ["GET", "/api/health"], ["GET", "/api/ready"],
@@ -128,14 +167,59 @@ class NodeRecoveryRepository extends SqlSystemRecoveryRepository<JobSqlStatement
  * An explicit sealed host target may prepare a fresh inert V28 destination.
  * Handoff records a verified receipt; activation remains a stopped operator action.
  * The default and existing V28 profiles never call this factory. */
-export function createNodeSystemRecoveryV28Application(options: {
-  configuration: LoadedNodeRuntimeConfiguration; database: SqliteCapability; nativeDatabase: DatabaseSync;
-  writerLease: LinuxWriterLease; admission: ReviewedInstallationAdmission; hasher: PasswordHasher;
-  identityPolicy: IdentityPolicy; publicOrigin: string;
-}): Promise<NodeSystemRecoveryV28Application> {
+export function createNodeSystemRecoveryV28Application(options: OriginalRecoveryOptions): Promise<NodeSystemRecoveryV28Application> {
+  return createRecoveryEngine(options).then(engine => {
+    if (!engine.server) throw new Error("Original Recovery transport is unavailable");
+    return Object.freeze({ server: engine.server, surfaceCapabilities: engine.surfaceCapabilities,
+      dispatchRecoveryJobsOnce: engine.dispatchRecoveryJobsOnce, close: engine.close });
+  });
+}
+/** Separate borrowed child: actual issued parent authentication, same native/
+ * core/physical tuple and private SOURCE barrier are mandatory. No structural
+ * callback can impersonate those owners. Parent owns the only transport, auth
+ * service, scheduler, native connection and physical close. */
+export function createNodeSystemRecoveryV28BorrowedChild(options: Omit<OriginalRecoveryOptions, "hasher" | "identityPolicy"> & {
+  authentication: ReturnType<typeof createLocalAuthentication>; sourceBarrier: ReturnType<typeof createNodeV28SourceBarrier>;
+  opening: LocalVolumeProfileOpening;
+  quarantine(error: unknown): void;
+}): Promise<NodeSystemRecoveryV28BorrowedChild> {
+  const captured = Object.freeze({ ...options });
+  const authority = localAuthenticationIdentityAuthority(captured.authentication);
+  const identity = captureInstalledIdentityExecutionOwnerV28Candidate(authority.identity, captured.database, captured.nativeDatabase, captured.admission);
+  assertNodeV28SourceBarrierBinding(captured.sourceBarrier, captured.database, captured.nativeDatabase, captured.writerLease, captured.authentication);
+  assertLocalVolumeProfileOpeningV28Binding(captured.opening, captured.database, captured.nativeDatabase, captured.writerLease, captured.authentication);
+  const borrowed = Object.freeze({ authentication: captured.authentication, sourceBarrier: captured.sourceBarrier, identity, opening: captured.opening,
+    quarantine: captured.quarantine.bind(captured) });
+  return createRecoveryEngine({ ...captured, identityPolicy: identity.policy }, borrowed).then(engine => {
+    const admitted = Object.freeze(routes.filter(route => route.path.startsWith("/api/system-recovery/"))
+      .map(route => Object.freeze({ method: route.method, path: route.path })));
+    const schedulerPort: NodeV28OwnedJobPort = Object.freeze({ eligible: engine.eligible,
+      runAndDrain: engine.dispatchRecoveryJobsOnce, stopAdmission: engine.stopAdmission, drain: engine.close });
+    const child: NodeSystemRecoveryV28BorrowedChild = Object.freeze({ routes: admitted, schedulerPort,
+      surfaceCapabilities: Object.freeze({ ...engine.surfaceCapabilities, kind: "node-v28-borrowed-recovery-child/1" as const, sourceBusinessWriters: true as const }),
+      handles(request: Request) { return routes.some(route => route.path.startsWith("/api/system-recovery/")
+        && route.method === request.method && route.pattern.test(new URL(request.url).pathname)); },
+      handle: engine.handle, dispatchRecoveryJobsOnce: engine.dispatchRecoveryJobsOnce, stopAdmission: engine.stopAdmission, drain: engine.close });
+    issuedChildren.set(child, Object.freeze({ database: captured.database, nativeDatabase: captured.nativeDatabase,
+      writerLease: captured.writerLease, authentication: captured.authentication, sourceBarrier: captured.sourceBarrier, opening: captured.opening, assertCurrent: engine.assertCurrent }));
+    return child;
+  });
+}
+export function assertNodeSystemRecoveryV28BorrowedChildBinding(child: object, database: SqliteCapability,
+  nativeDatabase: DatabaseSync, writerLease: LinuxWriterLease, authentication: object, sourceBarrier: object, opening: LocalVolumeProfileOpening): void {
+  const owner = issuedChildren.get(child);
+  if (!owner || owner.database !== database || owner.nativeDatabase !== nativeDatabase || owner.writerLease !== writerLease
+    || owner.authentication !== authentication || owner.sourceBarrier !== sourceBarrier || owner.opening !== opening)
+    throw new Error("Original borrowed Recovery child binding is unavailable");
+  owner.assertCurrent();
+}
+function createRecoveryEngine(options: Omit<OriginalRecoveryOptions, "hasher"> & { hasher?: PasswordHasher }, borrowed?: BorrowedContext): Promise<RecoveryEngine> {
   const captured = Object.freeze({ ...options, identityPolicy: Object.freeze({ ...options.identityPolicy }) });
   const { database, nativeDatabase: native, writerLease: lease, admission, configuration } = captured;
-  const config = assertNodeRuntimeConfigurationForProfile(configuration, "v28-recovery");
+  const profile = borrowed ? "v28-workflow" : "v28-recovery";
+  const config = assertNodeRuntimeConfigurationForProfile(configuration, profile);
+  if (borrowed && (!config.enableLocalRecovery || !config.recoveryArtifacts || !config.enableLocalFile || !config.enableLocalJobs))
+    throw new Error("Explicit Recovery profile configuration is unavailable");
   assertLinuxWriterLeaseBinding(lease, database, native);
   const installation = assertInstallationAdmission(native, admission);
   const main = native.prepare("PRAGMA database_list").all().filter(row => row.name === "main");
@@ -157,15 +241,30 @@ export function createNodeSystemRecoveryV28Application(options: {
   let stages: ReturnType<typeof createNodeV28ArchiveStages> | undefined;
   let targetStages: ReturnType<typeof createNodeV28TargetStages> | undefined;
   let application: Hono<ApiEnvironment> | undefined;
-  let identity: ReturnType<typeof captureInstalledIdentityExecutionOwnerV28Candidate> | undefined;
-  let auth: ReturnType<typeof createLocalAuthentication> | undefined;
-  let authentication: ReturnType<typeof localAuthenticationIdentityAuthority> | undefined;
-  const quarantine = (error: unknown): void => { if (!owner.failed) { owner.failed = true; owner.failure = error; } owner.active = false;
+  let identity: ReturnType<typeof captureInstalledIdentityExecutionOwnerV28Candidate> | undefined = borrowed?.identity;
+  let auth: ReturnType<typeof createLocalAuthentication> | undefined = borrowed?.authentication;
+  let authentication: ReturnType<typeof localAuthenticationIdentityAuthority> | undefined = auth ? localAuthenticationIdentityAuthority(auth) : undefined;
+  const invocations = new AsyncLocalStorage<InvocationOwner>();
+  let sourceWindow: Readonly<{ generation: number; token: string | null }> | undefined;
+  async function pauseSource(window: Readonly<{ generation: number; token: string | null }>): Promise<void> {
+    if (!borrowed) return;
+    if (sourceWindow && (sourceWindow.generation !== window.generation || sourceWindow.token !== window.token))
+      throw fail("Reconcile the original maintenance window before opening another", 409);
+    const original = borrowed.sourceBarrier.beginMaintenance(window);
+    // Retain the actual accepted window before a response/ACK can be lost.
+    // This private tuple can reconcile its committed release without deriving
+    // a grant from a caller's generation or an old receipt.
+    sourceWindow ??= Object.freeze({ ...window }); await original;
+  }
+  const quarantine = (error: unknown): void => { const first = !owner.failed; if (first) { owner.failed = true; owner.failure = error; } owner.active = false;
+    if (first && borrowed) try { borrowed.quarantine(error); } catch (notification) { owner.failure = new AggregateError([error, notification], "Recovery parent quarantine notification failed"); }
     if (owner.timer !== undefined) { clearTimeout(owner.timer); owner.timer = undefined; } };
   function physical(): void {
-    if (!owner.active || owner.failed || assertNodeRuntimeConfigurationForProfile(configuration, "v28-recovery") !== config) throw fail("Recovery admission is unavailable", 503);
+    if (!owner.active || owner.failed || assertNodeRuntimeConfigurationForProfile(configuration, profile) !== config) throw fail("Recovery admission is unavailable", 503);
     identity?.assertCurrent(); assertLinuxWriterLeaseBinding(lease, database, native);
     if (authentication && localAuthenticationIdentityAuthority(auth!) !== authentication) throw fail("Recovery authentication is unavailable", 503);
+    if (borrowed) assertNodeV28SourceBarrierBinding(borrowed.sourceBarrier, database, native, lease, borrowed.authentication);
+    if (borrowed) assertLocalVolumeProfileOpeningV28Binding(borrowed.opening, database, native, lease, borrowed.authentication);
   }
   function administrator(actor: string): boolean {
     try { physical(); return Boolean(native.prepare(`SELECT 1 FROM local_accounts a JOIN local_admin_grants g ON g.principal_id=a.principal_id
@@ -205,6 +304,7 @@ export function createNodeSystemRecoveryV28Application(options: {
       AND NOT EXISTS(SELECT 1 FROM import_file_acceptances WHERE status='pending')
       AND NOT EXISTS(SELECT 1 FROM system_storage_candidate_checks WHERE status='running' OR cleanup_outcome='running' OR write_outcome='unknown')`).get();
     if (state.state !== "fenced" || state.writers !== 0 || !row) throw fail("A backup requires a drained fenced source with all source executors stopped", 409);
+    if (borrowed) borrowed.sourceBarrier.assertDrained({ generation: state.generation, token: state.token });
   }
   function assertBackupWindow(job: RecoveryJob): void {
     if (job.kind !== "backup") return;
@@ -273,13 +373,13 @@ export function createNodeSystemRecoveryV28Application(options: {
       } catch (error) { try { await closeReader(); } catch (cleanup) { controller.error(new AggregateError([error, cleanup])); return; } controller.error(error); }
     }, cancel() { return closeReader(); } }, { highWaterMark: 0 });
   }
-  function ownBody(body: ReadableStream<Uint8Array>, current: () => Promise<boolean>, finish: () => void): ReadableStream<Uint8Array> {
+  function ownBody(body: ReadableStream<Uint8Array>, current: () => Promise<boolean>, finish: () => void, invocation?: InvocationOwner): ReadableStream<Uint8Array> {
     const reader = body.getReader(); let ended = false, closing: Promise<void> | undefined;
     const retainedBody: BodyOwner = { close(reason) { return closing ??= (async () => {
       try { if (!ended) { ended = true; await reader.cancel(reason); } reader.releaseLock(); finish(); owner.bodies.delete(retainedBody); }
       catch (error) { quarantine(error); throw error; }
     })(); } };
-    owner.bodies.add(retainedBody);
+    owner.bodies.add(retainedBody); invocation?.bodies.add(retainedBody);
     return new ReadableStream<Uint8Array>({ async pull(controller) {
       try { if (!await current()) throw new Error("administrator_revoked"); const next = await reader.read();
         if (!await current()) throw new Error("administrator_revoked");
@@ -287,11 +387,11 @@ export function createNodeSystemRecoveryV28Application(options: {
       } catch (error) { try { await retainedBody.close(error); } catch (cleanup) { controller.error(new AggregateError([error, cleanup])); return; } controller.error(error); }
     }, cancel(reason) { return retainedBody.close(reason); } }, { highWaterMark: 0 });
   }
-  async function artifactRead(key: string, scope: ArtifactScope, current: () => Promise<boolean>): Promise<ReadableStream<Uint8Array> | null> {
+  async function artifactRead(key: string, scope: ArtifactScope, current: () => Promise<boolean>, invocation = invocations.getStore()): Promise<ReadableStream<Uint8Array> | null> {
     if (owner.artifactScopes.has(key)) throw new Error("Recovery artifact is already in use");
     owner.artifactScopes.set(key, scope);
     try { const body = await owner.artifacts!.read(key); if (!body) { owner.artifactScopes.delete(key); return null; }
-      return ownBody(body, current, () => owner.artifactScopes.delete(key));
+      return ownBody(body, current, () => owner.artifactScopes.delete(key), invocation);
     } catch (error) { owner.artifactScopes.delete(key); throw error; }
   }
   function cleanupGuard(jobId: string, repo: NodeRecoveryRepository) {
@@ -304,7 +404,7 @@ export function createNodeSystemRecoveryV28Application(options: {
       AND NOT EXISTS(SELECT 1 FROM system_recovery_maintenance WHERE singleton=1 AND state='fenced' AND checkpoint_sha256 IS NOT NULL AND backup_job_id IS NOT ?)
       THEN 1 ELSE json('Recovery cleanup still holds unresolved writes or final checkpoint') END`).bind(jobId, jobId, jobId, jobId);
   }
-  function capabilities(repo: NodeRecoveryRepository, actor: string, request?: Request): Promise<SystemRecoveryCapabilitiesAdapter<JobSqlStatement> | null> {
+  function capabilities(repo: NodeRecoveryRepository, actor: string, request?: Request, invocation?: InvocationOwner): Promise<SystemRecoveryCapabilitiesAdapter<JobSqlStatement> | null> {
     return (async () => {
       physical(); const runtime = await repo.runtime(); if (!runtime || runtime.enabled !== 1) return null;
       const allowed = (selected: string) => selected === actor && administrator(selected)
@@ -317,13 +417,14 @@ export function createNodeSystemRecoveryV28Application(options: {
         if (!activeClaim || !allowed(activeClaim.actor)) return false;
         try { owner.artifacts!.assertJob(activeClaim); assertBackupWindow(activeClaim); return await repo.current(activeClaim); } catch { return false; }
       };
-      return { repository: repo, incarnation: runtime.incarnation, authorizeActor: allowed, now: () => new Date(), randomId: randomUUID, hash: nodeSha256,
+      const adapter: SystemRecoveryCapabilitiesAdapter<JobSqlStatement> = { repository: repo, incarnation: runtime.incarnation, authorizeActor: allowed, now: () => new Date(), randomId: randomUUID, hash: nodeSha256,
         async step(claim, current, signal) { activeClaim = claim; owner.artifacts!.assertJob(claim); assertBackupWindow(claim);
           if (claim.kind === "recovery") { if (!targetStages) throw new Error("target_unavailable");
             return targetStages.step(claim, async () => await current() && await currentClaim(), signal); }
           return stages!.step(claim, async () => await current() && await currentClaim(), signal); },
         async exportBody(claim, current, signal) { activeClaim = claim; owner.artifacts!.assertJob(claim); assertBackupWindow(claim);
-          return stages!.exportBody(claim, async () => await current() && await currentClaim(), signal); },
+          const body = await stages!.exportBody(claim, async () => await current() && await currentClaim(), signal);
+          return invocation ? ownBody(body, async () => await current() && await currentClaim(), () => undefined, invocation) : body; },
         async put(key, body, byteSize) {
           // Upload write precedes step/export; capture its exact live claim from the ledger.
           const match = /^fp5-system\/([^/]+)\/[^/]+$/.exec(key), live = match ? await repo.job(match[1]!) : null;
@@ -333,7 +434,15 @@ export function createNodeSystemRecoveryV28Application(options: {
           owner.artifactScopes.set(key, scope);
           try { await owner.artifacts!.put(key, body, byteSize); } finally { owner.artifactScopes.delete(key); }
         },
-        read(key) { return artifactRead(key, { actor, request, claim: activeClaim }, currentClaim); },
+        read(key) { return artifactRead(key, { actor, request, claim: activeClaim }, currentClaim, invocation); },
+      };
+      if (!invocation) return adapter;
+      const original = <T>(operation: Promise<T>): Promise<T> => { invocation.work.add(operation); void operation.catch(() => undefined); return operation; };
+      return { ...adapter,
+        step: (...args: Parameters<typeof adapter.step>) => original(adapter.step(...args)),
+        exportBody: (...args: Parameters<typeof adapter.exportBody>) => original(adapter.exportBody(...args)),
+        put: (...args: Parameters<typeof adapter.put>) => original(adapter.put(...args)),
+        read: (...args: Parameters<typeof adapter.read>) => original(adapter.read(...args)),
       };
     })();
   }
@@ -374,11 +483,32 @@ export function createNodeSystemRecoveryV28Application(options: {
       await base.db().prepare("UPDATE system_recovery_runtime SET last_heartbeat_at=? WHERE singleton=1 AND enabled=1 AND incarnation=?")
         .bind(new Date().toISOString(), runtime.incarnation).run();
       if (!next) return { jobId: null, outcome: "idle" };
-      const port = await capabilities(base, next.actor); if (!port) return { jobId: null, outcome: "disabled" };
-      return runSystemRecoveryJobStep(port);
+      const invocation: InvocationOwner | undefined = borrowed ? { work: new Set(), bodies: new Set() } : undefined;
+      const port = await capabilities(base, next.actor, undefined, invocation); if (!port) return { jobId: null, outcome: "disabled" };
+      if (!invocation) return runSystemRecoveryJobStep(port);
+      let failed = false, failure: unknown, result: { jobId: string | null; outcome: string } | undefined;
+      try { result = await invocations.run(invocation, () => runSystemRecoveryJobStepAndDrain(port)); }
+      catch (error) { failed = true; failure = error; }
+      await Promise.allSettled([...invocation.work]);
+      const bodies = await Promise.allSettled([...invocation.bodies].map(body => body.close()));
+      const errors = bodies.flatMap(value => value.status === "rejected" ? [value.reason as unknown] : []);
+      if (errors.length || owner.failed) {
+        const cleanup = new AggregateError([...errors, ...(owner.failed ? [owner.failure] : [])], "Original Recovery invocation closure is unproven");
+        quarantine(cleanup); throw failed ? new AggregateError([failure, cleanup], "Recovery action and original invocation close failed") : cleanup;
+      }
+      if (failed) throw failure;
+      physical(); return result!;
     });
     owner.dispatch = original; owner.pending.add(original);
     try { return await original; } finally { owner.pending.delete(original); owner.dispatch = undefined; }
+  }
+  async function eligible(): Promise<boolean> {
+    physical(); if (owner.dispatch) return false;
+    return lease.withWriter(async () => { physical(); const runtime = await base.runtime(), next = await base.next();
+      physical(); return runtime?.enabled === 1 && next !== null; });
+  }
+  function stopAdmission(): void {
+    owner.active = false; if (owner.timer !== undefined) { clearTimeout(owner.timer); owner.timer = undefined; }
   }
   function schedule(): void {
     if (!owner.active || owner.timer !== undefined) return;
@@ -388,13 +518,13 @@ export function createNodeSystemRecoveryV28Application(options: {
   }
   function close(): Promise<void> {
     if (owner.closing) return owner.closing;
-    owner.active = false; if (owner.timer !== undefined) { clearTimeout(owner.timer); owner.timer = undefined; }
+    stopAdmission();
     owner.closing = (async () => {
       await owner.construction?.catch(() => undefined);
       if (owner.serverAttempted && !owner.server || owner.openingAttempted && !owner.opening || owner.artifactsAttempted && !owner.artifacts || owner.targetAttempted && !owner.target)
         throw new Error("Original Recovery constructor ownership is unavailable");
       const transport = owner.server ? stopNodeHttpServerAndDrain(owner.server) : Promise.resolve();
-      const physicalDrain = lease.stopAdmissionAndDrain();
+      const physicalDrain = borrowed ? Promise.resolve() : lease.stopAdmissionAndDrain();
       void transport.catch(() => undefined); void physicalDrain.catch(() => undefined);
       const bodyDrains = await Promise.allSettled([...owner.bodies].map(body => body.close(new Error("Recovery admission closed"))));
       const childDrains = await Promise.allSettled([owner.artifacts?.close(), stages?.close(), targetStages?.close(), owner.target?.close()]);
@@ -403,22 +533,45 @@ export function createNodeSystemRecoveryV28Application(options: {
         ...[...owner.ingressBodies].map(body => body.close())]);
       const failures = [...bodyDrains, ...childDrains, ...transportDrain].flatMap(value => value.status === "rejected" ? [value.reason as unknown] : []);
       if (failures.length || owner.failed) throw new AggregateError([...failures, ...(owner.failed ? [owner.failure] : [])], "Original Recovery ownership did not drain");
-      await owner.opening?.close(); database.close(); if (native.isOpen) throw new Error("Original Recovery native close is unavailable");
-      await lease.release(); application = undefined; retained.delete(owner);
+      if (!borrowed) await owner.opening?.close();
+      if (!borrowed) { database.close(); if (native.isOpen) throw new Error("Original Recovery native close is unavailable"); await lease.release(); }
+      application = undefined; retained.delete(owner);
     })().catch(error => { quarantine(error); throw error; });
     void owner.closing.catch(() => undefined); return owner.closing;
   }
+  async function handle(request: Request): Promise<Response> {
+    if (!owner.active || !routes.some(route => (!borrowed || route.path.startsWith("/api/system-recovery/"))
+      && route.method === request.method && route.pattern.test(new URL(request.url).pathname))) return unavailable();
+    const original = lease.withWriter(async () => {
+      if (!application || !owner.active) return unavailable();
+      const body = createGroupV28RequestBodyCustody(request); owner.ingressBodies.add(body);
+      try { return await application.fetch(request, {}); }
+      finally { try { await body.close(); owner.ingressBodies.delete(body); } catch (error) { quarantine(error); throw error; } }
+    });
+    owner.pending.add(original); try { return await original; } finally { owner.pending.delete(original); }
+  }
   const construction = lease.withWriter(async () => {
-    const transport = createLoopbackLocalAuthTransport({ publicOrigin: captured.publicOrigin });
-    const installedIdentity = await createInstalledLocalIdentity({ database, nativeDatabase: native, admission,
-      hasher: captured.hasher, policy: captured.identityPolicy });
-    identity = captureInstalledIdentityExecutionOwnerV28Candidate(installedIdentity, database, native, admission);
-    auth = createLocalAuthentication({ identity: installedIdentity, transport, now: Date.now });
-    authentication = localAuthenticationIdentityAuthority(auth); physical();
+    let transport: ReturnType<typeof createLoopbackLocalAuthTransport> | undefined;
+    if (!borrowed) {
+      transport = createLoopbackLocalAuthTransport({ publicOrigin: captured.publicOrigin });
+      if (!captured.hasher) throw new Error("Original Recovery identity construction is unavailable");
+      const installedIdentity = await createInstalledLocalIdentity({ database, nativeDatabase: native, admission,
+        hasher: captured.hasher, policy: captured.identityPolicy });
+      identity = captureInstalledIdentityExecutionOwnerV28Candidate(installedIdentity, database, native, admission);
+      auth = createLocalAuthentication({ identity: installedIdentity, transport, now: Date.now });
+      authentication = localAuthenticationIdentityAuthority(auth);
+    }
+    physical();
+    if (!auth || !identity || !authentication) throw new Error("Original Recovery authentication is unavailable");
+    if (borrowed) { const window = maintenance(); if (window.state !== "open")
+      await pauseSource({ generation: window.generation, token: window.token }); }
     base = repository();
-    owner.openingAttempted = true;
-    owner.opening = createLocalVolumeProfileOpeningV28({ database, nativeDatabase: native, admission, authentication: auth, writerLease: lease,
-      filesystemRootOwnerUid: config.filesystemRootOwnerUid, descriptors: config.localVolumes, authorizeAdministrator: () => false });
+    if (borrowed) owner.opening = borrowed.opening;
+    else {
+      owner.openingAttempted = true;
+      owner.opening = createLocalVolumeProfileOpeningV28({ database, nativeDatabase: native, admission, authentication: auth, writerLease: lease,
+        filesystemRootOwnerUid: config.filesystemRootOwnerUid, descriptors: config.localVolumes, authorizeAdministrator: () => false });
+    }
     owner.artifactsAttempted = true;
     owner.artifacts = await openNodePrivateRecoveryArtifacts({ binding: { root: config.recoveryArtifacts!.root,
       namespace: { volumeId: installation.installationId, rootId: config.recoveryArtifacts!.rootBindingId, profileId: "system-recovery-private", namespaceRevision: 1 } },
@@ -478,9 +631,11 @@ export function createNodeSystemRecoveryV28Application(options: {
     app.onError((error, c) => error instanceof HTTPException ? c.json({ error: error.message }, error.status)
       : c.json({ error: "System recovery conflicts with its accepted state or an unavailable capability. Refresh its receipt." }, 409));
     app.use("*", async (c, next) => { c.header("Cache-Control", "private, no-store"); c.header("X-Content-Type-Options", "nosniff"); await next(); });
-    app.route("/api/auth", auth.routes);
-    app.get("/api/health", c => c.json({ ok: true, capabilities: surface }));
-    app.get("/api/ready", auth.middleware, c => { physical(); return c.json({ ok: true, fullReady: false, capabilities: surface }); });
+    if (!borrowed) {
+      app.route("/api/auth", auth.routes);
+      app.get("/api/health", c => c.json({ ok: true, capabilities: surface }));
+      app.get("/api/ready", auth.middleware, c => { physical(); return c.json({ ok: true, fullReady: false, capabilities: surface }); });
+    }
     app.use("/api/system-recovery/*", auth.middleware);
     const requestOwner = (request: Request, actor: string) => { sessionCurrent(request, actor); return repository(request, actor); };
     app.get("/api/system-recovery/capabilities", async c => c.json(await publicCapabilities(administrator(c.get("userEmail"))
@@ -498,7 +653,31 @@ export function createNodeSystemRecoveryV28Application(options: {
     app.post("/api/system-recovery/maintenance", async c => {
       const actor = c.get("userEmail"), repo = requestOwner(c.req.raw, actor);
       const input = await checkedInput(c.req.raw, checkedSystemRecoveryMaintenanceInput, 4096);
-      const result = await createNodeRecoverySourceMaintenance(repo.db()).control(actor, input);
+      const control = createNodeRecoverySourceMaintenance(repo.db());
+      const prior = borrowed ? await control.receipt(actor, input.requestId) : null;
+      const before = borrowed ? maintenance() : undefined;
+      if (borrowed && !prior && input.action === "enter" && sourceWindow && before?.state === "open"
+        && borrowed.sourceBarrier.state().phase !== "open") throw fail("Reconcile the accepted release before opening another source window", 409);
+      if (borrowed && !prior && input.action !== "enter" && before && before.state !== "open") {
+        await pauseSource({ generation: before.generation, token: before.token });
+        sessionCurrent(c.req.raw, actor);
+        if (input.action === "finalize") borrowed.sourceBarrier.assertDrained({ generation: before.generation, token: before.token });
+      }
+      const result = await control.control(actor, input);
+      if (borrowed) {
+        const after = maintenance();
+        // Historical immutable receipts remain valid after later windows.
+        // Only the actual just-committed/current window can change ingress.
+        if (input.action === "enter" && ["draining", "fenced"].includes(after.state)
+          && after.generation === result.status.generation && after.token === result.status.token)
+          await pauseSource({ generation: after.generation, token: after.token });
+        if (input.action === "release" && sourceWindow && input.expectedGeneration === sourceWindow.generation
+          && after.state === "open" && after.generation === sourceWindow.generation + 1 && after.token === null
+          && result.status.state === "open" && result.status.generation === after.generation && result.status.token === null) {
+          if (borrowed.sourceBarrier.state().phase !== "open") borrowed.sourceBarrier.resumeAfterRelease(sourceWindow);
+          sourceWindow = undefined;
+        }
+      }
       sessionCurrent(c.req.raw, actor); return c.json(result); });
     app.post("/api/system-recovery/executor", async c => { const actor = c.get("userEmail"), repo = requestOwner(c.req.raw, actor);
       const input = await checkedInput(c.req.raw, value => {
@@ -670,23 +849,16 @@ export function createNodeSystemRecoveryV28Application(options: {
       return new Response(body, { headers: { "Content-Type": "application/zip", "Content-Disposition": `attachment; filename="system-backup-${job.id}.zip"`,
         "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" } }); });
     app.all("*", () => unavailable()); application = app;
-    owner.serverAttempted = true;
-    owner.server = createNodeHttpServer(async request => {
-      if (!owner.active || !routes.some(route => route.method === request.method && route.pattern.test(new URL(request.url).pathname))) return unavailable();
-      const original = lease.withWriter(async () => {
-        if (!application || !owner.active) return unavailable();
-        const body = createGroupV28RequestBodyCustody(request); owner.ingressBodies.add(body);
-        try { return await application.fetch(request, {}); }
-        finally { try { await body.close(); owner.ingressBodies.delete(body); } catch (error) { quarantine(error); throw error; } }
-      });
-      owner.pending.add(original); try { return await original; } finally { owner.pending.delete(original); }
-    }, { publicOrigin: captured.publicOrigin, maxBodyBytes: 104857600,
-      requestAdmission(request, incoming, server) { try { transport.admit(request, incoming, server); } catch { return failResponse(); } } });
-    owner.server.once("listening", schedule);
+    if (!borrowed) {
+      owner.serverAttempted = true;
+      owner.server = createNodeHttpServer(handle, { publicOrigin: captured.publicOrigin, maxBodyBytes: 104857600,
+        requestAdmission(request, incoming, server) { try { transport!.admit(request, incoming, server); } catch { return failResponse(); } } });
+      owner.server.once("listening", schedule);
+    }
   });
   owner.construction = construction;
-  return construction.then(() => Object.freeze({ server: owner.server!, surfaceCapabilities: surface,
-    dispatchRecoveryJobsOnce, close }), async error => { quarantine(error); try { await close(); }
+  return construction.then(() => Object.freeze({ server: owner.server, surfaceCapabilities: surface,
+    handle, dispatchRecoveryJobsOnce, eligible, stopAdmission, close, assertCurrent: physical }), async error => { quarantine(error); try { await close(); }
     catch (cleanup) { throw new AggregateError([error, cleanup], "Recovery construction and original parent cleanup failed"); } throw error; });
 }
 function failResponse(): Response { return Response.json({ error: "Request admission is required." },
