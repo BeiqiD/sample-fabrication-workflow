@@ -13,6 +13,20 @@ import { ownedLocalVolumeProfileContext, type LocalVolumeProfileOpening } from "
 import { localJobPrincipalId, ownedJobPrincipalAuthority, type InstalledJobPrincipalAuthority } from "../files/jobs/principal-authority";
 import { captureNodeJobProfileAuthority, nodeFileJobExecutionChecks, type NodeFileJobExecutionAdmission } from "../files/jobs/execution-admission";
 
+type PackageIdentityOwner = Readonly<{
+  configuration:LoadedNodeRuntimeConfiguration; config:ReturnType<typeof assertNodeRuntimeConfiguration>;
+  opening:LocalVolumeProfileOpening; authentication:object;
+  auth:ReturnType<typeof localAuthenticationIdentityAuthority>;
+  identity:ReturnType<typeof localAuthenticationIdentityAuthority>["identity"];
+  database:ReturnType<typeof ownedJobPrincipalAuthority>["database"];
+  nativeDatabase:ReturnType<typeof ownedJobPrincipalAuthority>["nativeDatabase"];
+  admission:ReviewedInstallationAdmission; captured:ReturnType<typeof captureInstalledIdentityExecutionOwner>;
+}>;
+// Only the original privately issued principal authority owns this lifetime.
+// Its checked accessor rejects closed authorities before any cache lookup;
+// captured schema/ledger checks remain live, and execution grants are never cached.
+const packageIdentityOwners=new WeakMap<InstalledJobPrincipalAuthority,PackageIdentityOwner>();
+
 type Policy = Readonly<{kind:"owner"}> | Readonly<{kind:"actor";actor:string;jobId?:string}>;
 const OWNER:Policy=Object.freeze({kind:"owner"});
 /** Internal concrete V26 adapter only. No Request, route, profile registration,
@@ -33,10 +47,19 @@ export function createNodePackageCapabilities(options: {
     ||local.installationCheckpointId!=="portable-runtime/v26"||typeof incarnation!=="string"||!incarnation)
     throw new Error("Current Node package installation is unavailable");
   const auth=localAuthenticationIdentityAuthority(authentication);
-  const identity=captureInstalledIdentityExecutionOwner(auth.identity,local.database,local.nativeDatabase,admission);
+  const cachedIdentity=packageIdentityOwners.get(authority);
+  if(cachedIdentity&&(cachedIdentity.configuration!==configuration||cachedIdentity.config!==config
+    ||cachedIdentity.opening!==opening||cachedIdentity.authentication!==authentication||cachedIdentity.auth!==auth
+    ||cachedIdentity.identity!==auth.identity||cachedIdentity.database!==local.database
+    ||cachedIdentity.nativeDatabase!==local.nativeDatabase||cachedIdentity.admission!==admission))
+    throw new Error("Original Node package identity owner changed");
+  const identity=cachedIdentity?.captured??captureInstalledIdentityExecutionOwner(auth.identity,local.database,local.nativeDatabase,admission);
+  if(cachedIdentity)identity.assertCurrent();
   if(identity.installation.installationId!==config.expectedInstallationId)throw new Error("Configured Node package installation changed");
   const nativeFile=local.nativeDatabase.prepare("PRAGMA database_list").all().find(row=>row.name==="main");
   if(nativeFile?.file!==config.databasePath)throw new Error("Configured Node package database owner changed");
+  if(!cachedIdentity)packageIdentityOwners.set(authority,Object.freeze({configuration,config,opening,authentication,auth,
+    identity:auth.identity,database:local.database,nativeDatabase:local.nativeDatabase,admission,captured:identity}));
   function current():void {
     if(assertNodeRuntimeConfiguration(configuration)!==config)throw new Error("Original Node package configuration changed");
     owner.assertCurrent();local.assertCurrent();identity.assertCurrent();
