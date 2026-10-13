@@ -14,6 +14,26 @@ import { assertCanonicalFileOwnersReleased, canonicalFileObject, composeCanonica
 import { currentV28RecoveryImageRows, currentV28RecoveryTypedRows } from '../recovery/current-v28-online-recovery.qualification-support.ts';
 import { runCurrentCli } from './current-v28-backup-cli.qualification-support.ts';
 
+// Qualification-only fixed phase facts. Invoke the original operation once,
+// attach observation only, and return its exact original promise unchanged.
+// No request/response data, IDs, paths, credentials, SQL or error text is logged.
+type ProducerPhase = 'baseline' | 'producer-and-original-close' | 'compose' | 'login' | 'create'
+  | 'upload-response' | 'upload-body' | 'finalize' | 'download-response' | 'download-body' | 'stopped-capture';
+let phaseSequence = 0;
+function originalProducerPhase<T>(phase: ProducerPhase, operation: () => Promise<T>): Promise<T> {
+  const sequence = ++phaseSequence, startedAt = Date.now();
+  const report = (outcome: 'begin' | 'acknowledged' | 'failed') => {
+    try { console.error('Original bound producer phase: ' + JSON.stringify({ phase, sequence, outcome,
+      startedAtUTC: new Date(startedAt).toISOString(), elapsedMs: Date.now() - startedAt })); }
+    catch { /* An observation failure does not replace the original outcome. */ }
+  };
+  report('begin');
+  let original: Promise<T>;
+  try { original = operation(); } catch (error) { report('failed'); throw error; }
+  void original.then(() => report('acknowledged'), () => report('failed')).catch(() => undefined);
+  return original;
+}
+
 const RESERVE = 603_979_776n;
 const bytes = Uint8Array.from(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aRXsAAAAASUVORK5CYII=', 'base64'));
 const digest = createHash('sha256').update(bytes).digest('hex');
@@ -36,19 +56,20 @@ beforeAll(async () => {
 describe('current genuine bound canonical Comment File through compiled strict V5 capture', () => {
   it('captures one real bound LOCAL attachment without creating a legacy shadow head or changing its typed canonical consumer',
     () => retainedCanonicalFileCase(async () => {
-      const baseline = await prepareCanonicalCommentFileBaseline(), submissionId = randomUUID(), itemId = randomUUID();
-      const produced = await withCanonicalFileDatabase(baseline.path, async (owner, lease, native, core) => {
-        const app = await composeCanonicalCommentFileV28(owner, lease, native, core, baseline), session = await app.login('alice');
+      const baseline = await originalProducerPhase('baseline', () => prepareCanonicalCommentFileBaseline()), submissionId = randomUUID(), itemId = randomUUID();
+      const produced = await originalProducerPhase('producer-and-original-close', () => withCanonicalFileDatabase(baseline.path, async (owner, lease, native, core) => {
+        const app = await originalProducerPhase('compose', () => composeCanonicalCommentFileV28(owner, lease, native, core, baseline)),
+          session = await originalProducerPhase('login', () => app.login('alice'));
         const input = { protocol: 'comment-submission/1', id: submissionId, body: 'Genuine bound recovery source',
           context: { kind: 'run_steps', scope: 'common', targets: baseline.targets.map(target => currentCanonicalFileTarget(native, target)) },
           items: [{ id: itemId, kind: 'attachment', filename: 'bound-original.bin', mimeType: 'application/octet-stream',
             byteSize: bytes.byteLength, sha256: digest, title: 'Bound original native bytes' }] };
-        expect((await app.request('/api/comment-submissions', 'POST', input, session)).status).toBe(201);
-        const upload = await app.raw(`/api/comment-submissions/${submissionId}/items/${itemId}/content`, 'PUT', session, bytes,
-          { 'content-type': 'application/octet-stream', 'x-upload-size': String(bytes.byteLength), 'x-content-sha256': digest });
-        const uploaded = await consumeCanonicalFileClient(upload.client, 'text'); ensure(typeof uploaded === 'string');
+        expect((await originalProducerPhase('create', () => app.request('/api/comment-submissions', 'POST', input, session))).status).toBe(201);
+        const upload = await originalProducerPhase('upload-response', () => app.raw(`/api/comment-submissions/${submissionId}/items/${itemId}/content`, 'PUT', session, bytes,
+          { 'content-type': 'application/octet-stream', 'x-upload-size': String(bytes.byteLength), 'x-content-sha256': digest }));
+        const uploaded = await originalProducerPhase('upload-body', () => consumeCanonicalFileClient(upload.client, 'text')); ensure(typeof uploaded === 'string');
         expect(upload.response.status).toBe(200); expect(JSON.parse(uploaded)).toMatchObject({ ok: true, request: { items: [{ id: itemId, status: 'ready' }] } });
-        const finalized = await app.request(`/api/comment-submissions/${submissionId}/finalize`, 'POST', undefined, session);
+        const finalized = await originalProducerPhase('finalize', () => app.request(`/api/comment-submissions/${submissionId}/finalize`, 'POST', undefined, session));
         expect(finalized.status).toBe(200); expect(finalized.value).toMatchObject({ ok: true, status: 'ready' });
         const row = native.prepare("SELECT file_id FROM comment_submission_items WHERE id=? AND submission_id=? AND status='ready'").get(itemId, submissionId);
         ensure(typeof row?.file_id === 'string'); const fileId = row.file_id;
@@ -56,21 +77,21 @@ describe('current genuine bound canonical Comment File through compiled strict V
         expect(native.prepare('SELECT count(*) n FROM file_locations').get()?.n).toBe(1);
         expect(native.prepare('SELECT count(*) n FROM file_shadow_heads WHERE present=1').get()?.n).toBe(0);
         expect(native.prepare('SELECT count(*) n FROM file_consumer_projection WHERE file_id=?').get(fileId)?.n).toBeGreaterThan(0);
-        const download = await app.raw(`/api/attachments/${itemId}/download`, 'GET', session);
-        const body = await consumeCanonicalFileClient(download.client, 'arrayBuffer'); ensure(body instanceof ArrayBuffer);
+        const download = await originalProducerPhase('download-response', () => app.raw(`/api/attachments/${itemId}/download`, 'GET', session));
+        const body = await originalProducerPhase('download-body', () => consumeCanonicalFileClient(download.client, 'arrayBuffer')); ensure(body instanceof ArrayBuffer);
         expect(download.response.status).toBe(200); expect(new Uint8Array(body)).toEqual(bytes);
         const names = ['files', 'file_locations', 'file_publications', 'file_location_publications', 'comment_submissions', 'comment_submission_items',
           'comment_item_acceptances', 'comment_submission_acceptances', 'run_step_comments', 'events', 'file_shadow_heads',
           'file_shadow_occurrences', 'file_shadow_closures', 'file_shadow_dependency_versions', 'file_shadow_decisions'];
         return { fileId, names, rows: currentV28RecoveryTypedRows(native, names) };
-      });
+      }));
       assertCanonicalFileOwnersReleased();
       const configuration = join(baseline.root, 'bound-current-capture.json'), archive = join(baseline.root, 'genuine-bound-original-v5.zip');
       await writeFile(configuration, JSON.stringify({ schema: 'stopped-local-v28-capture/1', databasePath: baseline.path,
         descriptors: baseline.descriptors }), { flag: 'wx', mode: 0o600 });
-      const capture = await runCurrentCli(distribution, 'installation-cli.cjs', ['capture-local-backup', '--runtime-profile', 'v28',
+      const capture = await originalProducerPhase('stopped-capture', () => runCurrentCli(distribution, 'installation-cli.cjs', ['capture-local-backup', '--runtime-profile', 'v28',
         '--configuration', configuration, '--archive', archive, '--installation', baseline.installationId,
-        '--filesystem-root-owner-uid', String(baseline.rootOwnerUid)]);
+        '--filesystem-root-owner-uid', String(baseline.rootOwnerUid)]));
       expect(capture.code).toBe(0); expect(capture.signal).toBeNull(); expect(capture.stderr).toBe('');
       const captured = canonicalFileObject(JSON.parse(capture.stdout));
       expect(captured).toMatchObject({ kind: 'stopped-local-v28-v5-capture/1', nodeInstallationId: baseline.installationId,
