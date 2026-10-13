@@ -13,20 +13,40 @@ CAPTURE_BRANCH = 'refs/heads/codex/node-v28-public-local-backup-capture'
 NONEMPTY_BRANCH = 'refs/heads/codex/node-v28-nonempty-backup-restore'
 PACKAGE_BRANCH = 'refs/heads/codex/node-research-package-http'
 PACKAGE_PROCESS_BRANCH = 'refs/heads/codex/node-package-process'
+RECOVERY_BRANCH = 'refs/heads/codex/node-online-recovery'
+RECOVERY_BASE = 'ba1c92daa454d5d6b33f5723eff4268f9175ca31'
 PACKAGE_PROCESS_BASE = '4776095f4351c2d108f485600bd43933d7dc69c6'
 PACKAGE_BASE = 'f55faa56baa2781457d6d6a8f06127fd38db00d6'
 NONEMPTY_BASE = 'ab4f6cfa9721a5bf7fdcd8e7940a916ea8d520cf'
 R2_PAIR_BRANCH = 'refs/heads/codex/portable-v26-r2-node-backup-one'
 R2_PAIR_BASE = '33be3642ed8e72efba8269a4ea718b37b0eafd44'
 MAINTENANCE_BASE = 'ebc19cf3f61b12625bc2a36086667376b41b9255'
-NATIVE_STAGES = ('preparation', 'operators', 'maintenance', 'main', 'nonempty', 'r2pair', 'package-http', 'package-process')
-TIMED_CASE_STAGES = (*(stage for stage in NATIVE_STAGES if stage not in ('package-http', 'package-process')), 'maintenance-parser', 'config-unit', 'capture-parser')
+NATIVE_STAGES = ('preparation', 'operators', 'maintenance', 'main', 'nonempty', 'r2pair', 'package-http', 'package-process', 'recovery-first')
+TIMED_CASE_STAGES = (*(stage for stage in NATIVE_STAGES if stage not in ('package-http', 'package-process', 'recovery-first')), 'maintenance-parser', 'config-unit', 'capture-parser', 'recovery-config')
 FLOOR, NATIVE_BEFORE = 536870912, 603979776
 HELP = {'help-main': ('main.mjs', 'Usage: node main.mjs --config '),
  'help-identity': ('identity-cli.cjs', 'Usage: local-identity '),
  'help-installation': ('installation-cli.cjs', 'Usage: local-installation upgrade '),
  'help-restore': ('restore-v28-cli.cjs', 'Usage: offline-v28 restore ')}
 CASES = {
+ 'recovery-parser': ('server/node-runtime-command.test.ts', [
+  'retains the existing absent-selector command and numeric owner pin',
+  'accepts only the three named V28 surfaces in the existing unordered pair syntax',
+  'rejects unknown or repeated flags, implicit generation names and incomplete commands',
+]),
+ 'recovery-config': ('server/node-runtime-config-recovery-v28.test.ts', [
+  'keeps Recovery disabled and unbound when omitted without creating a database or artifact layout',
+  'does not turn a private artifact descriptor or an explicit false flag into Recovery opt-in',
+  'requires the Recovery selector for true opt-in and refuses reuse under every existing surface',
+  'rejects open descriptor fields, malformed opt-ins and File/Job selections before runtime admission',
+  'refuses artifact roots that overlap configuration, data, client, keyring or declared local volumes',
+  'keeps canonical private artifact roots and their original inode/configuration pins live',
+  'selects the fixed restored filename only with explicit Recovery and the unchanged inert report pin',
+  'cannot turn a copied token into a factory-issued Recovery configuration owner',
+]),
+ 'recovery-first': ('server/recovery/current-v28-online-recovery.qualification.ts', [
+  'creates an authenticated source fence, retains an unknown original publication, completes strict nonempty V5 and validates its public reupload without a target',
+]),
  'package-process': ('server/packages/process-cadence.qualification.ts', [
   'persists a one-File queued export across graceful process restart, runs only automatic120s slots and releases cancelled source holds after execution']),
  'package-http': ('server/packages/request-http.qualification.ts', [
@@ -66,11 +86,11 @@ def save(path, value):
  path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
 
 def source():
- assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH, R2_PAIR_BRANCH, PACKAGE_BRANCH, PACKAGE_PROCESS_BRANCH)
+ assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH, R2_PAIR_BRANCH, PACKAGE_BRANCH, PACKAGE_PROCESS_BRANCH, RECOVERY_BRANCH)
  head = os.environ['GITHUB_SHA']; assert re.fullmatch('[0-9a-f]{40}', head)
  env = dict(os.environ, GIT_OPTIONAL_LOCKS='0')
  assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, env=env).decode().strip() == head
- base = PACKAGE_PROCESS_BASE if os.environ['GITHUB_REF'] == PACKAGE_PROCESS_BRANCH else PACKAGE_BASE if os.environ['GITHUB_REF'] == PACKAGE_BRANCH else R2_PAIR_BASE if os.environ['GITHUB_REF'] == R2_PAIR_BRANCH else NONEMPTY_BASE if os.environ['GITHUB_REF'] == NONEMPTY_BRANCH else MAINTENANCE_BASE if os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH) else BASE
+ base = RECOVERY_BASE if os.environ['GITHUB_REF'] == RECOVERY_BRANCH else PACKAGE_PROCESS_BASE if os.environ['GITHUB_REF'] == PACKAGE_PROCESS_BRANCH else PACKAGE_BASE if os.environ['GITHUB_REF'] == PACKAGE_BRANCH else R2_PAIR_BASE if os.environ['GITHUB_REF'] == R2_PAIR_BRANCH else NONEMPTY_BASE if os.environ['GITHUB_REF'] == NONEMPTY_BRANCH else MAINTENANCE_BASE if os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH) else BASE
  subprocess.check_call(['git', 'merge-base', '--is-ancestor', base, head], cwd=ROOT, env=env)
  return head
 
@@ -182,6 +202,8 @@ def original_native_failure_diagnostics(out):
 
 def run(stage, out, run_root):
  head = source()
+ if os.environ['GITHUB_REF'] == RECOVERY_BRANCH: assert stage in ('types', 'recovery-parser', 'recovery-config', 'recovery-first', *HELP)
+ if stage in ('recovery-parser', 'recovery-config', 'recovery-first'): assert os.environ['GITHUB_REF'] == RECOVERY_BRANCH
  if stage == 'package-http': assert os.environ['GITHUB_REF'] == PACKAGE_BRANCH
  if stage == 'package-process': assert os.environ['GITHUB_REF'] == PACKAGE_PROCESS_BRANCH
  if stage in ('maintenance-parser', 'maintenance', 'config-unit', 'main'): assert os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH, R2_PAIR_BRANCH)
@@ -203,6 +225,16 @@ def run(stage, out, run_root):
   NODE_OFFLINE_V28_DISTRIBUTION=str(ROOT / 'dist-node/distribution'),
   CURRENT_V28_POST_RESTORE_PREPARATION_RECEIPT=str(run_root / 'preparation-inputs.json'), NO_COLOR='1', FORCE_COLOR='0')
  if stage in ('package-http', 'package-process'): env['NODE_PROTOTYPE_FIXTURE_PARENT'] = str(fixture)
+ if stage == 'recovery-first':
+  # These are exact same-head original closed children, not inherited results.
+  for previous, count in [('types', None), ('recovery-parser', 3), ('recovery-config', 8), *((help_stage, None) for help_stage in HELP)]:
+   prior = json.loads((run_root / previous / 'receipt.json').read_bytes())
+   assert prior['status'] == 'PASS' and prior['stage'] == previous and prior['head'] == head
+   assert prior['originalChildWaited'] and prior['exitCode'] == 0 and prior['noFixtureRemoval']
+   if count is not None:
+    assert prior['actualResults']['pass'] and prior['actualResults']['actualPassed'] == prior['actualResults']['actualTotal'] == count
+   if previous in HELP: assert prior['actualHelp']['helpPrefixMatched'] and prior['actualHelp']['stderrEmpty']
+  env['CURRENT_V28_ONLINE_RECOVERY_RECEIPT'] = str(run_root / 'recovery-first-inputs.json')
  if stage == 'nonempty':
   # This case creates its OWN new V26 upload source and inert V28 target. The
   # earlier zero-File target is only a completed same-head pipeline prerequisite.
@@ -246,10 +278,10 @@ def run(stage, out, run_root):
  raw = out / 'original-results.json'
  if stage in HELP: argv = [str(node), str(ROOT / 'dist-node/distribution/server' / HELP[stage][0]), '--help']
  elif stage == 'types': argv = [shutil.which('npm'), 'run', 'typecheck:server']
- elif stage in ('parser', 'maintenance-parser', 'config-unit', 'capture-parser'):
+ elif stage in ('parser', 'maintenance-parser', 'config-unit', 'capture-parser', 'recovery-parser', 'recovery-config'):
   argv = [str(node), str(ROOT / 'node_modules/vitest/vitest.mjs'), 'run', '--config', 'vitest.config.ts', CASES[stage][0],
    '--maxWorkers', '1', '--no-file-parallelism', '--reporter=verbose', '--reporter=json', '--outputFile.json=' + str(raw)]
-  if stage in ('maintenance-parser', 'config-unit', 'capture-parser'): argv += ['--testTimeout', '20000', '--hookTimeout', '20000']
+  if stage in ('maintenance-parser', 'config-unit', 'capture-parser', 'recovery-config'): argv += ['--testTimeout', '20000', '--hookTimeout', '20000']
  else: argv = [str(node), str(ROOT / 'node_modules/vitest/vitest.mjs'), 'run', '--config',
   {'preparation': 'current-v28-post-restore-source-preparation.vitest.config.mts',
    'operators': 'current-v28-post-restore-operators.vitest.config.mts',
@@ -258,7 +290,8 @@ def run(stage, out, run_root):
    'nonempty': 'current-v28-nonempty-backup-restore.vitest.config.mts',
    'r2pair': 'current-v26-r2-node-pair.vitest.config.mts',
    'package-http': 'node-package-http-qualification.vitest.config.mts',
-   'package-process': 'node-package-process-qualification.vitest.config.mts'}[stage],
+   'package-process': 'node-package-process-qualification.vitest.config.mts',
+   'recovery-first': 'current-node-v28-recovery-first.vitest.config.mts'}[stage],
   '--reporter=verbose', '--reporter=json', '--outputFile.json=' + str(raw)]
  budget = 1050 if stage == 'package-process' else 20 if stage in HELP else 60 if stage == 'types' else 90 if stage == 'capture-parser' else 180
  custody = inherited_custody(); child = None; close_attempted = False; close_result = None; close_error = None
@@ -276,6 +309,11 @@ def run(stage, out, run_root):
   caseTimeoutOverrides=[{'title': CASES[stage][1][0], 'caseMs': 1000000}], originalTemplateBeforeAllMs=20000,
   productionCadenceMs=120000, maximumElapsedSlots=8,
   scope='Fixed current compiled V26 main child; real local session/CSRF; one HTTP File and Sample record; queued graceful restart/cancellation; original automatic120s slots; exact one-payload ZIP; no manual dispatch, fake clock, cadence override, R2 pair, unknown write fault or online Recovery claim.')
+ if stage == 'recovery-parser': record.update(caseMs=5000, hookMs=10000)
+ if stage == 'recovery-first': record.update(caseMs=20000, hookMs=20000, defaultCaseMs=20000,
+  caseTimeoutOverrides=[{'title': CASES[stage][1][0], 'caseMs': 120000}], originalTemplateBeforeAllMs=20000,
+  originalKernelDeadlineMs=60000, recoveryOnlyQualified=False,
+  scope='Fixed current v28-recovery compiled-main HTTP/login/admin/CSRF; retained-binding genuine one-File source; explicit source fence; separate fresh trusted one-shot shared kernel; original held postpublication ACK unknown cleanup refusal and exact-key verification; strict V5 download/public reupload/target-unavailable preview; no elapsed120s Recovery cadence, same-app business writer drain, admitted target restore/handoff or automatic activation.')
  def original_close():
   nonlocal close_attempted, close_result, close_error
   if not close_attempted:
@@ -304,6 +342,21 @@ def run(stage, out, run_root):
    assert original_close() and code == 0
   if stage in CASES:
    record['actualResults'] = census(stage, raw); assert record['actualResults']['pass']
+  if stage == 'recovery-first':
+   proof = json.loads((run_root / 'recovery-first-inputs.json').read_bytes())
+   assert proof['kind'] == 'current-node-v28-recovery-only-cli-kernel/1' and proof['sourceFileCount'] == 1
+   assert isinstance(proof['payloadBytes'], int) and not isinstance(proof['payloadBytes'], bool) and proof['payloadBytes'] > 0
+   for key in ('payloadSha256', 'archiveSha256'):
+    assert isinstance(proof[key], str) and re.fullmatch('[0-9a-f]{64}', proof[key])
+   assert all(proof[key] is True for key in ('packagedCliHttp', 'sharedTrustedOneShotDispatch', 'originalPublicationUnknownCleanupRefused'))
+   assert proof['originalKernelDeadlineMs'] == 60000
+   assert all(proof[key] is False for key in ('targetAvailable', 'canRecover', 'canCutover', 'recoveryCadenceQualified',
+    'sourceBusinessWritersMounted', 'fullSameAppRecoveryQualified', 'automaticActivation', 'sourceExecutorsEnabled'))
+   record['actualRecoveryOnly'] = {'sourceFileCount': 1, 'payloadBytes': proof['payloadBytes'],
+    'payloadSha256': proof['payloadSha256'], 'archiveSha256': proof['archiveSha256'],
+    'compiledMainHttp': True, 'freshTrustedOneShotKernel': True, 'originalKernelDeadlineMs': 60000,
+    'unknownPublicationCleanupRefused': True, 'targetRestoreQualified': False, 'recoveryCadenceQualified': False,
+    'sameAppBusinessWriterDrainQualified': False, 'automaticActivation': False}
   if stage == 'nonempty':
    proof = json.loads((run_root / 'nonempty-inputs.json').read_bytes())
    assert proof['kind'] == 'current-genuine-one-File-v28-v5-inert-restore/1' and proof['sourceFileCount'] == 1
@@ -359,6 +412,7 @@ def run(stage, out, run_root):
    except BaseException as error: okay = False; record['floorOrPrivateIdentityFailure'] = type(error).__name__ + ': ' + str(error)
    if stage == 'nonempty': record['sourceFileBackupQualified'] = bool(okay)
    if stage == 'r2pair': record['r2NodePairQualified'] = bool(okay)
+   if stage == 'recovery-first': record['recoveryOnlyQualified'] = bool(okay)
    record['status'] = 'PASS' if okay else 'FAILED_OR_UNRESOLVED'
    save(out / 'receipt.json', record)
   finally:
@@ -376,6 +430,6 @@ def run(stage, out, run_root):
  return 0 if okay else 1
 
 if __name__ == '__main__':
- parser = argparse.ArgumentParser(); parser.add_argument('--stage', choices=('types', 'parser', 'capture-parser', 'preparation', 'operators', 'maintenance-parser', 'maintenance', 'config-unit', 'main', 'nonempty', 'r2pair', 'package-http', 'package-process', *HELP), required=True)
+ parser = argparse.ArgumentParser(); parser.add_argument('--stage', choices=('types', 'parser', 'capture-parser', 'preparation', 'operators', 'maintenance-parser', 'maintenance', 'config-unit', 'main', 'nonempty', 'r2pair', 'package-http', 'package-process', 'recovery-parser', 'recovery-config', 'recovery-first', *HELP), required=True)
  parser.add_argument('--run-root', type=Path, required=True); args = parser.parse_args()
  raise SystemExit(run(args.stage, args.run_root / args.stage, args.run_root))
