@@ -128,7 +128,9 @@ export function createNodePackageHttpRoutes<Bindings extends object>(options:{
               const opened=await execution.openProfile(target,access,{signal,async beforeRequest(operation){
                 await assertCurrent();if(await beforeRequest(operation)!==true)return false;await assertCurrent();return true;
               }});
-              return{...opened,namespaceIdentity:opened.storage.namespaceIdentity,adapterType:opened.storage.adapterType,
+              if(opened.storage.adapterType!=="local")
+                throw new HTTPException(503,{message:"Selected package volume is unavailable."});
+              return{...opened,namespaceIdentity:opened.storage.namespaceIdentity,adapterType:"local" as const,
                 atomicSinglePut:true,...(opened.dispose?{dispose:opened.dispose.bind(opened)}:{})};
             },
           },nodeSha256);
