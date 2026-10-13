@@ -271,7 +271,7 @@ async function executeCase(id, matrix, action, { controlledChunkFault = false } 
 }
 const incoming = page => page.getByRole('dialog', { name: 'Choose the incoming process template', exact: true });
 const comparison = page => page.getByRole('dialog', { name: 'Does this structure handoff match what you expect?', exact: true });
-async function comparisonKeyboard(page, record) {
+async function comparisonKeyboard(page, record, originalCompare) {
   const dialog = comparison(page), cancel = dialog.getByRole('button', { name: 'Cancel', exact: true });
   await visible(dialog);
   await page.waitForFunction(element => document.activeElement === element, await cancel.elementHandle());
@@ -281,11 +281,16 @@ async function comparisonKeyboard(page, record) {
   }
   // Cancelling a review must return to the same unsaved template choice; no
   // accepted API write occurs until the final explicit confirmation below.
+  assert(await originalCompare.evaluate(element => element.isConnected), 'The original Incoming Compare must survive structure review.');
   await page.keyboard.press('Escape'); await absent(dialog); await visible(incoming(page));
+  // Observe the original owner before any explicit reopen or focus action.
+  await page.waitForFunction(element => element.isConnected && document.activeElement === element, originalCompare);
+  assert(await incoming(page).evaluate((dialog, original) => dialog.contains(original), originalCompare));
   const compare = incoming(page).getByRole('button', { name: 'Compare structures', exact: true });
+  assert(await compare.evaluate((element, original) => element === original, originalCompare));
   await enabled(compare); await compare.click(); await visible(comparison(page));
   await noDocumentOverflow(page, record.assertions, 'structure-comparison', record.theme);
-  record.assertions.push({ keyboardFocusContained: true, escapeReturnedToIncomingChoice: true });
+  record.assertions.push({ keyboardFocusContained: true, escapeReturnedToIncomingChoice: true, naturalEscapeFocusReturnedToSameConnectedCompare: true });
 }
 async function openIncoming(page, mode) {
   await enabled(page.getByRole('button', { name: mode === 'start' ? 'Start run' : 'Run actions', exact: true }));
@@ -787,8 +792,9 @@ try {
       await visible(family); await family.click();
       const version = incoming(page).getByRole('button').filter({ has: page.getByText('Version 1', { exact: true }) });
       await visible(version); await version.click();
-      await incoming(page).getByRole('button', { name: 'Compare structures', exact: true }).click();
-      await comparisonKeyboard(page, record);
+      const compare = incoming(page).getByRole('button', { name: 'Compare structures', exact: true });
+      const originalCompare = await compare.elementHandle();
+      await compare.click(); await comparisonKeyboard(page, record, originalCompare);
       const started = await waitAccepted(page, `/samples/${owner.sampleId}/runs`,
         comparison(page).getByRole('button', { name: 'Confirm and start run', exact: true }), 201);
       await absent(comparison(page));
@@ -809,7 +815,8 @@ try {
       const version = incoming(page).getByRole('button').filter({ has: page.getByText('Version 2', { exact: true }) });
       await visible(version); await version.click();
       const compare = incoming(page).getByRole('button', { name: 'Compare structures', exact: true });
-      await enabled(compare); await compare.click(); await comparisonKeyboard(page, record);
+      await enabled(compare); const originalCompare = await compare.elementHandle();
+      await compare.click(); await comparisonKeyboard(page, record, originalCompare);
       const accepted = await waitAccepted(page, `/samples/${owner.sampleId}/runs/${owner.runId}/plan-update`,
         comparison(page).getByRole('button', { name: 'Confirm and update process', exact: true }), 200);
       await absent(comparison(page));
