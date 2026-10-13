@@ -11,16 +11,22 @@ MAINTENANCE_BRANCH = 'refs/heads/codex/node-v28-restored-maintenance-release'
 HEALTH_BRANCH = 'refs/heads/codex/node-v28-operational-health-ready'
 CAPTURE_BRANCH = 'refs/heads/codex/node-v28-public-local-backup-capture'
 NONEMPTY_BRANCH = 'refs/heads/codex/node-v28-nonempty-backup-restore'
+PACKAGE_BRANCH = 'refs/heads/codex/node-research-package-http'
+PACKAGE_BASE = 'f55faa56baa2781457d6d6a8f06127fd38db00d6'
 NONEMPTY_BASE = 'ab4f6cfa9721a5bf7fdcd8e7940a916ea8d520cf'
 MAINTENANCE_BASE = 'ebc19cf3f61b12625bc2a36086667376b41b9255'
-NATIVE_STAGES = ('preparation', 'operators', 'maintenance', 'main', 'nonempty')
-TIMED_CASE_STAGES = (*NATIVE_STAGES, 'maintenance-parser', 'config-unit', 'capture-parser')
+NATIVE_STAGES = ('preparation', 'operators', 'maintenance', 'main', 'nonempty', 'package-http')
+TIMED_CASE_STAGES = (*(stage for stage in NATIVE_STAGES if stage != 'package-http'), 'maintenance-parser', 'config-unit', 'capture-parser')
 FLOOR, NATIVE_BEFORE = 536870912, 603979776
 HELP = {'help-main': ('main.mjs', 'Usage: node main.mjs --config '),
  'help-identity': ('identity-cli.cjs', 'Usage: local-identity '),
  'help-installation': ('installation-cli.cjs', 'Usage: local-installation upgrade '),
  'help-restore': ('restore-v28-cli.cjs', 'Usage: offline-v28 restore ')}
 CASES = {
+ 'package-http': ('server/packages/request-http.qualification.ts', [
+  'keeps Package HTTP unavailable when localJobs opt-in is omitted',
+  'requires original CSRF and admits ordinary actor history without startup execution',
+  'copies all15 verified Files through HTTP, publishes one typed graph and downloads its captured native ZIP']),
  'nonempty': ('server/operations/current-v28-nonempty-backup-restore.qualification.ts', [
   'preserves one real ordinary HTTP upload through stopped upgrade, compiled complete capture and compiled inert restore without destination File authority']),
  'parser': ('server/operations/v28-post-restore-command.test.ts', [
@@ -52,11 +58,11 @@ def save(path, value):
  path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
 
 def source():
- assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH)
+ assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH, PACKAGE_BRANCH)
  head = os.environ['GITHUB_SHA']; assert re.fullmatch('[0-9a-f]{40}', head)
  env = dict(os.environ, GIT_OPTIONAL_LOCKS='0')
  assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, env=env).decode().strip() == head
- base = NONEMPTY_BASE if os.environ['GITHUB_REF'] == NONEMPTY_BRANCH else MAINTENANCE_BASE if os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH) else BASE
+ base = PACKAGE_BASE if os.environ['GITHUB_REF'] == PACKAGE_BRANCH else NONEMPTY_BASE if os.environ['GITHUB_REF'] == NONEMPTY_BRANCH else MAINTENANCE_BASE if os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH) else BASE
  subprocess.check_call(['git', 'merge-base', '--is-ancestor', base, head], cwd=ROOT, env=env)
  return head
 
@@ -87,6 +93,7 @@ def census(stage, path):
 
 def run(stage, out, run_root):
  head = source()
+ if stage == 'package-http': assert os.environ['GITHUB_REF'] == PACKAGE_BRANCH
  if stage in ('maintenance-parser', 'maintenance', 'config-unit', 'main'): assert os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH)
  if stage == 'capture-parser': assert os.environ['GITHUB_REF'] in (CAPTURE_BRANCH, NONEMPTY_BRANCH)
  if stage == 'nonempty': assert os.environ['GITHUB_REF'] == NONEMPTY_BRANCH
@@ -104,6 +111,7 @@ def run(stage, out, run_root):
   CURRENT_V28_CANONICAL_COMMENT_FIXTURE_PARENT=str(fixture), NODE_PROTOTYPE_FILESYSTEM_ROOT_OWNER_UID=str(Path('/').lstat().st_uid),
   NODE_OFFLINE_V28_DISTRIBUTION=str(ROOT / 'dist-node/distribution'),
   CURRENT_V28_POST_RESTORE_PREPARATION_RECEIPT=str(run_root / 'preparation-inputs.json'), NO_COLOR='1', FORCE_COLOR='0')
+ if stage == 'package-http': env['NODE_PROTOTYPE_FIXTURE_PARENT'] = str(fixture)
  if stage == 'nonempty':
   # This case creates its OWN new V26 upload source and inert V28 target. The
   # earlier zero-File target is only a completed same-head pipeline prerequisite.
@@ -148,14 +156,17 @@ def run(stage, out, run_root):
    'operators': 'current-v28-post-restore-operators.vitest.config.mts',
    'maintenance': 'current-restored-v28-maintenance-release.vitest.config.mts',
    'main': 'current-restored-v28-main.vitest.config.mts',
-   'nonempty': 'current-v28-nonempty-backup-restore.vitest.config.mts'}[stage],
+   'nonempty': 'current-v28-nonempty-backup-restore.vitest.config.mts',
+   'package-http': 'node-package-http-qualification.vitest.config.mts'}[stage],
   '--reporter=verbose', '--reporter=json', '--outputFile.json=' + str(raw)]
  budget = 20 if stage in HELP else 60 if stage == 'types' else 90 if stage == 'capture-parser' else 180
  custody = inherited_custody(); child = None; close_attempted = False; close_result = None; close_error = None
  record = {'kind': 'current-v28-post-restore-original-owned-stage/1', 'stage': stage, 'head': head, 'command': argv,
-  'status': 'RESERVED_BEFORE_EFFECTS', 'outerSeconds': budget, 'caseMs': 20000 if stage in TIMED_CASE_STAGES else None,
-  'hookMs': 20000 if stage in TIMED_CASE_STAGES else None, 'minimumBeforeChild': minimum,
+  'status': 'RESERVED_BEFORE_EFFECTS', 'outerSeconds': budget, 'caseMs': 5000 if stage == 'package-http' else 20000 if stage in TIMED_CASE_STAGES else None,
+  'hookMs': 10000 if stage == 'package-http' else 20000 if stage in TIMED_CASE_STAGES else None, 'minimumBeforeChild': minimum,
   'filesystemRootOwnerUid': Path('/').lstat().st_uid, 'noFixtureRemoval': True, 'sourceFileBackupQualified': False}
+ if stage == 'package-http': record.update(originalTemplateBeforeAllMs=20000,
+  scope='Current V26 original mounted Package HTTP/session/CSRF + independent original dispatcher + nonempty15File local copy/export/download only; no compiled-main, cross-runtime/R2, elapsed120s cadence, recovery activation or prior qualification carry.')
  def original_close():
   nonlocal close_attempted, close_result, close_error
   if not close_attempted:
@@ -240,6 +251,6 @@ def run(stage, out, run_root):
  return 0 if okay else 1
 
 if __name__ == '__main__':
- parser = argparse.ArgumentParser(); parser.add_argument('--stage', choices=('types', 'parser', 'capture-parser', 'preparation', 'operators', 'maintenance-parser', 'maintenance', 'config-unit', 'main', 'nonempty', *HELP), required=True)
+ parser = argparse.ArgumentParser(); parser.add_argument('--stage', choices=('types', 'parser', 'capture-parser', 'preparation', 'operators', 'maintenance-parser', 'maintenance', 'config-unit', 'main', 'nonempty', 'package-http', *HELP), required=True)
  parser.add_argument('--run-root', type=Path, required=True); args = parser.parse_args()
  raise SystemExit(run(args.stage, args.run_root / args.stage, args.run_root))
