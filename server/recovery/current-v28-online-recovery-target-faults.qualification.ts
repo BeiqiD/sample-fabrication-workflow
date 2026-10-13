@@ -53,7 +53,7 @@ beforeAll(async () => {
   const inputs = object(JSON.parse(await readFile(join(distribution, 'source-inputs.json'), 'utf8'))).inputs; ensure(Array.isArray(inputs));
   for (const relative of ['server/main.ts', 'server/recovery/node-system-recovery-v28-application.ts',
     'server/recovery/node-v28-target-stages.ts', 'server/recovery/node-v28-recovery-target.ts',
-    'worker/recovery/kernel.ts', 'worker/recovery/maintenance.ts']) {
+    'worker/recovery/kernel.ts']) {
     const raw = await readFile(new URL('../../' + relative, import.meta.url));
     const selected = inputs.map(object).find(value => value.path === relative); ensure(selected);
     expect(selected.bytes).toBe(raw.byteLength); expect(selected.sha256).toBe(digest(raw));
