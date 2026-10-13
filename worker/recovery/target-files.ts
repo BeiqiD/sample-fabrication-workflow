@@ -1,3 +1,4 @@
+import { workerV5PlannedOriginalTargetReader, assertWorkerV5PlannedOriginalTargetIssue } from "./v5-source-close-owner";
 import type { WorkerRecoveryFile } from "./versioned-catalog";
 import type { VersionedRecoveryRecords } from "./versioned-catalog";
 import type { ExportRow } from "../../shared/contracts/export";
@@ -443,6 +444,8 @@ export interface RecoveryFileWriteLifecycle {
   signal?: AbortSignal;
   /** Original kernel stage timestamp; V5 never substitutes the65s claim lease. */
   deadlineAt?: string;
+  /** Exact private original planned input, issued by the real source service. */
+  originalPlannedInput?:object;
   /** Exact target claim, persisted attempt tuple, owner and generation. */
   current(): Promise<boolean>;
   /** Atomically save write_started before PUT. False forbids this transport. */
@@ -499,10 +502,11 @@ export async function writeWorkerV5RecoveryFile(env: Env,file: RecoveryPlannedFi
   let started=false;
   const writer=r2ShadowByteWriter({async put(key,bytes,options){
     if(key!==file.objectKey||!await current())throw new ByteVerificationError("destination","unavailable");
+    assertWorkerV5PlannedOriginalTargetIssue(env,lifecycle.originalPlannedInput);
     const result=await binding.bucket.put(key,bytes,{...options,onlyIf:{etagDoesNotMatch:"*"}});
     if(result===null)throw new ByteVerificationError("destination","unavailable");return result;
   }});
-  const raw=r2ByteReader(binding.bucket),reader={async read(key:string){
+  const raw=workerV5PlannedOriginalTargetReader(env,lifecycle.originalPlannedInput,r2ByteReader(binding.bucket)),reader={async read(key:string){
     if(key!==file.objectKey||!await current())throw new ByteVerificationError("destination","unavailable");
     const result=await raw.read(key);
     if(!await current()){if(result.outcome==="available")await result.body.cancel();throw new ByteVerificationError("destination","unavailable");}

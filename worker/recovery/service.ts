@@ -1,5 +1,6 @@
+import { assertWorkerV5PlannedSourceWindowCurrent, workerV5PlannedSourceFinishGuards, recordWorkerV5PlannedSourceCheckpoint } from "./v5-planned-source-window";
 import { registerWorkerRecoveryExecutionOwner, ownWorkerRecoveryBodyClose } from "../files/jobs/execution-lifetime";
-import { beginWorkerV5SourceCloseIntent, acknowledgeWorkerV5OriginalNativeSource, ownWorkerV5OriginalSourceBody,
+import { beginWorkerV5SourceCloseIntent, assertWorkerV5OriginalSourceIntentIssue, bindWorkerV5PlannedOriginalTargetInput, acknowledgeWorkerV5OriginalNativeSource, ownWorkerV5OriginalSourceBody,
   registerWorkerV5SourceCloseOwner, closeWorkerV5OriginalSourceOwner, type WorkerV5SourceCloseIntent } from "./v5-source-close-owner";
 import { ownWorkerV5SourceStream } from "./v5-held-r2-archive-candidate";
 import { captureWorkerV5PublicSnapshot } from "./v28-held-backup-snapshot-candidate";
@@ -90,7 +91,12 @@ async function measureSource(env:Env,source:WorkerRecoverySource,current:()=>Pro
   }catch(error){if(signal.aborted||!await current())throw error;if(error instanceof Error&&error.message==="archive_budget")throw error;return unavailable("download_failed");}
   finally{if(!complete){if(read.dispose)await reader.cancel();else void reader.cancel().catch(()=>undefined);}reader.releaseLock();await hash.abort();await read.dispose?.();}
 }
-export async function recoveryArchiveSource(env:Env,job:RecoveryJob,current:()=>Promise<boolean>,signal?:AbortSignal):Promise<ArchiveSource>{
+interface PlannedArchiveOriginalOwnership { owner:SystemRecoveryCapabilitiesAdapter;claim:RecoveryClaim;deadlineAt:string;signal:AbortSignal }
+export async function recoveryArchiveSource(env:Env,job:RecoveryJob,current:()=>Promise<boolean>,signal?:AbortSignal,
+  original?:PlannedArchiveOriginalOwnership):Promise<ArchiveSource>{
+  const originalBinding=env.DB;
+  function localOriginal(){if(original&&(env.DB!==originalBinding||original.signal.aborted||!Number.isFinite(Date.parse(original.deadlineAt))||Date.now()>=Date.parse(original.deadlineAt)
+    ||!recoveryActorAllowed(env,original.claim.actor)))throw new Error("administrator_revoked");}
   await assertRecoveryArtifactNamespace(env,job);
   const held=Boolean(await recoveryRepository(env).db().prepare("SELECT 1 FROM system_recovery_jobs WHERE source_upload_job_id=? AND state IN('queued','running','paused')").bind(job.id).first());
   if(!job.artifact_key||!job.archive_byte_size||!job.archive_sha256||!job.expires_at||Date.parse(job.expires_at)<=Date.now()&&!held)throw new Error("archive_invalid");
@@ -98,12 +104,19 @@ export async function recoveryArchiveSource(env:Env,job:RecoveryJob,current:()=>
   return sourceFromStream(job.archive_byte_size,async()=>{if(signal?.aborted||!await current())throw new Error("administrator_revoked");
     await assertRecoveryArtifactNamespace(env,job);
     if(signal?.aborted||!await current()||signal?.aborted||!recoveryActorAllowed(env,job.actor))throw new Error("administrator_revoked");
-    const object=await env.ASSETS.get(job.artifact_key!);if(!object)throw new Error("source_unavailable");return object.body;});
+    const intent=original?await beginWorkerV5SourceCloseIntent(original.owner,original.claim,"body",
+      stableJson({uploadId:job.id,key:job.artifact_key,sha256:job.archive_sha256}),current,original.signal,original.deadlineAt):undefined;
+    if(original){if(!await current())throw new Error("administrator_revoked");localOriginal();}
+    if(intent)assertWorkerV5OriginalSourceIntentIssue(intent);
+    const object=await env.ASSETS.get(job.artifact_key!);if(!object)throw new Error("source_unavailable");
+    if(!intent)return object.body;
+    const stream=ownWorkerV5SourceStream(object.body,async()=>{localOriginal();if(!await current())throw new Error("administrator_revoked");localOriginal();});
+    ownWorkerV5OriginalSourceBody(intent,stream);return stream.body;});
 }
-async function openFrozenPayload(env:Env,upload:RecoveryJob,file:WorkerRecoveryFile,current:()=>Promise<boolean>,signal:AbortSignal){
+async function openFrozenPayload(env:Env,upload:RecoveryJob,file:WorkerRecoveryFile,current:()=>Promise<boolean>,signal:AbortSignal,original?:PlannedArchiveOriginalOwnership){
   const repository=recoveryRepository(env),index=await repository.metadata(upload.id,"index") as ArchiveIndexEntry[]|null;
   const entry=index?.find(row=>row.path===file.path);if(!entry||entry.sha256!==file.sha256||entry.byteSize!==file.byteSize)throw new Error("archive_invalid");
-  const source=await recoveryArchiveSource(env,upload,current,signal);return openStoreArchiveEntry(source,entry,{signal,createHash:cloudflareSha256});
+  const source=await recoveryArchiveSource(env,upload,current,signal,original);return openStoreArchiveEntry(source,entry,{signal,createHash:cloudflareSha256});
 }
 export async function workerSystemRecoveryCapabilities(env:Env):Promise<SystemRecoveryCapabilitiesAdapter|null>{
   const repository=recoveryRepository(env);if(!await repository.installed())return null;const runtime=await repository.runtime();if(!runtime||runtime.enabled!==1)return null;
@@ -119,7 +132,7 @@ export async function workerSystemRecoveryCapabilities(env:Env):Promise<SystemRe
       let durablePut:WorkerV5SourceCloseIntent|undefined;
       if(originalJob.kind==="backup"&&deadlineAt!==undefined&&issuedClaim!==undefined&&(await records(repository,originalJob.id)).schema==="system-backup-records/5"){
         if(!issuedClaim||!signal||typeof deadlineAt!=="string")throw new Error("execution_budget_exhausted");
-        durablePut=await beginWorkerV5SourceCloseIntent(capabilities,issuedClaim,"put",key,()=>repository.current(issuedClaim),signal,deadlineAt);
+        durablePut=await beginWorkerV5SourceCloseIntent(capabilities,issuedClaim,"put",JSON.parse(originalJob.input_json).mode==="planned"?stableJson({key,byteSize}):key,()=>repository.current(issuedClaim),signal,deadlineAt);
       }
       if(deadlineAt!==undefined&&(!issuedClaim||!await repository.current(issuedClaim)))throw new Error("administrator_revoked");
       if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding||!recoveryActorAllowed(env,originalJob.actor)))throw new Error("execution_budget_exhausted");
@@ -164,7 +177,13 @@ export async function workerSystemRecoveryCapabilities(env:Env):Promise<SystemRe
         const frozen=v5?await captureWorkerV5PublicSnapshot(env,claim,sourceInstallationId,current,signal,deadlineAt)
           :await captureVersionedSystemBackupSnapshot(env.DB,{backupId:claim.id,createdAt:claim.accepted_at});
         if(snapshotIntent)acknowledgeWorkerV5OriginalNativeSource(snapshotIntent);if(!await current())throw new Error("administrator_revoked");
-        const checkpoint=frozen.schema==="system-backup-records/5"?await sourceBackupCheckpointV5(frozen):await sourceVersionedBackupCheckpoint(frozen);if(input.mode==="planned")await recordSourceCheckpoint(env,claim.id,checkpoint);
+        const checkpoint=frozen.schema==="system-backup-records/5"?await sourceBackupCheckpointV5(frozen):await sourceVersionedBackupCheckpoint(frozen);
+        if(input.mode==="planned"){
+          if(frozen.schema==="system-backup-records/5"){
+            if(typeof deadlineAt!=="string"||!await current())throw new Error("administrator_revoked");
+            await recordWorkerV5PlannedSourceCheckpoint(env,claim,checkpoint,signal,deadlineAt);
+          }else await recordSourceCheckpoint(env,claim.id,checkpoint);
+        }
         const sources=frozen.schema==="system-backup-records/5"?planSystemBackupSourcesV28(frozen.content):frozen.content.schemaVersion===26?planSystemBackupSourcesV26(frozen.content):planSystemBackupSources(frozen.content.schemaVersion===25?portableBusinessManifestV24(frozen.content):frozen.content),statements=[...repository.metadataStatements(claim.id,"records",frozen),...groupFileStatements(repository,claim,sources)];
         if(statements.length+2>128)throw new SystemRecoveryConflict("metadata_budget");
         return{patch:{state:"queued",phase:"inventory",source_checkpoint:checkpoint,total_files:sources.length},statements,outcome:"snapshot"};
@@ -209,21 +228,40 @@ export async function workerSystemRecoveryCapabilities(env:Env):Promise<SystemRe
         await assertRecoveryArtifactNamespace(env,upload);
         const frozen=await records(repository,upload.id);
         const backup=await manifest(repository,upload.id);if(backup.completeness!=="complete")throw new Error("partial_backup");
-        if(!claim.target_incarnation){const incarnation=crypto.randomUUID().replaceAll("-","");return{patch:{state:"queued",target_incarnation:incarnation},outcome:"target_identity_frozen"};}
+        let plannedOriginal:WorkerV5SourceCloseIntent|undefined,originalCurrent=current,originalArchive:PlannedArchiveOriginalOwnership|undefined;
+        if(frozen.schema==="system-backup-records/5"&&input.mode==="planned"){
+          if(backup.schema!=="system-backup/5"||typeof deadlineAt!=="string")throw new Error("archive_invalid");
+          const plannedManifest=backup,plannedRecords=frozen;
+          await assertWorkerV5PlannedSourceWindowCurrent(env,claim,plannedRecords,plannedManifest);
+          originalCurrent=async()=>{if(!await current())return false;
+            try{await assertWorkerV5PlannedSourceWindowCurrent(env,claim,plannedRecords,plannedManifest);}catch{return false;}
+            return await current();};
+          plannedOriginal=await beginWorkerV5SourceCloseIntent(capabilities,claim,"recovery-step",
+            stableJson({jobId:claim.id,phase:claim.phase,sourceWindow:claim.checkpoint_json}),originalCurrent,signal,deadlineAt);
+          originalArchive={owner:capabilities,claim,deadlineAt,signal};
+        }
+        if(!claim.target_incarnation){const incarnation=crypto.randomUUID().replaceAll("-","");
+          if(plannedOriginal)acknowledgeWorkerV5OriginalNativeSource(plannedOriginal);
+          return{patch:{state:"queued",target_incarnation:incarnation},
+            statements:originalArchive?workerV5PlannedSourceFinishGuards(env,claim,signal,originalArchive.deadlineAt):[],outcome:"target_identity_frozen"};}
         const shared={jobId:claim.id,incarnation:claim.target_incarnation,ownerToken:claim.owner_token,generation:claim.generation,
-          expectedTargetId:input.expectedTargetId,mapping:input.mapping,mode:input.mode,current,signal,deadlineAt,runtimeIncarnation:claim.runtime_incarnation,leaseExpiresAt:claim.lease_expires_at,
-          openPayload:(file:WorkerRecoveryFile,payloadSignal:AbortSignal)=>openFrozenPayload(env,upload,file,current,payloadSignal)};
+          expectedTargetId:input.expectedTargetId,mapping:input.mapping,mode:input.mode,current:originalCurrent,signal,deadlineAt,runtimeIncarnation:claim.runtime_incarnation,leaseExpiresAt:claim.lease_expires_at,
+          openPayload:(file:WorkerRecoveryFile,payloadSignal:AbortSignal)=>openFrozenPayload(env,upload,file,originalCurrent,payloadSignal,originalArchive)};
         let result;
         if(frozen.schema==="system-backup-records/5"){
           if(backup.schema!=="system-backup/5")throw new Error("archive_invalid");
-          result=await createWorkerV5RecoveryTargetEngine(env).step({...shared,records:frozen,manifest:backup});
+          const originalTargetInput={...shared,records:frozen,manifest:backup};
+          if(originalArchive)bindWorkerV5PlannedOriginalTargetInput(capabilities,env,originalTargetInput,claim,originalCurrent,signal,originalArchive.deadlineAt);
+          result=await createWorkerV5RecoveryTargetEngine(env).step(originalTargetInput);
         }else{
           if(backup.schema==="system-backup/5")throw new Error("archive_invalid");
           result=await createRecoveryTargetEngine(env).step({...shared,records:frozen,manifest:backup});
         }
+        if(plannedOriginal)acknowledgeWorkerV5OriginalNativeSource(plannedOriginal);
         return{patch:{state:result.done?"completed":"queued",phase:result.phase,completed_files:Math.min(result.completedFiles,claim.total_files),bytes_done:Math.min(result.bytesDone,claim.bytes_total),
           ...(result.done&&result.report?{result_json:stableJson({targetId:input.expectedTargetId,ready:true,cutover:false,checkpoint:result.report.targetCheckpoint})}: {})},
-          statements:result.report?repository.metadataStatements(claim.id,"report",result.report):[],outcome:result.done?"ready":"recovery_step"};
+          statements:[...(originalArchive?workerV5PlannedSourceFinishGuards(env,claim,signal,originalArchive.deadlineAt):[]),
+            ...(result.report?repository.metadataStatements(claim.id,"report",result.report):[])],outcome:result.done?"ready":"recovery_step"};
       }
       throw new Error("archive_invalid");
     }};
