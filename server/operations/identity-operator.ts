@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { createInstalledLocalIdentity } from '../auth/identity';
 import { createPasswordHasher } from '../auth/passwords';
 import { OPERATIONAL_NODE_INSTALLATION_CATALOG } from '../operational-installation-catalog';
+import { V28_NODE_INSTALLATION_CATALOG_CANDIDATE } from '../installation-catalog-v28-candidate.ts';
 import { admitInstallationRecoverySource, installReviewedSqliteCatalog } from '../migrations';
 import { createSqliteCapability, type SqliteCapability } from '../sqlite';
 import { acquireLinuxWriterLease, assertLinuxWriterLeaseBinding, type LinuxWriterLease } from './writer-lease';
@@ -11,7 +12,7 @@ export class IdentityOperatorError extends Error {
   constructor() { super('The offline identity operation is unavailable.'); this.name = 'IdentityOperatorError'; }
 }
 export type IdentityOperatorCommand = Readonly<{
-  databasePath: string; filesystemRootOwnerUid?: number;
+  databasePath: string; filesystemRootOwnerUid?: number; runtimeProfile?: 'v28';
 } & ({ kind: 'bootstrap'; username: string } | { kind: 'restore-administrator' | 'reset-password'; principalId: string })>;
 const PRINCIPAL = /^local_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 // These limits serve only this stopped-writer offline composition. No sessions
@@ -30,15 +31,19 @@ export function identityOperatorProcessState(): Readonly<{ activeOperations: num
  * rejected arguments are not interpolated into diagnostics. Only one exact
  * destination account may be given for recovery/reset, never an email grant. */
 export function parseIdentityOperatorCommand(argv: readonly string[]): IdentityOperatorCommand {
-  if (!Array.isArray(argv) || argv.length > 7 || argv.some(value => typeof value !== 'string' || value.length > 4096)) throw new IdentityOperatorError();
+  if (!Array.isArray(argv) || argv.length > 9 || argv.some(value => typeof value !== 'string' || value.length > 4096)) throw new IdentityOperatorError();
   const kind = argv[0];
   if (!['bootstrap', 'restore-administrator', 'reset-password'].includes(kind) || (argv.length - 1) % 2) throw new IdentityOperatorError();
   const fields = new Map<string, string>();
   for (let index = 1; index < argv.length; index += 2) {
     const name = argv[index]!, value = argv[index + 1]!;
-    if (!['--database', '--username', '--principal', '--filesystem-root-owner-uid'].includes(name) || fields.has(name)) throw new IdentityOperatorError();
+    if (!['--database', '--username', '--principal', '--filesystem-root-owner-uid', '--runtime-profile'].includes(name) || fields.has(name)) throw new IdentityOperatorError();
     fields.set(name, value);
   }
+  const runtimeProfile = fields.get('--runtime-profile');
+  if (runtimeProfile !== undefined && runtimeProfile !== 'v28' || runtimeProfile === undefined && argv.length > 7
+    || runtimeProfile === 'v28' && kind === 'bootstrap') throw new IdentityOperatorError();
+  const profile = runtimeProfile === 'v28' ? { runtimeProfile: 'v28' as const } : {};
   const databasePath = fields.get('--database');
   if (!databasePath || databasePath.length > 4000 || databasePath.includes('\0')) throw new IdentityOperatorError();
   let filesystemRootOwnerUid: number | undefined;
@@ -56,7 +61,7 @@ export function parseIdentityOperatorCommand(argv: readonly string[]): IdentityO
   }
   const principalId = fields.get('--principal');
   if (!principalId || !PRINCIPAL.test(principalId) || fields.has('--username')) throw new IdentityOperatorError();
-  return Object.freeze({ kind: kind as 'restore-administrator' | 'reset-password', databasePath, principalId, ...owner });
+  return Object.freeze({ kind: kind as 'restore-administrator' | 'reset-password', databasePath, principalId, ...owner, ...profile });
 }
 
 /** Actual stopped-writer operator, not an HTTP/bootstrap route. Caller obtains
@@ -74,7 +79,9 @@ export async function executeIdentityOperator(commandInput: IdentityOperatorComm
     commandInput?.kind === 'bootstrap' ? '--username' : '--principal',
     commandInput?.kind === 'bootstrap' ? commandInput.username : commandInput?.principalId];
   if (rootInput !== undefined) args.push('--filesystem-root-owner-uid', String(rootInput));
+  if (commandInput?.runtimeProfile !== undefined) args.push('--runtime-profile', commandInput.runtimeProfile);
   const command = parseIdentityOperatorCommand(args);
+  const catalog = command.runtimeProfile === 'v28' ? V28_NODE_INSTALLATION_CATALOG_CANDIDATE : OPERATIONAL_NODE_INSTALLATION_CATALOG;
   if (operatorOwners.size >= 2) throw new IdentityOperatorError();
   // Reserve synchronously; concurrent calls cannot outrun a cleanup-only count.
   const owner: OperatorOwner = { quarantined: false }; operatorOwners.add(owner);
@@ -93,9 +100,11 @@ export async function executeIdentityOperator(commandInput: IdentityOperatorComm
       // Bootstrap can initialize a genuinely empty private file. Every
       // existing installation must already admit the fixed operational
       // checkpoint; reset/restore/bootstrap cannot silently upgrade V25.
+      // Explicit V28 restores/resets admit only an already installed exact V28.
+      // They never bootstrap, upgrade, reopen maintenance or activate runtime guards.
       if (command.kind === 'bootstrap' && !ownedNative.prepare('SELECT 1 FROM sqlite_schema LIMIT 1').get())
         installReviewedSqliteCatalog(ownedNative, OPERATIONAL_NODE_INSTALLATION_CATALOG);
-      const admission = admitInstallationRecoverySource(ownedNative, OPERATIONAL_NODE_INSTALLATION_CATALOG);
+      const admission = admitInstallationRecoverySource(ownedNative, catalog);
       const identity = await createInstalledLocalIdentity({ database: ownedDatabase, nativeDatabase: ownedNative,
         admission, hasher: createPasswordHasher(), policy: OFFLINE_POLICY });
       assertLinuxWriterLeaseBinding(ownedLease, ownedDatabase, ownedNative);

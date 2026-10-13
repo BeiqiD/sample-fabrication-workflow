@@ -1,7 +1,7 @@
 import { parseIdentityOperatorCommand, executeIdentityOperator } from './identity-operator';
 import { readOperatorPassword } from './operator-password';
 
-const USAGE = 'Usage: local-identity <bootstrap|restore-administrator|reset-password> --database <canonical-private-db> <--username name|--principal local_UUID> [--filesystem-root-owner-uid UID]\nPassword: one UTF-8 line through stdin, or hidden terminal input. Database and its empty private .writer-lock file must already exist.\n';
+const USAGE = 'Usage: local-identity <bootstrap|restore-administrator|reset-password> --database <canonical-private-db> <--username name|--principal local_UUID> [--filesystem-root-owner-uid UID]\nExplicit restored V28: restore-administrator or reset-password also requires --runtime-profile v28. Bootstrap remains V26 only. Maintenance, File, Jobs and Group authority are not activated.\nPassword: one UTF-8 line through stdin, or hidden terminal input. Database and its empty private .writer-lock file must already exist.\n';
 async function main(): Promise<void> {
   if (process.argv.length === 3 && process.argv[2] === '--help') { process.stdout.write(USAGE); return; }
   const command = parseIdentityOperatorCommand(process.argv.slice(2));
