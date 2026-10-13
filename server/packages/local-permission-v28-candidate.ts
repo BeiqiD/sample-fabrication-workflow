@@ -121,7 +121,7 @@ export function createLocalPackagePermissionV28Candidate(options: {
       statement.setReadBigInts(true); const row = statement.get(tokenHash, facts.subject); issuer.read(request, subject);
       if (typeof row?.credential_revision !== "bigint" || typeof row.created_at !== "bigint") throw denied();
       const session: Session = Object.freeze({ subject, principalId: facts.subject, actor, tokenHash, credentialRevision: row.credential_revision, createdAt: row.created_at });
-      let selected: Purpose = EMPTY, input: unknown, inputSeen = false;
+      let selected: Purpose = EMPTY, input: unknown, inputSeen = false, inputRequestId: string | undefined;
       function assertCurrent() {
         current(); if (request.url !== originalUrl || request.method !== method) throw denied();
         const now = issuer.read(request, session.subject);
@@ -130,7 +130,10 @@ export function createLocalPackagePermissionV28Candidate(options: {
       }
       function selectedPurpose(): Purpose {
         let id = selected.jobId ?? jobId;
-        if (!id && requestId) { const receipt = nativeDatabase.prepare("SELECT job_id FROM research_package_requests WHERE actor=? AND request_id=?").get(actor, requestId); if (receipt?.job_id) id = String(receipt.job_id); }
+        // Receipt replay is selected by the actual checked POST body or original GET URL.
+        // The unchanged router can return repository.request before accept runs.
+        const receiptId = requestId ?? inputRequestId;
+        if (!id && receiptId) { const receipt = nativeDatabase.prepare("SELECT job_id FROM research_package_requests WHERE actor=? AND request_id=?").get(actor, receiptId); if (receipt?.job_id) id = String(receipt.job_id); }
         if (id) {
           const actual = nativeDatabase.prepare("SELECT * FROM research_package_jobs WHERE id=? AND actor=?").get(id, actor);
           if (!actual) throw denied(); return purpose(actual as unknown as PackageJob);
@@ -160,9 +163,9 @@ export function createLocalPackagePermissionV28Candidate(options: {
         selectJson(value: unknown) {
           assertCurrent(); if (inputSeen) throw denied(); inputSeen = true;
           if (url.pathname === "/api/packages/plans") { input = checkedResearchExportPlanInput(value); selected = Object.freeze({ roots: exportRoots((input as ReturnType<typeof checkedResearchExportPlanInput>).roots), fresh: EMPTY.fresh }); }
-          else if (url.pathname === "/api/packages/jobs") { input = checkedResearchExportInput(value); selected = Object.freeze({ roots: exportRoots((input as ReturnType<typeof checkedResearchExportInput>).roots), fresh: EMPTY.fresh }); }
-          else if (url.pathname === "/api/packages/uploads") input = checkedResearchUploadInput(value);
-          else if (url.pathname === "/api/packages/imports") input = checkedResearchImportInput(value);
+          else if (url.pathname === "/api/packages/jobs") { const checked = checkedResearchExportInput(value); input = checked; inputRequestId = checked.requestId; selected = Object.freeze({ roots: exportRoots(checked.roots), fresh: EMPTY.fresh }); }
+          else if (url.pathname === "/api/packages/uploads") { const checked = checkedResearchUploadInput(value); input = checked; inputRequestId = checked.requestId; }
+          else if (url.pathname === "/api/packages/imports") { const checked = checkedResearchImportInput(value); input = checked; inputRequestId = checked.requestId; }
           else if (url.pathname.endsWith("/control")) input = checkedResearchJobControl(value);
           else throw denied();
         },
