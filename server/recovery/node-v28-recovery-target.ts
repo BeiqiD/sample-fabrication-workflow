@@ -27,6 +27,7 @@ interface DirectoryOwner { path: string; handle: HandleOwner; stat: BigIntStats 
 interface NativeOwner {
   opening?: Promise<LinuxWriterLease>; lease?: LinuxWriterLease; nativeAttempted: boolean; native?: DatabaseSync; core?: SqliteCapability;
   closing?: Promise<void>; failed: boolean; failure?: unknown;
+  bindingAccepted: boolean; workActive: boolean;
 }
 const retained = new Set<object>();
 const fail = (reason = "target_unavailable"): never => { throw new Error(reason); };
@@ -75,8 +76,15 @@ export async function openNodeV28RecoveryTarget(options: {
     physical(); const file = lstatSync(join(root, "database.sqlite"), { bigint: true });
     if (!expected || Object.keys(expected).length !== 5 || !privateFile(file)
       || stableJson(expected) !== stableJson({ dev: String(file.dev), ino: String(file.ino), uid: String(file.uid), gid: String(file.gid), mode: String(file.mode) })) fail("target_alias");
-    for (const selected of nativeOwners) if (selected.native && selected.core && selected.lease)
-      assertLinuxWriterLeaseBinding(selected.lease, selected.core, selected.native);
+    for (const selected of nativeOwners) if (selected.native && selected.core && selected.lease) {
+      // The exact pair was accepted by the original full binding check before
+      // its private withWriter work. Direct reviewed Native transactions do not
+      // belong to core.batch; calling core.primary inside BEGIN would correctly
+      // reject that foreign batch. Require this exact issued work owner, keep
+      // physical inode/lease proof, and repeat full binding after transaction.
+      if (!selected.bindingAccepted || !selected.native.isOpen || selected.native.isTransaction && !selected.workActive) fail("target_unavailable");
+      selected.lease.assertHeld();
+    }
   }
   function own(handle: FileHandle): HandleOwner {
     const selected: HandleOwner = { handle, close() {
@@ -213,7 +221,7 @@ export async function openNodeV28RecoveryTarget(options: {
       return track(async () => {
         await assertIntent(intent); guard();
         assertDatabaseIdentity(expectedIdentity);
-        const selected: NativeOwner = { nativeAttempted: false, failed: false }; nativeOwners.add(selected);
+        const selected: NativeOwner = { nativeAttempted: false, failed: false, bindingAccepted: false, workActive: false }; nativeOwners.add(selected);
         let failed = false, failure: unknown, value!: T;
         try {
           selected.opening = acquireLinuxWriterLease({ databasePath: join(root, "database.sqlite"), filesystemRootOwnerUid: captured.filesystemRootOwnerUid });
@@ -224,9 +232,19 @@ export async function openNodeV28RecoveryTarget(options: {
           selected.native = new DatabaseSync(join(root, "database.sqlite"), { allowExtension: false, enableForeignKeyConstraints: true });
           guard(); assertDatabaseIdentity(expectedIdentity);
           selected.core = createSqliteCapability(selected.native); selected.lease.bind(selected.core, selected.native);
-          const opened = { native: selected.native, core: selected.core, lease: selected.lease };
-          value = await selected.lease.withWriter(async () => { guard(); assertDatabaseIdentity(expectedIdentity);
-            assertLinuxWriterLeaseBinding(opened.lease, opened.core, opened.native); return work(opened); });
+          const opened = Object.freeze({ native: selected.native, core: selected.core, lease: selected.lease });
+          assertLinuxWriterLeaseBinding(opened.lease, opened.core, opened.native); selected.bindingAccepted = true;
+          value = await selected.lease.withWriter(async () => {
+            guard(); assertDatabaseIdentity(expectedIdentity); assertLinuxWriterLeaseBinding(opened.lease, opened.core, opened.native);
+            if (opened.native.isTransaction) fail("target_unavailable");
+            selected.workActive = true;
+            try {
+              const result = await work(opened);
+              guard(); assertDatabaseIdentity(expectedIdentity);
+              if (opened.native.isTransaction) fail("target_owned_transaction_unsettled");
+              assertLinuxWriterLeaseBinding(opened.lease, opened.core, opened.native); return result;
+            } finally { selected.workActive = false; }
+          });
         } catch (error) { failed = true; failure = error; }
         try { await closeNative(selected); } catch (cleanup) { throw failed ? new AggregateError([failure, cleanup]) : cleanup; }
         if (failed) throw failure; return value;
