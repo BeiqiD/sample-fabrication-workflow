@@ -71,11 +71,25 @@ function cleanupNativeCause(message:string){
   if(message.includes("Original V5 exact source close record inventory changed"))return "EXACT_GUARD_ERROR";
   return undefined;
 }
+// Inspect only the ORIGINAL native error's cause/error structure. At most
+// seven nodes, depth2 and8192 characters per node; output remains fixed codes.
+function cleanupNestedNativeCause(original:unknown,originalMessage:string){
+  const pending=[{value:original,depth:0}],seen=new Set<object>();
+  for(let index=0;index<pending.length&&index<7;index++){
+    const {value,depth}=pending[index]!;
+    if(typeof value==="string"){const code=cleanupNativeCause(value.slice(0,8192));if(code)return code;continue;}
+    if(!value||typeof value!=="object"||seen.has(value))continue;seen.add(value);
+    const message=depth===0?originalMessage:Reflect.get(value,"message");
+    if(typeof message==="string"){const code=cleanupNativeCause(message.slice(0,8192));if(code)return code;}
+    if(depth<2){pending.push({value:Reflect.get(value,"cause"),depth:depth+1},{value:Reflect.get(value,"error"),depth:depth+1});}
+  }
+  return undefined;
+}
 async function diagnoseCleanup<T>(stage:CleanupDiagnosticStage,original:()=>Promise<T>):Promise<T>{
   try{return await original();}catch(error){
     try{
       const message=error instanceof Error?error.message:"";
-      const code=cleanupInvariantCodes.get(message)??cleanupNativeCause(message)??cleanupNativeCodes.find(value=>new RegExp("\\b"+value+"\\b").test(message))
+      const code=cleanupInvariantCodes.get(message)??cleanupNativeCause(message)??cleanupNestedNativeCause(error,message)??cleanupNativeCodes.find(value=>new RegExp("\\b"+value+"\\b").test(message))
         ??(error instanceof HTTPException?"PUBLIC_HTTP_EXCEPTION":"CODE_UNAVAILABLE");
       console.error("System recovery cleanup failed",{stage,code});
     }catch{/* Diagnostic observation must never replace the original error. */}
