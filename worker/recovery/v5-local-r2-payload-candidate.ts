@@ -28,6 +28,11 @@ import { r2ShadowByteWriter } from "../files/storage-adapters/r2-shadow-writer";
 import { cloudflareSha256 } from "../files/storage-adapters/cloudflare-sha256";
 import { FILE_REGISTRY_ROWID_CLAIMS_INTEGRITY_SQL } from "../../shared/contracts/export-file-authority";
 import { FILE_SHADOW_HEAD_INTEGRITY_SQL } from "../../shared/contracts/export-file-shadow";
+import { FILE_SHADOW_DEPENDENCY_SPECS } from "../../shared/contracts/file-shadow-schema";
+import { nativeV28SnapshotSql, buildFullExportV28FromSnapshot } from "../export-v28-core";
+import { portableBusinessSchemaV28, createFullExportV28 } from "../../shared/contracts/export-portable-runtime-v28";
+import { protectedLocalHistoryFromV5Image, validateSystemRecoveryImageV5 } from "../../shared/contracts/system-backup-v5";
+import { validateSystemBackupContentImageV28 } from "../../shared/contracts/system-backup-v28-content";
 
 
 const MAX_STATEMENTS = 128, MAX_GROUP_BYTES = 83 * 1024, DDL_GROUP = 16;
@@ -66,6 +71,7 @@ export interface V5LocalR2PayloadConstructionCandidate {
   schema: "v5-local-r2-fresh-payload-construction/1"; checkpointId: "portable-runtime/v28";
   targetId: string; schemaSha256: string; sourceImageSha256: string; destinationImageSha256: string;
   archiveSha256: string; publishedFiles: number; bytesPublished: number; persistedAttempts: true; jobAdmission: false;
+  fullV28EnvelopeValidated: true; immutableShadowHistoryPreserved: true;
   destinationInstallationId: string; tables: number; rows: number;
   targetLedger: "reviewed-code-catalog"; rawMigrationExecution: false;
   accountsDisabled: true; collaborationEnabled: false; localBindingsRestored: false;
@@ -321,8 +327,19 @@ export function createWorkerV5LocalR2PayloadCandidate(env: Env) {
         ensure(stableJson(prior) === stableJson(profileRow) && stableJson(record.records.content.tables.storage_profile_runtime
           .find(row => row.storage_profile_id === profile.id)) === stableJson(runtimeRow), "destination_history_collision");
       } else {
-        await batch([freshRegistryRowid(target, "storage_profiles"), ...recoveryDestinationProfileStatements(target, [profile])]);
+        const histories = (["storage_profiles", "storage_profile_runtime"] as const).map(table => {
+          const row = table === "storage_profiles" ? profileRow : runtimeRow, spec = FILE_SHADOW_DEPENDENCY_SPECS[table];
+          const dependencyKey = stableJson(spec.keyColumns.map(column => row[column]));
+          ensure(!record.records.content.tables.file_shadow_dependency_versions.some(version =>
+            version.dependency_kind === table && version.dependency_key === dependencyKey), "destination_dependency_history_collision");
+          return { dependency_kind: table, dependency_key: dependencyKey, revision: 1, present: 1,
+            snapshot_json: stableJson(Object.fromEntries(spec.snapshotColumns.map(column => [column, row[column]]))) };
+        });
+        await batch([freshRegistryRowid(target, "storage_profiles"), ...recoveryDestinationProfileStatements(target, [profile]),
+          ...histories.map(row => target.prepare("INSERT INTO file_shadow_dependency_versions(dependency_kind,dependency_key,revision,present,snapshot_json) VALUES(?,?,?,?,?)")
+            .bind(row.dependency_kind, row.dependency_key, row.revision, row.present, row.snapshot_json))]);
         append(record, "storage_profiles", profileRow); append(record, "storage_profile_runtime", runtimeRow);
+        for (const row of histories) append(record, "file_shadow_dependency_versions", row);
       }
     }
     for (const file of record.files) {
@@ -420,25 +437,9 @@ export function createWorkerV5LocalR2PayloadCandidate(env: Env) {
         append(record, "file_registry_rowid_claims", { registry_name: table, claimed_rowid: row.rowid });
       }
     }
-    await batch([target.prepare(`WITH sources AS MATERIALIZED(SELECT consumer_kind,consumer_id,consumer_sub_id,file_slot,source_json FROM file_shadow_sources)
-      UPDATE file_shadow_occurrences SET source_json=(SELECT s.source_json FROM sources s WHERE s.consumer_kind=file_shadow_occurrences.consumer_kind AND s.consumer_id=file_shadow_occurrences.consumer_id AND s.consumer_sub_id=file_shadow_occurrences.consumer_sub_id AND s.file_slot=file_shadow_occurrences.file_slot)
-      WHERE id IN(SELECT occurrence_id FROM file_shadow_heads WHERE present=1) AND EXISTS(SELECT 1 FROM sources s WHERE s.consumer_kind=file_shadow_occurrences.consumer_kind AND s.consumer_id=file_shadow_occurrences.consumer_id AND s.consumer_sub_id=file_shadow_occurrences.consumer_sub_id AND s.file_slot=file_shadow_occurrences.file_slot)`),
-      target.prepare("UPDATE file_shadow_heads SET source_json=(SELECT o.source_json FROM file_shadow_occurrences o WHERE o.id=file_shadow_heads.occurrence_id) WHERE present=1")]);
-    for (const table of ["file_shadow_occurrences", "file_shadow_heads"]) {
-      const spec = catalog.tables.find(spec => spec.name === table); ensure(spec, "shadow_table");
-      const actual = await readTable(target, spec), sourceIndex = spec.columns.indexOf("source_json");
-      for (const row of actual.rows) {
-        const original = record.destinationTables[table].rows.find(original => spec.withoutRowid
-          ? (spec.primaryKeyColumns ?? spec.columns).every(column => stableJson(original.cells[spec.columns.indexOf(column)])
-            === stableJson(row.cells[spec.columns.indexOf(column)])) : original.rowid === row.rowid);
-        if (!original || stableJson(original.cells[sourceIndex]) === stableJson(row.cells[sourceIndex])) continue;
-        const sourceJson = row.cells[sourceIndex]; ensure(sourceJson.type === "text", "derived_shadow_source");
-        const keys = table === "file_shadow_occurrences" ? ["id"] : ["consumer_kind", "consumer_id", "consumer_sub_id", "file_slot"];
-        const values: Record<string, string> = {};
-        for (const key of keys) { const cell = row.cells[spec.columns.indexOf(key)]; ensure(cell.type === "text", "derived_shadow_key"); values[key] = cell.value; }
-        record.changes.push({ table, keys: values, column: "source_json", value: sourceJson.value });
-      }
-    }
+    // All old shadow occurrences, closures, heads and dependency rows remain
+    // byte-exact. This first slice rejects current heads before construction;
+    // a later bound-File slice must append proper successor history instead.
     // Source is read-only custody/authority; no source database statement above
     // is a write. The captured source reference is rechecked before returning.
     ensure(source === primaryD1(sourceBinding), "source_binding_changed");
@@ -475,6 +476,28 @@ export function createWorkerV5LocalR2PayloadCandidate(env: Env) {
     ensure(record.files.every(file => history.publishedLocations.has(file.locationId)), "published_mapping_evidence");
     ensure((await target.prepare(FILE_REGISTRY_ROWID_CLAIMS_INTEGRITY_SQL).first<{ invalid_count: number }>())?.invalid_count === 0, "registry_claims_invalid");
     ensure((await target.prepare(FILE_SHADOW_HEAD_INTEGRITY_SQL).first<{ invalid_count: number }>())?.invalid_count === 0, "derived_shadow_heads_invalid");
+    // A classified typed image alone is insufficient for V28 rebackup. Admit
+    // the entire current business envelope and its protected LOCAL history from
+    // one original primary batch, before the destination ledger is sealed.
+    const contentSql = nativeV28SnapshotSql(), nonlocal = catalog.tables.filter(spec => !spec.local);
+    const snapshot = await target.batch([...contentSql, ...nonlocal.map(recoveryTableSnapshotSql)].map(sql => target.prepare(sql)));
+    ensure(snapshot.length === contentSql.length + nonlocal.length && snapshot.every(result => result.success), "full_v28_snapshot");
+    const imageTables = Object.fromEntries(nonlocal.map((spec, index) => [spec.name, { columns: [...spec.columns],
+      rows: snapshot[contentSql.length + index].results.map(value => {
+        const row = value as { rowid: string | null; cells: string }; return { rowid: row.rowid, cells: JSON.parse(row.cells) };
+      }) }]));
+    const protectedHistory = protectedLocalHistoryFromV5Image({ ...record.records.image, tables: imageTables });
+    let applicationObjects: ExportSchemaObject[] | undefined;
+    const business = await buildFullExportV28FromSnapshot(snapshot.slice(0, contentSql.length), { backupHoldOwner: null,
+      protectedLocalHistory: protectedHistory, async projectSchema(objects) {
+        const inspected = await inspectV28CloudflareSchemaCandidate(objects);
+        applicationObjects = inspected.applicationObjects; return portableBusinessSchemaV28(applicationObjects);
+      } });
+    ensure(applicationObjects, "full_v28_schema");
+    const content = await createFullExportV28(business, applicationObjects, protectedHistory);
+    const image = validateSystemRecoveryImageV5({ version: 5, kind: "system-recovery-image", checkpointId: catalog.checkpointId,
+      schemaSha256: catalog.schemaSha256, sourceSnapshotClock: content.artifacts.sourceSchema.value.snapshotClock, tables: imageTables });
+    await validateSystemBackupContentImageV28(content, image);
   }
   async function constructOwned(record: OwnedAdmission, current: () => Promise<boolean>, signal?: AbortSignal): Promise<V5LocalR2PayloadConstructionCandidate> {
     const started = Date.now(), deadline = started + MAX_CONSTRUCTION_MS;
@@ -545,6 +568,7 @@ export function createWorkerV5LocalR2PayloadCandidate(env: Env) {
       destinationImageSha256, destinationInstallationId: record.admission.destinationInstallationId,
       archiveSha256: record.archive.sha256, publishedFiles: record.files.length,
       bytesPublished: record.files.reduce((sum, file) => sum + file.byteSize, 0), persistedAttempts: true, jobAdmission: false,
+      fullV28EnvelopeValidated: true, immutableShadowHistoryPreserved: true,
       tables: record.admission.tables,
       rows: record.admission.rows + Object.values(record.appends).reduce((sum, rows) => sum + rows.length, 0), targetLedger: "reviewed-code-catalog", rawMigrationExecution: false,
       accountsDisabled: true, collaborationEnabled: false, localBindingsRestored: false, executionEnabled: false, maintenanceState: "fenced",

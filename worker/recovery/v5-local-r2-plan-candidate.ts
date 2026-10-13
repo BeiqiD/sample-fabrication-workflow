@@ -15,6 +15,10 @@ export async function planV5LocalR2FilesCandidate(records: SystemBackupRecordsV5
   mappings: readonly V5R2PayloadMappingCandidate[], profiles: readonly RecoveryDestinationProfile[], incarnation: string) {
   ensure(manifest.completeness === "complete" && manifest.files.length <= 100 && records.image.version === 5
     && records.image.checkpointId === "portable-runtime/v28", "version_or_inventory");
+  ensure(records.image.tables.file_shadow_heads.rows.every(row => {
+    const column = records.image.tables.file_shadow_heads.columns.indexOf("present");
+    return row.cells[column].type === "integer" && row.cells[column].value === "0";
+  }), "active_shadow_heads_not_admitted");
   const sourceImageSha256 = await sha256Hex(stableJson(records.image));
   const result: RecoveryPlannedFile[] = [];
   for (const payload of manifest.files) {
@@ -27,6 +31,7 @@ export async function planV5LocalR2FilesCandidate(records: SystemBackupRecordsV5
     // This finite first byte-publication slice preserves ordinary opaque Files.
     // Imported preview-origin conversion and legacy identity creation are later.
     ensure(source.purpose !== "derived_preview", "preview_origin_conversion_not_admitted");
+    ensure(payload.bindings.length === 0 && source.consumerBindings.length === 0, "bound_files_not_admitted");
     const file = records.content.tables.files.find(row => row.id === source.fileId);
     const publication = records.content.tables.file_publications.find(row => row.file_id === source.fileId);
     const location = records.content.tables.file_locations.find(row => row.id === source.locationId);
@@ -77,12 +82,12 @@ export async function planV5LocalR2FilesCandidate(records: SystemBackupRecordsV5
   ensure(result.reduce((sum, file) => sum + file.byteSize, 0) <= 96 * 1024 * 1024, "copy_budget");
   return result;
 }
-export interface V5PayloadImageChangeCandidate { table: string; keys: Record<string, string>; column: string; value: string }
+export interface V5PayloadImageChangeCandidate { table: "file_publications"; keys: { file_id: string }; column: "active_location_id"; value: string }
 const value = (cell: SystemRecoveryCell): string | null => cell.type === "null" ? null : cell.value;
 const rowKey = (spec: RecoveryTableSpec, row: { rowid: string | null; cells: SystemRecoveryCell[] }) => spec.withoutRowid
   ? stableJson((spec.primaryKeyColumns ?? spec.columns).map(column => row.cells[spec.columns.indexOf(column)])) : row.rowid;
-/** Preserve old rowids and every old typed cell except the exact mapped active
- * head and reviewed derived shadow addresses. Appended rows must match every
+/** Preserve old rowids and every old typed cell except the exact canonical
+ * File active-location mapping. Immutable shadow history has no exemption. Appended rows must match every
  * typed scalar of the code-owned publication plan; their new physical rowids
  * are subsequently covered by the complete immutable registry claim proof. */
 export function verifyV5PayloadImageCandidate(observed: Record<string, SystemRecoveryTable>,

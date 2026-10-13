@@ -89,7 +89,7 @@ const workerCode = String.raw`
       &&locator.storageProfileRevision===1&&locator.locationId===payload.source.locationId&&locator.objectKey===payload.source.objectKey,'original_local_locator');
     const aliases=records.content.tables.assets.filter(row=>row.file_id===fileId),bindings=payload.bindings;
     const expectedAppends={storage_profiles:1,storage_profile_runtime:1,file_locations:1,file_location_publications:1,
-      recovery_file_evidence:1,recovery_file_alias_evidence:aliases.length,recovery_file_binding_evidence:bindings.length,file_registry_rowid_claims:2};
+      recovery_file_evidence:1,recovery_file_alias_evidence:aliases.length,recovery_file_binding_evidence:bindings.length,file_registry_rowid_claims:2,file_shadow_dependency_versions:2};
     let oldRowsExact=true,oldRowidsExact=true,appendsClosed=true,accountRows=0,disabledAccounts=0;
     for(const spec of catalog.tables.filter(spec=>!spec.local)){
       const expected=records.image.tables[spec.name],actual=await table(target,spec);
@@ -104,12 +104,6 @@ const workerCode = String.raw`
           if(spec.name==='local_accounts'&&name==='enabled')allowed=right.type==='integer'&&right.value==='0';
           if(spec.name==='file_publications'&&name==='active_location_id')allowed=cellValue(before.cells[spec.columns.indexOf('file_id')])===fileId
             &&right.type==='text'&&right.value===proof.location_id;
-          if((spec.name==='file_shadow_heads'||spec.name==='file_shadow_occurrences')&&name==='source_json'){
-            const names=['consumer_kind','consumer_id','consumer_sub_id','file_slot'];
-            const values=names.map(name=>cellValue(before.cells[spec.columns.indexOf(name)]));
-            const projection=await target.prepare('SELECT source_json FROM file_shadow_sources WHERE consumer_kind=? AND consumer_id=? AND consumer_sub_id=? AND file_slot=?')
-              .bind(...values).first();allowed=projection&&right.type==='text'&&projection.source_json===right.value;
-          }
           oldRowsExact&&=Boolean(allowed);
         }
       }
@@ -161,6 +155,14 @@ const workerCode = String.raw`
       .bind(mapping.destinationProfileId).first();
     require(targetProfile.adapter_type==='r2'&&targetProfile.namespace_identity===mapping.destinationNamespaceIdentity
       &&targetProfile.runtime_state==='read_only'&&targetProfile.activated_at===null,'destination_read_only_default');
+    for(const family of ['storage_profiles','storage_profile_runtime']){
+      const history=await target.prepare('SELECT revision,present,snapshot_json FROM file_shadow_dependency_versions WHERE dependency_kind=? AND dependency_key=?')
+        .bind(family,JSON.stringify([mapping.destinationProfileId])).all();
+      require(history.success&&history.results.length===1&&history.results[0].revision===1&&history.results[0].present===1,'new_dependency_revision');
+      const expected=family==='storage_profiles'?await target.prepare('SELECT id,adapter_type,namespace_identity,configuration_source,configuration_revision,state,created_at FROM storage_profiles WHERE id=?').bind(mapping.destinationProfileId).first()
+        :await target.prepare('SELECT storage_profile_id,state,registered_at,activated_at,retired_at FROM storage_profile_runtime WHERE storage_profile_id=?').bind(mapping.destinationProfileId).first();
+      require(stableJson(JSON.parse(history.results[0].snapshot_json))===stableJson(expected),'new_exact_dependency_snapshot');
+    }
     const fk=await target.prepare('PRAGMA foreign_key_check').all();
     const checkedTables=['sqlite_schema',...objects.results.filter(object=>object.type==='table'&&object.name!=='_cf_KV'&&object.name!=='_cf_METADATA').map(object=>object.name)].sort();
     for(const name of checkedTables){const quick=await target.prepare('PRAGMA quick_check("'+name.replaceAll('"','""')+'")').all();
@@ -422,7 +424,7 @@ async function run(fault: boolean) {
       expect(answer.receipt).toMatchObject({ checkpointId: "portable-runtime/v28", publishedFiles: 1, bytesPublished: 68,
         archiveSha256: input.expectedSha256, accountsDisabled: true, collaborationEnabled: false, localBindingsRestored: false,
         executionEnabled: false, maintenanceState: "fenced", payloadPublication: true, persistedAttempts: true,
-        jobAdmission: false, recoveryReady: false, rawMigrationExecution: false, targetLedger: "reviewed-code-catalog", deploymentChanged: false });
+        jobAdmission: false, recoveryReady: false, fullV28EnvelopeValidated: true, immutableShadowHistoryPreserved: true, rawMigrationExecution: false, targetLedger: "reviewed-code-catalog", deploymentChanged: false });
       const proof = object(answer.proof);
       for (const key of ["oldRowsExact", "oldRowidsExact", "appendsClosed", "emptyLocal", "inertDefaults", "foreignKeys", "tableIntegrity"]) expect(proof[key], key).toBe(true);
       expect(proof.globalNativeIntegrity).toBe(false); expect(proof.accountRows).toBeGreaterThan(0); expect(proof.disabledAccounts).toBe(proof.accountRows);
