@@ -1,5 +1,35 @@
 # Product goal and roadmap
 
+**Measured development checkpoint — 2026-10-13 13:13 UTC.**
+[PR #303](https://github.com/BeiqiD/sample-fabrication-workflow/pull/303) merged
+qualified `03ed386b` into development at `ba1c92da`. Its dedicated original
+process case, four own Verify/Map workflows and all15 contexts passed. The case
+observed three real120-second Package slots, graceful restart, exact export bytes
+and cancellation/hold release; it does not establish Recovery cadence or F3.
+
+P1/P2 now have a genuine local pass at `a0e002c3`: two original native R2/Node
+HTTP cases, each with the complete15-File graph, exact payloads/relations and
+fresh identities. Both original first closes and read-only whole checks of the
+actual closed D1 files passed. Dedicated/current development CI for this slice
+is still being prepared; historical sources keep their recorded failures.
+
+[Draft #304](https://github.com/BeiqiD/sample-fabrication-workflow/pull/304)
+source `1aec62f9` passed dedicated run38402334096: full types, original parser3,
+Recovery configuration8, four compiled help entries and one nonempty genuine
+source-fence/unknown-publication/reconciliation/CLI-restart/public-reupload case.
+Its own complete Verify runs remain pending. This qualifies the Recovery-only
+source/validation slice and one Node F2 path, not target restoration, same-app
+business-writer drain or automatic Recovery120-second cadence.
+
+The formal V28/V5 fresh D1 constructor at `6243c2d0` passed two original native
+cases using genuine zero-File and nonempty LOCAL Node archives, exact inert typed
+images, explicit R2 mapping plans and closed-original-file checks. R2 payload
+publication, final mapping/ready proofs, job integration and matching Worker V5
+capture remain unqualified. P6/P7, remaining P8/P9 and P10–P12 completion, plus
+F1/F3/F4/F5/F6, continue as separate bounded work. Main/production activation is
+outside the authorized development scope. This checkpoint supersedes older
+SOURCE/UNRUN statements only for the exact measured portions above.
+
 **Current resumed interoperability and online recovery goal — 2026-10-13 UTC.**
 The owner now requests completing the bounded Node/SQLite/local ↔ Worker/D1/R2
 interoperability and Node online-recovery milestone before final frontend closure

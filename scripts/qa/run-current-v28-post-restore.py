@@ -15,20 +15,25 @@ PACKAGE_BRANCH = 'refs/heads/codex/node-research-package-http'
 PACKAGE_PROCESS_BRANCH = 'refs/heads/codex/node-package-process'
 RECOVERY_BRANCH = 'refs/heads/codex/node-online-recovery'
 RECOVERY_BASE = 'ba1c92daa454d5d6b33f5723eff4268f9175ca31'
+PUBLIC_PACKAGE_PAIR_BRANCH = 'refs/heads/codex/node-r2-package-pair'
+PUBLIC_PACKAGE_PAIR_BASE = 'ba1c92daa454d5d6b33f5723eff4268f9175ca31'
 PACKAGE_PROCESS_BASE = '4776095f4351c2d108f485600bd43933d7dc69c6'
 PACKAGE_BASE = 'f55faa56baa2781457d6d6a8f06127fd38db00d6'
 NONEMPTY_BASE = 'ab4f6cfa9721a5bf7fdcd8e7940a916ea8d520cf'
 R2_PAIR_BRANCH = 'refs/heads/codex/portable-v26-r2-node-backup-one'
 R2_PAIR_BASE = '33be3642ed8e72efba8269a4ea718b37b0eafd44'
 MAINTENANCE_BASE = 'ebc19cf3f61b12625bc2a36086667376b41b9255'
-NATIVE_STAGES = ('preparation', 'operators', 'maintenance', 'main', 'nonempty', 'r2pair', 'package-http', 'package-process', 'recovery-first')
-TIMED_CASE_STAGES = (*(stage for stage in NATIVE_STAGES if stage not in ('package-http', 'package-process', 'recovery-first')), 'maintenance-parser', 'config-unit', 'capture-parser', 'recovery-config')
+NATIVE_STAGES = ('preparation', 'operators', 'maintenance', 'main', 'nonempty', 'r2pair', 'package-http', 'package-process', 'recovery-first', 'public-package-pair')
+TIMED_CASE_STAGES = (*(stage for stage in NATIVE_STAGES if stage not in ('package-http', 'package-process', 'recovery-first', 'public-package-pair')), 'maintenance-parser', 'config-unit', 'capture-parser', 'recovery-config')
 FLOOR, NATIVE_BEFORE = 536870912, 603979776
 HELP = {'help-main': ('main.mjs', 'Usage: node main.mjs --config '),
  'help-identity': ('identity-cli.cjs', 'Usage: local-identity '),
  'help-installation': ('installation-cli.cjs', 'Usage: local-installation upgrade '),
  'help-restore': ('restore-v28-cli.cjs', 'Usage: offline-v28 restore ')}
 CASES = {
+ 'public-package-pair': ('server/packages/public-r2-node-pair.qualification.ts', [
+  'imports a genuine native R2 exported15-File Package through ordinary Node session and CSRF HTTP',
+  'imports a genuine native Node exported15-File Package through fresh R2 Access and public HTTP']),
  'recovery-parser': ('server/node-runtime-command.test.ts', [
   'retains the existing absent-selector command and numeric owner pin',
   'accepts only the three named V28 surfaces in the existing unordered pair syntax',
@@ -86,11 +91,11 @@ def save(path, value):
  path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
 
 def source():
- assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH, R2_PAIR_BRANCH, PACKAGE_BRANCH, PACKAGE_PROCESS_BRANCH, RECOVERY_BRANCH)
+ assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH, R2_PAIR_BRANCH, PACKAGE_BRANCH, PACKAGE_PROCESS_BRANCH, RECOVERY_BRANCH, PUBLIC_PACKAGE_PAIR_BRANCH)
  head = os.environ['GITHUB_SHA']; assert re.fullmatch('[0-9a-f]{40}', head)
  env = dict(os.environ, GIT_OPTIONAL_LOCKS='0')
  assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, env=env).decode().strip() == head
- base = RECOVERY_BASE if os.environ['GITHUB_REF'] == RECOVERY_BRANCH else PACKAGE_PROCESS_BASE if os.environ['GITHUB_REF'] == PACKAGE_PROCESS_BRANCH else PACKAGE_BASE if os.environ['GITHUB_REF'] == PACKAGE_BRANCH else R2_PAIR_BASE if os.environ['GITHUB_REF'] == R2_PAIR_BRANCH else NONEMPTY_BASE if os.environ['GITHUB_REF'] == NONEMPTY_BRANCH else MAINTENANCE_BASE if os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH) else BASE
+ base = PUBLIC_PACKAGE_PAIR_BASE if os.environ['GITHUB_REF'] == PUBLIC_PACKAGE_PAIR_BRANCH else RECOVERY_BASE if os.environ['GITHUB_REF'] == RECOVERY_BRANCH else PACKAGE_PROCESS_BASE if os.environ['GITHUB_REF'] == PACKAGE_PROCESS_BRANCH else PACKAGE_BASE if os.environ['GITHUB_REF'] == PACKAGE_BRANCH else R2_PAIR_BASE if os.environ['GITHUB_REF'] == R2_PAIR_BRANCH else NONEMPTY_BASE if os.environ['GITHUB_REF'] == NONEMPTY_BRANCH else MAINTENANCE_BASE if os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH) else BASE
  subprocess.check_call(['git', 'merge-base', '--is-ancestor', base, head], cwd=ROOT, env=env)
  return head
 
@@ -118,6 +123,95 @@ def census(stage, path):
  result['exactOriginalSelection'] = [str(Path(file['name']).resolve()) for file in value['testResults']] == [str(ROOT / expected_file)] and sorted(result['titles']) == sorted(titles)
  result['pass'] = result['exactOriginalSelection'] and value.get('success') is True and result['actualPassed'] == len(titles) and result['actualFailed'] == result['actualPending'] == value.get('numPendingTests') == 0
  return result
+
+def public_package_pair_proofs(fixture):
+ # Only this new stage reads these fresh receipts, after original child close,
+ # zero exit and the exact original two-case census. No fixture is removed.
+ paths = sorted(fixture.glob('public-r2-node-package-*/*.json'))
+ assert len(paths) == 2
+ catalog_text = (ROOT / 'shared/contracts/portable-runtime-v26-recovery-catalog.ts').read_text()
+ offset = catalog_text.index('export const PORTABLE_RUNTIME_RECOVERY_TABLES:')
+ catalog, _ = json.JSONDecoder().raw_decode(catalog_text[catalog_text.index(' = ', offset) + 3:])
+ required_tables = sorted(['sqlite_schema', *(row['name'] for row in catalog)])
+ expected = {'r2_to_node': ('r2-to-node.json', 'r2', 'local'), 'node_to_r2': ('node-to-r2.json', 'local', 'r2')}
+ proofs = {}
+ for path in paths:
+  private(path.parent)
+  descriptor = path.lstat()
+  assert path.resolve() == path and path.is_relative_to(fixture) and stat.S_ISREG(descriptor.st_mode) and not path.is_symlink()
+  assert descriptor.st_uid == os.geteuid() and stat.S_IMODE(descriptor.st_mode) == 0o600 and descriptor.st_size <= 1048576
+  raw = path.read_bytes(); value = json.loads(raw)
+  direction = value['direction']; assert direction in expected and direction not in proofs
+  filename, source_provider, target_provider = expected[direction]
+  assert path.name == filename and value['schema'] == 'genuine-current-public-r2-node-package-pair/1'
+  assert value['files'] == 15 and value['sourceProvider'] == source_provider and value['destinationProvider'] == target_provider
+  assert all(value[key] is True for key in ('actualNativeR2BytesVerified', 'exactOriginalStorePayloadsVerified',
+   'originalArchiveImportedWithoutRetagging', 'genuineNodeSessionAndCsrf', 'invalidCsrfDenied',
+   'exactTypedGraphAndIdentityReceipts', 'originalFirstCloseAcknowledged'))
+  assert value['scheduledCadence120SecondsQualified'] is False
+  for key in ('nativeSourceArchiveSha256', 'copiedNativeArchiveSha256'):
+   assert isinstance(value[key], str) and re.fullmatch('[0-9a-f]{64}', value[key])
+  assert isinstance(value['sourceInstallationId'], str) and isinstance(value['targetInstallationId'], str)
+  assert value['sourceInstallationId'] and value['targetInstallationId'] and value['sourceInstallationId'] != value['targetInstallationId']
+  assert len(value['sourceRoots']) == len(value['targetRoots']) == 2
+  actual = {}
+  for side, provider in (('source', source_provider), ('target', target_provider)):
+   files, captures = value[side + 'Files'], value[side + 'Captures']
+   assert len(files) == len(captures) == 15
+   file_ids = [row['result_file_id'] for row in files]
+   logical_ids = [row['logical_file_id'] for row in files]
+   capture_ids = [row['logical_file_id'] for row in captures]
+   assert all(isinstance(item, str) and item for item in [*file_ids, *logical_ids, *capture_ids])
+   assert len(set(file_ids)) == len(set(logical_ids)) == len(set(capture_ids)) == 15
+   assert sorted(row['source_file_id'] for row in captures) == sorted(file_ids)
+   for row in files:
+    assert row['actual_provider'] == provider and row['purpose'] == row['published_purpose']
+    assert row['target_profile_id'] == row['active_profile_id'] and isinstance(row['active_profile_id'], str) and row['active_profile_id']
+    assert isinstance(row['sha256'], str) and re.fullmatch('[0-9a-f]{64}', row['sha256']) and row['sha256'] == row['verified_sha256']
+    assert isinstance(row['byte_size'], int) and not isinstance(row['byte_size'], bool) and row['byte_size'] >= 0 and row['byte_size'] == row['verified_byte_size']
+   actual[side] = {'files': files, 'captures': captures, 'publishedFileCount': len(file_ids), 'distinctPublishedFileCount': len(set(file_ids)),
+    'capturedFileCount': len(captures), 'distinctCapturedFileCount': len(set(capture_ids))}
+  source_files = {row['result_file_id']: row for row in actual['source']['files']}
+  target_files = {row['logical_file_id']: row for row in actual['target']['files']}
+  assert set(target_files) == {row['logical_file_id'] for row in actual['source']['captures']}
+  for capture in actual['source']['captures']:
+   original, copied = source_files[capture['source_file_id']], target_files[capture['logical_file_id']]
+   assert original['result_file_id'] != copied['result_file_id']
+   assert (original['purpose'], original['sha256'], original['byte_size']) == (copied['purpose'], copied['sha256'], copied['byte_size'])
+  source_root, target_root = Path(value['sourceFixture']), Path(value['destinationFixture'])
+  assert source_root != target_root and source_root.is_relative_to(fixture) and target_root.is_relative_to(fixture)
+  private(source_root); private(target_root)
+  native_root = source_root if source_provider == 'r2' else target_root
+  closed = value['closedD1Consistency']
+  assert closed['schema'] == 'genuine-closed-original-d1-consistency/1'
+  assert closed['originalRuntimeDisposeAndListenerRefusalAcknowledged'] is True
+  assert closed['nativeForeignKeyCheckRows'] == closed['closedFileForeignKeyCheckRows'] == 0 and closed['closedFileFullIntegrityCheck'] == 'ok'
+  assert closed['nativeCheckedTables'] in (required_tables, sorted([*required_tables, 'd1_migrations']))
+  assert len(closed['nativeCheckedTables']) == len(set(closed['nativeCheckedTables']))
+  for key in ('observedSchemaSha256', 'databaseSha256Before', 'databaseSha256After'):
+   assert isinstance(closed[key], str) and re.fullmatch('[0-9a-f]{64}', closed[key])
+  assert closed['databaseSha256Before'] == closed['databaseSha256After']
+  database = Path(closed['originalDatabaseFile'])
+  assert database.resolve() == database and database.is_relative_to(native_root / 'd1') and database.name != 'metadata.sqlite'
+  database_stat = database.lstat(); assert stat.S_ISREG(database_stat.st_mode) and not database.is_symlink()
+  digest = hashlib.sha256()
+  with database.open('rb') as original_file:
+   for chunk in iter(lambda: original_file.read(65536), b''): digest.update(chunk)
+  after_stat = database.lstat()
+  assert (after_stat.st_dev, after_stat.st_ino, after_stat.st_uid, after_stat.st_mode, after_stat.st_size, after_stat.st_mtime_ns, after_stat.st_ctime_ns) == (database_stat.st_dev, database_stat.st_ino, database_stat.st_uid, database_stat.st_mode, database_stat.st_size, database_stat.st_mtime_ns, database_stat.st_ctime_ns)
+  assert digest.hexdigest() == closed['databaseSha256After']
+  proofs[direction] = {'direction': direction, 'receiptPath': str(path), 'receiptSha256': hashlib.sha256(raw).hexdigest(),
+   'sourceProvider': source_provider, 'destinationProvider': target_provider,
+   'sourcePublishedFileCount': actual['source']['publishedFileCount'], 'sourceDistinctFileCount': actual['source']['distinctPublishedFileCount'],
+   'targetPublishedFileCount': actual['target']['publishedFileCount'], 'targetDistinctFileCount': actual['target']['distinctPublishedFileCount'],
+   'sourceCaptureCount': actual['source']['capturedFileCount'], 'targetCaptureCount': actual['target']['capturedFileCount'],
+   'sourceArchiveSha256': value['nativeSourceArchiveSha256'], 'destinationArchiveSha256': value['copiedNativeArchiveSha256'],
+   'originalFirstCloseAcknowledged': True, 'originalClosedD1File': str(database), 'originalClosedD1FileSha256': digest.hexdigest(),
+   'nativeCheckedTableCount': len(closed['nativeCheckedTables']), 'originalClosedD1FullIntegrityCheck': 'ok',
+   'genuineOrdinarySessionCsrfAndAccess': True, 'exactCapturedPayloadIdentityShaSizePurpose': True, 'scheduledCadenceQualified': False}
+ assert set(proofs) == set(expected)
+ return {'directions': [proofs[key] for key in ('r2_to_node', 'node_to_r2')], 'originalDirectionReceipts': 2,
+  'payloadFilesPerDirection': 15, 'publicationCountsReadFromOriginalArrays': True, 'originalFirstClosesAcknowledged': True}
 
 def original_diagnostic_lines(message):
  # Allow only diagnostic text with closed scalar/status values and source paths.
@@ -202,6 +296,8 @@ def original_native_failure_diagnostics(out):
 
 def run(stage, out, run_root):
  head = source()
+ if os.environ['GITHUB_REF'] == PUBLIC_PACKAGE_PAIR_BRANCH: assert stage in ('types', 'public-package-pair')
+ if stage == 'public-package-pair': assert os.environ['GITHUB_REF'] == PUBLIC_PACKAGE_PAIR_BRANCH
  if os.environ['GITHUB_REF'] == RECOVERY_BRANCH: assert stage in ('types', 'recovery-parser', 'recovery-config', 'recovery-first', *HELP)
  if stage in ('recovery-parser', 'recovery-config', 'recovery-first'): assert os.environ['GITHUB_REF'] == RECOVERY_BRANCH
  if stage == 'package-http': assert os.environ['GITHUB_REF'] == PACKAGE_BRANCH
@@ -224,7 +320,12 @@ def run(stage, out, run_root):
   CURRENT_V28_CANONICAL_COMMENT_FIXTURE_PARENT=str(fixture), NODE_PROTOTYPE_FILESYSTEM_ROOT_OWNER_UID=str(Path('/').lstat().st_uid),
   NODE_OFFLINE_V28_DISTRIBUTION=str(ROOT / 'dist-node/distribution'),
   CURRENT_V28_POST_RESTORE_PREPARATION_RECEIPT=str(run_root / 'preparation-inputs.json'), NO_COLOR='1', FORCE_COLOR='0')
- if stage in ('package-http', 'package-process'): env['NODE_PROTOTYPE_FIXTURE_PARENT'] = str(fixture)
+ if stage in ('package-http', 'package-process', 'public-package-pair'): env['NODE_PROTOTYPE_FIXTURE_PARENT'] = str(fixture)
+ if stage == 'public-package-pair':
+  prior = json.loads((run_root / 'types/receipt.json').read_bytes())
+  assert prior['status'] == 'PASS' and prior['stage'] == 'types' and prior['head'] == head
+  assert prior['originalChildWaited'] and prior['exitCode'] == 0 and prior['noFixtureRemoval']
+  assert not list(fixture.glob('public-r2-node-package-*/*.json'))
  if stage == 'recovery-first':
   # These are exact same-head original closed children, not inherited results.
   for previous, count in [('types', None), ('recovery-parser', 3), ('recovery-config', 8), *((help_stage, None) for help_stage in HELP)]:
@@ -291,6 +392,7 @@ def run(stage, out, run_root):
    'r2pair': 'current-v26-r2-node-pair.vitest.config.mts',
    'package-http': 'node-package-http-qualification.vitest.config.mts',
    'package-process': 'node-package-process-qualification.vitest.config.mts',
+   'public-package-pair': 'node-public-r2-package-pair.vitest.config.mts',
    'recovery-first': 'current-node-v28-recovery-first.vitest.config.mts'}[stage],
   '--reporter=verbose', '--reporter=json', '--outputFile.json=' + str(raw)]
  budget = 1050 if stage == 'package-process' else 20 if stage in HELP else 60 if stage == 'types' else 90 if stage == 'capture-parser' else 180
@@ -300,6 +402,8 @@ def run(stage, out, run_root):
   'hookMs': 10000 if stage in ('package-http', 'package-process') else 20000 if stage in TIMED_CASE_STAGES else None, 'minimumBeforeChild': minimum,
   'filesystemRootOwnerUid': Path('/').lstat().st_uid, 'noFixtureRemoval': True, 'sourceFileBackupQualified': False}
  if stage == 'r2pair': record['r2NodePairQualified'] = False
+ if stage == 'public-package-pair': record.update(publicPackagePairQualified=False, caseMs=60000, hookMs=20000, defaultCaseMs=60000, originalCases=2,
+  scope='Genuine public R2/D1 Access and ordinary Node SQLite session/CSRF; both nonempty15File native Package directions; exact graph/File bytes and closed original D1 consistency; finite independent original emitters only, no elapsed120s cadence, corruption fault or stopped-before-graph restart claim.')
  # Original d723 default5s failure retained full work through strict15payload validation at12.265s.
  # Only the final case overrides20s; the stage argv/default5s, hook10s and outer180s remain.
  if stage == 'package-http': record.update(defaultCaseMs=5000,
@@ -342,6 +446,7 @@ def run(stage, out, run_root):
    assert original_close() and code == 0
   if stage in CASES:
    record['actualResults'] = census(stage, raw); assert record['actualResults']['pass']
+  if stage == 'public-package-pair': record['actualPublicPackagePair'] = public_package_pair_proofs(fixture)
   if stage == 'recovery-first':
    proof = json.loads((run_root / 'recovery-first-inputs.json').read_bytes())
    assert proof['kind'] == 'current-node-v28-recovery-only-cli-kernel/1' and proof['sourceFileCount'] == 1
@@ -413,12 +518,13 @@ def run(stage, out, run_root):
    if stage == 'nonempty': record['sourceFileBackupQualified'] = bool(okay)
    if stage == 'r2pair': record['r2NodePairQualified'] = bool(okay)
    if stage == 'recovery-first': record['recoveryOnlyQualified'] = bool(okay)
+   if stage == 'public-package-pair': record['publicPackagePairQualified'] = bool(okay)
    record['status'] = 'PASS' if okay else 'FAILED_OR_UNRESOLVED'
    save(out / 'receipt.json', record)
   finally:
    for number, handler in handlers.items(): signal.signal(number, handler)
  summary = {'stage': stage, 'status': record['status'], 'receipt': str(out / 'receipt.json')}
- for key in ('actualResults', 'actualHelp', 'firstFailure', 'rawCensusFailure', 'originalCloseError', 'floorOrPrivateIdentityFailure'):
+ for key in ('actualResults', 'actualHelp', 'actualPublicPackagePair', 'firstFailure', 'rawCensusFailure', 'originalCloseError', 'floorOrPrivateIdentityFailure'):
   if key in record: summary[key] = record[key]
  if not okay and raw.exists() and stage in CASES and close_result is True and record.get('originalChildWaited') is True and 'actualResults' in record and not custody.active(record['finalGroupSnapshot']):
   try:
@@ -430,6 +536,6 @@ def run(stage, out, run_root):
  return 0 if okay else 1
 
 if __name__ == '__main__':
- parser = argparse.ArgumentParser(); parser.add_argument('--stage', choices=('types', 'parser', 'capture-parser', 'preparation', 'operators', 'maintenance-parser', 'maintenance', 'config-unit', 'main', 'nonempty', 'r2pair', 'package-http', 'package-process', 'recovery-parser', 'recovery-config', 'recovery-first', *HELP), required=True)
+ parser = argparse.ArgumentParser(); parser.add_argument('--stage', choices=('types', 'parser', 'capture-parser', 'preparation', 'operators', 'maintenance-parser', 'maintenance', 'config-unit', 'main', 'nonempty', 'r2pair', 'package-http', 'package-process', 'public-package-pair', 'recovery-parser', 'recovery-config', 'recovery-first', *HELP), required=True)
  parser.add_argument('--run-root', type=Path, required=True); args = parser.parse_args()
  raise SystemExit(run(args.stage, args.run_root / args.stage, args.run_root))

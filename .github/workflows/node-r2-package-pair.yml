@@ -1,0 +1,52 @@
+name: Node and R2 genuine public Package pair
+
+on:
+  push:
+    branches: [codex/node-r2-package-pair]
+
+permissions:
+  contents: read
+
+jobs:
+  genuine-public-package-pair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      NO_COLOR: '1'
+      FORCE_COLOR: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+          cache: npm
+      - name: Install the exact committed dependencies
+        run: npm ci
+      - name: Reserve a fresh private original-owned Package pair evidence root
+        shell: bash
+        run: |
+          package_pair_run_root="$HOME/.node-r2-package-pair-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir -m 700 "$package_pair_run_root"
+          printf 'PACKAGE_PAIR_RUN_ROOT=%s\n' "$package_pair_run_root" >> "$GITHUB_ENV"
+      - name: Check full current server and runtime types
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage types --run-root "$PACKAGE_PAIR_RUN_ROOT"
+      - name: Two original nonempty fifteen-File public Package directions
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage public-package-pair --run-root "$PACKAGE_PAIR_RUN_ROOT"
+      - name: Preserve original results, closed-child custody and both direction receipts
+        if: ${{ always() && env.PACKAGE_PAIR_RUN_ROOT != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-r2-package-pair-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          include-hidden-files: true
+          path: |
+            ${{ env.PACKAGE_PAIR_RUN_ROOT }}/types/receipt.json
+            ${{ env.PACKAGE_PAIR_RUN_ROOT }}/types/original*.log
+            ${{ env.PACKAGE_PAIR_RUN_ROOT }}/public-package-pair/receipt.json
+            ${{ env.PACKAGE_PAIR_RUN_ROOT }}/public-package-pair/original*.log
+            ${{ env.PACKAGE_PAIR_RUN_ROOT }}/public-package-pair/original-results.json
+            ${{ env.PACKAGE_PAIR_RUN_ROOT }}/private-fixture/public-r2-node-package-*/*.json
