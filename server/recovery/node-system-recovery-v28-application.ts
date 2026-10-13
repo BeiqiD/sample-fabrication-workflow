@@ -34,7 +34,7 @@ import { stableJson } from "../../shared/domain/content-addressing.ts";
 import { runBoundedSystemRecoveryReadAction } from "../../worker/recovery/kernel.ts";
 import { captureQuiescedNodeSystemBackupV28Candidate } from "./snapshot-v28-candidate.ts";
 import { sourceBackupCheckpointV5 } from "../../shared/contracts/system-backup-v5.ts";
-import { assertNodeV28SourceBarrierBinding, type createNodeV28SourceBarrier } from "./node-v28-source-barrier.ts";
+import { assertNodeV28SourceBarrierBinding, createNodeV28BorrowedRecoveryGuard, type createNodeV28SourceBarrier } from "./node-v28-source-barrier.ts";
 import type { NodeV28OwnedJobPort } from "../jobs/node-v28-job-scheduler.ts";
 
 export const NODE_V28_RECOVERY_SURFACE = Object.freeze({ kind: "node-v28-recovery-only/1" as const,
@@ -70,6 +70,7 @@ interface BorrowedContext {
   identity: ReturnType<typeof captureInstalledIdentityExecutionOwnerV28Candidate>;
   sourceBarrier: ReturnType<typeof createNodeV28SourceBarrier>;
   opening: LocalVolumeProfileOpening;
+  identityGuard: ReturnType<typeof createNodeV28BorrowedRecoveryGuard>;
   quarantine(error: unknown): void;
 }
 interface RecoveryEngine {
@@ -188,8 +189,9 @@ export function createNodeSystemRecoveryV28BorrowedChild(options: Omit<OriginalR
   const identity = captureInstalledIdentityExecutionOwnerV28Candidate(authority.identity, captured.database, captured.nativeDatabase, captured.admission);
   assertNodeV28SourceBarrierBinding(captured.sourceBarrier, captured.database, captured.nativeDatabase, captured.writerLease, captured.authentication);
   assertLocalVolumeProfileOpeningV28Binding(captured.opening, captured.database, captured.nativeDatabase, captured.writerLease, captured.authentication);
+  const identityGuard = createNodeV28BorrowedRecoveryGuard({ barrier: captured.sourceBarrier, opening: captured.opening, identity });
   const borrowed = Object.freeze({ authentication: captured.authentication, sourceBarrier: captured.sourceBarrier, identity, opening: captured.opening,
-    quarantine: captured.quarantine.bind(captured) });
+    identityGuard, quarantine: captured.quarantine.bind(captured) });
   return createRecoveryEngine({ ...captured, identityPolicy: identity.policy }, borrowed).then(engine => {
     const admitted = Object.freeze(routes.filter(route => route.path.startsWith("/api/system-recovery/"))
       .map(route => Object.freeze({ method: route.method, path: route.path })));
@@ -275,10 +277,12 @@ function createRecoveryEngine(options: Omit<OriginalRecoveryOptions, "hasher"> &
     if (owner.timer !== undefined) { clearTimeout(owner.timer); owner.timer = undefined; } };
   function physical(): void {
     if (!owner.active && !holdsOriginal() || owner.failed || assertNodeRuntimeConfigurationForProfile(configuration, profile) !== config) throw fail("Recovery admission is unavailable", 503);
-    identity?.assertCurrent(); assertLinuxWriterLeaseBinding(lease, database, native);
+    // Only this actual borrowed tuple shares the registered equivalent proof.
+    // Every boundary retains the original private barrier/opening lifetime and
+    // physical checks, and executes the complete live identity guard freshly.
+    if (borrowed) borrowed.identityGuard.assertCurrent(); else identity?.assertCurrent();
+    assertLinuxWriterLeaseBinding(lease, database, native);
     if (authentication && localAuthenticationIdentityAuthority(auth!) !== authentication) throw fail("Recovery authentication is unavailable", 503);
-    if (borrowed) assertNodeV28SourceBarrierBinding(borrowed.sourceBarrier, database, native, lease, borrowed.authentication);
-    if (borrowed) assertLocalVolumeProfileOpeningV28Binding(borrowed.opening, database, native, lease, borrowed.authentication);
   }
   function administrator(actor: string): boolean {
     try { physical(); return Boolean(native.prepare(`SELECT 1 FROM local_accounts a JOIN local_admin_grants g ON g.principal_id=a.principal_id

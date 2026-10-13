@@ -1,7 +1,9 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { DatabaseSync } from "node:sqlite";
 import { localAuthenticationIdentityAuthority } from "../auth/local-auth-http.ts";
-import { captureInstalledIdentityExecutionOwnerV28Candidate } from "../auth/installed-identity-execution-owner-v28-candidate.ts";
+import { captureInstalledIdentityExecutionOwnerV28Candidate, type InstalledIdentityExecutionOwnerV28Candidate } from "../auth/installed-identity-execution-owner-v28-candidate.ts";
+import { createLocalVolumeIdentityGuardV28Candidate, ownedLocalVolumeProfileContext,
+  type LocalVolumeProfileOpening } from "../storage/local-volume-profile-opening.ts";
 import { assertInstallationAdmission, type ReviewedInstallationAdmission } from "../migrations.ts";
 import { assertSqliteConnectionOwner, type SqliteCapability } from "../sqlite.ts";
 import { assertLinuxWriterLeaseBinding, type LinuxWriterLease } from "../operations/writer-lease.ts";
@@ -13,7 +15,9 @@ interface OriginalOwner { readonly closeOriginal: () => Promise<void>; close?: P
 const contexts = new AsyncLocalStorage<Frame>(), retained = new Set<object>(), claimed = new WeakMap<DatabaseSync, object>();
 interface BarrierBinding {
   readonly database: SqliteCapability; readonly nativeDatabase: DatabaseSync;
-  readonly writerLease: LinuxWriterLease; readonly authentication: object; assertCurrent(): void;
+  readonly writerLease: LinuxWriterLease; readonly authentication: object;
+  readonly admission: ReviewedInstallationAdmission; readonly identity: Readonly<InstalledIdentityExecutionOwnerV28Candidate>;
+  assertCurrent(): void; assertPhysicalCurrent(): void;
 }
 const issued = new WeakMap<object, Readonly<BarrierBinding>>();
 /** Validate the genuine reusable SOURCE child against the parent. This check
@@ -25,6 +29,30 @@ export function assertNodeV28SourceBarrierBinding(barrier: object, database: Sql
     || owner.writerLease !== writerLease || owner.authentication !== authentication)
     throw new Error("Original V28 source barrier binding is unavailable");
   owner.assertCurrent();
+}
+/** Concrete borrowed Recovery composition only. The actual private SOURCE
+ * binding derives every core/Native/lease/auth/admission field. The opening and
+ * Recovery owners must pass the original registered immutable tuple equality;
+ * every invocation then performs one fresh complete original identity proof.
+ * No caller callback, observed success or asynchronous proof is accepted. */
+export function createNodeV28BorrowedRecoveryGuard(options: {
+  barrier: object; opening: LocalVolumeProfileOpening; identity: Readonly<InstalledIdentityExecutionOwnerV28Candidate>;
+}): Readonly<{ assertCurrent(): void }> {
+  if (Object.keys(options).sort().join(",") !== "barrier,identity,opening")
+    throw new Error("Original V28 borrowed Recovery guard is unavailable");
+  const { barrier, opening, identity } = options;
+  const selected = issued.get(barrier), physical = ownedLocalVolumeProfileContext(opening);
+  if (!selected || physical.database !== selected.database || physical.nativeDatabase !== selected.nativeDatabase
+    || physical.writerLease !== selected.writerLease || physical.installationCheckpointId !== "portable-runtime/v28")
+    throw new Error("Original V28 borrowed Recovery guard binding is unavailable");
+  selected.assertPhysicalCurrent();
+  const group = createLocalVolumeIdentityGuardV28Candidate(opening, selected.authentication, selected.admission,
+    [selected.identity, identity]);
+  return Object.freeze({ assertCurrent() {
+    // Keep the actual barrier's private lifetime/auth/native/physical checks.
+    // The opening guard also retains its original closed state and sentinel.
+    selected.assertPhysicalCurrent(); group.assertCurrent();
+  } });
 }
 function sameWindow(left: NodeV28SourceWindow, right: NodeV28SourceWindow): boolean {
   return left.generation === right.generation && left.token === right.token;
@@ -182,7 +210,12 @@ export function createNodeV28SourceBarrier(options: {
   }
   const surface = Object.freeze({ runSource, retainInvocation, beginMaintenance, assertDrained, resumeAfterRelease, close,
     state() { return Object.freeze({ phase, pendingSourceOperations: operations.size, retainedSourceOwners: owners.size, drained }); } });
-  issued.set(surface, Object.freeze({ database, nativeDatabase, writerLease, authentication,
-    assertCurrent() { if (phase === "closed") throw new Error("Original V28 source barrier binding is closed"); physical(); } }));
+  issued.set(surface, Object.freeze({ database, nativeDatabase, writerLease, authentication, admission, identity,
+    assertCurrent() { if (phase === "closed") throw new Error("Original V28 source barrier binding is closed"); physical(); },
+    assertPhysicalCurrent() {
+      if (phase === "closed") throw new Error("Original V28 source barrier binding is closed");
+      assertSqliteConnectionOwner(database, nativeDatabase); assertLinuxWriterLeaseBinding(writerLease, database, nativeDatabase);
+      if (localAuthenticationIdentityAuthority(authentication) !== auth) throw new Error("Original V28 source identity changed");
+    } }));
   return surface;
 }
