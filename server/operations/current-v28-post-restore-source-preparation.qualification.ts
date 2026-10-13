@@ -8,8 +8,6 @@ import { NODE_RECOVERY_ARCHIVE_OPTIONS, nodeRecoveryArchiveSource } from '../../
 import { validateV28SystemBackupArchiveCandidate } from '../../shared/contracts/system-backup-v5-archive-admission';
 import { prepareGenuineFabubloxBaseline } from '../collaboration/current-final-fabublox-genuine-process.qualification-support';
 import { canonicalFileObject, retainedCanonicalFileCase } from '../collaboration/current-v28-canonical-comment-file.qualification-support';
-import { executeLocalV28MaintenanceCaptureCandidate, localV28MaintenanceCaptureProcessStateCandidate,
-  parseLocalV28MaintenanceCaptureCommandCandidate } from './local-v28-maintenance-capture-operator-candidate.ts';
 
 // New source preparation only. Root must first build/admit the CURRENT fixed
 // four-entry distribution; no historical V5 archive/target or producer result
@@ -24,12 +22,11 @@ afterEach(() => {
   if (cliOwners.size) throw new AggregateError([...cliOwners].map(owner => owner.originalClose ?? owner.constructionFailure),
     'Original bundled restoration ownership remains unproven');
 });
-async function restoreCurrentCli(distribution: string, archive: string, destination: string, sha256: string, rootUid: number) {
+async function runCurrentCli(distribution: string, entry: 'installation-cli.cjs' | 'restore-v28-cli.cjs', argv: readonly string[]) {
   const owner: CliOwner = { constructionAttempted: false }; cliOwners.add(owner);
   owner.constructionAttempted = true;
   try {
-    owner.child = spawn(process.execPath, [join(distribution, 'server/restore-v28-cli.cjs'), 'restore', '--archive', archive,
-      '--destination', destination, '--sha256', sha256, '--filesystem-root-owner-uid', String(rootUid)], { stdio: ['ignore', 'pipe', 'pipe'] });
+    owner.child = spawn(process.execPath, [join(distribution, 'server', entry), ...argv], { stdio: ['ignore', 'pipe', 'pipe'] });
   } catch (error) { owner.constructionFailure = error; throw error; }
   const child = owner.child;
   owner.originalClose = new Promise((done, fail) => {
@@ -72,14 +69,19 @@ describe('current genuine zero-File V5 source for separate destination operators
       const configuration = join(baseline.root, 'stopped-capture.json'), archive = join(baseline.root, 'complete-zero-File-v5.zip');
       await writeFile(configuration, JSON.stringify({ schema: 'stopped-local-v28-capture/1', databasePath: baseline.path,
         descriptors: baseline.descriptors }), { flag: 'wx', mode: 0o600 });
-      const command = parseLocalV28MaintenanceCaptureCommandCandidate(['capture', '--configuration', configuration,
-        '--archive', archive, '--installation', baseline.installationId, '--filesystem-root-owner-uid', String(baseline.rootOwnerUid)]);
-      // The original stopped capture owns the actual Linux writer lease over
-      // the whole synchronous snapshot and ZIP publication through all closes.
-      const originalCapture = executeLocalV28MaintenanceCaptureCandidate(command);
-      const captured = await originalCapture;
+      // Invoke the actual current fixed installation executable. Its public
+      // selector delegates to the same privately issued stopped capture owner.
+      // Original close/output ACK precedes reading the resulting real archive.
+      const capture = await runCurrentCli(distribution, 'installation-cli.cjs', ['capture-local-backup', '--runtime-profile', 'v28',
+        '--configuration', configuration, '--archive', archive, '--installation', baseline.installationId,
+        '--filesystem-root-owner-uid', String(baseline.rootOwnerUid)]);
+      expect(capture.code).toBe(0); expect(capture.signal).toBeNull(); expect(capture.stderr).toBe('');
+      const captured = canonicalFileObject(JSON.parse(capture.stdout));
+      expect(captured.kind).toBe('stopped-local-v28-v5-capture/1'); expect(captured.sourceCheckpoint).toBe('portable-runtime/v28');
+      expect(captured.nodeInstallationId).toBe(baseline.installationId); expect(captured.archiveFormat).toBe('v5');
+      expect(captured.sourceAuthorityImported).toBe(false); expect(captured.sourceMutation).toBe(false);
+      ensure(typeof captured.archiveSha256 === 'string' && /^[0-9a-f]{64}$/.test(captured.archiveSha256));
       expect(captured.completeness).toBe('complete'); expect(captured.packagedFiles).toBe(0); expect(captured.unavailableFiles).toBe(0);
-      expect(localV28MaintenanceCaptureProcessStateCandidate()).toEqual({ retainedOriginalOwners: 0, retainedPhysicalOwners: 0, normalClosedRetainedErrorOwners: 0 });
       const admitted = await validateV28SystemBackupArchiveCandidate(await nodeRecoveryArchiveSource(archive),
         { ...NODE_RECOVERY_ARCHIVE_OPTIONS, expectedSha256: captured.archiveSha256 });
       expect(admitted.format).toBe('v5'); expect(admitted.manifest.completeness).toBe('complete');
@@ -92,7 +94,8 @@ describe('current genuine zero-File V5 source for separate destination operators
       expect(idIndex).toBeGreaterThanOrEqual(0);
       expect(accounts.rows.some(row => { const cell = row.cells[idIndex]; return cell?.type === 'text' && cell.value === baseline.principalId; })).toBe(true);
       const destination = join(baseline.root, 'new-inert-destination');
-      const restored = await restoreCurrentCli(distribution, archive, destination, captured.archiveSha256, baseline.rootOwnerUid);
+      const restored = await runCurrentCli(distribution, 'restore-v28-cli.cjs', ['restore', '--archive', archive,
+        '--destination', destination, '--sha256', captured.archiveSha256, '--filesystem-root-owner-uid', String(baseline.rootOwnerUid)]);
       expect(restored.code).toBe(0); expect(restored.signal).toBeNull(); expect(restored.stderr).toBe('');
       const receipt = canonicalFileObject(JSON.parse(restored.stdout));
       expect(receipt.kind).toBe('offline-v28-inert-restore/1'); expect(receipt.sourceArchiveSha256).toBe(captured.archiveSha256);
