@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
-import type { DatabaseSync } from "node:sqlite";
+import { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { createInstalledLocalIdentity } from "../auth/identity.ts";
@@ -24,7 +24,63 @@ import { CANONICAL_FILE_PASSWORD, CANONICAL_FILE_IDENTITY_POLICY, prepareCanonic
 const CASE_MS = 60_000;
 type Issuer = ReturnType<typeof createLocalRequestSubjectIssuer>;
 type Captured = Readonly<{ request: Request; token: LocalRequestSubject }>;
+interface SchemaWriterOwner {
+  native?: DatabaseSync; constructionStarted?: true; originalClose?: () => void;
+  setDefensive?: (enabled: boolean) => void; originalWork?: Promise<void>; firstClose?: Promise<void>;
+  failed: boolean; failure?: unknown;
+}
+const schemaWriters = new Set<SchemaWriterOwner>();
+afterEach(() => {
+  if (schemaWriters.size) throw new AggregateError([...schemaWriters].map(owner => owner.failed ? owner.failure
+    : owner.firstClose ?? owner.originalWork ?? new Error("Original test schema Native constructor/close is unproven")),
+    "Original test schema writer Native ownership remains retained");
+});
 function ensure(value: unknown): asserts value { if (!value) throw new Error("Original current request-subject qualification owner is unavailable"); }
+function rememberSchemaWriter(owner: SchemaWriterOwner, error: unknown): void {
+  if (!owner.failed) { owner.failed = true; owner.failure = error; }
+}
+function closeSchemaWriter(owner: SchemaWriterOwner): Promise<void> {
+  if (owner.firstClose) return owner.firstClose;
+  owner.firstClose = Promise.resolve().then(() => {
+    ensure(owner.native && owner.originalClose);
+    const failures: unknown[] = [];
+    // Only this actual test-owned second Native has its defensive mode changed.
+    // Attempt its original close once even if restoring that mode rejects.
+    try { owner.setDefensive?.(true); } catch (error) { failures.push(error); }
+    try { owner.originalClose(); ensure(!owner.native.isOpen); } catch (error) { failures.push(error); }
+    if (failures.length) throw new AggregateError(failures, "Original test schema Native first close failed");
+    schemaWriters.delete(owner);
+  }).catch(error => { rememberSchemaWriter(owner, error); throw error; });
+  void owner.firstClose.catch(() => undefined); return owner.firstClose;
+}
+async function withActualSchemaWriter(path: string, lease: LinuxWriterLease, database: SqliteCapability,
+  originalNative: DatabaseSync, work: (writer: DatabaseSync) => void | Promise<void>): Promise<void> {
+  // The unchanged original physical writer owns this whole awaited setup/work/
+  // close scope. Never bind the second Native to that lease/core or mint any
+  // identity/admission/callback authority from it; it is a test fault writer.
+  const owner: SchemaWriterOwner = { failed: false }; schemaWriters.add(owner);
+  let failed = false, failure: unknown;
+  try {
+    assertLinuxWriterLeaseBinding(lease, database, originalNative);
+    owner.constructionStarted = true;
+    const writer = owner.native = new DatabaseSync(path, { allowExtension: false, enableForeignKeyConstraints: true });
+    owner.originalClose = writer.close.bind(writer);
+    ensure(writer !== originalNative);
+    const enable = Reflect.get(writer, "enableDefensive") as unknown;
+    ensure(typeof enable === "function");
+    owner.setDefensive = enabled => { Reflect.apply(enable, writer, [enabled]); };
+    owner.setDefensive(false);
+    ensure(!writer.isTransaction);
+    assertLinuxWriterLeaseBinding(lease, database, originalNative);
+    const original = owner.originalWork = Promise.resolve().then(() => work(writer));
+    void original.catch(() => undefined); await original;
+    assertLinuxWriterLeaseBinding(lease, database, originalNative);
+  } catch (error) { failed = true; failure = error; rememberSchemaWriter(owner, error); }
+  try { const first = closeSchemaWriter(owner); expect(closeSchemaWriter(owner)).toBe(first); await first; }
+  catch (cleanup) { throw failed ? new AggregateError([failure, cleanup], "Original test schema fault and Native first close failed") : cleanup; }
+  if (failed) throw failure;
+  assertLinuxWriterLeaseBinding(lease, database, originalNative);
+}
 function refusal(work: () => unknown, code: LocalRequestSubjectError["code"]): void {
   const failures: unknown[] = [];
   try { work(); } catch (error) { failures.push(error); }
@@ -147,7 +203,7 @@ describe("current V28 genuine HTTP request-subject live execution owner", () => 
       // without it refuses before it can replace the successfully issued token.
       issued = await currentHttp("POST");
       expect((await client.request("/current-subject", "POST", {}, session, { "x-sfw-csrf": "" })).status).toBe(403);
-      await lease.withWriter(() => {
+      await lease.withWriter(async () => {
         const originalCookie = schemaCookie(native);
         const ledgerHash = native.prepare("SELECT raw_sha256 FROM node_migrations WHERE ordinal=1").get()?.raw_sha256;
         ensure(typeof ledgerHash === "string");
@@ -175,57 +231,84 @@ describe("current V28 genuine HTTP request-subject live execution owner", () => 
         expect(native.prepare("PRAGMA writable_schema").get()?.writable_schema).toBe(0);
         const originalSql = native.prepare("SELECT sql FROM sqlite_schema WHERE name='local_accounts' AND type='table'").get()?.sql;
         ensure(typeof originalSql === "string");
-        restoredFault(() => {
-          native.exec("PRAGMA writable_schema=ON");
-          expect(native.prepare("UPDATE sqlite_schema SET sql=? WHERE name='local_accounts' AND type='table'")
-            .run(originalSql + " /* original live-schema qualification suffix */").changes).toBe(1);
-          native.exec("PRAGMA writable_schema=OFF");
-          expect(native.prepare("PRAGMA writable_schema").get()?.writable_schema).toBe(0);
-          // This is the missed-cookie fault: only live schema bytes change,
-          // with privileged writable mode OFF before the current-owner read.
+        // The genuine bound application Native keeps its defensive setting.
+        // Even a same-value metadata UPDATE must still be rejected there.
+        expect(() => native.prepare("UPDATE sqlite_schema SET sql=? WHERE name='local_accounts' AND type='table'")
+          .run(originalSql)).toThrow(/sqlite_master may not be modified/);
+        await withActualSchemaWriter(baseline.path, lease, core, native, writer => {
+          expect(() => createLocalRequestSubjectIssuer({ database: core, nativeDatabase: writer, admission,
+            writerLease: lease, authentication })).toThrow(); // Actual distinct Native, same real DB path.
+          expect(schemaCookie(writer)).toBe(originalCookie);
+          assertLinuxWriterLeaseBinding(lease, core, native);
+          restoredFault(() => {
+            writer.exec("PRAGMA writable_schema=ON");
+            expect(writer.prepare("UPDATE sqlite_schema SET sql=? WHERE name='local_accounts' AND type='table'")
+              .run(originalSql + " /* original live-schema qualification suffix */").changes).toBe(1);
+            expect(writer.isTransaction).toBe(false); // Original autocommit returned before application read.
+            writer.exec("PRAGMA writable_schema=OFF");
+            expect(writer.prepare("PRAGMA writable_schema").get()?.writable_schema).toBe(0);
+            expect(native.prepare("PRAGMA writable_schema").get()?.writable_schema).toBe(0);
+            // This is the missed-cookie fault: only live schema bytes change,
+            // with privileged writable mode OFF before the current-owner read.
+            expect(schemaCookie(writer)).toBe(originalCookie);
+            expect(schemaCookie(native)).toBe(originalCookie);
+            assertLinuxWriterLeaseBinding(lease, core, native);
+            refusal(() => issuer.read(issued.request, issued.token), "unavailable");
+          }, () => restoredFault(() => {
+            assertLinuxWriterLeaseBinding(lease, core, native);
+            writer.exec("PRAGMA writable_schema=ON");
+            writer.prepare("UPDATE sqlite_schema SET sql=? WHERE name='local_accounts' AND type='table'").run(originalSql);
+            expect(writer.isTransaction).toBe(false);
+          }, () => { writer.exec("PRAGMA writable_schema=OFF"); }));
+          expect(schemaCookie(writer)).toBe(originalCookie);
           expect(schemaCookie(native)).toBe(originalCookie);
-          refusal(() => issuer.read(issued.request, issued.token), "unavailable");
-        }, () => restoredFault(() => {
-          native.exec("PRAGMA writable_schema=ON");
-          native.prepare("UPDATE sqlite_schema SET sql=? WHERE name='local_accounts' AND type='table'").run(originalSql);
-        }, () => { native.exec("PRAGMA writable_schema=OFF"); }));
-        expect(schemaCookie(native)).toBe(originalCookie);
-        expect(native.prepare("PRAGMA writable_schema").get()?.writable_schema).toBe(0);
-        expect(native.prepare("SELECT sql FROM sqlite_schema WHERE name='local_accounts' AND type='table'").get()?.sql).toBe(originalSql);
-        expect(issuer.read(issued.request, issued.token)).toEqual(facts);
-        // Same count, all rows individually known, but one required name is
-        // missing and another appears twice. Change only a real saved trigger
-        // metadata row (both original rootpage0), never any table/data page.
-        const known = actualControlTrigger(native, "collaboration_control_update_guard");
-        const replaced = actualControlTrigger(native, "collaboration_control_delete_guard");
-        expect(known.rowid).not.toBe(replaced.rowid);
-        const inventory = () => native.prepare("SELECT count(*) n,count(DISTINCT name COLLATE BINARY) d FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*'").get();
-        const observedInventory = inventory();
-        ensure(observedInventory && typeof observedInventory.n === "number" && typeof observedInventory.d === "number"
-          && observedInventory.n === observedInventory.d && observedInventory.n > 1);
-        const originalInventory = Object.freeze({ n: observedInventory.n, d: observedInventory.d });
-        restoredFault(() => {
-          native.exec("PRAGMA writable_schema=ON");
-          expect(native.prepare("UPDATE sqlite_schema SET type=?,name=?,tbl_name=?,sql=? WHERE rowid=?")
-            .run(known.type, known.name, known.tableName, known.sql, replaced.rowid).changes).toBe(1);
-          native.exec("PRAGMA writable_schema=OFF");
           expect(native.prepare("PRAGMA writable_schema").get()?.writable_schema).toBe(0);
+          expect(native.prepare("SELECT sql FROM sqlite_schema WHERE name='local_accounts' AND type='table'").get()?.sql).toBe(originalSql);
+          assertLinuxWriterLeaseBinding(lease, core, native);
+          expect(issuer.read(issued.request, issued.token)).toEqual(facts);
+          // Same count, all rows individually known, but one required name is
+          // missing and another appears twice. Change only a real saved trigger
+          // metadata row (both original rootpage0), never any table/data page.
+          const known = actualControlTrigger(native, "collaboration_control_update_guard");
+          const replaced = actualControlTrigger(native, "collaboration_control_delete_guard");
+          expect(known.rowid).not.toBe(replaced.rowid);
+          const inventory = () => native.prepare("SELECT count(*) n,count(DISTINCT name COLLATE BINARY) d FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*'").get();
+          const observedInventory = inventory();
+          ensure(observedInventory && typeof observedInventory.n === "number" && typeof observedInventory.d === "number"
+            && observedInventory.n === observedInventory.d && observedInventory.n > 1);
+          const originalInventory = Object.freeze({ n: observedInventory.n, d: observedInventory.d });
+          assertLinuxWriterLeaseBinding(lease, core, native);
+          restoredFault(() => {
+            writer.exec("PRAGMA writable_schema=ON");
+            expect(writer.prepare("UPDATE sqlite_schema SET type=?,name=?,tbl_name=?,sql=? WHERE rowid=?")
+              .run(known.type, known.name, known.tableName, known.sql, replaced.rowid).changes).toBe(1);
+            expect(writer.isTransaction).toBe(false);
+            writer.exec("PRAGMA writable_schema=OFF");
+            expect(writer.prepare("PRAGMA writable_schema").get()?.writable_schema).toBe(0);
+            expect(native.prepare("PRAGMA writable_schema").get()?.writable_schema).toBe(0);
+            expect(schemaCookie(writer)).toBe(originalCookie);
+            expect(schemaCookie(native)).toBe(originalCookie);
+            expect(inventory()).toEqual({ n: originalInventory.n, d: originalInventory.d - 1 });
+            expect(native.prepare("SELECT count(*) n FROM sqlite_schema WHERE name='collaboration_control_update_guard'").get()?.n).toBe(2);
+            expect(native.prepare("SELECT count(*) n FROM sqlite_schema WHERE name='collaboration_control_delete_guard'").get()?.n).toBe(0);
+            assertLinuxWriterLeaseBinding(lease, core, native);
+            refusal(() => issuer.read(issued.request, issued.token), "unavailable");
+          }, () => restoredFault(() => {
+            assertLinuxWriterLeaseBinding(lease, core, native);
+            writer.exec("PRAGMA writable_schema=ON");
+            writer.prepare("UPDATE sqlite_schema SET type=?,name=?,tbl_name=?,sql=? WHERE rowid=?")
+              .run(replaced.type, replaced.name, replaced.tableName, replaced.sql, replaced.rowid);
+            expect(writer.isTransaction).toBe(false);
+          }, () => { writer.exec("PRAGMA writable_schema=OFF"); }));
+          expect(schemaCookie(writer)).toBe(originalCookie);
           expect(schemaCookie(native)).toBe(originalCookie);
-          expect(inventory()).toEqual({ n: originalInventory.n, d: originalInventory.d - 1 });
-          expect(native.prepare("SELECT count(*) n FROM sqlite_schema WHERE name='collaboration_control_update_guard'").get()?.n).toBe(2);
-          expect(native.prepare("SELECT count(*) n FROM sqlite_schema WHERE name='collaboration_control_delete_guard'").get()?.n).toBe(0);
-          refusal(() => issuer.read(issued.request, issued.token), "unavailable");
-        }, () => restoredFault(() => {
-          native.exec("PRAGMA writable_schema=ON");
-          native.prepare("UPDATE sqlite_schema SET type=?,name=?,tbl_name=?,sql=? WHERE rowid=?")
-            .run(replaced.type, replaced.name, replaced.tableName, replaced.sql, replaced.rowid);
-        }, () => { native.exec("PRAGMA writable_schema=OFF"); }));
-        expect(schemaCookie(native)).toBe(originalCookie);
-        expect(native.prepare("PRAGMA writable_schema").get()?.writable_schema).toBe(0);
-        expect(inventory()).toEqual(originalInventory);
-        expect(actualControlTrigger(native, known.name)).toEqual(known);
-        expect(actualControlTrigger(native, replaced.name)).toEqual(replaced);
-        expect(issuer.read(issued.request, issued.token)).toEqual(facts);
+          expect(native.prepare("PRAGMA writable_schema").get()?.writable_schema).toBe(0);
+          expect(inventory()).toEqual(originalInventory);
+          expect(actualControlTrigger(native, known.name)).toEqual(known);
+          expect(actualControlTrigger(native, replaced.name)).toEqual(replaced);
+          assertLinuxWriterLeaseBinding(lease, core, native);
+          expect(issuer.read(issued.request, issued.token)).toEqual(facts);
+        });
         restoredFault(() => {
           native.exec("CREATE TEMP TABLE qualification_current_subject_temp(value)");
           refusal(() => issuer.read(issued.request, issued.token), "unavailable");
