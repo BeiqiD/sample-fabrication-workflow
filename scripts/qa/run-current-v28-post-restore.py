@@ -95,6 +95,81 @@ def census(stage, path):
  result['pass'] = result['exactOriginalSelection'] and value.get('success') is True and result['actualPassed'] == len(titles) and result['actualFailed'] == result['actualPending'] == value.get('numPendingTests') == 0
  return result
 
+def original_diagnostic_lines(message):
+ # Allow only diagnostic text with closed scalar/status values and source paths.
+ # Arbitrary error text, object/array dumps, code frames and secrets stay private.
+ scalar = r"(?:-?\d+(?:\.\d+)?|true|false|null|undefined|NaN|'(?:awaiting_upload|queued|running|preview|completed|failed|cancelled|paused|disabled|idle)'|\[ Array\(\d+\) \]|\[ Object \])"
+ assertion = re.compile(r'AssertionError: expected ' + scalar + r' (?:not )?to (?:be|equal|deeply equal|have a length of|be greater than|be less than) ' + scalar + r'(?: but got ' + scalar + r')?(?: // (?:Object.is|deep) equality)?')
+ scalar_diff = re.compile(r'\s*(?:[-+]\s+|Expected:?\s+|Received:?\s+)' + scalar)
+ source_path = r'(?:(?:file://)?' + re.escape(str(ROOT)) + r'/|(?:server|shared|worker|scripts|test|node_modules)/)[A-Za-z0-9_./@+-]+\.(?:[cm]?[jt]sx?|py):\d+(?::\d+)?'
+ location = re.compile(r'\s*(?:at (?:[A-Za-z0-9_.$<> ]+\()?|❯ )' + source_path + r'\)?')
+ timeout = re.compile(r'Error: (?:Test|Hook) timed out in \d+ms\.?')
+ registration, substantive = [], []; is_registration = False
+ for line in re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', message).splitlines():
+  if line == 'Error: STACK_TRACE_ERROR':
+   is_registration = True; registration.append(line)
+  elif assertion.fullmatch(line) or scalar_diff.fullmatch(line) or timeout.fullmatch(line) or line == 'Error: Bounded original Package dispatcher did not reach its checkpoint':
+   is_registration = False; substantive.append(line)
+  elif re.match(r'^(?:[A-Za-z]*Error|AssertionError):', line):
+   is_registration = False
+   substantive.append(line.split(':', 1)[0] + ': [text withheld; original private result retained]')
+  elif location.fullmatch(line):
+   (registration if is_registration else substantive).append(line)
+ return '\n'.join(registration), '\n'.join(substantive)
+
+def bounded_original_diagnostic(index, text, remaining):
+ encoded = text.encode('utf-8'); diagnostic = encoded[:8192].decode('utf-8', errors='ignore')
+ entry = {'index': index, 'diagnosticText': diagnostic, 'truncated': len(encoded) > 8192}
+ # Bound serialized bytes as well as original UTF-8 bytes, including escaping.
+ while len(json.dumps(entry).encode('utf-8')) > remaining and diagnostic:
+  diagnostic = diagnostic[:len(diagnostic) // 2]
+  entry.update(diagnosticText=diagnostic, truncated=True)
+ size = len(json.dumps(entry).encode('utf-8'))
+ return (entry, remaining - size) if size <= remaining else (None, remaining)
+
+def original_failed_diagnostics(stage, results):
+ # All reads/printing occur after the original cached first close, wait/census.
+ # At most the original case count and32 messages; max16KiB serialized entries.
+ remaining = 16384; slots = 32; failed = []
+ for file in results.get('testResults', []):
+  for row in file.get('assertionResults', []):
+   if row.get('status') != 'failed' or len(failed) >= len(CASES[stage][1]): continue
+   messages = row.get('failureMessages', [])
+   if not isinstance(messages, list): messages = []
+   title = row.get('title')
+   item = {'title': title if title in CASES[stage][1] else '[unselected title withheld]',
+    'failureMessageCount': len(messages), 'registrationStacks': [], 'substantiveMessages': []}
+   inspected = 0
+   for index, message in enumerate(messages):
+    if not slots or remaining < 160: break
+    slots -= 1; inspected += 1
+    if not isinstance(message, str): continue
+    registration, substantive = original_diagnostic_lines(message)
+    for key, text in (('registrationStacks', registration), ('substantiveMessages', substantive)):
+     if not text: continue
+     entry, remaining = bounded_original_diagnostic(index, text, remaining)
+     if entry is not None: item[key].append(entry)
+   item['messagesNotInspected'] = len(messages) - inspected
+   failed.append(item)
+ return failed
+
+def original_native_failure_diagnostics(out):
+ # Vitest JSON may select a registration stack over the substantive message.
+ # Read only the last16KiB of each already-closed original native log. Each
+ # allowlisted stdout/stderr diagnostic entry has a4KiB serialized byte cap.
+ result = []
+ for name in ('original.log', 'original.stderr.log'):
+  path = out / name
+  try:
+   with path.open('rb') as log:
+    log.seek(0, os.SEEK_END); size = log.tell(); log.seek(max(0, size - 16384))
+    tail = log.read(16384)
+   registration, substantive = original_diagnostic_lines(tail.decode('utf-8', errors='replace'))
+   entry, unused = bounded_original_diagnostic(name, substantive + ('\n' if substantive and registration else '') + registration, 4096)
+   result.append({'path': str(path), 'tailBytesRead': len(tail), 'tailWindowBytes': 16384, 'diagnostic': entry})
+  except OSError as error: result.append({'path': str(path), 'readFailureKind': type(error).__name__})
+ return result
+
 def run(stage, out, run_root):
  head = source()
  if stage == 'package-http': assert os.environ['GITHUB_REF'] == PACKAGE_BRANCH
@@ -272,11 +347,11 @@ def run(stage, out, run_root):
  summary = {'stage': stage, 'status': record['status'], 'receipt': str(out / 'receipt.json')}
  for key in ('actualResults', 'actualHelp', 'firstFailure', 'rawCensusFailure', 'originalCloseError', 'floorOrPrivateIdentityFailure'):
   if key in record: summary[key] = record[key]
- if not okay and raw.exists():
+ if not okay and raw.exists() and stage in CASES and close_result is True and record.get('originalChildWaited') is True and 'actualResults' in record and not custody.active(record['finalGroupSnapshot']):
   try:
    results = json.loads(raw.read_bytes())
-   summary['originalFailedTitles'] = [{'title': row.get('title'), 'firstMessage': str(row.get('failureMessages', [''])[0])[:1024]}
-    for file in results.get('testResults', []) for row in file.get('assertionResults', []) if row.get('status') == 'failed']
+   summary['originalFailedTitles'] = original_failed_diagnostics(stage, results)
+   summary['originalNativeFailureDiagnostics'] = original_native_failure_diagnostics(out)
   except (ValueError, KeyError, IndexError) as error: summary['failureSummaryUnavailable'] = type(error).__name__
  print(json.dumps(summary), flush=True)
  return 0 if okay else 1
