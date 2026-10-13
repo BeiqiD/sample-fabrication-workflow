@@ -23,7 +23,7 @@ import { PORTABLE_RUNTIME_RECOVERY_TABLES, PORTABLE_RUNTIME_RECOVERY_MIGRATIONS 
 import { canonicalFileObject, canonicalFilePrivateOrigin, closeCanonicalFileClient, closeCanonicalFileProbe,
   consumeCanonicalFileClient, fetchCanonicalFileClient, type CanonicalFileFixtureOwner } from '../collaboration/current-v28-canonical-comment-file.qualification-support';
 
-type HttpBody = NonNullable<RequestInit['body']>;
+type HttpBody = string | ArrayBuffer | Uint8Array<ArrayBuffer>;
 type NativeR2 = Awaited<ReturnType<Miniflare['getR2Bucket']>>;
 type NativeD1 = Awaited<ReturnType<Miniflare['getD1Database']>>;
 interface NativeDatabaseConsistency {
