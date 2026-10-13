@@ -9,8 +9,8 @@ BASE = '4ef7a9d59c4c5e8b10e2fa060bf20c7b16b37878'
 BRANCH = 'refs/heads/codex/node-v28-post-restore-operators'
 MAINTENANCE_BRANCH = 'refs/heads/codex/node-v28-restored-maintenance-release'
 MAINTENANCE_BASE = 'ebc19cf3f61b12625bc2a36086667376b41b9255'
-NATIVE_STAGES = ('preparation', 'operators', 'maintenance')
-TIMED_CASE_STAGES = (*NATIVE_STAGES, 'maintenance-parser')
+NATIVE_STAGES = ('preparation', 'operators', 'maintenance', 'main')
+TIMED_CASE_STAGES = (*NATIVE_STAGES, 'maintenance-parser', 'config-unit')
 FLOOR, NATIVE_BEFORE = 536870912, 603979776
 HELP = {'help-main': ('main.mjs', 'Usage: node main.mjs --config '),
  'help-identity': ('identity-cli.cjs', 'Usage: local-identity '),
@@ -35,6 +35,8 @@ CASES = {
   'commits one original release receipt, reconciles the same ID after open and rejects changed input without activating any other owner',
   'retains a genuine commit ACK failure and reconciles its original durable receipt on a second fresh restored target without replaying the write']),
 }
+
+CASES.update({'config-unit': ('server/node-runtime-config-restored-v28.test.ts', ['keeps the original v1 filename and rejects a restored filename field in v1', 'requires an explicit V28 selector and only selects the fixed restored filename', 'keeps restored format fields and loader options closed without path fallback', 'binds the fixed original report to the selected installation and V28 checkpoint', 'rejects configuration and report identity changes through both assertions', 'retains private mode, canonical report path and explicit root UID fences', 'never accepts a copied configuration token as a factory-issued owner']), 'main': ('server/operations/current-restored-v28-main.qualification.ts', ['selects database.sqlite explicitly, authenticates only the restored principal, logs out and acknowledges original TERM before writer reacquisition'])})
 
 def save(path, value):
  path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
@@ -75,7 +77,7 @@ def census(stage, path):
 
 def run(stage, out, run_root):
  head = source()
- if stage in ('maintenance-parser', 'maintenance'): assert os.environ['GITHUB_REF'] == MAINTENANCE_BRANCH
+ if stage in ('maintenance-parser', 'maintenance', 'config-unit', 'main'): assert os.environ['GITHUB_REF'] == MAINTENANCE_BRANCH
  assert not out.exists(); out.mkdir(mode=0o700)
  private(out); private(run_root)
  tmp, fixture = run_root / 'private-tmp', run_root / 'private-fixture'
@@ -90,13 +92,18 @@ def run(stage, out, run_root):
   CURRENT_V28_CANONICAL_COMMENT_FIXTURE_PARENT=str(fixture), NODE_PROTOTYPE_FILESYSTEM_ROOT_OWNER_UID=str(Path('/').lstat().st_uid),
   NODE_OFFLINE_V28_DISTRIBUTION=str(ROOT / 'dist-node/distribution'),
   CURRENT_V28_POST_RESTORE_PREPARATION_RECEIPT=str(run_root / 'preparation-inputs.json'), NO_COLOR='1', FORCE_COLOR='0')
- if stage in ('operators', 'maintenance-parser', 'maintenance'):
+ if stage in ('operators', 'maintenance-parser', 'maintenance', 'main'):
   prior = json.loads((run_root / 'preparation/receipt.json').read_bytes()); assert prior['status'] == 'PASS'
-  if stage in ('maintenance-parser', 'maintenance'):
+  if stage in ('maintenance-parser', 'maintenance', 'main'):
    operators = json.loads((run_root / 'operators/receipt.json').read_bytes())
    assert operators['status'] == 'PASS' and operators['stage'] == 'operators' and operators['head'] == head
    assert operators['actualResults']['pass'] and operators['actualResults']['actualPassed'] == operators['actualResults']['actualTotal'] == 2
    assert operators['originalChildWaited'] and operators['exitCode'] == 0 and operators['noFixtureRemoval']
+   if stage == 'main':
+    maintenance = json.loads((run_root / 'maintenance/receipt.json').read_bytes())
+    assert maintenance['status'] == 'PASS' and maintenance['stage'] == 'maintenance' and maintenance['head'] == head
+    assert maintenance['actualResults']['pass'] and maintenance['actualResults']['actualPassed'] == maintenance['actualResults']['actualTotal'] == 3
+    assert maintenance['originalChildWaited'] and maintenance['exitCode'] == 0 and maintenance['noFixtureRemoval']
   inputs = json.loads((run_root / 'preparation-inputs.json').read_bytes())
   assert inputs['kind'] == 'current-v28-genuine-zero-File-source-and-CLI-restore/1' and inputs['completeness'] == 'complete' and inputs['sourceFileCount'] == 0
   selected = inputs['environment']
@@ -112,14 +119,15 @@ def run(stage, out, run_root):
  raw = out / 'original-results.json'
  if stage in HELP: argv = [str(node), str(ROOT / 'dist-node/distribution/server' / HELP[stage][0]), '--help']
  elif stage == 'types': argv = [shutil.which('npm'), 'run', 'typecheck:server']
- elif stage in ('parser', 'maintenance-parser'):
+ elif stage in ('parser', 'maintenance-parser', 'config-unit'):
   argv = [str(node), str(ROOT / 'node_modules/vitest/vitest.mjs'), 'run', '--config', 'vitest.config.ts', CASES[stage][0],
    '--maxWorkers', '1', '--no-file-parallelism', '--reporter=verbose', '--reporter=json', '--outputFile.json=' + str(raw)]
-  if stage == 'maintenance-parser': argv += ['--testTimeout', '20000', '--hookTimeout', '20000']
+  if stage in ('maintenance-parser', 'config-unit'): argv += ['--testTimeout', '20000', '--hookTimeout', '20000']
  else: argv = [str(node), str(ROOT / 'node_modules/vitest/vitest.mjs'), 'run', '--config',
   {'preparation': 'current-v28-post-restore-source-preparation.vitest.config.mts',
    'operators': 'current-v28-post-restore-operators.vitest.config.mts',
-   'maintenance': 'current-restored-v28-maintenance-release.vitest.config.mts'}[stage],
+   'maintenance': 'current-restored-v28-maintenance-release.vitest.config.mts',
+   'main': 'current-restored-v28-main.vitest.config.mts'}[stage],
   '--reporter=verbose', '--reporter=json', '--outputFile.json=' + str(raw)]
  budget = 20 if stage in HELP else 60 if stage == 'types' else 180
  custody = inherited_custody(); child = None; close_attempted = False; close_result = None; close_error = None
@@ -198,6 +206,6 @@ def run(stage, out, run_root):
  return 0 if okay else 1
 
 if __name__ == '__main__':
- parser = argparse.ArgumentParser(); parser.add_argument('--stage', choices=('types', 'parser', 'preparation', 'operators', 'maintenance-parser', 'maintenance', *HELP), required=True)
+ parser = argparse.ArgumentParser(); parser.add_argument('--stage', choices=('types', 'parser', 'preparation', 'operators', 'maintenance-parser', 'maintenance', 'config-unit', 'main', *HELP), required=True)
  parser.add_argument('--run-root', type=Path, required=True); args = parser.parse_args()
  raise SystemExit(run(args.stage, args.run_root / args.stage, args.run_root))

@@ -59,6 +59,33 @@ The original request ledger is read under fresh installed/admin guards before co
 
 The original work, pinned report/archive FDs, drain, Native close and physical lease release remain owned through their first outcomes. A write error performs one exact same-ID readback; inability to verify the receipt or Native/FD cleanup remains unavailable/unknown. A matching business receipt does not erase a failed original close. No automatic replay, retry-close, overwrite, target removal or guessed success follows. Repeat the same request ID only for explicit reconciliation after the original stopped owner has closed.
 
-This releases maintenance only. It does not establish general domain readiness, native File rebinding, Jobs, providers, scheduler or whole backup capability. The existing main configuration still defaults to `application.sqlite`; the true restored `database.sqlite` requires a separate explicit restored configuration design. No symlink, move, copy, automatic fallback or old target is accepted as a main startup qualification.
+This releases maintenance only. It does not establish general domain readiness, native File rebinding, Jobs, providers, scheduler or whole backup capability. The original `node-loopback-development-v1` main configuration still selects `application.sqlite`. A restored target instead requires the closed `node-loopback-restored-v28-v1` format, `databaseFile: "database.sqlite"`, the real restored directory and report installation binding, and an explicit `--runtime-profile v28-metadata` or `v28-fabublox` selector. The loader pins the fixed private `recovery-report.json`; its original inert restoration facts do not grant current administrator, Group or File authority. The selected original V28 starter still rechecks the real checkpoint and Group enforcement. A restored token is refused by default V26 startup before writer/Native acquisition. No symlink, move, copy, automatic fallback or old target is accepted as a main startup qualification.
 
 New SOURCE checks are parser3 and genuine maintenance3 with original 20-second hook/case and 180-second outer ownership/floor rules. Root supplies only the NEW actual preparation1/operator2 target and unchanged report digest; the third case creates another actual target with the original V5 restorer and genuine administrator operation, then injects one real post-COMMIT ACK failure before same-ID reconciliation. No positive fence, administrator, grant or request SQL is seeded. Current ebc QA, default V26, four executables and RT6 snapshot remain unchanged; all new compilation/Native/CLI outcomes are unrun until separately executed.
+
+### Explicit restored metadata main
+
+After the separate genuine administrator, Group and maintenance operations have acknowledged, a private configuration for the metadata surface has these fields:
+
+```json
+{
+  "format": "node-loopback-restored-v28-v1",
+  "databaseFile": "database.sqlite",
+  "dataDirectory": "/private/new-restored-target",
+  "expectedInstallationId": "<actual destination installation UUID>",
+  "publicOrigin": "http://127.0.0.1:3100",
+  "clientDirectory": "/private/client-directory",
+  "enableLocalFile": false,
+  "enableLocalJobs": false
+}
+```
+
+Use the current separately verified distribution and original canonical/private/root-owner rules:
+
+```sh
+node distribution/server/main.mjs --config /private/runtime.json --runtime-profile v28-metadata --filesystem-root-owner-uid UID
+```
+
+This selects the original restored `database.sqlite`; it does not relocate it or choose an arbitrary filename. `v28-fabublox` additionally requires the separate genuine destination File/profile rebinding and its existing host opt-ins. General File, Jobs, package import/export, provider egress, recovery scheduling and frontend static serving remain outside this metadata surface. `/api/health` and `/api/ready` currently return unsupported 503; the bounded startup qualification uses the real authentication/session endpoints and does not call those responses healthy or ready.
+
+The separate SOURCE config checks cover seven metadata/private-pin cases. The one compiled-main case requires the same NEW actual V5 preparation1 → identity/Group operators2 → maintenance3 first destination, then the current built main, real session/login/logout responses, original TERM/child-close acknowledgment and actual reacquisition of the exact restored writer lease. It does not substitute configuration unit JSON for a genuine archive/target, add authority SQL seeds, or carry a previous library-startup result. Its current type/package/Native outcomes remain unrun until Root executes them.
