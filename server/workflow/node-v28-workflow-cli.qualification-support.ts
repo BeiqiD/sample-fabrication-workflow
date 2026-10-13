@@ -108,26 +108,35 @@ export function launchWorkflowCli(distribution: string, configurationPath: strin
   void owner.originalClose.catch(() => undefined); return owner;
 }
 
-/** Client EOF/cancel ACK precedes SIGTERM; the same first child-close promise
- * must then report normal shutdown before another owner can acquire this DB. */
+/** Collect every original client EOF/cancel outcome, then request the one
+ * child stop and join its original close even when a client ACK rejects.
+ * A failed first cleanup remains retained after that actual close attempt. */
 export function closeWorkflowCli(owner: WorkflowCliOwner): Promise<ClosedWorkflowCli> {
   if (owner.closing) return owner.closing;
   owner.closing = Promise.resolve().then(async () => {
     ensure(owners.has(owner));
     const clients = await Promise.allSettled([...owner.clients.clients].map(client => closeCanonicalFileClient(owner.clients, client)));
     const errors = clients.flatMap(result => result.status === "rejected" ? [result.reason as unknown] : []);
-    if (errors.length) throw new AggregateError(errors, "Original Workflow CLI client body cleanup failed");
-    ensure(owner.child && owner.originalClose);
-    let stopFailed = false, stopFailure: unknown;
-    if (!owner.ended) {
-      try { owner.stopSent = true; ensure(owner.child.kill("SIGTERM"), "Original Workflow CLI stop request was not acknowledged"); }
-      catch (error) { stopFailed = true; stopFailure = error; }
+    const child = owner.child, originalClose = owner.originalClose;
+    if (!child || !originalClose) {
+      errors.push(new Error("Original Workflow child constructor/close ownership is unavailable"));
+      throw new AggregateError(errors, "Original Workflow CLI client and child cleanup failed");
     }
-    const result = await owner.originalClose;
-    if (stopFailed) throw stopFailure;
-    ensure(owner.stopSent);
-    expect(result.code).toBe(0); expect(result.signal).toBeNull(); expect(result.stderr).toBe("");
-    owners.delete(owner); return result;
+    if (!owner.ended && !owner.stopSent) {
+      try { owner.stopSent = true; ensure(child.kill("SIGTERM"), "Original Workflow CLI stop request was not acknowledged"); }
+      catch (error) { errors.push(error); }
+    }
+    let result: ClosedWorkflowCli | undefined;
+    try { result = await originalClose; }
+    catch (error) { errors.push(error); }
+    if (result) {
+      try {
+        ensure(owner.stopSent);
+        expect(result.code).toBe(0); expect(result.signal).toBeNull(); expect(result.stderr).toBe("");
+      } catch (error) { errors.push(error); }
+    }
+    if (errors.length) throw new AggregateError(errors, "Original Workflow CLI client and child first close failed");
+    ensure(result); owners.delete(owner); return result;
   });
   void owner.closing.catch(() => undefined); return owner.closing;
 }
