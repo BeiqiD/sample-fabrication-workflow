@@ -252,9 +252,10 @@ function exactClosedRecordGuards(database:D1Database,jobId:string,records:readon
   for(let offset=0;offset<records.length;offset+=CLEANUP_GROUP){
     const group=records.slice(offset,offset+CLEANUP_GROUP),bindings:unknown[]=[];
     const expected=group.map(record=>{ensure(record.ordinal===0,"original_closed_ordinal");bindings.push(record.name,record.chunk);
-      return "SELECT ? AS name,0 AS ordinal,? AS chunk";}).join(" UNION ALL ");
-    statements.push(db.prepare(`SELECT CASE WHEN NOT EXISTS(
-      SELECT 1 FROM (${expected}) expected LEFT JOIN system_recovery_metadata_chunks actual
+      return "(?,0,?)";}).join(",");
+    statements.push(db.prepare(`WITH expected(name,ordinal,chunk) AS (VALUES ${expected})
+      SELECT CASE WHEN NOT EXISTS(
+      SELECT 1 FROM expected LEFT JOIN system_recovery_metadata_chunks actual
         ON actual.job_id=? AND actual.name=expected.name AND actual.ordinal=expected.ordinal
       WHERE actual.chunk IS NOT expected.chunk)
       THEN 1 ELSE json('Original V5 exact source close record inventory changed') END`).bind(...bindings,jobId));
