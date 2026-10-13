@@ -197,7 +197,7 @@ describe('current compiled main on the same genuinely restored and separately re
         const body = canonicalFileObject(login.value), principal = canonicalFileObject(body.principal);
         expect(principal.id).toBe(principalId); expect(principal.actor).toBe(`local-account:${principalId}`);
         expect(principal.capabilities).toEqual({ systemAdministrator: true, fileEvidenceOperator: false });
-        const cookie = login.headers.get('set-cookie')?.split(';', 1)[0]; ensure(cookie?.startsWith('sfw_dev_session=') && typeof body.csrf === 'string');
+        const cookie = login.headers.get('set-cookie')?.split(';', 1)[0]; ensure(typeof cookie === 'string' && cookie.startsWith('sfw_dev_session=') && typeof body.csrf === 'string');
         const session = { cookie, csrf: body.csrf };
         const current = await request(owner, selected.origin, '/api/auth/session', 'GET', undefined, session);
         expect(current.status).toBe(200); expect(canonicalFileObject(canonicalFileObject(current.value).principal).id).toBe(principalId);
