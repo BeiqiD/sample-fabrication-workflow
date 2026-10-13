@@ -312,7 +312,7 @@ export function createWorkerV5LocalR2PayloadCandidate(env: Env) {
   function append(record: OwnedAdmission, table: string, row: ExportRow) {
     (record.appends[table] ??= []).push(structuredClone(row));
   }
-  async function publishFiles(target: D1Database, source: D1Database, record: OwnedAdmission,
+  async function publishFiles(target: D1Database, record: OwnedAdmission,
     available: () => Promise<void>, batch: (statements: D1PreparedStatement[], guarded?: boolean) => Promise<void>, signal?: AbortSignal) {
     await available();
     await admitV5SystemBackupArchiveCandidate(record.archive.source, { expectedSha256: record.archive.sha256, signal });
@@ -440,9 +440,12 @@ export function createWorkerV5LocalR2PayloadCandidate(env: Env) {
     // All old shadow occurrences, closures, heads and dependency rows remain
     // byte-exact. This first slice rejects current heads before construction;
     // a later bound-File slice must append proper successor history instead.
-    // Source is read-only custody/authority; no source database statement above
-    // is a write. The captured source reference is rechecked before returning.
-    ensure(source === primaryD1(sourceBinding), "source_binding_changed");
+    // The actual Env binding is the custody identity. primaryD1 may issue a
+    // different genuine session on each call; reopening it is not an identity
+    // test. available retains constructOwned's original const source session
+    // and rechecks its marker/metadata plus every late binding/auth/archive pin.
+    ensure(env.DB === sourceBinding, "source_binding_changed");
+    await available();
   }
   async function verifyPayloadBytes(target: D1Database, record: OwnedAdmission, available: () => Promise<void>) {
     for (const file of record.files) {
@@ -545,7 +548,7 @@ export function createWorkerV5LocalR2PayloadCandidate(env: Env) {
       for (let index = 0; index < objects.length; index += DDL_GROUP) await batch(objects.slice(index, index + DDL_GROUP).map(object => target.prepare(object.sql)));
     }
     await batch([target.prepare("PRAGMA defer_foreign_keys=ON"), ...record.rowGroups.map(group => insertGroup(target, group))]);
-    await publishFiles(target, source, record, available, batch, signal);
+    await publishFiles(target, record, available, batch, signal);
     const triggers = catalog.schemaStatements.filter(object => object.type === "trigger");
     for (let index = 0; index < triggers.length; index += DDL_GROUP) await batch(triggers.slice(index, index + DDL_GROUP).map(object => target.prepare(object.sql)));
     await available(); await claimGuard(target, record).first(); await verifyImage(target, record, true);
