@@ -10,8 +10,10 @@ BRANCH = 'refs/heads/codex/node-v28-post-restore-operators'
 MAINTENANCE_BRANCH = 'refs/heads/codex/node-v28-restored-maintenance-release'
 HEALTH_BRANCH = 'refs/heads/codex/node-v28-operational-health-ready'
 CAPTURE_BRANCH = 'refs/heads/codex/node-v28-public-local-backup-capture'
+NONEMPTY_BRANCH = 'refs/heads/codex/node-v28-nonempty-backup-restore'
+NONEMPTY_BASE = 'ab4f6cfa9721a5bf7fdcd8e7940a916ea8d520cf'
 MAINTENANCE_BASE = 'ebc19cf3f61b12625bc2a36086667376b41b9255'
-NATIVE_STAGES = ('preparation', 'operators', 'maintenance', 'main')
+NATIVE_STAGES = ('preparation', 'operators', 'maintenance', 'main', 'nonempty')
 TIMED_CASE_STAGES = (*NATIVE_STAGES, 'maintenance-parser', 'config-unit', 'capture-parser')
 FLOOR, NATIVE_BEFORE = 536870912, 603979776
 HELP = {'help-main': ('main.mjs', 'Usage: node main.mjs --config '),
@@ -19,6 +21,8 @@ HELP = {'help-main': ('main.mjs', 'Usage: node main.mjs --config '),
  'help-installation': ('installation-cli.cjs', 'Usage: local-installation upgrade '),
  'help-restore': ('restore-v28-cli.cjs', 'Usage: offline-v28 restore ')}
 CASES = {
+ 'nonempty': ('server/operations/current-v28-nonempty-backup-restore.qualification.ts', [
+  'preserves one real ordinary HTTP upload through stopped upgrade, compiled complete capture and compiled inert restore without destination File authority']),
  'parser': ('server/operations/v28-post-restore-command.test.ts', [
   'keeps absent-profile identity commands V26 and accepts only explicit V28 restore/reset',
   'requires explicit Group profile, role, creation flag and control CAS without caller authority inputs',
@@ -48,11 +52,11 @@ def save(path, value):
  path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
 
 def source():
- assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH)
+ assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH)
  head = os.environ['GITHUB_SHA']; assert re.fullmatch('[0-9a-f]{40}', head)
  env = dict(os.environ, GIT_OPTIONAL_LOCKS='0')
  assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, env=env).decode().strip() == head
- base = MAINTENANCE_BASE if os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH) else BASE
+ base = NONEMPTY_BASE if os.environ['GITHUB_REF'] == NONEMPTY_BRANCH else MAINTENANCE_BASE if os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH) else BASE
  subprocess.check_call(['git', 'merge-base', '--is-ancestor', base, head], cwd=ROOT, env=env)
  return head
 
@@ -83,8 +87,9 @@ def census(stage, path):
 
 def run(stage, out, run_root):
  head = source()
- if stage in ('maintenance-parser', 'maintenance', 'config-unit', 'main'): assert os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH)
- if stage == 'capture-parser': assert os.environ['GITHUB_REF'] == CAPTURE_BRANCH
+ if stage in ('maintenance-parser', 'maintenance', 'config-unit', 'main'): assert os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH)
+ if stage == 'capture-parser': assert os.environ['GITHUB_REF'] in (CAPTURE_BRANCH, NONEMPTY_BRANCH)
+ if stage == 'nonempty': assert os.environ['GITHUB_REF'] == NONEMPTY_BRANCH
  assert not out.exists(); out.mkdir(mode=0o700)
  private(out); private(run_root)
  tmp, fixture = run_root / 'private-tmp', run_root / 'private-fixture'
@@ -99,6 +104,14 @@ def run(stage, out, run_root):
   CURRENT_V28_CANONICAL_COMMENT_FIXTURE_PARENT=str(fixture), NODE_PROTOTYPE_FILESYSTEM_ROOT_OWNER_UID=str(Path('/').lstat().st_uid),
   NODE_OFFLINE_V28_DISTRIBUTION=str(ROOT / 'dist-node/distribution'),
   CURRENT_V28_POST_RESTORE_PREPARATION_RECEIPT=str(run_root / 'preparation-inputs.json'), NO_COLOR='1', FORCE_COLOR='0')
+ if stage == 'nonempty':
+  # This case creates its OWN new V26 upload source and inert V28 target. The
+  # earlier zero-File target is only a completed same-head pipeline prerequisite.
+  main = json.loads((run_root / 'main/receipt.json').read_bytes())
+  assert main['status'] == 'PASS' and main['stage'] == 'main' and main['head'] == head
+  assert main['actualResults']['pass'] and main['actualResults']['actualPassed'] == main['actualResults']['actualTotal'] == 1
+  assert main['originalChildWaited'] and main['exitCode'] == 0 and main['noFixtureRemoval']
+  env['CURRENT_V28_NONEMPTY_BACKUP_RECEIPT'] = str(run_root / 'nonempty-inputs.json')
  if stage in ('operators', 'maintenance-parser', 'maintenance', 'main'):
   prior = json.loads((run_root / 'preparation/receipt.json').read_bytes()); assert prior['status'] == 'PASS'
   if stage in ('maintenance-parser', 'maintenance', 'main'):
@@ -134,7 +147,8 @@ def run(stage, out, run_root):
   {'preparation': 'current-v28-post-restore-source-preparation.vitest.config.mts',
    'operators': 'current-v28-post-restore-operators.vitest.config.mts',
    'maintenance': 'current-restored-v28-maintenance-release.vitest.config.mts',
-   'main': 'current-restored-v28-main.vitest.config.mts'}[stage],
+   'main': 'current-restored-v28-main.vitest.config.mts',
+   'nonempty': 'current-v28-nonempty-backup-restore.vitest.config.mts'}[stage],
   '--reporter=verbose', '--reporter=json', '--outputFile.json=' + str(raw)]
  budget = 20 if stage in HELP else 60 if stage == 'types' else 90 if stage == 'capture-parser' else 180
  custody = inherited_custody(); child = None; close_attempted = False; close_result = None; close_error = None
@@ -170,6 +184,18 @@ def run(stage, out, run_root):
    assert original_close() and code == 0
   if stage in CASES:
    record['actualResults'] = census(stage, raw); assert record['actualResults']['pass']
+  if stage == 'nonempty':
+   proof = json.loads((run_root / 'nonempty-inputs.json').read_bytes())
+   assert proof['kind'] == 'current-genuine-one-File-v28-v5-inert-restore/1' and proof['sourceFileCount'] == 1
+   assert isinstance(proof['payloadBytes'], int) and not isinstance(proof['payloadBytes'], bool) and proof['payloadBytes'] > 0
+   for key in ('payloadSha256', 'archiveSha256', 'recoveryReportSha256'):
+    assert isinstance(proof[key], str) and re.fullmatch('[0-9a-f]{64}', proof[key])
+   assert proof['sourceInstallationId'] != proof['destinationInstallationId']
+   assert proof['executionEnabled'] is False and proof['nativeBindingsRestored'] is False and proof['destinationProfileBound'] is False
+   assert proof['maintenanceState'] == 'fenced' and proof['originalReadPathsRetained'] is True
+   record['actualNonemptyInertRestore'] = {'sourceFileCount': 1, 'payloadBytes': proof['payloadBytes'],
+    'payloadSha256': proof['payloadSha256'], 'archiveSha256': proof['archiveSha256'],
+    'recoveryReportSha256': proof['recoveryReportSha256'], 'destinationExecutionEnabled': False, 'destinationProfileBound': False}
   if stage in HELP:
    text = (out / 'original.log').read_bytes(); errors = (out / 'original.stderr.log').read_bytes()
    assert len(text) + len(errors) <= 16384
@@ -196,6 +222,7 @@ def run(stage, out, run_root):
     assert [private(path) for path in (tmp, fixture)] == before
     assert all(shutil.disk_usage(path).free >= FLOOR for path in (tmp, fixture))
    except BaseException as error: okay = False; record['floorOrPrivateIdentityFailure'] = type(error).__name__ + ': ' + str(error)
+   if stage == 'nonempty': record['sourceFileBackupQualified'] = bool(okay)
    record['status'] = 'PASS' if okay else 'FAILED_OR_UNRESOLVED'
    save(out / 'receipt.json', record)
   finally:
@@ -213,6 +240,6 @@ def run(stage, out, run_root):
  return 0 if okay else 1
 
 if __name__ == '__main__':
- parser = argparse.ArgumentParser(); parser.add_argument('--stage', choices=('types', 'parser', 'capture-parser', 'preparation', 'operators', 'maintenance-parser', 'maintenance', 'config-unit', 'main', *HELP), required=True)
+ parser = argparse.ArgumentParser(); parser.add_argument('--stage', choices=('types', 'parser', 'capture-parser', 'preparation', 'operators', 'maintenance-parser', 'maintenance', 'config-unit', 'main', 'nonempty', *HELP), required=True)
  parser.add_argument('--run-root', type=Path, required=True); args = parser.parse_args()
  raise SystemExit(run(args.stage, args.run_root / args.stage, args.run_root))
