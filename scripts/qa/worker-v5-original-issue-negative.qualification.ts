@@ -71,9 +71,12 @@ async function complete(port: Port, initial: SystemRecoveryJobStatus, terminal: 
   }
   expect(job.state).toBe(terminal);return {job,originalScheduledCalls};
 }
-async function waitFor<T>(read:()=>Promise<T>,ready:(value:T)=>boolean,maximumMs:number):Promise<T>{
+async function waitFor<T>(read:()=>Promise<T>,ready:(value:T)=>boolean,maximumMs:number,onExpired?:(value:T)=>void):Promise<T>{
   const deadline=Date.now()+maximumMs;
-  while(true){const value=await read();if(ready(value))return value;ensure(Date.now()<deadline,"original_handshake_or_state_missing");await delay(100);}
+  while(true){const value=await read();if(ready(value))return value;
+    const withinBudget=Date.now()<deadline;
+    if(!withinBudget&&onExpired)try{onExpired(value);}catch{}
+    ensure(withinBudget,"original_handshake_or_state_missing");await delay(100);}
 }
 const issueCounts=(trace:Trace)=>[trace.nativeGet,trace.nativeHead,trace.nativePut,trace.nativeDelete];
 const holdSql=`SELECT h.id,h.location_id,h.hold_kind,h.operation_id,h.reason,h.acquired_at,h.expires_at,h.released_at,
@@ -172,7 +175,10 @@ async function run(kind:WorkerV5OriginalIssueGate){
     }
     void invocation.catch(()=>undefined); // Retain same original failure in pair owner; never fabricate ACK.
     const entered=await waitFor(()=>stats(observer),value=>Boolean(value.gate?.entered&&value.gate.originalAcknowledged
-      &&value.gate.deliveryIoStarted&&value.deliveryIo?.acceptedRequests===1),15_000);
+      &&value.gate.deliveryIoStarted&&value.deliveryIo?.acceptedRequests===1),15_000,value=>{
+        console.error("Original ACK private IO handshake expiry",JSON.stringify({gate:value.gate,deliveryIo:value.deliveryIo,
+          originalInvocationSettled,nativeGet:value.nativeGet,nativePut:value.nativePut,nativeDelete:value.nativeDelete}));
+      });
     ensure(entered.gate?.enteredAt!==null&&entered.gate?.enteredAt!==undefined,"actual_entered_clock");
     expect(entered.gate.kind).toBe(kind);expect(entered.gate.released).toBe(false);expect(entered.nativePut).toBe(0);expect(originalInvocationSettled).toBe(false);
     expect(entered.gate.deliveryIoAcknowledged).toBe(false);
