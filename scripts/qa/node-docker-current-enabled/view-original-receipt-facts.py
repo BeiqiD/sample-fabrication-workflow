@@ -203,6 +203,19 @@ def selected_facts(evidence):
         item.update(integer_fields(row, ('pid', 'processGroup', 'exitCode')))
         item.update(boolean_fields(row, ('directChildReaped', 'forcedTerminationForOwnedCleanup', 'ownedClosureProven')))
         output['commands'].append(item)
+        # A failed constructor/inspect command has no private stdin. Expose
+        # its original bounded diagnostic because artifact downloads can fail.
+        if row['status'] == 'FAIL' and (label.startswith('create-') or label == 'inspect'):
+            relative = 'actual-six/' + row['id'] + '.log'
+            failed_pin = manifest['files'][relative]
+            raw = read_original(evidence / relative, 2097152)
+            assert len(raw) == failed_pin['bytes'] and hashlib.sha256(raw).hexdigest() == failed_pin['sha256']
+            lines = raw.decode('utf8', errors='replace').splitlines()
+            output.setdefault('originalFailedDaemonDiagnostics', []).append({
+                'command': row['id'], 'logSha256': failed_pin['sha256'],
+                'logBytes': len(raw), 'originalFirstLines': [line[:1024] for line in lines[:4]],
+                'closureStatusUnchanged': True,
+            })
     failed_api = [row for row in commands if row['id'].partition('-')[2] == API_COMMAND_LABEL and row['status'] == 'FAIL']
     assert len(failed_api) <= 1
     if failed_api:
