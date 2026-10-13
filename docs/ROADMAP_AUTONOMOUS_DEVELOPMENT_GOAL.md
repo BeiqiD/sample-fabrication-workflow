@@ -25,7 +25,8 @@ R2 Package transfer or online Recovery. Current Node `systemRecovery`, maintenan
 and export-snapshot route owners remain unavailable in that composition.
 
 Proceed through separate bounded slices: paired nonempty R2→Node and Node→R2
-Package copy; reverse V26/V3 identity-preserving backup into a fresh D1/R2 target;
+Package copy; preserve exact V26/V3 compatibility and reject unsupported LOCAL
+payloads rather than changing their format;
 Node online admission/artifact/target capabilities using the existing neutral
 Recovery kernel, SQL repository and format code; actual cadence/restart, durable
 controls, explicit cleanup and the six named failure controls; then formal V28/V5
