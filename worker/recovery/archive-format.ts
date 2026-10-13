@@ -1,10 +1,10 @@
-import { finishSystemBackupManifestV3, validateSystemBackupDocumentsV3 } from "../contracts/system-backup-v3";
-import { RECOVERY_SCHEMA_SHA256, RECOVERY_TABLES } from "../contracts/system-recovery-catalog";
-import { finishSystemBackupManifest, validateSystemBackupDocuments, type SystemBackupFile } from "../contracts/system-backup";
-import { systemBackupArchiveMetadata } from "./system-backup-archive";
-import { finishSystemBackupManifestV2, validateSystemBackupDocumentsV2 } from "../contracts/system-backup-v2";
-import { selectReviewedRecoveryCatalog, type VersionedRecoveryRecords } from "../../worker/recovery/versioned-catalog";
-export { validateVersionedSystemBackupArchive as validateSystemBackupArchive } from "../contracts/system-backup-versioned-admission";
+import { finishSystemBackupManifestV3, validateSystemBackupDocumentsV3 } from "../../shared/contracts/system-backup-v3";
+import { RECOVERY_SCHEMA_SHA256, RECOVERY_TABLES } from "../../shared/contracts/system-recovery-catalog";
+import { finishSystemBackupManifest, validateSystemBackupDocuments, type SystemBackupFile } from "../../shared/contracts/system-backup";
+import { systemBackupArchiveMetadata } from "../../shared/domain/system-backup-archive";
+import { finishSystemBackupManifestV2, validateSystemBackupDocumentsV2 } from "../../shared/contracts/system-backup-v2";
+import { selectReviewedRecoveryCatalog, type VersionedRecoveryRecords } from "./versioned-catalog";
+export { validateVersionedSystemBackupArchive as validateSystemBackupArchive } from "../../shared/contracts/system-backup-versioned-admission";
 
 export async function prepareSystemBackupArchive(records: VersionedRecoveryRecords, files: readonly SystemBackupFile[]) {
   selectReviewedRecoveryCatalog(records);

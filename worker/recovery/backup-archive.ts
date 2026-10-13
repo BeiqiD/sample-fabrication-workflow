@@ -2,9 +2,9 @@ import type { Env } from "../types";
 import { openShadowProfile } from "../files/shadow-profile";
 import { legacyByteReader } from "../files/legacy-byte-reader";
 import type { SystemBackupSource } from "../../shared/contracts/system-backup";
-import { abortableSystemBackupSource, type SystemBackupSourceRead } from "../../shared/domain/system-backup-format-v1-v3";
-export { prepareSystemBackupArchive, validateSystemBackupArchive } from "../../shared/domain/system-backup-format-v1-v3";
-export type { SystemBackupSourceRead } from "../../shared/domain/system-backup-format-v1-v3";
+import { abortableSystemBackupSource, type SystemBackupSourceRead } from "./archive-format";
+export { prepareSystemBackupArchive, validateSystemBackupArchive } from "./archive-format";
+export type { SystemBackupSourceRead } from "./archive-format";
 
 /** Resolve only the frozen physical tuple through deployment-owned providers.
  * An archive URL is never fetched and no credential is taken from its metadata. */
