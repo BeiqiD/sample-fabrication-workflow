@@ -48,13 +48,14 @@ export async function openSystemBackupSource(env: Env, source: SystemBackupSourc
 
 import type { SystemBackupSourceV28 } from "../../shared/contracts/system-backup-v28-content";
 import type { RecoveryClaim } from "./repository";
+import { ownWorkerV5OriginalSourceBody, type WorkerV5SourceCloseIntent } from "./v5-source-close-owner";
 import { workerV5PublicBackupClaimFence } from "./v28-held-backup-snapshot-candidate";
 import { ownWorkerV5SourceStream } from "./v5-held-r2-archive-candidate";
 /** Fixed V5 public held read. Descriptor bytes do not grant an original volume:
  * every original open/pull joins the active original job and exact durable hold
  * to the canonical publication, actual native R2 profile and expected bytes. */
 export async function openWorkerV5BackupSource(env:Env,source:SystemBackupSourceV28,claim:RecoveryClaim,installationId:string,
-  current:()=>Promise<boolean>,signal:AbortSignal,ownClose:(dispose:()=>Promise<void>)=>void,deadlineAt:string):Promise<SystemBackupSourceRead & {dispose?:()=>Promise<void>}>{
+  current:()=>Promise<boolean>,signal:AbortSignal,ownClose:(dispose:()=>Promise<void>)=>void,deadlineAt:string,durableIntent?:WorkerV5SourceCloseIntent):Promise<SystemBackupSourceRead & {dispose?:()=>Promise<void>}>{
   const original=env.DB,entry=source.source;
   const deadline=Date.parse(deadlineAt),local=()=>Number.isFinite(deadline)&&Date.now()<deadline&&!signal.aborted
     &&canAdministerSystemSettings(env,claim.actor)&&Boolean(env.ACCESS_TEAM_DOMAIN&&env.ACCESS_AUD)&&allowedEmail(claim.actor,env.ALLOWED_EMAILS);
@@ -77,7 +78,8 @@ export async function openWorkerV5BackupSource(env:Env,source:SystemBackupSource
   if(opened.storage.adapterType!=="r2")throw new Error("source_unavailable");
   const result=await opened.reader.read(entry.objectKey);
   if(result.outcome!=="available")throw new Error("source_unavailable");
-  const stream=ownWorkerV5SourceStream(result.body,available);ownClose(stream.close);
+  const stream=ownWorkerV5SourceStream(result.body,available);
+  if(durableIntent)ownWorkerV5OriginalSourceBody(durableIntent,stream);else ownClose(stream.close);
   try{await available();return {outcome:"available",body:stream.body,expected:{byteSize:entry.expectedByteSize,sha256:entry.expectedSha256},dispose:stream.close};}
   catch(error){try{await stream.close();}catch(cleanup){throw new AggregateError([error,cleanup],"Original public V5 R2 open and first-close failed");}throw error;}
 }

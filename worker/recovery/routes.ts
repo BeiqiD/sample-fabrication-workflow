@@ -1,3 +1,4 @@
+import { admitWorkerV5SourceCloseCleanup, workerV5SourceCloseCleanupGuards } from "./v5-source-close-owner";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { Env } from "../types";
@@ -90,23 +91,33 @@ systemRecoveryRoutes.post("/system-recovery/recoveries",async c=>{const accepted
     sourceCheckpoint:manifest.sourceCheckpoint,totalFiles:manifest.files.length,bytesTotal:manifest.counts.bytes},()=>recoveryActorAllowed(c.env,actor));return c.json(await receipt(c.env,acceptedInput.requestId,accepted),202);});
 systemRecoveryRoutes.post("/system-recovery/jobs/:jobId/control",async c=>{const action=await input(c.req.raw,checkedSystemRecoveryJobControl),actor=c.get("userEmail"),repository=recoveryRepository(c.env),job=await owned(c.env,c.req.param("jobId"),actor);
   if(action==="cleanup"){
-    await assertV5RecoveryCleanupClosed(c.env,job);
+    const originalSourceClose=await assertV5RecoveryCleanupClosed(c.env,job);
     if(job.kind!=="recovery")await assertRecoveryArtifactNamespace(c.env,job);
     if(["queued","running","awaiting_upload"].includes(job.state))throw fail("Stop the recovery job before cleanup",409);
     if(await repository.db().prepare("SELECT 1 FROM system_recovery_jobs WHERE source_upload_job_id=? AND state IN('queued','running','paused')").bind(job.id).first())throw fail("An accepted recovery still holds this archive",409);
     const attempts=await repository.attempts(job.id);if(attempts.some(row=>["started","unknown","settled"].includes(row.state)))throw fail("Unknown recovery writes must remain held",409);
-    const cleaned=await repository.db().prepare(`UPDATE system_recovery_jobs SET state=?,generation=generation+1,expires_at=?,updated_at=?
+    const eligibility=repository.db().prepare(`UPDATE system_recovery_jobs SET state=?,generation=generation+1,expires_at=?,updated_at=?
       WHERE id=? AND actor=? AND generation=? AND state NOT IN('queued','running','awaiting_upload')
       AND NOT EXISTS(SELECT 1 FROM system_recovery_jobs dependent WHERE dependent.source_upload_job_id=system_recovery_jobs.id AND dependent.state IN('queued','running','paused'))
       AND NOT EXISTS(SELECT 1 FROM system_recovery_attempts attempt WHERE attempt.job_id=system_recovery_jobs.id AND attempt.state IN('started','unknown','settled'))
       AND ${cleanupHoldReleaseAllowed} RETURNING id`)
-      .bind(job.state==="completed"?"completed":"cancelled",new Date().toISOString(),new Date().toISOString(),job.id,actor,job.generation,job.id).first();
+      .bind(job.state==="completed"?"completed":"cancelled",new Date().toISOString(),new Date().toISOString(),job.id,actor,job.generation,job.id);
+    let cleaned:unknown;
+    if(originalSourceClose){
+      if(!recoveryActorAllowed(c.env,actor))throw fail("System administrator access is required.",403);
+      const guards=workerV5SourceCloseCleanupGuards(c.env,job,originalSourceClose);
+      const result=await repository.db().batch([...guards,eligibility]);
+      cleaned=result[guards.length]?.results?.[0];
+    }else cleaned=await eligibility.first();
     if(!cleaned)throw fail("Recovery cleanup eligibility changed",409);
     for(const attempt of attempts.filter(row=>["verified","failed"].includes(row.state))){if(!recoveryActorAllowed(c.env,actor))throw fail("System administrator access is required.",403);
-      await assertRecoveryArtifactNamespace(c.env,job);await cleanupHoldReleaseGuard(repository,job.id).first();if(!recoveryActorAllowed(c.env,actor))throw fail("System administrator access is required.",403);
+      await assertRecoveryArtifactNamespace(c.env,job);await cleanupHoldReleaseGuard(repository,job.id).first();
+      if(originalSourceClose)await repository.db().batch(workerV5SourceCloseCleanupGuards(c.env,job,originalSourceClose));
+      if(!recoveryActorAllowed(c.env,actor))throw fail("System administrator access is required.",403);
       await c.env.ASSETS.delete(attempt.object_key);await repository.db().prepare("UPDATE system_recovery_attempts SET state='cleaned',cleaned_at=? WHERE id=? AND state IN('verified','failed')").bind(new Date().toISOString(),attempt.id).run();}
     if(!recoveryActorAllowed(c.env,actor))throw fail("System administrator access is required.",403);
-    await repository.db().batch([cleanupHoldReleaseGuard(repository,job.id),repository.db().prepare("UPDATE system_recovery_legacy_holds SET released_at=? WHERE job_id=? AND released_at IS NULL").bind(new Date().toISOString(),job.id),
+    await repository.db().batch([...(originalSourceClose?workerV5SourceCloseCleanupGuards(c.env,job,originalSourceClose):[]),
+      cleanupHoldReleaseGuard(repository,job.id),repository.db().prepare("UPDATE system_recovery_legacy_holds SET released_at=? WHERE job_id=? AND released_at IS NULL").bind(new Date().toISOString(),job.id),
       repository.db().prepare("UPDATE file_location_holds SET released_at=? WHERE operation_id=? AND released_at IS NULL").bind(new Date().toISOString(),`fp5-backup:${job.id}`)]);
   }else await repository.control(job,action);
   return c.json(checkedSystemRecoveryJobStatus(await systemRecoveryJobStatus(c.env,(await repository.job(job.id))!)));});
@@ -166,10 +177,10 @@ async function assertV5RecoveryCleanupClosed(env:Env,job:RecoveryJob){
     if(v28)throw fail("V5 backup cleanup requires durable original source body closure proof.",409);
   }
   if(records?.schema!=="system-backup-records/5")return;
-  // A paused job or an empty archive-attempt list cannot prove the original
-  // native source body first-close acknowledged. Keep every source hold until
-  // a durable positive close proof is part of the original public protocol.
-  if(job.kind==="backup")throw fail("V5 backup cleanup requires durable original source body closure proof.",409);
+  // A paused job/empty artifact ledger never proves source close. Only the
+  // exact durable original invocation+all-close records can admit this token;
+  // it is rechecked in the same source eligibility/hold-release transaction.
+  if(job.kind==="backup")return admitWorkerV5SourceCloseCleanup(env,job,records);
   const dependents=job.kind==="recovery"?[job]:(await repository.db().prepare("SELECT * FROM system_recovery_jobs WHERE source_upload_job_id=?").bind(sourceId).all<RecoveryJob>()).results;
   for(const dependent of dependents){
     if(dependent.kind!=="recovery")continue;

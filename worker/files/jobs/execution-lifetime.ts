@@ -171,6 +171,7 @@ export function closeFileJobExecutions(capabilities: OriginalJobCapabilities): P
 const workerRecoveryOwners=new WeakMap<object,object>();
 const workerRecoveryScopes=new WeakMap<object,FileJobExecutionScope>();
 const workerRecoveryPending=new WeakSet<object>();
+const workerRecoveryOriginalResults=new WeakMap<object,Promise<boolean>>();
 export function registerWorkerRecoveryExecutionOwner(capabilities:object):void{
   assertOriginalExecutionsOpen(capabilities);workerRecoveryOwners.set(capabilities,capabilities);
 }
@@ -184,6 +185,7 @@ export function retainWorkerRecoveryInvocation<T>(original:object,operation:()=>
       workerRecoveryScopes.set(original,scope);
       try{return await operation();}finally{workerRecoveryScopes.delete(original);}
     });
+    workerRecoveryOriginalResults.set(original,retained.result.then(()=>true,()=>false));
     void retained.completed.then(()=>workerRecoveryPending.delete(original),()=>workerRecoveryPending.delete(original));
     return retained.result;
   }catch(error){workerRecoveryPending.delete(original);throw error;}
@@ -200,4 +202,12 @@ export function closeWorkerRecoveryExecutionOwner(original:object):Promise<void>
   const owner=workerRecoveryOwners.get(original);
   if(!owner)throw new Error("Original Worker Recovery execution owner is unavailable");
   stateFor(owner).sealed=true;return drainOriginalExecutions(owner);
+}
+
+/** Read only the SAME privately retained original business promise. Successful
+ * disposer drain alone cannot turn a rejected snapshot/source call into proof. */
+export function workerRecoveryOriginalInvocationSucceeded(original:object):Promise<boolean>{
+  const outcome=workerRecoveryOriginalResults.get(original);
+  if(!workerRecoveryOwners.has(original)||!outcome)throw new Error("Original Worker Recovery invocation outcome is unavailable");
+  return outcome;
 }

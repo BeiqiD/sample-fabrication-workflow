@@ -1,4 +1,7 @@
-import { registerWorkerRecoveryExecutionOwner, ownWorkerRecoveryBodyClose, closeWorkerRecoveryExecutionOwner } from "../files/jobs/execution-lifetime";
+import { registerWorkerRecoveryExecutionOwner, ownWorkerRecoveryBodyClose } from "../files/jobs/execution-lifetime";
+import { beginWorkerV5SourceCloseIntent, acknowledgeWorkerV5OriginalNativeSource, ownWorkerV5OriginalSourceBody,
+  registerWorkerV5SourceCloseOwner, closeWorkerV5OriginalSourceOwner, type WorkerV5SourceCloseIntent } from "./v5-source-close-owner";
+import { ownWorkerV5SourceStream } from "./v5-held-r2-archive-candidate";
 import { captureWorkerV5PublicSnapshot } from "./v28-held-backup-snapshot-candidate";
 import { sourceBackupCheckpointV5 } from "../../shared/contracts/system-backup-v5";
 import { planSystemBackupSourcesV28 } from "../../shared/contracts/system-backup-v28-content";
@@ -113,14 +116,34 @@ export async function workerSystemRecoveryCapabilities(env:Env):Promise<SystemRe
       // an older UNKNOWN artifact attempt. Do not compare its old attempt token.
       if(deadlineAt!==undefined&&(!issuedClaim||issuedClaim.id!==originalJob.id||issuedClaim.actor!==originalJob.actor||!await repository.current(issuedClaim)))throw new Error("administrator_revoked");
       if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding||!recoveryActorAllowed(env,originalJob.actor)))throw new Error("execution_budget_exhausted");
+      let durablePut:WorkerV5SourceCloseIntent|undefined;
+      if(originalJob.kind==="backup"&&deadlineAt!==undefined&&issuedClaim!==undefined&&(await records(repository,originalJob.id)).schema==="system-backup-records/5"){
+        if(!issuedClaim||!signal||typeof deadlineAt!=="string")throw new Error("execution_budget_exhausted");
+        durablePut=await beginWorkerV5SourceCloseIntent(capabilities,issuedClaim,"put",key,()=>repository.current(issuedClaim),signal,deadlineAt);
+      }
+      if(deadlineAt!==undefined&&(!issuedClaim||!await repository.current(issuedClaim)))throw new Error("administrator_revoked");
+      if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding||!recoveryActorAllowed(env,originalJob.actor)))throw new Error("execution_budget_exhausted");
       const {FixedLengthStream}=globalThis as typeof globalThis&{FixedLengthStream:new(length:number)=>{readable:ReadableStream<Uint8Array>;writable:WritableStream<Uint8Array>}};
       const fixed=new FixedLengthStream(byteSize),pipe=body.pipeTo(fixed.writable);void pipe.catch(()=>undefined);
       try{if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding||!recoveryActorAllowed(env,originalJob.actor)))throw new Error("execution_budget_exhausted");
-        await env.ASSETS.put(key,fixed.readable,{httpMetadata:{contentType:"application/zip"}});await pipe;}catch(error){void fixed.readable.cancel().catch(()=>undefined);throw error;}},
+        await env.ASSETS.put(key,fixed.readable,{httpMetadata:{contentType:"application/zip"}});await pipe;if(durablePut)acknowledgeWorkerV5OriginalNativeSource(durablePut);}catch(error){void fixed.readable.cancel().catch(()=>undefined);throw error;}},
     async read(key,deadlineAt,signal,issuedClaim){const originalJob=await assertPrivateKeyNamespace(env,key);
       if(deadlineAt!==undefined&&(!issuedClaim||issuedClaim.id!==originalJob.id||issuedClaim.actor!==originalJob.actor||!await repository.current(issuedClaim)))throw new Error("administrator_revoked");
       if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding||!recoveryActorAllowed(env,originalJob.actor)))throw new Error("execution_budget_exhausted");
-      return(await env.ASSETS.get(key))?.body??null;},
+      let durableRead:WorkerV5SourceCloseIntent|undefined;
+      if(originalJob.kind==="backup"&&deadlineAt!==undefined&&issuedClaim!==undefined&&(await records(repository,originalJob.id)).schema==="system-backup-records/5"){
+        if(!issuedClaim||!signal||typeof deadlineAt!=="string")throw new Error("execution_budget_exhausted");
+        durableRead=await beginWorkerV5SourceCloseIntent(capabilities,issuedClaim,"body",key,()=>repository.current(issuedClaim),signal,deadlineAt);
+      }
+      if(deadlineAt!==undefined&&(!issuedClaim||!await repository.current(issuedClaim)))throw new Error("administrator_revoked");
+      if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding||!recoveryActorAllowed(env,originalJob.actor)))throw new Error("execution_budget_exhausted");
+      const object=await env.ASSETS.get(key);if(!object)return null;if(!durableRead)return object.body;
+      const actualClaim=issuedClaim,actualSignal=signal,actualDeadline=deadlineAt;
+      if(!actualClaim||!actualSignal||typeof actualDeadline!=="string")throw new Error("execution_budget_exhausted");
+      const stream=ownWorkerV5SourceStream(object.body,async()=>{
+        if(actualSignal.aborted||Date.now()>=Date.parse(actualDeadline)||env.DB!==originalSourceBinding||!recoveryActorAllowed(env,originalJob.actor)
+          ||!await repository.current(actualClaim)||actualSignal.aborted||Date.now()>=Date.parse(actualDeadline)||!recoveryActorAllowed(env,originalJob.actor))throw new Error("administrator_revoked");
+      });ownWorkerV5OriginalSourceBody(durableRead,stream);return stream.body;},
     async exportBody(claim,current,signal,deadlineAt){const frozen=await records(repository,claim.id);
       const files=await terminalFiles(repository,claim.id),metadata=await prepareWorkerSystemBackupArchive(frozen,files);
       return createSystemBackupArchiveStream(metadata,async entry=>{const file=files.find(row=>row.path===entry.path);if(!file)throw new Error("archive_invalid");
@@ -135,8 +158,12 @@ export async function workerSystemRecoveryCapabilities(env:Env):Promise<SystemRe
         const v5=Boolean(await db.prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='collaboration_control'").first())
           &&Boolean(await db.prepare("SELECT 1 FROM collaboration_control WHERE singleton=1 AND schema_version=2").first());
         if(v5&&typeof deadlineAt!=="string")throw new Error("execution_budget_exhausted");
+        let snapshotIntent:WorkerV5SourceCloseIntent|undefined;
+        if(v5){if(typeof deadlineAt!=="string")throw new Error("execution_budget_exhausted");
+          snapshotIntent=await beginWorkerV5SourceCloseIntent(capabilities,claim,"snapshot",stableJson({backupId:claim.id,installationId:sourceInstallationId}),current,signal,deadlineAt);}
         const frozen=v5?await captureWorkerV5PublicSnapshot(env,claim,sourceInstallationId,current,signal,deadlineAt)
-          :await captureVersionedSystemBackupSnapshot(env.DB,{backupId:claim.id,createdAt:claim.accepted_at});if(!await current())throw new Error("administrator_revoked");
+          :await captureVersionedSystemBackupSnapshot(env.DB,{backupId:claim.id,createdAt:claim.accepted_at});
+        if(snapshotIntent)acknowledgeWorkerV5OriginalNativeSource(snapshotIntent);if(!await current())throw new Error("administrator_revoked");
         const checkpoint=frozen.schema==="system-backup-records/5"?await sourceBackupCheckpointV5(frozen):await sourceVersionedBackupCheckpoint(frozen);if(input.mode==="planned")await recordSourceCheckpoint(env,claim.id,checkpoint);
         const sources=frozen.schema==="system-backup-records/5"?planSystemBackupSourcesV28(frozen.content):frozen.content.schemaVersion===26?planSystemBackupSourcesV26(frozen.content):planSystemBackupSources(frozen.content.schemaVersion===25?portableBusinessManifestV24(frozen.content):frozen.content),statements=[...repository.metadataStatements(claim.id,"records",frozen),...groupFileStatements(repository,claim,sources)];
         if(statements.length+2>128)throw new SystemRecoveryConflict("metadata_budget");
@@ -201,6 +228,7 @@ export async function workerSystemRecoveryCapabilities(env:Env):Promise<SystemRe
       throw new Error("archive_invalid");
     }};
   registerWorkerRecoveryExecutionOwner(capabilities);
+  registerWorkerV5SourceCloseOwner(capabilities,env,sourceInstallationId);
   return capabilities;
 }
 export async function dispatchSystemRecoveryJobs(env:Env){const capabilities=await workerSystemRecoveryCapabilities(env);if(!capabilities)return{jobId:null,outcome:"disabled"};
@@ -235,7 +263,9 @@ export async function systemRecoveryPreview(env:Env,job:RecoveryJob):Promise<Sys
 function originalSource(source:WorkerRecoverySource):source is SystemBackupSource{return source.source.provider!=="local";}
 async function openClaimedBackupSource(env:Env,source:WorkerRecoverySource,claim:RecoveryClaim,installationId:string,
   current:()=>Promise<boolean>,signal:AbortSignal,v5:boolean,owner:SystemRecoveryCapabilitiesAdapter,deadlineAt?:string){
-  if(v5){if(typeof deadlineAt!=="string")throw new Error("execution_budget_exhausted");return openWorkerV5BackupSource(env,source,claim,installationId,current,signal,dispose=>ownWorkerRecoveryBodyClose(owner,dispose),deadlineAt);}
+  if(v5){if(typeof deadlineAt!=="string")throw new Error("execution_budget_exhausted");
+    const intent=await beginWorkerV5SourceCloseIntent(owner,claim,"body",stableJson(source.source),current,signal,deadlineAt);
+    return openWorkerV5BackupSource(env,source,claim,installationId,current,signal,dispose=>ownWorkerRecoveryBodyClose(owner,dispose),deadlineAt,intent);}
   if(!originalSource(source))throw new Error("archive_invalid");
   return openSystemBackupSource(env,source,current,signal,claim.id);
 }
@@ -246,5 +276,5 @@ export async function closeWorkerV5RecoveryExecutions(capabilities:SystemRecover
   // The format can become known only after a late metadata/ZIP operation. Join
   // this exact registered owner even then; no timeout or false marker is a body
   // close ACK. Historical format/actor/lease grants remain the original ones.
-  await closeWorkerRecoveryExecutionOwner(capabilities);
+  await closeWorkerV5OriginalSourceOwner(capabilities);
 }

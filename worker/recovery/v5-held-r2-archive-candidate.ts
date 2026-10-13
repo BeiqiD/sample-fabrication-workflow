@@ -21,8 +21,14 @@ export interface WorkerV5HeldArchiveCandidate {
   sourceCheckpoint: "portable-runtime/v28"; sourceLedger: "observed-reviewed-construction";
   migrationExecutionClaimed: false; executionEnabled: false; recoveryReady: false;
 }
-interface OriginalStream {
+export interface WorkerV5OriginalSourceStream {
   body: ReadableStream<Uint8Array>; done: Promise<void>; close(): Promise<void>;
+}
+type OriginalStream=WorkerV5OriginalSourceStream;
+const originalSourceStreams=new WeakSet<object>();
+/** Exact original factory identity: copied objects/callbacks issue no close proof. */
+export function assertWorkerV5OriginalSourceStream(stream:WorkerV5OriginalSourceStream):void{
+  ensure(originalSourceStreams.has(stream),"unissued_original_stream");
 }
 interface Owner {
   backupId: string; expectedId: string; current: () => Promise<boolean>; signal?: AbortSignal;
@@ -190,5 +196,5 @@ export function ownWorkerV5SourceStream(input: ReadableStream<Uint8Array>, befor
       },
       async cancel() { await closeOriginal(); },
     }, { highWaterMark: 0 });
-    return Object.freeze({ body, done, close: closeOriginal });
+    const original=Object.freeze({ body, done, close: closeOriginal });originalSourceStreams.add(original);return original;
   }
