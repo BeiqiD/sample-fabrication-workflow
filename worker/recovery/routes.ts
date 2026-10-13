@@ -59,11 +59,23 @@ const cleanupInvariantCodes=new Map([
 const cleanupNativeCodes=["SQLITE_ERROR","SQLITE_AUTH","SQLITE_NOMEM","SQLITE_CONSTRAINT","SQLITE_BUSY","SQLITE_LOCKED",
   "SQLITE_CORRUPT","SQLITE_NOTADB","SQLITE_IOERR","SQLITE_READONLY","SQLITE_FULL","D1_ERROR","D1_TYPE_ERROR",
   "D1_EXEC_ERROR","D1_COLUMN_NOTFOUND","D1_SESSION_ERROR"] as const;
+// Static native cause labels only. A matching guard label identifies the
+// reported guard; it does not independently prove its predicate was false.
+function cleanupNativeCause(message:string){
+  const lower=message.toLowerCase();
+  if(lower.includes("malformed json"))return "JSON_GUARD_DENIED";
+  if(lower.includes("syntax error"))return "SQL_SYNTAX";
+  if(lower.includes("no such table")||lower.includes("no such column"))return "NATIVE_SCHEMA";
+  if(lower.includes("too many sql variables"))return "NATIVE_BINDING_BUDGET";
+  if(message.includes("Original V5 durable source close or exact hold inventory changed"))return "DURABLE_GUARD_ERROR";
+  if(message.includes("Original V5 exact source close record inventory changed"))return "EXACT_GUARD_ERROR";
+  return undefined;
+}
 async function diagnoseCleanup<T>(stage:CleanupDiagnosticStage,original:()=>Promise<T>):Promise<T>{
   try{return await original();}catch(error){
     try{
       const message=error instanceof Error?error.message:"";
-      const code=cleanupInvariantCodes.get(message)??cleanupNativeCodes.find(value=>new RegExp("\\b"+value+"\\b").test(message))
+      const code=cleanupInvariantCodes.get(message)??cleanupNativeCause(message)??cleanupNativeCodes.find(value=>new RegExp("\\b"+value+"\\b").test(message))
         ??(error instanceof HTTPException?"PUBLIC_HTTP_EXCEPTION":"CODE_UNAVAILABLE");
       console.error("System recovery cleanup failed",{stage,code});
     }catch{/* Diagnostic observation must never replace the original error. */}
