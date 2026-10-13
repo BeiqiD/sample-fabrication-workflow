@@ -153,6 +153,28 @@ async function run(kind: "ZERO" | "NONEMPTY") {
         .toEqual([{state:"read_only",activated_at:null,retired_at:null}]);
       const targetCapabilities=checkedSystemRecoveryCapabilities(await json(target,"/api/system-recovery/executor","POST",{enabled:true}));
       expect(targetCapabilities).toMatchObject({supported:true,canManage:true,enabled:true,cadenceSeconds:120,maxStepMs:60000,maintenance:{state:"fenced"}});
+      // Capture the complete actual available-location inventory BEFORE the
+      // public snapshot. Protected LOCAL history and canonical R2 are distinct
+      // original retention owners, even though only canonical R2 supplies bytes.
+      const originalLocationTable=admitted.records.image.tables.file_locations;ensure(originalLocationTable,"original_location_image");
+      expect(originalLocationTable.rows).toHaveLength(1);
+      const originalLocation=originalLocationTable.rows[0]!;
+      function originalLocationText(column:string){const index=originalLocationTable.columns.indexOf(column),cell=originalLocation.cells[index];
+        ensure(index>=0&&cell?.type==="text","original_location_cell");return cell.value;}
+      const beforeSourceRows=await target.readRows(`SELECT l.id AS location_id,l.file_id,l.storage_profile_id,l.object_key,
+        p.adapter_type,p.configuration_revision,lp.verified_byte_size,lp.verified_sha256
+        FROM file_location_publications lp JOIN file_location_availability a ON a.location_id=lp.location_id
+        JOIN file_locations l ON l.id=lp.location_id JOIN storage_profiles p ON p.id=l.storage_profile_id
+        WHERE a.availability='available' ORDER BY l.id`);
+      expect(beforeSourceRows).toHaveLength(2);
+      const protectedLocal=beforeSourceRows.filter(row=>row.adapter_type==="local"),canonicalR2=beforeSourceRows.filter(row=>row.adapter_type==="r2");
+      expect(protectedLocal).toHaveLength(1);expect(canonicalR2).toHaveLength(1);
+      expect(protectedLocal[0]).toMatchObject({location_id:originalLocationText("id"),file_id:originalLocationText("file_id"),
+        storage_profile_id:originalLocationText("storage_profile_id"),object_key:originalLocationText("object_key"),
+        verified_byte_size:member.byteSize,verified_sha256:member.sha256});
+      expect(canonicalR2[0]).toMatchObject({location_id:item.location_id,file_id:item.destination_file_id,
+        storage_profile_id:profileId,object_key:item.object_key,configuration_revision:1,
+        verified_byte_size:member.byteSize,verified_sha256:member.sha256});
       const backup=checkedSystemRecoveryReceipt(await json(target,"/api/system-recovery/jobs","POST",{requestId:randomUUID(),kind:"backup",mode:"historical"},202));
       const captured=await complete(target,backup.job,"completed");ensure(captured.job.output?.available,"actual_backup_output");
       expect(captured.job.progress).toMatchObject({totalFiles:1,completedFiles:1,bytesDone:member.byteSize});
@@ -165,11 +187,21 @@ async function run(kind: "ZERO" | "NONEMPTY") {
       expect(recaptured.manifest.completeness).toBe("complete");expect(recaptured.manifest.files).toHaveLength(1);
       expect(recaptured.manifest.files[0]).toMatchObject({source:{storeKind:"r2",provider:"r2",byteAuthority:"file_location",storageProfileId:profileId},fileIds:member.fileIds,
         outcome:"packaged",byteSize:member.byteSize,sha256:member.sha256});
-      expect(await target.readRows("SELECT count(*) n FROM file_location_holds WHERE operation_id=? AND released_at IS NULL",["fp5-backup:"+backup.job.id]))
-        .toEqual([{n:1}]);
-      await json(target,"/api/system-recovery/jobs/"+backup.job.id+"/control","POST","cleanup",409);
-      expect(await target.readRows("SELECT count(*) n FROM file_location_holds WHERE operation_id=? AND released_at IS NULL",["fp5-backup:"+backup.job.id]))
-        .toEqual([{n:1}]);
+      const holdSql=`SELECT h.id,h.location_id,h.hold_kind,h.operation_id,h.reason,h.acquired_at,h.expires_at,h.released_at,
+        l.file_id,l.storage_profile_id,l.object_key,p.adapter_type,p.configuration_revision,lp.verified_byte_size,lp.verified_sha256
+        FROM file_location_holds h JOIN file_locations l ON l.id=h.location_id JOIN storage_profiles p ON p.id=l.storage_profile_id
+        JOIN file_location_publications lp ON lp.location_id=l.id WHERE h.operation_id=? ORDER BY h.location_id`;
+      const originalHolds=await target.readRows(holdSql,["fp5-backup:"+backup.job.id]);expect(originalHolds).toHaveLength(2);
+      expect(new Set(originalHolds.map(row=>row.id)).size).toBe(2);
+      for(let index=0;index<originalHolds.length;index++){
+        expect(originalHolds[index]).toMatchObject({...beforeSourceRows[index],hold_kind:"export",operation_id:"fp5-backup:"+backup.job.id,
+          reason:"Frozen system backup source",acquired_at:backup.job.acceptedAt,expires_at:null,released_at:null});
+        expect(originalHolds[index]?.id).toMatch(/^fp5_[a-f0-9]{32}$/);
+      }
+      await json(target,"/api/system-recovery/jobs/"+backup.job.id+"/control","POST",{action:"cleanup"},409);
+      // Exact original IDs/locations/owner/complete tuples stay retained. No
+      // deletion, replacement, released row or extra hold can satisfy this.
+      expect(await target.readRows(holdSql,["fp5-backup:"+backup.job.id])).toEqual(originalHolds);
       const distribution=await coherentDistribution(),destination=join(pair.root,"fresh-public-held-node-inert");
       const result=await runCurrentCli(distribution.path,"restore-v28-cli.cjs",["restore","--archive",archive,"--destination",destination,"--sha256",capturedHash,
         "--filesystem-root-owner-uid",String((await lstat("/")).uid)]);
@@ -189,7 +221,8 @@ async function run(kind: "ZERO" | "NONEMPTY") {
       const delivered=await readFile(join(destination,recaptured.manifest.files[0]!.path!));expect(hash(delivered)).toBe(member.sha256);
       expect(hash(await readFile(join(destination,"original-archive.zip")))).toBe(capturedHash);await verifyDistributionSourcePins(distribution.path);
       captureProof={realAcceptedBackupJob:true,originalScheduledCalls:captured.originalScheduledCalls,archiveFormat:"v5",payloads:1,payloadBytes:delivered.byteLength,
-        exactTypedRowsAndRowids:true,positiveOriginalSourceFirstCloseRequired:true,holdsRetainedUntilDurableCleanupProof:true,compiledCurrentNodeRestore:true,
+        exactTypedRowsAndRowids:true,positiveOriginalSourceFirstCloseRequired:true,holdsRetainedUntilDurableCleanupProof:true,originalAvailableLocationInventory:2,
+        originalProtectedLocalHolds:1,originalCanonicalR2Holds:1,exactOriginalHoldIdsAndTuplesRetained:true,compiledCurrentNodeRestore:true,
         coherentDistributionManifestSha256:distribution.manifestSha256};
     }
     await pair.verifyNativeDatabaseConsistency();await target.verifyNativeDatabaseConsistency();
