@@ -9,7 +9,7 @@ import { admitInstallationRecoverySource, assertInstallationAdmission } from '..
 import { executeIdentityOperator, parseIdentityOperatorCommand } from './identity-operator';
 import { executeCollaborationV28OperatorCandidate } from './collaboration-v28-operator-candidate.ts';
 import { parseV28GroupInstallationCommand } from './v28-group-installation-command.ts';
-import { CANONICAL_FILE_PASSWORD, canonicalFileObject, retainedCanonicalFileCase,
+import { canonicalFileObject, retainedCanonicalFileCase,
   withCanonicalFileDatabase } from '../collaboration/current-v28-canonical-comment-file.qualification-support';
 
 // The controller must provide a NEW destination from the actual qualified V5
@@ -18,6 +18,8 @@ import { CANONICAL_FILE_PASSWORD, canonicalFileObject, retainedCanonicalFileCase
 // is accepted as the preparation for these two ordered cases.
 let path: string, principalId: string, installationId: string, rootUid: string;
 let reportPath: string, reportSha256: string;
+const DESTINATION_PASSWORD = 'Synthetic explicit V28 destination restoration password';
+const RESET_PASSWORD = 'Synthetic independent V28 destination reset password';
 const principalPattern = /^local_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 function ensure(value: unknown): asserts value { if (!value) throw new Error('Fresh genuine V5 restored target inputs are required'); }
 beforeAll(() => retainedCanonicalFileCase(async () => {
@@ -62,24 +64,29 @@ const groupArgs = (kind: 'enroll-local-member' | 'set-enforcement') => [kind, '-
 describe('genuine restored V28 separate identity and Group operational entries', () => {
   it('requires explicit V28 and stopped ownership to restore one disabled principal while maintenance and runtime authority remain inert',
     () => retainedCanonicalFileCase(async () => {
-      await withCanonicalFileDatabase(path, async (_owner, lease, native) => lease.withWriter(async () => {
+      const priorRevision = await withCanonicalFileDatabase(path, async (_owner, lease, native) => lease.withWriter(async () => {
         admitted(native); stillInert(native);
-        expect(native.prepare('SELECT enabled FROM local_accounts WHERE principal_id=?').get(principalId)?.enabled).toBe(0);
+        const selected = native.prepare('SELECT enabled,credential_revision FROM local_accounts WHERE principal_id=?').get(principalId);
+        expect(selected?.enabled).toBe(0);
+        const revision = selected?.credential_revision;
+        ensure(typeof revision === 'number' && Number.isSafeInteger(revision) && revision >= 1 && revision < Number.MAX_SAFE_INTEGER - 1);
         for (const name of ['local_identity_installation', 'local_admin_grants', 'collaboration_members', 'collaboration_identities'])
           expect(native.prepare(`SELECT count(*) n FROM ${name}`).get()?.n).toBe(0);
-        await expect(executeIdentityOperator(parseIdentityOperatorCommand(identityArgs('restore-administrator')), CANONICAL_FILE_PASSWORD))
+        await expect(executeIdentityOperator(parseIdentityOperatorCommand(identityArgs('restore-administrator')), DESTINATION_PASSWORD))
           .rejects.toThrow('unavailable'); // The actual original writer lock is held.
+        return revision;
       }));
-      await expect(executeIdentityOperator(parseIdentityOperatorCommand(identityArgs('restore-administrator', false)), CANONICAL_FILE_PASSWORD))
+      await expect(executeIdentityOperator(parseIdentityOperatorCommand(identityArgs('restore-administrator', false)), DESTINATION_PASSWORD))
         .rejects.toThrow('unavailable'); // Default V26 cannot admit the restored V28.
-      await executeIdentityOperator(parseIdentityOperatorCommand(identityArgs('restore-administrator')), CANONICAL_FILE_PASSWORD);
-      await executeIdentityOperator(parseIdentityOperatorCommand(identityArgs('reset-password')), CANONICAL_FILE_PASSWORD);
+      await executeIdentityOperator(parseIdentityOperatorCommand(identityArgs('restore-administrator')), DESTINATION_PASSWORD);
+      await executeIdentityOperator(parseIdentityOperatorCommand(identityArgs('reset-password')), RESET_PASSWORD);
       await withCanonicalFileDatabase(path, async (_owner, lease, native) => lease.withWriter(async () => {
         admitted(native); stillInert(native);
         expect(native.prepare('SELECT count(*) n FROM local_accounts WHERE enabled=1').get()?.n).toBe(1);
-        const selected = native.prepare('SELECT enabled,password_verifier FROM local_accounts WHERE principal_id=?').get(principalId);
+        const selected = native.prepare('SELECT enabled,password_verifier,credential_revision FROM local_accounts WHERE principal_id=?').get(principalId);
         expect(selected?.enabled).toBe(1);
-        expect(await createPasswordHasher().verify(CANONICAL_FILE_PASSWORD, selected?.password_verifier)).toBe(true);
+        expect(selected?.credential_revision).toBe(priorRevision + 2);
+        expect(await createPasswordHasher().verify(RESET_PASSWORD, selected?.password_verifier)).toBe(true);
         expect(native.prepare('SELECT count(*) n FROM local_admin_grants WHERE principal_id=?').get(principalId)?.n).toBe(1);
         expect(native.prepare('SELECT count(*) n FROM local_admin_grants').get()?.n).toBe(1);
         expect(native.prepare('SELECT bootstrap_principal_id FROM local_identity_installation WHERE singleton=1').get()?.bootstrap_principal_id).toBe(principalId);
