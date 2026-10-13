@@ -1,10 +1,10 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { createHash, randomUUID } from 'node:crypto';
-import { lstat, readFile, realpath, rename, writeFile } from 'node:fs/promises';
-import { statfsSync } from 'node:fs';
+import { lstat, open, readFile, realpath, rename, writeFile, type FileHandle } from 'node:fs/promises';
+import { constants, statfsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { isAbsolute, join, resolve } from 'node:path';
-import type { DatabaseSync } from 'node:sqlite';
+import { DatabaseSync } from 'node:sqlite';
 import { verifyNodeDistribution } from '../../scripts/lib/node-distribution-v28-manifest.mjs';
 import { NODE_RECOVERY_ARCHIVE_OPTIONS, nodeRecoveryArchiveSource } from '../../scripts/lib/system-backup-node-io.ts';
 import { validateV28SystemBackupArchiveCandidate } from '../../shared/contracts/system-backup-v5-archive-admission.ts';
@@ -201,6 +201,73 @@ async function replaceWindow(client: Client, session: CanonicalFileSession, froz
   return replacement;
 }
 
+interface RetainedReadonlyInspection {
+  originalOpen?: Promise<FileHandle>; handle?: FileHandle; native?: DatabaseSync;
+  nativeAttempted: boolean; constructorFailed: boolean; failure?: unknown; closing?: Promise<void>;
+}
+const readonlyInspections = new Set<RetainedReadonlyInspection>();
+afterEach(() => {
+  if (readonlyInspections.size) throw new AggregateError([...readonlyInspections].map(owner => owner.closing ?? owner.failure ?? owner.originalOpen),
+    'Original retained target read-only inspection ownership remains unproven');
+});
+async function absent(path: string) {
+  try { await lstat(path); return false; }
+  catch (error) { if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') return true; throw error; }
+}
+/** Forensic read of the genuine renamed closed target, after every production
+ * original Native/provider/source close. A read-only handle grants no target
+ * claim or writer authority; no renamed/fabricated writer sentinel is used.
+ * Refuse a detached WAL rather than ignore it with an immutable URI. */
+async function inspectClosedRetainedInode(path: string, originalPath: string, expectedSha256: string,
+  work: (native: DatabaseSync) => void): Promise<void> {
+  assertCanonicalFileOwnersReleased();
+  ensure(isAbsolute(path) && resolve(path) === path && await realpath(path) === path && /^[a-f0-9]{64}$/.test(expectedSha256));
+  const before = await lstat(path, { bigint: true });
+  ensure(before.isFile() && !before.isSymbolicLink() && before.nlink === 1n && before.uid === BigInt(process.geteuid!())
+    && (before.mode & 0o7777n) === 0o600n && before.size > 0n && before.size <= 16n * 1024n * 1024n);
+  const identity = (stat: typeof before) => [stat.dev,stat.ino,stat.uid,stat.gid,stat.mode,stat.nlink,stat.size,stat.mtimeNs,stat.ctimeNs].join(':');
+  // Files-stage target Native owners already closed before the original inode
+  // was renamed. A WAL under either name would make a bare-main read incomplete.
+  for (const named of [path, originalPath]) for (const suffix of ['-wal','-shm']) ensure(await absent(named + suffix), 'retained_target_wal_requires_original_owner_proof');
+  const owner: RetainedReadonlyInspection = { nativeAttempted: false, constructorFailed: false }; readonlyInspections.add(owner);
+  let failed = false, failure: unknown;
+  function close(): Promise<void> {
+    if (owner.closing) return owner.closing;
+    owner.closing = Promise.resolve().then(async () => {
+      if (owner.nativeAttempted && !owner.native) throw owner.constructorFailed ? owner.failure : new Error('Original readonly Native constructor has no close owner');
+      if (owner.native) { owner.native.close(); ensure(!owner.native.isOpen, 'original_retained_readonly_native_close'); }
+      if (!owner.handle) throw owner.failure ?? new Error('Original retained FD has no close owner');
+      await owner.handle.close();
+      ensure(await realpath(path) === path && identity(await lstat(path, { bigint: true })) === identity(before), 'retained_target_physical_identity_changed');
+      expect(digest(await readFile(path))).toBe(expectedSha256);
+      for (const named of [path, originalPath]) for (const suffix of ['-wal','-shm']) ensure(await absent(named + suffix), 'retained_target_sidecar_close_unproven');
+      readonlyInspections.delete(owner);
+    });
+    void owner.closing.catch(() => undefined); return owner.closing;
+  }
+  try {
+    owner.originalOpen = open(path, constants.O_RDONLY | constants.O_NOFOLLOW); void owner.originalOpen.catch(() => undefined);
+    owner.handle = await owner.originalOpen;
+    ensure(identity(await owner.handle.stat({ bigint: true })) === identity(before), 'retained_target_original_fd_identity');
+    expect(digest(await owner.handle.readFile())).toBe(expectedSha256);
+    ensure(identity(await lstat(path, { bigint: true })) === identity(before) && await realpath(path) === path);
+    owner.nativeAttempted = true;
+    try { owner.native = new DatabaseSync(path, { readOnly: true, allowExtension: false, enableForeignKeyConstraints: true }); }
+    catch (error) { owner.constructorFailed = true; owner.failure = error; throw error; }
+    const native = owner.native; native.exec('PRAGMA query_only=ON');
+    expect(native.prepare('PRAGMA query_only').get()?.query_only).toBe(1);
+    const main = native.prepare('PRAGMA database_list').all().filter(row => row.name === 'main');
+    expect(main).toHaveLength(1); expect(main[0]?.file).toBe(path);
+    ensure(identity(await owner.handle.stat({ bigint: true })) === identity(before) && identity(await lstat(path, { bigint: true })) === identity(before));
+    work(native);
+    expect(native.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
+    expect(native.prepare('PRAGMA quick_check').all()).toEqual([{ quick_check: 'ok' }]);
+  } catch (error) { failed = true; failure = error; owner.failure ??= error; }
+  try { const first = close(); expect(close()).toBe(first); await first; }
+  catch (cleanup) { throw failed ? new AggregateError([failure, cleanup], 'Original retained target inspection and first close failed') : cleanup; }
+  if (failed) throw failure;
+}
+
 async function run(fault: Fault) {
   const data = await prepared(fault), { source, target, recoveryId, uploadId } = data;
   let retainedDatabase = join(target.destination, 'database.sqlite'), retainedDatabaseSha256: string | undefined;
@@ -296,7 +363,7 @@ async function run(fault: Fault) {
   }));
   if (fault === 'F5') { ensure(retainedDatabaseSha256); expect(digest(await readFile(retainedDatabase))).toBe(retainedDatabaseSha256);
     expect((await lstat(join(target.destination, 'database.sqlite'))).size).toBe(0); }
-  await withCanonicalFileDatabase(retainedDatabase, async (_owner, lease, native) => lease.withWriter(async () => {
+  const inspectInertRows = (native: DatabaseSync) => {
     for (const name of ['file_shadow_runtime_guard', 'file_authority_runtime_guard', 'file_job_runtime_guard', 'system_recovery_runtime'])
       expect(native.prepare(`SELECT enabled FROM ${name} WHERE singleton=1`).get()?.enabled).toBe(0);
     for (const name of ['local_storage_profile_bindings', 'system_storage_native_bindings'])
@@ -309,7 +376,11 @@ async function run(fault: Fault) {
     expect(activationHistory.rows.every(row => row.rowid === null)).toBe(true);
     expect(currentV28RecoveryTypedRows(native, ['local_storage_profile_activations']).local_storage_profile_activations)
       .toEqual(currentV28RecoveryImageRows(activationHistory));
-  }));
+  };
+  if (fault === 'F5') {
+    ensure(retainedDatabaseSha256);
+    await inspectClosedRetainedInode(retainedDatabase, join(target.destination, 'database.sqlite'), retainedDatabaseSha256, inspectInertRows);
+  } else await withCanonicalFileDatabase(retainedDatabase, async (_owner, lease, native) => lease.withWriter(() => inspectInertRows(native)));
   assertCanonicalFileOwnersReleased();
   if (fault === 'F5') { ensure(retainedDatabaseSha256); expect(digest(await readFile(retainedDatabase))).toBe(retainedDatabaseSha256); }
   const payload = await readFile(join(target.destination, 'files/b_0000'));
