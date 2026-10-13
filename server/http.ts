@@ -2,6 +2,20 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { PassThrough, Readable } from "node:stream";
 import { readFabubloxWireRouteAdmission, type FabubloxWireRouteAdmission } from "./imports/fabublox-wire-route-admission.ts";
 
+export interface NodeHttpRequestLifetime {
+  readonly kind: "node-http-original-request-lifetime/1";
+  readonly settled: Promise<void>;
+  /** Abort only this actual ingress and join its original handler/pump/cancel ACK. */
+  close(): Promise<void>;
+}
+const issuedRequestLifetimes = new WeakMap<Request, Readonly<{ server: Server; lifetime: NodeHttpRequestLifetime }>>();
+export function ownedNodeHttpRequestLifetime(request: Request, server: Server): NodeHttpRequestLifetime {
+  const owner = issuedRequestLifetimes.get(request);
+  if (!owner || owner.server !== server || !issuedHttpServers.has(server))
+    throw new Error("Original HTTP Request lifetime is unavailable");
+  return owner.lifetime;
+}
+
 export type FetchHandler = (request: Request) => Promise<Response> | Response;
 export type NodeHttpOptions = {
   /** Deployment-owned origin; Host and forwarding headers never select it. */
@@ -254,7 +268,7 @@ export function createNodeHttpServer(handler: FetchHandler, options: NodeHttpOpt
     const invocation: HttpInvocation = { settlement: Promise.resolve(), owners: Object.freeze([incoming, outgoing]) };
     owner.invocations.add(invocation); retainedHttpOwners.add(owner);
     // Register before invoking any original application/body owner.
-    invocation.settlement = Promise.resolve().then(() => handle(incoming, outgoing, continueRequested)).then(() => {
+    invocation.settlement = Promise.resolve().then(() => handle(incoming, outgoing, invocation, continueRequested)).then(() => {
       owner.invocations.delete(invocation);
       if (!owner.invocations.size && !owner.failure) retainedHttpOwners.delete(owner);
     }, error => {
@@ -264,7 +278,7 @@ export function createNodeHttpServer(handler: FetchHandler, options: NodeHttpOpt
     });
     void invocation.settlement.catch(() => undefined);
   }
-  async function handle(incoming: IncomingMessage, outgoing: ServerResponse, continueRequested = false) {
+  async function handle(incoming: IncomingMessage, outgoing: ServerResponse, invocation: HttpInvocation, continueRequested = false) {
     const controller = new AbortController();
     const abort = () => controller.abort(new Error("Client disconnected"));
     const onClose = () => { if (!outgoing.writableFinished) abort(); };
@@ -391,6 +405,21 @@ export function createNodeHttpServer(handler: FetchHandler, options: NodeHttpOpt
         incoming.pipe(limiter);
       }
       const request = new Request(publicOrigin + target, init);
+      let completed = false, originalClose: Promise<void> | undefined;
+      void invocation.settlement.then(() => { completed = true; }, () => { completed = true; });
+      const lifetime: NodeHttpRequestLifetime = Object.freeze({
+        kind: "node-http-original-request-lifetime/1" as const,
+        settled: invocation.settlement,
+        close(): Promise<void> {
+          if (originalClose) return originalClose;
+          originalClose = Promise.resolve().then(() => {
+            if (!completed && !controller.signal.aborted) controller.abort(new Error("Original source ingress is draining"));
+            return invocation.settlement;
+          });
+          void originalClose.catch(() => undefined); return originalClose;
+        },
+      });
+      issuedRequestLifetimes.set(request, Object.freeze({ server, lifetime }));
       if (continueRequested) outgoing.writeContinue();
       const admitted = requestAdmission?.(request, incoming, server);
       applicationResponse = Promise.resolve(admitted instanceof Response ? admitted : handler(request)).then(async response => {
