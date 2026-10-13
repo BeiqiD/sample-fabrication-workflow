@@ -5,7 +5,7 @@ import { createPrivateStorageKeyringLoader } from './auth/storage-keyring-file';
 import { OPERATIONAL_NODE_INSTALLATION_CATALOG } from './operational-installation-catalog';
 import { admitInstallationRecoverySource, assertInstallationAdmission } from './migrations';
 import { createNodeDevelopmentPrototype } from './node-application';
-import { assertNodeRuntimeConfiguration, type LoadedNodeRuntimeConfiguration } from './node-runtime-config';
+import { assertNodeRuntimeConfiguration, assertNodeRuntimeConfigurationForProfile, type LoadedNodeRuntimeConfiguration } from './node-runtime-config';
 import { acquireLinuxWriterLease, assertLinuxWriterLeaseBinding, type LinuxWriterLease } from './operations/writer-lease';
 import { createSqliteCapability, type SqliteCapability } from './sqlite';
 
@@ -53,7 +53,7 @@ export async function startNodeDevelopmentRuntime(configuration: LoadedNodeRunti
   const signal = options?.signal;
   if (!options || typeof options !== 'object' || Array.isArray(options) || Object.keys(options).some(key => key !== 'signal')
     || signal !== undefined && !(signal instanceof AbortSignal)) unavailable();
-  const value = assertNodeRuntimeConfiguration(configuration); aborted(signal);
+  const value = assertNodeRuntimeConfigurationForProfile(configuration, undefined); aborted(signal);
   if (owners.size >= 2) unavailable();
   // Synchronous active+quarantine reservation bounds failed native cleanup.
   const owner: Owner = { quarantined: false }; owners.add(owner);
