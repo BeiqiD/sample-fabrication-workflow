@@ -4,22 +4,29 @@ from pathlib import Path
 
 PRODUCER = 'worker-v5-present-head-bound-producer'
 PAYLOAD = 'worker-v5-present-head-bound-payload'
+PUBLIC = 'worker-v5-public-headed'
 CASES = {
  PRODUCER: ('server/operations/current-v28-present-head-bound-backup.qualification.ts', [
   'captures one genuine public Run Step LOCAL binding with its naturally issued present head through stopped V28 upgrade and complete V5 capture']),
  PAYLOAD: ('scripts/qa/worker-v5-present-head-bound-local-r2-payload-native.qualification.ts', [
   'publishes one genuine present-head bound LOCAL File to native R2 with two exact metadata events while preserving original typed history and consumer rows']),
+ PUBLIC: ('scripts/qa/worker-v5-public-headed-native.qualification.ts', [
+  'restores the qualified genuine Run Step headed V5 through Access public jobs and exact inert R2 history, then held public backup into fresh current Node',
+  'restores the qualified natural Comment headed V5 through Access public jobs and exact inert R2 history, then held public backup into fresh current Node']),
 }
 CONFIGS = {PRODUCER:'current-v28-present-head-bound-backup.vitest.config.mts',
- PAYLOAD:'worker-v5-present-head-bound-local-r2-payload-native.vitest.config.mts'}
-BUDGETS = {PRODUCER:180, PAYLOAD:180}
-CASE_BUDGETS = {PRODUCER:[120000], PAYLOAD:[120000]}
+ PAYLOAD:'worker-v5-present-head-bound-local-r2-payload-native.vitest.config.mts', PUBLIC:'worker-v5-public-headed-native.vitest.config.mts'}
+BUDGETS = {PRODUCER:180, PAYLOAD:180, PUBLIC:480}
+CASE_BUDGETS = {PRODUCER:[120000], PAYLOAD:[120000], PUBLIC:[180000,180000]}
 INPUT_NAME = 'worker-v5-present-head-bound-inputs.json'
 PREFIX = 'WORKER_V5_NATIVE_PRESENT_HEAD_BOUND'
 SCOPE = ('One genuine public original V26 Run Step LOCAL consumer/head, whole original close, stopped V28 upgrade and current '
  'compiled complete strict V5 capture; separate fresh inert native D1/R2 constructor with two actual destination profile/runtime '
  'history events and final generation+2. Both original same-head stages must PASS/close before the pair is counted. '
  'No public V28 File route, live same-app recovery, elapsed cadence, activation or all-provider claim.')
+PUBLIC_SCOPE = ('Qualified same-current original RunStep and natural Comment headed V5 inputs through genuine Access public upload/jobs/report, '
+ 'fresh inert native D1/R2 with two frozen profile/runtime history events, complete actual public held R2 V5 backup and current compiled Node inert restore. '
+ 'Each raw2 Native stage is counted only with original child/SDK/body/native close and2physical D1 proofs; no elapsed cadence/activation/cutover/allproviders claim.')
 
 def original_controller():
  # Runtime import of the actual already loaded controller. No reconstructed
@@ -33,7 +40,7 @@ def configure(stage, env, run_root, fixture, head, source_tree):
   path = run_root / INPUT_NAME; assert not path.exists()
   env['CURRENT_V28_PRESENT_HEAD_BOUND_BACKUP_RECEIPT'] = str(path)
  else:
-  assert stage == PAYLOAD
+  assert stage in (PAYLOAD,PUBLIC)
   receipt = original.original_receipt(run_root,PRODUCER,head,source_tree); producer = receipt['currentProducer']
   raw = original.read_private(producer['inputsPath'])
   assert hashlib.sha256(raw).hexdigest() == producer['inputsSha256'] and len(raw) == producer['inputsBytes']
@@ -45,6 +52,18 @@ def configure(stage, env, run_root, fixture, head, source_tree):
   env.update({PREFIX+'_ARCHIVE':str(archive), PREFIX+'_SHA256':producer['archiveSha256'],
    PREFIX+'_PRODUCER_RECEIPT':str(run_root/PRODUCER/'receipt.json'), PREFIX+'_PRODUCER_INPUTS':producer['inputsPath'],
    PREFIX+'_PRODUCER_HEAD':head})
+  if stage == PUBLIC:
+   bound = original.original_receipt(run_root,'worker-v5-bound-producer',head,source_tree)['currentProducer']
+   bound_raw = original.read_private(bound['inputsPath'])
+   assert hashlib.sha256(bound_raw).hexdigest() == bound['inputsSha256'] and len(bound_raw) == bound['inputsBytes']
+   bound_archive = Path(bound['archive']); assert bound_archive.is_relative_to(fixture)
+   bound_bytes = original.read_private(bound_archive,8*1024*1024)
+   assert hashlib.sha256(bound_bytes).hexdigest() == bound['archiveSha256'] and len(bound_bytes) == bound['archiveBytes']
+   assert bound['sourceFileCount'] == 1 and bound['nativeBoundCommentPresentHead'] is True
+   env.update({'WORKER_V5_NATIVE_BOUND_ARCHIVE':str(bound_archive),'WORKER_V5_NATIVE_BOUND_SHA256':bound['archiveSha256'],
+    'WORKER_V5_NATIVE_BOUND_PRODUCER_RECEIPT':str(run_root/'worker-v5-bound-producer'/'receipt.json'),
+    'WORKER_V5_NATIVE_BOUND_PRODUCER_INPUTS':bound['inputsPath'],'WORKER_V5_NATIVE_BOUND_PRODUCER_HEAD':head})
+
 
 def archive_facts(archive_bytes, proof):
  """Observe metadata of the exact original producer's strict-admitted archive.
@@ -156,7 +175,7 @@ def finish(stage, record, run_root, fixture):
  assert original.tree(head) == source_tree
  actual = record['actualResults']
  assert actual['pass'] is True and actual['exactOriginalSelection'] is True
- assert actual['actualTotal'] == actual['actualPassed'] == 1 and actual['actualFailed'] == actual['actualPending'] == 0
+ assert actual['actualTotal'] == actual['actualPassed'] == len(CASES[stage][1]) and actual['actualFailed'] == actual['actualPending'] == 0
  assert record['ownedClosureProven'] is True and record['actualExitCode'] == 0 and record['noFixtureRemoval'] is True
  assert isinstance(record['closureFinalSnapshot'],list) and not any(row['activeOrOwnershipUnproven'] for row in record['closureFinalSnapshot'])
  assert not record.get('outerExpired') and not any(key in record for key in ('firstFailure','originalCloseError','floorOrPrivateIdentityFailure'))
@@ -185,6 +204,47 @@ def finish(stage, record, run_root, fixture):
    'archive':str(archive),'archiveSha256':archive_sha,'archiveBytes':len(archive_bytes),
    'distribution':built['distribution'],'distributionManifestSha256':built['distributionManifestSha256'],
    'distributionSourceInputsSha256':built['distributionSourceInputsSha256'],**facts}
+ elif stage == PUBLIC:
+  producers = {'run_step_asset':original.original_receipt(run_root,PRODUCER,head,source_tree),
+   'comment_submission_item':original.original_receipt(run_root,'worker-v5-bound-producer',head,source_tree)}
+  paths = sorted(fixture.glob('.native-v5-target-*/closed-native-file-consistency.json'))
+  fresh = [path for path in paths if str(path) not in record['workerV5ProofPathsBefore']]; assert len(fresh) == 2
+  proofs, originals = [], []
+  for path in fresh:
+   raw_closed = original.read_private(path); closed = json.loads(raw_closed)
+   assert closed['schema'] == 'closed-original-native-d1-readonly-consistency/1'
+   assert all(closed[key] is True for key in ('originalNativeDisposed','wholeQuickCheck','foreignKeys','durableMainAndWalUnchanged','physicalPathsAndInodesUnchanged'))
+   raw = original.read_private(path.parent/'original-public-v5-headed-receipt.json'); value = json.loads(raw); shadow = value['headedProof']; capture = value['captureProof']
+   assert value['schema'] == 'genuine-access-public-v5-headed-native/1' and value['files'] == 1 and shadow['kind'] in producers
+   assert value['inputProducerHead'] == head and value['sourceArchiveSha256'] == producers[shadow['kind']]['currentProducer']['archiveSha256']
+   assert value['cadenceSeconds'] == 120 and value['maxStepMs'] == 60000 and value['elapsedCadenceQualified'] is False and value['automaticCutover'] is False
+   assert all(value[key] is True for key in ('authenticatedActualProductionHandler','actualDurablePublicUploadAndRecovery',
+    'exactOriginalTypedCellsAndRowids','closedAppendCensus','accountsDisabled','groupDefaultDisabled','executionDefaultsDisabled','originalPairFirstCloseAcknowledged','originalNativeDisposed'))
+   assert value['sourceFullIntegrity'] == value['targetFullIntegrity'] == 'ok'
+   assert shadow['presentHeads'] == 1 and shadow['metadataEvents'] == shadow['addedOccurrences'] == shadow['addedClosures'] == 2
+   assert all(shadow[key] is True for key in ('preWriteFrozenPlan','planUnchangedAfterReady','exactTypedHistoryAppendMultisets',
+    'originalImmutableRowsAndRowidsExact','nativeLedgerIdentityBoundIndependently','manifestResearchIdentityBoundIndependently'))
+   assert re.fullmatch('[0-9a-f]{64}',shadow['planSha256'])
+   for key in ('generation','epoch','profileRevision'):
+    assert isinstance(shadow[key+'Before'],int) and not isinstance(shadow[key+'Before'],bool)
+    assert shadow[key+'After'] == shadow[key+'Before'] + 2
+   assert capture['archiveFormat'] == 'v5' and capture['payloads'] == 1 and capture['payloadBytes'] == 68 and capture['durableOriginalSourceCloseRecords'] == 6
+   assert capture['actualCleanupHttpStatus'] == 200 and capture['originalAvailableLocationInventory'] == 2
+   assert capture['originalProtectedLocalHolds'] == capture['originalCanonicalR2Holds'] == 1
+   assert all(capture[key] is True for key in ('realAcceptedBackupJob','exactTypedRowsAndRowids','positiveOriginalSourceFirstCloseRequired',
+    'holdsRetainedUntilDurableCleanupProof','exactOriginalHoldIdsAndTuplesRetained','originalWorkAndAllCloseAcknowledgedBeforeCleanup',
+    'exactOriginal2HoldIdsAndTuplesReleasedAfterProof','allOtherLocationHoldRowsAndAllLegacyHoldRowsUnchanged','compiledCurrentNodeRestore'))
+   assert capture['coherentDistributionManifestSha256'] == original.distribution(run_root,head,source_tree)['distributionManifestSha256']
+   proofs.append({'originalProofSha256':hashlib.sha256(raw_closed).hexdigest(),'originalProofBytes':len(raw_closed),
+    'originalNativeDisposed':True,'wholeQuickCheck':True,'foreignKeys':True,'durableMainAndWalUnchanged':True,'physicalPathsAndInodesUnchanged':True})
+   originals.append({'kind':shadow['kind'],'originalProofSha256':hashlib.sha256(raw).hexdigest(),'originalProofBytes':len(raw),
+    'sourceArchiveSha256':value['sourceArchiveSha256'],'presentHeads':1,'metadataEvents':2,'addedOccurrences':2,'addedClosures':2,
+    'preWriteFrozenPlan':True,'exactTypedHistoryAppendMultisets':True,'exactOriginalTypedCellsAndRowids':True,
+    'originalPairFirstCloseAcknowledged':True,'originalNativeDisposed':True,'wholeQuickCheck':True,'foreignKeys':True,
+    'actualPublicHeldR2ToCurrentNode':True,'durableOriginalSourceCloseRecords':6,'actualCleanupHttpStatus':200,
+    'cadenceSeconds':120,'maxStepMs':60000,'elapsedCadenceQualified':False,'automaticCutover':False})
+  assert sorted(value['kind'] for value in originals) == sorted(producers)
+  record['actualClosedNativeProofs'] = proofs; record['actualPublicHeadedV5'] = originals
  else:
   assert stage == PAYLOAD
   producer = original.original_receipt(run_root,PRODUCER,head,source_tree)
@@ -219,13 +279,13 @@ def finish(stage, record, run_root, fixture):
 def public_receipt(record, summary):
  stage = record['stage']; assert stage in CASES
  value = {'schema':'current-worker-v5-original-owned-ci/1','stage':stage,'head':record['head'],'tree':record['tree'],
-  'status':record['status'],'scope':SCOPE,'outerSeconds':record['outerSeconds'],'caseTimeoutsMs':CASE_BUDGETS[stage],
+  'status':record['status'],'scope':PUBLIC_SCOPE if stage == PUBLIC else SCOPE,'outerSeconds':record['outerSeconds'],'caseTimeoutsMs':CASE_BUDGETS[stage],
   'minimumBeforeChild':record['minimumBeforeChild'],'minimumAfterChild':536870912,
   'originalChildWaitObservationPresent':'originalChildWaited' in record,'originalChildWaited':record.get('originalChildWaited') is True,
   'originalCloseObservationPresent':'ownedClosureProven' in record,'ownedClosureProven':record.get('ownedClosureProven') is True,
   'exitCode':record.get('exitCode'),'outerExpired':record.get('outerExpired') is True,'noFixtureRemoval':True,
   'selectedFile':CASES[stage][0],'selectedTitles':CASES[stage][1],'qualificationSourceSha256':record['qualificationSourceSha256'],
-  'presentHeadBoundPairQualified':False,'qualifiedPresentHeadBoundCases':0}
+  'presentHeadBoundPairQualified':False,'qualifiedPresentHeadBoundCases':0,'publicHeadedPairQualified':False,'qualifiedPublicHeadedCases':0}
  snapshot = record.get('finalGroupSnapshot'); value['finalGroupObservationPresent'] = isinstance(snapshot,list)
  value['finalActiveOrUnprovenOwners'] = sum(row['activeOrOwnershipUnproven'] is True for row in snapshot) if isinstance(snapshot,list) else None
  if 'actualResults' in record:
@@ -242,6 +302,9 @@ def public_receipt(record, summary):
  if closed_pass and stage == PAYLOAD and 'actualPresentHeadV5' in record and record.get('actualResults',{}).get('pass') is True:
   value['actualClosedNativeProofs'] = record['actualClosedNativeProofs']; value['actualPresentHeadV5'] = record['actualPresentHeadV5']
   value['presentHeadBoundPairQualified'] = True; value['qualifiedPresentHeadBoundCases'] = 2
+ if closed_pass and stage == PUBLIC and 'actualPublicHeadedV5' in record and record.get('actualResults',{}).get('pass') is True:
+  value['actualClosedNativeProofs'] = record['actualClosedNativeProofs']; value['actualPublicHeadedV5'] = record['actualPublicHeadedV5']
+  value['publicHeadedPairQualified'] = True; value['qualifiedPublicHeadedCases'] = 2
  for key in ('firstFailure','originalCloseError','rawCensusFailure','floorOrPrivateIdentityFailure','publicDiagnosticFailureKind'):
   if key in record:
    error = record[key]; kind = error.get('kind') if isinstance(error,dict) else error.split(':',1)[0] if isinstance(error,str) else ''
