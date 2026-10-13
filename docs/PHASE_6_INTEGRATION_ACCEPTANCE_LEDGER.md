@@ -1,8 +1,20 @@
 # Phase 6 integration and enabled-scope acceptance ledger
 
-Status: 6A6/6B in progress, 2026-10-10 (UTC).
+Historical checkpoint: 6A6/6B in progress, 2026-10-10 (UTC).
 This is a finite acceptance inventory for the combined development integration.
 It does not declare Phase 6 complete or authorize a production release.
+
+**Earlier merged development checkpoint:** [PR #282](https://github.com/BeiqiD/sample-fabrication-workflow/pull/282) merged at `e6a4dbe8098d3557510831531bd2fc534fe9e26b`. Its own-head four Verify/Map runs and all 15 contexts, then the e6 post-merge two runs and all 15 contexts, succeeded; its actual Workers Build also succeeded. Those results retain their exact source scope.
+
+**Build optimization now in the development baseline:** [PR #283](https://github.com/BeiqiD/sample-fabrication-workflow/pull/283) merged at `879145ec1e74c853d079ba49503bcad199a3b768`, with its own-head and post-merge CI and actual [Workers Build 114914679495](https://github.com/BeiqiD/sample-fabrication-workflow/runs/114914679495) successful. Default `npm run build` uses `npm run config:local && vite build`; TypeScript checking remains the separate `npm run typecheck` prerequisite in `verify`. The fast build result does not replace serving, schema or provider acceptance.
+
+**Merged FabuBlox development checkpoint:** [PR #284](https://github.com/BeiqiD/sample-fabrication-workflow/pull/284) is merged at `784aeb5c14cb2e2c776a27f6f9a5ef9a6ba4dfcd`, whose tree equals qualified candidate `762616906a0cc569567cc4d73242163642310c70`. Its actual post-merge [Verify 38320273223](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38320273223), [Map 38320273213](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38320273213), all 15 contexts and Cloudflare build succeeded. The candidate's four genuine Process/body tests, full server typecheck, fresh build and four fixed local Chromium shell/accessibility cases retain their original local scopes; earlier failures and browser receipts remain recorded separately.
+
+**Merged Node producer:** [PR #285](https://github.com/BeiqiD/sample-fabrication-workflow/pull/285) merged at `8d832ba7af5f1554d61f34fe726ffd8b9de46336`, with the exact tree of `cbe0fd3`. Both own Verify runs, both Map runs and all 15 contexts passed. The full Node V3 package, eight distribution tests, embedded verifier and four bundled CLI help checks passed at cbe0; its package has 123 files and 858 source inputs. The new merge's Workers Build succeeded; its ordinary post-merge Verify is a separate pending scope. Docker/image/17-case and restored-target acceptance remain open.
+
+**Explicit V28 profile draft:** [PR #286](https://github.com/BeiqiD/sample-fabrication-workflow/pull/286), source `4ef7a9d`, passed full server type checking, three parser cases, fresh Node client/distribution build, embedded verification, four compiled CLI help checks and four genuine programmatic runtime-startup cases in [run 38323352244](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38323352244). This new package has 123 files and 928 source inputs. Ordinary complete CI remains pending. The original workflow logs and stage PASS reports were read; the separate artifact download returned 403 and its detailed receipt files were not read back. Compiled-server startup, restored-target startup and cross-runtime recovery are not established by these tests.
+
+#252 and #254 subsequently passed their final-head gates and merged. Initial Project GET Retry and three-owner refresh are completed scoped repairs from merged #254; their earlier red/candidate results below remain historical. The four named local shell/accessibility cases passed for the #284 qualified candidate before its merge; that original receipt retains its scope. Whole5F final disposition, applicable physical IME/touch/other-engine evidence, actual old-document/new-serving-version handover, and selected fresh/populated and enabled-provider/operational 6A6/6B exits remain open. Retain the existing server admission restrictions and versioned failures/counts.
 
 ## Evidence identity and status rules
 
@@ -23,7 +35,7 @@ It does not declare Phase 6 complete or authorize a production release.
   15 contexts subsequently passed, as did Workers Build `114224522096`.
   Three anonymous routes still returned Access 302; serving/schema/provider
   admission remains separate. Later changes need their own checks.
-- Open [PR #252](https://github.com/BeiqiD/sample-fabrication-workflow/pull/252):
+- Historical open-PR checkpoint for [PR #252](https://github.com/BeiqiD/sample-fabrication-workflow/pull/252):
   applied UI source passed 100 mounted files / 966 tests and build. At
   `ee1713393f5dea1f6bbd7a856c7586a8e517591c`, tree
   `8f37485feb0328094738ada55da46a2a9c38aeaf`, the
@@ -50,18 +62,18 @@ It does not declare Phase 6 complete or authorize a production release.
   successful docs merge or mock provider test does not establish serving traffic,
   actual D1 migrations, enabled execution or live provider acceptance.
 
-## 6A6 combined-tree stabilization
+## 6A6 combined-tree stabilization — historical 2026-10-10 checkpoint
 
-| Acceptance item | Current evidence and finite exit | Status |
+| Acceptance item | Historical evidence and finite exit | Historical status |
 | --- | --- | --- |
-| Reviewed combined code/docs tree | #250 planning and #251 implementation are merged. Reviewed `af8f374` passed full local/default remote checks; observed integration `aa497d9` has its identical tree and post-merge checks passed. Open #252 has bounded current local evidence; its final-head complete gates remain pending. Preserve exact receipts for later changes. | QUALIFIED_TREE / observed development merge |
+| Reviewed combined code/docs tree | #250 planning and #251 implementation are merged. Reviewed `af8f374` passed full local/default remote checks; observed integration `aa497d9` has its identical tree and post-merge checks passed. Historically open #252 had bounded local evidence; its final-head complete gates were pending at this checkpoint. Preserve exact receipts for later changes. | QUALIFIED_TREE / observed development merge |
 | Frozen predecessor and paired migrations | 0001–0017 are unchanged from the integration baseline. Paired 0018/V21, 0019/V22, 0020/V23 and 0021–0022/V24 review and complete local/remote gates passed; retain frozen hashes/readers and fresh/populated coverage. Actual remote D1 migration receipts remain unknown. | QUALIFIED_TREE / OPEN_REMOTE |
 | Generated recovery schema | Historical fresh audit matched 119 tables and 1,115 schema objects without differences or FK violations. Relevant bytes were unchanged at audit checkpoint `8636973`; later complete `af8f374` migration/schema/export gates passed independently. | QUALIFIED_TREE |
 | Current export admission | Generation markers/columns distinguish V21–V24; stale writers return 409, incomplete generations fail closed, and validators require exact fingerprints/inventory. Canonical suites below passed at `af8f374`; authenticated actual serving-route checks remain open. | QUALIFIED_TREE / OPEN_REMOTE |
 | Nonempty recovery and preserved history | Native/legacy canonical tests passed with bytes, canonical cells, signed rowids, source identity and accepted provenance preserved through export/restore and repeated recovery. This local/native evidence does not qualify an actual deployed provider or provisioned target handoff. | QUALIFIED_TREE / OPEN_REMOTE |
 | Stale-tab deployment recovery | Explicit recovery passed actual-App mounted and full gates; [route recovery evidence](PHASE_6_ROUTE_RECOVERY_ACCEPTANCE.md) preserves pre-fix failures. [Built-Worker browser evidence](PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md) passed two one-shot 404/503 chunk failures, explicit keyboard reload and full URL retention. An actual old-document/new-serving-version handover is still required. | QUALIFIED_TREE / local browser passed / OPEN_REMOTE |
-| Integrated browser/input/data workflows | Historical 20-case matrix and two Metrology pending cases retain their versioned scope. Current `ee171339` adopted matrix passed 20 cases plus six cost cases and 12 additional Project scenario IDs; dirty/held/lost-ACK exact retries preserve original Projects, and controlled-stop/physical proof passed. Owner refresh and search label are implemented in open #252; fresh `c06cb71` passed 20 matrix cases and both named Metrology cases, plus awaited-stop/physical checks. | Bounded current browser passed / final-head gates pending / OPEN_REMOTE |
-| Next finite product repairs | Initial Project GET Retry characterization had 5 red / 1 pass; its candidate has 6 green mounted cases. Known three-owner group refresh has a private 29-test/type candidate for 8 → 3 reads. Both belong in separate reviewable PRs, with current-artifact qualification before integration. | OPEN_IMPLEMENTATION / candidate tests only |
+| Historical integrated browser/input/data workflows | Historical 20-case matrix and two Metrology pending cases retain their versioned scope. Current `ee171339` adopted matrix passed 20 cases plus six cost cases and 12 additional Project scenario IDs; dirty/held/lost-ACK exact retries preserve original Projects, and controlled-stop/physical proof passed. Owner refresh and search label are implemented in open #252; fresh `c06cb71` passed 20 matrix cases and both named Metrology cases, plus awaited-stop/physical checks. | Bounded current browser passed / final-head gates pending / OPEN_REMOTE |
+| Historical product-repair candidates (completed via merged #254) | Initial Project GET Retry characterization had 5 red / 1 pass; its candidate has 6 green mounted cases. Known three-owner group refresh has a private 29-test/type candidate for 8 → 3 reads. At this checkpoint, both belonged in separate reviewable PRs, with current-artifact qualification before integration. | HISTORICAL_CANDIDATES / merged #254 |
 
 Fresh-schema audit SHA-256:
 `7783c42f0259f6b9b857a0e2860d4c754638faaa8e13500a4cd9ab953555f3d8`.
