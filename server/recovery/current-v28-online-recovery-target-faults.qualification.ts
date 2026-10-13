@@ -9,6 +9,10 @@ import { verifyNodeDistribution } from '../../scripts/lib/node-distribution-v28-
 import { NODE_RECOVERY_ARCHIVE_OPTIONS, nodeRecoveryArchiveSource } from '../../scripts/lib/system-backup-node-io.ts';
 import { validateV28SystemBackupArchiveCandidate } from '../../shared/contracts/system-backup-v5-archive-admission.ts';
 import { stableJson } from '../../shared/domain/content-addressing.ts';
+import { NODE_PLATFORM_OBJECTS } from '../../shared/contracts/node-installation-schema.ts';
+import { PORTABLE_RUNTIME_SCHEMA_STATEMENTS, PORTABLE_RUNTIME_RECOVERY_TABLES, PORTABLE_RUNTIME_SEED_TABLE_ROWS }
+  from '../../worker/recovery/portable-runtime-v28-trusted-schema.ts';
+import { disabledProtectedAccountTable } from './restore-v28-candidate.ts';
 import { checkedSystemRecoveryReceipt, checkedSystemRecoveryJobStatus, checkedSystemRecoveryMaintenanceStatus,
   checkedSystemRecoveryMaintenanceReceipt, type SystemRecoveryMaintenanceStatus } from '../../shared/contracts/system-recovery.ts';
 import { loadNodeRuntimeConfiguration } from '../node-runtime-config.ts';
@@ -203,7 +207,8 @@ async function replaceWindow(client: Client, session: CanonicalFileSession, froz
 
 interface RetainedReadonlyInspection {
   originalOpen?: Promise<FileHandle>; handle?: FileHandle; native?: DatabaseSync;
-  nativeAttempted: boolean; constructorFailed: boolean; failure?: unknown; closing?: Promise<void>;
+  nativeAttempted: boolean; constructorFailed: boolean; nativeCloseAcknowledged?: boolean; fdCloseAcknowledged?: boolean;
+  failure?: unknown; closing?: Promise<void>;
 }
 const readonlyInspections = new Set<RetainedReadonlyInspection>();
 afterEach(() => {
@@ -214,12 +219,24 @@ async function absent(path: string) {
   try { await lstat(path); return false; }
   catch (error) { if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') return true; throw error; }
 }
+interface ReaderSidecarSnapshot {
+  readonly present: boolean; readonly byteSize?: number; readonly sha256?: string; readonly physicalIdentity?: string;
+}
+interface RetainedForensicProof {
+  readonly mainSha256: string; readonly mainPhysicalIdentity: string;
+  readonly sidecarsBeforeOpen: { readonly wal: ReaderSidecarSnapshot; readonly shm: ReaderSidecarSnapshot };
+  readonly readerSidecarsBeforeClose: { readonly wal: ReaderSidecarSnapshot; readonly shm: ReaderSidecarSnapshot };
+  readonly readerSidecarsAfterClose: { readonly wal: ReaderSidecarSnapshot; readonly shm: ReaderSidecarSnapshot };
+  readonly originalNativeClosed: true; readonly originalFdClosed: true; readonly noReaderWalFrames: true;
+  readonly shmMeaning: 'ephemeral-reader-coordination'; readonly exactFilesStageSchemaAndTypedImage: true;
+  readonly physicalQuickCheck: true; readonly readyForeignKeyHealthClaimed: false;
+}
 /** Forensic read of the genuine renamed closed target, after every production
  * original Native/provider/source close. A read-only handle grants no target
  * claim or writer authority; no renamed/fabricated writer sentinel is used.
- * Refuse a detached WAL rather than ignore it with an immutable URI. */
+ * Refuse old detached sidecars and record the new reader's actual coordination. */
 async function inspectClosedRetainedInode(path: string, originalPath: string, expectedSha256: string,
-  work: (native: DatabaseSync) => void): Promise<void> {
+  work: (native: DatabaseSync) => void): Promise<RetainedForensicProof> {
   assertCanonicalFileOwnersReleased();
   ensure(isAbsolute(path) && resolve(path) === path && await realpath(path) === path && /^[a-f0-9]{64}$/.test(expectedSha256));
   const before = await lstat(path, { bigint: true });
@@ -231,16 +248,51 @@ async function inspectClosedRetainedInode(path: string, originalPath: string, ex
   for (const named of [path, originalPath]) for (const suffix of ['-wal','-shm']) ensure(await absent(named + suffix), 'retained_target_wal_requires_original_owner_proof');
   const owner: RetainedReadonlyInspection = { nativeAttempted: false, constructorFailed: false }; readonlyInspections.add(owner);
   let failed = false, failure: unknown;
+  let readerSidecarsBeforeClose: RetainedForensicProof['readerSidecarsBeforeClose'] | undefined;
+  let readerSidecarsAfterClose: RetainedForensicProof['readerSidecarsAfterClose'] | undefined;
+  async function sidecars(): Promise<RetainedForensicProof['readerSidecarsBeforeClose']> {
+    const snapshots: ReaderSidecarSnapshot[] = [];
+    for (const suffix of ['-wal', '-shm']) {
+      const named = path + suffix;
+      if (await absent(named)) { snapshots.push({ present: false }); continue; }
+      const observed = await lstat(named, { bigint: true });
+      ensure(observed.isFile() && !observed.isSymbolicLink() && observed.nlink === 1n
+        && observed.uid === before.uid && observed.gid === before.gid && (observed.mode & 0o7777n) === 0o600n
+        && observed.size >= 0n && observed.size <= 1024n * 1024n && await realpath(named) === named, 'retained_reader_sidecar_physical_identity');
+      const bytes = await readFile(named);
+      ensure(identity(await lstat(named, { bigint: true })) === identity(observed) && bytes.byteLength === Number(observed.size),
+        'retained_reader_sidecar_changed_during_observation');
+      // No old WAL existed. A new readonly-reader WAL may be empty or contain
+      // only the SQLite header, never any durable frames. SHM is coordination,
+      // and its observed bytes/inode are recorded without an unchanged claim.
+      if (suffix === '-wal') ensure(bytes.byteLength === 0 || bytes.byteLength === 32
+        && [0x377f0682, 0x377f0683].includes(bytes.readUInt32BE(0)), 'retained_readonly_reader_created_wal_frames');
+      snapshots.push({ present: true, byteSize: bytes.byteLength, sha256: digest(bytes), physicalIdentity: identity(observed) });
+    }
+    const wal = snapshots[0], shm = snapshots[1]; ensure(wal && shm); return { wal, shm };
+  }
   function close(): Promise<void> {
     if (owner.closing) return owner.closing;
     owner.closing = Promise.resolve().then(async () => {
-      if (owner.nativeAttempted && !owner.native) throw owner.constructorFailed ? owner.failure : new Error('Original readonly Native constructor has no close owner');
-      if (owner.native) { owner.native.close(); ensure(!owner.native.isOpen, 'original_retained_readonly_native_close'); }
-      if (!owner.handle) throw owner.failure ?? new Error('Original retained FD has no close owner');
-      await owner.handle.close();
-      ensure(await realpath(path) === path && identity(await lstat(path, { bigint: true })) === identity(before), 'retained_target_physical_identity_changed');
-      expect(digest(await readFile(path))).toBe(expectedSha256);
-      for (const named of [path, originalPath]) for (const suffix of ['-wal','-shm']) ensure(await absent(named + suffix), 'retained_target_sidecar_close_unproven');
+      const errors: unknown[] = [];
+      if (owner.nativeAttempted && !owner.native) errors.push(owner.constructorFailed ? owner.failure : new Error('Original readonly Native constructor has no close owner'));
+      // Observe the original reader's own new sidecars, then attempt both first
+      // closes even if an independent observation fails. Never retry either.
+      try { readerSidecarsBeforeClose ??= await sidecars(); } catch (error) { errors.push(error); }
+      try {
+        if (owner.native) { owner.native.close(); ensure(!owner.native.isOpen, 'original_retained_readonly_native_close'); owner.nativeCloseAcknowledged = true; }
+      } catch (error) { errors.push(error); }
+      try {
+        if (!owner.handle) throw owner.failure ?? new Error('Original retained FD has no close owner');
+        await owner.handle.close(); owner.fdCloseAcknowledged = true;
+      } catch (error) { errors.push(error); }
+      try {
+        ensure(await realpath(path) === path && identity(await lstat(path, { bigint: true })) === identity(before), 'retained_target_physical_identity_changed');
+        expect(digest(await readFile(path))).toBe(expectedSha256);
+        for (const suffix of ['-wal','-shm']) ensure(await absent(originalPath + suffix), 'original_replaced_basename_sidecar_changed');
+        readerSidecarsAfterClose = await sidecars();
+      } catch (error) { errors.push(error); }
+      if (errors.length) throw new AggregateError(errors, 'Original retained reader observations and first Native/FD close failed');
       readonlyInspections.delete(owner);
     });
     void owner.closing.catch(() => undefined); return owner.closing;
@@ -260,12 +312,21 @@ async function inspectClosedRetainedInode(path: string, originalPath: string, ex
     expect(main).toHaveLength(1); expect(main[0]?.file).toBe(path);
     ensure(identity(await owner.handle.stat({ bigint: true })) === identity(before) && identity(await lstat(path, { bigint: true })) === identity(before));
     work(native);
-    expect(native.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
+    // The original target is paused in files, before trusted indexes/views/
+    // triggers are reinstalled. Exact partial schema/image is proven by work;
+    // foreign_key_check would misrepresent this deliberately incomplete stage.
     expect(native.prepare('PRAGMA quick_check').all()).toEqual([{ quick_check: 'ok' }]);
+    readerSidecarsBeforeClose = await sidecars();
   } catch (error) { failed = true; failure = error; owner.failure ??= error; }
   try { const first = close(); expect(close()).toBe(first); await first; }
   catch (cleanup) { throw failed ? new AggregateError([failure, cleanup], 'Original retained target inspection and first close failed') : cleanup; }
   if (failed) throw failure;
+  ensure(readerSidecarsBeforeClose && readerSidecarsAfterClose && owner.native && !owner.native.isOpen
+    && owner.nativeCloseAcknowledged && owner.fdCloseAcknowledged);
+  return { mainSha256: expectedSha256, mainPhysicalIdentity: identity(before),
+    sidecarsBeforeOpen: { wal: { present: false }, shm: { present: false } }, readerSidecarsBeforeClose, readerSidecarsAfterClose,
+    originalNativeClosed: true, originalFdClosed: true, noReaderWalFrames: true, shmMeaning: 'ephemeral-reader-coordination',
+    exactFilesStageSchemaAndTypedImage: true, physicalQuickCheck: true, readyForeignKeyHealthClaimed: false };
 }
 
 async function run(fault: Fault) {
@@ -275,6 +336,7 @@ async function run(fault: Fault) {
   let beforeFile: Record<string, unknown> | undefined, afterFile: Record<string, unknown> | undefined;
   let replacedWindow: SystemRecoveryMaintenanceStatus | undefined, frozenWindow: SystemRecoveryMaintenanceStatus | undefined;
   let accountFault: Awaited<ReturnType<typeof revokeExistingAccount>> | undefined;
+  let frozenTargetConstruction: Record<string, unknown> | undefined, retainedForensicProof: RetainedForensicProof | undefined;
   await withOriginalDispatcher(source, target, async (app, client, native, lease, core) => {
     let phase = 'claim';
     for (let count = 0; phase !== 'files'; count++) {
@@ -293,6 +355,13 @@ async function run(fault: Fault) {
       beforeFile = native.prepare('SELECT * FROM system_recovery_target_files WHERE job_id=?').get(recoveryId); ensure(beforeFile);
       expect(beforeFile.state).toBe('write_started');
       const beforeClaim = native.prepare('SELECT * FROM system_recovery_target_claim WHERE job_id=?').get(recoveryId); ensure(beforeClaim);
+      if (fault === 'F5') {
+        ensure(typeof beforeClaim.cursor_json === 'string'); const originalCursor = object(JSON.parse(beforeClaim.cursor_json));
+        expect(originalCursor).toMatchObject({ stage: 'files', pending: true, cleared: true, file: 0 });
+        frozenTargetConstruction = object(originalCursor.construction);
+        ensure(typeof originalCursor.installationId === 'string');
+        expect(frozenTargetConstruction.destinationInstallationId).toBe(originalCursor.installationId);
+      }
       expect(native.prepare("SELECT json_extract(cursor_json,'$.pending') pending FROM system_recovery_target_claim WHERE job_id=?").get(recoveryId)?.pending).toBe(1);
       await cleanupRefused(client, session, uploadId, recoveryId);
       frozenWindow = checkedSystemRecoveryMaintenanceStatus((await client.request('/api/system-recovery/maintenance', 'GET', undefined, session)).value);
@@ -379,7 +448,37 @@ async function run(fault: Fault) {
   };
   if (fault === 'F5') {
     ensure(retainedDatabaseSha256);
-    await inspectClosedRetainedInode(retainedDatabase, join(target.destination, 'database.sqlite'), retainedDatabaseSha256, inspectInertRows);
+    ensure(frozenTargetConstruction);
+    const destinationInstallationId = frozenTargetConstruction.destinationInstallationId;
+    ensure(typeof destinationInstallationId === 'string' && /^[a-f0-9-]{36}$/.test(destinationInstallationId));
+    expect(destinationInstallationId).not.toBe(source.baseline.installationId);
+    const finalCheckpoint = V28_NODE_INSTALLATION_CATALOG_CANDIDATE.migrations.at(-1)?.checkpoint; ensure(finalCheckpoint);
+    const expectedConstruction = { kind: 'reviewed-empty-recovery-checkpoint-construction/v28', constructionProvenance: 'reviewed-final-schema',
+      rawMigrationExecution: false, nativeLedgerMeaning: 'implemented-reviewed-checkpoint-lineage', destinationInstallationId,
+      checkpointId: finalCheckpoint.id, schemaSha256: finalCheckpoint.schemaSha256,
+      reviewedLineage: V28_NODE_INSTALLATION_CATALOG_CANDIDATE.migrations.map((migration, index) => ({ ordinal: index + 1, name: migration.name,
+        rawSha256: migration.rawSha256, checkpointId: migration.checkpoint.id, schemaSha256: migration.checkpoint.schemaSha256 })) };
+    expect(frozenTargetConstruction).toEqual(expectedConstruction);
+    expect(JSON.parse(await readFile(join(target.destination, 'metadata/destination-checkpoint-construction.json'), 'utf8'))).toEqual(expectedConstruction);
+    retainedForensicProof = await inspectClosedRetainedInode(retainedDatabase, join(target.destination, 'database.sqlite'), retainedDatabaseSha256, native => {
+      inspectInertRows(native);
+      const expectedSchema = [...NODE_PLATFORM_OBJECTS, ...PORTABLE_RUNTIME_SCHEMA_STATEMENTS.filter(value => value.type === 'table')]
+        .sort((left, right) => left.type < right.type ? -1 : left.type > right.type ? 1 : left.name < right.name ? -1 : left.name > right.name ? 1 : 0);
+      expect(native.prepare("SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*' ORDER BY type,name").all())
+        .toEqual(expectedSchema);
+      const actual = currentV28RecoveryTypedRows(native, PORTABLE_RUNTIME_RECOVERY_TABLES.map(spec => spec.name));
+      for (const spec of PORTABLE_RUNTIME_RECOVERY_TABLES) {
+        const original = spec.local ? PORTABLE_RUNTIME_SEED_TABLE_ROWS[spec.name] : data.admitted.records.image.tables[spec.name]; ensure(original);
+        expect(actual[spec.name]).toEqual(currentV28RecoveryImageRows(spec.name === 'local_accounts' ? disabledProtectedAccountTable(original) : original));
+      }
+      const installation = native.prepare('SELECT * FROM node_installation ORDER BY singleton').all(); expect(installation).toHaveLength(1);
+      const createdAt = installation[0]?.created_at; ensure(typeof createdAt === 'string' && Number.isFinite(Date.parse(createdAt)));
+      expect(installation).toEqual([{ singleton: 1, installation_id: destinationInstallationId, catalog_id: V28_NODE_INSTALLATION_CATALOG_CANDIDATE.id,
+        schema_checkpoint: finalCheckpoint.id, schema_sha256: finalCheckpoint.schemaSha256, created_at: createdAt }]);
+      expect(native.prepare('SELECT * FROM node_migrations ORDER BY ordinal').all()).toEqual(
+        V28_NODE_INSTALLATION_CATALOG_CANDIDATE.migrations.map((migration, index) => ({ ordinal: index + 1, name: migration.name, raw_sha256: migration.rawSha256,
+          checkpoint_id: migration.checkpoint.id, schema_sha256: migration.checkpoint.schemaSha256, status: 'applied', applied_at: createdAt })));
+    });
   } else await withCanonicalFileDatabase(retainedDatabase, async (_owner, lease, native) => lease.withWriter(() => inspectInertRows(native)));
   assertCanonicalFileOwnersReleased();
   if (fault === 'F5') { ensure(retainedDatabaseSha256); expect(digest(await readFile(retainedDatabase))).toBe(retainedDatabaseSha256); }
@@ -393,7 +492,8 @@ async function run(fault: Fault) {
     expectedRetainedState: expectedState, frozenWindow, replacedWindow: replacedWindow ?? null,
     realOriginalPositiveDirectoryAck: true, originalDispatchAndFirstOwnerClosesAcknowledged: true, originalPendingIntentRetained: true,
     noVerifiedOrPublishedTargetFile: true, noCursorAdvance: true, noAutomaticReplay: true, noReadyOrHandoff: true,
-    sourceCanonicalAndPhysicalBindingsUnchanged: true, noDestinationBindingsOrActivation: true,
+    sourceCanonicalAndPhysicalBindingsUnchanged: true, noDestinationBindingsOrImportedAuthority: true, protectedActivationHistoryExact: true,
+    retainedTargetForensicProof: retainedForensicProof ?? null,
     accountEnabledOnlyFault: fault === 'F4', revokedSessionDenied: fault === 'F4', cleanup409BeforeFault: true,
     cleanup409AfterCloseAndRestart: fault !== 'F4', retainedOriginalDatabaseInodeAndBytes: fault === 'F5',
     plannedWindowReplacedThroughOriginalHttp: fault === 'F6', rawBusinessOrIdentitySeed: false,
