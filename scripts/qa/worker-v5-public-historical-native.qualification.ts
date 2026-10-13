@@ -198,10 +198,48 @@ async function run(kind: "ZERO" | "NONEMPTY") {
           reason:"Frozen system backup source",acquired_at:backup.job.acceptedAt,expires_at:null,released_at:null});
         expect(originalHolds[index]?.id).toMatch(/^fp5_[a-f0-9]{32}$/);
       }
-      await json(target,"/api/system-recovery/jobs/"+backup.job.id+"/control","POST",{action:"cleanup"},409);
-      // Exact original IDs/locations/owner/complete tuples stay retained. No
-      // deletion, replacement, released row or extra hold can satisfy this.
+      // The previous5f lane intentionally refused cleanup without durable
+      // original owner proof. This successor requires actual closed versioned
+      // records before a successful new-backup cleanup can release anything.
+      const closeRows=await target.readRows(`SELECT name,ordinal,chunk FROM system_recovery_metadata_chunks
+        WHERE job_id=? AND name GLOB 'v5-original-source-close/1:*' ORDER BY name,ordinal LIMIT 7`,[backup.job.id]);
+      expect(closeRows).toHaveLength(6);const closeProofs=closeRows.map(row=>{
+        ensure(row.ordinal===0&&typeof row.name==="string"&&typeof row.chunk==="string","durable_source_close_row");
+        const proof=object(JSON.parse(row.chunk));expect(proof).toMatchObject({schema:"worker-v5-original-source-close/1",jobId:backup.job.id,
+          actor:pair.actor,acceptedAt:backup.job.acceptedAt,sourceInstallationId:targetIdentity,state:"acknowledged",
+          originalWorkFulfilled:true,originalAllCloseAcknowledged:true});
+        ensure(typeof proof.generation==="number"&&Number.isSafeInteger(proof.generation)&&proof.generation>0
+          &&typeof proof.ownerToken==="string"&&typeof proof.ordinal==="number"&&typeof proof.registeredAt==="string"&&typeof proof.acknowledgedAt==="string","closed_original_claim");
+        expect(row.name).toBe("v5-original-source-close/1:"+proof.generation+":"+proof.ownerToken+":"+proof.ordinal);
+        expect(Date.parse(proof.acknowledgedAt)).toBeGreaterThanOrEqual(Date.parse(proof.registeredAt));return proof;
+      });
+      expect(closeProofs.map(value=>value.kind).sort()).toEqual(["body","body","body","body","put","snapshot"]);
+      expect(closeProofs.map(value=>value.phase).sort()).toEqual(["inventory","measure","snapshot","write","write","write"]);
       expect(await target.readRows(holdSql,["fp5-backup:"+backup.job.id])).toEqual(originalHolds);
+      const allLocationHoldSql="SELECT * FROM file_location_holds ORDER BY id";
+      const allLegacyHoldSql="SELECT CAST(rowid AS TEXT) AS original_rowid,* FROM system_recovery_legacy_holds ORDER BY job_id,store_kind,provider,object_key";
+      const allLocationHoldsBefore=await target.readRows(allLocationHoldSql),allLegacyHoldsBefore=await target.readRows(allLegacyHoldSql);
+      const originalHoldIds=new Set(originalHolds.map(row=>row.id));
+      expect(allLocationHoldsBefore.filter(row=>originalHoldIds.has(row.id))).toHaveLength(2);
+      await json(target,"/api/system-recovery/jobs/"+backup.job.id+"/control","POST",{action:"cleanup"},200);
+      const releasedHolds=await target.readRows(holdSql,["fp5-backup:"+backup.job.id]);expect(releasedHolds).toHaveLength(2);
+      for(let index=0;index<originalHolds.length;index++){
+        const released=releasedHolds[index];ensure(released&&typeof released.released_at==="string"&&Number.isFinite(Date.parse(released.released_at)),"positive_original_hold_release");
+        expect({...released,released_at:null}).toEqual(originalHolds[index]);
+      }
+      const allLocationHoldsAfter=await target.readRows(allLocationHoldSql);
+      expect(allLocationHoldsAfter).toHaveLength(allLocationHoldsBefore.length);
+      // Full global rows must be unchanged. Only the two exact original IDs
+      // may acquire the same positive release values verified above.
+      expect(allLocationHoldsAfter).toEqual(allLocationHoldsBefore.map(row=>{
+        if(!originalHoldIds.has(row.id))return row;
+        const released=releasedHolds.find(hold=>hold.id===row.id);ensure(released,"original_global_hold_release");
+        return {...row,released_at:released.released_at};
+      }));
+      expect(await target.readRows(allLegacyHoldSql)).toEqual(allLegacyHoldsBefore);
+      expect(await target.readRows("SELECT count(*) n FROM file_location_holds WHERE operation_id=? AND released_at IS NULL",["fp5-backup:"+backup.job.id])).toEqual([{n:0}]);
+      expect(await target.readRows(`SELECT name,ordinal,chunk FROM system_recovery_metadata_chunks
+        WHERE job_id=? AND name GLOB 'v5-original-source-close/1:*' ORDER BY name,ordinal LIMIT 7`,[backup.job.id])).toEqual(closeRows);
       const distribution=await coherentDistribution(),destination=join(pair.root,"fresh-public-held-node-inert");
       const result=await runCurrentCli(distribution.path,"restore-v28-cli.cjs",["restore","--archive",archive,"--destination",destination,"--sha256",capturedHash,
         "--filesystem-root-owner-uid",String((await lstat("/")).uid)]);
@@ -222,7 +260,10 @@ async function run(kind: "ZERO" | "NONEMPTY") {
       expect(hash(await readFile(join(destination,"original-archive.zip")))).toBe(capturedHash);await verifyDistributionSourcePins(distribution.path);
       captureProof={realAcceptedBackupJob:true,originalScheduledCalls:captured.originalScheduledCalls,archiveFormat:"v5",payloads:1,payloadBytes:delivered.byteLength,
         exactTypedRowsAndRowids:true,positiveOriginalSourceFirstCloseRequired:true,holdsRetainedUntilDurableCleanupProof:true,originalAvailableLocationInventory:2,
-        originalProtectedLocalHolds:1,originalCanonicalR2Holds:1,exactOriginalHoldIdsAndTuplesRetained:true,compiledCurrentNodeRestore:true,
+        originalProtectedLocalHolds:1,originalCanonicalR2Holds:1,exactOriginalHoldIdsAndTuplesRetained:true,
+        durableOriginalSourceCloseRecords:6,originalWorkAndAllCloseAcknowledgedBeforeCleanup:true,
+        actualCleanupHttpStatus:200,exactOriginal2HoldIdsAndTuplesReleasedAfterProof:true,
+        allOtherLocationHoldRowsAndAllLegacyHoldRowsUnchanged:true,compiledCurrentNodeRestore:true,
         coherentDistributionManifestSha256:distribution.manifestSha256};
     }
     await pair.verifyNativeDatabaseConsistency();await target.verifyNativeDatabaseConsistency();
