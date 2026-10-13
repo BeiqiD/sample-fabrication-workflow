@@ -102,10 +102,14 @@ export async function assertWorkerV5PresentHeadProducerInput(rootInput: string, 
       && proof.oldTypedRowsAndRowidsUnchanged === true && proof.originalCloseAcknowledged === true
       && typeof proof.headGeneration === "number" && Number.isSafeInteger(proof.headGeneration) && proof.headGeneration >= 1
       && typeof proof.headOccurrenceId === "string" && typeof proof.consumerId === "string"
+      && typeof proof.eventId === "string" && proof.eventId.length > 0
       && typeof proof.sourceProfileRevision === "number" && Number.isSafeInteger(proof.sourceProfileRevision)
-      && proof.sourceProfileRevision >= 0 && Array.isArray(proof.nativeConsumerBindings)
+      && proof.sourceProfileRevision >= 0 && Array.isArray(proof.nativeConsumerBindings) && proof.nativeConsumerBindings.length === 2
       && proof.nativeConsumerBindings.some(value => { const binding = object(value); return binding.consumerKind === "run_step_asset"
         && binding.consumerId === proof.consumerId && binding.consumerSubId === "" && binding.fileSlot === "primary"
+        && binding.fileId === proof.fileId && binding.purpose === null; })
+      && proof.nativeConsumerBindings.some(value => { const binding = object(value); return binding.consumerKind === "event"
+        && binding.consumerId === proof.eventId && binding.consumerSubId === "" && binding.fileSlot === "primary"
         && binding.fileId === proof.fileId && binding.purpose === "embedded_content"; }), "original_private_proof");
     const archiveBytes = await privateBytes(archive, 8 * 1024 * 1024);
     requireFact(digest(archiveBytes) === archiveSha256 && archiveBytes.byteLength === producer.archiveBytes, "original_archive");

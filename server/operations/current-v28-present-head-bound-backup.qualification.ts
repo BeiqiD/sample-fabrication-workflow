@@ -106,7 +106,23 @@ describe('current genuine present-head bound Run Step File producer', () => {
         present: 1, source_rowid: head.source_rowid, source_json: head.source_json, legacy_store_kind: null,
         legacy_provider: null, legacy_object_key: null, expected_purpose: 'embedded_content' });
       expect(native.prepare(FILE_SHADOW_HEAD_INTEGRITY_SQL).get()?.invalid_count).toBe(0);
-      expect(native.prepare('SELECT count(*) n FROM file_consumer_projection WHERE file_id=?').get(accepted.fileId)?.n).toBeGreaterThan(0);
+      // Frozen0007's relational Run Step slot records unknown purpose;
+      // frozen0008's execution shadow independently records embedded content.
+      // The real PATCH also creates its exact native image event binding.
+      const events = native.prepare('SELECT id,sample_id,kind,asset_key,asset_file_id,metadata_json FROM events WHERE asset_file_id=?')
+        .all(accepted.fileId); expect(events).toHaveLength(1); const event = events[0]!;
+      ensure(typeof event.id === 'string' && typeof event.metadata_json === 'string');
+      expect(event).toMatchObject({ sample_id: sampleId, kind: 'image', asset_key: null, asset_file_id: accepted.fileId });
+      expect(JSON.parse(event.metadata_json)).toEqual({ runId, stepId: step.id, runStepAssetId: consumer.id, assetId: accepted.id });
+      const nativeConsumerBindings = native.prepare(`SELECT consumer_kind AS consumerKind,consumer_id AS consumerId,
+        consumer_sub_id AS consumerSubId,file_slot AS fileSlot,file_id AS fileId,expected_purpose AS purpose
+        FROM file_consumer_projection WHERE file_id=?`).all(accepted.fileId)
+        .sort((a,b) => stableJson(a) < stableJson(b) ? -1 : stableJson(a) > stableJson(b) ? 1 : 0);
+      const exactBindings = [
+        { consumerKind: 'run_step_asset', consumerId: consumer.id, consumerSubId: '', fileSlot: 'primary', fileId: accepted.fileId, purpose: null },
+        { consumerKind: 'event', consumerId: event.id, consumerSubId: '', fileSlot: 'primary', fileId: accepted.fileId, purpose: 'embedded_content' },
+      ].sort((a,b) => stableJson(a) < stableJson(b) ? -1 : stableJson(a) > stableJson(b) ? 1 : 0);
+      expect(stableJson(nativeConsumerBindings)).toBe(stableJson(exactBindings));
       expect(native.prepare('SELECT count(*) n FROM files').get()?.n).toBe(1);
       expect(native.prepare('SELECT count(*) n FROM file_locations').get()?.n).toBe(1);
       const download = await client.raw(accepted.url, 'GET', session);
@@ -117,7 +133,7 @@ describe('current genuine present-head bound Run Step File producer', () => {
       const revision = native.prepare("SELECT count(*) n FROM file_shadow_dependency_versions WHERE dependency_kind IN('storage_profiles','storage_profile_runtime')").get()?.n;
       ensure(typeof revision === 'number' && Number.isSafeInteger(revision) && revision >= 0);
       expect(dependency.profileRevision).toBe(revision);
-      return { fileId: accepted.fileId, assetId: accepted.id, sampleId, runId, stepId: step.id, consumerId: consumer.id,
+      return { fileId: accepted.fileId, assetId: accepted.id, sampleId, runId, stepId: step.id, consumerId: consumer.id, eventId: event.id, nativeConsumerBindings,
         headGeneration: head.generation, sourceProfileRevision: revision, headOccurrenceId: head.occurrence_id,
         rows: currentV28RecoveryTypedRows(native, names), physical: currentV28RecoveryTypedRows(native, CURRENT_V28_RECOVERY_PHYSICAL_TABLES) };
     });
@@ -154,8 +170,7 @@ describe('current genuine present-head bound Run Step File producer', () => {
     const file = admitted.manifest.files[0]!;
     expect(file).toMatchObject({ byteSize: bytes.byteLength, sha256: digest, fileIds: [produced.fileId], purposes: ['embedded_content'],
       source: { provider: 'local', fileId: produced.fileId, purpose: 'embedded_content' } });
-    expect(file.bindings).toEqual(expect.arrayContaining([{ consumerKind: 'run_step_asset', consumerId: produced.consumerId,
-      consumerSubId: '', fileSlot: 'primary', fileId: produced.fileId, purpose: 'embedded_content' }]));
+    expect(stableJson(file.bindings)).toBe(stableJson(produced.nativeConsumerBindings));
     ensure(file.source.provider === 'local' && 'consumerBindings' in file.source);
     expect(stableJson(file.bindings)).toBe(stableJson(file.source.consumerBindings));
     for (const name of names) expect(currentV28RecoveryImageRows(admitted.records.image.tables[name]!)).toEqual(produced.rows[name]);
@@ -169,7 +184,7 @@ describe('current genuine present-head bound Run Step File producer', () => {
     await writeFile(output, stableJson({ schema: 'current-genuine-present-head-bound-node-run-step-v5-producer/1', runtime: process.versions.node,
       distribution, sourceInstallationId: baseline.installationId, archive, archiveSha256: captured.archiveSha256,
       fileId: produced.fileId, assetId: produced.assetId, sampleId: produced.sampleId, runId: produced.runId, stepId: produced.stepId,
-      consumerId: produced.consumerId, payloadBytes: bytes.byteLength, payloadSha256: digest, presentHeads: 1,
+      consumerId: produced.consumerId, eventId: produced.eventId, payloadBytes: bytes.byteLength, payloadSha256: digest, presentHeads: 1,
       headGeneration: produced.headGeneration, headOccurrenceId: produced.headOccurrenceId, sourceProfileRevision: produced.sourceProfileRevision,
       genuineOriginalV26PublicProducer: true, stoppedV28UpgradeAfterOriginalClose: true, currentVerifiedCompiledStoppedCapture: true,
       noBusinessSqlSeed: true, naturallyIssuedHead: true, nativeConsumerBindings: file.bindings,

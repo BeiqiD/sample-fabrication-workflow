@@ -81,7 +81,7 @@ def archive_facts(archive_bytes, proof):
   assert file['source']['provider'] == 'local' and file['source']['storeKind'] == 'file'
   assert file['source']['byteAuthority'] == 'file_location' and file['source']['fileId'] == proof['fileId']
   assert file['source']['purpose'] == 'embedded_content' and file['bindings'] == file['source']['consumerBindings']
-  assert 0 < len(file['bindings']) <= 16 and file['byteSize'] == proof['payloadBytes'] > 0
+  assert len(file['bindings']) == 2 and file['byteSize'] == proof['payloadBytes'] > 0
   assert file['sha256'] == proof['payloadSha256'] and re.fullmatch('[0-9a-f]{64}',file['sha256'])
   payload_path = file['path']; assert isinstance(payload_path,str) and '\\' not in payload_path
   assert not payload_path.startswith('/') and all(part not in ('','.','..') for part in payload_path.split('/'))
@@ -95,8 +95,22 @@ def archive_facts(archive_bytes, proof):
  assert head['consumer_sub_id'] == '' and head['file_slot'] == 'primary'
  assert head['generation'] == proof['headGeneration'] >= 1 and head['occurrence_id'] == proof['headOccurrenceId']
  binding = {'consumerKind':'run_step_asset','consumerId':head['consumer_id'],'consumerSubId':'','fileSlot':'primary',
+  'fileId':proof['fileId'],'purpose':None}
+ event_binding = {'consumerKind':'event','consumerId':proof['eventId'],'consumerSubId':'','fileSlot':'primary',
   'fileId':proof['fileId'],'purpose':'embedded_content'}
- assert binding in file['bindings'] and file['bindings'] == proof['nativeConsumerBindings']
+ def ordered_bindings(rows): return sorted(rows,key=lambda row:json.dumps(row,sort_keys=True,separators=(',',':')))
+ assert ordered_bindings(file['bindings']) == ordered_bindings([binding,event_binding])
+ assert file['bindings'] == proof['nativeConsumerBindings']
+ projection = [row for row in content['file_consumer_projection'] if row['file_id'] == proof['fileId']]
+ assert len(projection) == 2
+ actual_bindings = [{'consumerKind':row['consumer_kind'],'consumerId':row['consumer_id'],'consumerSubId':row['consumer_sub_id'],
+  'fileSlot':row['file_slot'],'fileId':row['file_id'],'purpose':row['expected_purpose']} for row in projection]
+ assert ordered_bindings(actual_bindings) == ordered_bindings([binding,event_binding])
+ events = [row for row in content['events'] if row['asset_file_id'] == proof['fileId']]
+ assert len(events) == 1 and events[0]['id'] == proof['eventId'] and events[0]['sample_id'] == proof['sampleId']
+ assert events[0]['kind'] == 'image' and events[0]['asset_key'] is None
+ assert document(events[0]['metadata_json'].encode('utf8')) == {'runId':proof['runId'],'stepId':proof['stepId'],
+  'runStepAssetId':proof['consumerId'],'assetId':proof['assetId']}
  consumers = [row for row in content['run_step_assets'] if row['id'] == head['consumer_id']]
  assert len(consumers) == 1 and consumers[0]['file_id'] == proof['fileId'] and consumers[0]['asset_id'] == proof['assetId']
  assert consumers[0]['run_step_id'] == proof['stepId'] and consumers[0]['role'] == 'execution'
@@ -144,6 +158,7 @@ def finish(stage, record, run_root, fixture):
   for key in ('headGeneration','sourceProfileRevision','payloadBytes'):
    assert isinstance(proof[key],int) and not isinstance(proof[key],bool) and 0 <= proof[key] <= 9007199254740991
   assert proof['headGeneration'] >= 1 and proof['payloadBytes'] > 0
+  assert isinstance(proof['eventId'],str) and proof['eventId']
   archive = Path(proof['archive']); assert archive.is_relative_to(fixture)
   archive_bytes = original.read_private(archive,8*1024*1024); archive_sha = hashlib.sha256(archive_bytes).hexdigest()
   assert re.fullmatch('[0-9a-f]{64}',proof['archiveSha256']) and archive_sha == proof['archiveSha256']
@@ -170,6 +185,7 @@ def finish(stage, record, run_root, fixture):
   assert value['format'] == 'v5' and value['sourceFileCount'] == value['mappingCount'] == 1
   assert value['archiveSha256'] == producer['currentProducer']['archiveSha256'] and value['calls'] == {'put':1,'delete':0}
   assert all(value[key] is True for key in ('sourceUnchanged','freshIdentity','mappingExact','missingMappingRejected'))
+  assert value['proof']['originalBoundConsumers'] == 2
   assert all(value['proof'][key] is True for key in ('naturallyIssuedPresentHead','oldRowsExact','oldRowidsExact','appendsClosed',
    'emptyLocal','inertDefaults','foreignKeys','tableIntegrity','canonicalConsumerEvidenceExact'))
   assert shadow['presentHeads'] == 1 and shadow['metadataEvents'] == shadow['addedOccurrences'] == shadow['addedClosures'] == 2

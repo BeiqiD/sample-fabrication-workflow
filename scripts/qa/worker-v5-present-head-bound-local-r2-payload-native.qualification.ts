@@ -271,12 +271,25 @@ const workerCode = String.raw`
       require(archive.records.sourceMigrationLedger.kind==='node-reviewed-migrations/1'
         &&archive.records.origin.capturePolicy==='quiesced-writers-and-bytes/1','original_node_source');
       require(archive.manifest.files[0].source.provider==='local','original_local_payload');
-      require(archive.manifest.files[0].bindings.length>0&&archive.manifest.files[0].bindings.length<=16
+      require(archive.manifest.files[0].bindings.length===2
         &&stableJson(archive.manifest.files[0].bindings)===stableJson(archive.manifest.files[0].source.consumerBindings),'original_genuine_native_bound_consumer');
       const heads=archive.records.content.tables.file_shadow_heads.filter(row=>row.present===1);
       require(heads.length===1&&heads[0].consumer_kind==='run_step_asset'&&heads[0].consumer_sub_id===''&&heads[0].file_slot==='primary'
         &&archive.manifest.files[0].bindings.some(binding=>binding.consumerKind==='run_step_asset'&&binding.consumerId===heads[0].consumer_id
           &&binding.consumerSubId===''&&binding.fileSlot==='primary'&&binding.fileId===archive.manifest.files[0].fileIds[0]),'original_native_present_bound_head');
+      const originalFile=archive.manifest.files[0].fileIds[0];
+      const consumers=archive.records.content.tables.run_step_assets.filter(row=>row.id===heads[0].consumer_id);
+      require(consumers.length===1&&consumers[0].file_id===originalFile&&consumers[0].role==='execution','original_run_step_consumer');
+      const events=archive.records.content.tables.events.filter(row=>row.asset_file_id===originalFile);
+      require(events.length===1&&events[0].kind==='image'&&events[0].asset_key===null,'original_native_image_event');
+      const metadata=JSON.parse(String(events[0].metadata_json));
+      require(metadata.runStepAssetId===consumers[0].id&&metadata.stepId===consumers[0].run_step_id
+        &&metadata.assetId===consumers[0].asset_id,'original_native_image_event_identity');
+      const exactBindings=[
+        {consumerKind:'run_step_asset',consumerId:consumers[0].id,consumerSubId:'',fileSlot:'primary',fileId:originalFile,purpose:null},
+        {consumerKind:'event',consumerId:events[0].id,consumerSubId:'',fileSlot:'primary',fileId:originalFile,purpose:'embedded_content'},
+      ].sort((a,b)=>stableJson(a)<stableJson(b)?-1:stableJson(a)>stableJson(b)?1:0);
+      require(stableJson(archive.manifest.files[0].bindings)===stableJson(exactBindings),'original_exact_two_binding_purposes');
       const sourceBefore=await sourceHash(bindings.DB),calls={put:0,delete:0};
       // Observe actual native R2 calls; every method forwards to that binding.
       // D1 is passed directly, without a host or isolate SQL adapter.
@@ -543,7 +556,7 @@ async function run(fault: boolean) {
         executionEnabled: false, maintenanceState: "fenced", payloadPublication: true, persistedAttempts: true,
         jobAdmission: false, recoveryReady: false, fullV28EnvelopeValidated: true, immutableShadowHistoryPreserved: true, rawMigrationExecution: false, targetLedger: "reviewed-code-catalog", deploymentChanged: false });
       const proof = object(answer.proof);
-      expect(proof.originalBoundConsumers).toBeGreaterThan(0); expect(proof.canonicalConsumerEvidenceExact).toBe(true);
+      expect(proof.originalBoundConsumers).toBe(2); expect(proof.canonicalConsumerEvidenceExact).toBe(true);
       expect(proof.naturallyIssuedPresentHead).toBe(true);
       const shadow = object(proof.shadow);
       expect(shadow).toMatchObject({ presentHeads: 1, metadataEvents: 2, addedOccurrences: 2, addedClosures: 2,
