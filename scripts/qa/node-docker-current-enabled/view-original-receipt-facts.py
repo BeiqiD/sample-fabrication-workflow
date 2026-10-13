@@ -63,6 +63,7 @@ COMMANDS |= {'api-' + kind + '-' + phase for kind in KINDS for phase in ('exerci
 ENABLED_PHASES=('file-off','file-only','jobs-inert','upload','move','accept-paused','observe-paused','resume-move','disable','keyring-degraded')
 COMMANDS |= {'enabled-api-'+kind+'-'+phase for kind in KINDS for phase in ENABLED_PHASES}
 COMMANDS.add('api-upgrade-current-main-view')
+COMMANDS.add('logs-enabled-file-jobs-a')
 API_COMMAND_LABEL = 'api-after-negative-verify'
 FIXED_API_ACTIONS = frozenset((
     'stdin', 'GET /api/health readiness', 'GET /api/ready',
@@ -216,6 +217,54 @@ def selected_facts(evidence):
                 'logBytes': len(raw), 'originalFirstLines': [line[:1024] for line in lines[:4]],
                 'closureStatusUnchanged': True,
             })
+    stopped_server_log=original.get('originalStoppedEnabledServerLog')
+    stopped_server_raw=None
+    if stopped_server_log is not None:
+        assert type(stopped_server_log) is dict and set(stopped_server_log)=={
+            'kind','containerId','status','commandId','tailLines','byteLimit','normalStopAcknowledged',
+            'logSha256','logBytes','unavailableReason'}
+        assert stopped_server_log['kind']=='enabled-file-jobs-a'
+        assert stopped_server_log['status'] in ('PASS','UNAVAILABLE')
+        assert type(stopped_server_log['tailLines']) is int and stopped_server_log['tailLines']==64
+        assert type(stopped_server_log['byteLimit']) is int and stopped_server_log['byteLimit']==2097152
+        assert type(stopped_server_log['normalStopAcknowledged']) is bool
+        matching=[record for record in containers if record['kind']=='enabled-file-jobs-a'
+            and record['id']==stopped_server_log['containerId']]
+        assert len(matching)==1 and HEX.fullmatch(stopped_server_log['containerId'])
+        if stopped_server_log['normalStopAcknowledged']:
+            record=matching[0];state=record['lastState']
+            assert record['closeAttempted'] is True and record['originalExitObserved'] is True
+            assert state['Running'] is False and state['Pid']==0 and state['ExitCode']==0
+            assert record['id'] not in original['containerClosureUnproven']
+        command_id=stopped_server_log['commandId']
+        captured=[row for row in commands if row['id']==command_id]
+        if command_id is None:
+            assert not captured and stopped_server_log['status']=='UNAVAILABLE'
+            assert stopped_server_log['unavailableReason']=='original_stop_unproven'
+            assert stopped_server_log['normalStopAcknowledged'] is False
+        else:
+            assert type(command_id) is str and len(captured)==1
+            row=captured[0]
+            assert row['id'].partition('-')[2]=='logs-enabled-file-jobs-a'
+            assert row['argv']==['docker','logs','--tail','64',stopped_server_log['containerId']]
+            assert type(row['logByteLimit']) is int and row['logByteLimit']==2097152
+            assert type(row['timeoutSeconds']) is int and row['timeoutSeconds']==30
+        if stopped_server_log['status']=='PASS':
+            assert stopped_server_log['normalStopAcknowledged'] is True
+            assert stopped_server_log['unavailableReason'] is None and original['cliGroupsInactive'] is True
+            assert row['status']=='PASS' and row['exitCode']==0 and row['directChildReaped'] is True
+            assert row['ownedClosureProven'] is True and row['forcedTerminationForOwnedCleanup'] is False
+            relative='actual-six/'+row['id']+'.log';pinned=manifest['files'][relative]
+            assert type(pinned['bytes']) is int and HEX.fullmatch(pinned['sha256'])
+            assert type(stopped_server_log['logBytes']) is int and stopped_server_log['logBytes']==pinned['bytes']
+            assert stopped_server_log['logSha256']==pinned['sha256']==row['logSha256']
+            stopped_server_raw=read_original(evidence/relative,2097152)
+            assert len(stopped_server_raw)==pinned['bytes'] and hashlib.sha256(stopped_server_raw).hexdigest()==pinned['sha256']
+        else:
+            assert stopped_server_log['unavailableReason'] in ('original_stop_unproven','logs_command_unavailable')
+            assert stopped_server_log['logSha256'] is None and stopped_server_log['logBytes'] is None
+        output['originalStoppedEnabledServerLog']={key:stopped_server_log[key] for key in
+            ('kind','status','commandId','tailLines','byteLimit','normalStopAcknowledged','logSha256','logBytes','unavailableReason')}
     failed_api = [row for row in commands if row['id'].partition('-')[2] == API_COMMAND_LABEL and row['status'] == 'FAIL']
     assert len(failed_api) <= 1
     if failed_api:
@@ -291,19 +340,15 @@ def selected_facts(evidence):
         if 'uploadResponseDiagnostic' in value:
             enabled_failures[-1]['uploadResponseDiagnostic']=diagnostic
         if value['action']=='POST /api/assets' and status==503:
-            # Same original command/manifest read path as the existing log
-            # projections; no new Docker read/consumer or arbitrary path scan.
+            # Read the already-exported original detached main's logs command,
+            # bound above to the same stopped container and exact payload SHA.
             kinds=[kind for kind in KINDS if label.startswith('enabled-api-'+kind+'-')
                 and label[len('enabled-api-'+kind+'-'):] in ENABLED_PHASES]
-            assert len(kinds)==1
-            attached=[command for command in commands
-                if command['id'].partition('-')[2]=='attach-'+kinds[0]]
-            assert len(attached)==1
-            relative='actual-six/'+attached[0]['id']+'.log'
-            attached_pin=manifest['files'][relative]
-            assert type(attached_pin['bytes']) is int and HEX.fullmatch(attached_pin['sha256'])
-            attached_raw=read_original(evidence/relative,2097152)
-            assert len(attached_raw)==attached_pin['bytes'] and hashlib.sha256(attached_raw).hexdigest()==attached_pin['sha256']
+            assert kinds==['enabled-file-jobs-a'] and stopped_server_log is not None
+            if stopped_server_log['status']=='UNAVAILABLE':
+                enabled_failures[-1]['originalServerUploadLogUnavailable']=stopped_server_log['unavailableReason']
+                continue
+            assert stopped_server_raw is not None
             phases=frozenset(('host_route_admission','metadata_admission','request_metadata','request_owner',
                 'execution_admission','body_read','upload_accept','execution_settlement','result_delivery'))
             classes=frozenset(('http_503','http_other','storage_cleanup','byte_verification','authority_candidate',
@@ -311,7 +356,7 @@ def selected_facts(evidence):
                 'range_error','aggregate_error','native_sqlite_foreign_key','native_sqlite_schema',
                 'native_sqlite_constraint','native_sqlite_busy','native_sqlite_locked','native_sqlite_error','unknown'))
             server_failures=[]
-            for line in attached_raw.decode('utf8').splitlines():
+            for line in stopped_server_raw.decode('utf8').splitlines():
                 if not line.startswith('{"kind":"node-local-file-upload-failure/1",'):continue
                 assert len(line.encode('utf8'))<=512 and len(server_failures)<32
                 facts=json.loads(line)
@@ -321,8 +366,8 @@ def selected_facts(evidence):
                 assert type(facts['errorClass']) is str and facts['errorClass'] in classes
                 server_failures.append({'phase':facts['phase'],'errorClass':facts['errorClass']})
             if server_failures:
-                enabled_failures[-1]['originalServerUploadFailures']={'command':attached[0]['id'],
-                    'originalLogSha256':attached_pin['sha256'],'failures':server_failures}
+                enabled_failures[-1]['originalServerUploadFailures']={'command':stopped_server_log['commandId'],
+                    'originalLogSha256':stopped_server_log['logSha256'],'failures':server_failures}
     output['safeOriginalEnabledApiFailures']=enabled_failures
     upgrade_actions = frozenset(('private-input', 'GET /api/health', 'GET /api/ready',
         'POST /api/auth/login', 'POST /api/auth/logout', 'GET /api/samples', 'GET /api/samples/:uuid', 'GET /api/projects'))

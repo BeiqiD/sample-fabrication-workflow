@@ -2,7 +2,7 @@
 """Six original default plus six enabled-current and five upgrade/fault Docker cases; root explicit exclusive GO only.
 Use mature b623 Popen ownership. Docker container closure is a separate fact.
 """
-import argparse, base64, hashlib, json, os, runpy, secrets, signal, subprocess, time, uuid
+import argparse, base64, hashlib, json, os, resource, runpy, secrets, signal, subprocess, time, uuid
 from pathlib import Path
 
 ROOT = Path(os.environ['NODE_DOCKER_SIX_ROOT'])
@@ -102,16 +102,23 @@ def main():
         lines = [line for line in text.splitlines() if line.startswith('{')]
         assert len(lines) == 1, 'Exactly one original JSON response required; full raw log retained'
         value = json.loads(lines[0]); assert isinstance(value,dict); return value
-    def command(label, argv, expected=0, timeout=30, private_stdin=None):
+    def command(label, argv, expected=0, timeout=30, private_stdin=None, max_log_bytes=None):
         nonlocal owned, log, current
         assert owned is None, 'Original CLI custody must settle before another command'
         label = str(len(receipt['commands']))+'-'+label
         current = {'id': label, 'argv': argv, 'status': 'RUNNING', 'log': str(OUTPUT/(label+'.log'))}
+        assert max_log_bytes is None or type(max_log_bytes) is int and max_log_bytes == 2097152
+        if max_log_bytes is not None:
+            current.update(logByteLimit=max_log_bytes, timeoutSeconds=timeout)
+        def bound_log_file():
+            # Bound this owned Docker CLI's regular stdout/stderr file only.
+            resource.setrlimit(resource.RLIMIT_FSIZE, (max_log_bytes, max_log_bytes))
         receipt['commands'].append(current); log = Path(current['log']).open('xb'); save()
         blocked = signal.pthread_sigmask(signal.SIG_BLOCK, set(handlers))
         try:
             owned = subprocess.Popen(argv, stdin=subprocess.PIPE if private_stdin is not None else subprocess.DEVNULL,
-                stdout=log, stderr=subprocess.STDOUT, start_new_session=True, cwd=CONTEXT, env=docker_environment)
+                stdout=log, stderr=subprocess.STDOUT, start_new_session=True, cwd=CONTEXT, env=docker_environment,
+                preexec_fn=bound_log_file if max_log_bytes is not None else None)
             current['pid'] = current['processGroup'] = owned.pid
         finally: signal.pthread_sigmask(signal.SIG_SETMASK, blocked)
         if private_stdin is not None:
@@ -515,6 +522,38 @@ def main():
             except BaseException:
                 receipt['containerClosureUnproven'].append(record['id'] or record['name'])
                 original_closed=settle_cli()
+        # Main A was started detached. Read its original daemon log only after
+        # the first failure and original normal TERM/wait/stop acknowledgment.
+        # This command uses the same owned CLI custody; it never starts/attaches
+        # a server, retries a close, follows logs, or overwrites the first failure.
+        enabled_a=[record for record in receipt['containers'] if record['kind']=='enabled-file-jobs-a']
+        assert len(enabled_a)<=1
+        if receipt['status']=='FAIL_STOPPED_FIRST' and enabled_a:
+            record=enabled_a[0];observed=record.get('lastState',{})
+            stopped=bool(original_closed and record.get('closeAttempted') and record.get('originalExitObserved')
+                and observed.get('Running') is False and observed.get('Pid')==0 and observed.get('ExitCode')==0
+                and record['id'] not in receipt['containerClosureUnproven'])
+            diagnostic={'kind':'enabled-file-jobs-a','containerId':record['id'],'status':'UNAVAILABLE',
+                'commandId':None,'tailLines':64,'byteLimit':2097152,'normalStopAcknowledged':stopped,
+                'logSha256':None,'logBytes':None,'unavailableReason':'original_stop_unproven'}
+            receipt['originalStoppedEnabledServerLog']=diagnostic;save()
+            if stopped:
+                diagnostic.update(status='RUNNING',unavailableReason=None,
+                    commandId=str(len(receipt['commands']))+'-logs-enabled-file-jobs-a');save()
+                try:
+                    command('logs-enabled-file-jobs-a',['docker','logs','--tail','64',record['id']],
+                        timeout=30,max_log_bytes=2097152)
+                    captured=current
+                    diagnostic.update(status='PASS',logSha256=captured['logSha256'],
+                        logBytes=Path(captured['log']).stat().st_size)
+                    assert diagnostic['logBytes']<=diagnostic['byteLimit']
+                except BaseException:
+                    if current and current['id']==diagnostic['commandId'] and current['status']=='RUNNING':
+                        current['status']='FAILED_PARTIAL'
+                    original_closed=settle_cli()
+                    diagnostic.update(status='UNAVAILABLE',unavailableReason='logs_command_unavailable',
+                        logSha256=None,logBytes=None)
+                save()
         receipt['finalCliGroups']={str(s['processGroup']):snapshot(s['processGroup']) for s in receipt['commands'] if 'processGroup'in s}
         receipt['cliGroupsInactive']=original_closed and all(not active(items) for items in receipt['finalCliGroups'].values())
         try:source_check();receipt['finalSourceAndContextPinsExact']=True
