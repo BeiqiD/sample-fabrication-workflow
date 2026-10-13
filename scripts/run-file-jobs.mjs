@@ -14,7 +14,7 @@ let opened;
 try {
   const bundled = join(temporary, "runtime.mjs");
   await build({ entryPoints: [new URL("./lib/file-job-node-runtime.ts", import.meta.url).pathname],
-    outfile: bundled, bundle: true, platform: "node", format: "esm", packages: "external", logLevel: "silent" });
+    outfile: bundled, bundle: true, platform: "node", format: "esm", logLevel: "silent" });
   const runtime = await import(pathToFileURL(bundled).href);
   opened = runtime.openNodeFileJobRepository(resolve(databasePath));
   // Trusted local runtime module supplies exact registered storage capabilities
