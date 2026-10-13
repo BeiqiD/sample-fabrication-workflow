@@ -1,5 +1,5 @@
 import { NodeRuntimeError, startNodeDevelopmentRuntime, type RunningNodeDevelopmentRuntime } from './node-runtime';
-import type { LoadedNodeRuntimeConfiguration } from './node-runtime-config';
+import { assertNodeRuntimeConfigurationForProfile, type LoadedNodeRuntimeConfiguration } from './node-runtime-config';
 import type { NodeRuntimeProfile } from './node-runtime-command';
 import type { GroupV28Capabilities } from './collaboration/group-v28-capabilities';
 
@@ -12,6 +12,7 @@ export type SelectedNodeDevelopmentRuntime = Pick<RunningNodeDevelopmentRuntime,
  * Group enforcement and its same original Native/physical parents. */
 export async function startSelectedNodeDevelopmentRuntime(configuration: LoadedNodeRuntimeConfiguration,
   profile: NodeRuntimeProfile | undefined, options: { signal?: AbortSignal } = {}): Promise<SelectedNodeDevelopmentRuntime> {
+  assertNodeRuntimeConfigurationForProfile(configuration, profile);
   if (profile === undefined) return startNodeDevelopmentRuntime(configuration, options);
   const signal = options?.signal;
   if (profile !== 'v28-metadata' && profile !== 'v28-fabublox'

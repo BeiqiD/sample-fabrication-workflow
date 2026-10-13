@@ -2,7 +2,7 @@ name: Current V28 genuine restore and explicit destination operators
 
 on:
   push:
-    branches: [codex/node-v28-post-restore-operators]
+    branches: [codex/node-v28-post-restore-operators, codex/node-v28-restored-maintenance-release]
 
 permissions:
   contents: read
@@ -34,6 +34,9 @@ jobs:
           printf 'POST_RESTORE_RUN_ROOT=%s\n' "$run_root" >> "$GITHUB_ENV"
       - name: Full current server and runtime test types
         run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage types --run-root "$POST_RESTORE_RUN_ROOT"
+      - name: Seven strict restored configuration unit cases
+        if: ${{ github.ref == 'refs/heads/codex/node-v28-restored-maintenance-release' }}
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage config-unit --run-root "$POST_RESTORE_RUN_ROOT"
       - name: Original three strict operational parser cases
         run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage parser --run-root "$POST_RESTORE_RUN_ROOT"
       - name: Build the current Node client and unchanged fixed package
@@ -57,6 +60,15 @@ jobs:
         run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage preparation --run-root "$POST_RESTORE_RUN_ROOT"
       - name: Original two destination identity and Group cases while maintenance stays fenced
         run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage operators --run-root "$POST_RESTORE_RUN_ROOT"
+      - name: Original three strict stopped maintenance-release parser cases
+        if: ${{ github.ref == 'refs/heads/codex/node-v28-restored-maintenance-release' }}
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage maintenance-parser --run-root "$POST_RESTORE_RUN_ROOT"
+      - name: Original three genuine stopped maintenance-release cases
+        if: ${{ github.ref == 'refs/heads/codex/node-v28-restored-maintenance-release' }}
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage maintenance --run-root "$POST_RESTORE_RUN_ROOT"
+      - name: Actual compiled main on the same released restored target
+        if: ${{ github.ref == 'refs/heads/codex/node-v28-restored-maintenance-release' }}
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage main --run-root "$POST_RESTORE_RUN_ROOT"
       - name: Retain only raw logs, results, small receipts and the package manifest
         if: always()
         uses: actions/upload-artifact@v4
@@ -76,3 +88,11 @@ jobs:
             ${{ env.POST_RESTORE_RUN_ROOT }}/preparation-inputs.json
             ${{ env.POST_RESTORE_RUN_ROOT }}/operators/original-results.json
             ${{ env.POST_RESTORE_RUN_ROOT }}/operators/receipt.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/maintenance-parser/original-results.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/maintenance-parser/receipt.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/maintenance/original-results.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/maintenance/receipt.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/config-unit/original-results.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/config-unit/receipt.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/main/original-results.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/main/receipt.json

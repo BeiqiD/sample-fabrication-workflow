@@ -6,6 +6,7 @@ import { createLoopbackLocalAuthTransport } from './auth/local-auth-transport.ts
 export class NodeRuntimeConfigurationError extends Error {
   constructor() { super('Local runtime configuration is unavailable.'); this.name = 'NodeRuntimeConfigurationError'; }
 }
+export type NodeRuntimeConfigurationProfile = 'v28-metadata' | 'v28-fabublox';
 export interface LoadedNodeRuntimeConfiguration {
   readonly kind: 'loaded-node-loopback-development/1';
 }
@@ -36,11 +37,15 @@ export interface NodeRuntimeConfiguration {
 interface Identity { dev: bigint; ino: bigint; uid: bigint; gid: bigint; mode: bigint }
 interface FileIdentity extends Identity { nlink: bigint; size: bigint; mtimeNs: bigint; ctimeNs: bigint }
 interface DirectoryPin { path: string; identity: Identity; private: boolean }
+interface RestorationReportPin { path: string; file: FileIdentity }
+type ConfigurationFormat = 'node-loopback-development-v1' | 'node-loopback-restored-v28-v1';
 const MAX_CONFIGURATION_BYTES = 16 * 1024;
+const MAX_RESTORATION_REPORT_BYTES = 64 * 1024;
 const MAX_LOCAL_VOLUMES = 32;
 const INSTALLATION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const issued = new WeakMap<LoadedNodeRuntimeConfiguration, {
   value: Readonly<NodeRuntimeConfiguration>; path: string; owner: bigint; file: FileIdentity; directories: DirectoryPin[];
+  format: ConfigurationFormat; restorationReport?: RestorationReportPin;
 }>();
 function unavailable(): never { throw new NodeRuntimeConfigurationError(); }
 function identity(stat: BigIntStats): Identity {
@@ -59,10 +64,10 @@ function canonical(path: unknown): asserts path is string {
   if (typeof path !== 'string' || !path || path.length > 4000 || path.includes('\0')
     || !isAbsolute(path) || resolve(path) !== path || realpathSync(path) !== path) unavailable();
 }
-function privateConfiguration(stat: BigIntStats, owner: bigint): void {
+function privateConfiguration(stat: BigIntStats, owner: bigint, maximumBytes = MAX_CONFIGURATION_BYTES): void {
   if (!stat.isFile() || stat.isSymbolicLink() || stat.uid !== owner || stat.nlink !== 1n
     || ![0o400n, 0o600n].includes(stat.mode & 0o7777n)
-    || stat.size < 1n || stat.size > BigInt(MAX_CONFIGURATION_BYTES)) unavailable();
+    || stat.size < 1n || stat.size > BigInt(maximumBytes)) unavailable();
 }
 function directory(path: string, owner: bigint, rootOwner: bigint, isPrivate: boolean): Identity {
   canonical(path); const stat = lstatSync(path, { bigint: true });
@@ -79,12 +84,57 @@ function ancestors(path: string, owner: bigint, rootOwner: bigint): DirectoryPin
     const parent = dirname(current); if (parent === current) return pins; current = parent;
   }
 }
-function exactKeys(value: unknown): value is Record<string, unknown> {
+function exactKeys(value: unknown, restored = false): value is Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
-  const fields = ['format', 'dataDirectory', 'expectedInstallationId', 'publicOrigin', 'clientDirectory'];
+  const fields = ['format', 'dataDirectory', 'expectedInstallationId', 'publicOrigin', 'clientDirectory',
+    ...(restored ? ['databaseFile'] : [])];
   const names = Object.keys(value);
   return fields.every(name => names.includes(name)) && names.every(name => fields.includes(name)
     || name === 'storageKeyringPath' || name === 'localVolumes' || name === 'enableLocalFile' || name === 'enableLocalJobs');
+}
+
+
+/** The private report describes the original inert restoration, not current
+ * administrator, Group or File authority. Actual V28 admission remains with
+ * the selected runtime's genuine Native owner. No report path is caller input. */
+function restorationReportBinding(raw: unknown, expectedInstallationId: string): void {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) unavailable();
+  const report = raw as Record<string, unknown>;
+  const verification = report.verification;
+  if (report.kind !== 'offline-system-backup-recovery' || report.databasePath !== 'database.sqlite'
+    || report.destinationInstallationId !== expectedInstallationId || report.destinationCheckpoint !== 'portable-runtime/v28'
+    || typeof report.sourceArchiveSha256 !== 'string' || !/^[0-9a-f]{64}$/.test(report.sourceArchiveSha256)
+    || report.nativeBindingsRestored !== false || report.executionEnabled !== false || report.deploymentChanged !== false
+    || report.maintenanceState !== 'fenced' || !verification || typeof verification !== 'object' || Array.isArray(verification)) unavailable();
+  const checked = verification as Record<string, unknown>;
+  if (checked.exactTypedRows !== true || checked.exactRowids !== true || checked.foreignKeys !== true
+    || checked.integrity !== 'ok' || checked.reviewedSchema !== true) unavailable();
+}
+
+function readRestorationReport(path: string, owner: bigint, expectedInstallationId: string): RestorationReportPin {
+  let descriptor: number | undefined;
+  const bytes = Buffer.alloc(MAX_RESTORATION_REPORT_BYTES + 1);
+  try {
+    canonical(path); const before = lstatSync(path, { bigint: true });
+    privateConfiguration(before, owner, MAX_RESTORATION_REPORT_BYTES);
+    descriptor = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+    const opened = fstatSync(descriptor, { bigint: true });
+    privateConfiguration(opened, owner, MAX_RESTORATION_REPORT_BYTES);
+    if (!sameFile(fileIdentity(before), fileIdentity(opened))) unavailable();
+    let length = 0;
+    while (length < bytes.length) {
+      const count = readSync(descriptor, bytes, length, bytes.length - length, length);
+      if (!count) break; length += count;
+    }
+    if (length < 1 || length > MAX_RESTORATION_REPORT_BYTES || BigInt(length) !== opened.size) unavailable();
+    restorationReportBinding(JSON.parse(new TextDecoder('utf-8', { fatal: true, ignoreBOM: true })
+      .decode(bytes.subarray(0, length))), expectedInstallationId);
+    const after = fstatSync(descriptor, { bigint: true }), afterPath = lstatSync(path, { bigint: true });
+    privateConfiguration(after, owner, MAX_RESTORATION_REPORT_BYTES);
+    privateConfiguration(afterPath, owner, MAX_RESTORATION_REPORT_BYTES);
+    if (!sameFile(fileIdentity(opened), fileIdentity(after)) || !sameFile(fileIdentity(opened), fileIdentity(afterPath))) unavailable();
+    return { path, file: fileIdentity(opened) };
+  } finally { bytes.fill(0); if (descriptor !== undefined) { try { closeSync(descriptor); } catch { unavailable(); } } }
 }
 
 function overlaps(a: string, b: string): boolean {
@@ -121,14 +171,18 @@ function configuredLocalVolumes(raw: unknown, owner: bigint, rootOwner: bigint,
 /** An explicit deployment pin is captured before private config I/O. The file
  * contains only nonsecret binding metadata; no credential or bootstrap fields
  * are admitted. The config does not provision or repair either volume. */
-export function loadNodeRuntimeConfiguration(path: string, options: { filesystemRootOwnerUid?: number } = {}): LoadedNodeRuntimeConfiguration {
+export function loadNodeRuntimeConfiguration(path: string, options: {
+  filesystemRootOwnerUid?: number; runtimeProfile?: NodeRuntimeConfigurationProfile;
+} = {}): LoadedNodeRuntimeConfiguration {
   let descriptor: number | undefined;
   const bytes = Buffer.alloc(MAX_CONFIGURATION_BYTES + 1);
   try {
     const suppliedRoot = options?.filesystemRootOwnerUid;
     const configuredRoot = suppliedRoot === undefined ? 0 : suppliedRoot;
+    const runtimeProfile = options?.runtimeProfile;
     if (process.platform !== 'linux' || typeof process.geteuid !== 'function' || !options || typeof options !== 'object' || Array.isArray(options)
-      || Object.keys(options).some(key => key !== 'filesystemRootOwnerUid')
+      || Object.keys(options).some(key => key !== 'filesystemRootOwnerUid' && key !== 'runtimeProfile')
+      || runtimeProfile !== undefined && runtimeProfile !== 'v28-metadata' && runtimeProfile !== 'v28-fabublox'
       || !Number.isSafeInteger(configuredRoot) || configuredRoot < 0 || configuredRoot > 0xffff_ffff) unavailable();
     const owner = BigInt(process.geteuid()), rootOwner = BigInt(configuredRoot);
     canonical(path); const before = lstatSync(path, { bigint: true }); privateConfiguration(before, owner);
@@ -143,8 +197,12 @@ export function loadNodeRuntimeConfiguration(path: string, options: { filesystem
     }
     if (length < 1 || length > MAX_CONFIGURATION_BYTES || BigInt(length) !== opened.size) unavailable();
     const raw: unknown = JSON.parse(new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes.subarray(0, length)));
-    if (!exactKeys(raw) || raw.format !== 'node-loopback-development-v1' || typeof raw.expectedInstallationId !== 'string'
-      || !INSTALLATION_ID.test(raw.expectedInstallationId) || typeof raw.publicOrigin !== 'string') unavailable();
+    const format = raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as Record<string, unknown>).format : undefined;
+    const restored = format === 'node-loopback-restored-v28-v1';
+    if (!exactKeys(raw, restored) || raw.format !== (restored ? 'node-loopback-restored-v28-v1' : 'node-loopback-development-v1')
+      || restored && (raw.databaseFile !== 'database.sqlite' || runtimeProfile === undefined)
+      || typeof raw.expectedInstallationId !== 'string' || !INSTALLATION_ID.test(raw.expectedInstallationId)
+      || typeof raw.publicOrigin !== 'string') unavailable();
     canonical(raw.dataDirectory); canonical(raw.clientDirectory);
     if (raw.storageKeyringPath !== undefined && (typeof raw.storageKeyringPath !== 'string' || !raw.storageKeyringPath
       || raw.storageKeyringPath.length > 4000 || raw.storageKeyringPath.includes('\0')
@@ -165,14 +223,17 @@ export function loadNodeRuntimeConfiguration(path: string, options: { filesystem
     const after = fstatSync(descriptor, { bigint: true }), afterPath = lstatSync(path, { bigint: true });
     privateConfiguration(after, owner); privateConfiguration(afterPath, owner);
     if (!sameFile(fileIdentity(opened), fileIdentity(after)) || !sameFile(fileIdentity(opened), fileIdentity(afterPath))) unavailable();
-    const value = Object.freeze({ dataDirectory: raw.dataDirectory, databasePath: join(raw.dataDirectory, 'application.sqlite'),
+    const restorationReport = restored ? readRestorationReport(join(raw.dataDirectory, 'recovery-report.json'), owner, raw.expectedInstallationId) : undefined;
+    const value = Object.freeze({ dataDirectory: raw.dataDirectory, databasePath: join(raw.dataDirectory, restored ? 'database.sqlite' : 'application.sqlite'),
       expectedInstallationId: raw.expectedInstallationId, publicOrigin: raw.publicOrigin,
       host: origin.hostname === '[::1]' ? '::1' as const : '127.0.0.1' as const, port,
       clientDirectory: raw.clientDirectory, ...(raw.storageKeyringPath === undefined ? {} : { storageKeyringPath: raw.storageKeyringPath }),
       localVolumes, enableLocalFile: raw.enableLocalFile === true, enableLocalJobs: raw.enableLocalJobs === true,
       filesystemRootOwnerUid: configuredRoot });
     const token = Object.freeze({ kind: 'loaded-node-loopback-development/1' as const });
-    issued.set(token, { value, path, owner, file: fileIdentity(opened), directories });
+    issued.set(token, { value, path, owner, file: fileIdentity(opened), directories,
+      format: restored ? 'node-loopback-restored-v28-v1' : 'node-loopback-development-v1',
+      ...(restorationReport === undefined ? {} : { restorationReport }) });
     assertNodeRuntimeConfiguration(token); return token;
   } catch { return unavailable(); }
   finally { bytes.fill(0); if (descriptor !== undefined) { try { closeSync(descriptor); } catch { unavailable(); } } }
@@ -188,6 +249,24 @@ export function assertNodeRuntimeConfiguration(token: LoadedNodeRuntimeConfigura
     if (!sameFile(current.file, fileIdentity(file))) unavailable();
     const rootOwner = BigInt(current.value.filesystemRootOwnerUid);
     for (const pin of current.directories) if (!same(pin.identity, directory(pin.path, current.owner, rootOwner, pin.private))) unavailable();
+    if (current.restorationReport) {
+      canonical(current.restorationReport.path);
+      const report = lstatSync(current.restorationReport.path, { bigint: true });
+      privateConfiguration(report, current.owner, MAX_RESTORATION_REPORT_BYTES);
+      if (!sameFile(current.restorationReport.file, fileIdentity(report))) unavailable();
+    }
     return current.value;
   } catch { return unavailable(); }
+}
+
+
+/** Restored tokens require an explicit bounded V28 runtime. The same guard is
+ * used by dispatch and direct default startup before either acquires parents.
+ * Standard v1 configurations retain their original default/V28 selection. */
+export function assertNodeRuntimeConfigurationForProfile(token: LoadedNodeRuntimeConfiguration,
+  profile: NodeRuntimeConfigurationProfile | undefined): Readonly<NodeRuntimeConfiguration> {
+  const current = issued.get(token);
+  if (!current || profile !== undefined && profile !== 'v28-metadata' && profile !== 'v28-fabublox'
+    || current.format === 'node-loopback-restored-v28-v1' && profile === undefined) unavailable();
+  return assertNodeRuntimeConfiguration(token);
 }

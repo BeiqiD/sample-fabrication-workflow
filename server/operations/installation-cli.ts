@@ -5,7 +5,15 @@ import { parseV28GroupInstallationCommand, V28_GROUP_INSTALLATION_USAGE } from '
 const USAGE = 'Usage: local-installation upgrade --database <canonical-private-db> [--filesystem-root-owner-uid UID]\nStop the local development server first. An exact V25 or V26 installation and its empty private .writer-lock file must already exist. This metadata operation reads no password and creates no administrator or File/provider authority.\n';
 async function main(): Promise<void> {
   if (process.argv.length === 3 && process.argv[2] === '--help') {
-    process.stdout.write(USAGE + 'Usage: local-installation inspect --database <canonical-private-db> [--filesystem-root-owner-uid UID]\nInspection requires an exact current V26/24 installation and prints only installationId, catalogId and checkpointId after the stopped writer closes and releases. It never installs or upgrades a schema.\n' + V28_GROUP_INSTALLATION_USAGE); return;
+    process.stdout.write(USAGE + 'Usage: local-installation inspect --database <canonical-private-db> [--filesystem-root-owner-uid UID]\nInspection requires an exact current V26/24 installation and prints only installationId, catalogId and checkpointId after the stopped writer closes and releases. It never installs or upgrades a schema.\n' + V28_GROUP_INSTALLATION_USAGE
+      + 'Usage: local-installation release-restored-maintenance --runtime-profile v28 --database <private-restored-database.sqlite> --principal local_UUID --installation UUID --request-id UUID --expected-generation N [--filesystem-root-owner-uid UID]\nExplicit stopped restored-target release only. No automatic Group/File/Jobs/domain activation; uncertain outcomes require the same request ID.\n'); return;
+  }
+  if (process.argv[2] === 'release-restored-maintenance') {
+    const { parseRestoredV28MaintenanceReleaseCommand, executeRestoredV28MaintenanceRelease } = await import('./restored-v28-maintenance-release-operator.ts');
+    const command = parseRestoredV28MaintenanceReleaseCommand(process.argv.slice(2));
+    const original = executeRestoredV28MaintenanceRelease(command);
+    const receipt = await original;
+    process.stdout.write(JSON.stringify(receipt) + '\n'); return;
   }
   if (process.argv[2] === 'enroll-local-member' || process.argv[2] === 'set-enforcement') {
     const selected = parseV28GroupInstallationCommand(process.argv.slice(2));
@@ -24,6 +32,9 @@ async function main(): Promise<void> {
 }
 void main().catch(() => {
   // No raw SQL/cause, path, credential or untrusted argument diagnostics.
+  if (process.argv[2] === 'release-restored-maintenance') {
+    process.stderr.write('Stopped restored V28 maintenance release unavailable; reconcile the same request ID.\n'); process.exitCode = 1; return;
+  }
   if (process.argv[2] === 'enroll-local-member' || process.argv[2] === 'set-enforcement') {
     process.stderr.write('Offline collaboration operation unavailable.\n'); process.exitCode = 1; return;
   }

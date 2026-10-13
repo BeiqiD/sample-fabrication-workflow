@@ -8,7 +8,10 @@ const USAGE = 'Usage: node main.mjs --config <canonical-private-config> [--files
 async function main(): Promise<void> {
   if (process.argv.length === 3 && process.argv[2] === '--help') { process.stdout.write(USAGE); return; }
   const selected = parseNodeRuntimeCommand(process.argv.slice(2));
-  const config = loadNodeRuntimeConfiguration(selected.path, selected.filesystemRootOwnerUid === undefined ? {} : { filesystemRootOwnerUid: selected.filesystemRootOwnerUid });
+  const config = loadNodeRuntimeConfiguration(selected.path, {
+    ...(selected.filesystemRootOwnerUid === undefined ? {} : { filesystemRootOwnerUid: selected.filesystemRootOwnerUid }),
+    ...(selected.profile === undefined ? {} : { runtimeProfile: selected.profile }),
+  });
   const shutdown = new AbortController();
   let runtime: SelectedNodeDevelopmentRuntime | undefined, resolveStop!: () => void;
   const stopRequested = new Promise<void>(resolve => { resolveStop = resolve; });
