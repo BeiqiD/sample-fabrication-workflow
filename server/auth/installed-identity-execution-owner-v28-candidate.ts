@@ -4,6 +4,7 @@ import type { InstallationReceipt, ReviewedInstallationAdmission } from "../migr
 import { assertSqliteConnectionOwner, type SqliteCapability } from "../sqlite.ts";
 
 import { V28_NODE_INSTALLATION_CATALOG_CANDIDATE } from "../installation-catalog-v28-candidate.ts";
+import { NODE_PLATFORM_OBJECTS } from "../../shared/contracts/node-installation-schema.ts";
 
 // Only this code-owned frozen V28 catalog selects the complete ledger length.
 // A checkpoint version is not a migration count or a caller-provided catalog.
@@ -13,8 +14,8 @@ function unavailable(): never { throw new Error("Captured installed identity exe
 
 /** A trusted immutable-schema execution captures full reviewed installation
  * admission once. Dispatch checks the exact live connection, schema cookies,
- * installation and every code-owned V28 ledger row; it never caches a permission or query
- * result. Close and discard this owner before recovery, upgrade or native close.
+ * the exact live schema, installation and every code-owned V28 ledger row;
+ * it never caches a permission or query result. Close and discard this owner before recovery, upgrade or native close.
  * This is not a replacement for full recovery/schema/integrity admission. */
 export function captureInstalledIdentityExecutionOwnerV28Candidate(identity: object, database: SqliteCapability,
   nativeDatabase: DatabaseSync, admission: ReviewedInstallationAdmission): Readonly<{
@@ -28,6 +29,20 @@ export function captureInstalledIdentityExecutionOwnerV28Candidate(identity: obj
   if (!checkpoint || checkpoint.id !== "portable-runtime/v28" || installation.checkpointId !== checkpoint.id
     || installation.catalogId !== CATALOG.id || installation.schemaSha256 !== checkpoint.schemaSha256
     || installation.appliedMigrations !== LEDGER_ROWS) unavailable();
+  // Compare every current schema cell inside Native SQLite against only the
+  // fixed code-owned catalog. Return one live scalar instead of repeatedly
+  // copying the large schema/trigger texts into JS. The observed schema and a
+  // successful result are never cached: even writable_schema edits which keep
+  // the schema cookie unchanged must fail this exact check on the next call.
+  const expectedSchema = [...checkpoint.applicationObjects, ...NODE_PLATFORM_OBJECTS];
+  const literal = (value: string) => "'" + value.replaceAll("'", "''") + "'";
+  const cases = expectedSchema.map(value => `WHEN ${literal(value.name)} THEN
+    type COLLATE BINARY=${literal(value.type)} AND tbl_name COLLATE BINARY=${literal(value.tableName)}
+    AND sql COLLATE BINARY=${literal(value.sql)}`).join("\n");
+  const exactSchema = nativeDatabase.prepare(`SELECT 1 AS admitted WHERE
+    (SELECT count(*) FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*')=${expectedSchema.length}
+    AND NOT EXISTS(SELECT 1 FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*'
+      AND (CASE name COLLATE BINARY ${cases} ELSE 0 END) IS NOT 1)`);
   const version = nativeDatabase.prepare("PRAGMA main.schema_version"); version.setReadBigInts(true);
   const tempVersion = nativeDatabase.prepare("PRAGMA temp.schema_version"); tempVersion.setReadBigInts(true);
   const foreignKeys = nativeDatabase.prepare("PRAGMA foreign_keys");
@@ -60,7 +75,7 @@ export function captureInstalledIdentityExecutionOwnerV28Candidate(identity: obj
     assertSqliteConnectionOwner(database, nativeDatabase);
     if (nativeDatabase.isTransaction || version.get()?.schema_version !== cookie
       || tempVersion.get()?.schema_version !== temporaryCookie || foreignKeys.get()?.foreign_keys !== 1
-      || journal.get()?.journal_mode !== "wal" || temporary.get()) unavailable();
+      || journal.get()?.journal_mode !== "wal" || temporary.get() || !exactSchema.get()) unavailable();
     const currentNamespaces = namespaces.all(), actualMain = currentNamespaces.filter(row => row.name === "main");
     if (actualMain.length !== 1 || actualMain[0]!.file !== mainFile
       || currentNamespaces.some(row => row.name !== "main" && row.name !== "temp")) unavailable();

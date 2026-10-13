@@ -1,6 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { RequestSubjectFacts } from "../../shared/contracts/request-subject";
 import { assertInstalledLocalIdentityOwner } from "./identity";
+import { captureInstalledIdentityExecutionOwnerV28Candidate } from "./installed-identity-execution-owner-v28-candidate.ts";
 import { localAuthenticationIdentityAuthority } from "./local-auth-http";
 import { assertInstallationAdmission, type ReviewedInstallationAdmission } from "../migrations";
 import { assertLinuxWriterLeaseBinding, type LinuxWriterLease } from "../operations/writer-lease";
@@ -35,8 +36,14 @@ export function createLocalRequestSubjectIssuer(options: {
   const { database, nativeDatabase, admission, writerLease, authentication } = options;
   const auth = localAuthenticationIdentityAuthority(authentication);
   assertLinuxWriterLeaseBinding(writerLease, database, nativeDatabase);
-  const policy = assertInstalledLocalIdentityOwner(auth.identity, database, nativeDatabase, admission);
-  const installation = Object.freeze({ ...assertInstallationAdmission(nativeDatabase, admission) });
+  // Only the actual reviewed V28 installation selects this existing privately
+  // issued Native execution owner. Construction fully checks the registered
+  // identity/core/native/admission tuple; no caller owner or callback is accepted.
+  // Its live schema/ledger/identity guards do not cache session/member rights.
+  const v28 = admission.receipt.checkpointId === "portable-runtime/v28"
+    ? captureInstalledIdentityExecutionOwnerV28Candidate(auth.identity, database, nativeDatabase, admission) : undefined;
+  const policy = v28 ? v28.policy : assertInstalledLocalIdentityOwner(auth.identity, database, nativeDatabase, admission);
+  const installation = Object.freeze({ ...(v28 ? v28.installation : assertInstallationAdmission(nativeDatabase, admission)) });
   const initial = nativeDatabase.prepare("SELECT bootstrap_principal_id,initialized_at FROM local_identity_installation WHERE singleton=1 AND catalog_id='local-identity-v1'").get();
   if (typeof initial?.bootstrap_principal_id !== "string" || !LOCAL_ID.test(initial.bootstrap_principal_id)
     || typeof initial.initialized_at !== "number" || !Number.isSafeInteger(initial.initialized_at) || initial.initialized_at < 0) {
@@ -47,7 +54,8 @@ export function createLocalRequestSubjectIssuer(options: {
   function validate(): void {
     try {
       assertLinuxWriterLeaseBinding(writerLease, database, nativeDatabase);
-      assertInstalledLocalIdentityOwner(auth.identity, database, nativeDatabase, admission);
+      if (v28) v28.assertCurrent();
+      else assertInstalledLocalIdentityOwner(auth.identity, database, nativeDatabase, admission);
     } catch { throw new LocalRequestSubjectError("unavailable"); }
   }
   function persisted(tokenHash: string, actor: string) {
