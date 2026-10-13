@@ -89,7 +89,7 @@ describe("current storage Settings controls", () => {
     value.profiles.items[1].bindingMatch = "mismatch"; value.profiles.items[1].bindingRevision = null;
     network.mockImplementation(async path => String(path) === settingsPath ? json(value) : json({ canManage: false, credentialEditingAvailable: false }));
     render(<StorageSettingsPage />); await screen.findByText("Only system administrators can change upload destinations.");
-    const original = within(screen.getByRole("heading", { name: "Original comment files" }).closest("article")!);
+    const original = within(screen.getByRole("heading", { name: "Original research files and Project attachments" }).closest("article")!);
     expect(original.getByText("S3")).toBeTruthy(); expect(original.getByText(nativeId)).toBeTruthy(); expect(original.queryByText("Cloudflare R2")).toBeNull();
     expect(original.getByText("Unavailable in the current configuration")).toBeTruthy();
     expect(screen.getByText("Registered; activation required")).toBeTruthy(); expect(screen.queryByRole("combobox")).toBeNull();
@@ -108,8 +108,8 @@ describe("current storage Settings controls", () => {
       return String(path) === settingsPath ? json(value) : json({ canManage: true, credentialEditingAvailable: true });
     });
     render(<StorageSettingsPage />); const save = await saveButton();
-    fireEvent.change(screen.getByLabelText("Images and Project attachments"), { target: { value: nativeId } });
-    fireEvent.change(screen.getByLabelText("Original comment files"), { target: { value: "r2-profile" } }); fireEvent.click(save);
+    fireEvent.change(screen.getByLabelText("Embedded media, previews and generated files"), { target: { value: nativeId } });
+    fireEvent.change(screen.getByLabelText("Original research files and Project attachments"), { target: { value: "r2-profile" } }); fireEvent.click(save);
     await waitFor(() => expect(sessionStorage.getItem("storage-role-policy:pending")).toBeNull());
     expect(submitted).toMatchObject({ expectedPolicyRevision: 3, internalProfileId: nativeId, originalsProfileId: "r2-profile" });
     expect(mutations()).toHaveLength(1); expect(mutations()[0][0]).toBe("/api/settings/storage/defaults");
@@ -167,7 +167,7 @@ describe("current storage Settings controls", () => {
       bindingMatch: "matched", bindingRevision: null, availability: "available" });
     network.mockImplementation(async path => String(path) === settingsPath ? json(value) : json({ canManage: true, credentialEditingAvailable: true }));
     render(<StorageSettingsPage />); await screen.findByText("r2-independent");
-    const select = await screen.findByLabelText("Images and Project attachments"), save = screen.getByRole("button", { name: "Save upload destinations" });
+    const select = await screen.findByLabelText("Embedded media, previews and generated files"), save = screen.getByRole("button", { name: "Save upload destinations" });
     await waitFor(() => expect((select.closest("fieldset") as HTMLFieldSetElement).disabled).toBe(false));
     expect((save as HTMLButtonElement).disabled).toBe(true);
     expect((within(select).getByRole("option", { name: "r2-profile (unavailable)" }) as HTMLOptionElement).disabled).toBe(true);

@@ -124,11 +124,14 @@ function CurrentStorageSettingsView({ status, onChanged }: { status: CurrentStor
     void readCapability();
     return () => { accessSequence.current++; accessController.current?.abort(); };
   }, []);
+  const usesRoleDefaults = status.authority.mode === "active";
   const destinations = [
-    { title: "Images and Project attachments", role: status.roleDefaults.internal,
-      description: "Includes sample images, comment images, Project attachments, template reference images and import assets." },
-    { title: "Original comment files", role: status.roleDefaults.originals,
-      description: "Original files attached to comments are stored without modification, up to 100 MB per file." },
+    { title: usesRoleDefaults ? "Embedded media, previews and generated files" : "Images and Project attachments", role: status.roleDefaults.internal,
+      description: usesRoleDefaults ? "Includes embedded images, derived previews and generated outputs."
+        : "Includes sample images, comment images, Project attachments, template reference images and import assets." },
+    { title: usesRoleDefaults ? "Original research files and Project attachments" : "Original comment files", role: status.roleDefaults.originals,
+      description: usesRoleDefaults ? "Includes original comment files, Project attachments, Metrology references, workbooks and manifests. Original comment files retain their unchanged contents, up to 100 MB per file."
+        : "Original files attached to comments are stored without modification, up to 100 MB per file." },
   ];
   const availabilityText = { available: "Available in the current configuration", unavailable: "Unavailable in the current configuration", registered: "Registered; activation required", retired: "Retired" };
   return <>

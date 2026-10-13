@@ -85,10 +85,10 @@ export function StorageRoleDefaultsForm({ status, canManage, accessStatus = "res
       {eligible.length === 0 && <p className="muted">No profile is currently available for new uploads. Register and activate a tested S3 profile, or restore the current R2 configuration.</p>}
       <form className="storage-candidate-form" onSubmit={save}><fieldset disabled={!enabled || busy || !!pending}>
         <div className="storage-candidate-fields">
-          <label>Images and Project attachments<select value={internal} onChange={event => setInternal(event.target.value)} required>
+          <label>Embedded media, previews and generated files<select value={internal} onChange={event => setInternal(event.target.value)} required>
             <option value="">Choose a profile</option>{!eligible.some(p => p.id === internal) && internal && <option value={internal} disabled>{internal} (unavailable)</option>}
             {eligible.map(profile => <option key={profile.id} value={profile.id}>{profile.adapterType === "s3" ? "S3" : "Cloudflare R2"} · {profile.id}</option>)}</select></label>
-          <label>Original comment files<select value={originals} onChange={event => setOriginals(event.target.value)} required>
+          <label>Original research files and Project attachments<select value={originals} onChange={event => setOriginals(event.target.value)} required>
             <option value="">Choose a profile</option>{!eligible.some(p => p.id === originals) && originals && <option value={originals} disabled>{originals} (unavailable)</option>}
             {eligible.map(profile => <option key={profile.id} value={profile.id}>{profile.adapterType === "s3" ? "S3" : "Cloudflare R2"} · {profile.id}</option>)}</select></label>
         </div><button className="button primary" type="submit" disabled={!eligible.some(profile => profile.id === internal) || !eligible.some(profile => profile.id === originals)}>{busy ? "Saving…" : "Save upload destinations"}</button>
