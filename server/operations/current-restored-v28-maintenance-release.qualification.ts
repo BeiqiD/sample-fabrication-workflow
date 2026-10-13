@@ -56,7 +56,7 @@ describe.sequential('genuine restored V28 stopped maintenance release', () => {
   it('refuses a real competing writer, wrong installation/principal and stale generation without changing the fenced target', () => retainedCanonicalFileCase(async () => {
     const before = await boundary();
     await withCanonicalFileDatabase(path, async (_owner, lease) => lease.withWriter(async () => {
-      await expect(executeRestoredV28MaintenanceRelease(command())).rejects.toThrow('unavailable');
+      await expect(executeRestoredV28MaintenanceRelease(command())).rejects.toMatchObject({ name: 'WriterLeaseError', code: 'busy' });
     }));
     await expect(executeRestoredV28MaintenanceRelease(command(path, randomUUID()))).rejects.toThrow('unavailable');
     await expect(executeRestoredV28MaintenanceRelease(command(path, installation, `local_${randomUUID()}`))).rejects.toThrow('unavailable');
