@@ -137,7 +137,7 @@ def finish(stage, record, run_root, fixture):
  if stage in TOOLS:
   raw = read_private(run_root / (stage+'-tools.json')); value = json.loads(raw)
   assert value['schema'] == 'current-worker-v5-original-owned-tools/1' and value['stage'] == stage
-  assert len(value['originalChildren']) == (6 if stage == 'worker-v5-types' else 4)
+  assert len(value['originalChildren']) == (7 if stage == 'worker-v5-types' else 4)
   assert all(row['code'] == 0 and row['signal'] is None and row['originalCloseAcknowledged'] is True for row in value['originalChildren'])
   record['actualOwnedTools'] = value; record['originalOwnedToolsProofSha256'] = hashlib.sha256(raw).hexdigest()
  elif stage in PRODUCERS:
