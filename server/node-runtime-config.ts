@@ -22,6 +22,11 @@ export interface NodeConfiguredRecoveryArtifacts {
   readonly root: string;
   readonly rootBindingId: string;
 }
+export interface NodeConfiguredRecoveryTarget {
+  readonly parent: string;
+  readonly rootBindingId: string;
+  readonly targetId: string;
+}
 export interface NodeRuntimeConfiguration {
   readonly dataDirectory: string;
   readonly databasePath: string;
@@ -39,6 +44,7 @@ export interface NodeRuntimeConfiguration {
   /** Independent closed Recovery-only profile. Never enables persisted work. */
   readonly enableLocalRecovery: boolean;
   readonly recoveryArtifacts?: Readonly<NodeConfiguredRecoveryArtifacts>;
+  readonly recoveryTarget?: Readonly<NodeConfiguredRecoveryTarget>;
   readonly filesystemRootOwnerUid: number;
 }
 interface Identity { dev: bigint; ino: bigint; uid: bigint; gid: bigint; mode: bigint }
@@ -98,7 +104,7 @@ function exactKeys(value: unknown, restored = false): value is Record<string, un
   const names = Object.keys(value);
   return fields.every(name => names.includes(name)) && names.every(name => fields.includes(name)
     || name === 'storageKeyringPath' || name === 'localVolumes' || name === 'enableLocalFile' || name === 'enableLocalJobs'
-    || name === 'enableLocalRecovery' || name === 'recoveryArtifacts');
+    || name === 'enableLocalRecovery' || name === 'recoveryArtifacts' || name === 'recoveryTarget');
 }
 
 
@@ -243,6 +249,24 @@ export function loadNodeRuntimeConfiguration(path: string, options: {
         ...ancestors(root, owner, rootOwner));
       recoveryArtifacts = Object.freeze({ root, rootBindingId: descriptor.rootBindingId });
     }
+    let recoveryTarget: Readonly<NodeConfiguredRecoveryTarget> | undefined;
+    if (raw.recoveryTarget !== undefined) {
+      const target = raw.recoveryTarget;
+      if (!target || typeof target !== 'object' || Array.isArray(target)
+        || Reflect.ownKeys(target).length !== 3 || !['parent', 'rootBindingId', 'targetId'].every(name => Object.hasOwn(target, name))) unavailable();
+      const selected = target as Record<string, unknown>;
+      canonical(selected.parent);
+      if (typeof selected.rootBindingId !== 'string' || !INSTALLATION_ID.test(selected.rootBindingId)
+        || typeof selected.targetId !== 'string' || !INSTALLATION_ID.test(selected.targetId)
+        || selected.targetId === raw.expectedInstallationId || raw.enableLocalRecovery !== true || runtimeProfile !== 'v28-recovery'
+        || [path, raw.dataDirectory, raw.clientDirectory, ...(raw.storageKeyringPath === undefined ? [] : [raw.storageKeyringPath]),
+          ...localVolumes.map(volume => volume.root), ...(recoveryArtifacts === undefined ? [] : [recoveryArtifacts.root])]
+          .some(protectedPath => overlaps(selected.parent as string, protectedPath))) unavailable();
+      const parent = selected.parent;
+      directories.push({ path: parent, identity: directory(parent, owner, rootOwner, true), private: true },
+        ...ancestors(parent, owner, rootOwner));
+      recoveryTarget = Object.freeze({ parent, rootBindingId: selected.rootBindingId, targetId: selected.targetId });
+    }
     if (raw.enableLocalRecovery !== undefined && typeof raw.enableLocalRecovery !== 'boolean'
       || raw.enableLocalRecovery === true && (!recoveryArtifacts || runtimeProfile !== 'v28-recovery')) unavailable();
     const after = fstatSync(descriptor, { bigint: true }), afterPath = lstatSync(path, { bigint: true });
@@ -256,6 +280,7 @@ export function loadNodeRuntimeConfiguration(path: string, options: {
       localVolumes, enableLocalFile: raw.enableLocalFile === true, enableLocalJobs: raw.enableLocalJobs === true,
       enableLocalRecovery: raw.enableLocalRecovery === true,
       ...(recoveryArtifacts === undefined ? {} : { recoveryArtifacts }),
+      ...(recoveryTarget === undefined ? {} : { recoveryTarget }),
       filesystemRootOwnerUid: configuredRoot });
     const token = Object.freeze({ kind: 'loaded-node-loopback-development/1' as const });
     issued.set(token, { value, path, owner, file: fileIdentity(opened), directories,
