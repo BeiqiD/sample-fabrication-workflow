@@ -283,22 +283,34 @@ export function createRecoveryTargetEngine(env: TargetEnvironment) {
 export function createWorkerV5RecoveryTargetEngine(env: TargetEnvironment) { return originalRecoveryTargetEngine(env,true); }
 function originalRecoveryTargetEngine(env: TargetEnvironment, workerV5: boolean) {
   const targetBinding = env.RECOVERY_DB, sourceBinding = env.DB;
-  function hardCurrent(input:WorkerRecoveryTargetInput){
+  let originalPublicOwner:Readonly<{input:WorkerRecoveryTargetInput;actor:string;jobId:string;ownerToken:string;generation:number;
+    runtimeIncarnation:string|undefined;incarnation:string;deadlineAt:string|undefined}>|undefined;
+  function localCurrent(input:WorkerRecoveryTargetInput){
     if(!workerV5)return;
     const deadline=input.deadlineAt===undefined?NaN:Date.parse(input.deadlineAt);
     ensure(Number.isFinite(deadline)&&Date.now()<deadline&&!input.signal?.aborted&&env.DB===sourceBinding
       &&env.RECOVERY_DB===targetBinding&&env.RECOVERY_TARGET_ID===input.expectedTargetId,"recovery_execution_budget_exhausted");
   }
-  function mutateBatch(input:WorkerRecoveryTargetInput,target:D1Database,statements:D1PreparedStatement[]){
+  function hardCurrent(input:WorkerRecoveryTargetInput){
+    localCurrent(input);if(!workerV5)return;
+    const owner=originalPublicOwner;
+    ensure(owner&&owner.input===input&&owner.jobId===input.jobId&&owner.ownerToken===input.ownerToken
+      &&owner.generation===input.generation&&owner.runtimeIncarnation===input.runtimeIncarnation&&owner.incarnation===input.incarnation
+      &&owner.deadlineAt===input.deadlineAt&&canAdministerSystemSettings(env,owner.actor)
+      &&Boolean(env.ACCESS_TEAM_DOMAIN&&env.ACCESS_AUD)&&allowedEmail(owner.actor,env.ALLOWED_EMAILS),"recovery_actor_or_lease_changed");
+  }
+  async function mutateBatch(input:WorkerRecoveryTargetInput,target:D1Database,statements:D1PreparedStatement[]){
+    if(workerV5)ensure(await input.current(),"recovery_actor_or_lease_changed");
     hardCurrent(input);return target.batch(statements);
   }
-  function mutateRun(input:WorkerRecoveryTargetInput,statement:D1PreparedStatement){
+  async function mutateRun(input:WorkerRecoveryTargetInput,statement:D1PreparedStatement){
+    if(workerV5)ensure(await input.current(),"recovery_actor_or_lease_changed");
     hardCurrent(input);return statement.run();
   }
   async function originalPublicV5Claim(input:WorkerRecoveryTargetInput){
     if(!workerV5)return;
     ensure(input.mode==="historical","recovery_v5_planned_source_window_unavailable");
-    hardCurrent(input);
+    localCurrent(input);
     ensure(env.DB===sourceBinding&&!input.signal?.aborted,"recovery_source_binding_changed");
     const db=primaryD1(sourceBinding),job=await db.prepare(`SELECT j.actor,j.input_json,j.source_upload_job_id,j.target_id,j.target_incarnation
       FROM system_recovery_jobs j JOIN system_recovery_runtime r ON r.singleton=1 AND r.enabled=1 AND r.incarnation=j.runtime_incarnation
@@ -316,6 +328,10 @@ function originalRecoveryTargetEngine(env: TargetEnvironment, workerV5: boolean)
     const originalRecords=await repository.metadata(upload.id,"records"),originalManifest=await repository.metadata(upload.id,"manifest");
     ensure(stableJson(originalRecords)===stableJson(input.records)&&stableJson(originalManifest)===stableJson(input.manifest),"recovery_original_documents_changed");
     ensure(!input.signal?.aborted&&env.DB===sourceBinding&&await input.current(),"recovery_actor_or_lease_changed");
+    // Only the actual original durable source job can issue this private tuple.
+    // It is an extra restrictive live check; caller DTO/profile fields issue none.
+    originalPublicOwner=Object.freeze({input,actor:job.actor,jobId:input.jobId,ownerToken:input.ownerToken,generation:input.generation,
+      runtimeIncarnation:input.runtimeIncarnation,incarnation:input.incarnation,deadlineAt:input.deadlineAt});
     hardCurrent(input);
   }
   async function prepare(input: WorkerRecoveryTargetPreviewInput) {
@@ -407,7 +423,7 @@ function originalRecoveryTargetEngine(env: TargetEnvironment, workerV5: boolean)
     for (const file of plan.files) {
       await providerCurrent(input, target, plan.imageSha256, file, plan.profiles);
       const storage = await openShadowProfile(env, { profileId: file.destinationProfileId, configurationRevision: file.configurationRevision }, "read", {
-        signal: input.signal, ...(workerV5?{deadlineAt:input.deadlineAt}:{}), beforeRequest: async () => {
+        signal: input.signal, ...(workerV5?{deadlineAt:input.deadlineAt,systemRecoveryActor:originalPublicOwner?.actor}:{}), beforeRequest: async () => {
           try { await providerCurrent(input, target, plan.imageSha256, file, plan.profiles); return true; } catch { return false; }
         },
       });
@@ -553,7 +569,7 @@ function originalRecoveryTargetEngine(env: TargetEnvironment, workerV5: boolean)
       // key is never replayed, even when the uncertain object is absent.
       await current(input, target, imageSha256);
       const storage = await openShadowProfile(env, { profileId: file.destinationProfileId, configurationRevision: file.configurationRevision }, "read", {
-        signal: input.signal, ...(workerV5?{deadlineAt:input.deadlineAt}:{}), beforeRequest: async () => {
+        signal: input.signal, ...(workerV5?{deadlineAt:input.deadlineAt,systemRecoveryActor:originalPublicOwner?.actor}:{}), beforeRequest: async () => {
           try { await providerCurrent(input, target, imageSha256, file, profiles); return true; } catch { return false; }
         },
       });

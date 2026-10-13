@@ -1,4 +1,6 @@
 import { primaryD1 } from "../d1-primary";
+import { canAdministerSystemSettings } from "../storage/system-administrator";
+import { allowedEmail } from "../auth";
 import { managedStorage } from "../managed-storage";
 import type { Env } from "../types";
 import type { ByteReader } from "./byte-reader";
@@ -119,7 +121,27 @@ export async function openShadowProfile(
         const profile = await assertR2BootstrapProfile(db, captured, target.profileId, target.configurationRevision);
         r2Binding = resolveR2ProfileBinding(captured, profile, { allowLegacyBootstrap: true });
         const storage: BoundStorage = Object.freeze({ ...target, adapterType: "r2", namespaceIdentity: profile.namespaceIdentity });
-        const reader = r2ByteReader(r2Binding.bucket), writer = r2ShadowByteWriter(r2Binding.bucket), deleter = r2ByteDeleter(r2Binding.bucket);
+        const originalBucket=r2Binding.bucket,actor=providerLifecycle.systemRecoveryActor;
+        const issueCurrent=()=>!providerLifecycle.signal?.aborted&&env.DB===captured.DB
+          &&r2Binding!==undefined&&r2ProfileBindingStillCurrent(env,r2Binding)
+          &&(providerLifecycle.deadlineAt===undefined||Number.isFinite(Date.parse(providerLifecycle.deadlineAt))&&Date.now()<Date.parse(providerLifecycle.deadlineAt))
+          &&(actor===undefined||canAdministerSystemSettings(env,actor)&&Boolean(env.ACCESS_TEAM_DOMAIN&&env.ACCESS_AUD)&&allowedEmail(actor,env.ALLOWED_EMAILS));
+        // Preserve every legacy method/promise when no extra Recovery restriction
+        // is supplied. In the closed V5 lane, reuse the real caller fence after
+        // the last profile SQL and inside the original deferred PUT callback.
+        // This proxy forwards only the SAME original native bucket operation;
+        // metadata/actor fields supply no job, namespace or provider grant.
+        const bucket=providerLifecycle.deadlineAt===undefined&&actor===undefined?originalBucket:new Proxy(originalBucket,{get(target,key){
+          const value=Reflect.get(target,key,target);
+          const method=key==="get"?"GET":key==="head"?"HEAD":key==="put"?"PUT":key==="delete"?"DELETE":null;
+          if(method===null||typeof value!=="function")return value;
+          return async(...args:unknown[])=>{
+            if(typeof args[0]!=="string"||!await callerFence(Object.freeze({method,key:args[0]}))||!issueCurrent())
+              throw new ByteVerificationError("destination","unavailable");
+            return Reflect.apply(value,target,args);
+          };
+        }});
+        const reader = r2ByteReader(bucket), writer = r2ShadowByteWriter(bucket), deleter = r2ByteDeleter(bucket);
         const boundWriter: ByteWriter = { accepts: writer.accepts, async write(input) {
           let permitted = false;
           try { permitted = await legacyFence(storage, Object.freeze({ method: "PUT", key: input.key })); } catch { /* sanitized below */ }

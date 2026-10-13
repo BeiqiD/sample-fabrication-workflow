@@ -10,6 +10,6 @@ export interface SystemRecoveryCapabilitiesAdapter {
   now(): Date; randomId(): string; hash: Sha256Factory;
   step(claim: RecoveryClaim, current: () => Promise<boolean>, signal: AbortSignal, deadlineAt?: string): Promise<RecoveryStepResult>;
   exportBody(claim: RecoveryClaim, current: () => Promise<boolean>, signal: AbortSignal, deadlineAt?: string): Promise<ReadableStream<Uint8Array>>;
-  put(key: string, body: ReadableStream<Uint8Array>, byteSize: number, deadlineAt?: string, signal?: AbortSignal): Promise<void>;
-  read(key: string, deadlineAt?: string, signal?: AbortSignal): Promise<ReadableStream<Uint8Array> | null>;
+  put(key: string, body: ReadableStream<Uint8Array>, byteSize: number, deadlineAt?: string, signal?: AbortSignal, claim?: RecoveryClaim): Promise<void>;
+  read(key: string, deadlineAt?: string, signal?: AbortSignal, claim?: RecoveryClaim): Promise<ReadableStream<Uint8Array> | null>;
 }

@@ -13,6 +13,8 @@ export interface StorageProfileLifecycle {
   signal?: AbortSignal;
   /** Optional immutable caller stage deadline; absent preserves original ports. */
   deadlineAt?: string;
+  /** Additional restriction from an admitted original public Recovery claim. */
+  systemRecoveryActor?: string;
   beforeRequest?: (operation: FileByteOperation) => Promise<boolean>;
   /** Recheck the caller's exact deletion claim immediately before transport.
    * False or an exception prevents I/O. This does not revoke an in-flight DELETE. */
@@ -46,7 +48,7 @@ export interface StorageProfileOpeningCapabilities<Adapter extends string> {
    * registration/admission and transport bindings. Apply beforeRequest just
    * before each byte request. Returning a label alone never admits a provider. */
   openProvider(profile: RegisteredStorageProfile, access: "read" | "write",
-    lifecycle: Readonly<{ signal?: AbortSignal; deadlineAt?: string; beforeRequest: (operation: FileByteOperation) => Promise<boolean> }>): Promise<OpenedStorageProfile<Adapter>>;
+    lifecycle: Readonly<{ signal?: AbortSignal; deadlineAt?: string; systemRecoveryActor?: string; beforeRequest: (operation: FileByteOperation) => Promise<boolean> }>): Promise<OpenedStorageProfile<Adapter>>;
 }
 export class ShadowProfileUnavailableError extends Error {
   constructor(options?: ErrorOptions) { super("The recorded File storage profile is unavailable", options); this.name = "ShadowProfileUnavailableError"; }
@@ -114,7 +116,8 @@ export async function openStorageProfile<Adapter extends string>(
       if (request.method === "DELETE" && beforeDelete && await beforeDelete(request.key) !== true) return false;
       return !signal?.aborted && isCurrent() && localClock();
     };
-    const opened = await openProvider(profile, access, Object.freeze({ signal, beforeRequest: callerFence, ...(deadlineAt===undefined?{}:{deadlineAt}) }));
+    const opened = await openProvider(profile, access, Object.freeze({ signal, beforeRequest: callerFence, ...(deadlineAt===undefined?{}:{deadlineAt}),
+      ...(lifecycle.systemRecoveryActor===undefined?{}:{systemRecoveryActor:lifecycle.systemRecoveryActor}) }));
     providerOwner = opened;
     const disposeMethod = opened?.dispose;
     if (typeof disposeMethod === "function") dispose = disposeMethod.bind(opened);

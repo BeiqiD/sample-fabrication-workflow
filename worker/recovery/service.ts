@@ -39,7 +39,7 @@ export async function assertRecoveryArtifactNamespace(env:Env,job:RecoveryJob){
   if(!frozen?.artifactNamespace||stableJson(frozen.artifactNamespace)!==stableJson(current.artifactNamespace))throw new Error("artifact_namespace_changed");
 }
 async function assertPrivateKeyNamespace(env:Env,key:string){const matched=/^fp5-system\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+)$/.exec(key);
-  if(!matched)throw new Error("artifact_namespace_changed");const job=await recoveryRepository(env).job(matched[1]);if(!job)throw new Error("artifact_namespace_changed");await assertRecoveryArtifactNamespace(env,job);
+  if(!matched)throw new Error("artifact_namespace_changed");const job=await recoveryRepository(env).job(matched[1]);if(!job)throw new Error("artifact_namespace_changed");await assertRecoveryArtifactNamespace(env,job);return job;
 }
 export async function systemRecoveryCapabilities(env:Env,actor:string):Promise<SystemRecoveryCapabilities>{
   const canManage=recoveryActorAllowed(env,actor),base={supported:false,canManage,enabled:false,stale:true,lastHeartbeatAt:null,cadenceSeconds:120 as const,maxStepMs:60000 as const,reason:canManage?"schema_unavailable":"administrator_required",
@@ -94,7 +94,7 @@ export async function recoveryArchiveSource(env:Env,job:RecoveryJob,current:()=>
   const attempt=(await recoveryRepository(env).attempts(job.id)).find(row=>row.object_key===job.artifact_key&&row.state==="verified");if(!attempt)throw new Error("archive_invalid");
   return sourceFromStream(job.archive_byte_size,async()=>{if(signal?.aborted||!await current())throw new Error("administrator_revoked");
     await assertRecoveryArtifactNamespace(env,job);
-    if(signal?.aborted||!await current()||signal?.aborted)throw new Error("administrator_revoked");
+    if(signal?.aborted||!await current()||signal?.aborted||!recoveryActorAllowed(env,job.actor))throw new Error("administrator_revoked");
     const object=await env.ASSETS.get(job.artifact_key!);if(!object)throw new Error("source_unavailable");return object.body;});
 }
 async function openFrozenPayload(env:Env,upload:RecoveryJob,file:WorkerRecoveryFile,current:()=>Promise<boolean>,signal:AbortSignal){
@@ -108,14 +108,18 @@ export async function workerSystemRecoveryCapabilities(env:Env):Promise<SystemRe
   const originalSourceBinding=env.DB;
   const sourceInstallationId=runtime.installation_id;
   const capabilities:SystemRecoveryCapabilitiesAdapter={repository,incarnation:runtime.incarnation,authorizeActor:actor=>recoveryActorAllowed(env,actor),now:()=>new Date(),randomId:()=>crypto.randomUUID(),hash:cloudflareSha256,
-    async put(key,body,byteSize,deadlineAt,signal){await assertPrivateKeyNamespace(env,key);
-      if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding))throw new Error("execution_budget_exhausted");
+    async put(key,body,byteSize,deadlineAt,signal,issuedClaim){const originalJob=await assertPrivateKeyNamespace(env,key);
+      // The SAME current kernel claim owns this issue, including readback of
+      // an older UNKNOWN artifact attempt. Do not compare its old attempt token.
+      if(deadlineAt!==undefined&&(!issuedClaim||issuedClaim.id!==originalJob.id||issuedClaim.actor!==originalJob.actor||!await repository.current(issuedClaim)))throw new Error("administrator_revoked");
+      if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding||!recoveryActorAllowed(env,originalJob.actor)))throw new Error("execution_budget_exhausted");
       const {FixedLengthStream}=globalThis as typeof globalThis&{FixedLengthStream:new(length:number)=>{readable:ReadableStream<Uint8Array>;writable:WritableStream<Uint8Array>}};
       const fixed=new FixedLengthStream(byteSize),pipe=body.pipeTo(fixed.writable);void pipe.catch(()=>undefined);
-      try{if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding))throw new Error("execution_budget_exhausted");
+      try{if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding||!recoveryActorAllowed(env,originalJob.actor)))throw new Error("execution_budget_exhausted");
         await env.ASSETS.put(key,fixed.readable,{httpMetadata:{contentType:"application/zip"}});await pipe;}catch(error){void fixed.readable.cancel().catch(()=>undefined);throw error;}},
-    async read(key,deadlineAt,signal){await assertPrivateKeyNamespace(env,key);
-      if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding))throw new Error("execution_budget_exhausted");
+    async read(key,deadlineAt,signal,issuedClaim){const originalJob=await assertPrivateKeyNamespace(env,key);
+      if(deadlineAt!==undefined&&(!issuedClaim||issuedClaim.id!==originalJob.id||issuedClaim.actor!==originalJob.actor||!await repository.current(issuedClaim)))throw new Error("administrator_revoked");
+      if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding||!recoveryActorAllowed(env,originalJob.actor)))throw new Error("execution_budget_exhausted");
       return(await env.ASSETS.get(key))?.body??null;},
     async exportBody(claim,current,signal,deadlineAt){const frozen=await records(repository,claim.id);
       const files=await terminalFiles(repository,claim.id),metadata=await prepareWorkerSystemBackupArchive(frozen,files);
@@ -130,7 +134,8 @@ export async function workerSystemRecoveryCapabilities(env:Env):Promise<SystemRe
         if(input.mode==="planned"){const status=await readSourceMaintenance(env);if(status.state!=="fenced"||status.activeWriters)throw new Error("source_maintenance_required");}
         const v5=Boolean(await db.prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='collaboration_control'").first())
           &&Boolean(await db.prepare("SELECT 1 FROM collaboration_control WHERE singleton=1 AND schema_version=2").first());
-        const frozen=v5?await captureWorkerV5PublicSnapshot(env,claim,sourceInstallationId,current,signal)
+        if(v5&&typeof deadlineAt!=="string")throw new Error("execution_budget_exhausted");
+        const frozen=v5?await captureWorkerV5PublicSnapshot(env,claim,sourceInstallationId,current,signal,deadlineAt)
           :await captureVersionedSystemBackupSnapshot(env.DB,{backupId:claim.id,createdAt:claim.accepted_at});if(!await current())throw new Error("administrator_revoked");
         const checkpoint=frozen.schema==="system-backup-records/5"?await sourceBackupCheckpointV5(frozen):await sourceVersionedBackupCheckpoint(frozen);if(input.mode==="planned")await recordSourceCheckpoint(env,claim.id,checkpoint);
         const sources=frozen.schema==="system-backup-records/5"?planSystemBackupSourcesV28(frozen.content):frozen.content.schemaVersion===26?planSystemBackupSourcesV26(frozen.content):planSystemBackupSources(frozen.content.schemaVersion===25?portableBusinessManifestV24(frozen.content):frozen.content),statements=[...repository.metadataStatements(claim.id,"records",frozen),...groupFileStatements(repository,claim,sources)];

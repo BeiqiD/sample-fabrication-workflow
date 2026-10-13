@@ -1,3 +1,5 @@
+import { canAdministerSystemSettings } from "../storage/system-administrator";
+import { allowedEmail } from "../auth";
 import type { Env } from "../types";
 import { openShadowProfile } from "../files/shadow-profile";
 import { legacyByteReader } from "../files/legacy-byte-reader";
@@ -54,13 +56,14 @@ import { ownWorkerV5SourceStream } from "./v5-held-r2-archive-candidate";
 export async function openWorkerV5BackupSource(env:Env,source:SystemBackupSourceV28,claim:RecoveryClaim,installationId:string,
   current:()=>Promise<boolean>,signal:AbortSignal,ownClose:(dispose:()=>Promise<void>)=>void,deadlineAt:string):Promise<SystemBackupSourceRead & {dispose?:()=>Promise<void>}>{
   const original=env.DB,entry=source.source;
-  const deadline=Date.parse(deadlineAt),local=()=>Number.isFinite(deadline)&&Date.now()<deadline&&!signal.aborted;
+  const deadline=Date.parse(deadlineAt),local=()=>Number.isFinite(deadline)&&Date.now()<deadline&&!signal.aborted
+    &&canAdministerSystemSettings(env,claim.actor)&&Boolean(env.ACCESS_TEAM_DOMAIN&&env.ACCESS_AUD)&&allowedEmail(claim.actor,env.ALLOWED_EMAILS);
   if(entry.storeKind!=="r2"||entry.provider!=="r2"||entry.byteAuthority!=="file_location"||!entry.storageProfileId
     ||entry.storageProfileRevision!==1||!entry.locationId||entry.initialOutcome!==null||entry.expectedByteSize===null||entry.expectedSha256===null)
     throw new Error("source_unavailable");
   async function available(){
     if(!local()||env.DB!==original||!await current()||!local())throw new Error("administrator_revoked");
-    await workerV5PublicBackupClaimFence(env,claim,installationId).first();
+    await workerV5PublicBackupClaimFence(env,claim,installationId,deadlineAt).first();
     const hold=await env.DB.prepare(`SELECT 1 FROM file_location_holds h JOIN file_locations l ON l.id=h.location_id
       JOIN file_location_publications p ON p.location_id=l.id
       WHERE h.location_id=? AND h.operation_id=? AND h.hold_kind='export' AND h.released_at IS NULL AND h.expires_at IS NULL
@@ -70,7 +73,7 @@ export async function openWorkerV5BackupSource(env:Env,source:SystemBackupSource
     if(!hold||!local()||env.DB!==original||!await current()||!local())throw new Error("source_unavailable");
   }
   await available();const opened=await openShadowProfile(env,{profileId:entry.storageProfileId,configurationRevision:1},"read",{
-    signal,deadlineAt,async beforeRequest(){try{await available();return local();}catch{return false;}}});
+    signal,deadlineAt,systemRecoveryActor:claim.actor,async beforeRequest(){try{await available();return local();}catch{return false;}}});
   if(opened.storage.adapterType!=="r2")throw new Error("source_unavailable");
   const result=await opened.reader.read(entry.objectKey);
   if(result.outcome!=="available")throw new Error("source_unavailable");

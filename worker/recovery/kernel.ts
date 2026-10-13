@@ -19,8 +19,8 @@ export interface SystemRecoveryCapabilitiesAdapter<Statement extends SystemRecov
   now(): Date; randomId(): string; hash: Sha256Factory;
   step(claim: RecoveryClaim, current: () => Promise<boolean>, signal: AbortSignal, deadlineAt?: string): Promise<RecoveryStepResult<Statement>>;
   exportBody(claim: RecoveryClaim, current: () => Promise<boolean>, signal: AbortSignal, deadlineAt?: string): Promise<ReadableStream<Uint8Array>>;
-  put(key: string, body: ReadableStream<Uint8Array>, byteSize: number, deadlineAt?: string, signal?: AbortSignal): Promise<void>;
-  read(key: string, deadlineAt?: string, signal?: AbortSignal): Promise<ReadableStream<Uint8Array> | null>;
+  put(key: string, body: ReadableStream<Uint8Array>, byteSize: number, deadlineAt?: string, signal?: AbortSignal, claim?: RecoveryClaim): Promise<void>;
+  read(key: string, deadlineAt?: string, signal?: AbortSignal, claim?: RecoveryClaim): Promise<ReadableStream<Uint8Array> | null>;
 }
 function safeReason(error: unknown) {
   if(error instanceof SystemRecoveryConflict)return error.reason;
@@ -66,7 +66,7 @@ async function writeArtifact<Statement extends SystemRecoverySqlStatement<Statem
     try{incoming=await body();}catch(error){await repository.settleAttempt(attempt,"failed");throw error;}
     if(!await current()){await incoming.cancel().catch(()=>undefined);await repository.settleAttempt(attempt,"failed");throw new Error("administrator_revoked");}
     const verified=verifyingStream(incoming,expected,capabilities.hash,"source");
-    try{await capabilities.put(attempt.object_key,verified.body,expected.byteSize,deadlineAt,signal);await repository.settleAttempt(attempt,"settled");
+    try{await capabilities.put(attempt.object_key,verified.body,expected.byteSize,deadlineAt,signal,claim);await repository.settleAttempt(attempt,"settled");
       attempt={...attempt,state:"settled",settled_at:capabilities.now().toISOString()};saveAttempt(attempt);verified.result();}
     catch(error){if(attempt.state==="settled"&&await current())await repository.failSettledAttempt(claim,attempt);else await repository.settleAttempt(attempt,"failed");throw error;}
     finally{await verified.dispose();}
@@ -75,7 +75,7 @@ async function writeArtifact<Statement extends SystemRecoverySqlStatement<Statem
   if(!await current())throw new Error("administrator_revoked");
   const unresolved=["started","unknown"].includes(attempt.state);
   if(attempt.expected_byte_size!==expected.byteSize||attempt.expected_sha256!==expected.sha256)throw new Error("archive_invalid");
-  const stored=await capabilities.read(attempt.object_key,deadlineAt,signal);if(!stored)throw new Error(unresolved?"write_outcome_unknown":"source_unavailable");
+  const stored=await capabilities.read(attempt.object_key,deadlineAt,signal,claim);if(!stored)throw new Error(unresolved?"write_outcome_unknown":"source_unavailable");
   try{await verifyByteStream(stored,expected,capabilities.hash,"destination");}
   catch(error){if(!unresolved&&error instanceof ByteVerificationError&&["size_mismatch","hash_mismatch"].includes(error.reason)&&await current())await repository.failSettledAttempt(claim,attempt);throw error;}
   if(!await current())throw new Error("administrator_revoked");
