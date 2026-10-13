@@ -90,7 +90,8 @@ export async function restorePortableV28CandidateSystemBackupIntoDirectory(optio
     snapshotClock: records.image.sourceSnapshotClock, protectedLocalHistory: protectedLocalHistoryFromV5Image(records.image) });
   const localPayloads = manifest.files.filter(file => file.source.storeKind === "file" && file.source.provider === "local")
     .map(file => ({ id: file.id, source: file.source, path: file.path!, byteSize: file.byteSize!, sha256: file.sha256! })) as PackagedLocalVolumePayloadV28[];
-  const localMappings = await verifyInertLocalVolumeDestinationV28({ directory, evidence: localEvidence, payloads: localPayloads });
+  const localMappings = await verifyInertLocalVolumeDestinationV28({ directory, evidence: localEvidence, payloads: localPayloads,
+    backupHoldOwner: records.content.backupHoldOwner });
   const databasePath = join(directory, "database.sqlite");
   await writeFile(databasePath, new Uint8Array(), { flag: "wx", mode: 0o600 });
   ensure(nativeRecoveryOwners.size < 2, "native cleanup capacity");

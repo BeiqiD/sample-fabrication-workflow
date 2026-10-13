@@ -358,8 +358,21 @@ export function createNodeV28ArchiveStages(options: NodeV28ArchiveStagesOptions)
     const attempts = await repository.attempts(claim.id); await fence(current, signal);
     ensure(attempts.some(attempt => attempt.object_key === claim.artifact_key && attempt.state === "verified"
       && attempt.expected_byte_size === claim.archive_byte_size && attempt.expected_sha256 === claim.archive_sha256));
+    // A recovery target must admit the required original archive BEFORE its
+    // payload writer receives a lazy member stream. A same-binding known
+    // missing object owns no body/FD; rejecting it here keeps the original
+    // target first-close proof independent from an errored member reader.
+    // Register every acquired body before any later metadata/guard await.
+    let firstOwnedBody: ReadableStream<Uint8Array> | undefined;
+    if (dependency !== undefined) {
+      const body = await artifactRead(claim.artifact_key!, dependency);
+      if (!body) { await fence(current, signal); ensure(false, "source_unavailable"); }
+      firstOwnedBody = await ownedBody(body, current, signal, value);
+    }
     const stream = sourceFromStream(claim.archive_byte_size, async () => {
-      await fence(current, signal); const body = await artifactRead(claim.artifact_key!, dependency);
+      await fence(current, signal);
+      if (firstOwnedBody !== undefined) { const body = firstOwnedBody; firstOwnedBody = undefined; return body; }
+      const body = await artifactRead(claim.artifact_key!, dependency);
       ensure(body, "source_unavailable"); return ownedBody(body, current, signal, value);
     });
     let disposed: Promise<void> | undefined;

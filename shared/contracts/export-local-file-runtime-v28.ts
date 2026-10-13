@@ -17,7 +17,8 @@ import { validateFileShadowWithdrawalRows } from "./export-file-shadow-withdrawa
 import { validateFileShadowAdjudicationRows } from "./export-file-shadow-adjudications";
 import { validateFileJobHistory } from "./export-file-jobs";
 import { validateResearchPackageHistory, RESEARCH_PACKAGE_SCHEMA_FINGERPRINT_SHA256 } from "./export-research-packages";
-import { validateSystemRecoveryEvidenceHistory, SYSTEM_RECOVERY_EVIDENCE_SCHEMA_FINGERPRINT_SHA256 } from "./export-system-recovery-evidence";
+import { SYSTEM_RECOVERY_EVIDENCE_SCHEMA_FINGERPRINT_SHA256 } from "./export-system-recovery-evidence";
+import { validateSystemRecoveryEvidenceHistoryV28 } from "./export-system-recovery-evidence-v28";
 import { researchImportedPreviewEvidence, researchNativeR2AssetEvidence } from "./export-research-preview-provenance";
 import { FILE_MIGRATION_SCHEMA_FINGERPRINT_SHA256 } from "./export-file-migrations";
 import { FILE_NATIVE_ADMISSION_SCHEMA_FINGERPRINT_SHA256 } from "./export-file-native-admission";
@@ -126,8 +127,9 @@ function validateRecoveredAssetAliases(tables: ExportTables, nativeIds: Readonly
  * dedicated successor modules. No historical reader or fingerprint is edited.
  *
  * This first slice admits only ordinary accepted local-upload provenance.
- * Other local import/Comment/metrology/shadow/job/recovery-publication payloads
- * remain unsupported. Source records do not authorize destination execution. */
+ * Local recovery relocation is admitted only by the separate V28 exact native
+ * source-address/readback/history proof. Other local import/Comment/metrology/
+ * shadow/job publication payloads remain unsupported. Source records do not authorize destination execution. */
 export async function validateLocalFileRuntimeV28(input: LocalFileRuntimeInputV28): Promise<LocalFileRuntimeEvidenceV28> {
   const captured = captureJson(input) as LocalFileRuntimeInputV28;
   ensure(captured && stableJson(Object.keys(captured).sort()) === stableJson([
@@ -165,7 +167,7 @@ export async function validateLocalFileRuntimeV28(input: LocalFileRuntimeInputV2
   validateNativeRolePoliciesV28(tables, localProfileIds, history.local_storage_profile_activations);
   await validateImportAcceptanceV21(tables); await validateFileUploadAcceptanceV28(tables, localProfileIds);
   await validateMetrologyReferenceAcceptanceV21(tables); await validateCommentAcceptanceV21(tables);
-  const packages = validateResearchPackageHistory(tables), migrations = validateFileJobHistory(tables), recovery = validateSystemRecoveryEvidenceHistory(tables);
+  const packages = validateResearchPackageHistory(tables), migrations = validateFileJobHistory(tables), recovery = validateSystemRecoveryEvidenceHistoryV28(tables);
   const imported = researchImportedPreviewEvidence(tables), aliases = researchNativeR2AssetEvidence(tables);
   const evidence = {
     historicalResultLocation: (fileId: unknown, source: unknown, destination: unknown) => migrations.historicalResultLocation(fileId, source, destination)
