@@ -101,7 +101,9 @@ describe("actual completed Node V28 Package POST replay after genuine Group root
       displayName:"Actual completed Package requester",workspaceRole:"membershipAdministrator",canCreateSamples:true,expectedControlRevision:1});
     const successorMember=await executeCollaborationV28OperatorCandidate({...base,kind:"enroll-local-member",principalId:successor.principalId,
       displayName:"Explicit ordinary root-manager successor",workspaceRole:"member",canCreateSamples:false,expectedControlRevision:1});
-    ensure(requester.memberId&&successorMember.memberId&&requester.memberId!==successorMember.memberId);
+    const requesterMemberId=requester.memberId,successorMemberId=successorMember.memberId;
+    ensure(typeof requesterMemberId==="string"&&requesterMemberId.length>0
+      &&typeof successorMemberId==="string"&&successorMemberId.length>0&&requesterMemberId!==successorMemberId);
     const creation=await executeDomainRootV28OperatorCandidate({...base,kind:"set-creation-flags",principalId:baseline.principalId,
       expectedMemberRevision:1,expectedControlRevision:1,canCreateSamples:true,canCreateProjects:false,canCreateTemplates:false});
     const allocated=await executeDomainRootV28OperatorCandidate({...base,kind:"allocate-existing-root",rootKind:"sample",rootId:source.workflowSampleId,
@@ -159,17 +161,17 @@ describe("actual completed Node V28 Package POST replay after genuine Group root
       // genuinely drained source writer window before management begins.
       const read=await json(owner,origin,"/api/samples/"+source.workflowSampleId,"GET",undefined,session);expect(read.status).toBe(200);
       const grants="/api/collaboration/resources/sample/"+source.workflowSampleId+"/grants/";
-      const successorGrant=await json(owner,origin,grants+successorMember.memberId,"PUT",{operation:"grant",expectedResourceRevision:1,
+      const successorGrant=await json(owner,origin,grants+successorMemberId,"PUT",{operation:"grant",expectedResourceRevision:1,
         expectedGrantRevision:null,capability:"manage",enabled:true},session);expect(successorGrant.status).toBe(200);
-      expect(successorGrant.value).toMatchObject({resourceRevision:2,memberId:successorMember.memberId,grantRevision:1});
+      expect(successorGrant.value).toMatchObject({resourceRevision:2,memberId:successorMemberId,grantRevision:1});
       const successorSession=await diagnostic("ordinary successor HTTP POST /api/auth/login",()=>loginWorkflowCli(owner,origin,"replay.successor",CANONICAL_FILE_PASSWORD));
       expect(successorSession.principalId).toBe(successor.principalId);expect(successorSession.systemAdministrator).toBe(false);expect(successorSession.fileEvidenceOperator).toBe(false);
       // Last-manager protection is respected. The independently authenticated
       // actual successor disables the requester's grant and keeps its own
       // current manager authority through the original post-commit ACK.
-      const revoked=await json(owner,origin,grants+requester.memberId,"PUT",{operation:"grant",expectedResourceRevision:2,
+      const revoked=await json(owner,origin,grants+requesterMemberId,"PUT",{operation:"grant",expectedResourceRevision:2,
         expectedGrantRevision:1,capability:"manage",enabled:false},successorSession);expect(revoked.status).toBe(200);
-      expect(revoked.value).toMatchObject({resourceRevision:3,memberId:requester.memberId,grantRevision:2});
+      expect(revoked.value).toMatchObject({resourceRevision:3,memberId:requesterMemberId,grantRevision:2});
       const stillSignedIn=await json(owner,origin,"/api/auth/session","GET",undefined,session);expect(stillSignedIn.status).toBe(200);
       expect(stillSignedIn.value).toMatchObject({principal:{id:baseline.principalId,actor:baseline.operatorActor,capabilities:{systemAdministrator:true,fileEvidenceOperator:false}}});
       const denied=await json(owner,origin,"/api/packages/jobs","POST",input,session);expect(denied.status).toBe(403);
@@ -191,9 +193,9 @@ describe("actual completed Node V28 Package POST replay after genuine Group root
           .toEqual({state:"completed",phase:"done",request_id:input.requestId,actor:baseline.operatorActor});
         expect(native.prepare("SELECT count(*) n FROM research_package_attempts WHERE state IN('write_started','unknown')").get()?.n).toBe(0);
         expect(native.prepare("SELECT visibility,revision FROM collaboration_resources WHERE root_kind='sample' AND root_id=?").get(source.workflowSampleId)).toEqual({visibility:"restricted",revision:3});
-        expect(native.prepare("SELECT capability,enabled,revision FROM collaboration_grants WHERE root_kind='sample' AND root_id=? AND member_id=?").get(source.workflowSampleId,requester.memberId))
+        expect(native.prepare("SELECT capability,enabled,revision FROM collaboration_grants WHERE root_kind='sample' AND root_id=? AND member_id=?").get(source.workflowSampleId,requesterMemberId))
           .toEqual({capability:"manage",enabled:0,revision:2});
-        expect(native.prepare("SELECT capability,enabled,revision FROM collaboration_grants WHERE root_kind='sample' AND root_id=? AND member_id=?").get(source.workflowSampleId,successorMember.memberId))
+        expect(native.prepare("SELECT capability,enabled,revision FROM collaboration_grants WHERE root_kind='sample' AND root_id=? AND member_id=?").get(source.workflowSampleId,successorMemberId))
           .toEqual({capability:"manage",enabled:1,revision:1});
         expect(native.prepare("SELECT enabled FROM local_accounts WHERE principal_id=?").get(baseline.principalId)?.enabled).toBe(1);
         expect(native.prepare("SELECT count(*) n FROM local_admin_grants WHERE principal_id=?").get(baseline.principalId)?.n).toBe(1);
