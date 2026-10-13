@@ -8,8 +8,9 @@ existing deadlines remain byte-for-byte unchanged.
 
 The new case uses the current genuine distribution and compares the complete
 released V26 checkpoint tuple against the actual three current source hashes.
-Two fresh Node installations use the existing genuine local identity, profile
-and File initialization fixture with business seeding disabled. The fixture's
+Two isolated database and byte roots copied from the same admitted template
+use the existing genuine local identity, profile and File initialization fixture
+with business seeding disabled. Distinct installation IDs are not claimed. The fixture's
 original application/native/writer closes before each compiled-main owner
 acquires its installation. Every selected Sample, event and source asset comes
 from ordinary session/CSRF HTTP. Receiver imports also use ordinary public
