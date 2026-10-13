@@ -57,6 +57,7 @@ interface OriginalAckDeliveryGate {
 interface OriginalAckDeliveryOwner {
   readonly nonce: string; readonly gates: Map<string, OriginalAckDeliveryGate>;
   readonly requests: Promise<void>[]; readonly failures: unknown[];
+  outboundCalls: number; diagnosticEvents: number;
   accepting: boolean; server?: Server; port?: number; origin?: string;
   listening?: Promise<void>; stopping?: Promise<void>;
 }
@@ -74,6 +75,48 @@ function original<T>(owner: PairOwner, work: () => Promise<T>): Promise<T> {
   let promise: Promise<T>;
   try { promise = work(); } catch (error) { promise = Promise.reject(error); }
   owner.originalWork.push(promise); void promise.catch(() => undefined); return promise;
+}
+type OriginalAckOutboundStage = 'entered' | 'ack-identity' | 'ack-admission' | 'ack-fetch' | 'ack-body' | 'ack-return'
+  | 'jwks-admission' | 'jwks-fetch' | 'jwks-body';
+/** Optional fixture observation only. Never expose request URL/header values or
+ * arbitrary error text, and never replace the original outbound result/error. */
+function observeOriginalAckOutbound(owner: PairOwner, delivery: OriginalAckDeliveryOwner | undefined,
+  request: MiniflareRequest, issuer: string, call: number, stage: OriginalAckOutboundStage, error?: unknown, response?: { readonly status: number }): void {
+  // Reserve the bounded observations for the armed original gate; earlier
+  // ordinary JWKS calls still count but cannot consume its diagnostic budget.
+  if (!delivery || delivery.gates.size === 0) return;
+  try {
+    if (delivery.diagnosticEvents >= 32) return;
+    delivery.diagnosticEvents++;
+    const id = request.headers.get('x-original-native-gate');
+    let errorKind = 'NONE', nativeCode = 'NONE', mentionsLoopback = false, mentionsPrivateAddress = false;
+    if (error !== undefined) {
+      errorKind = 'UNKNOWN'; nativeCode = 'CODE_UNAVAILABLE';
+      if (error && typeof error === 'object') {
+        const name = Reflect.get(error, 'name'), code = Reflect.get(error, 'code'), cause = Reflect.get(error, 'cause');
+        if (typeof name === 'string' && ['Error', 'TypeError', 'RangeError', 'AbortError', 'TimeoutError', 'FetchError'].includes(name)) errorKind = name;
+        const causeCode = cause && typeof cause === 'object' ? Reflect.get(cause, 'code') : undefined;
+        const codes = ['ECONNREFUSED', 'ECONNRESET', 'EHOSTUNREACH', 'ENETUNREACH', 'ENOTFOUND', 'ETIMEDOUT',
+          'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_SOCKET', 'UND_ERR_ABORTED', 'ERR_INVALID_URL'];
+        const actualCode = typeof code === 'string' ? code : causeCode;
+        if (typeof actualCode === 'string' && codes.includes(actualCode)) nativeCode = actualCode;
+        const message = Reflect.get(error, 'message');
+        if (typeof message === 'string') {
+          const bounded = message.slice(0, 8192).toLowerCase();
+          mentionsLoopback = bounded.includes('loopback') || bounded.includes('localhost') || bounded.includes('127.0.0.1');
+          mentionsPrivateAddress = bounded.includes('private address') || bounded.includes('private ip');
+        }
+      }
+    }
+    console.error('Original ACK private Node outbound observation', {
+      call, stage, status: response?.status ?? null, errorKind, nativeCode, mentionsLoopback, mentionsPrivateAddress,
+      exactAckUrl: request.url === `${delivery.origin}/__original_native_ack_delivery`,
+      exactJwksUrl: request.url === `${issuer}/cdn-cgi/access/certs`, methodGet: request.method === 'GET',
+      nonceMatched: request.headers.get('x-original-native-control') === delivery.nonce,
+      knownGate: Boolean(id && delivery.gates.has(id)), pairAdmitting: owner.accepting, deliveryAdmitting: delivery.accepting,
+      acceptedRequests: id ? delivery.gates.get(id)?.acceptedRequests ?? 0 : 0,
+    });
+  } catch { /* Preserve the original outbound work and exact error. */ }
 }
 function releaseOriginalAckDelivery(gate: OriginalAckDeliveryGate): void {
   gate.released = true;
@@ -134,7 +177,7 @@ async function openOriginalAckDelivery(owner: PairOwner, parent: string, nonce: 
   // This observer-only listener and all accepted requests belong to the sole
   // existing pair owner before any listener/Miniflare constructor runs.
   assertPairReserve(parent);
-  const delivery: OriginalAckDeliveryOwner = { nonce, gates: new Map(), requests: [], failures: [], accepting: true };
+  const delivery: OriginalAckDeliveryOwner = { nonce, gates: new Map(), requests: [], failures: [], outboundCalls: 0, diagnosticEvents: 0, accepting: true };
   owner.originalAckDelivery = delivery;
   delivery.server = createServer((request, response) => {
     let gate: OriginalAckDeliveryGate | undefined;
@@ -388,22 +431,42 @@ export async function prepareGenuineCurrentV26R2Pair(parent: string, options: Ge
           V5_QUALIFICATION_ACK_DELIVERY_ORIGIN: originalAckDelivery!.origin! }),
         R2_BOOTSTRAP_NAMESPACE: JSON.stringify({ kind: 'local-r2', installationId: sourceNamespaceInstallationId, bucketName }) },
       log: new Log(LogLevel.ERROR), outboundService(request: MiniflareRequest) {
+        let call = 0;
+        if (originalAckDelivery) try { call = ++originalAckDelivery.outboundCalls; } catch { /* Observation only. */ }
+        let stage: OriginalAckOutboundStage = 'entered';
+        observeOriginalAckOutbound(owner, originalAckDelivery, request, issuer, call, stage);
         const work = (async () => {
-          if (originalAckDelivery && request.url === `${originalAckDelivery.origin}/__original_native_ack_delivery`) {
-            const id = request.headers.get('x-original-native-gate');
-            ensure(request.method === 'GET' && request.headers.get('x-original-native-control') === originalAckDelivery.nonce
-              && id && originalAckDelivery.gates.has(id));
-            // A real private Node HTTP request remains outstanding. Its 90s
-            // transport ceiling matches this optional observer's existing one;
-            // it does not alter the product's 60000ms kernel deadline.
-            ensure(owner.accepting && originalAckDelivery.accepting);
-            const response = await fetch(request.url, { redirect: 'error', headers: {
-              'x-original-native-control': originalAckDelivery.nonce, 'x-original-native-gate': id }, signal: AbortSignal.timeout(90_000) });
+          try {
+            if (originalAckDelivery && request.url === `${originalAckDelivery.origin}/__original_native_ack_delivery`) {
+              stage = 'ack-identity';
+              const id = request.headers.get('x-original-native-gate');
+              ensure(request.method === 'GET' && request.headers.get('x-original-native-control') === originalAckDelivery.nonce
+                && id && originalAckDelivery.gates.has(id));
+              // A real private Node HTTP request remains outstanding. Its 90s
+              // transport ceiling matches this optional observer's existing one;
+              // it does not alter the product's 60000ms kernel deadline.
+              stage = 'ack-admission';
+              ensure(owner.accepting && originalAckDelivery.accepting);
+              stage = 'ack-fetch';
+              observeOriginalAckOutbound(owner, originalAckDelivery, request, issuer, call, stage);
+              const response = await fetch(request.url, { redirect: 'error', headers: {
+                'x-original-native-control': originalAckDelivery.nonce, 'x-original-native-gate': id }, signal: AbortSignal.timeout(90_000) });
+              stage = 'ack-body';
+              observeOriginalAckOutbound(owner, originalAckDelivery, request, issuer, call, stage, undefined, response);
+              const body = await response.arrayBuffer();
+              observeOriginalAckOutbound(owner, originalAckDelivery, request, issuer, call, 'ack-return', undefined, response);
+              return new Response(body, { status: response.status, headers: response.headers });
+            }
+            stage = 'jwks-admission';
+            ensure(request.url === `${issuer}/cdn-cgi/access/certs` && request.method === 'GET');
+            stage = 'jwks-fetch';
+            const response = await fetch(request.url, { redirect: 'error', signal: AbortSignal.timeout(5000) });
+            stage = 'jwks-body';
             return new Response(await response.arrayBuffer(), { status: response.status, headers: response.headers });
+          } catch (error) {
+            observeOriginalAckOutbound(owner, originalAckDelivery, request, issuer, call, stage, error);
+            throw error;
           }
-          ensure(request.url === `${issuer}/cdn-cgi/access/certs` && request.method === 'GET');
-          const response = await fetch(request.url, { redirect: 'error', signal: AbortSignal.timeout(5000) });
-          return new Response(await response.arrayBuffer(), { status: response.status, headers: response.headers });
         })(); owner.outbound.push(work); void work.catch(() => undefined); return work;
       } };
     let sourceWorkerName: string | undefined;

@@ -72,6 +72,28 @@ function selected(sql,method,stack){
   if(gate.kind==='profile-actor')return /SELECT 1 FROM storage_profiles p JOIN storage_profile_runtime r/.test(sql);
   return gate.kind==='held-original-ack'&&trace.readers>0&&/FROM file_location_holds h JOIN file_locations l/.test(sql);
 }
+// Private qualification failure stage only: no URL/header/body/error text is
+// emitted. This observer never changes the same actual fetch/Response/error.
+function originalDeliveryFailure(stage,error,answer){
+  try{
+    let errorKind='UNKNOWN',nativeCode='CODE_UNAVAILABLE',mentionsLoopback=false,mentionsPrivateAddress=false;
+    if(error&&typeof error==='object'){
+      const name=Reflect.get(error,'name'),code=Reflect.get(error,'code'),cause=Reflect.get(error,'cause');
+      if(typeof name==='string'&&['Error','TypeError','RangeError','AbortError','TimeoutError','FetchError'].includes(name))errorKind=name;
+      const causeCode=cause&&typeof cause==='object'?Reflect.get(cause,'code'):undefined;
+      const actualCode=typeof code==='string'?code:causeCode;
+      if(typeof actualCode==='string'&&['ECONNREFUSED','ECONNRESET','EHOSTUNREACH','ENETUNREACH','ENOTFOUND','ETIMEDOUT',
+        'UND_ERR_CONNECT_TIMEOUT','UND_ERR_SOCKET','UND_ERR_ABORTED','ERR_INVALID_URL'].includes(actualCode))nativeCode=actualCode;
+      const message=Reflect.get(error,'message');
+      if(typeof message==='string'){
+        const bounded=message.slice(0,8192).toLowerCase();
+        mentionsLoopback=bounded.includes('loopback')||bounded.includes('localhost')||bounded.includes('127.0.0.1');
+        mentionsPrivateAddress=bounded.includes('private address')||bounded.includes('private ip');
+      }
+    }
+    console.error('Original ACK private Worker delivery failure',{stage,status:answer?.status??null,errorKind,nativeCode,mentionsLoopback,mentionsPrivateAddress});
+  }catch{/* Observation never replaces the original actual error. */}
+}
 function nativeStatement(statement,sql){
   const proxy=new Proxy(statement,{get(target,key){
     const value=Reflect.get(target,key,target);
@@ -93,11 +115,14 @@ function nativeStatement(statement,sql){
         // to THIS live original request. The kernel's abort signal must not
         // cancel this independently owned delivery barrier at its 60000ms limit.
         selectedGate.deliveryIoStarted=true;
-        const answer=await fetch(live.V5_QUALIFICATION_ACK_DELIVERY_ORIGIN+'/__original_native_ack_delivery',{
-          method:'GET',redirect:'error',headers:{'x-original-native-control':live.V5_QUALIFICATION_CONTROL_NONCE,
-            'x-original-native-gate':selectedGate.ioId}});
-        require(answer.status===200,'original_delivery_io_status');
-        require(await answer.text()==='original-native-ack-delivery/1','original_delivery_io_body');
+        let deliveryStage='fetch',answer;
+        try{
+          answer=await fetch(live.V5_QUALIFICATION_ACK_DELIVERY_ORIGIN+'/__original_native_ack_delivery',{
+            method:'GET',redirect:'error',headers:{'x-original-native-control':live.V5_QUALIFICATION_CONTROL_NONCE,
+              'x-original-native-gate':selectedGate.ioId}});
+          deliveryStage='status';require(answer.status===200,'original_delivery_io_status');
+          deliveryStage='body';require(await answer.text()==='original-native-ack-delivery/1','original_delivery_io_body');
+        }catch(error){originalDeliveryFailure(deliveryStage,error,answer);throw error;}
         selectedGate.deliveryIoAcknowledged=true;
         selectedGate.returnedAt=Date.now();
         return value; // EXACT native value, never a manufactured authority row.
