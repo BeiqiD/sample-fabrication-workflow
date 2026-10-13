@@ -1,10 +1,9 @@
 import type { ReviewedRecoveryMigration } from "./versioned-catalog";
 import { RECOVERY_MIGRATIONS } from "./trusted-schema";
 import { canonicalFileAuthoritySchemaSql } from "../../shared/contracts/export-file-authority";
+import { RECOVERY_MIGRATION_LEDGER_SQL } from "../../shared/contracts/cloudflare-platform-schema";
+export { RECOVERY_MIGRATION_LEDGER_SQL } from "../../shared/contracts/cloudflare-platform-schema";
 
-/** Wrangler's installation-local bookkeeping is created from reviewed code,
- * after the entire restored schema/data graph has passed verification. */
-export const RECOVERY_MIGRATION_LEDGER_SQL = 'CREATE TABLE "d1_migrations"(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT UNIQUE,applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL)';
 const normalize = (sql: string) => JSON.stringify(canonicalFileAuthoritySchemaSql(sql));
 function ensure(value: unknown): asserts value { if (!value) throw new Error("recovery_migration_ledger_not_reviewed"); }
 export async function inspectRecoveryMigrationLedger(db: D1Database, required = false, migrations: readonly Readonly<ReviewedRecoveryMigration>[] = RECOVERY_MIGRATIONS) {

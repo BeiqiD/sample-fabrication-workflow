@@ -3,7 +3,8 @@ import { chmod, mkdtemp, readFile, readdir } from 'node:fs/promises';
 import { createHash, randomUUID } from 'node:crypto';
 import { createServer, type Server } from 'node:http';
 import { createConnection } from 'node:net';
-import { statfsSync } from 'node:fs';
+import { statfsSync, readFileSync } from 'node:fs';
+import { DatabaseSync } from 'node:sqlite';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,16 +14,32 @@ import { Log, LogLevel, Miniflare } from 'miniflare';
 import type { Request as MiniflareRequest } from 'miniflare';
 import { unstable_splitSqlQuery as splitSql } from 'wrangler';
 import { recoveryTableSnapshotSql } from '../../shared/contracts/system-recovery-image';
+import type { ExportSchemaObject } from '../../shared/contracts/export';
+import { stripReviewedCurrentCloudflarePlatformSchema } from '../../shared/contracts/cloudflare-platform-schema';
+import { checkedPortableApplicationSchemaV26 } from '../../shared/contracts/export-portable-runtime-v26';
 import { PORTABLE_RUNTIME_RECOVERY_TABLES, PORTABLE_RUNTIME_RECOVERY_MIGRATIONS } from '../../shared/contracts/portable-runtime-v26-recovery-catalog';
 import { canonicalFileObject, canonicalFilePrivateOrigin, closeCanonicalFileClient, closeCanonicalFileProbe,
   consumeCanonicalFileClient, fetchCanonicalFileClient, type CanonicalFileFixtureOwner } from '../collaboration/current-v28-canonical-comment-file.qualification-support';
 
 type HttpBody = NonNullable<RequestInit['body']>;
 type NativeR2 = Awaited<ReturnType<Miniflare['getR2Bucket']>>;
+type NativeD1 = Awaited<ReturnType<Miniflare['getD1Database']>>;
+interface NativeDatabaseConsistency {
+  checkedTables: string[]; observedSchemaSha256: string; foreignKeyCheckRows: 0;
+}
+interface ClosedDatabaseConsistency {
+  schema: "genuine-closed-original-d1-consistency/1"; originalDatabaseFile: string;
+  observedSchemaSha256: string; databaseSha256Before: string; databaseSha256After: string;
+  nativeCheckedTables: string[]; nativeForeignKeyCheckRows: 0;
+  closedFileFullIntegrityCheck: "ok"; closedFileForeignKeyCheckRows: 0;
+  originalRuntimeDisposeAndListenerRefusalAcknowledged: true;
+}
 interface PairOwner {
   client: CanonicalFileFixtureOwner; originalWork: Promise<unknown>[]; outbound: Promise<unknown>[];
   runtime?: Miniflare; jwks?: Server; jwksPort?: number; origin?: string;
   closing?: Promise<void>; accepting: boolean; closed: boolean;
+  persistedD1?: string; nativeDatabaseConsistency?: NativeDatabaseConsistency;
+  closedDatabaseConsistency?: ClosedDatabaseConsistency;
 }
 const owners = new Set<PairOwner>();
 const RESERVE = 603_979_776n;
@@ -47,6 +64,59 @@ async function refused(port: number) {
     socket.once('error', error => { socket.destroy(); 'code' in error && error.code === 'ECONNREFUSED' ? yes() : no(error); });
   });
 }
+const schemaSql = "SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema ORDER BY type,name";
+const sha256 = (bytes: string | Uint8Array) => createHash('sha256').update(bytes).digest('hex');
+async function checkedNativeDatabaseSchema(schema: ExportSchemaObject[]) {
+  ensure(schema.length <= 2048 && Buffer.byteLength(JSON.stringify(schema)) <= 2 * 1024 * 1024);
+  const platform = stripReviewedCurrentCloudflarePlatformSchema(schema);
+  const admitted = { applicationObjects: await checkedPortableApplicationSchemaV26(platform.applicationObjects), ledgerPresent: platform.ledgerPresent };
+  const names = admitted.applicationObjects.filter(row => row.type === 'table').map(row => row.name).sort();
+  expect(names).toEqual(PORTABLE_RUNTIME_RECOVERY_TABLES.map(row => row.name).sort());
+  const checkedTables = ['sqlite_schema', ...names, ...(admitted.ledgerPresent ? ['d1_migrations'] : [])].sort();
+  ensure(checkedTables.every(name => /^[a-z][a-z0-9_]*$/.test(name)) && new Set(checkedTables).size === checkedTables.length);
+  return { checkedTables, observedSchemaSha256: sha256(JSON.stringify(schema)) };
+}
+async function verifyNativeDatabaseConsistency(database: NativeD1): Promise<NativeDatabaseConsistency> {
+  const schema = await database.prepare(schemaSql).all<ExportSchemaObject>(); ensure(schema.success);
+  const observed = await checkedNativeDatabaseSchema(schema.results);
+  const foreignKeys = await database.prepare('PRAGMA foreign_key_check').all(); ensure(foreignKeys.success);
+  expect(foreignKeys.results).toEqual([]);
+  // The installed workerd caps one statement's compiler opcodes. Each admitted
+  // table and its indexes get a sequential native check; whole quick_check is
+  // reserved for the original physical file after the original runtime closes.
+  for (const name of observed.checkedTables) {
+    const check = await database.prepare(`PRAGMA quick_check("${name}")`).all();
+    ensure(check.success); expect(check.results, `Original D1 table/index quick_check: ${name}`).toEqual([{ quick_check: 'ok' }]);
+  }
+  return { ...observed, foreignKeyCheckRows: 0 };
+}
+async function verifyClosedOriginalDatabase(owner: PairOwner): Promise<ClosedDatabaseConsistency> {
+  ensure(owner.persistedD1 && owner.nativeDatabaseConsistency);
+  const files = (await readdir(owner.persistedD1, { recursive: true })).filter((file): file is string =>
+    typeof file === 'string' && file.endsWith('.sqlite') && !file.endsWith('metadata.sqlite'));
+  expect(files).toHaveLength(1);
+  const originalDatabaseFile = join(owner.persistedD1, files[0]!);
+  const databaseSha256Before = sha256(readFileSync(originalDatabaseFile));
+  const exactNative = new DatabaseSync(originalDatabaseFile, { readOnly: true });
+  let observed: Awaited<ReturnType<typeof checkedNativeDatabaseSchema>> | undefined;
+  try {
+    // Read only the exact persisted native file, after original dispose ACK.
+    // Complete schema identity prevents substituting a metadata DB or catalog.
+    observed = await checkedNativeDatabaseSchema(exactNative.prepare(schemaSql).all() as unknown as ExportSchemaObject[]);
+    expect(observed).toEqual({ checkedTables: owner.nativeDatabaseConsistency.checkedTables,
+      observedSchemaSha256: owner.nativeDatabaseConsistency.observedSchemaSha256 });
+    expect(exactNative.prepare('PRAGMA integrity_check').all()).toEqual([{ integrity_check: 'ok' }]);
+    expect(exactNative.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
+  } finally { exactNative.close(); }
+  ensure(observed);
+  const databaseSha256After = sha256(readFileSync(originalDatabaseFile));
+  expect(databaseSha256After).toBe(databaseSha256Before);
+  return { schema: 'genuine-closed-original-d1-consistency/1', originalDatabaseFile,
+    observedSchemaSha256: observed.observedSchemaSha256, databaseSha256Before, databaseSha256After,
+    nativeCheckedTables: observed.checkedTables, nativeForeignKeyCheckRows: 0,
+    closedFileFullIntegrityCheck: 'ok', closedFileForeignKeyCheckRows: 0,
+    originalRuntimeDisposeAndListenerRefusalAcknowledged: true };
+}
 function close(owner: PairOwner): Promise<void> {
   if (owner.closing) return owner.closing;
   owner.accepting = false;
@@ -57,8 +127,9 @@ function close(owner: PairOwner): Promise<void> {
     const clients = await Promise.allSettled([...owner.client.clients].map(client => closeCanonicalFileClient(owner.client, client)));
     for (const result of clients) if (result.status === 'rejected') failures.push(result.reason);
     if (owner.client.probe) try { await closeCanonicalFileProbe(owner.client); } catch (error) { failures.push(error); }
+    let runtimeClosed = false;
     if (owner.runtime) {
-      try { await owner.runtime.dispose(); if (owner.origin) await refused(Number(new URL(owner.origin).port)); }
+      try { await owner.runtime.dispose(); if (owner.origin) await refused(Number(new URL(owner.origin).port)); runtimeClosed = true; }
       catch (error) { failures.push(error); }
     }
     const outbound = await Promise.allSettled(owner.outbound);
@@ -68,6 +139,10 @@ function close(owner: PairOwner): Promise<void> {
         await new Promise<void>((yes, no) => { owner.jwks!.close(error => error ? no(error) : yes()); });
         if (owner.jwksPort) await refused(owner.jwksPort);
       } catch (error) { failures.push(error); }
+    }
+    if (owner.nativeDatabaseConsistency) {
+      try { ensure(runtimeClosed); owner.closedDatabaseConsistency = await verifyClosedOriginalDatabase(owner); }
+      catch (error) { failures.push(error); }
     }
     if (failures.length) throw new AggregateError(failures, 'Original genuine R2 pair work or first close failed');
     owner.closed = true; owners.delete(owner);
@@ -86,15 +161,20 @@ export interface GenuineR2Pair {
   readonly sourceNamespaceInstallationId: string; readonly actor: string;
   request(path: string, method?: string, body?: HttpBody, headers?: Record<string, string>, identity?: 'admin' | 'reader' | 'none'):
     Promise<{ response: Response; value: unknown }>;
+  /** Qualification readback only: no SQL mutation, authority/profile setup or runtime grant. */
+  readRows(sql: string, bindings?: readonly (string | number | null)[]): Promise<Record<string, unknown>[]>;
   legacyMode(): Promise<unknown>;
   uploadReceipt(requestId: string): Promise<unknown>;
   typedSourceRows(): Promise<Record<string, { rowid: string | null; cells: string }[]>>;
   readObject(key: string): Promise<{ bytes: ArrayBuffer; byteSize: number }>;
   listObjects(): ReturnType<NativeR2['list']>;
+  verifyNativeDatabaseConsistency(): Promise<void>;
+  closedDatabaseConsistency(): ClosedDatabaseConsistency;
   schedule(): Promise<void>;
   close(): Promise<void>;
 }
-export async function prepareGenuineCurrentV26R2Pair(parent: string): Promise<GenuineR2Pair> {
+export interface GenuineR2PairOptions { fileEvidenceOperator?: boolean }
+export async function prepareGenuineCurrentV26R2Pair(parent: string, options: GenuineR2PairOptions = {}): Promise<GenuineR2Pair> {
   const owner: PairOwner = { client: { clients: new Set(), quarantined: false }, originalWork: [], outbound: [], accepting: true, closed: false };
   owners.add(owner);
   let failed = false, failure: unknown;
@@ -140,6 +220,7 @@ export async function prepareGenuineCurrentV26R2Pair(parent: string): Promise<Ge
     owner.runtime = new Miniflare({ modules: true, script, compatibilityDate: '2026-07-20', host: '127.0.0.1', port: Number(new URL(origin).port),
       d1Databases: { DB: randomUUID() }, d1Persist: join(root, 'd1'), r2Buckets: { ASSETS: bucketName }, r2Persist: join(root, 'r2'),
       bindings: { AUTH_MODE: 'access', ACCESS_TEAM_DOMAIN: issuer, ACCESS_AUD: audience, ALLOWED_EMAILS: `${actor},${reader}`, SYSTEM_ADMIN_EMAILS: actor,
+        ...(options.fileEvidenceOperator === true ? { FILE_EVIDENCE_OPERATOR_EMAILS: actor } : {}),
         R2_BOOTSTRAP_NAMESPACE: JSON.stringify({ kind: 'local-r2', installationId: sourceNamespaceInstallationId, bucketName }) },
       log: new Log(LogLevel.ERROR), outboundService(request: MiniflareRequest) {
         const work = (async () => {
@@ -162,6 +243,7 @@ export async function prepareGenuineCurrentV26R2Pair(parent: string): Promise<Ge
     const wranglerLedgerPresent = Boolean(await original(owner, () => database.prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='d1_migrations'").first()));
     const bucket = await original(owner, () => owner.runtime!.getR2Bucket('ASSETS'));
     const worker = await original(owner, () => owner.runtime!.getWorker());
+    owner.persistedD1 = join(root, 'd1');
     async function request(path: string, method = 'GET', body?: HttpBody, headers: Record<string, string> = {}, identity: 'admin' | 'reader' | 'none' = 'admin') {
       ensure(owner.accepting);
       const response = await fetchCanonicalFileClient(owner.client, `${origin}${path}`, { method,
@@ -171,6 +253,21 @@ export async function prepareGenuineCurrentV26R2Pair(parent: string): Promise<Ge
       return { response: response.response, value };
     }
     return Object.freeze({ root, wranglerLedgerPresent, sourceNamespaceInstallationId, actor, request,
+      readRows: (sql: string, bindings: readonly (string | number | null)[] = []) => original(owner, async () => {
+        ensure(!/[;]|--|\/\*/.test(sql) && (/^SELECT\b/i.test(sql.trim())
+          || /^PRAGMA (?:foreign_key_check|integrity_check|defer_foreign_keys)$/i.test(sql.trim())));
+        try {
+          const result = await database.prepare(sql).bind(...bindings).all<Record<string, unknown>>();
+          ensure(result.success); return result.results;
+        } catch (cause) {
+          // Only closed PRAGMA names or a source-query digest identify the read.
+          // Never include SQL text, binding values, identity or request headers.
+          const pragma = /^PRAGMA (foreign_key_check|integrity_check|defer_foreign_keys)$/i.exec(sql.trim());
+          const operation = pragma ? `PRAGMA ${pragma[1]!.toLowerCase()}`
+            : `SELECT sha256=${createHash('sha256').update(sql).digest('hex')}`;
+          throw new Error(`Original genuine R2 pair readRows failed: ${operation}`, { cause });
+        }
+      }),
       legacyMode: () => original(owner, () => database.prepare('SELECT mode FROM file_authority_control WHERE singleton=1').first()),
       uploadReceipt: (requestId: string) => original(owner, () => database.prepare('SELECT actor_email,ingress,purpose,request_scope,status FROM r2_upload_requests WHERE client_request_id=?').bind(requestId).first()),
       async typedSourceRows() {
@@ -189,6 +286,13 @@ export async function prepareGenuineCurrentV26R2Pair(parent: string): Promise<Ge
         const bytes = await object.arrayBuffer(); return { bytes, byteSize: object.size };
       }),
       listObjects: () => original(owner, () => bucket.list()),
+      verifyNativeDatabaseConsistency: () => original(owner, async () => {
+        owner.nativeDatabaseConsistency = await verifyNativeDatabaseConsistency(database);
+      }),
+      closedDatabaseConsistency() {
+        ensure(owner.closed && owner.closedDatabaseConsistency);
+        return structuredClone(owner.closedDatabaseConsistency);
+      },
       async schedule() { const result = await original(owner, () => worker.scheduled({ scheduledTime: new Date(), cron: '*/2 * * * *' })); expect(result.outcome).toBe('ok'); },
       close: () => close(owner) });
   } catch (error) { failed = true; failure = error; }

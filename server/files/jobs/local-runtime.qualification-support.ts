@@ -185,7 +185,7 @@ interface Generation {
 /** One fixture owns every original generation, client body, secondary native
  * and first close. The production prototype is the sole final native/lease
  * owner once its constructor has been attempted: no raw-close fallback. */
-export async function fixture(options: { enableLocalJobs?: boolean; administrator?: boolean } = {}) {
+export async function fixture(options: { enableLocalJobs?: boolean; administrator?: boolean; seedBusinessRows?: boolean } = {}) {
   const root = join(directory, `case-${++sequence}`), data = join(root, "data"), path = join(data, "application.sqlite");
   const generations: Generation[] = [], clients = new Set<Promise<ClientReply>>();
   let current: Generation | undefined, originalSetup: Promise<void> | undefined;
@@ -324,22 +324,24 @@ export async function fixture(options: { enableLocalJobs?: boolean; administrato
           volumeDescriptorId: volume.id, access: "read_write", expectedBindingRevision: null }, actor);
         await lifecycle.activate({ operationId: id(88, index + 1), volumeDescriptorId: volume.id, expectedBindingRevision: 1 }, actor);
       }
-      const manifestHash = await hashRecipeManifest([]);
-      await lease.withWriter(() => {
-        const at = new Date().toISOString();
-        native.prepare("INSERT INTO recipe_families(id,name,template_type,created_at) VALUES('execution-family','Current genuine Execution family','process',?)").run(at);
-        native.prepare(`INSERT INTO template_versions(id,recipe_family_id,name,template_type,version,manifest_hash,content_json,created_at)
-          VALUES('execution-template','execution-family','Current genuine Execution template','process',1,?,'{}',?)`).run(manifestHash, at);
-        native.prepare(`INSERT INTO samples(id,code,title,status,created_by,updated_by,created_at,updated_at)
-          VALUES('execution-sample','Execution-S1','Current genuine Execution sample','stored',?,?,?,?)`).run(actor, actor, at, at);
-        native.prepare(`INSERT INTO runs(id,sample_id,recipe_family_id,template_version_id,sequence_no,run_group_id,
-          template_name_snapshot,template_type_snapshot,template_version_snapshot,status,created_at,run_kind,created_by)
-          VALUES('execution-run','execution-sample','execution-family','execution-template',1,'execution-group',
-            'Current genuine Execution template','process',1,'active',?,'process',?)`).run(at, actor);
-        native.prepare(`INSERT INTO run_steps(id,run_id,position,origin,plan_status,title,status,entry_kind,updated_by,created_at,updated_at)
-          VALUES('execution-step','execution-run',1000,'ad_hoc','current','Original current Execution step','pending','fabrication',?,?,?)`).run(actor, at, at);
-        native.prepare(PROJECT_CREATE_INSERT_SQL).run("project-source", "Actual local Project workspace", "initial-project", actor, actor, at, at);
-      });
+      if (options.seedBusinessRows !== false) {
+        const manifestHash = await hashRecipeManifest([]);
+        await lease.withWriter(() => {
+          const at = new Date().toISOString();
+          native.prepare("INSERT INTO recipe_families(id,name,template_type,created_at) VALUES('execution-family','Current genuine Execution family','process',?)").run(at);
+          native.prepare(`INSERT INTO template_versions(id,recipe_family_id,name,template_type,version,manifest_hash,content_json,created_at)
+            VALUES('execution-template','execution-family','Current genuine Execution template','process',1,?,'{}',?)`).run(manifestHash, at);
+          native.prepare(`INSERT INTO samples(id,code,title,status,created_by,updated_by,created_at,updated_at)
+            VALUES('execution-sample','Execution-S1','Current genuine Execution sample','stored',?,?,?,?)`).run(actor, actor, at, at);
+          native.prepare(`INSERT INTO runs(id,sample_id,recipe_family_id,template_version_id,sequence_no,run_group_id,
+            template_name_snapshot,template_type_snapshot,template_version_snapshot,status,created_at,run_kind,created_by)
+            VALUES('execution-run','execution-sample','execution-family','execution-template',1,'execution-group',
+              'Current genuine Execution template','process',1,'active',?,'process',?)`).run(at, actor);
+          native.prepare(`INSERT INTO run_steps(id,run_id,position,origin,plan_status,title,status,entry_kind,updated_by,created_at,updated_at)
+            VALUES('execution-step','execution-run',1000,'ad_hoc','current','Original current Execution step','pending','fabrication',?,?,?)`).run(actor, at, at);
+          native.prepare(PROJECT_CREATE_INSERT_SQL).run("project-source", "Actual local Project workspace", "initial-project", actor, actor, at, at);
+        });
+      }
       const epoch = configurationSqlInteger(native.prepare("SELECT epoch FROM file_shadow_control WHERE singleton=1").get()!.epoch, "Actual Node File initialization epoch");
       await createOfflineLocalFileInitialization(opening).initialize({ requestId: id(89), expectedEpoch: epoch,
         internalProfileId: volumes[0]!.profileId, originalsProfileId: volumes[1]!.profileId }, actor);
