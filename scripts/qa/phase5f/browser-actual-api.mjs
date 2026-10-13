@@ -141,8 +141,10 @@ catch {
 let browser;
 const selectedCase = process.env.PHASE5F_CASE_ID || null;
 const browserScenario = process.env.PHASE5F_BROWSER_SCENARIO || null;
-assert(browserScenario === null || browserScenario === 'eightSamples', 'Unknown explicit browser scenario.');
+assert(browserScenario === null || ['eightSamples', 'compareEscape'].includes(browserScenario), 'Unknown explicit browser scenario.');
 const eightSamples = browserScenario === 'eightSamples';
+const compareEscape = browserScenario === 'compareEscape';
+const compareEscapeCaseId = 'compare-escape-1200-light';
 const eightSampleCases = [{ id: 'samples-keyboard-1200-light', width: 1200, theme: 'light' },
   { id: 'samples-keyboard-720-dark', width: 720, theme: 'dark' }];
 const expectedCaseIds = seed.cases.flatMap(item => [`start-${item.key}`, `plan-${item.key}`, `surfaces-${item.key}`]);
@@ -158,11 +160,17 @@ if (eightSamples) {
   assert.equal(seed.mixed.length, 8); assert.equal(new Set(seed.mixed.map(owner => owner.sampleId)).size, 8);
   expectedCaseIds.splice(0, expectedCaseIds.length, ...eightSampleCases.map(item => item.id));
 }
+if (compareEscape) {
+  assert(!seed.project.large && !selectedCase, 'Compare/Escape uses the original four-item seed and its independent case.');
+  expectedCaseIds.splice(0, expectedCaseIds.length, compareEscapeCaseId);
+}
 if (selectedCase) assert(expectedCaseIds.includes(selectedCase), 'Unknown explicit case ID.');
-const report = { version: 1, scope: eightSamples
+const report = { version: 1, scope: compareEscape
+  ? 'One native Process Compare/Escape focus-return case, at 1200/light. Preview POSTs permitted; zero domain mutations. No full 20-case matrix or whole-5F completion claim.'
+  : eightSamples
   ? 'Two native eight-Sample keyboard/idle-overlay cases only, at 1200/light and 720/dark. Original four-item Project fixture; no execution writes, full 20-case matrix, physical-device, or whole-5F completion claim.'
   : 'Actual local API + current built UI; synthetic isolated data. No remote Access, provider, device, or whole-roadmap completion claim.',
-  ...(eightSamples ? { browserScenario } : {}),
+  ...(eightSamples || compareEscape ? { browserScenario } : {}),
   ...identities, baseUrl: base.origin, prefix: fixture.prefix, serverSessionId: server.sessionId, serverReceiptSha256: serverHash,
   harnessSha256, explicitReviewedHarnessSha256, observationPolicy: { bodyTimeoutMs: BODY_OBSERVATION_TIMEOUT_MS, contextShutdownTimeoutMs: CONTEXT_SHUTDOWN_TIMEOUT_MS, requiredMutationAndPreviewBodiesFailClosed: true, unfinishedIncidentalGetBodiesRetained: true },
   seedHelperSha256: sha(await readFile(new URL('./seed-actual-api.mjs', import.meta.url))),
@@ -199,7 +207,7 @@ async function noDocumentOverflow(page, evidence, surface, expectedTheme) {
 }
 async function executeCase(id, matrix, action, { controlledChunkFault = false } = {}) {
   if (selectedCase && selectedCase !== id) return;
-  if (eightSamples && !expectedCaseIds.includes(id)) return;
+  if ((eightSamples || compareEscape) && !expectedCaseIds.includes(id)) return;
   await liveSession();
   assert(!completed.has(id)); completed.add(id);
   const record = { id, width: matrix.width, theme: matrix.theme, startedAt: new Date().toISOString(),
@@ -407,6 +415,73 @@ async function readOnlyProcessDetailsKeyboard(page, record, row, step) {
 
 try {
   browser = await playwright.chromium.launch({ headless: true, executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium' });
+  if (compareEscape) await executeCase(compareEscapeCaseId, { width: 1200, theme: 'light' }, async (page, record) => {
+    const owner = seed.cases.find(item => item.width === 1200 && item.theme === 'light').start;
+    const before = await actualApi(`/samples/${owner.sampleId}`); assert.equal(before.runs.length, 0);
+    const previewPath = `/api/samples/${owner.sampleId}/runs/preview`, nativePostRequests = [];
+    page.on('request', request => {
+      const target = new URL(request.url());
+      if (target.origin === base.origin && target.pathname.startsWith('/api/') && !['GET', 'HEAD'].includes(request.method()))
+        nativePostRequests.push({ path: target.pathname, method: request.method() });
+    });
+    await page.goto(new URL(`/processing/${owner.sampleId}`, base).href);
+    await visible(page.getByRole('heading', { name: before.title, exact: true }));
+    await openIncoming(page, 'start');
+    const search = incoming(page).getByRole('textbox', { name: 'Search process families', exact: true });
+    await page.waitForFunction(element => document.activeElement === element, await search.elementHandle());
+    const family = incoming(page).getByRole('button').filter({ has: page.getByText(fixture.familyName, { exact: true }) });
+    await visible(family); await family.click();
+    const version = incoming(page).getByRole('button').filter({ has: page.getByText('Version 1', { exact: true }) });
+    await visible(version); await version.click();
+    const compare = incoming(page).getByRole('button', { name: 'Compare structures', exact: true });
+    await enabled(compare);
+    const originalCompare = await compare.elementHandle(), originalIncoming = await incoming(page).elementHandle();
+    // Reach the actual Compare trigger through native Tab; never repair focus
+    // with focus(), click(), or a replacement element after Escape.
+    for (let press = 0; press < 12 && !(await originalCompare.evaluate(element => document.activeElement === element)); press++)
+      await page.keyboard.press('Tab');
+    assert(await originalCompare.evaluate(element => document.activeElement === element));
+    const cycles = [];
+    for (let cycle = 0; cycle < 2; cycle++) {
+      const acceptedPreview = page.waitForResponse(response => new URL(response.url()).origin === base.origin
+        && new URL(response.url()).pathname === previewPath && response.request().method() === 'POST');
+      await page.keyboard.press('Enter');
+      const response = await acceptedPreview; assert.equal(response.status(), 200);
+      const preview = await bounded(response.json(), BODY_OBSERVATION_TIMEOUT_MS, 'Actual comparison preview JSON');
+      assert.equal(preview.canConfirm, true); assert.equal(preview.template.id, fixture.ids.v1);
+      const dialog = comparison(page); await visible(dialog);
+      const cancel = dialog.getByRole('button', { name: 'Cancel', exact: true });
+      await page.waitForFunction(element => document.activeElement === element, await cancel.elementHandle());
+      assert(await originalCompare.evaluate(element => element.isConnected), 'Original Incoming Compare must remain connected during review.');
+      assert(await originalIncoming.evaluate(element => element.isConnected && element.parentElement.hidden
+        && getComputedStyle(element.parentElement).display === 'none'), 'Incoming must be retained but hidden during review.');
+      assert.equal(await page.getByRole('dialog').count(), 1, 'Only comparison may be exposed during review.');
+      await noDocumentOverflow(page, record.assertions, `process-comparison-${cycle + 1}`, record.theme);
+      await page.keyboard.press('Escape'); await absent(dialog); await visible(incoming(page));
+      // This is the decisive natural return observation. Do not focus or click.
+      await page.waitForFunction(element => element.isConnected && document.activeElement === element, originalCompare);
+      assert(await originalIncoming.evaluate(element => element.isConnected && !element.parentElement.hidden));
+      assert.equal(await version.getAttribute('aria-pressed'), 'true');
+      cycles.push({ actualPreviewStatus: 200, incomingTemplateVersionId: preview.template.id,
+        originalIncomingStayedConnectedAndHidden: true, comparisonNaturalCancelFocus: true,
+        escapeNaturallyRestoredSameConnectedCompare: true, selectedIncomingVersionRetained: true });
+    }
+    await page.keyboard.press('Escape'); await absent(incoming(page));
+    await openIncoming(page, 'start');
+    const reopenedSearch = incoming(page).getByRole('textbox', { name: 'Search process families', exact: true });
+    await page.waitForFunction(element => document.activeElement === element, await reopenedSearch.elementHandle());
+    assert.equal(await reopenedSearch.inputValue(), '');
+    await page.keyboard.press('Escape'); await absent(incoming(page));
+    const after = await actualApi(`/samples/${owner.sampleId}`);
+    assert.deepEqual(after, before, 'Compare/Escape must retain the complete original Sample and empty Run history.');
+    assert.deepEqual(nativePostRequests, [{ path: previewPath, method: 'POST' }, { path: previewPath, method: 'POST' }],
+      'Only the two legitimate previews may use POST; no domain mutation may occur.');
+    assert.equal(record.api.filter(item => item.path === previewPath && item.method === 'POST' && item.status === 200).length, 2);
+    await noDocumentOverflow(page, record.assertions, 'process-compare-escape-return', record.theme);
+    record.assertions.push({ sampleId: owner.sampleId, originalRunCount: 0, unchangedCompleteSampleHistory: true,
+      cycles, reopenedTransitionNaturalSearchFocus: true, legitimatePreviewPostCount: 2, nativeDomainMutations: 0,
+      scope: 'One 1200/light native Compare/Escape case only; no full twenty-case matrix or whole-5F completion claim.' });
+  });
   if (eightSamples) for (const matrix of eightSampleCases) await executeCase(matrix.id, matrix, async (page, record) => {
     const before = await Promise.all(seed.mixed.map(owner => actualApi(`/samples/${owner.sampleId}`)));
     for (const [index, owner] of seed.mixed.entries()) {
@@ -784,10 +859,10 @@ try {
   report.failedCount = report.cases.filter(item => item.status !== 'passed').length;
   report.completedAt = new Date().toISOString();
   report.status = !report.error && report.failedCount === 0 && report.cases.length === requested.length ? 'passed' : 'failed';
-  report.completeFiniteMatrix = !eightSamples && !selectedCase && report.status === 'passed';
+  report.completeFiniteMatrix = !eightSamples && !compareEscape && !selectedCase && report.status === 'passed';
   await saveReport();
   await writeOnce(reportPath, report);
-  const summary = { ...identities, version: 1, scope: report.scope, ...(eightSamples ? { browserScenario } : {}), status: report.status, completeFiniteMatrix: report.completeFiniteMatrix, selectedCase, startedAt: report.startedAt, completedAt: report.completedAt, passedCount: report.passedCount, failedCount: report.failedCount, requestedCaseIds: report.requestedCaseIds, harnessSha256: report.harnessSha256, explicitReviewedHarnessSha256: report.explicitReviewedHarnessSha256, observationPolicy: report.observationPolicy, browserClosed: report.browserClosed, serverSessionId: server.sessionId, serverReceiptSha256: serverHash, seedReceiptSha256: report.seedReceiptSha256, fixtureSqlSha256: report.fixtureSqlSha256, migrationConfigSha256: report.migrationConfigSha256, deploymentRedirectSha256: report.deploymentRedirectSha256, artifact: report.artifact, reportSha256: sha(await readFile(reportPath)), cases: report.cases.map(({ id, width, theme, status, error, assertions, api, pageErrors, unexpectedOrigins, observationSummary, contextClosed }) => ({ id, width, theme, status, error, assertions, observationSummary, contextClosed, api: api.map(({ path, method, status, responseSha256, preview, bodyObservationRequired, observationStatus, observationError }) => ({ path, method, status, responseSha256, preview, bodyObservationRequired, observationStatus, observationError })), pageErrors, unexpectedOrigins })), ...(report.error ? { error: report.error } : {}) };
+  const summary = { ...identities, version: 1, scope: report.scope, ...(eightSamples || compareEscape ? { browserScenario } : {}), status: report.status, completeFiniteMatrix: report.completeFiniteMatrix, selectedCase, startedAt: report.startedAt, completedAt: report.completedAt, passedCount: report.passedCount, failedCount: report.failedCount, requestedCaseIds: report.requestedCaseIds, harnessSha256: report.harnessSha256, explicitReviewedHarnessSha256: report.explicitReviewedHarnessSha256, observationPolicy: report.observationPolicy, browserClosed: report.browserClosed, serverSessionId: server.sessionId, serverReceiptSha256: serverHash, seedReceiptSha256: report.seedReceiptSha256, fixtureSqlSha256: report.fixtureSqlSha256, migrationConfigSha256: report.migrationConfigSha256, deploymentRedirectSha256: report.deploymentRedirectSha256, artifact: report.artifact, reportSha256: sha(await readFile(reportPath)), cases: report.cases.map(({ id, width, theme, status, error, assertions, api, pageErrors, unexpectedOrigins, observationSummary, contextClosed }) => ({ id, width, theme, status, error, assertions, observationSummary, contextClosed, api: api.map(({ path, method, status, responseSha256, preview, bodyObservationRequired, observationStatus, observationError }) => ({ path, method, status, responseSha256, preview, bodyObservationRequired, observationStatus, observationError })), pageErrors, unexpectedOrigins })), ...(report.error ? { error: report.error } : {}) };
   await writeOnce(summaryPath, summary);
   console.log(JSON.stringify({ status: report.status, passed: report.passedCount, failed: report.failedCount,
     completeFiniteMatrix: report.completeFiniteMatrix, reportPath }));
