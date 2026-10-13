@@ -9,8 +9,9 @@ import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 const [baseValue, fixtureValue, ...extra] = process.argv.slice(2);
 assert(baseValue && fixtureValue && extra.length === 0, 'Usage: node seed-actual-api.mjs LOOPBACK_URL PRIVATE_FIXTURE_DIRECTORY');
 const largeProjectNodeCount = process.env.PHASE5F_PROJECT_NODE_COUNT || null;
-assert(largeProjectNodeCount === null || largeProjectNodeCount === '200',
-  'The optional native large-Project fixture is bounded to exactly 200 nodes.');
+assert(largeProjectNodeCount === null || ['200', '250'].includes(largeProjectNodeCount),
+  'The optional native large-Project fixture is bounded to 200/0 or 250/400.');
+const representativeRelations = largeProjectNodeCount === '250';
 const requestedBase = new URL(baseValue);
 assert(requestedBase.protocol === 'http:' && ['127.0.0.1', 'localhost'].includes(requestedBase.hostname)
   && !requestedBase.username && !requestedBase.password && requestedBase.pathname === '/' && !requestedBase.search && !requestedBase.hash
@@ -253,13 +254,21 @@ try {
   await request(`/samples/${first.sampleId}/records`, 'POST', { expectedUpdatedAt: updated.updatedAt, status: updated.status,
     location: updated.location || '', pinned: Boolean(updated.pinned), body: '5F timeline note: source record → Process → Project. 中文记录 and $E=mc^2$ remain ordinary research text.' });
   const projectId = `${fixture.prefix}-project`;
-  await request('/projects', 'POST', { id: projectId, operationId: randomUUID(), title: `5F mixed Project ${fixture.prefix}` });
+  const projectCreated = await request('/projects', 'POST', { id: projectId, operationId: randomUUID(), title: `5F mixed Project ${fixture.prefix}` });
+  let acceptedProjectRevision = representativeRelations ? projectCreated.project.revision : null;
+  if (representativeRelations) { assert.equal(trace.at(-1).status, 201); assert.equal(projectCreated.replayed, false); }
   const geometry = index => ({ x: index * 360, y: 20, width: 320, height: 220, zIndex: index });
-  const largeProjectItems = [];
+  const largeProjectItems = [], acceptedItems = [], acceptedEdges = [];
   async function projectItem(kind, body) {
-    const snapshot = await request(`/projects/${projectId}`);
+    const snapshot = representativeRelations ? null : await request(`/projects/${projectId}`);
+    const expectedProjectRevision = representativeRelations ? acceptedProjectRevision : snapshot.project.revision;
     const created = await request(`/projects/${projectId}/items/${kind}`, 'POST', { itemId: randomUUID(), placementId: randomUUID(), operationId: randomUUID(),
-      expectedProjectRevision: snapshot.project.revision, ...body });
+      expectedProjectRevision, ...body });
+    if (representativeRelations) {
+      assert.equal(trace.at(-1).status, 201); assert.equal(created.replayed, false);
+      assert.equal(created.project.revision, expectedProjectRevision + 1);
+      acceptedProjectRevision = created.project.revision; acceptedItems.push(created.item);
+    }
     if (largeProjectNodeCount) largeProjectItems.push({ itemId: created.item.id, placementId: created.placement.id });
     return created;
   }
@@ -280,18 +289,45 @@ try {
   if (largeProjectNodeCount) {
     // Keep the original four mixed records and their geometry unchanged. Only
     // this explicit, independent native case adds ordinary API-owned notes.
-    for (let index = 4; index < 200; index++) await projectItem('markdown', {
-      contentId: randomUUID(), markdownSource: `# 5F large note ${String(index + 1).padStart(3, '0')} · 长标题研究记录\n\nOrdinary retained research text for the 200-node native Map and Reading case.`,
+    const nodeCount = Number(largeProjectNodeCount), edgeCount = representativeRelations ? 400 : 0;
+    for (let index = 4; index < nodeCount; index++) await projectItem('markdown', {
+      contentId: randomUUID(), markdownSource: `# 5F large note ${String(index + 1).padStart(3, '0')} · 长标题研究记录\n\nOrdinary retained research text for the ${nodeCount}-node native Map and Reading case.`,
       geometry: { ...geometry(index % 10), y: 20 + Math.floor(index / 10) * 280, zIndex: index },
     });
+    if (representativeRelations) {
+      const connections = new Set();
+      for (let index = 0; index < 400; index++) {
+        const source = acceptedItems[index % 250], target = acceptedItems[(index + 1 + Math.floor(index / 250)) % 250];
+        assert.notEqual(source.id, target.id);
+        const key = `${source.id}:${target.id}`; assert(!connections.has(key)); connections.add(key);
+        const input = { edgeId: randomUUID(), sourceItemId: source.id, targetItemId: target.id,
+          sourceHandle: 'right', targetHandle: 'left', markerStart: 'none', markerEnd: index % 3 === 0 ? 'arrow' : 'none',
+          label: index % 10 === 0 ? `Source relationship ${index + 1} 中文` : null,
+          expectedSourceItemRevision: source.revision, expectedTargetItemRevision: target.revision, operationId: randomUUID() };
+        const created = await request(`/projects/${projectId}/edges`, 'POST', input);
+        assert.equal(trace.at(-1).status, 201); assert.equal(created.replayed, false);
+        assert.equal(created.value.id, input.edgeId); assert.equal(created.value.revision, 1);
+        for (const field of ['sourceItemId', 'targetItemId', 'sourceHandle', 'targetHandle', 'markerStart', 'markerEnd', 'label'])
+          assert.equal(created.value[field], input[field]);
+        acceptedEdges.push(created.value);
+      }
+    }
     const snapshot = await request(`/projects/${projectId}`);
-    assert.equal(snapshot.items.length, 200); assert.equal(snapshot.placements.length, 200); assert.equal(snapshot.edges.length, 0);
+    assert.equal(snapshot.items.length, nodeCount); assert.equal(snapshot.placements.length, nodeCount); assert.equal(snapshot.edges.length, edgeCount);
+    if (representativeRelations) {
+      assert.equal(snapshot.project.revision, acceptedProjectRevision, 'Edges must preserve the last accepted item-create Project revision.');
+      assert.deepEqual(snapshot.items, acceptedItems, 'All actual accepted item values/revisions must survive edge creation.');
+      assert.deepEqual([...snapshot.edges].sort((a, b) => a.id.localeCompare(b.id)),
+        [...acceptedEdges].sort((a, b) => a.id.localeCompare(b.id)), 'Every actual edge response must match final public GET.');
+    }
     const itemIds = largeProjectItems.map(item => item.itemId).sort(), placementIds = largeProjectItems.map(item => item.placementId).sort();
     assert.deepEqual(snapshot.items.map(item => item.id).sort(), itemIds);
     assert.deepEqual(snapshot.placements.map(item => item.id).sort(), placementIds);
-    receipt.project.large = { nodeCount: 200, edgeCount: 0, revision: snapshot.project.revision, itemIds, placementIds,
+    receipt.project.large = { nodeCount, edgeCount, revision: snapshot.project.revision, itemIds, placementIds,
       originalMixedItemIds: largeProjectItems.slice(0, 4).map(item => item.itemId),
-      scope: '200 actual API-owned nodes; native functional controls only, not a frame-rate or 500-node envelope benchmark.' };
+      ...(representativeRelations ? { edgeIds: acceptedEdges.map(edge => edge.id).sort() } : {}),
+      scope: representativeRelations ? '250 actual API-owned mixed nodes / 400 actual API-owned relations; native functional acceptance only, no frame-rate or 500/800-envelope claim.'
+        : '200 actual API-owned nodes; native functional controls only, not a frame-rate or 500-node envelope benchmark.' };
   }
   await liveServer(); await hashInventory(isolation.trackedFiles); await hashInventory(isolation.copiedArtifactFiles);
   assert.equal(sha(await readFile(isolationPath)), sha(isolationBytes)); assert.equal(sha(await readFile(fixturePath)), sha(fixtureBytes));
