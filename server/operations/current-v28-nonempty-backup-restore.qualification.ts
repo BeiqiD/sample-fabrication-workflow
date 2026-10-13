@@ -9,6 +9,7 @@ import { validateFileUploadResult } from '../../shared/contracts/r2-upload';
 import { stableJson } from '../../shared/domain/content-addressing';
 import { recoveryTableSnapshotSql, type SystemRecoveryTable } from '../../shared/contracts/system-recovery-image';
 import { PORTABLE_RUNTIME_RECOVERY_TABLES } from '../../shared/contracts/portable-runtime-v28-recovery-catalog';
+import { PORTABLE_RUNTIME_SEED_TABLE_ROWS } from '../../worker/recovery/portable-runtime-v28-trusted-schema';
 import { validateV28SystemBackupArchiveCandidate } from '../../shared/contracts/system-backup-v5-archive-admission';
 import { NODE_RECOVERY_ARCHIVE_OPTIONS, nodeRecoveryArchiveSource, nodeRecoveryFileSha256 } from '../../scripts/lib/system-backup-node-io';
 import { verifyNodeDistribution } from '../../scripts/lib/node-distribution-v28-manifest.mjs';
@@ -30,6 +31,7 @@ import { runCurrentCli } from './current-v28-backup-cli.qualification-support';
 const bytes = Uint8Array.from(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aRXsAAAAASUVORK5CYII=', 'base64'));
 const digest = createHash('sha256').update(bytes).digest('hex');
 const TABLES = ['assets', 'files', 'file_locations', 'file_location_publications', 'file_publications', 'file_acceptance_candidates', 'r2_upload_requests'] as const;
+const TEMPLATE_TABLES = ['recipe_families', 'template_versions', 'template_steps', 'step_definitions'] as const;
 const RESERVE = 603_979_776n;
 let baseline: GenuineLocalFileV26Baseline, distribution: string, output: string;
 function ensure(value: unknown): asserts value { if (!value) throw new Error('Current genuine nonempty V28 backup qualification unavailable'); }
@@ -40,10 +42,10 @@ function ordered(rows: TypedRow[]): TypedRow[] {
 function imageRows(table: SystemRecoveryTable): TypedRow[] {
   return ordered(table.rows.map(row => ({ rowid: row.rowid, cells: stableJson(row.cells) })));
 }
-function readMetadata(native: DatabaseSync): Record<string, TypedRow[]> {
-  return Object.fromEntries(TABLES.map(name => {
+function readMetadata(native: DatabaseSync, names: readonly string[] = TABLES): Record<string, TypedRow[]> {
+  return Object.fromEntries(names.map(name => {
     const spec = PORTABLE_RUNTIME_RECOVERY_TABLES.find(value => value.name === name);
-    ensure(spec && !spec.local);
+    ensure(spec);
     const rows = native.prepare(recoveryTableSnapshotSql(spec)).all().map(row => {
       ensure((row.rowid === null || typeof row.rowid === 'string') && typeof row.cells === 'string');
       const cells: unknown = JSON.parse(row.cells);
@@ -106,17 +108,30 @@ describe('current genuine one-File V28 V5 backup into an inert destination', () 
         expect(native.prepare('SELECT count(*) n FROM system_recovery_write_leases WHERE released_at IS NULL').get()?.n).toBe(0);
         expect(native.prepare('SELECT actor_email,ingress,purpose,request_scope,status FROM r2_upload_requests WHERE client_request_id=?').get(uploadRequestId))
           .toEqual({ actor_email: baseline.operatorActor, ingress: 'ordinary_image', purpose: 'embedded_content', request_scope: 'system', status: 'ready' });
-        return readMetadata(native);
+        // Reviewed installation includes retired builtin templates. Capture all
+        // actual typed cells/rowids, including family IDs and version content,
+        // and require the original seed rather than inventing an empty domain.
+        const templates = readMetadata(native, TEMPLATE_TABLES);
+        for (const table of TEMPLATE_TABLES) expect(templates[table]).toEqual(imageRows(PORTABLE_RUNTIME_SEED_TABLE_ROWS[table]!));
+        for (const table of ['samples', 'runs']) expect(native.prepare(`SELECT count(*) n FROM ${table}`).get()?.n).toBe(0);
+        return { files: readMetadata(native), templates };
       }));
       const upgrade = await executeCollaborationV28OperatorCandidate({ kind: 'upgrade-metadata', databasePath: baseline.path,
         filesystemRootOwnerUid: baseline.rootOwnerUid });
       expect(upgrade.installationId).toBe(baseline.installationId); expect(upgrade.checkpointId).toBe('portable-runtime/v28');
-      await withCanonicalFileDatabase(baseline.path, async (_owner, lease, native) => lease.withWriter(async () => {
+      const afterUpgradeResources = await withCanonicalFileDatabase(baseline.path, async (_owner, lease, native) => lease.withWriter(async () => {
         expect(assertInstallationAdmission(native, admitInstallationRecoverySource(native, V28_NODE_INSTALLATION_CATALOG_CANDIDATE)).installationId)
           .toBe(baseline.installationId);
-        expect(readMetadata(native)).toEqual(beforeUpgrade);
-        for (const table of ['samples', 'runs', 'template_versions', 'collaboration_members', 'collaboration_resources', 'collaboration_grants'])
+        expect(readMetadata(native)).toEqual(beforeUpgrade.files);
+        expect(readMetadata(native, TEMPLATE_TABLES)).toEqual(beforeUpgrade.templates);
+        for (const table of ['samples', 'runs', 'collaboration_members', 'collaboration_identities', 'collaboration_grants'])
           expect(native.prepare(`SELECT count(*) n FROM ${table}`).get()?.n).toBe(0);
+        // Family content is portable; Group roots are installation-local. This
+        // case invokes no enrollment or root-allocation operation, so require
+        // the reviewed empty local seed instead of inventing builtin grants.
+        const resources = readMetadata(native, ['collaboration_resources']);
+        expect(resources.collaboration_resources).toEqual(imageRows(PORTABLE_RUNTIME_SEED_TABLE_ROWS.collaboration_resources!));
+        return resources;
       }));
       const configuration = join(baseline.root, 'nonempty-capture.json'), archive = join(baseline.root, 'complete-one-File-v5.zip');
       await writeFile(configuration, JSON.stringify({ schema: 'stopped-local-v28-capture/1', databasePath: baseline.path,
@@ -144,7 +159,10 @@ describe('current genuine one-File V28 V5 backup into an inert destination', () 
       expect(file.source).toMatchObject({ storeKind: 'file', provider: 'local', storageProfileId: baseline.internalProfileId,
         storageProfileRevision: 1, fileId: accepted.fileId, expectedByteSize: bytes.byteLength, expectedSha256: digest,
         initialOutcome: null, accessScope: 'system', purpose: 'embedded_content' });
-      for (const table of TABLES) expect(imageRows(admitted.records.image.tables[table]!)).toEqual(beforeUpgrade[table]);
+      for (const table of TABLES) expect(imageRows(admitted.records.image.tables[table]!)).toEqual(beforeUpgrade.files[table]);
+      for (const table of TEMPLATE_TABLES) expect(imageRows(admitted.records.image.tables[table]!)).toEqual(beforeUpgrade.templates[table]);
+      // The V5 local-omitted policy excludes source Group authority entirely.
+      expect(Object.hasOwn(admitted.records.image.tables, 'collaboration_resources')).toBe(false);
       expect(admitted.records.content.tables.file_locations).toHaveLength(1);
       expect(admitted.records.content.tables.file_acceptance_candidates).toHaveLength(1);
       expect(admitted.records.content.tables.file_acceptance_candidates[0]).toMatchObject({ acceptance_kind: 'r2_upload', item_id: '' });
@@ -176,7 +194,9 @@ describe('current genuine one-File V28 V5 backup into an inert destination', () 
       await withCanonicalFileDatabase(database, async (_owner, lease, native) => lease.withWriter(async () => {
         const target = assertInstallationAdmission(native, admitInstallationRecoverySource(native, V28_NODE_INSTALLATION_CATALOG_CANDIDATE));
         expect(target.installationId).toBe(receipt.destinationInstallationId); expect(target.installationId).not.toBe(baseline.installationId);
-        expect(readMetadata(native)).toEqual(beforeUpgrade);
+        expect(readMetadata(native)).toEqual(beforeUpgrade.files);
+        expect(readMetadata(native, TEMPLATE_TABLES)).toEqual(beforeUpgrade.templates);
+        expect(readMetadata(native, ['collaboration_resources'])).toEqual(afterUpgradeResources);
         expect(native.prepare('SELECT mode FROM file_authority_control WHERE singleton=1').get()?.mode).toBe('active');
         expect(native.prepare('SELECT state FROM system_recovery_maintenance WHERE singleton=1').get()?.state).toBe('fenced');
         expect(native.prepare('SELECT enforcement FROM collaboration_control WHERE singleton=1').get()?.enforcement).toBe('disabled');
@@ -185,7 +205,7 @@ describe('current genuine one-File V28 V5 backup into an inert destination', () 
         for (const name of ['file_shadow_runtime_guard', 'file_authority_runtime_guard', 'file_job_runtime_guard', 'system_recovery_runtime'])
           expect(native.prepare(`SELECT enabled FROM ${name}`).get()?.enabled).toBe(0);
         for (const name of ['system_storage_native_bindings', 'local_storage_profile_checks', 'local_storage_profile_admissions', 'local_storage_profile_bindings',
-          'local_identity_installation', 'local_admin_grants', 'local_sessions', 'collaboration_members', 'collaboration_identities', 'collaboration_resources', 'collaboration_grants', 'system_recovery_write_leases'])
+          'local_identity_installation', 'local_admin_grants', 'local_sessions', 'samples', 'runs', 'collaboration_members', 'collaboration_identities', 'collaboration_grants', 'system_recovery_write_leases'])
           expect(native.prepare(`SELECT count(*) n FROM ${name}`).get()?.n).toBe(0);
       })); // Read-only inspection owner closes; no destination File/profile opening or enabling occurs.
       await writeFile(output, JSON.stringify({ kind: 'current-genuine-one-File-v28-v5-inert-restore/1', sourceInstallationId: baseline.installationId,
