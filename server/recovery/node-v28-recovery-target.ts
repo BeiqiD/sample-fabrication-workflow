@@ -16,6 +16,7 @@ export interface NodeV28TargetIdentity {
 export interface NodeV28TargetIntent {
   readonly jobId: string; readonly archiveSha256: string; readonly imageSha256: string;
 }
+export interface NodeV28TargetDatabaseIdentity { readonly dev: string; readonly ino: string; readonly uid: string; readonly gid: string; readonly mode: string }
 export interface NodeV28TargetNative {
   readonly native: DatabaseSync;
   readonly core: SqliteCapability;
@@ -69,6 +70,13 @@ export async function openNodeV28RecoveryTarget(options: {
       const value = lstatSync(directory.path, { bigint: true });
       if (!privateDirectory(value) || !same(directory.stat, value) || realpathSync(directory.path) !== directory.path) fail("target_alias");
     }
+  }
+  function assertDatabaseIdentity(expected: NodeV28TargetDatabaseIdentity): void {
+    physical(); const file = lstatSync(join(root, "database.sqlite"), { bigint: true });
+    if (!expected || Object.keys(expected).length !== 5 || !privateFile(file)
+      || stableJson(expected) !== stableJson({ dev: String(file.dev), ino: String(file.ino), uid: String(file.uid), gid: String(file.gid), mode: String(file.mode) })) fail("target_alias");
+    for (const selected of nativeOwners) if (selected.native && selected.core && selected.lease)
+      assertLinuxWriterLeaseBinding(selected.lease, selected.core, selected.native);
   }
   function own(handle: FileHandle): HandleOwner {
     const selected: HandleOwner = { handle, close() {
@@ -166,6 +174,7 @@ export async function openNodeV28RecoveryTarget(options: {
     try { await close(); } catch (cleanup) { throw new AggregateError([error, cleanup], "Target parent opening and original cleanup failed"); } throw error;
   }
   return Object.freeze({ identity, destination: root,
+    assertDatabaseIdentity,
     checkpoint() { physical(); return Object.freeze({ targetNamespace: identity }); },
     async fresh(): Promise<boolean> {
       physical(); try { await lstat(root); return false; } catch (error) { if (code(error) === "ENOENT") return true; throw error; }
@@ -203,18 +212,21 @@ export async function openNodeV28RecoveryTarget(options: {
     withNative<T>(intent: NodeV28TargetIntent, guard: () => void, work: (value: NodeV28TargetNative) => T | Promise<T>, expectedIdentity: { dev: string; ino: string; uid: string; gid: string; mode: string }): Promise<T> {
       return track(async () => {
         await assertIntent(intent); guard();
-        const file = await lstat(join(root, "database.sqlite"), { bigint: true });
-        if (!privateFile(file) || stableJson(expectedIdentity) !== stableJson({ dev: String(file.dev), ino: String(file.ino), uid: String(file.uid), gid: String(file.gid), mode: String(file.mode) })) fail("target_alias");
+        assertDatabaseIdentity(expectedIdentity);
         const selected: NativeOwner = { nativeAttempted: false, failed: false }; nativeOwners.add(selected);
         let failed = false, failure: unknown, value!: T;
         try {
           selected.opening = acquireLinuxWriterLease({ databasePath: join(root, "database.sqlite"), filesystemRootOwnerUid: captured.filesystemRootOwnerUid });
           void selected.opening.catch(() => undefined); selected.lease = await selected.opening;
-          guard(); selected.nativeAttempted = true;
+          // The original physical acquire awaited an external worker. Recheck
+          // the durable cursor inode synchronously before Native can write.
+          guard(); assertDatabaseIdentity(expectedIdentity); selected.nativeAttempted = true;
           selected.native = new DatabaseSync(join(root, "database.sqlite"), { allowExtension: false, enableForeignKeyConstraints: true });
+          guard(); assertDatabaseIdentity(expectedIdentity);
           selected.core = createSqliteCapability(selected.native); selected.lease.bind(selected.core, selected.native);
           const opened = { native: selected.native, core: selected.core, lease: selected.lease };
-          value = await selected.lease.withWriter(async () => { guard(); assertLinuxWriterLeaseBinding(opened.lease, opened.core, opened.native); return work(opened); });
+          value = await selected.lease.withWriter(async () => { guard(); assertDatabaseIdentity(expectedIdentity);
+            assertLinuxWriterLeaseBinding(opened.lease, opened.core, opened.native); return work(opened); });
         } catch (error) { failed = true; failure = error; }
         try { await closeNative(selected); } catch (cleanup) { throw failed ? new AggregateError([failure, cleanup]) : cleanup; }
         if (failed) throw failure; return value;

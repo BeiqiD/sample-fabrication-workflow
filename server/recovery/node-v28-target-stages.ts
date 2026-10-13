@@ -73,6 +73,7 @@ function cleanupUnproven(error: unknown): boolean {
 export function createNodeV28TargetStages(options: {
   target: NodeV28RecoveryTarget; repository: Repository; assertSource(): void; quarantine(error: unknown): void;
   guard(claim: RecoveryClaim, signal: AbortSignal, deadline: number): void;
+  originalIntentGuard(claim: RecoveryClaim, db: JobSqlDatabase): JobSqlStatement;
   documents(upload: RecoveryJob): Promise<Documents>;
   withArchive<T>(claim: RecoveryClaim, current: () => Promise<boolean>, signal: AbortSignal,
     operation: (source: ArchiveSource, index: readonly ArchiveIndexEntry[]) => Promise<T>): Promise<T>;
@@ -260,27 +261,42 @@ export function createNodeV28TargetStages(options: {
         }
         ensure(recorded.byte_size === file.byteSize && recorded.sha256 === file.sha256 && recorded.namespace === namespace, "artifact_namespace_changed");
         if (!["verified", "published"].includes(recorded.state)) {
-          guard(); const existing = await target.verifyPayload(selectedIntent, file.id, expected, guard);
-          if (!existing) {
-            ensure(recorded.state === "pending", "write_outcome_unknown");
-            await db.batch([repository.guard(claim, db), db.prepare("UPDATE system_recovery_target_files SET state='write_started',owner_token=?,generation=? WHERE job_id=? AND logical_id=? AND state='pending'")
-              .bind(claim.owner_token, claim.generation, claim.id, file.id)]);
-            try {
+          let originalStarted = false;
+          try {
+            guard(); const existing = await target.verifyPayload(selectedIntent, file.id, expected, guard);
+            if (!existing) {
+              ensure(recorded.state === "pending", "write_outcome_unknown");
+              await db.batch([repository.guard(claim, db), db.prepare("UPDATE system_recovery_target_files SET state='write_started',owner_token=?,generation=? WHERE job_id=? AND logical_id=? AND state='pending'")
+                .bind(claim.owner_token, claim.generation, claim.id, file.id)]);
+              originalStarted = true;
               await options.withArchive(claim, current, signal, async (archive, index) => {
                 const entry = index.find(entry => entry.path === file.path); ensure(entry && entry.byteSize === file.byteSize && entry.sha256 === file.sha256, "archive_invalid");
                 guard(); const body = await openStoreArchiveEntry(archive, entry, { createHash: nodeSha256, signal });
                 await target.writePayload(selectedIntent, file.id, body, expected, guard);
               });
-            } catch (error) {
-              // A timeout/claim loss cannot certify an issued filesystem write
-              // stopped. Keep the exact source-local intent without publishing.
-              await repository.db().prepare("UPDATE system_recovery_target_files SET state='unknown' WHERE job_id=? AND logical_id=? AND state='write_started' AND owner_token=? AND generation=?")
-                .bind(claim.id, file.id, claim.owner_token, claim.generation).run(); throw error;
             }
+            // An original directory ACK may arrive after the outer kernel
+            // already paused. Admission, exact-byte proof and publication all
+            // remain inside its issued-write catch; late ACK cannot publish.
+            guard(); ensure(await target.verifyPayload(selectedIntent, file.id, expected, guard), "write_outcome_unknown");
+            await db.batch([repository.guard(claim, db), db.prepare("UPDATE system_recovery_target_files SET state='verified',verified_at=? WHERE job_id=? AND logical_id=? AND state IN('pending','write_started','unknown') AND byte_size=? AND sha256=? AND namespace=?")
+              .bind(new Date().toISOString(), claim.id, file.id, file.byteSize, file.sha256, namespace)]);
+          } catch (error) {
+            if (originalStarted) {
+              // This conservative intent transition belongs to the exact OLD
+              // owner/generation/runtime, not a live/expired job claim. The
+              // original source/install/admin remains admitted in the same
+              // BEGIN. A denial retains write_started plus pending cursor.
+              const originalDb = repository.db();
+              await originalDb.batch([options.originalIntentGuard(claim, originalDb),
+                originalDb.prepare(`UPDATE system_recovery_target_files SET state='unknown'
+                  WHERE job_id=? AND logical_id=? AND state='write_started' AND owner_token=? AND generation=? AND incarnation=?
+                    AND byte_size=? AND sha256=? AND namespace=?`)
+                  .bind(claim.id, file.id, claim.owner_token, claim.generation, target.identity.rootBindingId,
+                    file.byteSize, file.sha256, namespace)]);
+            }
+            throw error;
           }
-          guard(); ensure(await target.verifyPayload(selectedIntent, file.id, expected, guard), "write_outcome_unknown");
-          await db.batch([repository.guard(claim, db), db.prepare("UPDATE system_recovery_target_files SET state='verified',verified_at=? WHERE job_id=? AND logical_id=? AND state IN('pending','write_started','unknown') AND byte_size=? AND sha256=? AND namespace=?")
-            .bind(new Date().toISOString(), claim.id, file.id, file.byteSize, file.sha256, namespace)]);
         }
         value.file++; value.pending = false; await save(claim, source, value, "files"); return queued(value, docs.manifest);
       }
