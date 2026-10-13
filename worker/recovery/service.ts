@@ -115,28 +115,33 @@ export async function workerSystemRecoveryCapabilities(env:Env):Promise<SystemRe
       // The SAME current kernel claim owns this issue, including readback of
       // an older UNKNOWN artifact attempt. Do not compare its old attempt token.
       if(deadlineAt!==undefined&&(!issuedClaim||issuedClaim.id!==originalJob.id||issuedClaim.actor!==originalJob.actor||!await repository.current(issuedClaim)))throw new Error("administrator_revoked");
-      if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding||!recoveryActorAllowed(env,originalJob.actor)))throw new Error("execution_budget_exhausted");
+      if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding))throw new Error("execution_budget_exhausted");
+      if(deadlineAt!==undefined&&!recoveryActorAllowed(env,originalJob.actor))throw new Error("administrator_revoked");
       let durablePut:WorkerV5SourceCloseIntent|undefined;
       if(originalJob.kind==="backup"&&deadlineAt!==undefined&&issuedClaim!==undefined&&(await records(repository,originalJob.id)).schema==="system-backup-records/5"){
         if(!issuedClaim||!signal||typeof deadlineAt!=="string")throw new Error("execution_budget_exhausted");
         durablePut=await beginWorkerV5SourceCloseIntent(capabilities,issuedClaim,"put",key,()=>repository.current(issuedClaim),signal,deadlineAt);
       }
       if(deadlineAt!==undefined&&(!issuedClaim||!await repository.current(issuedClaim)))throw new Error("administrator_revoked");
-      if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding||!recoveryActorAllowed(env,originalJob.actor)))throw new Error("execution_budget_exhausted");
+      if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding))throw new Error("execution_budget_exhausted");
+      if(deadlineAt!==undefined&&!recoveryActorAllowed(env,originalJob.actor))throw new Error("administrator_revoked");
       const {FixedLengthStream}=globalThis as typeof globalThis&{FixedLengthStream:new(length:number)=>{readable:ReadableStream<Uint8Array>;writable:WritableStream<Uint8Array>}};
       const fixed=new FixedLengthStream(byteSize),pipe=body.pipeTo(fixed.writable);void pipe.catch(()=>undefined);
-      try{if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding||!recoveryActorAllowed(env,originalJob.actor)))throw new Error("execution_budget_exhausted");
+      try{if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding))throw new Error("execution_budget_exhausted");
+      if(deadlineAt!==undefined&&!recoveryActorAllowed(env,originalJob.actor))throw new Error("administrator_revoked");
         await env.ASSETS.put(key,fixed.readable,{httpMetadata:{contentType:"application/zip"}});await pipe;if(durablePut)acknowledgeWorkerV5OriginalNativeSource(durablePut);}catch(error){void fixed.readable.cancel().catch(()=>undefined);throw error;}},
     async read(key,deadlineAt,signal,issuedClaim){const originalJob=await assertPrivateKeyNamespace(env,key);
       if(deadlineAt!==undefined&&(!issuedClaim||issuedClaim.id!==originalJob.id||issuedClaim.actor!==originalJob.actor||!await repository.current(issuedClaim)))throw new Error("administrator_revoked");
-      if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding||!recoveryActorAllowed(env,originalJob.actor)))throw new Error("execution_budget_exhausted");
+      if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding))throw new Error("execution_budget_exhausted");
+      if(deadlineAt!==undefined&&!recoveryActorAllowed(env,originalJob.actor))throw new Error("administrator_revoked");
       let durableRead:WorkerV5SourceCloseIntent|undefined;
       if(originalJob.kind==="backup"&&deadlineAt!==undefined&&issuedClaim!==undefined&&(await records(repository,originalJob.id)).schema==="system-backup-records/5"){
         if(!issuedClaim||!signal||typeof deadlineAt!=="string")throw new Error("execution_budget_exhausted");
         durableRead=await beginWorkerV5SourceCloseIntent(capabilities,issuedClaim,"body",key,()=>repository.current(issuedClaim),signal,deadlineAt);
       }
       if(deadlineAt!==undefined&&(!issuedClaim||!await repository.current(issuedClaim)))throw new Error("administrator_revoked");
-      if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding||!recoveryActorAllowed(env,originalJob.actor)))throw new Error("execution_budget_exhausted");
+      if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding))throw new Error("execution_budget_exhausted");
+      if(deadlineAt!==undefined&&!recoveryActorAllowed(env,originalJob.actor))throw new Error("administrator_revoked");
       const object=await env.ASSETS.get(key);if(!object)return null;if(!durableRead)return object.body;
       const actualClaim=issuedClaim,actualSignal=signal,actualDeadline=deadlineAt;
       if(!actualClaim||!actualSignal||typeof actualDeadline!=="string")throw new Error("execution_budget_exhausted");
