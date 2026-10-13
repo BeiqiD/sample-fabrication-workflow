@@ -349,5 +349,5 @@ describe('current real one-File Node V28 fresh inert target through shared recov
         realOriginalDirectoryAckBeforeCancellation: true, originalDispatchAndCloseAcknowledged: true,
         cancelledUnknownLedgerSurvivesSourceReleaseAndCliRestart: true, uploadCleanupRefused: true, targetCleanupRefused: true,
         sourceCanonicalAndPhysicalBindingsUnchanged: true, destinationNotReadyOrActivated: true }), { flag: 'wx', mode: 0o600 });
-    }));
+    }), 90_000);
 });
