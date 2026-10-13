@@ -8,6 +8,9 @@ import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 
 const [baseValue, fixtureValue, ...extra] = process.argv.slice(2);
 assert(baseValue && fixtureValue && extra.length === 0, 'Usage: node seed-actual-api.mjs LOOPBACK_URL PRIVATE_FIXTURE_DIRECTORY');
+const largeProjectNodeCount = process.env.PHASE5F_PROJECT_NODE_COUNT || null;
+assert(largeProjectNodeCount === null || largeProjectNodeCount === '200',
+  'The optional native large-Project fixture is bounded to exactly 200 nodes.');
 const requestedBase = new URL(baseValue);
 assert(requestedBase.protocol === 'http:' && ['127.0.0.1', 'localhost'].includes(requestedBase.hostname)
   && !requestedBase.username && !requestedBase.password && requestedBase.pathname === '/' && !requestedBase.search && !requestedBase.hash
@@ -252,10 +255,13 @@ try {
   const projectId = `${fixture.prefix}-project`;
   await request('/projects', 'POST', { id: projectId, operationId: randomUUID(), title: `5F mixed Project ${fixture.prefix}` });
   const geometry = index => ({ x: index * 360, y: 20, width: 320, height: 220, zIndex: index });
+  const largeProjectItems = [];
   async function projectItem(kind, body) {
     const snapshot = await request(`/projects/${projectId}`);
-    return request(`/projects/${projectId}/items/${kind}`, 'POST', { itemId: randomUUID(), placementId: randomUUID(), operationId: randomUUID(),
+    const created = await request(`/projects/${projectId}/items/${kind}`, 'POST', { itemId: randomUUID(), placementId: randomUUID(), operationId: randomUUID(),
       expectedProjectRevision: snapshot.project.revision, ...body });
+    if (largeProjectNodeCount) largeProjectItems.push({ itemId: created.item.id, placementId: created.placement.id });
+    return created;
   }
   await projectItem('markdown', { contentId: randomUUID(), markdownSource: '# 5F mixed domain record\n\n[Open Samples](/samples)\n\n中文 / $E=mc^2$ · retained identity and explicit source navigation.', geometry: geometry(0) });
   await projectItem('reference', { target: { type: 'sample', id: first.sampleId }, geometry: geometry(1) });
@@ -271,6 +277,22 @@ try {
   assert.equal(file.status, 200); assert(Buffer.from(await file.arrayBuffer()).equals(png));
   receipt.project = { projectId, attachmentContentId: attachment.content.id, attachmentByteSize: png.byteLength,
     attachmentSha256: createHash('sha256').update(png).digest('hex') };
+  if (largeProjectNodeCount) {
+    // Keep the original four mixed records and their geometry unchanged. Only
+    // this explicit, independent native case adds ordinary API-owned notes.
+    for (let index = 4; index < 200; index++) await projectItem('markdown', {
+      contentId: randomUUID(), markdownSource: `# 5F large note ${String(index + 1).padStart(3, '0')} · 长标题研究记录\n\nOrdinary retained research text for the 200-node native Map and Reading case.`,
+      geometry: { ...geometry(index % 10), y: 20 + Math.floor(index / 10) * 280, zIndex: index },
+    });
+    const snapshot = await request(`/projects/${projectId}`);
+    assert.equal(snapshot.items.length, 200); assert.equal(snapshot.placements.length, 200); assert.equal(snapshot.edges.length, 0);
+    const itemIds = largeProjectItems.map(item => item.itemId).sort(), placementIds = largeProjectItems.map(item => item.placementId).sort();
+    assert.deepEqual(snapshot.items.map(item => item.id).sort(), itemIds);
+    assert.deepEqual(snapshot.placements.map(item => item.id).sort(), placementIds);
+    receipt.project.large = { nodeCount: 200, edgeCount: 0, revision: snapshot.project.revision, itemIds, placementIds,
+      originalMixedItemIds: largeProjectItems.slice(0, 4).map(item => item.itemId),
+      scope: '200 actual API-owned nodes; native functional controls only, not a frame-rate or 500-node envelope benchmark.' };
+  }
   await liveServer(); await hashInventory(isolation.trackedFiles); await hashInventory(isolation.copiedArtifactFiles);
   assert.equal(sha(await readFile(isolationPath)), sha(isolationBytes)); assert.equal(sha(await readFile(fixturePath)), sha(fixtureBytes));
   receipt.status = 'prepared'; receipt.completedAt = new Date().toISOString();

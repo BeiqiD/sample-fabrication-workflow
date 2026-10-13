@@ -142,6 +142,12 @@ let browser;
 const selectedCase = process.env.PHASE5F_CASE_ID || null;
 const expectedCaseIds = seed.cases.flatMap(item => [`start-${item.key}`, `plan-${item.key}`, `surfaces-${item.key}`]);
 expectedCaseIds.push('chunk-404-explicit-reload', 'chunk-503-explicit-reload');
+const largeProjectCaseId = 'project-large-1200-light';
+if (seed.project.large) {
+  assert.equal(selectedCase, largeProjectCaseId, 'A 200-node fixture belongs only to its independent selected native case.');
+  assert.equal(seed.project.large.nodeCount, 200); assert.equal(seed.project.large.edgeCount, 0);
+  expectedCaseIds.splice(0, expectedCaseIds.length, largeProjectCaseId);
+}
 if (selectedCase) assert(expectedCaseIds.includes(selectedCase), 'Unknown explicit case ID.');
 const report = { version: 1, scope: 'Actual local API + current built UI; synthetic isolated data. No remote Access, provider, device, or whole-roadmap completion claim.',
   ...identities, baseUrl: base.origin, prefix: fixture.prefix, serverSessionId: server.sessionId, serverReceiptSha256: serverHash,
@@ -269,6 +275,165 @@ async function waitAccepted(page, path, button, status) {
 }
 try {
   browser = await playwright.chromium.launch({ headless: true, executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium' });
+  if (seed.project.large) await executeCase(largeProjectCaseId, { width: 1200, theme: 'light' }, async (page, record) => {
+    const projectPath = `/projects/${seed.project.projectId}`, before = await actualApi(projectPath), pins = seed.project.large;
+    const originalSeedGet = seed.trace.findLast(item => item.path === projectPath && item.method === 'GET');
+    assert(originalSeedGet && originalSeedGet.status === 200 && originalSeedGet.outcome === 'response_accepted');
+    assert(/^[a-f0-9]{64}$/.test(originalSeedGet.responseSha256));
+    const nativeProjectBodies = [], nativeProjectCaptures = [];
+    record.assertions.push({ originalPreparedProjectBodySha256: originalSeedGet.responseSha256, originalNativeProjectBodies: nativeProjectBodies });
+    const captureProjectBody = response => {
+      if (new URL(response.url()).origin !== base.origin || new URL(response.url()).pathname !== `/api${projectPath}`
+        || response.request().method() !== 'GET') return;
+      const item = { status: response.status(), body: 'pending' }; nativeProjectBodies.push(item);
+      const work = (async () => {
+        try {
+          const bytes = Buffer.from(await bounded(response.body(), BODY_OBSERVATION_TIMEOUT_MS, 'Original native 200-node Project Response.body'));
+          item.body = 'complete'; item.byteSize = bytes.length; item.sha256 = sha(bytes);
+          assert.equal(item.status, 200); assert(bytes.length > 0 && bytes.length < 2097152);
+          assert.equal(item.sha256, originalSeedGet.responseSha256, 'Original native Project bytes must match the original prepared API body.');
+        } catch (error) { item.captureError = error.message; throw error; }
+      })();
+      nativeProjectCaptures.push(work); void work.catch(() => {});
+    };
+    page.on('response', captureProjectBody);
+    try {
+      const nativeProjectWrites = [];
+      page.on('request', request => {
+        const path = new URL(request.url()).pathname;
+        if ((path.startsWith('/api/projects') || path === '/api/project-assets') && !['GET', 'HEAD'].includes(request.method()))
+          nativeProjectWrites.push({ path, method: request.method() });
+      });
+      assert.equal(before.project.revision, pins.revision);
+      assert.deepEqual(before.items.map(item => item.id).sort(), pins.itemIds);
+      assert.deepEqual(before.placements.map(item => item.id).sort(), pins.placementIds);
+      assert.equal(before.edges.length, 0);
+      await page.goto(new URL(projectPath, base).href);
+      await visible(page.getByRole('heading', { name: `5F mixed Project ${fixture.prefix}`, exact: true }));
+      const canvas = page.getByTestId('project-flow-canvas'), viewport = canvas.locator('.react-flow__viewport');
+      await visible(canvas);
+      await page.waitForFunction(element => element.dataset.projectMapDetail === 'overview', await canvas.elementHandle());
+      assert.equal(await canvas.getAttribute('data-project-map-scale'), 'target');
+      assert.equal(await canvas.getAttribute('data-project-map-culling'), 'visible-elements');
+      assert.equal(await canvas.getAttribute('data-project-map-node-count'), '200');
+      const viewportState = () => viewport.evaluate(element => new Promise((resolve, reject) => {
+        let previous, stableFrames = 0, frame;
+        const timer = setTimeout(() => { cancelAnimationFrame(frame); reject(new Error('Native viewport did not settle within 20s.')); }, 20000);
+        const observe = () => {
+          if (!element.isConnected) { clearTimeout(timer); reject(new Error('Native viewport was removed before observation completed.')); return; }
+          const matrix = new DOMMatrixReadOnly(getComputedStyle(element).transform);
+          const value = { x: matrix.e, y: matrix.f, zoom: matrix.a };
+          stableFrames = previous && ['x', 'y', 'zoom'].every(key => Math.abs(value[key] - previous[key]) < 0.000001) ? stableFrames + 1 : 0;
+          previous = value;
+          if (stableFrames >= 3) { clearTimeout(timer); resolve(value); return; }
+          frame = requestAnimationFrame(observe);
+        };
+        frame = requestAnimationFrame(observe);
+      }));
+      const initialViewport = await viewportState(), zoomIn = canvas.locator('.react-flow__controls-zoomin');
+      for (let index = 0; index < 14 && await canvas.getAttribute('data-project-map-detail') !== 'full'; index++) {
+        const previous = await viewportState(); await zoomIn.click();
+        await page.waitForFunction(({ element, zoom }) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a >= zoom * 1.19,
+          { element: await viewport.elementHandle(), zoom: previous.zoom });
+      }
+      assert.equal(await canvas.getAttribute('data-project-map-detail'), 'full');
+      const fullViewport = await viewportState(); assert(fullViewport.zoom > initialViewport.zoom);
+      await page.waitForFunction(element => {
+        const count = element.querySelectorAll('.react-flow__node-projectItem').length;
+        return count > 0 && count < 200;
+      }, await canvas.elementHandle());
+      const renderedCount = await canvas.locator('.react-flow__node-projectItem').count();
+      assert(renderedCount > 0 && renderedCount < 200, 'Full-detail native zoom must exercise actual visible-element culling.');
+      const panPoint = await canvas.evaluate(element => {
+        const rect = element.getBoundingClientRect();
+        for (let y = rect.top + 30; y < rect.bottom - 80; y += 20) for (let x = rect.left + 30; x < rect.right - 160; x += 20) {
+          if (document.elementFromPoint(x, y)?.classList.contains('react-flow__pane')) return { x, y };
+        }
+        return null;
+      });
+      assert(panPoint, 'A genuine pane point must be available for native panning.');
+      await page.mouse.move(panPoint.x, panPoint.y); await page.mouse.down();
+      await page.mouse.move(panPoint.x + 100, panPoint.y + 40, { steps: 12 }); await page.mouse.up();
+      await page.waitForFunction(({ element, x }) => Math.abs(new DOMMatrixReadOnly(getComputedStyle(element).transform).e - x) > 50,
+        { element: await viewport.elementHandle(), x: fullViewport.x });
+      const pannedViewport = await viewportState(); assert(Math.abs(pannedViewport.zoom - fullViewport.zoom) < 0.001);
+      const visibleNode = await canvas.evaluate(element => {
+        const bounds = element.getBoundingClientRect();
+        for (const node of element.querySelectorAll('.react-flow__node-projectItem')) {
+          const rect = node.getBoundingClientRect(), header = node.querySelector('.project-node-drag-handle')?.getBoundingClientRect();
+          if (!header) continue;
+          const x = header.left + header.width / 2, y = header.top + header.height / 2;
+          if (rect.left > bounds.left + 10 && rect.right < bounds.right - 10 && rect.top > bounds.top + 60 && rect.bottom < bounds.bottom - 10
+            && document.elementFromPoint(x, y)?.closest('.react-flow__node') === node) return { id: node.dataset.id, x, y };
+        }
+        return null;
+      });
+      assert(visibleNode && pins.itemIds.includes(visibleNode.id), 'Native selection must target an actual visible API-owned node.');
+      await page.mouse.click(visibleNode.x, visibleNode.y);
+      await page.waitForFunction(id => document.querySelector(`.react-flow__node[data-id="${id}"]`)?.classList.contains('selected'), visibleNode.id);
+      const inspectorTrigger = await page.getByRole('button', { name: 'Inspector', exact: true }).elementHandle();
+      const mapDetails = page.getByRole('toolbar', { name: 'Selected card actions', exact: true }).getByRole('button', { name: 'Details', exact: true });
+      await enabled(mapDetails); await mapDetails.focus(); await page.keyboard.press('Enter');
+      const inspector = page.locator('#project-inspector-panel'); await visible(inspector);
+      await page.waitForFunction(element => document.activeElement === element, await inspector.elementHandle());
+      await page.keyboard.press('Escape'); await absent(inspector);
+      await page.waitForFunction(element => element.isConnected && document.activeElement === element, inspectorTrigger);
+      const selectedViewport = await viewportState(); await canvas.locator('.react-flow__controls-zoomout').click();
+      await page.waitForFunction(({ element, zoom }) => new DOMMatrixReadOnly(getComputedStyle(element).transform).a <= zoom / 1.19,
+        { element: await viewport.elementHandle(), zoom: selectedViewport.zoom });
+      const zoomedOutViewport = await viewportState(), fitView = canvas.locator('.react-flow__controls-fitview');
+      await fitView.focus(); await page.keyboard.press('Enter');
+      await page.waitForFunction(element => element.dataset.projectMapDetail === 'overview', await canvas.elementHandle());
+      const refittedViewport = await viewportState(); assert(refittedViewport.zoom < zoomedOutViewport.zoom);
+      assert(await fitView.evaluate(element => document.activeElement === element));
+      const readingControl = page.getByRole('button', { name: 'Reading', exact: true });
+      await readingControl.focus(); const originalReadingControl = await readingControl.elementHandle(); await page.keyboard.press('Enter');
+      const reading = page.getByRole('region', { name: 'Project Reading', exact: true }); await visible(reading);
+      assert(await originalReadingControl.evaluate(element => document.activeElement === element), 'A projection switch must retain its native control focus.');
+      assert.deepEqual((await reading.locator('[data-project-item-id]').evaluateAll(elements => elements.map(element => element.dataset.projectItemId))).sort(), pins.itemIds);
+      const readingDetails = reading.locator(`[data-project-details-trigger="${visibleNode.id}"]`);
+      await readingDetails.scrollIntoViewIfNeeded(); await readingDetails.focus(); const originalReadingDetails = await readingDetails.elementHandle();
+      await page.keyboard.press('Enter'); await visible(inspector);
+      await page.waitForFunction(element => document.activeElement === element, await inspector.elementHandle());
+      await page.keyboard.press('Escape'); await absent(inspector);
+      await page.waitForFunction(element => element.isConnected && document.activeElement === element, originalReadingDetails);
+      const image = reading.locator(`img[src*="/contents/${seed.project.attachmentContentId}/file"]`);
+      await image.scrollIntoViewIfNeeded(); await visible(image);
+      await page.waitForFunction(element => element.complete && element.naturalWidth > 0, await image.elementHandle());
+      await noDocumentOverflow(page, record.assertions, 'project-200-reading', 'light');
+      const sourceLinks = reading.getByRole('link', { name: 'Open source', exact: true });
+      const hrefs = await sourceLinks.evaluateAll(elements => elements.map(element => element.getAttribute('href')));
+      assert.equal(hrefs.length, 2); assert(hrefs.some(href => href.startsWith(`/processing/${seed.mixed[0].sampleId}`)));
+      const mapControl = page.getByRole('button', { name: 'Map', exact: true }); await mapControl.focus(); await page.keyboard.press('Enter');
+      await visible(canvas); assert.equal(await canvas.getAttribute('data-project-map-node-count'), '200');
+      assert(await mapControl.evaluate(element => document.activeElement === element));
+      await readingControl.focus(); await page.keyboard.press('Enter'); await visible(reading);
+      assert(await readingControl.evaluate(element => document.activeElement === element));
+      const sampleHref = hrefs.find(href => href.startsWith(`/samples/${seed.mixed[0].sampleId}`)); assert(sampleHref);
+      const sourceDetail = await actualApi(`/samples/${seed.mixed[0].sampleId}`);
+      const sampleLink = reading.locator(`a[href="${sampleHref}"]`); await sampleLink.scrollIntoViewIfNeeded(); await sampleLink.focus();
+      await Promise.all([page.waitForURL(url => url.pathname === `/samples/${seed.mixed[0].sampleId}`), page.keyboard.press('Enter')]);
+      await visible(page.getByRole('heading', { name: sourceDetail.title, exact: true }));
+      await page.goBack({ waitUntil: 'domcontentloaded' });
+      await visible(page.getByRole('heading', { name: `5F mixed Project ${fixture.prefix}`, exact: true }));
+      await enabled(mapControl); await mapControl.focus(); await page.keyboard.press('Enter');
+      await visible(page.getByRole('region', { name: 'Project Map', exact: true }));
+      assert(await mapControl.evaluate(element => document.activeElement === element));
+      await noDocumentOverflow(page, record.assertions, 'project-200-map-after-native-source-back', 'light');
+      assert.deepEqual(await actualApi(projectPath), before, 'Native reading/navigation/pan/zoom must preserve every original Project value.');
+      assert.equal(nativeProjectWrites.length, 0, 'No native Project write may be dispatched, including a cancelled or failed request.');
+      await Promise.all(nativeProjectCaptures);
+      assert(nativeProjectBodies.length > 0, 'At least one original native Project GET body must complete.');
+      record.assertions.push({ nodeCount: 200, edgeCount: 0, initialViewport, fullViewport, pannedViewport, zoomedOutViewport, refittedViewport, fullDetailRenderedCount: renderedCount,
+        nativeSelectedItemId: visibleNode.id, mapInspectorNaturalFocus: true, mapEscapeReturnedToOriginalInspector: true,
+        nativeZoomOutAndKeyboardFitView: true, readingControlFocusRetained: true, readingDetailsNaturalFocusAndOriginalReturn: true, actualPngDecoded: true,
+        nativeSourceHrefs: hrefs, keyboardSourceNavigationAndBrowserBack: true, projectSnapshotUnchanged: true, nativeProjectWrites: 0,
+        scope: '200-node native functional controls; no frame-rate, 500-node envelope, physical-device or whole-5F completion claim.' });
+    } finally {
+      page.off('response', captureProjectBody);
+      await Promise.allSettled(nativeProjectCaptures);
+    }
+  });
   for (const matrix of seed.cases) {
     await executeCase(`start-${matrix.key}`, matrix, async (page, record) => {
       const owner = matrix.start;
