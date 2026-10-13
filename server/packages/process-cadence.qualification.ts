@@ -1,6 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { lstat, realpath, writeFile } from "node:fs/promises";
+import { lstat, readFile, realpath, writeFile } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { afterEach, describe, expect } from "vitest";
@@ -136,7 +136,14 @@ describe("independent compiled Node Package process at the original elapsed cade
     const distribution = process.env.NODE_OFFLINE_V28_DISTRIBUTION ?? "";
     ensure(isAbsolute(distribution) && resolve(distribution) === distribution && await realpath(distribution) === distribution);
     const manifest = await verifyNodeDistribution(distribution, { enforceRuntimeVersion: true });
-    expect(manifest.installationCheckpoint).toEqual({ id: "portable-runtime/v26", migrationCount: 24 });
+    // Compare the complete released checkpoint tuple, independently hashing
+    // all three actual current source inputs. Exact equality also rejects any
+    // unrecognised checkpoint fields; no hash pins are ignored by a subset.
+    expect(manifest.installationCheckpoint).toEqual({ id: "portable-runtime/v26", migrationCount: 24,
+      catalogSourceSha256: digest(await readFile(new URL("../installation-catalog-v26.ts", import.meta.url))),
+      operationalSelectorSha256: digest(await readFile(new URL("../operational-installation-catalog.ts", import.meta.url))),
+      lastMigrationSourceSha256: digest(await readFile(new URL("../../migrations/0024_rt3_local_volume_profiles.sql", import.meta.url))),
+    });
     const f = await fixture({ administrator: true, enableLocalJobs: true });
     const config = assertNodeRuntimeConfiguration(f.configuration), rootUid = config.filesystemRootOwnerUid;
     const configPath = join(f.root, "runtime.json"), configurationStat = await lstat(configPath);
