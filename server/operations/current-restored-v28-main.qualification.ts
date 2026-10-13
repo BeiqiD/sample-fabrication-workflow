@@ -9,6 +9,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import { verifyNodeDistribution } from '../../scripts/lib/node-distribution-v28-manifest.mjs';
 import { V28_NODE_INSTALLATION_CATALOG_CANDIDATE } from '../installation-catalog-v28-candidate.ts';
 import { admitInstallationRecoverySource, assertInstallationAdmission } from '../migrations';
+import { executeV28OrdinaryAccountOperatorCandidate, v28OrdinaryAccountOperatorProcessState } from './ordinary-account-v28-candidate';
 import { canonicalFileObject, canonicalFilePrivateOrigin, consumeCanonicalFileClient, fetchCanonicalFileClient,
   retainedCanonicalFileCase, withCanonicalFileDatabase,
   type CanonicalFileClientOwner, type CanonicalFileFixtureOwner } from '../collaboration/current-v28-canonical-comment-file.qualification-support';
@@ -18,6 +19,7 @@ import { canonicalFileObject, canonicalFilePrivateOrigin, consumeCanonicalFileCl
 // separate ACK-fault target is never selected here. No historical target, SQL
 // seed, V26 alias or manufactured startup/config authority substitutes for it.
 const PASSWORD = 'Synthetic independent V28 destination reset password';
+const ORDINARY_PASSWORD = 'Synthetic independent restored V28 ordinary readiness password';
 const PRE_NATIVE_RESERVE = 603_979_776n;
 let path: string, principalId: string, installationId: string, reportSha256: string;
 let distribution: string, rootUid: number;
@@ -167,12 +169,21 @@ async function request(owner: MainOwner, origin: string, pathname: string, metho
 }
 
 describe('current compiled main on the same genuinely restored and separately released V28 destination', () => {
-  it('selects database.sqlite explicitly, authenticates only the restored principal, logs out and acknowledges original TERM before writer reacquisition',
+  it('serves scoped health and readiness for genuine local sessions without granting ordinary accounts domains, then closes before restored writer reacquisition',
     () => retainedCanonicalFileCase(async () => {
       const target = dirname(path), clientDirectory = join(dirname(target), `restored-main-client-${randomUUID()}`);
       await mkdir(clientDirectory, { mode: 0o700 });
+      // Genuine stopped identity service, not account/session/member/grant SQL.
+      // This newly provisioned enabled account is deliberately not enrolled.
+      const ordinaryUsername = `ready-${randomUUID()}`;
+      const ordinary = await executeV28OrdinaryAccountOperatorCandidate({ kind: 'provision-account', databasePath: path,
+        filesystemRootOwnerUid: rootUid, username: ordinaryUsername }, ORDINARY_PASSWORD);
+      expect(ordinary.systemAdministrator).toBe(false);
+      expect(v28OrdinaryAccountOperatorProcessState()).toEqual({ activeOperations: 0, quarantinedOperations: 0 });
       const selected = await withCanonicalFileDatabase(path, async (owner, lease, native) => lease.withWriter(async () => {
         stopped(native);
+        expect(native.prepare('SELECT count(*) n FROM local_admin_grants WHERE principal_id=?').get(ordinary.principalId)?.n).toBe(0);
+        expect(native.prepare('SELECT count(*) n FROM collaboration_identities WHERE subject=?').get(ordinary.principalId)?.n).toBe(0);
         const account = native.prepare('SELECT username,enabled FROM local_accounts WHERE principal_id=?').get(principalId);
         ensure(account?.enabled === 1 && typeof account.username === 'string');
         const username = account.username;
@@ -189,9 +200,11 @@ describe('current compiled main on the same genuinely restored and separately re
       try {
         await owner.ready;
         expect((await request(owner, selected.origin, '/api/auth/session')).status).toBe(401);
-        // These remain integration gaps, not healthy/ready positive claims.
-        expect((await request(owner, selected.origin, '/api/health')).status).toBe(503);
-        expect((await request(owner, selected.origin, '/api/ready')).status).toBe(503);
+        const health = await request(owner, selected.origin, '/api/health');
+        expect(health.status).toBe(200); expect(canonicalFileObject(health.value).ok).toBe(true);
+        expect(canonicalFileObject(canonicalFileObject(health.value).capabilities).unavailable).toEqual(expect.arrayContaining([
+          'file-bytes-and-file-grants', 'jobs-and-package-import-export', 'provider-egress', 'frontend-static-serving']));
+        expect((await request(owner, selected.origin, '/api/ready')).status).toBe(401);
         const login = await request(owner, selected.origin, '/api/auth/login', 'POST', { username: selected.username, password: PASSWORD });
         expect(login.status).toBe(200); expect(login.headers.get('cache-control')).toBe('private, no-store');
         const body = canonicalFileObject(login.value), principal = canonicalFileObject(body.principal);
@@ -201,8 +214,30 @@ describe('current compiled main on the same genuinely restored and separately re
         const session = { cookie, csrf: body.csrf };
         const current = await request(owner, selected.origin, '/api/auth/session', 'GET', undefined, session);
         expect(current.status).toBe(200); expect(canonicalFileObject(canonicalFileObject(current.value).principal).id).toBe(principalId);
+        const ready = await request(owner, selected.origin, '/api/ready', 'GET', undefined, session);
+        expect(ready.status).toBe(200);
+        expect(canonicalFileObject(ready.value)).toMatchObject({ ok: true, scope: 'supported-v28-service', fullReady: false });
+        expect(canonicalFileObject(canonicalFileObject(ready.value).capabilities).unavailable).toEqual(
+          canonicalFileObject(canonicalFileObject(health.value).capabilities).unavailable);
         expect((await request(owner, selected.origin, '/api/auth/logout', 'POST', undefined, session)).status).toBe(204);
         expect((await request(owner, selected.origin, '/api/auth/session', 'GET', undefined, session)).status).toBe(401);
+        expect((await request(owner, selected.origin, '/api/ready', 'GET', undefined, session)).status).toBe(401);
+        const ordinaryLogin = await request(owner, selected.origin, '/api/auth/login', 'POST', {
+          username: ordinaryUsername, password: ORDINARY_PASSWORD });
+        expect(ordinaryLogin.status).toBe(200);
+        const ordinaryBody = canonicalFileObject(ordinaryLogin.value);
+        expect(canonicalFileObject(ordinaryBody.principal)).toMatchObject({ id: ordinary.principalId,
+          capabilities: { systemAdministrator: false, fileEvidenceOperator: false } });
+        const ordinaryCookie = ordinaryLogin.headers.get('set-cookie')?.split(';', 1)[0];
+        ensure(typeof ordinaryCookie === 'string' && ordinaryCookie.startsWith('sfw_dev_session=') && typeof ordinaryBody.csrf === 'string');
+        const ordinarySession = { cookie: ordinaryCookie, csrf: ordinaryBody.csrf };
+        const ordinaryReady = await request(owner, selected.origin, '/api/ready', 'GET', undefined, ordinarySession);
+        expect(ordinaryReady.status).toBe(200);
+        expect(canonicalFileObject(ordinaryReady.value)).toMatchObject({ ok: true, scope: 'supported-v28-service', fullReady: false });
+        expect(ordinaryReady.value).toEqual(ready.value);
+        // Ready is not a Group membership or named business-resource grant.
+        expect((await request(owner, selected.origin, '/api/projects', 'GET', undefined, ordinarySession)).status).toBe(403);
+        expect((await request(owner, selected.origin, '/api/auth/logout', 'POST', undefined, ordinarySession)).status).toBe(204);
         await noDefaultDatabase();
       } catch (error) { failed = true; failure = error; }
       try { const first = closeMain(owner); expect(closeMain(owner)).toBe(first); closed = await first; }
