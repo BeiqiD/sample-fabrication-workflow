@@ -240,8 +240,10 @@ export async function fixture(options: { enableLocalJobs?: boolean; administrato
       const response = await fetch(`${origin}${pathname}`, { method,
         headers: { cookie, origin, "x-sfw-csrf": csrf, "content-type": "application/json", connection: "close", ...extraHeaders },
         ...(body === undefined ? {} : { body: body instanceof ReadableStream || body instanceof Uint8Array ? body : JSON.stringify(body), duplex: "half" }) } as RequestInit);
-      const text = await response.text();
       const type = response.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
+      if (type === "application/zip") return { status: response.status, headers: response.headers,
+        value: new Uint8Array(await response.arrayBuffer()) };
+      const text = await response.text();
       return { status: response.status, headers: response.headers,
         value: text ? (type === "application/json" ? JSON.parse(text) as unknown : text) : null };
     });

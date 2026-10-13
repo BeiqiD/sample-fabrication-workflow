@@ -60,6 +60,8 @@ export interface FileJobExecutionScope {
   /** Called immediately after a successful open, including partial/late opens.
    * An already admitted operation can acquire its result during owner drain. */
   own(storage: JobBoundStorage): JobBoundStorage;
+  /** One original ingress cleanup, retained alongside actual provider owners. */
+  ownCleanup(dispose: () => Promise<void>): void;
 }
 export interface RetainedFileJobExecution<T> {
   /** Original business result, without provider disposal changing its deadline. */
@@ -92,6 +94,9 @@ export function retainFileJobExecution<T>(capabilities: OriginalJobCapabilities,
       }
     }
     return storage;
+  }, ownCleanup(dispose) {
+    if (cleaning || typeof dispose !== "function") throw new Error("Invalid original job cleanup owner");
+    entry.disposers.push(dispose);
   } };
   const cleanup = async () => {
     cleaning = true;
