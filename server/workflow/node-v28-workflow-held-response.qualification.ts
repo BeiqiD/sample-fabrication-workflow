@@ -47,7 +47,8 @@ beforeAll(async () => {
     "server/workflow/node-v28-workflow-runtime.ts", "server/workflow/node-v28-workflow-application.ts", "server/workflow/node-v28-file-job-child.ts",
     "server/jobs/node-v28-job-scheduler.ts", "server/jobs/node-v28-job-cursor.ts", "server/recovery/node-v28-source-barrier.ts",
     "server/recovery/node-system-recovery-v28-application.ts", "server/recovery/node-v28-archive-stages.ts",
-    "server/recovery/node-private-artifacts.ts", "server/storage/local-byte-storage.ts", "server/operations/writer-lease.ts", "worker/recovery/kernel.ts",
+    "server/recovery/node-private-artifacts.ts", "server/recovery/node-v28-original-source-resume.ts",
+    "server/storage/local-byte-storage.ts", "server/operations/writer-lease.ts", "worker/recovery/kernel.ts",
     "server/packages/job-child-v28-candidate.ts", "server/packages/request-http-v28-candidate.ts"]) {
     const current = await readFile(new URL("../../" + relative, import.meta.url));
     const entry = inputs.map(object).find(item => item.path === relative); ensure(entry);
@@ -59,6 +60,10 @@ interface PreparedArchive {
   readonly source: CurrentV28OnlineRecoverySource; readonly origin: string; readonly backupId: string;
   readonly bytes: Uint8Array<ArrayBuffer>; readonly sha256: string; readonly dataPath: string; readonly configurationPath: string;
   readonly window: Readonly<{ generation: number; token: string }>;
+  readonly incarnation: string;
+  readonly release: ReturnType<typeof checkedSystemRecoveryMaintenanceReceipt>;
+  readonly resumeInput: Readonly<{ requestId: string; releaseRequestId: string; backupJobId: string; expectedGeneration: number }>;
+  readonly resume: Readonly<Record<string, unknown>>;
 }
 async function withRecoveryCli<T>(source: CurrentV28OnlineRecoverySource, origin: string,
   work: (owner: CurrentRecoveryCliOwner) => Promise<T>): Promise<T> {
@@ -74,7 +79,13 @@ async function withRecoveryCli<T>(source: CurrentV28OnlineRecoverySource, origin
  * combined main. The one-shot fixture stages do not qualify elapsed cadence. */
 async function prepareCompletedArchive(): Promise<PreparedArchive> {
   const source = await prepareCurrentV28OnlineRecoverySource(), baseline = source.baseline;
-  const origin = await withCanonicalFileDatabase(baseline.path, owner => canonicalFilePrivateOrigin(owner));
+  const originalSource = await withCanonicalFileDatabase(baseline.path, async (owner, _lease, native) => {
+    const runtime = native.prepare(`SELECT a.mode,g.enabled,g.incarnation FROM file_authority_control a
+      JOIN file_authority_runtime_guard g ON g.singleton=a.singleton WHERE a.singleton=1`).get();
+    expect(runtime).toMatchObject({ mode: "active", enabled: 1 }); ensure(typeof runtime?.incarnation === "string" && runtime.incarnation);
+    return { origin: await canonicalFilePrivateOrigin(owner), incarnation: runtime.incarnation };
+  });
+  const { origin, incarnation } = originalSource;
   const base = { databasePath: baseline.path, filesystemRootOwnerUid: baseline.rootOwnerUid };
   const member = await executeCollaborationV28OperatorCandidate({ ...base, kind: "enroll-local-member", principalId: baseline.principalId,
     displayName: "Genuine held-response member", workspaceRole: "membershipAdministrator", canCreateSamples: true, expectedControlRevision: 1 }); ensure(member.memberId);
@@ -113,6 +124,7 @@ async function prepareCompletedArchive(): Promise<PreparedArchive> {
     expect(native.prepare("SELECT state,phase FROM system_recovery_jobs WHERE id=?").get(accepted.backupId)).toEqual({ state: "completed", phase: "done" });
   });
   assertCanonicalFileOwnersReleased();
+  const archivePath = join(baseline.root, "original-public-completed-one-file-v5.zip");
   const downloaded = await withRecoveryCli(source, origin, async owner => {
     const session = await loginCurrentRecoveryCli(owner, origin, "operator", CANONICAL_FILE_PASSWORD);
     const status = checkedSystemRecoveryJobStatus((await recoveryCliJson(owner, origin, "/api/system-recovery/jobs/" + accepted.backupId, "GET", undefined, session)).value);
@@ -120,20 +132,50 @@ async function prepareCompletedArchive(): Promise<PreparedArchive> {
     const answer = await recoveryCliBytes(owner, origin, "/api/system-recovery/jobs/" + accepted.backupId + "/download", "GET", undefined, session);
     expect(answer.status).toBe(200); expect(answer.headers.get("content-type")).toBe("application/zip");
     expect(answer.bytes.byteLength).toBe(status.output.byteSize); expect(hash(answer.bytes)).toBe(status.output.sha256);
-    return { bytes: Uint8Array.from(answer.bytes), sha256: status.output.sha256 };
+    const originalBytes = Uint8Array.from(answer.bytes);
+    await writeFile(archivePath, originalBytes, { flag: "wx", mode: 0o600 });
+    const strict = await validateV28SystemBackupArchiveCandidate(await nodeRecoveryArchiveSource(archivePath), { ...NODE_RECOVERY_ARCHIVE_OPTIONS, expectedSha256: status.output.sha256 });
+    expect(strict.manifest.completeness).toBe("complete"); expect(strict.manifest.counts).toMatchObject({ sources: 1, packagedFiles: 1, unavailableFiles: 0, bytes: source.payloadBytes });
+    expect(strict.records.origin.capturePolicy).toBe("quiesced-writers-and-bytes/1");
+    expect(strict.manifest.files[0]).toMatchObject({ outcome: "packaged", fileIds: [source.sourceFileId], byteSize: source.payloadBytes, sha256: source.payloadSha256 });
+    // The complete original backup and public body/provider EOF precede
+    // explicit release/resume. The archive retains its immutable fenced origin;
+    // only the original source's later local operational state changes.
+    const fenced = checkedSystemRecoveryMaintenanceStatus((await recoveryCliJson(owner, origin,
+      "/api/system-recovery/maintenance", "GET", undefined, session)).value);
+    expect(fenced).toMatchObject({ state: "fenced", generation: accepted.window.generation,
+      token: accepted.window.token, checkpoint: strict.manifest.sourceCheckpoint, backupJobId: accepted.backupId, activeWriters: 0 });
+    // Resume is an explicit original-source operation with all executors
+    // stopped. It never implicitly enables Recovery, shadow or Jobs.
+    const disabled = await recoveryCliJson(owner, origin, "/api/system-recovery/executor", "POST", { enabled: false }, session);
+    expect(disabled.status).toBe(200); expect(checkedSystemRecoveryCapabilities(disabled.value).enabled).toBe(false);
+    const releaseRequestId = randomUUID();
+    const released = await recoveryCliJson(owner, origin, "/api/system-recovery/maintenance", "POST",
+      { requestId: releaseRequestId, action: "release", expectedGeneration: fenced.generation }, session);
+    expect(released.status).toBe(200); const release = checkedSystemRecoveryMaintenanceReceipt(released.value);
+    expect(release).toMatchObject({ requestId: releaseRequestId, action: "release", expectedGeneration: fenced.generation,
+      status: { state: "open", generation: fenced.generation + 1, token: null, checkpoint: null, backupJobId: null, activeWriters: 0 } });
+    const resumeInput = Object.freeze({ requestId: randomUUID(), releaseRequestId, backupJobId: accepted.backupId,
+      expectedGeneration: release.status.generation });
+    const resumed = await recoveryCliJson(owner, origin, "/api/system-recovery/source-resume", "POST", resumeInput, session);
+    expect(resumed.status).toBe(200); const resume = object(resumed.value);
+    expect(resume).toMatchObject({ ...resumeInput, schema: "node-original-source-resume/1", sourceInstallationId: baseline.installationId,
+      incarnation, sourceCheckpoint: strict.manifest.sourceCheckpoint,
+      enabled: true, shadowEnabled: false, jobsEnabled: false, noBindingCutover: true, noJobReplay: true });
+    expect(Object.keys(resume).sort()).toEqual(["backupJobId", "enabled", "expectedGeneration", "incarnation", "jobsEnabled",
+      "noBindingCutover", "noJobReplay", "releaseRequestId", "requestId", "resumedAt", "schema", "shadowEnabled", "sourceCheckpoint", "sourceInstallationId"]);
+    ensure(typeof resume.resumedAt === "string" && new Date(resume.resumedAt).toISOString() === resume.resumedAt);
+    const reconciled = await recoveryCliJson(owner, origin, "/api/system-recovery/source-resume/requests/" + resumeInput.requestId,
+      "GET", undefined, session);
+    expect(reconciled.status).toBe(200); expect(reconciled.value).toEqual(resume);
+    return { bytes: originalBytes, sha256: status.output.sha256, release, resumeInput, resume: Object.freeze({ ...resume }) };
   });
-  const archivePath = join(baseline.root, "original-public-completed-one-file-v5.zip");
-  await writeFile(archivePath, downloaded.bytes, { flag: "wx", mode: 0o600 });
-  const strict = await validateV28SystemBackupArchiveCandidate(await nodeRecoveryArchiveSource(archivePath), { ...NODE_RECOVERY_ARCHIVE_OPTIONS, expectedSha256: downloaded.sha256 });
-  expect(strict.manifest.completeness).toBe("complete"); expect(strict.manifest.counts).toMatchObject({ sources: 1, packagedFiles: 1, unavailableFiles: 0, bytes: source.payloadBytes });
-  expect(strict.records.origin.capturePolicy).toBe("quiesced-writers-and-bytes/1");
-  expect(strict.manifest.files[0]).toMatchObject({ outcome: "packaged", fileIds: [source.sourceFileId], byteSize: source.payloadBytes, sha256: source.payloadSha256 });
   const dataPath = await actualRecoveryArchiveData(source.recoveryArtifacts.root, accepted.backupId, { byteSize: downloaded.bytes.byteLength, sha256: downloaded.sha256 });
   const configurationPath = join(baseline.root, "actual-held-workflow-runtime.json");
   await writeFile(configurationPath, JSON.stringify({ format: "node-loopback-development-v1", dataDirectory: baseline.dataDirectory,
     expectedInstallationId: baseline.installationId, publicOrigin: origin, clientDirectory: baseline.clientDirectory, localVolumes: baseline.descriptors,
     enableLocalFile: true, enableLocalJobs: true, enableLocalRecovery: true, recoveryArtifacts: source.recoveryArtifacts }), { flag: "wx", mode: 0o600 });
-  assertCanonicalFileOwnersReleased(); return { source, origin, ...accepted, ...downloaded, dataPath, configurationPath };
+  assertCanonicalFileOwnersReleased(); return { source, origin, incarnation, ...accepted, ...downloaded, dataPath, configurationPath };
 }
 
 async function assertActualWriterBusy(prepared: PreparedArchive): Promise<void> {
@@ -152,12 +194,33 @@ async function assertSourceAfterOriginalClose(prepared: PreparedArchive, rejecte
   const { source, backupId, window } = prepared;
   await withCanonicalFileDatabase(source.baseline.path, async (_owner, lease, native) => lease.withWriter(async () => {
     expect(native.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
-    expect(assertCurrentV28OnlineRecoverySourceFenced(native)).toEqual(window);
+    expect(native.prepare("SELECT state,generation,token,checkpoint_sha256 AS checkpoint,backup_job_id AS backupJobId FROM system_recovery_maintenance WHERE singleton=1").get())
+      .toEqual({ state: "open", generation: prepared.release.status.generation, token: null, checkpoint: null, backupJobId: null });
+    expect(prepared.release.status.generation).toBe(window.generation + 1);
+    const release = native.prepare("SELECT actor,action,expected_generation,result_json FROM system_recovery_maintenance_requests WHERE request_id=?")
+      .get(prepared.release.requestId);
+    expect(release).toMatchObject({ actor: source.baseline.operatorActor, action: "release", expected_generation: window.generation });
+    ensure(typeof release?.result_json === "string"); expect(JSON.parse(release.result_json)).toEqual(prepared.release.status);
+    const acceptedResume = native.prepare("SELECT actor,job_id,input_sha256,accepted_at FROM system_recovery_requests WHERE request_id=?")
+      .get("node_source_resume:" + prepared.resumeInput.requestId);
+    expect(acceptedResume).toMatchObject({ actor: source.baseline.operatorActor, job_id: backupId, accepted_at: prepared.resume.resumedAt });
+    ensure(typeof acceptedResume?.input_sha256 === "string");
+    const documents = native.prepare("SELECT ordinal,chunk FROM system_recovery_metadata_chunks WHERE job_id=? AND name=? ORDER BY ordinal")
+      .all(backupId, "node-source-resume/" + prepared.resumeInput.requestId);
+    expect(documents).toHaveLength(1); expect(documents[0]?.ordinal).toBe(0); ensure(typeof documents[0]?.chunk === "string");
+    expect(JSON.parse(documents[0].chunk)).toEqual({ schema: "node-source-resume-receipt/1", input: prepared.resumeInput, result: prepared.resume });
+    expect(hash(Buffer.from(documents[0].chunk, "utf8"))).toBe(acceptedResume.input_sha256);
+    expect(native.prepare("SELECT source_checkpoint FROM system_recovery_jobs WHERE id=?").get(backupId)?.source_checkpoint)
+      .toBe(prepared.resume.sourceCheckpoint);
+    expect(native.prepare("SELECT count(*) n FROM system_recovery_write_leases WHERE released_at IS NULL").get()?.n).toBe(0);
+    expect(native.prepare("SELECT mode FROM file_authority_control WHERE singleton=1").get()?.mode).toBe("active");
+    expect(native.prepare("SELECT enabled,enabled_by,incarnation FROM file_authority_runtime_guard WHERE singleton=1").get())
+      .toEqual({ enabled: 1, enabled_by: source.baseline.operatorActor, incarnation: prepared.incarnation });
+    expect(native.prepare("SELECT enabled FROM file_shadow_runtime_guard WHERE singleton=1").get()?.enabled).toBe(0);
     expect(currentV28RecoveryTypedRows(native)).toEqual(source.expectedTypedSource);
     expect(currentV28RecoveryTypedRows(native, CURRENT_V28_RECOVERY_PHYSICAL_TABLES)).toEqual(source.expectedTypedPhysicalBindings);
     expect(native.prepare("SELECT state,phase FROM system_recovery_jobs WHERE id=?").get(backupId)).toEqual({ state: "completed", phase: "done" });
     expect(native.prepare("SELECT state FROM system_recovery_attempts WHERE job_id=?").all(backupId)).toEqual([{ state: "verified" }]);
-    expect(native.prepare("SELECT backup_job_id FROM system_recovery_maintenance WHERE singleton=1").get()?.backup_job_id).toBe(backupId);
     expect(native.prepare("SELECT count(*) n FROM system_recovery_jobs WHERE request_id=?").get(rejectedRequestId)?.n).toBe(0);
     expect(native.prepare("SELECT enabled FROM file_job_runtime_guard WHERE singleton=1").get()?.enabled).toBe(0);
     expect(native.prepare("SELECT enabled FROM system_recovery_runtime WHERE singleton=1").get()?.enabled).toBe(1);
@@ -190,6 +253,10 @@ describe("actual compiled V28 workflow Recovery original body and slot SIGTERM",
         const proof = await withHeld(prepared, async held => {
           const session = await loginWorkflowCli(held.workflow, origin, "operator", CANONICAL_FILE_PASSWORD);
           expect(session.actor).toBe(source.baseline.operatorActor); expect(session.systemAdministrator).toBe(true);
+          // The later independent upload probe must be admissible on a live
+          // main; disabled-executor503 is not evidence of listener shutdown.
+          const enabled = await workflowCliJson(held.workflow, origin, "/api/system-recovery/executor", "POST", { enabled: true }, session);
+          expect(enabled.status).toBe(200); expect(checkedSystemRecoveryCapabilities(enabled.value).enabled).toBe(true);
           await held.arm(prepared.dataPath, 2);
           const delivery = await fetchCanonicalFileClient(held.workflow.clients, origin + "/api/system-recovery/jobs/" + prepared.backupId + "/download",
             { method: "GET", headers: { cookie: session.cookie }, signal: AbortSignal.timeout(60_000), redirect: "manual" });
@@ -219,7 +286,8 @@ describe("actual compiled V28 workflow Recovery original body and slot SIGTERM",
         await assertSourceAfterOriginalClose(prepared, String(proof.denied.requestId));
         await writeFile(receiptPrefix + "." + ending + ".json", JSON.stringify({ kind: "actual-v28-workflow-held-delivered-recovery-response/1", ending,
           sourceInstallationId: source.baseline.installationId, sourceFileId: source.sourceFileId, archiveSha256: prepared.sha256,
-          backupJobId: prepared.backupId, manifestSha256, proof, actualCompiledMain: true, actualSIGTERM: true,
+          backupJobId: prepared.backupId, manifestSha256, preparation: { archivedSourceWindow: prepared.window, release: prepared.release, resumeInput: prepared.resumeInput, resume: prepared.resume },
+          proof, actualCompiledMain: true, actualSIGTERM: true,
           originalProviderReadAcknowledged: true, originalBodyFirstCloseAcknowledged: true, originalNativeAndPhysicalCloseAcknowledged: true,
           newPublicHttpDenied: true, noNewScheduledClaim: true, internalDispatchRpcExposed: false, elapsedRecoveryCadenceQualified: false,
           fullThreeFamilyFairnessQualified: false, automaticActivation: false, originalKernelDeadlineMs: 60_000 }) + "\n", { flag: "wx", mode: 0o600 });
@@ -231,6 +299,8 @@ describe("actual compiled V28 workflow Recovery original body and slot SIGTERM",
       const prepared = await prepareCompletedArchive(), { source, origin } = prepared;
       const proof = await withHeld(prepared, async held => {
         const session = await loginWorkflowCli(held.workflow, origin, "operator", CANONICAL_FILE_PASSWORD);
+        const enabled = await workflowCliJson(held.workflow, origin, "/api/system-recovery/executor", "POST", { enabled: true }, session);
+        expect(enabled.status).toBe(200); expect(checkedSystemRecoveryCapabilities(enabled.value).enabled).toBe(true);
         const accepted = await workflowCliJson(held.workflow, origin, "/api/system-recovery/uploads", "POST",
           { requestId: randomUUID(), byteSize: prepared.bytes.byteLength, sha256: prepared.sha256 }, session); expect(accepted.status).toBe(202);
         const uploadId = checkedSystemRecoveryReceipt(accepted.value).job.id;
@@ -257,7 +327,8 @@ describe("actual compiled V28 workflow Recovery original body and slot SIGTERM",
       await assertSourceAfterOriginalClose(prepared, String(proof.denied.requestId), proof.uploadId);
       await writeFile(receiptPrefix + ".scheduled.json", JSON.stringify({ kind: "actual-v28-workflow-admitted-recovery-slot-sigterm/1",
         sourceInstallationId: source.baseline.installationId, sourceFileId: source.sourceFileId, archiveSha256: prepared.sha256,
-        backupJobId: prepared.backupId, manifestSha256, proof, actualCompiledMain: true, actualSIGTERM: true,
+        backupJobId: prepared.backupId, manifestSha256, preparation: { archivedSourceWindow: prepared.window, release: prepared.release, resumeInput: prepared.resumeInput, resume: prepared.resume },
+        proof, actualCompiledMain: true, actualSIGTERM: true,
         actualCadenceMs: NODE_V28_JOB_CADENCE_MS, actualRecoveryScheduledSlot: true, manualDispatchInsideMain: false,
         originalKernelDeadlineMs: 60_000, firstCursorCompletionAfterOriginalAck: true, originalNativeAndPhysicalCloseAcknowledged: true,
         newPublicHttpDenied: true, internalDispatchRpcExposed: false, fullThreeFamilyFairnessQualified: false,

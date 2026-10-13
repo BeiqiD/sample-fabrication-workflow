@@ -266,7 +266,7 @@ export async function actualRecoveryArchiveData(artifactRoot: string, jobId: str
  * releases this probe. It cannot enter an old delivered body's context. */
 export function rejectedWorkflowHttpAfterStop(origin: string, session: { cookie: string; csrf: string }): Promise<Readonly<Record<string, unknown>>> {
   const parsed = new URL(origin); ensure(parsed.protocol === "http:" && parsed.origin === origin && ["127.0.0.1", "[::1]"].includes(parsed.hostname));
-  const requestId = randomUUID(), bytes = Buffer.from(JSON.stringify({ requestId, byteSize: 1, sha256: "0".repeat(64) }));
+  const requestId = randomUUID(), bytes = Buffer.from(JSON.stringify({ requestId, byteSize: 22, sha256: "0".repeat(64) }));
   return new Promise((done, fail) => {
     let status: number | undefined, ended = false, failed = false, failure: unknown, code: unknown;
     const original = httpRequest(origin + "/api/system-recovery/uploads", { method: "POST", agent: false,
