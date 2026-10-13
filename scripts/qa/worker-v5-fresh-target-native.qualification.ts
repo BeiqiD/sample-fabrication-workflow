@@ -254,16 +254,16 @@ async function retainedInput(kind: "ZERO" | "NONEMPTY") {
  * disposal. These are neither a reconstructed expected catalog nor a host D1
  * adapter. Include platform tables and global page ownership/unused-page checks
  * unavailable from workerd's bounded table quick_check operations. */
-async function verifyClosedNativeD1(directory: string, identities: { source: string; target: string }) {
+async function verifyClosedNativeD1(directory: string, identities: { source: string; target: string }, receiptPath: string) {
   ensure(isAbsolute(directory) && resolve(directory) === directory && await realpath(directory) === directory, "closed_native_path");
   const entries = await readdir(directory, { recursive: true });
   const files = entries.filter(name => name.endsWith(".sqlite") && !name.endsWith("metadata.sqlite")).sort();
   expect(files, "Exactly the two original native D1 files must remain").toHaveLength(2);
-  const before = new Map<string, string>();
+  const before = new Map<string, { sha256: string; dev: number; ino: number; size: number }>();
   for (const name of entries.filter(name => /\.sqlite(?:-wal|-shm)?$/.test(name)).sort()) {
     const path = join(directory, name), stat = await lstat(path);
     ensure(stat.isFile() && !stat.isSymbolicLink() && stat.nlink === 1 && await realpath(path) === path, "closed_native_file");
-    before.set(name, hash(await readFile(path)));
+    before.set(name, { sha256: hash(await readFile(path)), dev: stat.dev, ino: stat.ino, size: stat.size });
   }
   const observed: string[] = [];
   for (const name of files) {
@@ -279,7 +279,27 @@ async function verifyClosedNativeD1(directory: string, identities: { source: str
   expect(observed.sort()).toEqual([identities.source, identities.target].sort());
   const after = (await readdir(directory, { recursive: true })).filter(name => /\.sqlite(?:-wal|-shm)?$/.test(name)).sort();
   expect(after).toEqual([...before.keys()].sort());
-  for (const [name, expected] of before) expect(hash(await readFile(join(directory, name))), "Read-only original native file changed: " + name).toBe(expected);
+  const observations: Array<{ name: string; kind: "durable-data" | "ephemeral-reader-coordination";
+    beforeSha256: string; afterSha256: string; beforeSize: number; afterSize: number; dev: number; ino: number }> = [];
+  for (const [name, expected] of before) {
+    const path = join(directory, name), stat = await lstat(path);
+    ensure(stat.isFile() && !stat.isSymbolicLink() && stat.nlink === 1 && await realpath(path) === path
+      && stat.dev === expected.dev && stat.ino === expected.ino, "closed_native_file_identity_changed");
+    const afterSha256 = hash(await readFile(path)), ephemeral = name.endsWith(".sqlite-shm");
+    if (!ephemeral) {
+      expect(stat.size, "Read-only durable native file size changed: " + name).toBe(expected.size);
+      expect(afterSha256, "Read-only durable native file changed: " + name).toBe(expected.sha256);
+    }
+    // WAL-index reader locks/read marks can change during a read-only SQLite
+    // connection. They are coordination metadata, not durable database pages.
+    // Record both hashes honestly while preserving the exact path/inode.
+    observations.push({ name, kind: ephemeral ? "ephemeral-reader-coordination" : "durable-data",
+      beforeSha256: expected.sha256, afterSha256, beforeSize: expected.size, afterSize: stat.size, dev: stat.dev, ino: stat.ino });
+  }
+  await writeFile(receiptPath, JSON.stringify({ schema: "closed-original-native-d1-readonly-consistency/1",
+    originalNativeDisposed: true, installations: observed, wholeQuickCheck: true, foreignKeys: true,
+    durableMainAndWalUnchanged: true, physicalPathsAndInodesUnchanged: true, files: observations }, null, 2) + "\n",
+  { flag: "wx", mode: 0o600 });
 }
 async function run(kind: "ZERO" | "NONEMPTY") {
   const input = await retainedInput(kind), parent = process.env.WORKER_V5_NATIVE_FIXTURE_PARENT;
@@ -351,7 +371,7 @@ async function run(kind: "ZERO" | "NONEMPTY") {
   try { await close(owner); } catch (cleanup) { throw failed ? new AggregateError([failure, cleanup], "Original operation and close failed") : cleanup; }
   if (failed) throw failure;
   ensure(persistedD1 && closedIdentities && !owners.has(owner), "original_native_close_before_whole_check");
-  await verifyClosedNativeD1(persistedD1, closedIdentities);
+  await verifyClosedNativeD1(persistedD1, closedIdentities, join(root, "closed-native-file-consistency.json"));
 }
 it(titles[0], () => run("ZERO"), 60_000);
 it(titles[1], () => run("NONEMPTY"), 120_000);
