@@ -15,10 +15,12 @@ import { captureInstalledIdentityExecutionOwner } from "../auth/installed-identi
 import { stopNodeHttpServerAndDrain } from "../http";
 import type { ReviewedInstallationAdmission } from "../migrations";
 import { assertNodeRuntimeConfiguration, type LoadedNodeRuntimeConfiguration } from "../node-runtime-config";
-import { assertLinuxWriterLeaseBinding, type LinuxWriterLease } from "../operations/writer-lease";
+import { assertLinuxWriterLeaseBinding, WriterLeaseError, type LinuxWriterLease } from "../operations/writer-lease";
 import type { SqliteCapability } from "../sqlite";
 import { createLocalVolumeProfileOpening } from "../storage/local-volume-profile-opening";
-import { createLocalAcceptedUpload, LocalUploadConflictError, LocalUploadUnavailableError } from "./local-accepted-upload";
+import { createLocalAcceptedUpload, localUploadFailureStep, LocalUploadConflictError, LocalUploadUnavailableError } from "./local-accepted-upload";
+import { StorageRoleDefaultsUnavailableError } from "../../worker/files/storage-role-defaults-core.ts";
+import { LocalByteStorageError } from "../storage/local-byte-storage.ts";
 import { createLocalUploadExecution } from "./local-upload-execution";
 import { readOwnedUploadBody } from "./owned-upload-body";
 import { createLocalFileMetadataComposition } from "./local-file-metadata-composition";
@@ -63,6 +65,9 @@ function uploadFailureClass(error: unknown): string {
   if (error instanceof ShadowProfileUnavailableError) return "shadow_profile";
   if (error instanceof FileAuthorityUnavailableError) return "file_authority";
   if (error instanceof LocalUploadUnavailableError) return "upload_outcome_unavailable";
+  if (error instanceof StorageRoleDefaultsUnavailableError) return "role_defaults";
+  if (error instanceof LocalByteStorageError) return "local_byte_storage";
+  if (error instanceof WriterLeaseError) return "writer_lease";
   if (error instanceof TypeError) return "type_error";
   if (error instanceof ReferenceError) return "reference_error";
   if (error instanceof RangeError) return "range_error";
@@ -86,7 +91,8 @@ function observeUpload503(phase: UploadFailurePhase, error: unknown): void {
   // Exactly the existing denied() status selection: no successful/4xx work logs.
   if (error instanceof LocalUploadConflictError || error instanceof HTTPException && error.status !== 503) return;
   try {
-    process.stderr.write(JSON.stringify({ kind: "node-local-file-upload-failure/1", phase,
+    const selectedPhase = phase === "upload_accept" ? localUploadFailureStep(error) ?? phase : phase;
+    process.stderr.write(JSON.stringify({ kind: "node-local-file-upload-failure/1", phase: selectedPhase,
       errorClass: uploadFailureClass(error) }) + "\n");
   } catch { /* Diagnostics cannot replace the original response or close outcome. */ }
 }

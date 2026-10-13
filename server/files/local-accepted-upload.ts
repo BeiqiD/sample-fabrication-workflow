@@ -31,6 +31,38 @@ export class LocalUploadUnavailableError extends Error {
 export class LocalUploadConflictError extends Error {
   constructor() { super("This upload request was already accepted with different content."); this.name = "LocalUploadConflictError"; }
 }
+/** Private fixed failure-step metadata only. The original thrown object,
+ * response, provider ownership and cached first cleanup are never replaced. */
+export type LocalUploadFailureStep =
+    "upload_factory_owner"
+  | "upload_factory_physical"
+  | "upload_factory_history"
+  | "upload_execution_owner"
+  | "upload_input"
+  | "upload_canonical_hash"
+  | "upload_receipt_lookup"
+  | "upload_receipt_replay"
+  | "upload_role_defaults"
+  | "upload_internal_authority"
+  | "upload_originals_authority"
+  | "upload_authority_database"
+  | "upload_acceptance_commit"
+  | "upload_acceptance_lookup"
+  | "upload_candidate_stage"
+  | "upload_verified_publication"
+  | "upload_publication_commit"
+  | "upload_final_receipt_lookup"
+  | "upload_final_verification";
+const failureSteps = new WeakMap<object, LocalUploadFailureStep>();
+function noteFailureStep(error: unknown, step: LocalUploadFailureStep): void {
+  if ((typeof error !== "object" || error === null) && typeof error !== "function") return;
+  try { if (!failureSteps.has(error)) failureSteps.set(error, step); }
+  catch { /* Diagnostics never replace the original thrown object. */ }
+}
+export function localUploadFailureStep(error: unknown): LocalUploadFailureStep | undefined {
+  if ((typeof error !== "object" || error === null) && typeof error !== "function") return undefined;
+  return failureSteps.get(error);
+}
 function text(row: FileAuthoritySqlRow, key: string, maximum = 256): string {
   const value = row[key];
   if (typeof value !== "string" || !value || value.length > maximum || value.includes("\0")) throw new LocalUploadUnavailableError();
@@ -83,9 +115,13 @@ function preserveOwnershipFailure(error: unknown): void {
  * The host retains execution.settled/dispose through original provider cleanup.
  * Current3 recovery validators remain closed until separate paired review. */
 export function createLocalAcceptedUpload(opening: LocalVolumeProfileOpening, execution: LocalUploadExecution) {
+  let factoryStep: LocalUploadFailureStep = "upload_factory_owner";
+  try {
   assertLocalUploadExecutionOwner(execution, opening);
+  factoryStep = "upload_factory_physical";
   const physical = ownedLocalVolumeProfileContext(opening);
   physical.assertCurrent();
+  factoryStep = "upload_factory_history";
   const history = execution.historyDatabase();
   async function state(row: Receipt): Promise<R2UploadRequestState> {
     const base = identity(row);
@@ -123,7 +159,10 @@ export function createLocalAcceptedUpload(opening: LocalVolumeProfileOpening, ex
     },
     async accept(upload: Readonly<{ requestId: string; ingress: R2UploadIngress; originalName: string; mimeType: string;
       bytes: ArrayBuffer }>): Promise<Readonly<{ state: R2UploadRequestState; fresh: boolean }>> {
+      let failureStep: LocalUploadFailureStep = "upload_execution_owner";
+      try {
       assertLocalUploadExecutionOwner(execution, opening);
+      failureStep = "upload_input";
       const requestId = upload.requestId, ingress = upload.ingress, originalName = upload.originalName, mimeType = upload.mimeType;
       const sourceBytes = upload.bytes;
       if (normalizeR2UploadRequestId(requestId) !== requestId) throw new HTTPException(400, { message: "A valid upload request ID is required." });
@@ -132,17 +171,26 @@ export function createLocalAcceptedUpload(opening: LocalVolumeProfileOpening, ex
       // Capture bytes and metadata before the first hash/SQL await. A mutable
       // caller ArrayBuffer cannot change content after accepting its hash.
       const bytes = sourceBytes.slice(0);
+      failureStep = "upload_canonical_hash";
       const canonical = await canonicalR2UploadInput(ingress, { originalName, mimeType, byteSize: bytes.byteLength,
         sha256: await sha256Hex(bytes) });
+      failureStep = "upload_receipt_lookup";
       const previous = await readReceipt(history, execution.actor, requestId);
-      if (previous) { sameContent(previous, canonical); return { state: await state(previous), fresh: false }; }
+      if (previous) {
+        failureStep = "upload_receipt_replay";
+        sameContent(previous, canonical); return { state: await state(previous), fresh: false };
+      }
+      failureStep = "upload_role_defaults";
       const defaults = await readSqlStorageRoleDefaults(history);
       if (!defaults || defaults.internal.policyRevision < 3) throw new LocalUploadUnavailableError();
+      failureStep = "upload_internal_authority";
       const internal = captureLocalVolumeProfileAuthority(opening,
         { profileId: defaults.internal.storageProfileId, configurationRevision: 1 }, "write");
+      failureStep = "upload_originals_authority";
       const originals = captureLocalVolumeProfileAuthority(opening,
         { profileId: defaults.originals.storageProfileId, configurationRevision: 1 }, "write");
       const authorities = [internal, originals];
+      failureStep = "upload_authority_database";
       const database = execution.database(authorities);
       const targets = Object.freeze({ internal: { id: internal.profile.profileId, configurationRevision: 1 as const,
         namespaceIdentity: internal.profile.namespaceIdentity }, originals: { id: originals.profile.profileId,
@@ -153,6 +201,7 @@ export function createLocalAcceptedUpload(opening: LocalVolumeProfileOpening, ex
       const now = new Date().toISOString(), expiresAt = new Date(Date.parse(now) + R2_UPLOAD_RECEIPT_LIFETIME_MS).toISOString();
       const id = crypto.randomUUID(), operationId = crypto.randomUUID(), assetId = crypto.randomUUID();
       const objectKey = `files/${crypto.randomUUID()}`;
+      failureStep = "upload_acceptance_commit";
       try {
         // Same mature acceptance shape, explicit role policy >=3. Both exact
         // source snapshots and the dual-role selection fence share this BEGIN.
@@ -169,16 +218,21 @@ export function createLocalAcceptedUpload(opening: LocalVolumeProfileOpening, ex
           AND candidate_asset_id=? AND candidate_object_key=?) THEN 1 ELSE json('Upload acceptance did not commit') END`)
             .bind(id, operationId, profile.profileId, assetId, objectKey)]);
       } catch (error) { preserveOwnershipFailure(error); /* Read exact original receipt; never repeat acceptance. */ }
+      failureStep = "upload_acceptance_lookup";
       const accepted = await readReceipt(history, execution.actor, requestId);
       if (!accepted) throw new LocalUploadUnavailableError();
       sameContent(accepted, canonical);
-      if (accepted.id !== id || accepted.operation_id !== operationId || accepted.status !== "pending")
+      if (accepted.id !== id || accepted.operation_id !== operationId || accepted.status !== "pending") {
+        failureStep = "upload_receipt_replay";
         return { state: await state(accepted), fresh: false };
+      }
       if (accepted.storage_profile_id !== profile.profileId || accepted.role_policy_revision !== defaults.internal.policyRevision
         || accepted.candidate_asset_id !== assetId || accepted.candidate_object_key !== objectKey) throw new LocalUploadUnavailableError();
       if (accepted.expires_at <= new Date().toISOString()) return { state: { ...identity(accepted), status: "expired" }, fresh: false };
       const owner = Object.freeze({ kind: "r2_upload" as const, acceptanceId: id, actorEmail: execution.actor, operationId });
+      failureStep = "upload_candidate_stage";
       const candidate = await stageAuthorityCandidate(database, owner);
+      failureStep = "upload_verified_publication";
       const publication = await writeAuthorityCandidate({ database,
         openProfile(frozen, access, lifecycle) {
           return execution.openProfile(frozen, access, { ...lifecycle, async beforeRequest(operation) {
@@ -189,6 +243,7 @@ export function createLocalAcceptedUpload(opening: LocalVolumeProfileOpening, ex
         },
       }, owner, candidate, { body: bytes, contentType: mimeType, filename: originalName });
       const completedAt = new Date().toISOString();
+      failureStep = "upload_publication_commit";
       try {
         // Publication, the native File alias, and accepted receipt are one
         // transaction with fresh original source/default/principal checks.
@@ -196,10 +251,14 @@ export function createLocalAcceptedUpload(opening: LocalVolumeProfileOpening, ex
           ...prepareActiveFileUploadReceiptStatements(database, accepted, candidate, publication.result,
             { originalName, mimeType, completedAt, aliasKind: "native" })]);
       } catch (error) { preserveOwnershipFailure(error); /* No PUT/delete/metadata retry after unknown final ACK. */ }
+      failureStep = "upload_final_receipt_lookup";
       const finalized = await readReceipt(history, execution.actor, requestId);
       if (!finalized || finalized.id !== accepted.id || finalized.operation_id !== accepted.operation_id)
         throw new LocalUploadUnavailableError();
+      failureStep = "upload_final_verification";
       return { state: await state(finalized), fresh: true };
+      } catch (error) { noteFailureStep(error, failureStep); throw error; }
     },
   });
+  } catch (error) { noteFailureStep(error, factoryStep); throw error; }
 }
