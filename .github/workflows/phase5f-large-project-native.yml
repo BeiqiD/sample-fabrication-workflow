@@ -3,7 +3,7 @@ name: Phase 5F 200-node native Project
 on:
   workflow_dispatch:
   push:
-    branches: [codex/phase5f-eight-sample-keyboard, codex/phase5f-compare-escape-focus]
+    branches: [codex/phase5f-eight-sample-keyboard, codex/phase5f-compare-escape-focus, codex/phase5f-project-250-400-native]
   pull_request:
     branches: [v2/backend-foundation]
     paths:
@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
-      PHASE5F_NATIVE_SCENARIO: ${{ (github.ref == 'refs/heads/codex/phase5f-compare-escape-focus' || github.head_ref == 'codex/phase5f-compare-escape-focus') && 'compareEscape' || (github.ref == 'refs/heads/codex/phase5f-eight-sample-keyboard' || github.head_ref == 'codex/phase5f-eight-sample-keyboard') && 'eightSamples' || 'large200' }}
+      PHASE5F_NATIVE_SCENARIO: ${{ (github.ref == 'refs/heads/codex/phase5f-project-250-400-native' || github.head_ref == 'codex/phase5f-project-250-400-native') && 'large250' || (github.ref == 'refs/heads/codex/phase5f-compare-escape-focus' || github.head_ref == 'codex/phase5f-compare-escape-focus') && 'compareEscape' || (github.ref == 'refs/heads/codex/phase5f-eight-sample-keyboard' || github.head_ref == 'codex/phase5f-eight-sample-keyboard') && 'eightSamples' || 'large200' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -55,7 +55,7 @@ jobs:
           PLAYWRIGHT_BROWSERS_PATH="$qa_root/browser-tools/browsers" node - "$qa_root/browser-tools/node_modules/playwright" >> "$GITHUB_ENV" <<'JS'
           process.stdout.write(`CHROMIUM_PATH=${require(process.argv[2]).chromium.executablePath()}\n`);
           JS
-      - name: Run the fresh ${{ env.PHASE5F_NATIVE_SCENARIO == 'compareEscape' && 'Compare/Escape' || env.PHASE5F_NATIVE_SCENARIO == 'eightSamples' && 'eight-Sample' || '200-node' }} namespace and original normal stop
+      - name: Run the fresh ${{ env.PHASE5F_NATIVE_SCENARIO == 'large250' && '250-node/400-relation' || env.PHASE5F_NATIVE_SCENARIO == 'compareEscape' && 'Compare/Escape' || env.PHASE5F_NATIVE_SCENARIO == 'eightSamples' && 'eight-Sample' || '200-node' }} namespace and original normal stop
         run: |
           "$CHROMIUM_PATH" --version
           python3 scripts/qa/phase5f/run-large-project-ci.py --source "$GITHUB_WORKSPACE" --root "$PHASE5F_NATIVE_ROOT" --physical-python-tools "$PHASE5F_NATIVE_ROOT/python-tools" --scenario "$PHASE5F_NATIVE_SCENARIO"
@@ -63,10 +63,11 @@ jobs:
         if: ${{ always() && env.PHASE5F_NATIVE_ROOT != '' }}
         uses: actions/upload-artifact@v4
         with:
-          name: phase5f-${{ env.PHASE5F_NATIVE_SCENARIO == 'compareEscape' && 'compareEscape' || env.PHASE5F_NATIVE_SCENARIO == 'eightSamples' && 'eightSamples' || 'large200' }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: phase5f-${{ env.PHASE5F_NATIVE_SCENARIO == 'large250' && 'large250-400' || env.PHASE5F_NATIVE_SCENARIO == 'compareEscape' && 'compareEscape' || env.PHASE5F_NATIVE_SCENARIO == 'eightSamples' && 'eightSamples' || 'large200' }}-${{ github.run_id }}-${{ github.run_attempt }}
           if-no-files-found: warn
           path: |
             ${{ env.PHASE5F_NATIVE_ROOT }}/server.log
             ${{ env.PHASE5F_NATIVE_ROOT }}/fixture/*.json
             ${{ env.PHASE5F_NATIVE_ROOT }}/fixture/actual-api-browser-progress.ndjson
             ${{ env.PHASE5F_NATIVE_ROOT }}/fixture/browser-artifacts/*.png
+            ${{ env.PHASE5F_NATIVE_ROOT }}/fixture/browser-artifacts/*.zip

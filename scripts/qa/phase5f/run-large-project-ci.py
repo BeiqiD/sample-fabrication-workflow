@@ -14,16 +14,17 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", required=True)
     parser.add_argument("--root", required=True)
-    parser.add_argument("--scenario", choices=("large200", "eightSamples", "compareEscape"), default="large200")
+    parser.add_argument("--scenario", choices=("large200", "eightSamples", "compareEscape", "large250"), default="large200")
     parser.add_argument("--physical-python-tools", help="Hosted pinned pysqlite3-binary target for the original physical checker")
     args = parser.parse_args()
     eight_samples = args.scenario == "eightSamples"
     compare_escape = args.scenario == "compareEscape"
+    large_250 = args.scenario == "large250"
     supplemental = eight_samples or compare_escape
     case_ids = (["samples-keyboard-1200-light", "samples-keyboard-720-dark"]
-                if eight_samples else ["compare-escape-1200-light"] if compare_escape else ["project-large-1200-light"])
-    qualification_label = "eight-sample" if eight_samples else "compare-escape" if compare_escape else "200-node"
-    seed_env = {"PHASE5F_PROJECT_NODE_COUNT": "" if supplemental else "200"}
+                if eight_samples else ["compare-escape-1200-light"] if compare_escape else ["project-large-250-400-1200-light"] if large_250 else ["project-large-1200-light"])
+    qualification_label = "eight-sample" if eight_samples else "compare-escape" if compare_escape else "250-node/400-relation" if large_250 else "200-node"
+    seed_env = {"PHASE5F_PROJECT_NODE_COUNT": "" if supplemental else "250" if large_250 else "200"}
     browser_env = {"PHASE5F_CASE_ID": "" if supplemental else case_ids[0],
                    "PHASE5F_BROWSER_SCENARIO": args.scenario if supplemental else ""}
     source = Path(args.source).resolve(strict=True)

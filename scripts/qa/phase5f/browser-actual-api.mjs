@@ -150,10 +150,13 @@ const eightSampleCases = [{ id: 'samples-keyboard-1200-light', width: 1200, them
 const expectedCaseIds = seed.cases.flatMap(item => [`start-${item.key}`, `plan-${item.key}`, `surfaces-${item.key}`]);
 expectedCaseIds.push('chunk-404-explicit-reload', 'chunk-503-explicit-reload');
 const largeProjectCaseId = 'project-large-1200-light';
+const representativeProjectCaseId = 'project-large-250-400-1200-light';
+const nativeLargeProjectCaseId = seed.project.large?.nodeCount === 250 ? representativeProjectCaseId : largeProjectCaseId;
 if (seed.project.large) {
-  assert.equal(selectedCase, largeProjectCaseId, 'A 200-node fixture belongs only to its independent selected native case.');
-  assert.equal(seed.project.large.nodeCount, 200); assert.equal(seed.project.large.edgeCount, 0);
-  expectedCaseIds.splice(0, expectedCaseIds.length, largeProjectCaseId);
+  assert.equal(selectedCase, nativeLargeProjectCaseId, 'A large fixture belongs only to its independent selected native case.');
+  const representative = nativeLargeProjectCaseId === representativeProjectCaseId;
+  assert.equal(seed.project.large.nodeCount, representative ? 250 : 200); assert.equal(seed.project.large.edgeCount, representative ? 400 : 0);
+  expectedCaseIds.splice(0, expectedCaseIds.length, nativeLargeProjectCaseId);
 }
 if (eightSamples) {
   assert(!seed.project.large && !selectedCase, 'Eight-Sample qualification uses the original four-item seed and both independent cases.');
@@ -165,7 +168,9 @@ if (compareEscape) {
   expectedCaseIds.splice(0, expectedCaseIds.length, compareEscapeCaseId);
 }
 if (selectedCase) assert(expectedCaseIds.includes(selectedCase), 'Unknown explicit case ID.');
-const report = { version: 1, scope: compareEscape
+const report = { version: 1, scope: seed.project.large?.nodeCount === 250
+  ? 'One native current 250-node/400-relation mixed Project case, at 1200/light; original response bytes, controls, reference Details/navigation and readable ZIP. Zero browser domain mutations; no whole matrix, frame-rate, envelope or whole-5F claim.'
+  : compareEscape
   ? 'One native Process Compare/Escape focus-return case, at 1200/light. Preview POSTs permitted; zero domain mutations. No full 20-case matrix or whole-5F completion claim.'
   : eightSamples
   ? 'Two native eight-Sample keyboard/idle-overlay cases only, at 1200/light and 720/dark. Original four-item Project fixture; no execution writes, full 20-case matrix, physical-device, or whole-5F completion claim.'
@@ -537,7 +542,7 @@ try {
       actualInternalEightColumnOverflow: true, unchangedEightSampleRunStepHistory: true, nativeExecutionWrites: 0,
       scope: 'Only this native keyboard/idle-overlay case; no execution mutation, full 20-case matrix, device, or whole-5F completion claim.' });
   });
-  if (seed.project.large) await executeCase(largeProjectCaseId, { width: 1200, theme: 'light' }, async (page, record) => {
+  if (seed.project.large) await executeCase(nativeLargeProjectCaseId, { width: 1200, theme: 'light' }, async (page, record) => {
     const projectPath = `/projects/${seed.project.projectId}`, before = await actualApi(projectPath), pins = seed.project.large;
     const originalSeedGet = seed.trace.findLast(item => item.path === projectPath && item.method === 'GET');
     assert(originalSeedGet && originalSeedGet.status === 200 && originalSeedGet.outcome === 'response_accepted');
@@ -550,7 +555,7 @@ try {
       const item = { status: response.status(), body: 'pending' }; nativeProjectBodies.push(item);
       const work = (async () => {
         try {
-          const bytes = Buffer.from(await bounded(response.body(), BODY_OBSERVATION_TIMEOUT_MS, 'Original native 200-node Project Response.body'));
+          const bytes = Buffer.from(await bounded(response.body(), BODY_OBSERVATION_TIMEOUT_MS, `Original native ${pins.nodeCount}-node Project Response.body`));
           item.body = 'complete'; item.byteSize = bytes.length; item.sha256 = sha(bytes);
           assert.equal(item.status, 200); assert(bytes.length > 0 && bytes.length < 2097152);
           assert.equal(item.sha256, originalSeedGet.responseSha256, 'Original native Project bytes must match the original prepared API body.');
@@ -563,13 +568,15 @@ try {
       const nativeProjectWrites = [];
       page.on('request', request => {
         const path = new URL(request.url()).pathname;
-        if ((path.startsWith('/api/projects') || path === '/api/project-assets') && !['GET', 'HEAD'].includes(request.method()))
+        if ((pins.nodeCount === 250 ? path.startsWith('/api/') : path.startsWith('/api/projects') || path === '/api/project-assets')
+          && !['GET', 'HEAD'].includes(request.method()))
           nativeProjectWrites.push({ path, method: request.method() });
       });
       assert.equal(before.project.revision, pins.revision);
       assert.deepEqual(before.items.map(item => item.id).sort(), pins.itemIds);
       assert.deepEqual(before.placements.map(item => item.id).sort(), pins.placementIds);
-      assert.equal(before.edges.length, 0);
+      assert.equal(before.edges.length, pins.edgeCount);
+      if (pins.nodeCount === 250) assert.deepEqual(before.edges.map(edge => edge.id).sort(), pins.edgeIds);
       await page.goto(new URL(projectPath, base).href);
       await visible(page.getByRole('heading', { name: `5F mixed Project ${fixture.prefix}`, exact: true }));
       const canvas = page.getByTestId('project-flow-canvas'), viewport = canvas.locator('.react-flow__viewport');
@@ -577,7 +584,12 @@ try {
       await page.waitForFunction(element => element.dataset.projectMapDetail === 'overview', await canvas.elementHandle());
       assert.equal(await canvas.getAttribute('data-project-map-scale'), 'target');
       assert.equal(await canvas.getAttribute('data-project-map-culling'), 'visible-elements');
-      assert.equal(await canvas.getAttribute('data-project-map-node-count'), '200');
+      assert.equal(await canvas.getAttribute('data-project-map-node-count'), String(pins.nodeCount));
+      if (pins.nodeCount === 250) {
+        assert.equal(await canvas.getAttribute('data-project-map-edge-count'), '400');
+        await page.waitForFunction(element => element.querySelectorAll('.react-flow__node-projectItem').length === 250
+          && element.querySelectorAll('.react-flow__edge').length === 400, await canvas.elementHandle());
+      }
       const viewportState = () => viewport.evaluate(element => new Promise((resolve, reject) => {
         let previous, stableFrames = 0, frame;
         const timer = setTimeout(() => { cancelAnimationFrame(frame); reject(new Error('Native viewport did not settle within 20s.')); }, 20000);
@@ -602,10 +614,10 @@ try {
       const fullViewport = await viewportState(); assert(fullViewport.zoom > initialViewport.zoom);
       await page.waitForFunction(element => {
         const count = element.querySelectorAll('.react-flow__node-projectItem').length;
-        return count > 0 && count < 200;
+        return count > 0 && count < Number(element.dataset.projectMapNodeCount);
       }, await canvas.elementHandle());
       const renderedCount = await canvas.locator('.react-flow__node-projectItem').count();
-      assert(renderedCount > 0 && renderedCount < 200, 'Full-detail native zoom must exercise actual visible-element culling.');
+      assert(renderedCount > 0 && renderedCount < pins.nodeCount, 'Full-detail native zoom must exercise actual visible-element culling.');
       const panPoint = await canvas.evaluate(element => {
         const rect = element.getBoundingClientRect();
         for (let y = rect.top + 30; y < rect.bottom - 80; y += 20) for (let x = rect.left + 30; x < rect.right - 160; x += 20) {
@@ -638,6 +650,12 @@ try {
       await enabled(mapDetails); await mapDetails.focus(); await page.keyboard.press('Enter');
       const inspector = page.locator('#project-inspector-panel'); await visible(inspector);
       await page.waitForFunction(element => document.activeElement === element, await inspector.elementHandle());
+      if (pins.nodeCount === 250) {
+        const incident = before.edges.filter(edge => edge.sourceItemId === visibleNode.id || edge.targetItemId === visibleNode.id);
+        assert(incident.length > 0); await visible(inspector.getByRole('heading', { name: 'Relationships', exact: true }));
+        assert.equal(await inspector.locator('.project-inspector-relationships li').count(), incident.length);
+        record.assertions.push({ nativeSelectedItemId: visibleNode.id, actualIncidentRelationshipCount: incident.length });
+      }
       await page.keyboard.press('Escape'); await absent(inspector);
       await page.waitForFunction(element => element.isConnected && document.activeElement === element, inspectorTrigger);
       const selectedViewport = await viewportState(); await canvas.locator('.react-flow__controls-zoomout').click();
@@ -659,15 +677,76 @@ try {
       await page.waitForFunction(element => document.activeElement === element, await inspector.elementHandle());
       await page.keyboard.press('Escape'); await absent(inspector);
       await page.waitForFunction(element => element.isConnected && document.activeElement === element, originalReadingDetails);
+      if (pins.nodeCount === 250) {
+        const referenceDetails = [];
+        for (const [itemId, type, sourceId] of [[pins.originalMixedItemIds[1], 'sample', seed.mixed[0].sampleId],
+          [pins.originalMixedItemIds[2], 'run_step', seed.mixed[0].firstStepId]]) {
+          const trigger = reading.locator(`[data-project-details-trigger="${itemId}"]`);
+          await trigger.scrollIntoViewIfNeeded(); await trigger.focus(); const originalTrigger = await trigger.elementHandle();
+          await page.keyboard.press('Enter'); await visible(inspector);
+          await page.waitForFunction(element => document.activeElement === element, await inspector.elementHandle());
+          const disclosure = inspector.locator('.project-inspector-technical-details');
+          if (!(await disclosure.evaluate(element => element.open))) {
+            await disclosure.locator('summary').focus(); await page.keyboard.press('Enter');
+          }
+          await visible(inspector.getByText(`${type}:${sourceId}`, { exact: true }));
+          const reference = before.references.find(reference => reference.resolution.target.type === type && reference.resolution.target.id === sourceId);
+          assert(reference?.resolution.destination.openSourceUrl);
+          assert.equal(await inspector.getByRole('link', { name: 'Open exact source', exact: true }).getAttribute('href'), reference.resolution.destination.openSourceUrl);
+          assert.equal(await inspector.locator('.project-inspector-relationships li').count(),
+            before.edges.filter(edge => edge.sourceItemId === itemId || edge.targetItemId === itemId).length);
+          await page.keyboard.press('Escape'); await absent(inspector);
+          await page.waitForFunction(element => element.isConnected && document.activeElement === element, originalTrigger);
+          referenceDetails.push({ itemId, sourceType: type, sourceId, originalDetailsTriggerRestored: true });
+        }
+        const options = reading.locator('summary[aria-label="Reading options"]');
+        await options.focus(); await page.keyboard.press('Enter');
+        const exportButton = reading.getByRole('button', { name: 'Export readable ZIP', exact: true }); await enabled(exportButton);
+        const originalDownload = page.waitForEvent('download', { timeout: 20000 });
+        await exportButton.focus(); await page.keyboard.press('Enter');
+        const download = await originalDownload; assert.equal(await download.failure(), null);
+        assert(download.suggestedFilename().endsWith('.zip'));
+        const archivePath = resolve(output, `${representativeProjectCaseId}-reading.zip`);
+        await download.saveAs(archivePath);
+        const archiveBytes = await readFile(archivePath); assert(archiveBytes.length > 0 && archiveBytes.length < 2097152);
+        const zip = await bounded(runtimeRequire('jszip').loadAsync(archiveBytes, { checkCRC32: true }), 20000, 'Original browser readable ZIP decode');
+        assert(zip.file('manifest.json') && zip.file('reading.md'));
+        const manifest = JSON.parse(await bounded(zip.file('manifest.json').async('string'), BODY_OBSERVATION_TIMEOUT_MS, 'Original ZIP manifest'));
+        assert.equal(manifest.format, 'sample-fabrication-project-reading'); assert.equal(manifest.version, 1);
+        assert.equal(manifest.projectTitle, before.project.title); assert.equal(manifest.ordering, 'created_sequence');
+        assert.deepEqual(manifest.warnings, []); assert.equal(manifest.items.length, 250);
+        const orderedItems = [...before.items].sort((a, b) => a.createdSequence - b.createdSequence || a.id.localeCompare(b.id));
+        assert.deepEqual(manifest.items.map(item => item.itemId), orderedItems.map(item => item.id));
+        const expectedKinds = orderedItems.map(item => {
+          if (item.itemType === 'reference') return 'reference';
+          const content = before.contents.find(content => content.id === item.projectContentId); assert(content);
+          return content.contentType;
+        });
+        assert.deepEqual(manifest.items.map(item => item.kind), expectedKinds);
+        const attachment = manifest.items.find(item => item.kind === 'attachment');
+        assert(attachment && attachment.contentId === seed.project.attachmentContentId && attachment.relativeAttachmentPath);
+        const attachmentBytes = await bounded(zip.file(attachment.relativeAttachmentPath).async('nodebuffer'), BODY_OBSERVATION_TIMEOUT_MS, 'Original ZIP PNG bytes');
+        assert.equal(attachmentBytes.length, seed.project.attachmentByteSize); assert.equal(sha(attachmentBytes), seed.project.attachmentSha256);
+        for (const itemId of pins.originalMixedItemIds.slice(1, 3)) {
+          const item = before.items.find(item => item.id === itemId), reference = before.references.find(reference => reference.registryId === item.referenceTargetId);
+          assert(reference); assert.equal(manifest.items.find(item => item.itemId === itemId).referenceUrl, reference.resolution.destination.referenceUrl);
+        }
+        const readingMarkdown = await bounded(zip.file('reading.md').async('string'), BODY_OBSERVATION_TIMEOUT_MS, 'Original ZIP reading Markdown');
+        assert(readingMarkdown.includes('5F mixed domain record') && readingMarkdown.includes('5F large note 250'));
+        assert(readingMarkdown.includes('Open reference') && readingMarkdown.includes('attachments/'));
+        await visible(reading.getByRole('status').filter({ hasText: 'Readable ZIP exported.' }));
+        record.assertions.push({ actualReferenceDetails: referenceDetails, originalReadableZip: { byteSize: archiveBytes.length,
+          sha256: sha(archiveBytes), manifestItemCount: 250, pngSha256: sha(attachmentBytes), nativeDownload: true } });
+      }
       const image = reading.locator(`img[src*="/contents/${seed.project.attachmentContentId}/file"]`);
       await image.scrollIntoViewIfNeeded(); await visible(image);
       await page.waitForFunction(element => element.complete && element.naturalWidth > 0, await image.elementHandle());
-      await noDocumentOverflow(page, record.assertions, 'project-200-reading', 'light');
+      await noDocumentOverflow(page, record.assertions, `project-${pins.nodeCount}-reading`, 'light');
       const sourceLinks = reading.getByRole('link', { name: 'Open source', exact: true });
       const hrefs = await sourceLinks.evaluateAll(elements => elements.map(element => element.getAttribute('href')));
       assert.equal(hrefs.length, 2); assert(hrefs.some(href => href.startsWith(`/processing/${seed.mixed[0].sampleId}`)));
       const mapControl = page.getByRole('button', { name: 'Map', exact: true }); await mapControl.focus(); await page.keyboard.press('Enter');
-      await visible(canvas); assert.equal(await canvas.getAttribute('data-project-map-node-count'), '200');
+      await visible(canvas); assert.equal(await canvas.getAttribute('data-project-map-node-count'), String(pins.nodeCount));
       assert(await mapControl.evaluate(element => document.activeElement === element));
       await readingControl.focus(); await page.keyboard.press('Enter'); await visible(reading);
       assert(await readingControl.evaluate(element => document.activeElement === element));
@@ -681,16 +760,17 @@ try {
       await enabled(mapControl); await mapControl.focus(); await page.keyboard.press('Enter');
       await visible(page.getByRole('region', { name: 'Project Map', exact: true }));
       assert(await mapControl.evaluate(element => document.activeElement === element));
-      await noDocumentOverflow(page, record.assertions, 'project-200-map-after-native-source-back', 'light');
+      await noDocumentOverflow(page, record.assertions, `project-${pins.nodeCount}-map-after-native-source-back`, 'light');
       assert.deepEqual(await actualApi(projectPath), before, 'Native reading/navigation/pan/zoom must preserve every original Project value.');
       assert.equal(nativeProjectWrites.length, 0, 'No native Project write may be dispatched, including a cancelled or failed request.');
       await Promise.all(nativeProjectCaptures);
       assert(nativeProjectBodies.length > 0, 'At least one original native Project GET body must complete.');
-      record.assertions.push({ nodeCount: 200, edgeCount: 0, initialViewport, fullViewport, pannedViewport, zoomedOutViewport, refittedViewport, fullDetailRenderedCount: renderedCount,
+      record.assertions.push({ nodeCount: pins.nodeCount, edgeCount: pins.edgeCount, initialViewport, fullViewport, pannedViewport, zoomedOutViewport, refittedViewport, fullDetailRenderedCount: renderedCount,
         nativeSelectedItemId: visibleNode.id, mapInspectorNaturalFocus: true, mapEscapeReturnedToOriginalInspector: true,
         nativeZoomOutAndKeyboardFitView: true, readingControlFocusRetained: true, readingDetailsNaturalFocusAndOriginalReturn: true, actualPngDecoded: true,
         nativeSourceHrefs: hrefs, keyboardSourceNavigationAndBrowserBack: true, projectSnapshotUnchanged: true, nativeProjectWrites: 0,
-        scope: '200-node native functional controls; no frame-rate, 500-node envelope, physical-device or whole-5F completion claim.' });
+        scope: pins.nodeCount === 250 ? '250-node/400-relation native functional controls, original GET bytes, Reference Details/source navigation and readable ZIP; no frame-rate, 500/800 envelope, device or whole-5F claim.'
+          : '200-node native functional controls; no frame-rate, 500-node envelope, physical-device or whole-5F completion claim.' });
     } finally {
       page.off('response', captureProjectBody);
       await Promise.allSettled(nativeProjectCaptures);
