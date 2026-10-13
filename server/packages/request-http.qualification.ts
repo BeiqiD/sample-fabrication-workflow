@@ -1,7 +1,10 @@
 import { createHash, randomUUID } from "node:crypto";
 import { beforeEach, describe, expect } from "vitest";
 import { checkedResearchJobStatus, checkedResearchPackagePreview, checkedResearchRequestReceipt } from "../../shared/contracts/research-package-api";
-import { researchRecordsDocument } from "../../shared/contracts/research-package";
+import { RESEARCH_PACKAGE_CATALOG, type ResearchRecordKind } from "../../shared/contracts/research-package-catalog";
+import { REFERENCE_IMPORT_KINDS, type ImportIdentityKind } from "../../worker/packages/import-domain-identity";
+import type { FrozenImportDomainPlan } from "../../worker/packages/import-domain-types";
+import { researchRecordsDocument, validateResearchPackage, type ResearchPackageV1 } from "../../shared/contracts/research-package";
 import { stableJson } from "../../shared/domain/content-addressing";
 import { createStoreArchiveStream, measureStoreArchive, sourceFromBlob, validateStoreArchive, type ArchiveEntry } from "../../shared/domain/research-archive";
 import { buildImportDomainFixture } from "../../worker/packages/import-domain-test-support";
@@ -34,6 +37,140 @@ async function drain(f:Fixture,jobId:string,expected:string){
     const step=await f.dispatchJobsOnce();expect(step.outcome).not.toBe("paused");
   }
   throw new Error("Bounded original Package dispatcher did not reach its checkpoint");
+}
+
+/** Reuse the original graph/assertGraph publication oracle against this actual
+ * native owner. Frozen rows establish exact publication; independent source
+ * records, identity receipts and literals establish source semantics. No plan
+ * or transformer is invoked here and no business row is seeded by the oracle. */
+function typedGraph(f:Fixture,jobId:string,original:ResearchPackageV1){
+  const row=f.native.prepare("SELECT domain_plan_json FROM research_package_jobs WHERE id=?").get(jobId)!;
+  const frozen=JSON.parse(String(row.domain_plan_json)) as FrozenImportDomainPlan;
+  const identities=f.native.prepare("SELECT entity_kind,source_id,destination_id FROM research_package_identity_maps WHERE job_id=? ORDER BY entity_kind,source_id").all(jobId);
+  const mapped=(kind:ImportIdentityKind,id:string)=>{
+    const identity=identities.find(value=>value.entity_kind===kind&&value.source_id===id);
+    expect(identity,`${kind}:${id}`).toBeDefined();return String(identity!.destination_id);
+  };
+  const acceptedIdentities=identities.map(identity=>({kind:identity.entity_kind,sourceId:identity.source_id,destinationId:identity.destination_id}));
+  expect(acceptedIdentities).toHaveLength(frozen.identities.length);
+  expect(acceptedIdentities).toEqual(expect.arrayContaining(frozen.identities));
+  for(const published of frozen.rows){
+    const fields=RESEARCH_PACKAGE_CATALOG[published.kind].id;
+    const actual=f.native.prepare(`SELECT * FROM ${published.table} WHERE ${fields.map(field=>`${field}=?`).join(" AND ")}`)
+      .get(...fields.map(field=>published.data[field] as string|number|null));
+    expect(actual,`${published.kind}:${published.sourceId}`).toMatchObject(published.data);
+    if(fields.length===1&&fields[0]==='id')expect(published.id).not.toBe(published.sourceId);
+  }
+  const retained=f.native.prepare("SELECT record_json FROM research_package_records WHERE job_id=? ORDER BY ordinal").all(jobId);
+  expect(retained.map(value=>JSON.parse(String(value.record_json)))).toEqual(original.records);
+  expect(retained).toHaveLength(original.counts.records);
+  const nativeRows=new Map<string,Record<string,unknown>>();
+  for(const source of original.records){
+    if(source.kind==='fileDerivation'||source.kind==='attachmentDerivative')continue;
+    const definition=RESEARCH_PACKAGE_CATALOG[source.kind];
+    const parts=definition.id.map(field=>{
+      if(field==='id'||field==='hash')return mapped(source.kind,source.sourceId);
+      const relation=definition.relations?.find(value=>value.field===field);
+      return relation?mapped(relation.kind,String(source.data[field])):source.data[field] as string|number|null;
+    });
+    const actual=f.native.prepare(`SELECT * FROM ${definition.table} WHERE ${definition.id.map(field=>`${field}=?`).join(' AND ')}`).get(...parts)!;
+    expect(actual,`${source.kind}:${source.sourceId}`).toBeDefined();nativeRows.set(`${source.kind}:${source.sourceId}`,actual);
+    if(definition.id.length===1&&definition.id[0]==='id')expect(actual.id).not.toBe(source.sourceId);
+    // Compare ordinary source fields directly to actual canonical cells, rather
+    // than to the formatter's own expected rows. Only declared typed identities,
+    // accepted naming and public JSON projection fields need separate checks.
+    const typed=new Set([...(definition.relations??[]).map(value=>value.field),
+      'last_mutation_id','deletion_operation_id','asset_deletion_operation_id','supersession_operation_id','creation_operation_id',
+      'run_group_id','operation_group_id','metadata','relationships','target','contexts','excluded_targets']);
+    for(const [field,value] of Object.entries(source.data)){
+      if(typed.has(field)||field==='packageFileId'||field.endsWith('PackageFileId')||!Object.hasOwn(actual,field))continue;
+      const naming=frozen.naming.find(value=>value.kind===source.kind&&value.sourceId===source.sourceId&&value.field===field);
+      if(naming){expect(naming.original).toBe(value);expect(actual[field]).toBe(naming.destination);continue;}
+      const observed=definition.fields[field].type==='json'&&actual[field]!==null?JSON.parse(String(actual[field])):actual[field];
+      expect(observed,`${source.kind}:${source.sourceId}.${field}`).toEqual(value);
+    }
+    for(const relation of definition.relations??[]){
+      const value=source.data[relation.field];
+      expect(actual[relation.field],`${source.kind}:${source.sourceId}.${relation.field}`)
+        .toBe(value===null?null:mapped(relation.kind,String(value)));
+    }
+  }
+  const copied=(kind:ResearchRecordKind,sourceId:string)=>nativeRows.get(`${kind}:${sourceId}`)!;
+  const sources=(kind:ResearchRecordKind)=>original.records.filter(value=>value.kind===kind);
+  expect(sources('comment')).toHaveLength(1);expect(sources('commentTarget')).toHaveLength(2);
+  expect(copied('comment','foreign-common-comment').body).toBe('One canonical Common Comment body');
+  for(const source of sources('commentOccurrence')){
+    const actual=copied(source.kind,source.sourceId);
+    expect(actual.operation_group_id).toBe(source.data.operation_group_id===null?null:mapped('comment',String(source.data.operation_group_id)));
+    expect(actual.legacy_body).toBe(source.data.legacy_body);
+  }
+  const references=sources('reference');expect(references).toHaveLength(9);
+  for(const source of references){
+    const actual=copied(source.kind,source.sourceId),target=source.data.target as {kind:ResearchRecordKind;sourceId:string};
+    expect(actual.target_type).toBe(Object.entries(REFERENCE_IMPORT_KINDS).find(([,kind])=>kind===target.kind)![0]);
+    expect(actual.target_id).toBe(mapped(target.kind,target.sourceId));
+    const contexts=source.data.contexts as Array<{segments:Array<{target:{kind:ResearchRecordKind;sourceId:string};label:string;deletedAt:null|string;archivedAt:null|string}>}>;
+    expect(JSON.parse(String(actual.last_known_contexts_json))).toEqual(contexts.map(context=>({segments:context.segments.map(segment=>({
+      type:Object.entries(REFERENCE_IMPORT_KINDS).find(([,kind])=>kind===segment.target.kind)![0],id:mapped(segment.target.kind,segment.target.sourceId),
+      label:segment.label,deletedAt:segment.deletedAt,archivedAt:segment.archivedAt,
+    }))})));
+  }
+  const placements=sources('projectPlacement');expect(placements).toHaveLength(11);
+  for(const source of placements)expect(copied(source.kind,source.sourceId)).toMatchObject({
+    project_item_id:mapped('projectItem',String(source.data.project_item_id)),x:source.data.x,y:source.data.y,width:source.data.width,height:source.data.height,
+    z_index:source.data.z_index,revision:source.data.revision,
+  });
+  expect(copied('projectContent','foreign-content-attachment')).toMatchObject({deleted_at:original.createdAt,attachment_caption:'Deleted attachment history'});
+  expect(copied('projectItem','foreign-owned-item-attachment').deleted_at).toBe(original.createdAt);
+  expect(copied('projectEdge','foreign-edge-reverse')).toMatchObject({deleted_at:original.createdAt,label:'Preserved cyclic graph edge'});
+  expect(copied('sample','foreign-sample').title).toBe('foreign-run-one remains literal title');
+  expect(copied('runStep','foreign-step-one').notes).toBe('foreign-step-two is literal history text');
+  const definition=sources('stepDefinition')[0],state=sources('state')[0];
+  expect(mapped('stepDefinition',definition.sourceId)).toBe(definition.sourceId);expect(mapped('state',state.sourceId)).toBe(state.sourceId);
+  expect(copied('stepDefinition',definition.sourceId)).toMatchObject({hash:definition.sourceId,
+    parameters_text:'foreign-run-one is ordinary parameter text',comments_text:'Original researcher note'});
+  expect(JSON.parse(String(copied('stepDefinition',definition.sourceId).canonical_json))).toEqual(definition.data.canonical_json);
+  expect(copied('state',state.sourceId).hash).toBe(state.sourceId);
+  expect(JSON.parse(String(copied('state',state.sourceId).content_json))).toEqual(state.data.content_json);
+  const ordered=sources('stateAsset').sort((left,right)=>Number(left.data.position)-Number(right.data.position)).map(source=>copied(source.kind,source.sourceId));
+  expect(ordered.map(value=>value.position)).toEqual([0,1]);expect(ordered[0].asset_id).not.toBe(ordered[1].asset_id);expect(ordered[0].file_id).not.toBe(ordered[1].file_id);
+  const metadata=JSON.parse(String(copied('event','foreign-event').metadata_json));
+  expect(copied('event','foreign-event').body).toBe('foreign-run-one remains ordinary event text');
+  expect(metadata.rawCells).toEqual({stepId:'foreign-step-one'});expect(metadata.caption).toBe('Original <b>caption</b>');
+  expect(metadata.runId).toBe(mapped('run','foreign-run-one'));expect(metadata.stepIds).toEqual([mapped('runStep','foreign-step-one'),mapped('runStep','foreign-step-two')]);
+  expect(copied('projectContent','foreign-content-markdown').markdown_source).toBe('# Original Markdown\n\nforeign-run-one remains user text.');
+  const fileMap=f.native.prepare("SELECT logical_file_id,result_file_id FROM research_package_files WHERE job_id=? AND entry_kind='payload'").all(jobId);
+  const slots:Array<[ResearchRecordKind,string,string]>=[['stateAsset','packageFileId','file_id'],['executionImage','packageFileId','file_id'],
+    ['metrologyReference','packageFileId','file_id'],['commentOccurrence','packageFileId','file_id'],['stateVerification','evidencePackageFileId','evidence_file_id'],
+    ['commentItem','packageFileId','file_id'],['projectAttachment','packageFileId','file_id'],['recipeRevision','sourcePackageFileId','source_file_id'],
+    ['sourceImport','workbookPackageFileId','workbook_file_id'],['sourceImport','manifestPackageFileId','manifest_file_id'],
+    ['event','packageFileId','asset_file_id'],['event','thumbnailPackageFileId','thumbnail_file_id'],['attachmentDerivative','derivedPackageFileId','']];
+  for(const [kind,field,column] of slots){
+    const records=sources(kind).filter(value=>typeof value.data[field]==='string');expect(records.length,`${kind}.${field}`).toBeGreaterThan(0);
+    for(const source of records){
+      const file=fileMap.find(value=>value.logical_file_id===source.data[field]);expect(file).toBeDefined();
+      if(column)expect(copied(kind,source.sourceId)[column],`${kind}.${field}`).toBe(file!.result_file_id);
+      else{
+        expect(source.data.trust_state).toBe('imported_unverified');
+        expect(f.native.prepare('SELECT file_id FROM file_usable_publications WHERE file_id=?').get(file!.result_file_id)).toBeDefined();
+      }
+    }
+  }
+  const sourceImport=copied('sourceImport','foreign-source-import');
+  for(const field of ['operation_id','lease_expires_at','finalization_id','recovery_operation_id','client_request_id','request_sha256','request_input_json','request_scope',
+    'storage_profile_id','storage_profile_revision','storage_policy_revision','accepted_result_json','file_targets_protocol','role_policy_revision'])expect(sourceImport[field],field).toBeNull();
+  for(const kind of ['fileDerivation','attachmentDerivative'] as const)expect(sources(kind)[0].data.trust_state).toBe('imported_unverified');
+  expect(count(f.native,'file_derivations')).toBe(0);expect(count(f.native,'attachment_derivatives')).toBe(0);
+  expect(f.native.prepare('PRAGMA foreign_key_check').all()).toEqual([]);expect(f.native.prepare('PRAGMA defer_foreign_keys').get()).toEqual({defer_foreign_keys:0});
+}
+function serializedSlots(pkg:ResearchPackageV1){
+  const slots:Array<[ResearchRecordKind,string]>=[['stateAsset','packageFileId'],['executionImage','packageFileId'],['metrologyReference','packageFileId'],
+    ['commentOccurrence','packageFileId'],['stateVerification','evidencePackageFileId'],['commentItem','packageFileId'],['projectAttachment','packageFileId'],
+    ['recipeRevision','sourcePackageFileId'],['sourceImport','workbookPackageFileId'],['sourceImport','manifestPackageFileId'],
+    ['event','packageFileId'],['event','thumbnailPackageFileId'],['attachmentDerivative','derivedPackageFileId']];
+  for(const [kind,field] of slots){const values=pkg.records.filter(record=>record.kind===kind&&typeof record.data[field]==='string');
+    expect(values.length,`${kind}.${field}`).toBeGreaterThan(0);for(const value of values)expect(pkg.files.some(file=>file.packageFileId===value.data[field])).toBe(true);}
+  for(const kind of ['fileDerivation','attachmentDerivative'] as const)expect(pkg.records.find(record=>record.kind===kind)!.data.trust_state).toBe('imported_unverified');
 }
 
 describe("explicit current Node Package Request admission",()=>{
@@ -82,6 +219,7 @@ describe("genuine nonempty Node Package HTTP and independent executor",()=>{
     const receipt=checkedResearchRequestReceipt(accepted.value),job=await drain(f,receipt.job.id,"completed");
     expect(job.progress).toMatchObject({completedFiles:15,totalFiles:15});expect(job.result?.roots.length).toBe(2);
     expect(count(f.native,"local_admin_grants")).toBe(0);
+    typedGraph(f,job.id,data.value.package);
     const files=f.native.prepare(`SELECT p.logical_file_id,p.result_file_id,p.purpose,p.sha256,p.byte_size,a.original_name,a.mime_type
       FROM research_package_files p LEFT JOIN assets a ON a.id=p.candidate_asset_id
       WHERE p.job_id=? AND p.entry_kind='payload' ORDER BY p.logical_file_id`).all(job.id);
@@ -105,6 +243,26 @@ describe("genuine nonempty Node Package HTTP and independent executor",()=>{
     expect(body.byteLength).toBe(exported.output!.byteSize);expect(hash(body)).toBe(exported.output!.sha256);
     const validated=await validateStoreArchive(sourceFromBlob(new Blob([body.slice().buffer as ArrayBuffer])),{expectedSha256:exported.output!.sha256});
     expect(validated.entries.filter(entry=>entry.path.startsWith('files/'))).toHaveLength(15);
+    const exportedPackage=await validateResearchPackage(JSON.parse(new TextDecoder().decode(validated.metadata.get('manifest.json')!)),
+      JSON.parse(new TextDecoder().decode(validated.metadata.get('records.json')!)));
+    serializedSlots(exportedPackage);
+    const captured=f.native.prepare("SELECT logical_file_id,archive_path,source_file_id FROM research_package_files WHERE job_id=? AND entry_kind='source' ORDER BY archive_path").all(exported.id);
+    expect(captured).toHaveLength(15);expect(exportedPackage.files).toHaveLength(15);
+    expect(validated.entries.map(entry=>entry.path).sort()).toEqual(['manifest.json','records.json','report/index.html','report/report.md',...exportedPackage.files.map(file=>file.path)].sort());
+    for(const capture of captured){
+      const imported=files.find(file=>file.result_file_id===capture.source_file_id)!;
+      expect(imported).toBeDefined();
+      const declaration=exportedPackage.files.find(file=>file.packageFileId===capture.logical_file_id)!;
+      const entry=validated.entries.find(entry=>entry.path===capture.archive_path)!;
+      expect(declaration).toMatchObject({path:capture.archive_path,purpose:imported.purpose,sha256:imported.sha256,byteSize:imported.byte_size});
+      expect(entry).toMatchObject({path:declaration.path,sha256:declaration.sha256,byteSize:declaration.byteSize});
+      // Exact original downloaded STORE bytes, independent Node SHA, and the
+      // original pre-import fixture payload; whole-archive SHA is insufficient.
+      const payload=body.slice(entry.dataOffset,entry.dataOffset+entry.byteSize);
+      expect(payload).toEqual(data.value.payloads.get(String(imported.logical_file_id)));
+      expect(payload.byteLength).toBe(declaration.byteSize);expect(hash(payload)).toBe(declaration.sha256);
+    }
+
     expect(count(f.native,"research_package_jobs","kind='import' AND state='completed'")).toBe(1);
     expect(count(f.native,"system_recovery_write_leases","kind='scheduled'")).toBeGreaterThan(15);
     expect(f.native.prepare("SELECT actor FROM research_package_jobs WHERE id=?").get(job.id)).toEqual({actor});released(f);
