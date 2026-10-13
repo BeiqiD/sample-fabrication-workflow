@@ -195,7 +195,14 @@ def main():
         assert qa_npm_cache.resolve() == qa_npm_cache and not qa_npm_cache.is_symlink()
         assert cache_stat.st_uid == 1000 and cache_stat.st_mode & 0o7777 == 0o700
         receipt['privateQaNpmCache'] = {'path':str(qa_npm_cache),'dev':cache_stat.st_dev,'ino':cache_stat.st_ino,'uid':cache_stat.st_uid,'mode':cache_stat.st_mode & 0o7777};save()
-        command('qa-locked-dependencies',['npm','ci','--no-audit','--no-fund','--prefix',str(QA),'--cache',str(qa_npm_cache),'--userconfig=/dev/null','--globalconfig=/dev/null','--strict-ssl=true','--registry=https://registry.npmjs.org'],timeout=180)
+        # npm rejects loading one config path as both user and global source.
+        # Keep both inputs empty and private, with distinct fresh identities.
+        qa_user_config = qa_npm_cache/'empty-user.npmrc'
+        qa_global_config = qa_npm_cache/'empty-global.npmrc'
+        for config in (qa_user_config, qa_global_config):
+            fd = os.open(config, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+            os.close(fd)
+        command('qa-locked-dependencies',['npm','ci','--no-audit','--no-fund','--prefix',str(QA),'--cache',str(qa_npm_cache),'--userconfig='+str(qa_user_config),'--globalconfig='+str(qa_global_config),'--strict-ssl=true','--registry=https://registry.npmjs.org'],timeout=180)
         command('qa-companion-types',['node',str(QA/'node_modules/typescript/bin/tsc'),'--noEmit','-p',str(QA/'scripts/qa/node-docker-current-enabled/tsconfig.qa-companions.json')],timeout=90)
         produced=one_json_line(command('qa-companion-build',['node',str(PREP/'bundle-companions.mjs'),'--qa',str(QA),'--source',str(SOURCE),'--output',str(COMPANIONS)],timeout=90))
         assert produced['status']=='PASS' and produced['qaArtifacts']==6 and produced['productExecutableAdditions']==0 and produced['targetHead']==HEAD
