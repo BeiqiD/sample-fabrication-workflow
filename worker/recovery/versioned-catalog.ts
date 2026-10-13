@@ -123,3 +123,31 @@ export function recoveryDestinationTable(records: VersionedRecoveryRecords, name
   }
   return destination;
 }
+
+
+// Additive Worker-only V5 dispatch. Historical/default selectors above retain
+// their exact closed V1–3 contracts; archive data cannot supply a catalog.
+export type WorkerRecoveryRecords = VersionedRecoveryRecords | import("../../shared/contracts/system-backup-v5").SystemBackupRecordsV5;
+export type WorkerRecoveryManifest = VersionedRecoveryManifest | import("../../shared/contracts/system-backup-v5").SystemBackupManifestV5;
+export type WorkerRecoveryImage = VersionedRecoveryImage | import("../../shared/contracts/system-backup-v5").SystemRecoveryImageV5;
+export type WorkerRecoveryCatalog = ReviewedRecoveryCatalog | import("./v5-catalog-candidate").ReviewedV5RecoveryCatalogCandidate;
+export type WorkerRecoveryFile = import("../../shared/contracts/system-backup").SystemBackupFile | import("../../shared/contracts/system-backup-v28-content").SystemBackupFileV28;
+export type WorkerRecoverySource = import("../../shared/contracts/system-backup").SystemBackupSource | import("../../shared/contracts/system-backup-v28-content").SystemBackupSourceV28;
+import { selectV5RecoveryCatalogCandidate, validateV5RecoverySourceImageCandidate } from "./v5-catalog-candidate";
+export function selectWorkerRecoveryCatalog(records: WorkerRecoveryRecords): WorkerRecoveryCatalog {
+  return records.schema === "system-backup-records/5" ? selectV5RecoveryCatalogCandidate(records) : selectReviewedRecoveryCatalog(records);
+}
+export function validateWorkerRecoverySourceImage(records: WorkerRecoveryRecords): WorkerRecoveryImage {
+  return records.schema === "system-backup-records/5" ? validateV5RecoverySourceImageCandidate(records) : validateRecoverySourceImage(records);
+}
+export function workerRecoveryDestinationTable(records: WorkerRecoveryRecords, name: string): SystemRecoveryTable {
+  if (records.schema !== "system-backup-records/5") return recoveryDestinationTable(records,name);
+  const catalog = selectV5RecoveryCatalogCandidate(records), spec = catalog.tables.find(spec => spec.name === name);
+  if (!spec) return fail("table_unreviewed");
+  const table = cloneTable(spec.local ? catalog.seedTableRows[name] : records.image.tables[name]);
+  if (name === "local_accounts") {
+    const enabled = spec.columns.indexOf("enabled");
+    for (const row of table.rows) row.cells[enabled] = {type:"integer",value:"0"};
+  }
+  return table;
+}

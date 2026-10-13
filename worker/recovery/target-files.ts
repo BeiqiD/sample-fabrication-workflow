@@ -1,3 +1,4 @@
+import type { WorkerRecoveryFile } from "./versioned-catalog";
 import type { VersionedRecoveryRecords } from "./versioned-catalog";
 import type { ExportRow } from "../../shared/contracts/export";
 import type { FilePurpose } from "../../shared/contracts/files";
@@ -26,6 +27,8 @@ export interface RecoveryDestinationProfile {
   metadataRows?: Array<{ table: "storage_profile_admissions" | "storage_profile_activations" | "file_shadow_dependency_versions" | "file_shadow_profile_enablements"; row: Record<string, string | number | null> }>;
   metadataSha256?: string;
   transportFenceSha256?: string;
+  /** Original source registry/runtime tuple digest for the fixed V5 R2 lane. */
+  sourceMetadataSha256?: string;
 }
 export interface RecoveryFileCellChange {
   table: string;
@@ -80,7 +83,7 @@ function transportContentType(value: unknown): string {
 
 /** A stable namespace label for legacy inventories without a native profile.
  * The mapping must still name an exact admitted destination profile. */
-export function recoverySourceProfileId(file: Pick<SystemBackupFile, "source">): string {
+export function recoverySourceProfileId(file: Pick<WorkerRecoveryFile, "source">): string {
   return file.source.storageProfileId ?? `legacy:${file.source.storeKind}:${file.source.provider}`;
 }
 
@@ -438,6 +441,8 @@ export function recoveryDestinationProfileCellChanges(
 
 export interface RecoveryFileWriteLifecycle {
   signal?: AbortSignal;
+  /** Original kernel stage timestamp; V5 never substitutes the65s claim lease. */
+  deadlineAt?: string;
   /** Exact target claim, persisted attempt tuple, owner and generation. */
   current(): Promise<boolean>;
   /** Atomically save write_started before PUT. False forbids this transport. */
@@ -474,4 +479,37 @@ export async function writeRecoveryFile(
   } finally {
     if (!verificationStarted && !(body instanceof ArrayBuffer)) await body.cancel().catch(() => undefined);
   }
+}
+
+
+import { resolveR2ProfileBinding } from "../files/r2-profile-bindings";
+import { r2ByteReader } from "../files/storage-adapters/r2-reader";
+import { r2ShadowByteWriter } from "../files/storage-adapters/r2-shadow-writer";
+import { cloudflareSha256 } from "../files/storage-adapters/cloudflare-sha256";
+/** Same persisted FP5 attempt/lease owner, with a deployment-resolved native R2
+ * conditional first PUT. An unknown ACK remains readable at its exact issued
+ * key; this port neither retries the PUT nor deletes it or admits a provider. */
+export async function writeWorkerV5RecoveryFile(env: Env,file: RecoveryPlannedFile,
+  body: ReadableStream<Uint8Array> | ArrayBuffer,lifecycle: RecoveryFileWriteLifecycle): Promise<VerifiedBytes> {
+  if(file.destinationAdapterType!=="r2"||file.configurationRevision!==1)throw new ByteVerificationError("destination","unavailable");
+  const binding=resolveR2ProfileBinding(env,{id:file.destinationProfileId,configurationRevision:1,namespaceIdentity:file.destinationNamespaceIdentity});
+  const deadline=lifecycle.deadlineAt===undefined?NaN:Date.parse(lifecycle.deadlineAt);
+  const local=()=>Number.isFinite(deadline)&&Date.now()<deadline&&!lifecycle.signal?.aborted;
+  const current=async()=>local()&&await lifecycle.current()===true&&local();
+  let started=false;
+  const writer=r2ShadowByteWriter({async put(key,bytes,options){
+    if(key!==file.objectKey||!await current())throw new ByteVerificationError("destination","unavailable");
+    const result=await binding.bucket.put(key,bytes,{...options,onlyIf:{etagDoesNotMatch:"*"}});
+    if(result===null)throw new ByteVerificationError("destination","unavailable");return result;
+  }});
+  const raw=r2ByteReader(binding.bucket),reader={async read(key:string){
+    if(key!==file.objectKey||!await current())throw new ByteVerificationError("destination","unavailable");
+    const result=await raw.read(key);
+    if(!await current()){if(result.outcome==="available")await result.body.cancel();throw new ByteVerificationError("destination","unavailable");}
+    return result;
+  }};
+  return writeVerifiedBytes({reader,createHash:cloudflareSha256,writer:{accepts:writer.accepts,async write(input){
+    if(started||!await current()||await lifecycle.writeStarted(file)!==true||!await current())throw new ByteVerificationError("destination","unavailable");
+    started=true;await writer.write(input);
+  }}},{body,key:file.objectKey,byteSize:file.byteSize,sha256:file.sha256,contentType:file.contentType,filename:file.filename});
 }

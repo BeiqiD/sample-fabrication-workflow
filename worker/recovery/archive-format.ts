@@ -22,7 +22,7 @@ export async function prepareSystemBackupArchive(records: VersionedRecoveryRecor
   await validateSystemBackupDocuments(manifest, records, { schemaSha256: RECOVERY_SCHEMA_SHA256, tables: RECOVERY_TABLES });
   return { manifest, records, ...await systemBackupArchiveMetadata(manifest, records, manifest) };
 }
-export type SystemBackupSourceRead = { outcome: "available"; body: ReadableStream<Uint8Array>; expected: { byteSize: number | null; sha256: string | null } }
+export type SystemBackupSourceRead = { outcome: "available"; body: ReadableStream<Uint8Array>; expected: { byteSize: number | null; sha256: string | null }; dispose?: () => Promise<void> }
   | { outcome: "missing" | "provider_unavailable" | "metadata_unavailable" };
 export function abortableSystemBackupSource(body: ReadableStream<Uint8Array>, signal: AbortSignal): ReadableStream<Uint8Array> {
   const reader = body.getReader(); let ended = false, output: ReadableStreamDefaultController<Uint8Array>;
@@ -34,4 +34,29 @@ export function abortableSystemBackupSource(body: ReadableStream<Uint8Array>, si
       catch (error) { if (!ended) { ended = true; release(); controller.error(error); } } },
     cancel(reason) { if (ended) return; ended = true; void reader.cancel(reason).catch(() => undefined); release(); },
   }, { highWaterMark: 0 });
+}
+
+
+import { finishSystemBackupManifestV5, validateSystemBackupDocumentsV5 } from "../../shared/contracts/system-backup-v5";
+import { planSystemBackupSourcesV28 } from "../../shared/contracts/system-backup-v28-content";
+import { stableJson } from "../../shared/domain/content-addressing";
+import type { WorkerRecoveryRecords, WorkerRecoveryFile } from "./versioned-catalog";
+export { validateWorkerSystemBackupArchive } from "../../shared/contracts/system-backup-versioned-admission";
+function oldFile(file: WorkerRecoveryFile): file is SystemBackupFile { return file.source.provider !== "local"; }
+export async function prepareWorkerSystemBackupArchive(records: WorkerRecoveryRecords, files: readonly WorkerRecoveryFile[]) {
+  if (records.schema !== "system-backup-records/5") {
+    if (!files.every(oldFile)) throw new Error("system_backup_version_pair");
+    return prepareSystemBackupArchive(records,files);
+  }
+  const expected = planSystemBackupSourcesV28(records.content);
+  if (expected.length !== files.length || new Set(files.map(file => file.id)).size !== files.length) throw new Error("system_backup_file_inventory");
+  const ownedFiles = expected.map(source => {
+    const file = files.find(file => file.id === source.id);
+    if (!file || stableJson(source) !== stableJson({id:file.id,source:file.source,fileIds:file.fileIds,purposes:file.purposes,bindings:file.bindings}))
+      throw new Error("system_backup_file_inventory");
+    return {...source,path:file.path,outcome:file.outcome,byteSize:file.byteSize,sha256:file.sha256};
+  });
+  const manifest = await finishSystemBackupManifestV5(records,ownedFiles);
+  const checked = await validateSystemBackupDocumentsV5(manifest,records);
+  return {...checked,...await systemBackupArchiveMetadata(checked.manifest,checked.records,checked.manifest)};
 }

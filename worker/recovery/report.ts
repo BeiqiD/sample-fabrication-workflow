@@ -1,5 +1,5 @@
 import { stableJson, sha256Hex } from "../../shared/domain/content-addressing";
-import type { VersionedRecoveryManifest, VersionedRecoveryRecords } from "./versioned-catalog";
+import type { WorkerRecoveryManifest, WorkerRecoveryRecords } from "./versioned-catalog";
 import type { SystemRecoveryCell } from "../../shared/contracts/system-recovery-image";
 import { recoveryProtectedSettingsReport, recoveryImageTableRows } from "./protected-settings";
 
@@ -21,7 +21,7 @@ export interface SystemRecoveryReport {
     rollback: "safe_before_target_writes_only"; sourceRetainedReadOnly: true };
 }
 export async function createSystemRecoveryReport(input: {
-  targetId: string; jobId: string; incarnation: string; manifest: VersionedRecoveryManifest; records: VersionedRecoveryRecords;
+  targetId: string; jobId: string; incarnation: string; manifest: WorkerRecoveryManifest; records: WorkerRecoveryRecords;
   mode: "historical" | "planned"; differences: RecoveryCellDifference[]; targetProof: unknown;
 }): Promise<SystemRecoveryReport> {
   const sourceImageSha256 = await sha256Hex(stableJson(input.records.image));
@@ -33,7 +33,7 @@ export async function createSystemRecoveryReport(input: {
     counts: { tables: Object.keys(input.records.image.tables).length, originalRows: recoveryImageTableRows(input.records.image),
       files: input.manifest.files.length, bytes: input.manifest.counts.bytes, auditedCellDifferences: input.differences.length },
     protectedSettings: recoveryProtectedSettingsReport(input.records),
-    ...((input.records.schema === "system-backup-records/2" || input.records.schema === "system-backup-records/3") ? { protectedIdentity: {
+    ...((input.records.schema === "system-backup-records/2" || input.records.schema === "system-backup-records/3" || input.records.schema === "system-backup-records/5") ? { protectedIdentity: {
       passwordVerifiersIncluded: true as const, destinationAccounts: "disabled" as const,
       destinationBootstrap: "explicit-offline-exact-principal" as const, authorityRestored: false as const, automaticExecution: false as const,
     } } : {}),
