@@ -14,6 +14,7 @@ import { PORTABLE_RUNTIME_RECOVERY_TABLES } from "../../shared/contracts/portabl
 import { assertNodeV28OriginalSourceResumeHost, type NodeV28OriginalSourceResumeHost } from "./node-system-recovery-v28-application.ts";
 import { ownedNodeV28SourceResumeVerification, type NodeV28SourceResumeVerification } from "./node-v28-archive-stages.ts";
 import { stableJson } from "../../shared/domain/content-addressing.ts";
+import type { NodeSystemBackupRecordsV5, SystemBackupRecordsV5 } from "../../shared/contracts/system-backup-v5.ts";
 
 export interface NodeV28SourceResumeInput {
   requestId: string; releaseRequestId: string; backupJobId: string; expectedGeneration: number;
@@ -76,6 +77,62 @@ const READY = `EXISTS(SELECT 1 FROM system_recovery_maintenance WHERE singleton=
  AND (SELECT count(*) FROM file_shadow_checkpoints WHERE captured_at=c.updated_at)=1)
  AND ${QUIET}`;
 
+declare const sourceResumeLoginBrand: unique symbol;
+export interface NodeV28SourceResumeLoginOwner { readonly [sourceResumeLoginBrand]: true }
+interface OriginalLoginSession { tokenHash: string; principalId: string; createdAt: string; credentialRevision: string }
+export interface NodeV28SourceResumeLoginAuditSummary {
+  schema: "node-original-source-resume-authentication/1";
+  principalId: string; sessionCreatedAt: string; credentialRevision: string;
+  originalRows: number; currentRows: number; originalSha256: string; currentSha256: string;
+  appendedSequence: string | null; appendedAt: string | null;
+}
+const sourceResumeLogins = new WeakMap<NodeV28SourceResumeLoginOwner, Readonly<{
+  opening: LocalVolumeProfileOpening; database: ReturnType<typeof assertLocalVolumeProfileOpeningV28>["database"];
+  native: ReturnType<typeof assertLocalVolumeProfileOpeningV28>["nativeDatabase"]; admission: ReviewedInstallationAdmission;
+  request: Request; actor: string; session: Readonly<OriginalLoginSession>; current(): void;
+}>>();
+/** One operational LOGIN from this exact privately authenticated session only.
+ * The returned hash input normalizes that proved append for comparison; the
+ * caller retains the truthful complete current V5 image for its commit proof.
+ * No archive document, format, protected table or old audit row is rewritten. */
+export function verifyNodeV28SourceResumeLoginAudit(login: NodeV28SourceResumeLoginOwner,
+  opening: LocalVolumeProfileOpening, database: ReturnType<typeof assertLocalVolumeProfileOpeningV28>["database"],
+  native: ReturnType<typeof assertLocalVolumeProfileOpeningV28>["nativeDatabase"], admission: ReviewedInstallationAdmission,
+  request: Request, job: RecoveryJob, original: SystemBackupRecordsV5, fresh: NodeSystemBackupRecordsV5) {
+  const owner = sourceResumeLogins.get(login);
+  ensure(owner && owner.opening === opening && owner.database === database && owner.native === native
+    && owner.admission === admission && owner.request === request && owner.actor === job.actor);
+  owner.current();
+  const before = original.image.tables.local_auth_events, after = fresh.image.tables.local_auth_events;
+  ensure(before && after && stableJson(before.columns) === stableJson(["sequence", "principal_id", "kind", "happened_at"])
+    && stableJson(after.columns) === stableJson(before.columns));
+  const prior = [...before.rows].sort((a, b) => BigInt(a.rowid!) < BigInt(b.rowid!) ? -1 : 1);
+  const current = [...after.rows].sort((a, b) => BigInt(a.rowid!) < BigInt(b.rowid!) ? -1 : 1);
+  ensure(current.length === prior.length || current.length === prior.length + 1);
+  ensure(prior.every((row, index) => stableJson(row) === stableJson(current[index])));
+  let appendedSequence: string | null = null, appendedAt: string | null = null;
+  if (current.length !== prior.length) {
+    const row = current[current.length - 1]!;
+    const [sequence, principal, kind, at] = row.cells;
+    ensure(sequence?.type === 'integer' && row.rowid === sequence.value
+      && principal?.type === 'text' && principal.value === owner.session.principalId
+      && kind?.type === 'text' && kind.value === 'login' && at?.type === 'integer'
+      && at.value === owner.session.createdAt);
+    const last = prior.length ? BigInt(prior[prior.length - 1]!.rowid!) : 0n;
+    const completed = Date.parse(job.updated_at);
+    ensure(BigInt(sequence.value) === last + 1n && Number.isFinite(completed)
+      && BigInt(at.value) >= BigInt(completed) && BigInt(at.value) <= BigInt(Number.MAX_SAFE_INTEGER));
+    appendedSequence = sequence.value; appendedAt = at.value;
+  }
+  const summary: NodeV28SourceResumeLoginAuditSummary = Object.freeze({ schema: 'node-original-source-resume-authentication/1',
+    principalId: owner.session.principalId, sessionCreatedAt: owner.session.createdAt,
+    credentialRevision: owner.session.credentialRevision, originalRows: prior.length, currentRows: current.length,
+    originalSha256: digest(before), currentSha256: digest(after), appendedSequence, appendedAt });
+  const checkpointRecords: NodeSystemBackupRecordsV5 = { ...structuredClone(fresh), image: { ...structuredClone(fresh.image),
+    tables: { ...structuredClone(fresh.image.tables), local_auth_events: structuredClone(before) } } };
+  owner.current(); return Object.freeze({ checkpointRecords, summary });
+}
+
 /** Concrete source action only. Every owner comes from the existing private
  * V28 opening registry; no caller Native/core/lease/callback can issue a grant.
  * The HTTP host additionally excludes mounted business writers and joins its
@@ -89,6 +146,19 @@ export function createNodeV28OriginalSourceResume(options: {
   const { database, nativeDatabase: native, writerLease } = owner;
   const identity = ownedLocalVolumeIdentityV28Candidate(opening, authentication, admission), installation = identity.installation;
   ensure(request instanceof Request);
+  let originalSession: Readonly<OriginalLoginSession> | undefined;
+  function session(): OriginalLoginSession {
+    const predicate = auth.currentSessionPredicate(request, actor);
+    const statement = native.prepare(`SELECT s.principal_id,s.created_at,a.credential_revision FROM local_sessions s
+      JOIN local_accounts a ON a.principal_id=s.principal_id JOIN local_admin_grants g ON g.principal_id=a.principal_id
+      WHERE s.token_hash=? AND ('local-account:'||a.principal_id)=? AND a.enabled=1 AND s.revoked_at IS NULL
+        AND s.credential_revision=a.credential_revision`);
+    statement.setReadBigInts(true); const row = statement.get(predicate.tokenHash, actor);
+    ensure(row && typeof row.principal_id === 'string' && typeof row.created_at === 'bigint'
+      && typeof row.credential_revision === 'bigint' && row.created_at >= 0n && row.credential_revision >= 1n);
+    return { tokenHash: predicate.tokenHash, principalId: row.principal_id,
+      createdAt: row.created_at.toString(), credentialRevision: row.credential_revision.toString() };
+  }
   function current(): void {
     assertNodeV28OriginalSourceResumeHost(scope, opening, authentication, admission, request, actor);
     ensure(!request.signal.aborted);
@@ -96,18 +166,23 @@ export function createNodeV28OriginalSourceResume(options: {
     owner.assertCurrent(); assertLinuxWriterLeaseBinding(writerLease, database, native);
     ensure(localAuthenticationIdentityAuthority(authentication) === auth);
     owner.assertAdministrator(actor); auth.currentSessionPredicate(request, actor);
+    if (originalSession) ensure(stableJson(session()) === stableJson(originalSession));
   }
+  current(); originalSession = Object.freeze(session());
+  const login = Object.freeze({}) as NodeV28SourceResumeLoginOwner;
+  sourceResumeLogins.set(login, Object.freeze({ opening, database, native, admission, request, actor,
+    session: originalSession, current }));
   function admitted() {
     current(); const session = auth.currentSessionPredicate(request, actor);
     return createSqliteBatchAdmission(database, [{ statement: database.prepare(`SELECT 1 admitted FROM local_sessions s
       JOIN local_accounts a ON a.principal_id=s.principal_id JOIN local_admin_grants g ON g.principal_id=a.principal_id
       CROSS JOIN (WITH observed AS MATERIALIZED (SELECT CAST(unixepoch('subsec')*1000 AS INTEGER) now) SELECT now FROM observed) clock
       WHERE s.token_hash=? AND ('local-account:'||a.principal_id)=? AND a.enabled=1 AND s.revoked_at IS NULL
-        AND a.credential_revision=s.credential_revision AND clock.now>=s.last_seen_at
+        AND a.credential_revision=s.credential_revision AND s.created_at=? AND a.credential_revision=? AND clock.now>=s.last_seen_at
         AND clock.now<s.absolute_expires_at AND clock.now<s.last_seen_at+?
         AND EXISTS(SELECT 1 FROM node_installation WHERE singleton=1 AND installation_id=? AND catalog_id=?
           AND schema_checkpoint=? AND schema_sha256=? AND created_at=?)`)
-      .bind(session.tokenHash, actor, identity.policy.idleLifetimeMs, installation.installationId, installation.catalogId,
+      .bind(session.tokenHash, actor, originalSession!.createdAt, originalSession!.credentialRevision, identity.policy.idleLifetimeMs, installation.installationId, installation.catalogId,
         installation.checkpointId, installation.schemaSha256, installation.createdAt), rejection: conflict() }]);
   }
   const db = asAdmittedJobSqlDatabase(database, admitted, { assertHeld: current });
@@ -141,6 +216,25 @@ export function createNodeV28OriginalSourceResume(options: {
       && result.noBindingCutover === true && result.noJobReplay === true && result.resumedAt === row.accepted_at
       && typeof result.incarnation === 'string' && result.incarnation.length > 0
       && typeof result.sourceCheckpoint === 'string' && /^[a-f0-9]{64}$/.test(result.sourceCheckpoint));
+    const authenticationReceipt = await db.prepare('SELECT job_id,input_sha256,accepted_at FROM system_recovery_requests WHERE actor=? AND request_id=?')
+      .bind(actor, 'node_source_resume_auth:' + requestId).first<{ job_id: string; input_sha256: string; accepted_at: string }>();
+    ensure(authenticationReceipt && authenticationReceipt.job_id === row.job_id && authenticationReceipt.accepted_at === row.accepted_at);
+    const authenticationDocument = await repository.metadata(row.job_id, 'node-source-resume-auth/' + requestId); current();
+    ensure(authenticationDocument && typeof authenticationDocument === 'object' && !Array.isArray(authenticationDocument)
+      && digest(authenticationDocument) === authenticationReceipt.input_sha256);
+    const provenance = authenticationDocument as NodeV28SourceResumeLoginAuditSummary & { backupId: string; releaseRequestId: string };
+    ensure(Object.keys(provenance).sort().join(',') === 'appendedAt,appendedSequence,backupId,credentialRevision,currentRows,currentSha256,originalRows,originalSha256,principalId,releaseRequestId,schema,sessionCreatedAt'
+      && provenance.schema === 'node-original-source-resume-authentication/1' && provenance.backupId === row.job_id
+      && provenance.releaseRequestId === input.releaseRequestId && 'local-account:' + provenance.principalId === actor
+      && /^[1-9][0-9]*$/.test(provenance.credentialRevision) && /^(0|[1-9][0-9]*)$/.test(provenance.sessionCreatedAt)
+      && Number.isSafeInteger(provenance.originalRows) && provenance.originalRows >= 0
+      && Number.isSafeInteger(provenance.currentRows) && (provenance.currentRows === provenance.originalRows
+        || provenance.currentRows === provenance.originalRows + 1)
+      && /^[a-f0-9]{64}$/.test(provenance.originalSha256) && /^[a-f0-9]{64}$/.test(provenance.currentSha256)
+      && (provenance.currentRows === provenance.originalRows
+        ? provenance.appendedSequence === null && provenance.appendedAt === null && provenance.currentSha256 === provenance.originalSha256
+        : typeof provenance.appendedSequence === 'string' && /^[1-9][0-9]*$/.test(provenance.appendedSequence)
+          && provenance.appendedAt === provenance.sessionCreatedAt));
     return result;
   }
   async function accepted(input: NodeV28SourceResumeInput) {
@@ -163,7 +257,8 @@ export function createNodeV28OriginalSourceResume(options: {
   }
   async function commit(input: NodeV28SourceResumeInput, proof: NodeV28SourceResumeVerification): Promise<NodeV28SourceResumeResult> {
     assertCurrent(input); const job = await backup(input);
-    const records = ownedNodeV28SourceResumeVerification(proof, opening, database, native, admission, request, job);
+    const verified = ownedNodeV28SourceResumeVerification(proof, opening, database, native, admission, request, job);
+    const { records, authentication: authenticationProof } = verified;
     ensure(records.backupId === job.id && records.sourceMigrationLedger.installationId === installation.installationId);
     const roles = await db.prepare(`SELECT d.role,d.storage_profile_id,d.storage_profile_revision FROM storage_role_defaults d
       JOIN storage_role_policy_revisions h ON h.role=d.role AND h.policy_revision=d.policy_revision
@@ -182,6 +277,7 @@ export function createNodeV28OriginalSourceResume(options: {
       sourceInstallationId: installation.installationId, incarnation: activation.incarnation, sourceCheckpoint: job.source_checkpoint!,
       resumedAt: new Date().toISOString(), enabled: true, shadowEnabled: false, jobsEnabled: false, noBindingCutover: true, noJobReplay: true });
     const document = { schema: 'node-source-resume-receipt/1', input, result }, hash = digest(document);
+    const authenticationDocument = { ...authenticationProof, backupId: job.id, releaseRequestId: input.releaseRequestId };
     // Every original typed cell/rowid is compared INSIDE this same BEGIN. The
     // read-only validation made no publication/profile/business/hold mutation.
     const snapshots = PORTABLE_RUNTIME_RECOVERY_TABLES.filter(table => !table.local).map(table => {
@@ -215,10 +311,14 @@ export function createNodeV28OriginalSourceResume(options: {
           .bind(key(input.requestId), actor, job.id, hash, result.resumedAt),
         database.prepare("INSERT INTO system_recovery_metadata_chunks(job_id,name,ordinal,chunk) VALUES(?,?,0,?)")
           .bind(job.id, name(input.requestId), stableJson(document)),
+        database.prepare("INSERT INTO system_recovery_requests(request_id,actor,job_id,input_sha256,accepted_at) VALUES(?,?,?,?,?)")
+          .bind('node_source_resume_auth:' + input.requestId, actor, job.id, digest(authenticationDocument), result.resumedAt),
+        database.prepare("INSERT INTO system_recovery_metadata_chunks(job_id,name,ordinal,chunk) VALUES(?,?,0,?)")
+          .bind(job.id, 'node-source-resume-auth/' + input.requestId, stableJson(authenticationDocument)),
       ], batchAdmission);
       current();
     } catch (error) { const previous = await accepted(input); if (previous) return previous; throw error; }
     const previous = await accepted(input); ensure(previous); return previous;
   }
-  current(); return Object.freeze({ receipt, accepted, assertCurrent, backup, commit });
+  current(); return Object.freeze({ receipt, accepted, assertCurrent, backup, commit, login });
 }

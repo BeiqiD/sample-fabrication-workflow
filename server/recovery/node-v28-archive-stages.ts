@@ -19,12 +19,13 @@ import { assertSqliteConnectionOwner, type SqliteCapability } from "../sqlite.ts
 import { nodeSha256 } from "../storage/node-sha256.ts";
 import { assertLocalVolumeProfileOpeningV28, type LocalVolumeProfileOpening } from "../storage/local-volume-profile-opening.ts";
 import { captureQuiescedNodeSystemBackupV28Candidate } from "./snapshot-v28-candidate.ts";
+import { verifyNodeV28SourceResumeLoginAudit, type NodeV28SourceResumeLoginOwner, type NodeV28SourceResumeLoginAuditSummary } from "./node-v28-original-source-resume.ts";
 
 declare const sourceResumeVerificationBrand: unique symbol;
 export interface NodeV28SourceResumeVerification { readonly [sourceResumeVerificationBrand]: true }
 const resumeVerifications = new WeakMap<NodeV28SourceResumeVerification, Readonly<{
   database: SqliteCapability; nativeDatabase: DatabaseSync; opening: LocalVolumeProfileOpening; admission: ReviewedInstallationAdmission;
-  request: Request; jobId: string; checkpoint: string; records: NodeSystemBackupRecordsV5; current(): void;
+  request: Request; jobId: string; checkpoint: string; records: NodeSystemBackupRecordsV5; authentication: NodeV28SourceResumeLoginAuditSummary; current(): void;
 }>>();
 /** Only an original complete byte-validation scope can issue this proof. Its
  * stored typed image is private; callers receive a clone, not a mutable grant. */
@@ -35,7 +36,7 @@ export function ownedNodeV28SourceResumeVerification(proof: NodeV28SourceResumeV
     && original.admission === admission && original.request === request && original.jobId === job.id && original.checkpoint === job.source_checkpoint,
     "source_resume_original_verification_required");
   original.current(); assertSqliteConnectionOwner(database, nativeDatabase); assertLocalVolumeProfileOpeningV28(opening).assertCurrent();
-  return structuredClone(original.records);
+  return { records: structuredClone(original.records), authentication: structuredClone(original.authentication) };
 }
 
 export interface NodeV28ArchiveStagesOptions {
@@ -539,7 +540,7 @@ export function createNodeV28ArchiveStages(options: NodeV28ArchiveStagesOptions)
     base(); if (bodies.size || providers.size || scopes.size || operations.size)
       throw new Error("Original Recovery archive work has not acknowledged its drain");
   }
-  function verifySourceResume(job: RecoveryJob, current: () => Promise<boolean>, signal: AbortSignal, request: Request) {
+  function verifySourceResume(job: RecoveryJob, current: () => Promise<boolean>, signal: AbortSignal, request: Request, login: NodeV28SourceResumeLoginOwner) {
     assertDrained(); ensure(request instanceof Request);
     return track(withinScope(async value => {
       await fence(current, signal);
@@ -552,7 +553,9 @@ export function createNodeV28ArchiveStages(options: NodeV28ArchiveStagesOptions)
       const fresh = await captureQuiescedNodeSystemBackupV28Candidate(database, nativeDatabase,
         { backupId: job.id, createdAt: job.accepted_at });
       await fence(current, signal);
-      ensure(await sourceBackupCheckpointV5(fresh) === job.source_checkpoint, "source_resume_metadata_changed");
+      const authentication = verifyNodeV28SourceResumeLoginAudit(login, opening, database, nativeDatabase, admission,
+        request, job, original.records, fresh);
+      ensure(await sourceBackupCheckpointV5(authentication.checkpointRecords) === job.source_checkpoint, "source_resume_metadata_changed");
       await fence(current, signal);
       const sources = planSystemBackupSourcesV28(fresh.content);
       ensure(sources.length === original.manifest.files.length, "source_resume_inventory_changed");
@@ -589,7 +592,7 @@ export function createNodeV28ArchiveStages(options: NodeV28ArchiveStagesOptions)
       // close acknowledges. withinScope completes that custody before return.
       const proof = Object.freeze({}) as NodeV28SourceResumeVerification;
       return { proof, original: Object.freeze({ database, nativeDatabase, opening, admission, request,
-        jobId: job.id, checkpoint: job.source_checkpoint!, records: structuredClone(fresh), current: base }) };
+        jobId: job.id, checkpoint: job.source_checkpoint!, records: structuredClone(fresh), authentication: authentication.summary, current: base }) };
     })).then(verified => {
       resumeVerifications.set(verified.proof, verified.original); return verified.proof;
     });

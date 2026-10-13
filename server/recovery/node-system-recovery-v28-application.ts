@@ -796,7 +796,7 @@ function createRecoveryEngine(options: Omit<OriginalRecoveryOptions, "hasher"> &
         stage = "backup";
         const job = await control.backup(input); owner.artifacts!.assertJob(job); quiet();
         stage = "strict-archive-validation";
-        const records = await stages!.verifySourceResume(job, async () => { quiet(); return true; }, c.req.raw.signal, c.req.raw);
+        const records = await stages!.verifySourceResume(job, async () => { quiet(); return true; }, c.req.raw.signal, c.req.raw, control.login);
         quiet(); stages!.assertDrained(); owner.artifacts!.assertJob(job);
         stage = "commit";
         const result = await control.commit(input, records); sessionCurrent(c.req.raw, actor); return c.json(result);

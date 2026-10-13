@@ -17,3 +17,19 @@ The frozen File trigger permits re-enabling the same original incarnation only w
 The exact result has schema `node-original-source-resume/1`, the four original input fields, `sourceInstallationId`, `incarnation`, `sourceCheckpoint`, `resumedAt`, and fixed flags `enabled:true`, `shadowEnabled:false`, `jobsEnabled:false`, `noBindingCutover:true`, `noJobReplay:true`. It is stored under an immutable `system_recovery_requests` digest using the reserved `node_source_resume:` request namespace and a code-owned `node-source-resume/` metadata document. The digest binds the complete input/result document. A duplicate returns that exact accepted result; it cannot enable a later maintenance window. Changed input is refused. Cleanup or missing/corrupt receipt data cannot manufacture a successful acknowledgment.
 
 All existing HTTP, kernel, cadence, case and hook limits remain unchanged. This source action does not qualify target activation, arbitrary provider parity, automatic resume or complete same-application recovery. Its genuine helper uses public release and this explicit POST before closing Recovery and starting the ordinary workflow; qualification performs no SQL flag seed.
+
+The actual post-backup authentication audit is bounded separately: an unchanged
+`local_auth_events` inventory or one contiguous `login` row for the exact current
+private session is admitted. Its principal and login time equal the live original
+session, the login follows completed backup, and every archived rowid/cell is
+preserved. All other protected identity, grants, configuration and business rows
+remain exact. Only that proved append is normalized for source-checkpoint
+comparison; the proof keeps the truthful freshly captured V5 image and the
+commit checks its complete current typed inventory inside the same BEGIN.
+
+The fourteen-field public result and original receipt document remain unchanged.
+A separate immutable reserved authentication receipt hashes the original/current
+audit inventory counts/digests, exact session identity/time/revision and allowed
+append sequence, with no bearer or token digest exported. This is provenance for
+the explicit original-source operation, and does not grant target activation.
+The earlier refused metadata checkpoint and diagnostic run remain failures.
