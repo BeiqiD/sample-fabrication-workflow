@@ -1,7 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
 import type { ReadableStreamReadResult } from "node:stream/web";
 import { stableJson } from "../../shared/domain/content-addressing.ts";
-import { sourceFromStream, type ArchiveEntry, type ArchiveSource } from "../../shared/domain/research-archive.ts";
+import { sourceFromStream, type ArchiveEntry, type ArchiveSource, type ArchiveIndexEntry } from "../../shared/domain/research-archive.ts";
 import { createSystemBackupArchiveStream, measureSystemBackupArchive, systemBackupArchiveMetadata } from "../../shared/domain/system-backup-archive.ts";
 import { SYSTEM_BACKUP_MAX_ARCHIVE_BYTES, SYSTEM_BACKUP_MAX_PAYLOAD_BYTES, type SystemBackupOutcome } from "../../shared/contracts/system-backup.ts";
 import { finishSystemBackupManifestV5, sourceBackupCheckpointV5, validateSystemBackupDocumentsV5, validateSystemBackupRecordsV5,
@@ -26,7 +26,7 @@ export interface NodeV28ArchiveStagesOptions {
   /** The sole Recovery-only application keeps business, File, GC and other
    * schedulers absent, maintenance fenced, and original source writers settled. */
   assertQuiesced(): void;
-  artifactRead(key: string): Promise<ReadableStream<Uint8Array> | null>;
+  artifactRead(key: string, dependency?: RecoveryClaim): Promise<ReadableStream<Uint8Array> | null>;
   quarantine(error: unknown): void;
 }
 interface BodyOwner {
@@ -349,15 +349,17 @@ export function createNodeV28ArchiveStages(options: NodeV28ArchiveStagesOptions)
       return read.body;
     };
   }
-  async function uploadSource(claim: RecoveryClaim, value: Scope, current: () => Promise<boolean>, signal: AbortSignal): Promise<ArchiveSource> {
+  async function uploadSource(claim: RecoveryJob, value: Scope, current: () => Promise<boolean>, signal: AbortSignal, dependency?: RecoveryClaim): Promise<ArchiveSource> {
     await fence(current, signal);
+    const held = dependency !== undefined && dependency.kind === "recovery" && dependency.source_upload_job_id === claim.id
+      && dependency.actor === claim.actor && await repository.current(dependency);
     ensure(claim.artifact_key && claim.archive_byte_size && claim.archive_sha256 && claim.expires_at
-      && Date.parse(claim.expires_at) > Date.now());
+      && (Date.parse(claim.expires_at) > Date.now() || held));
     const attempts = await repository.attempts(claim.id); await fence(current, signal);
     ensure(attempts.some(attempt => attempt.object_key === claim.artifact_key && attempt.state === "verified"
       && attempt.expected_byte_size === claim.archive_byte_size && attempt.expected_sha256 === claim.archive_sha256));
     const stream = sourceFromStream(claim.archive_byte_size, async () => {
-      await fence(current, signal); const body = await artifactRead(claim.artifact_key!);
+      await fence(current, signal); const body = await artifactRead(claim.artifact_key!, dependency);
       ensure(body, "source_unavailable"); return ownedBody(body, current, signal, value);
     });
     let disposed: Promise<void> | undefined;
@@ -492,5 +494,24 @@ export function createNodeV28ArchiveStages(options: NodeV28ArchiveStagesOptions)
     }).catch(error => { retainFailure(error); throw error; });
     void closing.catch(() => undefined); return closing;
   }
-  base(); return Object.freeze({ step, exportBody, preview, close });
+  function withRecoveryArchive<T>(claim: RecoveryClaim, current: () => Promise<boolean>, signal: AbortSignal,
+    operation: (source: ArchiveSource, index: readonly ArchiveIndexEntry[]) => Promise<T>): Promise<T> {
+    base(); return track(withinScope(async value => {
+      await fence(current, signal);
+      const upload = claim.source_upload_job_id ? await repository.job(claim.source_upload_job_id) : null;
+      ensure(claim.kind === "recovery" && upload && upload.kind === "upload" && upload.state === "preview"
+        && upload.actor === claim.actor && claim.source_checkpoint === upload.source_checkpoint, "archive_invalid");
+      await fence(current, signal); const source = await uploadSource(upload, value, current, signal, claim);
+      const index = await repository.metadata(upload.id, "index") as ArchiveIndexEntry[] | null;
+      ensure(Array.isArray(index) && index.length <= 256, "archive_invalid");
+      await fence(current, signal); return operation(source, index);
+    }));
+  }
+  async function recoveryDocuments(upload: RecoveryJob) {
+    base(); ensure(upload.kind === "upload" && upload.state === "preview", "archive_invalid");
+    const value = await documents(upload.id); base();
+    ensure(upload.source_checkpoint === value.manifest.sourceCheckpoint, "archive_invalid");
+    return { records: value.records, manifest: value.manifest };
+  }
+  base(); return Object.freeze({ step, exportBody, preview, recoveryDocuments, withRecoveryArchive, close });
 }

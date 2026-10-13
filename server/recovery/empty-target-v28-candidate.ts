@@ -49,7 +49,7 @@ type AuthorizedNative = DatabaseSync & { setAuthorizer(policy: Authorizer | null
  * checkpoint, NOT historical SQL execution. This receipt is persisted by the
  * destination owner, separate from the untouched source migration provenance.
  * No archived SQL, cells, callbacks or destination catalog are accepted here. */
-export function constructEmptyV28RecoveryTargetCandidate(database: DatabaseSync): {
+export function constructEmptyV28RecoveryTargetCandidate(database: DatabaseSync, live?: { assertCurrent(): void }): {
   installation: InstallationReceipt;
   construction: {
     kind: "reviewed-empty-recovery-checkpoint-construction/v28";
@@ -60,7 +60,10 @@ export function constructEmptyV28RecoveryTargetCandidate(database: DatabaseSync)
     reviewedLineage: readonly { ordinal: number; name: string; rawSha256: string; checkpointId: string; schemaSha256: string }[];
   };
 } {
-  const final = reviewedLineage();
+  if (live !== undefined && (!live || typeof live !== "object" || Reflect.ownKeys(live).length !== 1 || typeof live.assertCurrent !== "function")) ensure(false, "live_owner");
+  const assertLive = live?.assertCurrent.bind(live);
+  const guard = () => { const result: unknown = assertLive?.(); if (result !== undefined) throw new TypeError("Native target admission must be synchronous"); };
+  guard(); const final = reviewedLineage();
   ensure(database.isOpen && !database.isTransaction, "connection_not_quiesced");
   ensure(database.prepare("PRAGMA journal_mode").get()?.journal_mode === "wal"
     && database.prepare("PRAGMA foreign_keys").get()?.foreign_keys === 1, "owned_wal_and_fk_required");
@@ -78,35 +81,36 @@ export function constructEmptyV28RecoveryTargetCandidate(database: DatabaseSync)
     try { native.setAuthorizer(null); }
     catch (error) { clearFailed = true; clearFailure = error; throw error; }
   }
-  database.enableLoadExtension(false); database.exec("PRAGMA busy_timeout=5000");
+  guard(); database.enableLoadExtension(false); database.exec("PRAGMA busy_timeout=5000");
   const installationId = randomUUID(), clock = new Date().toISOString();
   // Closed typed seeds follow table-name order, not foreign-key dependency
   // order. As in the actual image restorer, validate the complete graph before
   // COMMIT and restore FK enforcement even after a failed construction.
-  database.exec("PRAGMA foreign_keys=OFF");
+  guard(); database.exec("PRAGMA foreign_keys=OFF");
   let failed = false, failure: unknown;
   try {
-    database.exec("BEGIN EXCLUSIVE");
+    guard(); database.exec("BEGIN EXCLUSIVE");
     empty(database);
     let workFailed = false, workFailure: unknown;
     try {
       native.setAuthorizer(policy);
-      for (const object of NODE_PLATFORM_OBJECTS) database.exec(object.sql);
-      for (const object of schema.filter(object => object.type === "table")) database.exec(object.sql);
+      for (const object of NODE_PLATFORM_OBJECTS) { guard(); database.exec(object.sql); }
+      for (const object of schema.filter(object => object.type === "table")) { guard(); database.exec(object.sql); }
       for (const spec of tables) {
         const seed = seeds[spec.name]; ensure(seed && stableJson(seed.columns) === stableJson(spec.columns), `seed:${spec.name}`);
         for (const row of seed.rows) {
+          guard();
           const columns = [...spec.columns], values = row.cells.map(recoveryCellBinding);
           if (!spec.withoutRowid) { columns.unshift("rowid"); values.unshift({ expression: "CAST(? AS INTEGER)", value: row.rowid }); }
           database.prepare(`INSERT INTO ${quote(spec.name)} (${columns.map(quote).join(",")}) VALUES (${values.map(value => value.expression).join(",")})`).run(...values.map(value => value.value));
         }
       }
       for (const type of ["index", "view", "trigger"] as const)
-        for (const object of schema.filter(object => object.type === type)) database.exec(object.sql);
-      database.prepare("INSERT INTO node_installation VALUES(1,?,?,?,?,?)")
+        for (const object of schema.filter(object => object.type === type)) { guard(); database.exec(object.sql); }
+      guard(); database.prepare("INSERT INTO node_installation VALUES(1,?,?,?,?,?)")
         .run(installationId, catalog.id, final.id, final.schemaSha256, clock);
-      for (const [index, migration] of catalog.migrations.entries()) database.prepare("INSERT INTO node_migrations VALUES(?,?,?,?,?,'applied',?)")
-        .run(index + 1, migration.name, migration.rawSha256, migration.checkpoint.id, migration.checkpoint.schemaSha256, clock);
+      for (const [index, migration] of catalog.migrations.entries()) { guard(); database.prepare("INSERT INTO node_migrations VALUES(?,?,?,?,?,'applied',?)")
+        .run(index + 1, migration.name, migration.rawSha256, migration.checkpoint.id, migration.checkpoint.schemaSha256, clock); }
     } catch (error) { workFailed = true; workFailure = error; throw error; }
     finally {
       try { clearOriginal(); }
@@ -124,7 +128,7 @@ export function constructEmptyV28RecoveryTargetCandidate(database: DatabaseSync)
     ensure(installationSchemaDigest(observedObjects) === final.schemaSha256, "native_schema");
     ensure(database.prepare("PRAGMA foreign_key_check").all().length === 0
       && database.prepare("PRAGMA integrity_check").all().every(value => value.integrity_check === "ok"), "native_health");
-    database.exec("COMMIT");
+    guard(); database.exec("COMMIT");
   } catch (error) {
     failed = true; failure = error;
     if (database.isTransaction) {

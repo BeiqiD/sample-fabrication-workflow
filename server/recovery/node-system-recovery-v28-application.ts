@@ -22,23 +22,41 @@ import { runSystemRecoveryJobStep, writeSystemRecoveryUpload, type SystemRecover
 import { SqlSystemRecoveryRepository, type RecoveryAttempt, type RecoveryClaim, type RecoveryJob } from "../../worker/recovery/sql-repository.ts";
 import { checkedSystemRecoveryBackupInput, checkedSystemRecoveryUploadInput, checkedSystemRecoveryJobControl,
   checkedSystemRecoveryCapabilities, checkedSystemRecoveryJobStatus, checkedSystemRecoveryPreview, checkedSystemRecoveryMaintenanceInput,
+  checkedSystemRecoveryImportInput, checkedSystemRecoveryCutoverInput,
   type SystemRecoveryCapabilities, type SystemRecoveryJobStatus } from "../../shared/contracts/system-recovery.ts";
 import { openNodePrivateRecoveryArtifacts, type NodePrivateRecoveryArtifacts } from "./node-private-artifacts.ts";
 import { createNodeV28ArchiveStages } from "./node-v28-archive-stages.ts";
 import { createNodeRecoverySourceMaintenance } from "./node-source-maintenance.ts";
+import { openNodeV28RecoveryTarget, type NodeV28RecoveryTarget } from "./node-v28-recovery-target.ts";
+import { createNodeV28TargetStages } from "./node-v28-target-stages.ts";
+import { stableJson } from "../../shared/domain/content-addressing.ts";
+import { runBoundedSystemRecoveryReadAction } from "../../worker/recovery/kernel.ts";
+import { captureQuiescedNodeSystemBackupV28Candidate } from "./snapshot-v28-candidate.ts";
+import { sourceBackupCheckpointV5 } from "../../shared/contracts/system-backup-v5.ts";
 
 export const NODE_V28_RECOVERY_SURFACE = Object.freeze({ kind: "node-v28-recovery-only/1" as const,
   backup: "fenced-quiesced-v5" as const, upload: "strict-v5" as const, maintenance: "explicit-source-control" as const,
   sourceBusinessWriters: false as const, targetRecovery: false as const });
+export type NodeV28RecoverySurface = Omit<typeof NODE_V28_RECOVERY_SURFACE, "targetRecovery"> & { readonly targetRecovery: boolean };
 export interface NodeSystemRecoveryV28Application {
   readonly server: Server;
-  readonly surfaceCapabilities: typeof NODE_V28_RECOVERY_SURFACE;
+  readonly surfaceCapabilities: NodeV28RecoverySurface;
   dispatchRecoveryJobsOnce(): Promise<{ jobId: string | null; outcome: string }>;
   close(): Promise<void>;
 }
 type ApiEnvironment = LocalAuthEnvironment;
 type ArtifactScope = { readonly actor: string; readonly request?: Request; readonly claim?: RecoveryClaim; readonly cleanup?: string };
 type BodyOwner = { close(reason?: unknown): Promise<void> };
+interface PlannedSourceWindow { generation: number; token: string; backupJobId: string; checkpoint: string }
+function plannedSourceWindow(job: RecoveryJob): PlannedSourceWindow | null {
+  if (checkedSystemRecoveryImportInput(JSON.parse(job.input_json)).mode !== "planned") return null;
+  const value = JSON.parse(job.checkpoint_json ?? "null")?.plannedSourceWindow as PlannedSourceWindow | undefined;
+  if (!value || stableJson(Object.keys(value).sort()) !== stableJson(["generation", "token", "backupJobId", "checkpoint"].sort())
+    || !Number.isSafeInteger(value.generation) || value.generation < 1 || typeof value.token !== "string" || !value.token
+    || typeof value.backupJobId !== "string" || !value.backupJobId || typeof value.checkpoint !== "string"
+    || value.checkpoint !== job.source_checkpoint) throw new Error("source_checkpoint_changed");
+  return value;
+}
 const claimed = new WeakSet<LinuxWriterLease>(), retained = new Set<object>();
 const routes = Object.freeze([
   ["POST", "/api/auth/login"], ["GET", "/api/auth/session"], ["POST", "/api/auth/logout"], ["POST", "/api/auth/rotate"],
@@ -47,6 +65,8 @@ const routes = Object.freeze([
   ["GET", "/api/system-recovery/maintenance"], ["POST", "/api/system-recovery/maintenance"],
   ["GET", "/api/system-recovery/maintenance/requests/:requestId"],
   ["GET", "/api/system-recovery/backup-preview"], ["GET", "/api/system-recovery/jobs"], ["POST", "/api/system-recovery/jobs"],
+  ["POST", "/api/system-recovery/recoveries"],
+  ["GET", "/api/system-recovery/jobs/:jobId/report"], ["POST", "/api/system-recovery/jobs/:jobId/cutover"],
   ["POST", "/api/system-recovery/uploads"], ["GET", "/api/system-recovery/requests/:requestId"],
   ["GET", "/api/system-recovery/jobs/:jobId"], ["GET", "/api/system-recovery/jobs/:jobId/upload-intent"],
   ["PUT", "/api/system-recovery/jobs/:jobId/upload"], ["GET", "/api/system-recovery/jobs/:jobId/preview"],
@@ -73,14 +93,24 @@ class NodeRecoveryRepository extends SqlSystemRecoveryRepository<JobSqlStatement
   override guard(claim: RecoveryClaim, db = this.db()): JobSqlStatement {
     return db.prepare(`SELECT CASE WHEN EXISTS(SELECT 1 FROM system_recovery_jobs j JOIN system_recovery_runtime r ON r.singleton=1 AND r.enabled=1
       AND r.incarnation=j.runtime_incarnation WHERE j.id=? AND j.actor=? AND j.state='running' AND j.generation=? AND j.owner_token=?
-      AND j.runtime_incarnation=? AND julianday(j.lease_expires_at)>julianday(?))
+      AND j.runtime_incarnation=? AND julianday(j.lease_expires_at)>julianday(?)
+      AND (j.kind<>'recovery' OR json_extract(j.input_json,'$.mode')<>'planned' OR EXISTS(
+        SELECT 1 FROM system_recovery_maintenance m WHERE m.singleton=1 AND m.state='fenced'
+        AND m.generation=json_extract(j.checkpoint_json,'$.plannedSourceWindow.generation')
+        AND m.token=json_extract(j.checkpoint_json,'$.plannedSourceWindow.token')
+        AND m.backup_job_id=json_extract(j.checkpoint_json,'$.plannedSourceWindow.backupJobId')
+        AND m.checkpoint_sha256=json_extract(j.checkpoint_json,'$.plannedSourceWindow.checkpoint') AND m.checkpoint_sha256=j.source_checkpoint
+        AND NOT EXISTS(SELECT 1 FROM system_recovery_write_leases WHERE released_at IS NULL)
+        AND (SELECT enabled FROM file_authority_runtime_guard WHERE singleton=1)=0
+        AND (SELECT enabled FROM file_shadow_runtime_guard WHERE singleton=1)=0
+        AND (SELECT enabled FROM file_job_runtime_guard WHERE singleton=1)=0)))
       AND EXISTS(SELECT 1 FROM local_accounts a JOIN local_admin_grants g ON g.principal_id=a.principal_id
         WHERE ('local-account:'||a.principal_id)=? AND a.enabled=1)
       THEN 1 ELSE json('System recovery lease or administrator lost') END`)
       .bind(claim.id, claim.actor, claim.generation, claim.owner_token, claim.runtime_incarnation, this.now().toISOString(), claim.actor);
   }
   override async next(): Promise<RecoveryJob | null> {
-    return this.db().prepare(`SELECT * FROM system_recovery_jobs WHERE state='queued' AND kind IN('backup','upload')
+    return this.db().prepare(`SELECT * FROM system_recovery_jobs WHERE state='queued' AND kind IN('backup','upload','recovery')
       AND CASE WHEN json_valid(checkpoint_json) THEN json_extract(checkpoint_json,'$.artifactNamespace.sha256') END=?
       ORDER BY updated_at,id LIMIT 1`).bind(this.namespace()).first<RecoveryJob>();
   }
@@ -95,7 +125,8 @@ class NodeRecoveryRepository extends SqlSystemRecoveryRepository<JobSqlStatement
  * Backup additionally requires an explicitly requested, persisted drained fence.
  * Authenticated maintenance enter stops source executor advertisements and jobs;
  * startup never seeds a fence, execution flag, account/grant/profile or role.
- * No admitted recovery target is provisioned by this capture-only owner.
+ * An explicit sealed host target may prepare a fresh inert V28 destination.
+ * Handoff records a verified receipt; activation remains a stopped operator action.
  * The default and existing V28 profiles never call this factory. */
 export function createNodeSystemRecoveryV28Application(options: {
   configuration: LoadedNodeRuntimeConfiguration; database: SqliteCapability; nativeDatabase: DatabaseSync;
@@ -115,13 +146,16 @@ export function createNodeSystemRecoveryV28Application(options: {
   const owner = { database, native, lease, configuration, pending: new Set<Promise<unknown>>(), bodies: new Set<BodyOwner>(),
     ingressBodies: new Set<ReturnType<typeof createGroupV28RequestBodyCustody>>(),
     artifactScopes: new Map<string, ArtifactScope>(), issued: new Set<string>(), active: true,
-    openingAttempted: false, artifactsAttempted: false, serverAttempted: false, failed: false, failure: undefined as unknown,
+    openingAttempted: false, artifactsAttempted: false, targetAttempted: false, serverAttempted: false, failed: false, failure: undefined as unknown,
     opening: undefined as LocalVolumeProfileOpening | undefined, artifacts: undefined as NodePrivateRecoveryArtifacts | undefined,
+    target: undefined as NodeV28RecoveryTarget | undefined,
     server: undefined as Server | undefined, construction: undefined as Promise<void> | undefined,
     closing: undefined as Promise<void> | undefined, dispatch: undefined as Promise<{ jobId: string | null; outcome: string }> | undefined,
     timer: undefined as ReturnType<typeof setTimeout> | undefined };
   retained.add(owner);
+  const surface: NodeV28RecoverySurface = Object.freeze({ ...NODE_V28_RECOVERY_SURFACE, targetRecovery: config.recoveryTarget !== undefined });
   let stages: ReturnType<typeof createNodeV28ArchiveStages> | undefined;
+  let targetStages: ReturnType<typeof createNodeV28TargetStages> | undefined;
   let application: Hono<ApiEnvironment> | undefined;
   let identity: ReturnType<typeof captureInstalledIdentityExecutionOwnerV28Candidate> | undefined;
   let auth: ReturnType<typeof createLocalAuthentication> | undefined;
@@ -178,6 +212,26 @@ export function createNodeSystemRecoveryV28Application(options: {
     const checkpoint = JSON.parse(job.checkpoint_json ?? "null") as { sourceWindow?: { generation?: unknown; token?: unknown } } | null;
     if (!checkpoint?.sourceWindow || checkpoint.sourceWindow.generation !== state.generation || checkpoint.sourceWindow.token !== state.token)
       throw new Error("source_checkpoint_changed");
+  }
+  function assertPlannedWindow(job: RecoveryJob): void {
+    const window = plannedSourceWindow(job);
+    if (window) { assertQuiesced(); const live = maintenance();
+      if (live.generation !== window.generation || live.token !== window.token || live.backupJobId !== window.backupJobId
+        || live.checkpoint !== window.checkpoint) throw new Error("source_checkpoint_changed"); }
+  }
+  function targetGuard(claim: RecoveryClaim, signal: AbortSignal, deadline: number): void {
+    physical();
+    if (signal.aborted || Date.now() >= deadline || !administrator(claim.actor)) throw new Error("administrator_revoked");
+    assertPlannedWindow(claim);
+    const cursor = native.prepare("SELECT cursor_json FROM system_recovery_target_claim WHERE job_id=? AND target_id=?")
+      .get(claim.id, claim.target_id);
+    const persisted = cursor ? JSON.parse(String(cursor.cursor_json)).database as import("./node-v28-recovery-target.ts").NodeV28TargetDatabaseIdentity | null : null;
+    if (persisted) { if (!owner.target) throw new Error("target_unavailable"); owner.target.assertDatabaseIdentity(persisted); }
+    const current = native.prepare(`SELECT 1 FROM system_recovery_jobs j JOIN system_recovery_runtime r ON r.singleton=1 AND r.enabled=1
+      AND r.incarnation=j.runtime_incarnation WHERE j.id=? AND j.actor=? AND j.kind='recovery' AND j.state='running'
+        AND j.generation=? AND j.owner_token=? AND j.runtime_incarnation=? AND julianday(j.lease_expires_at)>julianday(?)`)
+      .get(claim.id, claim.actor, claim.generation, claim.owner_token, claim.runtime_incarnation, new Date().toISOString());
+    if (!current) throw new Error("administrator_revoked");
   }
   const installationAdmission = (request?: Request, actor?: string) => {
     physical();
@@ -243,7 +297,9 @@ export function createNodeSystemRecoveryV28Application(options: {
   function cleanupGuard(jobId: string, repo: NodeRecoveryRepository) {
     return repo.db().prepare(`SELECT CASE WHEN
       NOT EXISTS(SELECT 1 FROM system_recovery_jobs WHERE id=? AND state IN('queued','running','awaiting_upload'))
-      AND NOT EXISTS(SELECT 1 FROM system_recovery_jobs WHERE source_upload_job_id=? AND state IN('queued','running','paused'))
+      AND NOT EXISTS(SELECT 1 FROM system_recovery_jobs d WHERE d.source_upload_job_id=? AND (d.state IN('queued','running','paused')
+        OR EXISTS(SELECT 1 FROM system_recovery_target_files f WHERE f.job_id=d.id AND f.state IN('write_started','unknown'))
+        OR EXISTS(SELECT 1 FROM system_recovery_target_claim t WHERE t.job_id=d.id AND json_extract(t.cursor_json,'$.pending')=1)))
       AND NOT EXISTS(SELECT 1 FROM system_recovery_attempts WHERE job_id=? AND state IN('started','unknown','settled'))
       AND NOT EXISTS(SELECT 1 FROM system_recovery_maintenance WHERE singleton=1 AND state='fenced' AND checkpoint_sha256 IS NOT NULL AND backup_job_id IS NOT ?)
       THEN 1 ELSE json('Recovery cleanup still holds unresolved writes or final checkpoint') END`).bind(jobId, jobId, jobId, jobId);
@@ -263,6 +319,8 @@ export function createNodeSystemRecoveryV28Application(options: {
       };
       return { repository: repo, incarnation: runtime.incarnation, authorizeActor: allowed, now: () => new Date(), randomId: randomUUID, hash: nodeSha256,
         async step(claim, current, signal) { activeClaim = claim; owner.artifacts!.assertJob(claim); assertBackupWindow(claim);
+          if (claim.kind === "recovery") { if (!targetStages) throw new Error("target_unavailable");
+            return targetStages.step(claim, async () => await current() && await currentClaim(), signal); }
           return stages!.step(claim, async () => await current() && await currentClaim(), signal); },
         async exportBody(claim, current, signal) { activeClaim = claim; owner.artifacts!.assertJob(claim); assertBackupWindow(claim);
           return stages!.exportBody(claim, async () => await current() && await currentClaim(), signal); },
@@ -300,7 +358,7 @@ export function createNodeSystemRecoveryV28Application(options: {
       stale: !runtime?.last_heartbeat_at || Date.now() - Date.parse(runtime.last_heartbeat_at) > 300_000,
       lastHeartbeatAt: runtime?.last_heartbeat_at ?? null, cadenceSeconds: 120, maxStepMs: 60000,
       reason: !canManage ? "administrator_required" : runtime?.enabled === 1 ? null : "executor_disabled",
-      target: { configured: false, id: null, mode: "fresh" }, maintenance: { state: source.state, checkpoint: source.checkpoint } });
+      target: { configured: owner.target !== undefined, id: owner.target?.identity.targetId ?? null, mode: "fresh" }, maintenance: { state: source.state, checkpoint: source.checkpoint } });
   }
   async function owned(repo: NodeRecoveryRepository, id: string, actor: string): Promise<RecoveryJob> {
     const job = await repo.job(id); if (!job || job.actor !== actor) throw fail("Recovery job does not exist", 404); return job;
@@ -333,13 +391,13 @@ export function createNodeSystemRecoveryV28Application(options: {
     owner.active = false; if (owner.timer !== undefined) { clearTimeout(owner.timer); owner.timer = undefined; }
     owner.closing = (async () => {
       await owner.construction?.catch(() => undefined);
-      if (owner.serverAttempted && !owner.server || owner.openingAttempted && !owner.opening || owner.artifactsAttempted && !owner.artifacts)
+      if (owner.serverAttempted && !owner.server || owner.openingAttempted && !owner.opening || owner.artifactsAttempted && !owner.artifacts || owner.targetAttempted && !owner.target)
         throw new Error("Original Recovery constructor ownership is unavailable");
       const transport = owner.server ? stopNodeHttpServerAndDrain(owner.server) : Promise.resolve();
       const physicalDrain = lease.stopAdmissionAndDrain();
       void transport.catch(() => undefined); void physicalDrain.catch(() => undefined);
       const bodyDrains = await Promise.allSettled([...owner.bodies].map(body => body.close(new Error("Recovery admission closed"))));
-      const childDrains = await Promise.allSettled([owner.artifacts?.close(), stages?.close()]);
+      const childDrains = await Promise.allSettled([owner.artifacts?.close(), stages?.close(), targetStages?.close(), owner.target?.close()]);
       await Promise.allSettled([...owner.pending]);
       const transportDrain = await Promise.allSettled([transport, physicalDrain,
         ...[...owner.ingressBodies].map(body => body.close())]);
@@ -387,18 +445,42 @@ export function createNodeSystemRecoveryV28Application(options: {
       } });
     stages = createNodeV28ArchiveStages({ database, nativeDatabase: native, admission, opening: owner.opening, repository: base,
       assertQuiesced, quarantine,
-      async artifactRead(key) {
+      async artifactRead(key, dependency) {
         const match = /^fp5-system\/([^/]+)\/[^/]+$/.exec(key), job = match ? await base.job(match[1]!) : null;
         if (!job || job.kind !== "upload" || !administrator(job.actor)) throw new Error("archive_invalid");
+        if (dependency) { if (dependency.kind !== "recovery" || dependency.source_upload_job_id !== job.id || dependency.actor !== job.actor
+          || !await base.current(dependency)) throw new Error("archive_invalid");
+          return artifactRead(key, { actor: job.actor, claim: dependency }, async () => administrator(job.actor) && await base.current(dependency)); }
         return artifactRead(key, { actor: job.actor }, async () => administrator(job.actor));
       } });
+    if (config.recoveryTarget) {
+      owner.targetAttempted = true;
+      owner.target = await openNodeV28RecoveryTarget({ binding: config.recoveryTarget,
+        sourceInstallationId: installation.installationId, filesystemRootOwnerUid: config.filesystemRootOwnerUid,
+        assertSource: physical, quarantine });
+      targetStages = createNodeV28TargetStages({ target: owner.target, repository: base, assertSource: physical, quarantine,
+        guard: targetGuard,
+        originalIntentGuard(claim, db) {
+          physical(); return db.prepare(`SELECT CASE WHEN EXISTS(SELECT 1 FROM system_recovery_jobs j
+            JOIN system_recovery_target_claim t ON t.job_id=j.id AND t.target_id=j.target_id
+            WHERE j.id=? AND j.actor=? AND j.kind='recovery' AND j.source_checkpoint=? AND j.generation>=?
+            AND t.owner_token=? AND t.generation=? AND t.runtime_incarnation=? AND t.image_sha256=j.source_checkpoint
+            AND json_extract(t.cursor_json,'$.pending')=1)
+            AND EXISTS(SELECT 1 FROM local_accounts a JOIN local_admin_grants g ON g.principal_id=a.principal_id
+              WHERE ('local-account:'||a.principal_id)=? AND a.enabled=1)
+            THEN 1 ELSE json('Original target intent or administrator changed') END`)
+            .bind(claim.id, claim.actor, claim.source_checkpoint, claim.generation, claim.owner_token,
+              claim.generation, claim.runtime_incarnation, claim.actor);
+        }, documents: job => stages!.recoveryDocuments(job),
+        withArchive: (claim, current, signal, operation) => stages!.withRecoveryArchive(claim, current, signal, operation) });
+    }
     const app = new Hono<ApiEnvironment>();
     app.onError((error, c) => error instanceof HTTPException ? c.json({ error: error.message }, error.status)
       : c.json({ error: "System recovery conflicts with its accepted state or an unavailable capability. Refresh its receipt." }, 409));
     app.use("*", async (c, next) => { c.header("Cache-Control", "private, no-store"); c.header("X-Content-Type-Options", "nosniff"); await next(); });
     app.route("/api/auth", auth.routes);
-    app.get("/api/health", c => c.json({ ok: true, capabilities: NODE_V28_RECOVERY_SURFACE }));
-    app.get("/api/ready", auth.middleware, c => { physical(); return c.json({ ok: true, fullReady: false, capabilities: NODE_V28_RECOVERY_SURFACE }); });
+    app.get("/api/health", c => c.json({ ok: true, capabilities: surface }));
+    app.get("/api/ready", auth.middleware, c => { physical(); return c.json({ ok: true, fullReady: false, capabilities: surface }); });
     app.use("/api/system-recovery/*", auth.middleware);
     const requestOwner = (request: Request, actor: string) => { sessionCurrent(request, actor); return repository(request, actor); };
     app.get("/api/system-recovery/capabilities", async c => c.json(await publicCapabilities(administrator(c.get("userEmail"))
@@ -439,6 +521,46 @@ export function createNodeSystemRecoveryV28Application(options: {
         checkpoint: { ...owner.artifacts!.checkpoint(), sourceWindow: { generation: source.generation, token: source.token } } }, () => {
           try { sessionCurrent(c.req.raw, actor); assertQuiesced(); return true; } catch { return false; } });
       return c.json(await receipt(repo, input.requestId, accepted), 202); });
+    app.post("/api/system-recovery/recoveries", async c => {
+      const actor = c.get("userEmail"), repo = requestOwner(c.req.raw, actor);
+      const input = await checkedInput(c.req.raw, checkedSystemRecoveryImportInput), prior = await repo.request(input.requestId, actor, input);
+      if (prior) return c.json(await receipt(repo, input.requestId, { job: prior, reused: true }), 202);
+      if (!owner.target || !targetStages || input.expectedTargetId !== owner.target.identity.targetId)
+        throw fail("This runtime has no selected fresh recovery target", 503);
+      if (input.mapping.length) throw fail("This fresh inert destination imports no executable storage mapping", 409);
+      const upload = await owned(repo, input.uploadJobId, actor);
+      if (upload.kind !== "upload" || upload.state !== "preview") throw fail("Recovery upload has not been validated", 409);
+      owner.artifacts!.assertJob(upload); const docs = await stages!.recoveryDocuments(upload);
+      if (docs.manifest.completeness !== "complete") throw fail("A partial backup cannot prepare complete recovery", 409);
+      const planned = async (): Promise<PlannedSourceWindow | null> => {
+        if (input.mode !== "planned") return null;
+        const source = await repo.job(docs.records.backupId), window = maintenance(); assertQuiesced();
+        if (source?.kind !== "backup" || source.state !== "completed" || source.source_checkpoint !== docs.manifest.sourceCheckpoint
+          || window.backupJobId !== source.id || window.checkpoint !== docs.manifest.sourceCheckpoint || typeof window.token !== "string" || !window.token)
+          throw fail("Planned recovery requires the current final source checkpoint", 409);
+        return { generation: window.generation, token: window.token, backupJobId: source.id, checkpoint: docs.manifest.sourceCheckpoint };
+      };
+      const frozenWindow = await planned(); const preview = await targetStages.preview(upload);
+      if (!preview.available) throw fail("The recovery target is already owned or unavailable", 409);
+      const id = randomUUID(), checkpoint = { ...owner.artifacts!.checkpoint(), ...owner.target.checkpoint(),
+        ...(frozenWindow ? { plannedSourceWindow: frozenWindow } : {}) };
+      const accepted = await repo.accept({ id, requestId: input.requestId, actor, kind: "recovery", input,
+        sourceUploadJobId: upload.id, targetId: owner.target.identity.targetId, sourceCheckpoint: docs.manifest.sourceCheckpoint,
+        checkpoint, totalFiles: docs.manifest.files.length, bytesTotal: docs.manifest.counts.bytes }, () => {
+          try { sessionCurrent(c.req.raw, actor); if (input.mode === "planned") { assertQuiesced(); const current = maintenance();
+            if (!frozenWindow || current.generation !== frozenWindow.generation || current.token !== frozenWindow.token
+              || current.backupJobId !== frozenWindow.backupJobId || current.checkpoint !== frozenWindow.checkpoint) return false; } return true; } catch { return false; }
+        }, [...(frozenWindow ? [repo.db().prepare(`SELECT CASE WHEN EXISTS(SELECT 1 FROM system_recovery_maintenance
+          WHERE singleton=1 AND state='fenced' AND generation=? AND token=? AND backup_job_id=? AND checkpoint_sha256=?)
+          AND NOT EXISTS(SELECT 1 FROM system_recovery_write_leases WHERE released_at IS NULL)
+          AND (SELECT enabled FROM file_authority_runtime_guard WHERE singleton=1)=0
+          AND (SELECT enabled FROM file_shadow_runtime_guard WHERE singleton=1)=0
+          AND (SELECT enabled FROM file_job_runtime_guard WHERE singleton=1)=0
+          THEN 1 ELSE json('Planned source window changed before acceptance') END`)
+            .bind(frozenWindow.generation, frozenWindow.token, frozenWindow.backupJobId, frozenWindow.checkpoint)] : []),
+          ...targetStages.reservation({ id, actor, sourceCheckpoint: docs.manifest.sourceCheckpoint }, upload, docs, repo.db())]);
+      sessionCurrent(c.req.raw, actor); return c.json(await receipt(repo, input.requestId, accepted), 202);
+    });
     app.post("/api/system-recovery/uploads", async c => { const actor = c.get("userEmail"), repo = requestOwner(c.req.raw, actor);
       const input = await checkedInput(c.req.raw, checkedSystemRecoveryUploadInput);
       const accepted = await repo.accept({ id: randomUUID(), requestId: input.requestId, actor, kind: "upload", input,
@@ -464,12 +586,28 @@ export function createNodeSystemRecoveryV28Application(options: {
       return c.json(await status(repo, (await repo.job(job.id))!)); });
     app.get("/api/system-recovery/jobs/:jobId/preview", async c => { const actor = c.get("userEmail"), repo = requestOwner(c.req.raw, actor);
       const job = await owned(repo, c.req.param("jobId"), actor); owner.artifacts!.assertJob(job);
-      if (!(job.kind === "upload" && job.state === "preview" || job.kind === "backup" && job.state === "completed")) throw fail("Recovery archive validation has not completed", 409);
-      const preview = checkedSystemRecoveryPreview(await stages!.preview(job)); sessionCurrent(c.req.raw, actor); return c.json(preview); });
+      if (!(job.kind === "upload" && job.state === "preview" || job.kind === "backup" && job.state === "completed" || job.kind === "recovery" && job.state === "completed"))
+        throw fail("Recovery archive validation has not completed", 409);
+      const archive = job.kind === "recovery" ? await owned(repo, job.source_upload_job_id!, actor) : job;
+      const preview = checkedSystemRecoveryPreview(await stages!.preview(archive));
+      if (owner.target && targetStages) {
+        const target = job.kind === "recovery" ? { available: job.state === "completed" && job.phase === "ready", reason: null }
+          : await targetStages.preview(archive);
+        preview.target = { id: owner.target.identity.targetId, available: target.available, reason: target.reason };
+        preview.reasons = preview.reasons.filter(reason => reason !== "target_unavailable");
+        if (target.reason) preview.reasons.push(target.reason);
+        preview.canRecover = job.kind === "upload" && preview.archive.complete && !preview.reasons.length && target.available;
+        preview.canCutover = job.kind === "recovery" && target.available && maintenance().state === "fenced" && maintenance().writers === 0;
+      }
+      sessionCurrent(c.req.raw, actor); return c.json(checkedSystemRecoveryPreview(preview)); });
     app.post("/api/system-recovery/jobs/:jobId/control", async c => { const actor = c.get("userEmail"), repo = requestOwner(c.req.raw, actor);
       const action = await checkedInput(c.req.raw, checkedSystemRecoveryJobControl), job = await owned(repo, c.req.param("jobId"), actor);
       owner.artifacts!.assertJob(job);
-      if (job.kind === "recovery") throw fail("This runtime has no admitted recovery target", 503);
+      if (job.kind === "recovery") {
+        if (!targetStages) throw fail("This runtime has no admitted recovery target", 503); targetStages.assertJob(job);
+        if (action === "cleanup") throw fail("Inert destinations and their write ledgers remain retained for operator handoff", 409);
+        await repo.control(job, action); sessionCurrent(c.req.raw, actor); return c.json(await status(repo, (await repo.job(job.id))!));
+      }
       if (action === "cleanup") {
         await cleanupGuard(job.id, repo).first();
         await repo.db().batch([cleanupGuard(job.id, repo),
@@ -489,6 +627,41 @@ export function createNodeSystemRecoveryV28Application(options: {
           repo.db().prepare("UPDATE file_location_holds SET released_at=? WHERE operation_id=? AND released_at IS NULL").bind(new Date().toISOString(), `fp5-backup:${job.id}`)]);
       } else await repo.control(job, action);
       sessionCurrent(c.req.raw, actor); return c.json(await status(repo, (await repo.job(job.id))!)); });
+    app.get("/api/system-recovery/jobs/:jobId/report", async c => {
+      const actor = c.get("userEmail"), repo = requestOwner(c.req.raw, actor), job = await owned(repo, c.req.param("jobId"), actor);
+      if (job.kind !== "recovery" || job.state !== "completed" || job.phase !== "ready" || !targetStages)
+        throw fail("Verified recovery report is unavailable", 404);
+      targetStages.assertJob(job); const report = await repo.metadata(job.id, "report");
+      if (!report) throw fail("Verified recovery report is unavailable", 404);
+      sessionCurrent(c.req.raw, actor); return new Response(stableJson(report), { headers: { "Content-Type": "application/json",
+        "Content-Disposition": `attachment; filename="system-recovery-report-${job.id}.json"`, "Cache-Control": "private, no-store" } });
+    });
+    app.post("/api/system-recovery/jobs/:jobId/cutover", async c => {
+      const actor = c.get("userEmail"), repo = requestOwner(c.req.raw, actor), input = await checkedInput(c.req.raw, checkedSystemRecoveryCutoverInput);
+      const prior = await repo.request(input.requestId, actor, input); if (prior) return c.json(await receipt(repo, input.requestId, { job: prior, reused: true }));
+      const job = await owned(repo, c.req.param("jobId"), actor);
+      if (!targetStages || !owner.target || job.kind !== "recovery" || job.state !== "completed" || job.phase !== "ready"
+        || input.expectedTargetId !== owner.target.identity.targetId || job.target_id !== input.expectedTargetId
+        || JSON.parse(job.result_json ?? "null")?.checkpoint !== input.expectedCheckpoint) throw fail("Recovery target is not ready at this checkpoint", 409);
+      targetStages.assertJob(job); assertQuiesced(); assertPlannedWindow(job); const window = maintenance();
+      const current = () => { try { sessionCurrent(c.req.raw, actor); assertQuiesced(); assertPlannedWindow(job); const live = native.prepare("SELECT generation,state,phase,target_id,result_json FROM system_recovery_jobs WHERE id=? AND actor=?").get(job.id, actor);
+        const observed = maintenance(); return Boolean(live && live.generation === job.generation && live.state === "completed" && live.phase === "ready"
+          && live.target_id === input.expectedTargetId && JSON.parse(String(live.result_json))?.checkpoint === input.expectedCheckpoint
+          && observed.generation === window.generation && observed.token === window.token); } catch { return false; } };
+      const accepted = await runBoundedSystemRecoveryReadAction(async () => current(), async (_current, signal, deadlineAt) => {
+        const guard = () => { if (signal.aborted || Date.now() >= Date.parse(deadlineAt) || !current()) throw fail("Handoff checkpoint changed", 409); };
+        guard(); const frozen = checkedSystemRecoveryImportInput(JSON.parse(job.input_json));
+        if (frozen.mode === "planned") {
+          const upload = await owned(repo, job.source_upload_job_id!, actor), docs = await stages!.recoveryDocuments(upload);
+          const snapshot = await captureQuiescedNodeSystemBackupV28Candidate(database, native, { backupId: docs.records.backupId, createdAt: docs.records.createdAt });
+          guard(); if (await sourceBackupCheckpointV5(snapshot) !== docs.manifest.sourceCheckpoint) throw fail("Final source checkpoint changed; recapture before handoff", 409);
+        }
+        const verified = await targetStages!.verifyReady(job, guard); guard();
+        if (verified.checkpoint !== input.expectedCheckpoint) throw fail("Target verification checkpoint changed", 409);
+        return repo.recordCutover(job, input, { generation: window.generation, token: typeof window.token === "string" ? window.token : null, deadlineAt }, current);
+      });
+      sessionCurrent(c.req.raw, actor); return c.json(await receipt(repo, input.requestId, accepted));
+    });
     app.get("/api/system-recovery/jobs/:jobId/download", async c => { const actor = c.get("userEmail"), repo = requestOwner(c.req.raw, actor);
       const job = await owned(repo, c.req.param("jobId"), actor), state = await status(repo, job);
       if (!state.output?.available || !job.artifact_key) throw fail("Recovery archive output is expired or unavailable", 404);
@@ -512,7 +685,7 @@ export function createNodeSystemRecoveryV28Application(options: {
     owner.server.once("listening", schedule);
   });
   owner.construction = construction;
-  return construction.then(() => Object.freeze({ server: owner.server!, surfaceCapabilities: NODE_V28_RECOVERY_SURFACE,
+  return construction.then(() => Object.freeze({ server: owner.server!, surfaceCapabilities: surface,
     dispatchRecoveryJobsOnce, close }), async error => { quarantine(error); try { await close(); }
     catch (cleanup) { throw new AggregateError([error, cleanup], "Recovery construction and original parent cleanup failed"); } throw error; });
 }

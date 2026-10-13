@@ -57,7 +57,9 @@ export class SqlSystemRecoveryRepository<
     return found;
   }
   async accept(input: { id: string; requestId: string; actor: string; kind: SystemRecoveryJobKind; input: unknown; sourceUploadJobId?: string; targetId?: string;
-    sourceCheckpoint?: string; checkpoint?: unknown; totalFiles?:number; bytesTotal?:number }, authorized: () => boolean) {
+    sourceCheckpoint?: string; checkpoint?: unknown; totalFiles?:number; bytesTotal?:number }, authorized: () => boolean,
+    admissionStatements: readonly Statement[] = []) {
+    if (!Array.isArray(admissionStatements) || admissionStatements.length + 3 > 128) throw new SystemRecoveryConflict("metadata_budget");
     if (!authorized()) throw new SystemRecoveryConflict("administrator_revoked");
     const prior = await this.request(input.requestId, input.actor, input.input); if (prior) return { job: prior, reused: true };
     const db = this.db(), now = this.now().toISOString(), digest = await sha256Hex(stableJson(input.input));
@@ -70,6 +72,7 @@ export class SqlSystemRecoveryRepository<
       db.prepare(`INSERT INTO system_recovery_jobs(id,request_id,actor,kind,state,phase,input_json,accepted_at,updated_at,source_upload_job_id,target_id,source_checkpoint,checkpoint_json,total_files,bytes_total)
         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(input.id,input.requestId,input.actor,kind,state,phase,stableJson(input.input),now,now,
           input.sourceUploadJobId??null,input.targetId??null,input.sourceCheckpoint??null,input.checkpoint===undefined?null:stableJson(input.checkpoint),input.totalFiles??0,input.bytesTotal??0),
+      ...admissionStatements,
       db.prepare("INSERT INTO system_recovery_requests(request_id,actor,job_id,input_sha256,accepted_at) VALUES(?,?,?,?,?)")
         .bind(input.requestId,input.actor,input.id,digest,now),
     ]); } catch { const raced = await this.request(input.requestId,input.actor,input.input); if (raced) return { job: raced, reused: true }; throw new SystemRecoveryConflict(); }
