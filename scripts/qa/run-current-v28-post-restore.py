@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 BASE = '4ef7a9d59c4c5e8b10e2fa060bf20c7b16b37878'
 BRANCH = 'refs/heads/codex/node-v28-post-restore-operators'
 MAINTENANCE_BRANCH = 'refs/heads/codex/node-v28-restored-maintenance-release'
+HEALTH_BRANCH = 'refs/heads/codex/node-v28-operational-health-ready'
 MAINTENANCE_BASE = 'ebc19cf3f61b12625bc2a36086667376b41b9255'
 NATIVE_STAGES = ('preparation', 'operators', 'maintenance', 'main')
 TIMED_CASE_STAGES = (*NATIVE_STAGES, 'maintenance-parser', 'config-unit')
@@ -36,17 +37,17 @@ CASES = {
   'retains a genuine commit ACK failure and reconciles its original durable receipt on a second fresh restored target without replaying the write']),
 }
 
-CASES.update({'config-unit': ('server/node-runtime-config-restored-v28.test.ts', ['keeps the original v1 filename and rejects a restored filename field in v1', 'requires an explicit V28 selector and only selects the fixed restored filename', 'keeps restored format fields and loader options closed without path fallback', 'binds the fixed original report to the selected installation and V28 checkpoint', 'rejects configuration and report identity changes through both assertions', 'retains private mode, canonical report path and explicit root UID fences', 'never accepts a copied configuration token as a factory-issued owner']), 'main': ('server/operations/current-restored-v28-main.qualification.ts', ['selects database.sqlite explicitly, authenticates only the restored principal, logs out and acknowledges original TERM before writer reacquisition'])})
+CASES.update({'config-unit': ('server/node-runtime-config-restored-v28.test.ts', ['keeps the original v1 filename and rejects a restored filename field in v1', 'requires an explicit V28 selector and only selects the fixed restored filename', 'keeps restored format fields and loader options closed without path fallback', 'binds the fixed original report to the selected installation and V28 checkpoint', 'rejects configuration and report identity changes through both assertions', 'retains private mode, canonical report path and explicit root UID fences', 'never accepts a copied configuration token as a factory-issued owner']), 'main': ('server/operations/current-restored-v28-main.qualification.ts', ['serves scoped health and readiness for genuine local sessions without granting ordinary accounts domains, then closes before restored writer reacquisition'])})
 
 def save(path, value):
  path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
 
 def source():
- assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH)
+ assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH, HEALTH_BRANCH)
  head = os.environ['GITHUB_SHA']; assert re.fullmatch('[0-9a-f]{40}', head)
  env = dict(os.environ, GIT_OPTIONAL_LOCKS='0')
  assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, env=env).decode().strip() == head
- base = MAINTENANCE_BASE if os.environ['GITHUB_REF'] == MAINTENANCE_BRANCH else BASE
+ base = MAINTENANCE_BASE if os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH) else BASE
  subprocess.check_call(['git', 'merge-base', '--is-ancestor', base, head], cwd=ROOT, env=env)
  return head
 
@@ -77,7 +78,7 @@ def census(stage, path):
 
 def run(stage, out, run_root):
  head = source()
- if stage in ('maintenance-parser', 'maintenance', 'config-unit', 'main'): assert os.environ['GITHUB_REF'] == MAINTENANCE_BRANCH
+ if stage in ('maintenance-parser', 'maintenance', 'config-unit', 'main'): assert os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH)
  assert not out.exists(); out.mkdir(mode=0o700)
  private(out); private(run_root)
  tmp, fixture = run_root / 'private-tmp', run_root / 'private-fixture'

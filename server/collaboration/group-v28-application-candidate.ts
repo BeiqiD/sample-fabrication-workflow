@@ -11,7 +11,8 @@ import type { PasswordHasher } from "../auth/passwords";
 import { createNodeHttpServer, stopNodeHttpServerAndDrain, type NodeHttpOptions } from "../http";
 import { assertInstallationAdmission, type ReviewedInstallationAdmission } from "../migrations";
 import { assertLinuxWriterLeaseBinding, type LinuxWriterLease } from "../operations/writer-lease";
-import { assertSqliteConnectionOwner, type SqliteCapability } from "../sqlite";
+import { asReadinessDatabase, assertSqliteConnectionOwner, type SqliteCapability } from "../sqlite";
+import { checkDatabaseReadiness } from "../../worker/platform/readiness.ts";
 import { PROJECT_CREATION_SUBJECT_RESULT_HEADER } from "../../shared/project-creation-subject";
 import { createGroupV28RoutesCandidate } from "./group-v28-routes-candidate";
 import { createGroupV28RequestBodyCustody } from "./group-v28-request-body-custody";
@@ -96,6 +97,8 @@ export function createGroupV28ApplicationCandidate(options: {
   owners.add(owner);
   let application: Hono<LocalAuthEnvironment> | undefined;
   let admittedRoutes: readonly Readonly<{ method: string; path: string }>[] = [];
+  const capabilities = () => groupV28Capabilities(admittedRoutes, captured.sampleMetadataReads === true,
+    captured.canonicalCommentConfiguration !== undefined, captured.canonicalSampleAttachments === true);
   const remember = (error: unknown) => { if (!owner.failed) { owner.failed = true; owner.failure = error; } };
   function close(): Promise<void> {
     if (owner.closing) return owner.closing;
@@ -197,6 +200,50 @@ export function createGroupV28ApplicationCandidate(options: {
       remember(error); return unavailable();
     });
     app.route("/api/auth", authentication.routes);
+    // Match the default Node distinction: health is public process/surface
+    // information; readiness uses the genuine current local session, never an
+    // administrator/member/resource grant. Neither claims general File or Jobs.
+    app.get("/api/health", c => c.json({ ok: true, capabilities: capabilities() }));
+    const assertOperationalScope = () => {
+      if (!owner.active || !owner.server?.listening || !application || !owner.routes) throw new HTTPException(503,
+        { message: "The selected V28 service is unavailable." });
+      assertLinuxWriterLeaseBinding(owner.lease, owner.database, owner.native);
+      assertSqliteConnectionOwner(owner.database, owner.native);
+      if (assertInstallationAdmission(owner.native, captured.admission).checkpointId !== "portable-runtime/v28")
+        throw new HTTPException(503, { message: "The selected V28 service is unavailable." });
+      const state = owner.native.prepare(`SELECT c.schema_version,c.enforcement,m.state,
+        (SELECT count(*) FROM system_recovery_write_leases WHERE released_at IS NULL) writers,
+        (SELECT mode FROM file_authority_control WHERE singleton=1) file_mode,
+        (SELECT enabled FROM file_authority_runtime_guard WHERE singleton=1) file_enabled,
+        (SELECT enabled FROM file_shadow_runtime_guard WHERE singleton=1) shadow_enabled,
+        (SELECT enabled FROM file_job_runtime_guard WHERE singleton=1) jobs_enabled,
+        (SELECT enabled FROM system_recovery_runtime WHERE singleton=1) recovery_enabled,
+        EXISTS(SELECT 1 FROM local_identity_installation i
+          JOIN local_accounts a ON a.principal_id=i.bootstrap_principal_id
+          JOIN local_admin_grants g ON g.principal_id=a.principal_id
+          WHERE i.singleton=1 AND a.enabled=1) initialized
+        FROM collaboration_control c JOIN system_recovery_maintenance m ON m.singleton=1 WHERE c.singleton=1`).get();
+      // Restored content may retain an active File control row while its
+      // destination execution guards are disabled. Metadata readiness never
+      // treats that historical mode as a selected or granted File capability.
+      const fileScopeUnavailable = owner.commentChild || owner.fabubloxChild
+        ? state?.file_mode !== "active" : state?.file_enabled !== 0 || state?.shadow_enabled !== 0;
+      if (state?.schema_version !== 2 || state.enforcement !== "enabled" || state.state !== "open"
+        || state.writers !== 0 || fileScopeUnavailable || state.jobs_enabled !== 0
+        || state.recovery_enabled !== 0 || state.initialized !== 1) throw new HTTPException(503,
+        { message: "The selected V28 service is unavailable." });
+      if (captured.canonicalCommentConfiguration) assertNodeRuntimeConfiguration(captured.canonicalCommentConfiguration);
+      if (captured.fabubloxConfiguration) assertNodeRuntimeConfiguration(captured.fabubloxConfiguration);
+      assertLinuxWriterLeaseBinding(owner.lease, owner.database, owner.native);
+    };
+    app.get("/api/ready", authentication.middleware, async c => {
+      assertOperationalScope();
+      // Reuse the original real SELECT 1 readiness primitive and the actual
+      // owned core. No fabricated bindings, callback database or provider probe.
+      await checkDatabaseReadiness(asReadinessDatabase(owner.database));
+      assertOperationalScope();
+      return c.json({ ok: true, scope: "supported-v28-service", fullReady: false, capabilities: capabilities() });
+    });
     // The explicit active File child owns these two original RunStart paths;
     // the unchanged legacy/media-free router retains all other operations.
     if(owner.fabubloxChild)app.route("/",owner.fabubloxChild.app);
@@ -207,6 +254,7 @@ export function createGroupV28ApplicationCandidate(options: {
     admittedRoutes = Object.freeze([
       { method: "POST", path: "/api/auth/login" }, { method: "GET", path: "/api/auth/session" },
       { method: "POST", path: "/api/auth/logout" }, { method: "POST", path: "/api/auth/rotate" },
+      { method: "GET", path: "/api/health" }, { method: "GET", path: "/api/ready" },
       ...owner.routes.routes,
       ...(owner.commentChild?.routes ?? []),
       ...(owner.fabubloxChild?.routes ?? []),
@@ -239,7 +287,7 @@ export function createGroupV28ApplicationCandidate(options: {
   owner.construction = originalConstruction;
   // This external catch is deliberately outside originalConstruction.
   return originalConstruction.then(() => Object.freeze({ server: owner.server!, routes: admittedRoutes,
-    capabilities: groupV28Capabilities(admittedRoutes,captured.sampleMetadataReads === true,captured.canonicalCommentConfiguration!==undefined,captured.canonicalSampleAttachments===true), close }), async error => {
+    capabilities: capabilities(), close }), async error => {
     remember(error);
     try { await close(); }
     catch (cleanup) { throw new AggregateError([error, cleanup], "Group construction and original parent cleanup failed"); }
