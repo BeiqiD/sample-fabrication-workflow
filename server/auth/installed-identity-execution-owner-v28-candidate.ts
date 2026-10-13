@@ -11,6 +11,36 @@ import { NODE_PLATFORM_OBJECTS } from "../../shared/contracts/node-installation-
 // A checkpoint version is not a migration count or a caller-provided catalog.
 const CATALOG = V28_NODE_INSTALLATION_CATALOG_CANDIDATE;
 const LEDGER_ROWS = CATALOG.migrations.length;
+export interface InstalledIdentityExecutionOwnerV28Candidate {
+  readonly policy: Readonly<IdentityPolicy>;
+  readonly installation: Readonly<InstallationReceipt>;
+  assertCurrent(): void;
+}
+interface CapturedExecutionOwner {
+  readonly proof: readonly unknown[];
+  assertCurrent(): void;
+}
+const executionOwners = new WeakMap<InstalledIdentityExecutionOwnerV28Candidate, CapturedExecutionOwner>();
+
+/** A closed synchronous group of actual privately issued owners. Every member
+ * must have the identical original captured tuple, not an observed-success
+ * baseline. Only the retained original read guard executes; no caller callback
+ * or proof token is accepted or issued, and every invocation checks live data. */
+export function createInstalledIdentityExecutionGuardGroupV28Candidate(
+  issued: readonly InstalledIdentityExecutionOwnerV28Candidate[],
+): Readonly<{ assertCurrent(): void }> {
+  if (!Array.isArray(issued) || issued.length < 1 || issued.length > 8) unavailable();
+  const members = Array.from(issued, owner => {
+    const captured = executionOwners.get(owner); if (!captured) unavailable(); return captured;
+  });
+  const original = members[0]!;
+  for (const member of members) {
+    if (member.proof.length !== original.proof.length
+      || member.proof.some((value, index) => value !== original.proof[index])) unavailable();
+  }
+  original.assertCurrent();
+  return Object.freeze({ assertCurrent() { original.assertCurrent(); } });
+}
 function unavailable(): never { throw new Error("Captured installed identity execution owner is unavailable"); }
 
 /** A trusted immutable-schema execution captures full reviewed installation
@@ -19,9 +49,7 @@ function unavailable(): never { throw new Error("Captured installed identity exe
  * it never caches a permission or query result. Close and discard this owner before recovery, upgrade or native close.
  * This is not a replacement for full recovery/schema/integrity admission. */
 export function captureInstalledIdentityExecutionOwnerV28Candidate(identity: object, database: SqliteCapability,
-  nativeDatabase: DatabaseSync, admission: ReviewedInstallationAdmission): Readonly<{
-    policy: Readonly<IdentityPolicy>; installation: Readonly<InstallationReceipt>; assertCurrent(): void;
-  }> {
+  nativeDatabase: DatabaseSync, admission: ReviewedInstallationAdmission): Readonly<InstalledIdentityExecutionOwnerV28Candidate> {
   // Prepare a bounded snapshot only on the actual same-core/native connection.
   // The private identity registry must fully validate it before an owner issues.
   assertSqliteConnectionOwner(database, nativeDatabase);
@@ -110,5 +138,16 @@ export function captureInstalledIdentityExecutionOwnerV28Candidate(identity: obj
   assertCurrent();
   const policy = assertInstalledLocalIdentityOwner(identity, database, nativeDatabase, admission);
   assertCurrent();
-  return Object.freeze({ policy, installation, assertCurrent });
+  const issued = Object.freeze({ policy, installation, assertCurrent });
+  // Private equality evidence only: these immutable captured expectations are
+  // never replaced by a later successful read. Every group call still executes
+  // the full original live schema/cookie/ledger/connection proof above.
+  const proof = Object.freeze([identity, database, nativeDatabase, admission, policy,
+    installation.installationId, installation.catalogId, installation.checkpointId,
+    installation.schemaSha256, installation.appliedMigrations, installation.createdAt,
+    cookie, temporaryCookie, mainFile,
+    ...capturedLedger.flatMap(row => [row.ordinal, row.name, row.rawSha256, row.checkpointId,
+      row.schemaSha256, row.status, row.appliedAt])]);
+  executionOwners.set(issued, Object.freeze({ proof, assertCurrent }));
+  return issued;
 }

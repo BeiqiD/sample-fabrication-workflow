@@ -2,6 +2,8 @@ import type { DatabaseSync } from "node:sqlite";
 import type { RequestSubjectFacts } from "../../shared/contracts/request-subject";
 import { assertInstalledLocalIdentityOwner } from "./identity";
 import { captureInstalledIdentityExecutionOwnerV28Candidate } from "./installed-identity-execution-owner-v28-candidate.ts";
+import { ownedLocalVolumeProfileContext, ownedLocalVolumeIdentityV28Candidate,
+  createLocalVolumeIdentityGuardV28Candidate, type LocalVolumeProfileOpening } from "../storage/local-volume-profile-opening.ts";
 import { localAuthenticationIdentityAuthority } from "./local-auth-http";
 import { assertInstallationAdmission, type ReviewedInstallationAdmission } from "../migrations";
 import { assertLinuxWriterLeaseBinding, type LinuxWriterLease } from "../operations/writer-lease";
@@ -29,10 +31,27 @@ interface SessionOwner {
  * writer-owned operation and discards this issuer before closing/recovery/upgrade.
  * Every read checks the actual enabled account/session and actual host clock;
  * these facts cannot be cached across business/provider boundaries as rights. */
-export function createLocalRequestSubjectIssuer(options: {
+type RequestSubjectIssuerOptions = {
   database: SqliteCapability; nativeDatabase: DatabaseSync; admission: ReviewedInstallationAdmission;
   writerLease: LinuxWriterLease; authentication: object;
+};
+export function createLocalRequestSubjectIssuer(options: RequestSubjectIssuerOptions) {
+  return createOwnedLocalRequestSubjectIssuer(options);
+}
+/** Concrete opening-bound V28 composer only. Its exact original private
+ * opening derives the core/Native/physical tuple; no owner option or callback
+ * bag is accepted. Session/clock/CSRF and original Request checks stay fresh. */
+export function createLocalVolumeRequestSubjectIssuerV28Candidate(options: {
+  opening: LocalVolumeProfileOpening; admission: ReviewedInstallationAdmission; authentication: object;
 }) {
+  if (Object.keys(options).sort().join(",") !== "admission,authentication,opening") throw new LocalRequestSubjectError("unavailable");
+  const { opening, admission, authentication } = options;
+  ownedLocalVolumeIdentityV28Candidate(opening, authentication, admission);
+  const physical = ownedLocalVolumeProfileContext(opening);
+  return createOwnedLocalRequestSubjectIssuer({ database: physical.database, nativeDatabase: physical.nativeDatabase,
+    writerLease: physical.writerLease, admission, authentication }, opening);
+}
+function createOwnedLocalRequestSubjectIssuer(options: RequestSubjectIssuerOptions, opening?: LocalVolumeProfileOpening) {
   const { database, nativeDatabase, admission, writerLease, authentication } = options;
   const auth = localAuthenticationIdentityAuthority(authentication);
   assertLinuxWriterLeaseBinding(writerLease, database, nativeDatabase);
@@ -42,6 +61,8 @@ export function createLocalRequestSubjectIssuer(options: {
   // Its live schema/ledger/identity guards do not cache session/member rights.
   const v28 = admission.receipt.checkpointId === "portable-runtime/v28"
     ? captureInstalledIdentityExecutionOwnerV28Candidate(auth.identity, database, nativeDatabase, admission) : undefined;
+  const currentV28 = v28 && opening
+    ? createLocalVolumeIdentityGuardV28Candidate(opening, authentication, admission, [v28]) : v28;
   const policy = v28 ? v28.policy : assertInstalledLocalIdentityOwner(auth.identity, database, nativeDatabase, admission);
   const installation = Object.freeze({ ...(v28 ? v28.installation : assertInstallationAdmission(nativeDatabase, admission)) });
   const initial = nativeDatabase.prepare("SELECT bootstrap_principal_id,initialized_at FROM local_identity_installation WHERE singleton=1 AND catalog_id='local-identity-v1'").get();
@@ -54,7 +75,7 @@ export function createLocalRequestSubjectIssuer(options: {
   function validate(): void {
     try {
       assertLinuxWriterLeaseBinding(writerLease, database, nativeDatabase);
-      if (v28) v28.assertCurrent();
+      if (currentV28) currentV28.assertCurrent();
       else assertInstalledLocalIdentityOwner(auth.identity, database, nativeDatabase, admission);
     } catch { throw new LocalRequestSubjectError("unavailable"); }
   }
