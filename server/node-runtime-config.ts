@@ -6,7 +6,7 @@ import { createLoopbackLocalAuthTransport } from './auth/local-auth-transport.ts
 export class NodeRuntimeConfigurationError extends Error {
   constructor() { super('Local runtime configuration is unavailable.'); this.name = 'NodeRuntimeConfigurationError'; }
 }
-export type NodeRuntimeConfigurationProfile = 'v28-metadata' | 'v28-fabublox' | 'v28-recovery';
+export type NodeRuntimeConfigurationProfile = 'v28-metadata' | 'v28-fabublox' | 'v28-recovery' | 'v28-workflow';
 export interface LoadedNodeRuntimeConfiguration {
   readonly kind: 'loaded-node-loopback-development/1';
 }
@@ -196,7 +196,7 @@ export function loadNodeRuntimeConfiguration(path: string, options: {
     const runtimeProfile = options?.runtimeProfile;
     if (process.platform !== 'linux' || typeof process.geteuid !== 'function' || !options || typeof options !== 'object' || Array.isArray(options)
       || Object.keys(options).some(key => key !== 'filesystemRootOwnerUid' && key !== 'runtimeProfile')
-      || runtimeProfile !== undefined && runtimeProfile !== 'v28-metadata' && runtimeProfile !== 'v28-fabublox' && runtimeProfile !== 'v28-recovery'
+      || runtimeProfile !== undefined && runtimeProfile !== 'v28-metadata' && runtimeProfile !== 'v28-fabublox' && runtimeProfile !== 'v28-recovery' && runtimeProfile !== 'v28-workflow'
       || !Number.isSafeInteger(configuredRoot) || configuredRoot < 0 || configuredRoot > 0xffff_ffff) unavailable();
     const owner = BigInt(process.geteuid()), rootOwner = BigInt(configuredRoot);
     canonical(path); const before = lstatSync(path, { bigint: true }); privateConfiguration(before, owner);
@@ -258,7 +258,7 @@ export function loadNodeRuntimeConfiguration(path: string, options: {
       canonical(selected.parent);
       if (typeof selected.rootBindingId !== 'string' || !INSTALLATION_ID.test(selected.rootBindingId)
         || typeof selected.targetId !== 'string' || !INSTALLATION_ID.test(selected.targetId)
-        || selected.targetId === raw.expectedInstallationId || raw.enableLocalRecovery !== true || runtimeProfile !== 'v28-recovery'
+        || selected.targetId === raw.expectedInstallationId || raw.enableLocalRecovery !== true || runtimeProfile !== 'v28-recovery' && runtimeProfile !== 'v28-workflow'
         || [path, raw.dataDirectory, raw.clientDirectory, ...(raw.storageKeyringPath === undefined ? [] : [raw.storageKeyringPath]),
           ...localVolumes.map(volume => volume.root), ...(recoveryArtifacts === undefined ? [] : [recoveryArtifacts.root])]
           .some(protectedPath => overlaps(selected.parent as string, protectedPath))) unavailable();
@@ -268,7 +268,10 @@ export function loadNodeRuntimeConfiguration(path: string, options: {
       recoveryTarget = Object.freeze({ parent, rootBindingId: selected.rootBindingId, targetId: selected.targetId });
     }
     if (raw.enableLocalRecovery !== undefined && typeof raw.enableLocalRecovery !== 'boolean'
-      || raw.enableLocalRecovery === true && (!recoveryArtifacts || runtimeProfile !== 'v28-recovery')) unavailable();
+      || raw.enableLocalRecovery === true && (!recoveryArtifacts || runtimeProfile !== 'v28-recovery' && runtimeProfile !== 'v28-workflow')) unavailable();
+    // Explicit host selection only; persisted flags and grants are unchanged.
+    if (runtimeProfile === 'v28-workflow' && (raw.enableLocalFile !== true || raw.enableLocalJobs !== true
+      || raw.enableLocalRecovery !== true || !recoveryArtifacts)) unavailable();
     const after = fstatSync(descriptor, { bigint: true }), afterPath = lstatSync(path, { bigint: true });
     privateConfiguration(after, owner); privateConfiguration(afterPath, owner);
     if (!sameFile(fileIdentity(opened), fileIdentity(after)) || !sameFile(fileIdentity(opened), fileIdentity(afterPath))) unavailable();
@@ -318,9 +321,12 @@ export function assertNodeRuntimeConfiguration(token: LoadedNodeRuntimeConfigura
 export function assertNodeRuntimeConfigurationForProfile(token: LoadedNodeRuntimeConfiguration,
   profile: NodeRuntimeConfigurationProfile | undefined): Readonly<NodeRuntimeConfiguration> {
   const current = issued.get(token);
-  if (!current || profile !== undefined && profile !== 'v28-metadata' && profile !== 'v28-fabublox' && profile !== 'v28-recovery'
+  if (!current || profile !== undefined && profile !== 'v28-metadata' && profile !== 'v28-fabublox' && profile !== 'v28-recovery' && profile !== 'v28-workflow'
     || current.format === 'node-loopback-restored-v28-v1' && profile === undefined) unavailable();
-  if (profile === 'v28-recovery' ? !current.value.enableLocalRecovery || !current.value.recoveryArtifacts
+  if (profile === 'v28-workflow') {
+    if (!current.value.enableLocalFile || !current.value.enableLocalJobs || !current.value.enableLocalRecovery
+      || !current.value.recoveryArtifacts || !current.value.localVolumes.length) unavailable();
+  } else if (profile === 'v28-recovery' ? !current.value.enableLocalRecovery || !current.value.recoveryArtifacts
     || current.value.enableLocalFile || current.value.enableLocalJobs : current.value.enableLocalRecovery) unavailable();
   return assertNodeRuntimeConfiguration(token);
 }

@@ -77,3 +77,70 @@ export function createInstalledJobPrincipalAuthority(options: {
   issued.set(authority, Object.freeze({ database, nativeDatabase, installation, identityInstallation, assertCurrent }));
   return authority;
 }
+
+/** Fixed V28 administrator owner for the explicit combined host. Dynamic
+ * imports keep the existing V26 startup graph unchanged. This owner enters
+ * the same private registry as the original factory; no caller catalog,
+ * asserted actor spelling, Group membership or Request is an admin grant.
+ * Ordinary File/Package resource permission is issued separately. */
+export async function createInstalledJobPrincipalAuthorityV28(options: {
+  database: SqliteCapability; nativeDatabase: DatabaseSync;
+  admission: ReviewedInstallationAdmission; writerLease: LinuxWriterLease; authentication: object;
+}): Promise<InstalledJobPrincipalAuthority> {
+  const { database, nativeDatabase, admission, writerLease, authentication } = Object.freeze({ ...options });
+  assertSqliteConnectionOwner(database, nativeDatabase);
+  assertLinuxWriterLeaseBinding(writerLease, database, nativeDatabase);
+  const [catalogModule, authModule, identityModule] = await Promise.all([
+    import("../../installation-catalog-v28-candidate.ts"),
+    import("../../auth/local-auth-http.ts"),
+    import("../../auth/installed-identity-execution-owner-v28-candidate.ts"),
+  ]);
+  assertSqliteConnectionOwner(database, nativeDatabase);
+  assertLinuxWriterLeaseBinding(writerLease, database, nativeDatabase);
+  const installation = assertInstallationAdmission(nativeDatabase, admission);
+  const catalog = catalogModule.V28_NODE_INSTALLATION_CATALOG_CANDIDATE, checkpoint = catalog.migrations.at(-1)?.checkpoint;
+  if (!checkpoint || checkpoint.id !== "portable-runtime/v28" || installation.catalogId !== catalog.id
+    || installation.checkpointId !== checkpoint.id || installation.schemaSha256 !== checkpoint.schemaSha256
+    || installation.appliedMigrations !== catalog.migrations.length) throw new Error("Current V28 job installation is unavailable");
+  const auth = authModule.localAuthenticationIdentityAuthority(authentication);
+  const identity = identityModule.captureInstalledIdentityExecutionOwnerV28Candidate(auth.identity, database, nativeDatabase, admission);
+  if (identity.installation.installationId !== installation.installationId
+    || identity.installation.catalogId !== installation.catalogId || identity.installation.checkpointId !== installation.checkpointId
+    || identity.installation.schemaSha256 !== installation.schemaSha256
+    || identity.installation.appliedMigrations !== installation.appliedMigrations
+    || identity.installation.createdAt !== installation.createdAt) throw new Error("Original V28 job identity installation changed");
+  const identityStatement = nativeDatabase.prepare("SELECT bootstrap_principal_id,catalog_id,initialized_at FROM local_identity_installation WHERE singleton=1");
+  identityStatement.setReadBigInts(true); const initialIdentity = identityStatement.get();
+  if (!initialIdentity || typeof initialIdentity.bootstrap_principal_id !== "string"
+    || !localJobPrincipalId(`local-account:${initialIdentity.bootstrap_principal_id}`)
+    || initialIdentity.catalog_id !== "local-identity-v1" || typeof initialIdentity.initialized_at !== "bigint"
+    || initialIdentity.initialized_at < 0n) throw new Error("Current V28 job identity installation is unavailable");
+  const identityInstallation = Object.freeze({ bootstrapPrincipalId: initialIdentity.bootstrap_principal_id, initializedAt: initialIdentity.initialized_at });
+  let closed = false;
+  function assertCurrent(): void {
+    if (closed) throw new Error("Installed V28 job principal authority is closed");
+    assertSqliteConnectionOwner(database, nativeDatabase);
+    assertLinuxWriterLeaseBinding(writerLease, database, nativeDatabase);
+    identity.assertCurrent();
+    if (authModule.localAuthenticationIdentityAuthority(authentication) !== auth) throw new Error("Original V28 job identity changed");
+    const currentIdentity = identityStatement.get();
+    if (!currentIdentity || currentIdentity.bootstrap_principal_id !== identityInstallation.bootstrapPrincipalId
+      || currentIdentity.catalog_id !== "local-identity-v1" || currentIdentity.initialized_at !== identityInstallation.initializedAt)
+      throw new Error("Installed V28 job identity authority changed");
+  }
+  assertCurrent();
+  const authority: InstalledJobPrincipalAuthority = Object.freeze({
+    authorizeAdministrator(actor: string): boolean {
+      try {
+        assertCurrent(); const id = localJobPrincipalId(actor); if (!id) return false;
+        const row = nativeDatabase.prepare(`SELECT 1 FROM local_accounts a JOIN local_admin_grants g ON g.principal_id=a.principal_id
+          WHERE a.principal_id=? AND a.enabled=1 AND EXISTS(SELECT 1 FROM local_identity_installation
+            WHERE singleton=1 AND catalog_id='local-identity-v1')`).get(id);
+        assertCurrent(); return !!row;
+      } catch { return false; }
+    },
+    close() { closed = true; },
+  });
+  issued.set(authority, Object.freeze({ database, nativeDatabase, installation, identityInstallation, assertCurrent }));
+  return authority;
+}

@@ -246,7 +246,9 @@ export function createLocalSampleProjectedDetailReadV28Candidate(options: {
       const statement:ReadSqlStatement=Object.freeze({
         bind(...values:ReadSqlCell[]) {
           if(projection && (owner.scope.operation!=="detail" || !values.length || !values.every(value=>value===owner.scope.sampleId))) throw denied();
-          return wrap(native.bind(...values),projection);
+          // Core bind replaces cells. The original service supplies only
+          // Sample IDs; retain the privately captured member prefix here.
+          return wrap(native.bind(...(projection ? member : []),...values),projection);
         },
         async first() {const rows=projection?await enqueue(projection,native):(await read([native]))[0]!;return rows[0]?configurationSqlRow(rows[0]):null;},
         async all() {const rows=projection?await enqueue(projection,native):(await read([native]))[0]!;return {results:rows.map(configurationSqlRow)};},
@@ -267,7 +269,7 @@ export function createLocalSampleProjectedDetailReadV28Candidate(options: {
       },
       detailStatementProjection(projection:SampleDetailProjection,sql:string) {
         if(owner.scope.operation!=="detail") throw denied();
-        return wrap(database.prepare(sampleDetailFilteredSql(projection,sql,owner.facts,false,canonicalAttachments)).bind(...member),projection);
+        return wrap(database.prepare(sampleDetailFilteredSql(projection,sql,owner.facts,false,canonicalAttachments)),projection);
       },
       processingProjection(projection:"page"|"count",sql:string) {
         if(owner.scope.operation!=="processing") throw denied();

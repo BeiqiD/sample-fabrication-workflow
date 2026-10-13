@@ -4,8 +4,8 @@ import { validSubmissionId } from "../../shared/contracts/comment-submissions";
 import { validateCommentAcceptanceInput, MAX_COMMENT_ACCEPTANCE_INPUT_BYTES, type AcceptedCommentSubmissionInput } from "../../shared/contracts/comment-acceptance";
 import type { ReviewedInstallationAdmission } from "../migrations";
 import { localAuthenticationIdentityAuthority } from "../auth/local-auth-http";
-import { captureInstalledIdentityExecutionOwnerV28Candidate } from "../auth/installed-identity-execution-owner-v28-candidate";
-import { createLocalRequestSubjectIssuer, type LocalRequestSubject } from "../auth/local-request-subject";
+import { ownedLocalVolumeIdentityV28Candidate } from "../storage/local-volume-profile-opening";
+import { createLocalVolumeRequestSubjectIssuerV28Candidate, type LocalRequestSubject } from "../auth/local-request-subject";
 import { createSqliteBatchAdmission, runSqliteAdmittedBatch, type SqliteBatchAdmissionCheck } from "../sqlite";
 import { ownedLocalVolumeProfileContextV28Candidate, type LocalVolumeProfileOpeningV28Candidate } from "../storage/local-volume-profile-opening-v28-candidate";
 import { canonicalCommentReadCheckSql } from "../collaboration/canonical-comment-read-roots";
@@ -178,10 +178,10 @@ export function createLocalCommentPermissionV28Candidate(options: {
   if (Object.keys(options).sort().join(",") !== "admission,authentication,opening") throw unavailable();
   const { opening, authentication, admission } = options;
   const physical = ownedLocalVolumeProfileContextV28Candidate(opening);
-  const { database, nativeDatabase, writerLease } = physical;
+  const { database, nativeDatabase } = physical;
   const auth = localAuthenticationIdentityAuthority(authentication);
-  const identity = captureInstalledIdentityExecutionOwnerV28Candidate(auth.identity, database, nativeDatabase, admission);
-  const issuer = createLocalRequestSubjectIssuer({ database, nativeDatabase, writerLease, authentication, admission });
+  const identity = ownedLocalVolumeIdentityV28Candidate(opening, authentication, admission);
+  const issuer = createLocalVolumeRequestSubjectIssuerV28Candidate({ opening, authentication, admission });
   const installation = identity.installation, localIssuer = `node-installation:${installation.installationId}`;
   let active = true;
   const captures = new WeakMap<LocalCommentPermissionV28Candidate, Session>();
@@ -194,7 +194,8 @@ export function createLocalCommentPermissionV28Candidate(options: {
   function current(session: Session) {
     if (!active || localAuthenticationIdentityAuthority(authentication) !== auth
       || session.request.method !== session.method || session.request.url !== session.url) throw denied();
-    physical.assertCurrent(); identity.assertCurrent();
+    // This opening-bound issuer performs one fresh full original identity
+    // proof plus the same private opening/physical checks synchronously.
     const facts = issuer.read(session.request, session.subject);
     if (facts.provider !== "local" || facts.issuer !== localIssuer || facts.subject !== session.principalId
       || auth.currentSessionPredicate(session.request, session.actor).tokenHash !== session.tokenHash) throw denied();
