@@ -1,6 +1,8 @@
+import { inspectV28CloudflareSchemaCandidate } from "./v28-cloudflare-schema-candidate";
+import { validateSystemRecoveryEvidenceHistoryV28 } from "../../shared/contracts/export-system-recovery-evidence-v28";
 import { inspectV26CloudflareSchema } from "./v26-cloudflare-schema";
 import { stableJson, sha256Hex } from "../../shared/domain/content-addressing";
-import { selectReviewedRecoveryCatalog, validateRecoverySourceImage, type VersionedRecoveryRecords } from "./versioned-catalog";
+import { selectWorkerRecoveryCatalog as selectReviewedRecoveryCatalog, validateWorkerRecoverySourceImage as validateRecoverySourceImage, type WorkerRecoveryRecords as VersionedRecoveryRecords } from "./versioned-catalog";
 import { inspectCurrentCloudflareSchema } from "./current-cloudflare-schema";
 import type { SystemRecoveryCell, SystemRecoveryRow, SystemRecoveryTable, RecoveryTableSpec } from "../../shared/contracts/system-recovery-image";
 import { FILE_REGISTRY_ROWID_CLAIMS_INTEGRITY_SQL, canonicalFileAuthoritySchemaSql } from "../../shared/contracts/export-file-authority";
@@ -105,11 +107,12 @@ export async function verifyRecoveryTarget(database: D1Database, records: Versio
   validateRecoverySourceImage(records);
   await assertRecoveredCapabilitiesInert(database, catalog);
   await inspectRecoveryPlatformSchema(database);
-  if (catalog.imageVersion === 2 || catalog.imageVersion === 3) {
+  if (catalog.imageVersion === 2 || catalog.imageVersion === 3 || catalog.imageVersion === 5) {
     const all = await database.prepare("SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema ORDER BY type,name")
       .all<import("../../shared/contracts/export").ExportSchemaObject>();
     ensure(all.success, "restored_schema_unavailable");
-    if (catalog.imageVersion === 3) await inspectV26CloudflareSchema(all.results);
+    if (catalog.imageVersion === 5) await inspectV28CloudflareSchemaCandidate(all.results);
+    else if (catalog.imageVersion === 3) await inspectV26CloudflareSchema(all.results);
     else await inspectCurrentCloudflareSchema(all.results);
   }
   const schema = await database.prepare("SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*' AND tbl_name NOT IN('_cf_KV','_cf_METADATA','d1_migrations') ORDER BY type,name")
@@ -152,17 +155,17 @@ export async function verifyRecoveryTarget(database: D1Database, records: Versio
         let allowed = false, reason: RecoveryCellDifference["reason"] = "destination_mapping";
         const planned = changes.filter(change => change.table === spec.name && change.column === column && keyed(expected, original, change.keys));
         if (planned.length) { allowed = planned.every(change => stableJson(after) === stableJson(change.value === null ? { type: "null" } : text(change.value))); reason = column === "active_location_id" ? "destination_mapping" : "file_binding"; }
-        if ((catalog.imageVersion === 2 || catalog.imageVersion === 3) && spec.name === "local_accounts" && column === "enabled") {
+        if ((catalog.imageVersion === 2 || catalog.imageVersion === 3 || catalog.imageVersion === 5) && spec.name === "local_accounts" && column === "enabled") {
           allowed = before.type === "integer" && before.value === "1" && after.type === "integer" && after.value === "0";
           reason = "identity_quarantine";
         }
-        if (spec.name === "file_authority_control") {
+        if (catalog.imageVersion !== 5 && spec.name === "file_authority_control") {
           const originalMode=cellValue(original.cells[expected.columns.indexOf('mode')]);
           if(files.length&&originalMode!=='active')allowed ||= column === "mode" && stableJson(after) === stableJson(text("active"))
             || column === "updated_at" && validClock(after) || column === "activated_at" && before.type === "null" && validClock(after);
           reason = "authority_conversion";
         }
-        if (column === "source_json" && ["file_shadow_heads", "file_shadow_occurrences"].includes(spec.name)) {
+        if (catalog.imageVersion !== 5 && column === "source_json" && ["file_shadow_heads", "file_shadow_occurrences"].includes(spec.name)) {
           const values = (name: string) => cellValue(original.cells[expected.columns.indexOf(name)]);
           const source = spec.name === "file_shadow_occurrences" ? headSources.find(source => source.occurrence_id === values("id"))
             : headSources.find(source => source.consumer_kind === values("consumer_kind") && source.consumer_id === values("consumer_id")
@@ -183,7 +186,27 @@ export async function verifyRecoveryTarget(database: D1Database, records: Versio
     ensure(check.success && check.results.length === 1 && Object.values(check.results[0])[0] === "ok", `restored_table_consistency:${spec.name}`);
     tableHashes[spec.name] = await sha256Hex(stableJson(observed.rows.map(stableJson).sort()));
   }
-  validateSystemRecoveryEvidenceHistory(evidenceTables);
+  if(catalog.imageVersion === 5){
+    // The local destination controls are only the reviewed inert seeds. Original
+    // credentials, Group/member/grant rows never become target authority.
+    for(const spec of catalog.tables.filter(table=>table.local&&!table.name.startsWith("system_recovery_"))){
+      const actual=await readRecoveryTable(database,spec.name,catalog),seed=catalog.seedTableRows[spec.name];
+      ensure(stableJson(actual.columns)===stableJson(seed.columns)&&stableJson(actual.rows.map(stableJson).sort())===stableJson(seed.rows.map(stableJson).sort()),"restored_local_seed_differs:"+spec.name);
+      const check=await database.prepare(`PRAGMA quick_check(${recoveryIdentifier(spec.name)})`).all<Record<string,unknown>>();
+      ensure(check.success&&check.results.length===1&&Object.values(check.results[0])[0]==="ok","restored_table_consistency:"+spec.name);
+      tableHashes[spec.name]=await sha256Hex(stableJson(actual.rows.map(stableJson).sort()));
+    }
+    ensure(!headSources.length,"restored_v5_present_heads_not_admitted");
+    const all=await database.prepare("SELECT type,name FROM sqlite_schema ORDER BY type,name").all<{type:string;name:string}>();
+    ensure(all.success,"restored_schema_unavailable");
+    const checked=new Set(catalog.tables.filter(table=>!table.local||!table.name.startsWith("system_recovery_")).map(table=>table.name));
+    for(const name of ["sqlite_schema",...all.results.filter(row=>row.type==="table"&&row.name!=="_cf_KV"&&row.name!=="_cf_METADATA").map(row=>row.name)]){
+      if(checked.has(name))continue;
+      const check=await database.prepare(`PRAGMA quick_check(${recoveryIdentifier(name)})`).all<Record<string,unknown>>();
+      ensure(check.success&&check.results.length===1&&Object.values(check.results[0])[0]==="ok","restored_table_consistency:"+name);
+    }
+    validateSystemRecoveryEvidenceHistoryV28(evidenceTables);
+  }else validateSystemRecoveryEvidenceHistory(evidenceTables);
   ensure((await database.prepare(FILE_REGISTRY_ROWID_CLAIMS_INTEGRITY_SQL).first<{ invalid_count: number }>())?.invalid_count === 0, "restored_registry_rowids_invalid");
   ensure((await database.prepare(FILE_SHADOW_HEAD_INTEGRITY_SQL).first<{ invalid_count: number }>())?.invalid_count === 0, "restored_shadow_heads_invalid");
   const projectChecks = [

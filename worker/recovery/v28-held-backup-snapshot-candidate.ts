@@ -1,3 +1,6 @@
+import type { RecoveryClaim } from "./repository";
+import { canAdministerSystemSettings } from "../storage/system-administrator";
+import { allowedEmail } from "../auth";
 // Explicit V28/V5 Cloudflare capture. Historical/default capture stays frozen.
 import type { Env } from "../types";
 import { primaryD1 } from "../d1-primary";
@@ -28,6 +31,7 @@ const budget = `SELECT CASE WHEN ${count}>16384 OR ${bytes}>${SYSTEM_BACKUP_MAX_
 function ensure(value: unknown, reason: string): asserts value { if (!value) throw new Error("worker_v28_held_capture_" + reason); }
 export interface WorkerV28HeldCaptureOptionsCandidate {
   backupId: string; expectedInstallationId: string; createdAt?: string; signal?: AbortSignal;
+  deadlineAt?: string;
   /** Actual operator/application authorization and cold-source writer custody.
    * Metadata, an archive, or a copied source marker never supplies this grant. */
   current(): Promise<boolean>;
@@ -58,15 +62,45 @@ export const V28_HELD_SOURCE_INERT_SQL_CANDIDATE = `SELECT CASE WHEN
  * This is an explicit cold/inert source port, not public capture or activation.
  * The outer owner MUST retain all holds through original provider/archive close. */
 export async function captureHeldWorkerV28SystemBackupCandidate(env: Env, options: WorkerV28HeldCaptureOptionsCandidate): Promise<SystemBackupRecordsV5> {
+  return captureOriginalWorkerV28Snapshot(env,options);
+}
+/** Actual original public FP5 claim. This issuer reads the genuine installation
+ * and joins the durable job/token/generation/runtime lease to every cold fence.
+ * No uploaded metadata, callback-only actor, one-shot token or enabled account
+ * can stand in for that original issued public job. */
+export async function captureWorkerV5PublicSnapshot(env: Env,claim: RecoveryClaim,expectedInstallationId:string,current:()=>Promise<boolean>,signal:AbortSignal,deadlineAt?:string):Promise<SystemBackupRecordsV5>{
+  ensure(typeof deadlineAt==="string"&&Number.isFinite(Date.parse(deadlineAt))&&Date.now()<Date.parse(deadlineAt),"original_public_hard_deadline");
+  ensure(claim.kind==="backup"&&claim.phase==="snapshot"&&claim.state==="running","original_public_backup_claim");
+  ensure(/^[a-f0-9]{32}$/.test(expectedInstallationId),"original_public_installation");
+  return captureOriginalWorkerV28Snapshot(env,{backupId:claim.id,createdAt:claim.accepted_at,expectedInstallationId,current,signal,deadlineAt},claim);
+}
+export function workerV5PublicBackupClaimFence(env:Env,claim:RecoveryClaim,expectedId:string,deadlineAt?:string){
+  ensure(claim.kind==="backup"&&claim.state==="running"&&canAdministerSystemSettings(env,claim.actor)
+    &&Boolean(env.ACCESS_TEAM_DOMAIN&&env.ACCESS_AUD)&&allowedEmail(claim.actor,env.ALLOWED_EMAILS),"original_public_administrator");
+  const original=V28_HELD_SOURCE_INERT_SQL_CANDIDATE.replace(
+    "EXISTS(SELECT 1 FROM system_recovery_runtime WHERE singleton=1 AND enabled=0 AND installation_id=?)",
+    `EXISTS(SELECT 1 FROM system_recovery_runtime r JOIN system_recovery_jobs j ON j.runtime_incarnation=r.incarnation
+      WHERE r.singleton=1 AND r.enabled=1 AND r.installation_id=? AND j.id=? AND j.actor=? AND j.kind='backup' AND j.state='running'
+        AND j.owner_token=? AND j.generation=? AND j.runtime_incarnation=? AND julianday(j.lease_expires_at)>julianday('now')
+        AND j.lease_expires_at=? ${deadlineAt===undefined?"":"AND julianday(?)>julianday('now')"} AND EXISTS(SELECT 1 FROM system_recovery_maintenance m WHERE m.singleton=1 AND m.state='fenced'
+          AND(m.checkpoint_sha256 IS NULL OR m.backup_job_id=j.id))
+        AND NOT EXISTS(SELECT 1 FROM system_recovery_write_leases WHERE released_at IS NULL))`);
+  return primaryD1(env.DB).prepare(original).bind(expectedId,claim.id,claim.actor,claim.owner_token,claim.generation,claim.runtime_incarnation,claim.lease_expires_at,...(deadlineAt===undefined?[]:[deadlineAt]));
+}
+async function captureOriginalWorkerV28Snapshot(env: Env, options: WorkerV28HeldCaptureOptionsCandidate,publicClaim?:RecoveryClaim): Promise<SystemBackupRecordsV5> {
   const binding = env.DB, db = primaryD1(binding), backupId = options.backupId, expectedId = options.expectedInstallationId;
   const createdAt = options.createdAt ?? new Date().toISOString(), current = options.current, signal = options.signal;
-  const observedHolds = options.onHoldsInstalled;
+  const observedHolds = options.onHoldsInstalled,deadline=options.deadlineAt===undefined?null:Date.parse(options.deadlineAt);
+  function issueCurrent(){
+    return !signal?.aborted&&env.DB===binding&&(deadline===null||Number.isFinite(deadline)&&Date.now()<deadline)
+      &&(!publicClaim||canAdministerSystemSettings(env,publicClaim.actor)&&Boolean(env.ACCESS_TEAM_DOMAIN&&env.ACCESS_AUD)&&allowedEmail(publicClaim.actor,env.ALLOWED_EMAILS));
+  }
   ensure(typeof backupId === "string" && backupId.length > 0 && backupId.length <= 128 && !backupId.includes("\0")
     && /^[a-f0-9]{32}$/.test(expectedId) && Number.isFinite(Date.parse(createdAt)) && new Date(createdAt).toISOString() === createdAt, "identity");
   async function available() {
-    ensure(!signal?.aborted && env.DB === binding && await current() === true && !signal?.aborted && env.DB === binding, "source_authority");
-    await db.prepare(V28_HELD_SOURCE_INERT_SQL_CANDIDATE).bind(expectedId).first();
-    ensure(!signal?.aborted && env.DB === binding && await current() === true && !signal?.aborted && env.DB === binding, "source_authority");
+    ensure(issueCurrent() && await current() === true && issueCurrent(), "source_authority");
+    await (publicClaim ? workerV5PublicBackupClaimFence(env,publicClaim,expectedId,options.deadlineAt) : db.prepare(V28_HELD_SOURCE_INERT_SQL_CANDIDATE).bind(expectedId)).first();
+    ensure(issueCurrent() && await current() === true && issueCurrent(), "source_authority");
   }
   await available(); const preflight = await db.prepare(schemaSql).all<ExportSchemaObject>();
   ensure(preflight.success, "schema"); const platform = await inspectV28CloudflareSchemaCandidate(preflight.results);
@@ -75,7 +109,7 @@ export async function captureHeldWorkerV28SystemBackupCandidate(env: Env, option
   ensure(platform.ledgerPresent, "constructed_ledger_required"); await inspectRecoveryMigrationLedger(db, true, catalog.migrations);
   await available();
   const contentSql = nativeV28SnapshotSql(), holds = installPortableSystemBackupHolds(db, backupId, createdAt);
-  const prefix = [db.prepare(V28_HELD_SOURCE_INERT_SQL_CANDIDATE).bind(expectedId),
+  const prefix = [publicClaim ? workerV5PublicBackupClaimFence(env,publicClaim,expectedId,options.deadlineAt) : db.prepare(V28_HELD_SOURCE_INERT_SQL_CANDIDATE).bind(expectedId),
     db.prepare(`SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM file_location_holds WHERE operation_id=? OR id=?)
       AND NOT EXISTS(SELECT 1 FROM system_recovery_legacy_holds WHERE job_id=?)
       AND NOT EXISTS(SELECT 1 FROM assets WHERE r2_key IS NOT NULL)
@@ -86,8 +120,13 @@ export async function captureHeldWorkerV28SystemBackupCandidate(env: Env, option
       AND NOT EXISTS(SELECT 1 FROM events WHERE asset_key IS NOT NULL)
       THEN 1 ELSE json('V28 held owner or nonnative inventory not admitted') END`).bind("fp5-backup:" + backupId, backupId, backupId),
     db.prepare(budget), ...holds, db.prepare(budget)];
-  const results = await db.batch([...prefix, ...contentSql.map(sql => db.prepare(sql)),
-    ...tables.map(spec => db.prepare(recoveryTableSnapshotSql(spec))), db.prepare(schemaSql), db.prepare(ledgerSql)]);
+  const statements=[...prefix,...contentSql.map(sql=>db.prepare(sql)),
+    ...tables.map(spec=>db.prepare(recoveryTableSnapshotSql(spec))),db.prepare(schemaSql),db.prepare(ledgerSql)];
+  // All original statement construction precedes the final actual claim/clock
+  // check. The first public fence also checks the immutable deadline in SQL.
+  if(publicClaim)ensure(await current()===true,"source_authority");
+  ensure(issueCurrent(),"source_authority");
+  const results=await db.batch(statements);
   const imageOffset = prefix.length + contentSql.length;
   ensure(results.length === imageOffset + tables.length + 2 && results.every(result => result.success), "atomic_snapshot");
   const inspected = await inspectV28CloudflareSchemaCandidate(results[imageOffset + tables.length].results as ExportSchemaObject[]);
