@@ -46,7 +46,17 @@ function fixture(current: boolean | "v26" = true) {
   const native = new DatabaseSync(join(directory, "source.sqlite")); opened.push(native); native.exec("PRAGMA foreign_keys=ON");
   for (const migration of (current === "v26" ? V26_MIGRATIONS : PORTABLE_RUNTIME_RECOVERY_MIGRATIONS.slice(0, current ? 23 : 22))) {
     const sql = readFileSync(new URL(`../migrations/${migration.name}`, import.meta.url), "utf8");
-    expect(createHash("sha256").update(sql).digest("hex")).toBe(migration.sha256); native.exec(sql);
+    expect(createHash("sha256").update(sql).digest("hex")).toBe(migration.sha256);
+    if (migration.name !== "0001_v3_baseline.sql") { native.exec(sql); continue; }
+    // Only the empty baseline batches its original DDL commits. Later
+    // migration PRAGMA/rebuild boundaries retain original autocommit.
+    native.exec("BEGIN");
+    try { native.exec(sql); native.exec("COMMIT"); }
+    catch (error) {
+      try { native.exec("ROLLBACK"); }
+      catch (rollbackError) { throw new AggregateError([error, rollbackError], "Fixture baseline and rollback failed"); }
+      throw error;
+    }
   }
   native.prepare("INSERT INTO samples(id,code,title,created_at,updated_at) VALUES('retained','KEPT','Retained export',?,?)").run(at, at);
   if (current) native.prepare("INSERT INTO local_accounts VALUES('local_10000000-0000-4000-8000-000000000001','retained.admin',?,1,1,0)").run(verifier);
