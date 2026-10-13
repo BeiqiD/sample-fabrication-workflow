@@ -49,8 +49,42 @@ beforeAll(async()=>{
     expect(entry.bytes).toBe(current.byteLength);expect(entry.sha256).toBe(hash(current));
   }
 },20_000);
+// Fixed route names only: never log selectors, origins, IDs, request bodies,
+// response data, credentials or an arbitrary error message. These diagnostics
+// observe each same original request/ACK; no deadline or retry is introduced.
+function routeName(path:string):string {
+  const fixed=["/api/health","/api/auth/login","/api/files/migrations","/api/files/migrations/executor",
+    "/api/packages/jobs","/api/system-recovery/capabilities","/api/system-recovery/executor","/api/system-recovery/uploads"];
+  if(fixed.includes(path))return path;
+  const selected:[RegExp,string][]=[[/^\/api\/samples\/[^/]+$/,"/api/samples/:sampleId"],
+    [/^\/api\/files\/migrations\/[^/]+$/,"/api/files/migrations/:jobId"],
+    [/^\/api\/packages\/jobs\/[^/]+\/download$/,"/api/packages/jobs/:jobId/download"],
+    [/^\/api\/packages\/jobs\/[^/]+$/,"/api/packages/jobs/:jobId"],
+    [/^\/api\/system-recovery\/jobs\/[^/]+\/upload$/,"/api/system-recovery/jobs/:jobId/upload"],
+    [/^\/api\/system-recovery\/jobs\/[^/]+\/preview$/,"/api/system-recovery/jobs/:jobId/preview"],
+    [/^\/api\/system-recovery\/jobs\/[^/]+$/,"/api/system-recovery/jobs/:jobId"]];
+  return selected.find(([pattern])=>pattern.test(path))?.[1]??"unrecognized-current-case-route";
+}
+async function diagnostic<T>(step:string,original:()=>Promise<T>):Promise<T> {
+  const started=performance.now();
+  console.info("Workflow phase diagnostic:",JSON.stringify({step,event:"begin"}));
+  try {
+    const result=await original();
+    const status=result&&typeof result==="object"&&"status" in result&&typeof result.status==="number"?result.status:undefined;
+    console.info("Workflow phase diagnostic:",JSON.stringify({step,event:"ack",durationMs:Math.trunc(performance.now()-started),...(status===undefined?{}:{status})}));
+    return result;
+  }catch(error){
+    const known=["TimeoutError","AbortError","AssertionError","AggregateError"];
+    const failureKind=error instanceof Error&&known.includes(error.name)?error.name:"original-operation-error";
+    console.info("Workflow phase diagnostic:",JSON.stringify({step,event:"failure",durationMs:Math.trunc(performance.now()-started),failureKind}));
+    throw error; // Preserve the exact first original rejection and its custody.
+  }
+}
 async function json(owner:WorkflowCliOwner,origin:string,path:string,method="GET",input?:unknown,session?:WorkflowCliSession){
-  const answer=await workflowCliJson(owner,origin,path,method,input,session);return answer;
+  return diagnostic("HTTP "+method+" "+routeName(path),()=>workflowCliJson(owner,origin,path,method,input,session));
+}
+async function bytes(owner:WorkflowCliOwner,origin:string,path:string,method:string,input?:Uint8Array,session?:WorkflowCliSession){
+  return diagnostic("HTTP "+method+" "+routeName(path),()=>workflowCliBytes(owner,origin,path,method,input,session));
 }
 async function snapshot(owner:WorkflowCliOwner,origin:string,ids:{file:string;package:string;recovery:string},session:WorkflowCliSession){
   const file=await json(owner,origin,"/api/files/migrations/"+ids.file,"GET",undefined,session);expect(file.status).toBe(200);
@@ -62,15 +96,15 @@ async function snapshot(owner:WorkflowCliOwner,origin:string,ids:{file:string;pa
 describe("actual compiled V28 workflow main, three queues and original120s cadence",()=>{
   it("retains accepted File, Package and strict Recovery-upload queues across first graceful close, then executes original elapsed slots under one parent",()=>retainedCanonicalFileCase(async()=>{
     expect(NODE_V28_JOB_CADENCE_MS).toBe(120000);
-    const source=await prepareCurrentV28WorkflowSharedFileSource(),baseline=source.baseline;
+    const source=await diagnostic("genuine original shared-File source preparation",()=>prepareCurrentV28WorkflowSharedFileSource()),baseline=source.baseline;
     const origin=await withCanonicalFileDatabase(baseline.path,owner=>canonicalFilePrivateOrigin(owner));
     assertCanonicalFileOwnersReleased();
     // Existing stopped capture CLI produces a genuine complete one-File V5
     // before workflow startup. This does not invoke an application scheduler.
     const captureConfig=join(baseline.root,"workflow-capture.json"),archivePath=join(baseline.root,"workflow-original-one-file-v5.zip");
     await writeFile(captureConfig,JSON.stringify({schema:"stopped-local-v28-capture/1",databasePath:baseline.path,descriptors:baseline.descriptors}),{flag:"wx",mode:0o600});
-    const capture=await runCurrentCli(distribution,"installation-cli.cjs",["capture-local-backup","--runtime-profile","v28",
-      "--configuration",captureConfig,"--archive",archivePath,"--installation",baseline.installationId,"--filesystem-root-owner-uid",String(baseline.rootOwnerUid)]);
+    const capture=await diagnostic("compiled stopped strict-V5 capture",()=>runCurrentCli(distribution,"installation-cli.cjs",["capture-local-backup","--runtime-profile","v28",
+      "--configuration",captureConfig,"--archive",archivePath,"--installation",baseline.installationId,"--filesystem-root-owner-uid",String(baseline.rootOwnerUid)]));
     expect(capture.code).toBe(0);expect(capture.signal).toBeNull();expect(capture.stderr).toBe("");
     const captureReceipt=object(JSON.parse(capture.stdout));ensure(typeof captureReceipt.archiveSha256==="string");
     expect(captureReceipt).toMatchObject({kind:"stopped-local-v28-v5-capture/1",completeness:"complete",packagedFiles:1,unavailableFiles:0,sourceMutation:false});
@@ -100,9 +134,9 @@ describe("actual compiled V28 workflow main, three queues and original120s caden
     const ids={file:"",package:"",recovery:""};
     let workFailed=false,workFailure:unknown;
     try{
-      current=launchWorkflowCli(distribution,configPath,baseline.rootOwnerUid);await current.ready;
-      const first=current;ensure(first.child?.pid&&first.child.pid!==process.pid);
-      const session=await loginWorkflowCli(first,origin,"operator",CANONICAL_FILE_PASSWORD);
+      current=launchWorkflowCli(distribution,configPath,baseline.rootOwnerUid);
+      const first=current;await diagnostic("first compiled main original readiness",()=>first.ready);ensure(first.child?.pid&&first.child.pid!==process.pid);
+      const session=await diagnostic("first main HTTP POST /api/auth/login",()=>loginWorkflowCli(first,origin,"operator",CANONICAL_FILE_PASSWORD));
       expect(session.actor).toBe(baseline.operatorActor);expect(session.systemAdministrator).toBe(true);expect(session.fileEvidenceOperator).toBe(false);
       const health=await json(first,origin,"/api/health");expect(health.status).toBe(200);
       expect(object(health.value).capabilities).toMatchObject({kind:"node-v28-workflow-mounted/1",profile:"v28-workflow",fullReady:false,
@@ -125,13 +159,13 @@ describe("actual compiled V28 workflow main, three queues and original120s caden
       expect((await json(first,origin,"/api/system-recovery/executor","POST",{enabled:true},session)).status).toBe(200);
       const upload=await json(first,origin,"/api/system-recovery/uploads","POST",{requestId:randomUUID(),byteSize:originalArchive.byteLength,sha256:hash(originalArchive)},session);
       expect(upload.status).toBe(202);ids.recovery=checkedSystemRecoveryReceipt(upload.value).job.id;
-      const uploaded=await workflowCliBytes(first,origin,"/api/system-recovery/jobs/"+ids.recovery+"/upload","PUT",originalArchive,session);expect(uploaded.status).toBe(200);
+      const uploaded=await bytes(first,origin,"/api/system-recovery/jobs/"+ids.recovery+"/upload","PUT",originalArchive,session);expect(uploaded.status).toBe(200);
       expect(checkedSystemRecoveryJobStatus(JSON.parse(new TextDecoder().decode(uploaded.bytes)))).toMatchObject({kind:"upload",state:"queued",phase:"validate"});
       const queued=await snapshot(first,origin,ids,session);
       expect(queued.file).toMatchObject({state:"queued",moved:0,remaining:1});expect(queued.package).toMatchObject({state:"queued",phase:"snapshot"});
       expect(queued.recovery).toMatchObject({state:"queued",phase:"validate"});
       ensure(performance.now()-first.launchedAt<NODE_V28_JOB_CADENCE_MS);
-      const firstClose=closeWorkflowCli(first);expect(closeWorkflowCli(first)).toBe(firstClose);const closed=await firstClose;current=undefined;
+      const firstClose=closeWorkflowCli(first);expect(closeWorkflowCli(first)).toBe(firstClose);const closed=await diagnostic("first compiled main original close",()=>firstClose);current=undefined;
       events.push({event:"first_original_close",pid:first.child.pid,code:closed.code,signal:closed.signal});
       await writeFile(join(baseline.root,"workflow-first.stdout.log"),closed.stdout,{flag:"wx",mode:0o600});
       await writeFile(join(baseline.root,"workflow-first.stderr.log"),closed.stderr,{flag:"wx",mode:0o600});
@@ -151,9 +185,9 @@ describe("actual compiled V28 workflow main, three queues and original120s caden
       }));assertCanonicalFileOwnersReleased();
       const initialCursor=object(JSON.parse(await readFile(join(baseline.dataDirectory,".node-v28-workflow-job-cursor.json"),"utf8")));
       expect(initialCursor).toMatchObject({schema:"node-v28-workflow-job-cursor/1",nextFamily:"file",consumedSlots:0,reservation:null});
-      current=launchWorkflowCli(distribution,configPath,baseline.rootOwnerUid);await current.ready;
-      const second=current;ensure(second.child?.pid&&second.child.pid!==first.child.pid&&second.child.pid!==process.pid);
-      const secondSession=await loginWorkflowCli(second,origin,"operator",CANONICAL_FILE_PASSWORD);
+      current=launchWorkflowCli(distribution,configPath,baseline.rootOwnerUid);
+      const second=current;await diagnostic("second compiled main original readiness",()=>second.ready);ensure(second.child?.pid&&second.child.pid!==first.child.pid&&second.child.pid!==process.pid);
+      const secondSession=await diagnostic("second main HTTP POST /api/auth/login",()=>loginWorkflowCli(second,origin,"operator",CANONICAL_FILE_PASSWORD));
       const deadline=second.launchedAt+MAX_SLOTS*NODE_V28_JOB_CADENCE_MS;
       let firstFile=false,firstPackage=false,firstRecovery=false;
       while(performance.now()<deadline){
@@ -175,14 +209,14 @@ describe("actual compiled V28 workflow main, three queues and original120s caden
       expect(checkedSystemRecoveryPreview(preview.value)).toMatchObject({archive:{schema:"system-backup/5",sha256:hash(originalArchive),complete:true},
         counts:{files:1,availableFiles:1,unavailableFiles:0,bytes:source.payloadBytes},canRecover:false,canCutover:false});
       const output=final.package.output;ensure(output&&output.available);
-      const delivered=await workflowCliBytes(second,origin,"/api/packages/jobs/"+ids.package+"/download","GET",undefined,secondSession);expect(delivered.status).toBe(200);
+      const delivered=await bytes(second,origin,"/api/packages/jobs/"+ids.package+"/download","GET",undefined,secondSession);expect(delivered.status).toBe(200);
       expect(delivered.bytes.byteLength).toBe(output.byteSize);expect(hash(delivered.bytes)).toBe(output.sha256);
       const archive=await validateStoreArchive(sourceFromBlob(new Blob([delivered.bytes.slice().buffer as ArrayBuffer])),{expectedSha256:output.sha256});
       const validated=await validateResearchPackage(JSON.parse(new TextDecoder().decode(archive.metadata.get("manifest.json")!)),JSON.parse(new TextDecoder().decode(archive.metadata.get("records.json")!)));
       expect(validated.files).toHaveLength(1);expect(validated.files[0]).toMatchObject({byteSize:source.payloadBytes,sha256:source.payloadSha256,purpose:"embedded_content"});
       const entry=archive.entries.find(value=>value.path===validated.files[0]!.path);ensure(entry);
       expect(delivered.bytes.slice(entry.dataOffset,entry.dataOffset+entry.byteSize)).toEqual(source.bytes);
-      const finalClose=closeWorkflowCli(second);expect(closeWorkflowCli(second)).toBe(finalClose);const stopped=await finalClose;current=undefined;
+      const finalClose=closeWorkflowCli(second);expect(closeWorkflowCli(second)).toBe(finalClose);const stopped=await diagnostic("second compiled main original close",()=>finalClose);current=undefined;
       events.push({event:"second_original_close",pid:second.child.pid,code:stopped.code,signal:stopped.signal});
       await writeFile(join(baseline.root,"workflow-second.stdout.log"),stopped.stdout,{flag:"wx",mode:0o600});
       await writeFile(join(baseline.root,"workflow-second.stderr.log"),stopped.stderr,{flag:"wx",mode:0o600});
@@ -216,7 +250,8 @@ describe("actual compiled V28 workflow main, three queues and original120s caden
     }catch(error){workFailed=true;workFailure=error;throw error;}
     finally{
       if(current){
-        try{await closeWorkflowCli(current);}
+        const remaining=current;
+        try{await diagnostic("failure cleanup original cached main close",()=>closeWorkflowCli(remaining));}
         catch(cleanup){
           // Join only the helper's original cached first close. Preserve the
           // first work failure as well; no new close attempt or fallback.
