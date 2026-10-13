@@ -1,6 +1,8 @@
 /** Test-isolate source only. The actual production handler authenticates every
  * business request; this observer never creates an actor, job or SQL result.
- * Only exact original native query acknowledgements may be held. */
+ * Only delivery of exact original native query acknowledgements may be held.
+ * Raw native ACK is recorded first. The private Node HTTP response is genuine
+ * pending I/O in that SAME original business request, not a pure-JS keepalive. */
 export const WORKER_V5_ORIGINAL_ISSUE_OBSERVER_SOURCE = String.raw`
 import original from './index';
 let live,gate,originalAdministrator;
@@ -83,14 +85,20 @@ function nativeStatement(statement,sql){
       if(!matching)return originalPromise;
       // Reserve the single original identity synchronously before the first await.
       const selectedGate=gate;
-      // The ACK waiter belongs to THIS still-live original business request,
-      // not to the earlier completed private arm request.
-      require(selectedGate.pending===undefined&&selectedGate.release===undefined,'original_waiter_unreserved');
-      selectedGate.pending=new Promise(resolve=>{selectedGate.release=resolve;});
       selectedGate.entered=true;selectedGate.enteredAt=Date.now();
       return Promise.resolve(originalPromise).then(async value=>{
         selectedGate.originalAcknowledged=true;
-        await selectedGate.pending;
+        // The D1 operation already returned its exact native value. Delay only
+        // its delivery to the application while real outbound HTTP I/O belongs
+        // to THIS live original request. The kernel's abort signal must not
+        // cancel this independently owned delivery barrier at its 60000ms limit.
+        selectedGate.deliveryIoStarted=true;
+        const answer=await fetch(live.V5_QUALIFICATION_ACK_DELIVERY_ORIGIN+'/__original_native_ack_delivery',{
+          method:'GET',redirect:'error',headers:{'x-original-native-control':live.V5_QUALIFICATION_CONTROL_NONCE,
+            'x-original-native-gate':selectedGate.ioId}});
+        require(answer.status===200,'original_delivery_io_status');
+        require(await answer.text()==='original-native-ack-delivery/1','original_delivery_io_body');
+        selectedGate.deliveryIoAcknowledged=true;
         selectedGate.returnedAt=Date.now();
         return value; // EXACT native value, never a manufactured authority row.
       });
@@ -124,6 +132,7 @@ function nativeDatabase(database){
 function environment(bindings){
   if(live)return live;
   require(typeof bindings.V5_QUALIFICATION_CONTROL_NONCE==='string','private_control_binding');
+  require(typeof bindings.V5_QUALIFICATION_ACK_DELIVERY_ORIGIN==='string','private_delivery_io_binding');
   originalAdministrator=bindings.SYSTEM_ADMIN_EMAILS;
   live={...bindings,DB:nativeDatabase(bindings.DB),ASSETS:nativeBucket(bindings.ASSETS)};
   if(bindings.RECOVERY_DB)live.RECOVERY_DB=nativeDatabase(bindings.RECOVERY_DB);
@@ -134,17 +143,21 @@ async function control(request,env){
   const action=new URL(request.url).pathname.slice('/__original_native_qualification/'.length);
   if(action==='stats')return Response.json({...trace,gate:gate?{
     kind:gate.kind,entered:gate.entered,originalAcknowledged:gate.originalAcknowledged,released:gate.released,
+    deliveryIoStarted:gate.deliveryIoStarted,deliveryIoAcknowledged:gate.deliveryIoAcknowledged,
     enteredAt:gate.enteredAt??null,returnedAt:gate.returnedAt??null}:null});
   if(action==='arm'){
     require(!gate||gate.released,'old_original_gate_unsettled');const kind=await request.text();
     require(['namespace-actor','profile-actor','held-original-ack'].includes(kind),'closed_gate_selection');
+    const ioId=request.headers.get('x-original-native-gate');require(typeof ioId==='string'&&/^[a-f0-9-]{36}$/.test(ioId),'private_delivery_io_identity');
     for(const name of Object.keys(trace))trace[name]=name==='actorRevoked'?false:0;
-    gate={kind,entered:false,originalAcknowledged:false,released:false};return Response.json({armed:true});
+    gate={kind,ioId,entered:false,originalAcknowledged:false,released:false,deliveryIoStarted:false,deliveryIoAcknowledged:false};return Response.json({armed:true});
   }
   if(action==='revoke-administrator'){env.SYSTEM_ADMIN_EMAILS='';trace.actorRevoked=true;return Response.json({actualEnvironmentPolicyRevoked:true});}
   if(action==='release'||action==='stop-observer'){
     if(action==='stop-observer'){env.SYSTEM_ADMIN_EMAILS='';trace.actorRevoked=true;}
-    if(gate&&!gate.released){gate.released=true;if(gate.release!==undefined)gate.release();}
+    // PairOwner releases the exact accepted Node HTTP response before this
+    // private control request. No cross-request JS promise is resolved here.
+    if(gate&&!gate.released)gate.released=true;
     return Response.json({originalGateReleased:true});
   }
   if(action==='restore-administrator'){

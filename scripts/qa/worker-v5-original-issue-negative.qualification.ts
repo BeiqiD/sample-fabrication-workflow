@@ -29,7 +29,9 @@ interface Trace {
   originalCancelCalls: number; originalCancelAcknowledged: number; originalCancelRejected: number;
   originalReaderClosedAcknowledged: number; originalReaderClosedRejected: number; actorRevoked: boolean;
   gate: null | { kind: WorkerV5OriginalIssueGate; entered: boolean; originalAcknowledged: boolean;
-    released: boolean; enteredAt: number | null; returnedAt: number | null };
+    released: boolean; deliveryIoStarted: boolean; deliveryIoAcknowledged: boolean; enteredAt: number | null; returnedAt: number | null };
+  deliveryIo: null | { schema: 'original-native-ack-delivery-http-io/1'; acceptedRequests: number; acknowledgedResponses: number;
+    released: boolean; acceptedAt: number | null; responseFinishedAt: number | null };
 }
 function count(value: unknown): number { ensure(typeof value==="number"&&Number.isSafeInteger(value)&&value>=0,"actual_observation_count");return value; }
 function clock(value: unknown): number | null { if(value===null)return null;return count(value); }
@@ -38,14 +40,22 @@ async function stats(observer: WorkerV5OriginalIssueObserver): Promise<Trace> {
   let gate: Trace["gate"]=null;
   if(value.gate!==null){const item=object(value.gate);
     ensure(item.kind==="namespace-actor"||item.kind==="profile-actor"||item.kind==="held-original-ack","closed_gate_kind");
-    ensure(typeof item.entered==="boolean"&&typeof item.originalAcknowledged==="boolean"&&typeof item.released==="boolean","original_gate_observation");
+    ensure(typeof item.entered==="boolean"&&typeof item.originalAcknowledged==="boolean"&&typeof item.released==="boolean"
+      &&typeof item.deliveryIoStarted==="boolean"&&typeof item.deliveryIoAcknowledged==="boolean","original_gate_observation");
     gate={kind:item.kind,entered:item.entered,originalAcknowledged:item.originalAcknowledged,released:item.released,
+      deliveryIoStarted:item.deliveryIoStarted,deliveryIoAcknowledged:item.deliveryIoAcknowledged,
       enteredAt:clock(item.enteredAt),returnedAt:clock(item.returnedAt)};
+  }
+  let deliveryIo: Trace["deliveryIo"]=null;
+  if(value.deliveryIo!==null){const item=object(value.deliveryIo);
+    ensure(item.schema==='original-native-ack-delivery-http-io/1'&&typeof item.released==='boolean','actual_delivery_io_observation');
+    deliveryIo={schema:item.schema,acceptedRequests:count(item.acceptedRequests),acknowledgedResponses:count(item.acknowledgedResponses),
+      released:item.released,acceptedAt:clock(item.acceptedAt),responseFinishedAt:clock(item.responseFinishedAt)};
   }
   return {nativeGet:count(value.nativeGet),nativeHead:count(value.nativeHead),nativePut:count(value.nativePut),nativeDelete:count(value.nativeDelete),
     readers:count(value.readers),originalCancelCalls:count(value.originalCancelCalls),originalCancelAcknowledged:count(value.originalCancelAcknowledged),
     originalCancelRejected:count(value.originalCancelRejected),originalReaderClosedAcknowledged:count(value.originalReaderClosedAcknowledged),
-    originalReaderClosedRejected:count(value.originalReaderClosedRejected),actorRevoked:value.actorRevoked,gate};
+    originalReaderClosedRejected:count(value.originalReaderClosedRejected),actorRevoked:value.actorRevoked,gate,deliveryIo};
 }
 async function json(port: Pick<Port,"request">, path: string, method = "GET", input?: unknown, status = 200) {
   const answer = await port.request(path, method, input === undefined ? undefined : JSON.stringify(input),
@@ -161,21 +171,30 @@ async function run(kind:WorkerV5OriginalIssueGate){
       invocation=observer.scheduleOutcome().then(value=>{outcome=value;originalInvocationSettled=true;});
     }
     void invocation.catch(()=>undefined); // Retain same original failure in pair owner; never fabricate ACK.
-    const entered=await waitFor(()=>stats(observer),value=>Boolean(value.gate?.entered&&value.gate.originalAcknowledged),15_000);
+    const entered=await waitFor(()=>stats(observer),value=>Boolean(value.gate?.entered&&value.gate.originalAcknowledged
+      &&value.gate.deliveryIoStarted&&value.deliveryIo?.acceptedRequests===1),15_000);
     ensure(entered.gate?.enteredAt!==null&&entered.gate?.enteredAt!==undefined,"actual_entered_clock");
     expect(entered.gate.kind).toBe(kind);expect(entered.gate.released).toBe(false);expect(entered.nativePut).toBe(0);expect(originalInvocationSettled).toBe(false);
+    expect(entered.gate.deliveryIoAcknowledged).toBe(false);
+    expect(entered.deliveryIo).toMatchObject({acceptedRequests:1,acknowledgedResponses:0,released:false,responseFinishedAt:null});
+    ensure(entered.deliveryIo?.acceptedAt!==null&&entered.deliveryIo?.acceptedAt!==undefined,'actual_private_http_arrival');
+    expect(entered.deliveryIo.acceptedAt).toBeGreaterThanOrEqual(entered.gate.enteredAt);
+    expect(entered.deliveryIo.acceptedAt-startedAt).toBeLessThan(60000);
     const actualRunning=(await nativeJob(target,jobId))[0];expect(actualRunning).toMatchObject({state:"running",artifact_key:null,result_json:null});
     ensure(actualRunning&&typeof actualRunning.generation==="number"&&Number.isSafeInteger(actualRunning.generation),"actual_original_generation");
     if(kind==="held-original-ack"){
       expect(entered.nativeGet).toBe(1);expect(entered.readers).toBe(1);expect(entered.originalCancelCalls).toBe(0);
-      // REAL wall time only. Actual product timer remains 60000ms; this exact
-      // original D1 acknowledgement is returned strictly after that deadline.
+      // REAL wall time only. Raw D1 ACK was already recorded. Genuine private
+      // HTTP I/O now delays delivery of that SAME original value to the
+      // application strictly beyond the actual unchanged 60000ms kernel limit.
       await waitFor(()=>stats(observer),value=>Boolean(value.gate?.enteredAt&&Date.now()-value.gate.enteredAt>=61_000),65_000);
       const paused=await waitFor(()=>nativeJob(target,jobId),rows=>rows[0]?.state==="paused",5000);
       expect(paused[0]).toMatchObject({state:"paused",phase:"inventory",reason:"execution_budget_exhausted",owner_token:null,runtime_incarnation:null,artifact_key:null,result_json:null});
       expect(Number(paused[0]?.generation)).toBe(Number(actualRunning.generation)+1);
       expect(originalInvocationSettled).toBe(false);const held=await stats(observer);
-      expect(held.gate).toMatchObject({released:false,originalAcknowledged:true,returnedAt:null});
+      expect(held.gate).toMatchObject({released:false,originalAcknowledged:true,deliveryIoStarted:true,deliveryIoAcknowledged:false,returnedAt:null});
+      expect(held.deliveryIo).toMatchObject({acceptedRequests:1,acknowledgedResponses:0,released:false,responseFinishedAt:null});
+      expect(held.deliveryIo?.acceptedAt).toBe(entered.deliveryIo.acceptedAt);
       expect(held.originalCancelCalls).toBe(1);expect(held.originalCancelAcknowledged).toBe(1);expect(held.originalCancelRejected).toBe(0);
       expect(held.originalReaderClosedAcknowledged).toBe(1);expect(held.originalReaderClosedRejected).toBe(0);
       expect(issueCounts(held)).toEqual(issueCounts(entered));
@@ -186,11 +205,15 @@ async function run(kind:WorkerV5OriginalIssueGate){
       expect(await stats(observer)).toMatchObject({actorRevoked:true});expect(originalInvocationSettled).toBe(false);
     }
     await observer.control("release");await invocation;
-    const after=await stats(observer);expect(after.gate).toMatchObject({entered:true,originalAcknowledged:true,released:true});
+    const after=await stats(observer);expect(after.gate).toMatchObject({entered:true,originalAcknowledged:true,released:true,deliveryIoStarted:true,deliveryIoAcknowledged:true});
+    expect(after.deliveryIo).toMatchObject({acceptedRequests:1,acknowledgedResponses:1,released:true});
+    ensure(after.deliveryIo?.responseFinishedAt!==null&&after.deliveryIo?.responseFinishedAt!==undefined,'actual_private_http_ack');
+    expect(after.deliveryIo.responseFinishedAt).toBeGreaterThanOrEqual(entered.deliveryIo.acceptedAt);
     expect(issueCounts(after)).toEqual(issueCounts(entered));expect(after.nativePut).toBe(0);expect(after.nativeDelete).toBe(0);
     if(kind==="held-original-ack"){
       ensure(after.gate?.returnedAt!==null&&after.gate?.returnedAt!==undefined,"late_original_return_clock");
       expect(after.gate.returnedAt-entered.gate.enteredAt).toBeGreaterThanOrEqual(61_000);
+      expect(after.deliveryIo.responseFinishedAt-entered.gate.enteredAt).toBeGreaterThanOrEqual(61_000);
       // The original abortable stream's cached logical close rejects. Preserve
       // the actual SDK exception/quarantine; raw reader ACK does not certify it.
       expect(outcome).toBe("exception");expect(after.originalCancelCalls).toBe(1);expect(after.originalCancelAcknowledged).toBe(1);
@@ -215,6 +238,9 @@ async function run(kind:WorkerV5OriginalIssueGate){
     await pair.verifyNativeDatabaseConsistency();await target.verifyNativeDatabaseConsistency();
     expect(hash(await readFile(input.archive))).toBe(input.expectedSha256);expect(hash(await readFile(input.receiptPath))).toBe(input.receiptHash);await input.recheckProducer();
     proof={schema:"genuine-worker-v5-original-issue-negative/1",kind,actualProductionHandlerAndAccess:true,actualNativeAckReturnedUnchanged:true,
+      actualRawNativeAckRecorded:true,actualOriginalAckDeliveryBarrier:'original-native-ack-delivery-http-io/1',
+      actualPrivateHttpArrivedBeforeDeadline:entered.deliveryIo.acceptedAt-startedAt<60000,
+      actualPrivateHttpResponseAcknowledged:true,
       actualLiveAdministratorPolicyRevoked:kind!=="held-original-ack",actualKernelDeadlineMs:60000,cadenceSeconds:120,elapsedCadenceQualified:false,
       fakeClock:false,permissionCallbackMock:false,newExecutor:false,registeredLogicalFirstClosePositive:false,
       registeredLogicalFirstCloseOutcome:kind==="held-original-ack"?"original-sdk-exception-quarantined":"not-independently-observed",
