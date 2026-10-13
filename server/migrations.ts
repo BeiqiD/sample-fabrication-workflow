@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
-import { constants, type DatabaseSync } from "node:sqlite";
+import { constants, DatabaseSync, type StatementSync } from "node:sqlite";
 import { types as nativeTypes } from "node:util";
 
 import { NODE_INSTALLATION_DDL, NODE_MIGRATIONS_DDL, NODE_PLATFORM_OBJECTS, type InstallationSchemaObject } from "../shared/contracts/node-installation-schema.ts";
@@ -166,8 +166,8 @@ function expectedCheckpointSchema(catalog: ReviewedInstallationCatalog, checkpoi
 // Cache only code-owned expected objects from an already validated deeply
 // immutable catalog. Never cache observed rows, a statement or a live check.
 const immutableExpectedCheckpointObjects = new WeakMap<ReviewedInstallationCheckpoint, ReadonlyMap<string, Readonly<InstallationSchemaObject>>>();
-function immutableCheckpointSchemaMatches(database: DatabaseSync, checkpoint: ReviewedInstallationCheckpoint): boolean {
-  const rows = database.prepare("SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*' ORDER BY type,name").all() as unknown as InstallationSchemaObject[];
+function immutableCheckpointSchemaMatches(database: DatabaseSync, checkpoint: ReviewedInstallationCheckpoint, reads?: InstallationInspectionStatements): boolean {
+  const rows = installationRead(database, "schema", reads).all() as unknown as InstallationSchemaObject[];
   if (!Array.isArray(rows)) fail("schema_not_reviewed");
   const names = new Set<string>();
   // Validate every actual row before deciding mismatch, retaining objects()'s
@@ -192,6 +192,47 @@ function immutableCheckpointSchemaMatches(database: DatabaseSync, checkpoint: Re
   return matches;
 }
 
+// Assertion-only reuse owns exactly these nine read statements on the original
+// native handle. Every get/all still observes the current connection/snapshot;
+// no schema, row, receipt, integrity or permission result is cached. SQLite
+// recompiles an expired statement after DDL before its next execution.
+const installationInspectionSql = Object.freeze({
+  journal: "PRAGMA journal_mode",
+  foreignKeys: "PRAGMA foreign_keys",
+  namespaces: "PRAGMA database_list",
+  temporary: "SELECT 1 FROM sqlite_temp_schema LIMIT 1",
+  ledger: "SELECT ordinal,name,raw_sha256,checkpoint_id,schema_sha256,status,applied_at FROM node_migrations ORDER BY ordinal",
+  schema: "SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*' ORDER BY type,name",
+  installation: "SELECT * FROM node_installation",
+  foreignKeyCheck: "PRAGMA foreign_key_check",
+  quickCheck: "PRAGMA quick_check",
+});
+type InstallationInspectionStatements = Map<keyof typeof installationInspectionSql, StatementSync>;
+const assertionInspectionStatements = new WeakMap<DatabaseSync, InstallationInspectionStatements>();
+function assertionInspectionReads(database: DatabaseSync): InstallationInspectionStatements | undefined {
+  // Retain the original first admission failure even before cache lookup/use.
+  if (!database.isOpen || database.isTransaction) fail("connection_not_quiesced");
+  // Foreign/proxy handles keep the original fresh-prepare path. Only an actual
+  // native connection is eligible for private handle-bound statement ownership.
+  if (nativeTypes.isProxy(database) || !(database instanceof DatabaseSync)) return undefined;
+  const previous = assertionInspectionStatements.get(database);
+  if (previous) return previous;
+  const reads: InstallationInspectionStatements = new Map();
+  assertionInspectionStatements.set(database, reads);
+  return reads;
+}
+function installationRead(database: DatabaseSync, name: keyof typeof installationInspectionSql,
+  reads?: InstallationInspectionStatements): StatementSync {
+  if (!reads) return database.prepare(installationInspectionSql[name]);
+  const previous = reads.get(name);
+  if (previous) return previous;
+  // Prepare at the original call site, preserving connection/ledger/schema/
+  // integrity failure order. A failed prepare never enters the private map.
+  const statement = database.prepare(installationInspectionSql[name]);
+  reads.set(name, statement);
+  return statement;
+}
+
 function observedSchema(database: DatabaseSync): InstallationSchemaObject[] {
   return objects(database.prepare("SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*' ORDER BY type,name").all() as unknown as InstallationSchemaObject[]);
 }
@@ -201,19 +242,19 @@ function checkpointAt(catalog: ReviewedInstallationCatalog, applied: number) {
 function validClock(value: unknown): value is string {
   return typeof value === "string" && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
 }
-function assertConnection(database: DatabaseSync) {
+function assertConnection(database: DatabaseSync, reads?: InstallationInspectionStatements) {
   if (!database.isOpen || database.isTransaction) fail("connection_not_quiesced");
-  if (database.prepare("PRAGMA journal_mode").get()?.journal_mode !== "wal") fail("file_backed_wal_required");
-  if (database.prepare("PRAGMA foreign_keys").get()?.foreign_keys !== 1) fail("foreign_keys_required");
-  if (database.prepare("PRAGMA database_list").all().some(value => value.name !== "main" && value.name !== "temp")
-    || database.prepare("SELECT 1 FROM sqlite_temp_schema LIMIT 1").get()) fail("connection_namespace_not_owned");
+  if (installationRead(database, "journal", reads).get()?.journal_mode !== "wal") fail("file_backed_wal_required");
+  if (installationRead(database, "foreignKeys", reads).get()?.foreign_keys !== 1) fail("foreign_keys_required");
+  if (installationRead(database, "namespaces", reads).all().some(value => value.name !== "main" && value.name !== "temp")
+    || installationRead(database, "temporary", reads).get()) fail("connection_namespace_not_owned");
 }
-function healthy(database: DatabaseSync) {
-  if (database.prepare("PRAGMA foreign_key_check").all().length
-    || database.prepare("PRAGMA quick_check").all().some(value => value.quick_check !== "ok")) fail("integrity_failed");
+function healthy(database: DatabaseSync, reads?: InstallationInspectionStatements) {
+  if (installationRead(database, "foreignKeyCheck", reads).all().length
+    || installationRead(database, "quickCheck", reads).all().some(value => value.quick_check !== "ok")) fail("integrity_failed");
 }
-function inspect(database: DatabaseSync, catalog: ReviewedInstallationCatalog): InstallationReceipt {
-  const native = database.prepare("SELECT ordinal,name,raw_sha256,checkpoint_id,schema_sha256,status,applied_at FROM node_migrations ORDER BY ordinal");
+function inspect(database: DatabaseSync, catalog: ReviewedInstallationCatalog, reads?: InstallationInspectionStatements): InstallationReceipt {
+  const native = installationRead(database, "ledger", reads);
   native.setReadBigInts(true);
   const ledger = native.all();
   if (ledger.length > catalog.migrations.length) fail("newer_schema_unsupported");
@@ -225,9 +266,9 @@ function inspect(database: DatabaseSync, catalog: ReviewedInstallationCatalog): 
   }
   const checkpoint = checkpointAt(catalog, ledger.length);
   if (validatedImmutableCatalogs.has(catalog)
-    ? !immutableCheckpointSchemaMatches(database, checkpoint)
+    ? !immutableCheckpointSchemaMatches(database, checkpoint, reads)
     : JSON.stringify(observedSchema(database)) !== expectedCheckpointSchema(catalog, checkpoint)) fail("schema_checkpoint_mismatch");
-  const rows = database.prepare("SELECT * FROM node_installation").all(), row = rows[0];
+  const rows = installationRead(database, "installation", reads).all(), row = rows[0];
   if (rows.length !== 1 || !row || row.singleton !== 1 || row.catalog_id !== catalog.id
     || row.schema_checkpoint !== checkpoint.id || row.schema_sha256 !== checkpoint.schemaSha256
     || typeof row.installation_id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(row.installation_id)
@@ -350,12 +391,14 @@ export function admitInstallationRecoverySource(database: DatabaseSync, catalog:
 // Assertion reuses only a fresh checked receipt for previously eligible
 // immutable catalogs. The public admission mint and mutable paths stay whole.
 function inspectCurrentInstallationReceipt(database: DatabaseSync, catalog: ReviewedInstallationCatalog): Readonly<InstallationReceipt> {
-  validateCatalog(catalog); assertConnection(database);
+  validateCatalog(catalog);
+  const reads = validatedImmutableCatalogs.has(catalog) ? assertionInspectionReads(database) : undefined;
+  assertConnection(database, reads);
   database.exec("BEGIN");
   try {
-    const receipt = inspect(database, catalog);
+    const receipt = inspect(database, catalog, reads);
     if (receipt.appliedMigrations !== catalog.migrations.length) fail("recovery_requires_current_checkpoint");
-    healthy(database);
+    healthy(database, reads);
     const current = Object.freeze(receipt);
     database.exec("COMMIT");
     return current;

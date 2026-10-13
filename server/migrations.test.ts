@@ -72,6 +72,84 @@ describe("immutable catalog validation and fresh native admission", () => {
     expect(() => assertInstallationAdmission(database, admission)).toThrow(/migration_ledger_mismatch_or_partial/);
   });
 
+  it.each([
+    "CREATE INDEX records_unreviewed_idx ON records(value)",
+    "ALTER TABLE records ADD COLUMN unreviewed TEXT",
+    "DROP TRIGGER labels_touch",
+  ])("rejects external DDL after repeated immutable native admission: %s", ddl => {
+    const f = fixture(), definition = freezeData(structuredClone(catalog()));
+    installReviewedSqliteCatalog(f.database, definition);
+    const admission = admitInstallationRecoverySource(f.database, definition);
+    for (let index = 0; index < 3; index++) expect(assertInstallationAdmission(f.database, admission)).toEqual(admission.receipt);
+    const external = f.open();
+    external.exec(ddl);
+    expect(() => assertInstallationAdmission(f.database, admission)).toThrow(/schema_checkpoint_mismatch/);
+    expect(f.database.isTransaction).toBe(false);
+  });
+
+  it("reads changed foreign-key policy and integrity after the assertion statements are warm", () => {
+    const { database } = fixture(), definition = freezeData(structuredClone(catalog()));
+    installReviewedSqliteCatalog(database, definition);
+    const admission = admitInstallationRecoverySource(database, definition);
+    assertInstallationAdmission(database, admission);
+    database.exec("PRAGMA foreign_keys=OFF");
+    expect(() => assertInstallationAdmission(database, admission)).toThrow(/foreign_keys_required/);
+    database.prepare("INSERT INTO labels VALUES(99,'invalid')").run();
+    database.exec("PRAGMA foreign_keys=ON");
+    expect(() => assertInstallationAdmission(database, admission)).toThrow(/integrity_failed/);
+    database.exec("DELETE FROM labels");
+    expect(assertInstallationAdmission(database, admission)).toEqual(admission.receipt);
+  });
+
+  it("reads attached namespaces after the assertion statements are warm", () => {
+    const f = fixture(), definition = freezeData(structuredClone(catalog()));
+    installReviewedSqliteCatalog(f.database, definition);
+    const admission = admitInstallationRecoverySource(f.database, definition);
+    assertInstallationAdmission(f.database, admission);
+    f.database.prepare("ATTACH DATABASE ? AS unreviewed_namespace").run(join(f.directory, "attached.sqlite"));
+    expect(() => assertInstallationAdmission(f.database, admission)).toThrow(/connection_namespace_not_owned/);
+    f.database.exec("DETACH DATABASE unreviewed_namespace");
+    expect(assertInstallationAdmission(f.database, admission)).toEqual(admission.receipt);
+  });
+
+  it("reads changed installation identity after the assertion statements are warm", () => {
+    const { database } = fixture(), definition = freezeData(structuredClone(catalog()));
+    installReviewedSqliteCatalog(database, definition);
+    const admission = admitInstallationRecoverySource(database, definition);
+    assertInstallationAdmission(database, admission);
+    database.prepare("UPDATE node_installation SET installation_id=? WHERE singleton=1")
+      .run("00000000-0000-4000-8000-000000000000");
+    expect(() => assertInstallationAdmission(database, admission)).toThrow(/admission_identity_or_checkpoint_changed/);
+    expect(database.isTransaction).toBe(false);
+  });
+
+  it("retains connection refusal before a later missing-ledger prepare on first assertion", () => {
+    const { database } = fixture(), definition = freezeData(structuredClone(catalog()));
+    installReviewedSqliteCatalog(database, definition);
+    const admission = admitInstallationRecoverySource(database, definition);
+    database.exec("PRAGMA foreign_keys=OFF;DROP TABLE node_migrations");
+    expect(() => assertInstallationAdmission(database, admission)).toThrow(/foreign_keys_required/);
+    expect(database.isTransaction).toBe(false);
+    database.exec("PRAGMA foreign_keys=ON");
+    expect(() => assertInstallationAdmission(database, admission)).toThrow(/no such table/);
+    expect(database.isTransaction).toBe(false);
+  });
+
+  it("keeps temporary-schema and original-native ownership refusal after repeated admission", () => {
+    const f = fixture(), definition = freezeData(structuredClone(catalog()));
+    installReviewedSqliteCatalog(f.database, definition);
+    const admission = admitInstallationRecoverySource(f.database, definition);
+    for (let index = 0; index < 3; index++) assertInstallationAdmission(f.database, admission);
+    const other = f.open();
+    expect(() => assertInstallationAdmission(other, admission)).toThrow(/admission_not_issued_for_connection/);
+    f.database.exec("CREATE TEMP TABLE unreviewed_temporary(value TEXT)");
+    expect(() => assertInstallationAdmission(f.database, admission)).toThrow(/connection_namespace_not_owned/);
+    f.database.exec("DROP TABLE temp.unreviewed_temporary");
+    expect(assertInstallationAdmission(f.database, admission)).toEqual(admission.receipt);
+    f.database.close();
+    expect(() => assertInstallationAdmission(f.database, admission)).toThrow(/connection_not_quiesced/);
+  });
+
   it("revalidates shallow-frozen catalogs after a mutable nested SQL operand changes", () => {
     const { database } = fixture(), definition = Object.freeze(structuredClone(catalog()));
     installReviewedSqliteCatalog(database, definition);
