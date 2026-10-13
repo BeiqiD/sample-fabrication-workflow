@@ -11,6 +11,8 @@ export interface FrozenStorageProfile {
 export type FileByteOperation = Readonly<{ method: "GET" | "HEAD" | "PUT" | "DELETE"; key: string }>;
 export interface StorageProfileLifecycle {
   signal?: AbortSignal;
+  /** Optional immutable caller stage deadline; absent preserves original ports. */
+  deadlineAt?: string;
   beforeRequest?: (operation: FileByteOperation) => Promise<boolean>;
   /** Recheck the caller's exact deletion claim immediately before transport.
    * False or an exception prevents I/O. This does not revoke an in-flight DELETE. */
@@ -44,7 +46,7 @@ export interface StorageProfileOpeningCapabilities<Adapter extends string> {
    * registration/admission and transport bindings. Apply beforeRequest just
    * before each byte request. Returning a label alone never admits a provider. */
   openProvider(profile: RegisteredStorageProfile, access: "read" | "write",
-    lifecycle: Readonly<{ signal?: AbortSignal; beforeRequest: (operation: FileByteOperation) => Promise<boolean> }>): Promise<OpenedStorageProfile<Adapter>>;
+    lifecycle: Readonly<{ signal?: AbortSignal; deadlineAt?: string; beforeRequest: (operation: FileByteOperation) => Promise<boolean> }>): Promise<OpenedStorageProfile<Adapter>>;
 }
 export class ShadowProfileUnavailableError extends Error {
   constructor(options?: ErrorOptions) { super("The recorded File storage profile is unavailable", options); this.name = "ShadowProfileUnavailableError"; }
@@ -90,7 +92,9 @@ export async function openStorageProfile<Adapter extends string>(
     const database = capabilities.database, isCurrent = capabilities.isCurrent.bind(capabilities),
       openProvider = capabilities.openProvider.bind(capabilities);
     const signal = lifecycle.signal, beforeRequest = lifecycle.beforeRequest, beforeDelete = lifecycle.beforeDelete;
-    if (signal?.aborted || !isCurrent()) throw new Error();
+    const deadlineAt = lifecycle.deadlineAt, deadline = deadlineAt === undefined ? null : Date.parse(deadlineAt);
+    const localClock = () => deadline === null || Number.isFinite(deadline) && Date.now() < deadline;
+    if (signal?.aborted || !isCurrent() || !localClock()) throw new Error();
     const row = await database.primary().prepare(`SELECT p.adapter_type, p.configuration_revision, p.namespace_identity, r.state
       FROM storage_profiles p JOIN storage_profile_runtime r ON r.storage_profile_id=p.id
       WHERE p.id=?`).bind(target.profileId).first<{
@@ -100,21 +104,21 @@ export async function openStorageProfile<Adapter extends string>(
       || typeof row.adapter_type !== "string" || !row.adapter_type || row.adapter_type.includes("\0")
       || typeof row.namespace_identity !== "string" || !row.namespace_identity || row.namespace_identity.length > 2048
       || row.namespace_identity.includes("\0") || !["read_only", "read_write"].includes(row.state)
-      || access === "write" && row.state !== "read_write" || signal?.aborted || !isCurrent()) throw new Error();
+      || access === "write" && row.state !== "read_write" || signal?.aborted || !isCurrent() || !localClock()) throw new Error();
     const profile: RegisteredStorageProfile = Object.freeze({ ...target, adapterType: row.adapter_type,
       namespaceIdentity: row.namespace_identity, runtimeState: row.state as "read_only" | "read_write" });
     const callerFence = async (operation: FileByteOperation) => {
       const request = Object.freeze({ method: operation.method, key: operation.key });
-      if (signal?.aborted || !isCurrent()) return false;
+      if (signal?.aborted || !isCurrent() || !localClock()) return false;
       if (beforeRequest && await beforeRequest(request) !== true) return false;
       if (request.method === "DELETE" && beforeDelete && await beforeDelete(request.key) !== true) return false;
-      return !signal?.aborted && isCurrent();
+      return !signal?.aborted && isCurrent() && localClock();
     };
-    const opened = await openProvider(profile, access, Object.freeze({ signal, beforeRequest: callerFence }));
+    const opened = await openProvider(profile, access, Object.freeze({ signal, beforeRequest: callerFence, ...(deadlineAt===undefined?{}:{deadlineAt}) }));
     providerOwner = opened;
     const disposeMethod = opened?.dispose;
     if (typeof disposeMethod === "function") dispose = disposeMethod.bind(opened);
-    if (signal?.aborted || !isCurrent() || !opened || opened.storage.profileId !== target.profileId
+    if (signal?.aborted || !isCurrent() || !localClock() || !opened || opened.storage.profileId !== target.profileId
       || opened.storage.configurationRevision !== target.configurationRevision || opened.storage.adapterType !== profile.adapterType
       || opened.storage.namespaceIdentity !== profile.namespaceIdentity || typeof opened.reader?.read !== "function"
       || typeof opened.reader.stat !== "function" || typeof opened.createHash !== "function"

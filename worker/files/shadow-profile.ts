@@ -102,7 +102,9 @@ export async function openShadowProfile(
         const sameBinding = storage.adapterType === "r2"
           ? Boolean(r2Binding && r2ProfileBindingStillCurrent(env, r2Binding))
           : MANAGED_BINDINGS.every(key => env[key] === captured[key]);
-        return Boolean(bound) && sameBinding && !providerLifecycle.signal?.aborted && env.DB === captured.DB;
+        const deadline = providerLifecycle.deadlineAt === undefined ? null : Date.parse(providerLifecycle.deadlineAt);
+        return Boolean(bound) && sameBinding && !providerLifecycle.signal?.aborted && env.DB === captured.DB
+          && (deadline === null || Number.isFinite(deadline) && Date.now() < deadline);
       };
       if (row.adapter_type === "s3") {
         const storage: BoundStorage = Object.freeze({ ...target, adapterType: "s3", namespaceIdentity: row.namespace_identity });

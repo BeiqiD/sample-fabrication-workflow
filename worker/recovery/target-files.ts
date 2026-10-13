@@ -441,6 +441,8 @@ export function recoveryDestinationProfileCellChanges(
 
 export interface RecoveryFileWriteLifecycle {
   signal?: AbortSignal;
+  /** Original kernel stage timestamp; V5 never substitutes the65s claim lease. */
+  deadlineAt?: string;
   /** Exact target claim, persisted attempt tuple, owner and generation. */
   current(): Promise<boolean>;
   /** Atomically save write_started before PUT. False forbids this transport. */
@@ -491,7 +493,9 @@ export async function writeWorkerV5RecoveryFile(env: Env,file: RecoveryPlannedFi
   body: ReadableStream<Uint8Array> | ArrayBuffer,lifecycle: RecoveryFileWriteLifecycle): Promise<VerifiedBytes> {
   if(file.destinationAdapterType!=="r2"||file.configurationRevision!==1)throw new ByteVerificationError("destination","unavailable");
   const binding=resolveR2ProfileBinding(env,{id:file.destinationProfileId,configurationRevision:1,namespaceIdentity:file.destinationNamespaceIdentity});
-  const current=async()=>!lifecycle.signal?.aborted&&await lifecycle.current()===true;
+  const deadline=lifecycle.deadlineAt===undefined?NaN:Date.parse(lifecycle.deadlineAt);
+  const local=()=>Number.isFinite(deadline)&&Date.now()<deadline&&!lifecycle.signal?.aborted;
+  const current=async()=>local()&&await lifecycle.current()===true&&local();
   let started=false;
   const writer=r2ShadowByteWriter({async put(key,bytes,options){
     if(key!==file.objectKey||!await current())throw new ByteVerificationError("destination","unavailable");

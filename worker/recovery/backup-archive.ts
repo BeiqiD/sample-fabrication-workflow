@@ -52,13 +52,14 @@ import { ownWorkerV5SourceStream } from "./v5-held-r2-archive-candidate";
  * every original open/pull joins the active original job and exact durable hold
  * to the canonical publication, actual native R2 profile and expected bytes. */
 export async function openWorkerV5BackupSource(env:Env,source:SystemBackupSourceV28,claim:RecoveryClaim,installationId:string,
-  current:()=>Promise<boolean>,signal:AbortSignal,ownClose:(dispose:()=>Promise<void>)=>void):Promise<SystemBackupSourceRead & {dispose?:()=>Promise<void>}>{
+  current:()=>Promise<boolean>,signal:AbortSignal,ownClose:(dispose:()=>Promise<void>)=>void,deadlineAt:string):Promise<SystemBackupSourceRead & {dispose?:()=>Promise<void>}>{
   const original=env.DB,entry=source.source;
+  const deadline=Date.parse(deadlineAt),local=()=>Number.isFinite(deadline)&&Date.now()<deadline&&!signal.aborted;
   if(entry.storeKind!=="r2"||entry.provider!=="r2"||entry.byteAuthority!=="file_location"||!entry.storageProfileId
     ||entry.storageProfileRevision!==1||!entry.locationId||entry.initialOutcome!==null||entry.expectedByteSize===null||entry.expectedSha256===null)
     throw new Error("source_unavailable");
   async function available(){
-    if(signal.aborted||env.DB!==original||!await current())throw new Error("administrator_revoked");
+    if(!local()||env.DB!==original||!await current()||!local())throw new Error("administrator_revoked");
     await workerV5PublicBackupClaimFence(env,claim,installationId).first();
     const hold=await env.DB.prepare(`SELECT 1 FROM file_location_holds h JOIN file_locations l ON l.id=h.location_id
       JOIN file_location_publications p ON p.location_id=l.id
@@ -66,10 +67,10 @@ export async function openWorkerV5BackupSource(env:Env,source:SystemBackupSource
         AND l.storage_profile_id=? AND l.object_key=? AND p.verified_byte_size=? AND p.verified_sha256=?
         AND NOT EXISTS(SELECT 1 FROM file_location_gc_ledger g WHERE g.location_id=l.id AND g.state IN('deleting','deleted'))`)
       .bind(entry.locationId,"fp5-backup:"+claim.id,entry.storageProfileId,entry.objectKey,entry.expectedByteSize,entry.expectedSha256).first();
-    if(!hold||signal.aborted||env.DB!==original||!await current())throw new Error("source_unavailable");
+    if(!hold||!local()||env.DB!==original||!await current()||!local())throw new Error("source_unavailable");
   }
   await available();const opened=await openShadowProfile(env,{profileId:entry.storageProfileId,configurationRevision:1},"read",{
-    signal,async beforeRequest(){try{await available();return true;}catch{return false;}}});
+    signal,deadlineAt,async beforeRequest(){try{await available();return local();}catch{return false;}}});
   if(opened.storage.adapterType!=="r2")throw new Error("source_unavailable");
   const result=await opened.reader.read(entry.objectKey);
   if(result.outcome!=="available")throw new Error("source_unavailable");

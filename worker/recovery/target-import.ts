@@ -46,6 +46,8 @@ export interface WorkerRecoveryTargetInput {
   records: VersionedRecoveryRecords; manifest: VersionedRecoveryManifest; mapping: SystemRecoveryStorageMapping[];
   mode: "historical" | "planned"; current: () => Promise<boolean>;
   runtimeIncarnation?: string; leaseExpiresAt?: string;
+  /** Issued by the original kernel, never accepted in the public import DTO. */
+  deadlineAt?: string;
   openPayload: (file: SystemBackupFile, signal: AbortSignal) => Promise<ReadableStream<Uint8Array>>;
   signal?: AbortSignal;
 }
@@ -229,9 +231,11 @@ function safeChunks(text: string) {
 }
 function claimGuard(database: D1Database, input: WorkerRecoveryTargetInput, imageSha256: string) {
   return database.prepare(`SELECT CASE WHEN EXISTS(SELECT 1 FROM system_recovery_target_claim WHERE singleton=1 AND target_id=? AND job_id=? AND incarnation=? AND schema_sha256=? AND image_sha256=? AND status<>'failed'
-    AND owner_token=? AND generation=? AND runtime_incarnation=? AND julianday(lease_expires_at)>julianday('now')) THEN 1 ELSE json('Recovery target ownership changed') END`)
+    AND owner_token=? AND generation=? AND runtime_incarnation=? AND julianday(lease_expires_at)>julianday('now')
+    ${input.records.schema==="system-backup-records/5"?"AND julianday(?)>julianday('now')":""}) THEN 1 ELSE json('Recovery target ownership changed') END`)
     .bind(input.expectedTargetId, input.jobId, input.incarnation, selectReviewedRecoveryCatalog(input.records).schemaSha256, imageSha256,
-      input.ownerToken, input.generation, input.runtimeIncarnation ?? input.incarnation);
+      input.ownerToken, input.generation, input.runtimeIncarnation ?? input.incarnation,
+      ...(input.records.schema==="system-backup-records/5"?[input.deadlineAt??null]:[]));
 }
 function atomicBudget(records: VersionedRecoveryRecords) {
   const catalog = selectReviewedRecoveryCatalog(records);
@@ -279,9 +283,22 @@ export function createRecoveryTargetEngine(env: TargetEnvironment) {
 export function createWorkerV5RecoveryTargetEngine(env: TargetEnvironment) { return originalRecoveryTargetEngine(env,true); }
 function originalRecoveryTargetEngine(env: TargetEnvironment, workerV5: boolean) {
   const targetBinding = env.RECOVERY_DB, sourceBinding = env.DB;
+  function hardCurrent(input:WorkerRecoveryTargetInput){
+    if(!workerV5)return;
+    const deadline=input.deadlineAt===undefined?NaN:Date.parse(input.deadlineAt);
+    ensure(Number.isFinite(deadline)&&Date.now()<deadline&&!input.signal?.aborted&&env.DB===sourceBinding
+      &&env.RECOVERY_DB===targetBinding&&env.RECOVERY_TARGET_ID===input.expectedTargetId,"recovery_execution_budget_exhausted");
+  }
+  function mutateBatch(input:WorkerRecoveryTargetInput,target:D1Database,statements:D1PreparedStatement[]){
+    hardCurrent(input);return target.batch(statements);
+  }
+  function mutateRun(input:WorkerRecoveryTargetInput,statement:D1PreparedStatement){
+    hardCurrent(input);return statement.run();
+  }
   async function originalPublicV5Claim(input:WorkerRecoveryTargetInput){
     if(!workerV5)return;
     ensure(input.mode==="historical","recovery_v5_planned_source_window_unavailable");
+    hardCurrent(input);
     ensure(env.DB===sourceBinding&&!input.signal?.aborted,"recovery_source_binding_changed");
     const db=primaryD1(sourceBinding),job=await db.prepare(`SELECT j.actor,j.input_json,j.source_upload_job_id,j.target_id,j.target_incarnation
       FROM system_recovery_jobs j JOIN system_recovery_runtime r ON r.singleton=1 AND r.enabled=1 AND r.incarnation=j.runtime_incarnation
@@ -299,6 +316,7 @@ function originalRecoveryTargetEngine(env: TargetEnvironment, workerV5: boolean)
     const originalRecords=await repository.metadata(upload.id,"records"),originalManifest=await repository.metadata(upload.id,"manifest");
     ensure(stableJson(originalRecords)===stableJson(input.records)&&stableJson(originalManifest)===stableJson(input.manifest),"recovery_original_documents_changed");
     ensure(!input.signal?.aborted&&env.DB===sourceBinding&&await input.current(),"recovery_actor_or_lease_changed");
+    hardCurrent(input);
   }
   async function prepare(input: WorkerRecoveryTargetPreviewInput) {
     // Accepted-time maintenance alone cannot survive source release during
@@ -359,16 +377,17 @@ function originalRecoveryTargetEngine(env: TargetEnvironment, workerV5: boolean)
     const collision = await primaryD1(env.DB).prepare("SELECT challenge FROM system_recovery_target_claim WHERE singleton=1").first<{ challenge: string }>();
     const claimed = await existingClaim(target);
     ensure(claimed && collision?.challenge !== claimed.challenge, "recovery_target_alias");
+    if(workerV5){ensure(await input.current(),"recovery_actor_or_lease_changed");hardCurrent(input);}
   }
   async function persist(target: D1Database, input: WorkerRecoveryTargetInput, imageSha256: string, cursor: TargetCursor, status: string) {
     await current(input, target, imageSha256);
-    await target.batch([claimGuard(target, input, imageSha256), target.prepare("UPDATE system_recovery_target_claim SET status=?,cursor_json=? WHERE singleton=1")
+    await mutateBatch(input,target,[claimGuard(target, input, imageSha256), target.prepare("UPDATE system_recovery_target_claim SET status=?,cursor_json=? WHERE singleton=1")
       .bind(status, stableJson(cursor))]);
   }
   async function boundedWrites(target: D1Database, input: WorkerRecoveryTargetInput, imageSha256: string, statements: D1PreparedStatement[]) {
     for (let index = 0; index < statements.length; index += 96) {
       await current(input, target, imageSha256);
-      await target.batch([claimGuard(target, input, imageSha256), ...statements.slice(index, index + 96)]);
+      await mutateBatch(input,target,[claimGuard(target, input, imageSha256), ...statements.slice(index, index + 96)]);
     }
   }
   async function providerCurrent(input: WorkerRecoveryTargetInput, target: D1Database, imageSha256: string,
@@ -382,12 +401,13 @@ function originalRecoveryTargetEngine(env: TargetEnvironment, workerV5: boolean)
       ensure(rows.every(row=>row.success)&&rows.every(row=>row.results.length===1)&&frozen.sourceMetadataSha256
         &&await sha256Hex(stableJson({profile:rows[0].results[0],runtime:rows[1].results[0]}))===frozen.sourceMetadataSha256,"recovery_mapping_changed");
     }
+    if(workerV5){ensure(await input.current(),"recovery_actor_or_lease_changed");hardCurrent(input);}
   }
   async function verifyTargetBytes(input: WorkerRecoveryTargetInput, target: D1Database, plan: Awaited<ReturnType<typeof prepare>>) {
     for (const file of plan.files) {
       await providerCurrent(input, target, plan.imageSha256, file, plan.profiles);
       const storage = await openShadowProfile(env, { profileId: file.destinationProfileId, configurationRevision: file.configurationRevision }, "read", {
-        signal: input.signal, beforeRequest: async () => {
+        signal: input.signal, ...(workerV5?{deadlineAt:input.deadlineAt}:{}), beforeRequest: async () => {
           try { await providerCurrent(input, target, plan.imageSha256, file, plan.profiles); return true; } catch { return false; }
         },
       });
@@ -404,10 +424,10 @@ function originalRecoveryTargetEngine(env: TargetEnvironment, workerV5: boolean)
         && prior.schema_sha256 === plan.catalog.schemaSha256 && prior.image_sha256 === plan.imageSha256, "recovery_target_already_claimed");
       ensure(await input.current(), "recovery_actor_or_lease_changed");
       ensure(prior.generation <= input.generation, "stale_recovery_target_generation");
-      await target.prepare(`UPDATE system_recovery_target_claim SET owner_token=?,generation=?,runtime_incarnation=?,lease_expires_at=? WHERE singleton=1
+      await mutateRun(input,target.prepare(`UPDATE system_recovery_target_claim SET owner_token=?,generation=?,runtime_incarnation=?,lease_expires_at=? WHERE singleton=1
         AND job_id=? AND incarnation=? AND generation<=? AND (generation<? OR owner_token=? OR lease_expires_at IS NULL OR julianday(lease_expires_at)<=julianday('now'))`)
         .bind(input.ownerToken, input.generation, input.runtimeIncarnation ?? input.incarnation,
-          input.leaseExpiresAt ?? new Date(Date.now() + 60_000).toISOString(), input.jobId, input.incarnation, input.generation, input.generation, input.ownerToken).run();
+          input.leaseExpiresAt ?? new Date(Date.now() + 60_000).toISOString(), input.jobId, input.incarnation, input.generation, input.generation, input.ownerToken));
       await current(input, target, plan.imageSha256); return { target, cursor: JSON.parse(prior.cursor_json) as TargetCursor };
     }
     const fresh = await inspectRecoveryTargetFreshness(env, input.expectedTargetId, input.records);
@@ -415,21 +435,21 @@ function originalRecoveryTargetEngine(env: TargetEnvironment, workerV5: boolean)
     if (fresh.empty) {
       const local = plan.catalog.schemaStatements.filter(object => object.type === "table" && ["system_recovery_runtime", "system_recovery_target_claim", "system_recovery_target_provenance"].includes(object.name));
       ensure(local.length === 3, "reviewed_target_claim_missing");
-      await target.batch(local.map(object => target.prepare(object.sql)));
-      await target.prepare("INSERT INTO system_recovery_runtime VALUES(1,0,lower(hex(randomblob(16))),lower(hex(randomblob(16))),NULL,?)")
-        .bind(new Date().toISOString()).run();
+      await mutateBatch(input,target,local.map(object => target.prepare(object.sql)));
+      await mutateRun(input,target.prepare("INSERT INTO system_recovery_runtime VALUES(1,0,lower(hex(randomblob(16))),lower(hex(randomblob(16))),NULL,?)")
+        .bind(new Date().toISOString()));
     }
     const challenge = crypto.randomUUID(), cursor: TargetCursor = { phase: "schema", schemaIndex: 0, fileIndex: 0, empty: fresh.empty, dropped: false };
-    await target.prepare("INSERT INTO system_recovery_target_claim(singleton,target_id,job_id,incarnation,challenge,schema_sha256,image_sha256,status,cursor_json,owner_token,generation,runtime_incarnation,lease_expires_at) VALUES(1,?,?,?,?,?,?,'claimed',?,?,?,?,?)")
+    await mutateRun(input,target.prepare("INSERT INTO system_recovery_target_claim(singleton,target_id,job_id,incarnation,challenge,schema_sha256,image_sha256,status,cursor_json,owner_token,generation,runtime_incarnation,lease_expires_at) VALUES(1,?,?,?,?,?,?,'claimed',?,?,?,?,?)")
       .bind(input.expectedTargetId, input.jobId, input.incarnation, challenge, plan.catalog.schemaSha256, plan.imageSha256, stableJson(cursor),
-        input.ownerToken, input.generation, input.runtimeIncarnation ?? input.incarnation, input.leaseExpiresAt ?? new Date(Date.now() + 60_000).toISOString()).run();
+        input.ownerToken, input.generation, input.runtimeIncarnation ?? input.incarnation, input.leaseExpiresAt ?? new Date(Date.now() + 60_000).toISOString()));
     await current(input, target, plan.imageSha256); return { target, cursor };
   }
   async function step(input: WorkerRecoveryTargetInput): Promise<RecoveryTargetStepResult> {
     const plan = await prepare(input), { target, cursor } = await claim(input, plan);
     const metadataText = stableJson(plan.profiles), metadataHash = await sha256Hex(metadataText), metadataChunks = safeChunks(metadataText);
     ensure(encoder.encode(metadataText).length <= 1024 * 1024 && metadataChunks.length + 1 <= MAX_ATOMIC_STATEMENTS, "destination_metadata_budget");
-    if (cursor.phase === "schema" && cursor.schemaIndex === 0) await target.batch([claimGuard(target, input, plan.imageSha256), ...metadataChunks.map((chunk, ordinal) => target.prepare(`INSERT INTO system_recovery_target_provenance(job_id,ordinal,image_sha256,chunk,created_at)
+    if (cursor.phase === "schema" && cursor.schemaIndex === 0) await mutateBatch(input,target,[claimGuard(target, input, plan.imageSha256), ...metadataChunks.map((chunk, ordinal) => target.prepare(`INSERT INTO system_recovery_target_provenance(job_id,ordinal,image_sha256,chunk,created_at)
       VALUES(?,?,?,?,?) ON CONFLICT(job_id,ordinal) DO NOTHING`).bind(`${input.jobId}#destination-plan`, ordinal, metadataHash, chunk, new Date().toISOString()))]);
     const completedSources = () => input.manifest.files.filter(source => plan.files.filter(file => file.sourceId === source.id)
       .every(file => plan.files.indexOf(file) < cursor.fileIndex));
@@ -444,7 +464,7 @@ function originalRecoveryTargetEngine(env: TargetEnvironment, workerV5: boolean)
       const group = objects.slice(cursor.schemaIndex, cursor.schemaIndex + DDL_GROUP);
       cursor.schemaIndex += group.length;
       if (cursor.schemaIndex >= objects.length) { cursor.phase = "rows"; cursor.schemaIndex = 0; cursor.dropped = true; }
-      await target.batch([claimGuard(target, input, plan.imageSha256), ...group.map(object => target.prepare(object.sql)),
+      await mutateBatch(input,target,[claimGuard(target, input, plan.imageSha256), ...group.map(object => target.prepare(object.sql)),
         target.prepare("UPDATE system_recovery_target_claim SET status='installing',cursor_json=? WHERE singleton=1").bind(stableJson(cursor))]); return result();
     }
     if (cursor.phase === "rows") {
@@ -466,7 +486,7 @@ function originalRecoveryTargetEngine(env: TargetEnvironment, workerV5: boolean)
         .bind(input.jobId, ordinal, plan.imageSha256, chunk, now)));
       cursor.phase = "files";
       statements.push(target.prepare("UPDATE system_recovery_target_claim SET status='files',cursor_json=? WHERE singleton=1").bind(stableJson(cursor)));
-      ensure(statements.length <= MAX_ATOMIC_STATEMENTS, "atomic_restore_budget"); await target.batch(statements);
+      ensure(statements.length <= MAX_ATOMIC_STATEMENTS, "atomic_restore_budget"); await mutateBatch(input,target,statements);
       await assertRecoveredCapabilitiesInert(target, plan.catalog); return result();
     }
     if (cursor.phase === "files") {
@@ -488,18 +508,18 @@ function originalRecoveryTargetEngine(env: TargetEnvironment, workerV5: boolean)
       const triggers = plan.catalog.schemaStatements.filter(object => object.type === "trigger"), group = triggers.slice(cursor.schemaIndex, cursor.schemaIndex + DDL_GROUP);
       cursor.schemaIndex += group.length;
       if (cursor.schemaIndex >= triggers.length) { cursor.phase = "verify"; cursor.schemaIndex = 0; }
-      await target.batch([claimGuard(target, input, plan.imageSha256), ...group.map(object => target.prepare(object.sql)),
+      await mutateBatch(input,target,[claimGuard(target, input, plan.imageSha256), ...group.map(object => target.prepare(object.sql)),
         target.prepare("UPDATE system_recovery_target_claim SET status='verifying',cursor_json=? WHERE singleton=1").bind(stableJson(cursor))]); return result();
     }
     await verifyTargetBytes(input, target, plan);
     const verified = await verifyRecoveryTarget(target, input.records, plan.files, plan.profiles, input.jobId, plan.imageSha256);
     await current(input, target, plan.imageSha256);
     const ledger = await recoveryMigrationLedgerStatements(target, plan.catalog.migrations);
-    if (ledger.length) await target.batch([claimGuard(target,input,plan.imageSha256),...ledger]);
+    if (ledger.length) await mutateBatch(input,target,[claimGuard(target,input,plan.imageSha256),...ledger]);
     await inspectRecoveryMigrationLedger(target,true,plan.catalog.migrations);
     const report = await reportFor(input, verified);
     cursor.phase = "ready";
-    await target.batch([claimGuard(target, input, plan.imageSha256), target.prepare("UPDATE system_recovery_target_claim SET status='ready',cursor_json=?,verified_at=? WHERE singleton=1")
+    await mutateBatch(input,target,[claimGuard(target, input, plan.imageSha256), target.prepare("UPDATE system_recovery_target_claim SET status='ready',cursor_json=?,verified_at=? WHERE singleton=1")
       .bind(stableJson(cursor), new Date().toISOString())]); return result(true, report);
   }
   async function reportFor(input: WorkerRecoveryTargetInput, proof: RecoveryVerification) {
@@ -516,11 +536,11 @@ function originalRecoveryTargetEngine(env: TargetEnvironment, workerV5: boolean)
   }
   async function restoreFile(target: D1Database, input: WorkerRecoveryTargetInput, imageSha256: string, file: RecoveryPlannedFile, profiles: readonly RecoveryDestinationProfile[]) {
     const source = input.manifest.files.find(value => value.id === file.sourceId); ensure(source, "recovery_payload_missing");
-    if(workerV5) await target.batch([claimGuard(target,input,imageSha256),target.prepare(`SELECT CASE WHEN EXISTS(SELECT 1 FROM file_locations WHERE id=?)
+    if(workerV5) await mutateBatch(input,target,[claimGuard(target,input,imageSha256),target.prepare(`SELECT CASE WHEN EXISTS(SELECT 1 FROM file_locations WHERE id=?)
       OR NOT EXISTS(SELECT 1 FROM file_registry_rowid_claims WHERE registry_name='file_locations'
         AND claimed_rowid=(SELECT COALESCE(MAX(rowid),0)+1 FROM file_locations)) THEN 1 ELSE json('V5 restored location rowid would be reused') END`).bind(file.locationId)]);
     await current(input, target, imageSha256);
-    await target.batch([claimGuard(target, input, imageSha256), target.prepare(`INSERT INTO system_recovery_target_files(job_id,logical_id,source_blob_id,file_id,location_id,profile_id,namespace,object_key,purpose,byte_size,sha256,incarnation)
+    await mutateBatch(input,target,[claimGuard(target, input, imageSha256), target.prepare(`INSERT INTO system_recovery_target_files(job_id,logical_id,source_blob_id,file_id,location_id,profile_id,namespace,object_key,purpose,byte_size,sha256,incarnation)
       VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(job_id,logical_id) DO NOTHING`)
       .bind(input.jobId, file.id, file.sourceId, file.fileId, file.locationId, file.destinationProfileId, file.destinationNamespaceIdentity,
         file.objectKey, file.purpose, file.byteSize, file.sha256, input.incarnation)]);
@@ -533,14 +553,14 @@ function originalRecoveryTargetEngine(env: TargetEnvironment, workerV5: boolean)
       // key is never replayed, even when the uncertain object is absent.
       await current(input, target, imageSha256);
       const storage = await openShadowProfile(env, { profileId: file.destinationProfileId, configurationRevision: file.configurationRevision }, "read", {
-        signal: input.signal, beforeRequest: async () => {
+        signal: input.signal, ...(workerV5?{deadlineAt:input.deadlineAt}:{}), beforeRequest: async () => {
           try { await providerCurrent(input, target, imageSha256, file, profiles); return true; } catch { return false; }
         },
       });
       ensure(storage.storage.namespaceIdentity === file.destinationNamespaceIdentity, "recovery_mapping_changed");
       await verifyStoredBytes(storage.reader, file.objectKey, file, storage.createHash);
       await current(input, target, imageSha256);
-      await target.batch([claimGuard(target, input, imageSha256), target.prepare("UPDATE system_recovery_target_files SET state='verified',verified_at=? WHERE job_id=? AND logical_id=? AND state IN('write_started','unknown')")
+      await mutateBatch(input,target,[claimGuard(target, input, imageSha256), target.prepare("UPDATE system_recovery_target_files SET state='verified',verified_at=? WHERE job_id=? AND logical_id=? AND state IN('write_started','unknown')")
         .bind(new Date().toISOString(), input.jobId, file.id)]);
       row.state = "verified";
     }
@@ -549,21 +569,23 @@ function originalRecoveryTargetEngine(env: TargetEnvironment, workerV5: boolean)
       const signal = input.signal ?? new AbortController().signal;
       const body = await input.openPayload(source, signal);
       try {
-        await (workerV5 ? writeWorkerV5RecoveryFile : writeRecoveryFile)(env, file, body, { signal, current: async () => {
+        await (workerV5 ? writeWorkerV5RecoveryFile : writeRecoveryFile)(env, file, body, { signal, ...(workerV5?{deadlineAt:input.deadlineAt}:{}), current: async () => {
           try { await providerCurrent(input, target, imageSha256, file, profiles); return true; } catch { return false; }
         }, writeStarted: async () => {
           await current(input, target, imageSha256);
-          await target.batch([claimGuard(target, input, imageSha256), target.prepare("UPDATE system_recovery_target_files SET state='write_started',owner_token=?,generation=? WHERE job_id=? AND logical_id=? AND state='pending'")
+          await mutateBatch(input,target,[claimGuard(target, input, imageSha256), target.prepare("UPDATE system_recovery_target_files SET state='write_started',owner_token=?,generation=? WHERE job_id=? AND logical_id=? AND state='pending'")
             .bind(input.ownerToken, input.generation, input.jobId, file.id), target.prepare("SELECT CASE WHEN EXISTS(SELECT 1 FROM system_recovery_target_files WHERE job_id=? AND logical_id=? AND state='write_started' AND owner_token=? AND generation=?) THEN 1 ELSE json('Recovery file ownership changed') END")
             .bind(input.jobId, file.id, input.ownerToken, input.generation)]);
           return true;
         } });
       } catch (error) {
+        // Settlement of this already issued exact attempt remains durable after
+        // deadline. It grants no new provider request, cursor or publication.
         await target.prepare("UPDATE system_recovery_target_files SET state='unknown' WHERE job_id=? AND logical_id=? AND state='write_started' AND owner_token=? AND generation=?")
           .bind(input.jobId, file.id, input.ownerToken, input.generation).run(); throw error;
       }
       await current(input, target, imageSha256);
-      await target.batch([claimGuard(target, input, imageSha256), target.prepare("UPDATE system_recovery_target_files SET state='verified',verified_at=? WHERE job_id=? AND logical_id=? AND state='write_started' AND owner_token=? AND generation=?")
+      await mutateBatch(input,target,[claimGuard(target, input, imageSha256), target.prepare("UPDATE system_recovery_target_files SET state='verified',verified_at=? WHERE job_id=? AND logical_id=? AND state='write_started' AND owner_token=? AND generation=?")
         .bind(new Date().toISOString(), input.jobId, file.id, input.ownerToken, input.generation)]);
     }
     await current(input, target, imageSha256);
@@ -571,21 +593,21 @@ function originalRecoveryTargetEngine(env: TargetEnvironment, workerV5: boolean)
       .bind(input.jobId, file.id).first<{ verified_at: string }>();
     ensure(receipt?.verified_at && Number.isFinite(Date.parse(receipt.verified_at)), "recovery_readback_receipt_missing");
     await boundedWrites(target, input, imageSha256, recoveryFilePublicationStatements(target, file, { byteSize: file.byteSize, sha256: file.sha256 }, receipt.verified_at));
-    await target.batch([claimGuard(target, input, imageSha256),
+    await mutateBatch(input,target,[claimGuard(target, input, imageSha256),
       target.prepare("UPDATE system_recovery_target_files SET state='published' WHERE job_id=? AND logical_id=? AND state='verified'").bind(input.jobId, file.id)]);
   }
   async function finalizeMappings(target: D1Database, input: WorkerRecoveryTargetInput, files: RecoveryPlannedFile[], imageSha256: string) {
     await current(input, target, imageSha256);
     const now = new Date().toISOString();
     if (workerV5) {
-      await target.batch([claimGuard(target,input,imageSha256),
+      await mutateBatch(input,target,[claimGuard(target,input,imageSha256),
         target.prepare("SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM file_shadow_heads WHERE present=1) THEN 1 ELSE json('V5 present heads require their separate reviewed owner') END"),
         target.prepare(`INSERT OR IGNORE INTO file_registry_rowid_claims(registry_name,claimed_rowid)
           SELECT 'storage_profiles',rowid FROM storage_profiles UNION ALL SELECT 'files',rowid FROM files
           UNION ALL SELECT 'file_locations',rowid FROM file_locations UNION ALL SELECT 'legacy_file_mappings',rowid FROM legacy_file_mappings`)]);
       return;
     }
-    await target.batch([claimGuard(target, input, imageSha256), target.prepare("PRAGMA defer_foreign_keys=ON"),
+    await mutateBatch(input,target,[claimGuard(target, input, imageSha256), target.prepare("PRAGMA defer_foreign_keys=ON"),
       ...(files.length ? [target.prepare("UPDATE file_authority_control SET mode='active',activated_at=COALESCE(activated_at,?),updated_at=? WHERE singleton=1 AND mode<>'active'").bind(now, now)] : []),
       ...(files.length ? [target.prepare(`INSERT INTO file_shadow_enablements(singleton,expected_epoch,enabled_by,enabled_at)
         SELECT 1,c.epoch,?,a.activated_at FROM file_shadow_control c JOIN file_authority_control a ON a.singleton=c.singleton

@@ -73,9 +73,9 @@ function groupFileStatements(repository:SystemRecoveryRepository,claim:RecoveryC
     SELECT ?,json_extract(value,'$.id'),json_extract(value,'$.ordinal'),'pending',json_extract(value,'$.json') FROM json_each(?)`)
     .bind(claim.id,stableJson(rows)));
 }
-async function measureSource(env:Env,source:WorkerRecoverySource,current:()=>Promise<boolean>,signal:AbortSignal,claim:RecoveryClaim,installationId:string,v5:boolean,owner:SystemRecoveryCapabilitiesAdapter):Promise<WorkerRecoveryFile>{
+async function measureSource(env:Env,source:WorkerRecoverySource,current:()=>Promise<boolean>,signal:AbortSignal,claim:RecoveryClaim,installationId:string,v5:boolean,owner:SystemRecoveryCapabilitiesAdapter,deadlineAt?:string):Promise<WorkerRecoveryFile>{
   const unavailable=(outcome:SystemBackupFile["outcome"]):WorkerRecoveryFile=>({...source,path:null,outcome,byteSize:null,sha256:null});
-  let read;try{read=await openClaimedBackupSource(env,source,claim,installationId,current,signal,v5,owner);}catch{if(signal.aborted||!await current())throw new Error("administrator_revoked");return unavailable("download_failed");}
+  let read;try{read=await openClaimedBackupSource(env,source,claim,installationId,current,signal,v5,owner,deadlineAt);}catch{if(signal.aborted||!await current())throw new Error("administrator_revoked");return unavailable("download_failed");}
   if(read.outcome!=="available")return unavailable(read.outcome);
   const hash=cloudflareSha256(),reader=read.body.getReader();let size=0,complete=false;
   try{while(true){const next=await reader.read();if(next.done){complete=true;break;}size+=next.value.byteLength;
@@ -94,6 +94,7 @@ export async function recoveryArchiveSource(env:Env,job:RecoveryJob,current:()=>
   const attempt=(await recoveryRepository(env).attempts(job.id)).find(row=>row.object_key===job.artifact_key&&row.state==="verified");if(!attempt)throw new Error("archive_invalid");
   return sourceFromStream(job.archive_byte_size,async()=>{if(signal?.aborted||!await current())throw new Error("administrator_revoked");
     await assertRecoveryArtifactNamespace(env,job);
+    if(signal?.aborted||!await current()||signal?.aborted)throw new Error("administrator_revoked");
     const object=await env.ASSETS.get(job.artifact_key!);if(!object)throw new Error("source_unavailable");return object.body;});
 }
 async function openFrozenPayload(env:Env,upload:RecoveryJob,file:WorkerRecoveryFile,current:()=>Promise<boolean>,signal:AbortSignal){
@@ -107,15 +108,20 @@ export async function workerSystemRecoveryCapabilities(env:Env):Promise<SystemRe
   const originalSourceBinding=env.DB;
   const sourceInstallationId=runtime.installation_id;
   const capabilities:SystemRecoveryCapabilitiesAdapter={repository,incarnation:runtime.incarnation,authorizeActor:actor=>recoveryActorAllowed(env,actor),now:()=>new Date(),randomId:()=>crypto.randomUUID(),hash:cloudflareSha256,
-    async put(key,body,byteSize){await assertPrivateKeyNamespace(env,key);const {FixedLengthStream}=globalThis as typeof globalThis&{FixedLengthStream:new(length:number)=>{readable:ReadableStream<Uint8Array>;writable:WritableStream<Uint8Array>}};
+    async put(key,body,byteSize,deadlineAt,signal){await assertPrivateKeyNamespace(env,key);
+      if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding))throw new Error("execution_budget_exhausted");
+      const {FixedLengthStream}=globalThis as typeof globalThis&{FixedLengthStream:new(length:number)=>{readable:ReadableStream<Uint8Array>;writable:WritableStream<Uint8Array>}};
       const fixed=new FixedLengthStream(byteSize),pipe=body.pipeTo(fixed.writable);void pipe.catch(()=>undefined);
-      try{await env.ASSETS.put(key,fixed.readable,{httpMetadata:{contentType:"application/zip"}});await pipe;}catch(error){void fixed.readable.cancel().catch(()=>undefined);throw error;}},
-    async read(key){await assertPrivateKeyNamespace(env,key);return(await env.ASSETS.get(key))?.body??null;},
-    async exportBody(claim,current,signal){const frozen=await records(repository,claim.id);
+      try{if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding))throw new Error("execution_budget_exhausted");
+        await env.ASSETS.put(key,fixed.readable,{httpMetadata:{contentType:"application/zip"}});await pipe;}catch(error){void fixed.readable.cancel().catch(()=>undefined);throw error;}},
+    async read(key,deadlineAt,signal){await assertPrivateKeyNamespace(env,key);
+      if(deadlineAt!==undefined&&(!Number.isFinite(Date.parse(deadlineAt))||Date.now()>=Date.parse(deadlineAt)||signal?.aborted||env.DB!==originalSourceBinding))throw new Error("execution_budget_exhausted");
+      return(await env.ASSETS.get(key))?.body??null;},
+    async exportBody(claim,current,signal,deadlineAt){const frozen=await records(repository,claim.id);
       const files=await terminalFiles(repository,claim.id),metadata=await prepareWorkerSystemBackupArchive(frozen,files);
       return createSystemBackupArchiveStream(metadata,async entry=>{const file=files.find(row=>row.path===entry.path);if(!file)throw new Error("archive_invalid");
-        const read=await openClaimedBackupSource(env,file,claim,sourceInstallationId,current,signal,frozen.schema==="system-backup-records/5",capabilities);if(read.outcome!=="available")throw new Error("source_unavailable");return read.body;},{signal,createHash:cloudflareSha256});},
-    async step(claim,current,signal){
+        const read=await openClaimedBackupSource(env,file,claim,sourceInstallationId,current,signal,frozen.schema==="system-backup-records/5",capabilities,deadlineAt);if(read.outcome!=="available")throw new Error("source_unavailable");return read.body;},{signal,createHash:cloudflareSha256});},
+    async step(claim,current,signal,deadlineAt){
       if(claim.kind!=="recovery")await assertRecoveryArtifactNamespace(env,claim);
       if(env.DB!==originalSourceBinding)throw new Error("archive_invalid");
       const db=repository.db();
@@ -136,7 +142,7 @@ export async function workerSystemRecoveryCapabilities(env:Env):Promise<SystemRe
         if(!pending)return{patch:{state:"queued",phase:"measure"},outcome:"inventoried"};
         const frozen=await records(repository,claim.id);
         const source=JSON.parse(pending.file_json) as WorkerRecoverySource,
-          file=await measureSource(env,source,current,signal,claim,sourceInstallationId,frozen.schema==="system-backup-records/5",capabilities);
+          file=await measureSource(env,source,current,signal,claim,sourceInstallationId,frozen.schema==="system-backup-records/5",capabilities,deadlineAt);
         const packaged=all.filter(row=>row.outcome==="packaged").reduce((sum,row)=>sum+((JSON.parse(row.file_json) as WorkerRecoveryFile).byteSize??0),0)+(file.byteSize??0);
         if(packaged>96*1024*1024)throw new Error("archive_budget");
         return{patch:{state:"queued",phase:all.filter(row=>row.outcome==="pending").length===1?"measure":"inventory",completed_files:claim.completed_files+1,bytes_total:packaged},
@@ -145,7 +151,7 @@ export async function workerSystemRecoveryCapabilities(env:Env):Promise<SystemRe
       if(claim.kind==="backup"&&claim.phase==="measure"){
         const frozen=await records(repository,claim.id);
       const files=await terminalFiles(repository,claim.id),metadata=await prepareWorkerSystemBackupArchive(frozen,files);
-        const measured=await measureSystemBackupArchive(metadata,async entry=>{const file=files.find(row=>row.path===entry.path);if(!file)throw new Error("archive_invalid");const read=await openClaimedBackupSource(env,file,claim,sourceInstallationId,current,signal,frozen.schema==="system-backup-records/5",capabilities);
+        const measured=await measureSystemBackupArchive(metadata,async entry=>{const file=files.find(row=>row.path===entry.path);if(!file)throw new Error("archive_invalid");const read=await openClaimedBackupSource(env,file,claim,sourceInstallationId,current,signal,frozen.schema==="system-backup-records/5",capabilities,deadlineAt);
           if(read.outcome!=="available")throw new Error("source_unavailable");return read.body;},{signal,createHash:cloudflareSha256});
         return{patch:{state:"queued",phase:"write",archive_byte_size:measured.byteSize,archive_sha256:measured.sha256},
           statements:[...repository.metadataStatements(claim.id,"manifest",metadata.manifest),...repository.metadataStatements(claim.id,"index",measured.entries)],outcome:"measured"};
@@ -173,7 +179,7 @@ export async function workerSystemRecoveryCapabilities(env:Env):Promise<SystemRe
         const backup=await manifest(repository,upload.id);if(backup.completeness!=="complete")throw new Error("partial_backup");
         if(!claim.target_incarnation){const incarnation=crypto.randomUUID().replaceAll("-","");return{patch:{state:"queued",target_incarnation:incarnation},outcome:"target_identity_frozen"};}
         const shared={jobId:claim.id,incarnation:claim.target_incarnation,ownerToken:claim.owner_token,generation:claim.generation,
-          expectedTargetId:input.expectedTargetId,mapping:input.mapping,mode:input.mode,current,signal,runtimeIncarnation:claim.runtime_incarnation,leaseExpiresAt:claim.lease_expires_at,
+          expectedTargetId:input.expectedTargetId,mapping:input.mapping,mode:input.mode,current,signal,deadlineAt,runtimeIncarnation:claim.runtime_incarnation,leaseExpiresAt:claim.lease_expires_at,
           openPayload:(file:WorkerRecoveryFile,payloadSignal:AbortSignal)=>openFrozenPayload(env,upload,file,current,payloadSignal)};
         let result;
         if(frozen.schema==="system-backup-records/5"){
@@ -223,8 +229,8 @@ export async function systemRecoveryPreview(env:Env,job:RecoveryJob):Promise<Sys
 
 function originalSource(source:WorkerRecoverySource):source is SystemBackupSource{return source.source.provider!=="local";}
 async function openClaimedBackupSource(env:Env,source:WorkerRecoverySource,claim:RecoveryClaim,installationId:string,
-  current:()=>Promise<boolean>,signal:AbortSignal,v5:boolean,owner:SystemRecoveryCapabilitiesAdapter){
-  if(v5){return openWorkerV5BackupSource(env,source,claim,installationId,current,signal,dispose=>ownWorkerRecoveryBodyClose(owner,dispose));}
+  current:()=>Promise<boolean>,signal:AbortSignal,v5:boolean,owner:SystemRecoveryCapabilitiesAdapter,deadlineAt?:string){
+  if(v5){if(typeof deadlineAt!=="string")throw new Error("execution_budget_exhausted");return openWorkerV5BackupSource(env,source,claim,installationId,current,signal,dispose=>ownWorkerRecoveryBodyClose(owner,dispose),deadlineAt);}
   if(!originalSource(source))throw new Error("archive_invalid");
   return openSystemBackupSource(env,source,current,signal,claim.id);
 }

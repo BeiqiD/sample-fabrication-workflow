@@ -160,6 +160,11 @@ async function assertV5RecoveryCleanupClosed(env:Env,job:RecoveryJob){
   const repository=recoveryRepository(env),sourceId=job.kind==="recovery"?job.source_upload_job_id:job.id;
   if(!sourceId)return;
   const records=await repository.metadata(sourceId,"records") as VersionedRecoveryRecords|null;
+  if(job.kind==="backup"&&!records){
+    const v28=await repository.db().prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='collaboration_control'").first()
+      &&await repository.db().prepare("SELECT 1 FROM collaboration_control WHERE singleton=1 AND schema_version=2").first();
+    if(v28)throw fail("V5 backup cleanup requires durable original source body closure proof.",409);
+  }
   if(records?.schema!=="system-backup-records/5")return;
   // A paused job or an empty archive-attempt list cannot prove the original
   // native source body first-close acknowledged. Keep every source hold until
