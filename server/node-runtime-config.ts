@@ -6,7 +6,7 @@ import { createLoopbackLocalAuthTransport } from './auth/local-auth-transport.ts
 export class NodeRuntimeConfigurationError extends Error {
   constructor() { super('Local runtime configuration is unavailable.'); this.name = 'NodeRuntimeConfigurationError'; }
 }
-export type NodeRuntimeConfigurationProfile = 'v28-metadata' | 'v28-fabublox';
+export type NodeRuntimeConfigurationProfile = 'v28-metadata' | 'v28-fabublox' | 'v28-recovery';
 export interface LoadedNodeRuntimeConfiguration {
   readonly kind: 'loaded-node-loopback-development/1';
 }
@@ -17,6 +17,10 @@ export interface NodeConfiguredLocalVolumeDescriptor {
   readonly root: string;
   readonly rootBindingId: string;
   readonly namespace: Readonly<LocalVolumeNamespace>;
+}
+export interface NodeConfiguredRecoveryArtifacts {
+  readonly root: string;
+  readonly rootBindingId: string;
 }
 export interface NodeRuntimeConfiguration {
   readonly dataDirectory: string;
@@ -32,6 +36,9 @@ export interface NodeRuntimeConfiguration {
   readonly enableLocalFile: boolean;
   /** Explicit independent Job host opt-in; never enables or resumes persisted work. */
   readonly enableLocalJobs: boolean;
+  /** Independent closed Recovery-only profile. Never enables persisted work. */
+  readonly enableLocalRecovery: boolean;
+  readonly recoveryArtifacts?: Readonly<NodeConfiguredRecoveryArtifacts>;
   readonly filesystemRootOwnerUid: number;
 }
 interface Identity { dev: bigint; ino: bigint; uid: bigint; gid: bigint; mode: bigint }
@@ -90,7 +97,8 @@ function exactKeys(value: unknown, restored = false): value is Record<string, un
     ...(restored ? ['databaseFile'] : [])];
   const names = Object.keys(value);
   return fields.every(name => names.includes(name)) && names.every(name => fields.includes(name)
-    || name === 'storageKeyringPath' || name === 'localVolumes' || name === 'enableLocalFile' || name === 'enableLocalJobs');
+    || name === 'storageKeyringPath' || name === 'localVolumes' || name === 'enableLocalFile' || name === 'enableLocalJobs'
+    || name === 'enableLocalRecovery' || name === 'recoveryArtifacts');
 }
 
 
@@ -182,7 +190,7 @@ export function loadNodeRuntimeConfiguration(path: string, options: {
     const runtimeProfile = options?.runtimeProfile;
     if (process.platform !== 'linux' || typeof process.geteuid !== 'function' || !options || typeof options !== 'object' || Array.isArray(options)
       || Object.keys(options).some(key => key !== 'filesystemRootOwnerUid' && key !== 'runtimeProfile')
-      || runtimeProfile !== undefined && runtimeProfile !== 'v28-metadata' && runtimeProfile !== 'v28-fabublox'
+      || runtimeProfile !== undefined && runtimeProfile !== 'v28-metadata' && runtimeProfile !== 'v28-fabublox' && runtimeProfile !== 'v28-recovery'
       || !Number.isSafeInteger(configuredRoot) || configuredRoot < 0 || configuredRoot > 0xffff_ffff) unavailable();
     const owner = BigInt(process.geteuid()), rootOwner = BigInt(configuredRoot);
     canonical(path); const before = lstatSync(path, { bigint: true }); privateConfiguration(before, owner);
@@ -220,6 +228,23 @@ export function loadNodeRuntimeConfiguration(path: string, options: {
       || raw.enableLocalFile === true && localVolumes.length === 0) unavailable();
     if (raw.enableLocalJobs !== undefined && typeof raw.enableLocalJobs !== 'boolean'
       || raw.enableLocalJobs === true && raw.enableLocalFile !== true) unavailable();
+    let recoveryArtifacts: Readonly<NodeConfiguredRecoveryArtifacts> | undefined;
+    if (raw.recoveryArtifacts !== undefined) {
+      const artifact = raw.recoveryArtifacts;
+      if (!artifact || typeof artifact !== 'object' || Array.isArray(artifact)
+        || Reflect.ownKeys(artifact).length !== 2 || !Object.hasOwn(artifact, 'root') || !Object.hasOwn(artifact, 'rootBindingId')) unavailable();
+      const descriptor = artifact as Record<string, unknown>;
+      canonical(descriptor.root);
+      if (typeof descriptor.rootBindingId !== 'string' || !INSTALLATION_ID.test(descriptor.rootBindingId)
+        || [path, raw.dataDirectory, raw.clientDirectory, ...(raw.storageKeyringPath === undefined ? [] : [raw.storageKeyringPath]),
+          ...localVolumes.map(volume => volume.root)].some(protectedPath => overlaps(descriptor.root as string, protectedPath))) unavailable();
+      const root = descriptor.root;
+      directories.push({ path: root, identity: directory(root, owner, rootOwner, true), private: true },
+        ...ancestors(root, owner, rootOwner));
+      recoveryArtifacts = Object.freeze({ root, rootBindingId: descriptor.rootBindingId });
+    }
+    if (raw.enableLocalRecovery !== undefined && typeof raw.enableLocalRecovery !== 'boolean'
+      || raw.enableLocalRecovery === true && (!recoveryArtifacts || runtimeProfile !== 'v28-recovery')) unavailable();
     const after = fstatSync(descriptor, { bigint: true }), afterPath = lstatSync(path, { bigint: true });
     privateConfiguration(after, owner); privateConfiguration(afterPath, owner);
     if (!sameFile(fileIdentity(opened), fileIdentity(after)) || !sameFile(fileIdentity(opened), fileIdentity(afterPath))) unavailable();
@@ -229,6 +254,8 @@ export function loadNodeRuntimeConfiguration(path: string, options: {
       host: origin.hostname === '[::1]' ? '::1' as const : '127.0.0.1' as const, port,
       clientDirectory: raw.clientDirectory, ...(raw.storageKeyringPath === undefined ? {} : { storageKeyringPath: raw.storageKeyringPath }),
       localVolumes, enableLocalFile: raw.enableLocalFile === true, enableLocalJobs: raw.enableLocalJobs === true,
+      enableLocalRecovery: raw.enableLocalRecovery === true,
+      ...(recoveryArtifacts === undefined ? {} : { recoveryArtifacts }),
       filesystemRootOwnerUid: configuredRoot });
     const token = Object.freeze({ kind: 'loaded-node-loopback-development/1' as const });
     issued.set(token, { value, path, owner, file: fileIdentity(opened), directories,
@@ -266,7 +293,9 @@ export function assertNodeRuntimeConfiguration(token: LoadedNodeRuntimeConfigura
 export function assertNodeRuntimeConfigurationForProfile(token: LoadedNodeRuntimeConfiguration,
   profile: NodeRuntimeConfigurationProfile | undefined): Readonly<NodeRuntimeConfiguration> {
   const current = issued.get(token);
-  if (!current || profile !== undefined && profile !== 'v28-metadata' && profile !== 'v28-fabublox'
+  if (!current || profile !== undefined && profile !== 'v28-metadata' && profile !== 'v28-fabublox' && profile !== 'v28-recovery'
     || current.format === 'node-loopback-restored-v28-v1' && profile === undefined) unavailable();
+  if (profile === 'v28-recovery' ? !current.value.enableLocalRecovery || !current.value.recoveryArtifacts
+    || current.value.enableLocalFile || current.value.enableLocalJobs : current.value.enableLocalRecovery) unavailable();
   return assertNodeRuntimeConfiguration(token);
 }

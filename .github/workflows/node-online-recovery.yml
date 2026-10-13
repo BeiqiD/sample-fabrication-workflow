@@ -1,0 +1,77 @@
+name: Node V28 Recovery-only first slice
+
+on:
+  push:
+    branches: [codex/node-online-recovery]
+
+permissions:
+  contents: read
+
+jobs:
+  genuine-recovery-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      NO_COLOR: '1'
+      FORCE_COLOR: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+          cache: npm
+      - name: Install the exact committed dependencies
+        run: npm ci
+      - name: Reserve a fresh private original-owned Recovery evidence root
+        shell: bash
+        run: |
+          recovery_run_root="$HOME/.node-online-recovery-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir -m 700 "$recovery_run_root"
+          printf 'RECOVERY_RUN_ROOT=%s\n' "$recovery_run_root" >> "$GITHUB_ENV"
+      - name: Check full current server and runtime types
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage types --run-root "$RECOVERY_RUN_ROOT"
+      - name: Original three closed runtime CLI parser cases
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage recovery-parser --run-root "$RECOVERY_RUN_ROOT"
+      - name: Eight explicit Recovery configuration admission cases
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage recovery-config --run-root "$RECOVERY_RUN_ROOT"
+      - name: Build the actual same-candidate Node client and fixed distribution
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -m 700 "$RECOVERY_RUN_ROOT/producer"
+          npm run build:node-client 2>&1 | tee "$RECOVERY_RUN_ROOT/producer/node-client.log"
+          node scripts/build-node.mjs 2>&1 | tee "$RECOVERY_RUN_ROOT/producer/node-distribution.log"
+      - name: Require the actual embedded verifier and all four compiled entries
+        shell: bash
+        run: |
+          set -o pipefail
+          node dist-node/distribution/tools/verify-node-distribution.mjs dist-node/distribution --runtime 2>&1 | tee "$RECOVERY_RUN_ROOT/producer/embedded-verifier.log"
+          cp dist-node/distribution/manifest.json "$RECOVERY_RUN_ROOT/producer/manifest.json"
+          cp dist-node/distribution/source-inputs.json "$RECOVERY_RUN_ROOT/producer/source-inputs.json"
+          python3 -B scripts/qa/run-current-v28-post-restore.py --stage help-main --run-root "$RECOVERY_RUN_ROOT"
+          python3 -B scripts/qa/run-current-v28-post-restore.py --stage help-identity --run-root "$RECOVERY_RUN_ROOT"
+          python3 -B scripts/qa/run-current-v28-post-restore.py --stage help-installation --run-root "$RECOVERY_RUN_ROOT"
+          python3 -B scripts/qa/run-current-v28-post-restore.py --stage help-restore --run-root "$RECOVERY_RUN_ROOT"
+      - name: One genuine source-fenced V5 backup and public reupload case
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage recovery-first --run-root "$RECOVERY_RUN_ROOT"
+      - name: Retain original closed-child logs, exact results and scoped receipts
+        if: ${{ always() && env.RECOVERY_RUN_ROOT != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-online-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          include-hidden-files: true
+          path: |
+            ${{ env.RECOVERY_RUN_ROOT }}/*/original*.log
+            ${{ env.RECOVERY_RUN_ROOT }}/*/receipt.json
+            ${{ env.RECOVERY_RUN_ROOT }}/recovery-parser/original-results.json
+            ${{ env.RECOVERY_RUN_ROOT }}/recovery-config/original-results.json
+            ${{ env.RECOVERY_RUN_ROOT }}/recovery-first/original-results.json
+            ${{ env.RECOVERY_RUN_ROOT }}/recovery-first-inputs.json
+            ${{ env.RECOVERY_RUN_ROOT }}/producer/*.log
+            ${{ env.RECOVERY_RUN_ROOT }}/producer/manifest.json
+            ${{ env.RECOVERY_RUN_ROOT }}/producer/source-inputs.json
