@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { constants, closeSync, fstatSync, fsyncSync, linkSync, lstatSync, openSync, readFileSync, realpathSync, unlinkSync, writeSync, type BigIntStats } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import type { ReadableStreamReadResult } from "node:stream/web";
 import { createInstalledLocalIdentity } from "../auth/identity.ts";
 import { createLocalAuthentication } from "../auth/local-auth-http.ts";
 import { createLoopbackLocalAuthTransport } from "../auth/local-auth-transport.ts";
@@ -161,7 +162,8 @@ export function parseLocalV28MaintenanceCaptureCommandCandidate(argv: readonly s
  * Same-UID malicious writers and a deployment outside that contract are excluded.
  * No account/profile registration, flag/role/grant or persistent hold is inserted. */
 export function executeLocalV28MaintenanceCaptureCandidate(token: LocalV28MaintenanceCaptureCommand): Promise<CaptureResult> {
-  const selected = issued.get(token); ensure(selected && process.platform === "linux" && typeof process.geteuid === "function" && owners.size < 2);
+  const issuedSelection = issued.get(token); ensure(issuedSelection && process.platform === "linux" && typeof process.geteuid === "function" && owners.size < 2);
+  const selected: Readonly<Selected> = issuedSelection;
   const owner: Owner = { nativeAttempted: false, nativeCloseAttempted: false, nativeCloseFailed: false,
     openingAttempted: false, files: [], reads: new Set(), failedReads: new Set() }; owners.add(owner);
   owner.originalWork = Promise.resolve().then(async () => {
@@ -203,8 +205,8 @@ export function executeLocalV28MaintenanceCaptureCandidate(token: LocalV28Mainte
       const admission = admitInstallationRecoverySource(native, V28_NODE_INSTALLATION_CATALOG_CANDIDATE);
       ensure(admission.receipt.installationId === selected.installationId && admission.receipt.checkpointId === "portable-runtime/v28");
       // Genuine private factories; no bootstrap/login/session or KDF receipt is imported.
-      const identity = await createInstalledLocalIdentity({ database: core, nativeDatabase: native, admission, hasher: createPasswordHasher(), policy: POLICY });
-      const authentication = createLocalAuthentication({ identity, transport: createLoopbackLocalAuthTransport({ publicOrigin: "http://127.0.0.1:43117" }), now: Date.now });
+      const installedIdentity = await createInstalledLocalIdentity({ database: core, nativeDatabase: native, admission, hasher: createPasswordHasher(), policy: POLICY });
+      const authentication = createLocalAuthentication({ identity: installedIdentity, transport: createLoopbackLocalAuthTransport({ publicOrigin: "http://127.0.0.1:43117" }), now: Date.now });
       owner.openingAttempted = true;
       try { owner.opening = createLocalVolumeProfileOpeningV28({ database: core, nativeDatabase: native, admission,
         authentication, writerLease: lease, filesystemRootOwnerUid: selected.rootUid, descriptors: configuredDescriptors,
