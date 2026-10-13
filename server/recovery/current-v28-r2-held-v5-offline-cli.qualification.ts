@@ -235,8 +235,18 @@ beforeAll(async () => {
   for (const path of [fixtureParent, tmpdir()]) { const free = statfsSync(path, { bigint: true }); ensure(free.bavail * free.bsize >= RESERVE); }
   const manifest = await verifyNodeDistribution(distribution, { enforceRuntimeVersion: true }); manifestSha256 = manifest.manifestSha256;
   expect(manifest.version).toBe(3); expect(manifest.offlineRecoveryCheckpoint.id).toBe('portable-runtime/v28');
-  expect(manifest.offlineRecoveryCheckpoint.restorerSourceSha256).toBe('8ac2eba1170fa1a1e8d7400e560925e5fd8118af50dc8fdd01a82db18da89b80');
   const inputs = object(JSON.parse(await readFile(join(distribution, 'source-inputs.json'), 'utf8'))).inputs; ensure(Array.isArray(inputs));
+  // The public verifier result exposes the checkpoint summary. Its real closed
+  // source-input inventory and the exact embedded verifier retain the fixed
+  // original restorer pin without assuming an undeclared summary property.
+  const restorerInputs = inputs.map(object).filter(value => value.path === 'server/recovery/restore-v28-candidate.ts');
+  expect(restorerInputs).toHaveLength(1);
+  expect(restorerInputs[0]).toMatchObject({ bytes: 17871,
+    sha256: '8ac2eba1170fa1a1e8d7400e560925e5fd8118af50dc8fdd01a82db18da89b80' });
+  const embeddedVerifier = await readFile(join(distribution, 'tools/lib/node-distribution-v28-manifest.mjs'));
+  expect(embeddedVerifier.byteLength).toBe(13184);
+  expect(digest(embeddedVerifier)).toBe('5ab60c4f50128702dcd98904064669101a85bf850f57c2221bbf61da55e8fd8c');
+  expect(embeddedVerifier).toEqual(await readFile(join(SOURCE_ROOT, 'scripts/lib/node-distribution-v28-manifest.mjs')));
   for (const relative of ['server/operations/restore-v28-cli.ts', 'server/operations/restore-v28-operator.ts',
     'server/recovery/restore-v28-candidate.ts', 'server/recovery/local-volume-byte-destination-v28.ts',
     'server/recovery/empty-target-v28-candidate.ts', 'shared/contracts/system-backup-v5.ts',
