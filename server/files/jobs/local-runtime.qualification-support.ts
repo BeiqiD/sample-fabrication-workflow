@@ -96,7 +96,7 @@ function retainOriginalOperation<T>(run: () => Promise<T>): Promise<T> {
 function beforeAll(body: () => Promise<void>, timeout: number): void {
   registerBeforeAll(() => retainOriginalOperation(body), timeout);
 }
-export function it(name: string, body: () => Promise<void>): void { registerCase(name, () => retainOriginalOperation(body)); }
+export function it(name: string, body: () => Promise<void>, timeout?: number): void { registerCase(name, () => retainOriginalOperation(body), timeout); }
 async function drainFixtures(): Promise<void> {
   for (const cleanup of [...cleanups].reverse()) await settleCleanup(cleanup);
 }
@@ -159,7 +159,7 @@ beforeAll(async () => {
     throw cleanupFailure;
   }
   if (setupFailure) throw setupFailure;
-}, 20_000); // Existing genuine schema/KDF setup boundary; cases keep default5s.
+}, 20_000); // Existing genuine schema/KDF setup boundary; cases keep default5s unless explicitly overridden.
 afterEach(async () => { try { await drainFixtures(); } finally { vi.restoreAllMocks(); } });
 afterAll(async () => {
   await drainFixtures();

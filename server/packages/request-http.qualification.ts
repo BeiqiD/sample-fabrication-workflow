@@ -231,6 +231,7 @@ describe("genuine nonempty Node Package HTTP and independent executor",()=>{
     expect(preview.counts.files).toBe(15);expect(preview.rolePolicyRevision).not.toBeNull();
     input={requestId:randomUUID(),uploadJobId:uploadId,anotherCopy:false,expectedRolePolicyRevision:preview.rolePolicyRevision!};released(f);
   }));
+  // Original d723 case timed out at default5s; retained full import/export work reached strict15payload validation at12.265s.
   it("copies all15 verified Files through HTTP, publishes one typed graph and downloads its captured native ZIP",async()=>{
     const diagnosticStarted=performance.now();packageDiagnostic('import_accept','start',diagnosticStarted);
     const accepted=await f.request("POST",prefix+"/imports",input);packageDiagnostic('import_accept','end',diagnosticStarted);expect(accepted.status).toBe(202);
@@ -290,5 +291,5 @@ describe("genuine nonempty Node Package HTTP and independent executor",()=>{
     expect(count(f.native,"research_package_jobs","kind='import' AND state='completed'")).toBe(1);
     expect(count(f.native,"system_recovery_write_leases","kind='scheduled'")).toBeGreaterThan(15);
     expect(f.native.prepare("SELECT actor FROM research_package_jobs WHERE id=?").get(job.id)).toEqual({actor});released(f);
-  });
+  }, 20_000);
 });

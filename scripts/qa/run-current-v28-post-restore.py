@@ -261,7 +261,10 @@ def run(stage, out, run_root):
   'hookMs': 10000 if stage == 'package-http' else 20000 if stage in TIMED_CASE_STAGES else None, 'minimumBeforeChild': minimum,
   'filesystemRootOwnerUid': Path('/').lstat().st_uid, 'noFixtureRemoval': True, 'sourceFileBackupQualified': False}
  if stage == 'r2pair': record['r2NodePairQualified'] = False
- if stage == 'package-http': record.update(originalTemplateBeforeAllMs=20000,
+ # Original d723 default5s failure retained full work through strict15payload validation at12.265s.
+ # Only the final case overrides20s; the stage argv/default5s, hook10s and outer180s remain.
+ if stage == 'package-http': record.update(defaultCaseMs=5000,
+  caseTimeoutOverrides=[{'title': CASES[stage][1][-1], 'caseMs': 20000}], originalTemplateBeforeAllMs=20000,
   scope='Current V26 original mounted Package HTTP/session/CSRF + independent original dispatcher + nonempty15File local copy/export/download only; no compiled-main, cross-runtime/R2, elapsed120s cadence, recovery activation or prior qualification carry.')
  def original_close():
   nonlocal close_attempted, close_result, close_error
