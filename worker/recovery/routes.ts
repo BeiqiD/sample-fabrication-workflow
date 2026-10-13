@@ -1,3 +1,4 @@
+import { captureWorkerV5PlannedSourceWindow, workerV5PlannedSourceAcceptanceStatements, workerV5PlannedRecoveryCleanupGuards, captureWorkerV5PlannedBackupWindow, workerV5PlannedBackupAcceptanceStatements, type WorkerV5PlannedSourceWindow } from "./v5-planned-source-window";
 import { admitWorkerV5SourceCloseCleanup, workerV5SourceCloseCleanupGuards } from "./v5-source-close-owner";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
@@ -109,8 +110,13 @@ systemRecoveryRoutes.get("/system-recovery/jobs",async c=>{await requireSchema(c
 systemRecoveryRoutes.post("/system-recovery/jobs",async c=>{const acceptedInput=await input(c.req.raw,checkedSystemRecoveryBackupInput),actor=c.get("userEmail"),repository=recoveryRepository(c.env);await requireSchema(c.env);
   const prior=await repository.request(acceptedInput.requestId,actor,acceptedInput);if(prior)return c.json(await receipt(c.env,acceptedInput.requestId,{job:prior,reused:true}),202);
   if(acceptedInput.mode==="planned"){const status=await readSourceMaintenance(c.env);if(status.state!=="fenced"||status.activeWriters)throw fail("A planned final backup requires drained source maintenance",409);}
-  const checkpoint=await freezeRecoveryArtifactNamespace(c.env);
-  const accepted=await repository.accept({id:crypto.randomUUID(),requestId:acceptedInput.requestId,actor,kind:"backup",input:acceptedInput,checkpoint},()=>recoveryActorAllowed(c.env,actor));
+  const checkpoint=await freezeRecoveryArtifactNamespace(c.env),id=crypto.randomUUID();
+  let plannedBackup;
+  if(acceptedInput.mode==="planned"&&await repository.db().prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='collaboration_control'").first()
+    &&await repository.db().prepare("SELECT 1 FROM collaboration_control WHERE singleton=1 AND schema_version=2").first())
+    plannedBackup=await captureWorkerV5PlannedBackupWindow(c.env,actor,id);
+  const accepted=await repository.accept({id,requestId:acceptedInput.requestId,actor,kind:"backup",input:acceptedInput,checkpoint:plannedBackup?{...checkpoint,plannedSourceWindow:plannedBackup}:checkpoint},()=>recoveryActorAllowed(c.env,actor),
+    plannedBackup?workerV5PlannedBackupAcceptanceStatements(c.env,plannedBackup):[]);
   return c.json(await receipt(c.env,acceptedInput.requestId,accepted),202);});
 systemRecoveryRoutes.post("/system-recovery/uploads",async c=>{const acceptedInput=await input(c.req.raw,checkedSystemRecoveryUploadInput),actor=c.get("userEmail");await requireSchema(c.env);
   const repository=recoveryRepository(c.env),prior=await repository.request(acceptedInput.requestId,actor,acceptedInput);if(prior)return c.json(await receipt(c.env,acceptedInput.requestId,{job:prior,reused:true}),202);
@@ -141,21 +147,26 @@ systemRecoveryRoutes.post("/system-recovery/recoveries",async c=>{const accepted
   if(acceptedInput.mode==="planned"){const source=await repository.job(records.backupId),maintenance=await readSourceMaintenance(c.env);
     if(source?.kind!=="backup"||source.state!=="completed"||source.source_checkpoint!==manifest.sourceCheckpoint||maintenance.state!=="fenced"||maintenance.backupJobId!==records.backupId||maintenance.checkpoint!==manifest.sourceCheckpoint)throw fail("Planned recovery requires the current final source checkpoint",409);}
   const id=crypto.randomUUID(),selection={jobId:id,incarnation:id.replaceAll("-",""),expectedTargetId:acceptedInput.expectedTargetId,mapping:acceptedInput.mapping,mode:acceptedInput.mode};
-  let preview;
+  let preview,plannedWindow:WorkerV5PlannedSourceWindow|undefined;
   if(records.schema==="system-backup-records/5"){
-    if(acceptedInput.mode==="planned")throw fail("Planned V5 recovery requires a durable original source maintenance window.",409);
     if(manifest.schema!=="system-backup/5")throw fail("Recovery archive version pair is invalid",409);
-    preview=await createWorkerV5RecoveryTargetEngine(c.env).preview({...selection,records,manifest});
+    if(acceptedInput.mode==="planned")plannedWindow=await captureWorkerV5PlannedSourceWindow(c.env,actor,upload,records,manifest);
+    preview=await createWorkerV5RecoveryTargetEngine(c.env).preview({...selection,records,manifest},plannedWindow);
   }else{
     if(manifest.schema==="system-backup/5")throw fail("Recovery archive version pair is invalid",409);
     preview=await createRecoveryTargetEngine(c.env).preview({...selection,records,manifest});
   }
   if(!preview.available)throw fail("Recovery target or storage mapping is unavailable",409);
   const accepted=await repository.accept({id,requestId:acceptedInput.requestId,actor,kind:"recovery",input:acceptedInput,sourceUploadJobId:upload.id,targetId:acceptedInput.expectedTargetId,
-    sourceCheckpoint:manifest.sourceCheckpoint,totalFiles:manifest.files.length,bytesTotal:manifest.counts.bytes},()=>recoveryActorAllowed(c.env,actor));return c.json(await receipt(c.env,acceptedInput.requestId,accepted),202);});
+    sourceCheckpoint:manifest.sourceCheckpoint,totalFiles:manifest.files.length,bytesTotal:manifest.counts.bytes,
+    ...(plannedWindow?{checkpoint:plannedWindow}:{})},()=>recoveryActorAllowed(c.env,actor),
+    plannedWindow?workerV5PlannedSourceAcceptanceStatements(c.env,id,plannedWindow):[]);return c.json(await receipt(c.env,acceptedInput.requestId,accepted),202);});
 systemRecoveryRoutes.post("/system-recovery/jobs/:jobId/control",async c=>{const action=await input(c.req.raw,checkedSystemRecoveryJobControl),actor=c.get("userEmail"),repository=recoveryRepository(c.env),job=await owned(c.env,c.req.param("jobId"),actor);
   if(action==="cleanup"){
-    const originalSourceClose=await diagnoseCleanup("source-close-admission",()=>assertV5RecoveryCleanupClosed(c.env,job));
+    const {originalSourceClose,originalPlannedCleanup}=await diagnoseCleanup("source-close-admission",async()=>({
+      originalSourceClose:await assertV5RecoveryCleanupClosed(c.env,job),
+      originalPlannedCleanup:await workerV5PlannedRecoveryCleanupGuards(c.env,job),
+    }));
     if(job.kind!=="recovery")await diagnoseCleanup("artifact-namespace",()=>assertRecoveryArtifactNamespace(c.env,job));
     await diagnoseCleanup("dependent-admission",async()=>{
       if(["queued","running","awaiting_upload"].includes(job.state))throw fail("Stop the recovery job before cleanup",409);
@@ -173,9 +184,9 @@ systemRecoveryRoutes.post("/system-recovery/jobs/:jobId/control",async c=>{const
         AND ${cleanupHoldReleaseAllowed} RETURNING id`)
         .bind(job.state==="completed"?"completed":"cancelled",new Date().toISOString(),new Date().toISOString(),job.id,actor,job.generation,job.id);
       let cleaned:unknown;
-      if(originalSourceClose){
+      if(originalSourceClose||originalPlannedCleanup.length){
         if(!recoveryActorAllowed(c.env,actor))throw fail("System administrator access is required.",403);
-        const guards=workerV5SourceCloseCleanupGuards(c.env,job,originalSourceClose);
+        const guards=[...(originalSourceClose?workerV5SourceCloseCleanupGuards(c.env,job,originalSourceClose):[]),...originalPlannedCleanup];
         const result=await repository.db().batch([...guards,eligibility]);
         cleaned=result[guards.length]?.results?.[0];
       }else cleaned=await eligibility.first();
@@ -185,7 +196,7 @@ systemRecoveryRoutes.post("/system-recovery/jobs/:jobId/control",async c=>{const
       await diagnoseCleanup("attempt-before-delete",async()=>{
         if(!recoveryActorAllowed(c.env,actor))throw fail("System administrator access is required.",403);
         await assertRecoveryArtifactNamespace(c.env,job);await cleanupHoldReleaseGuard(repository,job.id).first();
-        if(originalSourceClose)await repository.db().batch(workerV5SourceCloseCleanupGuards(c.env,job,originalSourceClose));
+        if(originalSourceClose||originalPlannedCleanup.length)await repository.db().batch([...(originalSourceClose?workerV5SourceCloseCleanupGuards(c.env,job,originalSourceClose):[]),...originalPlannedCleanup]);
       });
       await diagnoseCleanup("attempt-delete",()=>{
         if(!recoveryActorAllowed(c.env,actor))throw fail("System administrator access is required.",403);
@@ -195,7 +206,7 @@ systemRecoveryRoutes.post("/system-recovery/jobs/:jobId/control",async c=>{const
     }
     await diagnoseCleanup("hold-release",async()=>{
       if(!recoveryActorAllowed(c.env,actor))throw fail("System administrator access is required.",403);
-      await repository.db().batch([...(originalSourceClose?workerV5SourceCloseCleanupGuards(c.env,job,originalSourceClose):[]),
+      await repository.db().batch([...(originalSourceClose?workerV5SourceCloseCleanupGuards(c.env,job,originalSourceClose):[]),...originalPlannedCleanup,
         cleanupHoldReleaseGuard(repository,job.id),repository.db().prepare("UPDATE system_recovery_legacy_holds SET released_at=? WHERE job_id=? AND released_at IS NULL").bind(new Date().toISOString(),job.id),
         repository.db().prepare("UPDATE file_location_holds SET released_at=? WHERE operation_id=? AND released_at IS NULL").bind(new Date().toISOString(),`fp5-backup:${job.id}`)]);
     });
