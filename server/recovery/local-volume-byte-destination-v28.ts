@@ -41,10 +41,14 @@ function freezeData<T>(value: T): T {
  * The V5 restorer owns and validates the whole image/manifest before calling. */
 export async function verifyInertLocalVolumeDestinationV28(options: {
   directory: string; evidence: LocalFileRuntimeEvidenceV28; payloads: readonly PackagedLocalVolumePayloadV28[];
+  /** Only the already whole-V5-validated content's owner. Semantic source
+   * metadata accounts for its own frozen export holds; it grants no I/O,
+   * hold release or destination installation/profile authority. */
+  backupHoldOwner?: string | null;
 }): Promise<readonly InertLocalVolumeMappingV28[]> {
   const { directory, evidence } = options;
   ensure(isAbsolute(directory) && resolve(directory) === directory, "canonical private extraction directory");
-  const expected = planFileBlobExportV28(evidence).blobs.filter((source): source is LocalVolumeBlobEntryV28 =>
+  const expected = planFileBlobExportV28(evidence, options.backupHoldOwner ?? null).blobs.filter((source): source is LocalVolumeBlobEntryV28 =>
     source.storeKind === "file" && source.provider === "local" && "namespace" in source);
   ensure(options.payloads.length === expected.length, "complete local payload inventory");
   // Capture serialized metadata once before any await/file I/O. V5 admission

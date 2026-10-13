@@ -1,5 +1,63 @@
 # Product goal and roadmap
 
+**Finite Node online/offline target SOURCE checkpoint — 2026-10-13.**
+The user has resumed the bounded Node↔native R2 Package/Backup interchange and
+online Recovery goal before frontend closure and a reviewable main candidate.
+This successor starts from qualified development `48be3389` and adds only the
+original online/offline target's whole-V5-validated `backupHoldOwner` propagation,
+its required local destination verifier prerequisite, the V28-only audited
+LOCAL→R2 recovery-evidence codec prerequisite and exact offline restorer manifest
+pin, nine original Native read statement reuse plus meaningful migration
+regressions, and isolated target QA.
+Old default formats, migration/activation choices and roadmap history remain.
+
+[PR #307](https://github.com/BeiqiD/sample-fabrication-workflow/pull/307) merged
+qualified `3522ef58` as `48be3389`. Its four own Verify/Project Map push/PR
+workflows, dedicated fresh-target push run and all15 contexts passed. The two
+same-head original local target cases retain their own Native/first-close proof.
+Post-merge `48be3389` Verify/Map/all15 contexts and the registered Cloudflare
+check reached success; hosted original stdout was unavailable, so no hosted test
+count or fresh target Native pass is inferred from that metadata.
+
+Private local consumer `5849db5c` passed three original fault cases and one
+held-R2 V5→online fresh inert Node target case with original process/provider/
+Native closure. F4 is actual existing administrator revocation; F6 replaces the
+planned generation/token/checkpoint through original HTTP while ACK is held.
+That original F5 checks target database inode replacement only. The additional
+required artifact-binding F5 case replaces an actually opened private provider
+root, retains original archive file inodes/full hashes, and checks paused durable
+archive dependency, cleanup409 and no fallback across positive close/restart;
+its new120s case is SOURCE/UNRUN until Root executes it on the adopted head.
+
+The R2 input remains the original producer `62ac1d54` archive and closed capture/
+Node-restore/D1 receipts. It is neither rebuilt nor retagged as this consumer's
+current producer. Whole validated V5 hold owner and truthful Cloudflare observed
+ledger are retained. Exact business typed cells/rowids and protected history are
+checked; fresh local bindings/executors stay absent/off. A different source
+window rejects planned recovery and requires explicit historical acknowledgment.
+The report prepares an inert target; it does not activate or cut over an app.
+These retained local inputs do not create a hosted CI qualification count.
+
+This new bounded candidate still needs fresh complete types/distribution, its
+exact original local Native cases and all four own Verify/Map workflows before a
+PR/merge claim. Historical failures and passes remain attached to their heads.
+The offline repair retains the exact current restorer `8ac2eba1` and matching
+immutable manifest pin. A separate new120s case invokes the actual current
+compiled CLI on the same unchanged held-R2 input, checks exact typed rows/rowids,
+all promised payload bytes, protected/local recovery history, inactive controls
+and genuine original CLI/archive/Native first-close proof. Its independent
+read-only Native observer records durable main hash/inode and new reader WAL/SHM
+truthfully; no writer sentinel or alternate constructor is fabricated. This
+new offline consumer case remains SOURCE/UNRUN until Root runs the adopted head;
+the original producer's offline proof remains separately scoped.
+
+The remaining goal includes original public Worker V5 qualification and headed
+history support, real same-app File/Package/Recovery cadence plus nonzero cursor
+restart and maintenance writer drain, then frontend product closure. Their
+private Source/review/runtime receipts remain separate; this checkpoint does
+not declare them complete or promise arbitrary provider parity. Main merge,
+production deployment, remote migration and activation are not authorized here.
+
 **Measured development checkpoint — 2026-10-13 13:13 UTC.**
 [PR #303](https://github.com/BeiqiD/sample-fabrication-workflow/pull/303) merged
 qualified `03ed386b` into development at `ba1c92da`. Its dedicated original

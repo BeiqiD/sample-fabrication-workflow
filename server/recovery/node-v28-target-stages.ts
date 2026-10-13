@@ -324,7 +324,8 @@ export function createNodeV28TargetStages(options: {
           snapshotClock: docs.records.image.sourceSnapshotClock, protectedLocalHistory: protectedLocalHistoryFromV5Image(docs.records.image) });
         guard(); const payloads = docs.manifest.files.filter(file => file.source.storeKind === "file" && file.source.provider === "local")
           .map(file => ({ id: file.id, source: file.source, path: file.path!, byteSize: file.byteSize!, sha256: file.sha256! })) as PackagedLocalVolumePayloadV28[];
-        const mappings = await verifyInertLocalVolumeDestinationV28({ directory: target.destination, evidence, payloads }); guard();
+        const mappings = await verifyInertLocalVolumeDestinationV28({ directory: target.destination, evidence, payloads,
+          backupHoldOwner: docs.records.content.backupHoldOwner }); guard();
         const checkpoint = sha({ targetNamespace: target.identity, installationId: verified.installationId, sourceCheckpoint: claim.source_checkpoint,
           archiveSha256: source.archive_sha256, exactTypedRows: true, exactRowids: true, files: docs.manifest.files.map(file => [file.id, file.byteSize, file.sha256]) });
         const input = assertJob(claim), snapshot = docs.manifest.sourceSnapshotClock.replace(" ", "T");
