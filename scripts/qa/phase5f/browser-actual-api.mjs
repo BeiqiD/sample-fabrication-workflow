@@ -140,6 +140,11 @@ catch {
 }
 let browser;
 const selectedCase = process.env.PHASE5F_CASE_ID || null;
+const browserScenario = process.env.PHASE5F_BROWSER_SCENARIO || null;
+assert(browserScenario === null || browserScenario === 'eightSamples', 'Unknown explicit browser scenario.');
+const eightSamples = browserScenario === 'eightSamples';
+const eightSampleCases = [{ id: 'samples-keyboard-1200-light', width: 1200, theme: 'light' },
+  { id: 'samples-keyboard-720-dark', width: 720, theme: 'dark' }];
 const expectedCaseIds = seed.cases.flatMap(item => [`start-${item.key}`, `plan-${item.key}`, `surfaces-${item.key}`]);
 expectedCaseIds.push('chunk-404-explicit-reload', 'chunk-503-explicit-reload');
 const largeProjectCaseId = 'project-large-1200-light';
@@ -148,8 +153,16 @@ if (seed.project.large) {
   assert.equal(seed.project.large.nodeCount, 200); assert.equal(seed.project.large.edgeCount, 0);
   expectedCaseIds.splice(0, expectedCaseIds.length, largeProjectCaseId);
 }
+if (eightSamples) {
+  assert(!seed.project.large && !selectedCase, 'Eight-Sample qualification uses the original four-item seed and both independent cases.');
+  assert.equal(seed.mixed.length, 8); assert.equal(new Set(seed.mixed.map(owner => owner.sampleId)).size, 8);
+  expectedCaseIds.splice(0, expectedCaseIds.length, ...eightSampleCases.map(item => item.id));
+}
 if (selectedCase) assert(expectedCaseIds.includes(selectedCase), 'Unknown explicit case ID.');
-const report = { version: 1, scope: 'Actual local API + current built UI; synthetic isolated data. No remote Access, provider, device, or whole-roadmap completion claim.',
+const report = { version: 1, scope: eightSamples
+  ? 'Two native eight-Sample keyboard/idle-overlay cases only, at 1200/light and 720/dark. Original four-item Project fixture; no execution writes, full 20-case matrix, physical-device, or whole-5F completion claim.'
+  : 'Actual local API + current built UI; synthetic isolated data. No remote Access, provider, device, or whole-roadmap completion claim.',
+  ...(eightSamples ? { browserScenario } : {}),
   ...identities, baseUrl: base.origin, prefix: fixture.prefix, serverSessionId: server.sessionId, serverReceiptSha256: serverHash,
   harnessSha256, explicitReviewedHarnessSha256, observationPolicy: { bodyTimeoutMs: BODY_OBSERVATION_TIMEOUT_MS, contextShutdownTimeoutMs: CONTEXT_SHUTDOWN_TIMEOUT_MS, requiredMutationAndPreviewBodiesFailClosed: true, unfinishedIncidentalGetBodiesRetained: true },
   seedHelperSha256: sha(await readFile(new URL('./seed-actual-api.mjs', import.meta.url))),
@@ -186,6 +199,7 @@ async function noDocumentOverflow(page, evidence, surface, expectedTheme) {
 }
 async function executeCase(id, matrix, action, { controlledChunkFault = false } = {}) {
   if (selectedCase && selectedCase !== id) return;
+  if (eightSamples && !expectedCaseIds.includes(id)) return;
   await liveSession();
   assert(!completed.has(id)); completed.add(id);
   const record = { id, width: matrix.width, theme: matrix.theme, startedAt: new Date().toISOString(),
@@ -273,8 +287,181 @@ async function waitAccepted(page, path, button, status) {
   const response = await responsePromise; assert.equal(response.status(), status);
   return response.json();
 }
+
+// Native read-only controls for the independent two-case eight-Sample scope.
+async function keyboardActivate(page, button) {
+  await enabled(button); await button.focus();
+  assert(await button.evaluate(element => document.activeElement === element));
+  await page.keyboard.press('Enter');
+}
+async function modalTabCycle(page, dialog) {
+  const candidates = await dialog.locator('button, a[href], input:not([type="hidden"]), select, textarea, [tabindex]').elementHandles();
+  const tabbables = [];
+  for (const handle of candidates) if (await handle.evaluate(element => element.isConnected && !element.matches(':disabled')
+    && element.tabIndex >= 0 && !element.closest('[inert], [hidden]') && element.getClientRects().length > 0
+    && getComputedStyle(element).visibility === 'visible')) tabbables.push(handle);
+  assert(tabbables.length > 0 && tabbables.length <= 12, 'Bound the actual idle overlay keyboard cycle.');
+  let index = -1;
+  for (let position = 0; position < tabbables.length; position++)
+    if (await tabbables[position].evaluate(element => document.activeElement === element)) index = position;
+  assert(index >= 0, 'Natural initial focus must belong to the actual overlay.');
+  const initialIndex = index;
+  for (const [key, direction] of [['Tab', 1], ['Shift+Tab', -1]]) {
+    for (let press = 0; press <= tabbables.length; press++) {
+      index = (index + direction + tabbables.length) % tabbables.length;
+      await page.keyboard.press(key);
+      await page.waitForFunction(element => document.activeElement === element, tabbables[index]);
+      assert(await dialog.evaluate(element => element.contains(document.activeElement)), 'Idle overlay focus escaped.');
+    }
+  }
+  assert.equal(index, initialIndex);
+  return { actualTabbableCount: tabbables.length, nativeTabAndShiftTabBoundaryWraps: true };
+}
+async function returnedToOriginal(page, original) {
+  await page.waitForFunction(element => element.isConnected && document.activeElement === element, original);
+  assert(await original.evaluate(element => element.isConnected && !element.disabled));
+}
+async function settledColumnScroll(scroller) {
+  return scroller.evaluate(element => new Promise((resolve, reject) => {
+    let previous, frames = 0, frame;
+    const timer = setTimeout(() => { cancelAnimationFrame(frame); reject(new Error('Native Sample-column scrolling did not settle within 20s.')); }, 20000);
+    const observe = () => {
+      if (!element.isConnected) { clearTimeout(timer); reject(new Error('Sample-column scroller was removed.')); return; }
+      const left = element.scrollLeft;
+      frames = previous !== undefined && Math.abs(left - previous) < 0.01 ? frames + 1 : 0;
+      previous = left;
+      if (frames >= 4) { clearTimeout(timer); resolve(left); return; }
+      frame = requestAnimationFrame(observe);
+    };
+    frame = requestAnimationFrame(observe);
+  }));
+}
+async function nativeColumnEdge(page, scroller, direction) {
+  const button = page.getByRole('button', { name: `Scroll sample columns ${direction}`, exact: true });
+  await visible(button);
+  const positions = [await settledColumnScroll(scroller)];
+  for (let press = 0; press < 16 && await button.isEnabled(); press++) {
+    const previous = positions.at(-1);
+    await keyboardActivate(page, button);
+    await page.waitForFunction(({ element, previous }) => Math.abs(element.scrollLeft - previous) > 1,
+      { element: await scroller.elementHandle(), previous });
+    const current = await settledColumnScroll(scroller);
+    assert(direction === 'right' ? current > previous : current < previous, 'Native column control must move in its declared direction.');
+    positions.push(current);
+  }
+  assert.equal(await button.isEnabled(), false, 'Finite native scrolling must reach the requested edge.');
+  return positions;
+}
+async function idleMetrologyKeyboard(page, record, row, scroller, columnIndex, owner) {
+  const trigger = row.locator('.sample-step-cell').nth(columnIndex).getByRole('button', { name: 'Add after this entry', exact: true });
+  await enabled(trigger);
+  const reach = await trigger.evaluate((element, scroller) => {
+    const bounds = element.getBoundingClientRect(), clip = scroller.getBoundingClientRect();
+    const recipe = scroller.querySelector('.recipe-column').getBoundingClientRect();
+    return { triggerLeft: bounds.left, triggerRight: bounds.right, visibleLeft: Math.max(clip.left, recipe.right), visibleRight: clip.right,
+      internalScrollLeft: scroller.scrollLeft };
+  }, await scroller.elementHandle());
+  assert(reach.triggerLeft >= reach.visibleLeft - 2 && reach.triggerRight <= reach.visibleRight + 2,
+    'The actual original trigger must be reachable after native internal scrolling.');
+  const original = await trigger.elementHandle(), dismissals = [];
+  for (const dismissal of ['Escape', 'Close']) {
+    await keyboardActivate(page, trigger);
+    await keyboardActivate(page, row.locator('.sample-step-cell').nth(columnIndex).locator('.add-action-panel')
+      .getByRole('button', { name: 'Metrology', exact: true }));
+    const dialog = page.getByRole('dialog', { name: 'Add metrology', exact: true });
+    await visible(dialog);
+    const search = dialog.getByRole('textbox', { name: 'Search templates', exact: true });
+    await page.waitForFunction(element => document.activeElement === element, await search.elementHandle());
+    await visible(dialog.getByRole('button').filter({ has: page.getByText(`5F synthetic SEM ${fixture.prefix}`, { exact: true }) }));
+    assert.equal(await dialog.locator('.dialog-kicker').textContent(), owner.code);
+    const cycle = await modalTabCycle(page, dialog);
+    await noDocumentOverflow(page, record.assertions, `sample-${columnIndex + 1}-idle-metrology-${dismissal}`, record.theme);
+    if (dismissal === 'Escape') await page.keyboard.press('Escape');
+    else await keyboardActivate(page, dialog.getByRole('button', { name: 'Close', exact: true }));
+    await absent(dialog); await returnedToOriginal(page, original);
+    dismissals.push({ dismissal, ...cycle, naturalSearchFocus: true, originalConnectedAddTriggerRestored: true });
+  }
+  record.assertions.push({ sampleId: owner.sampleId, runId: owner.runId, column: columnIndex + 1, reach, idleMetrologyDismissals: dismissals });
+}
+async function readOnlyProcessDetailsKeyboard(page, record, row, step) {
+  const title = step.plannedTitle || step.title;
+  const trigger = row.getByRole('button', { name: `View process-step details for ${title}`, exact: true });
+  const original = await trigger.elementHandle(), dismissals = [];
+  for (const dismissal of ['Escape', 'Close']) {
+    await keyboardActivate(page, trigger);
+    const dialog = page.getByRole('dialog', { name: title, exact: true });
+    await visible(dialog);
+    const close = dialog.getByRole('button', { name: 'Close process-step details', exact: true });
+    await page.waitForFunction(element => document.activeElement === element, await close.elementHandle());
+    if (step.plannedParametersText) await visible(dialog.getByText(step.plannedParametersText, { exact: true }));
+    if (step.plannedCommentsText) await visible(dialog.getByText(step.plannedCommentsText, { exact: true }));
+    const cycle = await modalTabCycle(page, dialog);
+    await noDocumentOverflow(page, record.assertions, `shared-process-details-${dismissal}`, record.theme);
+    if (dismissal === 'Escape') await page.keyboard.press('Escape');
+    else await keyboardActivate(page, close);
+    await absent(dialog); await returnedToOriginal(page, original);
+    dismissals.push({ dismissal, ...cycle, naturalCloseFocus: true, originalConnectedDetailsTriggerRestored: true });
+  }
+  record.assertions.push({ sharedReadOnlyProcessStepTitle: title, processDetailsDismissals: dismissals });
+}
+
 try {
   browser = await playwright.chromium.launch({ headless: true, executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium' });
+  if (eightSamples) for (const matrix of eightSampleCases) await executeCase(matrix.id, matrix, async (page, record) => {
+    const before = await Promise.all(seed.mixed.map(owner => actualApi(`/samples/${owner.sampleId}`)));
+    for (const [index, owner] of seed.mixed.entries()) {
+      assert.equal(before[index].id, owner.sampleId); assert.equal(before[index].code, owner.code);
+      assert.equal(before[index].runs.length, 1);
+      const run = before[index].runs.find(run => run.id === owner.runId);
+      assert(run && run.currentPlanRevisionId === owner.initialPlanRevisionId);
+      assert(run.steps.some(step => step.id === owner.firstStepId));
+    }
+    const first = seed.mixed[0], firstRun = before[0].runs.find(run => run.id === first.runId);
+    const firstStep = firstRun.steps.find(step => step.id === first.firstStepId), nativeExecutionWrites = [];
+    page.on('request', request => {
+      const target = new URL(request.url());
+      if (target.origin === base.origin && (target.pathname.startsWith('/api/samples') || target.pathname.startsWith('/api/metrology-templates'))
+        && !['GET', 'HEAD'].includes(request.method())) nativeExecutionWrites.push({ path: target.pathname, method: request.method() });
+    });
+    await page.goto(new URL(`/processing/${first.sampleId}?run=${encodeURIComponent(first.runId)}`, base).href);
+    await visible(page.getByRole('heading', { name: before[0].title, exact: true }));
+    for (const owner of seed.mixed.slice(1)) {
+      await keyboardActivate(page, page.getByRole('button', { name: '+ Add sample', exact: true }));
+      await page.getByPlaceholder('Search matching samples…').fill(owner.code);
+      const option = page.locator('#sample-picker-popover').getByRole('button').filter({ has: page.getByText(owner.code, { exact: true }) });
+      await keyboardActivate(page, option);
+      await page.waitForFunction(code => [...document.querySelectorAll('.visible-sample small')].some(element => element.textContent === code), owner.code);
+    }
+    const location = new URL(page.url());
+    assert.equal(location.pathname, `/processing/${first.sampleId}`); assert.equal(location.searchParams.get('run'), first.runId);
+    assert.deepEqual(location.searchParams.get('with').split(','), seed.mixed.slice(1).map(owner => owner.sampleId));
+    assert.deepEqual(await page.locator('.visible-sample small').allTextContents(), seed.mixed.map(owner => owner.code));
+    assert.equal(await page.getByRole('button', { name: '+ Add sample', exact: true }).isEnabled(), false);
+    const scroller = page.locator('.run-grid-scroll'); await visible(scroller);
+    await page.waitForFunction(element => element.querySelectorAll('.sample-column-header').length === 8, await scroller.elementHandle());
+    assert.deepEqual(await scroller.locator('.sample-column-header small').allTextContents(), seed.mixed.map(owner => owner.code));
+    assert(await scroller.evaluate(element => element.scrollWidth > element.clientWidth + 2));
+    const row = scroller.locator('.run-grid-row').filter({ has: page.locator(`.recipe-details-trigger[aria-label="View process-step details for ${firstStep.plannedTitle || firstStep.title}"]`) });
+    assert.equal(await row.count(), 1); assert.equal(await row.locator('.sample-step-cell').count(), 8);
+    const firstEdge = await nativeColumnEdge(page, scroller, 'left');
+    await idleMetrologyKeyboard(page, record, row, scroller, 0, first);
+    const eighthEdge = await nativeColumnEdge(page, scroller, 'right');
+    assert(eighthEdge.length > 1, 'The eighth column must be reached through actual right-scroll controls.');
+    await idleMetrologyKeyboard(page, record, row, scroller, 7, seed.mixed[7]);
+    const returnedFirstEdge = await nativeColumnEdge(page, scroller, 'left');
+    assert(returnedFirstEdge.length > 1, 'The first column must be reached again through actual left-scroll controls.');
+    if (matrix.width === 720) await readOnlyProcessDetailsKeyboard(page, record, row, firstStep);
+    await noDocumentOverflow(page, record.assertions, 'eight-sample-processing', record.theme);
+    const after = await Promise.all(seed.mixed.map(owner => actualApi(`/samples/${owner.sampleId}`)));
+    assert.deepEqual(after, before, 'All eight original Sample/Run/Step/history snapshots must remain unchanged.');
+    assert.deepEqual(nativeExecutionWrites, [], 'Idle keyboard overlays must send zero execution or metrology-template writes.');
+    for (const owner of seed.mixed) assert(record.api.some(item => item.method === 'GET' && item.status === 200
+      && item.path.split('?')[0] === `/api/samples/${owner.sampleId}`), 'Each visible Sample must be read by the actual built UI.');
+    record.assertions.push({ visibleSampleIds: seed.mixed.map(owner => owner.sampleId), originalRunIds: seed.mixed.map(owner => owner.runId),
+      originalFirstStepIds: seed.mixed.map(owner => owner.firstStepId), firstEdge, eighthEdge, returnedFirstEdge,
+      actualInternalEightColumnOverflow: true, unchangedEightSampleRunStepHistory: true, nativeExecutionWrites: 0,
+      scope: 'Only this native keyboard/idle-overlay case; no execution mutation, full 20-case matrix, device, or whole-5F completion claim.' });
+  });
   if (seed.project.large) await executeCase(largeProjectCaseId, { width: 1200, theme: 'light' }, async (page, record) => {
     const projectPath = `/projects/${seed.project.projectId}`, before = await actualApi(projectPath), pins = seed.project.large;
     const originalSeedGet = seed.trace.findLast(item => item.path === projectPath && item.method === 'GET');
@@ -597,10 +784,10 @@ try {
   report.failedCount = report.cases.filter(item => item.status !== 'passed').length;
   report.completedAt = new Date().toISOString();
   report.status = !report.error && report.failedCount === 0 && report.cases.length === requested.length ? 'passed' : 'failed';
-  report.completeFiniteMatrix = !selectedCase && report.status === 'passed';
+  report.completeFiniteMatrix = !eightSamples && !selectedCase && report.status === 'passed';
   await saveReport();
   await writeOnce(reportPath, report);
-  const summary = { ...identities, version: 1, scope: report.scope, status: report.status, completeFiniteMatrix: report.completeFiniteMatrix, selectedCase, startedAt: report.startedAt, completedAt: report.completedAt, passedCount: report.passedCount, failedCount: report.failedCount, requestedCaseIds: report.requestedCaseIds, harnessSha256: report.harnessSha256, explicitReviewedHarnessSha256: report.explicitReviewedHarnessSha256, observationPolicy: report.observationPolicy, browserClosed: report.browserClosed, serverSessionId: server.sessionId, serverReceiptSha256: serverHash, seedReceiptSha256: report.seedReceiptSha256, fixtureSqlSha256: report.fixtureSqlSha256, migrationConfigSha256: report.migrationConfigSha256, deploymentRedirectSha256: report.deploymentRedirectSha256, artifact: report.artifact, reportSha256: sha(await readFile(reportPath)), cases: report.cases.map(({ id, width, theme, status, error, assertions, api, pageErrors, unexpectedOrigins, observationSummary, contextClosed }) => ({ id, width, theme, status, error, assertions, observationSummary, contextClosed, api: api.map(({ path, method, status, responseSha256, preview, bodyObservationRequired, observationStatus, observationError }) => ({ path, method, status, responseSha256, preview, bodyObservationRequired, observationStatus, observationError })), pageErrors, unexpectedOrigins })), ...(report.error ? { error: report.error } : {}) };
+  const summary = { ...identities, version: 1, scope: report.scope, ...(eightSamples ? { browserScenario } : {}), status: report.status, completeFiniteMatrix: report.completeFiniteMatrix, selectedCase, startedAt: report.startedAt, completedAt: report.completedAt, passedCount: report.passedCount, failedCount: report.failedCount, requestedCaseIds: report.requestedCaseIds, harnessSha256: report.harnessSha256, explicitReviewedHarnessSha256: report.explicitReviewedHarnessSha256, observationPolicy: report.observationPolicy, browserClosed: report.browserClosed, serverSessionId: server.sessionId, serverReceiptSha256: serverHash, seedReceiptSha256: report.seedReceiptSha256, fixtureSqlSha256: report.fixtureSqlSha256, migrationConfigSha256: report.migrationConfigSha256, deploymentRedirectSha256: report.deploymentRedirectSha256, artifact: report.artifact, reportSha256: sha(await readFile(reportPath)), cases: report.cases.map(({ id, width, theme, status, error, assertions, api, pageErrors, unexpectedOrigins, observationSummary, contextClosed }) => ({ id, width, theme, status, error, assertions, observationSummary, contextClosed, api: api.map(({ path, method, status, responseSha256, preview, bodyObservationRequired, observationStatus, observationError }) => ({ path, method, status, responseSha256, preview, bodyObservationRequired, observationStatus, observationError })), pageErrors, unexpectedOrigins })), ...(report.error ? { error: report.error } : {}) };
   await writeOnce(summaryPath, summary);
   console.log(JSON.stringify({ status: report.status, passed: report.passedCount, failed: report.failedCount,
     completeFiniteMatrix: report.completeFiniteMatrix, reportPath }));
