@@ -112,7 +112,7 @@ async function login(owner: MainOwner, origin: string): Promise<Session> {
   const answer = await request(owner, origin, "/api/auth/login", "POST", { username: "execution.operator", password: PASSWORD });
   expect(answer.status).toBe(200);
   const cookie = answer.headers.get("set-cookie")?.split(";", 1)[0], csrf = object(answer.value).csrf;
-  ensure(cookie?.startsWith("sfw_dev_session=") && typeof csrf === "string"); return { cookie, csrf };
+  ensure(typeof cookie === "string" && cookie.startsWith("sfw_dev_session=") && typeof csrf === "string"); return { cookie, csrf };
 }
 async function status(owner: MainOwner, f: Fixture, id: string, session: Session): Promise<ResearchJobStatus> {
   const answer = await request(owner, f.origin, `${prefix}/jobs/${id}`, "GET", undefined, session);
