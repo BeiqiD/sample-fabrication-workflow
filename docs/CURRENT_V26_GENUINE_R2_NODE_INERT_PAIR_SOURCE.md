@@ -1,0 +1,7 @@
+# Current V26 genuine R2 to Node inert pair
+
+This Source-only qualification adds one fresh Worker bundle, one native Miniflare D1 database and one native R2 ASSETS bucket. Original Access RS256/JWKS authentication, ordinary image upload/replay/read, public recovery executor/job APIs and the original scheduled kernel create and verify an actual R2-backed complete V3 archive. No historical state, profile SQL, File activation, fake current callback or provider relabel is used. A missing Wrangler ledger is reported as unavailable and is never manufactured.
+
+The existing V3 Node restorer constructs a fresh V26 target; every nonlocal typed table/rowid, payload SHA, foreign key and integrity result is checked. Installation-local authorities and execution remain inert. This case does not qualify reverse Node/local to D1, V28/V5 Worker recovery, provider rebinding, runtime File activation or Jobs serving.
+
+Root-only inputs are CURRENT_V28_CANONICAL_COMMENT_FIXTURE_PARENT, NODE_PROTOTYPE_FILESYSTEM_ROOT_OWNER_UID and CURRENT_V26_R2_NODE_PAIR_RECEIPT. Run the existing Vitest executable with current-v26-r2-node-pair.vitest.config.mts under the original owned 180-second controller. Hook/case/client budgets stay 20/20/5 seconds; pre-Native reserve is 603979776 bytes and both original post-run floors stay 512 MiB. Raw archive/database/provider fixtures remain private. Only original logs/results and the small result receipt may be published. All new actuals are UNRUN.
