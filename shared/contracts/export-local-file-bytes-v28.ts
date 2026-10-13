@@ -6,7 +6,8 @@ import type { ArchiveSource } from "../domain/research-archive";
 import { RESEARCH_ARCHIVE_CHUNK_BYTES, RESEARCH_ARCHIVE_PAYLOAD_MAX_BYTES } from "../domain/research-archive";
 import { createResearchSha256 } from "../domain/research-sha256";
 import { stableJson } from "../domain/content-addressing";
-import { buildSystemRecoveryBlobExportPlan } from "./export-system-recovery-evidence";
+import { buildResearchPackageBlobExportPlan } from "./export-research-packages";
+import { buildSystemRecoveryBlobExportPlanV28 } from "./export-system-recovery-evidence-v28";
 import { localFileRuntimeSnapshotV28, type LocalFileRuntimeEvidenceV28 } from "./export-local-file-runtime-v28";
 
 export interface LocalVolumeConsumerBindingV28 {
@@ -25,7 +26,7 @@ export interface LocalVolumeBlobEntryV28 extends Omit<FullExportNativeBlobEntryV
   consumerBindings: LocalVolumeConsumerBindingV28[];
 }
 export type FullExportBlobEntryV28 = FullExportBlobEntryV21 | LocalVolumeBlobEntryV28;
-export type FileBlobExportPlanV28 = Omit<ReturnType<typeof buildSystemRecoveryBlobExportPlan>, "blobs"> & {
+export type FileBlobExportPlanV28 = Omit<ReturnType<typeof buildSystemRecoveryBlobExportPlanV28>, "blobs"> & {
   blobs: FullExportBlobEntryV28[];
 };
 const PURPOSES = ["research_source", "embedded_content", "derived_preview", "provenance", "job_output"] as const;
@@ -50,9 +51,9 @@ export function planFileBlobExportV28(evidence: LocalFileRuntimeEvidenceV28,
   backupHoldOwner: string | null = null): FileBlobExportPlanV28 {
   const snapshot = localFileRuntimeSnapshotV28(evidence), tables = snapshot.tables;
   const localIds = new Set(snapshot.localProfileIds);
-  const base = buildSystemRecoveryBlobExportPlan({ ...tables,
+  const base = buildResearchPackageBlobExportPlan({ ...tables,
     file_locations: tables.file_locations.filter(row => !localIds.has(String(row.storage_profile_id))),
-  }, snapshot.snapshotClock, backupHoldOwner);
+  }, snapshot.snapshotClock);
   const profiles = new Map(tables.storage_profiles.map(row => [row.id, row]));
   const files = new Map(tables.files.map(row => [row.id, row]));
   const publications = new Map(tables.file_location_publications.map(row => [row.location_id, row]));
@@ -89,7 +90,7 @@ export function planFileBlobExportV28(evidence: LocalFileRuntimeEvidenceV28,
   });
   const blobs: FullExportBlobEntryV28[] = [...base.blobs, ...local];
   ensure(new Set(blobs.map(row => row.locatorId)).size === blobs.length, "unique physical locators");
-  return { blobs, excludedOutputs: base.excludedOutputs, relocatedSources: base.relocatedSources };
+  return buildSystemRecoveryBlobExportPlanV28(tables, { blobs, excludedOutputs: base.excludedOutputs }, backupHoldOwner);
 }
 
 /** Deserialized archive addresses must match the complete newly validated
