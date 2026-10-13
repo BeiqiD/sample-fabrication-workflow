@@ -17,7 +17,7 @@ import { CANONICAL_FILE_PASSWORD, assertCanonicalFileOwnersReleased, canonicalFi
 import { executeCollaborationV28OperatorCandidate } from "../operations/collaboration-v28-operator-candidate";
 import { executeDomainRootV28OperatorCandidate } from "../operations/collaboration-domain-roots-v28-candidate";
 import { runCurrentCli } from "../operations/current-v28-backup-cli.qualification-support";
-import { prepareCurrentV28OnlineRecoverySource } from "../recovery/current-v28-online-recovery.qualification-support";
+import { prepareCurrentV28WorkflowSharedFileSource } from "../recovery/current-v28-online-recovery.qualification-support";
 import { NODE_V28_JOB_CADENCE_MS } from "../jobs/node-v28-job-scheduler";
 import { launchWorkflowCli, closeWorkflowCli, loginWorkflowCli, workflowCliJson, workflowCliBytes,
   type WorkflowCliOwner, type WorkflowCliSession } from "./node-v28-workflow-cli.qualification-support";
@@ -62,7 +62,7 @@ async function snapshot(owner:WorkflowCliOwner,origin:string,ids:{file:string;pa
 describe("actual compiled V28 workflow main, three queues and original120s cadence",()=>{
   it("retains accepted File, Package and strict Recovery-upload queues across first graceful close, then executes original elapsed slots under one parent",()=>retainedCanonicalFileCase(async()=>{
     expect(NODE_V28_JOB_CADENCE_MS).toBe(120000);
-    const source=await prepareCurrentV28OnlineRecoverySource(),baseline=source.baseline;
+    const source=await prepareCurrentV28WorkflowSharedFileSource(),baseline=source.baseline;
     const origin=await withCanonicalFileDatabase(baseline.path,owner=>canonicalFilePrivateOrigin(owner));
     assertCanonicalFileOwnersReleased();
     // Existing stopped capture CLI produces a genuine complete one-File V5
@@ -84,8 +84,11 @@ describe("actual compiled V28 workflow main, three queues and original120s caden
     const base={databasePath:baseline.path,filesystemRootOwnerUid:baseline.rootOwnerUid};
     const member=await executeCollaborationV28OperatorCandidate({...base,kind:"enroll-local-member",principalId:baseline.principalId,
       displayName:"Genuine three-queue member",workspaceRole:"membershipAdministrator",canCreateSamples:true,expectedControlRevision:1});ensure(member.memberId);
-    await executeDomainRootV28OperatorCandidate({...base,kind:"set-creation-flags",principalId:baseline.principalId,
+    const creation=await executeDomainRootV28OperatorCandidate({...base,kind:"set-creation-flags",principalId:baseline.principalId,
       expectedMemberRevision:1,expectedControlRevision:1,canCreateSamples:true,canCreateProjects:false,canCreateTemplates:false});
+    const allocated=await executeDomainRootV28OperatorCandidate({...base,kind:"allocate-existing-root",rootKind:"sample",rootId:source.workflowSampleId,
+      visibility:"restricted",principalId:baseline.principalId,expectedMemberRevision:creation.memberRevision,expectedControlRevision:1});
+    expect(allocated.root).toEqual({kind:"sample",id:source.workflowSampleId,resourceRevision:1,grantRevision:1});
     await executeCollaborationV28OperatorCandidate({...base,kind:"set-enforcement",enforcement:"enabled",expectedControlRevision:1});
     assertCanonicalFileOwnersReleased();
     const configPath=join(baseline.root,"workflow-runtime.json");
@@ -108,11 +111,12 @@ describe("actual compiled V28 workflow main, three queues and original120s caden
       expect(initialFile.value).toMatchObject({enabled:false,cadenceSeconds:120});
       const initialRecovery=await json(first,origin,"/api/system-recovery/capabilities","GET",undefined,session);expect(initialRecovery.status).toBe(200);
       expect(checkedSystemRecoveryCapabilities(initialRecovery.value).enabled).toBe(false);
-      const created=await json(first,origin,"/api/samples","POST",{code:"WORKFLOW-"+randomUUID(),title:"Genuine three-queue source"},session);expect(created.status).toBe(201);
-      const sampleId=object(created.value).id;ensure(typeof sampleId==="string");
-      const selected=await json(first,origin,"/api/samples/"+sampleId,"GET",undefined,session);expect(selected.status).toBe(200);const sample=object(selected.value);
-      const observation=await json(first,origin,"/api/samples/"+sampleId+"/records","POST",{status:sample.status,location:sample.location??"",pinned:Boolean(sample.pinned),
-        expectedUpdatedAt:sample.updatedAt,body:"One actual accepted File shared by the three-queue observation",assetId:source.sourceAssetId},session);expect(observation.status).toBe(201);
+      // Same ordinary File was associated through the original real V26
+      // Sample record HTTP before upgrade. This genuine existing root was
+      // allocated above by the stopped V28 operator, never by a fixture row.
+      const sampleId=source.workflowSampleId;
+      const selected=await json(first,origin,"/api/samples/"+sampleId,"GET",undefined,session);expect(selected.status).toBe(200);
+      expect(object(selected.value)).toMatchObject({id:sampleId});
       expect((await json(first,origin,"/api/files/migrations/executor","POST",{enabled:true},session)).status).toBe(200);
       const file=await json(first,origin,"/api/files/migrations","POST",{requestId:randomUUID(),fileIds:[source.sourceFileId],
         target:{profileId:baseline.originalsProfileId,configurationRevision:1}},session);expect(file.status).toBe(202);ids.file=checkedFileJobStatus(file.value).id;
@@ -139,6 +143,10 @@ describe("actual compiled V28 workflow main, three queues and original120s caden
         expect(native.prepare("SELECT state,phase FROM research_package_jobs WHERE id=?").get(ids.package)).toEqual({state:"queued",phase:"snapshot"});
         expect(native.prepare("SELECT state,phase FROM system_recovery_jobs WHERE id=?").get(ids.recovery)).toEqual({state:"queued",phase:"validate"});
         const location=native.prepare("SELECT active_location_id FROM file_publications WHERE file_id=?").get(source.sourceFileId)?.active_location_id;ensure(typeof location==="string");
+        expect(native.prepare("SELECT asset_file_id FROM events WHERE sample_id=? AND asset_file_id IS NOT NULL").all(sampleId))
+          .toEqual([{asset_file_id:source.sourceFileId}]);
+        expect(native.prepare("SELECT source_file_id,purpose FROM research_package_files WHERE job_id=? AND entry_kind='source'").all(ids.package))
+          .toEqual([{source_file_id:source.sourceFileId,purpose:"embedded_content"}]);
         return {location};
       }));assertCanonicalFileOwnersReleased();
       const initialCursor=object(JSON.parse(await readFile(join(baseline.dataDirectory,".node-v28-workflow-job-cursor.json"),"utf8")));
