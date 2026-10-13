@@ -4,6 +4,7 @@ import argparse, hashlib, importlib.util, json, os, re, shutil, signal, stat, su
 from pathlib import Path
 
 sys.dont_write_bytecode = True
+import current_worker_v5_pipeline as worker_v5
 ROOT = Path(__file__).resolve().parents[2]
 BASE = '4ef7a9d59c4c5e8b10e2fa060bf20c7b16b37878'
 BRANCH = 'refs/heads/codex/node-v28-post-restore-operators'
@@ -28,8 +29,8 @@ NONEMPTY_BASE = 'ab4f6cfa9721a5bf7fdcd8e7940a916ea8d520cf'
 R2_PAIR_BRANCH = 'refs/heads/codex/portable-v26-r2-node-backup-one'
 R2_PAIR_BASE = '33be3642ed8e72efba8269a4ea718b37b0eafd44'
 MAINTENANCE_BASE = 'ebc19cf3f61b12625bc2a36086667376b41b9255'
-NATIVE_STAGES = ('preparation', 'operators', 'maintenance', 'main', 'nonempty', 'r2pair', 'package-http', 'package-process', 'recovery-first', 'public-package-pair', 'package-corruption', 'package-verified-restart', 'recovery-target')
-TIMED_CASE_STAGES = (*(stage for stage in NATIVE_STAGES if stage not in ('package-http', 'package-process', 'recovery-first', 'public-package-pair', 'package-corruption', 'package-verified-restart', 'recovery-target')), 'maintenance-parser', 'config-unit', 'capture-parser', 'recovery-config', 'recovery-target-config')
+NATIVE_STAGES = ('preparation', 'operators', 'maintenance', 'main', 'nonempty', 'r2pair', 'package-http', 'package-process', 'recovery-first', 'public-package-pair', 'package-corruption', 'package-verified-restart', 'recovery-target', *worker_v5.CASES)
+TIMED_CASE_STAGES = (*(stage for stage in NATIVE_STAGES if stage not in ('package-http', 'package-process', 'recovery-first', 'public-package-pair', 'package-corruption', 'package-verified-restart', 'recovery-target', *worker_v5.CASES)), 'maintenance-parser', 'config-unit', 'capture-parser', 'recovery-config', 'recovery-target-config')
 FLOOR, NATIVE_BEFORE = 536870912, 603979776
 HELP = {'help-main': ('main.mjs', 'Usage: node main.mjs --config '),
  'help-identity': ('identity-cli.cjs', 'Usage: local-identity '),
@@ -105,15 +106,17 @@ CASES = {
 
 CASES.update({'config-unit': ('server/node-runtime-config-restored-v28.test.ts', ['keeps the original v1 filename and rejects a restored filename field in v1', 'requires an explicit V28 selector and only selects the fixed restored filename', 'keeps restored format fields and loader options closed without path fallback', 'binds the fixed original report to the selected installation and V28 checkpoint', 'rejects configuration and report identity changes through both assertions', 'retains private mode, canonical report path and explicit root UID fences', 'never accepts a copied configuration token as a factory-issued owner']), 'main': ('server/operations/current-restored-v28-main.qualification.ts', ['serves scoped health and readiness for genuine local sessions without granting ordinary accounts domains, then closes before restored writer reacquisition'])})
 
+CASES.update(worker_v5.CASES)
+
 def save(path, value):
  path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
 
 def source():
- assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH, R2_PAIR_BRANCH, PACKAGE_BRANCH, PACKAGE_PROCESS_BRANCH, RECOVERY_BRANCH, PUBLIC_PACKAGE_PAIR_BRANCH, INTEGRITY_BRANCH, RECOVERY_TARGET_BRANCH)
+ assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH, R2_PAIR_BRANCH, PACKAGE_BRANCH, PACKAGE_PROCESS_BRANCH, RECOVERY_BRANCH, PUBLIC_PACKAGE_PAIR_BRANCH, INTEGRITY_BRANCH, RECOVERY_TARGET_BRANCH, worker_v5.BRANCH)
  head = os.environ['GITHUB_SHA']; assert re.fullmatch('[0-9a-f]{40}', head)
  env = dict(os.environ, GIT_OPTIONAL_LOCKS='0')
  assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, env=env).decode().strip() == head
- base = RECOVERY_TARGET_BASE if os.environ['GITHUB_REF'] == RECOVERY_TARGET_BRANCH else INTEGRITY_BASE if os.environ['GITHUB_REF'] == INTEGRITY_BRANCH else PUBLIC_PACKAGE_PAIR_BASE if os.environ['GITHUB_REF'] == PUBLIC_PACKAGE_PAIR_BRANCH else RECOVERY_BASE if os.environ['GITHUB_REF'] == RECOVERY_BRANCH else PACKAGE_PROCESS_BASE if os.environ['GITHUB_REF'] == PACKAGE_PROCESS_BRANCH else PACKAGE_BASE if os.environ['GITHUB_REF'] == PACKAGE_BRANCH else R2_PAIR_BASE if os.environ['GITHUB_REF'] == R2_PAIR_BRANCH else NONEMPTY_BASE if os.environ['GITHUB_REF'] == NONEMPTY_BRANCH else MAINTENANCE_BASE if os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH) else BASE
+ base = worker_v5.BASE if os.environ['GITHUB_REF'] == worker_v5.BRANCH else RECOVERY_TARGET_BASE if os.environ['GITHUB_REF'] == RECOVERY_TARGET_BRANCH else INTEGRITY_BASE if os.environ['GITHUB_REF'] == INTEGRITY_BRANCH else PUBLIC_PACKAGE_PAIR_BASE if os.environ['GITHUB_REF'] == PUBLIC_PACKAGE_PAIR_BRANCH else RECOVERY_BASE if os.environ['GITHUB_REF'] == RECOVERY_BRANCH else PACKAGE_PROCESS_BASE if os.environ['GITHUB_REF'] == PACKAGE_PROCESS_BRANCH else PACKAGE_BASE if os.environ['GITHUB_REF'] == PACKAGE_BRANCH else R2_PAIR_BASE if os.environ['GITHUB_REF'] == R2_PAIR_BRANCH else NONEMPTY_BASE if os.environ['GITHUB_REF'] == NONEMPTY_BRANCH else MAINTENANCE_BASE if os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH) else BASE
  subprocess.check_call(['git', 'merge-base', '--is-ancestor', base, head], cwd=ROOT, env=env)
  return head
 
@@ -466,6 +469,12 @@ def original_native_failure_diagnostics(out):
 
 def run(stage, out, run_root):
  head = source()
+ worker_v5_lane = os.environ['GITHUB_REF'] == worker_v5.BRANCH
+ source_tree = worker_v5.tree(head) if worker_v5_lane else None
+ if worker_v5_lane:
+  assert stage in ('types', *worker_v5.STAGES)
+  os.umask(0o077)
+ if stage in worker_v5.STAGES: assert worker_v5_lane
  if os.environ['GITHUB_REF'] == RECOVERY_TARGET_BRANCH: assert stage in ('types', 'recovery-target-config', 'recovery-target')
  if stage in ('recovery-target-config', 'recovery-target'): assert os.environ['GITHUB_REF'] == RECOVERY_TARGET_BRANCH
  if os.environ['GITHUB_REF'] == INTEGRITY_BRANCH: assert stage in ('types', 'package-corruption', 'package-verified-restart')
@@ -569,8 +578,10 @@ def run(stage, out, run_root):
   report = Path(selected['CURRENT_V28_POST_RESTORE_DATABASE']).parent / 'recovery-report.json'
   assert hashlib.sha256(report.read_bytes()).hexdigest() == selected['CURRENT_V28_POST_RESTORE_REPORT_SHA256']
   env.update(selected)
+ if stage in worker_v5.STAGES: worker_v5.configure(stage, env, run_root, fixture, head, source_tree)
  raw = out / 'original-results.json'
- if stage in HELP: argv = [str(node), str(ROOT / 'dist-node/distribution/server' / HELP[stage][0]), '--help']
+ if stage in worker_v5.STAGES: argv = worker_v5.command(stage, node, raw)
+ elif stage in HELP: argv = [str(node), str(ROOT / 'dist-node/distribution/server' / HELP[stage][0]), '--help']
  elif stage == 'types': argv = [shutil.which('npm'), 'run', 'typecheck:server']
  elif stage in ('parser', 'maintenance-parser', 'config-unit', 'capture-parser', 'recovery-parser', 'recovery-config', 'recovery-target-config'):
   argv = [str(node), str(ROOT / 'node_modules/vitest/vitest.mjs'), 'run', '--config', 'vitest.config.ts', CASES[stage][0],
@@ -591,12 +602,16 @@ def run(stage, out, run_root):
    'recovery-first': 'current-node-v28-recovery-first.vitest.config.mts',
    'recovery-target': 'current-node-v28-recovery-target.vitest.config.mts'}[stage],
   '--reporter=verbose', '--reporter=json', '--outputFile.json=' + str(raw)]
- budget = 240 if stage == 'recovery-target' else 1050 if stage in ('package-process', 'package-verified-restart') else 20 if stage in HELP else 60 if stage == 'types' else 90 if stage == 'capture-parser' else 180
+ budget = worker_v5.BUDGETS.get(stage,180) if stage in worker_v5.STAGES else 240 if stage == 'recovery-target' else 1050 if stage in ('package-process', 'package-verified-restart') else 20 if stage in HELP else 60 if stage == 'types' else 90 if stage == 'capture-parser' else 180
  custody = inherited_custody(); child = None; close_attempted = False; close_result = None; close_error = None
  record = {'kind': 'current-v28-post-restore-original-owned-stage/1', 'stage': stage, 'head': head, 'command': argv,
   'status': 'RESERVED_BEFORE_EFFECTS', 'outerSeconds': budget, 'caseMs': 5000 if stage in ('package-http', 'package-process') else 20000 if stage in TIMED_CASE_STAGES else None,
   'hookMs': 10000 if stage in ('package-http', 'package-process') else 20000 if stage in TIMED_CASE_STAGES else None, 'minimumBeforeChild': minimum,
   'filesystemRootOwnerUid': Path('/').lstat().st_uid, 'noFixtureRemoval': True, 'sourceFileBackupQualified': False}
+ if worker_v5_lane:
+  record.update(tree=source_tree, scope=worker_v5.SCOPE)
+  if stage in worker_v5.CASES: record['qualificationSourceSha256'] = hashlib.sha256((ROOT / CASES[stage][0]).read_bytes()).hexdigest()
+  record['workerV5ProofPathsBefore'] = sorted(str(path) for path in fixture.glob('.native-v5-target-*/closed-native-file-consistency.json'))
  if stage == 'r2pair': record['r2NodePairQualified'] = False
  if stage == 'package-corruption': record.update(caseMs=60000, hookMs=20000, defaultCaseMs=60000, originalCases=2,
   scope='Two genuine public Node/R2 CRC-valid final payload SHA refusal cases; raw ingress retained, no imported graph/payload publication; no process restart or full recovery claim.')
@@ -653,6 +668,7 @@ def run(stage, out, run_root):
    assert original_close() and code == 0
   if stage in CASES:
    record['actualResults'] = census(stage, raw); assert record['actualResults']['pass']
+  if stage in worker_v5.STAGES: worker_v5.finish(stage, record, run_root, fixture)
   if stage == 'public-package-pair': record['actualPublicPackagePair'] = public_package_pair_proofs(fixture)
   if stage in ('package-corruption', 'package-verified-restart'): record['actualPackageIntegrity'] = package_integrity_proofs(stage, fixture)
   if stage == 'recovery-target': record['actualRecoveryTarget'] = recovery_target_proofs(run_root)
@@ -723,6 +739,7 @@ def run(stage, out, run_root):
    try:
     assert [private(path) for path in (tmp, fixture)] == before
     assert all(shutil.disk_usage(path).free >= FLOOR for path in (tmp, fixture))
+    if worker_v5_lane: assert worker_v5.tree(head) == source_tree
    except BaseException as error: okay = False; record['floorOrPrivateIdentityFailure'] = type(error).__name__ + ': ' + str(error)
    if stage == 'nonempty': record['sourceFileBackupQualified'] = bool(okay)
    if stage == 'r2pair': record['r2NodePairQualified'] = bool(okay)
@@ -743,10 +760,10 @@ def run(stage, out, run_root):
    summary['originalFailedTitles'] = original_failed_diagnostics(stage, results)
    summary['originalNativeFailureDiagnostics'] = original_native_failure_diagnostics(out)
   except (ValueError, KeyError, IndexError) as error: summary['failureSummaryUnavailable'] = type(error).__name__
- if stage == 'recovery-target':
+ if stage == 'recovery-target' or worker_v5_lane:
   # Keep the full original private receipt. The new workflow uploads only this
   # bounded projection, including unknown closure as unknown rather than PASS.
-  public = public_recovery_target_receipt(record, summary)
+  public = worker_v5.public_receipt(record, summary) if worker_v5_lane else public_recovery_target_receipt(record, summary)
   try:
    receipt = out / 'closed-receipt.json'
    with receipt.open('x', encoding='utf-8') as log:
@@ -756,9 +773,10 @@ def run(stage, out, run_root):
     with diagnostic.open('x', encoding='utf-8') as log:
      diagnostic.chmod(0o600); log.write(json.dumps(public, indent=2, sort_keys=True) + '\n')
   except OSError as error:
-   okay = False; record.update(status='FAILED_OR_UNRESOLVED', recoveryTargetQualified=False, publicDiagnosticFailureKind=type(error).__name__)
+   okay = False; record.update(status='FAILED_OR_UNRESOLVED', publicDiagnosticFailureKind=type(error).__name__)
+   if stage == 'recovery-target': record['recoveryTargetQualified'] = False
    save(out / 'receipt.json', record)
-   public = public_recovery_target_receipt(record, summary)
+   public = worker_v5.public_receipt(record, summary) if worker_v5_lane else public_recovery_target_receipt(record, summary)
    # Replace only this new public projection after a failed log publication;
    # the original stage receipt/owner outcomes remain independently retained.
    save(out / 'closed-receipt.json', public)
@@ -767,6 +785,6 @@ def run(stage, out, run_root):
  return 0 if okay else 1
 
 if __name__ == '__main__':
- parser = argparse.ArgumentParser(); parser.add_argument('--stage', choices=('types', 'parser', 'capture-parser', 'preparation', 'operators', 'maintenance-parser', 'maintenance', 'config-unit', 'main', 'nonempty', 'r2pair', 'package-http', 'package-process', 'public-package-pair', 'package-corruption', 'package-verified-restart', 'recovery-parser', 'recovery-config', 'recovery-first', 'recovery-target-config', 'recovery-target', *HELP), required=True)
+ parser = argparse.ArgumentParser(); parser.add_argument('--stage', choices=('types', 'parser', 'capture-parser', 'preparation', 'operators', 'maintenance-parser', 'maintenance', 'config-unit', 'main', 'nonempty', 'r2pair', 'package-http', 'package-process', 'public-package-pair', 'package-corruption', 'package-verified-restart', 'recovery-parser', 'recovery-config', 'recovery-first', 'recovery-target-config', 'recovery-target', *worker_v5.STAGES, *HELP), required=True)
  parser.add_argument('--run-root', type=Path, required=True); args = parser.parse_args()
  raise SystemExit(run(args.stage, args.run_root / args.stage, args.run_root))

@@ -1,3 +1,4 @@
+import { assertWorkerV5OriginalProducerInput } from "./worker-v5-original-producer-input";
 import { afterAll, afterEach, expect, it } from "vitest";
 import { createHash, randomUUID } from "node:crypto";
 import { chmod, lstat, mkdtemp, readFile, readdir, realpath, writeFile } from "node:fs/promises";
@@ -321,11 +322,12 @@ async function retainedInput() {
   const bytes = await readFile(archive), receiptBytes = await readFile(receiptPath);
   expect(hash(bytes)).toBe(expectedSha256);
   const receipt = object(JSON.parse(receiptBytes.toString("utf8"))), results = object(receipt.actualResults);
-  expect(receipt.head).toBe(originalProducerHead); expect(receipt.status).toBe("PASS");
+  const recheckProducer = await assertWorkerV5OriginalProducerInput(SOURCE_ROOT, prefix, "BOUND", receipt, archive, expectedSha256, originalProducerHead);
+  expect(receipt.status).toBe("PASS");
   expect(receipt.ownedClosureProven).toBe(true); expect(receipt.originalChildWaited).toBe(true);
   expect(results.actualTotal).toBe(1); expect(results.actualPassed).toBe(1); expect(results.actualFailed).toBe(0);
   expect(results.actualPending).toBe(0); expect(results.exactOriginalSelection).toBe(true);
-  return { archive, expectedSha256, receiptPath, receiptHash: hash(receiptBytes), bytes };
+  return { archive, expectedSha256, receiptPath, receiptHash: hash(receiptBytes), bytes, recheckProducer };
 }
 /** Read-only whole checks of the exact original files, after owned Miniflare
  * disposal. These are neither a reconstructed expected catalog nor a host D1
@@ -448,6 +450,7 @@ async function run(fault: boolean) {
     // custody; verify neither is changed by target construction or R2 copying.
     expect(hash(await readFile(input.archive))).toBe(input.expectedSha256);
     expect(hash(await readFile(input.receiptPath))).toBe(input.receiptHash);
+    await input.recheckProducer();
   } catch (error) { failed = true; failure = error; }
   try { await close(owner); } catch (cleanup) { throw failed ? new AggregateError([failure, cleanup], "Original operation and close failed") : cleanup; }
   if (failed) throw failure;

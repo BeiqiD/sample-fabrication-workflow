@@ -1,3 +1,4 @@
+import { assertWorkerV5OriginalProducerInput } from "./worker-v5-original-producer-input";
 import { afterAll, afterEach, expect, it } from "vitest";
 import { createHash, randomUUID } from "node:crypto";
 import { chmod, lstat, mkdtemp, readFile, readdir, realpath, writeFile } from "node:fs/promises";
@@ -9,7 +10,6 @@ import { Log, LogLevel, Miniflare } from "miniflare";
 import { unstable_splitSqlQuery as splitSql } from "wrangler";
 import { PORTABLE_RUNTIME_RECOVERY_MIGRATIONS } from "../../shared/contracts/portable-runtime-v26-recovery-catalog";
 
-const ORIGINAL_PRODUCER_HEAD = "9c7c916d9647ffac8efc163c2b7213b40617cb41";
 const SOURCE_ROOT = fileURLToPath(new URL("../../", import.meta.url));
 const hash = (value: Uint8Array | string) => createHash("sha256").update(value).digest("hex");
 const titles = [
@@ -311,11 +311,12 @@ async function retainedInput(kind: "ZERO" | "NONEMPTY") {
   const bytes = await readFile(archive), receiptBytes = await readFile(receiptPath);
   expect(hash(bytes)).toBe(expectedSha256);
   const receipt = object(JSON.parse(receiptBytes.toString("utf8"))), results = object(receipt.actualResults);
-  expect(receipt.head).toBe(ORIGINAL_PRODUCER_HEAD); expect(receipt.status).toBe("PASS");
+  const recheckProducer = await assertWorkerV5OriginalProducerInput(SOURCE_ROOT, prefix, kind, receipt, archive, expectedSha256);
+  expect(receipt.status).toBe("PASS");
   expect(receipt.ownedClosureProven).toBe(true); expect(receipt.originalChildWaited).toBe(true);
   expect(results.actualTotal).toBe(1); expect(results.actualPassed).toBe(1); expect(results.actualFailed).toBe(0);
   expect(results.actualPending).toBe(0); expect(results.exactOriginalSelection).toBe(true);
-  return { archive, expectedSha256, receiptPath, receiptHash: hash(receiptBytes), bytes };
+  return { archive, expectedSha256, receiptPath, receiptHash: hash(receiptBytes), bytes, recheckProducer };
 }
 /** Read-only whole checks of the exact original files, after owned Miniflare
  * disposal. These are neither a reconstructed expected catalog nor a host D1
@@ -436,6 +437,7 @@ async function run(fault: boolean) {
     // neither is changed by the new native constructor or its mapped R2 plan.
     expect(hash(await readFile(input.archive))).toBe(input.expectedSha256);
     expect(hash(await readFile(input.receiptPath))).toBe(input.receiptHash);
+    await input.recheckProducer();
   } catch (error) { failed = true; failure = error; }
   try { await close(owner); } catch (cleanup) { throw failed ? new AggregateError([failure, cleanup], "Original operation and close failed") : cleanup; }
   if (failed) throw failure;
