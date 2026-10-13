@@ -14,12 +14,39 @@ const bytes = Buffer.from("Current Docker original Local File bytes \u{1f9ea}\n"
 const digest = createHash("sha256").update(bytes).digest("hex");
 const pending = new Set(), failedOwners = new Set(), observations = [];
 let privateStateOperations = 0;
-let input, cookie, csrf, action = "private-input", observedStatus = null;
+let input, cookie, csrf, action = "private-input", observedStatus = null, uploadResponseCode = null;
 function observe(value) { assert.ok(observations.length < 1024); observations.push(value); }
 function publicRoute(path) {
   return path.replace(/\/[0-9a-f-]{36}(?=\/|$)/g, "/:uuid")
     .replace(/\/api\/file-assets\/[^/]+$/, "/api/file-assets/:assetId")
     .replace(/\/api\/r2-upload-requests\/[^/]+$/, "/api/r2-upload-requests/:uuid");
+}
+// Classify only the fixed mounted Node POST/assets 503 schemas. The original
+// bounded body has already reached EOF/release before this diagnostic runs.
+// No response text, IDs, paths, SQL, cookies or credentials enter the receipt.
+function classifyUpload503(raw) {
+  const unknown = "node_503_unclassified_response";
+  if (!raw.length || raw.length > 1024) return unknown;
+  let value;
+  try { value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(raw)); } catch { return unknown; }
+  if (!value || typeof value !== "object" || Array.isArray(value)) return unknown;
+  const keys = Object.keys(value).sort().join(",");
+  if (keys === "error" && typeof value.error === "string") {
+    const declared = new Map([
+      ["This feature is unavailable in the local development runtime.", "node_503_route_unavailable"],
+      ["File storage is unavailable", "node_503_file_unavailable"],
+      ["The original local upload outcome is unavailable. Check the same request again.", "node_503_upload_outcome_unavailable"],
+      ["Installation write admission is unavailable.", "node_503_installation_admission_unavailable"],
+      ["File execution is paused on this installation.", "node_503_file_execution_paused"],
+      ["Source mutations are paused for system recovery.", "node_503_source_maintenance_paused"],
+    ]);
+    return declared.get(value.error) ?? unknown;
+  }
+  if (keys === "expiresAt,ingress,requestId,status" && value.status === "unavailable"
+    && value.ingress === "ordinary_image" && typeof value.requestId === "string" && UUID.test(value.requestId)
+    && typeof value.expiresAt === "string" && Number.isFinite(Date.parse(value.expiresAt)))
+    return "node_503_receipt_state_unavailable";
+  return unknown;
 }
 async function originalBody(response) {
   if (!response.body) return Buffer.alloc(0);
@@ -41,7 +68,7 @@ async function originalBody(response) {
   pending.delete(owner); return Buffer.concat(chunks);
 }
 async function request(path, status, method = "GET", value, headers = {}) {
-  action = `${method} ${publicRoute(path)}`; observedStatus = null;
+  action = `${method} ${publicRoute(path)}`; observedStatus = null; uploadResponseCode = null;
   const owner = { path: action, original: undefined, response: undefined }; pending.add(owner);
   const original = owner.original = fetch(input.origin + path, {
     method, redirect: "error", signal: AbortSignal.timeout(10000),
@@ -54,6 +81,8 @@ async function request(path, status, method = "GET", value, headers = {}) {
   try {
     const response = owner.response = await original; observedStatus = response.status;
     const raw = await originalBody(response); observe({ action, status: response.status });
+    if (method === "POST" && path === "/api/assets" && response.status === 503 && response.status !== status)
+      uploadResponseCode = classifyUpload503(raw);
     assert.equal(response.status, status);
     const contentType = response.headers.get("content-type")?.split(";", 1)[0]?.trim();
     const value = contentType === "application/json" && raw.length ? JSON.parse(raw.toString("utf8")) : null;
@@ -234,7 +263,8 @@ try {
     privateStateFirstCloseAcknowledged: privateStateOperations > 0 }) + "\n");
 } catch {
   process.stdout.write(JSON.stringify({ status: "FAIL", action, observedStatus, observations,
-    originalBodiesClosureUnproven: pending.size !== 0 || failedOwners.size !== 0 }) + "\n");
+    originalBodiesClosureUnproven: pending.size !== 0 || failedOwners.size !== 0,
+    uploadResponseDiagnostic: uploadResponseCode }) + "\n");
   process.exitCode = 1;
 } finally { input = cookie = csrf = undefined; }
 }

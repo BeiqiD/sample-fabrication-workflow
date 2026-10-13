@@ -266,10 +266,19 @@ def selected_facts(evidence):
         assert len(raw)==pin['bytes'] and hashlib.sha256(raw).hexdigest()==pin['sha256']
         lines=[line for line in raw.decode('utf8').splitlines() if line.startswith('{')]
         assert len(lines)==1;value=json.loads(lines[0])
-        assert type(value) is dict and set(value)=={'status','action','observedStatus','observations','originalBodiesClosureUnproven'}
+        original_keys={'status','action','observedStatus','observations','originalBodiesClosureUnproven'}
+        assert type(value) is dict and (set(value)==original_keys or set(value)==original_keys|{'uploadResponseDiagnostic'})
         assert value['status']=='FAIL' and value['action'] in safe_enabled_actions
         status=value['observedStatus'];assert status is None or type(status) is int and 100<=status<=599
         assert type(value['originalBodiesClosureUnproven']) is bool
+        diagnostic=value.get('uploadResponseDiagnostic')
+        upload_503_codes=frozenset((
+            'node_503_route_unavailable','node_503_file_unavailable','node_503_upload_outcome_unavailable',
+            'node_503_installation_admission_unavailable','node_503_file_execution_paused',
+            'node_503_source_maintenance_paused','node_503_receipt_state_unavailable','node_503_unclassified_response',
+        ))
+        assert diagnostic is None or (type(diagnostic) is str and diagnostic in upload_503_codes
+            and value['action']=='POST /api/assets' and status==503)
         assert type(value['observations']) is list and len(value['observations'])<=1024
         observations=[]
         for observed in value['observations']:
@@ -279,6 +288,8 @@ def selected_facts(evidence):
         enabled_failures.append({'command':row['id'],'action':value['action'],'observedStatus':status,
             'originalBodiesClosureUnproven':value['originalBodiesClosureUnproven'],'observations':observations,
             'originalStdoutSha256':pin['sha256']})
+        if 'uploadResponseDiagnostic' in value:
+            enabled_failures[-1]['uploadResponseDiagnostic']=diagnostic
     output['safeOriginalEnabledApiFailures']=enabled_failures
     upgrade_actions = frozenset(('private-input', 'GET /api/health', 'GET /api/ready',
         'POST /api/auth/login', 'POST /api/auth/logout', 'GET /api/samples', 'GET /api/samples/:uuid', 'GET /api/projects'))
