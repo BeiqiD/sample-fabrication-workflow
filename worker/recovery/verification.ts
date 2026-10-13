@@ -5,6 +5,7 @@ import { stableJson, sha256Hex } from "../../shared/domain/content-addressing";
 import { selectWorkerRecoveryCatalog as selectReviewedRecoveryCatalog, validateWorkerRecoverySourceImage as validateRecoverySourceImage, type WorkerRecoveryRecords as VersionedRecoveryRecords } from "./versioned-catalog";
 import { inspectCurrentCloudflareSchema } from "./current-cloudflare-schema";
 import type { SystemRecoveryCell, SystemRecoveryRow, SystemRecoveryTable, RecoveryTableSpec } from "../../shared/contracts/system-recovery-image";
+import { recoveryTableSnapshotSql } from "../../shared/contracts/system-recovery-image";
 import { FILE_REGISTRY_ROWID_CLAIMS_INTEGRITY_SQL, canonicalFileAuthoritySchemaSql } from "../../shared/contracts/export-file-authority";
 import { FILE_SHADOW_HEAD_INTEGRITY_SQL } from "../../shared/contracts/export-file-shadow";
 
@@ -15,6 +16,12 @@ import { recoveryFileEvidenceRows } from "./target-files";
 import { SYSTEM_RECOVERY_EVIDENCE_EXPORT_COLUMNS, validateSystemRecoveryEvidenceHistory } from "../../shared/contracts/export-system-recovery-evidence";
 import type { ExportTables } from "../../shared/contracts/export";
 import { inspectRecoveryPlatformSchema } from "./target-migrations";
+import { v5PublicShadowHistory, assertV5PublicShadowPlanPersisted, type V5PublicShadowPlan } from "./v5-public-shadow-plan";
+import { nativeV28SnapshotSql, buildFullExportV28FromSnapshot } from "../export-v28-core";
+import { portableBusinessSchemaV28, createFullExportV28 } from "../../shared/contracts/export-portable-runtime-v28";
+import { protectedLocalHistoryFromV5Image, validateSystemRecoveryImageV5 } from "../../shared/contracts/system-backup-v5";
+import { validateSystemBackupContentImageV28 } from "../../shared/contracts/system-backup-v28-content";
+import type { ExportSchemaObject } from "../../shared/contracts/export";
 
 export interface RecoveryVerification { differences: RecoveryCellDifference[]; checkpoint: { schemaSha256: string; tables: Record<string, string>; files: string; sourceImageSha256: string } }
 function ensure(value: unknown, reason: string): asserts value { if (!value) throw new Error(reason); }
@@ -102,9 +109,13 @@ async function appendedRowAllowed(database: D1Database, table: SystemRecoveryTab
   return false;
 }
 export async function verifyRecoveryTarget(database: D1Database, records: VersionedRecoveryRecords,
-  files: readonly RecoveryPlannedFile[], profiles: readonly RecoveryDestinationProfile[], jobId: string, imageSha256: string): Promise<RecoveryVerification> {
+  files: readonly RecoveryPlannedFile[], profiles: readonly RecoveryDestinationProfile[], jobId: string, imageSha256: string,
+  shadowPlan?: V5PublicShadowPlan): Promise<RecoveryVerification> {
   const catalog = selectReviewedRecoveryCatalog(records);
   validateRecoverySourceImage(records);
+  const shadowHistory = shadowPlan ? v5PublicShadowHistory(shadowPlan, jobId, imageSha256) : undefined;
+  ensure(!shadowPlan || catalog.imageVersion === 5, "unreviewed_shadow_version");
+  if (shadowPlan) await assertV5PublicShadowPlanPersisted(database, shadowPlan);
   await assertRecoveredCapabilitiesInert(database, catalog);
   await inspectRecoveryPlatformSchema(database);
   if (catalog.imageVersion === 2 || catalog.imageVersion === 3 || catalog.imageVersion === 5) {
@@ -172,12 +183,29 @@ export async function verifyRecoveryTarget(database: D1Database, records: Versio
               && source.consumer_sub_id === values("consumer_sub_id") && source.file_slot === values("file_slot"));
           allowed ||= Boolean(source && after.type === "text" && source.source_json === after.value); reason = "derived_reconstruction";
         }
+        if (catalog.imageVersion === 5 && shadowHistory && ["file_shadow_control", "file_shadow_heads"].includes(spec.name)) {
+          const exact = shadowHistory.changes.filter(change => change.table === spec.name && change.column === column
+            && keyed(expected, original, change.keys));
+          if (exact.length) {
+            ensure(exact.length === 1, "duplicate_frozen_shadow_change");
+            allowed ||= stableJson(after) === stableJson(exact[0].cell); reason = "derived_reconstruction";
+          }
+        }
         ensure(allowed, `unclassified_recovery_cell_change:${spec.name}:${column}`);
         differences.push({ table: spec.name, row: key, column, before, after, reason });
       }
     }
+    const typedHistory = shadowHistory?.typedAppends[spec.name];
+    if (typedHistory) {
+      // Full typed multisets prove every frozen intermediate successor,
+      // closure and dependency exists exactly once; observed source views
+      // never choose an exemption for an original immutable history cell.
+      ensure(spec.withoutRowid && stableJson([...actualRows.values()].map(stableJson).sort())
+        === stableJson(typedHistory.map(stableJson).sort()), "frozen_shadow_append_inventory:" + spec.name);
+    }
     for (const [key, row] of actualRows) {
-      ensure(await appendedRowAllowed(database, observed, spec.name, row, files, profiles), `unclassified_recovery_row:${spec.name}`);
+      ensure(typedHistory ? typedHistory.some(expected => stableJson(row) === stableJson(expected))
+        : await appendedRowAllowed(database, observed, spec.name, row, files, profiles), `unclassified_recovery_row:${spec.name}`);
       // Appended immutable rows are summarized in the signed table proof; the
       // cell-difference report identifies their exact typed values as well.
       for (let index = 0; index < spec.columns.length; index++) differences.push({ table: spec.name, row: key, column: spec.columns[index], before: null, after: row.cells[index], reason: "destination_mapping" });
@@ -196,7 +224,7 @@ export async function verifyRecoveryTarget(database: D1Database, records: Versio
       ensure(check.success&&check.results.length===1&&Object.values(check.results[0])[0]==="ok","restored_table_consistency:"+spec.name);
       tableHashes[spec.name]=await sha256Hex(stableJson(actual.rows.map(stableJson).sort()));
     }
-    ensure(!headSources.length,"restored_v5_present_heads_not_admitted");
+    ensure(!headSources.length || shadowHistory !== undefined,"restored_v5_present_heads_not_admitted");
     const all=await database.prepare("SELECT type,name FROM sqlite_schema ORDER BY type,name").all<{type:string;name:string}>();
     ensure(all.success,"restored_schema_unavailable");
     const checked=new Set(catalog.tables.filter(table=>!table.local||!table.name.startsWith("system_recovery_")).map(table=>table.name));
@@ -209,6 +237,34 @@ export async function verifyRecoveryTarget(database: D1Database, records: Versio
   }else validateSystemRecoveryEvidenceHistory(evidenceTables);
   ensure((await database.prepare(FILE_REGISTRY_ROWID_CLAIMS_INTEGRITY_SQL).first<{ invalid_count: number }>())?.invalid_count === 0, "restored_registry_rowids_invalid");
   ensure((await database.prepare(FILE_SHADOW_HEAD_INTEGRITY_SQL).first<{ invalid_count: number }>())?.invalid_count === 0, "restored_shadow_heads_invalid");
+  if (shadowPlan && records.schema === "system-backup-records/5") {
+    // Validate one coherent whole business/image envelope before the target
+    // ledger/ready seal. Only the fully V5-validated original hold owner is
+    // propagated; no imported local authority or old decision is activated.
+    const contentSql = nativeV28SnapshotSql(), nonlocal = catalog.tables.filter(spec => !spec.local);
+    const snapshot = await database.batch([...contentSql, ...nonlocal.map(recoveryTableSnapshotSql)].map(sql => database.prepare(sql)));
+    ensure(snapshot.length === contentSql.length + nonlocal.length && snapshot.every(result => result.success), "restored_full_v28_snapshot");
+    const imageTables = Object.fromEntries(nonlocal.map((spec, index) => [spec.name, { columns: [...spec.columns],
+      rows: snapshot[contentSql.length + index].results.map(value => {
+        const row = value as { rowid: string | null; cells: string }; return { rowid: row.rowid, cells: JSON.parse(row.cells) };
+      }) }]));
+    for (const spec of nonlocal) ensure(await sha256Hex(stableJson(imageTables[spec.name].rows.map(stableJson).sort()))
+      === tableHashes[spec.name], "restored_coherent_typed_image_changed:" + spec.name);
+    const protectedHistory = protectedLocalHistoryFromV5Image({ ...records.image, tables: imageTables });
+    let applicationObjects: ExportSchemaObject[] | undefined;
+    const business = await buildFullExportV28FromSnapshot(snapshot.slice(0, contentSql.length), {
+      backupHoldOwner: records.content.backupHoldOwner, protectedLocalHistory: protectedHistory,
+      async projectSchema(objects) {
+        const inspected = await inspectV28CloudflareSchemaCandidate(objects);
+        applicationObjects = inspected.applicationObjects; return portableBusinessSchemaV28(applicationObjects);
+      },
+    });
+    ensure(applicationObjects, "restored_full_v28_schema");
+    const content = await createFullExportV28(business, applicationObjects, protectedHistory);
+    const image = validateSystemRecoveryImageV5({ version: 5, kind: "system-recovery-image", checkpointId: catalog.checkpointId,
+      schemaSha256: catalog.schemaSha256, sourceSnapshotClock: content.artifacts.sourceSchema.value.snapshotClock, tables: imageTables });
+    await validateSystemBackupContentImageV28(content, image);
+  }
   const projectChecks = [
     "SELECT 1 FROM project_items i JOIN project_contents c ON c.id=i.project_content_id WHERE i.project_id<>c.project_id LIMIT 1",
     "SELECT 1 FROM project_edges e JOIN project_items a ON a.id=e.source_item_id JOIN project_items b ON b.id=e.target_item_id WHERE a.project_id<>e.project_id OR b.project_id<>e.project_id LIMIT 1",
