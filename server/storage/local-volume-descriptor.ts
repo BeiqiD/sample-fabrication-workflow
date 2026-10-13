@@ -49,7 +49,7 @@ export function captureLocalVolumeDescriptor(raw: unknown, filesystemRootOwnerUi
   const profileId = `storage-profile:local:${namespaceSha256}`, uid = BigInt(process.geteuid());
   const bytes = Object.freeze({ root, namespace: Object.freeze({ volumeId: namespace.volumeId, rootId: namespace.rootId,
     profileId, namespaceRevision: 1 }) });
-  function observe(): string {
+  function observe(): Readonly<{ bindingFingerprintSha256: string; lifetimeFingerprintSha256: string }> {
     const directories = [root, join(root, "objects"), join(root, "staging")].map(path => ({ path, ...identity(privateDirectory(path, uid)) }));
     const ancestors: unknown[] = [];
     for (let path = dirname(root);;) {
@@ -74,11 +74,22 @@ export function captureLocalVolumeDescriptor(raw: unknown, filesystemRootOwnerUi
         || !exact(marker.namespace, ["volumeId", "rootId", "profileId", "namespaceRevision"])
         || marker.namespace.volumeId !== namespace.volumeId || marker.namespace.rootId !== namespace.rootId
         || marker.namespace.profileId !== profileId || marker.namespace.namespaceRevision !== 1) unavailable();
-      return digest(JSON.stringify({ format: "local-volume-binding/1", descriptorId: id, rootBindingId,
-        namespaceIdentity, directories, ancestors, marker: { path, ...identity(current) } }));
+      // Persist only the actual configured provider namespace/root/marker.
+      // Container ancestors can change between genuine openings of the same
+      // bind-mounted volume; they are safety-checked and pinned for THIS
+      // opening below, never substituted for provider identity in SQL history.
+      const bindingFingerprintSha256 = digest(JSON.stringify({ format: "local-volume-binding/2", descriptorId: id, rootBindingId,
+        namespaceIdentity, directories, marker: { path, ...identity(current) } }));
+      const lifetimeFingerprintSha256 = digest(JSON.stringify({ format: "local-volume-opening/1",
+        bindingFingerprintSha256, ancestors }));
+      return Object.freeze({ bindingFingerprintSha256, lifetimeFingerprintSha256 });
     } finally { closeSync(fd); }
   }
-  const bindingFingerprintSha256 = observe();
+  const captured = observe();
   return Object.freeze({ id, root, rootBindingId, namespace, profileId, namespaceIdentity, namespaceSha256,
-    bindingFingerprintSha256, bytes, assertCurrent() { if (observe() !== bindingFingerprintSha256) unavailable(); } });
+    bindingFingerprintSha256: captured.bindingFingerprintSha256, bytes, assertCurrent() {
+      const current = observe();
+      if (current.bindingFingerprintSha256 !== captured.bindingFingerprintSha256
+        || current.lifetimeFingerprintSha256 !== captured.lifetimeFingerprintSha256) unavailable();
+    } });
 }
