@@ -7,8 +7,11 @@ import { createInstalledLocalIdentity } from "../auth/identity.ts";
 import { createPasswordHasher } from "../auth/passwords.ts";
 import { createLocalAuthentication } from "../auth/local-auth-http.ts";
 import { createLoopbackLocalAuthTransport } from "../auth/local-auth-transport.ts";
-import { createLocalRequestSubjectIssuer, LocalRequestSubjectError, type LocalRequestSubject } from "../auth/local-request-subject.ts";
+import { createLocalRequestSubjectIssuer, createLocalVolumeRequestSubjectIssuerV28Candidate, LocalRequestSubjectError, type LocalRequestSubject } from "../auth/local-request-subject.ts";
 import { createNodeHttpServer } from "../http.ts";
+import { createLocalVolumeProfileOpeningV28Candidate } from "../storage/local-volume-profile-opening-v28-candidate.ts";
+import { ownedLocalVolumeIdentityV28Candidate } from "../storage/local-volume-profile-opening.ts";
+import { captureInstalledIdentityExecutionOwnerV28Candidate, createInstalledIdentityExecutionGuardGroupV28Candidate } from "../auth/installed-identity-execution-owner-v28-candidate.ts";
 import { V28_NODE_INSTALLATION_CATALOG_CANDIDATE } from "../installation-catalog-v28-candidate.ts";
 import { admitInstallationRecoverySource, type ReviewedInstallationAdmission } from "../migrations.ts";
 import type { SqliteCapability } from "../sqlite.ts";
@@ -22,7 +25,7 @@ import { CANONICAL_FILE_PASSWORD, CANONICAL_FILE_IDENTITY_POLICY, prepareCanonic
 // first closes. Every HTTP client and this real HTTP server retain the original
 // 5000ms limit; the dedicated config retains ordinary 20s defaults/hooks.
 const CASE_MS = 60_000;
-type Issuer = ReturnType<typeof createLocalRequestSubjectIssuer>;
+type Issuer = ReturnType<typeof createLocalVolumeRequestSubjectIssuerV28Candidate>;
 type Captured = Readonly<{ request: Request; token: LocalRequestSubject }>;
 interface SchemaWriterOwner {
   native?: DatabaseSync; constructionStarted?: true; originalClose?: () => void;
@@ -121,8 +124,8 @@ function authorityRows(native: DatabaseSync) {
   };
 }
 
-describe("current V28 genuine HTTP request-subject live execution owner", () => {
-  it("keeps ordinary facts current through warm metadata faults, same-cookie schema edits, explicit reconstruction and account revocation", () => retainedCanonicalFileCase(async () => {
+describe("current V28 genuine HTTP opening-bound grouped request-subject live execution owner", () => {
+  it("keeps grouped ordinary facts current through warm metadata faults, same-cookie schema edits, original opening reconstruction and session/account revocation", () => retainedCanonicalFileCase(async () => {
     const baseline = await prepareCanonicalCommentFileBaseline();
     assertCanonicalFileOwnersReleased();
     const ordinary = await executeV28OrdinaryAccountOperatorCandidate({ databasePath: baseline.path,
@@ -137,17 +140,46 @@ describe("current V28 genuine HTTP request-subject live execution owner", () => 
       let identity!: Awaited<ReturnType<typeof createInstalledLocalIdentity>>;
       let authentication!: ReturnType<typeof createLocalAuthentication>;
       let issuer!: Issuer;
+      let openingOptions!: Parameters<typeof createLocalVolumeProfileOpeningV28Candidate>[0];
+      const retiredOpenings: Array<Readonly<{ opening: NonNullable<typeof owner.opening>; firstClose: Promise<void> }>> = [];
+      function closeCurrentOpening(): Promise<void> {
+        ensure(owner.opening);
+        if (owner.openingClose) return owner.openingClose;
+        const original = owner.opening, originalClose = original.close.bind(original);
+        // Assign the original first close before invoking it. On rejection the
+        // same parent/opening/cache stay retained for the unchanged helper.
+        const first = owner.openingClose = Promise.resolve().then(originalClose);
+        retiredOpenings.push(Object.freeze({ opening: original, firstClose: first }));
+        void first.catch(() => undefined); return first;
+      }
       async function reconstructFromFullAdmission(): Promise<void> {
         await lease.withWriter(async () => {
           assertLinuxWriterLeaseBinding(lease, core, native);
+          if (owner.opening) {
+            const first = closeCurrentOpening(); expect(closeCurrentOpening()).toBe(first); await first;
+            // Only its positive original ACK permits replacing the captured
+            // opening. All earlier actual owners/first promises remain retained.
+            owner.opening = undefined; owner.openingClose = undefined; owner.openingAttempted = undefined;
+          }
           // Reconstruction mints a fresh full reviewed admission, not an owner
           // from a changed cookie or an observed schema/success cache.
           admission = admitInstallationRecoverySource(native, V28_NODE_INSTALLATION_CATALOG_CANDIDATE);
           identity = await createInstalledLocalIdentity({ database: core, nativeDatabase: native, admission,
             hasher: createPasswordHasher(), policy: CANONICAL_FILE_IDENTITY_POLICY });
           authentication = createLocalAuthentication({ identity, transport, now: () => Date.now() });
-          issuer = createLocalRequestSubjectIssuer({ database: core, nativeDatabase: native, admission,
-            writerLease: lease, authentication });
+          const actualIdentity = identity, actualOperator = await actualIdentity.login({ username: "operator",
+            password: CANONICAL_FILE_PASSWORD, sourceKey: "genuine-current-grouped-subject-opening", now: Date.now() });
+          expect(actualOperator.principal.actor).toBe(baseline.operatorActor);
+          expect(actualOperator.principal.capabilities.systemAdministrator).toBe(true);
+          openingOptions = Object.freeze({ database: core, nativeDatabase: native, admission, writerLease: lease,
+            descriptors: baseline.descriptors, filesystemRootOwnerUid: baseline.rootOwnerUid, authentication,
+            async authorizeAdministrator(actor: string) {
+              const actual = await actualIdentity.authenticate(actualOperator.token, Date.now());
+              return actual?.actor === actor && actual.capabilities.systemAdministrator;
+            } });
+          owner.openingAttempted = true;
+          const opening = owner.opening = createLocalVolumeProfileOpeningV28Candidate(openingOptions);
+          issuer = createLocalVolumeRequestSubjectIssuerV28Candidate({ opening, admission, authentication });
         });
       }
       await reconstructFromFullAdmission();
@@ -173,7 +205,7 @@ describe("current V28 genuine HTTP request-subject live execution owner", () => 
       expect(principal.capabilities).toEqual({ systemAdministrator: false, fileEvidenceOperator: false });
       const cookie = login.headers.get("set-cookie")?.split(";", 1)[0], csrf = loginValue.csrf;
       ensure(typeof cookie === "string" && cookie.startsWith("sfw_dev_session=") && typeof csrf === "string");
-      const session: CanonicalFileSession = Object.freeze({ cookie, csrf });
+      let session: CanonicalFileSession = Object.freeze({ cookie, csrf });
       const facts = { provider: "local", issuer: `node-installation:${baseline.installationId}`, subject: ordinary.principalId };
       async function currentHttp(method: "GET" | "POST" = "GET"): Promise<Captured> {
         const answer = await client.request("/current-subject", method, method === "POST" ? {} : undefined, session);
@@ -188,16 +220,36 @@ describe("current V28 genuine HTTP request-subject live execution owner", () => 
         expect(issuer.read(issued.request, issued.token)).toEqual(facts);
         refusal(() => issuer.read(issued.request.clone(), issued.token), "not_issued");
         refusal(() => issuer.read(issued.request, { ...issued.token } as LocalRequestSubject), "not_issued");
-        const second = createLocalRequestSubjectIssuer({ database: core, nativeDatabase: native, admission, writerLease: lease, authentication });
+        ensure(owner.opening);
+        const opening = owner.opening;
+        const second = createLocalVolumeRequestSubjectIssuerV28Candidate({ opening, admission, authentication });
         refusal(() => second.read(issued.request, issued.token), "not_issued");
-        expect(() => createLocalRequestSubjectIssuer({ database: core, nativeDatabase: native, admission,
-          writerLease: { ...lease } as LinuxWriterLease, authentication })).toThrow();
-        expect(() => createLocalRequestSubjectIssuer({ database: core, nativeDatabase: new Proxy(native, {}), admission,
-          writerLease: lease, authentication })).toThrow();
-        expect(() => createLocalRequestSubjectIssuer({ database: { ...core } as SqliteCapability, nativeDatabase: native, admission,
-          writerLease: lease, authentication })).toThrow();
+        expect(() => createLocalVolumeRequestSubjectIssuerV28Candidate({ opening: { ...opening }, admission, authentication })).toThrow();
+        expect(() => createLocalVolumeRequestSubjectIssuerV28Candidate({ opening: new Proxy(opening, {}), admission, authentication })).toThrow();
+        expect(() => createLocalVolumeRequestSubjectIssuerV28Candidate({ opening, admission: { ...admission }, authentication })).toThrow();
+        const otherAuthentication = createLocalAuthentication({ identity, transport, now: () => Date.now() });
+        expect(() => createLocalVolumeRequestSubjectIssuerV28Candidate({ opening, admission, authentication: otherAuthentication })).toThrow();
+        const actualOwner = ownedLocalVolumeIdentityV28Candidate(opening, authentication, admission);
+        expect(() => createInstalledIdentityExecutionGuardGroupV28Candidate([actualOwner, { ...actualOwner }])).toThrow();
+        expect(() => createInstalledIdentityExecutionGuardGroupV28Candidate([new Proxy(actualOwner, {})])).toThrow();
+        const originalGroup = createInstalledIdentityExecutionGuardGroupV28Candidate([actualOwner, actualOwner]);
+        originalGroup.assertCurrent();
+        // The dedicated issuer accepts no alternate Native/core/lease fields.
+        // Actual opening minting still refuses each mismatched physical tuple
+        // before a provider owner can issue. Generic constructor also stays closed.
+        expect(() => createLocalVolumeProfileOpeningV28Candidate({ ...openingOptions,
+          writerLease: { ...lease } as LinuxWriterLease })).toThrow();
+        expect(() => createLocalVolumeProfileOpeningV28Candidate({ ...openingOptions,
+          nativeDatabase: new Proxy(native, {}) })).toThrow();
+        expect(() => createLocalVolumeProfileOpeningV28Candidate({ ...openingOptions,
+          database: { ...core } as SqliteCapability })).toThrow();
         expect(() => createLocalRequestSubjectIssuer({ database: core, nativeDatabase: native,
           admission: { ...admission }, writerLease: lease, authentication })).toThrow();
+        restoredFault(() => {
+          native.exec("BEGIN");
+          refusal(() => issuer.read(issued.request, issued.token), "unavailable");
+        }, () => { if (native.isTransaction) native.exec("ROLLBACK"); });
+        expect(issuer.read(issued.request, issued.token)).toEqual(facts);
       });
       // Genuine unsafe requests use the actual delivered CSRF. A new request
       // without it refuses before it can replace the successfully issued token.
@@ -236,8 +288,11 @@ describe("current V28 genuine HTTP request-subject live execution owner", () => 
         expect(() => native.prepare("UPDATE sqlite_schema SET sql=? WHERE name='local_accounts' AND type='table'")
           .run(originalSql)).toThrow(/sqlite_master may not be modified/);
         await withActualSchemaWriter(baseline.path, lease, core, native, writer => {
+          expect(() => createLocalVolumeProfileOpeningV28Candidate({ ...openingOptions,
+            nativeDatabase: writer })).toThrow(); // Actual distinct Native, same real DB path.
           expect(() => createLocalRequestSubjectIssuer({ database: core, nativeDatabase: writer, admission,
-            writerLease: lease, authentication })).toThrow(); // Actual distinct Native, same real DB path.
+            writerLease: lease, authentication })).toThrow(); // Original generic factory remains closed too.
+          expect(issuer.read(issued.request, issued.token)).toEqual(facts);
           expect(schemaCookie(writer)).toBe(originalCookie);
           assertLinuxWriterLeaseBinding(lease, core, native);
           restoredFault(() => {
@@ -320,6 +375,8 @@ describe("current V28 genuine HTTP request-subject live execution owner", () => 
       await reconstructFromFullAdmission(); issued = await currentHttp();
       const beforeDdl = issuer, beforeDdlIssued = issued;
       await lease.withWriter(() => {
+        ensure(owner.opening);
+        const beforeDdlOpeningOwner = ownedLocalVolumeIdentityV28Candidate(owner.opening, authentication, admission);
         const originalCookie = schemaCookie(native);
         restoredFault(() => {
           native.exec("CREATE INDEX qualification_current_subject_index ON local_sessions(principal_id)");
@@ -329,9 +386,26 @@ describe("current V28 genuine HTTP request-subject live execution owner", () => 
         }, () => { native.exec("DROP INDEX qualification_current_subject_index"); });
         expect(schemaCookie(native)).not.toBe(originalCookie);
         refusal(() => beforeDdl.read(beforeDdlIssued.request, beforeDdlIssued.token), "unavailable");
+        // Same actual identity/core/Native/admission/policy and restored exact
+        // schema/ledger; only the original captured cookie now differs. Mint
+        // a genuinely current owner through full admission. Fresh-first must
+        // refuse by tuple equality, not by executing the stale selected guard.
+        const freshOwner = captureInstalledIdentityExecutionOwnerV28Candidate(identity, core, native, admission);
+        freshOwner.assertCurrent();
+        expect(() => createInstalledIdentityExecutionGuardGroupV28Candidate([freshOwner, beforeDdlOpeningOwner])).toThrow();
+        expect(() => createInstalledIdentityExecutionGuardGroupV28Candidate([beforeDdlOpeningOwner, freshOwner])).toThrow();
         // The old private owner is not revived by returning to the same DDL.
       });
       await reconstructFromFullAdmission(); issued = await currentHttp();
+      const revokedRequest = issued;
+      // Revoke through the original real HTTP endpoint with the actual cookie
+      // and CSRF; neither the grouped issuer nor a SQL seed supplies authority.
+      expect((await client.request("/api/auth/logout", "POST", {}, session)).status).toBe(204);
+      await lease.withWriter(() => {
+        refusal(() => issuer.read(revokedRequest.request, revokedRequest.token), "authentication_required");
+      });
+      expect((await client.request("/current-subject", "GET", undefined, session)).status).toBe(401);
+      session = await client.login("subject-only"); issued = await currentHttp();
       await lease.withWriter(async () => {
         expect(issuer.read(issued.request, issued.token)).toEqual(facts);
         await identity.offline(lease).disableAccount(ordinary.principalId, Date.now());
@@ -344,6 +418,16 @@ describe("current V28 genuine HTTP request-subject live execution owner", () => 
       expect(native.prepare("SELECT count(*) n FROM local_sessions WHERE principal_id=? AND revoked_at IS NULL").get(ordinary.principalId)?.n).toBe(0);
       expect(authorityRows(native)).toEqual(originalAuthority);
       expect(native.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+      await lease.withWriter(async () => {
+        assertLinuxWriterLeaseBinding(lease, core, native);
+        const first = closeCurrentOpening(); expect(closeCurrentOpening()).toBe(first); await first;
+        refusal(() => issuer.read(issued.request, issued.token), "unavailable");
+        expect(retiredOpenings).toHaveLength(3);
+        // The original parent still holds this exact final cached first close;
+        // its unchanged cleanup joins it before core/Native/physical release.
+        expect(owner.openingClose).toBe(first);
+      });
+      expect((await client.request("/current-subject", "GET", undefined, session)).status).toBe(503);
       assertLinuxWriterLeaseBinding(lease, core, native);
       return Object.freeze({ issuer, issued });
     });
