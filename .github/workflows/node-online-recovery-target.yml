@@ -1,0 +1,64 @@
+name: Node V28 fresh inert Recovery target
+
+on:
+  push:
+    branches: [codex/node-online-recovery-target]
+
+permissions:
+  contents: read
+
+jobs:
+  genuine-recovery-target:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      NO_COLOR: '1'
+      FORCE_COLOR: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+          cache: npm
+      - name: Install the exact committed dependencies
+        run: npm ci
+      - name: Reserve a fresh private original-owned target evidence root
+        shell: bash
+        run: |
+          target_run_root="$HOME/.node-online-recovery-target-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir -m 700 "$target_run_root"
+          printf 'RECOVERY_TARGET_RUN_ROOT=%s\n' "$target_run_root" >> "$GITHUB_ENV"
+      - name: Check full current server and runtime types
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage types --run-root "$RECOVERY_TARGET_RUN_ROOT"
+      - name: Four closed target configuration and default-off cases
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage recovery-target-config --run-root "$RECOVERY_TARGET_RUN_ROOT"
+      - name: Build and verify the fresh same-candidate Node client and distribution
+        shell: bash
+        run: |
+          set -o pipefail
+          test ! -e dist-node
+          mkdir -m 700 "$RECOVERY_TARGET_RUN_ROOT/producer"
+          npm run build:node-client 2>&1 | tee "$RECOVERY_TARGET_RUN_ROOT/producer/node-client.log"
+          node scripts/build-node.mjs 2>&1 | tee "$RECOVERY_TARGET_RUN_ROOT/producer/node-distribution.log"
+          node dist-node/distribution/tools/verify-node-distribution.mjs dist-node/distribution --runtime 2>&1 | tee "$RECOVERY_TARGET_RUN_ROOT/producer/embedded-verifier.log"
+      - name: Two original target ACK, unknown hold and inert handoff cases
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage recovery-target --run-root "$RECOVERY_TARGET_RUN_ROOT"
+      - name: Preserve bounded closed-owner receipts and selected logs
+        if: ${{ always() && env.RECOVERY_TARGET_RUN_ROOT != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-online-recovery-target-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          include-hidden-files: true
+          path: |
+            ${{ env.RECOVERY_TARGET_RUN_ROOT }}/types/receipt.json
+            ${{ env.RECOVERY_TARGET_RUN_ROOT }}/types/original*.log
+            ${{ env.RECOVERY_TARGET_RUN_ROOT }}/recovery-target-config/receipt.json
+            ${{ env.RECOVERY_TARGET_RUN_ROOT }}/recovery-target-config/original*.log
+            ${{ env.RECOVERY_TARGET_RUN_ROOT }}/producer/*.log
+            ${{ env.RECOVERY_TARGET_RUN_ROOT }}/recovery-target/closed-receipt.json
+            ${{ env.RECOVERY_TARGET_RUN_ROOT }}/recovery-target/closed-diagnostics.log

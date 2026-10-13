@@ -15,6 +15,9 @@ PACKAGE_BRANCH = 'refs/heads/codex/node-research-package-http'
 PACKAGE_PROCESS_BRANCH = 'refs/heads/codex/node-package-process'
 RECOVERY_BRANCH = 'refs/heads/codex/node-online-recovery'
 RECOVERY_BASE = 'ba1c92daa454d5d6b33f5723eff4268f9175ca31'
+RECOVERY_TARGET_BRANCH = 'refs/heads/codex/node-online-recovery-target'
+RECOVERY_TARGET_BASE = '22544c4ed71eeb8ea46175b9d6e1a0ced94ae323'
+RECOVERY_TARGET_CASE_SOURCE_SHA256 = '7a6e014f8c20cad4418acbf47c07a32a3a1dfa881fa31cc23479fd983ae83e1f'
 INTEGRITY_BRANCH = 'refs/heads/codex/node-package-integrity-control'
 INTEGRITY_BASE = '0bc6b12a1d0f89a86155fabaa6ffde0c2d9032ec'
 PUBLIC_PACKAGE_PAIR_BRANCH = 'refs/heads/codex/node-r2-package-pair'
@@ -25,14 +28,22 @@ NONEMPTY_BASE = 'ab4f6cfa9721a5bf7fdcd8e7940a916ea8d520cf'
 R2_PAIR_BRANCH = 'refs/heads/codex/portable-v26-r2-node-backup-one'
 R2_PAIR_BASE = '33be3642ed8e72efba8269a4ea718b37b0eafd44'
 MAINTENANCE_BASE = 'ebc19cf3f61b12625bc2a36086667376b41b9255'
-NATIVE_STAGES = ('preparation', 'operators', 'maintenance', 'main', 'nonempty', 'r2pair', 'package-http', 'package-process', 'recovery-first', 'public-package-pair', 'package-corruption', 'package-verified-restart')
-TIMED_CASE_STAGES = (*(stage for stage in NATIVE_STAGES if stage not in ('package-http', 'package-process', 'recovery-first', 'public-package-pair', 'package-corruption', 'package-verified-restart')), 'maintenance-parser', 'config-unit', 'capture-parser', 'recovery-config')
+NATIVE_STAGES = ('preparation', 'operators', 'maintenance', 'main', 'nonempty', 'r2pair', 'package-http', 'package-process', 'recovery-first', 'public-package-pair', 'package-corruption', 'package-verified-restart', 'recovery-target')
+TIMED_CASE_STAGES = (*(stage for stage in NATIVE_STAGES if stage not in ('package-http', 'package-process', 'recovery-first', 'public-package-pair', 'package-corruption', 'package-verified-restart', 'recovery-target')), 'maintenance-parser', 'config-unit', 'capture-parser', 'recovery-config', 'recovery-target-config')
 FLOOR, NATIVE_BEFORE = 536870912, 603979776
 HELP = {'help-main': ('main.mjs', 'Usage: node main.mjs --config '),
  'help-identity': ('identity-cli.cjs', 'Usage: local-identity '),
  'help-installation': ('installation-cli.cjs', 'Usage: local-installation upgrade '),
  'help-restore': ('restore-v28-cli.cjs', 'Usage: offline-v28 restore ')}
 CASES = {
+ 'recovery-target-config': ('server/node-runtime-config-recovery-target-v28.test.ts', [
+  'keeps an omitted target absent and accepts only the exact independent host descriptor without creating a target',
+  'rejects a target without explicit Recovery opt-in, under another selector, or with an open descriptor',
+  'refuses aliases, public parents and overlap with source, client, artifacts or configuration',
+  'keeps the original private target parent and configuration inode pins live']),
+ 'recovery-target': ('server/recovery/current-v28-online-recovery-target.qualification.ts', [
+  'retains unknown target writes across source release and restart, reconciles exact nonempty bytes and records an explicit inert handoff',
+  'keeps a cancelled target original and dependent upload held after real ACK, source release and CLI restart']),
  'package-verified-restart': ('server/packages/verified-copy-restart.qualification.ts', [
   'stops after automatic verified copy, restarts on the original120s cadence and publishes the same File and typed graph exactly once']),
  'package-corruption': ('server/packages/final-payload-corruption.qualification.ts', [
@@ -98,11 +109,11 @@ def save(path, value):
  path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
 
 def source():
- assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH, R2_PAIR_BRANCH, PACKAGE_BRANCH, PACKAGE_PROCESS_BRANCH, RECOVERY_BRANCH, PUBLIC_PACKAGE_PAIR_BRANCH, INTEGRITY_BRANCH)
+ assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH, R2_PAIR_BRANCH, PACKAGE_BRANCH, PACKAGE_PROCESS_BRANCH, RECOVERY_BRANCH, PUBLIC_PACKAGE_PAIR_BRANCH, INTEGRITY_BRANCH, RECOVERY_TARGET_BRANCH)
  head = os.environ['GITHUB_SHA']; assert re.fullmatch('[0-9a-f]{40}', head)
  env = dict(os.environ, GIT_OPTIONAL_LOCKS='0')
  assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, env=env).decode().strip() == head
- base = INTEGRITY_BASE if os.environ['GITHUB_REF'] == INTEGRITY_BRANCH else PUBLIC_PACKAGE_PAIR_BASE if os.environ['GITHUB_REF'] == PUBLIC_PACKAGE_PAIR_BRANCH else RECOVERY_BASE if os.environ['GITHUB_REF'] == RECOVERY_BRANCH else PACKAGE_PROCESS_BASE if os.environ['GITHUB_REF'] == PACKAGE_PROCESS_BRANCH else PACKAGE_BASE if os.environ['GITHUB_REF'] == PACKAGE_BRANCH else R2_PAIR_BASE if os.environ['GITHUB_REF'] == R2_PAIR_BRANCH else NONEMPTY_BASE if os.environ['GITHUB_REF'] == NONEMPTY_BRANCH else MAINTENANCE_BASE if os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH) else BASE
+ base = RECOVERY_TARGET_BASE if os.environ['GITHUB_REF'] == RECOVERY_TARGET_BRANCH else INTEGRITY_BASE if os.environ['GITHUB_REF'] == INTEGRITY_BRANCH else PUBLIC_PACKAGE_PAIR_BASE if os.environ['GITHUB_REF'] == PUBLIC_PACKAGE_PAIR_BRANCH else RECOVERY_BASE if os.environ['GITHUB_REF'] == RECOVERY_BRANCH else PACKAGE_PROCESS_BASE if os.environ['GITHUB_REF'] == PACKAGE_PROCESS_BRANCH else PACKAGE_BASE if os.environ['GITHUB_REF'] == PACKAGE_BRANCH else R2_PAIR_BASE if os.environ['GITHUB_REF'] == R2_PAIR_BRANCH else NONEMPTY_BASE if os.environ['GITHUB_REF'] == NONEMPTY_BRANCH else MAINTENANCE_BASE if os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH) else BASE
  subprocess.check_call(['git', 'merge-base', '--is-ancestor', base, head], cwd=ROOT, env=env)
  return head
 
@@ -129,6 +140,97 @@ def census(stage, path):
   'reporterSuccess': value.get('success'), 'titles': [row['title'] for row in rows]}
  result['exactOriginalSelection'] = [str(Path(file['name']).resolve()) for file in value['testResults']] == [str(ROOT / expected_file)] and sorted(result['titles']) == sorted(titles)
  result['pass'] = result['exactOriginalSelection'] and value.get('success') is True and result['actualPassed'] == len(titles) and result['actualFailed'] == result['actualPending'] == value.get('numPendingTests') == 0
+ return result
+
+def recovery_target_proofs(run_root):
+ # Only the new target stage reads these two fixed private original leaves,
+ # after its exact two-case census, zero exit and cached first owner close.
+ # Keep identifiers, paths, handoff data and source payload hashes private.
+ observations, values = [], []
+ for filename in ('recovery-target-inputs.json', 'recovery-target-inputs.json.cancelled-unknown.json'):
+  path = run_root / filename; private(path.parent)
+  before = path.lstat()
+  assert path.resolve() == path and stat.S_ISREG(before.st_mode) and not path.is_symlink()
+  assert before.st_uid == os.geteuid() and stat.S_IMODE(before.st_mode) == 0o600 and before.st_nlink == 1
+  assert 0 < before.st_size <= 1048576
+  raw = path.read_bytes(); after = path.lstat()
+  assert (after.st_dev, after.st_ino, after.st_uid, after.st_mode, after.st_nlink, after.st_size, after.st_mtime_ns, after.st_ctime_ns) == (before.st_dev, before.st_ino, before.st_uid, before.st_mode, before.st_nlink, before.st_size, before.st_mtime_ns, before.st_ctime_ns)
+  assert len(raw) == before.st_size
+  values.append(json.loads(raw))
+  observations.append({'originalLeafSha256': hashlib.sha256(raw).hexdigest(), 'originalLeafBytes': len(raw)})
+ first, cancelled = values
+ assert set(first) == {'schema', 'runtime', 'distribution', 'sourceInstallationId', 'targetId', 'destinationInstallationId',
+  'backupId', 'uploadId', 'recoveryId', 'originalTargetDirectoryAckHeldAcrossRealSixtySecondDeadline',
+  'sourceReleaseAndCliRestartRetainUnknownUploadHold', 'publicUploadValidatePreviewAccept', 'independentOriginalSharedKernelStageDispatch',
+  'exactTypedRowsAndRowids', 'realPayloadBytes', 'realPayloadSha256', 'publicHandoffReceipt', 'destinationInertAndDefaultOff',
+  'sourceCanonicalAndPhysicalBindingsUnchanged', 'automaticActivation', 'sourceSameAppBusinessWritersQualified', 'elapsed120SecondCadenceQualified'}
+ assert first['schema'] == 'current-node-v28-online-recovery-target-genuine-qualification/1' and first['runtime'] == '24.19.0'
+ assert all(first[key] is True for key in ('originalTargetDirectoryAckHeldAcrossRealSixtySecondDeadline',
+  'sourceReleaseAndCliRestartRetainUnknownUploadHold', 'publicUploadValidatePreviewAccept', 'independentOriginalSharedKernelStageDispatch',
+  'exactTypedRowsAndRowids', 'destinationInertAndDefaultOff', 'sourceCanonicalAndPhysicalBindingsUnchanged'))
+ assert all(first[key] is False for key in ('automaticActivation', 'sourceSameAppBusinessWritersQualified', 'elapsed120SecondCadenceQualified'))
+ assert isinstance(first['realPayloadBytes'], int) and not isinstance(first['realPayloadBytes'], bool) and 0 < first['realPayloadBytes'] <= 100663296
+ assert isinstance(first['realPayloadSha256'], str) and re.fullmatch('[0-9a-f]{64}', first['realPayloadSha256'])
+ assert set(cancelled) == {'schema', 'distribution', 'sourceInstallationId', 'targetId', 'backupId', 'uploadId', 'recoveryId',
+  'realOriginalDirectoryAckBeforeCancellation', 'originalDispatchAndCloseAcknowledged',
+  'cancelledUnknownLedgerSurvivesSourceReleaseAndCliRestart', 'uploadCleanupRefused', 'targetCleanupRefused',
+  'sourceCanonicalAndPhysicalBindingsUnchanged', 'destinationNotReadyOrActivated'}
+ assert cancelled['schema'] == 'current-node-v28-cancelled-target-unknown-qualification/1'
+ assert all(cancelled[key] is True for key in ('realOriginalDirectoryAckBeforeCancellation', 'originalDispatchAndCloseAcknowledged',
+  'cancelledUnknownLedgerSurvivesSourceReleaseAndCliRestart', 'uploadCleanupRefused', 'targetCleanupRefused',
+  'sourceCanonicalAndPhysicalBindingsUnchanged', 'destinationNotReadyOrActivated'))
+ for value in values:
+  assert value['distribution'] == str(ROOT / 'dist-node/distribution')
+  for key in ('sourceInstallationId', 'targetId', 'backupId', 'uploadId', 'recoveryId'):
+   assert isinstance(value[key], str) and re.fullmatch('[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}', value[key])
+ assert isinstance(first['destinationInstallationId'], str) and re.fullmatch('[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}', first['destinationInstallationId'])
+ assert first['sourceInstallationId'] != first['destinationInstallationId']
+ assert all(first[key] != cancelled[key] for key in ('targetId', 'backupId', 'uploadId', 'recoveryId'))
+ handoff = first['publicHandoffReceipt']; assert set(handoff) == {'requestId', 'job', 'reused'} and handoff['reused'] is False
+ job = handoff['job']; assert job['id'] == first['recoveryId'] and job['kind'] == 'recovery' and job['state'] == 'completed' and job['phase'] == 'ready'
+ assert job['progress']['completedFiles'] == job['progress']['totalFiles'] == 1
+ assert job['progress']['bytesDone'] == job['progress']['bytesTotal'] == first['realPayloadBytes']
+ result = job['result']; assert result['targetId'] == first['targetId'] and result['ready'] is True and result['cutover'] is True
+ assert isinstance(result['checkpoint'], str) and re.fullmatch('[0-9a-f]{64}', result['checkpoint'])
+ return {'originalPrivateProofLeaves': observations, 'originalProofCount': 2, 'payloadFiles': 1, 'payloadBytes': first['realPayloadBytes'],
+  'originalKernelDeadlineMs': 60000, 'originalFirstClosesAcknowledged': True,
+  'originalTargetDirectoryAckHeldAcrossRealSixtySecondDeadline': True, 'sourceReleaseAndCliRestartRetainUnknownUploadHold': True,
+  'publicUploadValidatePreviewAccept': True, 'independentOriginalSharedKernelStageDispatch': True,
+  'exactTypedRowsAndRowids': True, 'destinationInertAndDefaultOff': True, 'sourceCanonicalAndPhysicalBindingsUnchanged': True,
+  'explicitInertHandoffRecorded': True, 'cancelledUnknownLedgerSurvivesSourceReleaseAndCliRestart': True,
+  'cancelledOriginalDispatchAndCloseAcknowledged': True, 'uploadCleanupRefused': True, 'targetCleanupRefused': True,
+  'cancelledDestinationNotReadyOrActivated': True, 'automaticActivation': False, 'sourceSameAppBusinessWritersQualified': False,
+  'elapsed120SecondCadenceQualified': False, 'remoteR2TargetQualified': False, 'fullApplicationRecoveryQualified': False}
+
+def public_recovery_target_receipt(record, summary):
+ # The original full receipt/errors remain private. Publish only closed owner,
+ # selection and proof facts; raw generic error text can contain private paths.
+ result = {'kind': 'current-node-v28-recovery-target-owned-ci-receipt/1', 'stage': 'recovery-target',
+  'head': record['head'], 'status': record['status'], 'selectedFile': CASES['recovery-target'][0],
+  'selectedTitles': CASES['recovery-target'][1], 'qualificationSourceSha256': RECOVERY_TARGET_CASE_SOURCE_SHA256,
+  'outerSeconds': 240, 'defaultCaseMs': 20000, 'hookMs': 20000, 'caseTimeoutOverrides': record['caseTimeoutOverrides'],
+  'originalKernelDeadlineMs': 60000, 'minimumBeforeChild': NATIVE_BEFORE, 'minimumAfterChild': FLOOR,
+  'originalChildWaitObservationPresent': 'originalChildWaited' in record, 'originalChildWaited': record.get('originalChildWaited') is True,
+  'originalCloseObservationPresent': 'ownedClosureProven' in record, 'ownedClosureProven': record.get('ownedClosureProven') is True,
+  'exitCode': record.get('exitCode'), 'outerExpired': record.get('outerExpired') is True,
+  'noFixtureRemoval': True, 'recoveryTargetQualified': record.get('recoveryTargetQualified') is True, 'scope': record['scope']}
+ snapshot = record.get('finalGroupSnapshot')
+ result['finalGroupObservationPresent'] = isinstance(snapshot, list)
+ result['finalActiveOrUnprovenOwners'] = sum(row['activeOrOwnershipUnproven'] is True for row in snapshot) if isinstance(snapshot, list) else None
+ actual = record.get('actualResults')
+ if actual is not None:
+  result['actualResults'] = {key: actual[key] for key in ('actualTotal', 'actualPassed', 'actualFailed', 'actualPending', 'reporterSuccess', 'exactOriginalSelection', 'pass')}
+  result['actualResults']['titles'] = [title if title in CASES['recovery-target'][1] else '[unselected title withheld]' for title in actual['titles']]
+ if 'actualRecoveryTarget' in record: result['actualRecoveryTarget'] = record['actualRecoveryTarget']
+ for key in ('firstFailure', 'originalCloseError', 'rawCensusFailure', 'floorOrPrivateIdentityFailure', 'publicDiagnosticFailureKind'):
+  if key not in record: continue
+  value = record[key]; kind = value.get('kind') if isinstance(value, dict) else value.split(':', 1)[0] if isinstance(value, str) else None
+  result[key if key.endswith('Kind') else key + 'Kind'] = kind if isinstance(kind, str) and re.fullmatch('[A-Za-z][A-Za-z0-9_]{0,80}', kind) else 'ErrorKindUnavailable'
+ for key in ('originalFailedTitles', 'failureSummaryUnavailable'):
+  if key in summary: result[key] = summary[key]
+ if 'originalNativeFailureDiagnostics' in summary:
+  result['originalNativeFailureDiagnostics'] = [{'stream': stream, **{key: value[key] for key in ('tailBytesRead', 'tailWindowBytes', 'diagnostic', 'readFailureKind') if key in value}}
+   for stream, value in zip(('stdout', 'stderr'), summary['originalNativeFailureDiagnostics'])]
  return result
 
 def package_integrity_proofs(stage, fixture):
@@ -364,6 +466,8 @@ def original_native_failure_diagnostics(out):
 
 def run(stage, out, run_root):
  head = source()
+ if os.environ['GITHUB_REF'] == RECOVERY_TARGET_BRANCH: assert stage in ('types', 'recovery-target-config', 'recovery-target')
+ if stage in ('recovery-target-config', 'recovery-target'): assert os.environ['GITHUB_REF'] == RECOVERY_TARGET_BRANCH
  if os.environ['GITHUB_REF'] == INTEGRITY_BRANCH: assert stage in ('types', 'package-corruption', 'package-verified-restart')
  if stage in ('package-corruption', 'package-verified-restart'): assert os.environ['GITHUB_REF'] == INTEGRITY_BRANCH
  if os.environ['GITHUB_REF'] == PUBLIC_PACKAGE_PAIR_BRANCH: assert stage in ('types', 'public-package-pair')
@@ -412,6 +516,19 @@ def run(stage, out, run_root):
     assert prior['actualResults']['pass'] and prior['actualResults']['actualPassed'] == prior['actualResults']['actualTotal'] == count
    if previous in HELP: assert prior['actualHelp']['helpPrefixMatched'] and prior['actualHelp']['stderrEmpty']
   env['CURRENT_V28_ONLINE_RECOVERY_RECEIPT'] = str(run_root / 'recovery-first-inputs.json')
+ if stage == 'recovery-target':
+  # Fresh same-head closed type/config children precede this original native
+  # selection. No prior target qualification receipt carries into this run.
+  for previous, count in [('types', None), ('recovery-target-config', 4)]:
+   prior = json.loads((run_root / previous / 'receipt.json').read_bytes())
+   assert prior['status'] == 'PASS' and prior['stage'] == previous and prior['head'] == head
+   assert prior['originalChildWaited'] and prior['exitCode'] == 0 and prior['ownedClosureProven'] and prior['noFixtureRemoval']
+   if count is not None:
+    assert prior['actualResults']['pass'] and prior['actualResults']['actualPassed'] == prior['actualResults']['actualTotal'] == count
+  assert hashlib.sha256((ROOT / CASES[stage][0]).read_bytes()).hexdigest() == RECOVERY_TARGET_CASE_SOURCE_SHA256
+  target_proof = run_root / 'recovery-target-inputs.json'
+  assert not target_proof.exists() and not Path(str(target_proof) + '.cancelled-unknown.json').exists()
+  env['CURRENT_V28_ONLINE_RECOVERY_TARGET_RECEIPT'] = str(target_proof)
  if stage == 'nonempty':
   # This case creates its OWN new V26 upload source and inert V28 target. The
   # earlier zero-File target is only a completed same-head pipeline prerequisite.
@@ -455,10 +572,10 @@ def run(stage, out, run_root):
  raw = out / 'original-results.json'
  if stage in HELP: argv = [str(node), str(ROOT / 'dist-node/distribution/server' / HELP[stage][0]), '--help']
  elif stage == 'types': argv = [shutil.which('npm'), 'run', 'typecheck:server']
- elif stage in ('parser', 'maintenance-parser', 'config-unit', 'capture-parser', 'recovery-parser', 'recovery-config'):
+ elif stage in ('parser', 'maintenance-parser', 'config-unit', 'capture-parser', 'recovery-parser', 'recovery-config', 'recovery-target-config'):
   argv = [str(node), str(ROOT / 'node_modules/vitest/vitest.mjs'), 'run', '--config', 'vitest.config.ts', CASES[stage][0],
    '--maxWorkers', '1', '--no-file-parallelism', '--reporter=verbose', '--reporter=json', '--outputFile.json=' + str(raw)]
-  if stage in ('maintenance-parser', 'config-unit', 'capture-parser', 'recovery-config'): argv += ['--testTimeout', '20000', '--hookTimeout', '20000']
+  if stage in ('maintenance-parser', 'config-unit', 'capture-parser', 'recovery-config', 'recovery-target-config'): argv += ['--testTimeout', '20000', '--hookTimeout', '20000']
  else: argv = [str(node), str(ROOT / 'node_modules/vitest/vitest.mjs'), 'run', '--config',
   {'preparation': 'current-v28-post-restore-source-preparation.vitest.config.mts',
    'operators': 'current-v28-post-restore-operators.vitest.config.mts',
@@ -471,9 +588,10 @@ def run(stage, out, run_root):
    'public-package-pair': 'node-public-r2-package-pair.vitest.config.mts',
    'package-corruption': 'node-package-payload-corruption-qualification.vitest.config.mts',
    'package-verified-restart': 'node-package-verified-copy-restart-qualification.vitest.config.mts',
-   'recovery-first': 'current-node-v28-recovery-first.vitest.config.mts'}[stage],
+   'recovery-first': 'current-node-v28-recovery-first.vitest.config.mts',
+   'recovery-target': 'current-node-v28-recovery-target.vitest.config.mts'}[stage],
   '--reporter=verbose', '--reporter=json', '--outputFile.json=' + str(raw)]
- budget = 1050 if stage in ('package-process', 'package-verified-restart') else 20 if stage in HELP else 60 if stage == 'types' else 90 if stage == 'capture-parser' else 180
+ budget = 240 if stage == 'recovery-target' else 1050 if stage in ('package-process', 'package-verified-restart') else 20 if stage in HELP else 60 if stage == 'types' else 90 if stage == 'capture-parser' else 180
  custody = inherited_custody(); child = None; close_attempted = False; close_result = None; close_error = None
  record = {'kind': 'current-v28-post-restore-original-owned-stage/1', 'stage': stage, 'head': head, 'command': argv,
   'status': 'RESERVED_BEFORE_EFFECTS', 'outerSeconds': budget, 'caseMs': 5000 if stage in ('package-http', 'package-process') else 20000 if stage in TIMED_CASE_STAGES else None,
@@ -502,6 +620,11 @@ def run(stage, out, run_root):
   caseTimeoutOverrides=[{'title': CASES[stage][1][0], 'caseMs': 120000}], originalTemplateBeforeAllMs=20000,
   originalKernelDeadlineMs=60000, recoveryOnlyQualified=False,
   scope='Fixed current v28-recovery compiled-main HTTP/login/admin/CSRF; retained-binding genuine one-File source; explicit source fence; separate fresh trusted one-shot shared kernel; original held postpublication ACK unknown cleanup refusal and exact-key verification; strict V5 download/public reupload/target-unavailable preview; no elapsed120s Recovery cadence, same-app business writer drain, admitted target restore/handoff or automatic activation.')
+ if stage == 'recovery-target': record.update(caseMs=20000, hookMs=20000, defaultCaseMs=20000,
+  caseTimeoutOverrides=[{'title': CASES[stage][1][0], 'caseMs': 120000}, {'title': CASES[stage][1][1], 'caseMs': 90000}],
+  originalTemplateBeforeAllMs=20000, originalCases=2, originalKernelDeadlineMs=60000,
+  qualificationSourceSha256=RECOVERY_TARGET_CASE_SOURCE_SHA256, recoveryTargetQualified=False,
+  scope='Current compiled v28-recovery main session/admin/CSRF and separate original trusted one-shot shared-kernel hosts; one real File in each fresh inert target case; original target directory ACK held across real60s deadline, exact unknown reconciliation after source release/CLI restart, exact typed rows/rowids and explicit inert historical handoff; cancelled unknown target and dependent upload remain held after original ACK and CLI restart; no same-app business writer drain, elapsed120s cadence, remote R2 target, full application recovery or activation.')
  def original_close():
   nonlocal close_attempted, close_result, close_error
   if not close_attempted:
@@ -532,6 +655,7 @@ def run(stage, out, run_root):
    record['actualResults'] = census(stage, raw); assert record['actualResults']['pass']
   if stage == 'public-package-pair': record['actualPublicPackagePair'] = public_package_pair_proofs(fixture)
   if stage in ('package-corruption', 'package-verified-restart'): record['actualPackageIntegrity'] = package_integrity_proofs(stage, fixture)
+  if stage == 'recovery-target': record['actualRecoveryTarget'] = recovery_target_proofs(run_root)
   if stage == 'recovery-first':
    proof = json.loads((run_root / 'recovery-first-inputs.json').read_bytes())
    assert proof['kind'] == 'current-node-v28-recovery-only-cli-kernel/1' and proof['sourceFileCount'] == 1
@@ -605,12 +729,13 @@ def run(stage, out, run_root):
    if stage == 'recovery-first': record['recoveryOnlyQualified'] = bool(okay)
    if stage == 'public-package-pair': record['publicPackagePairQualified'] = bool(okay)
    if stage == 'package-verified-restart': record['packageVerifiedRestartQualified'] = bool(okay)
+   if stage == 'recovery-target': record['recoveryTargetQualified'] = bool(okay)
    record['status'] = 'PASS' if okay else 'FAILED_OR_UNRESOLVED'
    save(out / 'receipt.json', record)
   finally:
    for number, handler in handlers.items(): signal.signal(number, handler)
  summary = {'stage': stage, 'status': record['status'], 'receipt': str(out / 'receipt.json')}
- for key in ('actualResults', 'actualHelp', 'actualPublicPackagePair', 'actualPackageIntegrity', 'firstFailure', 'rawCensusFailure', 'originalCloseError', 'floorOrPrivateIdentityFailure'):
+ for key in ('actualResults', 'actualHelp', 'actualPublicPackagePair', 'actualPackageIntegrity', 'actualRecoveryTarget', 'firstFailure', 'rawCensusFailure', 'originalCloseError', 'floorOrPrivateIdentityFailure'):
   if key in record: summary[key] = record[key]
  if not okay and raw.exists() and stage in CASES and close_result is True and record.get('originalChildWaited') is True and 'actualResults' in record and not custody.active(record['finalGroupSnapshot']):
   try:
@@ -618,10 +743,30 @@ def run(stage, out, run_root):
    summary['originalFailedTitles'] = original_failed_diagnostics(stage, results)
    summary['originalNativeFailureDiagnostics'] = original_native_failure_diagnostics(out)
   except (ValueError, KeyError, IndexError) as error: summary['failureSummaryUnavailable'] = type(error).__name__
+ if stage == 'recovery-target':
+  # Keep the full original private receipt. The new workflow uploads only this
+  # bounded projection, including unknown closure as unknown rather than PASS.
+  public = public_recovery_target_receipt(record, summary)
+  try:
+   receipt = out / 'closed-receipt.json'
+   with receipt.open('x', encoding='utf-8') as log:
+    receipt.chmod(0o600); log.write(json.dumps(public, indent=2, sort_keys=True) + '\n')
+   if close_result is True and record.get('originalChildWaited') is True and not custody.active(record['finalGroupSnapshot']):
+    diagnostic = out / 'closed-diagnostics.log'
+    with diagnostic.open('x', encoding='utf-8') as log:
+     diagnostic.chmod(0o600); log.write(json.dumps(public, indent=2, sort_keys=True) + '\n')
+  except OSError as error:
+   okay = False; record.update(status='FAILED_OR_UNRESOLVED', recoveryTargetQualified=False, publicDiagnosticFailureKind=type(error).__name__)
+   save(out / 'receipt.json', record)
+   public = public_recovery_target_receipt(record, summary)
+   # Replace only this new public projection after a failed log publication;
+   # the original stage receipt/owner outcomes remain independently retained.
+   save(out / 'closed-receipt.json', public)
+  summary = public
  print(json.dumps(summary), flush=True)
  return 0 if okay else 1
 
 if __name__ == '__main__':
- parser = argparse.ArgumentParser(); parser.add_argument('--stage', choices=('types', 'parser', 'capture-parser', 'preparation', 'operators', 'maintenance-parser', 'maintenance', 'config-unit', 'main', 'nonempty', 'r2pair', 'package-http', 'package-process', 'public-package-pair', 'package-corruption', 'package-verified-restart', 'recovery-parser', 'recovery-config', 'recovery-first', *HELP), required=True)
+ parser = argparse.ArgumentParser(); parser.add_argument('--stage', choices=('types', 'parser', 'capture-parser', 'preparation', 'operators', 'maintenance-parser', 'maintenance', 'config-unit', 'main', 'nonempty', 'r2pair', 'package-http', 'package-process', 'public-package-pair', 'package-corruption', 'package-verified-restart', 'recovery-parser', 'recovery-config', 'recovery-first', 'recovery-target-config', 'recovery-target', *HELP), required=True)
  parser.add_argument('--run-root', type=Path, required=True); args = parser.parse_args()
  raise SystemExit(run(args.stage, args.run_root / args.stage, args.run_root))
