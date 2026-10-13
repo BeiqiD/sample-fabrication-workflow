@@ -1,5 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
-import { spawn, type ChildProcess } from 'node:child_process';
+import { describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
 import { lstat, readFile, realpath, writeFile } from 'node:fs/promises';
 import { isAbsolute, join, resolve } from 'node:path';
@@ -8,49 +7,12 @@ import { NODE_RECOVERY_ARCHIVE_OPTIONS, nodeRecoveryArchiveSource } from '../../
 import { validateV28SystemBackupArchiveCandidate } from '../../shared/contracts/system-backup-v5-archive-admission';
 import { prepareGenuineFabubloxBaseline } from '../collaboration/current-final-fabublox-genuine-process.qualification-support';
 import { canonicalFileObject, retainedCanonicalFileCase } from '../collaboration/current-v28-canonical-comment-file.qualification-support';
+import { runCurrentCli } from './current-v28-backup-cli.qualification-support';
 
 // New source preparation only. Root must first build/admit the CURRENT fixed
 // four-entry distribution; no historical V5 archive/target or producer result
 // is reused. Its executable is the actual restore CLI, not a mocked restorer.
-interface CliOwner {
-  child?: ChildProcess; constructionAttempted: boolean; constructionFailure?: unknown;
-  originalClose?: Promise<{ code: number | null; signal: NodeJS.Signals | null; stdout: string; stderr: string }>;
-}
-const cliOwners = new Set<CliOwner>();
 function ensure(value: unknown): asserts value { if (!value) throw new Error('Current producer and bundled restoration preparation unavailable'); }
-afterEach(() => {
-  if (cliOwners.size) throw new AggregateError([...cliOwners].map(owner => owner.originalClose ?? owner.constructionFailure),
-    'Original bundled restoration ownership remains unproven');
-});
-async function runCurrentCli(distribution: string, entry: 'installation-cli.cjs' | 'restore-v28-cli.cjs', argv: readonly string[]) {
-  const owner: CliOwner = { constructionAttempted: false }; cliOwners.add(owner);
-  owner.constructionAttempted = true;
-  try {
-    owner.child = spawn(process.execPath, [join(distribution, 'server', entry), ...argv], { stdio: ['ignore', 'pipe', 'pipe'] });
-  } catch (error) { owner.constructionFailure = error; throw error; }
-  const child = owner.child;
-  owner.originalClose = new Promise((done, fail) => {
-    let stdout = '', stderr = '', outputBytes = 0, outputFailure: Error | undefined, spawnError: unknown;
-    child.stdout!.setEncoding('utf8'); child.stderr!.setEncoding('utf8');
-    const capture = (value: string, standardOutput: boolean) => {
-      outputBytes += Buffer.byteLength(value);
-      if (outputBytes > 16 * 1024) { outputFailure ??= new Error('Bundled CLI diagnostic budget exceeded'); return; }
-      if (standardOutput) stdout += value; else stderr += value;
-    };
-    child.stdout!.on('data', (value: string) => { capture(value, true); });
-    child.stderr!.on('data', (value: string) => { capture(value, false); });
-    child.once('error', error => { spawnError = error; });
-    // The same original close event settles output/error observations; no
-    // signal, timer, error event or process-looking flag substitutes for it.
-    child.once('close', (code, signal) => {
-      cliOwners.delete(owner);
-      if (spawnError || outputFailure) fail(spawnError ?? outputFailure);
-      else done({ code, signal, stdout, stderr });
-    });
-  });
-  owner.originalClose.then(() => undefined, () => undefined);
-  return await owner.originalClose;
-}
 
 describe('current genuine zero-File V5 source for separate destination operators', () => {
   it('captures all actual typed data before any business POST and restores through the current fixed CLI into a fresh inert destination',
