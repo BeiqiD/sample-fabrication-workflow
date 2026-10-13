@@ -13,6 +13,7 @@ import { assertCanonicalFileOwnersReleased, canonicalFileObject, composeCanonica
   retainedCanonicalFileCase, withCanonicalFileDatabase } from '../collaboration/current-v28-canonical-comment-file.qualification-support.ts';
 import { currentV28RecoveryImageRows, currentV28RecoveryTypedRows } from '../recovery/current-v28-online-recovery.qualification-support.ts';
 import { runCurrentCli } from './current-v28-backup-cli.qualification-support.ts';
+import { observeOriginalSchemaScalar, type SchemaScalarMetric } from './current-v28-bound-schema-scalar-metric.qualification-support.ts';
 
 // Qualification-only fixed phase facts. Invoke the original operation once,
 // attach observation only, and return its exact original promise unchanged.
@@ -20,11 +21,21 @@ import { runCurrentCli } from './current-v28-backup-cli.qualification-support.ts
 type ProducerPhase = 'baseline' | 'producer-and-original-close' | 'compose' | 'login' | 'create'
   | 'upload-response' | 'upload-body' | 'finalize' | 'download-response' | 'download-body' | 'stopped-capture';
 let phaseSequence = 0;
+let schemaObservation: ReturnType<typeof observeOriginalSchemaScalar> | undefined;
+function schemaDifference(before: Readonly<SchemaScalarMetric> | undefined) {
+  if (!before || !schemaObservation) return null;
+  const after = schemaObservation.snapshot();
+  return { matchingPrepares: after.matchingPrepares - before.matchingPrepares,
+    trackedStatements: after.trackedStatements - before.trackedStatements,
+    getCalls: after.getCalls - before.getCalls, getMs: after.getMs - before.getMs,
+    lifetimeMaximumGetMs: after.maximumGetMs, getFailures: after.getFailures - before.getFailures,
+    unavailablePatches: after.unavailablePatches, restorationFailures: after.restorationFailures };
+}
 function originalProducerPhase<T>(phase: ProducerPhase, operation: () => Promise<T>): Promise<T> {
-  const sequence = ++phaseSequence, startedAt = Date.now();
+  const sequence = ++phaseSequence, startedAt = Date.now(), schemaBefore = schemaObservation?.snapshot();
   const report = (outcome: 'begin' | 'acknowledged' | 'failed') => {
     try { console.error('Original bound producer phase: ' + JSON.stringify({ phase, sequence, outcome,
-      startedAtUTC: new Date(startedAt).toISOString(), elapsedMs: Date.now() - startedAt })); }
+      startedAtUTC: new Date(startedAt).toISOString(), elapsedMs: Date.now() - startedAt, schemaScalar: schemaDifference(schemaBefore) })); }
     catch { /* An observation failure does not replace the original outcome. */ }
   };
   report('begin');
@@ -57,7 +68,8 @@ describe('current genuine bound canonical Comment File through compiled strict V
   it('captures one real bound LOCAL attachment without creating a legacy shadow head or changing its typed canonical consumer',
     () => retainedCanonicalFileCase(async () => {
       const baseline = await originalProducerPhase('baseline', () => prepareCanonicalCommentFileBaseline()), submissionId = randomUUID(), itemId = randomUUID();
-      const produced = await originalProducerPhase('producer-and-original-close', () => withCanonicalFileDatabase(baseline.path, async (owner, lease, native, core) => {
+      const produce = () => originalProducerPhase('producer-and-original-close', () => withCanonicalFileDatabase(baseline.path, async (owner, lease, native, core) => {
+        schemaObservation = observeOriginalSchemaScalar(native);
         const app = await originalProducerPhase('compose', () => composeCanonicalCommentFileV28(owner, lease, native, core, baseline)),
           session = await originalProducerPhase('login', () => app.login('alice'));
         const input = { protocol: 'comment-submission/1', id: submissionId, body: 'Genuine bound recovery source',
@@ -85,6 +97,16 @@ describe('current genuine bound canonical Comment File through compiled strict V
           'file_shadow_occurrences', 'file_shadow_closures', 'file_shadow_dependency_versions', 'file_shadow_decisions'];
         return { fileId, names, rows: currentV28RecoveryTypedRows(native, names) };
       }));
+      let produced!: Awaited<ReturnType<typeof produce>>;
+      let originalFailed = false, originalFailure: unknown, restorationFailed = false, restorationFailure: unknown;
+      try { produced = await produce(); } catch (error) { originalFailed = true; originalFailure = error; }
+      try { schemaObservation?.restore(); } catch (error) { restorationFailed = true; restorationFailure = error; }
+      try { console.error('Original bound producer schema scalar final: ' + JSON.stringify(schemaObservation?.snapshot() ?? null)); }
+      catch { /* Observation does not replace the original outcome. */ }
+      if (!restorationFailed) schemaObservation = undefined;
+      if (restorationFailed) throw originalFailed
+        ? new AggregateError([originalFailure, restorationFailure], 'Original producer and schema observer restoration failed') : restorationFailure;
+      if (originalFailed) throw originalFailure;
       assertCanonicalFileOwnersReleased();
       const configuration = join(baseline.root, 'bound-current-capture.json'), archive = join(baseline.root, 'genuine-bound-original-v5.zip');
       await writeFile(configuration, JSON.stringify({ schema: 'stopped-local-v28-capture/1', databasePath: baseline.path,
