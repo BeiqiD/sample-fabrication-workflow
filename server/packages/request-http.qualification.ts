@@ -28,13 +28,30 @@ async function archive(){
   expect(bytes.byteLength).toBe(measured.byteSize);expect(hash(bytes)).toBe(measured.sha256);
   return{value,bytes,measured};
 }
-async function drain(f:Fixture,jobId:string,expected:string){
+type PackageDiagnosticPhase='import_accept'|'import_drain'|'publish_graph'|'export_accept'|'export_drain'|'download'|'validate';
+type PackageDiagnosticEvent='start'|'end'|'state'|'step_start'|'step';
+const packageDiagnosticStates=new Set(['awaiting_upload','queued','running','preview','completed','failed','cancel_requested','cancelled','paused']);
+const packageDiagnosticSteps=new Set(['idle','disabled','paused','cleaned','preview','measured','file_verified','completed','moved','unsupported']);
+/** Fixed public control facts only; IDs, records, bytes and credentials stay private. */
+function packageDiagnostic(phase:PackageDiagnosticPhase,event:PackageDiagnosticEvent,started:number,
+  progress?:{iteration:number;state:string;step?:string}){
+  const elapsed=Math.min(999999999,Math.max(0,Math.trunc(performance.now()-started)));
+  const state=progress&&(packageDiagnosticStates.has(progress.state)?progress.state:'other');
+  const step=progress&&(progress.step===undefined?'none':packageDiagnosticSteps.has(progress.step)?progress.step:'other');
+  console.info(`PACKAGE_PHASE_V1 ${phase} ${event} ms=${elapsed}${progress?` i=${progress.iteration} state=${state} step=${step}`:''}`);
+}
+async function drain(f:Fixture,jobId:string,expected:string,diagnostic?:{phase:'import_drain'|'export_drain';started:number}){
   for(let i=0;i<36;i++){
     const before=checkedResearchJobStatus((await f.request("GET",`${prefix}/jobs/${jobId}`)).value);
+    const sampled=diagnostic&&[0,4,8,16,24,35].includes(i);
+    if(diagnostic&&(sampled||before.state===expected))packageDiagnostic(diagnostic.phase,'state',diagnostic.started,{iteration:i,state:before.state});
     if(before.state===expected)return before;
     // A real independently invoked original emitter; GET/status above never
     // claims work. This proves dispatcher independence, not elapsed120s cadence.
-    const step=await f.dispatchJobsOnce();expect(step.outcome).not.toBe("paused");
+    if(diagnostic&&sampled)packageDiagnostic(diagnostic.phase,'step_start',diagnostic.started,{iteration:i,state:before.state});
+    const step=await f.dispatchJobsOnce();
+    if(diagnostic&&sampled)packageDiagnostic(diagnostic.phase,'step',diagnostic.started,{iteration:i,state:before.state,step:step.outcome});
+    expect(step.outcome).not.toBe("paused");
   }
   throw new Error("Bounded original Package dispatcher did not reach its checkpoint");
 }
@@ -215,11 +232,13 @@ describe("genuine nonempty Node Package HTTP and independent executor",()=>{
     input={requestId:randomUUID(),uploadJobId:uploadId,anotherCopy:false,expectedRolePolicyRevision:preview.rolePolicyRevision!};released(f);
   }));
   it("copies all15 verified Files through HTTP, publishes one typed graph and downloads its captured native ZIP",async()=>{
-    const accepted=await f.request("POST",prefix+"/imports",input);expect(accepted.status).toBe(202);
-    const receipt=checkedResearchRequestReceipt(accepted.value),job=await drain(f,receipt.job.id,"completed");
+    const diagnosticStarted=performance.now();packageDiagnostic('import_accept','start',diagnosticStarted);
+    const accepted=await f.request("POST",prefix+"/imports",input);packageDiagnostic('import_accept','end',diagnosticStarted);expect(accepted.status).toBe(202);
+    const receipt=checkedResearchRequestReceipt(accepted.value);packageDiagnostic('import_drain','start',diagnosticStarted);
+    const job=await drain(f,receipt.job.id,"completed",{phase:'import_drain',started:diagnosticStarted});packageDiagnostic('import_drain','end',diagnosticStarted);
     expect(job.progress).toMatchObject({completedFiles:15,totalFiles:15});expect(job.result?.roots.length).toBe(2);
     expect(count(f.native,"local_admin_grants")).toBe(0);
-    typedGraph(f,job.id,data.value.package);
+    packageDiagnostic('publish_graph','start',diagnosticStarted);typedGraph(f,job.id,data.value.package);packageDiagnostic('publish_graph','end',diagnosticStarted);
     const files=f.native.prepare(`SELECT p.logical_file_id,p.result_file_id,p.purpose,p.sha256,p.byte_size,a.original_name,a.mime_type
       FROM research_package_files p LEFT JOIN assets a ON a.id=p.candidate_asset_id
       WHERE p.job_id=? AND p.entry_kind='payload' ORDER BY p.logical_file_id`).all(job.id);
@@ -234,13 +253,17 @@ describe("genuine nonempty Node Package HTTP and independent executor",()=>{
     }
     const replay=checkedResearchRequestReceipt((await f.request("POST",prefix+"/imports",input)).value);expect(replay.job.id).toBe(job.id);
     const roots=job.result!.roots;
-    const exportAnswer=await f.request("POST",prefix+"/jobs",{requestId:randomUUID(),kind:"data_package",roots});expect(exportAnswer.status).toBe(202);
-    const exported=await drain(f,checkedResearchRequestReceipt(exportAnswer.value).job.id,"completed");
+    packageDiagnostic('export_accept','start',diagnosticStarted);
+    const exportAnswer=await f.request("POST",prefix+"/jobs",{requestId:randomUUID(),kind:"data_package",roots});packageDiagnostic('export_accept','end',diagnosticStarted);expect(exportAnswer.status).toBe(202);
+    packageDiagnostic('export_drain','start',diagnosticStarted);
+    const exported=await drain(f,checkedResearchRequestReceipt(exportAnswer.value).job.id,"completed",{phase:'export_drain',started:diagnosticStarted});packageDiagnostic('export_drain','end',diagnosticStarted);
     expect(exported.output?.available).toBe(true);
-    const download=await f.request("GET",`${prefix}/jobs/${exported.id}/download`);
+    packageDiagnostic('download','start',diagnosticStarted);
+    const download=await f.request("GET",`${prefix}/jobs/${exported.id}/download`);packageDiagnostic('download','end',diagnosticStarted);
     expect(download.status).toBe(200);expect(download.value).toBeInstanceOf(Uint8Array);
     const body=download.value as Uint8Array;
     expect(body.byteLength).toBe(exported.output!.byteSize);expect(hash(body)).toBe(exported.output!.sha256);
+    packageDiagnostic('validate','start',diagnosticStarted);
     const validated=await validateStoreArchive(sourceFromBlob(new Blob([body.slice().buffer as ArrayBuffer])),{expectedSha256:exported.output!.sha256});
     expect(validated.entries.filter(entry=>entry.path.startsWith('files/'))).toHaveLength(15);
     const exportedPackage=await validateResearchPackage(JSON.parse(new TextDecoder().decode(validated.metadata.get('manifest.json')!)),
@@ -263,6 +286,7 @@ describe("genuine nonempty Node Package HTTP and independent executor",()=>{
       expect(payload.byteLength).toBe(declaration.byteSize);expect(hash(payload)).toBe(declaration.sha256);
     }
 
+    packageDiagnostic('validate','end',diagnosticStarted);
     expect(count(f.native,"research_package_jobs","kind='import' AND state='completed'")).toBe(1);
     expect(count(f.native,"system_recovery_write_leases","kind='scheduled'")).toBeGreaterThan(15);
     expect(f.native.prepare("SELECT actor FROM research_package_jobs WHERE id=?").get(job.id)).toEqual({actor});released(f);

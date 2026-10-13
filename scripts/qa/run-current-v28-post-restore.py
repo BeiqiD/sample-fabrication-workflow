@@ -104,9 +104,12 @@ def original_diagnostic_lines(message):
  source_path = r'(?:(?:file://)?' + re.escape(str(ROOT)) + r'/|(?:server|shared|worker|scripts|test|node_modules)/)[A-Za-z0-9_./@+-]+\.(?:[cm]?[jt]sx?|py):\d+(?::\d+)?'
  location = re.compile(r'\s*(?:at (?:[A-Za-z0-9_.$<> ]+\()?|❯ )' + source_path + r'\)?')
  timeout = re.compile(r'Error: (?:Test|Hook) timed out in \d+ms\.?')
- registration, substantive = [], []; is_registration = False
+ package_phase = re.compile(r'PACKAGE_PHASE_V1 (?:import_accept|import_drain|publish_graph|export_accept|export_drain|download|validate) (?:start|end) ms=\d{1,9}|PACKAGE_PHASE_V1 (?:import_drain|export_drain) (?:state|step_start|step) ms=\d{1,9} i=(?:[0-9]|[12][0-9]|3[0-5]) state=(?:awaiting_upload|queued|running|preview|completed|failed|cancel_requested|cancelled|paused|other) step=(?:none|idle|disabled|paused|cleaned|preview|measured|file_verified|completed|moved|unsupported|other)')
+ registration, substantive, phases = [], [], []; is_registration = False
  for line in re.sub(r'\x1b\[[0-9;]*[A-Za-z]', '', message).splitlines():
-  if line == 'Error: STACK_TRACE_ERROR':
+  if package_phase.fullmatch(line):
+   phases.append(line)
+  elif line == 'Error: STACK_TRACE_ERROR':
    is_registration = True; registration.append(line)
   elif assertion.fullmatch(line) or scalar_diff.fullmatch(line) or timeout.fullmatch(line) or line == 'Error: Bounded original Package dispatcher did not reach its checkpoint':
    is_registration = False; substantive.append(line)
@@ -115,6 +118,9 @@ def original_diagnostic_lines(message):
    substantive.append(line.split(':', 1)[0] + ': [text withheld; original private result retained]')
   elif location.fullmatch(line):
    (registration if is_registration else substantive).append(line)
+ # Preserve only the last16 closed-grammar public phase facts within the
+ # existing diagnostic byte caps; parsing/printing stays after original close.
+ substantive.extend(phases[-16:])
  return '\n'.join(registration), '\n'.join(substantive)
 
 def bounded_original_diagnostic(index, text, remaining):
