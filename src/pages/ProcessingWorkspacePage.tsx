@@ -88,6 +88,8 @@ export function ProcessingWorkspacePage() {
   const transitionDialogRef = useRef<HTMLElement>(null);
   const processFamilySearchRef = useRef<HTMLInputElement>(null);
   const transitionCancelRef = useRef<HTMLButtonElement>(null);
+  const transitionCompareRef = useRef<HTMLButtonElement>(null);
+  const returnToIncomingCompare = useRef(false);
   const transitionReturnFocusRef = useRef<HTMLElement>(null);
   const returnTransitionFocus = useRef(false);
   const [showSamplePicker, setShowSamplePicker] = useState(false);
@@ -204,6 +206,7 @@ export function ProcessingWorkspacePage() {
     setRunStartFailure(owner && message ? { owner, value: message } : null);
   }
   function closeTransition() {
+    returnToIncomingCompare.current = false;
     currentPreviewOwner.current = null;
     returnTransitionFocus.current = true;
     setTransition(null);
@@ -213,7 +216,8 @@ export function ProcessingWorkspacePage() {
   }
   useModalDialog({
     dialogRef: transitionDialogRef,
-    initialFocusRef: transitionMode === "start" ? processFamilySearchRef : transitionCancelRef,
+    initialFocusRef: returnToIncomingCompare.current ? transitionCompareRef
+      : transitionMode === "start" ? processFamilySearchRef : transitionCancelRef,
     returnFocusRef: transitionReturnFocusRef,
     enabled: Boolean(sample && transitionMode && !runStartPreview),
     blocked: transitionBusy,
@@ -498,6 +502,7 @@ export function ProcessingWorkspacePage() {
   }
 
   function openTransition(mode: TransitionMode) {
+    returnToIncomingCompare.current = false;
     transitionReturnFocusRef.current = workspaceRef.current?.querySelector<HTMLElement>(mode === "start"
       ? 'button[aria-label="Start run"]' : 'button[aria-label="Run actions"]') ?? null;
     returnTransitionFocus.current = false;
@@ -714,7 +719,8 @@ export function ProcessingWorkspacePage() {
         }}
         onConfirm={() => void deleteSelectedRun()}
       />}
-      {transitionMode && !runStartPreview && <div className="run-start-dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !transitionBusy) closeTransition(); }}>
+      {transitionMode && <div className="run-start-dialog-backdrop" role="presentation"
+        hidden={Boolean(runStartPreview)} style={runStartPreview ? { display: "none" } : undefined} onMouseDown={(event) => { if (event.target === event.currentTarget && !transitionBusy) closeTransition(); }}>
         <section ref={transitionDialogRef} className="run-start-dialog transition-template-dialog" role="dialog" aria-modal="true" aria-labelledby="transition-template-title">
           <div className="run-start-dialog-heading"><div><p className="dialog-kicker">{transitionMode === "start" ? processRuns.length ? "Start new process" : "Start first process" : transitionMode === "reopen" ? "Reopen process run" : "Update future plan"}</p><h2 id="transition-template-title">Choose the incoming process template</h2></div><button type="button" className="drawer-close" disabled={transitionBusy} onClick={closeTransition} aria-label="Close"><DialogCloseIcon /></button></div>
           <p className="muted">{transitionMode === "start" ? "This creates an independent process run. Earlier runs remain completed." : "Only a newer version of the same process template can continue this run; completed steps remain frozen."}</p>
@@ -752,10 +758,10 @@ export function ProcessingWorkspacePage() {
           {!processVersionsLoading && !processVersions.length && transitionMode !== "start" && <p className="warning-card compact-warning">Import a newer version of this process template before updating or reopening the run.</p>}
           {(transitionMode === "update" || transitionMode === "reopen") && planPreview && <div className={`transition-plan-summary ${planPreview.compatible ? "" : "has-conflict"}`}><strong>{planPreview.compatible ? `${planPreview.preservedCount} linked · ${planPreview.additionCount} new · ${planPreview.supersededCount} replaced` : "This version cannot be applied"}</strong><small>{planPreview.blockingReason || `${planPreview.skippedAdditionCount ? `${planPreview.skippedAdditionCount} inserted before the execution boundary will be skipped · ` : ""}${planPreview.historicalDifferences.length} historical difference${planPreview.historicalDifferences.length === 1 ? "" : "s"} retained`}</small></div>}
           {runStartError && <p className="error-banner">{runStartError}</p>}
-          <div className="form-actions"><button ref={transitionCancelRef} type="button" className="button" disabled={transitionBusy} onClick={closeTransition}>Cancel</button><button type="button" className="button primary" disabled={!templateVersionId || transitionBusy || Boolean(transitionMode !== "start" && !planPreview?.compatible)} onClick={() => void (transitionMode === "start" ? beginProcessRun() : planPreview && previewOwner && setRunStartPreview({ owner: previewOwner, value: planPreview.substrateTransition }))}>{transitionBusy ? "Loading…" : "Compare structures"}</button></div>
+          <div className="form-actions"><button ref={transitionCancelRef} type="button" className="button" disabled={transitionBusy} onClick={closeTransition}>Cancel</button><button ref={transitionCompareRef} type="button" className="button primary" disabled={!templateVersionId || transitionBusy || Boolean(transitionMode !== "start" && !planPreview?.compatible)} onClick={() => void (transitionMode === "start" ? beginProcessRun() : planPreview && previewOwner && setRunStartPreview({ owner: previewOwner, value: planPreview.substrateTransition }))}>{transitionBusy ? "Loading…" : "Compare structures"}</button></div>
         </section>
       </div>}
-      {runStartPreview && transitionMode && <StartProcessRunDialog preview={runStartPreview} action={transitionMode} starting={transitionBusy} error={runStartError} onCancel={() => { setRunStartPreview(null); setRunStartError(""); }} onConfirm={() => void confirmProcessTransition()} />}
+      {runStartPreview && transitionMode && <StartProcessRunDialog preview={runStartPreview} action={transitionMode} starting={transitionBusy} error={runStartError} onCancel={() => { returnToIncomingCompare.current = true; setRunStartPreview(null); setRunStartError(""); }} onConfirm={() => void confirmProcessTransition()} />}
     </section>
   </div>;
 }
