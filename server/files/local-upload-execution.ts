@@ -5,11 +5,12 @@ import { consumeLocalFabubloxExecutionPermissionV28Candidate, ownedLocalFabublox
 import type { PreparedFabubloxPayload } from "../../worker/imports/fabublox-payload";
 import { localAuthenticationIdentityAuthority } from "../auth/local-auth-http";
 import { captureInstalledIdentityExecutionOwner } from "../auth/installed-identity-execution-owner";
-import { ownedLocalVolumeIdentityV28Candidate } from "../storage/local-volume-profile-opening";
+import { ownedLocalVolumeIdentityV28Candidate, assertLocalVolumeIdentityPreparationV28Candidate } from "../storage/local-volume-profile-opening";
 import { consumeLocalCommentExecutionPermissionV28Candidate, ownedLocalCommentPermissionV28Candidate,
   type LocalCommentPermissionV28Candidate } from "./local-comment-permission-v28-candidate";
 import type { LocalVolumeProfileOpeningV28Candidate } from "../storage/local-volume-profile-opening-v28-candidate";
-import { runSqliteAdmittedBatch, asAdmittedJobSqlDatabase, joinSqliteBatchAdmissions } from "../sqlite";
+import { runSqliteAdmittedBatch, asAdmittedJobSqlDatabase, asLocalPackageV28JobSqlDatabase, joinSqliteBatchAdmissions,
+  type SqliteBatchAdmission, type SqliteCapability } from "../sqlite";
 import { PACKAGE_HTTP_ROUTES } from "../../worker/packages/routes-core";
 import type { JobSqlDatabase } from "../../worker/files/jobs/sql-repository";
 import { HTTPException } from "hono/http-exception";
@@ -53,7 +54,25 @@ export interface LocalUploadExecution {
   openRead(input: Readonly<{ fileId: string | null; purpose: FilePurpose }>): Promise<OwnedPublishedFileRead>;
 }
 const executions = new WeakMap<LocalUploadExecution, Readonly<{ opening: LocalVolumeProfileOpening; request: Request; actor: string;
-  packageRequest: boolean; assertHeld(): void; assertPhysicalHeld(): void }>>();
+  packageRequest: boolean; v28Package?: true; assertHeld(): void; assertPhysicalHeld(): void }>>();
+declare const localPackageV28JobSqlScopeBrand: unique symbol;
+export interface LocalPackageV28JobSqlScope { readonly [localPackageV28JobSqlScopeBrand]: true }
+const packageSqlScopes = new WeakMap<LocalPackageV28JobSqlScope, Readonly<{
+  execution: LocalUploadExecution; opening: LocalVolumeProfileOpening; request: Request; actor: string;
+  database: SqliteCapability; admission: () => SqliteBatchAdmission;
+  fullFence: Readonly<{ assertHeld(): void }>; preparation: Readonly<{ assertHeld(): void }>;
+}>>();
+/** Only the actual consumed V28 Package frame can mint this scope. A clone,
+ * generic view or another Request/opening cannot attach or rebind eligibility.
+ * The actual current execution still owns every SQL issue and first close. */
+export function ownedLocalPackageV28JobSqlScope(scope: LocalPackageV28JobSqlScope,
+  execution: LocalUploadExecution, opening: LocalVolumeProfileOpening) {
+  const original = packageSqlScopes.get(scope), issued = executions.get(execution);
+  if (!original || !issued?.v28Package || original.execution !== execution || original.opening !== opening
+    || issued.opening !== opening || issued.request !== original.request || issued.actor !== original.actor)
+    throw new Error("Original V28 Package preparation scope is unavailable");
+  original.preparation.assertHeld(); return original;
+}
 /** Additional internal composer check: a copied callback bag cannot stand in
  * for an original currently held authenticated execution. No new grant issues. */
 export function assertLocalUploadExecutionOwner(execution: LocalUploadExecution, opening: LocalVolumeProfileOpening): void {
@@ -454,7 +473,7 @@ function createOwnedLocalUploadExecution(options: {
             },
             ...(packageRequest ? {
               packageDatabase(authorities: readonly LocalVolumeProfileAuthority[] = []) {
-                return asAdmittedJobSqlDatabase(owner.database, () => {
+                const originalAdmission = () => {
                   executionLifetime.assertHeld();
                   const selected = [...new Set(authorities)];
                   if (selected.length > 4) throw new Error("Package Request profile check budget exceeded");
@@ -465,7 +484,18 @@ function createOwnedLocalUploadExecution(options: {
                   const requestAdmission = admitted(lease);
                   return profileChecks.length ? joinSqliteBatchAdmissions(owner.database, [requestAdmission,
                     createSqliteBatchAdmission(owner.database, profileChecks)]) : requestAdmission;
-                }, executionLifetime);
+                };
+                if (!packagePermission) return asAdmittedJobSqlDatabase(owner.database, originalAdmission, executionLifetime);
+                executionLifetime.assertHeld();
+                const scope = Object.freeze({}) as LocalPackageV28JobSqlScope;
+                const fullFence = Object.freeze({ assertHeld: executionLifetime.assertHeld.bind(executionLifetime) });
+                const preparation = Object.freeze({ assertHeld() {
+                  if (closing || !lease) throw new Error("Original V28 Package preparation lifetime is unavailable");
+                  assertLocalVolumeIdentityPreparationV28Candidate(opening, authentication, admission);
+                } });
+                packageSqlScopes.set(scope, Object.freeze({ execution, opening, request, actor, database: owner.database,
+                  admission: originalAdmission, fullFence, preparation }));
+                return asLocalPackageV28JobSqlDatabase(scope, execution, opening);
               },
               packageSettlementDatabase() {
                 const retained = { assertHeld() {
@@ -569,6 +599,7 @@ function createOwnedLocalUploadExecution(options: {
             },
           });
           executions.set(execution, Object.freeze({ opening, request, actor, packageRequest, assertHeld: executionLifetime.assertHeld,
+            ...(packagePermission ? { v28Package: true as const } : {}),
             assertPhysicalHeld() {
               owner.assertCurrent();
               if (closing || !lease) throw new Error("The original local upload source lifetime has closed");

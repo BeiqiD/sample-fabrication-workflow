@@ -72,6 +72,7 @@ const profileAuthorities = new WeakMap<LocalVolumeProfileAuthority, ProfileAutho
 const authorityDatabases = new WeakMap<NativeFileAuthoritySqlDatabase, ReadonlySet<LocalVolumeProfileAuthority>>();
 const owners = new WeakMap<LocalVolumeProfileOpening, LocalVolumeProfileOwner>();
 const physicalAssertions = new WeakMap<LocalVolumeProfileOpening, () => void>();
+const preparationAssertions = new WeakMap<LocalVolumeProfileOpening, () => void>();
 interface V28IdentityOwner {
   readonly owner: LocalVolumeProfileOwner;
   readonly authentication: object;
@@ -210,6 +211,13 @@ export function ownedLocalVolumeIdentityV28Candidate(opening: LocalVolumeProfile
   const selected = v28IdentityOwner(opening, authentication, admission);
   selected.owner.assertCurrent(); return selected.identity;
 }
+/** Pure statement construction only. This private opening/core/Native/lease
+ * tuple cannot issue SQL or substitute for the full current execution proof. */
+export function assertLocalVolumeIdentityPreparationV28Candidate(opening: LocalVolumeProfileOpening,
+  authentication: object, admission: ReviewedInstallationAdmission): void {
+  v28IdentityOwner(opening, authentication, admission);
+  const preparation = preparationAssertions.get(opening); if (!preparation) unavailable(); preparation();
+}
 /** No caller callback enters this closed all-read guard. Actual opening state
  * and physical/native binding remain current, while equivalent registered
  * identity owners share one fresh original schema/ledger proof per invocation. */
@@ -252,6 +260,10 @@ function createCatalogLocalVolumeProfileOpening(options: LocalVolumeProfileOwner
   if (byId.size !== descriptors.length || byProfile.size !== descriptors.length) unavailable();
   let closed = false, closing: Promise<void> | undefined;
   const records = new Set<RecordOwner>();
+  function assertPreparing() {
+    if (closed) unavailable();
+    assertLinuxWriterLeaseBinding(writerLease, database, nativeDatabase); database.primary();
+  }
   function assertPhysicalCurrent() {
     if (closed) unavailable();
     assertLinuxWriterLeaseBinding(writerLease, database, nativeDatabase);
@@ -435,5 +447,6 @@ function createCatalogLocalVolumeProfileOpening(options: LocalVolumeProfileOwner
       closing = (async () => { await Promise.all([...records].map(dispose)); })(); return closing;
     },
   });
-  owners.set(opening, owner); physicalAssertions.set(opening, assertPhysicalCurrent); return opening;
+  owners.set(opening, owner); physicalAssertions.set(opening, assertPhysicalCurrent);
+  preparationAssertions.set(opening, assertPreparing); return opening;
 }
