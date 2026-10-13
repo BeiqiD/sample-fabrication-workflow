@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.worker.json",
+  "compilerOptions": { "types": ["node", "@cloudflare/workers-types"], "noUnusedLocals": true, "noUnusedParameters": true },
+  "include": ["scripts/qa/worker-v5-local-r2-payload-native.qualification.ts"], "exclude": []
+}
