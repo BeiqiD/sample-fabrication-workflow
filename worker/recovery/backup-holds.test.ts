@@ -20,7 +20,17 @@ it("preserves frozen seven-source UNION results on actual populated 22-migration
         native.exec("PRAGMA foreign_keys=ON");
         for (const migration of RECOVERY_MIGRATIONS) {
           const sql = readFileSync(new URL(`../../migrations/${migration.name}`, import.meta.url), "utf8");
-          expect(createHash("sha256").update(sql).digest("hex")).toBe(migration.sha256); native.exec(sql);
+          expect(createHash("sha256").update(sql).digest("hex")).toBe(migration.sha256);
+          if (migration.name !== "0001_v3_baseline.sql") { native.exec(sql); continue; }
+          // Only the empty baseline batches its original DDL commits. Later
+          // migration PRAGMA/rebuild boundaries retain original autocommit.
+          native.exec("BEGIN");
+          try { native.exec(sql); native.exec("COMMIT"); }
+          catch (error) {
+            try { native.exec("ROLLBACK"); }
+            catch (rollbackError) { throw new AggregateError([error, rollbackError], "Fixture baseline and rollback failed"); }
+            throw error;
+          }
         }
         expect(native.prepare("SELECT count(*) n FROM sqlite_schema WHERE name='local_accounts'").get()?.n).toBe(0);
         native.prepare("INSERT INTO samples(id,code,title,created_at,updated_at) VALUES('kept','KEPT','Retained',?,?)").run(at, at);
