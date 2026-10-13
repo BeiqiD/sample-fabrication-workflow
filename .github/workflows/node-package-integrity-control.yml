@@ -1,0 +1,67 @@
+name: Node Package original integrity faults
+
+on:
+  push:
+    branches: [codex/node-package-integrity-control]
+
+permissions:
+  contents: read
+
+jobs:
+  genuine-package-integrity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      NO_COLOR: '1'
+      FORCE_COLOR: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+          cache: npm
+      - name: Install the exact committed dependencies
+        run: npm ci
+      - name: Reserve a fresh private original-owned integrity evidence root
+        shell: bash
+        run: |
+          integrity_run_root="$HOME/.node-package-integrity-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir -m 700 "$integrity_run_root"
+          printf 'PACKAGE_INTEGRITY_RUN_ROOT=%s\n' "$integrity_run_root" >> "$GITHUB_ENV"
+      - name: Check full current server and runtime types
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage types --run-root "$PACKAGE_INTEGRITY_RUN_ROOT"
+      - name: Build the fresh current Node client and fixed distribution
+        shell: bash
+        run: |
+          set -o pipefail
+          test ! -e dist-node
+          mkdir -m 700 "$PACKAGE_INTEGRITY_RUN_ROOT/producer"
+          npm run build:node-client 2>&1 | tee "$PACKAGE_INTEGRITY_RUN_ROOT/producer/node-client.log"
+          node scripts/build-node.mjs 2>&1 | tee "$PACKAGE_INTEGRITY_RUN_ROOT/producer/node-distribution.log"
+          node dist-node/distribution/tools/verify-node-distribution.mjs dist-node/distribution --runtime 2>&1 | tee "$PACKAGE_INTEGRITY_RUN_ROOT/producer/embedded-verifier.log"
+      - name: Two original final-payload CRC-valid corruption refusal cases
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage package-corruption --run-root "$PACKAGE_INTEGRITY_RUN_ROOT"
+      - name: One original verified-copy process restart at the unchanged120s cadence
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage package-verified-restart --run-root "$PACKAGE_INTEGRITY_RUN_ROOT"
+      - name: Preserve original closed-owner receipts and logs on every outcome
+        if: ${{ always() && env.PACKAGE_INTEGRITY_RUN_ROOT != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-package-integrity-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          include-hidden-files: true
+          path: |
+            ${{ env.PACKAGE_INTEGRITY_RUN_ROOT }}/types/receipt.json
+            ${{ env.PACKAGE_INTEGRITY_RUN_ROOT }}/types/original*.log
+            ${{ env.PACKAGE_INTEGRITY_RUN_ROOT }}/producer/*.log
+            ${{ env.PACKAGE_INTEGRITY_RUN_ROOT }}/package-corruption/receipt.json
+            ${{ env.PACKAGE_INTEGRITY_RUN_ROOT }}/package-corruption/original*.log
+            ${{ env.PACKAGE_INTEGRITY_RUN_ROOT }}/package-verified-restart/receipt.json
+            ${{ env.PACKAGE_INTEGRITY_RUN_ROOT }}/package-verified-restart/original*.log
+            ${{ env.PACKAGE_INTEGRITY_RUN_ROOT }}/private-fixture/.node-same-app-local-jobs-*/case-*/producer-original-main.*.log
+            ${{ env.PACKAGE_INTEGRITY_RUN_ROOT }}/private-fixture/.node-same-app-local-jobs-*/case-*/verified-copy-original-main.*.log
+            ${{ env.PACKAGE_INTEGRITY_RUN_ROOT }}/private-fixture/.node-same-app-local-jobs-*/case-*/restarted-original-main.*.log

@@ -15,6 +15,8 @@ PACKAGE_BRANCH = 'refs/heads/codex/node-research-package-http'
 PACKAGE_PROCESS_BRANCH = 'refs/heads/codex/node-package-process'
 RECOVERY_BRANCH = 'refs/heads/codex/node-online-recovery'
 RECOVERY_BASE = 'ba1c92daa454d5d6b33f5723eff4268f9175ca31'
+INTEGRITY_BRANCH = 'refs/heads/codex/node-package-integrity-control'
+INTEGRITY_BASE = '0bc6b12a1d0f89a86155fabaa6ffde0c2d9032ec'
 PUBLIC_PACKAGE_PAIR_BRANCH = 'refs/heads/codex/node-r2-package-pair'
 PUBLIC_PACKAGE_PAIR_BASE = 'ba1c92daa454d5d6b33f5723eff4268f9175ca31'
 PACKAGE_PROCESS_BASE = '4776095f4351c2d108f485600bd43933d7dc69c6'
@@ -23,14 +25,19 @@ NONEMPTY_BASE = 'ab4f6cfa9721a5bf7fdcd8e7940a916ea8d520cf'
 R2_PAIR_BRANCH = 'refs/heads/codex/portable-v26-r2-node-backup-one'
 R2_PAIR_BASE = '33be3642ed8e72efba8269a4ea718b37b0eafd44'
 MAINTENANCE_BASE = 'ebc19cf3f61b12625bc2a36086667376b41b9255'
-NATIVE_STAGES = ('preparation', 'operators', 'maintenance', 'main', 'nonempty', 'r2pair', 'package-http', 'package-process', 'recovery-first', 'public-package-pair')
-TIMED_CASE_STAGES = (*(stage for stage in NATIVE_STAGES if stage not in ('package-http', 'package-process', 'recovery-first', 'public-package-pair')), 'maintenance-parser', 'config-unit', 'capture-parser', 'recovery-config')
+NATIVE_STAGES = ('preparation', 'operators', 'maintenance', 'main', 'nonempty', 'r2pair', 'package-http', 'package-process', 'recovery-first', 'public-package-pair', 'package-corruption', 'package-verified-restart')
+TIMED_CASE_STAGES = (*(stage for stage in NATIVE_STAGES if stage not in ('package-http', 'package-process', 'recovery-first', 'public-package-pair', 'package-corruption', 'package-verified-restart')), 'maintenance-parser', 'config-unit', 'capture-parser', 'recovery-config')
 FLOOR, NATIVE_BEFORE = 536870912, 603979776
 HELP = {'help-main': ('main.mjs', 'Usage: node main.mjs --config '),
  'help-identity': ('identity-cli.cjs', 'Usage: local-identity '),
  'help-installation': ('installation-cli.cjs', 'Usage: local-installation upgrade '),
  'help-restore': ('restore-v28-cli.cjs', 'Usage: offline-v28 restore ')}
 CASES = {
+ 'package-verified-restart': ('server/packages/verified-copy-restart.qualification.ts', [
+  'stops after automatic verified copy, restarts on the original120s cadence and publishes the same File and typed graph exactly once']),
+ 'package-corruption': ('server/packages/final-payload-corruption.qualification.ts', [
+  'refuses a CRC-valid final corrupted payload through ordinary Node session and CSRF without publishing an imported graph',
+  'refuses a CRC-valid final corrupted payload through genuine R2 Access without publishing an imported graph']),
  'public-package-pair': ('server/packages/public-r2-node-pair.qualification.ts', [
   'imports a genuine native R2 exported15-File Package through ordinary Node session and CSRF HTTP',
   'imports a genuine native Node exported15-File Package through fresh R2 Access and public HTTP']),
@@ -91,11 +98,11 @@ def save(path, value):
  path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n')
 
 def source():
- assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH, R2_PAIR_BRANCH, PACKAGE_BRANCH, PACKAGE_PROCESS_BRANCH, RECOVERY_BRANCH, PUBLIC_PACKAGE_PAIR_BRANCH)
+ assert os.environ.get('GITHUB_EVENT_NAME') == 'push' and os.environ.get('GITHUB_REF') in (BRANCH, MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH, NONEMPTY_BRANCH, R2_PAIR_BRANCH, PACKAGE_BRANCH, PACKAGE_PROCESS_BRANCH, RECOVERY_BRANCH, PUBLIC_PACKAGE_PAIR_BRANCH, INTEGRITY_BRANCH)
  head = os.environ['GITHUB_SHA']; assert re.fullmatch('[0-9a-f]{40}', head)
  env = dict(os.environ, GIT_OPTIONAL_LOCKS='0')
  assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, env=env).decode().strip() == head
- base = PUBLIC_PACKAGE_PAIR_BASE if os.environ['GITHUB_REF'] == PUBLIC_PACKAGE_PAIR_BRANCH else RECOVERY_BASE if os.environ['GITHUB_REF'] == RECOVERY_BRANCH else PACKAGE_PROCESS_BASE if os.environ['GITHUB_REF'] == PACKAGE_PROCESS_BRANCH else PACKAGE_BASE if os.environ['GITHUB_REF'] == PACKAGE_BRANCH else R2_PAIR_BASE if os.environ['GITHUB_REF'] == R2_PAIR_BRANCH else NONEMPTY_BASE if os.environ['GITHUB_REF'] == NONEMPTY_BRANCH else MAINTENANCE_BASE if os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH) else BASE
+ base = INTEGRITY_BASE if os.environ['GITHUB_REF'] == INTEGRITY_BRANCH else PUBLIC_PACKAGE_PAIR_BASE if os.environ['GITHUB_REF'] == PUBLIC_PACKAGE_PAIR_BRANCH else RECOVERY_BASE if os.environ['GITHUB_REF'] == RECOVERY_BRANCH else PACKAGE_PROCESS_BASE if os.environ['GITHUB_REF'] == PACKAGE_PROCESS_BRANCH else PACKAGE_BASE if os.environ['GITHUB_REF'] == PACKAGE_BRANCH else R2_PAIR_BASE if os.environ['GITHUB_REF'] == R2_PAIR_BRANCH else NONEMPTY_BASE if os.environ['GITHUB_REF'] == NONEMPTY_BRANCH else MAINTENANCE_BASE if os.environ['GITHUB_REF'] in (MAINTENANCE_BRANCH, HEALTH_BRANCH, CAPTURE_BRANCH) else BASE
  subprocess.check_call(['git', 'merge-base', '--is-ancestor', base, head], cwd=ROOT, env=env)
  return head
 
@@ -123,6 +130,67 @@ def census(stage, path):
  result['exactOriginalSelection'] = [str(Path(file['name']).resolve()) for file in value['testResults']] == [str(ROOT / expected_file)] and sorted(result['titles']) == sorted(titles)
  result['pass'] = result['exactOriginalSelection'] and value.get('success') is True and result['actualPassed'] == len(titles) and result['actualFailed'] == result['actualPending'] == value.get('numPendingTests') == 0
  return result
+
+def package_integrity_proofs(stage, fixture):
+ # Read only the original fresh private leaves after original owner close and
+ # exact census. Their full checkpoint/key data stays private; archive this
+ # bounded hash/count/close projection in the existing stage receipt instead.
+ if stage == 'package-corruption':
+  paths = sorted([*fixture.glob('*/case-*/final-payload-corruption-receipt.json'),
+   *fixture.glob('*/final-payload-corruption-receipt.json')])
+  assert len(paths) == 2
+ else:
+  paths = sorted(fixture.glob('*/case-*/verified-copy-restart-process-receipt.json'))
+  assert len(paths) == 1
+ proofs = []
+ for path in paths:
+  private(path.parent)
+  descriptor = path.lstat()
+  assert path.resolve() == path and path.is_relative_to(fixture) and stat.S_ISREG(descriptor.st_mode) and not path.is_symlink()
+  assert descriptor.st_uid == os.geteuid() and stat.S_IMODE(descriptor.st_mode) == 0o600 and descriptor.st_size <= 1048576
+  raw = path.read_bytes(); value = json.loads(raw)
+  proof = {'originalLeafSha256': hashlib.sha256(raw).hexdigest(), 'originalLeafBytes': len(raw), 'originalFirstCloseAcknowledged': True}
+  if stage == 'package-corruption':
+   assert value['schema'] == 'genuine-final-package-payload-corruption-refusal/1' and value['provider'] in ('local', 'r2')
+   assert all(value[key] is True for key in ('validCrcAndOuterSha256', 'originalMetadataUnchanged', 'otherFourteenPayloadsVerified',
+    'finalPayloadMismatchOnly', 'originalPublicUploadAcceptedAndVerified', 'originalPublicValidationPaused', 'originalPublicPreviewAndImportDenied',
+    'canonicalRowsUnchanged', 'pausedOriginalArchiveRetained', 'originalFirstCloseAcknowledged'))
+   assert value['publishedPayloadFiles'] == value['importedIdentityRows'] == value['importedRecordRows'] == 0
+   assert value['retainedRawArchivePublicationDelta'] == 1 and value['failureBoundary'] == 'full_archive_validation_before_preview_or_payload_copy'
+   assert value['lateCopyOrGraphPublicationFaultQualified'] is False and value['scheduledCadenceQualified'] is False
+   assert value['declaredPayloadSha256'] != value['actualPayloadSha256']
+   if value['provider'] == 'local': assert value['genuineNodeSessionCsrf'] and value['invalidCsrfDenied']
+   else:
+    assert value['genuineR2Access'] and value['actualNativeR2ArchiveBytesVerified']
+    closed = value['closedD1Consistency']
+    assert closed['schema'] == 'genuine-closed-original-d1-consistency/1' and closed['originalRuntimeDisposeAndListenerRefusalAcknowledged'] is True
+    assert closed['databaseSha256Before'] == closed['databaseSha256After']
+    assert closed['closedFileFullIntegrityCheck'] == 'ok' and closed['nativeForeignKeyCheckRows'] == closed['closedFileForeignKeyCheckRows'] == 0
+   proof.update(provider=value['provider'], publishedPayloadFiles=0, importedIdentityRows=0, importedRecordRows=0,
+    retainedRawArchivePublicationDelta=1, validCrcAndOuterSha256=True, finalPayloadMismatchOnly=True, canonicalRowsUnchanged=True)
+  else:
+   assert value['schema'] == 'genuine-compiled-node-package-verified-copy-restart/1'
+   assert value['productionCadenceMs'] == 120000 and value['maximumSlots'] == 8 and value['caseMs'] == 1000000 and value['outerStageSeconds'] == 1050
+   assert value['originalAutomaticSlots'] == 7 and isinstance(value['ordinaryPayloadBytes'], int) and value['ordinaryPayloadBytes'] > 0
+   assert all(value[key] is True for key in ('originalFirstClosesAcknowledged', 'originalFixtureClosesAcknowledged', 'allSelectedBusinessRowsCreatedThroughHttp',
+    'noManualDispatch', 'noFakeClock', 'noCadenceOverride', 'noInjectionHook', 'sameRequestSameJob', 'originalAttemptFileLocationKeyUnchanged', 'originalGraphPublishedOnce'))
+   assert value['unknownWriteOrLostCommitAckQualified'] is False and value['deploymentPerformed'] is False
+   children = value['originalChildren']; assert len(children) == len({row['pid'] for row in children}) == 3
+   assert [row['name'] for row in children] == ['producer-original-main', 'verified-copy-original-main', 'restarted-original-main']
+   assert all(row['code'] == 0 and row['signal'] is None and row['originalCloseAcknowledged'] is True for row in children)
+   checkpoint, final = value['checkpoint'], value['finalProof']
+   assert value['verifiedBeforeClose']['state'] == 'queued' and value['verifiedBeforeClose']['phase'] == 'copy' and value['verifiedBeforeClose']['result'] is None
+   assert value['verifiedBeforeClose']['progress']['completedFiles'] == value['verifiedBeforeClose']['progress']['totalFiles'] == 1
+   assert checkpoint['job']['result_json'] is None and checkpoint['copied']['file']['state'] == 'verified'
+   assert final['job']['state'] == 'completed' and final['copied']['file']['state'] == 'published'
+   assert checkpoint['copied']['attempt'] == final['copied']['attempt'] and checkpoint['copied']['location'] == final['copied']['location']
+   assert len(checkpoint['scheduled']) == 2 and len(final['scheduled']) == 5 and len(final['aliases']) == len(final['captures']) == 1
+   proof.update(productionCadenceMs=120000, originalAutomaticSlots=7, maximumSlots=8, verifiedPayloadFiles=1, publishedAliases=1,
+    originalChildren=children, isolatedDatabaseAndByteRoots=2, distinctInstallationIdsClaimed=False, originalAttemptFileLocationKeyUnchanged=True,
+    originalGraphPublishedOnce=True, originalFixtureClosesAcknowledged=True, nativeReexportOriginalPayloadBytes=value['ordinaryPayloadBytes'])
+  proofs.append(proof)
+ if stage == 'package-corruption': assert sorted(proof['provider'] for proof in proofs) == ['local', 'r2']
+ return proofs
 
 def public_package_pair_proofs(fixture):
  # Only this new stage reads these fresh receipts, after original child close,
@@ -296,6 +364,8 @@ def original_native_failure_diagnostics(out):
 
 def run(stage, out, run_root):
  head = source()
+ if os.environ['GITHUB_REF'] == INTEGRITY_BRANCH: assert stage in ('types', 'package-corruption', 'package-verified-restart')
+ if stage in ('package-corruption', 'package-verified-restart'): assert os.environ['GITHUB_REF'] == INTEGRITY_BRANCH
  if os.environ['GITHUB_REF'] == PUBLIC_PACKAGE_PAIR_BRANCH: assert stage in ('types', 'public-package-pair')
  if stage == 'public-package-pair': assert os.environ['GITHUB_REF'] == PUBLIC_PACKAGE_PAIR_BRANCH
  if os.environ['GITHUB_REF'] == RECOVERY_BRANCH: assert stage in ('types', 'recovery-parser', 'recovery-config', 'recovery-first', *HELP)
@@ -320,12 +390,18 @@ def run(stage, out, run_root):
   CURRENT_V28_CANONICAL_COMMENT_FIXTURE_PARENT=str(fixture), NODE_PROTOTYPE_FILESYSTEM_ROOT_OWNER_UID=str(Path('/').lstat().st_uid),
   NODE_OFFLINE_V28_DISTRIBUTION=str(ROOT / 'dist-node/distribution'),
   CURRENT_V28_POST_RESTORE_PREPARATION_RECEIPT=str(run_root / 'preparation-inputs.json'), NO_COLOR='1', FORCE_COLOR='0')
- if stage in ('package-http', 'package-process', 'public-package-pair'): env['NODE_PROTOTYPE_FIXTURE_PARENT'] = str(fixture)
- if stage == 'public-package-pair':
+ if stage in ('package-http', 'package-process', 'public-package-pair', 'package-corruption', 'package-verified-restart'): env['NODE_PROTOTYPE_FIXTURE_PARENT'] = str(fixture)
+ if stage in ('public-package-pair', 'package-corruption', 'package-verified-restart'):
   prior = json.loads((run_root / 'types/receipt.json').read_bytes())
   assert prior['status'] == 'PASS' and prior['stage'] == 'types' and prior['head'] == head
   assert prior['originalChildWaited'] and prior['exitCode'] == 0 and prior['noFixtureRemoval']
   assert not list(fixture.glob('public-r2-node-package-*/*.json'))
+ if stage == 'package-verified-restart':
+  prior = json.loads((run_root / 'package-corruption/receipt.json').read_bytes())
+  assert prior['status'] == 'PASS' and prior['stage'] == 'package-corruption' and prior['head'] == head
+  assert prior['originalChildWaited'] and prior['exitCode'] == 0 and prior['noFixtureRemoval']
+  assert prior['actualResults']['pass'] and prior['actualResults']['actualPassed'] == prior['actualResults']['actualTotal'] == 2
+  assert not list(fixture.glob('*/case-*/verified-copy-restart-process-receipt.json'))
  if stage == 'recovery-first':
   # These are exact same-head original closed children, not inherited results.
   for previous, count in [('types', None), ('recovery-parser', 3), ('recovery-config', 8), *((help_stage, None) for help_stage in HELP)]:
@@ -393,15 +469,23 @@ def run(stage, out, run_root):
    'package-http': 'node-package-http-qualification.vitest.config.mts',
    'package-process': 'node-package-process-qualification.vitest.config.mts',
    'public-package-pair': 'node-public-r2-package-pair.vitest.config.mts',
+   'package-corruption': 'node-package-payload-corruption-qualification.vitest.config.mts',
+   'package-verified-restart': 'node-package-verified-copy-restart-qualification.vitest.config.mts',
    'recovery-first': 'current-node-v28-recovery-first.vitest.config.mts'}[stage],
   '--reporter=verbose', '--reporter=json', '--outputFile.json=' + str(raw)]
- budget = 1050 if stage == 'package-process' else 20 if stage in HELP else 60 if stage == 'types' else 90 if stage == 'capture-parser' else 180
+ budget = 1050 if stage in ('package-process', 'package-verified-restart') else 20 if stage in HELP else 60 if stage == 'types' else 90 if stage == 'capture-parser' else 180
  custody = inherited_custody(); child = None; close_attempted = False; close_result = None; close_error = None
  record = {'kind': 'current-v28-post-restore-original-owned-stage/1', 'stage': stage, 'head': head, 'command': argv,
   'status': 'RESERVED_BEFORE_EFFECTS', 'outerSeconds': budget, 'caseMs': 5000 if stage in ('package-http', 'package-process') else 20000 if stage in TIMED_CASE_STAGES else None,
   'hookMs': 10000 if stage in ('package-http', 'package-process') else 20000 if stage in TIMED_CASE_STAGES else None, 'minimumBeforeChild': minimum,
   'filesystemRootOwnerUid': Path('/').lstat().st_uid, 'noFixtureRemoval': True, 'sourceFileBackupQualified': False}
  if stage == 'r2pair': record['r2NodePairQualified'] = False
+ if stage == 'package-corruption': record.update(caseMs=60000, hookMs=20000, defaultCaseMs=60000, originalCases=2,
+  scope='Two genuine public Node/R2 CRC-valid final payload SHA refusal cases; raw ingress retained, no imported graph/payload publication; no process restart or full recovery claim.')
+ if stage == 'package-verified-restart': record.update(packageVerifiedRestartQualified=False, caseMs=1000000, hookMs=10000, defaultCaseMs=5000,
+  caseTimeoutOverrides=[{'title': CASES[stage][1][0], 'caseMs': 1000000}], originalTemplateBeforeAllMs=20000, originalCases=1,
+  productionCadenceMs=120000, originalKernelDeadlineMs=60000, maximumElapsedSlots=8, isolatedDatabaseAndByteRoots=2,
+  scope='One original compiled-main automatic120s verified one-File copy; graceful close before typed graph; same config/new PID and same request/job recovery; exact unchanged original attempt/File/location/key and graph once; seven automatic slots in eight-slot bound; isolated fixture DB/byte roots from same admitted template, no distinct installation-ID claim; no manual dispatch, fake clock, cadence override or unknown remote-write/commit-ACK fault claim.')
  if stage == 'public-package-pair': record.update(publicPackagePairQualified=False, caseMs=60000, hookMs=20000, defaultCaseMs=60000, originalCases=2,
   scope='Genuine public R2/D1 Access and ordinary Node SQLite session/CSRF; both nonempty15File native Package directions; exact graph/File bytes and closed original D1 consistency; finite independent original emitters only, no elapsed120s cadence, corruption fault or stopped-before-graph restart claim.')
  # Original d723 default5s failure retained full work through strict15payload validation at12.265s.
@@ -447,6 +531,7 @@ def run(stage, out, run_root):
   if stage in CASES:
    record['actualResults'] = census(stage, raw); assert record['actualResults']['pass']
   if stage == 'public-package-pair': record['actualPublicPackagePair'] = public_package_pair_proofs(fixture)
+  if stage in ('package-corruption', 'package-verified-restart'): record['actualPackageIntegrity'] = package_integrity_proofs(stage, fixture)
   if stage == 'recovery-first':
    proof = json.loads((run_root / 'recovery-first-inputs.json').read_bytes())
    assert proof['kind'] == 'current-node-v28-recovery-only-cli-kernel/1' and proof['sourceFileCount'] == 1
@@ -519,12 +604,13 @@ def run(stage, out, run_root):
    if stage == 'r2pair': record['r2NodePairQualified'] = bool(okay)
    if stage == 'recovery-first': record['recoveryOnlyQualified'] = bool(okay)
    if stage == 'public-package-pair': record['publicPackagePairQualified'] = bool(okay)
+   if stage == 'package-verified-restart': record['packageVerifiedRestartQualified'] = bool(okay)
    record['status'] = 'PASS' if okay else 'FAILED_OR_UNRESOLVED'
    save(out / 'receipt.json', record)
   finally:
    for number, handler in handlers.items(): signal.signal(number, handler)
  summary = {'stage': stage, 'status': record['status'], 'receipt': str(out / 'receipt.json')}
- for key in ('actualResults', 'actualHelp', 'actualPublicPackagePair', 'firstFailure', 'rawCensusFailure', 'originalCloseError', 'floorOrPrivateIdentityFailure'):
+ for key in ('actualResults', 'actualHelp', 'actualPublicPackagePair', 'actualPackageIntegrity', 'firstFailure', 'rawCensusFailure', 'originalCloseError', 'floorOrPrivateIdentityFailure'):
   if key in record: summary[key] = record[key]
  if not okay and raw.exists() and stage in CASES and close_result is True and record.get('originalChildWaited') is True and 'actualResults' in record and not custody.active(record['finalGroupSnapshot']):
   try:
@@ -536,6 +622,6 @@ def run(stage, out, run_root):
  return 0 if okay else 1
 
 if __name__ == '__main__':
- parser = argparse.ArgumentParser(); parser.add_argument('--stage', choices=('types', 'parser', 'capture-parser', 'preparation', 'operators', 'maintenance-parser', 'maintenance', 'config-unit', 'main', 'nonempty', 'r2pair', 'package-http', 'package-process', 'public-package-pair', 'recovery-parser', 'recovery-config', 'recovery-first', *HELP), required=True)
+ parser = argparse.ArgumentParser(); parser.add_argument('--stage', choices=('types', 'parser', 'capture-parser', 'preparation', 'operators', 'maintenance-parser', 'maintenance', 'config-unit', 'main', 'nonempty', 'r2pair', 'package-http', 'package-process', 'public-package-pair', 'package-corruption', 'package-verified-restart', 'recovery-parser', 'recovery-config', 'recovery-first', *HELP), required=True)
  parser.add_argument('--run-root', type=Path, required=True); args = parser.parse_args()
  raise SystemExit(run(args.stage, args.run_root / args.stage, args.run_root))
