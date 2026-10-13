@@ -1,4 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
+import { Buffer } from "node:buffer";
 import { assertInstalledLocalIdentityOwner, type IdentityPolicy } from "./identity.ts";
 import type { InstallationReceipt, ReviewedInstallationAdmission } from "../migrations";
 import { assertSqliteConnectionOwner, type SqliteCapability } from "../sqlite.ts";
@@ -36,13 +37,25 @@ export function captureInstalledIdentityExecutionOwnerV28Candidate(identity: obj
   // the schema cookie unchanged must fail this exact check on the next call.
   const expectedSchema = [...checkpoint.applicationObjects, ...NODE_PLATFORM_OBJECTS];
   const literal = (value: string) => "'" + value.replaceAll("'", "''") + "'";
-  const cases = expectedSchema.map(value => `WHEN ${literal(value.name)} THEN
-    type COLLATE BINARY=${literal(value.type)} AND tbl_name COLLATE BINARY=${literal(value.tableName)}
-    AND sql COLLATE BINARY=${literal(value.sql)}`).join("\n");
+  // SQLite BINARY uses UTF-8 byte order. Balance the fixed name comparisons
+  // rather than repeating a linear CASE over the whole catalog for every row.
+  // Every observed row is still checked; no schema/result success is reused.
+  const orderedSchema = [...expectedSchema].sort((left, right) =>
+    Buffer.compare(Buffer.from(left.name, "utf8"), Buffer.from(right.name, "utf8")));
+  function schemaLookup(values: typeof orderedSchema): string {
+    if (!values.length) return "0";
+    const middle = Math.floor(values.length / 2), value = values[middle]!, name = literal(value.name);
+    const exact = `(type COLLATE BINARY=${literal(value.type)} AND tbl_name COLLATE BINARY=${literal(value.tableName)}
+      AND sql COLLATE BINARY=${literal(value.sql)})`;
+    return `(CASE WHEN name COLLATE BINARY < ${name} THEN ${schemaLookup(values.slice(0, middle))}
+      WHEN name COLLATE BINARY = ${name} THEN ${exact}
+      ELSE ${schemaLookup(values.slice(middle + 1))} END)`;
+  }
   const exactSchema = nativeDatabase.prepare(`SELECT 1 AS admitted WHERE
-    (SELECT count(*) FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*')=${expectedSchema.length}
+    (SELECT count(*)=${expectedSchema.length} AND count(DISTINCT name COLLATE BINARY)=${expectedSchema.length}
+      FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*')
     AND NOT EXISTS(SELECT 1 FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*'
-      AND (CASE name COLLATE BINARY ${cases} ELSE 0 END) IS NOT 1)`);
+      AND ${schemaLookup(orderedSchema)} IS NOT 1)`);
   const version = nativeDatabase.prepare("PRAGMA main.schema_version"); version.setReadBigInts(true);
   const tempVersion = nativeDatabase.prepare("PRAGMA temp.schema_version"); tempVersion.setReadBigInts(true);
   const foreignKeys = nativeDatabase.prepare("PRAGMA foreign_keys");
