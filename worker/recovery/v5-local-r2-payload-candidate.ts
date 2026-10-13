@@ -33,6 +33,8 @@ import { nativeV28SnapshotSql, buildFullExportV28FromSnapshot } from "../export-
 import { portableBusinessSchemaV28, createFullExportV28 } from "../../shared/contracts/export-portable-runtime-v28";
 import { protectedLocalHistoryFromV5Image, validateSystemRecoveryImageV5 } from "../../shared/contracts/system-backup-v5";
 import { validateSystemBackupContentImageV28 } from "../../shared/contracts/system-backup-v28-content";
+import { planV5ShadowProfileHistoryCandidate, v5ShadowProfileEventStatementsCandidate,
+  type V5ShadowProfileHistoryCandidate } from "./v5-shadow-profile-history-candidate";
 
 
 const MAX_STATEMENTS = 128, MAX_GROUP_BYTES = 83 * 1024, DDL_GROUP = 16;
@@ -89,6 +91,7 @@ interface OwnedAdmission {
   archive: { source: ArchiveSource; original: ArchiveSource; read: ArchiveSource["read"]; open: ArchiveSource["open"];
     sha256: string; entries: readonly ArchiveIndexEntry[] };
   files: readonly RecoveryPlannedFile[]; appends: Record<string, ExportRow[]>; changes: V5PayloadImageChangeCandidate[];
+  shadowHistory?: V5ShadowProfileHistoryCandidate;
   construction?: Promise<V5LocalR2PayloadConstructionCandidate>;
 }
 
@@ -253,10 +256,29 @@ export function createWorkerV5LocalR2PayloadCandidate(env: Env) {
     for (const file of files) ensure(recoveryFilePublicationStatements(target, file,
       { byteSize: file.byteSize, sha256: file.sha256 }, new Date().toISOString()).length + 3 <= MAX_STATEMENTS,
     "atomic_publication_budget");
+    // Freeze exact metadata-event history before target/provider writes. Each
+    // new profile and its runtime is a separate original epoch +1 event.
+    const newDestinations = [...destinations.values()].filter(destination =>
+      !records.content.tables.storage_profiles.some(row => row.id === destination.id)).map(destination => {
+      const profile = destination.profile;
+      return { profile: { id: profile.id, adapter_type: "r2", namespace_identity: profile.namespaceIdentity,
+        configuration_source: "bootstrap", credential_reference: null, configuration_revision: 1, state: "historical",
+        created_at: profile.createdAt } as ExportRow,
+      runtime: { storage_profile_id: profile.id, state: "read_only", registered_at: profile.createdAt,
+        activated_at: profile.runtime!.activated_at, retired_at: null } as ExportRow };
+    });
+    const shadowHistory = planV5ShadowProfileHistoryCandidate(destinationTables, newDestinations, new Date().toISOString(), {
+      // No File/business rows are created. Reserve every publication/evidence/
+      // attempt/registry row plus conservative typed-cell and JSON expansion.
+      extraRows: files.reduce((sum, file) => sum + 8 + file.originalAliases.length + file.bindingEvidence.length, newDestinations.length),
+      extraBytes: encoder.encode(stableJson(files)).byteLength * 4 + files.length * 8 * 1024,
+    });
+    if (shadowHistory) for (const event of shadowHistory.events)
+      ensure(v5ShadowProfileEventStatementsCandidate(target, event).length + 2 <= MAX_STATEMENTS, "atomic_shadow_event_budget");
     admissions.set(admission, { admission, manifest: freeze(manifest), records: freeze(records),
       destinationTables: freeze(destinationTables), rowGroups: freeze(groups), destinations: [...destinations.values()], sourceMarker: marker, claimToken,
       archive: { source: archiveSource, original: originalArchive, read, open, sha256: expectedArchiveSha256, entries: freeze(archive.entries) },
-      files: freeze(files), appends: {}, changes: [] });
+      files: freeze(files), appends: {}, changes: [], shadowHistory: freeze(shadowHistory) });
     return admission;
   }
   function owned(admission: V5LocalR2PayloadAdmissionCandidate): OwnedAdmission {
@@ -280,7 +302,8 @@ export function createWorkerV5LocalR2PayloadCandidate(env: Env) {
       if (claimPresent && spec.name === "system_recovery_target_claim") continue;
       observed[spec.name] = await readTable(target, spec);
     }
-    verifyV5PayloadImageCandidate(observed, record.destinationTables, record.appends, record.changes);
+    verifyV5PayloadImageCandidate(observed, record.destinationTables, record.appends,
+      [...record.changes, ...(record.shadowHistory?.changes ?? [])], record.shadowHistory?.typedAppends);
     const keys = await target.prepare("PRAGMA foreign_key_check").all<Record<string, unknown>>();
     ensure(keys.success && keys.results.length === 0, "foreign_keys_invalid");
     // The complete V28 schema exceeds workerd's SQLite VDBE compiler budget
@@ -335,11 +358,23 @@ export function createWorkerV5LocalR2PayloadCandidate(env: Env) {
           return { dependency_kind: table, dependency_key: dependencyKey, revision: 1, present: 1,
             snapshot_json: stableJson(Object.fromEntries(spec.snapshotColumns.map(column => [column, row[column]]))) };
         });
-        await batch([freshRegistryRowid(target, "storage_profiles"), ...recoveryDestinationProfileStatements(target, [profile]),
-          ...histories.map(row => target.prepare("INSERT INTO file_shadow_dependency_versions(dependency_kind,dependency_key,revision,present,snapshot_json) VALUES(?,?,?,?,?)")
-            .bind(row.dependency_kind, row.dependency_key, row.revision, row.present, row.snapshot_json))]);
+        if (record.shadowHistory) {
+          const profileEvent = record.shadowHistory.events.find(event => event.metadataTable === "storage_profiles"
+            && event.destinationProfileId === profile.id);
+          const runtimeEvent = record.shadowHistory.events.find(event => event.metadataTable === "storage_profile_runtime"
+            && event.destinationProfileId === profile.id);
+          ensure(profileEvent && runtimeEvent, "frozen_profile_events_missing");
+          await batch([freshRegistryRowid(target, "storage_profiles"), ...v5ShadowProfileEventStatementsCandidate(target, profileEvent)]);
+          await batch(v5ShadowProfileEventStatementsCandidate(target, runtimeEvent));
+        } else {
+          // The separately qualified head-zero branch keeps its original
+          // publication and history behavior byte-for-byte.
+          await batch([freshRegistryRowid(target, "storage_profiles"), ...recoveryDestinationProfileStatements(target, [profile]),
+            ...histories.map(row => target.prepare("INSERT INTO file_shadow_dependency_versions(dependency_kind,dependency_key,revision,present,snapshot_json) VALUES(?,?,?,?,?)")
+              .bind(row.dependency_kind, row.dependency_key, row.revision, row.present, row.snapshot_json))]);
+          for (const row of histories) append(record, "file_shadow_dependency_versions", row);
+        }
         append(record, "storage_profiles", profileRow); append(record, "storage_profile_runtime", runtimeRow);
-        for (const row of histories) append(record, "file_shadow_dependency_versions", row);
       }
     }
     for (const file of record.files) {
@@ -437,9 +472,9 @@ export function createWorkerV5LocalR2PayloadCandidate(env: Env) {
         append(record, "file_registry_rowid_claims", { registry_name: table, claimed_rowid: row.rowid });
       }
     }
-    // All old shadow occurrences, closures, heads and dependency rows remain
-    // byte-exact. This first slice rejects current heads before construction;
-    // a later bound-File slice must append proper successor history instead.
+    // Every old occurrence, closure, dependency and decision remains exact.
+    // Real present heads advance only through the frozen metadata-event
+    // occurrences and closures; native consumers receive no fabricated head.
     // The actual Env binding is the custody identity. primaryD1 may issue a
     // different genuine session on each call; reopening it is not an identity
     // test. available retains constructOwned's original const source session

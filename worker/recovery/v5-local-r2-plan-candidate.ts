@@ -1,12 +1,13 @@
 // Explicit V5 native LOCAL-to-R2 plan. No V3 source is cast or relabelled.
 import type { ExportRow } from "../../shared/contracts/export";
 import type { SystemBackupManifestV5, SystemBackupRecordsV5 } from "../../shared/contracts/system-backup-v5";
-import type { SystemRecoveryTable, SystemRecoveryCell, RecoveryTableSpec } from "../../shared/contracts/system-recovery-image";
+import type { SystemRecoveryTable, SystemRecoveryCell, SystemRecoveryRow, RecoveryTableSpec } from "../../shared/contracts/system-recovery-image";
 import { stableJson, sha256Hex } from "../../shared/domain/content-addressing";
 import type { RecoveryDestinationProfile, RecoveryPlannedFile } from "./target-files";
 import { reviewedRecoveryBinding } from "./target-files";
 import type { V5R2PayloadMappingCandidate } from "./v5-fresh-target-candidate";
 import { V5_RECOVERY_CATALOG_CANDIDATE as catalog } from "./v5-catalog-candidate";
+import type { V5ShadowImageChangeCandidate } from "./v5-shadow-profile-history-candidate";
 
 function ensure(value: unknown, reason: string): asserts value {
   if (!value) throw new Error("v5_local_r2_plan_" + reason);
@@ -15,10 +16,6 @@ export async function planV5LocalR2FilesCandidate(records: SystemBackupRecordsV5
   mappings: readonly V5R2PayloadMappingCandidate[], profiles: readonly RecoveryDestinationProfile[], incarnation: string) {
   ensure(manifest.completeness === "complete" && manifest.files.length <= 100 && records.image.version === 5
     && records.image.checkpointId === "portable-runtime/v28", "version_or_inventory");
-  ensure(records.image.tables.file_shadow_heads.rows.every(row => {
-    const column = records.image.tables.file_shadow_heads.columns.indexOf("present");
-    return row.cells[column].type === "integer" && row.cells[column].value === "0";
-  }), "active_shadow_heads_not_admitted");
   const sourceImageSha256 = await sha256Hex(stableJson(records.image));
   const result: RecoveryPlannedFile[] = [];
   for (const payload of manifest.files) {
@@ -32,8 +29,8 @@ export async function planV5LocalR2FilesCandidate(records: SystemBackupRecordsV5
     // their exact business cells/rowids and acceptance receipts; the recovered
     // address is published on that same File, never by rewriting a consumer.
     // Native-only consumers need no manufactured legacy shadow occurrence.
-    // Nonzero current legacy heads remain separately denied above until their
-    // global profileRevision successor events have an admitted append owner.
+    // A separate frozen pre-trigger owner appends global profileRevision
+    // successors for real present legacy heads; no native head is fabricated.
     ensure(source.purpose !== "derived_preview", "preview_origin_conversion_not_admitted");
     ensure(payload.bindings.length <= 16 && stableJson(payload.bindings) === stableJson(source.consumerBindings),
       "bounded_exact_native_consumers");
@@ -96,11 +93,14 @@ const value = (cell: SystemRecoveryCell): string | null => cell.type === "null" 
 const rowKey = (spec: RecoveryTableSpec, row: { rowid: string | null; cells: SystemRecoveryCell[] }) => spec.withoutRowid
   ? stableJson((spec.primaryKeyColumns ?? spec.columns).map(column => row.cells[spec.columns.indexOf(column)])) : row.rowid;
 /** Preserve old rowids and every old typed cell except the exact canonical
- * File active-location mapping. Immutable shadow history has no exemption. Appended rows must match every
+ * File active-location mapping and the closed frozen current-head/control
+ * fields. Immutable shadow history has no exemption. Appended rows must match every
  * typed scalar of the code-owned publication plan; their new physical rowids
  * are subsequently covered by the complete immutable registry claim proof. */
 export function verifyV5PayloadImageCandidate(observed: Record<string, SystemRecoveryTable>,
-  baseline: Record<string, SystemRecoveryTable>, appends: Record<string, ExportRow[]>, changes: readonly V5PayloadImageChangeCandidate[]) {
+  baseline: Record<string, SystemRecoveryTable>, appends: Record<string, ExportRow[]>,
+  changes: readonly (V5PayloadImageChangeCandidate | V5ShadowImageChangeCandidate)[],
+  typedAppends: Readonly<Record<string, readonly SystemRecoveryRow[]>> = {}) {
   for (const spec of catalog.tables) {
     if (spec.name === "system_recovery_target_claim") continue;
     const actual = observed[spec.name], original = baseline[spec.name];
@@ -113,15 +113,31 @@ export function verifyV5PayloadImageCandidate(observed: Record<string, SystemRec
         if (stableJson(before) === stableJson(after)) continue;
         const allowed = changes.filter(change => change.table === spec.name && change.column === spec.columns[index]
           && Object.entries(change.keys).every(([key, expected]) => value(row.cells[spec.columns.indexOf(key)]) === expected));
-        ensure(allowed.length === 1 && after.type === "text" && after.value === allowed[0].value,
-          "unclassified_original_cell:" + spec.name + ":" + spec.columns[index]);
+        ensure(allowed.length === 1, "unclassified_original_cell:" + spec.name + ":" + spec.columns[index]);
+        const change = allowed[0];
+        if (change.table === "file_publications") ensure(after.type === "text" && after.value === change.value,
+          "active_location_cell");
+        else {
+          ensure(change.table === "file_shadow_control" ? change.column === "epoch"
+            && stableJson(change.keys) === stableJson({ singleton: "1" }) && change.cell.type === "integer"
+            : ["generation", "occurrence_id", "source_json", "observed_epoch"].includes(change.column)
+              && Object.keys(change.keys).sort().join(",") === "consumer_id,consumer_kind,consumer_sub_id,file_slot"
+              && (["generation", "observed_epoch"].includes(change.column) ? change.cell.type === "integer" : change.cell.type === "text"),
+          "unreviewed_shadow_mutation");
+          ensure(stableJson(after) === stableJson(change.cell), "frozen_shadow_cell");
+        }
       }
     }
     const expected = (appends[spec.name] ?? []).map(row => stableJson(spec.columns.map(column => {
       const cell = row[column]; return spec.name === "file_registry_rowid_claims" && column === "claimed_rowid"
         ? { type: "integer", value: String(cell) } : cell === null ? { type: "null" } : typeof cell === "number"
         ? { type: Number.isInteger(cell) ? "integer" : "real", value: String(cell) } : { type: "text", value: cell };
-    }))).sort();
+    }))).concat((typedAppends[spec.name] ?? []).map(row => {
+      ensure(row.rowid === null && row.cells.length === spec.columns.length
+        && ["file_shadow_dependency_versions", "file_shadow_occurrences", "file_shadow_closures"].includes(spec.name),
+      "unreviewed_typed_append");
+      return stableJson(row.cells);
+    })).sort();
     ensure(stableJson([...remaining.values()].map(row => stableJson(row.cells)).sort()) === stableJson(expected),
       "unclassified_appended_row:" + spec.name);
   }
