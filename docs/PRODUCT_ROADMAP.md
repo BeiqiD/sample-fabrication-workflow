@@ -1,5 +1,92 @@
 # Product goal and roadmap
 
+**Current resumed interoperability and online recovery goal — 2026-10-13 UTC.**
+The owner now requests completing the bounded Node/SQLite/local ↔ Worker/D1/R2
+interoperability and Node online-recovery milestone before final frontend closure
+and preparation of a `main` candidate. This supersedes the earlier proposal to
+pause Node expansion immediately after the storage frontend slice. Ordinary
+reviewed development integration remains authorized. Production `main` merge,
+production deployment, production database changes and real production file
+movement are not authorized by this development goal.
+
+[PR #301](https://github.com/BeiqiD/sample-fabrication-workflow/pull/301) merged at
+`a9c33725b6622acfad05cc818f886e2775c7e7bb`, preserving qualified `b37c307c`
+tree `8d19f4ff0519082764d323550322e6452abc1807`. Its four own Verify/Map runs
+and all 15 contexts passed. Its dedicated
+[run 38383242264](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38383242264)
+passed actual full types and the original three Node Package HTTP cases:
+disabled opt-in, real session/CSRF admission, and nonempty 15-File local
+copy/publication/export/download with an independently invoked dispatcher.
+[PR #302](https://github.com/BeiqiD/sample-fabrication-workflow/pull/302) merged at
+`4776095f4351c2d108f485600bd43933d7dc69c6`, preserving qualified `4c92c14d`
+tree `aa07802520a98851713f94199dfb216e55913c06`; its four own Verify/Map runs
+and all 15 contexts passed. It corrects active storage-role descriptions so Project attachments are
+accurately listed under originals, while preserving legacy and frozen V2 wording. Both actual
+post-merge CI scopes remain **PENDING** at this checkpoint.
+
+The #301 pass does not establish cross-runtime Package transfer, elapsed
+120-second cadence or Node online Recovery. The existing #300 genuine native
+R2→Node V26/V3 backup pair retains its original 25-case pipeline PASS: one
+nonempty R2 HTTP upload, original scheduled backup, verified R2 archive and exact
+fresh inert Node restore. The earlier nonempty Node V28/V5 offline backup/restore
+remains a separate qualified scope. None is retagged as a new-source or reverse
+transfer pass.
+
+**Version boundary.** The current Worker recovery catalog/target admits V24–V26
+with `system-backup/1`–`3`; Node's V28/`system-backup/5` recovery is separate.
+Frozen V26/V3 compatibility and formal V28/V5 interoperability require distinct
+evidence. V3 rejects LOCAL payloads; a nonempty current LOCAL backup must retain V5. Completing V5 target support requires reviewed catalog/schema admission,
+explicit source-profile/destination mapping and a matching Worker generation;
+any required forward migration must preserve the immutable baseline and historical
+readers. Do not relabel V5 as V3 or omit newer rows. This milestone concerns the
+named local runtime pair; it does not promise arbitrary-provider or authenticated
+deployed Cloudflare↔Docker parity.
+
+The following finite matrix is a **SOURCE-only acceptance plan**. Every new case
+below is **UNRUN** until its exact implementation/source and actual result are
+recorded. Existing passes above remain prerequisites with their original scope.
+Use real public Request/session/CSRF admission, original independent execution,
+native D1/R2 and physical SQLite/local storage; byte/graph assertions must not
+substitute direct business-row seeding for the workflow under test.
+
+| Case | Bounded acceptance required |
+| --- | --- |
+| P1 R2→Node Package | Export one paired Sample+Project package with the existing complete 15-File graph from genuine R2; Node upload/preview/copy-import verifies every payload, typed relation and fresh destination identity. |
+| P2 Node→R2 Package | Export that same bounded graph through Node HTTP; Worker upload/preview/copy-import preserves content and references with fresh identities and verified R2 destination bytes. |
+| P3 Frozen V26/V3 compatibility | Keep the admitted historical V26/V3 reader and target exact. Reject unsupported LOCAL payloads in V3; do not strip or relabel current Node V28/V5 content to manufacture a reverse pass. Current nonempty Node→R2 backup transfer is qualified under P10/P11. |
+| P4 Node online admission | Mount the explicit supported Recovery profile; absent opt-in/default execution stays disabled, current administrator/session/CSRF checks apply, accepted request retries reconcile and status reads never dispatch work. |
+| P5 Node online backup | A durable nonempty backup job completes independently of the page and exposes its verified archive/report through authorized HTTP download in an exact private artifact namespace. |
+| P6 Node online restore | Public upload, separate validation, preview and staged restore reach a verified fresh database/object target; canonical identities and complete payloads survive, protected capabilities remain inert and source stays usable. |
+| P7 Node assisted handoff | Explicit planned handoff fences/drains source writers and rechecks the final checkpoint before binding the reviewed database/root/process together; retain the old source read-only. Historical recovery requires acknowledgement of later-change loss. |
+| P8 Original cadence and restart | Observe two actual 120-second scheduled slots with the page closed, one bounded durable action per slot, fair File/Package/Recovery admission and heartbeat; restart retains the accepted incarnation/state without auto-enable or replaying paused work. |
+| P9 Online controls and cleanup | Pause/resume/retry/cancel/reload operate on durable receipts; separately admitted cleanup retains unknown/inflight candidates and required source/read holds, including after restart. |
+| P10 Formal V5 admission | Add the reviewed Worker V28/V5 catalog/target boundary and qualify exact source/target schema/profile conversion; reject mismatched versions instead of relabelling or discarding data. This is implementation work, not a current capability claim. |
+| P11 Node V28/V5→Worker | After P10, restore one genuine nonempty current Node V5 backup into a fresh matching Worker/D1/R2 target; verify typed canonical/history/identity cells, payloads, mappings and inert protected/runtime state. |
+| P12 Worker V28/V5→Node | After P10, capture the matching genuine Worker generation and restore its nonempty V5 backup into a fresh inert Node target; verify the same canonical/physical invariants. |
+
+Six additional named controls close the changed end-to-end paths: **F1** corrupt
+the final incoming payload byte and refuse publication; **F2** lose an ACK after
+a committed recovery byte write and reconcile only the registered attempt without
+overwrite or early cleanup; **F3** stop a Package process after verified bytes but
+before graph publication and resume exactly once; **F4** revoke Recovery authority
+before final publication BEGIN and refuse it; **F5** make a required mapped provider
+or artifact binding unavailable and keep visible obligations without fallback;
+**F6** change the planned source checkpoint and refuse handoff. These six controls
+are also UNRUN for the new pair/online composition. Existing kernel fault passes
+remain separate; this is not a combinatorial all-provider matrix.
+
+Implement in small reviewed development slices: finish P1/P2 on the admitted
+Package path; P3 as exact historical-version compatibility; then P4–P9 and their named fault
+controls using the shared Recovery kernel/SQL repository/format code and explicit
+Node artifact/target capabilities. P10–P12 form a separate formal V5 target slice.
+Close exact-source complete gates and actual post-merge scopes for each slice.
+Then finish the frontend against the enabled supported matrix, selected 6A6/6B
+acceptance and the bounded `main` candidate. Source-only plans authorize no runtime
+activation or production operation, and historical records below keep their dates,
+failures, PASS counts and limits.
+
+<!-- Current RT5 snapshot ends; historical text follows unchanged. -->
+
 **Current local development checkpoint — 2026-10-13 UTC.** Supported local Phase5F candidate qualification and the [role/coverage baseline map](PHASE5F_LOCAL_BASELINE_COVERAGE_MAP.md) are complete. Fresh092 push/PR native20 and fresh71 whole24, including its separate nonempty case, passed at their original heads; each candidate's four own Verify/Map workflows and all15 contexts were successful at 05:03:40 UTC. [#298](https://github.com/BeiqiD/sample-fabrication-workflow/pull/298) merged at `f65001da`, preserving qualified tree `a2b645`; [#299](https://github.com/BeiqiD/sample-fabrication-workflow/pull/299) merged at `ab0339bce591abd2fed61690916c2d098de2a43d`, preserving tree `1a04056ef5cc1a6a11ea31b51648c3eeb3f50902`. These measured scopes retain the previously merged eight-Sample, exact Compare focus and250/400 functional evidence; historical SOURCE/UNRUN and failure records keep their original status.
 
 At the 05:05:34 UTC observation, ab033 [Workers Build115138845853](https://github.com/BeiqiD/sample-fabrication-workflow/runs/115138845853) had succeeded at 05:05:30; ordinary post-merge [Map38349545551](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38349545551) passed, while [Verify38349544226](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38349544226) and all15 completion remain **PENDING** (2success/13pending). The separate merged #296 Docker17 and #297 two-File/six-case fixture passes are recorded in the baseline map. Remaining accepted local work is genuine nonempty R2→Node RT5 transfer and RT4/RT5 Node Package HTTP, independent execution and nonempty copy. Adapter a98's actual full server types failed on transitive Cloudflare dependencies; neutral extraction is in progress and remains unqualified.

@@ -1,5 +1,48 @@
 # Autonomous roadmap development goal
 
+**Current resumed Node/R2 and online Recovery goal — 2026-10-13 UTC.** The owner
+requests completing the bounded bidirectional Package/Backup and Node online
+Recovery milestone, then final frontend closure and a reviewable `main` candidate.
+The [finite RT5 matrix](PRODUCT_ROADMAP.md) names P1–P12 and F1–F6; all new cases
+are SOURCE-only/UNRUN. Ordinary reviewed development integration remains authorized.
+Production `main` merge, deployment, production database changes and production
+file movement remain outside this goal.
+
+#301 merged qualified `b37c307c` as
+`a9c33725b6622acfad05cc818f886e2775c7e7bb` with exact tree
+`8d19f4ff0519082764d323550322e6452abc1807`. Its four own Verify/Map runs and
+all 15 contexts passed; dedicated run38383242264 passed actual full types and
+the original three Node Package HTTP/independent-dispatch cases, including the
+complete 15-File local copy/export/download. #302 merged qualified `4c92c14d`
+as `4776095f4351c2d108f485600bd43933d7dc69c6`, preserving tree
+`aa07802520a98851713f94199dfb216e55913c06`; its four own Verify/Map runs and
+all 15 contexts passed. Both actual post-merge CI scopes remain PENDING.
+
+Retain the #300 original native R2→inert Node V26/V3 25-case pipeline PASS and
+the separate nonempty Node V28/V5 offline backup/restore qualification. The #301
+local Package pass proves independent dispatch invocation, not measured cadence,
+R2 Package transfer or online Recovery. Current Node `systemRecovery`, maintenance
+and export-snapshot route owners remain unavailable in that composition.
+
+Proceed through separate bounded slices: paired nonempty R2→Node and Node→R2
+Package copy; preserve exact V26/V3 compatibility and reject unsupported LOCAL
+payloads rather than changing their format;
+Node online admission/artifact/target capabilities using the existing neutral
+Recovery kernel, SQL repository and format code; actual cadence/restart, durable
+controls, explicit cleanup and the six named failure controls; then formal V28/V5
+Worker catalog/schema/profile admission and both nonempty V5 directions. Worker
+currently admits V24–V26/system-backup1–3, so V5 support cannot be inferred or
+obtained by relabelling. Any matching-generation forward migration is separately
+reviewed and preserves the baseline and historical readers.
+
+After those exact-source development gates, close the frontend against the
+supported enabled matrix and selected 6A6/6B scope, then prepare the main ancestry,
+configuration and schema-line handoff for review. Arbitrary-provider parity,
+actual production activation and authenticated deployed Cloudflare↔Docker transfer
+are not claimed. Historical text below remains unchanged.
+
+<!-- Current RT5 snapshot ends; historical text follows unchanged. -->
+
 **Current local development checkpoint — 2026-10-13 UTC.** Supported local Phase5F candidate qualification and the [role/coverage baseline map](PHASE5F_LOCAL_BASELINE_COVERAGE_MAP.md) are complete. Fresh092 push/PR native20 and fresh71 whole24, including its separate nonempty case, passed at their original heads; each candidate's four own Verify/Map workflows and all15 contexts were successful at 05:03:40 UTC. [#298](https://github.com/BeiqiD/sample-fabrication-workflow/pull/298) merged at `f65001da`, preserving qualified tree `a2b645`; [#299](https://github.com/BeiqiD/sample-fabrication-workflow/pull/299) merged at `ab0339bce591abd2fed61690916c2d098de2a43d`, preserving tree `1a04056ef5cc1a6a11ea31b51648c3eeb3f50902`. These measured scopes retain the previously merged eight-Sample, exact Compare focus and250/400 functional evidence; historical SOURCE/UNRUN and failure records keep their original status.
 
 At the 05:05:34 UTC observation, ab033 [Workers Build115138845853](https://github.com/BeiqiD/sample-fabrication-workflow/runs/115138845853) had succeeded at 05:05:30; ordinary post-merge [Map38349545551](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38349545551) passed, while [Verify38349544226](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38349544226) and all15 completion remain **PENDING** (2success/13pending). The separate merged #296 Docker17 and #297 two-File/six-case fixture passes are recorded in the baseline map. Remaining accepted local work is genuine nonempty R2→Node RT5 transfer and RT4/RT5 Node Package HTTP, independent execution and nonempty copy. Adapter a98's actual full server types failed on transitive Cloudflare dependencies; neutral extraction is in progress and remains unqualified.
