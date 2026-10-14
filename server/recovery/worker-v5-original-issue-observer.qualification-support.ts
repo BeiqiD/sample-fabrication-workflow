@@ -118,7 +118,7 @@ function nativeStatement(statement,sql){
         let deliveryStage='fetch',answer;
         try{
           answer=await fetch(live.V5_QUALIFICATION_ACK_DELIVERY_ORIGIN+'/__original_native_ack_delivery',{
-            method:'GET',redirect:'error',headers:{'x-original-native-control':live.V5_QUALIFICATION_CONTROL_NONCE,
+            method:'GET',redirect:'manual',headers:{'x-original-native-control':live.V5_QUALIFICATION_CONTROL_NONCE,
               'x-original-native-gate':selectedGate.ioId}});
           deliveryStage='status';require(answer.status===200,'original_delivery_io_status');
           deliveryStage='body';require(await answer.text()==='original-native-ack-delivery/1','original_delivery_io_body');
