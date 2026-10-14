@@ -1,5 +1,4 @@
 import type { DatabaseSync } from "node:sqlite";
-import { Buffer } from "node:buffer";
 import { assertInstalledLocalIdentityOwner, type IdentityPolicy } from "./identity.ts";
 import type { InstallationReceipt, ReviewedInstallationAdmission } from "../migrations";
 import { assertSqliteConnectionOwner, type SqliteCapability } from "../sqlite.ts";
@@ -65,25 +64,45 @@ export function captureInstalledIdentityExecutionOwnerV28Candidate(identity: obj
   // the schema cookie unchanged must fail this exact check on the next call.
   const expectedSchema = [...checkpoint.applicationObjects, ...NODE_PLATFORM_OBJECTS];
   const literal = (value: string) => "'" + value.replaceAll("'", "''") + "'";
-  // SQLite BINARY uses UTF-8 byte order. Balance the fixed name comparisons
-  // rather than repeating a linear CASE over the whole catalog for every row.
-  // Every observed row is still checked; no schema/result success is reused.
-  const orderedSchema = [...expectedSchema].sort((left, right) =>
-    Buffer.compare(Buffer.from(left.name, "utf8"), Buffer.from(right.name, "utf8")));
+  // Capture only the actual schema row positions and names. All expected
+  // cells still come exclusively from the fixed code-owned catalog below.
+  // Both original full checks bracket admission after this capture; metadata
+  // alone grants nothing and a successful live observation is never cached.
+  const expectedNames = new Set(expectedSchema.map(value => value.name));
+  if (expectedNames.size !== expectedSchema.length) unavailable();
+  const positions = nativeDatabase.prepare(`SELECT rowid AS original_rowid,name FROM sqlite_schema
+    WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*' ORDER BY rowid LIMIT ${expectedSchema.length + 1}`);
+  positions.setReadBigInts(true);
+  const capturedPositions = positions.all(), rowids = new Map<string, bigint>(), uniqueRowids = new Set<bigint>();
+  if (capturedPositions.length !== expectedSchema.length) unavailable();
+  for (const row of capturedPositions) {
+    if (typeof row.name !== "string" || !expectedNames.has(row.name) || rowids.has(row.name)
+      || typeof row.original_rowid !== "bigint" || row.original_rowid < -9223372036854775808n
+      || row.original_rowid > 9223372036854775807n || uniqueRowids.has(row.original_rowid)) unavailable();
+    rowids.set(row.name, row.original_rowid); uniqueRowids.add(row.original_rowid);
+  }
+  const orderedSchema = expectedSchema.map(value => {
+    const rowid = rowids.get(value.name); if (rowid === undefined) unavailable();
+    return { ...value, rowid };
+  }).sort((left, right) => left.rowid < right.rowid ? -1 : left.rowid > right.rowid ? 1 : 0);
+  // Signed-min uses exact integer arithmetic instead of an out-of-range
+  // positive literal. No rowid passes through Number or a floating value.
+  const integerLiteral = (value: bigint) => value === -9223372036854775808n ? "(-9223372036854775807-1)" : value.toString();
   function schemaLookup(values: typeof orderedSchema): string {
     if (!values.length) return "0";
-    const middle = Math.floor(values.length / 2), value = values[middle]!, name = literal(value.name);
-    const exact = `(type COLLATE BINARY=${literal(value.type)} AND tbl_name COLLATE BINARY=${literal(value.tableName)}
-      AND sql COLLATE BINARY=${literal(value.sql)})`;
-    return `(CASE WHEN name COLLATE BINARY < ${name} THEN ${schemaLookup(values.slice(0, middle))}
-      WHEN name COLLATE BINARY = ${name} THEN ${exact}
+    const middle = Math.floor(values.length / 2), value = values[middle]!, rowid = integerLiteral(value.rowid);
+    const exact = `(name COLLATE BINARY=${literal(value.name)} AND type COLLATE BINARY=${literal(value.type)}
+      AND tbl_name COLLATE BINARY=${literal(value.tableName)} AND sql COLLATE BINARY=${literal(value.sql)})`;
+    return `(CASE WHEN rowid < ${rowid} THEN ${schemaLookup(values.slice(0, middle))}
+      WHEN rowid = ${rowid} THEN ${exact}
       ELSE ${schemaLookup(values.slice(middle + 1))} END)`;
   }
+  // One fresh scan retains both original counts and verifies every live cell.
+  // IS 1 counts a NULL/malformed/unknown leaf as zero, never as admission.
   const exactSchema = nativeDatabase.prepare(`SELECT 1 AS admitted WHERE
     (SELECT count(*)=${expectedSchema.length} AND count(DISTINCT name COLLATE BINARY)=${expectedSchema.length}
-      FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*')
-    AND NOT EXISTS(SELECT 1 FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*'
-      AND ${schemaLookup(orderedSchema)} IS NOT 1)`);
+      AND sum((${schemaLookup(orderedSchema)}) IS 1)=${expectedSchema.length}
+      FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*') IS 1`);
   const version = nativeDatabase.prepare("PRAGMA main.schema_version"); version.setReadBigInts(true);
   const tempVersion = nativeDatabase.prepare("PRAGMA temp.schema_version"); tempVersion.setReadBigInts(true);
   const foreignKeys = nativeDatabase.prepare("PRAGMA foreign_keys");
@@ -147,7 +166,8 @@ export function captureInstalledIdentityExecutionOwnerV28Candidate(identity: obj
     installation.schemaSha256, installation.appliedMigrations, installation.createdAt,
     cookie, temporaryCookie, mainFile,
     ...capturedLedger.flatMap(row => [row.ordinal, row.name, row.rawSha256, row.checkpointId,
-      row.schemaSha256, row.status, row.appliedAt])]);
+      row.schemaSha256, row.status, row.appliedAt]),
+    ...orderedSchema.flatMap(row => [row.rowid, row.name])]);
   executionOwners.set(issued, Object.freeze({ proof, assertCurrent }));
   return issued;
 }
