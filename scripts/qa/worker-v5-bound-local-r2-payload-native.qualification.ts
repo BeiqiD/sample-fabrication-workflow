@@ -70,6 +70,14 @@ const workerCode = String.raw`
   }
   const rowKey=(spec,row)=>spec.withoutRowid?stableJson((spec.primaryKeyColumns??spec.columns).map(name=>row.cells[spec.columns.indexOf(name)])):row.rowid;
   const cellValue=cell=>cell.type==='null'?null:cell.value;
+  // Use the reviewed complete column list. V28 exports source_rowid as
+  // lossless decimal text; cast in native SQL before D1 JSON transport.
+  function losslessShadowProjection(name){
+    const spec=catalog.tables.find(spec=>spec.name===name);
+    require(spec&&(name==='file_shadow_heads'||name==='file_shadow_occurrences'),'reviewed_shadow_projection');
+    return spec.columns.map(column=>column==='source_rowid'
+      ?'CAST("source_rowid" AS TEXT) AS "source_rowid"':'"'+column+'"').join(',');
+  }
   // Read every original and added cell independently after the actual target
   // constructor. This does not call the product history plan or its serializer.
   async function independentShadowProof(target,records){
@@ -83,7 +91,7 @@ const workerCode = String.raw`
     require(originalAlias&&originalAlias.file_id===originalItem.file_id&&originalAlias.r2_key===null&&originalAlias.status==='ready','original_native_alias_without_legacy_locator');
     const keys=['consumer_kind','consumer_id','consumer_sub_id','file_slot'];
     const sameTuple=row=>keys.every(key=>row[key]===before[key]);
-    const targetHeads=await target.prepare('SELECT * FROM file_shadow_heads').all();
+    const targetHeads=await target.prepare('SELECT '+losslessShadowProjection('file_shadow_heads')+' FROM file_shadow_heads').all();
     require(targetHeads.success&&targetHeads.results.length===1,'target_one_present_head');const after=targetHeads.results[0];
     const originalControl=records.content.tables.file_shadow_control;
     require(originalControl.length===1&&Number.isSafeInteger(originalControl[0].epoch),'original_control');
@@ -101,7 +109,7 @@ const workerCode = String.raw`
     require(after.source_json===finalSource,'exact_final_source_token');
     const originalOccurrences=new Map(records.content.tables.file_shadow_occurrences.map(row=>[row.id,row]));
     const originalClosures=new Set(records.content.tables.file_shadow_closures.map(row=>row.occurrence_id));
-    const allOccurrences=await target.prepare('SELECT * FROM file_shadow_occurrences').all();
+    const allOccurrences=await target.prepare('SELECT '+losslessShadowProjection('file_shadow_occurrences')+' FROM file_shadow_occurrences').all();
     const allClosures=await target.prepare('SELECT * FROM file_shadow_closures').all();
     require(allOccurrences.success&&allClosures.success,'actual_history_read');
     const occurrences=allOccurrences.results.filter(row=>!originalOccurrences.has(row.id));

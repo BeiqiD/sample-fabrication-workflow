@@ -2,6 +2,7 @@
 import type { ExportRow, ExportTables } from "./export";
 import { stableJson } from "../domain/content-addressing";
 import { FILE_AUTHORITY_CONSUMER_COLUMNS } from "./export-file-authority";
+import { nativeV5CommentCandidateRow, type NativeV5CommentProvenance } from "./export-native-v5-comment-provenance";
 function ensure(value: unknown, reason: string): asserts value {
   if (!value) throw new Error(`Full export rejected: invalid File runtime ${reason}`);
 }
@@ -22,7 +23,7 @@ export function validateFileNativeRuntimeRowsV28(tables: ExportTables, successor
   historicalResultLocation: (fileId: unknown, source: unknown, destination: unknown) => boolean;
   importedPreviewEvidence?: (table: string, row: ExportRow, column: string) => boolean;
   recoveredAttachmentPreviewEvidence?: (table: string, row: ExportRow, column: string) => boolean;
-}, localProfileIds: ReadonlySet<string>): ReadonlySet<string> {
+}, localProfileIds: ReadonlySet<string>, nativeComment?: NativeV5CommentProvenance): ReadonlySet<string> {
   const mode = tables.file_authority_control[0]?.mode;
   const profiles = index(tables, "storage_profiles"), files = index(tables, "files"), locations = index(tables, "file_locations");
   const publications = index(tables, "file_location_publications", "location_id"), filePublications = index(tables, "file_publications", "file_id");
@@ -32,7 +33,8 @@ export function validateFileNativeRuntimeRowsV28(tables: ExportTables, successor
   const acceptedLocations = new Set<string>();
   for (const candidate of tables.file_acceptance_candidates) {
     const key = candidateKey(candidate), profile = profiles.get(candidate.storage_profile_id);
-    if (localProfileIds.has(String(candidate.storage_profile_id))) ensure(candidate.acceptance_kind === "r2_upload", "local candidate acceptance kind");
+    if (localProfileIds.has(String(candidate.storage_profile_id))) ensure(candidate.acceptance_kind === "r2_upload"
+      || candidate.acceptance_kind === "comment_item" && nativeV5CommentCandidateRow(nativeComment, candidate), "local candidate acceptance kind");
     ensure(mode !== "legacy" && !candidates.has(key) && profile && text(candidate.acceptance_id)
       && ["candidate", "ready", "cancelled"].includes(String(candidate.state)) && time(candidate.created_at)
       && !ownedFiles.has(candidate.candidate_file_id) && !ownedLocations.has(candidate.candidate_location_id), "candidate identity/state");

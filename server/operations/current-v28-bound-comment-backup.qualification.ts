@@ -192,9 +192,43 @@ describe('current genuine bound canonical Comment File through compiled strict V
       const configuration = join(baseline.root, 'bound-current-capture.json'), archive = join(baseline.root, 'genuine-bound-original-v5.zip');
       await writeFile(configuration, JSON.stringify({ schema: 'stopped-local-v28-capture/1', databasePath: baseline.path,
         descriptors: baseline.descriptors }), { flag: 'wx', mode: 0o600 });
-      const capture = await originalProducerPhase('stopped-capture', () => runCurrentCli(distribution, 'installation-cli.cjs', ['capture-local-backup', '--runtime-profile', 'v28',
+      const captureArguments = ['capture-local-backup', '--runtime-profile', 'v28',
         '--configuration', configuration, '--archive', archive, '--installation', baseline.installationId,
-        '--filesystem-root-owner-uid', String(baseline.rootOwnerUid)]));
+        '--filesystem-root-owner-uid', String(baseline.rootOwnerUid)];
+      let originalMainObserverConfig: string | undefined;
+      if (process.env.WORKER_V5_COMMENT_ORIGINAL_CAPTURE_ERROR_OBSERVER === 'original-main/1') {
+        originalMainObserverConfig = join(baseline.root, 'original-capture-main-observer-config.json');
+        await writeFile(originalMainObserverConfig, stableJson({ schema: 'actual-comment-stopped-capture-original-main-observer/1',
+          root: baseline.root, entry: join(distribution, 'server', 'installation-cli.cjs'), configuration }), { flag: 'wx', mode: 0o600 });
+      }
+      const capture = await originalProducerPhase('stopped-capture', () => {
+        if (!originalMainObserverConfig) return runCurrentCli(distribution, 'installation-cli.cjs', captureArguments);
+        // spawn inherits these private options synchronously before the helper's
+        // first await. Restore the parent environment before returning that same
+        // original child-close promise; no second invocation or wrapper outcome.
+        const keys = ['NODE_OPTIONS', 'CURRENT_V28_COMMENT_ORIGINAL_MAIN_ERROR_OBSERVER', 'CURRENT_V28_COMMENT_ORIGINAL_MAIN_ERROR_CONFIG'] as const;
+        const previous = keys.map(key => process.env[key]);
+        try {
+          const preload = new URL('./current-v28-comment-original-main-error.qualification-preload.mjs', import.meta.url).href;
+          process.env.NODE_OPTIONS = (previous[0] ? previous[0] + ' ' : '') + '--import=' + preload;
+          process.env.CURRENT_V28_COMMENT_ORIGINAL_MAIN_ERROR_OBSERVER = 'original-main/1';
+          process.env.CURRENT_V28_COMMENT_ORIGINAL_MAIN_ERROR_CONFIG = originalMainObserverConfig;
+          return runCurrentCli(distribution, 'installation-cli.cjs', captureArguments);
+        } finally {
+          keys.forEach((key, index) => { const value = previous[index]; if (value === undefined) delete process.env[key]; else process.env[key] = value; });
+        }
+      });
+      // Private failure attribution from this exact invocation, after its SAME
+      // original child close returned and before any outcome assertion. The
+      // registered helper bounds combined original output to 16 KiB; a
+      // nonzero exit remains a failure, and is never retried on this fixture.
+      await writeFile(join(baseline.root, 'original-stopped-capture-cli-result.json'), stableJson({
+        schema: 'current-bound-comment-original-stopped-capture-cli-result/1',
+        executable: process.execPath, entry: join(distribution, 'server', 'installation-cli.cjs'),
+        arguments: captureArguments, distribution, originalCloseAcknowledged: true,
+        originalOutputBytes: Buffer.byteLength(capture.stdout) + Buffer.byteLength(capture.stderr),
+        originalOutputByteLimit: 16 * 1024, result: capture,
+      }), { flag: 'wx', mode: 0o600 });
       expect(capture.code).toBe(0); expect(capture.signal).toBeNull(); expect(capture.stderr).toBe('');
       const captured = canonicalFileObject(JSON.parse(capture.stdout));
       expect(captured).toMatchObject({ kind: 'stopped-local-v28-v5-capture/1', nodeInstallationId: baseline.installationId,
