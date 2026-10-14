@@ -1,4 +1,4 @@
-import { originalNodeV28RecoverySqlPreparation } from "./recovery/node-system-recovery-v28-application.ts";
+import { originalNodeV28RecoverySqlPreparation, originalNodeV28RecoverySqlAdmission } from "./recovery/node-system-recovery-v28-application.ts";
 import { ownedLocalPackageV28JobSqlScope, type LocalPackageV28JobSqlScope,
   type LocalUploadExecution } from "./files/local-upload-execution";
 import type { LocalVolumeProfileOpening } from "./storage/local-volume-profile-opening";
@@ -315,6 +315,7 @@ function jobSqlDatabase(core: SqliteCapability, admission?: () => SqliteBatchAdm
     }
   };
   const recoveryPreparing = originalNodeV28RecoverySqlPreparation(core, admission, owner);
+  const recoveryAdmitting = originalNodeV28RecoverySqlAdmission(core, admission, owner);
   const assertPreparing = () => {
     const preparation = packagePreparationOwners.get(view);
     if (!preparation && recoveryPreparing) {
@@ -334,8 +335,12 @@ function jobSqlDatabase(core: SqliteCapability, admission?: () => SqliteBatchAdm
     core.primary();
   };
   const execute = async (items: readonly SqliteStatement[]) => {
-    assertHeld();
-    const result = admission ? await runSqliteAdmittedBatch(core, items, admission()) : await core.batch(items);
+    let selectedAdmission: SqliteBatchAdmission | undefined;
+    if (recoveryAdmitting) selectedAdmission = recoveryAdmitting();
+    else { assertHeld(); selectedAdmission = admission?.(); }
+    // Admission-function presence retains the original fail-closed behavior
+    // even if an unregistered caller returns an invalid or missing receipt.
+    const result = admission ? await runSqliteAdmittedBatch(core, items, selectedAdmission!) : await core.batch(items);
     assertHeld(); return result;
   };
   const statements = new WeakMap<JobSqlStatement, SqliteStatement>();
@@ -372,7 +377,13 @@ function jobSqlDatabase(core: SqliteCapability, admission?: () => SqliteBatchAdm
         const native = statements.get(item); if (!native) throw new Error("Foreign JobSqlDatabase statement"); return native;
       }));
     },
-    primary() { assertHeld(); core.primary(); return view; },
+    primary() {
+      // Selecting the same original core records no SQL or native I/O. Only
+      // the actual registered Recovery view can use its construction proof.
+      if (recoveryPreparing && !packagePreparationOwners.has(view)) assertPreparing();
+      else assertHeld();
+      core.primary(); return view;
+    },
   };
   return view;
 }

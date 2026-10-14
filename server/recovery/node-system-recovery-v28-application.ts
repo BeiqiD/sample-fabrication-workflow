@@ -29,7 +29,7 @@ import { openNodePrivateRecoveryArtifacts, type NodePrivateRecoveryArtifacts } f
 import { createNodeV28ArchiveStages } from "./node-v28-archive-stages.ts";
 import { createNodeV28OriginalSourceResume, checkedNodeV28SourceResumeInput } from "./node-v28-original-source-resume.ts";
 import { createNodeRecoverySourceMaintenance } from "./node-source-maintenance.ts";
-import { openNodeV28RecoveryTarget, type NodeV28RecoveryTarget } from "./node-v28-recovery-target.ts";
+import { openNodeV28RecoveryTarget, assertOriginalNodeV28TargetDatabaseIdentity, type NodeV28RecoveryTarget } from "./node-v28-recovery-target.ts";
 import { createNodeV28TargetStages } from "./node-v28-target-stages.ts";
 import { stableJson } from "../../shared/domain/content-addressing.ts";
 import { runBoundedSystemRecoveryReadAction } from "../../worker/recovery/kernel.ts";
@@ -96,6 +96,21 @@ function plannedSourceWindow(job: RecoveryJob): PlannedSourceWindow | null {
 }
 const claimed = new WeakSet<LinuxWriterLease>(), retained = new Set<object>();
 type OriginalTargetSourceGuard = (claim: RecoveryClaim, signal: AbortSignal, deadline: number) => void;
+declare const originalTargetSourceFrameBrand: unique symbol;
+export interface OriginalNodeV28TargetSourceFrame { readonly [originalTargetSourceFrameBrand]: true }
+const originalTargetSourceFrames = new WeakMap<OriginalNodeV28TargetSourceFrame, Readonly<{
+  engine: object; database: SqliteCapability; native: DatabaseSync; lease: LinuxWriterLease;
+  configuration: LoadedNodeRuntimeConfiguration; authentication: object; admission: ReviewedInstallationAdmission;
+  source: () => void; target: object; current(): void;
+}>>();
+/** Only a single synchronous metadata check can consume an actual engine frame.
+ * No caller data or callback fields can mint or extend this source invocation. */
+export function assertOriginalNodeV28TargetSourceFrame(frame: OriginalNodeV28TargetSourceFrame,
+  target: object, source: () => void): void {
+  const original = originalTargetSourceFrames.get(frame);
+  if (!original || original.target !== target || original.source !== source) throw new Error("target_unavailable");
+  originalTargetSourceFrames.delete(frame); original.current();
+}
 const originalTargetSourceGuards = new WeakMap<OriginalTargetSourceGuard, Readonly<{
   engine: object; database: SqliteCapability; native: DatabaseSync; lease: LinuxWriterLease;
   configuration: LoadedNodeRuntimeConfiguration; authentication: object; admission: ReviewedInstallationAdmission;
@@ -104,7 +119,7 @@ const originalTargetSourceGuards = new WeakMap<OriginalTargetSourceGuard, Readon
 const originalRecoverySqlPreparations = new WeakMap<object, Readonly<{
   engine: object; database: SqliteCapability; native: DatabaseSync; lease: LinuxWriterLease;
   configuration: LoadedNodeRuntimeConfiguration; authentication: object; installationAdmission: ReviewedInstallationAdmission;
-  request: Request | undefined; actor: string | undefined; admission: () => SqliteBatchAdmission; preparing: () => void;
+  request: Request | undefined; actor: string | undefined; admission: () => SqliteBatchAdmission; preparing: () => void; admitting: () => SqliteBatchAdmission;
 }>>();
 /** Lookup only: issuance occurs inside the actual validated Recovery engine.
  * The returned guard still performs its own full live source check. */
@@ -121,6 +136,14 @@ export function originalNodeV28RecoverySqlPreparation(database: SqliteCapability
   if (!fence || !admission) return undefined;
   const original = originalRecoverySqlPreparations.get(fence);
   return original && original.database === database && original.admission === admission ? original.preparing : undefined;
+}
+/** This private registered action performs the original full precheck and then
+ * creates a fresh same-BEGIN admission without repeating that source check. */
+export function originalNodeV28RecoverySqlAdmission(database: SqliteCapability,
+  admission: (() => SqliteBatchAdmission) | undefined, fence: object | undefined): (() => SqliteBatchAdmission) | undefined {
+  if (!fence || !admission) return undefined;
+  const original = originalRecoverySqlPreparations.get(fence);
+  return original && original.database === database && original.admission === admission ? original.admitting : undefined;
 }
 const issuedChildren = new WeakMap<object, Readonly<{
   database: SqliteCapability; nativeDatabase: DatabaseSync; writerLease: LinuxWriterLease;
@@ -402,22 +425,31 @@ function createRecoveryEngine(options: Omit<OriginalRecoveryOptions, "hasher"> &
   function ownedTargetGuard(claim: RecoveryClaim, signal: AbortSignal, deadline: number): void {
     physical();
     if (signal.aborted || Date.now() >= deadline || !administratorAfterPhysical(claim.actor)) throw new Error("administrator_revoked");
-    targetClaimGuard(claim);
+    const target = owner.target, originalAuthentication = authentication;
+    if (!target || !originalAuthentication) throw new Error("target_unavailable");
+    const frame = Object.freeze({}) as OriginalNodeV28TargetSourceFrame;
+    originalTargetSourceFrames.set(frame, Object.freeze({ engine: owner, database, native, lease, configuration,
+      authentication: originalAuthentication, admission, source: physical, target,
+      current() { if (authentication !== originalAuthentication) throw fail("Recovery authentication is unavailable", 503); preparing(); } }));
+    // The original cursor and target metadata guard are synchronous. A frame
+    // never crosses an await, a provider call, or an asynchronous native action.
+    try { targetClaimGuard(claim, frame); } finally { originalTargetSourceFrames.delete(frame); }
   }
-  function targetClaimGuard(claim: RecoveryClaim): void {
+  function targetClaimGuard(claim: RecoveryClaim, frame?: OriginalNodeV28TargetSourceFrame): void {
     assertPlannedWindow(claim);
     const cursor = native.prepare("SELECT cursor_json FROM system_recovery_target_claim WHERE job_id=? AND target_id=?")
       .get(claim.id, claim.target_id);
     const persisted = cursor ? JSON.parse(String(cursor.cursor_json)).database as import("./node-v28-recovery-target.ts").NodeV28TargetDatabaseIdentity | null : null;
-    if (persisted) { if (!owner.target) throw new Error("target_unavailable"); owner.target.assertDatabaseIdentity(persisted); }
+    if (persisted) { if (!owner.target) throw new Error("target_unavailable");
+      if (frame) assertOriginalNodeV28TargetDatabaseIdentity(owner.target, frame, persisted);
+      else owner.target.assertDatabaseIdentity(persisted); }
     const current = native.prepare(`SELECT 1 FROM system_recovery_jobs j JOIN system_recovery_runtime r ON r.singleton=1 AND r.enabled=1
       AND r.incarnation=j.runtime_incarnation WHERE j.id=? AND j.actor=? AND j.kind='recovery' AND j.state='running'
         AND j.generation=? AND j.owner_token=? AND j.runtime_incarnation=? AND julianday(j.lease_expires_at)>julianday(?)`)
       .get(claim.id, claim.actor, claim.generation, claim.owner_token, claim.runtime_incarnation, new Date().toISOString());
     if (!current) throw new Error("administrator_revoked");
   }
-  const installationAdmission = (request?: Request, actor?: string) => {
-    physical();
+  const installationAdmissionAfterPhysical = (request?: Request, actor?: string) => {
     const checks = [{ statement: database.prepare(`SELECT 1 admitted WHERE EXISTS(SELECT 1 FROM node_installation WHERE singleton=1 AND installation_id=?
       AND catalog_id=? AND schema_checkpoint=? AND schema_sha256=? AND created_at=?)`)
       .bind(installation.installationId, installation.catalogId, installation.checkpointId, installation.schemaSha256, installation.createdAt),
@@ -435,13 +467,17 @@ function createRecoveryEngine(options: Omit<OriginalRecoveryOptions, "hasher"> &
     }
     return createSqliteBatchAdmission(database, checks);
   };
+  const installationAdmission = (request?: Request, actor?: string) => {
+    physical(); return installationAdmissionAfterPhysical(request, actor);
+  };
   const repository = (request?: Request, actor?: string) => {
     const selectedAdmission = () => installationAdmission(request, actor), fence = Object.freeze({ assertHeld: physical });
     const originalAuthentication = authentication;
     if (!originalAuthentication) throw fail("Recovery authentication is unavailable", 503);
     originalRecoverySqlPreparations.set(fence, Object.freeze({ engine: owner, database, native, lease, configuration,
       authentication: originalAuthentication, installationAdmission: admission, request, actor, admission: selectedAdmission,
-      preparing() { if (authentication !== originalAuthentication) throw fail("Recovery authentication is unavailable", 503); preparing(); } }));
+      preparing() { if (authentication !== originalAuthentication) throw fail("Recovery authentication is unavailable", 503); preparing(); },
+      admitting() { fence.assertHeld(); return installationAdmissionAfterPhysical(request, actor); } }));
     return new NodeRecoveryRepository(asAdmittedJobSqlDatabase(database, selectedAdmission, fence), owner.issued,
       () => owner.artifacts!.identity.sha256);
   };

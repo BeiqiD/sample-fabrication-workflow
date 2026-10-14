@@ -8,6 +8,7 @@ import { stableJson } from "../../shared/domain/content-addressing.ts";
 import type { NodeConfiguredRecoveryTarget } from "../node-runtime-config.ts";
 import { acquireLinuxWriterLease, assertLinuxWriterLeaseBinding, type LinuxWriterLease } from "../operations/writer-lease.ts";
 import { createSqliteCapability, type SqliteCapability } from "../sqlite.ts";
+import { assertOriginalNodeV28TargetSourceFrame, type OriginalNodeV28TargetSourceFrame } from "./node-system-recovery-v28-application.ts";
 
 export interface NodeV28TargetIdentity {
   readonly kind: "node-v28-fresh-inert-target/1";
@@ -30,6 +31,17 @@ interface NativeOwner {
   bindingAccepted: boolean; workActive: boolean;
 }
 const retained = new Set<object>();
+const originalTargetIdentityChecks = new WeakMap<object, Readonly<{
+  source: () => void; assertIdentity(frame: OriginalNodeV28TargetSourceFrame, expected: NodeV28TargetDatabaseIdentity): void;
+}>>();
+/** The original target factory alone registers its private metadata checker.
+ * The opaque source frame is consumed by the actual issuing engine. */
+export function assertOriginalNodeV28TargetDatabaseIdentity(target: object,
+  frame: OriginalNodeV28TargetSourceFrame, expected: NodeV28TargetDatabaseIdentity): void {
+  const original = originalTargetIdentityChecks.get(target);
+  if (!original) throw new Error("target_unavailable");
+  original.assertIdentity(frame, expected);
+}
 const fail = (reason = "target_unavailable"): never => { throw new Error(reason); };
 const sha = (value: string) => createHash("sha256").update(value).digest("hex");
 const same = (a: BigIntStats, b: BigIntStats) => a.dev === b.dev && a.ino === b.ino && a.uid === b.uid && a.gid === b.gid && a.mode === b.mode;
@@ -66,14 +78,19 @@ export async function openNodeV28RecoveryTarget(options: {
     captured.quarantine(error);
   }
   function physical(): void {
-    if (owner.closed || owner.failed) fail(); captured.assertSource();
+    if (owner.closed || owner.failed) fail(); captured.assertSource(); assertDirectories();
+  }
+  function assertDirectories(): void {
     for (const directory of directories.values()) {
       const value = lstatSync(directory.path, { bigint: true });
       if (!privateDirectory(value) || !same(directory.stat, value) || realpathSync(directory.path) !== directory.path) fail("target_alias");
     }
   }
   function assertDatabaseIdentity(expected: NodeV28TargetDatabaseIdentity): void {
-    physical(); const file = lstatSync(join(root, "database.sqlite"), { bigint: true });
+    physical(); assertDatabaseMetadata(expected);
+  }
+  function assertDatabaseMetadata(expected: NodeV28TargetDatabaseIdentity): void {
+    const file = lstatSync(join(root, "database.sqlite"), { bigint: true });
     if (!expected || Object.keys(expected).length !== 5 || !privateFile(file)
       || stableJson(expected) !== stableJson({ dev: String(file.dev), ino: String(file.ino), uid: String(file.uid), gid: String(file.gid), mode: String(file.mode) })) fail("target_alias");
     for (const selected of nativeOwners) if (selected.native && selected.core && selected.lease) {
@@ -181,7 +198,7 @@ export async function openNodeV28RecoveryTarget(options: {
   } catch (error) {
     try { await close(); } catch (cleanup) { throw new AggregateError([error, cleanup], "Target parent opening and original cleanup failed"); } throw error;
   }
-  return Object.freeze({ identity, destination: root,
+  const target = Object.freeze({ identity, destination: root,
     assertDatabaseIdentity,
     checkpoint() { physical(); return Object.freeze({ targetNamespace: identity }); },
     async fresh(): Promise<boolean> {
@@ -307,5 +324,12 @@ export async function openNodeV28RecoveryTarget(options: {
     },
     close,
   });
+  originalTargetIdentityChecks.set(target, Object.freeze({ source: captured.assertSource,
+    assertIdentity(frame: OriginalNodeV28TargetSourceFrame, expected: NodeV28TargetDatabaseIdentity) {
+      if (owner.closed || owner.failed) fail();
+      assertOriginalNodeV28TargetSourceFrame(frame, target, captured.assertSource);
+      assertDirectories(); assertDatabaseMetadata(expected);
+    } }));
+  return target;
 }
 export type NodeV28RecoveryTarget = Awaited<ReturnType<typeof openNodeV28RecoveryTarget>>;
