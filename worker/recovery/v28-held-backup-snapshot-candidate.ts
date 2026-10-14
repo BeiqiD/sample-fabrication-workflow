@@ -5,6 +5,7 @@ import { allowedEmail } from "../auth";
 import type { Env } from "../types";
 import { primaryD1 } from "../d1-primary";
 import { nativeV28SnapshotSql, buildFullExportV28FromSnapshot } from "../export-v28-core";
+import { checkedNativeRetentionSnapshot } from "../export-native-retention-snapshot";
 import { portableBusinessSchemaV28, createFullExportV28 } from "../../shared/contracts/export-portable-runtime-v28";
 import type { ExportSchemaObject } from "../../shared/contracts/export";
 import { recoveryTableSnapshotSql } from "../../shared/contracts/system-recovery-image";
@@ -140,16 +141,18 @@ async function captureOriginalWorkerV28Snapshot(env: Env, options: WorkerV28Held
   const ids = held.rows.filter(row => row.cells[holdOwner].type === "text" && row.cells[holdOwner].value === "fp5-backup:" + backupId)
     .map(row => { const cell = row.cells[holdId]; ensure(cell.type === "text", "hold_identity"); return cell.value; });
   observedHolds?.(Object.freeze(ids));
-  // Decode protected history from this SAME frozen typed source observation.
-  const protectedHistory = protectedLocalHistoryFromV5Image({ version: 5, kind: "system-recovery-image", checkpointId: catalog.checkpointId,
-    schemaSha256: catalog.schemaSha256, sourceSnapshotClock: createdAt, tables: imageTables });
+  // The final content result carries the SAME batch's native retention clock;
+  // the request's createdAt is an identity clock, not this source observation.
+  const snapshotClock = checkedNativeRetentionSnapshot(results[imageOffset - 1].results).snapshotClock;
+  const image = validateSystemRecoveryImageV5({ version: 5, kind: "system-recovery-image", checkpointId: catalog.checkpointId,
+    schemaSha256: catalog.schemaSha256, sourceSnapshotClock: snapshotClock, tables: imageTables });
+  const protectedHistory = protectedLocalHistoryFromV5Image(image);
   const business = await buildFullExportV28FromSnapshot(results.slice(prefix.length, imageOffset), {
     backupHoldOwner: backupId, protectedLocalHistory: protectedHistory,
     async projectSchema(objects) { return portableBusinessSchemaV28((await inspectV28CloudflareSchemaCandidate(objects)).applicationObjects); },
   });
   const content = await createFullExportV28(business, inspected.applicationObjects, protectedHistory);
-  const image = validateSystemRecoveryImageV5({ version: 5, kind: "system-recovery-image", checkpointId: catalog.checkpointId,
-    schemaSha256: catalog.schemaSha256, sourceSnapshotClock: content.artifacts.sourceSchema.value.snapshotClock, tables: imageTables });
+  ensure(content.artifacts.sourceSchema.value.snapshotClock === image.sourceSnapshotClock, "atomic_snapshot_clock_changed");
   const ledgerRows = results[imageOffset + tables.length + 1].results as Array<{ id: string; name: string; appliedAt: string | null }>;
   ensure(ledgerRows.length === catalog.migrations.length && ledgerRows.every((row, index) => row.id === String(index + 1)
     && row.name === catalog.migrations[index].name && typeof row.appliedAt === "string" && Number.isFinite(Date.parse(row.appliedAt))),
