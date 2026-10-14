@@ -18,6 +18,7 @@ import type { ExportTables } from "../../shared/contracts/export";
 import { inspectRecoveryPlatformSchema } from "./target-migrations";
 import { v5PublicShadowHistory, assertV5PublicShadowPlanPersisted, type V5PublicShadowPlan } from "./v5-public-shadow-plan";
 import { nativeV28SnapshotSql, buildFullExportV28FromSnapshot } from "../export-v28-core";
+import { checkedNativeRetentionSnapshot } from "../export-native-retention-snapshot";
 import { portableBusinessSchemaV28, createFullExportV28 } from "../../shared/contracts/export-portable-runtime-v28";
 import { protectedLocalHistoryFromV5Image, validateSystemRecoveryImageV5 } from "../../shared/contracts/system-backup-v5";
 import { validateSystemBackupContentImageV28 } from "../../shared/contracts/system-backup-v28-content";
@@ -250,7 +251,12 @@ export async function verifyRecoveryTarget(database: D1Database, records: Versio
       }) }]));
     for (const spec of nonlocal) ensure(await sha256Hex(stableJson(imageTables[spec.name].rows.map(stableJson).sort()))
       === tableHashes[spec.name], "restored_coherent_typed_image_changed:" + spec.name);
-    const protectedHistory = protectedLocalHistoryFromV5Image({ ...records.image, tables: imageTables });
+    // Retain the clock from this same original business/typed-image batch;
+    // the earlier archive's clock cannot describe the current target rows.
+    const snapshotClock = checkedNativeRetentionSnapshot(snapshot[contentSql.length - 1].results).snapshotClock;
+    const image = validateSystemRecoveryImageV5({ version: 5, kind: "system-recovery-image", checkpointId: catalog.checkpointId,
+      schemaSha256: catalog.schemaSha256, sourceSnapshotClock: snapshotClock, tables: imageTables });
+    const protectedHistory = protectedLocalHistoryFromV5Image(image);
     let applicationObjects: ExportSchemaObject[] | undefined;
     const business = await buildFullExportV28FromSnapshot(snapshot.slice(0, contentSql.length), {
       backupHoldOwner: records.content.backupHoldOwner, protectedLocalHistory: protectedHistory,
@@ -261,8 +267,7 @@ export async function verifyRecoveryTarget(database: D1Database, records: Versio
     });
     ensure(applicationObjects, "restored_full_v28_schema");
     const content = await createFullExportV28(business, applicationObjects, protectedHistory);
-    const image = validateSystemRecoveryImageV5({ version: 5, kind: "system-recovery-image", checkpointId: catalog.checkpointId,
-      schemaSha256: catalog.schemaSha256, sourceSnapshotClock: content.artifacts.sourceSchema.value.snapshotClock, tables: imageTables });
+    ensure(content.artifacts.sourceSchema.value.snapshotClock === image.sourceSnapshotClock, "restored_full_v28_snapshot_clock_changed");
     await validateSystemBackupContentImageV28(content, image);
   }
   const projectChecks = [

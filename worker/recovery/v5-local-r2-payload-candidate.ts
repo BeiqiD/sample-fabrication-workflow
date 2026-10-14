@@ -30,6 +30,7 @@ import { FILE_REGISTRY_ROWID_CLAIMS_INTEGRITY_SQL } from "../../shared/contracts
 import { FILE_SHADOW_HEAD_INTEGRITY_SQL } from "../../shared/contracts/export-file-shadow";
 import { FILE_SHADOW_DEPENDENCY_SPECS } from "../../shared/contracts/file-shadow-schema";
 import { nativeV28SnapshotSql, buildFullExportV28FromSnapshot } from "../export-v28-core";
+import { checkedNativeRetentionSnapshot } from "../export-native-retention-snapshot";
 import { portableBusinessSchemaV28, createFullExportV28 } from "../../shared/contracts/export-portable-runtime-v28";
 import { protectedLocalHistoryFromV5Image, validateSystemRecoveryImageV5 } from "../../shared/contracts/system-backup-v5";
 import { validateSystemBackupContentImageV28 } from "../../shared/contracts/system-backup-v28-content";
@@ -524,7 +525,12 @@ export function createWorkerV5LocalR2PayloadCandidate(env: Env) {
       rows: snapshot[contentSql.length + index].results.map(value => {
         const row = value as { rowid: string | null; cells: string }; return { rowid: row.rowid, cells: JSON.parse(row.cells) };
       }) }]));
-    const protectedHistory = protectedLocalHistoryFromV5Image({ ...record.records.image, tables: imageTables });
+    // The final content result is the original batch's stable native retention
+    // clock. Admit this exact current image before issuing its private history.
+    const snapshotClock = checkedNativeRetentionSnapshot(snapshot[contentSql.length - 1].results).snapshotClock;
+    const image = validateSystemRecoveryImageV5({ version: 5, kind: "system-recovery-image", checkpointId: catalog.checkpointId,
+      schemaSha256: catalog.schemaSha256, sourceSnapshotClock: snapshotClock, tables: imageTables });
+    const protectedHistory = protectedLocalHistoryFromV5Image(image);
     let applicationObjects: ExportSchemaObject[] | undefined;
     const business = await buildFullExportV28FromSnapshot(snapshot.slice(0, contentSql.length), { backupHoldOwner: null,
       protectedLocalHistory: protectedHistory, async projectSchema(objects) {
@@ -533,8 +539,7 @@ export function createWorkerV5LocalR2PayloadCandidate(env: Env) {
       } });
     ensure(applicationObjects, "full_v28_schema");
     const content = await createFullExportV28(business, applicationObjects, protectedHistory);
-    const image = validateSystemRecoveryImageV5({ version: 5, kind: "system-recovery-image", checkpointId: catalog.checkpointId,
-      schemaSha256: catalog.schemaSha256, sourceSnapshotClock: content.artifacts.sourceSchema.value.snapshotClock, tables: imageTables });
+    ensure(content.artifacts.sourceSchema.value.snapshotClock === image.sourceSnapshotClock, "full_v28_snapshot_clock_changed");
     await validateSystemBackupContentImageV28(content, image);
   }
   async function constructOwned(record: OwnedAdmission, current: () => Promise<boolean>, signal?: AbortSignal): Promise<V5LocalR2PayloadConstructionCandidate> {
