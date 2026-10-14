@@ -1,5 +1,47 @@
 # Product goal and roadmap
 
+**Bounded Node/Worker interoperability development checkpoint — 2026-10-14.**
+The current development milestone covers the named Node/SQLite/LOCAL and native
+Worker/D1/R2 Package and V5 Backup/Recovery paths. Each original result retains
+its own actual source, archive producer and first-close proof; no older pass is
+retagged as a new head.
+
+| Bounded acceptance | Exact-source result |
+| --- | --- |
+| Bidirectional Package and copy faults | Merged #305 retains the genuine 15-File R2→Node and Node→R2 pair. Merged #306 retains the final-byte corruption refusal and verified-copy process restart with exactly-once graph publication. |
+| Worker V5 public, headed and planned paths | Merged #310 preserves `0679be77`: its original dedicated 15-stage pipeline passed all 18 cases, including natural Comment/Run Step headed round trips and original revoke/deadline controls. The separate genuine planned one-case, three-distinct-D1 result remains at `7545713e`. Frozen V26/V3 compatibility stays separate. |
+| Node target, authority and held-R2 consumers | `b3fdd028`: eight original target/fault/consumer cases and the strengthened original live-owner case passed with original process/provider/Native closure. The held-R2 archive remains producer `62ac1d54`; current online and fixed offline CLI consumers preserve exact typed rows/rowids, payloads and protected/local history. |
+| Same-app elapsed cadence and restart | `b3fdd028`: all eight original shared-workflow cases passed. They cover prepared Package logout/same-cookie refusal, original archive Response EOF/cancel and scheduled Recovery ACK drain on SIGTERM, completed-POST revocation, real 120-second File/Package/Recovery slots and nonzero cursor restart. Original child wait and closure are proven; the earlier B6 cursor failure remains attached to its old attempt. |
+| Same-app maintenance and positive planned handoff | `15bd88d2`: one genuine same-parent case passed. The original File body/read ACK and source lease remained held; new source writers were denied and final fencing waited for that original ACK. A changed existing recipe-family name in the same window refused final handoff; exact restoration then admitted the positive planned inert handoff. Complete target typed image/rowids, payloads, absent protected authority and original Native/lease/HTTP closure passed. |
+| Qualified development integration | #311 merged into `v2/backend-foundation` as `11f2ea94` after all four own Verify/Project Map workflows, all 15 contexts and the original dedicated two-case target pipeline passed. The P7 QA/documentation successor carries this checkpoint. Its own four Verify/Project Map workflows and all 15 contexts are the pre-merge gates; its qualified development merge provides the final milestone integration. #311 post-merge results retain their separate scope. |
+
+The first target case has a new bounded 180-second QA allowance; the second
+retains 90 seconds. Its old 120-second failures and the environment-interrupted
+first wrapper with unproven closure remain recorded as their original failures.
+The real 60-second kernel, HTTP 5-second limit and product 120-second cadence
+stay unchanged. P7 uses the genuine same-parent factory and its original
+one-shot method; it does not claim compiled-main invocation or elapsed cadence.
+The separate P8 results provide the actual elapsed-slot evidence.
+
+The named bounded software/native acceptance is complete at the recorded
+scopes. The bounded goal closes after those Native results and successful own
+CI/development merge of this QA/documentation successor. This checkpoint travels
+with that successor; its qualified merge is the final integration step.
+
+Targets retain default-off executors and absent protected authority. The source
+remains maintenance-fenced with its source executors off; the closed source was
+observed through an actual read-only Native handle with unchanged durable main
+hash/inode. No operating-system read-only enforcement, running-app binding
+change or automatic activation is inferred.
+
+The next finite development work is frontend closure against the enabled
+supported matrix, followed by a reviewable `main` candidate. Physical-device,
+other-engine, authenticated deployed-provider and release/activation acceptance
+retain their separate boundaries. Production `main` merge, deployment, remote
+migration, provider activation and real production file movement are not granted
+by this checkpoint. Heavy checks remain local/GitHub CI; the Cloudflare path
+remains configuration, one bundle and upload.
+
 **Bounded Worker V5 development checkpoint — 2026-10-14.**
 [PR #309](https://github.com/BeiqiD/sample-fabrication-workflow/pull/309) merged as
 [`04666ebf`](https://github.com/BeiqiD/sample-fabrication-workflow/commit/04666ebf78f095e1e0f3255024dd570f896ada2c).
