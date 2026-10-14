@@ -10,7 +10,7 @@ import { validateV28SystemBackupArchiveCandidate } from "../../shared/contracts/
 import { PORTABLE_RUNTIME_RECOVERY_TABLES } from "../../shared/contracts/portable-runtime-v28-recovery-catalog.ts";
 import { checkedSystemRecoveryCapabilities, checkedSystemRecoveryReceipt, checkedSystemRecoveryJobStatus,
   checkedSystemRecoveryPreview, checkedSystemRecoveryMaintenanceStatus, checkedSystemRecoveryMaintenanceReceipt } from "../../shared/contracts/system-recovery.ts";
-import { CANONICAL_FILE_IDENTITY_POLICY, assertCanonicalFileOwnersReleased, canonicalFileClient, canonicalFilePrivateOrigin,
+import { assertCanonicalFileOwnersReleased, canonicalFileClient, canonicalFilePrivateOrigin,
   consumeCanonicalFileClient, listenCanonicalFileApplication, retainedCanonicalFileCase,
   withCanonicalFileDatabase } from "../collaboration/current-v28-canonical-comment-file.qualification-support.ts";
 import { createPasswordHasher } from "../auth/passwords.ts";
@@ -31,6 +31,11 @@ import { holdActualWorkflowFileMigrationBody } from "./node-v28-maintenance-writ
 // three families, Native/core/lease/HTTP and the private source barrier. Its
 // actual one-shot method is used; this case makes no elapsed cadence claim.
 const CASE_MS = 240_000;
+// Exact original v28-workflow runtime policy; retain the actual delivered
+// session throughout one planned source window without appending a new login.
+const ORIGINAL_WORKFLOW_RUNTIME_SHA256 = "54c5971b9318ceddb7698262a0614ba0c2c1d8b1bce14a9de19c02628c73497f";
+const ORIGINAL_WORKFLOW_IDENTITY_POLICY = Object.freeze({ absoluteLifetimeMs: 12 * 3600_000, idleLifetimeMs: 1800_000,
+  loginWindowMs: 60_000, loginAttempts: 5, throttleBuckets: 1000 });
 let distribution: string, output: string, consumerHead: string, manifestSha256: string;
 const hash = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 function ensure(value: unknown): asserts value { if (!value) throw new Error("Original same-parent maintenance qualification is unavailable"); }
@@ -83,6 +88,7 @@ beforeAll(async () => {
     "server/recovery/node-v28-target-stages.ts", "server/recovery/node-v28-recovery-target.ts",
     "server/files/jobs/request-http.ts", "server/packages/job-child-v28-candidate.ts", "worker/recovery/kernel.ts"]) {
     const raw = await readFile(new URL("../../" + relative, import.meta.url));
+    if (relative === "server/workflow/node-v28-workflow-runtime.ts") expect(hash(raw)).toBe(ORIGINAL_WORKFLOW_RUNTIME_SHA256);
     const entry = inputs.map(object).find(value => value.path === relative); ensure(entry);
     expect(entry.bytes).toBe(raw.byteLength); expect(entry.sha256).toBe(hash(raw));
   }
@@ -113,7 +119,7 @@ describe("genuine same-parent V28 source maintenance and planned inert handoff",
         owner.applicationAttempted = true;
         const original = Promise.resolve().then(() => createNodeV28WorkflowApplication({ configuration,
           database: core, nativeDatabase: native, writerLease: lease, admission: admitInstallationRecoverySource(native, V28_NODE_INSTALLATION_CATALOG_CANDIDATE),
-          hasher: createPasswordHasher(), identityPolicy: CANONICAL_FILE_IDENTITY_POLICY, publicOrigin: origin,
+          hasher: createPasswordHasher(), identityPolicy: ORIGINAL_WORKFLOW_IDENTITY_POLICY, publicOrigin: origin,
           httpLimits: { timeoutMs: 5000, maxBodyBytes: 2_500_000 } }));
         owner.originalApplication = original;
         const app = await original; owner.application = app; await listenCanonicalFileApplication(owner, origin);
@@ -209,7 +215,7 @@ describe("genuine same-parent V28 source maintenance and planned inert handoff",
           ensure(count < 64); const step = await app.dispatchJobsOnce(); expect(step.jobId).toBe(recoveryId); expect(step.outcome).not.toBe("paused");
           if (step.outcome === "target_ready") break;
         }
-        const refreshed = await client.login("operator");
+        const refreshed = session;
         const ready = checkedSystemRecoveryJobStatus((await client.request(`/api/system-recovery/jobs/${recoveryId}`, "GET", undefined, refreshed)).value);
         expect(ready).toMatchObject({ state: "completed", phase: "ready", result: { ready: true, cutover: false, targetId: target.descriptor.targetId } });
         ensure(ready.result?.checkpoint);
