@@ -175,6 +175,11 @@ const workerRecoveryOriginalResults=new WeakMap<object,Promise<boolean>>();
 export function registerWorkerRecoveryExecutionOwner(capabilities:object):void{
   assertOriginalExecutionsOpen(capabilities);workerRecoveryOwners.set(capabilities,capabilities);
 }
+/** Neutral identity lookup in the original private lifetime registry. It grants
+ * no authority and accepts no host flag, supplied proof or replacement owner. */
+export function hasWorkerRecoveryExecutionOwner(original:object):boolean{
+  return workerRecoveryOwners.get(original)===original;
+}
 export function retainWorkerRecoveryInvocation<T>(original:object,operation:()=>Promise<T>):Promise<T>{
   const owner=workerRecoveryOwners.get(original);
   if(!owner)return operation();

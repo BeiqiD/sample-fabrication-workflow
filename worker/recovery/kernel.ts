@@ -1,4 +1,4 @@
-import { retainWorkerRecoveryInvocation } from "../files/jobs/execution-lifetime";
+import { retainWorkerRecoveryInvocation, hasWorkerRecoveryExecutionOwner } from "../files/jobs/execution-lifetime";
 import type { JobSqlStatement } from "../files/jobs/sql-repository";
 import type { RecoveryAttempt, RecoveryClaim, RecoveryJob, SqlSystemRecoveryRepository, SystemRecoverySqlStatement } from "./sql-repository";
 import { SystemRecoveryConflict } from "./sql-repository";
@@ -47,8 +47,12 @@ export async function runBoundedSystemRecoveryReadAction<T>(
 async function timed<T,Statement extends SystemRecoverySqlStatement<Statement>>(capabilities:SystemRecoveryCapabilitiesAdapter<Statement>,claim:RecoveryClaim,
   operation:(current:()=>Promise<boolean>,signal:AbortSignal,deadlineAt:string)=>Promise<T>,attempt:()=>RecoveryAttempt|null,originals?:Set<Promise<unknown>>){
   const abort=new AbortController(),deadline=capabilities.now().getTime()+SYSTEM_RECOVERY_MAX_STEP_MS;let expired=false,timer:ReturnType<typeof setTimeout>|undefined;
-  const local=()=>!expired&&!abort.signal.aborted&&capabilities.now().getTime()<deadline&&capabilities.authorizeActor(claim.actor);
-  const current=async()=>local()&&await capabilities.repository.current(claim)&&local();
+  const local=()=>!expired&&!abort.signal.aborted&&capabilities.now().getTime()<deadline;
+  // Registered Worker originals retain the fresh post-await actor fence. The
+  // unregistered native adapters keep their original single actor query; all
+  // adapters still reject a deadline/abort which wins during the awaited read.
+  const current=async()=>local()&&capabilities.authorizeActor(claim.actor)&&await capabilities.repository.current(claim)&&local()
+    &&(!hasWorkerRecoveryExecutionOwner(capabilities)||capabilities.authorizeActor(claim.actor));
   const work=retainWorkerRecoveryInvocation(capabilities,()=>operation(current,abort.signal,new Date(deadline).toISOString())),timeout=new Promise<never>((_,reject)=>{timer=setTimeout(()=>{expired=true;abort.abort();reject(new Error("execution_budget_exhausted"));},SYSTEM_RECOVERY_MAX_STEP_MS);});
   if(originals){originals.add(work);void work.catch(()=>undefined);}
   try{return await Promise.race([work,timeout]);}
