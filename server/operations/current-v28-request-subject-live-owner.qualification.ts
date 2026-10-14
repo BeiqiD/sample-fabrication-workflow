@@ -363,6 +363,81 @@ describe("current V28 genuine HTTP opening-bound grouped request-subject live ex
           expect(actualControlTrigger(native, replaced.name)).toEqual(replaced);
           assertLinuxWriterLeaseBinding(lease, core, native);
           expect(issuer.read(issued.request, issued.token)).toEqual(facts);
+          // A genuine complete catalog can keep every name/cell and cookie
+          // while the two original rootpage0 trigger positions exchange their
+          // complete metadata. Neither the old schema cookies nor either live
+          // count can identify this different captured rowid/name mapping.
+          ensure(owner.opening);
+          const pinnedOwner = ownedLocalVolumeIdentityV28Candidate(owner.opening, authentication, admission);
+          const pinnedGroup = createInstalledIdentityExecutionGuardGroupV28Candidate([pinnedOwner, pinnedOwner]);
+          const schemaPositions = () => native.prepare("SELECT rowid AS schema_rowid FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*' ORDER BY rowid").all();
+          const originalPositions = schemaPositions();
+          function writeControlPair(left: typeof known, right: typeof replaced): void {
+            // One autocommit statement changes both saved metadata tuples
+            // atomically. Rootpage/data, actual rowids and schema cookie stay
+            // untouched; privileged writable mode is OFF before any app read.
+            restoredFault(() => {
+              writer.exec("PRAGMA writable_schema=ON");
+              expect(writer.prepare(`UPDATE sqlite_schema SET
+                type=CASE rowid WHEN ? THEN ? ELSE ? END,
+                name=CASE rowid WHEN ? THEN ? ELSE ? END,
+                tbl_name=CASE rowid WHEN ? THEN ? ELSE ? END,
+                sql=CASE rowid WHEN ? THEN ? ELSE ? END
+                WHERE rowid IN (?,?)`).run(known.rowid, left.type, right.type,
+                  known.rowid, left.name, right.name, known.rowid, left.tableName, right.tableName,
+                  known.rowid, left.sql, right.sql, known.rowid, replaced.rowid).changes).toBe(2);
+              expect(writer.isTransaction).toBe(false);
+            }, () => { writer.exec("PRAGMA writable_schema=OFF"); });
+          }
+          let permutedOwner: ReturnType<typeof captureInstalledIdentityExecutionOwnerV28Candidate> | undefined;
+          let permutedGroup: ReturnType<typeof createInstalledIdentityExecutionGuardGroupV28Candidate> | undefined;
+          assertLinuxWriterLeaseBinding(lease, core, native);
+          restoredFault(() => {
+            writeControlPair(replaced, known);
+            expect(writer.prepare("PRAGMA writable_schema").get()?.writable_schema).toBe(0);
+            expect(native.prepare("PRAGMA writable_schema").get()?.writable_schema).toBe(0);
+            expect(schemaCookie(writer)).toBe(originalCookie);
+            expect(schemaCookie(native)).toBe(originalCookie);
+            expect(inventory()).toEqual(originalInventory);
+            expect(schemaPositions()).toEqual(originalPositions);
+            expect(actualControlTrigger(native, known.name)).toEqual({ ...known, rowid: replaced.rowid });
+            expect(actualControlTrigger(native, replaced.name)).toEqual({ ...replaced, rowid: known.rowid });
+            assertLinuxWriterLeaseBinding(lease, core, native);
+            expect(() => pinnedOwner.assertCurrent()).toThrow();
+            expect(() => pinnedGroup.assertCurrent()).toThrow();
+            refusal(() => issuer.read(issued.request, issued.token), "unavailable");
+            // The real registered identity/core/Native/admission still fully
+            // admits this exact catalog by name. Independently captured fresh
+            // owners pin the exchanged positions; no observed-success token,
+            // copied method bag or fault-writer authority enters their proof.
+            const fresh = permutedOwner = captureInstalledIdentityExecutionOwnerV28Candidate(identity, core, native, admission);
+            const equivalent = captureInstalledIdentityExecutionOwnerV28Candidate(identity, core, native, admission);
+            fresh.assertCurrent(); equivalent.assertCurrent();
+            const freshGroup = permutedGroup = createInstalledIdentityExecutionGuardGroupV28Candidate([fresh, equivalent]);
+            freshGroup.assertCurrent();
+            // Fresh-first must refuse by the private mapping evidence even
+            // though that selected fresh guard itself currently succeeds.
+            expect(() => createInstalledIdentityExecutionGuardGroupV28Candidate([fresh, pinnedOwner])).toThrow();
+            expect(() => createInstalledIdentityExecutionGuardGroupV28Candidate([pinnedOwner, fresh])).toThrow();
+          }, () => {
+            assertLinuxWriterLeaseBinding(lease, core, native);
+            writeControlPair(known, replaced);
+          });
+          expect(schemaCookie(writer)).toBe(originalCookie);
+          expect(schemaCookie(native)).toBe(originalCookie);
+          expect(writer.prepare("PRAGMA writable_schema").get()?.writable_schema).toBe(0);
+          expect(native.prepare("PRAGMA writable_schema").get()?.writable_schema).toBe(0);
+          expect(inventory()).toEqual(originalInventory);
+          expect(schemaPositions()).toEqual(originalPositions);
+          expect(actualControlTrigger(native, known.name)).toEqual(known);
+          expect(actualControlTrigger(native, replaced.name)).toEqual(replaced);
+          assertLinuxWriterLeaseBinding(lease, core, native);
+          pinnedOwner.assertCurrent(); pinnedGroup.assertCurrent();
+          expect(issuer.read(issued.request, issued.token)).toEqual(facts);
+          const restoredPermutationOwner = permutedOwner, restoredPermutationGroup = permutedGroup;
+          ensure(restoredPermutationOwner && restoredPermutationGroup);
+          expect(() => restoredPermutationOwner.assertCurrent()).toThrow();
+          expect(() => restoredPermutationGroup.assertCurrent()).toThrow();
         });
         restoredFault(() => {
           native.exec("CREATE TEMP TABLE qualification_current_subject_temp(value)");
