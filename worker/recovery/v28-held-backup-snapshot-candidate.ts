@@ -11,7 +11,7 @@ import type { ExportSchemaObject } from "../../shared/contracts/export";
 import { recoveryTableSnapshotSql } from "../../shared/contracts/system-recovery-image";
 import { V5_RECOVERY_CATALOG_CANDIDATE as catalog } from "./v5-catalog-candidate";
 import { inspectV28CloudflareSchemaCandidate } from "./v28-cloudflare-schema-candidate";
-import { installPortableSystemBackupHolds } from "./portable-backup-holds";
+import { installNativeV5SystemBackupHolds } from "./portable-backup-holds";
 import { inspectRecoveryMigrationLedger } from "./target-migrations";
 import { SYSTEM_BACKUP_MAX_RECORDS_BYTES } from "../../shared/contracts/system-backup";
 import { validateSystemRecoveryImageV5, protectedLocalHistoryFromV5Image, validateSystemBackupRecordsV5,
@@ -109,13 +109,16 @@ async function captureOriginalWorkerV28Snapshot(env: Env, options: WorkerV28Held
   // The observed ledger describes reviewed construction, not migration replay.
   ensure(platform.ledgerPresent, "constructed_ledger_required"); await inspectRecoveryMigrationLedger(db, true, catalog.migrations);
   await available();
-  const contentSql = nativeV28SnapshotSql(), holds = installPortableSystemBackupHolds(db, backupId, createdAt);
+  const contentSql = nativeV28SnapshotSql(), holds = installNativeV5SystemBackupHolds(db, backupId, createdAt);
+  // Neutral Native File aliases retain metadata edges with a NULL key. Keep
+  // those rows in the snapshot; they supply no legacy byte locator. Every
+  // non-NULL key, including empty or malformed values, still denies this port.
   const prefix = [publicClaim ? workerV5PublicBackupClaimFence(env,publicClaim,expectedId,options.deadlineAt) : db.prepare(V28_HELD_SOURCE_INERT_SQL_CANDIDATE).bind(expectedId),
     db.prepare(`SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM file_location_holds WHERE operation_id=? OR id=?)
       AND NOT EXISTS(SELECT 1 FROM system_recovery_legacy_holds WHERE job_id=?)
       AND NOT EXISTS(SELECT 1 FROM assets WHERE r2_key IS NOT NULL)
       AND NOT EXISTS(SELECT 1 FROM managed_storage_objects)
-      AND NOT EXISTS(SELECT 1 FROM blob_retention_edges)
+      AND NOT EXISTS(SELECT 1 FROM blob_retention_edges WHERE object_key IS NOT NULL)
       AND NOT EXISTS(SELECT 1 FROM imports WHERE workbook_asset_key IS NOT NULL OR manifest_asset_key IS NOT NULL)
       AND NOT EXISTS(SELECT 1 FROM template_versions WHERE source_asset_key IS NOT NULL)
       AND NOT EXISTS(SELECT 1 FROM events WHERE asset_key IS NOT NULL)

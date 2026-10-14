@@ -3,8 +3,18 @@
  * streams and selector joins preserve all source rows before the same
  * DISTINCT/fences, without changing any stored schema or archive format. */
 export function installPortableSystemBackupHolds(db: D1Database, backupId: string, now: string): D1PreparedStatement[] {
+  return installOriginalSystemBackupHolds(db, backupId, now, false);
+}
+/** Explicit V28/V5 capture retains NULL-key metadata in its snapshot but never
+ * registers that metadata as a physical legacy byte hold. The historical
+ * default above keeps its exact original query; all non-NULL roots and every
+ * physical File hold remain selected by this fixed code-owned entry point. */
+export function installNativeV5SystemBackupHolds(db: D1Database, backupId: string, now: string): D1PreparedStatement[] {
+  return installOriginalSystemBackupHolds(db, backupId, now, true);
+}
+function installOriginalSystemBackupHolds(db: D1Database, backupId: string, now: string, nativeV5: boolean): D1PreparedStatement[] {
   const branches = [
-    ["retention", "SELECT store_kind,provider,object_key FROM blob_retention_edges"],
+    ["retention", `SELECT store_kind,provider,object_key FROM blob_retention_edges${nativeV5 ? " WHERE object_key IS NOT NULL" : ""}`],
     ["assets", "SELECT 'r2' AS store_kind,'r2' AS provider,r2_key AS object_key FROM assets WHERE r2_key IS NOT NULL"],
     ["managed", "SELECT 'managed' AS store_kind,provider,object_key FROM managed_storage_objects"],
     ["workbooks", "SELECT 'r2' AS store_kind,'r2' AS provider,workbook_asset_key AS object_key FROM imports WHERE workbook_asset_key IS NOT NULL"],
