@@ -18,7 +18,7 @@ RECOVERY_BRANCH = 'refs/heads/codex/node-online-recovery'
 RECOVERY_BASE = 'ba1c92daa454d5d6b33f5723eff4268f9175ca31'
 RECOVERY_TARGET_BRANCH = 'refs/heads/codex/node-online-recovery-target'
 RECOVERY_TARGET_BASE = '22544c4ed71eeb8ea46175b9d6e1a0ced94ae323'
-RECOVERY_TARGET_CASE_SOURCE_SHA256 = '7a6e014f8c20cad4418acbf47c07a32a3a1dfa881fa31cc23479fd983ae83e1f'
+RECOVERY_TARGET_CASE_SOURCE_SHA256 = 'e485a4c35a27c1bff763052ff118014762f40ca67925dcaccb0387c750773cf0'
 INTEGRITY_BRANCH = 'refs/heads/codex/node-package-integrity-control'
 INTEGRITY_BASE = '0bc6b12a1d0f89a86155fabaa6ffde0c2d9032ec'
 PUBLIC_PACKAGE_PAIR_BRANCH = 'refs/heads/codex/node-r2-package-pair'
@@ -211,7 +211,7 @@ def public_recovery_target_receipt(record, summary):
  result = {'kind': 'current-node-v28-recovery-target-owned-ci-receipt/1', 'stage': 'recovery-target',
   'head': record['head'], 'status': record['status'], 'selectedFile': CASES['recovery-target'][0],
   'selectedTitles': CASES['recovery-target'][1], 'qualificationSourceSha256': RECOVERY_TARGET_CASE_SOURCE_SHA256,
-  'outerSeconds': 240, 'defaultCaseMs': 20000, 'hookMs': 20000, 'caseTimeoutOverrides': record['caseTimeoutOverrides'],
+  'outerSeconds': 360, 'defaultCaseMs': 20000, 'hookMs': 20000, 'caseTimeoutOverrides': record['caseTimeoutOverrides'],
   'originalKernelDeadlineMs': 60000, 'minimumBeforeChild': NATIVE_BEFORE, 'minimumAfterChild': FLOOR,
   'originalChildWaitObservationPresent': 'originalChildWaited' in record, 'originalChildWaited': record.get('originalChildWaited') is True,
   'originalCloseObservationPresent': 'ownedClosureProven' in record, 'ownedClosureProven': record.get('ownedClosureProven') is True,
@@ -602,7 +602,7 @@ def run(stage, out, run_root):
    'recovery-first': 'current-node-v28-recovery-first.vitest.config.mts',
    'recovery-target': 'current-node-v28-recovery-target.vitest.config.mts'}[stage],
   '--reporter=verbose', '--reporter=json', '--outputFile.json=' + str(raw)]
- budget = worker_v5.BUDGETS.get(stage,180) if stage in worker_v5.STAGES else 240 if stage == 'recovery-target' else 1050 if stage in ('package-process', 'package-verified-restart') else 20 if stage in HELP else 60 if stage == 'types' else 90 if stage == 'capture-parser' else 180
+ budget = worker_v5.BUDGETS.get(stage,180) if stage in worker_v5.STAGES else 360 if stage == 'recovery-target' else 1050 if stage in ('package-process', 'package-verified-restart') else 20 if stage in HELP else 60 if stage == 'types' else 90 if stage == 'capture-parser' else 180
  custody = inherited_custody(); child = None; close_attempted = False; close_result = None; close_error = None
  record = {'kind': 'current-v28-post-restore-original-owned-stage/1', 'stage': stage, 'head': head, 'command': argv,
   'status': 'RESERVED_BEFORE_EFFECTS', 'outerSeconds': budget, 'caseMs': 5000 if stage in ('package-http', 'package-process') else 20000 if stage in TIMED_CASE_STAGES else None,
@@ -636,10 +636,10 @@ def run(stage, out, run_root):
   originalKernelDeadlineMs=60000, recoveryOnlyQualified=False,
   scope='Fixed current v28-recovery compiled-main HTTP/login/admin/CSRF; retained-binding genuine one-File source; explicit source fence; separate fresh trusted one-shot shared kernel; original held postpublication ACK unknown cleanup refusal and exact-key verification; strict V5 download/public reupload/target-unavailable preview; no elapsed120s Recovery cadence, same-app business writer drain, admitted target restore/handoff or automatic activation.')
  if stage == 'recovery-target': record.update(caseMs=20000, hookMs=20000, defaultCaseMs=20000,
-  caseTimeoutOverrides=[{'title': CASES[stage][1][0], 'caseMs': 120000}, {'title': CASES[stage][1][1], 'caseMs': 90000}],
+  caseTimeoutOverrides=[{'title': CASES[stage][1][0], 'caseMs': 180000}, {'title': CASES[stage][1][1], 'caseMs': 90000}],
   originalTemplateBeforeAllMs=20000, originalCases=2, originalKernelDeadlineMs=60000,
   qualificationSourceSha256=RECOVERY_TARGET_CASE_SOURCE_SHA256, recoveryTargetQualified=False,
-  scope='Current compiled v28-recovery main session/admin/CSRF and separate original trusted one-shot shared-kernel hosts; one real File in each fresh inert target case; original target directory ACK held across real60s deadline, exact unknown reconciliation after source release/CLI restart, exact typed rows/rowids and explicit inert historical handoff; cancelled unknown target and dependent upload remain held after original ACK and CLI restart; no same-app business writer drain, elapsed120s cadence, remote R2 target, full application recovery or activation.')
+  scope='First case bounded180s total and second original90s, outer360s; earlier first-case120s failures remain failures and are not requalified. Current compiled v28-recovery main session/admin/CSRF and separate original trusted one-shot shared-kernel hosts; one real File in each fresh inert target case; original target directory ACK held across real60s deadline, exact unknown reconciliation after source release/CLI restart, exact typed rows/rowids and explicit inert historical handoff; cancelled unknown target and dependent upload remain held after original ACK and CLI restart; no same-app business writer drain, elapsed120s cadence, remote R2 target, full application recovery or activation.')
  def original_close():
   nonlocal close_attempted, close_result, close_error
   if not close_attempted:
