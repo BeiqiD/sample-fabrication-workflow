@@ -2,6 +2,7 @@ import { afterEach } from "vitest";
 import { request as httpRequest, type ClientRequest } from "node:http";
 import { Buffer } from "node:buffer";
 import type { DatabaseSync, StatementSync } from "node:sqlite";
+import type { ReadableStreamReadResult } from "node:stream/web";
 import type { AcceptFileMigrationInput } from "../../shared/contracts/file-jobs";
 
 interface ObservedLease {
@@ -210,7 +211,7 @@ export async function holdActualWorkflowFileMigrationBody(options: {
     void owner.response.catch(error => { remember(owner, error); rejectAcquired(error); });
     void owner.response.then(() => { if (!owner.lease) rejectAcquired(new Error("Original public Workflow mutation ended before an admitted source lease")); }, () => undefined);
     await Promise.all([originalAcquired, originalGateReached]);
-    ensure(owner.request && owner.response && owner.originalRequestClose && owner.lease && !owner.observerFailure);
+    ensure(owner.request && owner.response instanceof Promise && owner.originalRequestClose && owner.lease && !owner.observerFailure);
     const lease = owner.lease;
     return Object.freeze({ originalRequest: owner.request, input, leaseId: lease.id, generation: lease.generation,
       response: owner.response, originalRequestClose: owner.originalRequestClose, releaseObserved, endRemainder,

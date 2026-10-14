@@ -111,10 +111,11 @@ describe("genuine same-parent V28 source maintenance and planned inert handoff",
           recoveryTarget: target.descriptor }), { flag: "wx", mode: 0o600 });
         const configuration = loadNodeRuntimeConfiguration(configurationPath, { filesystemRootOwnerUid: baseline.rootOwnerUid, runtimeProfile: "v28-workflow" });
         owner.applicationAttempted = true;
-        const original = owner.originalApplication = Promise.resolve().then(() => createNodeV28WorkflowApplication({ configuration,
+        const original = Promise.resolve().then(() => createNodeV28WorkflowApplication({ configuration,
           database: core, nativeDatabase: native, writerLease: lease, admission: admitInstallationRecoverySource(native, V28_NODE_INSTALLATION_CATALOG_CANDIDATE),
           hasher: createPasswordHasher(), identityPolicy: CANONICAL_FILE_IDENTITY_POLICY, publicOrigin: origin,
           httpLimits: { timeoutMs: 5000, maxBodyBytes: 2_500_000 } }));
+        owner.originalApplication = original;
         const app = await original; owner.application = app; await listenCanonicalFileApplication(owner, origin);
         const client = canonicalFileClient(owner, origin), session = await client.login("operator");
         expect(app.capabilities.jobFamilies).toEqual(["file", "package", "recovery"]);
