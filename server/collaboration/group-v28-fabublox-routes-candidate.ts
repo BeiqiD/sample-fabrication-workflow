@@ -1,3 +1,7 @@
+import { assertNodeRuntimeConfigurationForProfile } from "../node-runtime-config.ts";
+import { assertLocalVolumeProfileOpeningV28Binding } from "../storage/local-volume-profile-opening.ts";
+import { assertNodeV28SourceBarrierBinding, type createNodeV28SourceBarrier } from "../recovery/node-v28-source-barrier.ts";
+import type { LocalVolumeProfileOpeningV28Candidate } from "../storage/local-volume-profile-opening-v28-candidate.ts";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { DatabaseSync } from "node:sqlite";
@@ -14,7 +18,7 @@ import { createLocalFabubloxUploadExecutionV28Candidate } from "../files/local-u
 import { createLocalFabubloxPermissionV28Candidate } from "../imports/local-fabublox-permission-v28-candidate";
 import { publishLocalFabubloxTemplateV28Candidate } from "../imports/local-fabublox-template-publication-v28-candidate";
 import { createLocalFabubloxRequestStateV28Candidate } from "../imports/local-fabublox-request-state-v28-candidate";
-import { createFabubloxWireRouteAdmission } from "../imports/fabublox-wire-route-admission";
+import { createFabubloxWireRouteAdmission, createFabubloxWireRouteAdmissionV28Workflow } from "../imports/fabublox-wire-route-admission";
 import { createLocalActiveFileRunStartPreviewPermissionV28Candidate } from "./local-run-start-preview-active-file-permission-v28-candidate";
 import { readGroupV28Json } from "./group-v28-request-body-custody";
 import { createLocalActiveFileEmptySampleCreatePermissionV28Candidate } from "./local-active-file-empty-sample-create-permission-v28-candidate";
@@ -50,17 +54,29 @@ export class GroupV28FabubloxDrainError extends AggregateError {
 /** Explicit real-config child only. Same original ingress Request/session and
  * current family permission issue its closed upload/finalizer capability. The
  * status route is scalar; preview/start references never grant File body bytes. */
-export function createGroupV28FabubloxRoutesCandidate(options:{
+type WorkflowBorrow = Readonly<{ opening: LocalVolumeProfileOpeningV28Candidate;
+  sourceBarrier: ReturnType<typeof createNodeV28SourceBarrier> }>;
+type ChildOptions = {
   configuration:LoadedNodeRuntimeConfiguration;database:SqliteCapability;nativeDatabase:DatabaseSync;
   writerLease:LinuxWriterLease;authentication:object;admission:ReviewedInstallationAdmission;
   stopApplicationAdmission():void;
-}){
+};
+export function createGroupV28FabubloxRoutesCandidate(options: ChildOptions) { return createOriginalRoutes(options); }
+/** Explicit combined profile only. No new opening, copied parent, or Jobs=false bypass. */
+export function createGroupV28FabubloxRoutesBorrowedWorkflow(options: ChildOptions & WorkflowBorrow) {
+  const config = assertNodeRuntimeConfigurationForProfile(options.configuration, "v28-workflow");
+  if (!config.enableLocalFile || !config.enableLocalJobs || !config.enableLocalRecovery) throw unavailable();
+  assertNodeV28SourceBarrierBinding(options.sourceBarrier, options.database, options.nativeDatabase, options.writerLease, options.authentication);
+  assertLocalVolumeProfileOpeningV28Binding(options.opening, options.database, options.nativeDatabase, options.writerLease, options.authentication);
+  return createOriginalRoutes(options, Object.freeze({ opening: options.opening, sourceBarrier: options.sourceBarrier }));
+}
+function createOriginalRoutes(options: ChildOptions, borrowed?: WorkflowBorrow) {
   const {configuration,database,nativeDatabase,writerLease,authentication,admission}=options;
   const config=assertNodeRuntimeConfiguration(configuration),auth=localAuthenticationIdentityAuthority(authentication);
   assertLinuxWriterLeaseBinding(writerLease,database,nativeDatabase);
   const installed=captureInstalledIdentityExecutionOwnerV28Candidate(auth.identity,database,nativeDatabase,admission);
   const main=nativeDatabase.prepare("PRAGMA database_list").all().filter(row=>row.name==="main");
-  if(!config.enableLocalFile || config.enableLocalJobs || !config.localVolumes.length || main.length!==1
+  if(!config.enableLocalFile || (borrowed ? !config.enableLocalJobs : config.enableLocalJobs) || !config.localVolumes.length || main.length!==1
     || main[0]?.file!==config.databasePath || installed.installation.installationId!==config.expectedInstallationId
     || owners.size>=2)throw unavailable();
   const owner:Owner={pending:new Set(),executions:new Set(),cleanupFailures:new Set(),openingAttempted:false,
@@ -68,8 +84,8 @@ export function createGroupV28FabubloxRoutesCandidate(options:{
   const quarantine=(error:unknown)=>{owner.phase="quarantined";owner.cleanupFailures.add(error);options.stopApplicationAdmission();};
   let wireAdmission:ReturnType<typeof createFabubloxWireRouteAdmission>;
   try{
-    owner.openingAttempted=true;
-    owner.opening=createLocalVolumeProfileOpeningV28Candidate({database,nativeDatabase,writerLease,admission,authentication,
+    owner.openingAttempted = !borrowed;
+    owner.opening = borrowed ? borrowed.opening : createLocalVolumeProfileOpeningV28Candidate({database,nativeDatabase,writerLease,admission,authentication,
       filesystemRootOwnerUid:config.filesystemRootOwnerUid,descriptors:config.localVolumes,authorizeAdministrator:()=>false});
     owner.permissionAttempted=true;
     owner.permission=createLocalFabubloxPermissionV28Candidate({opening:owner.opening,authentication,admission});
@@ -81,12 +97,18 @@ export function createGroupV28FabubloxRoutesCandidate(options:{
     owner.sampleCreate=createLocalActiveFileEmptySampleCreatePermissionV28Candidate({database,nativeDatabase,writerLease,authentication,admission,opening:owner.opening});
     owner.templateReadAttempted=true;
     owner.templateRead=createLocalActiveFileTemplateReadPermissionV28Candidate({database,nativeDatabase,writerLease,authentication,admission,opening:owner.opening});
-    wireAdmission=createFabubloxWireRouteAdmission(configuration,owner.opening);
+    wireAdmission = borrowed ? createFabubloxWireRouteAdmissionV28Workflow({ configuration, opening: owner.opening,
+      authentication, sourceBarrier: borrowed.sourceBarrier }) : createFabubloxWireRouteAdmission(configuration,owner.opening);
     owner.phase="open";
   }catch(error){quarantine(error);throw new GroupV28FabubloxDrainError([error],[owner,installed,config]);}
   const assertCurrent=()=>{
     if(assertNodeRuntimeConfiguration(configuration)!==config || localAuthenticationIdentityAuthority(authentication)!==auth)throw unavailable();
     installed.assertCurrent();assertLinuxWriterLeaseBinding(writerLease,database,nativeDatabase);
+    if (borrowed) {
+      assertNodeRuntimeConfigurationForProfile(configuration, "v28-workflow");
+      assertNodeV28SourceBarrierBinding(borrowed.sourceBarrier, database, nativeDatabase, writerLease, authentication);
+      assertLocalVolumeProfileOpeningV28Binding(borrowed.opening, database, nativeDatabase, writerLease, authentication);
+    }
   };
   const app=new Hono<LocalAuthEnvironment>();
   const routes=Object.freeze([
@@ -199,7 +221,7 @@ export function createGroupV28FabubloxRoutesCandidate(options:{
         if(errors.length || owner.phase==="quarantined"){
           owner.phase="quarantined";throw new GroupV28FabubloxDrainError(errors,[owner,installed,config]);
         }
-        try{await owner.opening?.close();}catch(error){errors.push(error);}
+        try{if (!borrowed) await owner.opening?.close();}catch(error){errors.push(error);}
         if(errors.length){quarantine(errors[0]);throw new GroupV28FabubloxDrainError(errors,[owner,installed,config]);}
         assertCurrent();owner.phase="closed";owners.delete(owner);
       });void owner.closing.catch(()=>undefined);return owner.closing;

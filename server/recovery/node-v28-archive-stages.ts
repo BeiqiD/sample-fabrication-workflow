@@ -5,7 +5,7 @@ import { sourceFromStream, type ArchiveEntry, type ArchiveSource, type ArchiveIn
 import { createSystemBackupArchiveStream, measureSystemBackupArchive, systemBackupArchiveMetadata } from "../../shared/domain/system-backup-archive.ts";
 import { SYSTEM_BACKUP_MAX_ARCHIVE_BYTES, SYSTEM_BACKUP_MAX_PAYLOAD_BYTES, type SystemBackupOutcome } from "../../shared/contracts/system-backup.ts";
 import { finishSystemBackupManifestV5, sourceBackupCheckpointV5, validateSystemBackupDocumentsV5, validateSystemBackupRecordsV5,
-  type SystemBackupManifestV5, type SystemBackupRecordsV5 } from "../../shared/contracts/system-backup-v5.ts";
+  type SystemBackupManifestV5, type SystemBackupRecordsV5, type NodeSystemBackupRecordsV5 } from "../../shared/contracts/system-backup-v5.ts";
 import { validateV28SystemBackupArchiveCandidate } from "../../shared/contracts/system-backup-v5-archive-admission.ts";
 import { planSystemBackupSourcesV28, type SystemBackupFileV28, type SystemBackupSourceV28 } from "../../shared/contracts/system-backup-v28-content.ts";
 import { checkedStoredLocalVolumeNamespace } from "../../shared/contracts/local-volume-profile.ts";
@@ -19,6 +19,25 @@ import { assertSqliteConnectionOwner, type SqliteCapability } from "../sqlite.ts
 import { nodeSha256 } from "../storage/node-sha256.ts";
 import { assertLocalVolumeProfileOpeningV28, type LocalVolumeProfileOpening } from "../storage/local-volume-profile-opening.ts";
 import { captureQuiescedNodeSystemBackupV28Candidate } from "./snapshot-v28-candidate.ts";
+import { verifyNodeV28SourceResumeLoginAudit, type NodeV28SourceResumeLoginOwner, type NodeV28SourceResumeLoginAuditSummary } from "./node-v28-original-source-resume.ts";
+
+declare const sourceResumeVerificationBrand: unique symbol;
+export interface NodeV28SourceResumeVerification { readonly [sourceResumeVerificationBrand]: true }
+const resumeVerifications = new WeakMap<NodeV28SourceResumeVerification, Readonly<{
+  database: SqliteCapability; nativeDatabase: DatabaseSync; opening: LocalVolumeProfileOpening; admission: ReviewedInstallationAdmission;
+  request: Request; jobId: string; checkpoint: string; records: NodeSystemBackupRecordsV5; authentication: NodeV28SourceResumeLoginAuditSummary; current(): void;
+}>>();
+/** Only an original complete byte-validation scope can issue this proof. Its
+ * stored typed image is private; callers receive a clone, not a mutable grant. */
+export function ownedNodeV28SourceResumeVerification(proof: NodeV28SourceResumeVerification, opening: LocalVolumeProfileOpening,
+  database: SqliteCapability, nativeDatabase: DatabaseSync, admission: ReviewedInstallationAdmission, request: Request, job: RecoveryJob) {
+  const original = resumeVerifications.get(proof);
+  ensure(original && original.opening === opening && original.database === database && original.nativeDatabase === nativeDatabase
+    && original.admission === admission && original.request === request && original.jobId === job.id && original.checkpoint === job.source_checkpoint,
+    "source_resume_original_verification_required");
+  original.current(); assertSqliteConnectionOwner(database, nativeDatabase); assertLocalVolumeProfileOpeningV28(opening).assertCurrent();
+  return { records: structuredClone(original.records), authentication: structuredClone(original.authentication) };
+}
 
 export interface NodeV28ArchiveStagesOptions {
   database: SqliteCapability; nativeDatabase: DatabaseSync; admission: ReviewedInstallationAdmission;
@@ -221,37 +240,37 @@ export function createNodeV28ArchiveStages(options: NodeV28ArchiveStagesOptions)
       cancel(reason) { return finishBody(owner, reason); },
     }, { highWaterMark: 0 });
   }
-  function localTuple(item: SystemBackupSourceV28) {
+  function localTuple(item: SystemBackupSourceV28, sourceWork = true) {
     const source = item.source;
     ensure(source.provider === "local" && source.storeKind === "file" && source.storageProfileId
       && source.storageProfileRevision === 1 && "namespace" in source, "source_unavailable");
-    sourceBase();
+    if (sourceWork) sourceBase(); else base();
     const authority = context.captureProfileAuthority({ profileId: source.storageProfileId, configurationRevision: 1 }, "read");
     ensure(authority.profile.adapterType === "local"
       && stableJson(source.namespace) === stableJson(checkedStoredLocalVolumeNamespace(authority.profile.namespaceIdentity)), "source_unavailable");
     return { source, authority };
   }
-  async function readLocal(item: SystemBackupSourceV28, value: Scope, current: () => Promise<boolean>, signal: AbortSignal) {
-    await fence(current, signal, true); const { source, authority } = localTuple(item);
+  async function readLocal(item: SystemBackupSourceV28, value: Scope, current: () => Promise<boolean>, signal: AbortSignal, sourceWork = true) {
+    await fence(current, signal, sourceWork); const { source, authority } = localTuple(item, sourceWork);
     const provider: ProviderOwner = { reads: new Set() }; providers.add(provider); value.providers.add(provider);
     provider.opening = openStorageProfile(opening.capabilities, { profileId: source.storageProfileId!, configurationRevision: 1 }, "read", {
       // The retained body owner cancels and awaits this actual local reader.
       // Its private stage signal fences every request/pull without first
       // replacing the underlying reader's cancellation ACK with an error.
       async beforeRequest(operation) {
-        await fence(current, signal, true); const live = localTuple(item);
+        await fence(current, signal, sourceWork); const live = localTuple(item, sourceWork);
         return ["GET", "HEAD"].includes(operation.method) && operation.key === source.objectKey
           && live.authority.profile.namespaceIdentity === authority.profile.namespaceIdentity;
       },
     });
     try {
-      provider.adapter = await provider.opening; await fence(current, signal, true); localTuple(item);
+      provider.adapter = await provider.opening; await fence(current, signal, sourceWork); localTuple(item, sourceWork);
       ensure(provider.adapter.storage.namespaceIdentity === authority.profile.namespaceIdentity, "source_unavailable");
       const result = await provider.adapter.reader.read(source.objectKey);
       // Capture the transferred body BEFORE any late authorization/tuple check.
       if (result.outcome === "available") return { outcome: "available" as const,
-        body: await ownedBody(result.body as ReadableStream<Uint8Array>, current, signal, value, provider, undefined, true) };
-      await fence(current, signal, true); await closeProvider(provider);
+        body: await ownedBody(result.body as ReadableStream<Uint8Array>, current, signal, value, provider, undefined, sourceWork) };
+      await fence(current, signal, sourceWork); await closeProvider(provider);
       return { outcome: result.outcome === "missing" ? "missing" as const : "download_failed" as const };
     } catch (error) {
       try { await closeProvider(provider); }
@@ -526,5 +545,70 @@ export function createNodeV28ArchiveStages(options: NodeV28ArchiveStagesOptions)
     ensure(upload.source_checkpoint === value.manifest.sourceCheckpoint, "archive_invalid");
     return { records: value.records, manifest: value.manifest };
   }
-  base(); return Object.freeze({ step, exportBody, preview, recoveryDocuments, withRecoveryArchive, close });
+  /** Read-only validation for the separate Recovery-only explicit source
+   * resume action. Its host proves released OPEN source, stopped executors,
+   * current administrator and no other original work at every awaited boundary.
+   * All existing backup reads retain sourceWork=true and their fenced window. */
+  function assertDrained(): void {
+    base(); if (bodies.size || providers.size || scopes.size || operations.size)
+      throw new Error("Original Recovery archive work has not acknowledged its drain");
+  }
+  function verifySourceResume(job: RecoveryJob, current: () => Promise<boolean>, signal: AbortSignal, request: Request, login: NodeV28SourceResumeLoginOwner) {
+    assertDrained(); ensure(request instanceof Request);
+    return track(withinScope(async value => {
+      await fence(current, signal);
+      ensure(job.kind === "backup" && job.state === "completed" && job.phase === "done", "source_resume_backup_required");
+      const original = await documents(job.id); await fence(current, signal);
+      ensure(original.records.sourceMigrationLedger.kind === "node-reviewed-migrations/1"
+        && original.records.sourceMigrationLedger.installationId === installation.installationId
+        && original.manifest.completeness === "complete" && job.source_checkpoint === original.manifest.sourceCheckpoint,
+        "source_resume_original_installation_required");
+      const fresh = await captureQuiescedNodeSystemBackupV28Candidate(database, nativeDatabase,
+        { backupId: job.id, createdAt: job.accepted_at });
+      await fence(current, signal);
+      const authentication = verifyNodeV28SourceResumeLoginAudit(login, opening, database, nativeDatabase, admission,
+        request, job, original.records, fresh);
+      ensure(await sourceBackupCheckpointV5(authentication.checkpointRecords) === job.source_checkpoint, "source_resume_metadata_changed");
+      await fence(current, signal);
+      const sources = planSystemBackupSourcesV28(fresh.content);
+      ensure(sources.length === original.manifest.files.length, "source_resume_inventory_changed");
+      for (const source of sources) {
+        const expected = original.manifest.files.find(file => file.id === source.id);
+        ensure(expected && expected.outcome === "packaged" && expected.byteSize !== null && expected.sha256 !== null
+          && stableJson(expected.source) === stableJson(source.source) && stableJson(expected.bindings) === stableJson(source.bindings)
+          && source.source.provider === "local" && source.source.storeKind === "file", "source_resume_publication_changed");
+        // Resume admits only a current installation-owned writable LOCAL
+        // primary. A restored/read-only profile never becomes a write grant.
+        const writable = context.captureProfileAuthority({ profileId: source.source.storageProfileId!, configurationRevision: 1 }, "write");
+        ensure(writable.profile.runtimeState === "read_write" && writable.profile.adapterType === "local", "source_resume_writable_local_required");
+        const read = await readLocal(source, value, current, signal, false); await fence(current, signal);
+        ensure(read.outcome === "available", "source_resume_payload_unavailable");
+        const reader = read.body.getReader(), hash = nodeSha256(); let bytes = 0;
+        let failed = false, failure: unknown, cleanupFailed = false, cleanupFailure: unknown;
+        try {
+          for (;;) {
+            const next = await reader.read(); await fence(current, signal);
+            if (next.done) break;
+            bytes += next.value.byteLength; ensure(bytes <= expected.byteSize && bytes <= SYSTEM_BACKUP_MAX_PAYLOAD_BYTES, "source_resume_payload_budget");
+            await hash.write(next.value); await fence(current, signal);
+          }
+        } catch (error) { failed = true; failure = error; }
+        try { await reader.cancel(); reader.releaseLock(); }
+        catch (error) { cleanupFailed = true; cleanupFailure = error; }
+        if (cleanupFailed) throw failed ? new AggregateError([failure, cleanupFailure], "Source resume read and first close failed") : cleanupFailure;
+        if (failed) throw failure;
+        ensure(bytes === expected.byteSize && await hash.finish() === expected.sha256, "source_resume_payload_changed");
+        await fence(current, signal);
+      }
+      await fence(current, signal);
+      // The proof remains private until every original body/provider first
+      // close acknowledges. withinScope completes that custody before return.
+      const proof = Object.freeze({}) as NodeV28SourceResumeVerification;
+      return { proof, original: Object.freeze({ database, nativeDatabase, opening, admission, request,
+        jobId: job.id, checkpoint: job.source_checkpoint!, records: structuredClone(fresh), authentication: authentication.summary, current: base }) };
+    })).then(verified => {
+      resumeVerifications.set(verified.proof, verified.original); return verified.proof;
+    });
+  }
+  base(); return Object.freeze({ step, exportBody, preview, recoveryDocuments, withRecoveryArchive, assertDrained, verifySourceResume, close });
 }

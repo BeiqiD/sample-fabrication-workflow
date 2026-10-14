@@ -3,7 +3,7 @@ import { NodeRuntimeError } from './node-runtime';
 import { parseNodeRuntimeCommand } from './node-runtime-command';
 import { startSelectedNodeDevelopmentRuntime, type SelectedNodeDevelopmentRuntime } from './node-runtime-profile';
 
-const USAGE = 'Usage: node main.mjs --config <canonical-private-config> [--filesystem-root-owner-uid UID] [--runtime-profile v28-metadata|v28-fabublox|v28-recovery]\nRestricted local development runtime only; exact numeric loopback HTTP origin and existing current installation required.\nOffline identities: use identity-cli.cjs bootstrap, restore-administrator or reset-password while this server is stopped; password comes only from stdin or a hidden terminal.\n';
+const USAGE = 'Usage: node main.mjs --config <canonical-private-config> [--filesystem-root-owner-uid UID] [--runtime-profile v28-metadata|v28-fabublox|v28-recovery|v28-workflow]\nRestricted local development runtime only; exact numeric loopback HTTP origin and existing current installation required.\nOffline identities: use identity-cli.cjs bootstrap, restore-administrator or reset-password while this server is stopped; password comes only from stdin or a hidden terminal.\n';
 
 async function main(): Promise<void> {
   if (process.argv.length === 3 && process.argv[2] === '--help') { process.stdout.write(USAGE); return; }

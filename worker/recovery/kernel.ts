@@ -45,11 +45,12 @@ export async function runBoundedSystemRecoveryReadAction<T>(
 /** The stage clock stops local execution; it cannot certify an outstanding
  * provider PUT stopped. Every issued key remains in the durable attempt ledger. */
 async function timed<T,Statement extends SystemRecoverySqlStatement<Statement>>(capabilities:SystemRecoveryCapabilitiesAdapter<Statement>,claim:RecoveryClaim,
-  operation:(current:()=>Promise<boolean>,signal:AbortSignal,deadlineAt:string)=>Promise<T>,attempt:()=>RecoveryAttempt|null){
+  operation:(current:()=>Promise<boolean>,signal:AbortSignal,deadlineAt:string)=>Promise<T>,attempt:()=>RecoveryAttempt|null,originals?:Set<Promise<unknown>>){
   const abort=new AbortController(),deadline=capabilities.now().getTime()+SYSTEM_RECOVERY_MAX_STEP_MS;let expired=false,timer:ReturnType<typeof setTimeout>|undefined;
   const local=()=>!expired&&!abort.signal.aborted&&capabilities.now().getTime()<deadline&&capabilities.authorizeActor(claim.actor);
   const current=async()=>local()&&await capabilities.repository.current(claim)&&local();
   const work=retainWorkerRecoveryInvocation(capabilities,()=>operation(current,abort.signal,new Date(deadline).toISOString())),timeout=new Promise<never>((_,reject)=>{timer=setTimeout(()=>{expired=true;abort.abort();reject(new Error("execution_budget_exhausted"));},SYSTEM_RECOVERY_MAX_STEP_MS);});
+  if(originals){originals.add(work);void work.catch(()=>undefined);}
   try{return await Promise.race([work,timeout]);}
   catch(error){abort.abort();await capabilities.repository.pause(claim,safeReason(error),attempt());throw error;}
   finally{if(timer)clearTimeout(timer);abort.abort();}
@@ -84,6 +85,23 @@ async function writeArtifact<Statement extends SystemRecoverySqlStatement<Statem
   return attempt;
 }
 export async function runSystemRecoveryJobStep<Statement extends SystemRecoverySqlStatement<Statement>>(capabilities:SystemRecoveryCapabilitiesAdapter<Statement>){
+  return runOriginalSystemRecoveryJobStep(capabilities);
+}
+/** Additive scheduler ownership seam. The same original kernel still reports
+ * its bounded accepted result. Await its actual continuation even after the
+ * deadline race; a domain rejection does not replace the persisted paused
+ * result. The concrete owner must ALSO prove original stream/provider/stage
+ * closure, and reject its own cleanup failure. This grants no authority and
+ * creates no additional timer, retry or SQL action. */
+export async function runSystemRecoveryJobStepAndDrain<Statement extends SystemRecoverySqlStatement<Statement>>(capabilities:SystemRecoveryCapabilitiesAdapter<Statement>){
+  const originals=new Set<Promise<unknown>>();let failed=false,failure:unknown;
+  let result:{jobId:string|null;outcome:string}|undefined;
+  try{result=await runOriginalSystemRecoveryJobStep(capabilities,originals);}catch(error){failed=true;failure=error;}
+  await Promise.allSettled([...originals]);
+  if(failed)throw failure;
+  return result!;
+}
+async function runOriginalSystemRecoveryJobStep<Statement extends SystemRecoverySqlStatement<Statement>>(capabilities:SystemRecoveryCapabilitiesAdapter<Statement>,originals?:Set<Promise<unknown>>){
   const repository=capabilities.repository;await repository.recoverExpiredClaims();
   const next=await repository.next();if(!next)return{jobId:null,outcome:"idle"};
   if(!capabilities.authorizeActor(next.actor)){await repository.control(next,"pause");return{jobId:next.id,outcome:"administrator_revoked"};}
@@ -100,7 +118,7 @@ export async function runSystemRecoveryJobStep<Statement extends SystemRecoveryS
     }
     const result=await capabilities.step(claim,current,signal,deadlineAt);if(!await current())throw new Error("administrator_revoked");
     await repository.finish(claim,result.patch,result.statements);return{jobId:claim.id,outcome:result.outcome};
-  },()=>attempt);}catch{return{jobId:claim.id,outcome:"paused"};}
+  },()=>attempt,originals);}catch{return{jobId:claim.id,outcome:"paused"};}
 }
 function abortableBody(body:ReadableStream<Uint8Array>,signal:AbortSignal){
   const reader=body.getReader();let ended=false,output:ReadableStreamDefaultController<Uint8Array>;

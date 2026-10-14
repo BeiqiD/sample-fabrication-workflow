@@ -1,6 +1,6 @@
 import { NodeRuntimeError } from './node-runtime';
 
-export type NodeRuntimeProfile = 'v28-metadata' | 'v28-fabublox' | 'v28-recovery';
+export type NodeRuntimeProfile = 'v28-metadata' | 'v28-fabublox' | 'v28-recovery' | 'v28-workflow';
 export interface NodeRuntimeCommand {
   readonly path: string;
   readonly filesystemRootOwnerUid?: number;
@@ -22,6 +22,6 @@ export function parseNodeRuntimeCommand(argv: readonly string[]): NodeRuntimeCom
   const raw = fields.get('--filesystem-root-owner-uid');
   if (raw !== undefined && (!/^(?:0|[1-9][0-9]{0,9})$/.test(raw) || Number(raw) > 0xffff_ffff)) throw new NodeRuntimeError();
   const profile = fields.get('--runtime-profile');
-  if (profile !== undefined && profile !== 'v28-metadata' && profile !== 'v28-fabublox' && profile !== 'v28-recovery') throw new NodeRuntimeError();
+  if (profile !== undefined && profile !== 'v28-metadata' && profile !== 'v28-fabublox' && profile !== 'v28-recovery' && profile !== 'v28-workflow') throw new NodeRuntimeError();
   return { path, ...(raw === undefined ? {} : { filesystemRootOwnerUid: Number(raw) }), ...(profile === undefined ? {} : { profile }) };
 }
