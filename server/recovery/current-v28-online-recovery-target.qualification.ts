@@ -56,10 +56,13 @@ async function acknowledged(check: () => boolean): Promise<void> {
   while (!check()) { ensure(Date.now() < deadline); await new Promise<void>(done => setTimeout(done, 10)); }
 }
 
-// This NEW120s case crosses the unchanged real kernel60s deadline once. Public
-// metadata/control uses the actual distribution main; independent original
-// Native hosts invoke the original one-shot dispatcher between first closes.
-// It does not qualify elapsed120 cadence or same-app source business writers.
+// The first case has a bounded180s total for complete backup/upload/target
+// restoration, CLI restarts and original closes. It still crosses the unchanged
+// real kernel60s deadline once; the second case retains its original90s bound.
+// Public metadata/control uses the actual distribution main; independent
+// original Native hosts invoke the one-shot dispatcher between first closes.
+// Prior first-case120s failures remain failures. This new total budget does not
+// qualify that old120s total, elapsed120 cadence or same-app business writers.
 describe('current real one-File Node V28 fresh inert target through shared recovery stages', () => {
   it('retains unknown target writes across source release and restart, reconciles exact nonempty bytes and records an explicit inert handoff',
     () => retainedCanonicalFileCase(async () => {
@@ -250,7 +253,7 @@ describe('current real one-File Node V28 fresh inert target through shared recov
         realPayloadBytes: source.payloadBytes, realPayloadSha256: source.payloadSha256, publicHandoffReceipt: handoff.receipt,
         destinationInertAndDefaultOff: true, sourceCanonicalAndPhysicalBindingsUnchanged: true,
         automaticActivation: false, sourceSameAppBusinessWritersQualified: false, elapsed120SecondCadenceQualified: false }), { flag: 'wx', mode: 0o600 });
-    }), 120_000);
+    }), 180_000);
 
   it('keeps a cancelled target original and dependent upload held after real ACK, source release and CLI restart',
     () => retainedCanonicalFileCase(async () => {
