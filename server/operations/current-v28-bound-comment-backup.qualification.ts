@@ -195,7 +195,29 @@ describe('current genuine bound canonical Comment File through compiled strict V
       const captureArguments = ['capture-local-backup', '--runtime-profile', 'v28',
         '--configuration', configuration, '--archive', archive, '--installation', baseline.installationId,
         '--filesystem-root-owner-uid', String(baseline.rootOwnerUid)];
-      const capture = await originalProducerPhase('stopped-capture', () => runCurrentCli(distribution, 'installation-cli.cjs', captureArguments));
+      let originalMainObserverConfig: string | undefined;
+      if (process.env.WORKER_V5_COMMENT_ORIGINAL_CAPTURE_ERROR_OBSERVER === 'original-main/1') {
+        originalMainObserverConfig = join(baseline.root, 'original-capture-main-observer-config.json');
+        await writeFile(originalMainObserverConfig, stableJson({ schema: 'actual-comment-stopped-capture-original-main-observer/1',
+          root: baseline.root, entry: join(distribution, 'server', 'installation-cli.cjs'), configuration }), { flag: 'wx', mode: 0o600 });
+      }
+      const capture = await originalProducerPhase('stopped-capture', () => {
+        if (!originalMainObserverConfig) return runCurrentCli(distribution, 'installation-cli.cjs', captureArguments);
+        // spawn inherits these private options synchronously before the helper's
+        // first await. Restore the parent environment before returning that same
+        // original child-close promise; no second invocation or wrapper outcome.
+        const keys = ['NODE_OPTIONS', 'CURRENT_V28_COMMENT_ORIGINAL_MAIN_ERROR_OBSERVER', 'CURRENT_V28_COMMENT_ORIGINAL_MAIN_ERROR_CONFIG'] as const;
+        const previous = keys.map(key => process.env[key]);
+        try {
+          const preload = new URL('./current-v28-comment-original-main-error.qualification-preload.mjs', import.meta.url).href;
+          process.env.NODE_OPTIONS = (previous[0] ? previous[0] + ' ' : '') + '--import=' + preload;
+          process.env.CURRENT_V28_COMMENT_ORIGINAL_MAIN_ERROR_OBSERVER = 'original-main/1';
+          process.env.CURRENT_V28_COMMENT_ORIGINAL_MAIN_ERROR_CONFIG = originalMainObserverConfig;
+          return runCurrentCli(distribution, 'installation-cli.cjs', captureArguments);
+        } finally {
+          keys.forEach((key, index) => { const value = previous[index]; if (value === undefined) delete process.env[key]; else process.env[key] = value; });
+        }
+      });
       // Private failure attribution from this exact invocation, after its SAME
       // original child close returned and before any outcome assertion. The
       // registered helper bounds combined original output to 16 KiB; a
