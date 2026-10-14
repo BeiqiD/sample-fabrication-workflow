@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.worker.json",
+  "compilerOptions": {
+    "types": [
+      "node",
+      "@cloudflare/workers-types"
+    ],
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  },
+  "include": [
+    "scripts/qa/worker-v5-planned-three-d1-native.qualification.ts"
+  ],
+  "exclude": []
+}
