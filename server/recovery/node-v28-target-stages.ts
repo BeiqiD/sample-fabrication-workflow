@@ -1,3 +1,4 @@
+import { originalNodeV28TargetSourceGuard } from "./node-system-recovery-v28-application.ts";
 import { createHash } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import { stableJson } from "../../shared/domain/content-addressing.ts";
@@ -80,7 +81,9 @@ export function createNodeV28TargetStages(options: {
 }) {
   const { target, repository } = options, pending = new Set<Promise<unknown>>();
   const owner = { closed: false, failed: false, failure: undefined as unknown, closing: undefined as Promise<void> | undefined };
-  function base(): void { if (owner.closed || owner.failed) throw owner.failed ? owner.failure : new Error("target_unavailable"); options.assertSource(); }
+  const originalGuard = originalNodeV28TargetSourceGuard(options.assertSource, options.guard, target, repository);
+  function lifetime(): void { if (owner.closed || owner.failed) throw owner.failed ? owner.failure : new Error("target_unavailable"); }
+  function base(): void { lifetime(); options.assertSource(); }
   function track<T>(work: () => Promise<T>): Promise<T> { base(); if (pending.size) throw new Error("write_outcome_unknown"); const original = Promise.resolve().then(work); pending.add(original);
     void original.then(() => pending.delete(original), error => { pending.delete(original); if (cleanupUnproven(error)) {
       owner.failed = true; owner.failure = error; options.quarantine(error); } }); return original; }
@@ -147,7 +150,10 @@ export function createNodeV28TargetStages(options: {
   function step(claim: RecoveryClaim, current: () => Promise<boolean>, signal: AbortSignal): Promise<RecoveryStepResult<JobSqlStatement>> {
     return track(async () => {
       const deadline = Math.min(Date.now() + 60000, Date.parse(claim.lease_expires_at) - 5000);
-      const guard = () => { base(); options.guard(claim, signal, deadline); };
+      const guard = () => {
+        if (originalGuard) { lifetime(); originalGuard(claim, signal, deadline); }
+        else { base(); options.guard(claim, signal, deadline); }
+      };
       guard(); const source = await upload(claim), docs = await accepted(claim); guard();
       const selectedIntent = intent(claim, source); let value = await cursor(claim, source); guard();
       if (!value) {

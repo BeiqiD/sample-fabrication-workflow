@@ -1,3 +1,4 @@
+import { originalNodeV28RecoverySqlPreparation } from "./recovery/node-system-recovery-v28-application.ts";
 import { ownedLocalPackageV28JobSqlScope, type LocalPackageV28JobSqlScope,
   type LocalUploadExecution } from "./files/local-upload-execution";
 import type { LocalVolumeProfileOpening } from "./storage/local-volume-profile-opening";
@@ -313,8 +314,17 @@ function jobSqlDatabase(core: SqliteCapability, admission?: () => SqliteBatchAdm
       throw new TypeError("Job SQL owner assertion must be synchronous");
     }
   };
+  const recoveryPreparing = originalNodeV28RecoverySqlPreparation(core, admission, owner);
   const assertPreparing = () => {
     const preparation = packagePreparationOwners.get(view);
+    if (!preparation && recoveryPreparing) {
+      const answer: unknown = recoveryPreparing();
+      if (answer !== undefined) {
+        if (answer instanceof Promise) void answer.catch(() => undefined);
+        throw new TypeError("Recovery SQL preparation assertion must be synchronous");
+      }
+      core.primary(); return;
+    }
     if (!preparation) return assertHeld();
     const answer: unknown = preparation.assertHeld();
     if (answer !== undefined) {
@@ -334,7 +344,7 @@ function jobSqlDatabase(core: SqliteCapability, admission?: () => SqliteBatchAdm
   const wrap = (native: SqliteStatement): JobSqlStatement => {
     const wrapped: JobSqlStatement = {
       bind(...values) {
-        if (packagePreparationOwners.has(view)) assertPreparing();
+        if (packagePreparationOwners.has(view) || recoveryPreparing) assertPreparing();
         return wrap(native.bind(...values));
       },
       async first<T>() { const value = admission ? (await execute([native]))[0]!.results[0] ?? null : await native.first(); return value === null ? null : safeRow(value) as T; },
@@ -347,7 +357,7 @@ function jobSqlDatabase(core: SqliteCapability, admission?: () => SqliteBatchAdm
     prepare(sql) {
       // The fixed privileged directive still takes the original full guard
       // and admission path. All other prepares only create core SQL records.
-      if (packagePreparationOwners.has(view) && sql !== "PRAGMA defer_foreign_keys=ON") assertPreparing();
+      if ((packagePreparationOwners.has(view) || recoveryPreparing) && sql !== "PRAGMA defer_foreign_keys=ON") assertPreparing();
       else assertHeld();
       if (admission && sql === "PRAGMA defer_foreign_keys=ON") {
         const receipt = batchAdmissions.get(admission()), original = admittedBatchOwners.get(core);
