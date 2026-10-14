@@ -8,8 +8,8 @@ export interface RecoveryStepResult {
 export interface SystemRecoveryCapabilitiesAdapter {
   repository: SystemRecoveryRepository; incarnation: string; authorizeActor(actor: string): boolean;
   now(): Date; randomId(): string; hash: Sha256Factory;
-  step(claim: RecoveryClaim, current: () => Promise<boolean>, signal: AbortSignal): Promise<RecoveryStepResult>;
-  exportBody(claim: RecoveryClaim, current: () => Promise<boolean>, signal: AbortSignal): Promise<ReadableStream<Uint8Array>>;
-  put(key: string, body: ReadableStream<Uint8Array>, byteSize: number): Promise<void>;
-  read(key: string): Promise<ReadableStream<Uint8Array> | null>;
+  step(claim: RecoveryClaim, current: () => Promise<boolean>, signal: AbortSignal, deadlineAt?: string): Promise<RecoveryStepResult>;
+  exportBody(claim: RecoveryClaim, current: () => Promise<boolean>, signal: AbortSignal, deadlineAt?: string): Promise<ReadableStream<Uint8Array>>;
+  put(key: string, body: ReadableStream<Uint8Array>, byteSize: number, deadlineAt?: string, signal?: AbortSignal, claim?: RecoveryClaim): Promise<void>;
+  read(key: string, deadlineAt?: string, signal?: AbortSignal, claim?: RecoveryClaim): Promise<ReadableStream<Uint8Array> | null>;
 }

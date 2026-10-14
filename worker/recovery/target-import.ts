@@ -1,19 +1,36 @@
+import { workerV5PlannedOriginalTargetReader } from "./v5-source-close-owner";
+import { assertWorkerV5PlannedSourceWindowCurrent, assertWorkerV5PlannedPreviewWindow, type WorkerV5PlannedSourceWindow } from "./v5-planned-source-window";
+import type { RecoveryClaim } from "./repository";
+import { canAdministerSystemSettings } from "../storage/system-administrator";
+import { allowedEmail } from "../auth";
+import { SystemRecoveryRepository } from "./repository";
+import type { VersionedRecoveryRecords as OriginalRecoveryRecords, VersionedRecoveryManifest as OriginalRecoveryManifest } from "./versioned-catalog";
+import type { SystemBackupFile as OriginalBackupFile } from "../../shared/contracts/system-backup";
+import { FILE_SHADOW_DEPENDENCY_SPECS } from "../../shared/contracts/file-shadow-schema";
 import { validateSystemBackupDocumentsV3 } from "../../shared/contracts/system-backup-v3";
 import { inspectV26CloudflareSchema } from "./v26-cloudflare-schema";
 import type { Env } from "../types";
 import { primaryD1 } from "../d1-primary";
 import { stableJson, sha256Hex } from "../../shared/domain/content-addressing";
-import type { SystemBackupFile } from "../../shared/contracts/system-backup";
+import type { WorkerRecoveryFile as SystemBackupFile } from "./versioned-catalog";
+import { validateSystemBackupDocumentsV5, type SystemBackupRecordsV5, type SystemBackupManifestV5 } from "../../shared/contracts/system-backup-v5";
+import { inspectV28CloudflareSchemaCandidate } from "./v28-cloudflare-schema-candidate";
+import { planV5NativeR2RecoveryFiles } from "./v5-local-r2-plan-candidate";
+import { assertV5PublicHeadInventory, hasV5PublicPresentHeads, createV5PublicShadowPlan, bindV5PublicShadowPlan,
+  assertV5PublicShadowPlanPersisted, v5PublicShadowPlanInitialStatements, v5PublicShadowPlanNativeRestriction,
+  v5PublicShadowHistory, v5PublicShadowProfileRowidGuard, v5PublicShadowFinalStateStatements } from "./v5-public-shadow-plan";
+import { v5ShadowProfileEventStatementsCandidate } from "./v5-shadow-profile-history-candidate";
+import { FILE_SHADOW_HEAD_INTEGRITY_SQL } from "../../shared/contracts/export-file-shadow";
 import type { SystemRecoveryStorageMapping } from "../../shared/contracts/system-recovery";
 import { recoveryCellBinding, type RecoveryTableSpec, type SystemRecoveryRow } from "../../shared/contracts/system-recovery-image";
 import { RECOVERY_SCHEMA_STATEMENTS, RECOVERY_TABLES } from "./trusted-schema";
-import { selectReviewedRecoveryCatalog, validateRecoverySourceImage, recoveryDestinationTable,
-  type VersionedRecoveryRecords, type VersionedRecoveryManifest } from "./versioned-catalog";
+import { selectWorkerRecoveryCatalog as selectReviewedRecoveryCatalog, validateWorkerRecoverySourceImage as validateRecoverySourceImage, workerRecoveryDestinationTable as recoveryDestinationTable,
+  type WorkerRecoveryRecords as VersionedRecoveryRecords, type WorkerRecoveryManifest as VersionedRecoveryManifest } from "./versioned-catalog";
 import { validateSystemBackupDocumentsV2 } from "../../shared/contracts/system-backup-v2";
 import { inspectCurrentCloudflareSchema, stripReviewedCurrentCloudflarePlatformSchema } from "./current-cloudflare-schema";
 import { isRecoverySeedTable, readRecoveryTable, recoveryIdentifier, assertRecoveredCapabilitiesInert } from "./protected-settings";
 import { planRecoveryFiles, recoveryDestinationProfileStatements, recoveryFilePublicationStatements, writeRecoveryFile,
-  type RecoveryDestinationProfile, type RecoveryPlannedFile } from "./target-files";
+  writeWorkerV5RecoveryFile, type RecoveryDestinationProfile, type RecoveryPlannedFile } from "./target-files";
 import { verifyRecoveryTarget, type RecoveryVerification } from "./verification";
 import { createSystemRecoveryReport, type SystemRecoveryReport } from "./report";
 import { openShadowProfile } from "../files/shadow-profile";
@@ -26,21 +43,24 @@ const MAX_ATOMIC_STATEMENTS = 128, MAX_GROUP_BYTES = 83 * 1024, DDL_GROUP = 16;
 const encoder = new TextEncoder();
 type TargetEnvironment = Env & { RECOVERY_DB?: D1Database; RECOVERY_TARGET_ID?: string };
 type TargetPhase = "schema" | "rows" | "files" | "reinstall" | "verify" | "ready";
-interface TargetCursor { phase: TargetPhase; schemaIndex: number; fileIndex: number; empty: boolean; dropped: boolean }
+interface TargetCursor { phase: TargetPhase; schemaIndex: number; fileIndex: number; empty: boolean; dropped: boolean;
+  sourceWindowSha256?:string; shadowPlanSha256?:string; profileEventIndex?:number }
 interface TargetClaim {
   singleton: number; target_id: string; job_id: string; incarnation: string; challenge: string;
   schema_sha256: string; image_sha256: string; status: string; cursor_json: string; verified_at: string | null;
   owner_token: string | null; generation: number; runtime_incarnation: string | null; lease_expires_at: string | null;
 }
-export interface RecoveryTargetInput {
+export interface WorkerRecoveryTargetInput {
   jobId: string; incarnation: string; ownerToken: string; generation: number; expectedTargetId: string;
   records: VersionedRecoveryRecords; manifest: VersionedRecoveryManifest; mapping: SystemRecoveryStorageMapping[];
   mode: "historical" | "planned"; current: () => Promise<boolean>;
   runtimeIncarnation?: string; leaseExpiresAt?: string;
+  /** Issued by the original kernel, never accepted in the public import DTO. */
+  deadlineAt?: string;
   openPayload: (file: SystemBackupFile, signal: AbortSignal) => Promise<ReadableStream<Uint8Array>>;
   signal?: AbortSignal;
 }
-export type RecoveryTargetPreviewInput = Pick<RecoveryTargetInput,
+export type WorkerRecoveryTargetPreviewInput = Pick<WorkerRecoveryTargetInput,
   "jobId" | "incarnation" | "expectedTargetId" | "records" | "manifest" | "mapping" | "mode">;
 export interface RecoveryTargetStepResult {
   phase: TargetPhase; completedFiles: number; bytesDone: number; done: boolean; report?: SystemRecoveryReport;
@@ -131,13 +151,17 @@ export async function inspectRecoveryTargetFreshness(env: TargetEnvironment, exp
   const objects = await schemaObjects(target);
   await inspectRecoveryPlatformSchema(target);
   await inspectRecoveryMigrationLedger(target, false, catalog?.migrations);
-  if (catalog?.imageVersion === 2 || catalog?.imageVersion === 3) {
+  if (catalog?.imageVersion === 2 || catalog?.imageVersion === 3 || catalog?.imageVersion === 5) {
     const all = await target.prepare("SELECT type,name,tbl_name AS tableName,sql FROM sqlite_schema ORDER BY type,name")
       .all<import("../../shared/contracts/export").ExportSchemaObject>();
     ensure(all.success, "target_schema_unavailable");
     if (!objects.length) {
       ensure(stripReviewedCurrentCloudflarePlatformSchema(all.results).applicationObjects.length === 0, "target_schema_not_reviewed");
       return { empty: true, target };
+    }
+    if (catalog.imageVersion === 5) {
+      // V5 admits an exclusively new physical target, never an existing schema.
+      throw new RecoveryTargetError("target_not_fresh");
     }
     if (catalog.imageVersion === 3) await inspectV26CloudflareSchema(all.results);
     else await inspectCurrentCloudflareSchema(all.results);
@@ -151,9 +175,31 @@ export async function inspectRecoveryTargetFreshness(env: TargetEnvironment, exp
   ensure(blobs?.probe === "000102FF", "native_exact_blob_restore_unsupported");
   return { empty: false, target };
 }
-async function destinationProfiles(env: TargetEnvironment, mapping: SystemRecoveryStorageMapping[], records: VersionedRecoveryRecords): Promise<RecoveryDestinationProfile[]> {
+interface PlannedReadOnlyDestinationAdmission {readonly kind:"worker-v5-planned-read-only-destination/1"}
+interface PlannedReadOnlyDestinationOwner {
+  env:TargetEnvironment;database:D1Database;bucket:R2Bucket;target:D1Database;targetId:string;
+  bootstrapNamespace:Env["R2_BOOTSTRAP_NAMESPACE"];profileBindings:Env["R2_PROFILE_BINDINGS"];
+  actor:string;records:SystemBackupRecordsV5;manifest:SystemBackupManifestV5;
+  previewWindow?:WorkerV5PlannedSourceWindow;claim?:RecoveryClaim;signal?:AbortSignal;deadlineAt?:string;
+}
+const plannedReadOnlyDestinations=new WeakMap<PlannedReadOnlyDestinationAdmission,PlannedReadOnlyDestinationOwner>();
+async function assertPlannedReadOnlyDestination(env:TargetEnvironment,records:VersionedRecoveryRecords,admission:PlannedReadOnlyDestinationAdmission){
+  const original=plannedReadOnlyDestinations.get(admission);ensure(original&&original.env===env&&original.database===env.DB
+    &&original.bucket===env.ASSETS&&original.target===env.RECOVERY_DB&&original.targetId===env.RECOVERY_TARGET_ID&&original.records===records
+    &&original.bootstrapNamespace===env.R2_BOOTSTRAP_NAMESPACE&&original.profileBindings===env.R2_PROFILE_BINDINGS,"recovery_unissued_read_only_destination");
+  if(original.previewWindow)await assertWorkerV5PlannedPreviewWindow(env,original.previewWindow,original.records,original.manifest);
+  else{ensure(original.claim,"recovery_unissued_read_only_destination");await assertWorkerV5PlannedSourceWindowCurrent(env,original.claim,original.records,original.manifest);}
+  ensure(original.database===env.DB&&original.bucket===env.ASSETS&&original.target===env.RECOVERY_DB&&original.targetId===env.RECOVERY_TARGET_ID
+    &&original.bootstrapNamespace===env.R2_BOOTSTRAP_NAMESPACE&&original.profileBindings===env.R2_PROFILE_BINDINGS
+    &&canAdministerSystemSettings(env,original.actor)&&Boolean(env.ACCESS_TEAM_DOMAIN&&env.ACCESS_AUD)&&allowedEmail(original.actor,env.ALLOWED_EMAILS)
+    &&(!original.claim||typeof original.deadlineAt==="string"&&Number.isFinite(Date.parse(original.deadlineAt))
+      &&Date.now()<Date.parse(original.deadlineAt)&&!original.signal?.aborted),"recovery_read_only_destination_current");
+}
+async function destinationProfiles(env: TargetEnvironment, mapping: SystemRecoveryStorageMapping[], records: VersionedRecoveryRecords,
+  plannedReadOnly?:PlannedReadOnlyDestinationAdmission): Promise<RecoveryDestinationProfile[]> {
   const ids = [...new Set(mapping.map(value => value.destinationProfileId))];
   if (!ids.length) return [];
+  if(plannedReadOnly)await assertPlannedReadOnlyDestination(env,records,plannedReadOnly);
   const db = primaryD1(env.DB), placeholders = ids.map(() => "?").join(",");
   // All admitted nonsecret registration/runtime/history values are frozen at
   // one primary cutoff. Neither credential payloads nor local bindings enter
@@ -171,7 +217,14 @@ async function destinationProfiles(env: TargetEnvironment, mapping: SystemRecove
   const values = results.map(result => result.results as Array<Record<string, string | number | null>>);
   return Promise.all(ids.map(async profileId => {
     const row = values[0].find(row => row.id === profileId), runtime = values[1].find(row => row.storage_profile_id === profileId);
-    ensure(row && runtime && (row.adapter_type === "r2" || row.adapter_type === "s3") && row.configuration_revision === 1 && runtime.state === "read_write", "recovery_mapping_unavailable");
+    const readOnly=Boolean(plannedReadOnly&&records.schema==="system-backup-records/5"&&row?.adapter_type==="r2"&&runtime?.state==="read_only");
+    ensure(row && runtime && (row.adapter_type === "r2" || row.adapter_type === "s3") && row.configuration_revision === 1
+      &&(runtime.state === "read_write"||readOnly), "recovery_mapping_unavailable");
+    const v5 = records.schema === "system-backup-records/5";
+    if (v5) ensure(row.adapter_type === "r2" && row.configuration_source === "bootstrap" && row.credential_reference === null
+      && row.state === "historical" && typeof row.created_at === "string" && Number.isFinite(Date.parse(row.created_at))
+      && runtime.registered_at === row.created_at &&(readOnly?runtime.activated_at===null:typeof runtime.activated_at === "string" && Number.isFinite(Date.parse(runtime.activated_at)))
+      && runtime.retired_at === null, "recovery_mapping_unavailable");
     const alreadyRecorded = records.content.tables.storage_profiles.some(profile => profile.id === profileId);
     const metadataRows = alreadyRecorded ? [] : [
       ...values[2].filter(row => row.native_profile_id === profileId).map(row => ({ table: "storage_profile_admissions" as const, row })),
@@ -181,10 +234,25 @@ async function destinationProfiles(env: TargetEnvironment, mapping: SystemRecove
     ];
     const descriptor = { id: profileId, adapterType: row.adapter_type as "r2" | "s3", namespaceIdentity: String(row.namespace_identity), configurationRevision: 1,
       configurationSource: row.adapter_type === "r2" ? "bootstrap" as const : "system" as const, credentialReference: null,
-      createdAt: String(row.created_at), runtime: { state: String(runtime.state), registered_at: String(runtime.registered_at),
-        activated_at: runtime.activated_at === null ? null : String(runtime.activated_at), retired_at: runtime.retired_at === null ? null : String(runtime.retired_at) },
-      metadataRows, metadataSha256: await sha256Hex(stableJson({ profile: row, runtime, metadataRows })) };
-    return { ...descriptor, transportFenceSha256: await transportFence(env, descriptor, values[6 + ids.indexOf(profileId)][0] ?? null) };
+      createdAt: String(row.created_at), runtime: { state: v5 ? "read_only" : String(runtime.state), registered_at: String(runtime.registered_at),
+        activated_at: v5 ? null : runtime.activated_at === null ? null : String(runtime.activated_at), retired_at: runtime.retired_at === null ? null : String(runtime.retired_at) },
+      metadataRows, ...(v5 ? {sourceMetadataSha256:await sha256Hex(stableJson({profile:row,runtime}))} : {}), metadataSha256: await sha256Hex(stableJson({ profile: row, runtime, metadataRows })) };
+    let ownedDescriptor: RecoveryDestinationProfile=descriptor;
+    if(v5 && !alreadyRecorded){
+      const targetProfile={id:profileId,adapter_type:"r2",namespace_identity:descriptor.namespaceIdentity,configuration_source:"bootstrap",
+        credential_reference:null,configuration_revision:1,state:"historical",created_at:descriptor.createdAt};
+      const targetRuntime={storage_profile_id:profileId,state:"read_only",registered_at:descriptor.createdAt,activated_at:null,retired_at:null};
+      const generated=(["storage_profiles","storage_profile_runtime"] as const).map(table=>{
+        const row:Record<string,string|number|null>=table==="storage_profiles"?targetProfile:targetRuntime,spec=FILE_SHADOW_DEPENDENCY_SPECS[table];
+        return {table:"file_shadow_dependency_versions" as const,row:{dependency_kind:table,
+          dependency_key:stableJson(spec.keyColumns.map(column=>row[column])),revision:1,present:1,
+          snapshot_json:stableJson(Object.fromEntries(spec.snapshotColumns.map(column=>[column,row[column]])))}};
+      });
+      ownedDescriptor={...descriptor,metadataRows:generated,metadataSha256:await sha256Hex(stableJson({profile:targetProfile,runtime:targetRuntime,metadataRows:generated}))};
+    }
+    const transportFenceSha256=await transportFence(env, ownedDescriptor, values[6 + ids.indexOf(profileId)][0] ?? null);
+    if(plannedReadOnly)await assertPlannedReadOnlyDestination(env,records,plannedReadOnly);
+    return { ...ownedDescriptor, transportFenceSha256 };
   }));
 }
 function safeChunks(text: string) {
@@ -196,11 +264,15 @@ function safeChunks(text: string) {
   }
   if (chunk) chunks.push(chunk); return chunks;
 }
-function claimGuard(database: D1Database, input: RecoveryTargetInput, imageSha256: string) {
+function claimGuard(database: D1Database, input: WorkerRecoveryTargetInput, imageSha256: string,sourceWindowSha256?:string) {
+  const shadow = v5PublicShadowPlanNativeRestriction(input);
   return database.prepare(`SELECT CASE WHEN EXISTS(SELECT 1 FROM system_recovery_target_claim WHERE singleton=1 AND target_id=? AND job_id=? AND incarnation=? AND schema_sha256=? AND image_sha256=? AND status<>'failed'
-    AND owner_token=? AND generation=? AND runtime_incarnation=? AND julianday(lease_expires_at)>julianday('now')) THEN 1 ELSE json('Recovery target ownership changed') END`)
+    AND owner_token=? AND generation=? AND runtime_incarnation=? AND julianday(lease_expires_at)>julianday('now')
+    ${input.records.schema==="system-backup-records/5"?"AND julianday(?)>julianday('now')":""}
+    ${sourceWindowSha256===undefined?"":"AND json_valid(cursor_json) AND json_extract(cursor_json,'$.sourceWindowSha256')=?"}${shadow.sql}) THEN 1 ELSE json('Recovery target ownership changed') END`)
     .bind(input.expectedTargetId, input.jobId, input.incarnation, selectReviewedRecoveryCatalog(input.records).schemaSha256, imageSha256,
-      input.ownerToken, input.generation, input.runtimeIncarnation ?? input.incarnation);
+      input.ownerToken, input.generation, input.runtimeIncarnation ?? input.incarnation,
+      ...(input.records.schema==="system-backup-records/5"?[input.deadlineAt??null]:[]),...(sourceWindowSha256===undefined?[]:[sourceWindowSha256]),...shadow.bindings);
 }
 function atomicBudget(records: VersionedRecoveryRecords) {
   const catalog = selectReviewedRecoveryCatalog(records);
@@ -217,19 +289,124 @@ function atomicBudget(records: VersionedRecoveryRecords) {
 export function recoveryTargetRestoreBudget(records:VersionedRecoveryRecords) {
   try {
     validateRecoverySourceImage(records);
+    if(records.schema==="system-backup-records/5"){
+      assertV5PublicHeadInventory(records.image.tables);
+      ensure(records.content.blobs.every(source=>source.byteAuthority==="file_location"&&source.storageProfileRevision===1
+        &&source.locationId!==null&&(source.provider==="local"&&source.storeKind==="file"||source.provider==="r2"&&source.storeKind==="r2")
+        &&records.content.tables.file_locations.some(location=>location.id===source.locationId&&records.content.tables.files.some(file=>file.id===location.file_id&&file.purpose!=="derived_preview"))),"v5_native_provider_not_admitted");
+    }
     return {available:true,reason:null,atomicStatements:atomicBudget(records).commands} as const;
   }catch(error){
     return {available:false,reason:error instanceof RecoveryTargetError?error.code:'recovery_image_not_admitted',atomicStatements:0} as const;
   }
 }
+export interface RecoveryTargetInput extends Omit<WorkerRecoveryTargetInput,"records"|"manifest"|"openPayload"> {
+  records:OriginalRecoveryRecords;manifest:OriginalRecoveryManifest;
+  openPayload(file:OriginalBackupFile,signal:AbortSignal):Promise<ReadableStream<Uint8Array>>;
+}
+export type RecoveryTargetPreviewInput=Pick<RecoveryTargetInput,"jobId"|"incarnation"|"expectedTargetId"|"records"|"manifest"|"mapping"|"mode">;
+function originalTargetFile(file:SystemBackupFile):file is OriginalBackupFile{return file.source.provider!=="local";}
 export function createRecoveryTargetEngine(env: TargetEnvironment) {
+  const original=originalRecoveryTargetEngine(env,false);
+  const owned=(input:RecoveryTargetInput):WorkerRecoveryTargetInput=>({...input,openPayload(file,signal){
+    if(!originalTargetFile(file))throw new RecoveryTargetError("recovery_version_pair");
+    return input.openPayload(file,signal);
+  }});
+  return {preview:(input:RecoveryTargetPreviewInput)=>original.preview(input),step:(input:RecoveryTargetInput)=>original.step(owned(input)),verify:(input:RecoveryTargetInput)=>original.verify(owned(input))};
+}
+/** Closed V5 lane reuses the ORIGINAL durable job/claim/cursor/attempt engine.
+ * It never substitutes a one-shot candidate token for public job ownership. */
+export function createWorkerV5RecoveryTargetEngine(env: TargetEnvironment) { return originalRecoveryTargetEngine(env,true); }
+function originalRecoveryTargetEngine(env: TargetEnvironment, workerV5: boolean) {
   const targetBinding = env.RECOVERY_DB, sourceBinding = env.DB;
-  async function prepare(input: RecoveryTargetPreviewInput) {
+  let originalPublicOwner:Readonly<{input:WorkerRecoveryTargetInput;actor:string;jobId:string;ownerToken:string;generation:number;
+    runtimeIncarnation:string|undefined;incarnation:string;deadlineAt:string|undefined;acceptedAt:string;claim:RecoveryClaim;sourceWindowSha256?:string}>|undefined;
+  function localCurrent(input:WorkerRecoveryTargetInput){
+    if(!workerV5)return;
+    const deadline=input.deadlineAt===undefined?NaN:Date.parse(input.deadlineAt);
+    ensure(Number.isFinite(deadline)&&Date.now()<deadline&&!input.signal?.aborted&&env.DB===sourceBinding
+      &&env.RECOVERY_DB===targetBinding&&env.RECOVERY_TARGET_ID===input.expectedTargetId,"recovery_execution_budget_exhausted");
+  }
+  function hardCurrent(input:WorkerRecoveryTargetInput){
+    localCurrent(input);if(!workerV5)return;
+    const owner=originalPublicOwner;
+    ensure(owner&&owner.input===input&&owner.jobId===input.jobId&&owner.ownerToken===input.ownerToken
+      &&owner.generation===input.generation&&owner.runtimeIncarnation===input.runtimeIncarnation&&owner.incarnation===input.incarnation
+      &&owner.deadlineAt===input.deadlineAt&&canAdministerSystemSettings(env,owner.actor)
+      &&Boolean(env.ACCESS_TEAM_DOMAIN&&env.ACCESS_AUD)&&allowedEmail(owner.actor,env.ALLOWED_EMAILS),"recovery_actor_or_lease_changed");
+  }
+  async function sourceCurrent(input:WorkerRecoveryTargetInput){
+    if(!workerV5)return;
+    ensure(await input.current(),"recovery_actor_or_lease_changed");
+    const owner=originalPublicOwner;
+    if(input.mode==="planned"){
+      ensure(owner&&owner.input===input&&input.records.schema==="system-backup-records/5"&&input.manifest.schema==="system-backup/5","recovery_original_planned_owner");
+      const window=await assertWorkerV5PlannedSourceWindowCurrent(env,owner.claim,input.records,input.manifest);
+      ensure(await sha256Hex(stableJson(window))===owner.sourceWindowSha256&&await input.current(),"recovery_original_source_window_changed");
+    }
+    hardCurrent(input);
+  }
+  function originalClaimGuard(target:D1Database,input:WorkerRecoveryTargetInput,imageSha256:string){
+    if(workerV5&&input.mode==="planned"){
+      const owner=originalPublicOwner;ensure(owner&&owner.input===input&&owner.sourceWindowSha256,"recovery_original_planned_owner");
+      return claimGuard(target,input,imageSha256,owner.sourceWindowSha256);
+    }
+    return claimGuard(target,input,imageSha256);
+  }
+  async function mutateBatch(input:WorkerRecoveryTargetInput,target:D1Database,statements:D1PreparedStatement[]){
+    if(workerV5)await sourceCurrent(input);
+    hardCurrent(input);return target.batch(statements);
+  }
+  async function mutateRun(input:WorkerRecoveryTargetInput,statement:D1PreparedStatement){
+    if(workerV5)await sourceCurrent(input);
+    hardCurrent(input);return statement.run();
+  }
+  async function originalPublicV5Claim(input:WorkerRecoveryTargetInput){
+    if(!workerV5)return;
+    localCurrent(input);
+    ensure(env.DB===sourceBinding&&!input.signal?.aborted,"recovery_source_binding_changed");
+    const db=primaryD1(sourceBinding),job=await db.prepare(`SELECT j.*
+      FROM system_recovery_jobs j JOIN system_recovery_runtime r ON r.singleton=1 AND r.enabled=1 AND r.incarnation=j.runtime_incarnation
+      WHERE j.id=? AND j.kind='recovery' AND j.state='running' AND j.owner_token=? AND j.generation=? AND j.runtime_incarnation=?
+        AND j.lease_expires_at=? AND julianday(j.lease_expires_at)>julianday('now')`)
+      .bind(input.jobId,input.ownerToken,input.generation,input.runtimeIncarnation??input.incarnation,input.leaseExpiresAt??null)
+      .first<RecoveryClaim>();
+    ensure(job&&job.target_id===input.expectedTargetId&&job.target_incarnation===input.incarnation
+      &&Boolean(env.ACCESS_TEAM_DOMAIN&&env.ACCESS_AUD)&&canAdministerSystemSettings(env,job.actor)
+      &&allowedEmail(job.actor,env.ALLOWED_EMAILS),"recovery_actor_or_lease_changed");
+    const accepted=JSON.parse(job.input_json) as import("../../shared/contracts/system-recovery").SystemRecoveryImportInput;
+    ensure(accepted.expectedTargetId===input.expectedTargetId&&accepted.mode===input.mode&&stableJson(accepted.mapping)===stableJson(input.mapping),"recovery_original_input_changed");
+    ensure(typeof job.source_upload_job_id==="string","recovery_original_upload_changed");
+    const repository=new SystemRecoveryRepository(sourceBinding),upload=await repository.job(job.source_upload_job_id);
+    ensure(upload&&upload.actor===job.actor&&upload.kind==="upload"&&upload.state==="preview","recovery_original_upload_changed");
+    const originalRecords=await repository.metadata(upload.id,"records"),originalManifest=await repository.metadata(upload.id,"manifest");
+    ensure(stableJson(originalRecords)===stableJson(input.records)&&stableJson(originalManifest)===stableJson(input.manifest),"recovery_original_documents_changed");
+    let sourceWindowSha256:string|undefined;
+    if(input.mode==="planned"){
+      ensure(input.records.schema==="system-backup-records/5"&&input.manifest.schema==="system-backup/5","recovery_version_pair");
+      const window=await assertWorkerV5PlannedSourceWindowCurrent(env,job,input.records,input.manifest);
+      sourceWindowSha256=await sha256Hex(stableJson(window));
+    }
+    ensure(!input.signal?.aborted&&env.DB===sourceBinding&&await input.current(),"recovery_actor_or_lease_changed");
+    // Only the actual original durable source job can issue this private tuple.
+    // It is an extra restrictive live check; caller DTO/profile fields issue none.
+    originalPublicOwner=Object.freeze({input,actor:job.actor,jobId:input.jobId,ownerToken:input.ownerToken,generation:input.generation,
+      runtimeIncarnation:input.runtimeIncarnation,incarnation:input.incarnation,deadlineAt:input.deadlineAt,acceptedAt:job.accepted_at,claim:job,...(sourceWindowSha256===undefined?{}:{sourceWindowSha256})});
+    hardCurrent(input);
+  }
+  async function prepare(input: WorkerRecoveryTargetPreviewInput,plannedWindow?:WorkerV5PlannedSourceWindow) {
+    if(workerV5&&input.mode==="planned"){
+      ensure(input.records.schema==="system-backup-records/5"&&input.manifest.schema==="system-backup/5","recovery_version_pair");
+      if(plannedWindow)await assertWorkerV5PlannedPreviewWindow(env,plannedWindow,input.records,input.manifest);
+      else ensure(originalPublicOwner&&originalPublicOwner.input===input&&originalPublicOwner.sourceWindowSha256,"recovery_original_planned_owner");
+    }
     id(input.jobId); id(input.incarnation); id(input.expectedTargetId);
     const catalog = selectReviewedRecoveryCatalog(input.records);
+    ensure((catalog.imageVersion === 5) === workerV5, "recovery_version_pair");
     validateRecoverySourceImage(input.records);
-    ensure(input.manifest.schema === (catalog.imageVersion === 3 ? "system-backup/3" : catalog.imageVersion === 2 ? "system-backup/2" : "system-backup/1"), "recovery_version_pair");
-    if (input.records.schema === "system-backup-records/3") await validateSystemBackupDocumentsV3(input.manifest, input.records);
+    ensure(input.manifest.schema === (catalog.imageVersion === 5 ? "system-backup/5" : catalog.imageVersion === 3 ? "system-backup/3" : catalog.imageVersion === 2 ? "system-backup/2" : "system-backup/1"), "recovery_version_pair");
+    if (input.records.schema === "system-backup-records/5") await validateSystemBackupDocumentsV5(input.manifest,input.records);
+    else if (input.records.schema === "system-backup-records/3") await validateSystemBackupDocumentsV3(input.manifest, input.records);
     else if (input.records.schema === "system-backup-records/2") await validateSystemBackupDocumentsV2(input.manifest, input.records);
     ensure(input.manifest.completeness === "complete" && input.manifest.files.every(file => file.outcome === "packaged"), "partial_backup_not_complete_recovery");
     const budget = atomicBudget(input.records);
@@ -243,16 +420,61 @@ export function createRecoveryTargetEngine(env: TargetEnvironment) {
         profiles = JSON.parse(json);
       }
     }
-    profiles ??= await destinationProfiles(env, input.mapping, input.records);
+    if(!profiles){
+      let readOnlyAdmission:PlannedReadOnlyDestinationAdmission|undefined;
+      if(workerV5&&input.mode==="planned"){
+        ensure(input.records.schema==="system-backup-records/5"&&input.manifest.schema==="system-backup/5","recovery_version_pair");
+        // This purpose can be issued only before any original target schema or
+        // claim exists. Later stages use the exact persisted destination plan,
+        // source window hash and original target claim; no activation is added.
+        await inspectRecoveryTargetFreshness(env,input.expectedTargetId,input.records);
+        const original=originalPublicOwner;
+        ensure(plannedWindow||original&&original.input===input&&original.sourceWindowSha256,"recovery_original_planned_owner");
+        const target=env.RECOVERY_DB;ensure(target&&target===targetBinding&&env.DB===sourceBinding,"recovery_target_changed");
+        readOnlyAdmission=Object.freeze({kind:"worker-v5-planned-read-only-destination/1"});
+        const common={env,database:sourceBinding,bucket:env.ASSETS,target,targetId:input.expectedTargetId,
+          bootstrapNamespace:env.R2_BOOTSTRAP_NAMESPACE,profileBindings:env.R2_PROFILE_BINDINGS,records:input.records,manifest:input.manifest};
+        if(plannedWindow)plannedReadOnlyDestinations.set(readOnlyAdmission,{...common,actor:plannedWindow.backupActor,previewWindow:plannedWindow});
+        else{
+          ensure(original&&original.input===input&&original.sourceWindowSha256,"recovery_original_planned_owner");
+          plannedReadOnlyDestinations.set(readOnlyAdmission,{...common,actor:original.actor,claim:original.claim,
+            signal:original.input.signal,deadlineAt:original.deadlineAt});
+        }
+        await assertPlannedReadOnlyDestination(env,input.records,readOnlyAdmission);
+      }
+      profiles=await destinationProfiles(env,input.mapping,input.records,readOnlyAdmission);
+    }
     const metadataText = stableJson(profiles);
     ensure(encoder.encode(metadataText).length <= 1024 * 1024 && safeChunks(metadataText).length + 1 <= MAX_ATOMIC_STATEMENTS, "destination_metadata_budget");
-    const files = await planRecoveryFiles(input.records, input.manifest.files, input.mapping, profiles, input.incarnation);
+    let files: RecoveryPlannedFile[];
+    if (input.records.schema === "system-backup-records/5") {
+      ensure(input.manifest.schema === "system-backup/5", "recovery_version_pair");
+      files = await planV5NativeR2RecoveryFiles(env,input.records,input.manifest,input.mapping,profiles,input.incarnation);
+    } else {
+      ensure(input.manifest.schema !== "system-backup/5", "recovery_version_pair");
+      files = await planRecoveryFiles(input.records,input.manifest.files,input.mapping,profiles,input.incarnation);
+    }
     ensure(files.length <= 100 && files.reduce((total, file) => total + file.byteSize, 0) <= 96 * 1024 * 1024, "recovery_file_budget");
-    return { catalog, budget, profiles, files, imageSha256: await sha256Hex(stableJson(input.records.image)) };
+    const imageSha256 = await sha256Hex(stableJson(input.records.image));
+    const shadowPlan = input.records.schema === "system-backup-records/5" && input.manifest.schema === "system-backup/5"
+      ? await createV5PublicShadowPlan({ ...input, records: input.records, manifest: input.manifest, profiles, files,
+        clock: originalPublicOwner?.input === input ? originalPublicOwner.acceptedAt : input.records.image.sourceSnapshotClock }) : undefined;
+    if (shadowPlan) {
+      bindV5PublicShadowPlan(input, shadowPlan);
+      // A real prior claim means construction already began. Missing or altered
+      // frozen plan is a refusal, never permission to reconstruct new history.
+      if (env.RECOVERY_DB && await existingClaim(primaryD1(env.RECOVERY_DB))) {
+        await assertV5PublicShadowPlanPersisted(primaryD1(env.RECOVERY_DB), shadowPlan);
+      }
+      const history = v5PublicShadowHistory(shadowPlan, input.jobId, imageSha256);
+      ensure(history.events.every(event => v5ShadowProfileEventStatementsCandidate(primaryD1(env.DB), event).length + 3 <= MAX_ATOMIC_STATEMENTS),
+        "atomic_shadow_event_budget");
+    }
+    return { catalog, budget, profiles, files, imageSha256, shadowPlan };
   }
-  async function preview(input: RecoveryTargetPreviewInput) {
+  async function preview(input: WorkerRecoveryTargetPreviewInput,plannedWindow?:WorkerV5PlannedSourceWindow) {
     try {
-      const plan = await prepare(input); await inspectRecoveryTargetFreshness(env, input.expectedTargetId, input.records);
+      const plan = await prepare(input,plannedWindow); await inspectRecoveryTargetFreshness(env, input.expectedTargetId, input.records);
       return { available: true as const, reason: null, atomicStatements: plan.budget.commands, files: plan.files.length,
         bytes: plan.files.reduce((total, file) => total + file.byteSize, 0), imageSha256: plan.imageSha256 };
     } catch (error) { return { available: false as const, reason: error instanceof RecoveryTargetError ? error.code : "recovery_preflight_failed", atomicStatements: 0, files: 0, bytes: 0, imageSha256: null }; }
@@ -261,78 +483,109 @@ export function createRecoveryTargetEngine(env: TargetEnvironment) {
     if (!await target.prepare("SELECT 1 AS present FROM sqlite_schema WHERE type='table' AND name='system_recovery_target_claim'").first()) return null;
     return target.prepare("SELECT * FROM system_recovery_target_claim WHERE singleton=1").first<TargetClaim>();
   }
-  async function current(input: RecoveryTargetInput, target: D1Database, imageSha256: string) {
+  async function current(input: WorkerRecoveryTargetInput, target: D1Database, imageSha256: string) {
+    await originalPublicV5Claim(input);
     ensure(!input.signal?.aborted && await input.current(), "recovery_actor_or_lease_changed");
     ensure(env.DB===sourceBinding,"recovery_source_binding_changed");
     ensure(env.RECOVERY_DB && env.RECOVERY_DB === targetBinding && env.RECOVERY_TARGET_ID === input.expectedTargetId, "recovery_target_changed");
-    await claimGuard(target, input, imageSha256).first();
+    await originalClaimGuard(target, input, imageSha256).first();
     const collision = await primaryD1(env.DB).prepare("SELECT challenge FROM system_recovery_target_claim WHERE singleton=1").first<{ challenge: string }>();
     const claimed = await existingClaim(target);
     ensure(claimed && collision?.challenge !== claimed.challenge, "recovery_target_alias");
+    if(workerV5)await sourceCurrent(input);
   }
-  async function persist(target: D1Database, input: RecoveryTargetInput, imageSha256: string, cursor: TargetCursor, status: string) {
+  async function persist(target: D1Database, input: WorkerRecoveryTargetInput, imageSha256: string, cursor: TargetCursor, status: string) {
     await current(input, target, imageSha256);
-    await target.batch([claimGuard(target, input, imageSha256), target.prepare("UPDATE system_recovery_target_claim SET status=?,cursor_json=? WHERE singleton=1")
+    await mutateBatch(input,target,[originalClaimGuard(target, input, imageSha256), target.prepare("UPDATE system_recovery_target_claim SET status=?,cursor_json=? WHERE singleton=1")
       .bind(status, stableJson(cursor))]);
   }
-  async function boundedWrites(target: D1Database, input: RecoveryTargetInput, imageSha256: string, statements: D1PreparedStatement[]) {
+  async function boundedWrites(target: D1Database, input: WorkerRecoveryTargetInput, imageSha256: string, statements: D1PreparedStatement[]) {
     for (let index = 0; index < statements.length; index += 96) {
       await current(input, target, imageSha256);
-      await target.batch([claimGuard(target, input, imageSha256), ...statements.slice(index, index + 96)]);
+      await mutateBatch(input,target,[originalClaimGuard(target, input, imageSha256), ...statements.slice(index, index + 96)]);
     }
   }
-  async function providerCurrent(input: RecoveryTargetInput, target: D1Database, imageSha256: string,
+  async function providerCurrent(input: WorkerRecoveryTargetInput, target: D1Database, imageSha256: string,
     file: RecoveryPlannedFile, profiles: readonly RecoveryDestinationProfile[]) {
     await current(input, target, imageSha256);
     const frozen = profiles.find(profile => profile.id === file.destinationProfileId);
     ensure(frozen && frozen.transportFenceSha256 && await transportFence(env, frozen) === frozen.transportFenceSha256, "recovery_mapping_changed");
+    if (workerV5) {
+      const db=primaryD1(env.DB), rows=await db.batch([db.prepare("SELECT * FROM storage_profiles WHERE id=?").bind(frozen.id),
+        db.prepare("SELECT * FROM storage_profile_runtime WHERE storage_profile_id=?").bind(frozen.id)]);
+      ensure(rows.every(row=>row.success)&&rows.every(row=>row.results.length===1)&&frozen.sourceMetadataSha256
+        &&await sha256Hex(stableJson({profile:rows[0].results[0],runtime:rows[1].results[0]}))===frozen.sourceMetadataSha256,"recovery_mapping_changed");
+    }
+    if(workerV5)await sourceCurrent(input);
   }
-  async function verifyTargetBytes(input: RecoveryTargetInput, target: D1Database, plan: Awaited<ReturnType<typeof prepare>>) {
+  async function verifyTargetBytes(input: WorkerRecoveryTargetInput, target: D1Database, plan: Awaited<ReturnType<typeof prepare>>) {
     for (const file of plan.files) {
       await providerCurrent(input, target, plan.imageSha256, file, plan.profiles);
       const storage = await openShadowProfile(env, { profileId: file.destinationProfileId, configurationRevision: file.configurationRevision }, "read", {
-        signal: input.signal, beforeRequest: async () => {
+        signal: input.signal, ...(workerV5?{deadlineAt:input.deadlineAt,systemRecoveryActor:originalPublicOwner?.actor}:{}), beforeRequest: async () => {
           try { await providerCurrent(input, target, plan.imageSha256, file, plan.profiles); return true; } catch { return false; }
         },
       });
       ensure(storage.storage.namespaceIdentity === file.destinationNamespaceIdentity, "recovery_mapping_changed");
-      await verifyStoredBytes(storage.reader, file.objectKey, file, storage.createHash);
+      await verifyStoredBytes(workerV5PlannedOriginalTargetReader(env,workerV5&&input.mode==="planned"?input:undefined,storage.reader), file.objectKey, file, storage.createHash);
     }
   }
-  async function claim(input: RecoveryTargetInput, plan: Awaited<ReturnType<typeof prepare>>) {
+  async function claim(input: WorkerRecoveryTargetInput, plan: Awaited<ReturnType<typeof prepare>>) {
+    await originalPublicV5Claim(input);
     ensure(env.RECOVERY_DB && env.RECOVERY_TARGET_ID === input.expectedTargetId, "recovery_target_unavailable");
     const target = primaryD1(env.RECOVERY_DB), prior = await existingClaim(target);
     if (prior) {
       ensure(prior.target_id === input.expectedTargetId && prior.job_id === input.jobId && prior.incarnation === input.incarnation
         && prior.schema_sha256 === plan.catalog.schemaSha256 && prior.image_sha256 === plan.imageSha256, "recovery_target_already_claimed");
+      if (plan.shadowPlan) {
+        const frozenCursor: TargetCursor = JSON.parse(prior.cursor_json);
+        ensure(frozenCursor.shadowPlanSha256 === plan.shadowPlan.sha256, "recovery_frozen_shadow_plan_changed");
+        await assertV5PublicShadowPlanPersisted(target, plan.shadowPlan);
+      }
       ensure(await input.current(), "recovery_actor_or_lease_changed");
       ensure(prior.generation <= input.generation, "stale_recovery_target_generation");
-      await target.prepare(`UPDATE system_recovery_target_claim SET owner_token=?,generation=?,runtime_incarnation=?,lease_expires_at=? WHERE singleton=1
+      await mutateRun(input,target.prepare(`UPDATE system_recovery_target_claim SET owner_token=?,generation=?,runtime_incarnation=?,lease_expires_at=? WHERE singleton=1
         AND job_id=? AND incarnation=? AND generation<=? AND (generation<? OR owner_token=? OR lease_expires_at IS NULL OR julianday(lease_expires_at)<=julianday('now'))`)
         .bind(input.ownerToken, input.generation, input.runtimeIncarnation ?? input.incarnation,
-          input.leaseExpiresAt ?? new Date(Date.now() + 60_000).toISOString(), input.jobId, input.incarnation, input.generation, input.generation, input.ownerToken).run();
-      await current(input, target, plan.imageSha256); return { target, cursor: JSON.parse(prior.cursor_json) as TargetCursor };
+          input.leaseExpiresAt ?? new Date(Date.now() + 60_000).toISOString(), input.jobId, input.incarnation, input.generation, input.generation, input.ownerToken));
+      const cursor=JSON.parse(prior.cursor_json) as TargetCursor;
+      if(workerV5&&input.mode==="planned")ensure(cursor.sourceWindowSha256===originalPublicOwner?.sourceWindowSha256,"recovery_target_source_window_changed");
+      await current(input, target, plan.imageSha256); return { target, cursor };
     }
     const fresh = await inspectRecoveryTargetFreshness(env, input.expectedTargetId, input.records);
     ensure(await input.current(), "recovery_actor_or_lease_changed");
     if (fresh.empty) {
       const local = plan.catalog.schemaStatements.filter(object => object.type === "table" && ["system_recovery_runtime", "system_recovery_target_claim", "system_recovery_target_provenance"].includes(object.name));
       ensure(local.length === 3, "reviewed_target_claim_missing");
-      await target.batch(local.map(object => target.prepare(object.sql)));
-      await target.prepare("INSERT INTO system_recovery_runtime VALUES(1,0,lower(hex(randomblob(16))),lower(hex(randomblob(16))),NULL,?)")
-        .bind(new Date().toISOString()).run();
+      await mutateBatch(input,target,local.map(object => target.prepare(object.sql)));
+      await mutateRun(input,target.prepare("INSERT INTO system_recovery_runtime VALUES(1,0,lower(hex(randomblob(16))),lower(hex(randomblob(16))),NULL,?)")
+        .bind(new Date().toISOString()));
     }
     const challenge = crypto.randomUUID(), cursor: TargetCursor = { phase: "schema", schemaIndex: 0, fileIndex: 0, empty: fresh.empty, dropped: false };
-    await target.prepare("INSERT INTO system_recovery_target_claim(singleton,target_id,job_id,incarnation,challenge,schema_sha256,image_sha256,status,cursor_json,owner_token,generation,runtime_incarnation,lease_expires_at) VALUES(1,?,?,?,?,?,?,'claimed',?,?,?,?,?)")
+    if(workerV5&&input.mode==="planned"){
+      const windowHash=originalPublicOwner?.sourceWindowSha256;ensure(windowHash,"recovery_original_planned_owner");cursor.sourceWindowSha256=windowHash;
+    }
+    if (plan.shadowPlan) { cursor.shadowPlanSha256 = plan.shadowPlan.sha256; cursor.profileEventIndex = 0; }
+    const insert = target.prepare("INSERT INTO system_recovery_target_claim(singleton,target_id,job_id,incarnation,challenge,schema_sha256,image_sha256,status,cursor_json,owner_token,generation,runtime_incarnation,lease_expires_at) VALUES(1,?,?,?,?,?,?,'claimed',?,?,?,?,?)")
       .bind(input.expectedTargetId, input.jobId, input.incarnation, challenge, plan.catalog.schemaSha256, plan.imageSha256, stableJson(cursor),
-        input.ownerToken, input.generation, input.runtimeIncarnation ?? input.incarnation, input.leaseExpiresAt ?? new Date(Date.now() + 60_000).toISOString()).run();
+        input.ownerToken, input.generation, input.runtimeIncarnation ?? input.incarnation, input.leaseExpiresAt ?? new Date(Date.now() + 60_000).toISOString());
+    if (plan.shadowPlan) {
+      // The exact plan and first real claim commit together, before any
+      // application/profile/payload construction. The original live source
+      // ownership restriction still precedes this native batch issue.
+      const statements = [insert, ...v5PublicShadowPlanInitialStatements(target, plan.shadowPlan)];
+      ensure(statements.length <= MAX_ATOMIC_STATEMENTS, "frozen_shadow_registration_budget");
+      await mutateBatch(input, target, statements);
+    } else await mutateRun(input, insert);
     await current(input, target, plan.imageSha256); return { target, cursor };
   }
-  async function step(input: RecoveryTargetInput): Promise<RecoveryTargetStepResult> {
+  async function step(input: WorkerRecoveryTargetInput): Promise<RecoveryTargetStepResult> {
+    if(workerV5&&(input.mode==="planned"||input.records.schema==="system-backup-records/5"&&hasV5PublicPresentHeads(input.records.image.tables)))
+      await originalPublicV5Claim(input);
     const plan = await prepare(input), { target, cursor } = await claim(input, plan);
     const metadataText = stableJson(plan.profiles), metadataHash = await sha256Hex(metadataText), metadataChunks = safeChunks(metadataText);
     ensure(encoder.encode(metadataText).length <= 1024 * 1024 && metadataChunks.length + 1 <= MAX_ATOMIC_STATEMENTS, "destination_metadata_budget");
-    if (cursor.phase === "schema" && cursor.schemaIndex === 0) await target.batch([claimGuard(target, input, plan.imageSha256), ...metadataChunks.map((chunk, ordinal) => target.prepare(`INSERT INTO system_recovery_target_provenance(job_id,ordinal,image_sha256,chunk,created_at)
+    if (cursor.phase === "schema" && cursor.schemaIndex === 0) await mutateBatch(input,target,[originalClaimGuard(target, input, plan.imageSha256), ...metadataChunks.map((chunk, ordinal) => target.prepare(`INSERT INTO system_recovery_target_provenance(job_id,ordinal,image_sha256,chunk,created_at)
       VALUES(?,?,?,?,?) ON CONFLICT(job_id,ordinal) DO NOTHING`).bind(`${input.jobId}#destination-plan`, ordinal, metadataHash, chunk, new Date().toISOString()))]);
     const completedSources = () => input.manifest.files.filter(source => plan.files.filter(file => file.sourceId === source.id)
       .every(file => plan.files.indexOf(file) < cursor.fileIndex));
@@ -347,13 +600,13 @@ export function createRecoveryTargetEngine(env: TargetEnvironment) {
       const group = objects.slice(cursor.schemaIndex, cursor.schemaIndex + DDL_GROUP);
       cursor.schemaIndex += group.length;
       if (cursor.schemaIndex >= objects.length) { cursor.phase = "rows"; cursor.schemaIndex = 0; cursor.dropped = true; }
-      await target.batch([claimGuard(target, input, plan.imageSha256), ...group.map(object => target.prepare(object.sql)),
+      await mutateBatch(input,target,[originalClaimGuard(target, input, plan.imageSha256), ...group.map(object => target.prepare(object.sql)),
         target.prepare("UPDATE system_recovery_target_claim SET status='installing',cursor_json=? WHERE singleton=1").bind(stableJson(cursor))]); return result();
     }
     if (cursor.phase === "rows") {
       const probe = await target.prepare("SELECT hex(unhex('000102FF')) AS probe").first<{ probe: string }>();
       ensure(probe?.probe === "000102FF", "native_exact_blob_restore_unsupported");
-      const statements = [claimGuard(target, input, plan.imageSha256), target.prepare("PRAGMA defer_foreign_keys=ON")];
+      const statements = [originalClaimGuard(target, input, plan.imageSha256), target.prepare("PRAGMA defer_foreign_keys=ON")];
       if (!cursor.empty) for (const spec of plan.catalog.tables.filter(table => !table.local && plan.catalog.seedTableRows[table.name]?.rows.length)) statements.push(target.prepare(`DELETE FROM ${quote(spec.name)}`));
       for (const group of plan.budget.groups) statements.push(groupInsert(target, group.spec, group.rows));
       if (cursor.empty) for (const spec of plan.catalog.tables.filter(table => table.local && !table.name.startsWith("system_recovery_"))) {
@@ -369,12 +622,37 @@ export function createRecoveryTargetEngine(env: TargetEnvironment) {
         .bind(input.jobId, ordinal, plan.imageSha256, chunk, now)));
       cursor.phase = "files";
       statements.push(target.prepare("UPDATE system_recovery_target_claim SET status='files',cursor_json=? WHERE singleton=1").bind(stableJson(cursor)));
-      ensure(statements.length <= MAX_ATOMIC_STATEMENTS, "atomic_restore_budget"); await target.batch(statements);
+      ensure(statements.length <= MAX_ATOMIC_STATEMENTS, "atomic_restore_budget"); await mutateBatch(input,target,statements);
       await assertRecoveredCapabilitiesInert(target, plan.catalog); return result();
     }
     if (cursor.phase === "files") {
-      if (cursor.fileIndex === 0) {
+      if (plan.shadowPlan) {
+        const history = v5PublicShadowHistory(plan.shadowPlan, input.jobId, plan.imageSha256), index = cursor.profileEventIndex;
+        ensure(typeof index === "number" && Number.isSafeInteger(index) && index >= 0 && index <= history.events.length,
+          "frozen_shadow_event_cursor");
+        if (index < history.events.length) {
+          ensure(cursor.fileIndex === 0, "frozen_shadow_event_before_payload");
+          const event = history.events[index];
+          cursor.profileEventIndex = index + 1;
+          const statements = [originalClaimGuard(target, input, plan.imageSha256),
+            ...(event.metadataTable === "storage_profiles" ? [v5PublicShadowProfileRowidGuard(target)] : []),
+            ...v5ShadowProfileEventStatementsCandidate(target, event),
+            target.prepare("UPDATE system_recovery_target_claim SET cursor_json=? WHERE singleton=1")
+              .bind(stableJson(cursor))];
+          ensure(statements.length <= MAX_ATOMIC_STATEMENTS, "atomic_shadow_event_budget");
+          // Never split a metadata event with boundedWrites. Its original
+          // claim, complete history and cursor advancement are one transaction.
+          await mutateBatch(input, target, statements); return result();
+        }
+        await mutateBatch(input, target, [originalClaimGuard(target, input, plan.imageSha256),
+          ...v5PublicShadowFinalStateStatements(target, plan.shadowPlan), target.prepare(
+          `SELECT CASE WHEN invalid_count=0 THEN 1 ELSE json('V5 public frozen heads invalid before payload') END FROM (${FILE_SHADOW_HEAD_INTEGRITY_SQL})`)]);
+      } else if (cursor.fileIndex === 0) {
         const statements = recoveryDestinationProfileStatements(target, plan.profiles);
+        if(workerV5) statements.unshift(target.prepare(`SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM file_registry_rowid_claims
+          WHERE registry_name='storage_profiles' AND claimed_rowid>(SELECT COALESCE(MAX(rowid),0) FROM storage_profiles)
+          AND claimed_rowid<=(SELECT COALESCE(MAX(rowid),0) FROM storage_profiles)+?) THEN 1 ELSE json('V5 restored profile rowid would be reused') END`)
+          .bind(plan.profiles.filter(profile=>!input.records.content.tables.storage_profiles.some(row=>row.id===profile.id)).length));
         await boundedWrites(target, input, plan.imageSha256, statements);
       }
       const file = plan.files[cursor.fileIndex];
@@ -383,40 +661,45 @@ export function createRecoveryTargetEngine(env: TargetEnvironment) {
       cursor.fileIndex++; await persist(target, input, plan.imageSha256, cursor, "files"); return result();
     }
     if (cursor.phase === "reinstall") {
-      if (cursor.schemaIndex === 0) await finalizeMappings(target, input, plan.files, plan.imageSha256);
+      if (cursor.schemaIndex === 0) await finalizeMappings(target, input, plan.files, plan.imageSha256, plan.shadowPlan !== undefined);
       const triggers = plan.catalog.schemaStatements.filter(object => object.type === "trigger"), group = triggers.slice(cursor.schemaIndex, cursor.schemaIndex + DDL_GROUP);
       cursor.schemaIndex += group.length;
       if (cursor.schemaIndex >= triggers.length) { cursor.phase = "verify"; cursor.schemaIndex = 0; }
-      await target.batch([claimGuard(target, input, plan.imageSha256), ...group.map(object => target.prepare(object.sql)),
+      await mutateBatch(input,target,[originalClaimGuard(target, input, plan.imageSha256), ...group.map(object => target.prepare(object.sql)),
         target.prepare("UPDATE system_recovery_target_claim SET status='verifying',cursor_json=? WHERE singleton=1").bind(stableJson(cursor))]); return result();
     }
     await verifyTargetBytes(input, target, plan);
-    const verified = await verifyRecoveryTarget(target, input.records, plan.files, plan.profiles, input.jobId, plan.imageSha256);
+    const verified = await verifyRecoveryTarget(target, input.records, plan.files, plan.profiles, input.jobId, plan.imageSha256, plan.shadowPlan);
     await current(input, target, plan.imageSha256);
     const ledger = await recoveryMigrationLedgerStatements(target, plan.catalog.migrations);
-    if (ledger.length) await target.batch([claimGuard(target,input,plan.imageSha256),...ledger]);
+    if (ledger.length) await mutateBatch(input,target,[originalClaimGuard(target,input,plan.imageSha256),...ledger]);
     await inspectRecoveryMigrationLedger(target,true,plan.catalog.migrations);
     const report = await reportFor(input, verified);
     cursor.phase = "ready";
-    await target.batch([claimGuard(target, input, plan.imageSha256), target.prepare("UPDATE system_recovery_target_claim SET status='ready',cursor_json=?,verified_at=? WHERE singleton=1")
+    await mutateBatch(input,target,[originalClaimGuard(target, input, plan.imageSha256), target.prepare("UPDATE system_recovery_target_claim SET status='ready',cursor_json=?,verified_at=? WHERE singleton=1")
       .bind(stableJson(cursor), new Date().toISOString())]); return result(true, report);
   }
-  async function reportFor(input: RecoveryTargetInput, proof: RecoveryVerification) {
+  async function reportFor(input: WorkerRecoveryTargetInput, proof: RecoveryVerification) {
     return createSystemRecoveryReport({ targetId: input.expectedTargetId, jobId: input.jobId, incarnation: input.incarnation,
       manifest: input.manifest, records: input.records, mode: input.mode, differences: proof.differences, targetProof: proof.checkpoint });
   }
-  async function verify(input: RecoveryTargetInput) {
+  async function verify(input: WorkerRecoveryTargetInput) {
+    if(workerV5&&(input.mode==="planned"||input.records.schema==="system-backup-records/5"&&hasV5PublicPresentHeads(input.records.image.tables)))
+      await originalPublicV5Claim(input);
     const plan = await prepare(input), { target, cursor } = await claim(input, plan);
     ensure(cursor.phase === "ready", "target_not_ready");
     await inspectRecoveryMigrationLedger(target,true,plan.catalog.migrations);
     await verifyTargetBytes(input, target, plan);
-    const proof = await verifyRecoveryTarget(target, input.records, plan.files, plan.profiles, input.jobId, plan.imageSha256);
+    const proof = await verifyRecoveryTarget(target, input.records, plan.files, plan.profiles, input.jobId, plan.imageSha256, plan.shadowPlan);
     await current(input, target, plan.imageSha256); return reportFor(input, proof);
   }
-  async function restoreFile(target: D1Database, input: RecoveryTargetInput, imageSha256: string, file: RecoveryPlannedFile, profiles: readonly RecoveryDestinationProfile[]) {
+  async function restoreFile(target: D1Database, input: WorkerRecoveryTargetInput, imageSha256: string, file: RecoveryPlannedFile, profiles: readonly RecoveryDestinationProfile[]) {
     const source = input.manifest.files.find(value => value.id === file.sourceId); ensure(source, "recovery_payload_missing");
+    if(workerV5) await mutateBatch(input,target,[originalClaimGuard(target,input,imageSha256),target.prepare(`SELECT CASE WHEN EXISTS(SELECT 1 FROM file_locations WHERE id=?)
+      OR NOT EXISTS(SELECT 1 FROM file_registry_rowid_claims WHERE registry_name='file_locations'
+        AND claimed_rowid=(SELECT COALESCE(MAX(rowid),0)+1 FROM file_locations)) THEN 1 ELSE json('V5 restored location rowid would be reused') END`).bind(file.locationId)]);
     await current(input, target, imageSha256);
-    await target.batch([claimGuard(target, input, imageSha256), target.prepare(`INSERT INTO system_recovery_target_files(job_id,logical_id,source_blob_id,file_id,location_id,profile_id,namespace,object_key,purpose,byte_size,sha256,incarnation)
+    await mutateBatch(input,target,[originalClaimGuard(target, input, imageSha256), target.prepare(`INSERT INTO system_recovery_target_files(job_id,logical_id,source_blob_id,file_id,location_id,profile_id,namespace,object_key,purpose,byte_size,sha256,incarnation)
       VALUES(?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(job_id,logical_id) DO NOTHING`)
       .bind(input.jobId, file.id, file.sourceId, file.fileId, file.locationId, file.destinationProfileId, file.destinationNamespaceIdentity,
         file.objectKey, file.purpose, file.byteSize, file.sha256, input.incarnation)]);
@@ -429,14 +712,14 @@ export function createRecoveryTargetEngine(env: TargetEnvironment) {
       // key is never replayed, even when the uncertain object is absent.
       await current(input, target, imageSha256);
       const storage = await openShadowProfile(env, { profileId: file.destinationProfileId, configurationRevision: file.configurationRevision }, "read", {
-        signal: input.signal, beforeRequest: async () => {
+        signal: input.signal, ...(workerV5?{deadlineAt:input.deadlineAt,systemRecoveryActor:originalPublicOwner?.actor}:{}), beforeRequest: async () => {
           try { await providerCurrent(input, target, imageSha256, file, profiles); return true; } catch { return false; }
         },
       });
       ensure(storage.storage.namespaceIdentity === file.destinationNamespaceIdentity, "recovery_mapping_changed");
-      await verifyStoredBytes(storage.reader, file.objectKey, file, storage.createHash);
+      await verifyStoredBytes(workerV5PlannedOriginalTargetReader(env,workerV5&&input.mode==="planned"?input:undefined,storage.reader), file.objectKey, file, storage.createHash);
       await current(input, target, imageSha256);
-      await target.batch([claimGuard(target, input, imageSha256), target.prepare("UPDATE system_recovery_target_files SET state='verified',verified_at=? WHERE job_id=? AND logical_id=? AND state IN('write_started','unknown')")
+      await mutateBatch(input,target,[originalClaimGuard(target, input, imageSha256), target.prepare("UPDATE system_recovery_target_files SET state='verified',verified_at=? WHERE job_id=? AND logical_id=? AND state IN('write_started','unknown')")
         .bind(new Date().toISOString(), input.jobId, file.id)]);
       row.state = "verified";
     }
@@ -445,21 +728,23 @@ export function createRecoveryTargetEngine(env: TargetEnvironment) {
       const signal = input.signal ?? new AbortController().signal;
       const body = await input.openPayload(source, signal);
       try {
-        await writeRecoveryFile(env, file, body, { signal, current: async () => {
+        await (workerV5 ? writeWorkerV5RecoveryFile : writeRecoveryFile)(env, file, body, { signal, ...(workerV5?{deadlineAt:input.deadlineAt,...(input.mode==="planned"?{originalPlannedInput:input}:{})}:{}), current: async () => {
           try { await providerCurrent(input, target, imageSha256, file, profiles); return true; } catch { return false; }
         }, writeStarted: async () => {
           await current(input, target, imageSha256);
-          await target.batch([claimGuard(target, input, imageSha256), target.prepare("UPDATE system_recovery_target_files SET state='write_started',owner_token=?,generation=? WHERE job_id=? AND logical_id=? AND state='pending'")
+          await mutateBatch(input,target,[originalClaimGuard(target, input, imageSha256), target.prepare("UPDATE system_recovery_target_files SET state='write_started',owner_token=?,generation=? WHERE job_id=? AND logical_id=? AND state='pending'")
             .bind(input.ownerToken, input.generation, input.jobId, file.id), target.prepare("SELECT CASE WHEN EXISTS(SELECT 1 FROM system_recovery_target_files WHERE job_id=? AND logical_id=? AND state='write_started' AND owner_token=? AND generation=?) THEN 1 ELSE json('Recovery file ownership changed') END")
             .bind(input.jobId, file.id, input.ownerToken, input.generation)]);
           return true;
         } });
       } catch (error) {
+        // Settlement of this already issued exact attempt remains durable after
+        // deadline. It grants no new provider request, cursor or publication.
         await target.prepare("UPDATE system_recovery_target_files SET state='unknown' WHERE job_id=? AND logical_id=? AND state='write_started' AND owner_token=? AND generation=?")
           .bind(input.jobId, file.id, input.ownerToken, input.generation).run(); throw error;
       }
       await current(input, target, imageSha256);
-      await target.batch([claimGuard(target, input, imageSha256), target.prepare("UPDATE system_recovery_target_files SET state='verified',verified_at=? WHERE job_id=? AND logical_id=? AND state='write_started' AND owner_token=? AND generation=?")
+      await mutateBatch(input,target,[originalClaimGuard(target, input, imageSha256), target.prepare("UPDATE system_recovery_target_files SET state='verified',verified_at=? WHERE job_id=? AND logical_id=? AND state='write_started' AND owner_token=? AND generation=?")
         .bind(new Date().toISOString(), input.jobId, file.id, input.ownerToken, input.generation)]);
     }
     await current(input, target, imageSha256);
@@ -467,13 +752,23 @@ export function createRecoveryTargetEngine(env: TargetEnvironment) {
       .bind(input.jobId, file.id).first<{ verified_at: string }>();
     ensure(receipt?.verified_at && Number.isFinite(Date.parse(receipt.verified_at)), "recovery_readback_receipt_missing");
     await boundedWrites(target, input, imageSha256, recoveryFilePublicationStatements(target, file, { byteSize: file.byteSize, sha256: file.sha256 }, receipt.verified_at));
-    await target.batch([claimGuard(target, input, imageSha256),
+    await mutateBatch(input,target,[originalClaimGuard(target, input, imageSha256),
       target.prepare("UPDATE system_recovery_target_files SET state='published' WHERE job_id=? AND logical_id=? AND state='verified'").bind(input.jobId, file.id)]);
   }
-  async function finalizeMappings(target: D1Database, input: RecoveryTargetInput, files: RecoveryPlannedFile[], imageSha256: string) {
+  async function finalizeMappings(target: D1Database, input: WorkerRecoveryTargetInput, files: RecoveryPlannedFile[], imageSha256: string, headed = false) {
     await current(input, target, imageSha256);
     const now = new Date().toISOString();
-    await target.batch([claimGuard(target, input, imageSha256), target.prepare("PRAGMA defer_foreign_keys=ON"),
+    if (workerV5) {
+      await mutateBatch(input,target,[originalClaimGuard(target,input,imageSha256),
+        target.prepare(headed
+          ? `SELECT CASE WHEN invalid_count=0 THEN 1 ELSE json('V5 public frozen heads differ') END FROM (${FILE_SHADOW_HEAD_INTEGRITY_SQL})`
+          : "SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM file_shadow_heads WHERE present=1) THEN 1 ELSE json('V5 present heads require their separate reviewed owner') END"),
+        target.prepare(`INSERT OR IGNORE INTO file_registry_rowid_claims(registry_name,claimed_rowid)
+          SELECT 'storage_profiles',rowid FROM storage_profiles UNION ALL SELECT 'files',rowid FROM files
+          UNION ALL SELECT 'file_locations',rowid FROM file_locations UNION ALL SELECT 'legacy_file_mappings',rowid FROM legacy_file_mappings`)]);
+      return;
+    }
+    await mutateBatch(input,target,[originalClaimGuard(target, input, imageSha256), target.prepare("PRAGMA defer_foreign_keys=ON"),
       ...(files.length ? [target.prepare("UPDATE file_authority_control SET mode='active',activated_at=COALESCE(activated_at,?),updated_at=? WHERE singleton=1 AND mode<>'active'").bind(now, now)] : []),
       ...(files.length ? [target.prepare(`INSERT INTO file_shadow_enablements(singleton,expected_epoch,enabled_by,enabled_at)
         SELECT 1,c.epoch,?,a.activated_at FROM file_shadow_control c JOIN file_authority_control a ON a.singleton=c.singleton

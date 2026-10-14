@@ -13,6 +13,8 @@ import { validateFileNativeRetention } from "./export-file-native-retention";
 import { validateImportAcceptanceV21 } from "./export-import-acceptance-v21";
 import { validateMetrologyReferenceAcceptanceV21 } from "./export-metrology-reference-acceptance-v21";
 import { validateCommentAcceptanceV21 } from "./export-comment-acceptance-v21";
+import { nativeV5CommentSourceHistory, validateNativeV5CompletedCommentProvenance,
+  nativeV5CommentLocationRow } from "./export-native-v5-comment-provenance";
 import { validateFileShadowWithdrawalRows } from "./export-file-shadow-withdrawals";
 import { validateFileShadowAdjudicationRows } from "./export-file-shadow-adjudications";
 import { validateFileJobHistory } from "./export-file-jobs";
@@ -127,10 +129,13 @@ function validateRecoveredAssetAliases(tables: ExportTables, nativeIds: Readonly
  * dedicated successor modules. No historical reader or fingerprint is edited.
  *
  * This first slice admits only ordinary accepted local-upload provenance.
+ * Native V5 additionally admits only exact completed unpaired local Comment
+ * attachment provenance from the same validated typed source image.
  * Local recovery relocation is admitted only by the separate V28 exact native
- * source-address/readback/history proof. Other local import/Comment/metrology/
+ * source-address/readback/history proof. Other local import/Comment-purpose/metrology/
  * shadow/job publication payloads remain unsupported. Source records do not authorize destination execution. */
 export async function validateLocalFileRuntimeV28(input: LocalFileRuntimeInputV28): Promise<LocalFileRuntimeEvidenceV28> {
+  const nativeCommentSource = nativeV5CommentSourceHistory(input);
   const captured = captureJson(input) as LocalFileRuntimeInputV28;
   ensure(captured && stableJson(Object.keys(captured).sort()) === stableJson([
     "businessTables", "sourceSchema", "sourceRowids", "snapshotClock", "protectedLocalHistory"].sort()), "input inventory");
@@ -153,20 +158,23 @@ export async function validateLocalFileRuntimeV28(input: LocalFileRuntimeInputV2
     for (const row of rows) ensure(stableJson(Object.keys(row).sort()) === stableJson([...columns].sort()), "protected history columns");
   }
   ensure(totalRows <= MAX_ROWS, "combined source/history row budget");
-  const localProfileIds = await validateLocalProfileMetadataV28(tables);
-  await validateLocalProfileHistoryV28({ ...tables, ...history });
+  const nativeComment = await validateNativeV5CompletedCommentProvenance(nativeCommentSource, tables, history, clock, captured.sourceRowids);
+  const localProfileIds = await validateLocalProfileMetadataV28(tables, nativeComment);
+  await validateLocalProfileHistoryV28({ ...tables, ...history }, nativeComment);
   for (const location of tables.file_locations.filter(row => localProfileIds.has(String(row.storage_profile_id)))) {
     ensure(!tables.legacy_file_mappings.some(row => row.location_id === location.id), "local address has no legacy mapping");
     ensure(tables.file_acceptance_candidates.some(row => row.storage_profile_id === location.storage_profile_id
-      && row.acceptance_kind === "r2_upload" && (row.candidate_location_id === location.id || row.result_location_id === location.id)),
-    "ordinary local location provenance");
+      && row.acceptance_kind === "r2_upload" && (row.candidate_location_id === location.id || row.result_location_id === location.id))
+      || nativeV5CommentLocationRow(nativeComment, location),
+    "qualified local location provenance");
   }
   await validateFileShadowSourceRowids(tables, captured.sourceRowids);
   validateFileNativeReferences(tables, schema);
   const nativeIds = new Set([...await validateNativeRuntimeProfiles(tables), ...localProfileIds]);
   validateNativeRolePoliciesV28(tables, localProfileIds, history.local_storage_profile_activations);
   await validateImportAcceptanceV21(tables); await validateFileUploadAcceptanceV28(tables, localProfileIds);
-  await validateMetrologyReferenceAcceptanceV21(tables); await validateCommentAcceptanceV21(tables);
+  await validateMetrologyReferenceAcceptanceV21(tables);
+  if (!nativeComment) await validateCommentAcceptanceV21(tables);
   const packages = validateResearchPackageHistory(tables), migrations = validateFileJobHistory(tables), recovery = validateSystemRecoveryEvidenceHistoryV28(tables);
   const imported = researchImportedPreviewEvidence(tables), aliases = researchNativeR2AssetEvidence(tables);
   const evidence = {
@@ -176,7 +184,7 @@ export async function validateLocalFileRuntimeV28(input: LocalFileRuntimeInputV2
   };
   const published = new Set(validateFileNativeRuntimeRowsV28(tables, {
     ...evidence, recoveredAttachmentPreviewEvidence: evidence.importedPreviewEvidence,
-  }, localProfileIds));
+  }, localProfileIds, nativeComment));
   for (const id of [...packages.publishedLocations, ...migrations.publishedLocations, ...recovery.publishedLocations]) published.add(id);
   await validateFileNativeShadowRowsV26(tables, schema, captured.sourceRowids, { acceptedPublicationLocations: published,
     nativeProfileIds: nativeIds, localProfileIds });

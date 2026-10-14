@@ -1,3 +1,5 @@
+import { workerV5PlannedSourceReleaseStatements } from "./v5-planned-source-window";
+import { allowedEmail } from "../auth";
 import type { MiddlewareHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { primaryD1 } from "../d1-primary";
@@ -88,7 +90,7 @@ export async function controlSourceMaintenance(env: Env, actor: string, raw: Sys
     if (prior.action !== input.action || prior.expectedGeneration !== input.expectedGeneration) throw conflict("Maintenance request ID was already used with different input");
     return prior;
   }
-  const db = primaryD1(env.DB), now = new Date().toISOString();
+  const originalSourceDatabase=env.DB,db = primaryD1(originalSourceDatabase), now = new Date().toISOString();
   const allowedState = input.action === "enter" ? "state='open'" : input.action === "finalize" ? "state='draining'" : "state IN('draining','fenced')";
   // A deadline is not proof that a provider PUT stopped. Even an intent which
   // might still receive bytes must be settled/cancelled before a planned fence.
@@ -112,7 +114,13 @@ export async function controlSourceMaintenance(env: Env, actor: string, raw: Sys
           backup_job_id=NULL,checkpoint_sha256=NULL,started_at=NULL,fenced_at=NULL,updated_at=? WHERE singleton=1 AND generation=? AND ${allowedState}`)
         .bind(now, input.expectedGeneration);
   try {
+    const originalPlannedRelease=input.action==="release"?await workerV5PlannedSourceReleaseStatements(env,{requestId:input.requestId,actor,expectedGeneration:input.expectedGeneration}):{before:[],after:[]};
+    if(env.DB!==originalSourceDatabase)throw conflict("Original source maintenance binding changed");
+    assertSystemAdministrator(env,actor);
+    if(originalPlannedRelease.before.length>2&&(!env.ACCESS_TEAM_DOMAIN||!env.ACCESS_AUD||!allowedEmail(actor,env.ALLOWED_EMAILS)))
+      throw new HTTPException(403,{message:"System administrator access is required."});
     await db.batch([
+      ...originalPlannedRelease.before,
       db.prepare(`SELECT CASE WHEN EXISTS(SELECT 1 FROM system_recovery_maintenance WHERE singleton=1 AND generation=? AND ${allowedState})
         ${drained} THEN 1 ELSE json('Source maintenance revision changed or writers remain unsettled') END`).bind(input.expectedGeneration),
       update,
@@ -121,6 +129,7 @@ export async function controlSourceMaintenance(env: Env, actor: string, raw: Sys
           'activeWriters',(SELECT count(*) FROM system_recovery_write_leases WHERE released_at IS NULL)),?
         FROM system_recovery_maintenance WHERE singleton=1`)
         .bind(input.requestId, actor, input.action, input.expectedGeneration, now),
+      ...originalPlannedRelease.after,
     ]);
   } catch {
     // Concurrent duplicate requests may have committed this same exact receipt.

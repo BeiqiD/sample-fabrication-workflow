@@ -1,3 +1,5 @@
+import { captureWorkerV5PlannedSourceWindow, workerV5PlannedSourceAcceptanceStatements, workerV5PlannedRecoveryCleanupGuards, captureWorkerV5PlannedBackupWindow, workerV5PlannedBackupAcceptanceStatements, type WorkerV5PlannedSourceWindow } from "./v5-planned-source-window";
+import { admitWorkerV5SourceCloseCleanup, workerV5SourceCloseCleanupGuards } from "./v5-source-close-owner";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { Env } from "../types";
@@ -5,14 +7,14 @@ import { assertSystemAdministrator } from "../storage/system-administrator";
 import { checkedSystemRecoveryBackupInput, checkedSystemRecoveryUploadInput, checkedSystemRecoveryImportInput, checkedSystemRecoveryCutoverInput,
   checkedSystemRecoveryJobControl, checkedSystemRecoveryJobStatus, checkedSystemRecoveryCapabilities, checkedSystemRecoveryPreview,
   type SystemRecoveryBackupPreview, type SystemRecoveryReceipt, type SystemRecoveryPublicReport } from "../../shared/contracts/system-recovery";
-import { recoveryRepository,recoveryActorAllowed,systemRecoveryCapabilities,systemRecoveryJobStatus,systemRecoveryPreview,workerSystemRecoveryCapabilities,freezeRecoveryArtifactNamespace,assertRecoveryArtifactNamespace } from "./service";
+import { recoveryRepository,recoveryActorAllowed,systemRecoveryCapabilities,systemRecoveryJobStatus,systemRecoveryPreview,workerSystemRecoveryCapabilities, closeWorkerV5RecoveryExecutions,freezeRecoveryArtifactNamespace,assertRecoveryArtifactNamespace } from "./service";
 import { writeSystemRecoveryUpload, runBoundedSystemRecoveryReadAction } from "./jobs";
 import type { RecoveryJob } from "./repository";
 import { readSourceMaintenance, verifySourceCheckpoint } from "./maintenance";
 import { captureVersionedSystemBackupSnapshot, sourceVersionedBackupCheckpoint } from "./portable-backup-snapshot";
-import type { VersionedRecoveryRecords, VersionedRecoveryManifest } from "./versioned-catalog";
-import { createRecoveryTargetEngine, recoveryTargetRestoreBudget } from "./target-import";
-import { stableJson } from "../../shared/domain/content-addressing";
+import type { WorkerRecoveryRecords as VersionedRecoveryRecords, WorkerRecoveryManifest as VersionedRecoveryManifest } from "./versioned-catalog";
+import { createRecoveryTargetEngine, createWorkerV5RecoveryTargetEngine, recoveryTargetRestoreBudget } from "./target-import";
+import { stableJson, sha256Hex } from "../../shared/domain/content-addressing";
 import type { SystemRecoveryReport } from "./report";
 
 type ApiEnv={Bindings:Env;Variables:{userEmail:string}};
@@ -31,6 +33,70 @@ async function input<T>(request:Request,check:(value:unknown)=>T){try{return che
 async function owned(env:Env,id:string,actor:string){const job=await recoveryRepository(env).job(id);if(!job||job.actor!==actor)throw fail("Recovery job does not exist",404);return job;}
 async function receipt(env:Env,requestId:string,accepted:{job:RecoveryJob;reused:boolean}):Promise<SystemRecoveryReceipt>{return{requestId,job:checkedSystemRecoveryJobStatus(await systemRecoveryJobStatus(env,accepted.job)),reused:accepted.reused};}
 async function requireSchema(env:Env){if(!await recoveryRepository(env).installed())throw fail("System recovery schema is unavailable",503);}
+// Fixed diagnostic fields only: the original exception is rethrown unchanged.
+// Request/SQL/identity values and arbitrary error text never reach this log.
+type CleanupDiagnosticStage="source-close-admission"|"artifact-namespace"|"dependent-admission"|"attempt-admission"
+  |"eligibility"|"attempt-before-delete"|"attempt-delete"|"attempt-settlement"|"hold-release"|"status";
+const cleanupInvariantCodes=new Map([
+  ["worker_v5_source_close_cleanup_installation_or_original_snapshot","ORIGINAL_SNAPSHOT"],
+  ["worker_v5_source_close_missing_original_source_close","MISSING_ORIGINAL_CLOSE"],
+  ["worker_v5_source_close_closed_record_budget","CLOSE_RECORD_BUDGET"],
+  ["worker_v5_source_close_closed_record","CLOSE_RECORD_SHAPE"],
+  ["worker_v5_source_close_closed_record_chunk","CLOSE_RECORD_CHUNK"],
+  ["worker_v5_source_close_unproven_original_source_close","UNPROVEN_ORIGINAL_CLOSE"],
+  ["worker_v5_source_close_original_snapshot_resource","SNAPSHOT_RESOURCE"],
+  ["worker_v5_source_close_original_snapshot_close","SNAPSHOT_CLOSE"],
+  ["worker_v5_source_close_original_snapshot_holds","SNAPSHOT_HOLDS"],
+  ["worker_v5_source_close_original_hold_cell","HOLD_CELL"],
+  ["worker_v5_source_close_original_unreleased_hold","UNRELEASED_HOLD"],
+  ["worker_v5_source_close_original_hold_identity","HOLD_IDENTITY"],
+  ["worker_v5_source_close_original_hold_budget_or_binding","HOLD_BUDGET_OR_BINDING"],
+  ["worker_v5_source_close_original_cleanup_admission","CLEANUP_ADMISSION"],
+  ["worker_v5_source_close_original_closed_ordinal","CLOSED_ORDINAL"],
+  ["worker_v5_source_close_original_cleanup_guard_budget","CLEANUP_GUARD_BUDGET"],
+  ["artifact_namespace_unavailable","ARTIFACT_NAMESPACE_UNAVAILABLE"],
+  ["artifact_namespace_changed","ARTIFACT_NAMESPACE_CHANGED"],
+]);
+const cleanupNativeCodes=["SQLITE_ERROR","SQLITE_AUTH","SQLITE_NOMEM","SQLITE_CONSTRAINT","SQLITE_BUSY","SQLITE_LOCKED",
+  "SQLITE_CORRUPT","SQLITE_NOTADB","SQLITE_IOERR","SQLITE_READONLY","SQLITE_FULL","D1_ERROR","D1_TYPE_ERROR",
+  "D1_EXEC_ERROR","D1_COLUMN_NOTFOUND","D1_SESSION_ERROR"] as const;
+// Static native cause labels only. A matching guard label identifies the
+// reported guard; it does not independently prove its predicate was false.
+function cleanupNativeCause(message:string){
+  const lower=message.toLowerCase();
+  if(lower.includes("malformed json"))return "JSON_GUARD_DENIED";
+  if(lower.includes("syntax error"))return "SQL_SYNTAX";
+  if(lower.includes("no such table")||lower.includes("no such column"))return "NATIVE_SCHEMA";
+  if(lower.includes("too many sql variables"))return "NATIVE_BINDING_BUDGET";
+  if(message.includes("Original V5 durable source close or exact hold inventory changed"))return "DURABLE_GUARD_ERROR";
+  if(message.includes("Original V5 exact source close record inventory changed"))return "EXACT_GUARD_ERROR";
+  return undefined;
+}
+// Inspect only the ORIGINAL native error's cause/error structure. At most
+// seven nodes, depth2 and8192 characters per node; output remains fixed codes.
+function cleanupNestedNativeCause(original:unknown,originalMessage:string){
+  const pending=[{value:original,depth:0}],seen=new Set<object>();
+  for(let index=0;index<pending.length&&index<7;index++){
+    const {value,depth}=pending[index]!;
+    if(typeof value==="string"){const code=cleanupNativeCause(value.slice(0,8192));if(code)return code;continue;}
+    if(!value||typeof value!=="object"||seen.has(value))continue;seen.add(value);
+    const message=depth===0?originalMessage:Reflect.get(value,"message");
+    if(typeof message==="string"){const code=cleanupNativeCause(message.slice(0,8192));if(code)return code;}
+    if(depth<2){pending.push({value:Reflect.get(value,"cause"),depth:depth+1},{value:Reflect.get(value,"error"),depth:depth+1});}
+  }
+  return undefined;
+}
+async function diagnoseCleanup<T>(stage:CleanupDiagnosticStage,original:()=>Promise<T>):Promise<T>{
+  try{return await original();}catch(error){
+    try{
+      const message=error instanceof Error?error.message:"";
+      const code=cleanupInvariantCodes.get(message)??cleanupNativeCause(message)??cleanupNestedNativeCause(error,message)??cleanupNativeCodes.find(value=>new RegExp("\\b"+value+"\\b").test(message))
+        ??(error instanceof HTTPException?"PUBLIC_HTTP_EXCEPTION":"CODE_UNAVAILABLE");
+      console.error("System recovery cleanup failed",{stage,code});
+    }catch{/* Diagnostic observation must never replace the original error. */}
+    throw error;
+  }
+}
 const cleanupHoldReleaseAllowed=`NOT EXISTS(SELECT 1 FROM system_recovery_maintenance WHERE singleton=1 AND state='fenced' AND checkpoint_sha256 IS NOT NULL AND backup_job_id IS NOT ?)`;
 function cleanupHoldReleaseGuard(repository:ReturnType<typeof recoveryRepository>,jobId:string){return repository.db().prepare(`SELECT CASE WHEN ${cleanupHoldReleaseAllowed} THEN 1 ELSE json('Source final checkpoint protects other backup holds') END`).bind(jobId);}
 
@@ -44,8 +110,13 @@ systemRecoveryRoutes.get("/system-recovery/jobs",async c=>{await requireSchema(c
 systemRecoveryRoutes.post("/system-recovery/jobs",async c=>{const acceptedInput=await input(c.req.raw,checkedSystemRecoveryBackupInput),actor=c.get("userEmail"),repository=recoveryRepository(c.env);await requireSchema(c.env);
   const prior=await repository.request(acceptedInput.requestId,actor,acceptedInput);if(prior)return c.json(await receipt(c.env,acceptedInput.requestId,{job:prior,reused:true}),202);
   if(acceptedInput.mode==="planned"){const status=await readSourceMaintenance(c.env);if(status.state!=="fenced"||status.activeWriters)throw fail("A planned final backup requires drained source maintenance",409);}
-  const checkpoint=await freezeRecoveryArtifactNamespace(c.env);
-  const accepted=await repository.accept({id:crypto.randomUUID(),requestId:acceptedInput.requestId,actor,kind:"backup",input:acceptedInput,checkpoint},()=>recoveryActorAllowed(c.env,actor));
+  const checkpoint=await freezeRecoveryArtifactNamespace(c.env),id=crypto.randomUUID();
+  let plannedBackup;
+  if(acceptedInput.mode==="planned"&&await repository.db().prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='collaboration_control'").first()
+    &&await repository.db().prepare("SELECT 1 FROM collaboration_control WHERE singleton=1 AND schema_version=2").first())
+    plannedBackup=await captureWorkerV5PlannedBackupWindow(c.env,actor,id);
+  const accepted=await repository.accept({id,requestId:acceptedInput.requestId,actor,kind:"backup",input:acceptedInput,checkpoint:plannedBackup?{...checkpoint,plannedSourceWindow:plannedBackup}:checkpoint},()=>recoveryActorAllowed(c.env,actor),
+    plannedBackup?workerV5PlannedBackupAcceptanceStatements(c.env,plannedBackup):[]);
   return c.json(await receipt(c.env,acceptedInput.requestId,accepted),202);});
 systemRecoveryRoutes.post("/system-recovery/uploads",async c=>{const acceptedInput=await input(c.req.raw,checkedSystemRecoveryUploadInput),actor=c.get("userEmail");await requireSchema(c.env);
   const repository=recoveryRepository(c.env),prior=await repository.request(acceptedInput.requestId,actor,acceptedInput);if(prior)return c.json(await receipt(c.env,acceptedInput.requestId,{job:prior,reused:true}),202);
@@ -62,7 +133,7 @@ systemRecoveryRoutes.put("/system-recovery/jobs/:jobId/upload",async c=>{const a
   const acceptedInput=checkedSystemRecoveryUploadInput(JSON.parse(job.input_json)),length=c.req.header("content-length");if(length!==undefined&&(!/^[1-9][0-9]*$/.test(length)||Number(length)!==acceptedInput.byteSize))throw fail("Upload size differs from accepted identity",400);
   if(!c.req.raw.body)throw fail("Recovery upload body is required",400);const capabilities=await workerSystemRecoveryCapabilities(c.env);if(!capabilities)throw fail("Recovery executor is disabled or unavailable",503);
   const claim=await capabilities.repository.claim(job.id,actor,capabilities.incarnation,crypto.randomUUID(),true);if(!claim)throw fail("Another attempt owns this recovery upload",409);
-  await writeSystemRecoveryUpload(capabilities,claim,c.req.raw.body);return c.json(checkedSystemRecoveryJobStatus(await systemRecoveryJobStatus(c.env,(await capabilities.repository.job(job.id))!)));});
+  try{await writeSystemRecoveryUpload(capabilities,claim,c.req.raw.body);}finally{await closeWorkerV5RecoveryExecutions(capabilities);}return c.json(checkedSystemRecoveryJobStatus(await systemRecoveryJobStatus(c.env,(await capabilities.repository.job(job.id))!)));});
 systemRecoveryRoutes.get("/system-recovery/jobs/:jobId/preview",async c=>{const job=await owned(c.env,c.req.param("jobId"),c.get("userEmail"));
   if(!(job.kind==="upload"&&job.state==="preview"||job.kind==="backup"&&job.state==="completed"||job.kind==="recovery"))throw fail("Recovery archive validation has not completed",409);
   return c.json(checkedSystemRecoveryPreview(await systemRecoveryPreview(c.env,job)));});
@@ -75,29 +146,71 @@ systemRecoveryRoutes.post("/system-recovery/recoveries",async c=>{const accepted
   if(!recoveryTargetRestoreBudget(records).available)throw fail("Recovery image exceeds the website atomic restore budget; use an independently reviewed offline recovery path",409);
   if(acceptedInput.mode==="planned"){const source=await repository.job(records.backupId),maintenance=await readSourceMaintenance(c.env);
     if(source?.kind!=="backup"||source.state!=="completed"||source.source_checkpoint!==manifest.sourceCheckpoint||maintenance.state!=="fenced"||maintenance.backupJobId!==records.backupId||maintenance.checkpoint!==manifest.sourceCheckpoint)throw fail("Planned recovery requires the current final source checkpoint",409);}
-  const id=crypto.randomUUID(),preview=await createRecoveryTargetEngine(c.env).preview({jobId:id,incarnation:id.replaceAll("-",""),expectedTargetId:acceptedInput.expectedTargetId,records,manifest,mapping:acceptedInput.mapping,mode:acceptedInput.mode});
+  const id=crypto.randomUUID(),selection={jobId:id,incarnation:id.replaceAll("-",""),expectedTargetId:acceptedInput.expectedTargetId,mapping:acceptedInput.mapping,mode:acceptedInput.mode};
+  let preview,plannedWindow:WorkerV5PlannedSourceWindow|undefined;
+  if(records.schema==="system-backup-records/5"){
+    if(manifest.schema!=="system-backup/5")throw fail("Recovery archive version pair is invalid",409);
+    if(acceptedInput.mode==="planned")plannedWindow=await captureWorkerV5PlannedSourceWindow(c.env,actor,upload,records,manifest);
+    preview=await createWorkerV5RecoveryTargetEngine(c.env).preview({...selection,records,manifest},plannedWindow);
+  }else{
+    if(manifest.schema==="system-backup/5")throw fail("Recovery archive version pair is invalid",409);
+    preview=await createRecoveryTargetEngine(c.env).preview({...selection,records,manifest});
+  }
   if(!preview.available)throw fail("Recovery target or storage mapping is unavailable",409);
   const accepted=await repository.accept({id,requestId:acceptedInput.requestId,actor,kind:"recovery",input:acceptedInput,sourceUploadJobId:upload.id,targetId:acceptedInput.expectedTargetId,
-    sourceCheckpoint:manifest.sourceCheckpoint,totalFiles:manifest.files.length,bytesTotal:manifest.counts.bytes},()=>recoveryActorAllowed(c.env,actor));return c.json(await receipt(c.env,acceptedInput.requestId,accepted),202);});
+    sourceCheckpoint:manifest.sourceCheckpoint,totalFiles:manifest.files.length,bytesTotal:manifest.counts.bytes,
+    ...(plannedWindow?{checkpoint:plannedWindow}:{})},()=>recoveryActorAllowed(c.env,actor),
+    plannedWindow?workerV5PlannedSourceAcceptanceStatements(c.env,id,plannedWindow):[]);return c.json(await receipt(c.env,acceptedInput.requestId,accepted),202);});
 systemRecoveryRoutes.post("/system-recovery/jobs/:jobId/control",async c=>{const action=await input(c.req.raw,checkedSystemRecoveryJobControl),actor=c.get("userEmail"),repository=recoveryRepository(c.env),job=await owned(c.env,c.req.param("jobId"),actor);
   if(action==="cleanup"){
-    if(job.kind!=="recovery")await assertRecoveryArtifactNamespace(c.env,job);
-    if(["queued","running","awaiting_upload"].includes(job.state))throw fail("Stop the recovery job before cleanup",409);
-    if(await repository.db().prepare("SELECT 1 FROM system_recovery_jobs WHERE source_upload_job_id=? AND state IN('queued','running','paused')").bind(job.id).first())throw fail("An accepted recovery still holds this archive",409);
-    const attempts=await repository.attempts(job.id);if(attempts.some(row=>["started","unknown","settled"].includes(row.state)))throw fail("Unknown recovery writes must remain held",409);
-    const cleaned=await repository.db().prepare(`UPDATE system_recovery_jobs SET state=?,generation=generation+1,expires_at=?,updated_at=?
-      WHERE id=? AND actor=? AND generation=? AND state NOT IN('queued','running','awaiting_upload')
-      AND NOT EXISTS(SELECT 1 FROM system_recovery_jobs dependent WHERE dependent.source_upload_job_id=system_recovery_jobs.id AND dependent.state IN('queued','running','paused'))
-      AND NOT EXISTS(SELECT 1 FROM system_recovery_attempts attempt WHERE attempt.job_id=system_recovery_jobs.id AND attempt.state IN('started','unknown','settled'))
-      AND ${cleanupHoldReleaseAllowed} RETURNING id`)
-      .bind(job.state==="completed"?"completed":"cancelled",new Date().toISOString(),new Date().toISOString(),job.id,actor,job.generation,job.id).first();
-    if(!cleaned)throw fail("Recovery cleanup eligibility changed",409);
-    for(const attempt of attempts.filter(row=>["verified","failed"].includes(row.state))){if(!recoveryActorAllowed(c.env,actor))throw fail("System administrator access is required.",403);
-      await assertRecoveryArtifactNamespace(c.env,job);await cleanupHoldReleaseGuard(repository,job.id).first();if(!recoveryActorAllowed(c.env,actor))throw fail("System administrator access is required.",403);
-      await c.env.ASSETS.delete(attempt.object_key);await repository.db().prepare("UPDATE system_recovery_attempts SET state='cleaned',cleaned_at=? WHERE id=? AND state IN('verified','failed')").bind(new Date().toISOString(),attempt.id).run();}
-    if(!recoveryActorAllowed(c.env,actor))throw fail("System administrator access is required.",403);
-    await repository.db().batch([cleanupHoldReleaseGuard(repository,job.id),repository.db().prepare("UPDATE system_recovery_legacy_holds SET released_at=? WHERE job_id=? AND released_at IS NULL").bind(new Date().toISOString(),job.id),
-      repository.db().prepare("UPDATE file_location_holds SET released_at=? WHERE operation_id=? AND released_at IS NULL").bind(new Date().toISOString(),`fp5-backup:${job.id}`)]);
+    const {originalSourceClose,originalPlannedCleanup}=await diagnoseCleanup("source-close-admission",async()=>({
+      originalSourceClose:await assertV5RecoveryCleanupClosed(c.env,job),
+      originalPlannedCleanup:await workerV5PlannedRecoveryCleanupGuards(c.env,job),
+    }));
+    if(job.kind!=="recovery")await diagnoseCleanup("artifact-namespace",()=>assertRecoveryArtifactNamespace(c.env,job));
+    await diagnoseCleanup("dependent-admission",async()=>{
+      if(["queued","running","awaiting_upload"].includes(job.state))throw fail("Stop the recovery job before cleanup",409);
+      if(await repository.db().prepare("SELECT 1 FROM system_recovery_jobs WHERE source_upload_job_id=? AND state IN('queued','running','paused')").bind(job.id).first())throw fail("An accepted recovery still holds this archive",409);
+    });
+    const attempts=await diagnoseCleanup("attempt-admission",async()=>{
+      const attempts=await repository.attempts(job.id);if(attempts.some(row=>["started","unknown","settled"].includes(row.state)))throw fail("Unknown recovery writes must remain held",409);
+      return attempts;
+    });
+    await diagnoseCleanup("eligibility",async()=>{
+      const eligibility=repository.db().prepare(`UPDATE system_recovery_jobs SET state=?,generation=generation+1,expires_at=?,updated_at=?
+        WHERE id=? AND actor=? AND generation=? AND state NOT IN('queued','running','awaiting_upload')
+        AND NOT EXISTS(SELECT 1 FROM system_recovery_jobs dependent WHERE dependent.source_upload_job_id=system_recovery_jobs.id AND dependent.state IN('queued','running','paused'))
+        AND NOT EXISTS(SELECT 1 FROM system_recovery_attempts attempt WHERE attempt.job_id=system_recovery_jobs.id AND attempt.state IN('started','unknown','settled'))
+        AND ${cleanupHoldReleaseAllowed} RETURNING id`)
+        .bind(job.state==="completed"?"completed":"cancelled",new Date().toISOString(),new Date().toISOString(),job.id,actor,job.generation,job.id);
+      let cleaned:unknown;
+      if(originalSourceClose||originalPlannedCleanup.length){
+        if(!recoveryActorAllowed(c.env,actor))throw fail("System administrator access is required.",403);
+        const guards=[...(originalSourceClose?workerV5SourceCloseCleanupGuards(c.env,job,originalSourceClose):[]),...originalPlannedCleanup];
+        const result=await repository.db().batch([...guards,eligibility]);
+        cleaned=result[guards.length]?.results?.[0];
+      }else cleaned=await eligibility.first();
+      if(!cleaned)throw fail("Recovery cleanup eligibility changed",409);
+    });
+    for(const attempt of attempts.filter(row=>["verified","failed"].includes(row.state))){
+      await diagnoseCleanup("attempt-before-delete",async()=>{
+        if(!recoveryActorAllowed(c.env,actor))throw fail("System administrator access is required.",403);
+        await assertRecoveryArtifactNamespace(c.env,job);await cleanupHoldReleaseGuard(repository,job.id).first();
+        if(originalSourceClose||originalPlannedCleanup.length)await repository.db().batch([...(originalSourceClose?workerV5SourceCloseCleanupGuards(c.env,job,originalSourceClose):[]),...originalPlannedCleanup]);
+      });
+      await diagnoseCleanup("attempt-delete",()=>{
+        if(!recoveryActorAllowed(c.env,actor))throw fail("System administrator access is required.",403);
+        return c.env.ASSETS.delete(attempt.object_key);
+      });
+      await diagnoseCleanup("attempt-settlement",()=>repository.db().prepare("UPDATE system_recovery_attempts SET state='cleaned',cleaned_at=? WHERE id=? AND state IN('verified','failed')").bind(new Date().toISOString(),attempt.id).run());
+    }
+    await diagnoseCleanup("hold-release",async()=>{
+      if(!recoveryActorAllowed(c.env,actor))throw fail("System administrator access is required.",403);
+      await repository.db().batch([...(originalSourceClose?workerV5SourceCloseCleanupGuards(c.env,job,originalSourceClose):[]),...originalPlannedCleanup,
+        cleanupHoldReleaseGuard(repository,job.id),repository.db().prepare("UPDATE system_recovery_legacy_holds SET released_at=? WHERE job_id=? AND released_at IS NULL").bind(new Date().toISOString(),job.id),
+        repository.db().prepare("UPDATE file_location_holds SET released_at=? WHERE operation_id=? AND released_at IS NULL").bind(new Date().toISOString(),`fp5-backup:${job.id}`)]);
+    });
+    return diagnoseCleanup("status",async()=>c.json(checkedSystemRecoveryJobStatus(await systemRecoveryJobStatus(c.env,(await repository.job(job.id))!))));
   }else await repository.control(job,action);
   return c.json(checkedSystemRecoveryJobStatus(await systemRecoveryJobStatus(c.env,(await repository.job(job.id))!)));});
 systemRecoveryRoutes.get("/system-recovery/jobs/:jobId/download",async c=>{const job=await owned(c.env,c.req.param("jobId"),c.get("userEmail")),status=await systemRecoveryJobStatus(c.env,job);
@@ -123,6 +236,8 @@ systemRecoveryRoutes.post("/system-recovery/jobs/:jobId/cutover",async c=>{const
   const prior=await repository.request(acceptedInput.requestId,actor,acceptedInput);if(prior)return c.json(await receipt(c.env,acceptedInput.requestId,{job:prior,reused:true}));
   if(job.kind!=="recovery"||job.state!=="completed"||job.phase!=="ready"||!job.target_incarnation||job.target_id!==acceptedInput.expectedTargetId||JSON.parse(job.result_json??"null")?.checkpoint!==acceptedInput.expectedCheckpoint)throw fail("Recovery target is not ready at this checkpoint",409);
   const frozenInput=checkedSystemRecoveryImportInput(JSON.parse(job.input_json)),records=await repository.metadata(job.source_upload_job_id!,"records") as VersionedRecoveryRecords,manifest=await repository.metadata(job.source_upload_job_id!,"manifest") as VersionedRecoveryManifest;
+  if(records.schema==="system-backup-records/5")throw fail("The verified inert V5 report requires its separately reviewed operator handoff.",409);
+  if(manifest.schema==="system-backup/5")throw fail("Recovery archive version pair is invalid",409);
   const maintenance=await readSourceMaintenance(c.env);if(maintenance.state!=="fenced"||maintenance.activeWriters)throw fail("Prepared handoff requires drained source maintenance",409);
   if(frozenInput.mode==="historical"&&!frozenInput.acknowledgeLaterChanges)throw fail("Historical recovery requires explicit later-change acknowledgement",409);
   const accepted=await runBoundedSystemRecoveryReadAction(async()=>{if(!recoveryActorAllowed(c.env,actor))return false;const status=await readSourceMaintenance(c.env),live=await repository.job(job.id);
@@ -139,3 +254,37 @@ systemRecoveryRoutes.post("/system-recovery/jobs/:jobId/cutover",async c=>{const
     if(report.targetCheckpoint!==acceptedInput.expectedCheckpoint||!await current())throw fail("Recovery verification checkpoint changed",409);
     return repository.recordCutover(job,acceptedInput,{generation:maintenance.generation,token:maintenance.token,deadlineAt},()=>!signal.aborted&&Date.now()<Date.parse(deadlineAt)&&recoveryActorAllowed(c.env,actor));
   });return c.json(await receipt(c.env,acceptedInput.requestId,accepted));});
+
+
+/** Public V5 retains the source archive through every accepted target owner,
+ * including a cancelled/paused unknown PUT or publication ACK. No positive
+ * original target proof is inferred from an absent/reconfigured binding. */
+async function assertV5RecoveryCleanupClosed(env:Env,job:RecoveryJob){
+  const repository=recoveryRepository(env),sourceId=job.kind==="recovery"?job.source_upload_job_id:job.id;
+  if(!sourceId)return;
+  const records=await repository.metadata(sourceId,"records") as VersionedRecoveryRecords|null;
+  if(job.kind==="backup"&&!records){
+    const v28=await repository.db().prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='collaboration_control'").first()
+      &&await repository.db().prepare("SELECT 1 FROM collaboration_control WHERE singleton=1 AND schema_version=2").first();
+    if(v28)throw fail("V5 backup cleanup requires durable original source body closure proof.",409);
+  }
+  if(records?.schema!=="system-backup-records/5")return;
+  // A paused job/empty artifact ledger never proves source close. Only the
+  // exact durable original invocation+all-close records can admit this token;
+  // it is rechecked in the same source eligibility/hold-release transaction.
+  if(job.kind==="backup")return admitWorkerV5SourceCloseCleanup(env,job,records);
+  const dependents=job.kind==="recovery"?[job]:(await repository.db().prepare("SELECT * FROM system_recovery_jobs WHERE source_upload_job_id=?").bind(sourceId).all<RecoveryJob>()).results;
+  for(const dependent of dependents){
+    if(dependent.kind!=="recovery")continue;
+    if(!env.RECOVERY_DB||env.RECOVERY_DB===env.DB||dependent.target_id!==env.RECOVERY_TARGET_ID||!dependent.target_incarnation)
+      throw fail("The original V5 target owner still holds this archive.",409);
+    const present=await env.RECOVERY_DB.prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='system_recovery_target_claim'").first();
+    if(!present)throw fail("The original V5 target owner still holds this archive.",409);
+    const original=await env.RECOVERY_DB.prepare("SELECT status,image_sha256 FROM system_recovery_target_claim WHERE singleton=1 AND target_id=? AND job_id=? AND incarnation=?")
+      .bind(dependent.target_id,dependent.id,dependent.target_incarnation).first<{status:string;image_sha256:string}>();
+    const unsettled=await env.RECOVERY_DB.prepare("SELECT 1 FROM system_recovery_target_files WHERE job_id=? AND state<>'published' LIMIT 1").bind(dependent.id).first();
+    if(dependent.state!=="completed"||dependent.phase!=="ready"||original?.status!=="ready"
+      ||original.image_sha256!==await sha256Hex(stableJson(records.image))||unsettled)
+      throw fail("The original V5 target owner still holds this archive.",409);
+  }
+}

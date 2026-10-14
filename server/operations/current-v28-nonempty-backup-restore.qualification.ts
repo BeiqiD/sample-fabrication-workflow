@@ -210,7 +210,7 @@ describe('current genuine one-File V28 V5 backup into an inert destination', () 
       })); // Read-only inspection owner closes; no destination File/profile opening or enabling occurs.
       await writeFile(output, JSON.stringify({ kind: 'current-genuine-one-File-v28-v5-inert-restore/1', sourceInstallationId: baseline.installationId,
         destinationInstallationId: receipt.destinationInstallationId, sourceFileId: accepted.fileId, sourceAssetId: accepted.id,
-        sourceFileCount: 1, payloadBytes: bytes.byteLength, payloadSha256: digest, archiveSha256: captured.archiveSha256,
+        sourceFileCount: 1, payloadBytes: bytes.byteLength, payloadSha256: digest, archive, archiveSha256: captured.archiveSha256,
         recoveryReportSha256: createHash('sha256').update(reportBytes).digest('hex'), executionEnabled: false, nativeBindingsRestored: false,
         maintenanceState: 'fenced', destinationProfileBound: false, originalReadPathsRetained: true }) + '\n', { flag: 'wx', mode: 0o600 });
     }), 20_000);
