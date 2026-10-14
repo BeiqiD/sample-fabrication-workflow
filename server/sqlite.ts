@@ -1,3 +1,6 @@
+import { ownedLocalPackageV28JobSqlScope, type LocalPackageV28JobSqlScope,
+  type LocalUploadExecution } from "./files/local-upload-execution";
+import type { LocalVolumeProfileOpening } from "./storage/local-volume-profile-opening";
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
 import type { JobSqlDatabase, JobSqlStatement } from "../worker/files/jobs/sql-repository";
 import type { ReadinessDatabase } from "../worker/runtime/sql";
@@ -288,6 +291,18 @@ export function asAdmittedJobSqlDatabase(core: SqliteCapability,
   admission: () => SqliteBatchAdmission, owner: OfflineWriterFence): JobSqlDatabase {
   return jobSqlDatabase(core, admission, owner);
 }
+const packagePreparationOwners = new WeakMap<JobSqlDatabase,
+  ReturnType<typeof ownedLocalPackageV28JobSqlScope>["preparation"]>();
+/** New issuance only from the original private consumed V28 Package frame.
+ * No caller core/admission/assertion callback or generic-view attachment is
+ * accepted. Every actual execution and primary keeps its original full fence. */
+export function asLocalPackageV28JobSqlDatabase(scope: LocalPackageV28JobSqlScope,
+  execution: LocalUploadExecution, opening: LocalVolumeProfileOpening): JobSqlDatabase {
+  const original = ownedLocalPackageV28JobSqlScope(scope, execution, opening);
+  original.fullFence.assertHeld();
+  const view = jobSqlDatabase(original.database, original.admission, original.fullFence);
+  packagePreparationOwners.set(view, original.preparation); return Object.freeze(view);
+}
 function jobSqlDatabase(core: SqliteCapability, admission?: () => SqliteBatchAdmission,
   owner?: OfflineWriterFence): JobSqlDatabase {
   const held = owner?.assertHeld.bind(owner);
@@ -297,6 +312,16 @@ function jobSqlDatabase(core: SqliteCapability, admission?: () => SqliteBatchAdm
       if (answer instanceof Promise) void answer.catch(() => undefined);
       throw new TypeError("Job SQL owner assertion must be synchronous");
     }
+  };
+  const assertPreparing = () => {
+    const preparation = packagePreparationOwners.get(view);
+    if (!preparation) return assertHeld();
+    const answer: unknown = preparation.assertHeld();
+    if (answer !== undefined) {
+      if (answer instanceof Promise) void answer.catch(() => undefined);
+      throw new TypeError("Package SQL preparation assertion must be synchronous");
+    }
+    core.primary();
   };
   const execute = async (items: readonly SqliteStatement[]) => {
     assertHeld();
@@ -308,7 +333,10 @@ function jobSqlDatabase(core: SqliteCapability, admission?: () => SqliteBatchAdm
     [key, typeof cell === "bigint" ? checkedSafeInteger(cell, `Column ${key}`) : cell]));
   const wrap = (native: SqliteStatement): JobSqlStatement => {
     const wrapped: JobSqlStatement = {
-      bind(...values) { return wrap(native.bind(...values)); },
+      bind(...values) {
+        if (packagePreparationOwners.has(view)) assertPreparing();
+        return wrap(native.bind(...values));
+      },
       async first<T>() { const value = admission ? (await execute([native]))[0]!.results[0] ?? null : await native.first(); return value === null ? null : safeRow(value) as T; },
       async all<T>() { return { results: (admission ? (await execute([native]))[0]! : await native.all()).results.map(safeRow) as T[] }; },
       run() { return admission ? execute([native]).then(results => results[0]!) : native.run(); },
@@ -317,7 +345,10 @@ function jobSqlDatabase(core: SqliteCapability, admission?: () => SqliteBatchAdm
   };
   const view: JobSqlDatabase = {
     prepare(sql) {
-      assertHeld();
+      // The fixed privileged directive still takes the original full guard
+      // and admission path. All other prepares only create core SQL records.
+      if (packagePreparationOwners.has(view) && sql !== "PRAGMA defer_foreign_keys=ON") assertPreparing();
+      else assertHeld();
       if (admission && sql === "PRAGMA defer_foreign_keys=ON") {
         const receipt = batchAdmissions.get(admission()), original = admittedBatchOwners.get(core);
         if (!receipt || receipt.owner !== core || !receipt.checks.length || !original)

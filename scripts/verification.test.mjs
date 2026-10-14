@@ -83,9 +83,12 @@ test("required verification includes both FP3 native fixtures and a platform-ind
     assert.equal(plan.leaves.filter(leaf => leaf.id === id).length, 1);
     assert(plan.contexts["pre-pr/tests"].includes(id));
   }
-  for (const file of ["server/http.test.mts", "server/static-assets.test.mts"]) {
-    assert.equal(scripts["test:node-http"].split(/\s+/).filter(token => token === file).length, 1, file);
-  }
+  assert.equal(scripts["test:node-http"], "node scripts/run-node-http-tests.mjs");
+  const httpRunner = await readFile(new URL("./run-node-http-tests.mjs", import.meta.url), "utf8");
+  const httpEntries = httpRunner.match(/const entries = (\[[^\n]+\]);/);
+  assert(httpEntries, "Node HTTP runner must retain its explicit fixed entrypoints");
+  assert.deepEqual(JSON.parse(httpEntries[1]).map(name => `server/${name}.mts`),
+    ["server/http.test.mts", "server/http-lifetime.test.mts", "server/static-assets.test.mts"]);
   const serverConfiguration = JSON.parse(await readFile(new URL("../tsconfig.server.json", import.meta.url), "utf8"));
   assert.deepEqual(serverConfiguration.compilerOptions.types, ["node"]);
   assert.deepEqual(serverConfiguration.compilerOptions.lib, ["ES2022"]);

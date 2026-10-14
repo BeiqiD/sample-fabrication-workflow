@@ -1,13 +1,16 @@
+import { consumeLocalPackageExecutionPermissionV28Candidate, ownedLocalPackagePermissionV28Candidate,
+  type LocalPackagePermissionV28Candidate } from "../packages/local-permission-v28-candidate";
 import { consumeLocalFabubloxExecutionPermissionV28Candidate, ownedLocalFabubloxPermissionV28Candidate,
   type LocalFabubloxPermissionV28Candidate } from "../imports/local-fabublox-permission-v28-candidate";
 import type { PreparedFabubloxPayload } from "../../worker/imports/fabublox-payload";
 import { localAuthenticationIdentityAuthority } from "../auth/local-auth-http";
 import { captureInstalledIdentityExecutionOwner } from "../auth/installed-identity-execution-owner";
-import { captureInstalledIdentityExecutionOwnerV28Candidate } from "../auth/installed-identity-execution-owner-v28-candidate";
+import { ownedLocalVolumeIdentityV28Candidate, assertLocalVolumeIdentityPreparationV28Candidate } from "../storage/local-volume-profile-opening";
 import { consumeLocalCommentExecutionPermissionV28Candidate, ownedLocalCommentPermissionV28Candidate,
   type LocalCommentPermissionV28Candidate } from "./local-comment-permission-v28-candidate";
 import type { LocalVolumeProfileOpeningV28Candidate } from "../storage/local-volume-profile-opening-v28-candidate";
-import { runSqliteAdmittedBatch, asAdmittedJobSqlDatabase, joinSqliteBatchAdmissions } from "../sqlite";
+import { runSqliteAdmittedBatch, asAdmittedJobSqlDatabase, asLocalPackageV28JobSqlDatabase, joinSqliteBatchAdmissions,
+  type SqliteBatchAdmission, type SqliteCapability } from "../sqlite";
 import { PACKAGE_HTTP_ROUTES } from "../../worker/packages/routes-core";
 import type { JobSqlDatabase } from "../../worker/files/jobs/sql-repository";
 import { HTTPException } from "hono/http-exception";
@@ -51,7 +54,25 @@ export interface LocalUploadExecution {
   openRead(input: Readonly<{ fileId: string | null; purpose: FilePurpose }>): Promise<OwnedPublishedFileRead>;
 }
 const executions = new WeakMap<LocalUploadExecution, Readonly<{ opening: LocalVolumeProfileOpening; request: Request; actor: string;
-  packageRequest: boolean; assertHeld(): void; assertPhysicalHeld(): void }>>();
+  packageRequest: boolean; v28Package?: true; assertHeld(): void; assertPhysicalHeld(): void }>>();
+declare const localPackageV28JobSqlScopeBrand: unique symbol;
+export interface LocalPackageV28JobSqlScope { readonly [localPackageV28JobSqlScopeBrand]: true }
+const packageSqlScopes = new WeakMap<LocalPackageV28JobSqlScope, Readonly<{
+  execution: LocalUploadExecution; opening: LocalVolumeProfileOpening; request: Request; actor: string;
+  database: SqliteCapability; admission: () => SqliteBatchAdmission;
+  fullFence: Readonly<{ assertHeld(): void }>; preparation: Readonly<{ assertHeld(): void }>;
+}>>();
+/** Only the actual consumed V28 Package frame can mint this scope. A clone,
+ * generic view or another Request/opening cannot attach or rebind eligibility.
+ * The actual current execution still owns every SQL issue and first close. */
+export function ownedLocalPackageV28JobSqlScope(scope: LocalPackageV28JobSqlScope,
+  execution: LocalUploadExecution, opening: LocalVolumeProfileOpening) {
+  const original = packageSqlScopes.get(scope), issued = executions.get(execution);
+  if (!original || !issued?.v28Package || original.execution !== execution || original.opening !== opening
+    || issued.opening !== opening || issued.request !== original.request || issued.actor !== original.actor)
+    throw new Error("Original V28 Package preparation scope is unavailable");
+  original.preparation.assertHeld(); return original;
+}
 /** Additional internal composer check: a copied callback bag cannot stand in
  * for an original currently held authenticated execution. No new grant issues. */
 export function assertLocalUploadExecutionOwner(execution: LocalUploadExecution, opening: LocalVolumeProfileOpening): void {
@@ -114,6 +135,18 @@ export function createLocalPackageRequestExecution(options: {
   auth.currentSessionPredicate(options.request, options.actor);
   return createOwnedLocalUploadExecution(options, undefined, true);
 }
+/** Original source/provider/settlement lifetime with a consumed genuine V28
+ * Package-purpose receipt. V26/default constructors remain separate. */
+export function createLocalPackageRequestExecutionV28Candidate(options: {
+  opening: LocalVolumeProfileOpeningV28Candidate; request: Request; actor: string;
+  admission: ReviewedInstallationAdmission; authentication: object; permission: LocalPackagePermissionV28Candidate;
+}) {
+  if (Object.keys(options).sort().join(",") !== "actor,admission,authentication,opening,permission,request")
+    throw new Error("Local V28 Package execution configuration is unavailable");
+  const permission = consumeLocalPackageExecutionPermissionV28Candidate(options.permission,options.opening,options.request,options.actor);
+  return createOwnedLocalUploadExecution({opening:options.opening,request:options.request,actor:options.actor,
+    admission:options.admission,authentication:options.authentication},permission,true);
+}
 export function assertLocalPackageRequestExecutionOwner(execution: LocalUploadExecution,
   opening: LocalVolumeProfileOpening, request: Request, actor: string): void {
   const issued = executions.get(execution);
@@ -145,11 +178,12 @@ export function createLocalFabubloxUploadExecutionV28Candidate(options: {
 function createOwnedLocalUploadExecution(options: {
   opening: LocalVolumeProfileOpening; request: Request; actor: string;
   admission: ReviewedInstallationAdmission; authentication: object;
-}, permission?: ReturnType<typeof ownedLocalCommentPermissionV28Candidate> | ReturnType<typeof ownedLocalFabubloxPermissionV28Candidate>, packageRequest = false) {
+}, permission?: ReturnType<typeof ownedLocalCommentPermissionV28Candidate> | ReturnType<typeof ownedLocalFabubloxPermissionV28Candidate> | ReturnType<typeof ownedLocalPackagePermissionV28Candidate>, packageRequest = false) {
   const keys = Object.keys(options).sort();
   if (keys.join(",") !== "actor,admission,authentication,opening,request")
     throw new Error("Local upload configuration is unavailable");
   const { opening, request, actor, admission, authentication } = options;
+  const packagePermission = permission && "kind" in permission && permission.kind === "package" ? permission : undefined;
   if (!(request instanceof Request) || request.bodyUsed)
     throw new HTTPException(403, { message: "Request admission is required." });
   const owner = ownedLocalVolumeProfileContext(opening);
@@ -159,15 +193,17 @@ function createOwnedLocalUploadExecution(options: {
   // lifetime comes only from this genuine identity owner's immutable policy.
   const auth = localAuthenticationIdentityAuthority(authentication);
   const identityOwner = permission
-    ? captureInstalledIdentityExecutionOwnerV28Candidate(auth.identity, owner.database, owner.nativeDatabase, admission)
+    ? ownedLocalVolumeIdentityV28Candidate(opening, authentication, admission)
     : captureInstalledIdentityExecutionOwner(auth.identity, owner.database, owner.nativeDatabase, admission);
   const capturedPolicy = identityOwner.policy, installation = identityOwner.installation;
   const idleLifetimeMs = capturedPolicy.idleLifetimeMs;
   const session = Object.freeze({ tokenHash: auth.captureSessionDigest(request), actor });
   function assertAuthenticationOwner(): void {
-    owner.assertCurrent();
-    identityOwner.assertCurrent();
-    permission?.assertCurrent();
+    // A consumed V28 permission owns the concrete opening-bound issuer: its
+    // synchronous current check covers this same privately issued opening
+    // identity and physical lifetime. Generic/V26 keeps its original guards.
+    if (permission) permission.assertCurrent();
+    else { owner.assertCurrent(); identityOwner.assertCurrent(); }
     if (packageRequest) auth.currentSessionPredicate(request, actor);
     if (localAuthenticationIdentityAuthority(authentication) !== auth
       || auth.captureSessionDigest(request) !== session.tokenHash)
@@ -213,7 +249,7 @@ function createOwnedLocalUploadExecution(options: {
     // Expiry remains diagnostic, just as in the mature source-write lease.
     // Draining allows only this exact previously acquired unreleased owner.
     return createSqliteBatchAdmission(owner.database, [
-      { statement: authentication, rejection: new HTTPException(401, { message: "Authentication is required." }) },
+      ...(packagePermission ? [] : [{ statement: authentication, rejection: new HTTPException(401, { message: "Authentication is required." }) }]),
       { statement: currentInstallation, rejection: new HTTPException(503, { message: "Installation write admission is unavailable." }) },
       { statement: file, rejection: new HTTPException(503, { message: "File execution is paused on this installation." }) },
       { statement: maintenance, rejection: new HTTPException(503, { message: "Source mutations are paused for system recovery." }) },
@@ -437,7 +473,7 @@ function createOwnedLocalUploadExecution(options: {
             },
             ...(packageRequest ? {
               packageDatabase(authorities: readonly LocalVolumeProfileAuthority[] = []) {
-                return asAdmittedJobSqlDatabase(owner.database, () => {
+                const originalAdmission = () => {
                   executionLifetime.assertHeld();
                   const selected = [...new Set(authorities)];
                   if (selected.length > 4) throw new Error("Package Request profile check budget exceeded");
@@ -448,7 +484,18 @@ function createOwnedLocalUploadExecution(options: {
                   const requestAdmission = admitted(lease);
                   return profileChecks.length ? joinSqliteBatchAdmissions(owner.database, [requestAdmission,
                     createSqliteBatchAdmission(owner.database, profileChecks)]) : requestAdmission;
-                }, executionLifetime);
+                };
+                if (!packagePermission) return asAdmittedJobSqlDatabase(owner.database, originalAdmission, executionLifetime);
+                executionLifetime.assertHeld();
+                const scope = Object.freeze({}) as LocalPackageV28JobSqlScope;
+                const fullFence = Object.freeze({ assertHeld: executionLifetime.assertHeld.bind(executionLifetime) });
+                const preparation = Object.freeze({ assertHeld() {
+                  if (closing || !lease) throw new Error("Original V28 Package preparation lifetime is unavailable");
+                  assertLocalVolumeIdentityPreparationV28Candidate(opening, authentication, admission);
+                } });
+                packageSqlScopes.set(scope, Object.freeze({ execution, opening, request, actor, database: owner.database,
+                  admission: originalAdmission, fullFence, preparation }));
+                return asLocalPackageV28JobSqlDatabase(scope, execution, opening);
               },
               packageSettlementDatabase() {
                 const retained = { assertHeld() {
@@ -471,13 +518,14 @@ function createOwnedLocalUploadExecution(options: {
               packageActorAllowed() {
                 try {
                   executionLifetime.assertHeld();
+                  if (packagePermission) return packagePermission.authorized();
                   const row = owner.nativeDatabase.prepare(LOCAL_REQUEST_SESSION_SQL)
                     .get(session.tokenHash, actor, idleLifetimeMs);
                   return row?.admitted === 1;
                 } catch { return false; }
               },
             } : {}),
-            ...(permission ? "kind" in permission ? {
+            ...(permission && !packagePermission ? "kind" in permission && permission.kind === "fabublox" ? {
               readFabubloxImportPayload: () => permission.preparePayload(execution),
               async assertFabubloxRequestCurrent() { await runSqliteAdmittedBatch(owner.database, [], admitted(lease, "final")); },
               fabubloxAcceptanceDatabase(authorities: readonly LocalVolumeProfileAuthority[]) {
@@ -485,7 +533,7 @@ function createOwnedLocalUploadExecution(options: {
                 return createAdmittedLocalVolumeFileAuthorityDatabase(opening, authorities, admitted(lease, "final"), executionLifetime);
               },
             } : {
-              readCommentAcceptanceBody: permission.boundedBody.bind(permission),
+              readCommentAcceptanceBody: "boundedBody" in permission ? permission.boundedBody.bind(permission) : undefined,
               async assertCommentRequestCurrent() { await runSqliteAdmittedBatch(owner.database, [], admitted(lease, "final")); },
             } : {}),
             openRead(input: Readonly<{ fileId: string | null; purpose: FilePurpose }>) {
@@ -514,7 +562,7 @@ function createOwnedLocalUploadExecution(options: {
             openProfile(frozen: Parameters<AuthorityProfileOpener>[0], access: Parameters<AuthorityProfileOpener>[1],
               lifecycle: Parameters<AuthorityProfileOpener>[2]) {
               executionLifetime.assertHeld();
-              if (permission?.access === "read" && access !== "read")
+              if (permission && "access" in permission && permission.access === "read" && access !== "read")
                 throw new HTTPException(403, { message: "The original Comment request selects read access only." });
               // Capture the issued physical/source tuple before the first open
               // await; returned label/JSON cannot substitute its ownership.
@@ -551,6 +599,7 @@ function createOwnedLocalUploadExecution(options: {
             },
           });
           executions.set(execution, Object.freeze({ opening, request, actor, packageRequest, assertHeld: executionLifetime.assertHeld,
+            ...(packagePermission ? { v28Package: true as const } : {}),
             assertPhysicalHeld() {
               owner.assertCurrent();
               if (closing || !lease) throw new Error("The original local upload source lifetime has closed");

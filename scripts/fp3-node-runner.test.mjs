@@ -16,7 +16,7 @@ test("two independent Node processes resume a persisted File job and a revoked a
   try {
     const databasePath = join(scratch, "jobs.sqlite"), modulePath = join(scratch, "runtime.mjs"), bindingsPath = join(scratch, "bindings.mjs");
     await build({ entryPoints: [new URL("./lib/file-job-node-runtime.ts", import.meta.url).pathname], outfile: modulePath,
-      bundle: true, format: "esm", platform: "node", packages: "external", logLevel: "silent" });
+      bundle: true, format: "esm", platform: "node", logLevel: "silent" });
     const runtime = await import(pathToFileURL(modulePath).href);
     opened = runtime.openNodeFileJobRepository(databasePath);
     const sql = opened.database, migrations = new URL("migrations/", root);

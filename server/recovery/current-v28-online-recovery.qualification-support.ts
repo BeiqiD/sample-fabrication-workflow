@@ -46,6 +46,7 @@ export interface CurrentV28OnlineRecoverySource {
   readonly expectedTypedSource: CurrentV28RecoveryTypedSource;
   readonly expectedTypedPhysicalBindings: CurrentV28RecoveryTypedSource;
   readonly recoveryArtifacts: Readonly<NodeConfiguredRecoveryArtifacts>;
+  readonly workflowSampleId?: string;
   writeRecoveryConfiguration(origin: string, enabled?: boolean): Promise<string>;
   loadRecoveryConfiguration(origin: string): Promise<LoadedNodeRuntimeConfiguration>;
 }
@@ -105,8 +106,20 @@ export function assertCurrentV28OnlineRecoverySourceFenced(native: DatabaseSync)
  * genuine offline account/admin/profile operations and real ordinary HTTP are
  * the only positive source setup. No account/auth/File/business rows, executor
  * flags, maintenance state or fence token are written as fixture trust proof. */
-export async function prepareCurrentV28OnlineRecoverySource(): Promise<CurrentV28OnlineRecoverySource> {
+export function prepareCurrentV28OnlineRecoverySource(): Promise<CurrentV28OnlineRecoverySource> {
+  return prepareOriginalCurrentV28RecoverySource(false);
+}
+/** Separate genuine shared-File workflow fixture. The original V26 app creates
+ * this Sample/record before its stopped upgrade; no supplied callback, media
+ * permission or synthetic domain/policy SQL can create this provenance. */
+export async function prepareCurrentV28WorkflowSharedFileSource(): Promise<CurrentV28OnlineRecoverySource & { readonly workflowSampleId: string }> {
+  const source = await prepareOriginalCurrentV28RecoverySource(true);
+  ensure(typeof source.workflowSampleId === 'string');
+  return Object.freeze({ ...source, workflowSampleId: source.workflowSampleId });
+}
+async function prepareOriginalCurrentV28RecoverySource(workflowSample: boolean): Promise<CurrentV28OnlineRecoverySource> {
   const baseline = await prepareGenuineLocalFileV26Baseline();
+  let workflowSampleId: string | undefined;
   const bytes = Uint8Array.from(Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aRXsAAAAASUVORK5CYII=', 'base64'));
   const payloadSha256 = createHash('sha256').update(bytes).digest('hex'), uploadRequestId = randomUUID();
@@ -144,6 +157,23 @@ export async function prepareCurrentV28OnlineRecoverySource(): Promise<CurrentV2
     const body = await consumeCanonicalFileClient(delivered.client, 'arrayBuffer'); ensure(body instanceof ArrayBuffer);
     expect(new Uint8Array(body)).toEqual(bytes);
     expect(createHash('sha256').update(new Uint8Array(body)).digest('hex')).toBe(payloadSha256);
+    if (workflowSample) {
+      const created = await client.request('/api/samples', 'POST', {
+        code: 'WORKFLOW-' + randomUUID(), title: 'Genuine shared one-File workflow source',
+      }, session);
+      expect(created.status).toBe(201);
+      ensure(created.value && typeof created.value === 'object' && 'id' in created.value && typeof created.value.id === 'string');
+      workflowSampleId = created.value.id;
+      const detail = await client.request('/api/samples/' + workflowSampleId, 'GET', undefined, session);
+      expect(detail.status).toBe(200);
+      ensure(detail.value && typeof detail.value === 'object' && 'updatedAt' in detail.value && typeof detail.value.updatedAt === 'string'
+        && 'status' in detail.value && 'location' in detail.value && 'pinned' in detail.value);
+      const record = await client.request('/api/samples/' + workflowSampleId + '/records', 'POST', {
+        status: detail.value.status, location: detail.value.location ?? '', pinned: Boolean(detail.value.pinned),
+        expectedUpdatedAt: detail.value.updatedAt, body: 'Actual shared ordinary File source', assetId: result.id,
+      }, session);
+      expect(record.status).toBe(201);
+    }
     return result;
   }); // Every original client EOF, whole-app/native close and Linux lease ACK precedes upgrade.
   assertCanonicalFileOwnersReleased();
@@ -156,7 +186,14 @@ export async function prepareCurrentV28OnlineRecoverySource(): Promise<CurrentV2
     const rows = currentV28RecoveryTypedRows(native), physical = currentV28RecoveryTypedRows(native, CURRENT_V28_RECOVERY_PHYSICAL_TABLES);
     for (const table of CURRENT_V28_RECOVERY_TEMPLATE_TABLES)
       expect(rows[table]).toEqual(currentV28RecoveryImageRows(PORTABLE_RUNTIME_SEED_TABLE_ROWS[table]!));
-    for (const table of ['samples', 'runs']) expect(native.prepare(`SELECT count(*) n FROM ${table}`).get()?.n).toBe(0);
+    expect(native.prepare('SELECT count(*) n FROM samples').get()?.n).toBe(workflowSample ? 1 : 0);
+    expect(native.prepare('SELECT count(*) n FROM runs').get()?.n).toBe(0);
+    if (workflowSample) {
+      ensure(workflowSampleId);
+      expect(native.prepare('SELECT id FROM samples WHERE id=? AND deleted_at IS NULL').get(workflowSampleId)?.id).toBe(workflowSampleId);
+      expect(native.prepare('SELECT asset_file_id FROM events WHERE sample_id=? AND asset_file_id IS NOT NULL').all(workflowSampleId))
+        .toEqual([{ asset_file_id: accepted.fileId }]);
+    }
     return { rows, physical };
   }));
   const upgrade = await executeCollaborationV28OperatorCandidate({ kind: 'upgrade-metadata', databasePath: baseline.path,
@@ -171,7 +208,8 @@ export async function prepareCurrentV28OnlineRecoverySource(): Promise<CurrentV2
     expect(native.prepare(`SELECT a.principal_id,a.enabled FROM local_accounts a JOIN local_admin_grants g
       ON g.principal_id=a.principal_id WHERE a.principal_id=?`).get(baseline.principalId))
       .toEqual({ principal_id: baseline.principalId, enabled: 1 });
-    for (const table of ['samples', 'runs', 'collaboration_members', 'collaboration_identities', 'collaboration_grants'])
+    expect(native.prepare('SELECT count(*) n FROM samples').get()?.n).toBe(workflowSample ? 1 : 0);
+    for (const table of ['runs', 'collaboration_members', 'collaboration_identities', 'collaboration_grants'])
       expect(native.prepare(`SELECT count(*) n FROM ${table}`).get()?.n).toBe(0);
     expect(native.prepare('SELECT count(*) n FROM local_storage_profile_bindings').get()?.n).toBe(2);
     for (const [index, profileId] of [baseline.internalProfileId, baseline.originalsProfileId].entries())
@@ -201,7 +239,7 @@ export async function prepareCurrentV28OnlineRecoverySource(): Promise<CurrentV2
     return configurationPath;
   }
   return Object.freeze({ baseline, sourceFileId: accepted.fileId, sourceAssetId: accepted.id,
-    payloadBytes: bytes.byteLength, payloadSha256, bytes, expectedTypedSource: source.rows,
+    payloadBytes: bytes.byteLength, payloadSha256, bytes, ...(workflowSampleId ? { workflowSampleId } : {}), expectedTypedSource: source.rows,
     expectedTypedPhysicalBindings: source.physical, recoveryArtifacts, writeRecoveryConfiguration,
     async loadRecoveryConfiguration(origin: string): Promise<LoadedNodeRuntimeConfiguration> {
       return loadNodeRuntimeConfiguration(await writeRecoveryConfiguration(origin), {
