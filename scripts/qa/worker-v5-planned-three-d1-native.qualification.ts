@@ -234,7 +234,7 @@ async function run(){
     const upload=checkedSystemRecoveryReceipt(await json(source,"/api/system-recovery/uploads","POST",uploadInput,202));
     const put=await source.request("/api/system-recovery/jobs/"+upload.job.id+"/upload","PUT",Uint8Array.from(new Uint8Array(downloaded.value)).buffer,
       {"content-type":"application/zip","content-length":String(downloaded.value.byteLength)});expect(put.response.status).toBe(200);
-    const validated=await complete(source,checkedSystemRecoveryJobStatus(pairJson(put.value)),"preview");expect(validated.job.phase).toBe("validate");
+    const validated=await complete(source,checkedSystemRecoveryJobStatus(pairJson(put.value)),"preview");expect(validated.job.phase).toBe("done");
     const importInput={requestId:randomUUID(),uploadJobId:upload.job.id,expectedTargetId:target.id,
       mapping:[{sourceProfileId:profile,destinationProfileId:profile,configurationRevision:1}],mode:"planned",acknowledgeLaterChanges:false,acknowledgePartial:false};
     const accepted=checkedSystemRecoveryReceipt(await json(source,"/api/system-recovery/recoveries","POST",importInput,202));
