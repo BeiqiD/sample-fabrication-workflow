@@ -28,7 +28,7 @@ type HttpBody = string | ArrayBuffer | Uint8Array<ArrayBuffer>;
 type NativeR2 = Awaited<ReturnType<Miniflare['getR2Bucket']>>;
 type NativeD1 = Awaited<ReturnType<Miniflare['getD1Database']>>;
 interface NativeDatabaseConsistency {
-  checkedTables: string[]; observedSchemaSha256: string; foreignKeyCheckRows: 0;
+  checkedTables: string[]; observedSchemaSha256: string; foreignKeyCheckRows: 0; originalInstallationId?: string;
 }
 interface ClosedDatabaseConsistency {
   schema: "genuine-closed-original-d1-consistency/1"; originalDatabaseFile: string;
@@ -44,6 +44,7 @@ interface PairOwner {
   persistedD1?: string; nativeDatabaseConsistency?: NativeDatabaseConsistency;
   closedDatabaseConsistency?: ClosedDatabaseConsistency;
   recoveryTarget?: { consistency?: NativeDatabaseConsistency; closed?: ClosedDatabaseConsistency };
+  plannedRecoveryTarget?: { consistency?: NativeDatabaseConsistency; closed?: ClosedDatabaseConsistency };
   stopOriginalIssueObservers?: () => Promise<void>;
   originalAckDelivery?: OriginalAckDeliveryOwner;
 }
@@ -232,7 +233,7 @@ async function checkedNativeDatabaseSchema(schema: ExportSchemaObject[], v28 = f
   ensure(checkedTables.every(name => /^[a-z][a-z0-9_]*$/.test(name)) && new Set(checkedTables).size === checkedTables.length);
   return { checkedTables, observedSchemaSha256: sha256(JSON.stringify(schema)) };
 }
-async function verifyNativeDatabaseConsistency(database: NativeD1, v28 = false): Promise<NativeDatabaseConsistency> {
+async function verifyNativeDatabaseConsistency(database: NativeD1, v28 = false, bindInstallation = false): Promise<NativeDatabaseConsistency> {
   const schema = await database.prepare(schemaSql).all<ExportSchemaObject>(); ensure(schema.success);
   const observed = await checkedNativeDatabaseSchema(schema.results, v28);
   const foreignKeys = await database.prepare('PRAGMA foreign_key_check').all(); ensure(foreignKeys.success);
@@ -244,18 +245,22 @@ async function verifyNativeDatabaseConsistency(database: NativeD1, v28 = false):
     const check = await database.prepare(`PRAGMA quick_check("${name}")`).all();
     ensure(check.success); expect(check.results, `Original D1 table/index quick_check: ${name}`).toEqual([{ quick_check: 'ok' }]);
   }
-  return { ...observed, foreignKeyCheckRows: 0 };
+  let originalInstallationId: string | undefined;
+  if(bindInstallation){const identity=await database.prepare("SELECT installation_id FROM system_recovery_runtime WHERE singleton=1").first<{installation_id:string}>();
+    ensure(identity&&/^[a-f0-9]{32}$/.test(identity.installation_id));originalInstallationId=identity.installation_id;}
+  return { ...observed, foreignKeyCheckRows: 0,...(originalInstallationId===undefined?{}:{originalInstallationId}) };
 }
-async function verifyClosedOriginalDatabase(owner: PairOwner, v28 = false): Promise<ClosedDatabaseConsistency> {
-  const consistency = v28 ? owner.recoveryTarget?.consistency : owner.nativeDatabaseConsistency;
+async function verifyClosedOriginalDatabase(owner: PairOwner, v28 = false, planned = false): Promise<ClosedDatabaseConsistency> {
+  const consistency = planned ? owner.plannedRecoveryTarget?.consistency : v28 ? owner.recoveryTarget?.consistency : owner.nativeDatabaseConsistency;
   ensure(owner.persistedD1 && consistency);
   const files = (await readdir(owner.persistedD1, { recursive: true })).filter((file): file is string =>
     typeof file === 'string' && file.endsWith('.sqlite') && !file.endsWith('metadata.sqlite'));
-  expect(files).toHaveLength(owner.recoveryTarget ? 2 : 1);
+  expect(files).toHaveLength(owner.plannedRecoveryTarget ? 3 : owner.recoveryTarget ? 2 : 1);
   const matching: string[] = [];
   for (const name of files) {
     const path = join(owner.persistedD1, name), database = new DatabaseSync(path, { readOnly: true });
-    try { if (sha256(JSON.stringify(database.prepare(schemaSql).all())) === consistency.observedSchemaSha256) matching.push(path); }
+    try { if (sha256(JSON.stringify(database.prepare(schemaSql).all())) === consistency.observedSchemaSha256
+      &&(consistency.originalInstallationId===undefined||database.prepare("SELECT installation_id FROM system_recovery_runtime WHERE singleton=1").get()?.installation_id===consistency.originalInstallationId)) matching.push(path); }
     finally { database.close(); }
   }
   expect(matching).toHaveLength(1);
@@ -269,6 +274,7 @@ async function verifyClosedOriginalDatabase(owner: PairOwner, v28 = false): Prom
     observed = await checkedNativeDatabaseSchema(exactNative.prepare(schemaSql).all() as unknown as ExportSchemaObject[], v28);
     expect(observed).toEqual({ checkedTables: consistency.checkedTables,
       observedSchemaSha256: consistency.observedSchemaSha256 });
+    if(consistency.originalInstallationId!==undefined)expect(exactNative.prepare("SELECT installation_id FROM system_recovery_runtime WHERE singleton=1").get()?.installation_id).toBe(consistency.originalInstallationId);
     expect(exactNative.prepare('PRAGMA integrity_check').all()).toEqual([{ integrity_check: 'ok' }]);
     expect(exactNative.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
   } finally { exactNative.close(); }
@@ -323,6 +329,10 @@ function close(owner: PairOwner): Promise<void> {
       try { ensure(runtimeClosed); owner.recoveryTarget.closed = await verifyClosedOriginalDatabase(owner, true); }
       catch (error) { failures.push(error); }
     }
+    if(owner.plannedRecoveryTarget?.consistency){
+      try{ensure(runtimeClosed);owner.plannedRecoveryTarget.closed=await verifyClosedOriginalDatabase(owner,true,true);}
+      catch(error){failures.push(error);}
+    }
     if (failures.length) throw new AggregateError(failures, 'Original genuine R2 pair work or first close failed');
     owner.closed = true; owners.delete(owner);
   })();
@@ -362,6 +372,7 @@ export interface GenuineR2Pair {
   schedule(): Promise<void>;
   close(): Promise<void>;
   readonly originalIssueObserver?: WorkerV5OriginalIssueObserver;
+  readonly plannedRecoveryTarget?: GenuineR2Pair["recoveryTarget"];
   readonly recoveryTarget?: {
     readonly id: string;
     readonly originalIssueObserver?: WorkerV5OriginalIssueObserver;
@@ -372,7 +383,7 @@ export interface GenuineR2Pair {
     closedDatabaseConsistency(): ClosedDatabaseConsistency;
   };
 }
-export interface GenuineR2PairOptions { fileEvidenceOperator?: boolean; recoveryTargetId?: string; originalIssueObserver?: true }
+export interface GenuineR2PairOptions { fileEvidenceOperator?: boolean; recoveryTargetId?: string; originalIssueObserver?: true; plannedRecoveryTargetId?: string }
 export async function prepareGenuineCurrentV26R2Pair(parent: string, options: GenuineR2PairOptions = {}): Promise<GenuineR2Pair> {
   const owner: PairOwner = { client: { clients: new Set(), quarantined: false }, originalWork: [], outbound: [], accepting: true, closed: false };
   owners.add(owner);
@@ -420,7 +431,8 @@ export async function prepareGenuineCurrentV26R2Pair(parent: string, options: Ge
     const origin = await original(owner, () => canonicalFilePrivateOrigin(owner.client)); owner.origin = origin;
     const sourceNamespaceInstallationId = randomUUID(), bucketName = `current-r2-pair-${randomUUID().replaceAll('-', '')}`;
     ensure(owner.accepting);
-    const sourceDatabaseId = randomUUID(), targetDatabaseId = randomUUID();
+    ensure(options.plannedRecoveryTargetId===undefined||options.recoveryTargetId!==undefined);
+    const sourceDatabaseId = randomUUID(), targetDatabaseId = randomUUID(), plannedDatabaseId=options.plannedRecoveryTargetId===undefined?undefined:randomUUID();
     const observerNonce = options.originalIssueObserver === true ? randomUUID() : undefined;
     const originalAckDelivery = observerNonce === undefined ? undefined : await openOriginalAckDelivery(owner, parent, observerNonce);
     const nativeOptions = { modules: true, script, compatibilityDate: '2026-07-20', host: '127.0.0.1', port: Number(new URL(origin).port),
@@ -474,11 +486,14 @@ export async function prepareGenuineCurrentV26R2Pair(parent: string, options: Ge
     else {
       ensure(/^[A-Za-z0-9][A-Za-z0-9-]{0,127}$/.test(options.recoveryTargetId));
       sourceWorkerName = 'original-v5-public-source'; owner.recoveryTarget = {};
+      if(options.plannedRecoveryTargetId!==undefined){ensure(/^[A-Za-z0-9][A-Za-z0-9-]{0,127}$/.test(options.plannedRecoveryTargetId)&&options.plannedRecoveryTargetId!==options.recoveryTargetId&&plannedDatabaseId);owner.plannedRecoveryTarget={};}
       const { host, port, d1Persist, r2Persist, log, ...workerOptions } = nativeOptions;
       owner.runtime = new Miniflare({ host, port, d1Persist, r2Persist, log, workers: [
         { ...workerOptions, name: sourceWorkerName, d1Databases: { DB: sourceDatabaseId, RECOVERY_DB: targetDatabaseId },
           bindings: { ...workerOptions.bindings, RECOVERY_TARGET_ID: options.recoveryTargetId } },
-        { ...workerOptions, name: 'original-v5-public-restored', d1Databases: { DB: targetDatabaseId } },
+        { ...workerOptions, name: 'original-v5-public-restored', d1Databases: { DB: targetDatabaseId,...(plannedDatabaseId===undefined?{}:{RECOVERY_DB:plannedDatabaseId}) },
+          bindings:{...workerOptions.bindings,...(options.plannedRecoveryTargetId===undefined?{}:{RECOVERY_TARGET_ID:options.plannedRecoveryTargetId})} },
+        ...(plannedDatabaseId===undefined?[]:[{...workerOptions,name:'original-v5-public-planned-fresh',d1Databases:{DB:plannedDatabaseId}}]),
       ] });
     }
     expect((await original(owner, () => owner.runtime!.ready)).origin).toBe(origin);
@@ -506,6 +521,8 @@ export async function prepareGenuineCurrentV26R2Pair(parent: string, options: Ge
     }
     const targetDatabase = owner.recoveryTarget ? await original(owner, () => owner.runtime!.getD1Database('DB', 'original-v5-public-restored')) : undefined;
     const targetWorker = owner.recoveryTarget ? await original(owner, () => owner.runtime!.getWorker('original-v5-public-restored')) : undefined;
+    const plannedDatabase=owner.plannedRecoveryTarget?await original(owner,()=>owner.runtime!.getD1Database('DB','original-v5-public-planned-fresh')):undefined;
+    const plannedWorker=owner.plannedRecoveryTarget?await original(owner,()=>owner.runtime!.getWorker('original-v5-public-planned-fresh')):undefined;
     const observerStops: (() => Promise<void>)[] = [];
     function issueObserver(originalWorker: typeof worker): WorkerV5OriginalIssueObserver | undefined {
       if (observerNonce === undefined) return undefined;
@@ -560,7 +577,7 @@ export async function prepareGenuineCurrentV26R2Pair(parent: string, options: Ge
         }),
       });
     }
-    const originalIssueObserver = issueObserver(worker), targetIssueObserver = targetWorker ? issueObserver(targetWorker) : undefined;
+    const originalIssueObserver = issueObserver(worker), targetIssueObserver = targetWorker ? issueObserver(targetWorker) : undefined,plannedIssueObserver=plannedWorker?issueObserver(plannedWorker):undefined;
     if (observerStops.length) {
       let firstStop: Promise<void> | undefined;
       owner.stopOriginalIssueObservers = () => firstStop ??= (async () => {
@@ -586,10 +603,26 @@ export async function prepareGenuineCurrentV26R2Pair(parent: string, options: Ge
         ensure(result.success); return result.results;
       }),
       async schedule() { const result = await original(owner, () => targetWorker.scheduled({ scheduledTime: new Date(), cron: '*/2 * * * *' })); expect(result.outcome).toBe('ok'); },
-      verifyNativeDatabaseConsistency: () => original(owner, async () => { ensure(owner.recoveryTarget); owner.recoveryTarget.consistency = await verifyNativeDatabaseConsistency(targetDatabase, true); }),
+      verifyNativeDatabaseConsistency: () => original(owner, async () => { ensure(owner.recoveryTarget); owner.recoveryTarget.consistency = await verifyNativeDatabaseConsistency(targetDatabase, true,Boolean(owner.plannedRecoveryTarget)); }),
       closedDatabaseConsistency() { ensure(owner.closed && owner.recoveryTarget?.closed); return structuredClone(owner.recoveryTarget.closed); },
     } : undefined;
-    return Object.freeze({ root, wranglerLedgerPresent, sourceNamespaceInstallationId, actor, request, recoveryTarget, originalIssueObserver,
+    const plannedRecoveryTarget=owner.plannedRecoveryTarget&&plannedDatabase&&plannedWorker&&options.plannedRecoveryTargetId?{
+      id:options.plannedRecoveryTargetId,originalIssueObserver:plannedIssueObserver,
+      request:(path:string,method='GET',body?:HttpBody,headers:Record<string,string>={},identity:'admin'|'reader'|'none'='admin')=>original(owner,async()=>{
+        const response=await plannedWorker.fetch('https://original-v5-planned-fresh.invalid'+path,{method,
+          headers:{...headers,...(identity==='none'?{}:{'cf-access-jwt-assertion':identity==='admin'?adminToken:readerToken})},
+          ...(body===undefined?{}:{body}),redirect:'manual',signal:AbortSignal.timeout(5000)});
+        const value=await response.arrayBuffer();return {response:new Response(value,{status:response.status,headers:response.headers}),value};
+      }),
+      readRows:(sql:string,bindings:readonly(string|number|null)[]=[])=>original(owner,async()=>{
+        ensure(!/[;]|--|\/\*/.test(sql)&&/^SELECT\b/i.test(sql.trim()));const result=await plannedDatabase.prepare(sql).bind(...bindings).all<Record<string,unknown>>();
+        ensure(result.success);return result.results;
+      }),
+      async schedule(){const result=await original(owner,()=>plannedWorker.scheduled({scheduledTime:new Date(),cron:'*/2 * * * *'}));expect(result.outcome).toBe('ok');},
+      verifyNativeDatabaseConsistency:()=>original(owner,async()=>{ensure(owner.plannedRecoveryTarget);owner.plannedRecoveryTarget.consistency=await verifyNativeDatabaseConsistency(plannedDatabase,true,true);}),
+      closedDatabaseConsistency(){ensure(owner.closed&&owner.plannedRecoveryTarget?.closed);return structuredClone(owner.plannedRecoveryTarget.closed);},
+    }:undefined;
+    return Object.freeze({ root, wranglerLedgerPresent, sourceNamespaceInstallationId, actor, request, recoveryTarget, plannedRecoveryTarget,originalIssueObserver,
       readRows: (sql: string, bindings: readonly (string | number | null)[] = []) => original(owner, async () => {
         ensure(!/[;]|--|\/\*/.test(sql) && (/^SELECT\b/i.test(sql.trim())
           || /^PRAGMA (?:foreign_key_check|integrity_check|defer_foreign_keys)$/i.test(sql.trim())));
@@ -624,7 +657,7 @@ export async function prepareGenuineCurrentV26R2Pair(parent: string, options: Ge
       }),
       listObjects: () => original(owner, () => bucket.list()),
       verifyNativeDatabaseConsistency: () => original(owner, async () => {
-        owner.nativeDatabaseConsistency = await verifyNativeDatabaseConsistency(database);
+        owner.nativeDatabaseConsistency = await verifyNativeDatabaseConsistency(database,false,Boolean(owner.plannedRecoveryTarget));
       }),
       closedDatabaseConsistency() {
         ensure(owner.closed && owner.closedDatabaseConsistency);
