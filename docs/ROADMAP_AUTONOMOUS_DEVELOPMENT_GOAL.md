@@ -1,5 +1,38 @@
 # Autonomous roadmap development goal
 
+**Bounded Worker V5 development checkpoint — 2026-10-14.**
+[PR #309](https://github.com/BeiqiD/sample-fabrication-workflow/pull/309) merged as
+[`04666ebf`](https://github.com/BeiqiD/sample-fabrication-workflow/commit/04666ebf78f095e1e0f3255024dd570f896ada2c).
+Its four own Verify/Project Map workflows and all 15 contexts passed. The actual
+post-merge [Verify](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38495703078)
+and [Map](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38495703172),
+all 15 contexts and the registered Cloudflare check also succeeded.
+
+| Current slice | Exact-source evidence and remaining boundary |
+| --- | --- |
+| Worker V5, bounded P10–P12 paths | `7545713e`: all 18 original cases and the separate original planned case passed. Named LOCAL/R2, natural Comment and Run Step headed paths preserve complete typed history, payloads and original closure; restored capabilities remain inert. This does not close arbitrary-provider, activation or elapsed-cadence acceptance. |
+| NULL-key hold regression | `99459475`: the original backup suite passed 13 cases, comprising the unchanged 10 and three added isolated SQLite installer/rollback regressions. These SQL cases do not establish a complete public V5 workflow. |
+| Dedicated Worker workflow | `16a8c89f`: SOURCE-reviewed workflow now runs all 15 original controller stages in order and exports only 30 explicit closed receipt/diagnostic paths. Its enclosing 75-minute job allowance preserves every original stage/case/kernel/cadence budget. Dedicated push and CI for the next Worker draft remain pending. |
+| Node P8 composition | `b6b839a2`: eight bounded original local case passes are recorded. The first cursor failure remains attached to its original attempt; the broader current composition/restart acceptance stays open. |
+| Current Node target | `9ef25c17`: the original first 120-second case failed; the second remains pending at this checkpoint. Source guard/performance work is ongoing and has no passing or resolved-cause claim. This private Node follow-on is outside the next Worker draft. |
+
+Each result retains its own head and scope. The 754 Worker pass and 994 QA pass
+are not retagged as a 16a runtime or hosted CI pass. Earlier failures, frozen
+V1–V3 readers, protected/local-history boundaries and the P1–P12/F1–F6 matrix
+remain recorded. The wider Node/Worker goal, frontend enabled-matrix acceptance
+and release review remain open.
+
+Next actions are finite:
+
+1. Publish the reviewed Worker draft and run its complete original dedicated
+   pipeline; review exact-source counts and original closure before a CI claim.
+2. Finish the current Node target and remaining P/F gates under the unchanged
+   original budgets, with separate source and runtime qualification of any
+   guard changes; retain the first failures and pending cases.
+3. Close the supported frontend matrix, then prepare a reviewable `main`
+   candidate. This checkpoint grants no production merge, deployment, remote
+   migration, provider activation or automatic cutover.
+
 **Finite Node online/offline target SOURCE checkpoint — 2026-10-13.**
 The user has resumed the bounded Node↔native R2 Package/Backup interchange and
 online Recovery goal before frontend closure and a reviewable main candidate.
