@@ -2,7 +2,7 @@ import { afterAll, afterEach, expect } from 'vitest';
 import { WORKER_V5_ORIGINAL_ISSUE_OBSERVER_SOURCE } from './worker-v5-original-issue-observer.qualification-support';
 import { chmod, mkdtemp, readFile, readdir } from 'node:fs/promises';
 import { createHash, randomUUID } from 'node:crypto';
-import { createServer, type Server } from 'node:http';
+import { createServer, type Server, type ServerResponse } from 'node:http';
 import { createConnection } from 'node:net';
 import { statfsSync, readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
@@ -45,6 +45,21 @@ interface PairOwner {
   closedDatabaseConsistency?: ClosedDatabaseConsistency;
   recoveryTarget?: { consistency?: NativeDatabaseConsistency; closed?: ClosedDatabaseConsistency };
   stopOriginalIssueObservers?: () => Promise<void>;
+  originalAckDelivery?: OriginalAckDeliveryOwner;
+}
+interface OriginalAckDeliveryGate {
+  readonly id: string; readonly kind: WorkerV5OriginalIssueGate;
+  acceptedRequests: number; acknowledgedResponses: number; released: boolean;
+  deliveryAttempted: boolean;
+  administratorRevokeAcknowledged: boolean;
+  acceptedAt: number | null; responseFinishedAt: number | null; response?: ServerResponse;
+}
+interface OriginalAckDeliveryOwner {
+  readonly nonce: string; readonly gates: Map<string, OriginalAckDeliveryGate>;
+  readonly requests: Promise<void>[]; readonly failures: unknown[];
+  outboundCalls: number; diagnosticEvents: number;
+  accepting: boolean; server?: Server; port?: number; origin?: string;
+  listening?: Promise<void>; stopping?: Promise<void>;
 }
 const owners = new Set<PairOwner>();
 const RESERVE = 603_979_776n;
@@ -60,6 +75,142 @@ function original<T>(owner: PairOwner, work: () => Promise<T>): Promise<T> {
   let promise: Promise<T>;
   try { promise = work(); } catch (error) { promise = Promise.reject(error); }
   owner.originalWork.push(promise); void promise.catch(() => undefined); return promise;
+}
+type OriginalAckOutboundStage = 'entered' | 'ack-identity' | 'ack-admission' | 'ack-fetch' | 'ack-body' | 'ack-return'
+  | 'jwks-admission' | 'jwks-fetch' | 'jwks-body';
+/** Optional fixture observation only. Never expose request URL/header values or
+ * arbitrary error text, and never replace the original outbound result/error. */
+function observeOriginalAckOutbound(owner: PairOwner, delivery: OriginalAckDeliveryOwner | undefined,
+  request: MiniflareRequest, issuer: string, call: number, stage: OriginalAckOutboundStage, error?: unknown, response?: { readonly status: number }): void {
+  // Reserve the bounded observations for the armed original gate; earlier
+  // ordinary JWKS calls still count but cannot consume its diagnostic budget.
+  if (!delivery || delivery.gates.size === 0) return;
+  try {
+    if (delivery.diagnosticEvents >= 32) return;
+    delivery.diagnosticEvents++;
+    const id = request.headers.get('x-original-native-gate');
+    let errorKind = 'NONE', nativeCode = 'NONE', mentionsLoopback = false, mentionsPrivateAddress = false;
+    if (error !== undefined) {
+      errorKind = 'UNKNOWN'; nativeCode = 'CODE_UNAVAILABLE';
+      if (error && typeof error === 'object') {
+        const name = Reflect.get(error, 'name'), code = Reflect.get(error, 'code'), cause = Reflect.get(error, 'cause');
+        if (typeof name === 'string' && ['Error', 'TypeError', 'RangeError', 'AbortError', 'TimeoutError', 'FetchError'].includes(name)) errorKind = name;
+        const causeCode = cause && typeof cause === 'object' ? Reflect.get(cause, 'code') : undefined;
+        const codes = ['ECONNREFUSED', 'ECONNRESET', 'EHOSTUNREACH', 'ENETUNREACH', 'ENOTFOUND', 'ETIMEDOUT',
+          'UND_ERR_CONNECT_TIMEOUT', 'UND_ERR_SOCKET', 'UND_ERR_ABORTED', 'ERR_INVALID_URL'];
+        const actualCode = typeof code === 'string' ? code : causeCode;
+        if (typeof actualCode === 'string' && codes.includes(actualCode)) nativeCode = actualCode;
+        const message = Reflect.get(error, 'message');
+        if (typeof message === 'string') {
+          const bounded = message.slice(0, 8192).toLowerCase();
+          mentionsLoopback = bounded.includes('loopback') || bounded.includes('localhost') || bounded.includes('127.0.0.1');
+          mentionsPrivateAddress = bounded.includes('private address') || bounded.includes('private ip');
+        }
+      }
+    }
+    console.error('Original ACK private Node outbound observation', {
+      call, stage, status: response?.status ?? null, errorKind, nativeCode, mentionsLoopback, mentionsPrivateAddress,
+      exactAckUrl: request.url === `${delivery.origin}/__original_native_ack_delivery`,
+      exactJwksUrl: request.url === `${issuer}/cdn-cgi/access/certs`, methodGet: request.method === 'GET',
+      nonceMatched: request.headers.get('x-original-native-control') === delivery.nonce,
+      knownGate: Boolean(id && delivery.gates.has(id)), pairAdmitting: owner.accepting, deliveryAdmitting: delivery.accepting,
+      acceptedRequests: id ? delivery.gates.get(id)?.acceptedRequests ?? 0 : 0,
+    });
+  } catch { /* Preserve the original outbound work and exact error. */ }
+}
+function releaseOriginalAckDelivery(gate: OriginalAckDeliveryGate): void {
+  gate.released = true;
+  if (!gate.response || gate.deliveryAttempted) return;
+  gate.deliveryAttempted = true;
+  const body = 'original-native-ack-delivery/1';
+  try {
+    gate.response.writeHead(200, { 'content-type': 'text/plain', 'cache-control': 'no-store', 'content-length': Buffer.byteLength(body) });
+    gate.response.end(body);
+  } catch (error) {
+    gate.response.destroy(error instanceof Error ? error : new Error('Original ACK delivery HTTP response failed'));
+    throw error;
+  }
+}
+/** An unacknowledged administrator revoke must not resume authorized business
+ * work. Reject this exact pending HTTP delivery; retain the original stop error
+ * and make its first terminal delivery immune to later fallback release. */
+function rejectOriginalAckDelivery(gate: OriginalAckDeliveryGate, failure: unknown): void {
+  gate.released = true;
+  if (gate.deliveryAttempted) return;
+  gate.deliveryAttempted = true;
+  gate.response?.destroy(failure instanceof Error ? failure : new Error('Original ACK delivery administrator revoke unproven'));
+}
+/** Stop admission and release actual accepted HTTP ACKs synchronously before
+ * joining SDK work/outbound calls. Cache this first stop before native cleanup;
+ * failed responses/listener close are retained and never retried. */
+function stopOriginalAckDelivery(owner: PairOwner): Promise<void> | undefined {
+  const delivery = owner.originalAckDelivery;
+  if (!delivery) return undefined;
+  if (delivery.stopping) return delivery.stopping;
+  delivery.accepting = false;
+  delivery.stopping = Promise.resolve().then(async () => {
+    if (delivery.listening) try { await delivery.listening; } catch (error) { delivery.failures.push(error); }
+    if (delivery.server?.listening) {
+      try {
+        await new Promise<void>((yes, no) => delivery.server!.close(error => error ? no(error) : yes()));
+        ensure(delivery.port); await refused(delivery.port);
+      } catch (error) { delivery.failures.push(error); }
+    }
+    const accepted = await Promise.allSettled(delivery.requests);
+    for (const result of accepted) if (result.status === 'rejected') delivery.failures.push(result.reason);
+    if (delivery.failures.length) throw new AggregateError([...new Set(delivery.failures)], 'Original native ACK delivery HTTP first stop failed');
+  });
+  void delivery.stopping.catch(() => undefined);
+  for (const gate of delivery.gates.values()) {
+    if (gate.deliveryAttempted || !gate.response) continue;
+    try {
+      if (gate.administratorRevokeAcknowledged) releaseOriginalAckDelivery(gate);
+      else {
+        const failure = new Error('Original ACK delivery administrator revoke unproven');
+        delivery.failures.push(failure); rejectOriginalAckDelivery(gate, failure);
+      }
+    } catch (error) { delivery.failures.push(error); }
+  }
+  return delivery.stopping;
+}
+async function openOriginalAckDelivery(owner: PairOwner, parent: string, nonce: string): Promise<OriginalAckDeliveryOwner> {
+  // This observer-only listener and all accepted requests belong to the sole
+  // existing pair owner before any listener/Miniflare constructor runs.
+  assertPairReserve(parent);
+  const delivery: OriginalAckDeliveryOwner = { nonce, gates: new Map(), requests: [], failures: [], outboundCalls: 0, diagnosticEvents: 0, accepting: true };
+  owner.originalAckDelivery = delivery;
+  delivery.server = createServer((request, response) => {
+    let gate: OriginalAckDeliveryGate | undefined;
+    const settlement = new Promise<void>((yes, no) => {
+      const fail = (error: unknown) => { delivery.failures.push(error); no(error); };
+      request.once('error', fail); request.once('aborted', () => fail(new Error('Original ACK delivery HTTP request aborted')));
+      response.once('error', fail);
+      response.once('close', () => { if (!response.writableFinished) fail(new Error('Original ACK delivery HTTP response closed before ACK')); });
+      response.once('finish', () => {
+        if (gate && response.statusCode === 200) { gate.acknowledgedResponses++; gate.responseFinishedAt = Date.now(); }
+        yes();
+      });
+    });
+    delivery.requests.push(settlement); void settlement.catch(() => undefined);
+    try {
+      const id = request.headers['x-original-native-gate'];
+      if (!delivery.accepting || request.method !== 'GET' || request.url !== '/__original_native_ack_delivery'
+        || request.headers['x-original-native-control'] !== delivery.nonce || typeof id !== 'string') { response.writeHead(404).end(); return; }
+      gate = delivery.gates.get(id); ensure(gate && gate.acceptedRequests === 0);
+      gate.acceptedRequests++; gate.acceptedAt = Date.now(); gate.response = response;
+      // Headers and body stay in this exact real HTTP response until release.
+      // No query value or product actor/claim predicate is produced here.
+      if (gate.released) releaseOriginalAckDelivery(gate);
+    } catch (error) { delivery.failures.push(error); response.destroy(error instanceof Error ? error : new Error('Original ACK delivery HTTP failed')); }
+  });
+  delivery.server.on('error', error => { delivery.failures.push(error); });
+  delivery.listening = original(owner, () => new Promise<void>((yes, no) => {
+    delivery.server!.once('error', no); delivery.server!.listen(0, '127.0.0.1', () => { delivery.server!.off('error', no); yes(); });
+  }));
+  await delivery.listening;
+  const address = delivery.server.address(); ensure(address && typeof address !== 'string');
+  delivery.port = address.port; delivery.origin = `http://127.0.0.1:${address.port}`;
+  return delivery;
 }
 async function refused(port: number) {
   await new Promise<void>((yes, no) => {
@@ -135,11 +286,16 @@ function close(owner: PairOwner): Promise<void> {
   owner.accepting = false;
   owner.closing = (async () => {
     const failures: unknown[] = [];
+    // Deny new observer I/O immediately. Revoke the original live Worker
+    // administrator before releasing accepted ACKs, so teardown cannot resume
+    // a still-authorized request in the gap between delivery and revocation.
+    if (owner.originalAckDelivery) owner.originalAckDelivery.accepting = false;
     // Stop only this optional fixture observer before joining its original held ACK.
     // A rejected stop remains failed; no cleanup retry or database removal.
     if (owner.stopOriginalIssueObservers) {
       try { await owner.stopOriginalIssueObservers(); } catch (error) { failures.push(error); }
     }
+    const originalAckDeliveryStopped = stopOriginalAckDelivery(owner);
     const work = await Promise.allSettled(owner.originalWork);
     for (const result of work) if (result.status === 'rejected') failures.push(result.reason);
     const clients = await Promise.allSettled([...owner.client.clients].map(client => closeCanonicalFileClient(owner.client, client)));
@@ -152,6 +308,7 @@ function close(owner: PairOwner): Promise<void> {
     }
     const outbound = await Promise.allSettled(owner.outbound);
     for (const result of outbound) if (result.status === 'rejected') failures.push(result.reason);
+    if (originalAckDeliveryStopped) try { await originalAckDeliveryStopped; } catch (error) { failures.push(error); }
     if (owner.jwks) {
       try {
         await new Promise<void>((yes, no) => { owner.jwks!.close(error => error ? no(error) : yes()); });
@@ -265,17 +422,51 @@ export async function prepareGenuineCurrentV26R2Pair(parent: string, options: Ge
     ensure(owner.accepting);
     const sourceDatabaseId = randomUUID(), targetDatabaseId = randomUUID();
     const observerNonce = options.originalIssueObserver === true ? randomUUID() : undefined;
+    const originalAckDelivery = observerNonce === undefined ? undefined : await openOriginalAckDelivery(owner, parent, observerNonce);
     const nativeOptions = { modules: true, script, compatibilityDate: '2026-07-20', host: '127.0.0.1', port: Number(new URL(origin).port),
       d1Databases: { DB: sourceDatabaseId }, d1Persist: join(root, 'd1'), r2Buckets: { ASSETS: bucketName }, r2Persist: join(root, 'r2'),
       bindings: { AUTH_MODE: 'access', ACCESS_TEAM_DOMAIN: issuer, ACCESS_AUD: audience, ALLOWED_EMAILS: `${actor},${reader}`, SYSTEM_ADMIN_EMAILS: actor,
         ...(options.fileEvidenceOperator === true ? { FILE_EVIDENCE_OPERATOR_EMAILS: actor } : {}),
-        ...(observerNonce === undefined ? {} : { V5_QUALIFICATION_CONTROL_NONCE: observerNonce }),
+        ...(observerNonce === undefined ? {} : { V5_QUALIFICATION_CONTROL_NONCE: observerNonce,
+          V5_QUALIFICATION_ACK_DELIVERY_ORIGIN: originalAckDelivery!.origin! }),
         R2_BOOTSTRAP_NAMESPACE: JSON.stringify({ kind: 'local-r2', installationId: sourceNamespaceInstallationId, bucketName }) },
       log: new Log(LogLevel.ERROR), outboundService(request: MiniflareRequest) {
+        let call = 0;
+        if (originalAckDelivery) try { call = ++originalAckDelivery.outboundCalls; } catch { /* Observation only. */ }
+        let stage: OriginalAckOutboundStage = 'entered';
+        observeOriginalAckOutbound(owner, originalAckDelivery, request, issuer, call, stage);
         const work = (async () => {
-          ensure(request.url === `${issuer}/cdn-cgi/access/certs` && request.method === 'GET');
-          const response = await fetch(request.url, { redirect: 'error', signal: AbortSignal.timeout(5000) });
-          return new Response(await response.arrayBuffer(), { status: response.status, headers: response.headers });
+          try {
+            if (originalAckDelivery && request.url === `${originalAckDelivery.origin}/__original_native_ack_delivery`) {
+              stage = 'ack-identity';
+              const id = request.headers.get('x-original-native-gate');
+              ensure(request.method === 'GET' && request.headers.get('x-original-native-control') === originalAckDelivery.nonce
+                && id && originalAckDelivery.gates.has(id));
+              // A real private Node HTTP request remains outstanding. Its 90s
+              // transport ceiling matches this optional observer's existing one;
+              // it does not alter the product's 60000ms kernel deadline.
+              stage = 'ack-admission';
+              ensure(owner.accepting && originalAckDelivery.accepting);
+              stage = 'ack-fetch';
+              observeOriginalAckOutbound(owner, originalAckDelivery, request, issuer, call, stage);
+              const response = await fetch(request.url, { redirect: 'error', headers: {
+                'x-original-native-control': originalAckDelivery.nonce, 'x-original-native-gate': id }, signal: AbortSignal.timeout(90_000) });
+              stage = 'ack-body';
+              observeOriginalAckOutbound(owner, originalAckDelivery, request, issuer, call, stage, undefined, response);
+              const body = await response.arrayBuffer();
+              observeOriginalAckOutbound(owner, originalAckDelivery, request, issuer, call, 'ack-return', undefined, response);
+              return new Response(body, { status: response.status, headers: response.headers });
+            }
+            stage = 'jwks-admission';
+            ensure(request.url === `${issuer}/cdn-cgi/access/certs` && request.method === 'GET');
+            stage = 'jwks-fetch';
+            const response = await fetch(request.url, { redirect: 'error', signal: AbortSignal.timeout(5000) });
+            stage = 'jwks-body';
+            return new Response(await response.arrayBuffer(), { status: response.status, headers: response.headers });
+          } catch (error) {
+            observeOriginalAckOutbound(owner, originalAckDelivery, request, issuer, call, stage, error);
+            throw error;
+          }
         })(); owner.outbound.push(work); void work.catch(() => undefined); return work;
       } };
     let sourceWorkerName: string | undefined;
@@ -318,16 +509,44 @@ export async function prepareGenuineCurrentV26R2Pair(parent: string, options: Ge
     const observerStops: (() => Promise<void>)[] = [];
     function issueObserver(originalWorker: typeof worker): WorkerV5OriginalIssueObserver | undefined {
       if (observerNonce === undefined) return undefined;
+      ensure(originalAckDelivery);
+      let originalIoGate: OriginalAckDeliveryGate | undefined;
       const controlFetch = async (action: WorkerV5OriginalIssueControl | 'stop-observer', gate?: WorkerV5OriginalIssueGate) => {
         const response = await originalWorker.fetch('https://original-v5-observer.invalid/__original_native_qualification/' + action,
-          { method: action === 'stats' ? 'GET' : 'POST', headers: { 'x-original-native-control': observerNonce },
+          { method: action === 'stats' ? 'GET' : 'POST', headers: { 'x-original-native-control': observerNonce,
+            ...(action === 'arm' && originalIoGate ? { 'x-original-native-gate': originalIoGate.id } : {}) },
             ...(gate === undefined ? {} : { body: gate }), signal: AbortSignal.timeout(5000) });
         expect(response.status).toBe(200); return JSON.parse(await response.text()) as unknown;
       };
       let originalStop: Promise<void> | undefined;
-      observerStops.push(() => originalStop ??= (async () => { await controlFetch('stop-observer'); })());
+      observerStops.push(() => originalStop ??= Promise.resolve().then(async () => {
+        const failures: unknown[] = [];
+        let revoked = false;
+        try { await controlFetch('stop-observer'); revoked = true; } catch (error) { failures.push(error); }
+        try {
+          if (originalIoGate) {
+            if (revoked) { originalIoGate.administratorRevokeAcknowledged = true; releaseOriginalAckDelivery(originalIoGate); }
+            else rejectOriginalAckDelivery(originalIoGate, failures[0]);
+          }
+        } catch (error) { failures.push(error); }
+        if (failures.length) throw new AggregateError(failures, 'Original issue observer revoke and HTTP ACK release failed');
+      }));
       return Object.freeze({
-        control: (action: WorkerV5OriginalIssueControl, gate?: WorkerV5OriginalIssueGate) => original(owner, () => controlFetch(action, gate)),
+        control: (action: WorkerV5OriginalIssueControl, gate?: WorkerV5OriginalIssueGate) => original(owner, async () => {
+          if (action === 'arm') {
+            ensure(gate && (!originalIoGate || originalIoGate.released) && originalAckDelivery.accepting);
+            originalIoGate = { id: randomUUID(), kind: gate, acceptedRequests: 0, acknowledgedResponses: 0, released: false,
+              deliveryAttempted: false, administratorRevokeAcknowledged: false, acceptedAt: null, responseFinishedAt: null };
+            originalAckDelivery.gates.set(originalIoGate.id, originalIoGate);
+          }
+          if (action === 'release' && originalIoGate) releaseOriginalAckDelivery(originalIoGate);
+          const value = await controlFetch(action, gate);
+          if (action !== 'stats') return value;
+          ensure(value && typeof value === 'object' && !Array.isArray(value));
+          return { ...value, deliveryIo: originalIoGate ? { schema: 'original-native-ack-delivery-http-io/1',
+            acceptedRequests: originalIoGate.acceptedRequests, acknowledgedResponses: originalIoGate.acknowledgedResponses,
+            released: originalIoGate.released, acceptedAt: originalIoGate.acceptedAt, responseFinishedAt: originalIoGate.responseFinishedAt } : null };
+        }),
         request: (path: string, method = 'GET', body?: HttpBody, headers: Record<string, string> = {}, identity: 'admin' | 'reader' | 'none' = 'admin') => original(owner, async () => {
           const response = await originalWorker.fetch('https://original-v5-observer.invalid' + path, { method,
             headers: { ...headers, ...(identity === 'none' ? {} : { 'cf-access-jwt-assertion': identity === 'admin' ? adminToken : readerToken }) },
