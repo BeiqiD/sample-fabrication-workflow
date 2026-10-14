@@ -56,11 +56,69 @@ function frozenData(value: unknown): unknown {
   return captured;
 }
 
+/** A descriptor-only negative selector, never a source proof. This does not
+ * admit an image or history. Their original V5 owners still validate them.
+ * Ambiguous/malformed/accessor input takes the unchanged complete proof path;
+ * only a definite absence of LOCAL Comment receipt references may skip it. */
+function needsNativeV5LocalCommentProof(imageValue: unknown): boolean {
+  const field = (value: unknown, key: string): unknown => {
+    if (!value || typeof value !== "object" || Array.isArray(value)
+      || ![Object.prototype, null].includes(Object.getPrototypeOf(value))) return undefined;
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    return descriptor?.enumerable && "value" in descriptor ? descriptor.value : undefined;
+  };
+  const arrayData = (value: unknown): readonly unknown[] | undefined => {
+    if (!Array.isArray(value)) return undefined;
+    const size = Object.getOwnPropertyDescriptor(value, "length");
+    if (!size || !("value" in size) || !Number.isSafeInteger(size.value) || size.value < 0 || size.value > 16_384
+      || Reflect.ownKeys(value).length !== size.value + 1) return undefined;
+    const result: unknown[] = [];
+    for (let index = 0; index < size.value; index++) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
+      if (!descriptor?.enumerable || !("value" in descriptor)) return undefined;
+      result.push(descriptor.value);
+    }
+    return result;
+  };
+  if (field(imageValue, "version") !== 5 || field(imageValue, "kind") !== "system-recovery-image"
+    || field(imageValue, "checkpointId") !== PORTABLE_RUNTIME_CHECKPOINT_ID
+    || field(imageValue, "schemaSha256") !== PORTABLE_RUNTIME_RECOVERY_SCHEMA_SHA256) return true;
+  const tables = field(imageValue, "tables");
+  const selected = (name: string): { columns: readonly unknown[]; rows: readonly unknown[] } | undefined => {
+    const table = field(tables, name), columns = arrayData(field(table, "columns")), rows = arrayData(field(table, "rows"));
+    const spec = PORTABLE_RUNTIME_RECOVERY_TABLES.find(value => value.name === name);
+    if (!spec || !columns || !rows || columns.length !== spec.columns.length
+      || columns.some((column, index) => column !== spec.columns[index])) return undefined;
+    return { columns, rows };
+  };
+  const profiles = selected("storage_profiles"), receipts = selected("comment_item_acceptances");
+  if (!profiles || !receipts || profiles.rows.length + receipts.rows.length > 16_384) return true;
+  const cellText = (row: unknown, columns: readonly unknown[], name: string): string | undefined => {
+    const cells = arrayData(field(row, "cells")), index = columns.indexOf(name);
+    if (!cells || cells.length !== columns.length || index < 0) return undefined;
+    const cell = cells[index];
+    const value = field(cell, "value");
+    return field(cell, "type") === "text" && typeof value === "string" ? value : undefined;
+  };
+  const local = new Set<string>();
+  for (const row of profiles.rows) {
+    const id = cellText(row, profiles.columns, "id"), adapter = cellText(row, profiles.columns, "adapter_type");
+    if (id === undefined || adapter === undefined || !["r2", "s3", "switchdrive", "local"].includes(adapter)) return true;
+    if (adapter === "local") local.add(id);
+  }
+  for (const row of receipts.rows) {
+    const profile = cellText(row, receipts.columns, "storage_profile_id");
+    if (profile === undefined || local.has(profile)) return true;
+  }
+  return false;
+}
+
 /** Called only by the V5 image owner after its original complete image check.
  * Revalidate the copied exact V5 tuple/catalog before retaining any source data.
  * The two-key protected history remains ordinary serialized data; copying it
  * loses this private association and cannot qualify a Comment payload. */
 export function bindNativeV5CommentSourceHistory(history: object, imageValue: unknown): void {
+  if (!needsNativeV5LocalCommentProof(imageValue)) { nativeSources.delete(history); return; }
   const captured = frozenData(imageValue);
   ensure(captured && typeof captured === "object" && !Array.isArray(captured), "source image");
   const image = captured as Record<string, unknown>;
