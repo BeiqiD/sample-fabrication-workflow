@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { DatabaseSync } from "node:sqlite";
+import { DatabaseSync } from "node:sqlite";
 import type { Env } from "../types";
 import { referenceTestDatabase, SqliteD1Database } from "../reference-test-support";
 import { captureSystemBackupSnapshot, installSystemBackupHolds, sourceBackupCheckpoint } from "./backup-snapshot";
@@ -9,6 +9,7 @@ import { finishSystemBackupManifest, planSystemBackupSources, validateSystemBack
 import { RECOVERY_SCHEMA_SHA256, RECOVERY_TABLES } from "../../shared/contracts/system-recovery-catalog";
 import { createSystemBackupArchiveStream, measureSystemBackupArchive } from "../../shared/domain/system-backup-archive";
 import { sourceFromBlob, type ArchiveHashFactory } from "../../shared/domain/research-archive";
+import { installNativeV5SystemBackupHolds, installPortableSystemBackupHolds } from "./portable-backup-holds";
 
 const databases: DatabaseSync[] = [], payload = Uint8Array.of(1, 3, 5, 7), digest = createHash("sha256").update(payload).digest("hex");
 const now = "2026-10-06T12:00:00.000Z";
@@ -26,6 +27,114 @@ function fixture() {
   return { sql, db, batch };
 }
 const hashFactory: ArchiveHashFactory = () => { const hash = createHash("sha256"); return { write(bytes) { hash.update(bytes); }, finish() { return hash.digest("hex"); } }; };
+
+/** Isolated actual SQLite integration of the original hold installer. These
+ * intentionally constructed SQL inputs are not a V5 image, admitted File
+ * graph, Worker HTTP workflow, native provider or public backup qualification. */
+function holdSqlFixture(includeNull: boolean) {
+  const sql = new DatabaseSync(":memory:"); databases.push(sql);
+  sql.exec(`
+    CREATE TABLE retention_inputs(store_kind TEXT NOT NULL,provider TEXT NOT NULL,object_key);
+    CREATE VIEW blob_retention_edges AS SELECT store_kind,provider,object_key FROM retention_inputs;
+    CREATE TABLE assets(r2_key TEXT);
+    CREATE TABLE managed_storage_objects(provider TEXT,object_key TEXT);
+    CREATE TABLE imports(workbook_asset_key TEXT,manifest_asset_key TEXT);
+    CREATE TABLE template_versions(source_asset_key TEXT);
+    CREATE TABLE events(asset_key TEXT);
+    CREATE TABLE system_recovery_jobs(id TEXT PRIMARY KEY);
+    CREATE TABLE system_recovery_legacy_holds(
+      job_id TEXT NOT NULL REFERENCES system_recovery_jobs(id),
+      store_kind TEXT NOT NULL CHECK(store_kind IN('r2','managed')),
+      provider TEXT NOT NULL,object_key TEXT NOT NULL,released_at TEXT,
+      PRIMARY KEY(job_id,store_kind,provider,object_key));
+    CREATE TABLE blob_gc_ledger(store_kind TEXT,provider TEXT,object_key TEXT,state TEXT);
+    CREATE TABLE file_shadow_legacy_deletion_claims(store_kind TEXT,provider TEXT,object_key TEXT);
+    CREATE TABLE legacy_file_mappings(store_kind TEXT,provider TEXT,object_key TEXT,location_id TEXT);
+    CREATE TABLE file_location_gc_ledger(location_id TEXT,state TEXT);
+    CREATE TABLE file_authority_control(singleton INTEGER PRIMARY KEY,mode TEXT);
+    CREATE TABLE file_location_publications(location_id TEXT PRIMARY KEY);
+    CREATE TABLE file_location_availability(location_id TEXT PRIMARY KEY,availability TEXT);
+    CREATE TABLE file_location_holds(id TEXT PRIMARY KEY,location_id TEXT NOT NULL,hold_kind TEXT NOT NULL,
+      operation_id TEXT NOT NULL,reason TEXT NOT NULL,acquired_at TEXT NOT NULL,expires_at TEXT,released_at TEXT);
+    CREATE TABLE batch_probe(id TEXT PRIMARY KEY);
+    INSERT INTO system_recovery_jobs VALUES('native'),('default'),('rollback'),('prior');
+    INSERT INTO retention_inputs VALUES('r2','r2','same-key'),('r2','r2','same-key'),
+      ('managed','s3','same-key'),('r2','r2','deleting-key'),
+      ('r2','r2','claimed-key'),('r2','r2','mapped-deleting-key');
+    INSERT INTO assets VALUES('direct-asset');
+    INSERT INTO imports VALUES('same-key',NULL);
+    INSERT INTO events VALUES('direct-event');
+    INSERT INTO blob_gc_ledger VALUES('r2','r2','deleting-key','deleting');
+    INSERT INTO file_shadow_legacy_deletion_claims VALUES('r2','r2','claimed-key');
+    INSERT INTO legacy_file_mappings VALUES('r2','r2','mapped-deleting-key','old-location');
+    INSERT INTO file_location_gc_ledger VALUES('old-location','deleted'),('physical-deleting','deleting');
+    INSERT INTO file_authority_control VALUES(1,'active');
+    INSERT INTO file_location_publications VALUES('physical-live'),('physical-deleting'),('physical-unavailable');
+    INSERT INTO file_location_availability VALUES('physical-live','available'),
+      ('physical-deleting','available'),('physical-unavailable','metadata_not_ready');
+    INSERT INTO system_recovery_legacy_holds VALUES('prior','r2','r2','prior-key',NULL);
+  `);
+  if (includeNull) sql.prepare("INSERT INTO retention_inputs VALUES('r2','r2',NULL)").run();
+  const db = new SqliteD1Database(sql), source = () => sql.prepare("SELECT rowid,* FROM retention_inputs ORDER BY rowid").all();
+  const legacy = (job: string) => sql.prepare(`SELECT store_kind,provider,object_key,released_at
+    FROM system_recovery_legacy_holds WHERE job_id=? ORDER BY store_kind,provider,object_key`).all(job);
+  const physical = (job: string) => sql.prepare(`SELECT id,location_id,hold_kind,operation_id,reason,acquired_at,expires_at,released_at
+    FROM file_location_holds WHERE operation_id=? ORDER BY location_id`).all("fp5-backup:" + job);
+  const expectedLegacy = [
+    { store_kind: "managed", provider: "s3", object_key: "same-key", released_at: null },
+    { store_kind: "r2", provider: "r2", object_key: "direct-asset", released_at: null },
+    { store_kind: "r2", provider: "r2", object_key: "direct-event", released_at: null },
+    { store_kind: "r2", provider: "r2", object_key: "same-key", released_at: null },
+  ];
+  return { sql, db, source, legacy, physical, expectedLegacy };
+}
+
+describe("isolated original SQLite hold installer semantics", () => {
+  it("keeps NULL metadata rows while retaining every real legacy namespace and the original physical File hold", async () => {
+    const f = holdSqlFixture(true), source = f.source(), prior = f.legacy("prior");
+    expect(source.filter(row => row.object_key === null)).toHaveLength(1);
+    const statements = installNativeV5SystemBackupHolds(f.db as unknown as D1Database, "native", now);
+    expect(statements).toHaveLength(2);
+    await f.db.batch(statements);
+    expect(f.source()).toEqual(source); expect(f.legacy("prior")).toEqual(prior);
+    expect(f.legacy("native")).toEqual(f.expectedLegacy);
+    const held = f.physical("native"); expect(held).toHaveLength(1);
+    expect(held[0]).toMatchObject({ location_id: "physical-live", hold_kind: "export", operation_id: "fp5-backup:native",
+      reason: "Frozen system backup source", acquired_at: now, expires_at: null, released_at: null });
+    expect(held[0].id).toMatch(/^fp5_[a-f0-9]{32}$/);
+    await f.db.batch(installNativeV5SystemBackupHolds(f.db as unknown as D1Database, "native", now));
+    expect(f.source()).toEqual(source); expect(f.legacy("native")).toEqual(f.expectedLegacy);
+    expect(f.physical("native")).toEqual(held);
+  });
+  it("retains the default installer's NULL rejection and rolls back its original batch without consuming source metadata", async () => {
+    const f = holdSqlFixture(true), source = f.source(), prior = f.legacy("prior");
+    await expect(f.db.batch([f.db.prepare("INSERT INTO batch_probe VALUES('default')") as unknown as D1PreparedStatement,
+      ...installPortableSystemBackupHolds(f.db as unknown as D1Database, "default", now)]))
+      .rejects.toThrow(/NOT NULL/);
+    expect(f.sql.prepare("SELECT * FROM batch_probe").all()).toEqual([]);
+    expect(f.legacy("default")).toEqual([]); expect(f.physical("default")).toEqual([]);
+    expect(f.source()).toEqual(source); expect(f.legacy("prior")).toEqual(prior);
+  });
+  it("preserves default non-NULL hold results and atomically rolls back Native holds when a later original batch statement fails", async () => {
+    const f = holdSqlFixture(false), source = f.source(), prior = f.legacy("prior");
+    await f.db.batch(installPortableSystemBackupHolds(f.db as unknown as D1Database, "default", now));
+    await f.db.batch(installNativeV5SystemBackupHolds(f.db as unknown as D1Database, "native", now));
+    expect(f.legacy("default")).toEqual(f.expectedLegacy); expect(f.legacy("native")).toEqual(f.expectedLegacy);
+    const defaultPhysical = f.physical("default"), nativePhysical = f.physical("native");
+    expect(defaultPhysical).toHaveLength(1); expect(nativePhysical).toHaveLength(1);
+    expect(defaultPhysical[0]).toMatchObject({ location_id: "physical-live", acquired_at: now, released_at: null });
+    expect(nativePhysical[0]).toMatchObject({ location_id: "physical-live", acquired_at: now, released_at: null });
+    await expect(f.db.batch([f.db.prepare("INSERT INTO batch_probe VALUES('rollback')") as unknown as D1PreparedStatement,
+      ...installNativeV5SystemBackupHolds(f.db as unknown as D1Database, "rollback", now),
+      f.db.prepare("SELECT json('Original later batch guard rejects')") as unknown as D1PreparedStatement]))
+      .rejects.toThrow();
+    expect(f.sql.prepare("SELECT * FROM batch_probe").all()).toEqual([]);
+    expect(f.legacy("rollback")).toEqual([]); expect(f.physical("rollback")).toEqual([]);
+    expect(f.legacy("default")).toEqual(f.expectedLegacy); expect(f.legacy("native")).toEqual(f.expectedLegacy);
+    expect(f.physical("default")).toEqual(defaultPhysical); expect(f.physical("native")).toEqual(nativePhysical);
+    expect(f.source()).toEqual(source); expect(f.legacy("prior")).toEqual(prior);
+  });
+});
 
 describe("one-primary-batch exact system backup and closed archive admission", () => {
   it("freezes canonical/deleted history, int64 rowids, protected policy and source holds in one batch", async () => {

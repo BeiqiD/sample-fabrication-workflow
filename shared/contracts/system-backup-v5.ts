@@ -10,6 +10,7 @@ import { validateFullExportV28, type FullExportManifestV28 } from "./export-port
 import { validateSystemBackupContentImageV28, validateSystemBackupFileInventoryV28, type SystemBackupFileV28 } from "./system-backup-v28-content";
 import { LOCAL_PROFILE_HISTORY_TABLE_NAMES } from "./export-local-profiles-v26";
 import type { ProtectedLocalHistoryV28 } from "./export-local-file-runtime-v28";
+import { bindNativeV5CommentSourceHistory } from "./export-native-v5-comment-provenance";
 import type { ExportRow } from "./export";
 import type { ProtectedIdentityPolicy } from "./system-backup-v2";
 import { protectedIdentityPolicy } from "./system-backup-v2";
@@ -85,12 +86,14 @@ export function validateSystemRecoveryImageV5(value: unknown): SystemRecoveryIma
  * Both whole-record validation and actual native capture call this after image
  * admission; callers never supply a callback claiming a source was qualified. */
 export function protectedLocalHistoryFromV5Image(image: SystemRecoveryImageV5): ProtectedLocalHistoryV28 {
-  return Object.fromEntries(LOCAL_PROFILE_HISTORY_TABLE_NAMES.map(name => [name, image.tables[name].rows.map(row =>
+  const history = Object.fromEntries(LOCAL_PROFILE_HISTORY_TABLE_NAMES.map(name => [name, image.tables[name].rows.map(row =>
     Object.freeze(Object.fromEntries(image.tables[name].columns.map((column, index) => {
       const cell = row.cells[index];
       ensure(cell.type !== "blob" && (cell.type !== "integer" || Number.isSafeInteger(Number(cell.value))), "protected local history scalar");
       return [column, cell.type === "null" ? null : cell.type === "integer" || cell.type === "real" ? Number(cell.value) : cell.value];
     })) as ExportRow))])) as unknown as ProtectedLocalHistoryV28;
+  bindNativeV5CommentSourceHistory(history, image);
+  return history;
 }
 export function validateNodeMigrationProvenanceV5(value: unknown): NodeMigrationProvenance {
   exact(value, ["kind", "installationId", "catalogId", "checkpointId", "schemaSha256", "createdAt", "entries"]);
