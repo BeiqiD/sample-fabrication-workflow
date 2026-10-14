@@ -2,6 +2,7 @@ import type { ExportRow, ExportTables } from "./export";
 import { checkedStoredLocalVolumeNamespace } from "./local-volume-profile";
 import { FILE_SHADOW_DEPENDENCY_SPECS } from "./file-shadow-schema";
 import { sha256Hex, stableJson } from "../domain/content-addressing";
+import { nativeV5CommentItemRow, type NativeV5CommentProvenance } from "./export-native-v5-comment-provenance";
 
 export const LOCAL_PROFILE_HISTORY_TABLE_NAMES = ["local_storage_profile_registrations", "local_storage_profile_activations"] as const;
 export const LOCAL_PROFILE_INSTALLATION_TABLE_NAMES = ["local_storage_profile_checks", "local_storage_profile_admissions", "local_storage_profile_bindings"] as const;
@@ -18,7 +19,7 @@ function snapshot(value: unknown): ExportRow {
 /** Research carries physical identity and historical runtime metadata only.
  * Protected registration/activation audits and every installation binding are
  * excluded. Recorded read_write is never interpreted as usable authority. */
-export async function validateLocalProfileMetadataV28(tables: ExportTables): Promise<ReadonlySet<string>> {
+export async function validateLocalProfileMetadataV28(tables: ExportTables, nativeComment?: NativeV5CommentProvenance): Promise<ReadonlySet<string>> {
   for (const name of [...LOCAL_PROFILE_HISTORY_TABLE_NAMES, ...LOCAL_PROFILE_INSTALLATION_TABLE_NAMES]) ensure(!Object.hasOwn(tables, name), "protected/local rows in research");
   const profiles = tables.storage_profiles.filter(row => row.adapter_type === "local"), ids = new Set(profiles.map(row => String(row.id)));
   ensure(ids.size === profiles.length, "metadata profile identity");
@@ -52,19 +53,21 @@ export async function validateLocalProfileMetadataV28(tables: ExportTables): Pro
     ensure(runtime.length === 1 && stableJson(runtime[0]) === stableJson(previous), "metadata current runtime");
     namespaces.add(canonical);
   }
-  assertLocalPayloadScopeV28(tables, ids);
+  assertLocalPayloadScopeV28(tables, ids, nativeComment);
   return ids;
 }
 
-function assertLocalPayloadScopeV28(tables: ExportTables, ids: ReadonlySet<string>) {
+function assertLocalPayloadScopeV28(tables: ExportTables, ids: ReadonlySet<string>, nativeComment?: NativeV5CommentProvenance) {
   // This first explicit local-byte profile supports ordinary accepted uploads;
-  // import/Comment/metrology/shadow/job/recovery-publication references remain closed.
+  // import/metrology/shadow/job/recovery-publication references remain closed.
+  // Native V5 alone may qualify exact completed local Comment receipt rows.
   const payloadTables = new Set(["file_locations", "file_location_publications", "file_location_availability", "file_acceptance_candidates",
     "r2_upload_requests", "assets", "storage_role_defaults", "storage_role_policy_revisions"]);
   for (const [name, rows] of Object.entries(tables)) {
     if (["storage_profiles", "storage_profile_runtime", ...LOCAL_PROFILE_HISTORY_TABLE_NAMES].includes(name)) continue;
     for (const row of rows) for (const [column, value] of Object.entries(row)) if (column === "storage_profile_id" || column.endsWith("_profile_id")) {
-      ensure(!ids.has(String(value)) || payloadTables.has(name) && column === "storage_profile_id", `unsupported local provider payload:${name}.${column}`);
+      ensure(!ids.has(String(value)) || column === "storage_profile_id" && (payloadTables.has(name)
+        || name === "comment_item_acceptances" && nativeV5CommentItemRow(nativeComment, row)), `unsupported local provider payload:${name}.${column}`);
     }
   }
 }
@@ -72,7 +75,7 @@ function assertLocalPayloadScopeV28(tables: ExportTables, ids: ReadonlySet<strin
 /** Portable decisions are provenance, never destination installation authority.
  * The dedicated V28 runtime verifier qualifies the closed ordinary local File
  * payload set. Nothing here admits destination paths, bindings or execution. */
-export async function validateLocalProfileHistoryV28(tables: ExportTables): Promise<ReadonlySet<string>> {
+export async function validateLocalProfileHistoryV28(tables: ExportTables, nativeComment?: NativeV5CommentProvenance): Promise<ReadonlySet<string>> {
   for (const name of LOCAL_PROFILE_INSTALLATION_TABLE_NAMES) ensure(!Object.hasOwn(tables, name), "installation authority in content");
   const profiles = tables.storage_profiles.filter(row => row.adapter_type === "local");
   const ids = new Set(profiles.map(row => String(row.id)));
@@ -129,7 +132,7 @@ export async function validateLocalProfileHistoryV28(tables: ExportTables): Prom
     operations.add(registration.operation_id); registered.add(id); namespaces.add(canonical);
   }
   ensure(tables.local_storage_profile_activations.every(row => ids.has(String(row.storage_profile_id))), "action owner");
-  assertLocalPayloadScopeV28(tables, ids);
+  assertLocalPayloadScopeV28(tables, ids, nativeComment);
   ensure(tables.file_shadow_profile_enablements.every(row => !ids.has(String(row.storage_profile_id))), "legacy local enablement forbidden");
   return ids;
 }
