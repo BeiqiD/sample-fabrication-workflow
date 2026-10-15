@@ -2,7 +2,7 @@
 
 Recorded 2026-10-15 against PR #313 candidate `6ca0d8ccc600aeb8b1fbfd59fc5067c64e8a4650`.
 This is a development/review ledger, not production activation or release approval.
-PR #313 is not yet merged at this observation; its own CI and development merge remain open.
+[PR #313](https://github.com/BeiqiD/sample-fabrication-workflow/pull/313) tracks the frontend policy integration; its own hosted checks and merge receipt remain separate from the local results below.
 
 ## Completed backend milestone
 
@@ -56,7 +56,7 @@ Chromium cases using explicit HTTP fixtures**. Type checks and Worker/Node build
 also passed. The browser fixtures simulate archives, executor progress and target
 proof; they are not genuine browser-driven restore or an installed Node SPA.
 
-**Local genuine Worker browser lifecycle passed (successor awaiting integration).**
+**Local genuine Worker browser lifecycle passed.**
 The actual current24 V3 path passed at 1280/light and 390/dark with separate local
 D1/R2 sources and fresh targets. Each case exercised browser backup, actual ZIP
 download/upload, preview, explicit mapping, inert recovery and verified report.
