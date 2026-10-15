@@ -1,0 +1,180 @@
+name: Main readiness rehearsal
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - codex/main-readiness-request-recovery
+      - v2/backend-foundation
+    paths:
+      - .github/workflows/main-readiness.yml
+      - src/**
+      - worker/**
+      - shared/**
+      - migrations/**
+      - migrations-history/**
+      - public/**
+      - index.html
+      - package.json
+      - package-lock.json
+      - vite.config.ts
+      - wrangler.jsonc
+      - scripts/production-worker-artifact.mjs
+      - scripts/generate-wrangler-config.mjs
+      - scripts/temml-bundler-compat.mjs
+      - scripts/qa/phase5f/browser-two-version-handover.mjs
+      - scripts/qa/phase5f/two-version-handover-runtime.mjs
+      - scripts/qa/phase5f/two-version-handover-browser.mjs
+      - scripts/rehearse-current-local-migrations.mjs
+      - scripts/d1-migration-observer.mjs
+      - scripts/d1-migration-plan.mjs
+      - scripts/lib/backend-schema-baseline.mjs
+      - scripts/fixtures/backend-schema/**
+  pull_request:
+    branches:
+      - v2/backend-foundation
+      - main
+    paths:
+      - .github/workflows/main-readiness.yml
+      - src/**
+      - worker/**
+      - shared/**
+      - migrations/**
+      - migrations-history/**
+      - public/**
+      - index.html
+      - package.json
+      - package-lock.json
+      - vite.config.ts
+      - wrangler.jsonc
+      - scripts/production-worker-artifact.mjs
+      - scripts/generate-wrangler-config.mjs
+      - scripts/temml-bundler-compat.mjs
+      - scripts/qa/phase5f/browser-two-version-handover.mjs
+      - scripts/qa/phase5f/two-version-handover-runtime.mjs
+      - scripts/qa/phase5f/two-version-handover-browser.mjs
+      - scripts/rehearse-current-local-migrations.mjs
+      - scripts/d1-migration-observer.mjs
+      - scripts/d1-migration-plan.mjs
+      - scripts/lib/backend-schema-baseline.mjs
+      - scripts/fixtures/backend-schema/**
+
+permissions:
+  contents: read
+
+jobs:
+  two-version-handover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      WRANGLER_SEND_METRICS: 'false'
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+    steps:
+      - name: Prepare evidence directory
+        run: printf 'HANDOVER_OUTPUT=%s/two-version-%s-%s\n' "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+
+      - name: Check out current candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Check out the exact earlier version
+        uses: actions/checkout@v4
+        with:
+          ref: abdc2d98541c01e887bbea540c50bb07a7e1cab5
+          path: .handover-version-a
+          persist-credentials: false
+
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+          cache: npm
+
+      - name: Install committed dependencies
+        run: npm ci
+
+      - name: Build both unchanged version inputs
+        run: |
+          cmp package-lock.json .handover-version-a/package-lock.json
+          ln -s "$GITHUB_WORKSPACE/node_modules" .handover-version-a/node_modules
+          npm --prefix .handover-version-a run build
+          npm run build
+
+      - name: Use installed Chrome and pinned browser client
+        run: |
+          chrome_path="$(command -v google-chrome || command -v google-chrome-stable)"
+          "$chrome_path" --version
+          browser_tools="$RUNNER_TEMP/handover-browser-tools"
+          npm install --prefix "$browser_tools" --no-save --no-package-lock --ignore-scripts --no-audit --no-fund playwright-core@1.57.0
+          printf 'CHROMIUM_PATH=%s\n' "$chrome_path" >> "$GITHUB_ENV"
+          printf 'PLAYWRIGHT_MODULE_PATH=%s/handover-browser-tools/node_modules/playwright-core\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+
+      - name: Qualify actual old-document and new-serving versions
+        run: node scripts/qa/phase5f/browser-two-version-handover.mjs --source-a "$GITHUB_WORKSPACE/.handover-version-a" --output "$HANDOVER_OUTPUT"
+
+      - name: Retain reports and screenshots only
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: two-version-handover-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          path: |
+            ${{ env.HANDOVER_OUTPUT }}/report.json
+            ${{ env.HANDOVER_OUTPUT }}/two-version-handover-1280-light/migrations.log
+            ${{ env.HANDOVER_OUTPUT }}/two-version-handover-1280-light/before-handover.png
+            ${{ env.HANDOVER_OUTPUT }}/two-version-handover-1280-light/retired-route.png
+            ${{ env.HANDOVER_OUTPUT }}/two-version-handover-1280-light/recovered-route.png
+            ${{ env.HANDOVER_OUTPUT }}/two-version-handover-1280-light/browser-failure.png
+            ${{ env.HANDOVER_OUTPUT }}/two-version-handover-390-dark/migrations.log
+            ${{ env.HANDOVER_OUTPUT }}/two-version-handover-390-dark/before-handover.png
+            ${{ env.HANDOVER_OUTPUT }}/two-version-handover-390-dark/retired-route.png
+            ${{ env.HANDOVER_OUTPUT }}/two-version-handover-390-dark/recovered-route.png
+            ${{ env.HANDOVER_OUTPUT }}/two-version-handover-390-dark/original-queued-job.png
+            ${{ env.HANDOVER_OUTPUT }}/two-version-handover-390-dark/browser-failure.png
+
+  populated-current-migrations:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - name: Prepare evidence directory
+        run: printf 'CURRENT_MIGRATION_OUTPUT=%s/current-migrations-%s-%s\n' "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+
+      - name: Check out candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+          cache: npm
+
+      - name: Install committed dependencies
+        run: npm ci
+
+      - name: Qualify populated local upgrade and unchanged-SQL retry
+        run: node scripts/rehearse-current-local-migrations.mjs --destination "$CURRENT_MIGRATION_OUTPUT"
+
+      - name: Retain reports and original CLI diagnostics only
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: populated-current-migrations-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          path: |
+            ${{ env.CURRENT_MIGRATION_OUTPUT }}/report.json
+            ${{ env.CURRENT_MIGRATION_OUTPUT }}/populated-ladder/report.json
+            ${{ env.CURRENT_MIGRATION_OUTPUT }}/populated-ladder/*.stdout.log
+            ${{ env.CURRENT_MIGRATION_OUTPUT }}/populated-ladder/*.stderr.log
+            ${{ env.CURRENT_MIGRATION_OUTPUT }}/populated-direct/report.json
+            ${{ env.CURRENT_MIGRATION_OUTPUT }}/populated-direct/*.stdout.log
+            ${{ env.CURRENT_MIGRATION_OUTPUT }}/populated-direct/*.stderr.log
+            ${{ env.CURRENT_MIGRATION_OUTPUT }}/partial-prefix-retry/report.json
+            ${{ env.CURRENT_MIGRATION_OUTPUT }}/partial-prefix-retry/*.stdout.log
+            ${{ env.CURRENT_MIGRATION_OUTPUT }}/partial-prefix-retry/*.stderr.log

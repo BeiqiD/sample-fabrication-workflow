@@ -6,6 +6,7 @@ on:
     branches:
       - codex/genuine-worker-browser-recovery
       - codex/migration-rejected-intent-recovery
+      - codex/main-readiness-request-recovery
       - v2/backend-foundation
     paths:
       - .github/workflows/recovery-browser.yml
@@ -29,6 +30,9 @@ on:
       - scripts/qa/phase5f/genuine-migration-intent-runtime.mjs
       - scripts/qa/phase5f/genuine-migration-intent-browser.mjs
       - scripts/qa/phase5f/prepare-file-migration-historical-r2-profiles.mjs
+      - scripts/qa/phase5f/browser-genuine-worker-packages.mjs
+      - scripts/qa/phase5f/genuine-worker-package-runtime.mjs
+      - scripts/qa/phase5f/genuine-worker-package-browser.mjs
   pull_request:
     branches:
       - v2/backend-foundation
@@ -55,6 +59,9 @@ on:
       - scripts/qa/phase5f/genuine-migration-intent-runtime.mjs
       - scripts/qa/phase5f/genuine-migration-intent-browser.mjs
       - scripts/qa/phase5f/prepare-file-migration-historical-r2-profiles.mjs
+      - scripts/qa/phase5f/browser-genuine-worker-packages.mjs
+      - scripts/qa/phase5f/genuine-worker-package-runtime.mjs
+      - scripts/qa/phase5f/genuine-worker-package-browser.mjs
 
 permissions:
   contents: read
@@ -72,6 +79,7 @@ jobs:
         run: |
           printf 'RECOVERY_BROWSER_OUTPUT=%s/recovery-browser-%s-%s\n' "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
           printf 'MIGRATION_BROWSER_OUTPUT=%s/migration-browser-%s-%s\n' "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+          printf 'PACKAGE_BROWSER_OUTPUT=%s/package-browser-%s-%s\n' "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
 
       - name: Check out candidate
         uses: actions/checkout@v4
@@ -109,6 +117,9 @@ jobs:
       - name: Qualify genuine migration request recovery
         run: node scripts/qa/phase5f/browser-genuine-migration-intent.mjs --output "$MIGRATION_BROWSER_OUTPUT"
 
+      - name: Qualify genuine Package copy and original-request recovery
+        run: node scripts/qa/phase5f/browser-genuine-worker-packages.mjs --output "$PACKAGE_BROWSER_OUTPUT"
+
       - name: Retain reports and screenshots only
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
@@ -136,3 +147,13 @@ jobs:
             ${{ env.MIGRATION_BROWSER_OUTPUT }}/actual-lost-ack-390-dark/actual-committed-ack-lost.png
             ${{ env.MIGRATION_BROWSER_OUTPUT }}/actual-lost-ack-390-dark/actual-original-request-reconciled.png
             ${{ env.MIGRATION_BROWSER_OUTPUT }}/actual-lost-ack-390-dark/browser-failure.png
+            ${{ env.PACKAGE_BROWSER_OUTPUT }}/report.json
+            ${{ env.PACKAGE_BROWSER_OUTPUT }}/actual-package-copy-reuse-1280-light/migrations.log
+            ${{ env.PACKAGE_BROWSER_OUTPUT }}/actual-package-copy-reuse-1280-light/actual-package-copy-preview.png
+            ${{ env.PACKAGE_BROWSER_OUTPUT }}/actual-package-copy-reuse-1280-light/actual-published-package-copy.png
+            ${{ env.PACKAGE_BROWSER_OUTPUT }}/actual-package-copy-reuse-1280-light/browser-failure.png
+            ${{ env.PACKAGE_BROWSER_OUTPUT }}/actual-package-import-lost-ack-390-dark/migrations.log
+            ${{ env.PACKAGE_BROWSER_OUTPUT }}/actual-package-import-lost-ack-390-dark/actual-package-copy-preview.png
+            ${{ env.PACKAGE_BROWSER_OUTPUT }}/actual-package-import-lost-ack-390-dark/actual-published-package-copy.png
+            ${{ env.PACKAGE_BROWSER_OUTPUT }}/actual-package-import-lost-ack-390-dark/actual-committed-import-ack-lost.png
+            ${{ env.PACKAGE_BROWSER_OUTPUT }}/actual-package-import-lost-ack-390-dark/browser-failure.png

@@ -1,20 +1,23 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
-  checkedResearchExportInput, checkedResearchExportPlanInput, checkedResearchImportInput, checkedResearchUploadInput,
+  checkedResearchExportInput, checkedResearchExportPlanInput, checkedResearchImportInput, checkedResearchRequestReceipt, checkedResearchUploadInput,
   RESEARCH_PACKAGE_MAX_ARCHIVE_BYTES, type ResearchExecutorStatus, type ResearchExportInput, type ResearchExportKind,
   type ResearchImportInput, type ResearchJobControl, type ResearchJobStatus, type ResearchPackagePreview,
   type ResearchRequestReceipt, type ResearchUploadInput,
 } from "../../shared/contracts/research-package-api";
 import { hashResearchFile } from "../../shared/domain/research-sha256";
 import { sourceFromBlob, validateStoreArchive } from "../../shared/domain/research-archive";
-import { researchPackagesClient, ResearchPackageRequestError, researchPackageErrorMessage } from "../lib/research-package-client";
+import { researchPackagesClient, ResearchPackageRequestError, ResearchPackageRequestMissingError, researchPackageErrorMessage } from "../lib/research-package-client";
 import { ReadStatus } from "../components/ReadStatus";
 import "./storage-settings.css";
 import "./research-packages.css";
 
 const intentKey = "research-package-operation", uploadKey = "research-package-upload", receiptsKey = "research-package-receipts";
+const rejectionKey = "research-package-operation-rejection", historyKey = "research-package-earlier-requests";
 type Intent = { action: "export"; input: ResearchExportInput } | { action: "upload"; input: ResearchUploadInput } | { action: "import"; input: ResearchImportInput };
+type EarlierRequest = { intent: Intent; receipt: ResearchRequestReceipt | null };
+const sameIntent = (left: Intent, right: Intent) => JSON.stringify(left) === JSON.stringify(right);
 type UploadCheckpoint = { input: ResearchUploadInput; jobId: string };
 type ReceiptCheckpoint = { requestId: string; jobId: string; reused: boolean };
 class SessionIntentError extends Error {
@@ -24,15 +27,45 @@ function writeSession(key: string, value: unknown | null) {
   try { if (value === null) sessionStorage.removeItem(key); else sessionStorage.setItem(key, JSON.stringify(value)); }
   catch { throw new SessionIntentError(); }
 }
+function checkedIntent(value: unknown): Intent {
+  if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).length !== 2) throw new Error("Invalid package intent.");
+  const row = value as { action?: unknown; input?: unknown };
+  if (row.action === "export") return { action: "export", input: checkedResearchExportInput(row.input) };
+  if (row.action === "upload") return { action: "upload", input: checkedResearchUploadInput(row.input) };
+  if (row.action === "import") return { action: "import", input: checkedResearchImportInput(row.input) };
+  throw new Error("Invalid package intent.");
+}
 function savedIntent(): Intent | null {
   try {
     const value = JSON.parse(sessionStorage.getItem(intentKey) || "null");
-    if (!value || Object.keys(value).length !== 2) return null;
-    if (value.action === "export") return { action: "export", input: checkedResearchExportInput(value.input) };
-    if (value.action === "upload") return { action: "upload", input: checkedResearchUploadInput(value.input) };
-    if (value.action === "import") return { action: "import", input: checkedResearchImportInput(value.input) };
+    return value ? checkedIntent(value) : null;
   } catch { /* A malformed local intent does not authorize an operation. */ }
   return null;
+}
+function savedRejection(): Intent | null {
+  try {
+    const row = JSON.parse(sessionStorage.getItem(rejectionKey) || "null"), pending = savedIntent();
+    if (!row || Object.keys(row).length !== 2 || row.schema !== "research-package-rejection/1") return null;
+    const intent = checkedIntent(row.intent);
+    return pending && sameIntent(pending, intent) ? intent : null;
+  } catch { return null; }
+}
+function checkedReceiptKind(intent: Intent, receipt: ResearchRequestReceipt) {
+  if (receipt.requestId !== intent.input.requestId || receipt.job.kind !== (intent.action === "export" ? intent.input.kind : intent.action)) throw new Error("Invalid operation receipt.");
+}
+function savedHistory(): EarlierRequest[] | null {
+  try {
+    const rows: unknown = JSON.parse(sessionStorage.getItem(historyKey) || "[]");
+    if (!Array.isArray(rows)) return null;
+    const seen = new Set<string>();
+    return rows.map(row => {
+      if (!row || Object.keys(row).length !== 2) throw new Error("Invalid package history.");
+      const intent = checkedIntent(row.intent), receipt = row.receipt === null ? null : checkedResearchRequestReceipt(row.receipt);
+      if (seen.has(intent.input.requestId)) throw new Error("Invalid package history.");
+      seen.add(intent.input.requestId); if (receipt) checkedReceiptKind(intent, receipt);
+      return { intent, receipt };
+    });
+  } catch { return null; }
 }
 function savedUpload(): UploadCheckpoint | null {
   try {
@@ -101,12 +134,13 @@ function Preview({ value, accepted = false }: { value: ResearchPackagePreview; a
   </div>;
 }
 
-function Job({ job, busy, allowed, currentSignal, reused, onControl, onSelectUpload, onViewScope, onPauseTarget }: {
+function Job({ job, busy, allowed, currentSignal, reused, onControl, onSelectUpload, onViewScope, onPauseTarget, onStatusTarget }: {
   job: ResearchJobStatus; busy: boolean; allowed: boolean; currentSignal: AbortSignal | null; reused: boolean;
   onControl: (id: string, action: ResearchJobControl, onStarting: (signal: AbortSignal) => void,
     onReceipt: (receipt: ResearchJobStatus) => void) => void;
   onSelectUpload: (id: string) => void; onViewScope: (id: string) => void;
   onPauseTarget: (job: ResearchJobStatus, button: HTMLButtonElement | null) => void;
+  onStatusTarget: (job: ResearchJobStatus, element: HTMLParagraphElement | null) => void;
 }) {
   const buttons = useRef(new Map<ResearchJobControl, HTMLButtonElement>());
   const status = useRef<HTMLParagraphElement>(null);
@@ -156,7 +190,7 @@ function Job({ job, busy, allowed, currentSignal, reused, onControl, onSelectUpl
   const active = ["awaiting_upload", "queued", "running", "paused", "preview"].includes(job.state);
   return <article className="research-package-job">
     <div className="storage-profile-heading"><h3>{jobNames[job.kind]}</h3><span>{job.state.replaceAll("_", " ")}</span></div>
-    <p><code>{job.id}</code></p><p ref={status} role="status" tabIndex={-1}>{job.phase.replaceAll("_", " ")} · {job.progress.completedFiles} / {job.progress.totalFiles} files verified · {size(job.progress.bytesDone)} / {size(job.progress.bytesTotal)}.</p>
+    <p><code>{job.id}</code></p><p ref={element => { status.current = element; onStatusTarget(job, element); }} role="status" tabIndex={-1}>{job.phase.replaceAll("_", " ")} · {job.progress.completedFiles} / {job.progress.totalFiles} files verified · {size(job.progress.bytesDone)} / {size(job.progress.bytesTotal)}.</p>
     {job.reason && <p role="status">{reasonText(job.reason)}.</p>}
     {job.state === "cancel_requested" && <p className="muted">Cancellation is awaiting a safe boundary. Written candidates remain protected until reconciliation; committed results are retained.</p>}
     <div className="storage-candidate-actions">
@@ -171,10 +205,12 @@ function Job({ job, busy, allowed, currentSignal, reused, onControl, onSelectUpl
       {job.output?.available && job.state === "completed" && <a className="button primary" href={researchPackagesClient.downloadUrl(job.id)}>Download {job.kind === "report" ? "offline report" : "data package"}</a>}
     </div>
     {job.output && <p className="muted">Output: {size(job.output.byteSize)}. {job.output.available ? "Expires" : "No longer available; expiry"} <time dateTime={job.output.expiresAt}>{job.output.expiresAt}</time>.</p>}
-    {reused && !job.result && <p role="status">An earlier accepted copy was returned; this request did not create another copy.
+    {job.kind === "import" && reused && !job.result && <p role="status">An earlier accepted copy was returned; this request did not create another copy.
       {job.state === "cancelled" && " This copy is cancelled. Use Import another copy to accept fresh work."}</p>}
-    {job.result && <><p role="status">{reused || job.result.reused ? "The existing completed import is available." : "Research copy published."}</p>
+    {job.kind === "import" && job.result && <><p role="status">{reused || job.result.reused ? "The existing completed import is available." : "Research copy published."}</p>
       <ul>{job.result.roots.map(root => <li key={`${root.kind}:${root.id}`}><Link to={`/${root.kind === "sample" ? "samples" : "projects"}/${encodeURIComponent(root.id)}`}>Open imported {root.kind}</Link></li>)}</ul></>}
+    {(job.kind === "data_package" || job.kind === "report") && job.result && <><p role="status">Export source research.</p>
+      <ul>{job.result.roots.map(root => <li key={`${root.kind}:${root.id}`}><Link to={`/${root.kind === "sample" ? "samples" : "projects"}/${encodeURIComponent(root.id)}`}>Open source {root.kind}</Link></li>)}</ul></>}
     <small className="muted">Updated <time dateTime={job.updatedAt}>{job.updatedAt}</time>.</small>
   </article>;
 }
@@ -186,6 +222,9 @@ export function ResearchPackagesPage() {
   const [kind, setKind] = useState<ResearchExportKind>(() => query.get("kind") === "report" ? "report" : "data_package");
   const [exportPreview, setExportPreview] = useState<ResearchPackagePreview | null>(null);
   const [pending, setPending] = useState<Intent | null>(savedIntent), pendingRef = useRef(pending);
+  const [rejected, setRejected] = useState(savedRejection), rejectedRef = useRef(rejected);
+  const [receiptMissing, setReceiptMissing] = useState(false);
+  const [earlier, setEarlier] = useState(savedHistory), earlierRef = useRef(earlier);
   const [upload, setUpload] = useState<UploadCheckpoint | null>(savedUpload), uploadRef = useRef(upload);
   const [file, setFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<ResearchPackagePreview | null>(null);
@@ -202,15 +241,19 @@ export function ResearchPackagesPage() {
   const returnExportPreviewFocus = useRef<{ button: HTMLButtonElement; signal: AbortSignal } | null>(null);
   const currentUpload = upload ? jobs.find(job => job.id === upload.jobId) : null;
   const refreshButton = useRef<HTMLButtonElement>(null), startButton = useRef<HTMLButtonElement>(null), actionSequence = useRef(0);
+  const checkButton = useRef<HTMLButtonElement>(null), retryButton = useRef<HTMLButtonElement>(null), reviewButton = useRef<HTMLButtonElement>(null);
+  const importReviewButton = useRef<HTMLButtonElement>(null), packageFileInput = useRef<HTMLInputElement>(null);
   const pauseTargets = useRef(new Map<string, { job: ResearchJobStatus; button: HTMLButtonElement }>());
-  type PageFocusIntent = { action: "refresh" | "start"; origin: HTMLButtonElement; signal: AbortSignal; sequence: number;
-    refreshSequence: number; receipt: ResearchJobStatus | null; movedAway: boolean; stopObserving: () => void };
+  const statusTargets = useRef(new Map<string, { job: ResearchJobStatus; element: HTMLParagraphElement }>());
+  type PageFocusIntent = { action: "refresh" | "start" | "check" | "retry" | "review"; origin: HTMLButtonElement; signal: AbortSignal; sequence: number;
+    refreshSequence: number; requestAction: Intent["action"] | null; receipt: ResearchJobStatus | null; movedAway: boolean; stopObserving: () => void };
   const returnPageFocus = useRef<PageFocusIntent | null>(null);
   function clearPageFocus() { returnPageFocus.current?.stopObserving(); returnPageFocus.current = null; }
   function beginPageFocus(action: PageFocusIntent["action"], origin: HTMLButtonElement, signal: AbortSignal) {
-    if (document.activeElement !== origin || origin !== (action === "refresh" ? refreshButton.current : startButton.current) || !origin.isConnected) return null;
+    const expected = action === "refresh" ? refreshButton.current : action === "check" ? checkButton.current : action === "retry" ? retryButton.current : action === "review" ? reviewButton.current : startButton.current;
+    if (document.activeElement !== origin || origin !== expected || !origin.isConnected) return null;
     const intent: PageFocusIntent = { action, origin, signal, sequence: actionSequence.current,
-      refreshSequence: refreshSequence.current + (action === "refresh" ? 1 : 0), receipt: null, movedAway: false,
+      refreshSequence: refreshSequence.current + (action === "refresh" ? 1 : 0), requestAction: pendingRef.current?.action ?? null, receipt: null, movedAway: false,
       stopObserving: () => { document.removeEventListener("focusin", moved, true); window.removeEventListener("blur", blurred); } };
     const moved = (event: FocusEvent) => { if (event.target !== origin && event.target !== document.body) intent.movedAway = true; };
     const blurred = () => { intent.movedAway = true; };
@@ -232,14 +275,17 @@ export function ResearchPackagesPage() {
     }
     const receipt = intent.receipt;
     if (!receipt) {
-      if (!pendingRef.current && intent.origin === startButton.current && intent.origin.isConnected && !intent.origin.disabled) intent.origin.focus();
+      if (intent.action === "review" && !pendingRef.current) {
+        const target = intent.requestAction === "export" ? exportPreviewButton.current : importReviewButton.current ?? packageFileInput.current;
+        if (target?.isConnected && !target.matches(":disabled")) target.focus();
+      } else if (intent.origin.isConnected && !intent.origin.disabled && (intent.action !== "start" || !pendingRef.current)) intent.origin.focus();
       return;
     }
-    const target = pauseTargets.current.get(receipt.id), presented = jobs.find(job => job.id === receipt.id);
-    if (!target || !presented || target.job !== presented || pendingRef.current || presented.requestId !== receipt.requestId || presented.kind !== receipt.kind
-      || presented.acceptedAt !== receipt.acceptedAt || presented.state !== receipt.state || presented.updatedAt !== receipt.updatedAt
-      || !["queued", "running"].includes(presented.state) || !target.button.isConnected || target.button.disabled) return;
-    target.button.focus();
+    const target = pauseTargets.current.get(receipt.id), savedStatus = statusTargets.current.get(receipt.id), presented = jobs.find(job => job.id === receipt.id);
+    if (!presented || pendingRef.current || presented.requestId !== receipt.requestId || presented.kind !== receipt.kind
+      || presented.acceptedAt !== receipt.acceptedAt || presented.state !== receipt.state || presented.updatedAt !== receipt.updatedAt) return;
+    if (target?.job === presented && ["queued", "running"].includes(presented.state) && target.button.isConnected && !target.button.disabled) target.button.focus();
+    else if (savedStatus?.job === presented && savedStatus.element.isConnected) savedStatus.element.focus();
   }, [busy, denied, jobs]);
 
   function setMessage(value: string) { setMessageText(value); setMessageError(false); }
@@ -252,7 +298,26 @@ export function ResearchPackagesPage() {
   }
   function remember(value: Intent | null) {
     writeSession(intentKey, value);
-    pendingRef.current = value; setPending(value);
+    pendingRef.current = value; setPending(value); setReceiptMissing(false);
+  }
+  function rememberRejection(value: Intent | null) {
+    writeSession(rejectionKey, value ? { schema: "research-package-rejection/1", intent: value } : null);
+    rejectedRef.current = value; setRejected(value);
+  }
+  function retainEarlier(intent: Intent, receipt: ResearchRequestReceipt | null) {
+    const current = earlierRef.current;
+    if (!current) throw new SessionIntentError();
+    const previous = current.find(row => row.intent.input.requestId === intent.input.requestId);
+    if (receipt) checkedReceiptKind(intent, receipt);
+    if (previous && (!sameIntent(previous.intent, intent) || previous.receipt && receipt && previous.receipt.job.id !== receipt.job.id)) throw new Error("Invalid earlier package receipt.");
+    const row = { intent, receipt: receipt ?? previous?.receipt ?? null };
+    const next = [...current.filter(row => row.intent.input.requestId !== intent.input.requestId), row];
+    writeSession(historyKey, next); earlierRef.current = next; setEarlier(next);
+  }
+  function rememberReceipt(receipt: ResearchRequestReceipt) {
+    const checkpoint = [{ requestId: receipt.requestId, jobId: receipt.job.id, reused: receipt.reused },
+      ...savedReceipts().filter(item => item.requestId !== receipt.requestId)].slice(0, 20);
+    writeSession(receiptsKey, checkpoint); setReceipts(checkpoint);
   }
   function saveUpload(value: UploadCheckpoint | null) {
     writeSession(uploadKey, value);
@@ -264,14 +329,10 @@ export function ResearchPackagesPage() {
   }
   function acceptReceipt(intent: Intent, receipt: ResearchRequestReceipt, signal: AbortSignal) {
     if (!ownsIntent(intent, signal)) return null;
-    if (receipt.requestId !== intent.input.requestId) throw new Error("Invalid operation receipt.");
-    const expected = intent.action === "export" ? intent.input.kind : intent.action;
-    if (receipt.job.kind !== expected) throw new Error("Invalid operation receipt.");
+    checkedReceiptKind(intent, receipt); refreshSequence.current++; retainEarlier(intent, receipt);
     updateJob(receipt.job);
     if (intent.action === "upload") saveUpload({ input: intent.input, jobId: receipt.job.id });
-    const checkpoint = [{ requestId: receipt.requestId, jobId: receipt.job.id, reused: receipt.reused },
-      ...savedReceipts().filter(item => item.requestId !== receipt.requestId)].slice(0, 20);
-    writeSession(receiptsKey, checkpoint); setReceipts(checkpoint);
+    rememberReceipt(receipt); rememberRejection(null);
     remember(null);
     if (intent.action === "export") setExportPreview(null);
     setMessage(receipt.reused ? receipt.job.state === "cancelled"
@@ -280,8 +341,11 @@ export function ResearchPackagesPage() {
       : "Operation saved. You may leave this page; the independent executor owns its progress.");
     return receipt.job;
   }
-  async function submit(intent: Intent, signal: AbortSignal) {
+  async function submit(intent: Intent, signal: AbortSignal, fresh = false) {
     if (!ownsIntent(intent, signal)) return null;
+    // Only the live first POST can establish a rejection. A retry cannot erase
+    // uncertainty left by an older delivery, even if this later POST conflicts.
+    rememberRejection(null); setReceiptMissing(false);
     let receipt: ResearchRequestReceipt;
     try {
       receipt = intent.action === "export" ? await researchPackagesClient.export(intent.input, signal)
@@ -290,13 +354,15 @@ export function ResearchPackagesPage() {
     } catch (error) {
       if (!ownsIntent(intent, signal)) return null;
       if (error instanceof ResearchPackageRequestError && error.status === 409) {
+        if (fresh) rememberRejection(intent);
         try { receipt = await researchPackagesClient.readRequest(intent.input.requestId, signal); }
         catch (lookupError) {
           if (!ownsIntent(intent, signal)) return null;
-          if (lookupError instanceof ResearchPackageRequestError && lookupError.status === 404) {
-            remember(null); setExportPreview(null); setImportPreview(null);
+          if (lookupError instanceof ResearchPackageRequestMissingError) {
+            setReceiptMissing(true);
             setMessage(error.reason ? researchPackageErrorMessage(error)
-              : "The preview or destination policy changed. Refresh the preview before accepting new work."); return null;
+              : fresh ? "No saved receipt was found for this rejected package request. Review a new request explicitly; this check does not cancel work in another tab."
+                : "The earlier package request remains unconfirmed. A later rejected retry does not settle its original result."); return null;
           }
           throw lookupError;
         }
@@ -308,12 +374,41 @@ export function ResearchPackagesPage() {
     const intent = pendingRef.current; if (!intent) return;
     try {
       const receipt = await researchPackagesClient.readRequest(intent.input.requestId, signal);
-      acceptReceipt(intent, receipt, signal);
+      return acceptReceipt(intent, receipt, signal);
     } catch (error) {
       if (!ownsIntent(intent, signal)) return;
-      if (retryMissing && error instanceof ResearchPackageRequestError && error.status === 404) { await submit(intent, signal); return; }
-      if (error instanceof ResearchPackageRequestError && error.status === 404) setMessage("No receipt is recorded yet. An explicit retry will use the original request and identifier.");
-      else reportFailure(error);
+      if (error instanceof ResearchPackageRequestMissingError) {
+        if (retryMissing) return submit(intent, signal);
+        setReceiptMissing(true); setMessage("No receipt is recorded yet. An explicit retry will use the original request and identifier.");
+      } else { setReceiptMissing(false); reportFailure(error); }
+    }
+    return null;
+  }
+  async function reviewOriginal(signal: AbortSignal) {
+    const intent = pendingRef.current;
+    if (!intent || !rejectedRef.current || !sameIntent(intent, rejectedRef.current)) return null;
+    try {
+      const receipt = await researchPackagesClient.readRequest(intent.input.requestId, signal);
+      return acceptReceipt(intent, receipt, signal);
+    } catch (error) {
+      if (!ownsIntent(intent, signal)) return null;
+      if (!(error instanceof ResearchPackageRequestMissingError)) { setReceiptMissing(false); throw error; }
+      refreshSequence.current++; retainEarlier(intent, null); rememberRejection(null); remember(null);
+      setExportPreview(null); setImportPreview(null); setFile(null);
+      setMessage("Review a fresh package preview before accepting new work. The earlier request identifier remains available below.");
+    }
+    return null;
+  }
+  async function checkEarlier(row: EarlierRequest, signal: AbortSignal) {
+    try {
+      const receipt = await researchPackagesClient.readRequest(row.intent.input.requestId, signal);
+      if (signal.aborted || deniedRef.current) return;
+      checkedReceiptKind(row.intent, receipt); refreshSequence.current++; retainEarlier(row.intent, receipt); rememberReceipt(receipt); updateJob(receipt.job);
+      setMessage(`Earlier package request ${row.intent.input.requestId} has saved job ${receipt.job.id}. No new operation was started.`);
+    } catch (error) {
+      if (signal.aborted || deniedRef.current) return;
+      if (!(error instanceof ResearchPackageRequestMissingError)) throw error;
+      setMessage("No saved receipt was found for that earlier package request at this check. Its original identifier is retained.");
     }
   }
   async function refresh(signal: AbortSignal, announce = false) {
@@ -395,22 +490,26 @@ export function ResearchPackagesPage() {
     return checkedResearchExportPlanInput({ kind, roots });
   }
   async function startExport(signal: AbortSignal) {
-    if (!exportPreview || pendingRef.current) return;
+    if (!exportPreview || pendingRef.current || deniedRef.current || signal.aborted || earlierRef.current === null) return;
     const capability = kind === "report" ? exportPreview.capabilities.report : exportPreview.capabilities.dataPackage;
     if (!capability.available || kind === "data_package" && !exportPreview.complete) return;
     const intent: Intent = { action: "export", input: checkedResearchExportInput({ requestId: crypto.randomUUID(), ...exportInput() }) };
-    remember(intent); return submit(intent, signal);
+    remember(intent); return submit(intent, signal, true);
   }
   async function prepareUpload(signal: AbortSignal) {
-    if (!file || pendingRef.current) return;
-    if (file.size < 1 || file.size > RESEARCH_PACKAGE_MAX_ARCHIVE_BYTES) { setMessage("Select a native ZIP between 1 byte and 100 MiB."); return; }
+    const selectedFile = file, originalUpload = uploadRef.current, sequence = actionSequence.current;
+    const ownsPreparation = (checkpoint: UploadCheckpoint | null) => !signal.aborted && !deniedRef.current
+      && signal === lifetime.current?.signal && sequence === actionSequence.current && !pendingRef.current
+      && uploadRef.current === checkpoint && earlierRef.current !== null;
+    if (!selectedFile || !ownsPreparation(originalUpload)) return;
+    if (selectedFile.size < 1 || selectedFile.size > RESEARCH_PACKAGE_MAX_ARCHIVE_BYTES) { setMessage("Select a native ZIP between 1 byte and 100 MiB."); return; }
     setMessage("Checking the selected file with a bounded streaming hash…");
-    const measured = await hashResearchFile(file, { maxBytes: RESEARCH_PACKAGE_MAX_ARCHIVE_BYTES, signal });
-    if (signal.aborted) return;
+    const measured = await hashResearchFile(selectedFile, { maxBytes: RESEARCH_PACKAGE_MAX_ARCHIVE_BYTES, signal });
+    if (!ownsPreparation(originalUpload)) return;
     setMessage("Validating bounded ZIP members and checksums before accepting its upload…");
-    await validateStoreArchive(sourceFromBlob(file), { expectedSha256: measured.sha256, signal });
-    if (signal.aborted) return;
-    const checkpoint = uploadRef.current;
+    await validateStoreArchive(sourceFromBlob(selectedFile), { expectedSha256: measured.sha256, signal });
+    if (!ownsPreparation(originalUpload)) return;
+    let checkpoint = originalUpload;
     let jobId: string;
     if (checkpoint && currentUpload?.state === "awaiting_upload") {
       if (checkpoint.input.byteSize !== measured.byteSize || checkpoint.input.sha256 !== measured.sha256) {
@@ -420,22 +519,27 @@ export function ResearchPackagesPage() {
     } else {
       if (checkpoint) { setMessage("Finish or close the current package preview before selecting another upload."); return; }
       const intent: Intent = { action: "upload", input: checkedResearchUploadInput({ requestId: crypto.randomUUID(), ...measured }) };
-      remember(intent); const job = await submit(intent, signal); if (!job || signal.aborted) return; jobId = job.id;
+      remember(intent); const job = await submit(intent, signal, true); if (!job) return;
+      checkpoint = uploadRef.current;
+      if (!checkpoint || checkpoint.jobId !== job.id || checkpoint.input.requestId !== intent.input.requestId) return;
+      jobId = job.id;
     }
+    if (!ownsPreparation(checkpoint)) return;
     setMessage("Uploading the selected ZIP. Validation continues in the independent executor.");
-    const job = await researchPackagesClient.upload(jobId, file, signal);
-    if (!signal.aborted) { updateJob(job); setFile(null); setMessage("Package uploaded. Validation is saved independently of this page."); }
+    const job = await researchPackagesClient.upload(jobId, selectedFile, signal);
+    if (ownsPreparation(checkpoint)) { refreshSequence.current++; updateJob(job); setFile(null); setMessage("Package uploaded. Validation is saved independently of this page."); }
   }
   async function startImport(signal: AbortSignal, anotherCopy: boolean) {
     if (!uploadRef.current || !importPreview || importPreview.rolePolicyRevision === null || importPreview.kind !== "data_package" || !importPreview.complete
       || !importPreview.capabilities.dataPackage.available || pendingRef.current) return;
+    if (deniedRef.current || signal.aborted || earlierRef.current === null) return;
     const intent: Intent = { action: "import", input: checkedResearchImportInput({ requestId: crypto.randomUUID(), uploadJobId: uploadRef.current.jobId,
       anotherCopy, expectedRolePolicyRevision: importPreview.rolePolicyRevision, naming: { suffix } }) };
-    remember(intent); await submit(intent, signal);
+    remember(intent); await submit(intent, signal, true);
   }
   const exportCapability = exportPreview && (kind === "report" ? exportPreview.capabilities.report : exportPreview.capabilities.dataPackage);
   const mayImport = importPreview?.kind === "data_package" && importPreview.rolePolicyRevision !== null && importPreview.complete && importPreview.capabilities.dataPackage.available;
-  const blocked = busy || !!pending || denied;
+  const blocked = busy || earlier === null || !!pending || denied;
   return <div className="page storage-settings-page research-packages-page">
     <div className="page-heading"><div><p className="eyebrow">Settings</p><h1>Data</h1>
       <p className="lead">Export research packages and offline reports, or import a native package as a new research copy.</p></div>
@@ -460,9 +564,36 @@ export function ResearchPackagesPage() {
           {executor.lastHeartbeatAt && <p className="muted">Last heartbeat: <time dateTime={executor.lastHeartbeatAt}>{executor.lastHeartbeatAt}</time>.</p>}</>}
         <p className="muted">Supported native ZIP: STORE entries, up to 100 MiB total, 100 files, 96 MiB of file content, 1,200 records and 4 MiB of metadata. Individual ceilings do not guarantee that their combined ZIP fits.</p>
       </section>
+      {earlier === null && <p role="alert">Saved package request history could not be read. Restore its browser checkpoints before starting new work.</p>}
       {pending && <section className="card storage-settings-section"><h2 className="card-title">Unconfirmed operation</h2>
         <p>The {pending.action} request <code>{pending.input.requestId}</code> is retained. Check its receipt before starting another operation.</p>
-        <button className="button" disabled={busy} onClick={() => void act(signal => reconcile(signal, true))}>Check or retry original request</button></section>}
+        <div className="storage-candidate-actions">
+          <button ref={checkButton} className="button" aria-label="Check original package request" disabled={busy} onClick={event => {
+            const origin = event.currentTarget; void act(async signal => {
+              const intent = beginPageFocus("check", origin, signal), receipt = await reconcile(signal);
+              if (intent && returnPageFocus.current === intent && receipt) intent.receipt = receipt;
+            });
+          }}>Check original request</button>
+          {receiptMissing && <button ref={retryButton} className="button" aria-label="Retry original package request" disabled={busy} onClick={event => {
+            const origin = event.currentTarget; void act(async signal => {
+              const intent = beginPageFocus("retry", origin, signal), receipt = await reconcile(signal, true);
+              if (intent && returnPageFocus.current === intent && receipt) intent.receipt = receipt;
+            });
+          }}>Retry original request</button>}
+          {receiptMissing && rejected && sameIntent(rejected, pending) && <button ref={reviewButton} className="button" aria-label="Review a new package request" disabled={busy} onClick={event => {
+            const origin = event.currentTarget; void act(async signal => {
+              const intent = beginPageFocus("review", origin, signal), receipt = await reviewOriginal(signal);
+              if (intent && returnPageFocus.current === intent && receipt) intent.receipt = receipt;
+            });
+          }}>Review a new request</button>}
+        </div></section>}
+      {earlier?.length ? <section className="card storage-settings-section research-package-history"><h2 className="card-title">Earlier package requests</h2>
+        <p className="muted">Original requests remain available after acceptance or explicit fresh review. Checking a saved receipt does not start another operation.</p>
+        <ul className="storage-profile-list">{earlier.map(row => <li key={row.intent.input.requestId}><code>{row.intent.input.requestId}</code>
+          {row.receipt && <p>{jobNames[row.receipt.job.kind]} receipt retained.</p>}
+          <button className="button" aria-label={`Check earlier package request ${row.intent.input.requestId}`} disabled={busy}
+            onClick={() => void act(signal => checkEarlier(row, signal))}>Check saved receipt</button></li>)}</ul>
+      </section> : null}
       <section className="card storage-settings-section"><h2 className="card-title">Export selected research</h2>
         <p className="muted">Choose Data package or Offline report from a <Link to="/samples">Sample</Link> or <Link to="/projects">Project</Link>, or enter up to 20 roots below.</p>
         <form onSubmit={event => { event.preventDefault(); void act(async signal => {
@@ -488,7 +619,7 @@ export function ResearchPackagesPage() {
       </section>
       <section className="card storage-settings-section"><h2 className="card-title">Import a native data package</h2>
         <p className="muted">Native research packages create fresh business identities and retain source provenance. Existing readable ZIPs, FabuBlox workbooks and whole-installation backups are separate formats.</p>
-        <label>Native package ZIP<input type="file" accept=".zip,application/zip" disabled={blocked || executor?.supported === false || !!upload && currentUpload?.state !== "awaiting_upload"}
+        <label>Native package ZIP<input ref={packageFileInput} type="file" accept=".zip,application/zip" disabled={blocked || executor?.supported === false || !!upload && currentUpload?.state !== "awaiting_upload"}
           onChange={event => setFile(event.target.files?.[0] || null)} /></label>
         {upload && currentUpload?.state === "awaiting_upload" && <p className="muted">The accepted upload is waiting for bytes. After reload or interruption, reselect the original {size(upload.input.byteSize)} ZIP; its streaming hash must match.</p>}
         <div className="storage-candidate-actions"><button className="button" disabled={blocked || !file || executor?.supported === false}
@@ -497,7 +628,7 @@ export function ResearchPackagesPage() {
         {upload && <p className="muted">Validation job: <code>{upload.jobId}</code>. Upload interruption does not authorize a new copy or discard accepted work.</p>}
         {upload && currentUpload?.state === "preview" && <><label>Imported name suffix<input maxLength={32} value={suffix} disabled={blocked}
           onChange={event => { setSuffix(event.target.value); setImportPreview(null); }} /></label>
-          <button className="button" disabled={blocked} onClick={() => void act(async signal => {
+          <button ref={importReviewButton} className="button" disabled={blocked} onClick={() => void act(async signal => {
             const value = await researchPackagesClient.preview(upload.jobId, suffix, signal); if (!signal.aborted) setImportPreview(value);
           })}>Refresh import preview</button></>}
         {importPreview && <>
@@ -526,6 +657,8 @@ export function ResearchPackagesPage() {
           <Preview value={acceptedScope.preview} accepted /><button className="text-button" onClick={() => setAcceptedScope(null)}>Close accepted scope</button></div>}
         {jobs.map(job => <Job key={job.id} job={job} onPauseTarget={(presented, button) => {
           if (button) pauseTargets.current.set(presented.id, { job: presented, button }); else pauseTargets.current.delete(presented.id);
+        }} onStatusTarget={(presented, element) => {
+          if (element) statusTargets.current.set(presented.id, { job: presented, element }); else statusTargets.current.delete(presented.id);
         }} busy={blocked} allowed={!denied && !pending} currentSignal={lifetime.current?.signal ?? null}
           reused={receipts.some(receipt => receipt.jobId === job.id && receipt.reused)}
           onViewScope={id => void act(async signal => {

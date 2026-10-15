@@ -29,6 +29,7 @@ export interface ResearchJobStatus {
   result: { roots: ResearchRoot[]; reused: boolean } | null;
 }
 export interface ResearchRequestReceipt { requestId: string; job: ResearchJobStatus; reused: boolean }
+export interface ResearchRequestAbsent { schema: "research-package-request-absent/1"; requestId: string }
 export interface ResearchCapability { available: boolean; reasons: string[] }
 export interface ResearchPackagePreview {
   schema: "research-package-preview/1"; kind: ResearchExportKind; roots: ResearchRoot[];
@@ -68,6 +69,11 @@ function text(value: unknown, maximum: number, empty = false): string {
 function identity(value: unknown): string { const result = text(value, 256); if (/\s/.test(result)) invalid(); return result; }
 function operationIdentity(value: unknown): string {
   const result = identity(value); if (result.length > 128 || result === "." || result === ".." || /[/\\]/.test(result)) invalid(); return result;
+}
+export function checkedResearchRequestAbsent(value: unknown, expectedRequestId: string): ResearchRequestAbsent {
+  const row = object(value, ["schema", "requestId"]), requestId = operationIdentity(row.requestId);
+  if (row.schema !== "research-package-request-absent/1" || requestId !== operationIdentity(expectedRequestId)) invalid();
+  return { schema: "research-package-request-absent/1", requestId };
 }
 function contextLabel(value: unknown): string {
   const label = text(value, 2000, true); if ([...label].length > 1000) invalid(); return label;

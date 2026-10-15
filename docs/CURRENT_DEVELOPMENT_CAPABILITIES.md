@@ -1,12 +1,14 @@
 # Current development capabilities
 
-Recorded 2026-10-15 against PR #313 candidate `6ca0d8ccc600aeb8b1fbfd59fc5067c64e8a4650`,
-merged into development as `860c61d25e6f7e7f30546ea6e1d16e17bc9e28b0`.
+Updated 2026-10-15. Development base `5206eb34` includes the supported Recovery
+frontend, genuine Recovery browser lifecycle and File Migration request recovery.
 This is a development/review ledger, not production activation or release approval.
 Draft [PR #315](https://github.com/BeiqiD/sample-fabrication-workflow/pull/315)
-at `1c5bbe0d` passed its three main-target workflows, three development push
-workflows and all 15 head contexts, observed on 2026-10-15 at 15:28 CEST. Its
-results do not qualify subsequent changes or close the external gates below.
+at that base passed its three main-target workflows, three development push
+workflows and all fifteen head contexts. The new
+[main integration checkpoint](./MAIN_MERGE_READINESS.md) records the current
+Package/Recovery fixes and completed local gates; the adopting candidate and
+updated main proposal need their own exact-source hosted results.
 [PR #313](https://github.com/BeiqiD/sample-fabrication-workflow/pull/313) passed its
 four push/PR workflows and fifteen status contexts before that merge. Its hosted
 checks and merge receipt remain separate from the local results below.
@@ -86,12 +88,26 @@ local passes and PR313's checks do not qualify a later candidate.
 Only observed defects require product changes. Keep heavy checks local/GitHub CI;
 the minimal Cloudflare bundle/upload path is unchanged.
 
-Draft #315 now provides the reviewable `main` candidate with enabled/deferred
-capabilities and ancestry/handoff notes. Further stabilization changes need their
-own qualification before updating that candidate. Next independent local gates
-include genuine Package browser copy/import, two-built-version tab handover and
-populated current-chain Wrangler rehearsal. A prepared draft does not authorize
-a `main` merge.
+Two genuine Package browser cases now cover nonempty ZIP copy/import, original
+and fresh identities/bytes, existing-import reuse, real committed-response loss
+and read-only navigation. Two actual-built-version browser cases cover retired
+lazy JS/CSS, explicit focus/reload with URL/theme retention and queued-request
+continuity. Three actual local Wrangler scenarios cover populated current-prefix
+upgrade, direct unchanged SQL, ledger-fault rollback and exact retry, reopened
+state and no-op. Their original local results and the explicit native-health
+query limitation are recorded in the main integration checkpoint.
+
+Package and Recovery now preserve unknown acceptance through reloads and retries;
+only strict request-bound absence envelopes permit the explicit retry path.
+Definite first rejection can return to fresh planning while retaining the full
+earlier intent. Async denial, stale polls and damaged-history admission are
+covered. Export jobs show source links; only completed imports claim a new copy.
+These fixes retain actor/privacy, maintenance and original-source-resume fences.
+
+Draft #315 carries enabled/deferred capabilities and ancestry/handoff notes.
+Its final main-target CI remains separate from local qualification and the
+adopting development PR's checks. A prepared proposal does not authorize a main
+merge or close physical-device, other-engine or deployed-provider release gates.
 
 ## Selected 6A6 / 6B acceptance
 

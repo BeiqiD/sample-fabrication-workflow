@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkedSystemRecoveryCapabilities, checkedSystemRecoverySourceResumeInput, checkedSystemRecoverySourceResumeReceipt,
+import { checkedSystemRecoveryCapabilities, checkedSystemRecoverySourceResumeInput, checkedSystemRecoverySourceResumeReceipt, checkedSystemRecoveryRequestAbsent,
   type SystemRecoveryCapabilities, type SystemRecoverySourceResumeReceipt } from "./system-recovery";
 
 const capability: SystemRecoveryCapabilities = { supported: true, canManage: true, enabled: false, stale: true,
@@ -10,6 +10,20 @@ const receipt: SystemRecoverySourceResumeReceipt = { schema: "node-original-sour
   releaseRequestId: "release-1", backupJobId: "backup-1", expectedGeneration: 2,
   sourceInstallationId: "original-installation", incarnation: "original-incarnation", sourceCheckpoint: "a".repeat(64),
   resumedAt: "2026-10-15T08:00:00.000Z", enabled: true, shadowEnabled: false, jobsEnabled: false, noBindingCutover: true, noJobReplay: true };
+
+describe("request-bound system recovery absence", () => {
+  it("checks the exact queried operation without claiming permanent absence", () => {
+    const value = { schema: "system-recovery-request-absent/1", requestId: "original:request" };
+    expect(checkedSystemRecoveryRequestAbsent(value, value.requestId)).toEqual(value);
+    for (const candidate of [{ error: "Not found" }, { ...value, schema: "system-recovery-request-absent/2" },
+      { ...value, requestId: "other-request" }, { ...value, neverAccepted: true }, null]) {
+      expect(() => checkedSystemRecoveryRequestAbsent(candidate, value.requestId)).toThrow();
+    }
+    for (const requestId of ["", ".", "..", "path/private", "path\\private", "with space", "x".repeat(129), "bad\u0000id"]) {
+      expect(() => checkedSystemRecoveryRequestAbsent({ ...value, requestId }, requestId)).toThrow();
+    }
+  });
+});
 
 describe("explicit system recovery runtime policy and original source resume", () => {
   it("requires an exact advertised policy instead of inferring capabilities from an unconfigured target", () => {

@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
-import { checkedSystemRecoveryCapabilities } from "../../shared/contracts/system-recovery";
+import { checkedSystemRecoveryCapabilities, checkedSystemRecoveryRequestAbsent } from "../../shared/contracts/system-recovery";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SqliteD1Database, referenceTestDatabase } from "../reference-test-support";
 import { systemRecoveryRoutes } from "./routes";
@@ -12,6 +12,7 @@ import { captureSystemBackupSnapshot, sourceBackupCheckpoint } from "./backup-sn
 import { finishSystemBackupManifest } from "../../shared/contracts/system-backup";
 import type { SystemRecoveryReport } from "./report";
 import type { Env } from "../types";
+import { SqlSystemRecoveryRepository } from "./sql-repository";
 
 const actor="administrator@example.test",databases:DatabaseSync[]=[];
 afterEach(()=>{databases.splice(0).forEach(database=>database.close());vi.unstubAllGlobals();vi.restoreAllMocks();vi.useRealTimers();});
@@ -38,6 +39,32 @@ async function readyRecoveryFixture(mode:"historical"|"planned"="historical",ack
   return{...f,uploadId,jobId,backupId,handoffInput:{requestId:"handoff",expectedTargetId:acceptedInput.expectedTargetId,expectedCheckpoint:handoffCheckpoint}};
 }
 describe("FP5 real privileged website routes",()=>{
+  it("returns exact typed absence without provider or acceptance writes and keeps the original ID eligible for later acceptance",async()=>{
+    const f=fixture(),requestId="observed-only",before=f.sql.prepare("SELECT total_changes() n").get()!.n;
+    const absent=await f.app.request(`/api/system-recovery/requests/${requestId}`,undefined,f.env);
+    expect(absent.status).toBe(404);expect(absent.headers.get("content-type")).toMatch(/^application\/json/);
+    expect(absent.headers.get("cache-control")).toBe("private, no-store");
+    expect(checkedSystemRecoveryRequestAbsent(await absent.json(),requestId)).toEqual({schema:"system-recovery-request-absent/1",requestId});
+    expect(f.sql.prepare("SELECT total_changes() n").get()!.n).toBe(before);
+    const accepted=await f.app.request("/api/system-recovery/uploads",json({requestId,byteSize:22,sha256:"a".repeat(64)}),f.env);
+    expect(accepted.status).toBe(202);const receipt=await accepted.json() as {job:{id:string}};
+    const afterAcceptance=f.sql.prepare("SELECT total_changes() n").get()!.n;
+    const found=await f.app.request(`/api/system-recovery/requests/${requestId}`,undefined,f.env);
+    expect(found.status).toBe(200);expect(await found.json()).toMatchObject({requestId,job:{id:receipt.job.id},reused:true});
+    expect(f.sql.prepare("SELECT total_changes() n").get()!.n).toBe(afterAcceptance);
+    expect(f.put).not.toHaveBeenCalled();expect(f.get).not.toHaveBeenCalled();expect(f.remove).not.toHaveBeenCalled();
+  });
+  it("rejects revoked administrators after the actual primary request lookup before returning typed absence",async()=>{
+    const f=fixture(),original=SqlSystemRecoveryRepository.prototype.request;
+    vi.spyOn(SqlSystemRecoveryRepository.prototype,"request").mockImplementation(async function(this:SqlSystemRecoveryRepository,...args){
+      const value=await original.apply(this,args);f.env.SYSTEM_ADMIN_EMAILS="replacement@example.test";return value;
+    });
+    const before=f.sql.prepare("SELECT total_changes() n").get()!.n;
+    const response=await f.app.request("/api/system-recovery/requests/absent",undefined,f.env);
+    expect(response.status).toBe(403);expect(await response.json()).not.toHaveProperty("schema");
+    expect(f.sql.prepare("SELECT total_changes() n").get()!.n).toBe(before);
+    expect(f.put).not.toHaveBeenCalled();expect(f.get).not.toHaveBeenCalled();
+  });
   it("advertises Worker mapping and maintenance requirements independently of target configuration",async()=>{
     const f=fixture(),read=async()=>{
       const response=await f.app.request("/api/system-recovery/capabilities",undefined,f.env);

@@ -48,7 +48,7 @@ async function beginCrossedReceipts() {
   sessionStorage.setItem(intentKey, JSON.stringify(intentA));
   const mounted = mount();
   await waitFor(() => expect(aReads).toBe(1));
-  fireEvent.click(await enabled("Check or retry original request"));
+  fireEvent.click(await enabled("Check original package request"));
   await waitFor(() => expect(aReads).toBe(2));
   await act(async () => { secondA.resolve(json(receiptA)); });
   await screen.findByText(/Operation saved/);
@@ -73,7 +73,7 @@ async function settleOldA(outcome: LateOutcome) {
 function expectPendingB() {
   expect(JSON.parse(sessionStorage.getItem(intentKey)!)).toEqual(intentB);
   expect(screen.getByRole("heading", { name: "Unconfirmed operation" })).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Check or retry original request" }).matches(":disabled")).toBe(true);
+  expect(screen.getByRole("button", { name: "Check original package request" }).matches(":disabled")).toBe(true);
   expect(screen.getByRole("button", { name: "Start report export" }).matches(":disabled")).toBe(true);
   expect(screen.getByLabelText("Sample and Project roots").matches(":disabled")).toBe(true);
   expect(screen.queryByText(/Operation saved/)).toBeNull();
@@ -86,7 +86,7 @@ function expectPendingB() {
 async function loseBAck() {
   await act(async () => { ackB.reject(new Error("PRIVATE_LOST_B_ACK")); });
   await screen.findByText("The package response is unavailable. Check the original request before retrying.");
-  await enabled("Check or retry original request");
+  await enabled("Check original package request");
   expect(JSON.parse(sessionStorage.getItem(intentKey)!)).toEqual(intentB);
   expect(document.body.textContent).not.toContain("PRIVATE");
 }
@@ -102,7 +102,7 @@ beforeEach(() => {
       return aReads === 1 ? firstA.promise : aReads === 2 ? secondA.promise : json(receiptA);
     }
     if (path === `${base}/requests/${encodeURIComponent(originalB.requestId)}` && method === "GET") {
-      return missingBReceipt ? json({ secret: "PRIVATE_MISSING_B_RECEIPT" }, 404) : json(receiptB);
+      return missingBReceipt ? json({ schema: "research-package-request-absent/1", requestId: originalB.requestId }, 404) : json(receiptB);
     }
     if (path === `${base}/plans` && method === "POST") return json(preview(JSON.parse(String(options?.body))));
     if (path === `${base}/jobs` && method === "POST") {
@@ -148,7 +148,7 @@ describe("research package receipt ownership", () => {
     expect(JSON.parse(sessionStorage.getItem(intentKey)!)).toEqual(intentB);
     expect(screen.getByLabelText("Sample and Project roots").matches(":disabled")).toBe(true);
     expect(mutations()).toHaveLength(1);
-    fireEvent.click(await enabled("Check or retry original request"));
+    fireEvent.click(await enabled("Retry original package request"));
     await screen.findByText(/Operation saved/);
     await waitFor(() => expect(sessionStorage.getItem(intentKey)).toBeNull());
     expect(calls(`/requests/${encodeURIComponent(originalB.requestId)}`, "GET")).toHaveLength(2);

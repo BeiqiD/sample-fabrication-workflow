@@ -41,6 +41,7 @@ export interface SystemRecoveryJobStatus {
   result: { targetId: string; ready: boolean; cutover: boolean; checkpoint: string | null } | null;
 }
 export interface SystemRecoveryReceipt { requestId: string; job: SystemRecoveryJobStatus; reused: boolean }
+export interface SystemRecoveryRequestAbsent { schema: "system-recovery-request-absent/1"; requestId: string }
 export interface SystemRecoveryCapabilities {
   supported: boolean; canManage: boolean; enabled: boolean; stale: boolean; lastHeartbeatAt: string | null;
   cadenceSeconds: 120; maxStepMs: 60000; reason: string | null;
@@ -96,6 +97,11 @@ function text(value: unknown, limit = 256): string {
   return value;
 }
 function id(value: unknown): string { const result = text(value, 128); if (result === "." || result === ".." || /[\s/\\]/.test(result)) invalid(); return result; }
+export function checkedSystemRecoveryRequestAbsent(value: unknown, expectedRequestId: string): SystemRecoveryRequestAbsent {
+  const row = object(value, ["schema", "requestId"]), requestId = id(row.requestId);
+  if (row.schema !== "system-recovery-request-absent/1" || requestId !== id(expectedRequestId)) invalid();
+  return { schema: "system-recovery-request-absent/1", requestId };
+}
 function integer(value: unknown, max: number, min = 0): number { if (!Number.isSafeInteger(value) || Number(value) < min || Number(value) > max) invalid(); return Number(value); }
 function bool(value: unknown): boolean { if (typeof value !== "boolean") invalid(); return value; }
 function sha(value: unknown): string { const result = text(value, 64); if (!/^[a-f0-9]{64}$/.test(result)) invalid(); return result; }

@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { FilePurpose } from "../../shared/contracts/files";
 import { checkedResearchExportPlanInput,checkedResearchExportInput,checkedResearchUploadInput,checkedResearchImportInput,
-  checkedResearchJobControl,checkedResearchJobStatus,RESEARCH_PACKAGE_PREFLIGHT_REASONS,RESEARCH_PACKAGE_PREFLIGHT_ERROR,type ResearchJobStatus,type ResearchPackagePreview } from "../../shared/contracts/research-package-api";
+  checkedResearchJobControl,checkedResearchJobStatus,checkedResearchRequestAbsent,RESEARCH_PACKAGE_PREFLIGHT_REASONS,RESEARCH_PACKAGE_PREFLIGHT_ERROR,type ResearchJobStatus,type ResearchPackagePreview } from "../../shared/contracts/research-package-api";
 import { roleForFilePurpose } from "../files/storage-role-defaults-core";
 import type { ByteReadResult } from "../files/byte-reader";
 import { stableJson } from "../../shared/domain/content-addressing";
@@ -48,7 +48,7 @@ export const PACKAGE_HTTP_ROUTES=Object.freeze([
   Object.freeze({method:"POST",path:"/packages/jobs/:jobId/control"} as const),
   Object.freeze({method:"GET",path:"/packages/jobs/:jobId/download"} as const),
 ]);
-const fail=(message:string,status:400|404|409|413|503=409)=>new HTTPException(status,{message});
+const fail=(message:string,status:400|403|404|409|413|503=409)=>new HTTPException(status,{message});
 export async function readPackageRequestJson(request:Request,body:ReadableStream<Uint8Array>|null=request.body){const reader=body?.getReader();if(!reader)throw fail("Package input is required",400);
   let length=0;const chunks:Uint8Array[]=[];try{while(true){const next=await reader.read();if(next.done)break;length+=next.value.byteLength;
     if(length>32*1024){await reader.cancel();throw fail("Package request is too large",413);}chunks.push(next.value);}}finally{reader.releaseLock();}
@@ -129,8 +129,18 @@ routes.post("/packages/uploads",c=>binding.run(c.req.raw,c.env,c.get("userEmail"
   const accepted=await repository.accept({id,requestId:input.requestId,actor,kind:"upload",input,packageId:crypto.randomUUID(),sourceInstallationId:await identity(ports),targets:selection.targets,
     files:[{packageFileId:"@archive",entryKind:"artifact",purpose:"job_output",byteSize:input.byteSize,sha256:input.sha256,path:"archive.zip",mediaType:"application/zip",fileId:crypto.randomUUID()}],
     statements:()=>selection.statements},()=>ports.actorAllowed());return c.json(await receipt(ports,accepted,actor),202);}));
-routes.get("/packages/requests/:requestId",c=>binding.run(c.req.raw,c.env,c.get("userEmail"),async ports=>{const actor=ports.actor,found=await ports.repository.request(c.req.param("requestId"),actor);
-  if(!found)throw fail("Package request is not accepted",404);return c.json(await receipt(ports,found,actor));}));
+routes.get("/packages/requests/:requestId",c=>binding.run(c.req.raw,c.env,c.get("userEmail"),async ports=>{
+  c.header("Cache-Control","private, no-store");
+  const current=()=>{if(c.req.raw.signal.aborted)throw fail("Package request has ended",409);
+    if(!ports.actorAllowed())throw fail("Package request access is unavailable",403);};current();
+  const actor=ports.actor,requestId=c.req.param("requestId");let absent;
+  try{absent=checkedResearchRequestAbsent({schema:"research-package-request-absent/1",requestId},requestId);}
+  catch{throw fail("Invalid package request identity",400);}
+  const found=await ports.repository.request(requestId,actor);current();
+  // This actor-scoped absence is an observation, never an acceptance tombstone.
+  if(!found)return c.json(absent,404);
+  const value=await receipt(ports,found,actor);current();return c.json(value);
+}));
 routes.get("/packages/jobs/:jobId",c=>binding.run(c.req.raw,c.env,c.get("userEmail"),async ports=>{const status=await publicStatus(ports,c.req.param("jobId"),ports.actor);if(!status)throw fail("Package job does not exist",404);return c.json(status);}));
 routes.get("/packages/jobs/:jobId/upload-intent",c=>binding.run(c.req.raw,c.env,c.get("userEmail"),async ports=>{const job=await ownedJob(ports,c.req.param("jobId"),ports.actor);
   if(job.kind!=="upload")throw fail("This job has no upload intent",404);return c.json(checkedResearchUploadInput(JSON.parse(job.input_json)));}));
