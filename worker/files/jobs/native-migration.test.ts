@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { referenceTestDatabase } from "../../reference-test-support";
 import { nativeAssetUrl } from "../../../shared/contracts/r2-upload";
+import { checkedFileMigrationRequestReceipt, checkedFileMigrationRequestAbsent } from "../../../shared/contracts/file-jobs";
 import { sha256Hex } from "../../../shared/content-addressing";
 import { routes as commentRoutes } from "../../comment-submission-routes";
 import { handleError } from "../../platform/http";
@@ -21,7 +22,9 @@ import { nativeAcceptanceFixture } from "../../uploads/native-acceptance-test-su
 import { acceptAndUploadR2Asset } from "../../uploads/r2-upload-acceptance";
 import { runFileGarbageCollection } from "../authority-gc";
 import { readPublishedFile } from "../authority-reader";
+import { migrationRoutes } from "../migration-routes";
 import { d1FileJobRepository } from "./d1-repository";
+import { SqlFileJobRepository } from "./sql-repository";
 import { dispatchFileJobs, inspectWorkerFileJobRuntime, setFileJobExecution } from "./worker-runtime";
 
 const databases: Awaited<ReturnType<typeof nativeAcceptanceFixture>>["sql"][] = [];
@@ -127,6 +130,7 @@ async function fixture(sourceNative = true, secondNative = false) {
   const app = new Hono<{ Bindings: Env; Variables: { userEmail: string } }>();
   app.onError(handleError); app.use("*", async (c, next) => { c.set("userEmail", f.actor); await next(); }); app.route("/api", mediaRoutes);
   app.route("/api", commentRoutes); app.route("/api", sampleRoutes);
+  app.route("/api", migrationRoutes);
   const request = (path: string, init?: RequestInit) => app.fetch(new Request(`https://app.test/api${path}`, init), f.env);
   const json = (path: string, body: unknown) => request(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   const nativeRead = () => app.fetch(new Request(`https://app.test${nativeAssetUrl(source.state.result.id)}`), f.env);
@@ -142,6 +146,67 @@ async function fixture(sourceNative = true, secondNative = false) {
 }
 
 describe("FP3 independent jobs over real admitted native transports", () => {
+  it("reads exact accepted request input without enabling execution, provider I/O or acceptance writes", async () => {
+    const f = await fixture(false), input = { requestId: crypto.randomUUID(), fileIds: [String(f.file.file_id)],
+      target: { profileId: f.destination, configurationRevision: 1 } };
+    const accepted = await f.json("/files/migrations", input); expect(accepted.status).toBe(202);
+    const job = await accepted.json() as { id: string };
+    await setFileJobExecution(f.env, false);
+    const before = f.sql.prepare("SELECT total_changes() n").get()!.n;
+    const response = await f.request(`/files/migrations/requests/${input.requestId}`); expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    const receipt = checkedFileMigrationRequestReceipt(await response.json());
+    expect(receipt).toMatchObject({ requestId: input.requestId, input, job: { id: job.id, actor: f.actor, state: "paused" } });
+    expect(f.sql.prepare("SELECT total_changes() n").get()!.n).toBe(before);
+    expect(f.sql.prepare("SELECT enabled FROM file_job_runtime_guard").get()!.enabled).toBe(0);
+    expect((await f.repository().accept(input, f.actor, () => true)).id).toBe(job.id);
+    expect(f.sql.prepare("SELECT count(*) n FROM file_migration_jobs WHERE request_id=?").get(input.requestId)!.n).toBe(1);
+    expect(f.s3Fetch).not.toHaveBeenCalled(); expect(f.r2Put).not.toHaveBeenCalled(); expect(f.r2Get).not.toHaveBeenCalled();
+  });
+
+  it("returns a point-in-time missing receipt after a real competing move rejects the stale selection", async () => {
+    const f = await fixture(false), input = { requestId: crypto.randomUUID(), fileIds: [String(f.file.file_id)],
+      target: { profileId: f.destination, configurationRevision: 1 } };
+    expect((await f.repository().plan(input)).items[0].status).toBe("eligible");
+    const competing = await f.accept();
+    expect(await dispatchFileJobs(f.env)).toEqual({ jobId: competing.id, outcome: "moved" });
+    expect((await f.repository().plan(input)).items[0].status).toBe("same_profile");
+    expect((await f.json("/files/migrations", input)).status).toBe(409);
+    const before = f.sql.prepare("SELECT total_changes() n").get()!.n, requests = f.s3Fetch.mock.calls.length;
+    const absent = await f.request(`/files/migrations/requests/${input.requestId}`); expect(absent.status).toBe(404);
+    expect(absent.headers.get("cache-control")).toBe("private, no-store");
+    expect(checkedFileMigrationRequestAbsent(await absent.json(), input.requestId)).toEqual({ schema: "file-migration-request-absent/1", requestId: input.requestId });
+    expect(f.sql.prepare("SELECT total_changes() n").get()!.n).toBe(before);
+    expect(f.s3Fetch).toHaveBeenCalledTimes(requests);
+    expect(f.sql.prepare("SELECT count(*) n FROM file_migration_jobs WHERE request_id=?").get(input.requestId)!.n).toBe(0);
+    // A negative read records no tombstone. That identifier can later be
+    // accepted if its unchanged destination becomes eligible again.
+    const back = await f.accept("r2-profile");
+    expect(await dispatchFileJobs(f.env)).toEqual({ jobId: back.id, outcome: "moved" });
+    const accepted = await f.json("/files/migrations", input); expect(accepted.status).toBe(202);
+    expect(checkedFileMigrationRequestReceipt(await (await f.request(`/files/migrations/requests/${input.requestId}`)).json()).input).toEqual(input);
+  });
+
+  it("keeps foreign request identities in conflict and rechecks administrator revocation after a primary read", async () => {
+    const f = await fixture(false), input = { requestId: crypto.randomUUID(), fileIds: [String(f.file.file_id)],
+      target: { profileId: f.destination, configurationRevision: 1 } };
+    await f.repository().accept(input, "another-admin@example.test", () => true);
+    const before = f.sql.prepare("SELECT total_changes() n").get()!.n;
+    const conflict = await f.request(`/files/migrations/requests/${input.requestId}`); expect(conflict.status).toBe(409);
+    expect(await conflict.json()).toEqual({ error: "File migration request conflicts with its accepted identity" });
+    expect(f.sql.prepare("SELECT total_changes() n").get()!.n).toBe(before);
+    const own = { ...input, requestId: crypto.randomUUID() }; await f.repository().accept(own, f.actor, () => true);
+    const original = SqlFileJobRepository.prototype.requestReceipt;
+    vi.spyOn(SqlFileJobRepository.prototype, "requestReceipt").mockImplementation(async function (this: SqlFileJobRepository, requestId, actor) {
+      const receipt = await original.call(this, requestId, actor); f.env.SYSTEM_ADMIN_EMAILS = "replacement@example.test"; return receipt;
+    });
+    const afterAcceptance = f.sql.prepare("SELECT total_changes() n").get()!.n;
+    expect((await f.request(`/files/migrations/requests/${own.requestId}`)).status).toBe(403);
+    expect((await f.request(`/files/migrations/requests/${crypto.randomUUID()}`)).status).toBe(403);
+    expect(f.sql.prepare("SELECT total_changes() n").get()!.n).toBe(afterAcceptance);
+    expect(f.s3Fetch).not.toHaveBeenCalled(); expect(f.r2Put).not.toHaveBeenCalled(); expect(f.r2Get).not.toHaveBeenCalled();
+  });
+
   it.each(["S3→S3", "R2→S3", "S3→R2"] as const)("moves %s between exact registered namespaces and retains accepted target after defaults change", async direction => {
     const f = await fixture(direction !== "R2→S3", direction === "S3→S3");
     const target = direction === "S3→R2" ? "r2-profile" : f.destination;

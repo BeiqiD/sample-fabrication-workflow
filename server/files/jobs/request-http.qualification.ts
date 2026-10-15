@@ -3,11 +3,13 @@ import { request as httpRequest } from "node:http";
 import { randomUUID } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
 import type { AcceptFileMigrationInput, FileJobStatus, FileMigrationPlan } from "../../../shared/contracts/file-jobs";
+import { SqlFileJobRepository } from "../../../worker/files/jobs/sql-repository";
+import { asJobSqlDatabase } from "../../sqlite";
 import { createNodeFileJobHttpRoutes } from "./request-http";
 import { CONTENT, DIGEST, JOB_TABLES, actor, principalId, prepareTemplate, fixture,
   drainFixtures, originalOperation } from "./request-http.qualification-support";
 
-// All eleven cases are source-only. Real sockets/password sessions/native BEGIN
+// These cases are source-only. Real sockets/password sessions/native BEGIN
 // controls qualify this unmounted component, not a provider or running host.
 beforeAll(() => originalOperation(prepareTemplate));
 afterEach(drainFixtures); afterAll(drainFixtures);
@@ -50,6 +52,29 @@ describe("unmounted original Node File job HTTP component with actual installed 
     expect(executor.headers.get("cache-control")).toBe("private, no-store");
     expect(rows(f.native, ["file_publications", "file_location_publications"])).toEqual(preserved);
     expect(f.native.prepare("SELECT count(*) n FROM system_recovery_write_leases").get()?.n).toBe(0);
+  }));
+  it("reconciles the original accepted request while execution is disabled and rejects foreign receipts or revoked administrators", () => originalOperation(async () => {
+    const f = await fixture(), login = await f.login(), { input, job } = await accepted(f, login);
+    const foreignInput = selection();
+    const repository = new SqlFileJobRepository(asJobSqlDatabase(f.core), () => new Date(), randomUUID);
+    await f.lease.withWriter(() => repository.accept(foreignInput, "local-account:another-operator"));
+    f.native.prepare("UPDATE file_job_runtime_guard SET enabled=0,incarnation=NULL WHERE singleton=1").run();
+    const preserved = rows(f.native, [...JOB_TABLES, "file_job_runtime_guard", "file_publications", "file_location_publications"]);
+    const leases = f.native.prepare("SELECT count(*) n FROM system_recovery_write_leases").get()?.n;
+    const read = (requestId: string) => f.request(`${ROOT}/requests/${encodeURIComponent(requestId)}`, { headers: { cookie: login.cookie } });
+    const receipt = await read(input.requestId);
+    expect(receipt.status).toBe(200); expect(receipt.headers.get("cache-control")).toBe("private, no-store");
+    expect(await receipt.json()).toEqual({ requestId: input.requestId, input, job });
+    const absentRequestId = randomUUID(), absent = await read(absentRequestId);
+    expect(absent.status).toBe(404); expect(absent.headers.get("cache-control")).toBe("private, no-store");
+    expect(await absent.json()).toEqual({ schema: "file-migration-request-absent/1", requestId: absentRequestId });
+    const foreign = await read(foreignInput.requestId); expect(foreign.status).toBe(409);
+    expect(await foreign.text()).toBe("File migration request conflicts with its accepted identity");
+    f.native.prepare("DELETE FROM local_admin_grants WHERE principal_id=?").run(principalId);
+    const denied = await read(input.requestId); expect(denied.status).toBe(403); await denied.text();
+    expect(rows(f.native, [...JOB_TABLES, "file_job_runtime_guard", "file_publications", "file_location_publications"])).toEqual(preserved);
+    expect(f.native.prepare("SELECT count(*) n FROM system_recovery_write_leases").get()?.n).toBe(leases);
+    expect(f.native.prepare("SELECT count(*) n FROM file_migration_attempts").get()?.n).toBe(0);
   }));
   it("retains original plan cost, accepted identity, exact retry and items without byte verification", () => originalOperation(async () => {
     const startedAt = performance.now();

@@ -231,9 +231,23 @@ describe("persisted bounded File migration kernel", () => {
       async batch(statements: Parameters<typeof base.batch>[0]) { await base.batch(statements); throw new Error("lost database acknowledgement"); } };
     const repository = new SqlFileJobRepository(uncertain, () => new Date(), () => crypto.randomUUID());
     const job = await repository.accept(f.input, "admin@example.test");
+    expect(await repository.requestReceipt(f.input.requestId, "admin@example.test")).toEqual({ requestId: f.input.requestId, input: f.input, job });
+    expect((await repository.accept(f.input, "admin@example.test")).id).toBe(job.id);
+    expect(f.requests).toEqual([]);
     expect(await runFileJobStep({ ...f.capabilities, repository })).toMatchObject({ outcome: "moved" });
     expect(await repository.status(job.id)).toMatchObject({ moved: 1, remaining: 0 });
     expect(f.requests.filter(request => request === "PUT:target")).toHaveLength(1);
+  });
+
+  it("reads request proof and current job only through fresh primary sessions without opening an acceptance batch", async () => {
+    const f = fixture(), job = await f.repository.accept(f.input, "admin@example.test");
+    const primary = d1FileJobDatabase(new SqliteD1Database(f.sql) as unknown as D1Database); let primaryReads = 0;
+    const readOnly = { prepare: () => { throw new Error("A receipt must not read a replica"); },
+      primary() { primaryReads++; return primary; }, batch: async () => { throw new Error("A receipt must not accept work"); } };
+    const repository = new SqlFileJobRepository(readOnly, () => { throw new Error("A receipt has no new acceptance time"); },
+      () => { throw new Error("A receipt has no new identity"); });
+    expect(await repository.requestReceipt(f.input.requestId, "admin@example.test")).toEqual({ requestId: f.input.requestId, input: f.input, job });
+    expect(primaryReads).toBe(2); expect(f.requests).toEqual([]);
   });
 
   it("retries a positively settled corrupt attempt under a new registered candidate key", async () => {

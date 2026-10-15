@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { FILE_JOB_MAX_BYTES, type AcceptFileMigrationInput, type FileMigrationPlan, type FileJobStatus } from "../../shared/contracts/file-jobs";
-import { fileJobsClient, FileMigrationRequestError, fileMigrationErrorMessage } from "./file-jobs-client";
+import { fileJobsClient, FileMigrationRequestError, FileMigrationRequestMissingError, fileMigrationErrorMessage } from "./file-jobs-client";
 
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json" } });
 const input: AcceptFileMigrationInput = { requestId: "acceptance-1", fileIds: ["file:2", "file:1"], target: { profileId: "destination", configurationRevision: 1 } };
@@ -46,6 +46,50 @@ describe("File migration client", () => {
     expect(JSON.parse(network.mock.calls[1][1].body)).toEqual({ ...input, fileIds: ["file:1", "file:2"] });
     expect(network.mock.calls[2][1]).toMatchObject({ method: "POST", body: "{}", credentials: "same-origin", cache: "no-store", redirect: "error" });
     expect(network.mock.calls[4][1].body).toBe('{"enabled":false}');
+  });
+
+  it("reads the exact original acceptance without replaying it and checks its entire canonical input", async () => {
+    const canonical = { ...input, fileIds: ["file:1", "file:2"] }, receipt = { requestId: input.requestId, input: canonical, job: job() };
+    const network = vi.fn().mockResolvedValue(json(receipt)); vi.stubGlobal("fetch", network);
+    const signal = new AbortController().signal;
+    expect(await fileJobsClient.readRequest(input, signal)).toEqual(receipt);
+    expect(network.mock.calls).toEqual([["/api/files/migrations/requests/acceptance-1",
+      { method: "GET", credentials: "same-origin", cache: "no-store", redirect: "error", signal }]]);
+  });
+
+  it.each([
+    ["another request", (value: { requestId: string; input: AcceptFileMigrationInput; job: FileJobStatus }) => { value.requestId = "another-request"; }],
+    ["another selection", (value: { requestId: string; input: AcceptFileMigrationInput; job: FileJobStatus }) => { value.input.fileIds = ["another-file"]; }],
+    ["another destination", (value: { requestId: string; input: AcceptFileMigrationInput; job: FileJobStatus }) => { value.input.target = { ...value.input.target, profileId: "another-destination" }; }],
+    ["another job target", (value: { requestId: string; input: AcceptFileMigrationInput; job: FileJobStatus }) => { value.job.target = { ...value.job.target, configurationRevision: 2 }; }],
+    ["private receipt fields", (value: { requestId: string; input: AcceptFileMigrationInput; job: FileJobStatus }) => { Object.assign(value, { privateCredential: "PRIVATE" }); }],
+    ["private job fields", (value: { requestId: string; input: AcceptFileMigrationInput; job: FileJobStatus }) => { Object.assign(value.job, { privateCredential: "PRIVATE" }); }],
+  ])("retains uncertainty for %s in an original request lookup", async (_label, change) => {
+    const value = { requestId: input.requestId, input: { ...input, target: { ...input.target } }, job: job() }; change(value);
+    const network = vi.fn().mockResolvedValue(json(value)); vi.stubGlobal("fetch", network);
+    await expect(fileJobsClient.readRequest(input)).rejects.toThrow();
+    expect(network).toHaveBeenCalledOnce(); expect(network.mock.calls[0][1].method).toBe("GET");
+  });
+
+  it("keeps a missing or unavailable original receipt read-only", async () => {
+    const network = vi.fn().mockResolvedValueOnce(json({ schema: "file-migration-request-absent/1", requestId: input.requestId }, 404))
+      .mockRejectedValueOnce(new Error("PRIVATE_LOOKUP")); vi.stubGlobal("fetch", network);
+    await expect(fileJobsClient.readRequest(input)).rejects.toBeInstanceOf(FileMigrationRequestMissingError);
+    await expect(fileJobsClient.readRequest(input)).rejects.toMatchObject({ status: null });
+    expect(network.mock.calls.map(([, options]) => options.method)).toEqual(["GET", "GET"]);
+  });
+
+  it.each([
+    ["generic edge 404", json({}, 404)],
+    ["another request's absence", json({ schema: "file-migration-request-absent/1", requestId: "another-request" }, 404)],
+    ["private successor fields", json({ schema: "file-migration-request-absent/1", requestId: input.requestId, privateCredential: "PRIVATE" }, 404)],
+    ["HTML fallback", new Response("<html>Not found</html>", { status: 404, headers: { "content-type": "text/html" } })],
+    ["malformed JSON", new Response("{", { status: 404, headers: { "content-type": "application/json" } })],
+  ])("does not treat %s as an exact original-request absence", async (_label, response) => {
+    const network = vi.fn().mockResolvedValue(response); vi.stubGlobal("fetch", network);
+    const error = await fileJobsClient.readRequest(input).catch(error => error);
+    expect(error).toBeInstanceOf(Error); expect(error).not.toBeInstanceOf(FileMigrationRequestMissingError);
+    expect(network).toHaveBeenCalledOnce(); expect(network.mock.calls[0][1].method).toBe("GET");
   });
 
   it.each([
@@ -124,6 +168,7 @@ describe("File migration client", () => {
   it("rejects invalid selection, control and pagination inputs without a request", async () => {
     const network = vi.fn(); vi.stubGlobal("fetch", network);
     await expect(fileJobsClient.accept({ ...input, fileIds: ["duplicate", "duplicate"] })).rejects.toThrow();
+    await expect(fileJobsClient.readRequest({ ...input, fileIds: ["duplicate", "duplicate"] })).rejects.toThrow();
     await expect(fileJobsClient.plan({ ...input, fileIds: Array.from({ length: 101 }, (_, i) => `file:${i}`) })).rejects.toThrow();
     await expect(fileJobsClient.inventory("bad\n" )).rejects.toThrow(); await expect(fileJobsClient.control("", "pause")).rejects.toThrow();
     await expect(fileJobsClient.setExecutor("true" as never)).rejects.toThrow(); expect(network).not.toHaveBeenCalled();

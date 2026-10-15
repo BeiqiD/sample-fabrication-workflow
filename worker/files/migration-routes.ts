@@ -1,11 +1,12 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { checkedAcceptFileMigration } from "../../shared/contracts/file-jobs";
+import { checkedAcceptFileMigration, checkedFileMigrationRequestId, checkedFileMigrationRequestReceipt, checkedFileMigrationRequestAbsent } from "../../shared/contracts/file-jobs";
 import { requireSystemAdministrator, canAdministerSystemSettings } from "../storage/system-administrator";
 import type { Env } from "../types";
 import { ensureFileAuthorityExecution } from "./authority-execution";
 import { d1FileJobRepository } from "./jobs/d1-repository";
 import { setFileJobExecution } from "./jobs/worker-runtime";
+import { FileMigrationRequestActorMismatchError } from "./jobs/types";
 
 export const migrationRoutes = new Hono<{ Bindings: Env; Variables: { userEmail: string } }>();
 migrationRoutes.use("/files/migrations", requireSystemAdministrator);
@@ -65,6 +66,23 @@ migrationRoutes.post("/files/migrations", async c => {
   try { return c.json(await d1FileJobRepository(c.env.DB).accept(input, c.get("userEmail"),
     () => canAdministerSystemSettings(c.env, c.get("userEmail"))), 202); }
   catch { throw new HTTPException(409, { message: "File migration could not be accepted; refresh its plan or reuse the accepted input" }); }
+});
+migrationRoutes.get("/files/migrations/requests/:requestId", async c => {
+  const actor = c.get("userEmail"), authorized = () => canAdministerSystemSettings(c.env, actor);
+  if (!authorized()) throw new HTTPException(403, { message: "System administrator access is required." });
+  let requestId: string;
+  try { requestId = checkedFileMigrationRequestId(c.req.param("requestId")); }
+  catch { throw new HTTPException(400, { message: "Invalid File migration request identity" }); }
+  let receipt;
+  try { receipt = await d1FileJobRepository(c.env.DB).requestReceipt(requestId, actor); }
+  catch (error) {
+    if (!authorized()) throw new HTTPException(403, { message: "System administrator access is required." });
+    if (error instanceof FileMigrationRequestActorMismatchError) throw new HTTPException(409, { message: "File migration request conflicts with its accepted identity" });
+    throw error;
+  }
+  if (!authorized()) throw new HTTPException(403, { message: "System administrator access is required." });
+  if (!receipt) return c.json(checkedFileMigrationRequestAbsent({ schema: "file-migration-request-absent/1", requestId }, requestId), 404);
+  return c.json(checkedFileMigrationRequestReceipt(receipt));
 });
 migrationRoutes.get("/files/migrations/:jobId", async c => {
   const status = await d1FileJobRepository(c.env.DB).status(c.req.param("jobId"));

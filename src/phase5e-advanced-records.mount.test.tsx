@@ -32,6 +32,7 @@ function fallback(path: RequestInfo | URL): Response {
   if (url === `${base}/files`) return json({ items: [], nextCursor: null });
   if (url === base) return json({ jobs: [] });
   if (url === `${base}/executor`) return json(executor);
+  if (url.startsWith(`${base}/requests/`)) return json({ schema: "file-migration-request-absent/1", requestId: decodeURIComponent(url.slice(`${base}/requests/`.length)) }, 404);
   throw new Error(`Unexpected request: ${url}`);
 }
 function deferred<T>() {
@@ -105,7 +106,7 @@ describe("Phase 5E advanced record reads", () => {
     await screen.findByText("No migrations have been accepted.");
     expect(screen.queryByRole("alert")).toBeNull();
     expect(JSON.parse(sessionStorage.getItem(intentKey)!)).toEqual(pending);
-    expect(screen.getByRole("button", { name: "Check or retry accepted request" })).toBeTruthy(); expectReadOnlyRequests();
+    expect(screen.getByRole("button", { name: "Check original migration request" })).toBeTruthy(); expectReadOnlyRequests();
   });
 
   it.each(["/api/settings/storage?version=3", `${base}/files`])("does not announce empty migration metadata after %s fails", async failedPath => {
@@ -178,7 +179,7 @@ describe("Phase 5E advanced record reads", () => {
       return String(path) === base && failJobs ? json({}, 503) : fallback(path);
     });
     render(<FileMigrationsPage />); await screen.findByText("No migrations have been accepted.");
-    fireEvent.click(screen.getByRole("button", { name: "Check or retry accepted request" }));
+    fireEvent.click(screen.getByRole("button", { name: "Retry original migration request" }));
     const warning = "File migration request is unavailable. Try again using the original request.";
     await screen.findByText(warning);
     expect(screen.getByText(warning).getAttribute("role")).toBe("alert");
@@ -207,7 +208,7 @@ describe("Phase 5E advanced record reads", () => {
       return String(path) === "/api/settings/storage?version=3" && failMetadata ? json({}, 503) : fallback(path);
     });
     render(<FileMigrationsPage />); await screen.findByText("No migrations have been accepted.");
-    fireEvent.click(screen.getByRole("button", { name: "Check or retry accepted request" }));
+    fireEvent.click(screen.getByRole("button", { name: "Retry original migration request" }));
     const warning = "File migration request is unavailable. Try again using the original request.";
     await screen.findByText(warning);
     failMetadata = true; fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
@@ -238,19 +239,19 @@ describe("Phase 5E advanced record reads", () => {
       for (let i = 0; i < 40; i++) await Promise.resolve();
     });
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Check or retry accepted request" }));
+      fireEvent.click(screen.getByRole("button", { name: "Retry original migration request" }));
       for (let i = 0; i < 40; i++) await Promise.resolve();
     });
-    const warning = "The migration request could not be confirmed. Refresh its plan or retry the original accepted request.";
-    expect(screen.getByText(warning).getAttribute("role")).toBe("alert");
+    const warning = "No saved receipt is recorded yet. The original request remains unconfirmed; check again or explicitly retry the same request.";
+    expect(screen.getByText(warning).getAttribute("role")).toBe("status");
     const before = network.mock.calls.length;
     failDetails = true; await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
     expect(screen.getByText("Saved migration details could not be refreshed. Retry only reads their current status.")).toBeTruthy();
-    expect(screen.getByText(warning).getAttribute("role")).toBe("alert");
+    expect(screen.getByText(warning).getAttribute("role")).toBe("status");
     expect(JSON.parse(sessionStorage.getItem(intentKey)!)).toEqual(pending);
     failDetails = false; await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
     expect(screen.queryByText("Saved migrations are unavailable")).toBeNull();
-    expect(screen.getByText(warning).getAttribute("role")).toBe("alert");
+    expect(screen.getByText(warning).getAttribute("role")).toBe("status");
     expect(network.mock.calls.slice(before).every(([, options]) => options?.method === "GET")).toBe(true);
     const writes = network.mock.calls.filter(([, options]) => options?.method === "POST");
     expect(writes).toHaveLength(1); expect(JSON.parse(String(writes[0][1]?.body))).toEqual(pending);
@@ -272,7 +273,7 @@ describe("Phase 5E advanced record reads", () => {
     network.mockImplementation(async path => String(path) === deniedPath ? json({ error: "private-revocation-detail" }, 403) : fallback(path));
     render(<FileMigrationsPage />);
     await screen.findByText("System administrator access is required to manage File migrations.");
-    expect(screen.queryByRole("combobox")).toBeNull(); expect(screen.queryByRole("button", { name: "Check or retry accepted request" })).toBeNull();
+    expect(screen.queryByRole("combobox")).toBeNull(); expect(screen.queryByRole("button", { name: "Check original migration request" })).toBeNull();
     expect(network.mock.calls.some(([path]) => String(path) === base)).toBe(false);
     expect(document.body.textContent).not.toContain("private-revocation-detail");
     expect(JSON.parse(sessionStorage.getItem(intentKey)!)).toEqual(pending); expectReadOnlyRequests();

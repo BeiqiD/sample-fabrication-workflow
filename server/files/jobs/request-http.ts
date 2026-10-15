@@ -13,8 +13,8 @@ import { checkedSafeInteger, createSqliteBatchAdmission, runSqliteAdmittedBatch,
   type SqliteBatchAdmission, type SqliteRow, type SqliteStatement } from "../../sqlite";
 import { ownedJobPrincipalAuthority, type InstalledJobPrincipalAuthority } from "./principal-authority";
 
-type Operation = "list" | "inventory" | "executorStatus" | "setExecutor" | "plan" | "accept" | "status" | "items" | "cleanup" | "control";
-type Selection = Readonly<{ operation: Operation; jobId?: string; action?: string }>;
+type Operation = "list" | "inventory" | "executorStatus" | "setExecutor" | "plan" | "accept" | "requestReceipt" | "status" | "items" | "cleanup" | "control";
+type Selection = Readonly<{ operation: Operation; jobId?: string; action?: string; requestId?: string }>;
 type SourceLease = Readonly<{ id: string; generation: bigint }>;
 function ingress(request: Request): Selection {
   const path = new URL(request.url).pathname, prefix = "/api/files/migrations";
@@ -24,6 +24,13 @@ function ingress(request: Request): Selection {
   if (path === prefix + "/executor" && request.method === "GET") return Object.freeze({ operation: "executorStatus" });
   if (path === prefix + "/executor" && request.method === "POST") return Object.freeze({ operation: "setExecutor" });
   if (path === prefix + "/plans" && request.method === "POST") return Object.freeze({ operation: "plan" });
+  const receipt = /^\/api\/files\/migrations\/requests\/([^/]+)$/.exec(path);
+  if (receipt && request.method === "GET") {
+    let requestId: string;
+    try { requestId = decodeURIComponent(receipt[1]!); }
+    catch { throw new HTTPException(400, { message: "Invalid File migration request path" }); }
+    return Object.freeze({ operation: "requestReceipt", requestId });
+  }
   const match = /^\/api\/files\/migrations\/([^/]+)(?:\/([^/]+))?$/.exec(path);
   if (!match) throw new HTTPException(403, { message: "Original File job ingress is required." });
   let jobId: string, action: string | undefined;
@@ -187,10 +194,10 @@ export function createNodeFileJobHttpRoutes<Bindings extends object>(options: {
       primary() { current(); core.primary(); return database; },
     });
     const originalRepository = new SqlFileJobRepository(database, () => new Date(), randomUUID);
-    function select(operation: Operation | Operation[], jobId?: string, action?: string): void {
+    function select(operation: Operation | Operation[], jobId?: string, action?: string, requestId?: string): void {
       current();
       if (!(Array.isArray(operation) ? operation.includes(selection.operation) : operation === selection.operation)
-        || jobId !== selection.jobId || action !== selection.action)
+        || jobId !== selection.jobId || action !== selection.action || requestId !== selection.requestId)
         throw new HTTPException(403, { message: "Original File job operation changed." });
     }
     function canAdminister(): boolean {
@@ -212,6 +219,11 @@ export function createNodeFileJobHttpRoutes<Bindings extends object>(options: {
       accept(input, selectedActor, authorize) {
         select("accept"); if (selectedActor !== actor) throw new HTTPException(403, { message: "Original File job actor changed." });
         return originalRepository.accept(input, actor, () => canAdminister() && (!authorize || authorize() === true));
+      },
+      requestReceipt(requestId, selectedActor) {
+        select("requestReceipt", undefined, undefined, requestId);
+        if (selectedActor !== actor) throw new HTTPException(403, { message: "Original File job actor changed." });
+        return originalRepository.requestReceipt(requestId, actor);
       },
       status(id) { select(["status", "items"], id); return originalRepository.status(id); },
       items(id, cursor) { select("items", id); return originalRepository.items(id, cursor); },

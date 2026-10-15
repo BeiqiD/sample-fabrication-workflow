@@ -42,6 +42,7 @@ function fallback(path: RequestInfo | URL, options?: RequestInit): Response {
   if (url === base && options?.method === "GET") return json({ jobs });
   if (url === `${base}/plans`) return json(plan(JSON.parse(String(options?.body))));
   if (url === `${base}/job%3A1/items`) return json(details());
+  if (url.startsWith(`${base}/requests/`)) return json({ schema: "file-migration-request-absent/1", requestId: decodeURIComponent(url.slice(`${base}/requests/`.length)) }, 404);
   return json({}, 404);
 }
 const mutations = () => network.mock.calls.filter(([, options]) => options?.method === "POST");
@@ -140,7 +141,7 @@ describe("saved File migrations", () => {
     const other = screen.getByRole("link", { name: "Storage settings" }); other.focus();
     await act(async () => acceptance.resolve(json(jobs[0], 202)));
     expect(document.activeElement).toBe(other); expect(acceptCalls()).toHaveLength(1);
-    expect(sessionStorage.getItem(intentKey)).not.toBeNull(); expect(screen.getByRole("button", { name: "Check or retry accepted request" })).toBeTruthy();
+    expect(sessionStorage.getItem(intentKey)).not.toBeNull(); expect(screen.getByRole("button", { name: "Check original migration request" })).toBeTruthy();
   });
 
   it("denies nonadministrators before reading inventory or invoking saved work", async () => {
@@ -299,28 +300,28 @@ describe("saved File migrations", () => {
     expect(mutations().map(([path]) => path)).toEqual([`${base}/job%3A1/pause`]);
   });
 
-  it("retains and explicitly retries a lost acceptance response with its original files, target and identity across remount", async () => {
+  it("reconciles a lost acceptance response with its original receipt across remount without a second POST", async () => {
+    let original: AcceptFileMigrationInput | null = null;
     network.mockImplementation(async (path, options) => {
       if (String(path) === base && options?.method === "POST") {
         const submitted = JSON.parse(String(options.body)); expect(JSON.parse(sessionStorage.getItem(intentKey)!)).toEqual(submitted);
-        jobs = [job()]; if (acceptCalls().length === 1) throw new Error("private-provider-detail"); return json(job(), 202);
+        original = submitted; jobs = [job()]; throw new Error("private-provider-detail");
       }
+      if (original && String(path) === `${base}/requests/${original.requestId}`) return json({ requestId: original.requestId, input: original, job: job() });
       return fallback(path, options);
     });
     const mounted = render(<FileMigrationsPage />); fireEvent.click(await preview());
-    await screen.findByRole("button", { name: "Check or retry accepted request" });
+    await screen.findByRole("button", { name: "Check original migration request" });
     await waitFor(() => expect(screen.getByText(/request is unavailable/)).toBeTruthy());
-    const original = JSON.parse(String(acceptCalls()[0][1]?.body)); expect(sessionStorage.getItem(intentKey)).not.toBeNull();
+    const submitted = JSON.parse(String(acceptCalls()[0][1]?.body)); expect(sessionStorage.getItem(intentKey)).not.toBeNull();
     expect(document.body.textContent).not.toContain("private-provider-detail"); mounted.unmount();
     currentSettings.profiles.items[1].availability = "unavailable"; currentSettings.profiles.items[1].bindingMatch = "mismatch";
     currentSettings.profiles.items[1].bindingRevision = null; currentSettings.roleDefaults.originals!.availability = "unavailable";
     render(<FileMigrationsPage />); await screen.findByRole("button", { name: "View files in job:1" });
-    const retry = screen.getByRole("button", { name: "Check or retry accepted request" });
-    expect(screen.getByText(/An acceptance result is awaiting confirmation for 1 files to/).textContent).toContain("destination");
-    expect(acceptCalls()).toHaveLength(1); expect((screen.getByLabelText("Migration destination") as HTMLSelectElement).disabled).toBe(true);
-    fireEvent.click(retry); await waitFor(() => expect(sessionStorage.getItem(intentKey)).toBeNull());
-    expect(JSON.parse(String(acceptCalls()[1][1]?.body))).toEqual(original);
-    expect(screen.getByText(/Migration job:1 accepted/)).toBeTruthy(); expect(acceptCalls()).toHaveLength(2);
+    await waitFor(() => expect(sessionStorage.getItem(intentKey)).toBeNull());
+    expect(network.mock.calls.filter(([path]) => String(path) === `${base}/requests/${submitted.requestId}`)).toHaveLength(1);
+    expect(JSON.parse(sessionStorage.getItem("file-migration-earlier-requests")!)).toEqual([{ input: submitted, jobId: "job:1" }]);
+    expect(screen.getByText(/Migration job:1 accepted/)).toBeTruthy(); expect(acceptCalls()).toHaveLength(1);
   });
 
   it("aborts the browser request while keeping accepted work and the original retry intent durable", async () => {
@@ -333,7 +334,7 @@ describe("saved File migrations", () => {
     const signal = acceptCalls()[0][1]?.signal; mounted.unmount(); expect(signal?.aborted).toBe(true);
     await act(async () => response.resolve(json(job("running"), 202))); expect(sessionStorage.getItem(intentKey)).not.toBeNull();
     render(<FileMigrationsPage />); await screen.findByRole("button", { name: "Pause job" });
-    expect(screen.getByRole("button", { name: "Check or retry accepted request" })).toBeTruthy(); expect(acceptCalls()).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Check original migration request" })).toBeTruthy(); expect(acceptCalls()).toHaveLength(1);
   });
 
   it("keeps cancel and source cleanup separate explicit controls and never resumes a recovered paused job automatically", async () => {

@@ -168,6 +168,7 @@ export function createNodeLocalFileJobs(options: {
     {method:"GET",path:"/files/migrations"},{method:"GET",path:"/files/migrations/files"},
     {method:"GET",path:"/files/migrations/executor"},{method:"POST",path:"/files/migrations/executor"},
     {method:"POST",path:"/files/migrations/plans"},{method:"POST",path:"/files/migrations"},
+    {method:"GET",path:"/files/migrations/requests/:requestId"},
     {method:"GET",path:"/files/migrations/:jobId"},{method:"GET",path:"/files/migrations/:jobId/items"},
     {method:"POST",path:"/files/migrations/:jobId/cleanup"},{method:"POST",path:"/files/migrations/:jobId/:action"},
   ].map(route=>Object.freeze(route)));
