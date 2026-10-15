@@ -4,10 +4,12 @@ import {
   checkedSystemRecoveryCutoverInput, checkedSystemRecoveryImportInput, checkedSystemRecoveryJobControl,
   checkedSystemRecoveryJobStatus, checkedSystemRecoveryPreview, checkedSystemRecoveryReceipt,
   checkedSystemRecoveryMaintenanceInput, checkedSystemRecoveryMaintenanceReceipt, checkedSystemRecoveryMaintenanceStatus,
+  checkedSystemRecoverySourceResumeInput, checkedSystemRecoverySourceResumeReceipt,
   checkedSystemRecoveryUploadInput, SYSTEM_RECOVERY_MAX_ARCHIVE_BYTES,
   type SystemRecoveryBackupInput, type SystemRecoveryCutoverInput, type SystemRecoveryImportInput,
   type SystemRecoveryJobControl, type SystemRecoveryJobKind, type SystemRecoveryUploadInput,
   type SystemRecoveryMaintenanceInput,
+  type SystemRecoverySourceResumeInput,
 } from "../../shared/contracts/system-recovery";
 
 const base = "/api/system-recovery", maximumResponseBytes = 1024 * 1024;
@@ -84,6 +86,17 @@ export const systemRecoveryClient = {
   },
   async readMaintenanceRequest(requestId: string, signal?: AbortSignal) {
     const value = checkedSystemRecoveryMaintenanceReceipt(await request(`/maintenance/requests/${identity(requestId)}`, "GET", undefined, signal));
+    ensure(value.requestId === requestId); return value;
+  },
+  async resumeSource(input: SystemRecoverySourceResumeInput, signal?: AbortSignal) {
+    const checked = checkedSystemRecoverySourceResumeInput(input);
+    const value = checkedSystemRecoverySourceResumeReceipt(await request("/source-resume", "POST", checked, signal));
+    ensure(value.requestId === checked.requestId && value.releaseRequestId === checked.releaseRequestId
+      && value.backupJobId === checked.backupJobId && value.expectedGeneration === checked.expectedGeneration);
+    return value;
+  },
+  async readSourceResumeRequest(requestId: string, signal?: AbortSignal) {
+    const value = checkedSystemRecoverySourceResumeReceipt(await request(`/source-resume/requests/${identity(requestId)}`, "GET", undefined, signal));
     ensure(value.requestId === requestId); return value;
   },
   async configureExecutor(enabled: boolean, signal?: AbortSignal) {

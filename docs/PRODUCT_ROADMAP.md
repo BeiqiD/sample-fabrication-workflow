@@ -1,5 +1,34 @@
 # Product goal and roadmap
 
+**Supported recovery frontend development checkpoint — 2026-10-15.**
+PR #312 completed the bounded Node/Worker backend milestone at `abdc2d98`;
+its post-merge Verify, Project Map, all 15 contexts and Cloudflare check passed.
+The next slice aligns the recovery page with explicit server policy:
+
+- Worker recovery keeps explicit destination-profile mappings and planned-only
+  maintenance. Node recovery preserves source-profile evidence and submits an
+  empty mapping for the inert local target.
+- Recovery-only Node can fence and back up without a configured target. All Node
+  backups require a drained fence. Target staging still requires a fresh target.
+- Node recovery targets and verification ledgers cannot be cleaned up from this
+  page. Eligible backup/upload cleanup remains available.
+- Recovery-only Node exposes original-source resume as an independent operation
+  after a completed backup and accepted release. The recovery executor must be
+  paused. Reload and retry retain the exact request, release, backup and
+  generation; maintenance release never acts as a resume receipt. Page reads
+  finish before source resume, and polling pauses while that operation is pending.
+
+[The supported matrix and verification scope](./RECOVERY_FRONTEND_SUPPORTED_MATRIX.md)
+separate mounted UI, local Chromium HTTP fixtures and genuine native API checks.
+Node V28 still advertises `spa: false`; a built-client fixture is not an installed
+Node SPA. Storage Settings currently selects available Worker R2/S3 destinations
+for **new uploads**. Existing file locations remain authoritative; this slice
+adds no Node LOCAL web selector or implicit migration.
+
+The frontend slice is a development change. Final verification and its own
+qualified development integration precede a reviewable `main` candidate. The
+Cloudflare build stays unchanged; heavyweight verification remains local/CI.
+
 **Bounded Node/Worker interoperability development checkpoint — 2026-10-14.**
 The current development milestone covers the named Node/SQLite/LOCAL and native
 Worker/D1/R2 Package and V5 Backup/Recovery paths. Each original result retains

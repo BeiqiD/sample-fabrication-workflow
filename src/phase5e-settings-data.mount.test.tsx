@@ -47,7 +47,8 @@ function recoveryJob(): SystemRecoveryJobStatus {
 }
 const recoveryAccess: SystemRecoveryCapabilities = { supported: true, canManage: true, enabled: false, stale: false,
   lastHeartbeatAt: null, reason: "executor_disabled", cadenceSeconds: 120, maxStepMs: 60000,
-  target: { configured: false, id: null, mode: "fresh" }, maintenance: { state: "open", checkpoint: null } };
+  target: { configured: false, id: null, mode: "fresh" }, maintenance: { state: "open", checkpoint: null },
+  policy: { recoveryMapping: "explicit-profile", backupMaintenance: "planned-only", maintenanceWithoutTarget: false, recoveryCleanup: true, sourceResume: false } };
 const maintenance: SystemRecoveryMaintenanceStatus = { state: "open", generation: 0, token: null, checkpoint: null,
   backupJobId: null, activeWriters: 0 };
 const exportPreview: ResearchPackagePreview = { schema: "research-package-preview/1", kind: "report", roots: [{ kind: "sample", id: "sample:1" }],

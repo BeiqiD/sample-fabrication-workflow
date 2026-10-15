@@ -47,7 +47,8 @@ async function assertPrivateKeyNamespace(env:Env,key:string){const matched=/^fp5
 }
 export async function systemRecoveryCapabilities(env:Env,actor:string):Promise<SystemRecoveryCapabilities>{
   const canManage=recoveryActorAllowed(env,actor),base={supported:false,canManage,enabled:false,stale:true,lastHeartbeatAt:null,cadenceSeconds:120 as const,maxStepMs:60000 as const,reason:canManage?"schema_unavailable":"administrator_required",
-    target:{configured:false,id:null,mode:"fresh" as const},maintenance:{state:"open" as const,checkpoint:null}};
+    target:{configured:false,id:null,mode:"fresh" as const},maintenance:{state:"open" as const,checkpoint:null},
+    policy:{recoveryMapping:"explicit-profile" as const,backupMaintenance:"planned-only" as const,maintenanceWithoutTarget:false,recoveryCleanup:true,sourceResume:false}};
   if(!canManage)return base;const repository=recoveryRepository(env);if(!await repository.installed())return base;
   const runtime=await repository.runtime(),maintenance=await readSourceMaintenance(env);
   let artifactAvailable=true;try{await freezeRecoveryArtifactNamespace(env);}catch{artifactAvailable=false;}
