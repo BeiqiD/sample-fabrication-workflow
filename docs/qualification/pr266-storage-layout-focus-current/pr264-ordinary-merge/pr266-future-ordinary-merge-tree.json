@@ -1,0 +1,8 @@
+{
+  "kind": "pr266-exact-current-base-future-merge-tree/1",
+  "base": "31a2cfe2ecd033679229b6318a1bcf85a6b2425d",
+  "head": "4e0b8244989b2456e802cf33c636680f13f75c1f",
+  "mergeTree": "fcbce661c11ce6d56c15cd213ee30ae4a2de2348",
+  "exactQualifiedOwnTree": true,
+  "actualMergePerformed": false
+}

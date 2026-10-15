@@ -1,17 +1,34 @@
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
+import { referenceTestDatabase } from "./reference-test-support";
 
-const migration = (name: string) => readFileSync(new URL(`../migrations/${name}`, import.meta.url), "utf8");
+const migration = (name: string) => readFileSync(new URL(`../migrations-history/s0/${name}`, import.meta.url), "utf8");
 
 function createDatabase(applyMetrologyStatusMigration = true) {
-  const database = new DatabaseSync(":memory:");
-  database.exec(migration("0001_alpha_state_chain.sql"));
-  database.exec(migration("0004_sync_sample_run_status.sql"));
-  database.exec(migration("0006_metrology_templates.sql"));
+  const database = applyMetrologyStatusMigration ? referenceTestDatabase() : new DatabaseSync(":memory:");
   if (applyMetrologyStatusMigration) {
-    database.exec(migration("0008_sync_metrology_sample_status.sql"));
+    // Current snapshot tests own a visible template instead of depending on
+    // the visibility or lifecycle state of retained historical builtin rows.
+    database.exec(`
+      INSERT INTO recipe_families (id, name, template_type, created_at)
+      VALUES ('snapshot-sem-family', 'Snapshot SEM fixture', 'module', '2026-07-24T00:00:00.000Z');
+      INSERT INTO template_versions
+        (id, recipe_family_id, name, template_type, version, manifest_hash, content_json, created_at, template_kind)
+      VALUES ('snapshot-sem-template', 'snapshot-sem-family', 'SEM', 'module', 1,
+        'snapshot-sem-manifest', '{}', '2026-07-24T00:00:00.000Z', 'metrology');
+      INSERT INTO template_steps (id, template_version_id, logical_step_key, position, definition_hash, raw_json)
+      VALUES ('snapshot-sem-step', 'snapshot-sem-template', 'metrology:sem', 0,
+        'b340e57f0b53f1d1f657f99ef1bd25c8b9b54dd442a1d50ae7ea7a936af409b5', '{}');
+    `);
+  } else {
+    // Only the final historical repair case starts before migration 0008.
+    database.exec(migration("0001_alpha_state_chain.sql"));
+    database.exec(migration("0004_sync_sample_run_status.sql"));
+    database.exec(migration("0006_metrology_templates.sql"));
   }
+  const familyId = applyMetrologyStatusMigration ? "snapshot-sem-family" : "builtin-metrology-family-sem";
+  const templateId = applyMetrologyStatusMigration ? "snapshot-sem-template" : "builtin-metrology-template-sem";
   database.exec(`
     INSERT INTO samples
       (id, code, title, status, created_at, updated_at)
@@ -24,8 +41,8 @@ function createDatabase(applyMetrologyStatusMigration = true) {
        run_kind, template_name_snapshot, template_type_snapshot, template_version_snapshot,
        created_at)
     VALUES
-      ('metrology-run-1', 'sample-1', 'builtin-metrology-family-sem',
-       'builtin-metrology-template-sem', 1, 'metrology-group-1', 'metrology',
+      ('metrology-run-1', 'sample-1', '${familyId}',
+       '${templateId}', 1, 'metrology-group-1', 'metrology',
        'SEM', 'module', 1, '2026-07-24T10:05:00.000Z');
 
     INSERT INTO run_steps
@@ -36,7 +53,7 @@ function createDatabase(applyMetrologyStatusMigration = true) {
       ts.id, ts.logical_step_key, ts.definition_hash,
       '2026-07-24T10:05:00.000Z', '2026-07-24T10:05:00.000Z'
     FROM template_steps ts
-    WHERE ts.template_version_id = 'builtin-metrology-template-sem';
+    WHERE ts.template_version_id = '${templateId}';
   `);
   return database;
 }
@@ -46,7 +63,7 @@ function templateFields(database: DatabaseSync) {
     `SELECT sd.name, sd.tool_name, sd.parameters_text, sd.comments_text
      FROM template_steps ts
      JOIN step_definitions sd ON sd.hash = ts.definition_hash
-     WHERE ts.template_version_id = 'builtin-metrology-template-sem'`,
+     WHERE ts.template_version_id = 'snapshot-sem-template'`,
   ).get();
 }
 
@@ -141,11 +158,11 @@ describe("metrology template snapshots", () => {
 
       UPDATE template_steps
       SET definition_hash = 'updated-sem-definition'
-      WHERE template_version_id = 'builtin-metrology-template-sem';
+      WHERE template_version_id = 'snapshot-sem-template';
 
       UPDATE template_versions
       SET metrology_notes = 'Instrument manual and operating notes'
-      WHERE id = 'builtin-metrology-template-sem';
+      WHERE id = 'snapshot-sem-template';
     `);
 
     expect(templateFields(database)).toEqual({
@@ -156,7 +173,7 @@ describe("metrology template snapshots", () => {
     });
     expect(runFields(database)).toEqual(originalRunFields);
     expect(database.prepare(
-      "SELECT metrology_notes FROM template_versions WHERE id = 'builtin-metrology-template-sem'",
+      "SELECT metrology_notes FROM template_versions WHERE id = 'snapshot-sem-template'",
     ).get()).toEqual({ metrology_notes: "Instrument manual and operating notes" });
     database.close();
   });

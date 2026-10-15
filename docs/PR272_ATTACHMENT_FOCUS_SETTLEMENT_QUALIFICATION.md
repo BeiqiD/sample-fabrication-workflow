@@ -1,0 +1,9 @@
+# PR272 attachment focus settlement — 2026-10-11
+
+The original PR Verify run [38147825081](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38147825081) on `93accfc494c770000de8b312621a0f32dab0fcd3` passed 3,907 source cases, then failed one mounted attachment assertion (1,011 passed). The subsequent verification leaves were skipped. This failed run is retained; it was not retried on the same head.
+
+The test checked focus immediately after the confirmation portal disappeared. The original modal restores focus during passive effect cleanup, which can follow portal removal. The adjacent existing parent-modal case already waits for that cleanup. The correction wraps the same `Comment attachments` focus assertion in the original default `waitFor`; the DELETE, blocked dismissal, surviving child, canonical Comment body, focus target and all production code remain unchanged. This is a test observation barrier, without a new product defect claim.
+
+The corrected source `966c5cbce014f724923caf68b545c7d3eb8fb82f` (tree `96ceb99ae3a15662ae77e05e68639e2ba8c1b088`) ran the entire original attachment test file once: **22 passed, 0 failed, 0 unrun**, using the original 5-second test default, `--maxWorkers 1 --bail 1` and unchanged Testing Library wait timeout. No app compiler, build, database, Worker or browser ran. The original test child exited 0, was waited and reaped, and its owned process group was empty with no cleanup signals. Full 2,718 tracked source bytes passed the original aftercheck.
+
+The [qualification map](qa/pr272/attachment-focus-settlement-2026-10-11/qualification.json) pins six byte-exact original records, including the failed complete CI log and local normal closure. This documentation checkpoint preserves that source-specific local scope; the updated PR272 head still requires complete own CI before ordinary merge.

@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.server.json",
+  "include": ["server/files/jobs/local-runtime.qualification.ts"]
+}

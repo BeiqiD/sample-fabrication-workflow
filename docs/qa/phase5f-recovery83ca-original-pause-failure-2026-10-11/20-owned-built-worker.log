@@ -1,0 +1,2 @@
+{"status":"ready","baseUrl":"http://127.0.0.1:4219/","receiptPath":"/workspace/recovery-initial-reader-f228-private-attempt4/fixture/isolated-server-receipt.json","sourceHead":"f228213d76d79003ca32eaa3066ce88ecf30ed48","sessionId":"81254f28-7017-46f7-b059-d969992441a3","control":"Send stop on stdin and await exit."}
+{"status":"stopped","stopReceiptPath":"/workspace/recovery-initial-reader-f228-private-attempt4/fixture/isolated-server-stop-receipt.json","sessionId":"81254f28-7017-46f7-b059-d969992441a3"}

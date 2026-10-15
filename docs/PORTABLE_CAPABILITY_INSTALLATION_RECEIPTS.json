@@ -1,0 +1,89 @@
+{
+  "sourceBase": "7cdee5198188bcafc0b9e8703ac77451d0179234",
+  "scope": "Private ordered foundation integration; no current application migration, HTTP identity or application activation.",
+  "patches": [
+    {
+      "name": "portable-rt1-principal-storage-surface.patch",
+      "sha256": "c7a837306df90f9268e2be4651c2f0a4f27668f50c666e60f90c915bc3063e3e"
+    },
+    {
+      "name": "portable-rt3-profile-opening-2c5911e.patch",
+      "sha256": "7c6d8ba2831c944690e25ed1e3d47b1b02972d2e75474658dd8bbe4681cf2a54"
+    },
+    {
+      "name": "portable-rt4-identity-qualified.patch",
+      "sha256": "927f48edbc124a845bc772372a0346dc14b14bf2aaa5722d9fd2c6a54ed4150c"
+    },
+    {
+      "name": "rt2-sqlite-backup-shutdown-qualified.patch",
+      "sha256": "c1bd39f2ae5be5a591d541965ab6011f2a8914ce7ef1cc17bbfaab5e982cb8de"
+    },
+    {
+      "name": "rt2-reviewed-installer-and-owner-qualified.patch",
+      "sha256": "2a0e3189ccba4c17cb048539d2dd6a7d04ffb6e615c44a3fe7da1038f6ada0c2"
+    },
+    {
+      "name": "portable-rt4-identity-installed-admission.patch",
+      "sha256": "8a17d1687347d69307de75535864bceffb0f6f401acb37bd34a741375ca27612"
+    },
+    {
+      "name": "portable-rt1-storage-configuration-sql.patch",
+      "sha256": "bf070d170dcbf60a56435ee551ffdba1683f050ab4a866c63f6cdaba1eebf118"
+    }
+  ],
+  "codeManifest": {
+    "server/auth/identity-catalog.ts": "490045e70dcf97cd4517fa8db5af3366b74a08c45952e57ee09760f7e12d9084",
+    "server/auth/identity-test-child.ts": "c428b618ff3cd6c74f509af2d9fa6a9cf6757c13c4667254e367afaa727fef35",
+    "server/auth/identity.test.ts": "7134c9b62cd5e43ca15a22c020b5f1686337c7e173b40f7b31f3684e7bd32c63",
+    "server/auth/identity.ts": "f51dd7d96daa8cc661e08bf449d1b7514b1df9bad93586833533682ab2d933c8",
+    "server/auth/installed-identity.test.ts": "64d02da8335cde268d7dc76179ed0845f6baa1d281a1cd1a822aadc04ab1d4ab",
+    "server/migrations.test.ts": "82b9af74a771ee5c2d15f1b90256cb42feddf21d22041f8cc27a6cb543594ebf",
+    "server/migrations.ts": "77d7b453818c8aeded2115e5d5d4595ece7cd4b6ec8b54e99ef29ea830c89b1d",
+    "server/sqlite-backup.test.ts": "efc1a1d0db969d500c77de801d66ea060ed02a83a3f0aef955c5f7093e632946",
+    "server/sqlite-backup.ts": "b7c23f61c1b3418171cc62cb58faae2225e3b8b934e8a7d9bd5bd866d84c400a",
+    "server/sqlite.test.ts": "8513143d240d7fb91b46599774fa46ab5cd9d0d641829d54e6c96e369b797eb1",
+    "server/sqlite.ts": "852c319a02f44ee25aa99b1b95d1dec3bfcdec8dd60a4d7deec58e256e42df68",
+    "server/storage-configuration-registry.test.ts": "ccc8c603dff6490be1ffb6e0e2e726fe71c2115ffbcf8ccbf0628ca8292c527f",
+    "server/storage-configuration-sql.ts": "abac24e41ed4c0c475906f1c1c054cb58469e669fc4d6b26d36dfbe8a775b642",
+    "server/storage/profile-opening.test.ts": "63abc216be18d3449f8331dd88dfca9c149a3be4123dbbdecba5f26882ea3ffb",
+    "worker/files/evidence-operator.ts": "7a2c301864e4a311ec9433e57742f29696966c9825606d3e7d793556ece49534",
+    "worker/files/shadow-profile.ts": "587b07e866557c17509321f2be625002a681f81a946f6078eb43c81235b789ae",
+    "worker/files/storage-profile-opening.ts": "926261bd578605082e2ffc24236c094cc543a894de3ee6458186c3a730ffd625",
+    "worker/platform/authentication.ts": "13c305f2c9754567bd0b0bc3d093e4f9cf089f6c95bd12088bce11af5f71fdd0",
+    "worker/runtime/authorization.ts": "852976b53a90b390b71a4c3a4d6d5765e07006fb4853d137966b2bceacb206ef",
+    "worker/runtime/configuration-sql.ts": "1ef2a9857222e527633858026e1e82f990104ed19f52787eca67d544145de0fd",
+    "worker/storage/configuration-d1.ts": "a85ee48baec40ef67f641f9abe8b2ef0baa30fcb9e544a7725740d699fdcafe7",
+    "worker/storage/configuration-registry-core.ts": "48c537e3acefccbeb4a0a74dd99237ecb47e6ebb6a149d41738539ad384d6761",
+    "worker/storage/configuration-registry.test.ts": "adc6a0ad0efbc4c02132d7146d25a930ca67d21a9d647b927d3f72c5c372dc67",
+    "worker/storage/configuration-registry.ts": "075d3598376e4141f7cf190c7892ae268514c24b7b74bb99c8b2694fac732b6b",
+    "worker/storage/configuration-routes.ts": "0eb366ea683e110773d7b5ddb08bb34573a81a13e654492a9f275b72b0f3346c",
+    "worker/storage/configuration-surface.test.ts": "54427c03a57816e778c98aa2b838968a51fb473e6d9740bf23ad46ab532114b7",
+    "worker/storage/configuration-surface.ts": "0a7be07bb425380bf907b6de09ece4b649c045f3e959e12c0741426a751d1039",
+    "worker/storage/credential-envelope.ts": "676f3508842d657c4e980cdd5a709738727e34a351d3096282d4381e5e8017b6",
+    "worker/storage/system-administrator.ts": "017ca9c5c5c3bdd72283ea479fdaf33e365ae39e42c911005cc81600be6c2e01"
+  },
+  "types": {
+    "command": "npm run typecheck:server",
+    "exitCode": 0,
+    "logSha256": "91f3b25c6bd367187e78c2868412891e1928806cc4192a004a6185a86acfb530"
+  },
+  "combinedRuntime": {
+    "command": "npx vitest run --maxWorkers=1 server/sqlite.test.ts server/migrations.test.ts server/sqlite-backup.test.ts server/auth/identity.test.ts server/auth/installed-identity.test.ts server/storage-configuration-registry.test.ts worker/storage/configuration-registry.test.ts worker/storage/configuration-surface.test.ts server/storage/profile-opening.test.ts",
+    "exitCode": 0,
+    "passedFiles": 9,
+    "passedCases": 159,
+    "durationSeconds": 42.62,
+    "logSha256": "6395717fabdff42f7a3309a82424963c76e24c7fbc14b252e117feed0528206d",
+    "nodeVersion": "v24.19.0",
+    "workingDirectory": "/workspace/portable-next-integration-7cdee51",
+    "filesystemType": "overlayfs"
+  },
+  "remaining": [
+    "Complete canonical/own remote CI on final submitted head",
+    "Actual current 0023/V25 paired schema and both runtime recovery/version dispatch",
+    "Local identity HTTP/CSRF/current admission, app composition and client login",
+    "Local disk profile DDL/admission/roles/ingress/publication/GC/jobs and full providers",
+    "Operational CLI/container/volume/upgrade/backup/cross-deployment recovery",
+    "Group membership and complete resource authorization"
+  ]
+}

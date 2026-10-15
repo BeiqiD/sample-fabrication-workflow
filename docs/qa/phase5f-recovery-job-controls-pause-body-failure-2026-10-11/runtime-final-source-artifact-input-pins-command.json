@@ -1,0 +1,35 @@
+{
+  "stage": "final-source-artifact-input-pins",
+  "cwd": "/workspace/phase5f-recovery-job-controls-chromium-child-temp-source-attempt2",
+  "argv": [
+    "python3",
+    "-B",
+    "/workspace/phase5f-recovery-job-controls-short-child-temp-finite-source-review-attempt2/carry-current-cf-and-short-child-temp.py",
+    "--coherent-cf-producer-for-genuine-job-controls-two",
+    "final-pins"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1",
+    "SQLITE_TMPDIR": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1"
+  },
+  "control": "Preserve original setup and final-pin failures. Verify exact producer2489/copied2489/copy121/actual118 and newconsumer2488 nonhelper causal input equality; validate exact original direct-owner closure and retained three-table job history, original63 permits/all other application rows. PASS browser qualification requires returned Browser closeAwaited and original two cases passed; failed launch can only retain handle/native-exit limitations.",
+  "startedAt": "2026-10-11T08:22:08.211296+00:00",
+  "status": "PASS",
+  "log": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/final-source-artifact-input-pins.log",
+  "pid": 990517,
+  "processGroup": 990517,
+  "originalStartTicks": "12018898",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T08:22:08.613787+00:00",
+  "logSha256": "83755c7466e52cc3b9436df4afc4f83c5f45f5389ecad32e6ad70a9b278f122e"
+}

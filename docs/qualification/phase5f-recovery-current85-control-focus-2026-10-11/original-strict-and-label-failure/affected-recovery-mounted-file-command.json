@@ -1,0 +1,42 @@
+{
+  "stage": "affected-recovery-mounted-file",
+  "cwd": "/workspace/phase5f-recovery-job-control-focus-current5ca-source-attempt1",
+  "argv": [
+    "node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "vitest.mounted.config.ts",
+    "src/system-recovery.mount.test.tsx",
+    "--maxWorkers",
+    "1",
+    "--bail",
+    "1"
+  ],
+  "env": {
+    "TMPDIR": "/workspace",
+    "SQLITE_TMPDIR": "/workspace"
+  },
+  "cases": 22,
+  "originalTestTimeoutMs": 5000,
+  "scope": "Whole qualified Preview20 exact plus two meaningful control-focus tests; mounted run held until parent exclusive GO.",
+  "startedAt": "2026-10-11T11:00:35.839008+00:00",
+  "status": "FAILED",
+  "log": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt1/affected-recovery-mounted-file.log",
+  "pid": 1095546,
+  "processGroup": 1095546,
+  "originalStartTicks": "12969660",
+  "exitCode": 1,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 1,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T11:00:37.939773+00:00",
+  "logSha256": "6fc85a22585dd58544fdb07161dcdb5938c89d78bc8480d7913a14b86eb93319"
+}

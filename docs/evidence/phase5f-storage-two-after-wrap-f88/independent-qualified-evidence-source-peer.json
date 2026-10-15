@@ -1,0 +1,19 @@
+{
+  "status": "CLEAR_SOURCE_ONLY_DOCS_EVIDENCE_PEER",
+  "head": "ab8b17b254cf944a25479a37c3e295f090ded515",
+  "tree": "05b7be095f62b3b0ffd629f5125029065626d900",
+  "parent": "730b8eea4c92400ae6bea7ed48cc26308f63fa8c",
+  "all1874GitAndWorkingEntriesExact": true,
+  "all1823PriorEntriesExact": true,
+  "all1792ProducerProductQaInputsExact": true,
+  "docsOnlyAdditions": 51,
+  "curatedRawRecordsByteExact": 49,
+  "manifestSha256": "1c668b46a7012a963383bf562794f49040398bbe5ba543d360a9b925ddeb8760",
+  "actualReceiptSha256": "3c4076f1d942261f8e2099520a825840db1ecc74e8bb54fd60b071b5799535cb",
+  "reviewedDoc": "docs/PHASE5F_STORAGE_TWO_AFTER_WRAP_QUALIFICATION.md",
+  "scope": "New original Storage two browser PASS, genuine isolated24 migrations/84setup, accepted3revisions/4newreleasedpermits/103ordinaryAPI and original closure/physical/pins. Priorf88 appstrict/mounted24/build118 explicitly carried actual, not rerun. No completeCI/Package/provider/File/whole5F claim. First collector field-locator error remains separate diagnostic, all rawbytes unchanged.",
+  "historicalFailuresPreserved": true,
+  "kernelStateScope": "9ownedgroupsEMPTY,3Z/PPID1 with FDpermission errors; no observedFD0/globalquiescence claim",
+  "reviewerActions": "Read files/Git/hash/source only. No SQLite/compiler/build/browser/server/network/provider execution, no source edits.",
+  "canonicalMutation": false
+}

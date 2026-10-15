@@ -4,13 +4,13 @@ import { hasRecordedStructure } from "../lib/currentStructure";
 
 export function SampleStateThumbnail({ sample }: { sample: SampleSummary }) {
   const [imageFailed, setImageFailed] = useState(false);
-  const thumbnailKey = sample.currentStateThumbnailKey;
+  const thumbnailUrl = sample.currentStateThumbnailUrl ?? (sample.currentStateThumbnailKey ? `/api/assets/${sample.currentStateThumbnailKey}` : null);
 
-  useEffect(() => setImageFailed(false), [thumbnailKey]);
+  useEffect(() => setImageFailed(false), [thumbnailUrl]);
 
-  if (thumbnailKey && !imageFailed) return <div className="sample-state-thumbnail has-image">
+  if (thumbnailUrl && !imageFailed) return <div className="sample-state-thumbnail has-image">
     <img
-      src={`/api/assets/${thumbnailKey}`}
+      src={thumbnailUrl}
       alt={sample.currentStateStepTitle ? `Current state after ${sample.currentStateStepTitle}` : `Current state of ${sample.code}`}
       loading="lazy"
       onError={() => setImageFailed(true)}

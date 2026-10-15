@@ -1,0 +1,48 @@
+{
+  "kind": "http306-original-thirty-actual-closure-and-observation/1",
+  "status": "CLOSED_RELEASED_ORIGINAL_NODE30PASS_RECORDER_FORMAT_FAILURE_RETAINED",
+  "createdAt": "2026-10-11T10:19:59.795864+00:00",
+  "sourceHead": "306773095a551ddfea27d3d35ec2ea6b573be3b9",
+  "sourceTree": "04f201a875cd8ec5df92e347f8d9008f2f1a81ec",
+  "originalNodeCommandExitCode": 0,
+  "originalNodeCommandSeconds": 1.568,
+  "actualObservedCases": {
+    "passed": 30,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "total": 30
+  },
+  "recorderStatusUnchanged": "FAIL_STOPPED_FIRST",
+  "originalReceipt": {
+    "path": "/workspace/node58-http30-original-owned-actual-attempt3/receipt.json",
+    "sha256": "8f811589cd463e8e2a916f48488afa5df1d35d3350539e340c175862dc0963ec",
+    "statusUnchanged": "FAIL_STOPPED_FIRST"
+  },
+  "originalRawLog": {
+    "path": "/workspace/node58-http30-original-owned-actual-attempt3/node58-http-original-thirty.log",
+    "sha256": "34c059ac3714db34cc02caf22dc5b8fe933ea95e41fa34dcb830fe6a09bd181b"
+  },
+  "separateSpecSourceObservation": {
+    "path": "/workspace/node58-http30-original-owned-actual-attempt3/original-spec-thirty-complete-raw-result-source-addendum.json",
+    "sha256": "ef101eb4d95da4eb84074e2bd5dcfdfcff6638d23754e54573e948571230995d"
+  },
+  "originalChildReaped": true,
+  "originalOriginalNodeWorkerPidsCurrentlyAbsent": [
+    1060257,
+    1060263,
+    1060271,
+    1060306
+  ],
+  "originalProcessGroupEmpty": true,
+  "currentFull2493PinsExact": true,
+  "originalTmpTupleBeforeAfterExact": true,
+  "originalNegativeHttpDrainRemainsRejectedRetained": true,
+  "diagnosticTerminalAgentCleanupNotGracefulHttp": true,
+  "runtimeRetry": 0,
+  "compilerReplay": 0,
+  "build": 0,
+  "external180NotExpired": true,
+  "soleRuntimeWindowReleased": true,
+  "limits": "All30 original SPEC outcomes proven in unchanged raw log. Recorder TAP-only failure remains; source observation is additive and awaits root evidence qualification. Real listener callback ACK after diagnostic Agent teardown does not turn intentionally failed original HTTP drain into graceful close."
+}

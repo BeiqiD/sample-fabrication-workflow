@@ -1,0 +1,60 @@
+{
+  "stage": "one-fresh-final-QA-source-build",
+  "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+  "argv": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "env": {
+    "TMPDIR": "/workspace",
+    "SQLITE_TMPDIR": "/workspace"
+  },
+  "scope": "ONE genuinely fresh coherent Saved File and Package focus CF Worker+frontend build, only after successful current app strict and wholePackage34. No historicala7/118 carry, Node target, browser/native/fixture or repeat compiler/mounted.",
+  "startedAt": "2026-10-11T16:19:24.044573+00:00",
+  "status": "PASS",
+  "log": "/workspace/phase5f-saved-file-package-coherent-one-cf-build-runtime-attempt1/one-fresh-final-QA-source-build.log",
+  "pid": 1355896,
+  "processGroup": 1355896,
+  "originalStartTicks": "14882481",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1356054,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1355896,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1356054,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1355896,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1356054,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1355896,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T16:19:30.742710+00:00",
+  "logSha256": "00969b5ce2f703a4a293d4f854e0a391800e5dd15f50623d281e851e4cf75f89"
+}

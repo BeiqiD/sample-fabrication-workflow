@@ -1,0 +1,48 @@
+{
+  "status": "PASS_CLOSED_RELEASED",
+  "observedAt": "2026-10-11T15:16:31.126672+00:00",
+  "sourceHead": "966c5cbce014f724923caf68b545c7d3eb8fb82f",
+  "sourceTree": "96ceb99ae3a15662ae77e05e68639e2ba8c1b088",
+  "sourceCount": 2718,
+  "productionChanged": 0,
+  "cases": {
+    "passed": 22,
+    "failed": 0,
+    "unrun": 0,
+    "filePassed": 1
+  },
+  "originalTool": {
+    "session": 16322,
+    "terminalExit": 0,
+    "sameOriginalHandlePolled": true
+  },
+  "originalChild": {
+    "pid": 1302681,
+    "startTicks": "14501750",
+    "exitCode": 0,
+    "sameOriginalPopenWait": true,
+    "directReaped": true,
+    "ownedGroup": [],
+    "signals": []
+  },
+  "originalRaw": [
+    {
+      "path": "/workspace/pr272-attachment-focus-settlement-runtime-attempt1/affected-attachment-mounted-file-command.json",
+      "sha256": "54ec9c2cf6a559352bd6424d791db62193a3c0ad1751afe929435f935729d2f5",
+      "bytes": 1293
+    },
+    {
+      "path": "/workspace/pr272-attachment-focus-settlement-runtime-attempt1/affected-attachment-mounted-file.log",
+      "sha256": "971eb4f362d4c7fbd0ca39ccaa37a4c4a24b5fa2ecc3ad4aa4a54f89050df917",
+      "bytes": 249
+    },
+    {
+      "path": "/workspace/pr272-attachment-focus-settlement-runtime-attempt1/frozen-approved-plan.json",
+      "sha256": "6435cfa5e5a626e3e60338baf527d813def7942a85a814ef0fd5fadf56a75248",
+      "bytes": 2771
+    }
+  ],
+  "sourcePostCheck": "Mature runner full2718 actual Git/working blob verification PASS; clean HEAD independently rechecked.",
+  "scope": "Exactly original22 default5/max1/bail1 once. No compiler, build, Worker, SQLite or browser. Local owned group closure only, no global quiescence claim.",
+  "historicalFailure": "PR38147825081 on93acc mounted1011PASS1FAIL remains immutable; new22 is local966 only, future own complete CI UNRUN."
+}

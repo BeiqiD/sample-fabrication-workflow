@@ -1,0 +1,34 @@
+{
+  "stage": "final-source-artifact-input-pins",
+  "cwd": "/workspace/portable-dev270-file-preview-focus-complete-native-helper-source-attempt2",
+  "argv": [
+    "python3",
+    "-B",
+    "/workspace/phase5f-file-preview-current-a7-native-final-peer-binding-source-preparation-attempt8/carry-current-a7-genuine-two-r2-file-migration.py",
+    "--current-a7-producer-for-genuine-two-r2-file-preview",
+    "final-pins"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/file-preview-current-a7-two-r2-native-private-attempt4",
+    "SQLITE_TMPDIR": "/workspace/file-preview-current-a7-two-r2-native-private-attempt4"
+  },
+  "startedAt": "2026-10-11T12:37:40.863145+00:00",
+  "status": "FAILED",
+  "log": "/workspace/file-preview-current-a7-two-r2-native-private-attempt4/runtime/final-source-artifact-input-pins.log",
+  "pid": 1181156,
+  "processGroup": 1181156,
+  "originalStartTicks": "13552163",
+  "exitCode": 1,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 1,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T12:37:41.213352+00:00",
+  "logSha256": "a442140bf251c273dc8a95bee62ea0d990ee9a88a984638b7490575dc65351f8"
+}

@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "sourceRoot": "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2",
+  "sourceCopyRoot": "/workspace/recovery-current-focus-native-private-attempt7/copy",
+  "fixtureDirectory": "/workspace/recovery-current-focus-native-private-attempt7/fixture",
+  "sourceHead": "85f70fd4f22530b98e6ceaafc7c1663f201e5b7a",
+  "sourceTree": "b3c41095d9aec295df8693ebd69ab3a20f9dd7a0",
+  "sessionId": "f3a5d6b0-12fd-4a1c-92ab-70690748fea4",
+  "sessionPid": 1131726,
+  "isolationReceiptSha256": "04b59fd8b5173f12dc7fcc9a42502930a4640df051ecafcd3618c63bebfa4851",
+  "fixtureManifestSha256": "46600243f57f566b72683e1b87ae6211a819022295a0112f85e19b2b8e7a0608",
+  "status": "stopped",
+  "control": "stdin:stop",
+  "disposalAwaited": true,
+  "portClosed": true,
+  "startedAt": "2026-10-11T11:35:29.330Z",
+  "stoppedAt": "2026-10-11T11:35:29.343Z",
+  "startupReceiptSha256": "9d1a68a76ac480dafa889f7494c287f376d4a261fa3ee7ea5f094a47aa604f7c",
+  "helperSha256": "929eec612bf7ab8b266089553b5d56ce75e0abb192d24ab929222403cc5d3424"
+}

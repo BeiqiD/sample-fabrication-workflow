@@ -1,0 +1,7 @@
+# Execution legacy fixture followup
+
+Two complete own-CI executions failed the same four mature cases. The original error is `Invalid SQL integer: D1 direct changes`: fixture-local batch implementations discarded native SELECT rows, including the genuine adapter's `SELECT changes() AS direct_changes`. The later missing Metrology runId is a consequence of the failed start response. Raw complete logs and hashes are recorded in the adjacent source receipt.
+
+The candidate changes only the two legacy fixture bindings to the existing shared native SQLite D1-shaped test helper. That helper returns real rows for SELECT/RETURNING and executes mixed batches in one native transaction. Every original test body, seed, assertion and budget remains byte-identical. Production, including the failclosed named decoder and native/D1 guards, is unchanged. Trigger-inclusive `meta.changes` is not a substitute for direct changes.
+
+The new finite plan prepares one focused compiler check and exactly the six existing Run-trash plus one existing Metrology test under default five-second cases, serial execution and first-failure bail. All followup checks remain unrun until explicit parent runtime GO. This direct Worker/native SQLite harness is separate from the earlier real workerd12 and Node18 evidence; it does not add a mounted Node authorization, physical lease or V26 claim. A new final-head complete source CI is still required.

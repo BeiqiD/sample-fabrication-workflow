@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "command": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "actualExitCode": 0,
+  "directChildReaped": true,
+  "sourceHead": "8be4e74200096436eaa674a05d44dd772d23fc35",
+  "sourceTree": "e7a91951906a0733685489367e73d6d29f74b891",
+  "sourceRoot": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source",
+  "sourceCopyRoot": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/copy",
+  "trackedInputInventorySha256": "7b3e66c85d9cfc7f158b627003b35ccf80f969fb0acbd624e088dc35728e23a9",
+  "workerSha256": "e2323a0df645e108a1b7132465141543737e05cdbb190a1b16fcf7b7281cad0b",
+  "activeBuildConfigSha256": "386c9f54ad17534fad6ee5322bc1c97cb83460e344e807d6b342e0c8092b3b18",
+  "copiedArtifactInventorySha256": "4ed403acf0420d59a0bef55f1956aff4bfb39a8d2a3514b58b430c3294ec1fea",
+  "originalCommandReceiptSha256": "ecf011cef96ba080e7eaec8d0a8883b666e2871fea8274d6754f36cfc57cc4a3",
+  "originalBuildLogSha256": "a3e736f0bd67e86ee43efaf6bca094d639c1a32260c90d7421d8cd5cf25afc86",
+  "freshDistFileCount": 118,
+  "copiedArtifactFileCount": 121,
+  "scope": "Actual original8be ONECF118 source3086/QA3092 all3086 ordinary bytes exact plus6 reviewed Refresh and Start202 QA; current8be App37 actualPASS is separate affected scope. Independent new pure24/sentinels beforeAPI; no historicala7 artifacts/pausedjobs borrowed, no additionalbuild/84seed/old63permits or seedWorker lifecycle."
+}

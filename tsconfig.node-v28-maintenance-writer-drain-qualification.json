@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.server.json",
+  "files": ["server/workflow/node-v28-maintenance-writer-drain.qualification.ts"],
+  "include": [],
+  "exclude": []
+}

@@ -1,0 +1,219 @@
+{
+  "sourceRoot": "/tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3",
+  "sourceCopyRoot": "/tmp/phase5f-idle-focus-enabled-admin-copy-attempt3",
+  "fixtureDirectory": "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3",
+  "sourceHead": "36e28cb2db6500ce26ca6e3048eb4b6fe44d0c5e",
+  "isolationReceiptSha256": "e0eb7479a704c443575e239627f6d0a391df98b47ef87bb79ddb765c17260c83",
+  "fixtureManifestSha256": "1101c8dc9f78404f13778357cf6a7aa58d4161973d4bd2017197ddcae688c816",
+  "version": 1,
+  "scope": "Two additive native-Chromium keyboard idle embedded-create Cancel and drawer Escape/Close controls at emulated390 dark/1280 light. Search receives focus after actual form unmount/remount, preserves the query and original Processing owner; native Tab remains trapped and Escape/Close return to the same original connected Step Add after the Metrology menu action unmounts, without UI writes. Genuine mature84 API setup, AUTH_MODE=disabled local synthetic D1/R2. No pending/accepted-write, authenticated administrator, remote Access/provider, physical keyboard/device/IME or whole-roadmap acceptance.",
+  "status": "passed",
+  "completeFiniteMatrix": true,
+  "passedCount": 2,
+  "failedCount": 0,
+  "requestedCaseIds": [
+    "metrology-cancel-focus-390-dark",
+    "metrology-cancel-focus-1280-light"
+  ],
+  "unrunCaseIds": [],
+  "harnessSha256": "d3518043a07075160a58700877126fa9e00299ecd3fe547a71742b9cae1cbc71",
+  "browserClosed": true,
+  "genuineSeedRequests": 84,
+  "actualApiReads": [
+    {
+      "path": "/templates/phase5f-4924bf1b-790-v1",
+      "method": "GET",
+      "status": 200,
+      "responseSha256": "f83368526eea24d3484f1d01c0d0e9694a3536975623cd6d295bc3edb3310c23"
+    },
+    {
+      "path": "/templates/phase5f-4924bf1b-790-v2",
+      "method": "GET",
+      "status": 200,
+      "responseSha256": "236ef20692cc573285452adc23d05e9c62b102c22d00b55f3bfe9ccfa5cdaf8b"
+    },
+    {
+      "path": "/samples/498751af-2a3c-40e5-8d9c-88c038c7d444?view=processing",
+      "method": "GET",
+      "status": 200,
+      "responseSha256": "d049ff4a5920384f116cee9c32514434eba61edc81a2f78e4fc973c43aa7b03f"
+    },
+    {
+      "path": "/templates/3aa00622-27f3-48be-8da9-d8c435a4c2f5",
+      "method": "GET",
+      "status": 200,
+      "responseSha256": "2e07873e61d5515cdfb860194db545109697609000933c98348120504cd4e509"
+    },
+    {
+      "path": "/samples/498751af-2a3c-40e5-8d9c-88c038c7d444?view=processing",
+      "method": "GET",
+      "status": 200,
+      "responseSha256": "d049ff4a5920384f116cee9c32514434eba61edc81a2f78e4fc973c43aa7b03f"
+    },
+    {
+      "path": "/templates/3aa00622-27f3-48be-8da9-d8c435a4c2f5",
+      "method": "GET",
+      "status": 200,
+      "responseSha256": "2e07873e61d5515cdfb860194db545109697609000933c98348120504cd4e509"
+    },
+    {
+      "path": "/samples/8fa5c0d0-5ecb-4f81-8d3c-b6fad52037e0?view=processing",
+      "method": "GET",
+      "status": 200,
+      "responseSha256": "b8102faebc24f677824648bea5a706d9e9cc99bcc8e24675769547f4e4ef604d"
+    },
+    {
+      "path": "/templates/3aa00622-27f3-48be-8da9-d8c435a4c2f5",
+      "method": "GET",
+      "status": 200,
+      "responseSha256": "2e07873e61d5515cdfb860194db545109697609000933c98348120504cd4e509"
+    },
+    {
+      "path": "/samples/8fa5c0d0-5ecb-4f81-8d3c-b6fad52037e0?view=processing",
+      "method": "GET",
+      "status": 200,
+      "responseSha256": "b8102faebc24f677824648bea5a706d9e9cc99bcc8e24675769547f4e4ef604d"
+    },
+    {
+      "path": "/templates/3aa00622-27f3-48be-8da9-d8c435a4c2f5",
+      "method": "GET",
+      "status": 200,
+      "responseSha256": "2e07873e61d5515cdfb860194db545109697609000933c98348120504cd4e509"
+    }
+  ],
+  "reportSha256": "800e74c625a962d3008a06ab69058181fd9e5b5e398923789f9012323fdb6d81",
+  "cases": [
+    {
+      "id": "metrology-cancel-focus-390-dark",
+      "status": "passed",
+      "assertions": [
+        {
+          "chromiumSearchName": "Search templates",
+          "accessibleTextboxCount": 1
+        },
+        {
+          "surface": "original-picker-query",
+          "client": 390,
+          "rootScroll": 390,
+          "bodyScroll": 390,
+          "theme": "dark"
+        },
+        {
+          "chromiumSearchName": "Search templates",
+          "accessibleTextboxCount": 1
+        },
+        {
+          "surface": "cancel-restored-picker",
+          "client": 390,
+          "rootScroll": 390,
+          "bodyScroll": 390,
+          "theme": "dark"
+        },
+        {
+          "chromiumSearchName": "Search templates",
+          "accessibleTextboxCount": 1
+        },
+        {
+          "surface": "idle-close-restored-original-step",
+          "client": 390,
+          "rootScroll": 390,
+          "bodyScroll": 390,
+          "theme": "dark"
+        },
+        {
+          "nativeEnterOpensMenuAndCreate": true,
+          "createActuallyUnmountsSearch": true,
+          "nativeFourTabMovesReachCancel": true,
+          "nativeEnterCancels": true,
+          "actualNewSearchReceivesFocus": true,
+          "queryPreserved": "phase5f-4924bf1b-790",
+          "sameOriginalDrawer": true,
+          "exactSampleRunRoutePreserved": true,
+          "nativeModalTabAndShiftTabWrapped": true,
+          "originalFocusedMetrologyActionUnmounts": true,
+          "idleEscapeDismisses": true,
+          "idleEscapeReturnsSameOriginalStepAdd": true,
+          "genuineSecondDrawerRead": true,
+          "nativeCloseReturnsSameOriginalStepAdd": true,
+          "actualProcessingReadbackUnchanged": true,
+          "actualTemplateReadbackUnchanged": true,
+          "browserMutationRequests": 0,
+          "apiReadResponsesObserved": 5
+        }
+      ],
+      "contextClosed": true,
+      "observationSummary": {
+        "completed": 5,
+        "unfinished": 0,
+        "unavailable": 0,
+        "requiredUnfinished": 0
+      }
+    },
+    {
+      "id": "metrology-cancel-focus-1280-light",
+      "status": "passed",
+      "assertions": [
+        {
+          "chromiumSearchName": "Search templates",
+          "accessibleTextboxCount": 1
+        },
+        {
+          "surface": "original-picker-query",
+          "client": 1280,
+          "rootScroll": 1280,
+          "bodyScroll": 1280,
+          "theme": "light"
+        },
+        {
+          "chromiumSearchName": "Search templates",
+          "accessibleTextboxCount": 1
+        },
+        {
+          "surface": "cancel-restored-picker",
+          "client": 1280,
+          "rootScroll": 1280,
+          "bodyScroll": 1280,
+          "theme": "light"
+        },
+        {
+          "chromiumSearchName": "Search templates",
+          "accessibleTextboxCount": 1
+        },
+        {
+          "surface": "idle-close-restored-original-step",
+          "client": 1280,
+          "rootScroll": 1280,
+          "bodyScroll": 1280,
+          "theme": "light"
+        },
+        {
+          "nativeEnterOpensMenuAndCreate": true,
+          "createActuallyUnmountsSearch": true,
+          "nativeFourTabMovesReachCancel": true,
+          "nativeEnterCancels": true,
+          "actualNewSearchReceivesFocus": true,
+          "queryPreserved": "phase5f-4924bf1b-790",
+          "sameOriginalDrawer": true,
+          "exactSampleRunRoutePreserved": true,
+          "nativeModalTabAndShiftTabWrapped": true,
+          "originalFocusedMetrologyActionUnmounts": true,
+          "idleEscapeDismisses": true,
+          "idleEscapeReturnsSameOriginalStepAdd": true,
+          "genuineSecondDrawerRead": true,
+          "nativeCloseReturnsSameOriginalStepAdd": true,
+          "actualProcessingReadbackUnchanged": true,
+          "actualTemplateReadbackUnchanged": true,
+          "browserMutationRequests": 0,
+          "apiReadResponsesObserved": 5
+        }
+      ],
+      "contextClosed": true,
+      "observationSummary": {
+        "completed": 5,
+        "unfinished": 0,
+        "unavailable": 0,
+        "requiredUnfinished": 0
+      }
+    }
+  ]
+}

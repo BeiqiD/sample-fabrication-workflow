@@ -1,0 +1,24 @@
+{
+  "status": "QUALIFIED_ORDINARY_DEVELOPMENT_MERGE_READY",
+  "recordedAt": "2026-10-11T12:45:16.080012+00:00",
+  "pr": 270,
+  "developmentBranch": "v2/backend-foundation",
+  "head": "bfebbd63d537f13c4da66a18ef7295b7eab6a38b",
+  "base": "627d22291af92cdeec70bb0a0c19907daf5e1bd9",
+  "qualifiedTree": "ca40022eaf64147b876dfe457b55d36edcf47186",
+  "ownRuns": 4,
+  "successfulStatusContexts": 15,
+  "sourceQualificationNotRetagged": true,
+  "originalQualifiedHead": "ee8ac3f25121972b76b51753fe4406307b9795b2",
+  "qualificationSourcePeerSha256": "2fc96324cec22b84f14138826c4b115bd46e3af24c7348e70051a258d6be8b52",
+  "sourceIdenticalOrdinaryBaseSyncSha256": "e093e00e60a10743f0df9734792f3a3fa01bba84f8240ba52f916b7cf9276863",
+  "records": {
+    "run-38138360633.json": "942e246a11fd8f4c7b8d7faba8bc672cbbd4a97da30ea7d23aabf2f1cb55c95d",
+    "run-38138363872.json": "90a139c40d5a92c13db34c4608baa0c18ef2c8b8b68ebe5e8b4ad0a18a2ab3e9",
+    "run-38138360705.json": "45d08ea43ed8e41d53f4fe9a34d92d5a18d01a7088330d2b38a520b91f907cc4",
+    "run-38138363875.json": "cddd1f2e0a33b79d47d4950c8cbaa2cee703076ca3a63cd4ca43f2be5e5d1547",
+    "combined-status.json": "5f44bc476745c46e6e8bfc2ba42751625409d1da73d7e65a0f8e0668ae3d14ae",
+    "development-branch.json": "2059e80def400e1c7c9193114f1bd555b9ca657f410f4aa54e17348512b5d002",
+    "pr270.json": "0853c6d4f6413eadee534958246f38eb61da792be649b59a77d40abe26abd759"
+  }
+}

@@ -1,0 +1,16 @@
+✔ supported fixed v3 artifact keeps V26 startup and separately declares inert V28/V5 restore (37.687075ms)
+✔ unknown archive/version/catalog and activation claims are rejected (15.195065ms)
+✔ the fixed V28 executable is required even with a consistent reduced inventory (23.775299ms)
+✔ truncated executable bytes cannot inherit a retained manifest digest (18.442311ms)
+✔ required CLI and fixed archive/catalog inputs cannot disappear from a self-consistent source receipt (66.439072ms)
+✔ foreign code-owned restore/catalog digests are rejected despite consistent archive inventory hashes (66.888611ms)
+✔ symlink and hardlink aliases cannot impersonate the fixed restore executable (35.69132ms)
+✔ a self-consistent extra executable or private grant file does not widen the artifact allowlist (27.279883ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 355.578204

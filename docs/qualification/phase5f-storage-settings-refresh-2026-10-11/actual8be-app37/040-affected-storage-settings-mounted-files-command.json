@@ -1,0 +1,47 @@
+{
+  "stage": "affected-storage-settings-mounted-files",
+  "cwd": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source",
+  "argv": [
+    "node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "vitest.mounted.config.ts",
+    "src/current-storage-settings.mount.test.tsx",
+    "src/storage-settings.mount.test.tsx",
+    "--maxWorkers",
+    "1",
+    "--bail",
+    "1"
+  ],
+  "env": {
+    "TMPDIR": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1",
+    "SQLITE_TMPDIR": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1"
+  },
+  "cases": 37,
+  "originalTestTimeoutMs": 5000,
+  "caseCounts": {
+    "currentStorageSettings": 18,
+    "legacyReadOnlyStorageSettings": 19
+  },
+  "scope": "Exact original11 current plain+five parametrized +two deferred native DOM focus controls; existing7 legacy plain+ten invalid response+two default cases. Meaningful current/version2 Settings and StrictMode abort/stale lifecycle coverage; no configuration/page matrices.",
+  "startedAt": "2026-10-11T21:39:13.310254+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/runtime/affected-storage-settings-mounted-files.log",
+  "pid": 1560244,
+  "processGroup": 1560244,
+  "originalStartTicks": "16801408",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T21:39:15.924631+00:00",
+  "logSha256": "913168c4e2971d654ab836dfb2fe248a9d6d4e6c6d51436446edc9397affa6f3"
+}

@@ -1,0 +1,37 @@
+{
+  "status": "SOURCE_CLEAR_NATIVE_UNRUN_NO_GO",
+  "sourceOnly": true,
+  "reviewer": "/root/roadmap_performance_probe",
+  "root": "/workspace/phase5f-file-preview-current-a7-native-qa-copy-gate-source-attempt9",
+  "head": "23b8f368248ee5e21d78fb9f371de7ff9d0283a0",
+  "tree": "dc94c01bc6a7fa8df6db4cf4615019c51d45fd12",
+  "tracked": 2438,
+  "protectedProducerInputs": 2435,
+  "protectedPriorE92Inputs": 2436,
+  "handoffSha256": "d7de99840422bff6f2200508137b0256766dfd05ffd1172b580005d749bb1b7b",
+  "verification": {
+    "path": "/workspace/file-preview-23b8-independent-complete-three-qa-copy-gate-verification.json",
+    "sha256": "4aae98bdb45760d1f0f770b806bf5981fa111e948f6f3e04a7dd407215bddf8d"
+  },
+  "checks": [
+    "All2438 Git blobs/modes/working bytes, closed three owned QA leaves and all2435 ordinary producer inputs independently checked. Relative QA module/common/script/contract closure remains exact original complete a7 review; no authored imports invoked.",
+    "Complete copy helper byte-exact reviewed f32/fba64 donor. Only installed_dependencies changes; all ten other definitions AST and complete remaining helper/top-level/default guard byte-exact original strict helper.",
+    "Canonical real explicit installed directory/source link-resolution/default no-symlink checks retained. Additional compatibility branch hard-pins both complete package bodies 5c8a/fcb3, equal raw source+parent locks8c7c and installed hidden lock9520. Current actual bytes independently read and parsed sole test:node-http inverse exact.",
+    "Known complete hashes exclude dependency/version/extra-script/other-field changes; required exact original and revised command bodies plus one-field inverse restore every parsed package field. No generic scripts omission, package-parent replacement, lock rewrite or dependency install.",
+    "Metadata accurately separates both source and parent hashes; matching metadata contains only byte-equal fields. Same whole dependency identity is reevaluated after original source/artifact copy. No audit of every installed package is claimed.",
+    "Entire original copy algorithm remains exact: clean Git source and protected credential/path checks before destination creation; fresh0700 canonical temp root, tracked source plus built artifact hash checks before/during/after each copy, original single dependency symlink and original commit/inventory/build/metadata final checks. No state/Git/credentials copied.",
+    "Browser complete inverse to e92 has only exact third copied-vs-executed copy helper hashes, isolation receipt actual-helper assertion and fresh TMP4 to TMP5 literal. Entire original case/control/owners/strict bodies/focus/budgets/geometry suffix otherwise exact; physical checker unchanged.",
+    "Current a7 producer and real fa44/da9b build118 unchanged; all118 outputs rehashed. Historical738c source copy-gate failure and all four original command/log records verified: no copy/fixture/native/HTTP/SQLite, all direct children reaped/groupsEMPTY. Old failure retained, no case carry."
+  ],
+  "blockers": [],
+  "actualDependencyTuple": {
+    "sourcePackage": "5c8a504d14b7208edb3d77b8c5049c713d55e4e7821d8e43b7b54e6dbeebe8fc",
+    "parentPackage": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+    "sourceAndParentRawLock": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a",
+    "installedHiddenLock": "95202718d08fd50cc286bcddf0af66b08503d63b494e992006c50d4246d69a98"
+  },
+  "freshChildTMP": "/workspace/.f2r2t5",
+  "freshChildTMPAbsent": true,
+  "reviewerCompilerBuildCopyHelperModulePreflightSQLiteNativeBrowserSDKInvocations": 0,
+  "futureRequired": "Finite command must execute consumer f32 helper with original a7 --source-root and separately bind copied producer helper/current executed helper/isolation receipt identity, full3QA/current118/new namespace/TMP5, final actual peer and root GO. No rebuild/types needed or authorized by this peer."
+}

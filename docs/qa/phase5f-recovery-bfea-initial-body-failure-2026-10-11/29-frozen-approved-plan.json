@@ -1,0 +1,321 @@
+{
+  "version": 1,
+  "status": "FROZEN_SOURCE_ONLY_ALL13_UNRUN_FRESH24_84_OLD_PAUSED_HISTORY_UNTOUCHED",
+  "commands": [
+    {
+      "stage": "qualified-original-f228-build-producer-preflight",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-recovery-job-controls-original-pause-terminal-cut-finite-source-review-attempt4/carry-original-f228-new-fixture-and-pause-observer.py",
+        "--coherent-cf-producer-for-genuine-job-controls-two",
+        "producer-preflight"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3",
+        "SQLITE_TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3"
+      },
+      "control": "Causal original actual f228 build118 source2489 verification only. No freshbuild; require new COPY/FIXTURE and short child temp absent, preserve old paused history."
+    },
+    {
+      "stage": "isolated-copy",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "python3",
+        "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source/scripts/qa/phase5f/prepare-isolated-copy.py",
+        "--source-root",
+        "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+        "--destination",
+        "/workspace/recovery-pause-observer-f228-private-attempt3/copy",
+        "--dependency-root",
+        "/workspace/sample-fabrication-workflow/node_modules"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3",
+        "SQLITE_TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3"
+      }
+    },
+    {
+      "stage": "fresh-two-version-sentinel",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "node",
+        "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source/scripts/qa/phase5f/generate-process-fixture.mjs",
+        "/workspace/recovery-pause-observer-f228-private-attempt3/copy",
+        "/workspace/recovery-pause-observer-f228-private-attempt3/fixture"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3",
+        "SQLITE_TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3"
+      }
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "cwd": "/workspace/recovery-pause-observer-f228-private-attempt3/copy",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "migrations",
+        "apply",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/workspace/recovery-pause-observer-f228-private-attempt3/copy/.wrangler/state"
+      ],
+      "env": {
+        "WRANGLER_SEND_METRICS": "false",
+        "WRANGLER_LOG_PATH": "/workspace/recovery-pause-observer-f228-private-attempt3/fixture/wrangler-logs",
+        "TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3",
+        "SQLITE_TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3"
+      }
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "cwd": "/workspace/recovery-pause-observer-f228-private-attempt3/copy",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "execute",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/workspace/recovery-pause-observer-f228-private-attempt3/copy/.wrangler/state",
+        "--file",
+        "/workspace/recovery-pause-observer-f228-private-attempt3/fixture/process-fixture.sql"
+      ],
+      "env": {
+        "WRANGLER_SEND_METRICS": "false",
+        "WRANGLER_LOG_PATH": "/workspace/recovery-pause-observer-f228-private-attempt3/fixture/wrangler-logs",
+        "TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3",
+        "SQLITE_TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3"
+      }
+    },
+    {
+      "stage": "physical-before",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "python3",
+        "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source/scripts/qa/phase5f/check-isolated-state.py",
+        "--source-copy",
+        "/workspace/recovery-pause-observer-f228-private-attempt3/copy",
+        "--fixture-directory",
+        "/workspace/recovery-pause-observer-f228-private-attempt3/fixture",
+        "--stage",
+        "before-api"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3",
+        "SQLITE_TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3"
+      }
+    },
+    {
+      "stage": "owned-built-worker",
+      "cwd": "/workspace/recovery-pause-observer-f228-private-attempt3/copy",
+      "argv": [
+        "node",
+        "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source/scripts/qa/phase5f/start-built-server.mjs",
+        "/workspace/recovery-pause-observer-f228-private-attempt3/copy",
+        "/workspace/recovery-pause-observer-f228-private-attempt3/fixture"
+      ],
+      "control": "Keep owned stdin open, await actual ready health/ready200 and immutable owner/session; never start browser while readiness lacks",
+      "toolInvocation": {
+        "tty": true,
+        "yieldTimeMs": 1000,
+        "control": "PTY keeps originalstdin alive, sourceisatty guard BEFORE childspawn. Require originalready200/session/PID/startticks/noStop beforeseed. Explicitoriginalstop newline only originaltoolsession, thenactualdisposal/directwait."
+      },
+      "env": {
+        "TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3",
+        "SQLITE_TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3"
+      }
+    },
+    {
+      "stage": "mature-genuine-api-84-only",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "node",
+        "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source/scripts/qa/phase5f/seed-actual-api.mjs",
+        "http://127.0.0.1:4219/",
+        "/workspace/recovery-pause-observer-f228-private-attempt3/fixture"
+      ],
+      "expectedRequests": 84,
+      "env": {
+        "TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3",
+        "SQLITE_TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3"
+      }
+    },
+    {
+      "stage": "original-disabled-seed-Worker-stop",
+      "control": "After genuine mature84 setup succeeds or any firstfailure, send originalstdin stop only originalttytoolsession; await originaldisposal/stoppedreceipt/directexit0/PIDabsence/4219refusal. No focus/browser runs on this seedWorker. Recovery2 requires mature84PASS and originalseedownerCLOSED."
+    },
+    {
+      "stage": "fresh-current-source-build-witness",
+      "control": "Original f228 build command/output causal carry and new physical24+84 setup/owners; passive helper consumer2488 inputs exact. Zero repeatbuild; strict nativebody/readiness/acceptedhistory retained.",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-recovery-job-controls-original-pause-terminal-cut-finite-source-review-attempt4/carry-original-f228-new-fixture-and-pause-observer.py",
+        "--coherent-cf-producer-for-genuine-job-controls-two",
+        "witness"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3",
+        "SQLITE_TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3"
+      }
+    },
+    {
+      "stage": "genuine-signed-admin-recovery-job-controls-two",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "node",
+        "/workspace/phase5f-recovery-job-controls-original-pause-terminal-cut-source-attempt4/scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs",
+        "/workspace/recovery-pause-observer-f228-private-attempt3/copy",
+        "/workspace/recovery-pause-observer-f228-private-attempt3/fixture",
+        "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+        "2489",
+        "--exclusive-go-two-genuine-recovery-job-controls"
+      ],
+      "env": {
+        "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+        "CHROMIUM_PATH": "/usr/bin/chromium",
+        "TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3",
+        "SQLITE_TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3",
+        "PHASE5F_CHROMIUM_PRIVATE_TEMP": "/workspace/.r2b7tmp",
+        "PHASE5F_JOB_CONTROL_RUNTIME_ROOT": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime"
+      },
+      "cases": [
+        "historical-backup-controls-1280-light",
+        "historical-backup-controls-390-dark"
+      ],
+      "control": "Shared genuine executor enable200/disable200 once; each historical backup-preview200/backup202/pause200/resume200/cancel200 native actions. Max10 original metadata mutation requests, no scheduled/step/ZIP/target/provider. Strict original full native and backend Response bodies, no fallback. Exact3-table lineage/runtime audit and all original63 permits/other app rows preserved. Stop firstfailure after original routes/body/context settlement; remaining IDs UNRUN.",
+      "toolInvocation": {
+        "tty": true,
+        "originalControl": "Only explicitstop newline originalretainedTTY; awaitoriginalclosure/report/childexit120s guard, no SIGTERM-as-finally assumption."
+      }
+    },
+    {
+      "stage": "physical-after",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "python3",
+        "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source/scripts/qa/phase5f/check-isolated-state.py",
+        "--source-copy",
+        "/workspace/recovery-pause-observer-f228-private-attempt3/copy",
+        "--fixture-directory",
+        "/workspace/recovery-pause-observer-f228-private-attempt3/fixture",
+        "--stage",
+        "after-shutdown"
+      ],
+      "require": "Only after original helper body/route/shared configure callbacks/context/browser/Worker/JWKS normalclose, actual directwait/reap and portsrefused. Physical4 is mandatory after fixture/browser failure; accepted job/request history remains retained. No original Recovery/Package outputs overwritten.",
+      "env": {
+        "TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3",
+        "SQLITE_TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3"
+      }
+    },
+    {
+      "stage": "final-source-artifact-input-pins",
+      "control": "Original f228 build command/output causal carry and new physical24+84 setup/owners; passive helper consumer2488 inputs exact. Zero repeatbuild; strict nativebody/readiness/acceptedhistory retained.",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-recovery-job-controls-original-pause-terminal-cut-finite-source-review-attempt4/carry-original-f228-new-fixture-and-pause-observer.py",
+        "--coherent-cf-producer-for-genuine-job-controls-two",
+        "final-pins"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3",
+        "SQLITE_TMPDIR": "/workspace/recovery-pause-observer-f228-private-attempt3"
+      }
+    }
+  ],
+  "sourceHead": "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+  "sourceTree": "d16675a42725094e586f9f3bc78468aa5e46310d",
+  "trackedFileCount": 2489,
+  "sourceRoot": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+  "runtimeRoot": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime",
+  "roots": {
+    "copy": "/workspace/recovery-pause-observer-f228-private-attempt3/copy",
+    "fixture": "/workspace/recovery-pause-observer-f228-private-attempt3/fixture",
+    "runtime": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime"
+  },
+  "installedDependencies": {
+    "root": "/workspace/sample-fabrication-workflow/node_modules",
+    "package": "5c8a504d14b7208edb3d77b8c5049c713d55e4e7821d8e43b7b54e6dbeebe8fc",
+    "dependencyParentPackage": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+    "lock": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a",
+    "hiddenLock": "95202718d08fd50cc286bcddf0af66b08503d63b494e992006c50d4246d69a98"
+  },
+  "originalOwnerPreparation": "/workspace/phase5f-recovery-job-controls-current-coherent-finite-preparation-attempt1/original-mature-owner-preparation.json",
+  "futureActualOwnership": "ONE historical actual f228 CF build carry; zero repeattypes/build. New24/84 physical fixture plus originaltwo job-control cases, original native200 body strict and diagnostic passivity.",
+  "expectedCosts": {
+    "rawLocalMigrations": 24,
+    "disabledOrdinarySeedRequests": 84,
+    "readerAuxiliaryGETs": 2,
+    "browserBaselineGETs": 8,
+    "originalPollingMayAddOnlyStatusGETs": true,
+    "sharedPOSTs": 2,
+    "browserNativePOSTs": 8,
+    "totalOriginalPOSTMaximum": 10,
+    "newScheduledSteps": 0,
+    "newExecutionSteps": 0,
+    "newProviderTargets": 0,
+    "newCFBuilds": 0
+  },
+  "budgets": {
+    "nativeOperationBodyAndReadinessMs": 20000,
+    "originalTTYSupervisionMs": 120000,
+    "supervisionProgressEveryMs": 20000,
+    "bodyMaximumExclusiveBytes": 131072,
+    "overflowPx": 2
+  },
+  "currentBinding": "Original actual f228 CF118 build retained; fresh physical state/current24/mature84 setup pending, solely passive helper successor bfea74f. Old paused accepted history untouched. No actual sourcehelper invocations yet.",
+  "freezeBeforeGO": [
+    "Final retarget sourcepeer/root plan review",
+    "Explicit root exclusive runtime GO"
+  ],
+  "sourceReviewRoot": "/workspace/phase5f-recovery-job-controls-original-pause-terminal-cut-finite-source-review-attempt4",
+  "helper": {
+    "path": "scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs",
+    "sha256": "120568dc7243d62457dc42ec7bb0eb070b987390d659d9385ce504e7d08fce7c",
+    "wholeSourcePeer": "5d9a48499c684bacca2e199f4af169b231e6774a409e3f5a6b8e68d8bd9b6592",
+    "readinessPeer": "e18cff7d17e8c913e940f223043622e7f8b9bbaaf74db77e4eb31f32da1b4529"
+  },
+  "copyGate": {
+    "path": "scripts/qa/phase5f/prepare-isolated-copy.py",
+    "sha256": "fba64e958ba1042a7ea406ef9d502ce12829c194c4ec3ea65ee447b3f3105292",
+    "peer": "f56f85f07fc6dcc25d8980872913721c696cd558850d086f11bb10d8cfd985c1"
+  },
+  "originalStdinControlTimeGuard": {
+    "tool": "tools.exec_command tty:true for both original seed/controller and genuine browser helper",
+    "progressEveryMs": 20000,
+    "overallMs": 120000,
+    "stop": "Only explicit original stop newline once on original retainedTTY; await original helper closure/report/directchild exit/reap/ports. Never classify SIGTERM as graceful or normalfinally.",
+    "firstFailure": "Stop later normal stages; still mandatory original seedstop/original body/route/context/shared configure settlement/disable/history/disposal and postphysical+finalpins. Retain source/app/test/cleanup failures distinctly."
+  },
+  "carrier": {
+    "path": "/workspace/phase5f-recovery-job-controls-original-pause-terminal-cut-finite-source-review-attempt4/carry-original-f228-new-fixture-and-pause-observer.py",
+    "sha256": "d82368ad130b9c61e3682a8d4cd1278d4c8374f50cb0cd66722f0fdb802b1dca",
+    "threeMatureDefinitionsAstExact": [
+      "sha",
+      "digest",
+      "saved"
+    ]
+  },
+  "qaConsumerHead": "bfea74fb975f46fa70eb203c5f5844b46d115215",
+  "qaConsumerTree": "0a7fa7198fa972e1e79e29abdefb17b5281e20b0",
+  "qaConsumerRoot": "/workspace/phase5f-recovery-job-controls-original-pause-terminal-cut-source-attempt4",
+  "sourceHelper": {
+    "path": "scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs",
+    "sha256": "120568dc7243d62457dc42ec7bb0eb070b987390d659d9385ce504e7d08fce7c"
+  },
+  "shortChildTemporaryLeaf": "/workspace/.r2b7tmp",
+  "sourcePeerRequired": "Full passive helper c5c6 + one-line failure-terminal cut bfea74f, final13 carrier/top-level + root exclusive GO"
+}

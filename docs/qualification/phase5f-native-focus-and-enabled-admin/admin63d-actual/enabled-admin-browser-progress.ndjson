@@ -1,0 +1,8 @@
+{"id":"admin-1280-light","status":"running"}
+{"id":"admin-1280-light","status":"passed","contextClosed":true}
+{"id":"admin-390-dark","status":"running"}
+{"id":"admin-390-dark","status":"passed","contextClosed":true}
+{"id":"reader-1280-light","status":"running"}
+{"id":"reader-1280-light","status":"passed","contextClosed":true}
+{"id":"admin-390-dark-read-retry","status":"running"}
+{"id":"admin-390-dark-read-retry","status":"passed","contextClosed":true}

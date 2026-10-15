@@ -1,0 +1,29 @@
+{
+  "status": "SOURCE_CLEAR_ROOT_INDEPENDENT_RECOVERY_CURRENT_PREVIEW_AND_JOB_FOCUS",
+  "recordedAt": "2026-10-11T10:55:37.993470+00:00",
+  "root": "/workspace/phase5f-recovery-job-control-focus-current5ca-source-attempt1",
+  "head": "28e5f6e7f401dd95938153fd477a6d37af6ea38e",
+  "tree": "762a02599be545fa9eaff9db56c12f7d53654f4a",
+  "all2346CurrentPinsExact": true,
+  "protected2344OtherCurrent5caEntriesExact": true,
+  "qualifiedPreviewTwoLeafAdoptionExactF228": true,
+  "original20FixtureInverseExact": true,
+  "newMountedCount": 22,
+  "newGenuineDeferredControls": 2,
+  "completeNewFocusProductAndControlsPatchRead": true,
+  "focusGuards": [
+    "explicit original admitted action signal",
+    "same keyed job and current un-aborted lifetime",
+    "after busy false",
+    "only body or original trigger remains focused",
+    "original surviving enabled button preferred",
+    "Pause\u2192Resume / Resume-or-Retry\u2192Pause / cancelled Cancel\u2192status",
+    "no effect request/replay",
+    "other control focus preserved"
+  ],
+  "originalControlJsonAuthCASHistoryPollingUnchanged": true,
+  "handoff": "/workspace/phase5f-recovery-control-focus-source-preparation-attempt1/source-handoff.json",
+  "handoffSha256": "993e6e03c6456a8e3cfb0d9ed3ea32a59af486f08d65d93b6e5301200c129753",
+  "actualCurrentCompilerMountedBuildNative": "ALL_UNRUN",
+  "runtimeEffects": 0
+}

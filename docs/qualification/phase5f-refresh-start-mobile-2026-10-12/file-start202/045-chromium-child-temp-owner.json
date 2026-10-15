@@ -1,0 +1,14 @@
+{
+  "path": "/workspace/.sfstm1",
+  "mode": "0700",
+  "uid": 1000,
+  "dev": "27",
+  "ino": "1840720",
+  "freshCreated": true,
+  "sourceHead": "2d07b57c4e79403099261528ae8988c0072d28c6",
+  "sourceCopyRoot": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/copy",
+  "fixtureDirectory": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/fixture",
+  "qaHelperSha256": "eceeb804409c169f5788e0a7255e254caf588e13fa7285a0b7b42fc8132c3e28",
+  "freeBytes": "602628096",
+  "scope": "Original Chromiumchildonly temporary leaf; parent TMPDIR/COPY/FIXTURE ownership unchanged."
+}

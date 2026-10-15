@@ -1,0 +1,49 @@
+{
+  "status": "ROOT_CURRENT8BE_APP37_FULL_RAW_OWNER_RELEASED",
+  "formal": {
+    "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/runtime/actual-current8be-app-and-affected37-qualified-closed-release.json",
+    "sha256": "be8f13911b873405bcdb7913e50b6623c6efc3b189e5462e1ff9af7130bdc561"
+  },
+  "all6OriginalReferencesFullRead": [
+    {
+      "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/runtime/original-tool-responses.json",
+      "sha256": "02d5a34e9119324a47faab704d9bb2b58002208ee8315d99ad6b212390c23b11",
+      "bytes": 4282
+    },
+    {
+      "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/runtime/frozen-approved-plan.json",
+      "sha256": "2cbd27653d8f26fa7a0aac795d202eb9590d1b009d13d27a7efa19a1547b5bfb",
+      "bytes": 4358
+    },
+    {
+      "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/runtime/affected-app-strict-command.json",
+      "sha256": "f1cf9e9f2eae7f97bac871c3c3779dfebd934c4c30d46c70e46d88f995f05ff3",
+      "bytes": 1071
+    },
+    {
+      "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/runtime/affected-app-strict.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/runtime/affected-storage-settings-mounted-files-command.json",
+      "sha256": "5891a21622b5d3a00249643cfeb9661040ea8f53ea9ba835d31bbb50738e2cfe",
+      "bytes": 1708
+    },
+    {
+      "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/runtime/affected-storage-settings-mounted-files.log",
+      "sha256": "913168c4e2971d654ab836dfb2fe248a9d6d4e6c6d51436446edc9397affa6f3",
+      "bytes": 258
+    }
+  ],
+  "actual": {
+    "files": 2,
+    "passed": 37,
+    "failed": 0,
+    "unrun": 0,
+    "currentSettings": 18,
+    "legacySettings": 19
+  },
+  "normalOriginal2DirectWaitReapedEmptyNoSignals": true,
+  "exclusiveReleased": true
+}

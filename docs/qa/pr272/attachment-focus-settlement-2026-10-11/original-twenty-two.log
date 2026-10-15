@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /workspace/pr272-attachment-focus-settlement-source-attempt1
+
+
+ Test Files  1 passed (1)
+      Tests  22 passed (22)
+   Start at  15:15:57
+   Duration  1.60s (transform 436ms, setup 0ms, import 592ms, tests 621ms, environment 275ms)
+

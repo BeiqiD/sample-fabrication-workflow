@@ -1,0 +1,32 @@
+{
+  "status": "SOURCE_CLEAR_FINAL13_UNRUN",
+  "createdAt": "2026-10-11T09:52:49.215302+00:00",
+  "handoffSha256": "40ac7d6fa5ed46a97f52422956f50c23c7bdc72c3265144e8cc8ea030fa899e5",
+  "head": "21bb149da250ef249d2bef7ddb365feb63532503",
+  "tree": "c7bafcec3e2d9251dc4c6b675dab872db09f5645",
+  "helperSha256": "4f2873425d2bc40b3825f061a8e2d92da9ee193f694215fcd3bf0c9bcdd2e834",
+  "sourcePeerSha256": "18a3788eba5e765e69941dc0c8daae7f478e2e81a3dcf60388e404214c445ac7",
+  "allFinalArtifactsHashesExact": true,
+  "originalOwnerDefinitionAstCountsExactDraft": {
+    "run-frozen-owned-stage.py": {
+      "topLevel": 10,
+      "allNested": 10
+    },
+    "carry-original-f228-new-fixture-native-byte-proof.py": {
+      "topLevel": 3,
+      "allNested": 3
+    }
+  },
+  "wholeCurrentCarrierTopLevelOriginalNativeProofCriterionAndAcceptedHistoryChecksRead": true,
+  "all13CommandsStagesArgvEnvironmentCostsBudgetsControlsExactDraftAfterReviewRootInverse": true,
+  "uniformSixPrimaryProofsPerNativeCaseAndAvailableCdpByteAgreementRequired": true,
+  "currentSourceWholePeerBindingVerified": true,
+  "newNamespaceAndShortTempAbsent": true,
+  "originalF228ProducerAndPreviousFailuresPreserved": true,
+  "newBuilds": 0,
+  "reviewRuntimeEffects": 0,
+  "limits": [
+    "Historical build is carried at f228; current two native cases remain unrun.",
+    "Kernel-exited FD inspection unknown remains separately recorded; no new signals or empty-group inference."
+  ]
+}

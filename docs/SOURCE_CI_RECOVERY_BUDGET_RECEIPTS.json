@@ -1,0 +1,180 @@
+{
+  "priorHead": "a482b108217b7cdff953a4271bc6605c866bb0b7",
+  "priorOwnPushVerify": {
+    "id": 38065822030,
+    "conclusion": "success",
+    "logSha256": "1ff6e903f17f40a9c9ff15e9726b24ca84f3ecd559064e44991f83c397dcfe3e"
+  },
+  "priorOwnPullRequestVerify": {
+    "id": 38065932472,
+    "conclusion": "failure",
+    "sourcePassedFiles": 365,
+    "sourceFailedFiles": 1,
+    "sourcePassedCases": 3350,
+    "sourceFailedCases": 1,
+    "case": "restores original registration and exact source rowids with no local credentials or execution",
+    "reportedMilliseconds": 7301,
+    "error": "Test timed out in 5000ms.",
+    "logSha256": "7953aa659961351724d639c7cebd3c9b4760ed780d47ef7f660eaa13270c9053",
+    "laterLeaves": "skipped"
+  },
+  "change": {
+    "file": "worker/export-v21-protocol.test.ts",
+    "scope": "Only the named full recovery integration case registration gets explicit15000ms; global5000ms/othercases/assertions/production unchanged.",
+    "newCaseBudgetMilliseconds": 15000,
+    "unchangedBodySha256": "db92e47308ae3f42895039f352d7ca44354ad7a20e4738edf0cc62dc462f376e",
+    "performanceFixClaim": false,
+    "completeFinalHeadQualification": "pending"
+  },
+  "rejectedSchedulingTrial": {
+    "source": "/tmp/phase5f-frontend-integration-fc3abc3",
+    "privateCopy": "/tmp/source-ci-concurrency-a482b10",
+    "sourceHead": "a482b108217b7cdff953a4271bc6605c866bb0b7",
+    "sourceTree": "52269fd99cc68a6ce979a43b44f5e276eb450d7b",
+    "copiedState": false,
+    "runtimeAuthorized": true,
+    "caseCount": 40,
+    "files": {
+      "worker/export-v21-protocol.test.ts": "7f46a2551f78e758a3de3237110a6c77cd830f6d3151852d238d00a74d37a368",
+      "worker/export-v20-protocol.test.ts": "b2e5aee28be69cf69b079e0334092c89d2cf5a881222c19464ea48e80f84f6f9",
+      "worker/export-v22-protocol.test.ts": "262dd169a0ff135494d2efe67df66419b4367e29e7b3ee077506f52e0b85c099",
+      "scripts/lib/export-restore.ts": "daeea31fd2eb8c8d88795f439e74ee9193a21505cfaa1f31a43b85750f3e4950"
+    },
+    "candidateConfigSha256": "1164ef6680e263b639f5e53a1f06132ef6d56bc650676263f3b674a317bd8f93",
+    "baselineConfig": "import { availableParallelism } from \"node:os\";\nimport { defineConfig } from \"vitest/config\";\n\nexport default defineConfig({\n  test: {\n    // Vitest otherwise reserves one CPU and serializes source qualification on\n    // two-CPU builders. Keep the defaults on other machines and file isolation.\n    maxWorkers: availableParallelism() === 2 ? 2 : undefined,\n    include: [\"**/*.test.ts\"],\n    environment: \"node\",\n    setupFiles: [\"./test/setup-worker-crypto.ts\"],\n  },\n});\n",
+    "onlyPlannedChange": "source test maximum worker policy: min(2, availableParallelism())",
+    "unchangedDeadlinesAndAssertions": true,
+    "previousFailedCI": "/tmp/phase5f-a482b10-pr-verify-failed-attempt1.log",
+    "finiteCommands": [
+      "node_modules/.bin/vitest run worker/export-v21-protocol.test.ts worker/export-v20-protocol.test.ts worker/export-v22-protocol.test.ts --maxWorkers=3 --no-cache --reporter=json --outputFile=/tmp/source-ci-concurrency-a482b10-default3-attempt1.json",
+      "node_modules/.bin/vitest run worker/export-v21-protocol.test.ts worker/export-v20-protocol.test.ts worker/export-v22-protocol.test.ts --no-cache --reporter=json --outputFile=/tmp/source-ci-concurrency-a482b10-cap2-attempt1.json"
+    ],
+    "orderingControl": "Disable persisted Vitest result cache in both finite runs; unchanged default sequencer sorts uncached files by physical size.",
+    "metadata": {
+      "node": "v24.19.0",
+      "availableCPUs": 4,
+      "vitest": "4.1.10",
+      "platform": "linux",
+      "arch": "x64"
+    },
+    "records": [
+      {
+        "label": "default3",
+        "configuredMaximumWorkers": 3,
+        "args": [
+          "node_modules/.bin/vitest",
+          "run",
+          "worker/export-v21-protocol.test.ts",
+          "worker/export-v20-protocol.test.ts",
+          "worker/export-v22-protocol.test.ts",
+          "--no-cache",
+          "--reporter=json",
+          "--outputFile=/tmp/source-ci-concurrency-a482b10-default3-attempt1.json",
+          "--maxWorkers=3"
+        ],
+        "exitCode": 0,
+        "wallSeconds": 33.62650010499783,
+        "childUserCPUSeconds": 82.17390900000001,
+        "childSystemCPUSeconds": 3.086874,
+        "report": "/tmp/source-ci-concurrency-a482b10-default3-attempt1.json",
+        "log": "/tmp/source-ci-concurrency-a482b10-default3-attempt1.log",
+        "totalTests": 40,
+        "passedTests": 40,
+        "failedTests": 0,
+        "files": [
+          {
+            "name": "export-v20-protocol.test.ts",
+            "startTime": 1791649984794,
+            "endTime": 1791650012391.5278,
+            "status": "passed"
+          },
+          {
+            "name": "export-v21-protocol.test.ts",
+            "startTime": 1791649986167,
+            "endTime": 1791650000027.4692,
+            "status": "passed"
+          },
+          {
+            "name": "export-v22-protocol.test.ts",
+            "startTime": 1791649984803,
+            "endTime": 1791650013866.2922,
+            "status": "passed"
+          }
+        ],
+        "exactV21Case": {
+          "title": "restores original registration and exact source rowids with no local credentials or execution",
+          "status": "passed",
+          "duration": 2201.651043,
+          "failureMessages": []
+        }
+      },
+      {
+        "label": "cap2",
+        "configuredMaximumWorkers": 2,
+        "args": [
+          "node_modules/.bin/vitest",
+          "run",
+          "worker/export-v21-protocol.test.ts",
+          "worker/export-v20-protocol.test.ts",
+          "worker/export-v22-protocol.test.ts",
+          "--no-cache",
+          "--reporter=json",
+          "--outputFile=/tmp/source-ci-concurrency-a482b10-cap2-attempt1.json"
+        ],
+        "exitCode": 0,
+        "wallSeconds": 47.93343239599926,
+        "childUserCPUSeconds": 78.300928,
+        "childSystemCPUSeconds": 2.7977749999999997,
+        "report": "/tmp/source-ci-concurrency-a482b10-cap2-attempt1.json",
+        "log": "/tmp/source-ci-concurrency-a482b10-cap2-attempt1.log",
+        "totalTests": 40,
+        "passedTests": 40,
+        "failedTests": 0,
+        "files": [
+          {
+            "name": "export-v20-protocol.test.ts",
+            "startTime": 1791650017848,
+            "endTime": 1791650044365.047,
+            "status": "passed"
+          },
+          {
+            "name": "export-v21-protocol.test.ts",
+            "startTime": 1791650019023,
+            "endTime": 1791650033104.553,
+            "status": "passed"
+          },
+          {
+            "name": "export-v22-protocol.test.ts",
+            "startTime": 1791650034508,
+            "endTime": 1791650061784.5476,
+            "status": "passed"
+          }
+        ],
+        "exactV21Case": {
+          "title": "restores original registration and exact source rowids with no local credentials or execution",
+          "status": "passed",
+          "duration": 2205.770340000001,
+          "failureMessages": []
+        }
+      }
+    ],
+    "allUnchangedSourceHashesVerified": true,
+    "finiteOrderingControl": "--no-cache in both runs",
+    "noDeadlinesAssertionsOrProductionMigrationsChanged": true,
+    "limits": "One finite host pair; not exact-head CI or guaranteed restoration wall time."
+  },
+  "focusedAttempts": [
+    {
+      "attempt": 1,
+      "exitCode": 1,
+      "scope": "dependency setup failed before Vitest; clone lacked node_modules; no source cases ran",
+      "logSha256": "0201f6a8fffd549a26b359be32406ae1503ee19d65791baf1e93d9a0acb548cc"
+    },
+    {
+      "attempt": 2,
+      "exitCode": 0,
+      "scope": "existing lock-compatible workspace dependencies linked; complete V21 file11/11PASS17.52seconds",
+      "logSha256": "d489e955a0f7cf4798baff245292575f4afbfb5e6618c7ce797f77ed74e58660"
+    }
+  ]
+}

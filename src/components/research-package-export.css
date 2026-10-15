@@ -1,0 +1,2 @@
+.research-package-context-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.research-package-context-actions [aria-disabled=true] { opacity: .5; }

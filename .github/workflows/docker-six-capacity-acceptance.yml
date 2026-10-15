@@ -1,0 +1,97 @@
+name: Default Docker six capacity acceptance
+
+on:
+  push:
+    branches:
+      - codex/default-docker-six-capacity-f883-one
+  workflow_dispatch:
+    inputs:
+      exclusive_go:
+        description: Run only after review of this exact workflow commit
+        type: choice
+        required: true
+        default: NOT_AUTHORIZED
+        options:
+          - NOT_AUTHORIZED
+          - EXCLUSIVE_DOCKER_SIX
+
+permissions:
+  contents: read
+
+jobs:
+  docker-six:
+    if: ${{ github.ref == 'refs/heads/codex/default-docker-six-capacity-f883-one' && (github.event_name == 'push' || inputs.exclusive_go == 'EXCLUSIVE_DOCKER_SIX') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out reviewed acceptance code
+        uses: actions/checkout@v4
+        with:
+          path: qa-runner
+          persist-credentials: false
+      - name: Check out exact published target source
+        uses: actions/checkout@v4
+        with:
+          ref: f883e64086bee44b353f3840271fa3eaaafdcc7d
+          path: target-source
+          persist-credentials: false
+      - name: Prepare dedicated ephemeral UID 1000 ownership
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          qa_user="$(getent passwd 1000 | cut -d: -f1 || true)"
+          if ! getent group 1000 >/dev/null; then sudo groupadd --gid 1000 node_docker_qa; fi
+          if [ -z "$qa_user" ]; then
+            sudo useradd --uid 1000 --gid 1000 --no-create-home --shell /usr/sbin/nologin node_docker_qa
+            qa_user=node_docker_qa
+          fi
+          test -S /var/run/docker.sock
+          docker_gid="$(stat -c %g /var/run/docker.sock)"
+          test "$docker_gid" -gt 0
+          docker_group="$(getent group "$docker_gid" | cut -d: -f1)"
+          test -n "$docker_group"
+          sudo usermod -aG "$docker_group" "$qa_user"
+          test "$(realpath /tmp)" = /tmp
+          stage_root="/tmp/node-docker-six-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          evidence_root="/tmp/node-docker-six-evidence-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          test ! -e "$stage_root" && test ! -L "$stage_root"
+          test ! -e "$evidence_root" && test ! -L "$evidence_root"
+          sudo install -d -m 0700 -o 1000 -g 1000 "$stage_root"
+          sudo cp -a "$GITHUB_WORKSPACE/qa-runner" "$stage_root/qa-runner"
+          sudo cp -a "$GITHUB_WORKSPACE/target-source" "$stage_root/target-source"
+          sudo chown -R 1000:1000 "$stage_root/qa-runner" "$stage_root/target-source"
+          sudo chmod 0700 "$stage_root/qa-runner" "$stage_root/target-source"
+          run_root="$stage_root/runtime"
+          sudo install -d -m 0700 -o 1000 -g 1000 "$run_root"
+          sudo install -d -m 0755 -o 1000 -g 1000 "$evidence_root"
+          printf 'NODE_DOCKER_SIX_ROOT=%s\nNODE_DOCKER_SIX_QA=%s\nNODE_DOCKER_SIX_SOURCE=%s\nNODE_DOCKER_SIX_EVIDENCE=%s\n' "$run_root" "$stage_root/qa-runner" "$stage_root/target-source" "$evidence_root" >> "$GITHUB_ENV"
+      - name: Verify exact source and run original finite acceptance
+        shell: bash
+        run: |
+          set -euo pipefail
+          qa="$NODE_DOCKER_SIX_QA/scripts/qa/node-docker-capacity"
+          source="$NODE_DOCKER_SIX_SOURCE"
+          sudo -u '#1000' -g '#1000' python3 -B "$qa/prepare-ci-source.py" --root "$NODE_DOCKER_SIX_ROOT" --source "$source" --invocation-head "$GITHUB_SHA"
+          sudo -u '#1000' -g '#1000' env NODE_DOCKER_SIX_ROOT="$NODE_DOCKER_SIX_ROOT" NODE_DOCKER_SIX_SOURCE="$source" python3 -B "$NODE_DOCKER_SIX_ROOT/prepared/run-ci-network-prerequisite.py" --exclusive-go-ci-network-prerequisite
+          sudo -u '#1000' -g '#1000' env NODE_DOCKER_SIX_ROOT="$NODE_DOCKER_SIX_ROOT" NODE_DOCKER_SIX_SOURCE="$source" python3 -B "$NODE_DOCKER_SIX_ROOT/prepared/run-default-docker-six.py" --exclusive-go-default-docker-six
+      - name: Export bounded original evidence
+        if: ${{ always() && env.NODE_DOCKER_SIX_ROOT != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo -u '#1000' -g '#1000' python3 -B "$NODE_DOCKER_SIX_QA/scripts/qa/node-docker-capacity/export-bounded-artifacts.py" --root "$NODE_DOCKER_SIX_ROOT" --destination "$NODE_DOCKER_SIX_EVIDENCE/evidence"
+      - name: Retain bounded original evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: default-docker-six-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.NODE_DOCKER_SIX_EVIDENCE }}/evidence/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Publish whitelisted original receipt facts
+        if: ${{ always() && env.NODE_DOCKER_SIX_EVIDENCE != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo -u '#1000' -g '#1000' python3 -B "$NODE_DOCKER_SIX_QA/scripts/qa/node-docker-capacity/view-original-receipt-facts.py" --evidence "$NODE_DOCKER_SIX_EVIDENCE/evidence"

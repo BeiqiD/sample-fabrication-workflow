@@ -1,0 +1,15 @@
+{
+  "status": "PASS_POSTMERGE_COMPLETE_VERIFY_MAP_AND_ALL15_CONTEXTS",
+  "head": "3104c7c1f68b8851afac024e93d4f8b7a0038b0f",
+  "qualifiedMergedTree": "f6062e1f99e6435e0265f2da754181439e1551d0",
+  "verifyRun": 38119574382,
+  "mapRun": 38119574440,
+  "finalContexts": 15,
+  "capturedAt": "2026-10-11T07:35:43.482067+00:00",
+  "rawInputs": {
+    "verify.json": "e2977859e07c4a8df5888eeedeb6c616f6f36a0cc6103335a0823e92b45f5a9f",
+    "map.json": "cb1c43fe96f8eab72defcac631c224dd494dc6de52cf2432468e01b849bb0488",
+    "statuses.json": "46c2e97b96dc9e8a6e67047589cfcf57c548a2c5056beded08cf48b8d7765118"
+  },
+  "scope": "Separate own ordinary3104 postmerge push gates. Original4e PR StoragefocusFAIL andd86 ownfourSUCCESS/ordinarymerge tree equality stayretained; no currentNode/CF/Docker/provider/deployed qualification inferred. Actual numeric test counts notclaimed frommetadata."
+}

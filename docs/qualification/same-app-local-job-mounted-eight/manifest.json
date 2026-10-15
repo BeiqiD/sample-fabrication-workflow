@@ -1,0 +1,115 @@
+{
+  "kind": "same-app-mounted-local-job-eight-qualified-checkpoint/1",
+  "status": "QUALIFIED_SCOPED_EIGHT",
+  "actualSourceHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+  "actualSourceTree": "2a5c10a8190f6807f59d8a2282411b82f46c78e5",
+  "protectedActualSourceInputCount": 2585,
+  "actualCounts": {
+    "freshPassed": 8,
+    "failed": 0,
+    "pending": 0,
+    "unselected": 0,
+    "nativeCarry": 0
+  },
+  "authorityScope": "Same original configured application: ten current administrator Job HTTP endpoints and one genuine scheduled Local byte slot on sole Native/core/opening/physical writer. Default opt-in/persisted executor disabled; exact current admin, identity/session/incarnation/recovery/profile/role and original body/provider/first ACK required.",
+  "excludedClaims": [
+    "Elapsed120000ms periodic cadence",
+    "Terminal-negative provider/native cleanup injection",
+    "Group or V28 grants",
+    "Canonical Comment/other domains",
+    "CLI/container/development merge or CI"
+  ],
+  "closure": "Original tool/supervisor/runner/child normal waits and reap; three original PGIDs EMPTY, all source and private directory identity pins exact.",
+  "rawRecords": [
+    {
+      "originalPath": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/receipt.json",
+      "qualifiedPath": "docs/qualification/same-app-local-job-mounted-eight/actual-attempt1/receipt.json",
+      "sha256": "775123487d0a8181a560bd558f997b6054d156456411cf22641e4ebafb5b8c07"
+    },
+    {
+      "originalPath": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/actual-native.json",
+      "qualifiedPath": "docs/qualification/same-app-local-job-mounted-eight/actual-attempt1/actual-native.json",
+      "sha256": "c1620a48fc809ee3fe1340fcde9340acc6a20902b3183200d1d90e5fe8d1472b"
+    },
+    {
+      "originalPath": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/original-native.log",
+      "qualifiedPath": "docs/qualification/same-app-local-job-mounted-eight/actual-attempt1/original-native.log",
+      "sha256": "1de98c7c982930d0c4ba0fd8c68a4e7954608fbf228ae88388da3055bd8a1dd1"
+    },
+    {
+      "originalPath": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/original-owner.json",
+      "qualifiedPath": "docs/qualification/same-app-local-job-mounted-eight/actual-attempt1/original-owner.json",
+      "sha256": "1edcea91e18c75eb25912bd424fb052375a689c45442a8c74da3b0cfe62850b4"
+    },
+    {
+      "originalPath": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/exact-command.json",
+      "qualifiedPath": "docs/qualification/same-app-local-job-mounted-eight/actual-attempt1/exact-command.json",
+      "sha256": "43dd5b8cabea51795e1dc5e241b0cdcb32d7d7de9fa8e684c684f766d80fa214"
+    },
+    {
+      "originalPath": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/preflight.json",
+      "qualifiedPath": "docs/qualification/same-app-local-job-mounted-eight/actual-attempt1/preflight.json",
+      "sha256": "e2a4de864808c8c8d0c068c2d5450639147b170cd8df4daa16a366a16e110b70"
+    },
+    {
+      "originalPath": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/final-closure.json",
+      "qualifiedPath": "docs/qualification/same-app-local-job-mounted-eight/actual-attempt1/final-closure.json",
+      "sha256": "62f87a0fd3cd46d25c02c89e46995793e12937b5aaa957cd86fd6c721ac3815e"
+    },
+    {
+      "originalPath": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/formal-closure-release.json",
+      "qualifiedPath": "docs/qualification/same-app-local-job-mounted-eight/actual-attempt1/formal-closure-release.json",
+      "sha256": "d675c0493f1df77184f36200381f31e2a8861737053e4d911f4efc8cdfa343c8"
+    },
+    {
+      "originalPath": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/original-active-supervisor-runner-kernel-observation.json",
+      "qualifiedPath": "docs/qualification/same-app-local-job-mounted-eight/actual-attempt1/original-active-supervisor-runner-kernel-observation.json",
+      "sha256": "2b65abe20ef240a86e73322fb0d10cde6d7a3e329f6691c18fd67f1b662faf41"
+    },
+    {
+      "originalPath": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/original-active-direct-child-kernel-observation.json",
+      "qualifiedPath": "docs/qualification/same-app-local-job-mounted-eight/actual-attempt1/original-active-direct-child-kernel-observation.json",
+      "sha256": "1e5fbd3644c5bda3e6344cca151a286866024204f19b662e2ea1e257dc0c642c"
+    },
+    {
+      "originalPath": "/workspace/same-app-local-job-mounted-typed-source-handoffs/finite-original-mounted-eight-peerbound-attempt1/original-supervisor-actual-attempt1.json",
+      "qualifiedPath": "docs/qualification/same-app-local-job-mounted-eight/actual-attempt1/original-supervisor.json",
+      "sha256": "ac65347523106a93b3d1ef0e329ee2bda7fdea1b1129568c026883ea79bf44c5"
+    },
+    {
+      "originalPath": "/workspace/same-app-local-job-mounted-typed-source-handoffs/affected-node-worker-types-attempt1/receipt.json",
+      "qualifiedPath": "docs/qualification/same-app-local-job-mounted-eight/affected-static/receipt.json",
+      "sha256": "04efb5ce2f9e1189a0fa9df66eae318fada40660c4c5f0056cce353d46cdce1e"
+    },
+    {
+      "originalPath": "/workspace/same-app-local-job-mounted-typed-source-handoffs/affected-node-worker-types-attempt1/node-job-runtime-owned-tests.log",
+      "qualifiedPath": "docs/qualification/same-app-local-job-mounted-eight/affected-static/node-job-runtime-owned-tests.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "originalPath": "/workspace/same-app-local-job-mounted-typed-source-handoffs/affected-node-worker-types-attempt1/worker.log",
+      "qualifiedPath": "docs/qualification/same-app-local-job-mounted-eight/affected-static/worker.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "originalPath": "/workspace/same-app-local-job-b131-independent-complete-product-genuine-eight-source-peer.json",
+      "qualifiedPath": "docs/qualification/same-app-local-job-mounted-eight/source/independent-whole-peer.json",
+      "sha256": "8d476499867c5a0b60051a1ff10a58b28413845e4028763ccc50d5d3b3a277f3"
+    },
+    {
+      "originalPath": "/workspace/same-app-local-job-mounted-typed-source-handoffs/root-b131-current-product-genuine-eight-source-review.json",
+      "qualifiedPath": "docs/qualification/same-app-local-job-mounted-eight/source/root-whole-peer.json",
+      "sha256": "ef411ae40e9792ef7dd55d854f6f297f0368f9781f9fc62234d1f7d03a007663"
+    },
+    {
+      "originalPath": "/workspace/same-app-local-job-mounted-typed-source-handoffs/finite-original-mounted-eight-peerbound-attempt1/root-final-mature-eight-complete-source-peer.json",
+      "qualifiedPath": "docs/qualification/same-app-local-job-mounted-eight/source/root-final-finite-peer.json",
+      "sha256": "591beb49d4b04faff7d95816eac9e727ca8360ca71424f33e2c54536f87ad90f"
+    },
+    {
+      "originalPath": "/workspace/same-app-local-job-mounted-typed-source-handoffs/complete-source-and-two-affected-static-check-handoff.json",
+      "qualifiedPath": "docs/qualification/same-app-local-job-mounted-eight/source/complete-source-and-two-static-handoff.json",
+      "sha256": "d4b7b00c73dd04c0c93b5cc56792447659cba6a152bd835f73470f72a9982bad"
+    }
+  ]
+}

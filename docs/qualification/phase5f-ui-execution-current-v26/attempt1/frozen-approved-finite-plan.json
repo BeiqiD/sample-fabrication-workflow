@@ -1,0 +1,98 @@
+{
+  "version": 2,
+  "status": "SOURCE-PREPARED UNRUN; requires parent sourcepeer and exclusive GO",
+  "head": "98d81a170394a140fb63e970b31d1985bd56f68d",
+  "tree": "62d67e1c9fb3d59d74c49e0eceebe4ef2975ffe4",
+  "sourceReconciliationReceiptSha256": "7e46f73ac538f30ef0dc59c8fe165fa2f675869f4fff1e9eddb2f980cd292b8b",
+  "commands": [
+    {
+      "stage": "shared-source-boundary",
+      "argv": [
+        "node",
+        "scripts/verify-shared-boundary.mjs"
+      ],
+      "cwd": "/workspace/remaining-5f-ui-execution-currente108-source-integration"
+    },
+    {
+      "stage": "owned-canonical-witness-fixture-strict",
+      "argv": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.phase5f-project-creation-subject-tests.json"
+      ],
+      "cwd": "/workspace/remaining-5f-ui-execution-currente108-source-integration"
+    },
+    {
+      "stage": "original-native-stream-migration-regressions",
+      "argv": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/files/jobs/native-migration.test.ts",
+        "--maxWorkers=1",
+        "--bail=1"
+      ],
+      "expectedStaticCases": 6,
+      "cwd": "/workspace/remaining-5f-ui-execution-currente108-source-integration"
+    },
+    {
+      "stage": "new14-plus-owned-mature23-mounted",
+      "argv": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.mounted.config.ts",
+        "src/phase5f-project-directory-intent.mount.test.tsx",
+        "src/phase5f-storage-activation-read.mount.test.tsx",
+        "src/project-shell.mount.test.tsx",
+        "src/storage-activation-recovery.mount.test.tsx",
+        "src/current-storage-settings.mount.test.tsx",
+        "--maxWorkers=1",
+        "--bail=1"
+      ],
+      "expectedStaticCases": 37,
+      "cwd": "/workspace/remaining-5f-ui-execution-currente108-source-integration"
+    },
+    {
+      "stage": "subject-and-mature-project-source-regressions",
+      "argv": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/project-creation-subject.test.ts",
+        "server/project-read.test.ts",
+        "src/reference-page.test.ts",
+        "worker/project-persistence-service.test.ts",
+        "worker/project-read.qualification.test.ts",
+        "worker/project-routes.test.ts",
+        "src/lib/project-client.test.ts",
+        "--maxWorkers=1",
+        "--bail=1"
+      ],
+      "expectedStaticCases": 38,
+      "cwd": "/workspace/remaining-5f-ui-execution-currente108-source-integration"
+    },
+    {
+      "stage": "fresh-current-v26-combined-build",
+      "argv": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "/workspace/remaining-5f-ui-execution-currente108-source-integration"
+    }
+  ],
+  "firstFailure": "Each sequential command stops the remaining list on first unexpected compiler/assertion failure. Preserve original immutable raw log and exact-source checkpoint; report all remaining stages unrun and release. No server/browser/service ownership in this finite proposal.",
+  "budgets": "Original configs/default5s/assertions untouched; maxWorkers1/bail1 serialize existing meaningful tests, no fakeclock/typecast/skip/assertion removal.",
+  "browser": "Four actual3c and six actual2f remain original historical sources; neither is a fresh combined browser run or full reachable Worker equality. Execution routes/services change in this union; fresh combined build required, no old121 artifact reuse. No redundant browser/perf matrix proposed.",
+  "completeOwnCi": "Root publishes the final reviewed candidate only after needed gates; own complete Verify/Map remains required and cannot be inferred from this finite plan.",
+  "priorImmutableD0PlanSha256": "4d56d474526b652f85bfaacbdede2fa8a40f5852a2f44eb3d19b0e8868bf54ee",
+  "runtimeRoot": "/tmp/phase5f-ui-execution-currente108-runtime-98d81a1-attempt1",
+  "sourceChangedImports": "419 conservative relative source inputs: exactly twelve accepted4928 Execution modules differ from d0; all direct finite case/config/boundary inputs and shared middleware remain exact. Six finite stages intentionally requalify affected UI/default module composition; no new combined Execution12 claim before own CI."
+}

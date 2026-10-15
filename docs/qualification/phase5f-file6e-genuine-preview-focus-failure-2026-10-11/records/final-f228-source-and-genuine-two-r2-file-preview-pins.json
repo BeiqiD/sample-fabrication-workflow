@@ -1,0 +1,87 @@
+{
+  "status": "PASS",
+  "producerHead": "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+  "qaConsumerHead": "6e531cf0e08069544723958dc0c7500766fd7479",
+  "all2489ProducerAndCopiedInputsExact": true,
+  "fiveOwnedQaInputs": {
+    "docs/qa/phase5f-two-local-r2-migration-fixture-source-2026-10-11.json": "81d05a04d7ee63912c67d3e30086543f01b56acc09d83a9b17d0b7ca41a678d9",
+    "scripts/qa/phase5f/browser-genuine-two-r2-file-migration-preview.mjs": "b9793f596e34989fcfe13cc23cf26a7928697157b3f9b02146cabf4327fa9e53",
+    "scripts/qa/phase5f/check-genuine-two-r2-migration-state.py": "023680c42275a421b7169d38741be870db80ca3d02d4ebc2e282a0aecb408798",
+    "scripts/qa/phase5f/prepare-file-migration-historical-r2-profiles.mjs": "eb606cd3d2952e51346f508df4a1ea172080dd17d6403866fc006e5a3d22330f",
+    "scripts/qa/phase5f/prepare-genuine-two-r2-migration-runtime.mjs": "095033e8c67ec1273c9d7c4f6723d2086fa386b9fba54cc3e9f10f516e4aeb0a"
+  },
+  "actualOriginalArtifacts": 118,
+  "copiedArtifacts": 121,
+  "newBuilds": 0,
+  "disabledSeedRequests": 0,
+  "nativeQualification": {
+    "status": "failed",
+    "reportSha256": "cb9b66bb5e4e13b6d6a6045ab49e173721bd8c877ca883f28cb133a579b94662",
+    "ownedClosure": {
+      "status": "closed",
+      "browserCloseAwaited": true,
+      "originalPreparationOwnerClosure": {
+        "status": "closed",
+        "startedAt": "2026-10-11T11:43:48.160Z",
+        "originalRequestsAwaited": {
+          "count": 12,
+          "rejected": 0
+        },
+        "workerDisposeAwaited": true,
+        "workerPortRefused": true,
+        "originalOutboundWorkAwaited": {
+          "count": 1,
+          "rejected": 0
+        },
+        "jwksCloseAwaited": true,
+        "jwksPortRefused": true,
+        "completedAt": "2026-10-11T11:43:49.314Z"
+      }
+    },
+    "actualCosts": {
+      "setupPOSTs": 6,
+      "readerGETs": 2,
+      "nativeGETs": 7,
+      "nativePreviewPOSTs": 1,
+      "maxSetupPOSTs": 6,
+      "maxPreviewPOSTs": 2,
+      "newMigrationJobsOrExecutorSteps": 0
+    },
+    "unrunCases": [
+      "genuine-file-migration-preview-390-dark"
+    ],
+    "genuinePreparationStatus": "prepared",
+    "originalPreparationOwnerClosure": {
+      "status": "closed",
+      "startedAt": "2026-10-11T11:43:48.160Z",
+      "originalRequestsAwaited": {
+        "count": 12,
+        "rejected": 0
+      },
+      "workerDisposeAwaited": true,
+      "workerPortRefused": true,
+      "originalOutboundWorkAwaited": {
+        "count": 1,
+        "rejected": 0
+      },
+      "jwksCloseAwaited": true,
+      "jwksPortRefused": true,
+      "completedAt": "2026-10-11T11:43:49.314Z"
+    },
+    "sourceFileByteSize": 68,
+    "sourceFileSha256": "5e3d382db4dd83d59aa5742793ad6b7903409e865c83bcbc54835049f043bc15"
+  },
+  "originalChildWaitReapAndGroup": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 1,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "physicalStatus": "passed",
+  "physicalActualSQLiteGroups": 5,
+  "oldRecoveryNamespacesSeparateAndUntouched": true
+}

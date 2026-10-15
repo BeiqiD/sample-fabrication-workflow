@@ -1,0 +1,166 @@
+{
+  "kind": "phase5f-metrology-Cancel-Escape-Close-bounded-local-qualification/1",
+  "date": "2026-10-10 UTC",
+  "qualifiedSourceHead": "d191eac9aab2f5b89037a3630eb68e417e8046e2",
+  "qualifiedSourceTree": "7b858579d85008e7c6ba08b9e48105286ea7679a",
+  "baseline": "f02dd9ab80f98a3317b0842e4ec8a2f8cb899a43",
+  "actualReceiptSha256": "a0b2306f579096fbd8f328451084a6d34d931852bdb6c4d96b8da68190bafea8",
+  "actualGates": {
+    "appStrict": "PASS",
+    "mounted": {
+      "passed": 41,
+      "failed": 0,
+      "pending": 0,
+      "todo": 0,
+      "composition": "Originalpending26 + pickerread12 + actualCancel1 + Escape1 + Close1"
+    },
+    "freshBuild": "PASS",
+    "freshArtifactFiles": 118
+  },
+  "historicalFailures": [
+    {
+      "source": "732e5452bc78d89ff908c2d979b1fdcc7b0a4951",
+      "receiptSha256": "988c8d66106288133f3fb9d97cd9712a3d89fec5e821cd029ad66f49f3bcb746",
+      "actualFailed": 1,
+      "filteredUnrun": 26,
+      "commandExit": 1,
+      "diagnosticWrapperExit": 0,
+      "finding": "Explicit idle Cancel returned to newly mounted Search but focus stayed body"
+    },
+    {
+      "source": "4f2daff7bf59adf70b47e0a06f6d6c8e6e8ec52a",
+      "receiptSha256": "263ece7a736aaa7c85ca71221f97d4f6dd7d6e862d450ea4739745941f9b8352",
+      "actualFailed": 1,
+      "filteredUnrun": 27,
+      "commandExit": 1,
+      "diagnosticWrapperExit": 0,
+      "finding": "Escape removed idle drawer but focus stayed body despite same original Step Add still connected"
+    }
+  ],
+  "prior7baQualification": "Separate actual strict39/freshbuild PASS on7ba preserved; no historical totals aggregated or artifact reused after combined product change",
+  "closure": "All3 directchildren exit0/actuallyreaped; strict/mounted groupsEMPTY; build only kernelZ338688/PPID1 with resourcesExited and FD PermissionError retained. No cleanupsignals/no observedzeroFD/globalhostquiescence claim.",
+  "scope": "Genuine mounted grid DOM focus with typed API stubs, unchanged original5s settings/assertions; only explicit idle Cancel and same surviving Step Add fallback through unchanged common modal returnFocusRef. No global hook/query/read/session/accepted-operation/API/domain/grid/provider/auth changes.",
+  "laterScopes": {
+    "nativeBrowserTwo": "UNRUN source retarget to combined fresh118artifact and2native keyboard controls pending",
+    "enabledAdministrator": "Separate genuine JOSE/JWKS owner; not qualified here",
+    "fullOwnHeadCI": "Parent-managed separate gate before ordinary development merge",
+    "whole5F": "Remains open; no physicaldevice/IME/liveprovider/production qualification"
+  },
+  "rawRecords": {
+    "finite-affected-qualification-receipt.json": {
+      "sha256": "a0b2306f579096fbd8f328451084a6d34d931852bdb6c4d96b8da68190bafea8",
+      "bytes": 6116,
+      "rawPath": "/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/finite-runtime-attempt1/finite-affected-qualification-receipt.json"
+    },
+    "fresh-build-artifact-manifest.json": {
+      "sha256": "146abbd28ee49144c44f82bbf68972e6bc33d585ab9a48509ab2b8ea76b32182",
+      "bytes": 14601,
+      "rawPath": "/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/finite-runtime-attempt1/fresh-build-artifact-manifest.json"
+    },
+    "fresh-combined-metrology-focus-build-command.json": {
+      "sha256": "4f8b3a6f7244c7284985ccec222a3d15ef32a7b3b9d148b83633d2f27ec62db4",
+      "bytes": 1432,
+      "rawPath": "/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/finite-runtime-attempt1/fresh-combined-metrology-focus-build-command.json"
+    },
+    "fresh-combined-metrology-focus-build.log": {
+      "sha256": "f02975189bcbefdf7072b8e2ae73f4ff6ad27bfb7676adfb1c8fb5a0cbfd0911",
+      "bytes": 12724,
+      "rawPath": "/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/finite-runtime-attempt1/fresh-combined-metrology-focus-build.log"
+    },
+    "real-grid-picker-pending41-command.json": {
+      "sha256": "d3ffa5b9c142ab29562ad479653895565af29ce425c960b454b2bca685c79255",
+      "bytes": 1522,
+      "rawPath": "/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/finite-runtime-attempt1/real-grid-picker-pending41-command.json"
+    },
+    "mounted41.vitest.json": {
+      "sha256": "42e0b67db9758b636862baeb5a54ffece899bd2f949c419c1c22960e0a71c8d5",
+      "bytes": 18098,
+      "rawPath": "/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/finite-runtime-attempt1/mounted41.vitest.json"
+    },
+    "real-grid-picker-pending41.log": {
+      "sha256": "0ed4549bffa0161d59553b8934479b87ff0d8e2b28eec7ef000d130ef6864d1b",
+      "bytes": 517,
+      "rawPath": "/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/finite-runtime-attempt1/real-grid-picker-pending41.log"
+    },
+    "current-app-strict-command.json": {
+      "sha256": "ff96626b3c2adb0c8a3bc7cb2266ce6a6ba420f758e36d47241a5cda03de0f73",
+      "bytes": 853,
+      "rawPath": "/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/finite-runtime-attempt1/current-app-strict-command.json"
+    },
+    "current-app-strict.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "rawPath": "/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/finite-runtime-attempt1/current-app-strict.log"
+    },
+    "exclusive-runtime-start.json": {
+      "sha256": "367151834cda0436d47fd86ca7af43074aa9f5ef94da3916f3fca67978f80e06",
+      "bytes": 269,
+      "rawPath": "/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/finite-runtime-attempt1/exclusive-runtime-start.json"
+    },
+    "frozen-fixed-finite-plan.json": {
+      "sha256": "7fcc5d54cbc3131108591c7d5a09c6f115a6927d0c90b0fbebaf2248eb14f75f",
+      "bytes": 2975,
+      "rawPath": "/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/finite-runtime-attempt1/frozen-fixed-finite-plan.json"
+    },
+    "frozen-fixed-source-receipt.json": {
+      "sha256": "aaa8264a0299dfd69e72df245fa64a4b386717067c96ba278f3714858bce6a68",
+      "bytes": 4278,
+      "rawPath": "/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/finite-runtime-attempt1/frozen-fixed-source-receipt.json"
+    },
+    "cancel-first-failure-receipt.json": {
+      "sha256": "988c8d66106288133f3fb9d97cd9712a3d89fec5e821cd029ad66f49f3bcb746",
+      "bytes": 3430,
+      "rawPath": "/tmp/phase5f-metrology-cancel-focus-f02-source-review-attempt1/runtime/one-case-characterization-receipt.json"
+    },
+    "cancel-first-failure.vitest.json": {
+      "sha256": "a1f435b9b64c8cbb7fb43d7f4264a8560e8cc60d472407e3ea5a1a9fa2312137",
+      "bytes": 11654,
+      "rawPath": "/tmp/phase5f-metrology-cancel-focus-f02-source-review-attempt1/runtime/native-mounted-focus.vitest.json"
+    },
+    "cancel-first-failure.log": {
+      "sha256": "e74f2047d3ea4cbcc3d3b325ce5560945618ba3b6dc8d79e6a8837da930f0216",
+      "bytes": 18713,
+      "rawPath": "/tmp/phase5f-metrology-cancel-focus-f02-source-review-attempt1/runtime/one-real-grid-idle-cancel-focus.log"
+    },
+    "escape-first-failure-receipt.json": {
+      "sha256": "263ece7a736aaa7c85ca71221f97d4f6dd7d6e862d450ea4739745941f9b8352",
+      "bytes": 3582,
+      "rawPath": "/tmp/phase5f-metrology-escape-focus7ba-characterization-review-attempt1/runtime/one-case-characterization-receipt.json"
+    },
+    "escape-first-failure.vitest.json": {
+      "sha256": "8848bb3594b458851e8ff47d73d0f52727f5a27e3b84af94048a45fc9d1a6ced",
+      "bytes": 12133,
+      "rawPath": "/tmp/phase5f-metrology-escape-focus7ba-characterization-review-attempt1/runtime/native-mounted-focus.vitest.json"
+    },
+    "escape-first-failure.log": {
+      "sha256": "da8f8130be7bffa18c80aaaa9ddb342c3ded52814b3e9a59a0976313cf0d9fa0",
+      "bytes": 16091,
+      "rawPath": "/tmp/phase5f-metrology-escape-focus7ba-characterization-review-attempt1/runtime/one-real-grid-idle-escape-same-Step-focus.log"
+    },
+    "combined-root-source-peer.json": {
+      "sha256": "7902eba6240d3609879d0e8f37fe99cec94a7cef6d03fd901f47a319bbdb9f2b",
+      "bytes": 368,
+      "rawPath": "/tmp/phase5f-metrology-combined-d191-root-source-peer.json"
+    },
+    "prior-cancel-independent-source-peer.json": {
+      "sha256": "e37f8a1d30b4630bc765db8657f38366b5e5eb9ae2dff14fe05e2f2ecb00525a",
+      "bytes": 3501,
+      "rawPath": "/tmp/phase5f-metrology-cancel7ba-independent-product-source-peer.json"
+    },
+    "prior-7ba-actual-qualification-receipt.json": {
+      "sha256": "c92652bddc56192b3240e3bba7d1d569e0369dd71fa4d67b04c09b5ff3f1a93c",
+      "bytes": 6121,
+      "rawPath": "/tmp/phase5f-metrology-cancel-focus-f02-source-review-attempt1/fixed-finite-runtime-attempt2/finite-affected-qualification-receipt.json"
+    },
+    "combined-two-path-source.patch": {
+      "sha256": "1d12fc5450287b25ed5e7fd92bdf508b77d24e9000e47d40cc326d1069ba052e",
+      "bytes": 14727,
+      "rawPath": "/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/combined-focus-two-path.patch"
+    },
+    "escape-root-source-peer.json": {
+      "sha256": "30c807f58371d7dba58451b1a5640af5116e7788367758493974ba8d0e4925e6",
+      "bytes": 806,
+      "rawPath": "/tmp/phase5f-metrology-escape-characterization-root-source-peer.json"
+    }
+  }
+}

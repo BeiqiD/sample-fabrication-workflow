@@ -1,0 +1,47 @@
+{
+  "stage": "original-one-current-file-start202-natural-focus",
+  "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+  "argv": [
+    "node",
+    "/tmp/phase5f-current2d07-three-mobile-five-qa-private-attempt1/source/scripts/qa/phase5f/browser-current-package-file-focus-file-start202-natural-focus-keyboard-mobile.mjs",
+    "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/copy",
+    "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/fixture",
+    "2d07b57c4e79403099261528ae8988c0072d28c6",
+    "--exclusive-go-one-current-file-start202-natural-focus"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1",
+    "SQLITE_TMPDIR": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1",
+    "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+    "CHROMIUM_PATH": "/usr/bin/chromium",
+    "PHASE5F_FILE_MIGRATION_CHROMIUM_TEMP": "/workspace/.sfstm1",
+    "PHASE5F_FILE_MIGRATION_RUNTIME_ROOT": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime"
+  },
+  "cases": [
+    "current-file-start202-natural-focus-390-dark"
+  ],
+  "toolInvocation": {
+    "tty": true,
+    "originalStdinControl": "Only explicit stop newline originalretainedTTY;120s supervision/noSIGTERM graceful claim"
+  },
+  "control": "One original Preview200 then Startaccept202, record natural same accepted job Pause focus before any helper focus/control. Original Start removed, sameconnected enabled target wait within remaining original20s. No Pause/Resume/Cancel/executor/acceptedlineage replay.",
+  "startedAt": "2026-10-12T01:59:25.604174+00:00",
+  "status": "PASS",
+  "log": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/original-one-current-file-start202-natural-focus.log",
+  "pid": 1679705,
+  "processGroup": 1679705,
+  "originalStartTicks": "18362637",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-12T01:59:39.092750+00:00",
+  "logSha256": "4412a8395463b0387ece4f6636f943e51f7df80e908dbf31b865e975316d1c0a"
+}

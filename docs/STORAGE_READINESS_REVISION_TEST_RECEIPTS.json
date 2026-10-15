@@ -1,0 +1,87 @@
+{
+  "preparedAt": "2026-10-10T18:09:56.210943+00:00",
+  "baseline": "4bf8e71b5ed3e0d89cf4de834526af24533060db",
+  "scope": "test-only readiness synchronization; no production mutation or deadline change",
+  "test": {
+    "path": "/workspace/sample-fabrication-workflow/src/storage-candidate-readiness.mount.test.tsx",
+    "sha256": "dcc462d21c4c03f0517677a1a375d264d4b7dc4f48ef35bda843b413ec98ea8c",
+    "status": "qualified source"
+  },
+  "completePreviousPush": {
+    "path": "/tmp/portable-foundation-4bf8e71-push-verify-attempt1.log",
+    "sha256": "a714e7dc10539189eb7fff8fc1ddd5518a76a158a3a350f23bd1e4c6757763bd",
+    "status": "PASS",
+    "runId": 38072220327,
+    "nativePassed": 355,
+    "sourcePassed": 3502,
+    "mountedPassed": 980,
+    "leavesPassed": 15
+  },
+  "failedPreviousPullRequest": {
+    "path": "/tmp/portable-foundation-4bf8e71-pr-verify-failed-attempt1.log",
+    "sha256": "4b43e728bfff6378e723a6645f2482c3e916b8668c0a5d8f43444531dfb99f69",
+    "status": "FAIL retained",
+    "runId": 38072223733,
+    "nativePassed": 355,
+    "sourcePassed": 3502,
+    "mountedPassed": 979,
+    "mountedFailed": 1,
+    "laterLeaves": "skipped after mounted failure"
+  },
+  "qualification": [
+    {
+      "path": "/tmp/portable-4bf-readiness-unchanged-focus-attempt1.log",
+      "sha256": "12168880f498daafaed544ee9cccf298a8792aaa8505c6a6f446ac48465d945e",
+      "status": "PASS",
+      "passed": 15,
+      "scope": "unchanged focus diagnostic"
+    },
+    {
+      "path": "/tmp/portable-4bf-readiness-controlled-focus-attempt1.log",
+      "sha256": "b3f65f451862466bbac70be21ae150579f907f309fff932e5c7698d4885b0824",
+      "status": "FAIL retained",
+      "scope": "new fixture incorrectly assumed no automatic revision3 observation"
+    },
+    {
+      "path": "/tmp/portable-4bf-readiness-controlled-focus-attempt2.log",
+      "sha256": "8e82d0514209d610df3ad52ddff81a76ec67f652451ace749d9ced9828fbadb4",
+      "status": "FAIL retained",
+      "scope": "new fixture incorrectly shared one Response between pending consumers"
+    },
+    {
+      "path": "/tmp/portable-4bf-readiness-controlled-focus-attempt3.log",
+      "sha256": "1b25ed59ade71de6d98b030cb479d28ba9b20969dad17f9509727c587d0392d2",
+      "status": "PASS",
+      "passed": 15
+    },
+    {
+      "path": "/tmp/portable-4bf-readiness-storage-regressions-attempt1.log",
+      "sha256": "01712a126e306e75bdf58f6cd17cf95c8fb336ba9204bb503e96a7cc0e07eb44",
+      "status": "PASS",
+      "files": 6,
+      "passed": 89
+    },
+    {
+      "path": "/tmp/portable-4bf-readiness-client-types-attempt1.log",
+      "sha256": "76162e465989f3f070a9de8db711fbf358e53b74d09ce1bbdb57c727e4c4a16d",
+      "status": "PASS",
+      "exitCode": 0
+    }
+  ],
+  "negativeControl": {
+    "exitCode": 1,
+    "expectedFailure": true,
+    "failureMatchedHistoryInvalidation": true,
+    "originalSourceSHA256": "0a62fcf6ffd7385d1b81be43f1d4657a05786d5a8d19fb0ddcf8bfd16e24f0d9",
+    "restoredExactSource": true,
+    "log": "/tmp/portable-4bf-readiness-history-invalidation-negative-control-attempt2.log",
+    "logSHA256": "3f5e85c72906c1043671dd3a952189979e9d3580e55b0370afc6da4ee9773968"
+  },
+  "independentReview": {
+    "agent": "portable_identity_schema",
+    "scope": "source only",
+    "result": "clear; history invalidation and exact current revision assertions retained; no runtime claim"
+  },
+  "newHeadCompleteChecks": "pending; do not merge until own complete PR and push checks qualify",
+  "allRuntimeMilestonesUnfinished": true
+}

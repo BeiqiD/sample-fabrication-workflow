@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/tmp/phase5f-package-file-current2d07-three-native-finite-source-preparation-attempt1/file-start202/carry-current2d07-original-native.py", line 133, in <module>
+    assert len(report['readerRequests'])==2 and all(item['method']=='GET' and item['status']==200 and item['body']=='completed' and re.fullmatch(r'[a-f0-9]{64}',item['sha256']) for item in report['readerRequests'])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

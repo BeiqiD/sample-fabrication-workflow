@@ -1,0 +1,60 @@
+{
+  "stage": "fresh-two-version-sentinel",
+  "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+  "argv": [
+    "node",
+    "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source/scripts/qa/phase5f/generate-process-fixture.mjs",
+    "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/copy",
+    "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/fixture"
+  ],
+  "env": {
+    "TMPDIR": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1",
+    "SQLITE_TMPDIR": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1"
+  },
+  "startedAt": "2026-10-11T23:31:06.343114+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/fresh-two-version-sentinel.log",
+  "pid": 1612465,
+  "processGroup": 1612465,
+  "originalStartTicks": "17472711",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1612476,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1612465,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1612476,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1612465,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1612476,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1612465,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T23:31:08.404906+00:00",
+  "logSha256": "03a6970f9147d3aeab2f520d424387494ac39fb21a8286eac9d3cd4d848bf87a"
+}

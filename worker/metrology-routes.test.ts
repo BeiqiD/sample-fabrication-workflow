@@ -1,55 +1,12 @@
-import { readFileSync } from "node:fs";
-import { DatabaseSync } from "node:sqlite";
+import type { DatabaseSync } from "node:sqlite";
+import { referenceTestDatabase, seedReferenceGraph, SqliteD1Database } from "./reference-test-support";
 import { describe, expect, it } from "vitest";
 import worker from "./index";
 import type { Env } from "./types";
 
-const migrationNames = [
-  "alpha_state_chain",
-  "run_initial_state",
-  "release_unreferenced_templates",
-  "sync_sample_run_status",
-  "comment_submissions",
-  "metrology_templates",
-  "directory_performance",
-  "sync_metrology_sample_status",
-];
-
-class SqliteD1Statement {
-  constructor(
-    private readonly database: DatabaseSync,
-    private readonly sql: string,
-    private readonly bindings: unknown[] = [],
-  ) {}
-
-  bind(...values: unknown[]) {
-    return new SqliteD1Statement(this.database, this.sql, values);
-  }
-
-  async all<T>() {
-    return {
-      results: this.database.prepare(this.sql).all(...this.bindings) as T[],
-      success: true,
-      meta: { changes: 0 },
-    };
-  }
-
-  async first<T>() {
-    return (this.database.prepare(this.sql).get(...this.bindings) as T | undefined) ?? null;
-  }
-
-  async run() {
-    const result = this.database.prepare(this.sql).run(...this.bindings);
-    return { results: [], success: true, meta: { changes: Number(result.changes) } };
-  }
-}
-
 function testDatabase() {
-  const database = new DatabaseSync(":memory:");
-  migrationNames.forEach((name, index) => {
-    const prefix = String(index + 1).padStart(4, "0");
-    database.exec(readFileSync(new URL(`../migrations/${prefix}_${name}.sql`, import.meta.url), "utf8"));
-  });
+  const database = referenceTestDatabase();
+  seedReferenceGraph(database);
   database.exec(`
     INSERT INTO samples
       (id, code, title, status, created_at, updated_at)
@@ -63,10 +20,7 @@ function testDatabase() {
 function testEnv(database: DatabaseSync): Env {
   return {
     AUTH_MODE: "disabled",
-    DB: {
-      prepare: (sql: string) => new SqliteD1Statement(database, sql),
-      batch: (statements: SqliteD1Statement[]) => Promise.all(statements.map((statement) => statement.run())),
-    } as unknown as D1Database,
+    DB: new SqliteD1Database(database) as unknown as D1Database,
     ASSETS: {} as R2Bucket,
   };
 }
@@ -91,7 +45,7 @@ describe("metrology lifecycle routes", () => {
     const env = testEnv(database);
 
     const startResponse = await request(env, "/api/samples/sample-1/metrology-runs", "POST", {
-      templateVersionId: "builtin-metrology-template-afm",
+      templateVersionId: "reference-metrology-template",
     });
     const { id: runId } = await startResponse.json() as { id: string };
     const started = database.prepare(

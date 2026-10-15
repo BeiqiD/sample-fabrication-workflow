@@ -1,0 +1,18 @@
+{
+  "stage": "fixed6d4-original16-plus-two-regressions",
+  "pid": 793717,
+  "argv": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "/workspace/comment-create-order-current194-source-attempt1/node_modules/vitest/vitest.mjs",
+    "run",
+    "src/lib/comment-submission-client.test.ts",
+    "--maxWorkers",
+    "1",
+    "--no-file-parallelism",
+    "--reporter=json",
+    "--outputFile=/tmp/comment-create-order-baseline-and-fixed-actual-attempt1/fixed-complete-result.json"
+  ],
+  "root": "/workspace/comment-create-order-current194-source-attempt1",
+  "expectedSelected": 18,
+  "defaultsUnchanged": true
+}

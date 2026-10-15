@@ -1,0 +1,41 @@
+{
+  "stage": "physical-after",
+  "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+  "argv": [
+    "python3",
+    "-B",
+    "/tmp/phase5f-package-file-current2d07-native-five-qa-private-attempt1/source/scripts/qa/phase5f/check-current-package-file-focus-start202-natural-focus-physical-state.py",
+    "--domain",
+    "package",
+    "--source-copy",
+    "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/copy",
+    "--fixture-directory",
+    "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/fixture",
+    "--runtime-directory",
+    "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime"
+  ],
+  "env": {
+    "TMPDIR": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1",
+    "SQLITE_TMPDIR": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1"
+  },
+  "control": "Mandatory after original native child/directwait/reap and context/route/body/controller/browser/Worker/JWKS settlement. New physical output alias; preserve any accepted job/item/hold/permit partial history. Failed native case stays failed.",
+  "startedAt": "2026-10-11T23:33:11.630557+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/physical-after.log",
+  "pid": 1613663,
+  "processGroup": 1613663,
+  "originalStartTicks": "17485240",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T23:33:12.455971+00:00",
+  "logSha256": "ec304c8b0d4a00f014c3f37686be8211f3eecf3f44f2344c41f233ed9e85deed"
+}

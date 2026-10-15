@@ -1,0 +1,81 @@
+{
+  "kind": "portable-v26-bb3-source-ci-actual-failure/1",
+  "status": "RETAINED_ACTUAL_FAILURE; no correction or local rerun here",
+  "evidenceSavedOnCheckpoint": "557ed4fef9d62b0666ab23577362b26f9a9e3e03",
+  "actualCISource": "bb3b1736b38a66b2edc37617d208f37dd61b4b28",
+  "pushVerifyRunId": 38086577043,
+  "rawLog": "/tmp/portable-v26-bb3b173-push-verify-failed-attempt1.log",
+  "rawLogSha256": "6c616434e4b5fef700a44ea0c625c55fd342ab5bb4275b224d9d04bfb3136a82",
+  "nativeVerificationScripts": "PASS",
+  "sourceFileResults": {
+    "total": 409,
+    "passed": 407,
+    "failed": 2
+  },
+  "sourceCaseResults": {
+    "total": 3843,
+    "passed": 3841,
+    "failed": 2
+  },
+  "downstreamSkippedGateCount": 13,
+  "originalFailureExcerpts": [
+    {
+      "line": 2648,
+      "path": "worker/export-v8-protocol.test.ts:84:31",
+      "originalLines": [
+        "verify\tRun shared verification checks\t2026-10-10T21:27:01.6914876Z ##[error]AssertionError: expected 41 to be 40 // Object.is equality",
+        "verify\tRun shared verification checks\t",
+        "verify\tRun shared verification checks\t- Expected",
+        "verify\tRun shared verification checks\t+ Received",
+        "verify\tRun shared verification checks\t",
+        "verify\tRun shared verification checks\t- 40",
+        "verify\tRun shared verification checks\t+ 41",
+        "verify\tRun shared verification checks\t",
+        "verify\tRun shared verification checks\t \u276f worker/export-v8-protocol.test.ts:84:31",
+        "verify\tRun shared verification checks\t",
+        "verify\tRun shared verification checks\t",
+        "verify\tRun shared verification checks\t2026-10-10T21:27:01.6921291Z "
+      ]
+    },
+    {
+      "line": 2660,
+      "path": "worker/reference-routes.test.ts:165:33",
+      "originalLines": [
+        "verify\tRun shared verification checks\t2026-10-10T21:27:01.6922694Z ##[error]AssertionError: expected 3 to be 2 // Object.is equality",
+        "verify\tRun shared verification checks\t",
+        "verify\tRun shared verification checks\t- Expected",
+        "verify\tRun shared verification checks\t+ Received",
+        "verify\tRun shared verification checks\t",
+        "verify\tRun shared verification checks\t- 2",
+        "verify\tRun shared verification checks\t+ 3",
+        "verify\tRun shared verification checks\t",
+        "verify\tRun shared verification checks\t \u276f worker/reference-routes.test.ts:165:33",
+        "verify\tRun shared verification checks\t",
+        "verify\tRun shared verification checks\t",
+        "verify\tRun shared verification checks\t2026-10-10T21:27:03.4454779Z ## Verification checks"
+      ]
+    }
+  ],
+  "exactFailures": [
+    {
+      "path": "worker/export-v8-protocol.test.ts",
+      "line": 84,
+      "expectedQueryCount": 40,
+      "actualQueryCount": 41
+    },
+    {
+      "path": "worker/reference-routes.test.ts",
+      "line": 165,
+      "expectedDirectQueryCount": 2,
+      "actualDirectQueryCount": 3
+    }
+  ],
+  "sourceObservation": "Current route executes a generation probe, a newly added local-profile schema-only presence probe, and the preexisting identity schema-only presence probe before the unchanged single canonical snapshot batch. The old counts contract still allows two direct metadata probes.",
+  "productOrTestSourceChangedHere": false,
+  "noCompilerTestBuildOrDatabaseExecution": true,
+  "exclusiveRuntimeOwner": "Execution30",
+  "current557RuntimeStillUnqualified": true,
+  "historicalProofsUnchanged": true,
+  "allRawAndFrozenPinsUnchanged": true,
+  "provisionalMetadataOnly": true
+}

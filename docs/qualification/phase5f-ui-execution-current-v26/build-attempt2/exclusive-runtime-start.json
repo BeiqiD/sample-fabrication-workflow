@@ -1,0 +1,11 @@
+{
+  "status": "STARTED",
+  "head": "98d81a170394a140fb63e970b31d1985bd56f68d",
+  "tree": "62d67e1c9fb3d59d74c49e0eceebe4ef2975ffe4",
+  "startedAt": "2026-10-10T22:43:50.457292+00:00",
+  "runnerPid": 301306,
+  "planSha256": "c626b3001c9d2b2a238240884eb3c1c26be0296563f80f934ab3bbc94eba7444",
+  "sourceReceiptSha256": "7e46f73ac538f30ef0dc59c8fe165fa2f675869f4fff1e9eddb2f980cd292b8b",
+  "serviceBrowserProcessesStarted": 0,
+  "remoteMutation": false
+}

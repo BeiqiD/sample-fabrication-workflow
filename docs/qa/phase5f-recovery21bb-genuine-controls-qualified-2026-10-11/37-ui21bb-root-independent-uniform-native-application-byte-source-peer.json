@@ -1,0 +1,36 @@
+{
+  "status": "SOURCE_CLEAR_UNIFORM_ORIGINAL_NATIVE_APPLICATION_BYTE_PROOF_ACTUAL_UNRUN",
+  "createdAt": "2026-10-11T09:43:30.965238+00:00",
+  "sourceRoot": "/workspace/phase5f-recovery-job-controls-native-application-byte-proof-source-attempt6",
+  "head": "21bb149da250ef249d2bef7ddb365feb63532503",
+  "tree": "c7bafcec3e2d9251dc4c6b675dab872db09f5645",
+  "handoffSha256": "f024eb09b4cf4a7ac1533d684b2b93b4c09f44a6798951cefe8133b5ab88226f",
+  "helperSha256": "4f2873425d2bc40b3825f061a8e2d92da9ee193f694215fcd3bf0c9bcdd2e834",
+  "whole2489ModeBlobWorkingExact": true,
+  "all2488NonHelperBasisProtected": true,
+  "priorWholeHelperSourcePeer": {
+    "path": "/workspace/phase5f83ca-independent-original-initial-reader-source-peer.json",
+    "sha256": "c4e2a2de3401c8075ab168ca9194ecc7e4d6163d75973268c69e20003257e296"
+  },
+  "wholeChangedHelperDiffAndAllNewFunctionsRead": true,
+  "primaryCriterion": "Uniform original Response/getReader/read Promise EOF bytes for exact two initializer plus four mutation fetches; no CDP conditional fallback",
+  "exactPrivateOriginalResponseReaderRequestOrdinalPathMethodAndPostBodyHashBindings": true,
+  "observerCap": 6,
+  "originalReadCancelReleaseReturnReceiversArgumentsPromisesPreserved": true,
+  "registeredOriginalProofBeforePageEvaluationMicrotask": true,
+  "boundedPrivateCopiesOnlyAlreadyYieldedNoCloneReadOrExtraHttp": true,
+  "completeStreamEOFNoRejectCancelOrTruncationRequired": true,
+  "originalPostBackendStatusAndWholeBodyHashRequired": true,
+  "availableCdpBytesMustBoundAndAgreeWithPrimary": true,
+  "unchangedOtherNativeBodiesStrictCdp": true,
+  "originalRouteMax10MutationCasStatesDtoAuditGeometryFocusAndClosuresRetained": true,
+  "priorFailure15ddPreservedAndNotReclassified": true,
+  "runtimeEffects": 0,
+  "findings": [],
+  "limits": [
+    "Passive Promise observers can affect scheduling; no cause or noninterference claim.",
+    "CDP NoData remains separately reported even if complete original application bytes qualify.",
+    "Constructor failure and kernel unknown FD custody require separate actual evidence, not inferred from source.",
+    "Current two browser cases and new finite13 remain unrun."
+  ]
+}

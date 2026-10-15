@@ -1,0 +1,31 @@
+{
+  "stage": "final-source-artifact-input-pins",
+  "control": "All1792 frozen mode/blob/workingbytes clean; exact newfreshbuild source and copy generatedartifact inventories; genuine originalPNG/inputbytes/typedcatalog/allunrelated tablehashes/exactaccepted five-table history plus originallease rows and exact newreleasedpermits. Originaldirectwait/reap/scopedgroups/ports only; kernelZ/FDPermission facts retained without inventedzeroFD/globalquiescence.",
+  "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+  "argv": [
+    "python3",
+    "-B",
+    "/tmp/phase5f-storage-original-two-after-wrap-source-review-attempt11/verify-qualified-producer-and-write-two-witness.py",
+    "--qualified-f88-producer-for-original-two",
+    "final-pins"
+  ],
+  "startedAt": "2026-10-11T03:08:21.046921+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/final-source-artifact-input-pins.log",
+  "pid": 644623,
+  "processGroup": 644623,
+  "originalStartTicks": "10136181",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T03:08:21.269057+00:00",
+  "logSha256": "81f19a53672ea8819411180d89192969a087c236124be431c0fc5552aaae492a"
+}

@@ -1,0 +1,78 @@
+{
+  "kind": "same-app-mounted-local-job-genuine-eight-actual/1",
+  "status": "RESERVED_BEFORE_EFFECTS",
+  "sourceHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+  "sourceTree": "2a5c10a8190f6807f59d8a2282411b82f46c78e5",
+  "sourceFreezeSha256": "063a64ed0b236e1433cc6963c8e4690f99af16db0e21e23737d9477f2be73fa8",
+  "planSha256": "901d349f20f479a3d48463ed3ee36b324e75ddd4806c2a445c1f4ab803bc11b9",
+  "runnerSha256": "21e260db7744e49004e78d6b9ba432cd136ed49f6249c20be75d1e57a69c3963",
+  "sourcePinsVerifiedBefore": true,
+  "strictCarry": {
+    "dependencyCanonicalTarget": "/workspace/sample-fabrication-workflow/node_modules",
+    "nodeExecutableSha256": "bc17c508ffeed0ec622934f9b7fa72f8e78da65350e63c3eceb56fa688aa5e12",
+    "typescriptEntrypointSha256": "2219f428a7e55aaf1f7ad85b9b0f0cf5078aeb76ccc9a7c6036c92d48f492ffd",
+    "actualOwnedFixtureCompilerReceiptPath": "/workspace/same-app-local-job-mounted-typed-source-handoffs/affected-node-worker-types-attempt1/receipt.json",
+    "actualOwnedFixtureCompilerReceiptSha256": "04efb5ce2f9e1189a0fa9df66eae318fada40660c4c5f0056cce353d46cdce1e",
+    "actualCompilerSourceHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+    "causalInputClosurePath": "/workspace/same-app-local-job-mounted-typed-source-handoffs/complete-before-affected-node-worker-types-source-freeze.json",
+    "causalInputClosureSha256": "063a64ed0b236e1433cc6963c8e4690f99af16db0e21e23737d9477f2be73fa8",
+    "scope": "Both actual current affected Node owned fixture and Worker strict PASS on b131; all2585 inputs/modes verified beforeafter. No repeated compiler or Native case carry.",
+    "actualCompilerSourceTree": "2a5c10a8190f6807f59d8a2282411b82f46c78e5"
+  },
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "local-job-runtime-qualification.vitest.config.mts",
+    "--reporter=verbose",
+    "--reporter=json",
+    "--outputFile.json=/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/actual-native.json"
+  ],
+  "expectedTotal": 8,
+  "expectedSelected": 8,
+  "expectedUnselected": 0,
+  "caseDefaultMs": 5000,
+  "hookDefaultMs": 10000,
+  "observedFilesystemRootOwnerUid": 65534,
+  "runtimeResults": [],
+  "authorityScope": "Same original configured application mounts ten current administrator Job HTTP endpoints and exact trusted scheduler slots on its one Native/core/opening/physical writer. Eight wholly fresh controls; no elapsed120s cadence or terminal-negative fault qualification. Default Job opt-in and persisted executor remain disabled unless genuinely configured. Original private Request/current administrator/Job incarnation/recovery/profile/body/provider and cached first-close ACK boundaries remain required. No Group/V28, other domain, CLI/Docker or Native case carry.",
+  "privateTemporaryDirectoryBefore": {
+    "path": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/private-tmp",
+    "dev": 27,
+    "ino": 880064,
+    "uid": 1000,
+    "gid": 1000,
+    "mode": "0o700",
+    "freeBytesBeforeChild": 1330376704,
+    "childEnvOverrides": {
+      "TMPDIR": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/private-tmp",
+      "SQLITE_TMPDIR": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/private-tmp"
+    }
+  },
+  "privateFixtureDirectoryBefore": {
+    "path": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/private-fixtures",
+    "dev": 27,
+    "ino": 880067,
+    "uid": 1000,
+    "gid": 1000,
+    "mode": "0o700",
+    "childEnvOverride": {
+      "NODE_PROTOTYPE_FIXTURE_PARENT": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/private-fixtures"
+    }
+  },
+  "explicitInheritedCatalogKdfBeforeAllMs": 20000,
+  "actualHistoricalCompilerReceipts": [
+    {
+      "path": "/workspace/same-app-local-job-mounted-typed-source-handoffs/affected-node-worker-types-attempt1/receipt.json",
+      "sha256": "04efb5ce2f9e1189a0fa9df66eae318fada40660c4c5f0056cce353d46cdce1e",
+      "actualSourceHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+      "actualSourceTree": "2a5c10a8190f6807f59d8a2282411b82f46c78e5",
+      "actualScopes": [
+        "node-job-runtime-owned-tests",
+        "worker"
+      ],
+      "scope": "Both actual current affected Node owned fixture and Worker strict PASS on b131; all2585 inputs/modes verified beforeafter. No repeated compiler or Native case carry."
+    }
+  ]
+}

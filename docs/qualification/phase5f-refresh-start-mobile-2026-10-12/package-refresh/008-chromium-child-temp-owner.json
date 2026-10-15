@@ -1,0 +1,14 @@
+{
+  "path": "/workspace/.pkrfm1",
+  "mode": "0700",
+  "uid": 1000,
+  "dev": "27",
+  "ino": "1840662",
+  "freshCreated": true,
+  "sourceHead": "2d07b57c4e79403099261528ae8988c0072d28c6",
+  "sourceCopyRoot": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy",
+  "fixtureDirectory": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture",
+  "qaHelperSha256": "be04e25c8e82e39f9f41d1737cd79eb86a2fdba8e39afccfc5e36cf899db3eb0",
+  "freeBytes": "613855232",
+  "scope": "Original Chromiumchildonly temporary leaf; parent TMPDIR/COPY/FIXTURE ownership unchanged."
+}

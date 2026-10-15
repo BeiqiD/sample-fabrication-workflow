@@ -1,0 +1,20 @@
+{
+  "baseFoundation": "cd5aaeedde114efaabd7984ff1f13829bf6c3b03",
+  "command": "npm run typecheck:server",
+  "exitCode": 0,
+  "logSha256": "91f3b25c6bd367187e78c2868412891e1928806cc4192a004a6185a86acfb530",
+  "sourceManifest": {
+    "server/auth/local-auth-http.test.ts": "fe666a937538ca3cb4aec0f24f5ac9c7d9502cf5103cc76d65d181ea9b0b92a8",
+    "server/auth/local-auth-http.ts": "12e7a55fa56ac45671f8df33354d75212e430cb34fc918529b6454116a3c4993",
+    "server/auth/local-auth-transport.ts": "01879c200be84c623d31c325e86b31e6314be6d3bcaa858d9ae894f706a75d76",
+    "server/auth/storage-keyring-file.test.ts": "20a394888cb97cf8144f174ca5ab74fd8374b7ef384942765daa8c8a54cc5d1b",
+    "server/auth/storage-keyring-file.ts": "c90d78bded99c7c88a4b86bb2578d408b2eddb6e4d82c39432f96314c716fcb9",
+    "server/sample-metadata.test.ts": "e900eccf9791b42c89b9f5c4b837590095a5587713b9ef8a857015dcaba95f85",
+    "worker/sample-description-update.test.ts": "c3dbc6e1019ead8a802ed3810d22856b353ed2dc2477fad1f9d21caa2a65ce26",
+    "worker/samples/metadata-service.ts": "118178839b165a05421f2a0be51724735090914c8bfd3c767afc62e0253029ab",
+    "worker/samples/metadata-surface.ts": "3ef40330f047b53891839f9fc9739bd115555e6aa714069f1f3cf01e3ea85da9",
+    "worker/samples/metadata-worker.ts": "82022e82650989c89c5bb35cb9686192f14e8153f4e2e7834a9e2be3dc7bf905",
+    "worker/samples/routes.ts": "31dbf55bb34d9710705748f391e30b86575cb02c204f6317aa49bfb425b9011c"
+  },
+  "scope": "Actual combined types; separate owner runtime receipts, no complete application or canonical CI qualification."
+}

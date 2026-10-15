@@ -1,0 +1,282 @@
+{
+  "version": 1,
+  "status": "SOURCE_ONLY_UNRUN_WAIT_EXCLUSIVE_GO",
+  "sourceRoot": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+  "sourceHead": "f88fffea3ba0654b52ca90ee87efdafdb70cd48c",
+  "sourceTree": "df05a78afcdee28f7136a349001464c399531e9c",
+  "trackedFileCount": 1792,
+  "sourceReviewRoot": "/tmp/phase5f-storage-original-two-after-wrap-source-review-attempt11",
+  "runtimeRoot": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11",
+  "roots": {
+    "copy": "/tmp/phase5f-storage-candidate-section-wrap-two-write-copy-attempt11",
+    "fixture": "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11",
+    "runtime": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11"
+  },
+  "baseDevelopment": "591bee968e2fc06a3666f8ed4774fd698bbf3c4b",
+  "productCheckpoint": "6622b43116839b1b7d20b4030556dcf536552729",
+  "commands": [
+    {
+      "stage": "qualified-f88-producer-preflight",
+      "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+      "argv": [
+        "python3",
+        "-B",
+        "/tmp/phase5f-storage-original-two-after-wrap-source-review-attempt11/verify-qualified-producer-and-write-two-witness.py",
+        "--qualified-f88-producer-for-original-two",
+        "producer"
+      ],
+      "control": "Read only exact actual eight-stage CLOSED f88 producer receipt/raw28/source1792/dist118/originalbuild command and directreap. Newcopy/fixture must not exist. No compiler/build/DB/server/browser starts."
+    },
+    {
+      "stage": "isolated-copy",
+      "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+      "argv": [
+        "python3",
+        "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10/scripts/qa/phase5f/prepare-isolated-copy.py",
+        "--source-root",
+        "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+        "--destination",
+        "/tmp/phase5f-storage-candidate-section-wrap-two-write-copy-attempt11",
+        "--dependency-root",
+        "/workspace/sample-fabrication-workflow/node_modules"
+      ]
+    },
+    {
+      "stage": "fresh-two-version-sentinel",
+      "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+      "argv": [
+        "node",
+        "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10/scripts/qa/phase5f/generate-process-fixture.mjs",
+        "/tmp/phase5f-storage-candidate-section-wrap-two-write-copy-attempt11",
+        "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11"
+      ]
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "cwd": "/tmp/phase5f-storage-candidate-section-wrap-two-write-copy-attempt11",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "migrations",
+        "apply",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/tmp/phase5f-storage-candidate-section-wrap-two-write-copy-attempt11/.wrangler/state"
+      ],
+      "env": {
+        "WRANGLER_SEND_METRICS": "false",
+        "WRANGLER_LOG_PATH": "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11/wrangler-logs"
+      }
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "cwd": "/tmp/phase5f-storage-candidate-section-wrap-two-write-copy-attempt11",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "execute",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/tmp/phase5f-storage-candidate-section-wrap-two-write-copy-attempt11/.wrangler/state",
+        "--file",
+        "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11/process-fixture.sql"
+      ],
+      "env": {
+        "WRANGLER_SEND_METRICS": "false",
+        "WRANGLER_LOG_PATH": "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11/wrangler-logs"
+      }
+    },
+    {
+      "stage": "physical-before",
+      "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+      "argv": [
+        "python3",
+        "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10/scripts/qa/phase5f/check-isolated-state.py",
+        "--source-copy",
+        "/tmp/phase5f-storage-candidate-section-wrap-two-write-copy-attempt11",
+        "--fixture-directory",
+        "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11",
+        "--stage",
+        "before-api"
+      ]
+    },
+    {
+      "stage": "owned-built-worker",
+      "cwd": "/tmp/phase5f-storage-candidate-section-wrap-two-write-copy-attempt11",
+      "argv": [
+        "node",
+        "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10/scripts/qa/phase5f/start-built-server.mjs",
+        "/tmp/phase5f-storage-candidate-section-wrap-two-write-copy-attempt11",
+        "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11"
+      ],
+      "control": "Keep owned stdin open, await actual ready health/ready200 and immutable owner/session; never start browser while readiness lacks",
+      "toolInvocation": {
+        "tty": true,
+        "yieldTimeMs": 1000,
+        "control": "PTY keeps originalstdin alive, sourceisatty guard BEFORE childspawn. Require originalready200/session/PID/startticks/noStop beforeseed. Explicitoriginalstop newline only originaltoolsession, thenactualdisposal/directwait."
+      }
+    },
+    {
+      "stage": "mature-genuine-api-84-only",
+      "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+      "argv": [
+        "node",
+        "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10/scripts/qa/phase5f/seed-actual-api.mjs",
+        "http://127.0.0.1:4219/",
+        "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11"
+      ],
+      "expectedRequests": 84
+    },
+    {
+      "stage": "original-disabled-seed-Worker-stop",
+      "control": "After genuine mature84 setup succeeds or any firstfailure, send originalstdin stop only originalttytoolsession; await originaldisposal/stoppedreceipt/directexit0/PIDabsence/4219refusal. No focus/browser runs on this seedWorker. Storage2 requires mature84PASS and originalseedownerCLOSED."
+    },
+    {
+      "stage": "fresh-current-source-build-witness",
+      "control": "After actual f88 producer PASS, new isolated1792+121 copy and mature84 PASS plus originalseedWorker normalstop/directreap, bind original118 actual dist build to the newly generated namespace/config inventory. No new build, no old01/95 application artifacts.",
+      "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+      "argv": [
+        "python3",
+        "-B",
+        "/tmp/phase5f-storage-original-two-after-wrap-source-review-attempt11/verify-qualified-producer-and-write-two-witness.py",
+        "--qualified-f88-producer-for-original-two",
+        "witness"
+      ]
+    },
+    {
+      "stage": "genuine-enabled-Access-storage-draft-two",
+      "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+      "argv": [
+        "node",
+        "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10/scripts/qa/phase5f/browser-enabled-storage-draft-actual-api.mjs",
+        "/tmp/phase5f-storage-candidate-section-wrap-two-write-copy-attempt11",
+        "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11",
+        "--exclusive-go-two-enabled-storage-drafts"
+      ],
+      "env": {
+        "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+        "CHROMIUM_PATH": "/usr/bin/chromium"
+      },
+      "cases": [
+        "draft-create-lost-reply-1280-light",
+        "draft-revision-conflict-390-dark"
+      ],
+      "authenticationControls": 2,
+      "mutationScope": "Genuine private ephemeral AES-GCM keyring, accepted metadata five-table history plus exact released source-write permits. Three accepted revisions and four admitted validPUTs expected from original200/409 responses; zero provider/test/registration/activation/recovery/group calls. Preserve all original lease rows exactly; allow only uniquely time-correlated genuine authenticated actor/http/currentgeneration/released newpermit per original observed validPUT, no fabricated request/profile lineage.",
+      "ownership": "Launch existing recorder tools.exec_command tty:true; helper original child inherits same live TTY. Original cached context/browser/Worker/JWKS owner closes awaited. Explicit stop newline on originalTTY marksinterrupted, closes originals while keeping D1 alive until acceptedhistory verification; SIGTERM143 nevergraceful. Existing20s observer waits and120s supervisory guard do not increase budgets.",
+      "observer": "Original server200 route.fetch body complete/hashed before controlledreplyloss; original browserRequest must genuinelyfail netERR_FAILED after lossmarker. Sole source-known unused stalePUT409 retains exactnativeRequest terminal+singleoriginalResponse.body underoriginal20s afterrealRefresh200: completed/hash normal; sole exactCDPNoData+requestfinished/null allows payloadunavailable/nohash; exceptional abortedbranch requires genuineRequestfailed/netERR_ABORTED afterRefresh. Everyotherbody strictcomplete. No original503/dropTable fault.",
+      "control": "Original two cases/assertions/body/interception/TTY ownership/budgets unchanged. Actual productfocusrepair must pass same-original connectedRefresh native focus and do not steal usermoved focus. Genuine acceptedhistory retained. Unknown originalPUT window/extra/unreleased/mismatched lease fails ledger rather than blanketexception. Firstfailure stops latercases exceptmandatoryownerclosure/physical/sourcepins."
+    },
+    {
+      "stage": "physical-after",
+      "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+      "argv": [
+        "python3",
+        "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10/scripts/qa/phase5f/check-isolated-state.py",
+        "--source-copy",
+        "/tmp/phase5f-storage-candidate-section-wrap-two-write-copy-attempt11",
+        "--fixture-directory",
+        "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11",
+        "--stage",
+        "after-shutdown"
+      ],
+      "require": "Only after originaldisabledseedWorker and newenabledAccesshelper bothactualexit +browser/Worker/JWKSstopclosed +bothportsrefused, regardlessfirstfailure where fixture exists. Original mature physical checker preservesSQLiteFK/PNG/inputbytes. Do not infer Accessclosure fromseedstop."
+    },
+    {
+      "stage": "final-source-artifact-input-pins",
+      "control": "All1792 frozen mode/blob/workingbytes clean; exact newfreshbuild source and copy generatedartifact inventories; genuine originalPNG/inputbytes/typedcatalog/allunrelated tablehashes/exactaccepted five-table history plus originallease rows and exact newreleasedpermits. Originaldirectwait/reap/scopedgroups/ports only; kernelZ/FDPermission facts retained without inventedzeroFD/globalquiescence.",
+      "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+      "argv": [
+        "python3",
+        "-B",
+        "/tmp/phase5f-storage-original-two-after-wrap-source-review-attempt11/verify-qualified-producer-and-write-two-witness.py",
+        "--qualified-f88-producer-for-original-two",
+        "final-pins"
+      ]
+    }
+  ],
+  "installedDependencies": {
+    "root": "/workspace/sample-fabrication-workflow/node_modules",
+    "package": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+    "lock": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a",
+    "hiddenLock": "95202718d08fd50cc286bcddf0af66b08503d63b494e992006c50d4246d69a98"
+  },
+  "cases": [
+    "draft-create-lost-reply-1280-light",
+    "draft-revision-conflict-390-dark"
+  ],
+  "originalStdinControlTimeGuard": {
+    "browserStageLauncher": "tools.exec_command tty:true; existing recorder child inherits same originalTTY",
+    "supervision": "Capture original childPID/PGID/startticks; inspect original progress/final report every20s. Soleknownunused409 originalterminal+body uses existing20s bound. If stage exceeds120s or original action is stalled beyond existing20s, explicitstop newline ONCE onoriginal liveTTY, then await actualchildexit/reap/finalreport/retainedacceptedhistory/ports. Firstfailed/interrupted result stops allremainingcases except mandatoryphysical/sourcepins. Supervisoryinterruption neverPASS or increasedbudget.",
+    "signalFallback": "No SIGTERM-as-finally assumption. If originalTTYstop cannot close originalhelper, preserve exact interruption/exit facts and require physicalsyntheticcleanup before runtime release."
+  },
+  "acceptedHistory": "Retain actualmetadata CAS/encryption/audit records and writepermits, neverrollback. Alloriginallease rows exact; newrows boundedone-to-one validPUT observedwindows/currentauthenticatedactor/http/currentgeneration/released+300sexpiry; lease schema doesnotcontainrequest/profileID. Expiry neverproves settlement.",
+  "expectedCosts": {
+    "matureAuthDisabledApiSetup": 84,
+    "genuineRoleCapabilityControls": 2,
+    "acceptedAuxiliaryPut": 2,
+    "acceptedBrowserPut": 1,
+    "staleBrowserPut409": 1,
+    "sourceDerivedExpectedNewPermits": 4,
+    "scope": "Expectedonly, actualrequest/acceptance counts recorded; stalevalidPUT firstreadsSQL and admits before409. No originaloldmatrices/focus2/admin4 rerun."
+  },
+  "budgets": "Original20s browser/actions/body/interception and120s originalTTY supervision unchanged. No compilers/mounted/build reruns; source-identical actual f88 appstrict/mounted24/build118 carry only. New genuine24/84 setup then only original two cases; firstfailure stops normal remaining stages; mandatory original contexts/interception/body/browser/Worker/JWKS/directwait/physical/pins preserved.",
+  "qualifiedProducer": {
+    "sourceHead": "f88fffea3ba0654b52ca90ee87efdafdb70cd48c",
+    "sourceTree": "df05a78afcdee28f7136a349001464c399531e9c",
+    "sourceRoot": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+    "closedReceipt": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/actual-storage-candidate-section-f88-eight-pass-closed-and-released.json",
+    "closedReceiptSha256": "51bac259cf336bf9c4e04b26ed88566a884e39e257c1d5e1d6082a09d9ae7727",
+    "priorActualScopes": "Fresh f88 appstrict, full affected mounted24, one npm run build118, one390 read-only geometry repair all actualPASS/CLOSED. This new two-browser scope UNRUN. Source/header whole1792 equality, actual118 output hashes, actualdirectreap and every28 rawref rechecked before each witness; newcopy121 independently generated config/namespace bound, not asserted equal previous namespace.",
+    "newBuildCount": 0
+  },
+  "sourcePeer": {
+    "path": "/tmp/phase5f-storage-f88-independent-fresh-artifact-source-peer.json",
+    "sha256": "a211efba5c14c3c5f591990ba466a2c7c620af118fffb815cfe2470302b879b3",
+    "scope": "Entire f88 helper/product source+previousfinite8 sourceclear. This new carrier/13-stage retarget still awaits peer."
+  },
+  "carrier": {
+    "path": "/tmp/phase5f-storage-original-two-after-wrap-source-review-attempt11/verify-qualified-producer-and-write-two-witness.py",
+    "sha256": "e210024d96f0747afb8e3d66bfc2d287348185dd610d2c0db3a7007fedb0311b"
+  },
+  "retainedActualFailures": [
+    {
+      "receipt": "/tmp/phase5f-enabled-storage-draft-two-6ae-runtime-attempt1/actual-storage-two-attempt1-closed-and-released-receipt.json",
+      "sha256": "80c74ce4a14942931bb80148e7d1f80d5da6d189a34460457fd58366080986b8",
+      "scope": "NativeProvider exactlabel timeoutbeforewrite,0PASS1FAIL1UNRUN; originalclosed."
+    },
+    {
+      "receipt": "/tmp/phase5f-enabled-storage-draft-two-provider-label-runtime-attempt2/actual-storage-two-attempt2-closed-and-released-receipt.json",
+      "sha256": "1230a995d838499167e62ff0e41c1f030dc7c7a6e53bd2312296eb477046582e",
+      "scope": "Originalcreate200accepted/lostreply/Refresh readsPASS, nativefocusFALSE failure0PASS1FAIL1UNRUN. One newlease is genuinehistoricalobserved64vs63, initialledgerrejects. Actualnormalownersclosed; acceptedhistory retained."
+    },
+    {
+      "receipt": "/tmp/phase5f-storage7b-original-lease-private-diagnostic-attempt1/first-private-lease-diagnostic-failure-and-release.json",
+      "sha256": "b498852197faed9983944b99668d350ace476c300857ffbd4983e5727e95e324",
+      "scope": "CopiedSQLonly firstbadmetadata-vs-leasetimepremiseFAIL. Original63rows/full64hash/uniqueactor-http-generation reachedPASS;expiry/quick-FK unqualified. Originalmain+WAL equalityverified, SHMstatonly/unpersistedbeforemetadata limitation; copiedreaderfinallyclosed."
+    },
+    {
+      "receipt": "/tmp/phase5f-storage-refresh-focus-current591-runtime-attempt3/first-mounted-fixture-precondition-failure-closed-and-released.json",
+      "sha256": "60b1fea4ae8bd8c4f1f1375cad1a65320c458f8003108b3ab86c16ff152ec7be",
+      "scope": "694 appstrict PASS actual; mounted firstcaseFAIL/23UNRUN, body simulationprecondition failedbefore returnassertion. Newbuild/copy/browser allUNRUN; source-specific earlierstrict remainshistorical, newTSXfixture changes newappstrict input so newstrict planned."
+    },
+    {
+      "receipt": "/tmp/phase5f-storage-refresh-focus-body-model-current591-runtime-attempt4/actual-storage-refresh01ad-overflow-first-failure-closed-and-released.json",
+      "sha256": "495b15003c4ce0b3f658ce1e7401138ed2318ec3fd048b25a104317d3bb4ea13",
+      "scope": "Actual old01 1PASS1FAIL after conflict/nativefocus and accepted3 revisions/exactnew4 permits; original390 geometry values not persisted. New f88 single390 read-only actualPASS does not relabel this old two-write case."
+    }
+  ],
+  "notClaimed": [
+    "New Storage2 actualPASS",
+    "Provider/test/activation/recovery/group writes",
+    "Whole5F/device/IME/otherengine/deployment/live-provider acceptance"
+  ]
+}

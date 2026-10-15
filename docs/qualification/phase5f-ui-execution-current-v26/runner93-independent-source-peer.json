@@ -1,0 +1,33 @@
+{
+  "kind": "independent-ui-execution98-runner-interruption-source-addendum/1",
+  "at": "2026-10-10T22:35:05.846276+00:00",
+  "result": "CLEAR_CORRECTED_RUNNER_SOURCE_ONLY",
+  "rootSourceHead": "98d81a170394a140fb63e970b31d1985bd56f68d",
+  "priorSourceUnionPeer": "ef93f0ed3c72f11e27dc09532d3060f12a56e51f514e5b4e581310d748c8e568",
+  "runner": {
+    "path": "/tmp/phase5f-ui-execution-currente108-source-reconciliation/run-exact-finite-plan.py",
+    "sha256": "93dadd450bc17084015b86f6047ef9bfbddcf97cb6ddf6e34474f6fcfaa82efd"
+  },
+  "retainedOriginal": {
+    "path": "/tmp/phase5f-ui-execution-currente108-source-reconciliation/run-exact-finite-plan.bb19-original.py",
+    "sha256": "bb19e3995d1086b6304d110004628a54eefa7e49add5622b246d08726de097d1",
+    "result": "BLOCKED_INTERRUPTION_CLEANUP"
+  },
+  "patchSha256": "a7de78a302ab325fc57743127235830f14bd40fab4a28d31b00bb2bcd64cd5e2",
+  "repairReceiptSha256": "89f318e46d21b09df62417f2bc0d3ff75bb196595960787117c56f5392f7ccb5",
+  "exactProductSourceAndFinitePlanUnchanged": true,
+  "samePlanSha256": "17c2984c99f3850074fc69cdcdaef1984c9ac6a4febdcd55e89d92d5c995ffd5",
+  "sourceReceiptSha256": "7e46f73ac538f30ef0dc59c8fe165fa2f675869f4fff1e9eddb2f980cd292b8b",
+  "originalPreflightInventoryAndOwnedGroupFunctionsSemanticsExact": true,
+  "review": [
+    "Supported termination is deferred with temporary callable handlers duringPopen ownership capture, then restored; no blocked/ignored childmask. Captured originalchild handle remains until cleanup/wait.",
+    "Wait and log errors run innerfinally: only exact newlyowned group may receive bounded TERM/KILL, directchild genuinewait/reap is recorded. RepeatedSIGINT/TERM are ignored only duringcleanup/finalreceipt.",
+    "Any interrupt or exception records failed/unqualified partialcommand plus remainingUNRUN and retained logdigest; normal exit that needs active-child cleanup staysfailed.",
+    "Final receipt checks all actuallylaunched originalgroups, activeprocess/openFD status, genuine directchildreap and source/dependency pins; no browser/server/global cleanup or fixture deletion.",
+    "Originalsixargv/cwd/config/assertions/defaultcasebudgets remain exactfrozen17c plan. Source-only read/AST doesnotprove signalbehavior or actualresourceclosure. Parentmustobserve original runnerexit and ownedclosure before assigningnew runtime."
+  ],
+  "runnerInvoked": false,
+  "typesTestsSqlBuildSignalsProcessesExecuted": false,
+  "completeOwnCiOrCombinedRuntimeAccepted": false,
+  "canonicalOrRemoteMutation": false
+}

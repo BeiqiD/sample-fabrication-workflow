@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "/workspace/phase5f-file-preview-current-a7-native-qa-consumer-source-attempt6/scripts/qa/phase5f/check-genuine-two-r2-migration-state.py", line 169, in <module>
+    main()
+  File "/workspace/phase5f-file-preview-current-a7-native-qa-consumer-source-attempt6/scripts/qa/phase5f/check-genuine-two-r2-migration-state.py", line 31, in main
+    isolation = json.loads(isolation_path.read_text())
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py", line 1027, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py", line 1013, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/workspace/file-preview-current-a7-two-r2-native-private-attempt4/copy/isolation-receipt.json'

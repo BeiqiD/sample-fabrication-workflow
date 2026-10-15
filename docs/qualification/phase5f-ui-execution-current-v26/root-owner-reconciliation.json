@@ -1,0 +1,83 @@
+{
+  "kind": "phase5f-ui-execution98-root-independent-owner-reconciliation/1",
+  "at": "2026-10-10T22:38:17.017997+00:00",
+  "originalReceiptSha256": "d0881d89c8681266b9bad3ce136864e9523ca7f83ea5a1cbd5bc99685638c3a3",
+  "originalWrapperStatus": "FAIL_RETAINED",
+  "diagnosisSha256": "5ef3e0d9aa9db3b4fa7406315b5526d80e9375b69c4548e90b787359b062dbe5",
+  "sourceHead": "98d81a170394a140fb63e970b31d1985bd56f68d",
+  "sourceTree": "62d67e1c9fb3d59d74c49e0eceebe4ef2975ffe4",
+  "fiveActualCommandsExit0LogHashesAndCountsRechecked": true,
+  "commands": [
+    {
+      "stage": "shared-source-boundary",
+      "exitCode": 0,
+      "summary": null,
+      "logSha256": "21a428b7b54bea7d7e889fc732a12e2a0477651d44738485a4f44116959f8b03"
+    },
+    {
+      "stage": "owned-canonical-witness-fixture-strict",
+      "exitCode": 0,
+      "summary": null,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stage": "original-native-stream-migration-regressions",
+      "exitCode": 0,
+      "summary": [
+        "Test Files  1 passed (1)",
+        "Tests  6 passed (6)"
+      ],
+      "logSha256": "773b07cc4c64f2990dfd9d06dc3730a5739fb64d62c5dce1970e94604eb18833"
+    },
+    {
+      "stage": "new14-plus-owned-mature23-mounted",
+      "exitCode": 0,
+      "summary": [
+        "Test Files  5 passed (5)",
+        "Tests  37 passed (37)"
+      ],
+      "logSha256": "9fa25ab12b92df17f37251e7a51a09dc3429a10c25d722ecfadad1f52ddedd93"
+    },
+    {
+      "stage": "subject-and-mature-project-source-regressions",
+      "exitCode": 0,
+      "summary": [
+        "Test Files  7 passed (7)",
+        "Tests  38 passed (38)"
+      ],
+      "logSha256": "0b8cc1f5fe288e918a9126a78705386270bb5575c090dfefb57d3c54d941b9ea"
+    }
+  ],
+  "allOriginalGroupsCurrent": {
+    "297541": [],
+    "297559": [],
+    "297575": [],
+    "297711": [],
+    "297775": [
+      {
+        "pid": 297808,
+        "state": "Z",
+        "ppid": 1,
+        "pgid": 297775,
+        "starttime": "8501664",
+        "fdInspection": "PermissionError",
+        "kernelResourcesExited": true
+      },
+      {
+        "pid": 297817,
+        "state": "Z",
+        "ppid": 1,
+        "pgid": 297775,
+        "starttime": "8501668",
+        "fdInspection": "PermissionError",
+        "kernelResourcesExited": true
+      }
+    ]
+  },
+  "allDirectChildrenAlreadyReaped": true,
+  "noLiveOriginalOwnedMember": true,
+  "sourcePinsAndCleanGitRechecked": true,
+  "freshBuild": "UNRUN",
+  "signalsOrReapingPerformedDuringThisReview": false,
+  "limits": "Kernel Z/X denotes exited resource owners. PermissionError for FD enumeration is retained, not converted to an observed zero FD count. No whole-host absence or unowned PPID1 reap claim. Carry five actual passing commands only; original false-classifier wrapper failure is immutable and not reclassified."
+}

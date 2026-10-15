@@ -1,0 +1,46 @@
+{
+  "stage": "real-grid-picker-pending41",
+  "argv": [
+    "node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "vitest.mounted.config.ts",
+    "src/phase5f-metrology-pending.mount.test.tsx",
+    "src/phase5f-metrology-picker-read.mount.test.tsx",
+    "--maxWorkers=1",
+    "--no-file-parallelism",
+    "--bail=1",
+    "--reporter=default",
+    "--reporter=json",
+    "--outputFile=/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/finite-runtime-attempt1/mounted41.vitest.json"
+  ],
+  "cwd": "/tmp/phase5f-metrology-focus-combined7ba-source-attempt1",
+  "expectedStaticCases": 41,
+  "startedAt": "2026-10-10T23:42:37.507609+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/finite-runtime-attempt1/real-grid-picker-pending41.log",
+  "pid": 336842,
+  "processGroup": 336842,
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-10T23:42:42.649959+00:00",
+  "logSha256": "0ed4549bffa0161d59553b8934479b87ff0d8e2b28eec7ef000d130ef6864d1b",
+  "vitestActualTotals": {
+    "numTotalTests": 41,
+    "numPassedTests": 41,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "numTodoTests": 0
+  },
+  "vitestReportSha256": "42e0b67db9758b636862baeb5a54ffece899bd2f949c419c1c22960e0a71c8d5"
+}

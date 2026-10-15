@@ -1,0 +1,14 @@
+{
+  "path": "/workspace/.sfpk2",
+  "mode": "0700",
+  "uid": 1000,
+  "dev": "27",
+  "ino": "1875371",
+  "freshCreated": true,
+  "sourceHead": "02d6dfbe5f2bd98847b3d6f509c219de5ad816ad",
+  "sourceCopyRoot": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/copy",
+  "fixtureDirectory": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/fixture",
+  "qaHelperSha256": "8cc5643a8ac995ee5f859024524ce8e7a34e50c406eb110787abfcb0dc00dfc9",
+  "freeBytes": "947912704",
+  "scope": "Original Chromiumchildonly temporary leaf; parent TMPDIR/COPY/FIXTURE ownership unchanged."
+}

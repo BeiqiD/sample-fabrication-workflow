@@ -1,0 +1,460 @@
+{
+  "version": 1,
+  "status": "PASSED_BOUNDED_DIRECTORY_STORAGE_QUALIFICATION; OWNERS_CLOSED",
+  "recordedAt": "2026-10-10T21:14:36.362980+00:00",
+  "runtimeSource": {
+    "root": "/workspace/remaining-5f-ui-source-21fc173",
+    "head": "2f5d616e5f7d49b5b3d06125d7a755e5b2e12387",
+    "tree": "03a57cc49f64024dd3db92a4f8355fd98eabde74",
+    "sourceCopyRoot": "/tmp/phase5f-ui17-copy-be50560-attempt1",
+    "fixtureDirectory": "/tmp/phase5f-ui17-fixture-be50560-attempt1",
+    "isolationReceipt": {
+      "path": "/tmp/phase5f-ui17-copy-be50560-attempt1/isolation-receipt.json",
+      "sha256": "959df9e89e79f8a0dac160b4d26655b91bc6cc98f673f117b3b1c180a1304978"
+    }
+  },
+  "newRuntime": {
+    "commands": [
+      {
+        "stage": "fresh-worker-build",
+        "exitCode": 0,
+        "log": {
+          "path": "/tmp/phase5f-ui17-actual-2f5d616-attempt1/fresh-worker-build.log",
+          "sha256": "b4ec898ddb432211dde242b308b3b10228ce202f048fce77ee77f3f896bc32ed"
+        },
+        "commandReceipt": {
+          "path": "/tmp/phase5f-ui17-actual-2f5d616-attempt1/fresh-worker-build-command.json",
+          "sha256": "d24a1981ea90921be8756b58e03d97e6365f59b3ee7e13ccac4067aa1a18a2dd"
+        }
+      },
+      {
+        "stage": "isolated-copy",
+        "exitCode": 0,
+        "log": {
+          "path": "/tmp/phase5f-ui17-actual-2f5d616-attempt1/isolated-copy.log",
+          "sha256": "b0fedd8d5f81703f879b1b0eb64a2c3cb9d24f1b152f814dd5898f8416010f27"
+        },
+        "commandReceipt": {
+          "path": "/tmp/phase5f-ui17-actual-2f5d616-attempt1/isolated-copy-command.json",
+          "sha256": "bd2495e890ec64fae1d154757a0bd790702d2bfa58a5941bc8098448ef0564e6"
+        }
+      },
+      {
+        "stage": "mature-actual-api-seed",
+        "exitCode": 0,
+        "log": {
+          "path": "/tmp/phase5f-ui17-actual-2f5d616-attempt1/mature-actual-api-seed.log",
+          "sha256": "d48b92a141c7c44733f4a149a2bb869bb285c16f2e20af3b9ed8b92d21d6eaab"
+        },
+        "commandReceipt": {
+          "path": "/tmp/phase5f-ui17-actual-2f5d616-attempt1/mature-actual-api-seed-command.json",
+          "sha256": "7645787be671358d4488748543aacc918361ab62fb8f89d0cd9927d9a6dab205"
+        }
+      },
+      {
+        "stage": "ordinary-local-migrations",
+        "exitCode": 0,
+        "log": {
+          "path": "/tmp/phase5f-ui17-actual-2f5d616-attempt1/ordinary-local-migrations.log",
+          "sha256": "efdd0b1d615d3b237e45cd80394ba0efbaf0e3ac8bd5a396713c9c3feafb0818"
+        },
+        "commandReceipt": {
+          "path": "/tmp/phase5f-ui17-actual-2f5d616-attempt1/ordinary-local-migrations-command.json",
+          "sha256": "c5bd371d8e2c04d578db86efc1b55a756d4d6b0128820c26583f8409b64aeabf"
+        }
+      },
+      {
+        "stage": "owned-server-lifecycle",
+        "exitCode": 0,
+        "log": {
+          "path": "/tmp/phase5f-ui17-actual-2f5d616-attempt1/owned-server-lifecycle.log",
+          "sha256": "4fdfbe01ee56fdab2257044f15d21c295f342c21d4f5e0feef222afd8442b771"
+        },
+        "commandReceipt": {
+          "path": "/tmp/phase5f-ui17-actual-2f5d616-attempt1/owned-server-lifecycle-command.json",
+          "sha256": "cf1c7b254d44d2f40735f72f760a25706e6861faa32d6b394866b5bd027700fa"
+        }
+      },
+      {
+        "stage": "physical-after-shutdown",
+        "exitCode": 0,
+        "log": {
+          "path": "/tmp/phase5f-ui17-actual-2f5d616-attempt1/physical-after-shutdown.log",
+          "sha256": "8d6c4e9f08acf24d0f4a1f9c0fd74c010cdc02c3538087739b4c5f700409f97d"
+        },
+        "commandReceipt": {
+          "path": "/tmp/phase5f-ui17-actual-2f5d616-attempt1/physical-after-shutdown-command.json",
+          "sha256": "4732c3e26ad2bf811a40cf52b743770dc6d3ccb2411b74e8acaa849adc119008"
+        }
+      },
+      {
+        "stage": "physical-before-api",
+        "exitCode": 0,
+        "log": {
+          "path": "/tmp/phase5f-ui17-actual-2f5d616-attempt1/physical-before-api.log",
+          "sha256": "8540834c11bcd827ff13c6a5564110eea7c8257de3403502183d28ceee8c5626"
+        },
+        "commandReceipt": {
+          "path": "/tmp/phase5f-ui17-actual-2f5d616-attempt1/physical-before-api-command.json",
+          "sha256": "f58bbb5e67140d9c0e382817e6da200ee2ea6b7eadf38c1d6566b0e8af7124e7"
+        }
+      },
+      {
+        "stage": "process-fixture",
+        "exitCode": 0,
+        "log": {
+          "path": "/tmp/phase5f-ui17-actual-2f5d616-attempt1/process-fixture.log",
+          "sha256": "9bc243233c56193168a6468b4e0c0b8382ce264517d33d1caacb77b7cb4f3a8e"
+        },
+        "commandReceipt": {
+          "path": "/tmp/phase5f-ui17-actual-2f5d616-attempt1/process-fixture-command.json",
+          "sha256": "e8c6a1795461ff30424b712c9d2f349adfe3dbc04820c599428eaaf13e93a3eb"
+        }
+      },
+      {
+        "stage": "process-fixture-sql",
+        "exitCode": 0,
+        "log": {
+          "path": "/tmp/phase5f-ui17-actual-2f5d616-attempt1/process-fixture-sql.log",
+          "sha256": "0b08dfafb79e1ba9133666cb487e876c1417a64861c707c35f4cf053b457d90c"
+        },
+        "commandReceipt": {
+          "path": "/tmp/phase5f-ui17-actual-2f5d616-attempt1/process-fixture-sql-command.json",
+          "sha256": "10d784bcd39fb776800554778c1a573f9f7314467d720de39f496dc2d027d9e2"
+        }
+      },
+      {
+        "stage": "six-actual-browser",
+        "exitCode": 0,
+        "log": {
+          "path": "/tmp/phase5f-ui17-actual-2f5d616-attempt1/six-actual-browser.log",
+          "sha256": "370f99c2842a0fafd612c1aea5a5e35ce2be5d01dc6006740734cba63219720a"
+        },
+        "commandReceipt": {
+          "path": "/tmp/phase5f-ui17-actual-2f5d616-attempt1/six-actual-browser-command.json",
+          "sha256": "db944c0c31232a65ba37a191b30a79f3c69cf09b090d51ccf6c0470692f13f11"
+        }
+      },
+      {
+        "stage": "supplemental-directory-seed",
+        "exitCode": 0,
+        "log": {
+          "path": "/tmp/phase5f-ui17-actual-2f5d616-attempt1/supplemental-directory-seed.log",
+          "sha256": "5d50c0ae8ed77bb97da7424a312e0ab483aaac91b06c7969e71202e24c6c1985"
+        },
+        "commandReceipt": {
+          "path": "/tmp/phase5f-ui17-actual-2f5d616-attempt1/supplemental-directory-seed-command.json",
+          "sha256": "c01c3da33fd68e429cd1a5a2586ef86d7f23e95358f0256e4cb61a469fc91827"
+        }
+      }
+    ],
+    "freshBuild": "PASS at exact2f5d616; generated121 copied artifact hashes in isolation receipt",
+    "matureSeedRequests": 84,
+    "supplementalSeedRequests": 56,
+    "supplementalAcceptedSamples": 51,
+    "browser": {
+      "status": "passed",
+      "requestedCaseIds": [
+        "directories-390-light",
+        "directories-390-dark",
+        "directories-1280-light",
+        "directories-1280-dark",
+        "create-lost-ack-390-dark",
+        "create-lost-ack-1280-light"
+      ],
+      "passed": 6,
+      "failed": 0,
+      "unrunCaseIds": [],
+      "browserClosed": true,
+      "caseEvidence": [
+        {
+          "id": "directories-390-light",
+          "status": "passed",
+          "width": 390,
+          "theme": "light",
+          "contextClosed": true,
+          "observationSummary": {
+            "completed": 19,
+            "unfinished": 0,
+            "unavailable": 0,
+            "requiredUnfinished": 0
+          },
+          "observedBrowserApiRequests": 19,
+          "outcome": {
+            "realSamples": 51,
+            "page1Rows": 50,
+            "page2Rows": 1,
+            "preservedScope": true,
+            "keyboardRetryAndSourceNavigation": true,
+            "touchViewportEmulated": true,
+            "automaticMutations": []
+          }
+        },
+        {
+          "id": "directories-390-dark",
+          "status": "passed",
+          "width": 390,
+          "theme": "dark",
+          "contextClosed": true,
+          "observationSummary": {
+            "completed": 18,
+            "unfinished": 0,
+            "unavailable": 1,
+            "requiredUnfinished": 0
+          },
+          "observedBrowserApiRequests": 19,
+          "outcome": {
+            "realSamples": 51,
+            "page1Rows": 50,
+            "page2Rows": 1,
+            "preservedScope": true,
+            "keyboardRetryAndSourceNavigation": true,
+            "touchViewportEmulated": true,
+            "automaticMutations": []
+          }
+        },
+        {
+          "id": "directories-1280-light",
+          "status": "passed",
+          "width": 1280,
+          "theme": "light",
+          "contextClosed": true,
+          "observationSummary": {
+            "completed": 18,
+            "unfinished": 0,
+            "unavailable": 1,
+            "requiredUnfinished": 0
+          },
+          "observedBrowserApiRequests": 19,
+          "outcome": {
+            "realSamples": 51,
+            "page1Rows": 50,
+            "page2Rows": 1,
+            "preservedScope": true,
+            "keyboardRetryAndSourceNavigation": true,
+            "touchViewportEmulated": false,
+            "automaticMutations": []
+          }
+        },
+        {
+          "id": "directories-1280-dark",
+          "status": "passed",
+          "width": 1280,
+          "theme": "dark",
+          "contextClosed": true,
+          "observationSummary": {
+            "completed": 19,
+            "unfinished": 0,
+            "unavailable": 0,
+            "requiredUnfinished": 0
+          },
+          "observedBrowserApiRequests": 19,
+          "outcome": {
+            "realSamples": 51,
+            "page1Rows": 50,
+            "page2Rows": 1,
+            "preservedScope": true,
+            "keyboardRetryAndSourceNavigation": true,
+            "touchViewportEmulated": false,
+            "automaticMutations": []
+          }
+        },
+        {
+          "id": "create-lost-ack-390-dark",
+          "status": "passed",
+          "width": 390,
+          "theme": "dark",
+          "contextClosed": true,
+          "observationSummary": {
+            "completed": 4,
+            "unfinished": 0,
+            "unavailable": 1,
+            "requiredUnfinished": 0
+          },
+          "observedBrowserApiRequests": 5,
+          "outcome": {
+            "acceptedProjectId": "project-568e4c53-8a46-4857-8408-e2cdbc81614f",
+            "acceptedProjectCount": 1,
+            "postTransports": 2,
+            "exactInputReplay": true,
+            "existingProjectsUnchanged": true,
+            "restoredAcrossDocumentNavigation": true,
+            "browserProjectGets": 2
+          },
+          "acceptedStatus": 201,
+          "replyLossAfterActualCommit": true,
+          "replayStatus": 200
+        },
+        {
+          "id": "create-lost-ack-1280-light",
+          "status": "passed",
+          "width": 1280,
+          "theme": "light",
+          "contextClosed": true,
+          "observationSummary": {
+            "completed": 4,
+            "unfinished": 0,
+            "unavailable": 0,
+            "requiredUnfinished": 0
+          },
+          "observedBrowserApiRequests": 4,
+          "outcome": {
+            "acceptedProjectId": "project-73adbc1f-69d9-4a6a-a9ec-18c34b0347c3",
+            "acceptedProjectCount": 1,
+            "postTransports": 2,
+            "exactInputReplay": true,
+            "existingProjectsUnchanged": true,
+            "restoredAcrossDocumentNavigation": true,
+            "browserProjectGets": 2
+          },
+          "acceptedStatus": 201,
+          "replyLossAfterActualCommit": true,
+          "replayStatus": 200
+        }
+      ],
+      "report": {
+        "path": "/tmp/phase5f-ui17-fixture-be50560-attempt1/directory-api-browser-report.json",
+        "sha256": "6c5a54a5da4b1758e4f6bf2ddc16a0aa00d64758eca09e9967b57939235f9f34"
+      },
+      "summary": {
+        "path": "/tmp/phase5f-ui17-fixture-be50560-attempt1/directory-api-browser-summary.json",
+        "sha256": "34882fb3b9774f9e7038e2bef00a03a8da0a816dc3d160ed18a851abb2fecadc"
+      },
+      "progress": {
+        "path": "/tmp/phase5f-ui17-fixture-be50560-attempt1/directory-api-browser-progress.ndjson",
+        "sha256": "a61e2222939de774818ed811d82f853867a2948b14d8463cf5c02ae1ccc87545"
+      }
+    },
+    "ownedClosure": {
+      "workerToolSession": 99096,
+      "browserToolSession": 46110,
+      "workerActualExit": 0,
+      "browserActualExit": 0,
+      "control": "stdin:stop",
+      "disposalAwaited": true,
+      "portClosed": true,
+      "workerPidAbsent": true,
+      "stopReceipt": {
+        "path": "/tmp/phase5f-ui17-fixture-be50560-attempt1/isolated-server-stop-receipt.json",
+        "sha256": "3008be85754bc9707fd17288782403f31a86e496ae319823bf71a6a4e8238a1b"
+      }
+    },
+    "physical": {
+      "before": {
+        "path": "/tmp/phase5f-ui17-fixture-be50560-attempt1/physical-sqlite-before-api.json",
+        "sha256": "2b0901c4b27a6e5d3c19711f674870bf619bab25537317526054b7608bf33728"
+      },
+      "after": {
+        "path": "/tmp/phase5f-ui17-fixture-be50560-attempt1/physical-sqlite-after-shutdown.json",
+        "sha256": "42f74d2d042e451badb598a3051290d7f6505a6397ffea54dd1d9211edf399a4"
+      },
+      "beforeSqliteFiles": 2,
+      "afterSqliteFiles": 4,
+      "quickAndFk": "all quickCheck ok; all foreignKeyCheck empty",
+      "applicationOwners": {
+        "samples": 71,
+        "projects": 3
+      },
+      "ordinaryMigrationCount": 23,
+      "twoRandomVersionSentinels": true,
+      "originalDbWalShmBytesUnchanged": true,
+      "uploadedPngBytesAndHashMatched": true,
+      "inspectionLimit": "accessible descriptor scope; no blanket claim about inaccessible supervisors"
+    }
+  },
+  "priorQualifiedUnchangedScope": {
+    "receipt": {
+      "path": "/tmp/phase5f-ui17-runtime-8dd53b7-attempt1/partial-runtime-first-isolated-copy-failure.json",
+      "sha256": "1be407431a71347e83590f7b53ae289ff33001f3def6b8eef0a546a45bbe8b8e"
+    },
+    "fiveStrict": "PASS at d6a37e0: shared/app/Worker/server/original runtime configs; unchanged TypeScript source closure",
+    "sixthOwnedWitnessStrict": "PASS at8dd53b7 with checkout-local config after genuine unknown-object fixture guard",
+    "mounted": "37/37 at8dd53b7; exact5 selected files; synthetic mounted auth/transport fixtures",
+    "source": "38/38 at8dd53b7; exact7 selected files; genuine native SQLite/Worker routes under controlled trusted actor fixtures",
+    "notFreshlyRerun": true,
+    "allTrackedTypeScriptBytesExactSince8dd": true,
+    "changesSince8dd": [
+      "docs/PORTABLE_BUSINESS_READ_CI_FOLLOWUP.json",
+      "scripts/qa/phase5f/browser-directory-actual-api.mjs",
+      "scripts/qa/phase5f/prepare-isolated-copy.py",
+      "src/styles.css",
+      "tsconfig.export-contract.json"
+    ],
+    "old8ddBuild": "historical only; new CSS qualified by actual fresh2f build"
+  },
+  "historicalFailuresPreserved": [
+    {
+      "receipt": {
+        "path": "/tmp/phase5f-ui17-runtime-d6a37e0-attempt1/runtime-attempt-first-failure.json",
+        "sha256": "948199a452c209158fc1f5a279e998061d2fc4c2c426992ca71eb69a512db5a0"
+      },
+      "scope": "external config workers/node type resolution; first five strict passed; remaining stages UNRUN"
+    },
+    {
+      "receipt": {
+        "path": "/tmp/phase5f-ui17-runtime-d6a37e0-attempt2/runtime-attempt-first-compiler-failure.json",
+        "sha256": "bed72d7c03afca82b6d24192730e38eb2c324770a1005bd1164b2b6044cd5d06"
+      },
+      "scope": "local sixth fixture TS2698 genuine originalBody unknown; no tests/build/browser"
+    },
+    {
+      "receipt": {
+        "path": "/tmp/phase5f-ui17-runtime-8dd53b7-attempt1/partial-runtime-first-isolated-copy-failure.json",
+        "sha256": "1be407431a71347e83590f7b53ae289ff33001f3def6b8eef0a546a45bbe8b8e"
+      },
+      "scope": "selected strict/mounted37/source38/build passed; default dependency symlink copy admission failed before creating isolated state"
+    },
+    {
+      "receipt": {
+        "path": "/tmp/phase5f-ui17-actual-59a906d-attempt1/first-browser-failed-and-closed-receipt.json",
+        "sha256": "cb46ea8b03ac764cab6361783b039512d1600d95727a837510015827d2b61125"
+      },
+      "scope": "all6 actually completed4PASS2FAIL;390 nativeSearch hiddenCSS failures; old helper continued afterfirst failure; genuinely accepted2 Projects retained; allownersclosed/postphysical passed; never wholematrixqualified"
+    }
+  ],
+  "scopeLimits": [
+    "AUTH_MODE=disabled isolated local Worker/D1/R2 only",
+    "Chromium common installation;390/1280 viewport and light/dark/touch emulation",
+    "Actual201 commit with controlled reply loss, document navigation/remount and exact200 replay; each one acceptedProject/twoPOSTtransports/twoobserved browser Project GETs",
+    "Four directory cases zero mutations; genuine200 response thencontrolled503;51 realSamples/50+1pagination",
+    "No deployed Access, local-auth login-server, live provider, physical device, IME, other engine, historical20cases, whole5F, complete own-head CI or remote publication claim",
+    "Focused export-contract compiler and new own-head Verify/Map remain UNRUN here"
+  ],
+  "rawCompleteReceipt": {
+    "path": "/tmp/phase5f-ui17-actual-2f5d616-attempt1/actual-six-passed-and-closed-receipt.json",
+    "sha256": "35219ee00f0929651901a5220bbc42c24bab06a7525dc622ef9bc673704f2ddb"
+  },
+  "sourcePeers": [
+    {
+      "path": "/tmp/phase5f-directory-independent-combined-source-peer.json",
+      "sha256": "c3721ea42f3388a1539d666760415b1b065a4360db5d5418f2257bf2d8afae13"
+    },
+    {
+      "path": "/tmp/phase5f-ui17-real-dependency-root-root-source-peer.json",
+      "sha256": "22f533ef647385be8fd309fb4a1645d1ef791f53fced9e5f8e52e2673be9f7c9"
+    },
+    {
+      "path": "/tmp/phase5f-ui17-explicit-real-dependency-root-independent-source-peer.json",
+      "sha256": "11c2b42095e3d613f083a6140263db81a92ab4c66faca2c5988833a3f6b77be5"
+    },
+    {
+      "path": "/tmp/phase5f-ui17-native-search-label-independent-source-peer.json",
+      "sha256": "f44ede84ef8068bab9e38d606796fd93ae514bb215fb880ecfcabbfd331ea520"
+    }
+  ],
+  "parentReconciliation": {
+    "intendedParent": "9592d9c2c40116ac53c1f2a185b9207d59f60197",
+    "devBase": "5f367482462a85db7f2511ae1d94efb7a4b778c2",
+    "parentPathsSinceOriginal21fc": [
+      "docs/PORTABLE_BUSINESS_READ_CI_FOLLOWUP.json",
+      "docs/PORTABLE_CURRENT_V25_PROJECT_WORKER_SMOKE.md",
+      "docs/PORTABLE_CURRENT_V25_PROJECT_WORKER_SMOKE_RECEIPT.json",
+      "scripts/verify-project-worker.mjs",
+      "src/reference-page.test.ts",
+      "tsconfig.export-contract.json"
+    ],
+    "allSixAlreadyExactInRuntimeSource": true,
+    "productionSourceOverlap": false,
+    "pending": "source-only exact UI patch on current959; clean acceptance documentation checkpoint followed by exact-tree equivalence proof; own-head CI required before merge"
+  }
+}

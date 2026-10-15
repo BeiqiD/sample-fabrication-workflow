@@ -1,0 +1,108 @@
+{
+  "kind": "current194-worker56-mature-launcher-source-retarget/1",
+  "status": "SOURCE_ONLY_UNRUN_PENDING_ROOT_LAUNCHER_PEER_AND_GO",
+  "sourceHead": "ccc7478f6045b38421f4e35def3360d7a031dd88",
+  "sourceTree": "f713dd1ff9f0cf6b3a5a154a6bf1cab89c692a58",
+  "planPath": "/tmp/portable-current194-coherent-metadata-fifty-six-executable-source-plan.json",
+  "planSha256": "2c5bcf173f1240f5efe4745c0f1677dab8e92873504451fb230cffb0d4d28e0a",
+  "runnerPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-launcher.py",
+  "runnerSha256": "dff8ceb4b57fb0257f522227a561c8629fbe4f882b7b58b00e47702f09a395a8",
+  "originalLauncherPath": "/tmp/portable-current591-neutral-file-definition-worker-nine-owned-launcher.py",
+  "originalLauncherSha256": "078f417e6e715e8711da5f3236a654689e31a9af83d7ced75be5c986f52bebaa",
+  "completeOriginalLauncherInverse": true,
+  "onlyDeclaredRetargets": [
+    [
+      "Exactly the reviewed five Worker commands",
+      "Exactly the reviewed nine Worker commands"
+    ],
+    [
+      "/tmp/portable-current591-neutral-file-definition-original-worker-nine-finite-plan.json",
+      "/tmp/portable-current194-coherent-metadata-fifty-six-executable-source-plan.json"
+    ],
+    [
+      "3ef500110e41715fcdf3aa06533d7a8b0138e328a15852d60f1437d63c32a738",
+      "2c5bcf173f1240f5efe4745c0f1677dab8e92873504451fb230cffb0d4d28e0a"
+    ],
+    [
+      "/tmp/portable-current591-neutral18-worker9-independent-source-peer.json",
+      "/tmp/portable-current194-coherent25-independent-complete-extraction-and56-source-selection-peer.json"
+    ],
+    [
+      "85ac7142a88de69402cac785f99569d47aef7ed92f0a9bb97650704071163cab",
+      "664fac369d9db631a573912af97c548d130900b2e9c80948fea4689b355d9af5"
+    ],
+    [
+      "96e416fb00523e154bef6faff560733900c0aa7e",
+      "ccc7478f6045b38421f4e35def3360d7a031dd88"
+    ],
+    [
+      "NODE_CURRENT591_NEUTRAL_WORKER_EXCLUSIVE_GO",
+      "NODE_CURRENT194_COHERENT_METADATA_EXCLUSIVE_GO"
+    ],
+    [
+      "json.loads(frozen.read_text())['entries']",
+      "json.loads(frozen.read_text())['sourcePins']"
+    ],
+    [
+      "assert len(pins) == 1821",
+      "assert len(pins) == 1932"
+    ],
+    [
+      "peer['status'] == 'CLEAR_SOURCE_ONLY' and peer['sourceHead'] == HEAD",
+      "peer['status'] == 'SOURCE_CLEAR_ONLY_56_ALL_UNRUN' and peer['source']['head'] == HEAD"
+    ],
+    [
+      "plan['expectedTotalCases'] == 9",
+      "plan['expectedTotalCases'] == 56"
+    ],
+    [
+      "== [3, 3, 1, 1, 1]",
+      "== [11, 3, 3, 3, 1, 3, 14, 17, 1]"
+    ],
+    [
+      "actual_compiler['actualSourceHead']",
+      "actual_compiler['sourceHead']"
+    ],
+    [
+      "current591-original-worker-nine-owned-actual/1",
+      "current194-coherent-metadata-fifty-six-owned-actual/1"
+    ],
+    [
+      "'expectedSelectedCases': 9",
+      "'expectedSelectedCases': 56"
+    ],
+    [
+      "time.monotonic() + 300",
+      "time.monotonic() + 600"
+    ],
+    [
+      "ORIGINAL_OUTER_300S_EXPIRED",
+      "ORIGINAL_OUTER_600S_EXPIRED"
+    ],
+    [
+      "= 9 - receipt['actualSelectedPassed']",
+      "= 56 - receipt['actualSelectedPassed']"
+    ]
+  ],
+  "all1932FrozenInputsVerified": true,
+  "exactHistorical07Compiler1928InputsCarried": true,
+  "expectedCounts": [
+    11,
+    3,
+    3,
+    3,
+    1,
+    3,
+    14,
+    17,
+    1
+  ],
+  "expectedTotal": 56,
+  "sourcePeer": {
+    "path": "/tmp/portable-current194-coherent25-independent-complete-extraction-and56-source-selection-peer.json",
+    "sha256": "664fac369d9db631a573912af97c548d130900b2e9c80948fea4689b355d9af5"
+  },
+  "actualTests": 0,
+  "actualChildrenLaunched": 0,
+  "outputExists": false
+}

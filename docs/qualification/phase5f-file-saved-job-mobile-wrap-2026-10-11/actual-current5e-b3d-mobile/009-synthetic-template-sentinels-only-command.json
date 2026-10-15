@@ -1,0 +1,68 @@
+{
+  "stage": "synthetic-template-sentinels-only",
+  "cwd": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/copy",
+  "argv": [
+    "node",
+    "node_modules/wrangler/bin/wrangler.js",
+    "d1",
+    "execute",
+    "DB",
+    "--local",
+    "--config",
+    ".wrangler/deploy.jsonc",
+    "--persist-to",
+    "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/copy/.wrangler/state",
+    "--file",
+    "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/fixture/process-fixture.sql"
+  ],
+  "env": {
+    "TMPDIR": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3",
+    "SQLITE_TMPDIR": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3"
+  },
+  "startedAt": "2026-10-11T19:31:25.996057+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/synthetic-template-sentinels-only.log",
+  "pid": 1485621,
+  "processGroup": 1485621,
+  "originalStartTicks": "16034676",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1485637,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1485621,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1485637,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1485621,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1485637,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1485621,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T19:31:27.394760+00:00",
+  "logSha256": "ef324d3b6c2f31140255aebbe4b0986e927e5d294f7d3fa2b76c350cd3cb7494"
+}

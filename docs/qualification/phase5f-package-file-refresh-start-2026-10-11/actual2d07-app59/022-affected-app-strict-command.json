@@ -1,0 +1,33 @@
+{
+  "stage": "affected-app-strict",
+  "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+  "argv": [
+    "node",
+    "node_modules/typescript/bin/tsc",
+    "-p",
+    "tsconfig.app.json"
+  ],
+  "env": {
+    "TMPDIR": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1",
+    "SQLITE_TMPDIR": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1"
+  },
+  "startedAt": "2026-10-11T22:54:08.412062+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/affected-app-strict.log",
+  "pid": 1600693,
+  "processGroup": 1600693,
+  "originalStartTicks": "17250918",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T22:54:10.262815+00:00",
+  "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

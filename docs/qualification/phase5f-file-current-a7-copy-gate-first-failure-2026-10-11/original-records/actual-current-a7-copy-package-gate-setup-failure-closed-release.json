@@ -1,0 +1,111 @@
+{
+  "status": "FAILED-CLOSED-RELEASED",
+  "firstFailure": "isolated-copy",
+  "firstFailureMessage": "Explicit dependency parent package metadata must exactly match the selected source.",
+  "actualCommands": [
+    {
+      "stage": "qualified-current-a7-build-producer-preflight",
+      "path": "/workspace/file-preview-current-a7-two-r2-native-private-attempt4/runtime/qualified-current-a7-build-producer-preflight-command.json",
+      "sha256": "8f21866594917279dead3d61c14ab0c6bbc9ba4c0e32006e5b305e28ab3c77a2",
+      "status": "PASS",
+      "pid": 1180888,
+      "processGroup": 1180888,
+      "startTicks": "13546630",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "groupEmpty": true,
+      "signals": []
+    },
+    {
+      "stage": "isolated-copy",
+      "path": "/workspace/file-preview-current-a7-two-r2-native-private-attempt4/runtime/isolated-copy-command.json",
+      "sha256": "1e79caf5a93b62b81576692368506225bfe5f469750c29091569112198fb5952",
+      "status": "FAILED",
+      "pid": 1180944,
+      "processGroup": 1180944,
+      "startTicks": "13547641",
+      "exitCode": 1,
+      "directChildReaped": true,
+      "groupEmpty": true,
+      "signals": []
+    },
+    {
+      "stage": "physical-after",
+      "path": "/workspace/file-preview-current-a7-two-r2-native-private-attempt4/runtime/physical-after-command.json",
+      "sha256": "9185f9ade5e6de7fa3faa44c10dc5442efcbedf5173845c9f284034081250f3c",
+      "status": "FAILED",
+      "pid": 1181072,
+      "processGroup": 1181072,
+      "startTicks": "13551780",
+      "exitCode": 1,
+      "directChildReaped": true,
+      "groupEmpty": true,
+      "signals": []
+    },
+    {
+      "stage": "final-source-artifact-input-pins",
+      "path": "/workspace/file-preview-current-a7-two-r2-native-private-attempt4/runtime/final-source-artifact-input-pins-command.json",
+      "sha256": "1a9efbece987d1cd6911008820137732c5de99ce18d5b86b864deb0f5e21a4a1",
+      "status": "FAILED",
+      "pid": 1181156,
+      "processGroup": 1181156,
+      "startTicks": "13552163",
+      "exitCode": 1,
+      "directChildReaped": true,
+      "groupEmpty": true,
+      "signals": []
+    }
+  ],
+  "commandCounts": {
+    "passed": 1,
+    "failed": 3,
+    "unrun": 6
+  },
+  "unrunStages": [
+    "fresh-two-version-sentinel",
+    "ordinary-actual24-local-migrations",
+    "synthetic-template-sentinels-only",
+    "physical-before",
+    "current-source-build-and-pure24-witness",
+    "original-two-local-r2-file-migration-previews"
+  ],
+  "nativeCases": {
+    "passed": 0,
+    "failed": 0,
+    "unrun": 2,
+    "ids": [
+      "genuine-file-migration-preview-1280-light",
+      "genuine-file-migration-preview-390-dark"
+    ]
+  },
+  "actualRequests": 0,
+  "setupPOSTs": 0,
+  "nativePOSTs": 0,
+  "sqliteReadersOrWriters": 0,
+  "workerBrowserJwksOwnersStarted": 0,
+  "copyFixtureShortTempCreated": false,
+  "mandatoryPostCommands": "Both physical-after and finalpins executed once and failed at genuinely missing isolation-receipt.json; no physical PASS or fabricated native report. Independent fullsource2438+QA2438+118 actualbuild byte checks passed.",
+  "allFourOriginalDirectChildrenExitObservedReapedGroupsEmpty": true,
+  "signals": [],
+  "original4219PortRefused": true,
+  "sourceHead": "a7d64919f28477adcd3923809a63d1c1f9cc0561",
+  "sourceTree": "5e3b9da99f834135f8ea011aa47f7a092e1a7ef5",
+  "qaHead": "e92c954c716ae33b9f945e8e523730c990a7a664",
+  "qaTree": "3493619c70d28f0e6b24275f243c25e09d124bc8",
+  "bothFull2438ModesBlobsWorkingBytesExactClean": true,
+  "allCurrentBuild118BytesExact": true,
+  "actualOriginalA7BuildCarriedSeparately": {
+    "path": "/workspace/phase5f-file-preview-current-a7-one-cf-build-runtime-attempt5/actual-current-a7-one-cf-build-qualified-closed-release.json",
+    "sha256": "fa44be9a1823fa06b6464c59bbe37e5b30a24d4a32e9692833fe4b8179e52e2a",
+    "manifestSha256": "da9bb6b79352b4f31f9ec14b225bc30887b7f8b5b1108f595b321d0c79791814",
+    "runtime": "/workspace/phase5f-file-preview-current-a7-one-cf-build-runtime-attempt5"
+  },
+  "copied121NotCreated": true,
+  "frozenFinalPlan": {
+    "path": "/workspace/phase5f-file-preview-current-a7-native-final-peer-binding-source-preparation-attempt8/finite-current-a7-genuine-two-r2-file-preview-ten-plan.json",
+    "sha256": "49eed0c9d3babfd4d7278baada7103ed6a284263d11a4b5476e24377f974caab"
+  },
+  "originalSourceQaOldFixturesUnmodified": true,
+  "closureScope": "Only these original four directly supervised children/groups and original UI port observed. No application/Browser/Worker/JWKS owner or SQLite fixture started; no normalapplicationfinally claim and no global quiescence claim.",
+  "closedAt": "2026-10-11T12:38:38.840617+00:00"
+}

@@ -1,0 +1,99 @@
+{
+  "status": "SOURCE_CLEAR_FINAL6_CURRENT85_B498_COMPLETE_FINITE13_NO_GO",
+  "reviewedAt": "2026-10-11T11:33:13.515150+00:00",
+  "sourceOnly": true,
+  "reviewer": "roadmap_performance_probe",
+  "handoff": {
+    "path": "/workspace/phase5f-recovery-current-focus-final-b498-thirteen-source-preparation-attempt6/source-handoff.json",
+    "sha256": "91873ef216574d89c305635dc92a832491a9181d6d2ed78b02d6d4669e0066e1"
+  },
+  "plan": {
+    "path": "/workspace/phase5f-recovery-current-focus-final-b498-thirteen-source-preparation-attempt6/finite-current85-new-physical-native-focus-thirteen-plan.json",
+    "sha256": "4071f347971202437e6d070ec1a24057269ffa4ec9984bc8688ea2084997f05a"
+  },
+  "runner": {
+    "path": "/workspace/phase5f-recovery-current-focus-final-b498-thirteen-source-preparation-attempt6/run-frozen-owned-stage.py",
+    "sha256": "7b83f2892dfebf82f59bc3e4ad2c0a7cc5963242ec3a4a856deb9b50bb824d4a"
+  },
+  "carrier": {
+    "path": "/workspace/phase5f-recovery-current-focus-final-b498-thirteen-source-preparation-attempt6/bind-current85-fresh-cf-build-and-job-control-focus.py",
+    "sha256": "0b4ef188836f18601b1c4e59b7ef19b4f2912395fc224f5ec0d56462b193b441"
+  },
+  "originalMetadataFinding": {
+    "path": "/workspace/recovery-current85-b498-final13-attempt5-metadata-only-independent-source-finding.json",
+    "sha256": "ca4ec97a6f0c37031eed48f241dd1b0470e321bf49a7d65b67e9ab32ef726ae5"
+  },
+  "fullOriginalHelperPeer": {
+    "path": "/workspace/recovery2a-independent-complete-current-native-helper-source-peer.json",
+    "sha256": "f8eac9db724c4ad89aaf3c5eea8b0ba0bae2599b644e519b7aa60a442aeed595",
+    "status": "Original source-only focus readiness finding preserved; resolved only by b498."
+  },
+  "focusSettlementAddendum": {
+    "path": "/workspace/recovery-b498-independent-same-native-focus-settlement-source-addendum.json",
+    "sha256": "0fee410eb4ae59a5dcbf85e97505e2ab29daf24b527a95df3b8d76893133974c",
+    "status": "SOURCE_CLEAR; exact retained node passive settlement within remaining original20s."
+  },
+  "independentReadOnlyVerification": {
+    "path": "/workspace/recovery-current85-b498-final13-independent-source-verification.json",
+    "sha256": "c670eb58145b6fa7879190bfa4e0b6447f8b530b5f50d09addfe86141a3f0b76",
+    "script": "/workspace/recovery-current85-b498-final13-independent-source-verifier.py",
+    "scriptSha256": "87834515078f74ec2bef467bdbdfe014d3312b88cc61bb243975ebae39f038c9"
+  },
+  "completeSourceChecks": {
+    "producer85AndConsumerB498EachGitPhysicalModes": 2346,
+    "allOtherInputsExact": 2345,
+    "soleConsumerDelta": "Previously fully reviewed helper focus settlement and fresh child TMP bindings; no product change.",
+    "actualCurrent85BuildArtifactsRehashed": 118,
+    "absoluteProofReferencesRehashed": 17,
+    "runnerDefinitionsAstExact": 11,
+    "carrierDefinitionsAstExact": 3,
+    "fullNarrowRunnerAndCarrierByteInverseTo267": true,
+    "wholeFinal6PlanInverseToAttempt5": true
+  },
+  "causalPrerequisites": {
+    "current85ActualFreshCFBuild": "e74bfafba2da6208aaccf4adc0e154be816fb66e88a1b124eba3cb6f4740550b",
+    "current85Mounted22": "9fdefa1b7fd80e6e6be850d1a236cad61a7348f35620139d1c12bad25fde9730",
+    "strict28eHistoricalActualUnchangedProduct85": "8a69918e84c197d0d14fd24ab088dc6c54a76f8b9a4b21bd0eaced24e76808c9",
+    "currentBuildScope": "Original command npm run build on85 source and tree; originalexit0/directwait/reap, retained kernelZ/PPID1 FD PermissionError metadata. No native zeroFD or global quiescence claim. Current output manifest/source hashes exact118. Historical f228/Node outputs are not substituted.",
+    "newBuildsIn13": 0,
+    "newCompilerOrMountedRerunsIn13": 0
+  },
+  "wholeFiniteSemanticReview": {
+    "stages": 13,
+    "directCommandStages": 12,
+    "controlStage": "Original disabled seed Worker stop on original retained TTY only.",
+    "sequence": "Current85 actualbuild preflight -> original isolatedcopy -> processfixture -> actual24 migrations -> sentinel SQL -> physicalbefore -> ownedbuiltWorker -> actual84 -> originalseedstop -> currentbuild/fixturewitness -> genuine2 -> mandatoryphysicalafter -> finalpins.",
+    "authAndFixture": "Fresh namespace/current24+mature84. Ordinary disabled seed auth scope separately retained; native2 genuine admin Access + allowed reader200/403. Baseline63 leases and empty Recovery history.",
+    "costs": "Two shared configure POSTs plus eight original preview/backup/Pause/Resume/Cancel requests maximum10; exactly two historical lineages, no job steps/provider/target/ZIP.",
+    "bodyOracle": "Six exact original application Response/reader/readPromise EOF proofs per case with original ordinal/path/method/bodyhash/backend/DTO identity; CDP outcomes retained independently and any supplied bytes must match. Other native bodies remain strict CDP. No extra fetch/read/clone/fallback.",
+    "focusOracle": "Pause->Resume, Resume->Pause, Cancel->always-present same-job status. Same native retained handle awaits connected and active within remaining original20s; no focus mutation. Surviving Preview focus and original +2 geometry unchanged.",
+    "acceptedHistory": "Three explicit metadata tables only; current actor/input/generation/namespace/checkpoint lineages and full original63 permits/other application/schema retained. PASS requires two cancelled generation3 histories and exact10 accepted metadata mutation responses.",
+    "custody": "All original pending route/body/response waits settle after contextclose, shared work/disable/history/Worker/JWKS await; real returned Browser close awaited for PASS. No returned Browser handle on launch failure is handle-only; native original PID/exit observation retained separately. Direct child wait/reap/group and mandatory physical4/source/artifact checks remain required even failure. Signal cleanup cannot qualify normal closure.",
+    "budgets": "Native/readiness/body original20s, TTY120s/progress20s, bytes<131072 and +2overflow. No budget expansion."
+  },
+  "preparationState": {
+    "parent": "/workspace/recovery-current-focus-native-private-attempt7",
+    "exists": true,
+    "empty": true,
+    "mode": "0700",
+    "uid": 1000,
+    "dev": 27,
+    "ino": 1926197,
+    "copyFixtureRuntimeOutputsAbsent": true,
+    "childTemp": "/workspace/.rcf6tmp",
+    "childTempAbsent": true,
+    "confirmation": "UI confirmed source-preparation mkdir only; verifier independently lstat/listed the empty genuine parent. It is not an actual invocation."
+  },
+  "diagnosticTransparency": [
+    {
+      "kind": "Reviewer read-only assertion",
+      "detail": "An initial verifier assumed the future parent was absent and stopped on its empty0700 preparation directory. Exact state was independently read; only the reviewer absence predicate changed to permit genuine empty0700 parent while retaining absent output/copy/fixture/runtime/childTMP requirements. All other checks reran once, no application effect."
+    }
+  ],
+  "limitations": [
+    "SOURCE_CLEAR is not runtime GO or current native2 PASS. Native stages and fresh24/84 physical results remain UNRUN until separate root GO.",
+    "Current build/mounted scopes remain tied to original85 actual source; full donor source or independent domains are not retagged.",
+    "Original2a focus source finding, original267/attempt5 UNRUN plans and historical failure evidence remain immutable."
+  ],
+  "reviewerRuntimeCompilerHelperPreflightModuleBuildNativeInvocations": 0
+}

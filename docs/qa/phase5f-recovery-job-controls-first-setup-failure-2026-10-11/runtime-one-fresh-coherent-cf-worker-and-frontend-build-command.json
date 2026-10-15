@@ -1,0 +1,60 @@
+{
+  "stage": "one-fresh-coherent-cf-worker-and-frontend-build",
+  "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+  "argv": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "control": "ONE genuine final-reviewed samehead CF npm run build. Node local-auth dist-node/client is independent and never substituted; original command/log/direct child exit and artifacts bound by witness.",
+  "env": {
+    "TMPDIR": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1",
+    "SQLITE_TMPDIR": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1"
+  },
+  "startedAt": "2026-10-11T07:51:44.273678+00:00",
+  "status": "PASS",
+  "log": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/one-fresh-coherent-cf-worker-and-frontend-build.log",
+  "pid": 979998,
+  "processGroup": 979998,
+  "originalStartTicks": "11836504",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 980212,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 979998,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 980212,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 979998,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 980212,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 979998,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T07:51:50.989427+00:00",
+  "logSha256": "a0a78af3dda4ee238573d7dc99f3d87759dcffa3668bf2d1cbb8697aa8a0e1e5"
+}

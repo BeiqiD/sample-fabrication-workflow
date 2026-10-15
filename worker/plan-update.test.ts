@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { PlanAlignment } from "../shared/plan-alignment";
+import type { PlanAlignment } from "./execution/plan-alignment";
 import { resolvePlanUpdateStructureTarget } from "./plan-update";
 
 const alignment: PlanAlignment = {

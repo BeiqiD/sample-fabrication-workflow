@@ -1,0 +1,309 @@
+{
+  "status": "PEERBOUND_EXECUTABLE_AWAITING_ROOT_EXCLUSIVE_GO",
+  "sourceRoot": "/workspace/current-dev57f-qualified-cli-mounted-jobs-source-attempt1",
+  "sourceCommit": "f883e64086bee44b353f3840271fa3eaaafdcc7d",
+  "sourceTree": "dda4d903cab9f410073ccb88d98e372f6f8d3fbd",
+  "sourceCount": 2794,
+  "commandsInSerialOrder": [
+    {
+      "id": "current-node-client-build",
+      "category": "host-node-client-build-and-map",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/lib/node_modules/npm/bin/npm-cli.js",
+        "run",
+        "build:node-client"
+      ],
+      "outerStageBudgetSeconds": 180,
+      "expectedCases": 0,
+      "expectedExit": 0,
+      "buildsPlanned": 1,
+      "actualSourceInputClosure": "All current2794 tracked mode/blob/source pins beforeafter, fresh current591 client/map source pair; no historical artifact carry."
+    },
+    {
+      "id": "current-node-client-map-verifier",
+      "category": "host-node-client-build-and-map",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "scripts/verify-project-map-bundle.mjs",
+        "--client-directory",
+        "dist-node/client"
+      ],
+      "outerStageBudgetSeconds": 180,
+      "expectedCases": 0,
+      "expectedExit": 0
+    },
+    {
+      "id": "closed-manifest-eight",
+      "category": "default-package-http-and-static-assets",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "--test",
+        "--test-timeout=5000",
+        "scripts/node-distribution-v28.test.mjs"
+      ],
+      "outerStageBudgetSeconds": 90,
+      "expectedCases": 8,
+      "expectedExit": 0,
+      "caseTimeoutMs": 5000,
+      "physicalScope": "Content integrity fixtures only; no operational/native installation"
+    },
+    {
+      "id": "closed-parser-six",
+      "category": "genuine-native-composition-fixture",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "/workspace/sample-fabrication-workflow/node_modules/vitest/vitest.mjs",
+        "run",
+        "server/operations/restore-v28-operator.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--reporter=json",
+        "--outputFile=/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/closed-parser-six.json"
+      ],
+      "outerStageBudgetSeconds": 90,
+      "expectedCases": 6,
+      "expectedExit": 0,
+      "caseTimeoutMs": 5000,
+      "physicalScope": "Closed argument issuer only; no Native/archive/target I/O"
+    },
+    {
+      "id": "current-fixed-four-bundle-build",
+      "category": "fixed-backend-bundles",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "scripts/build-node.mjs"
+      ],
+      "outerStageBudgetSeconds": 180,
+      "expectedCases": 0,
+      "expectedExit": 0,
+      "owners": [
+        "main.mjs ESM",
+        "identity-cli.cjs",
+        "installation-cli.cjs",
+        "restore-v28-cli.cjs"
+      ],
+      "catalogs": "StartupV26 current24; separate offline inertV28/V5 tuple",
+      "actualCurrentInputBinding": "New actual esbuild metafile/source-input manifest is required; conservative lexical361 modules/1339edges does not invent the future bundle input count."
+    },
+    {
+      "id": "current-v3-runtime-verifier",
+      "category": "fixed-backend-runtime-verifier",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "scripts/verify-node-distribution.mjs",
+        "dist-node/distribution",
+        "--runtime"
+      ],
+      "outerStageBudgetSeconds": 30,
+      "expectedCases": 0,
+      "expectedExit": 0
+    },
+    {
+      "id": "genuine-bundled-v5-cli-three",
+      "category": "genuine-native-composition-fixture",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "/workspace/sample-fabrication-workflow/node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "offline-v28-cli-qualification.vitest.config.mts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--reporter=json",
+        "--outputFile=/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/genuine-bundled-v5-cli-three.json"
+      ],
+      "outerStageBudgetSeconds": 180,
+      "expectedCases": 3,
+      "expectedExit": 0,
+      "caseTimeoutMs": 20000,
+      "hookTimeoutMs": 20000,
+      "beforeAllTimeoutMs": 30000,
+      "physicalScope": "Same genuine D1 capsule real fixed CJS, full inertV28 native verification; two malformed archives refuse target Native"
+    }
+  ],
+  "expectedActualOutput": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1",
+  "currentFrontendDeclaredInputMap": {
+    "path": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/current-frontend-declared-source-input-map.json",
+    "sha256": "8be9a9f3779236f081922907095ff41b58ac3f4e0ab4920a228af3d180a25672"
+  },
+  "controls": [
+    {
+      "suite": "closed-manifest",
+      "path": "scripts/node-distribution-v28.test.mjs",
+      "title": "supported fixed v3 artifact keeps V26 startup and separately declares inert V28/V5 restore",
+      "status": "UNRUN",
+      "wholeSourceSha256": "56a76e3448fd10dd1f401f2585a1a1b8ec8b5a3369f98c375d0c75a819609756"
+    },
+    {
+      "suite": "closed-manifest",
+      "path": "scripts/node-distribution-v28.test.mjs",
+      "title": "unknown archive/version/catalog and activation claims are rejected",
+      "status": "UNRUN",
+      "wholeSourceSha256": "56a76e3448fd10dd1f401f2585a1a1b8ec8b5a3369f98c375d0c75a819609756"
+    },
+    {
+      "suite": "closed-manifest",
+      "path": "scripts/node-distribution-v28.test.mjs",
+      "title": "the fixed V28 executable is required even with a consistent reduced inventory",
+      "status": "UNRUN",
+      "wholeSourceSha256": "56a76e3448fd10dd1f401f2585a1a1b8ec8b5a3369f98c375d0c75a819609756"
+    },
+    {
+      "suite": "closed-manifest",
+      "path": "scripts/node-distribution-v28.test.mjs",
+      "title": "truncated executable bytes cannot inherit a retained manifest digest",
+      "status": "UNRUN",
+      "wholeSourceSha256": "56a76e3448fd10dd1f401f2585a1a1b8ec8b5a3369f98c375d0c75a819609756"
+    },
+    {
+      "suite": "closed-manifest",
+      "path": "scripts/node-distribution-v28.test.mjs",
+      "title": "required CLI and fixed archive/catalog inputs cannot disappear from a self-consistent source receipt",
+      "status": "UNRUN",
+      "wholeSourceSha256": "56a76e3448fd10dd1f401f2585a1a1b8ec8b5a3369f98c375d0c75a819609756"
+    },
+    {
+      "suite": "closed-manifest",
+      "path": "scripts/node-distribution-v28.test.mjs",
+      "title": "foreign code-owned restore/catalog digests are rejected despite consistent archive inventory hashes",
+      "status": "UNRUN",
+      "wholeSourceSha256": "56a76e3448fd10dd1f401f2585a1a1b8ec8b5a3369f98c375d0c75a819609756"
+    },
+    {
+      "suite": "closed-manifest",
+      "path": "scripts/node-distribution-v28.test.mjs",
+      "title": "symlink and hardlink aliases cannot impersonate the fixed restore executable",
+      "status": "UNRUN",
+      "wholeSourceSha256": "56a76e3448fd10dd1f401f2585a1a1b8ec8b5a3369f98c375d0c75a819609756"
+    },
+    {
+      "suite": "closed-manifest",
+      "path": "scripts/node-distribution-v28.test.mjs",
+      "title": "a self-consistent extra executable or private grant file does not widen the artifact allowlist",
+      "status": "UNRUN",
+      "wholeSourceSha256": "56a76e3448fd10dd1f401f2585a1a1b8ec8b5a3369f98c375d0c75a819609756"
+    },
+    {
+      "suite": "closed-parser",
+      "path": "server/operations/restore-v28-operator.test.ts",
+      "title": "issues one frozen fixed V5 restore token with an explicit immutable root UID",
+      "status": "UNRUN",
+      "wholeSourceSha256": "013d5ff8e98238f77a13ad55ff75923f4b1f9c45d93cfa35616ad3b5c813a344"
+    },
+    {
+      "suite": "closed-parser",
+      "path": "server/operations/restore-v28-operator.test.ts",
+      "title": "rejects historical, catalog and executable overrides rather than selecting a fallback",
+      "status": "UNRUN",
+      "wholeSourceSha256": "013d5ff8e98238f77a13ad55ff75923f4b1f9c45d93cfa35616ad3b5c813a344"
+    },
+    {
+      "suite": "closed-parser",
+      "path": "server/operations/restore-v28-operator.test.ts",
+      "title": "rejects missing, repeated and ambiguous fields",
+      "status": "UNRUN",
+      "wholeSourceSha256": "013d5ff8e98238f77a13ad55ff75923f4b1f9c45d93cfa35616ad3b5c813a344"
+    },
+    {
+      "suite": "closed-parser",
+      "path": "server/operations/restore-v28-operator.test.ts",
+      "title": "rejects relative paths, path aliases and source-destination identity",
+      "status": "UNRUN",
+      "wholeSourceSha256": "013d5ff8e98238f77a13ad55ff75923f4b1f9c45d93cfa35616ad3b5c813a344"
+    },
+    {
+      "suite": "closed-parser",
+      "path": "server/operations/restore-v28-operator.test.ts",
+      "title": "rejects noncanonical hashes and root UID values",
+      "status": "UNRUN",
+      "wholeSourceSha256": "013d5ff8e98238f77a13ad55ff75923f4b1f9c45d93cfa35616ad3b5c813a344"
+    },
+    {
+      "suite": "closed-parser",
+      "path": "server/operations/restore-v28-operator.test.ts",
+      "title": "rejects copied or fabricated command objects before any archive or target I/O",
+      "status": "UNRUN",
+      "wholeSourceSha256": "013d5ff8e98238f77a13ad55ff75923f4b1f9c45d93cfa35616ad3b5c813a344"
+    },
+    {
+      "suite": "genuine-fixed-bundled-cli",
+      "path": "server/operations/restore-v28-cli.qualification.ts",
+      "title": "restores the same genuine D1-origin capsule through the fixed executable into an inert V28 destination",
+      "status": "UNRUN",
+      "wholeSourceSha256": "603357250f6fbbaf6c41f8b782e6bc6853eed47fbb75a15bf3420ad83ee6136c"
+    },
+    {
+      "suite": "genuine-fixed-bundled-cli",
+      "path": "server/operations/restore-v28-cli.qualification.ts",
+      "title": "rejects an unknown manifest version in a fully measured ZIP without any Native target construction or historical fallback",
+      "status": "UNRUN",
+      "wholeSourceSha256": "603357250f6fbbaf6c41f8b782e6bc6853eed47fbb75a15bf3420ad83ee6136c"
+    },
+    {
+      "suite": "genuine-fixed-bundled-cli",
+      "path": "server/operations/restore-v28-cli.qualification.ts",
+      "title": "rejects a truncated original ZIP with its real truncated digest before Native target construction",
+      "status": "UNRUN",
+      "wholeSourceSha256": "603357250f6fbbaf6c41f8b782e6bc6853eed47fbb75a15bf3420ad83ee6136c"
+    }
+  ],
+  "caseCounts": {
+    "closedManifest": 8,
+    "closedParser": 6,
+    "genuineNativeCLI": 3,
+    "total": 17
+  },
+  "frontendBuildsPlanned": 1,
+  "frontendProducerCarry": 0,
+  "bundleBuildsPlanned": 1,
+  "fixedBundleOwners": 4,
+  "freshCompilerReruns": 0,
+  "runtimeCaseCarry": 0,
+  "environment": {
+    "NODE_OFFLINE_V28_D1_ARCHIVE": "/workspace/.local-file-v28-d1-node-bridge-X0hY5c/same-d1-origin-image5.zip",
+    "NODE_OFFLINE_V28_D1_ARCHIVE_SHA256": "ace0266b9e0780a37d79fce8fdb523a1399acb5a214aeea08aaef6030cbc8eeb",
+    "NODE_OFFLINE_V28_DISTRIBUTION": "/workspace/current-dev57f-qualified-cli-mounted-jobs-source-attempt1/dist-node/distribution",
+    "NODE_OFFLINE_V28_FILESYSTEM_ROOT_UID": "65534"
+  },
+  "archivePrerequisite": {
+    "path": "/workspace/.local-file-v28-d1-node-bridge-X0hY5c/same-d1-origin-image5.zip",
+    "sha256": "ace0266b9e0780a37d79fce8fdb523a1399acb5a214aeea08aaef6030cbc8eeb",
+    "size": 1851025,
+    "sourceCaptureRepeats": 0,
+    "bridgeReceipt": {
+      "path": "/workspace/portable-v28-d1-node-bridge-one-actual-attempt12/receipt.json",
+      "sha256": "3196f517931a0e6bf376858222b05ee2b910eb4aa95643b84ef232e0fcda98f3"
+    },
+    "bridgeClosure": {
+      "path": "/workspace/portable-v28-d1-node-bridge-one-actual-attempt12/original-one-source-archive-native-sdk-first-ack-closure-addendum.json",
+      "sha256": "7fcada2f689069c56b2e5cb35d07b9ce5eacb7e22e70500614ab92840bed3229"
+    }
+  },
+  "scope": "Fresh current paired Node client/map, fixed4 V3 bundles and original integrity8/parser6/genuineCLI3 only. Current default V26 startup, LocalFile false, LocalJobs false and Group disabled preserved. Original b131 same-app8 receipt retains its source; this17 does not create a new application or Job authority claim.",
+  "firstFailure": "First failed original stage stops later UNRUN; retain same Popen wait/reap/group status/raw percase and current artifacts; forced cleanup never graceful native ACK.",
+  "ownershipBasis": {
+    "path": "/workspace/portable-node49-f228213-host-spec-footer-source-review-attempt2/host-node18-spec-or-tap-small-owned-runner.py",
+    "sha256": "4d8891288b578605eaba40231d95365787f30630a824b3f63fb62649dc0c092b"
+  },
+  "sameCurrentAffectedCliCompiler": {
+    "path": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/affected-cli-types-attempt1/receipt.json",
+    "sha256": "e53f48f198b4f07eee6d31af3d7570d74e4c1cf7370406412be68b50d70761fd"
+  },
+  "originalOwnedRunnerBasis": {
+    "path": "/workspace/current-cli-four-and-seventeen-finite-source-preparation-attempt1/current-seven-stage-mature-owned-runner-attempt3.py",
+    "sha256": "3355d75dda9cf81e5ded43a8f7e8fe7d9240b220ce1bcbf9139725f8f33e5a1b"
+  },
+  "minimumNewQualification": "Original fresh frontend/map + manifest8 + parser6 + fixed4 build/verify + genuineCLI3. Original17 cases wholly fresh, no historical case/artifact carry. Parent source peer, final mature source/input seal and exclusive GO required before launching.",
+  "executableRunnerStatus": "PREPARED_UNRUN_ROOT_EXCLUSIVE_GO_REQUIRED",
+  "independentCurrentSourcePeer": {
+    "path": "/workspace/current-f883-independent-job-cli-composition-source-peer.json",
+    "sha256": "867cd24588fc7f8047c7cd318f5600f165cef93ed8c68b177724a0aec9d4bf58"
+  },
+  "rootCurrent75SourcePeer": {
+    "path": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/root-current57f-f883-complete75-source-adoption-review.json",
+    "sha256": "7922f0304323229add451ff4747953ae84ed643874d20bbb8c17ea294b593c3b"
+  }
+}

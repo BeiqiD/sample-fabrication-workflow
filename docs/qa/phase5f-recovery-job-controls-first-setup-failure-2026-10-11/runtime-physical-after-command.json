@@ -1,0 +1,38 @@
+{
+  "stage": "physical-after",
+  "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+  "argv": [
+    "python3",
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source/scripts/qa/phase5f/check-isolated-state.py",
+    "--source-copy",
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/copy",
+    "--fixture-directory",
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture",
+    "--stage",
+    "after-shutdown"
+  ],
+  "require": "Only after original helper body/route/shared configure callbacks/context/browser/Worker/JWKS normalclose, actual directwait/reap and portsrefused. Physical4 is mandatory after fixture/browser failure; accepted job/request history remains retained. No original Recovery/Package outputs overwritten.",
+  "env": {
+    "TMPDIR": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1",
+    "SQLITE_TMPDIR": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1"
+  },
+  "startedAt": "2026-10-11T07:54:28.541935+00:00",
+  "status": "PASS",
+  "log": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/physical-after.log",
+  "pid": 981447,
+  "processGroup": 981447,
+  "originalStartTicks": "11852931",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T07:54:29.256879+00:00",
+  "logSha256": "ea503ce93a0a80b1f7db320d8a4f489eaa79bc79a3774804cd538767b71c40b4"
+}

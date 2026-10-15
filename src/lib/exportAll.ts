@@ -1,47 +1,302 @@
+import { validateFullExportV26 } from "../../shared/contracts/export-portable-runtime-v26";
+import { validateFullExportV25 } from "../../shared/contracts/export-portable-runtime";
+import type JSZip from "jszip";
+import { createExportArtifact, exportArtifactText, validateFullExportV8, validateFullExportV9, validateFullExportV10, validateFullExportV11, validateFullExportV12, validateFullExportV13, validateFullExportV14, validateFullExportV15, validateFullExportV16, validateFullExportV17, validateFullExportV18, validateFullExportV19, validateFullExportV20, validateFullExportV21, validateFullExportV22, validateFullExportV23, validateFullExportV24 } from "../../shared/contracts/export-protocol";
+import type { FullExportBlobEntryV15, FullExportNativeBlobEntryV21 } from "../../shared/contracts/export";
+import type {
+  BlobExportOutcome,
+  FullExportBlobEntry,
+  FullExportManifest,
+} from "../../shared/types";
+import { sha256Hex } from "../../shared/content-addressing";
 import { api } from "./api";
+
+type VersionedExportBlobEntry = FullExportBlobEntry | FullExportNativeBlobEntryV21;
 
 function safeSegment(value: string) {
   return value.replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
-export async function exportAll(onProgress?: (completed: number, total: number) => void) {
-  const [{ default: JSZip }, manifest] = await Promise.all([import("jszip"), api.getFullExport()]);
+function archivePath(entry: VersionedExportBlobEntry, index: number) {
+  // Provider keys and record IDs are opaque identities, not filesystem paths.
+  // Sanitizing them can merge different locators or preserve dot segments. The
+  // manifest's unique ordinal owns the path; its metadata retains every exact
+  // identity needed to put these bytes back into the original provider.
+  const ordinal = String(index + 1).padStart(6, "0");
+  const filename = safeSegment(entry.filename).slice(0, 160).replace(/\.+$/, "") || "blob";
+  return `blobs/${entry.storeKind}/${ordinal}-${filename}`;
+}
+
+function warningMessage(outcome: Exclude<BlobExportOutcome, "packaged">, entry: VersionedExportBlobEntry) {
+  const subject = `${entry.storeKind} blob ${entry.filename}`;
+  switch (outcome) {
+    case "missing": return `${subject} is missing from its storage provider.`;
+    case "provider_unavailable": return `The storage provider was unavailable while reading ${subject}.`;
+    case "metadata_not_ready": return `${subject} does not have ready byte metadata.`;
+    case "download_failed": return `${subject} could not be downloaded.`;
+    case "size_mismatch": return `${subject} did not match its recorded byte size.`;
+    case "hash_mismatch": return `${subject} did not match its recorded SHA-256 hash.`;
+  }
+}
+
+async function packageExportBlobs(
+  zip: JSZip,
+  blobs: VersionedExportBlobEntry[],
+  onProgress: ((completed: number, total: number) => void) | undefined,
+  fetcher: typeof fetch,
+  validatedFileLocationTransport = false,
+) {
+  const total = blobs.length;
+  onProgress?.(0, total);
+  let completed = 0;
+  type ShadowIdentity = Pick<FullExportBlobEntryV15, "byteAuthority" | "storageProfileId" | "storageProfileRevision" | "locationId">;
+  const identity = (entry: VersionedExportBlobEntry): Partial<ShadowIdentity> => "byteAuthority" in entry
+    ? { byteAuthority: (entry as ShadowIdentity).byteAuthority,
+      storageProfileId: (entry as ShadowIdentity).storageProfileId,
+      storageProfileRevision: (entry as ShadowIdentity).storageProfileRevision,
+      locationId: (entry as ShadowIdentity).locationId } : {};
+  const results: Array<Partial<ShadowIdentity> & {
+    locatorId: string;
+    storeKind: VersionedExportBlobEntry["storeKind"];
+    provider: string;
+    objectKey: string;
+    blobRecordIds: string[];
+    filename: string;
+    expectedByteSize: number | null;
+    expectedSha256: string | null;
+    sourceOccurrences: FullExportBlobEntry["sourceOccurrences"];
+    outcome: BlobExportOutcome;
+    path: string | null;
+  }> = [];
+
+  for (const [index, entry] of blobs.entries()) {
+    let outcome: BlobExportOutcome = entry.initialOutcome ?? "download_failed";
+    let path: string | null = null;
+    if (entry.downloadUrl) {
+      try {
+        // V15–V17 freeze location URLs relative to the export router. Adapt
+        // only this validated plan at delivery time to the root Worker's /api
+        // mount; canonical manifests and already-prefixed legacy URLs stay intact.
+        const downloadUrl = validatedFileLocationTransport && "byteAuthority" in entry
+          && entry.byteAuthority === "file_location" && entry.downloadUrl.startsWith("/exports/file-locations/")
+          ? `/api${entry.downloadUrl}` : entry.downloadUrl;
+        const response = await fetcher(downloadUrl);
+        if (!response.ok) {
+          outcome = response.status === 404
+            ? "missing"
+            : response.status === 503
+              ? "provider_unavailable"
+              : "download_failed";
+        } else {
+          const bytes = await response.arrayBuffer();
+          if (entry.expectedByteSize !== null && bytes.byteLength !== entry.expectedByteSize) {
+            outcome = "size_mismatch";
+          } else if (entry.expectedSha256
+            && await sha256Hex(bytes) !== entry.expectedSha256.toLowerCase()) {
+            outcome = "hash_mismatch";
+          } else {
+            outcome = "packaged";
+            path = archivePath(entry, index);
+            zip.file(path, bytes);
+          }
+        }
+      } catch {
+        outcome = "provider_unavailable";
+      }
+    }
+    results.push({
+      ...identity(entry),
+      locatorId: entry.locatorId,
+      storeKind: entry.storeKind,
+      provider: entry.provider,
+      objectKey: entry.objectKey,
+      blobRecordIds: entry.blobRecordIds,
+      filename: entry.filename,
+      expectedByteSize: entry.expectedByteSize,
+      expectedSha256: entry.expectedSha256,
+      sourceOccurrences: entry.sourceOccurrences,
+      outcome,
+      path,
+    });
+    completed += 1;
+    onProgress?.(completed, total);
+  }
+
+  const warnings = results.flatMap((entry) => entry.outcome === "packaged" ? [] : [{
+    ...identity(blobs.find((blob) => blob.locatorId === entry.locatorId)!),
+    code: entry.outcome,
+    locatorId: entry.locatorId,
+    blobRecordIds: entry.blobRecordIds,
+    sourceOccurrences: entry.sourceOccurrences,
+    message: warningMessage(entry.outcome, blobs.find((blob) => blob.locatorId === entry.locatorId)!),
+  }]);
+  return { results, warnings };
+}
+
+export async function buildFullExportArchive(
+  manifest: FullExportManifest,
+  onProgress?: (completed: number, total: number) => void,
+  fetcher: typeof fetch = fetch,
+) {
+  const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
-  zip.file("export-manifest.json", JSON.stringify({
-    schemaVersion: manifest.schemaVersion,
-    exportedAt: manifest.exportedAt,
-    tables: Object.fromEntries(Object.entries(manifest.tables).map(([name, rows]) => [name, { rowCount: rows.length, path: `tables/${name}.json` }])),
-    assets: manifest.assetKeys.map((key) => ({ key, path: `assets/${key.split("/").map(safeSegment).join("/")}` })),
-    managedAttachments: manifest.managedAttachments.map((attachment) => ({
-      ...attachment,
-      path: `attachments/${safeSegment(attachment.itemId)}-${safeSegment(attachment.filename)}`,
-    })),
-  }, null, 2));
   for (const [name, rows] of Object.entries(manifest.tables)) {
     zip.file(`tables/${safeSegment(name)}.json`, JSON.stringify(rows, null, 2));
   }
-  const total = manifest.assetKeys.length + manifest.managedAttachments.length;
-  onProgress?.(0, total);
-  let completed = 0;
-  for (const key of manifest.assetKeys) {
-    const response = await fetch(`/api/assets/${key}`);
-    if (!response.ok) throw new Error(`Could not export asset ${key}`);
-    zip.file(`assets/${key.split("/").map(safeSegment).join("/")}`, await response.blob());
-    completed += 1;
-    onProgress?.(completed, total);
+
+  const { results, warnings } = await packageExportBlobs(zip, manifest.blobs, onProgress, fetcher);
+  zip.file("export-manifest.json", JSON.stringify({
+    schemaVersion: manifest.schemaVersion,
+    exportedAt: manifest.exportedAt,
+    tables: Object.fromEntries(Object.entries(manifest.tables).map(([name, rows]) => [name, {
+      rowCount: rows.length,
+      path: `tables/${safeSegment(name)}.json`,
+    }])),
+    blobs: results,
+  }, null, 2));
+  zip.file("export-warnings.json", JSON.stringify(warnings, null, 2));
+
+  return {
+    archive: await zip.generateAsync({
+      type: "blob",
+      compression: "DEFLATE",
+      compressionOptions: { level: 6 },
+    }),
+    warnings,
+    results,
+  };
+}
+
+async function buildVersionedFullExportArchive(
+  version: 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26,
+  input: unknown,
+  onProgress?: (completed: number, total: number) => void,
+  fetcher: typeof fetch = fetch,
+) {
+  const manifest = version === 8 ? await validateFullExportV8(input)
+    : version === 9 ? await validateFullExportV9(input)
+      : version === 10 ? await validateFullExportV10(input)
+        : version === 11 ? await validateFullExportV11(input)
+          : version === 12 ? await validateFullExportV12(input)
+            : version === 13 ? await validateFullExportV13(input)
+              : version === 14 ? await validateFullExportV14(input)
+                : version === 15 ? await validateFullExportV15(input) : version === 16 ? await validateFullExportV16(input) : version === 17 ? await validateFullExportV17(input) : version === 18 ? await validateFullExportV18(input) : version === 19 ? await validateFullExportV19(input) : version === 20 ? await validateFullExportV20(input) : version === 21 ? await validateFullExportV21(input) : version === 22 ? await validateFullExportV22(input) : version === 23 ? await validateFullExportV23(input) : version === 24 ? await validateFullExportV24(input) : version === 25 ? await validateFullExportV25(input) : await validateFullExportV26(input);
+  const { default: JSZip } = await import("jszip");
+  const zip = new JSZip();
+  const paths = new Set(["export-manifest.json", "export-warnings.json"]);
+  const tables: Record<string, { rowCount: number; path: string; byteSize: number; sha256: string }> = {};
+  for (const [name, rows] of Object.entries(manifest.tables)) {
+    const artifact = await createExportArtifact(`tables/${name}.json`, rows);
+    zip.file(artifact.path, exportArtifactText(rows));
+    paths.add(artifact.path);
+    tables[name] = { rowCount: rows.length, path: artifact.path, byteSize: artifact.byteSize, sha256: artifact.sha256 };
   }
-  for (const attachment of manifest.managedAttachments) {
-    const response = await fetch(attachment.downloadUrl);
-    if (!response.ok) throw new Error(`Could not export attachment ${attachment.filename}`);
-    zip.file(`attachments/${safeSegment(attachment.itemId)}-${safeSegment(attachment.filename)}`, await response.blob());
-    completed += 1;
-    onProgress?.(completed, total);
-  }
-  const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = `sample-log-${manifest.exportedAt.slice(0, 10)}.zip`;
-  anchor.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const artifacts = Object.fromEntries(Object.entries(manifest.artifacts).map(([name, artifact]) => {
+    zip.file(artifact.path, exportArtifactText(artifact.value));
+    paths.add(artifact.path);
+    return [name, { path: artifact.path, byteSize: artifact.byteSize, sha256: artifact.sha256 }];
+  }));
+  const { results, warnings } = await packageExportBlobs(zip, manifest.blobs, onProgress, fetcher, version >= 15);
+  for (const result of results) if (result.path) paths.add(result.path);
+  zip.file("export-manifest.json", JSON.stringify({
+    schemaVersion: manifest.schemaVersion,
+    archiveWriter: manifest.archiveWriter,
+    ...(manifest.schemaVersion !== 8 ? { archiveProfile: manifest.archiveProfile } : {}),
+    exportedAt: manifest.exportedAt,
+    tables,
+    artifacts,
+    blobs: results,
+    ...(manifest.schemaVersion === 23 || manifest.schemaVersion === 24 || manifest.schemaVersion === 25 || manifest.schemaVersion === 26 ? { excludedOutputs: manifest.excludedOutputs } : {}),
+    ...(manifest.schemaVersion === 24 || manifest.schemaVersion === 25 || manifest.schemaVersion === 26 ? { relocatedSources: manifest.relocatedSources, backupHoldOwner: manifest.backupHoldOwner } : {}),
+  }, null, 2));
+  zip.file("export-warnings.json", JSON.stringify(warnings, null, 2));
+  const files = Object.values(zip.files).filter((file) => !file.dir);
+  if (files.length !== paths.size || files.some((file) => !paths.has(file.name))) throw new Error("Full export ZIP inventory differs from its manifest");
+  return {
+    archive: await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } }),
+    warnings,
+    results,
+  };
+}
+
+export function buildFullExportArchiveV8(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(8, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV9(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(9, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV10(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(10, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV11(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(11, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV12(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(12, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV13(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(13, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV14(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(14, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV15(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(15, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV16(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(16, input, onProgress, fetcher);
+}
+
+export async function exportAll(onProgress?: (completed: number, total: number) => void) {
+  const manifest = await api.getFullExport();
+  const result = await buildFullExportArchiveV26(manifest, onProgress);
+  return { ...result, filename: `sample-log-${manifest.exportedAt.slice(0, 10)}.zip` };
+}
+
+export function buildFullExportArchiveV17(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(17, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV18(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(18, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV19(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(19, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV20(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(20, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV21(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(21, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV22(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(22, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV23(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(23, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV24(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(24, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV25(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(25, input, onProgress, fetcher);
+}
+
+export function buildFullExportArchiveV26(input: unknown, onProgress?: (completed: number, total: number) => void, fetcher: typeof fetch = fetch) {
+  return buildVersionedFullExportArchive(26, input, onProgress, fetcher);
 }

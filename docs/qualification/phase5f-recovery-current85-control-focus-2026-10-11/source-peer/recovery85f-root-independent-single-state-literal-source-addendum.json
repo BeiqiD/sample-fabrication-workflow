@@ -1,0 +1,16 @@
+{
+  "status": "SOURCE_CLEAR_ROOT_TINY_FIXTURE_LABEL_CORRECTION",
+  "recordedAt": "2026-10-11T11:07:00.798255+00:00",
+  "head": "85f70fd4f22530b98e6ceaafc7c1663f201e5b7a",
+  "tree": "b3c41095d9aec295df8693ebd69ab3a20f9dd7a0",
+  "completeFixtureSingleLiteralInverseExact": true,
+  "allProductExactlyRootReviewed28e": true,
+  "oldOriginal20PassOneLabelFailureOneBailUnrunPreserved": true,
+  "priorStrict28eHistoricalOnly": "8a69918e84c197d0d14fd24ab088dc6c54a76f8b9a4b21bd0eaced24e76808c9",
+  "rootWholeFocusPeer": "de6ed4c46be385e0551571d607ea9abbcc8d612b39b62ac4d68c1fec4b67b124",
+  "currentWhole22": "UNRUN",
+  "freshRuntimeCarry": 0,
+  "newRunnerHash": "94544cec27e5010ac577d5ae260d9bae0ca90a7341d6fb5bfe7e29cbd1e73165",
+  "handoffHash": "c4f577b759b55fb8d799bd06cd7eb47c1d69496ec10322930b509e2ffc7d9e03",
+  "previousActualFormalRelease": "efb5fe7a0d8ee1471fe0421697d547287715c1b728a3f40b7caeaf1531426068"
+}

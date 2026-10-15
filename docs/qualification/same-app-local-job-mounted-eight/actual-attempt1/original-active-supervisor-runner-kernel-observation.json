@@ -1,0 +1,23 @@
+{
+  "kind": "original-active-kernel-observation/1",
+  "toolSession": 84643,
+  "observedWhileActive": true,
+  "processes": [
+    {
+      "pid": 1314867,
+      "state": "S",
+      "ppid": 1314866,
+      "pgid": 1314866,
+      "startTicks": 14658168,
+      "cmdline": "python3 /workspace/same-app-local-job-mounted-typed-source-handoffs/finite-original-mounted-eight-peerbound-attempt1/original-supervisor.py "
+    },
+    {
+      "pid": 1314870,
+      "state": "S",
+      "ppid": 1314867,
+      "pgid": 1314870,
+      "startTicks": 14658171,
+      "cmdline": "python3 /workspace/same-app-local-job-mounted-typed-source-handoffs/finite-original-mounted-eight-peerbound-attempt1/original-owned-runner.py "
+    }
+  ]
+}

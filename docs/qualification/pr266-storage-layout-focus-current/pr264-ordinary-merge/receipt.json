@@ -1,0 +1,21 @@
+{
+  "kind": "pr264-ordinary-squash-merge-exact-qualified-tree/1",
+  "atUtc": "2026-10-11T05:43:19.638509+00:00",
+  "merge": "31a2cfe2ecd033679229b6318a1bcf85a6b2425d",
+  "mergedAt": "2026-10-11T05:42:29Z",
+  "tree": "bcc2796847af6d4b159e871eb3827710616b5fc4",
+  "qualifiedOwnHead": "c5b59dec5208ec9a57ffdaf301c1d7918dbd2fd4",
+  "wholeMergedTreeExactQualifiedSource": true,
+  "ordinaryMergeNoBypass": true,
+  "beforeMergeReceiptSha256": "6e926e59f47f5436c9b2d516c9c3a5ccd7e7fa653e767c66bc0d8fc2cb9d1fe3",
+  "remoteDevHeadExact": true,
+  "raw": [
+    {
+      "path": "/workspace/pr264-c5b-ordinary-merge-tree-verification-attempt1/original-merged-pr.json",
+      "sha256": "c8280eebe9780ce5d3155b112b41debe394b8eb1b32a378b778c5dc5f49616ef",
+      "bytes": 228
+    }
+  ],
+  "postMergeCIPending": true,
+  "scope": "Development/test only; no serving or production evidence."
+}

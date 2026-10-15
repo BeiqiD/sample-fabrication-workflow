@@ -1,0 +1,9 @@
+{
+  "sourceOnly": true,
+  "command": "git diff --cached --check",
+  "exitCode": 2,
+  "stdout": "docs/qa/phase5f-recovery83ca-original-pause-failure-2026-10-11/19-ordinary-actual24-local-migrations.log:7: trailing whitespace.\n+Resource location: local \ndocs/qa/phase5f-recovery83ca-original-pause-failure-2026-10-11/24-synthetic-template-sentinels-only.log:7: trailing whitespace.\n+Resource location: local \n",
+  "stderr": "",
+  "originalRawLogBytesRetained": true,
+  "notApplicationOrRuntimeFailure": true
+}

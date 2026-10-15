@@ -1,0 +1,14 @@
+{
+  "path": "/workspace/.sfmj2",
+  "mode": "0700",
+  "uid": 1000,
+  "dev": "27",
+  "ino": "1879243",
+  "freshCreated": true,
+  "sourceHead": "5e65f4d0355f375ca7fe949b8de15082c043c19a",
+  "sourceCopyRoot": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/copy",
+  "fixtureDirectory": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/fixture",
+  "qaHelperSha256": "731df98adc3d4b421976f016ec23be875c18f2fc62e4a31ccbf0b3b5c185dde5",
+  "freeBytes": "647757824",
+  "scope": "Original Chromiumchildonly temporary leaf; parent TMPDIR/COPY/FIXTURE ownership unchanged."
+}

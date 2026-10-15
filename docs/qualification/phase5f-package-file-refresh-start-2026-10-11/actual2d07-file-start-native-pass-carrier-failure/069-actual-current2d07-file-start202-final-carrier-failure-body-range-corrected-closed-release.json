@@ -1,0 +1,759 @@
+{
+  "status": "CLOSED_RELEASED_NATIVE_FILE_START202_PASS_FINAL_CARRIER_FAILED",
+  "completedAt": "2026-10-11T23:23:17.424827+00:00",
+  "source": {
+    "root": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+    "head": "2d07b57c4e79403099261528ae8988c0072d28c6",
+    "tree": "bf96bbcadd4c4d8a0ada525f639cf768d2d4eb90",
+    "count": 3181
+  },
+  "consumer": {
+    "root": "/tmp/phase5f-package-file-current2d07-native-five-qa-private-attempt1/source",
+    "head": "c316fe89ce79cd9d4d40627763bbe7ed029debbe",
+    "tree": "ba49c84bc748dd70469b9b1462029d8af30b770a",
+    "count": 3186,
+    "allProducer3181Exact": true,
+    "fiveAdditionalOnly": true
+  },
+  "sourceCount": 3181,
+  "qaCount": 3186,
+  "actualNativeCounts": {
+    "passed": 1,
+    "failed": 0,
+    "unrun": 0
+  },
+  "actualCommandCounts": {
+    "passed": 9,
+    "failed": 1,
+    "unrun": 0
+  },
+  "actualToolResponses": 18,
+  "actualCosts": {
+    "setupPOSTs": 6,
+    "readerGETs": 2,
+    "nativeGETs": 9,
+    "nativeMetadataPOSTs": 2,
+    "maxSetupPOSTs": 6,
+    "maxNativePOSTs": 2,
+    "observedAcceptedJobReceipts": 1,
+    "newExecutorSteps": 0
+  },
+  "nativeInitialFocus": {
+    "originalAccept202": true,
+    "acceptedJobId": "04f32d22-3ec7-4ece-8541-b0ba4e813718",
+    "initialJobState": "queued",
+    "startRemoved": true,
+    "immediateNaturalFocus": {
+      "connected": true,
+      "active": true,
+      "body": false,
+      "tag": "BUTTON",
+      "focusVisible": true,
+      "disabled": false
+    },
+    "settledNaturalFocus": {
+      "connected": true,
+      "active": true,
+      "focusVisible": true,
+      "disabled": false
+    }
+  },
+  "geometry": {
+    "width": 1280,
+    "root": 1280,
+    "body": 1280,
+    "theme": "light"
+  },
+  "readerRequests": [
+    {
+      "path": "/api/storage/configuration/capability",
+      "method": "GET",
+      "status": 200,
+      "body": "completed",
+      "sha256": "46cd1fdfbc14df588d9b364855b1d714409c19fef8f0ba099d3de75b51680931"
+    },
+    {
+      "path": "/api/files/migrations",
+      "method": "GET",
+      "status": 403,
+      "body": "completed",
+      "sha256": "0a16fbb05ce68c8224dc59377436923efe3d3f58506874d7b6f4d3234e37dc4d"
+    }
+  ],
+  "readerSSOT": {
+    "originalHelper": {
+      "path": "/tmp/phase5f-package-file-current2d07-native-five-qa-private-attempt1/source/scripts/qa/phase5f/browser-current-package-file-focus-file-start202-natural-focus-keyboard.mjs",
+      "sha256": "11f0e926242a36023418c28d499b289ec7f7c17b7c8404e340a98607331c065d",
+      "bytes": 39872
+    },
+    "orderedPathsStatuses": [
+      {
+        "path": "/api/storage/configuration/capability",
+        "status": 200
+      },
+      {
+        "path": "/api/files/migrations",
+        "status": 403
+      }
+    ],
+    "originalNativeHelperExplicitlyAssertedBothStatusesBodies": true,
+    "bodyRange": "Original helper enforces bytes.length <131072 only; same original response arrayBuffer bytes and SHA256 are observed, no retry/fallback. It does not assert a nonempty lower bound.",
+    "failedCarrierInsteadRequiredBoth200": true
+  },
+  "strictNativeBodies": {
+    "count": 11,
+    "statuses": [
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      200,
+      202,
+      200,
+      200
+    ],
+    "bodyStates": [
+      "completed",
+      "completed",
+      "completed",
+      "completed",
+      "completed",
+      "completed",
+      "completed",
+      "completed",
+      "completed",
+      "completed",
+      "completed"
+    ],
+    "allOriginalBodiesHashRecorded": true,
+    "originalRoutes": {
+      "count": 31,
+      "rejected": 0
+    },
+    "originalBodies": {
+      "count": 11,
+      "rejected": 0
+    },
+    "originalWaits": {
+      "count": 7,
+      "rejected": 0
+    }
+  },
+  "finalCatalog": {
+    "stage": "before-original-Worker-dispose",
+    "onlyExactOneJobOneItemOneHoldAndReleasedPermitsChanged": true,
+    "old6PermitsExact": true,
+    "oldHoldsExact": true,
+    "newReleasedPermits": 2,
+    "jobState": "queued",
+    "jobGeneration": 0,
+    "migrationAttempts": 0,
+    "executorDisabled": true,
+    "sourceBytesExact": true,
+    "targetEmpty": true,
+    "addedRowsSha256": "2b66c1e05ff11088723b4c3f7aede8c00b3626998787d1721f3d0eba5a141936"
+  },
+  "acceptedJobHistory": {
+    "stage": "settled-original-accept202-natural-focus",
+    "onlyExactOneJobOneItemOneHoldAndReleasedPermitsChanged": true,
+    "old6PermitsExact": true,
+    "oldHoldsExact": true,
+    "newReleasedPermits": 2,
+    "jobState": "queued",
+    "jobGeneration": 0,
+    "migrationAttempts": 0,
+    "executorDisabled": true,
+    "sourceBytesExact": true,
+    "targetEmpty": true,
+    "addedRowsSha256": "2b66c1e05ff11088723b4c3f7aede8c00b3626998787d1721f3d0eba5a141936"
+  },
+  "originalFirstNormalACK": {
+    "status": "closed",
+    "browserCloseAwaited": true,
+    "originalPreparationOwnerClosure": {
+      "status": "closed",
+      "startedAt": "2026-10-11T23:20:35.013Z",
+      "originalRequestsAwaited": {
+        "count": 12,
+        "rejected": 0
+      },
+      "workerDisposeAwaited": true,
+      "workerPortRefused": true,
+      "originalOutboundWorkAwaited": {
+        "count": 1,
+        "rejected": 0
+      },
+      "jwksCloseAwaited": true,
+      "jwksPortRefused": true,
+      "completedAt": "2026-10-11T23:20:36.026Z"
+    }
+  },
+  "originalContextCloseAwaited": true,
+  "physicalBefore": {
+    "status": "passed",
+    "groups": 2
+  },
+  "physicalAfter": {
+    "status": "passed",
+    "groups": 5,
+    "originalStateBytesUnchanged": true
+  },
+  "finalCarrierFailure": {
+    "originalCommand": {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/final-source-artifact-input-pins-command.json",
+      "sha256": "056d9a00bdd43f1ea7c2e100af8a67f12cea5e5550898b70b28c1828d3aef8cf",
+      "bytes": 1269
+    },
+    "originalLog": {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/final-source-artifact-input-pins.log",
+      "sha256": "9bca656a91db6dfaa2a2e1dda6b4cfc8441aef52cf0d9d33f6ad444d0e493a1a",
+      "bytes": 649
+    },
+    "stage": "final-source-artifact-input-pins",
+    "line": 133,
+    "originalFinalPinsOutputAbsent": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/final-current2d07-source-and-genuine-start202-pins.json",
+    "wholePipelinePASS": false,
+    "nativeCaseResultRemainsPASS": true,
+    "sourceInputLoopsPassedBeforeReaderOracle": "Carrier reached133 after exact producer/consumer/copied/artifact loops and native normalclose/status checks; no completed finalpins JSON claim"
+  },
+  "allOriginalDirectWaitsReaped": true,
+  "originalCommands": [
+    {
+      "stage": "qualified-current02d-coherent-build-producer-preflight",
+      "status": "PASS",
+      "pid": 1608328,
+      "processGroup": 1608328,
+      "originalStartTicks": "17401899",
+      "startedAt": "2026-10-11T23:19:18.224957+00:00",
+      "endedAt": "2026-10-11T23:19:18.606137+00:00",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "logSha256": "c4160a0c49b75db63594624dca05981b158dcd67cebbe588ffb3e5bebed64e0f"
+    },
+    {
+      "stage": "isolated-copy",
+      "status": "PASS",
+      "pid": 1608715,
+      "processGroup": 1608715,
+      "originalStartTicks": "17403201",
+      "startedAt": "2026-10-11T23:19:31.243972+00:00",
+      "endedAt": "2026-10-11T23:19:32.960789+00:00",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "logSha256": "44ff3c9e7ee9d610f16931f45a6c38d4d56b0ccb8500b3352aa58545556c2bc7"
+    },
+    {
+      "stage": "fresh-two-version-sentinel",
+      "status": "PASS",
+      "pid": 1608795,
+      "processGroup": 1608795,
+      "originalStartTicks": "17403413",
+      "startedAt": "2026-10-11T23:19:33.366989+00:00",
+      "endedAt": "2026-10-11T23:19:35.464329+00:00",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 1608806,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1608795,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 1608806,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1608795,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 1608806,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1608795,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "logSha256": "d75886248c1e82985e076586346541f2f78b76d030b4677029f0fc0b707e7271"
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "status": "PASS",
+      "pid": 1608841,
+      "processGroup": 1608841,
+      "originalStartTicks": "17403663",
+      "startedAt": "2026-10-11T23:19:35.865344+00:00",
+      "endedAt": "2026-10-11T23:19:48.835462+00:00",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 1608857,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1608841,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 1608857,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1608841,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 1608857,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1608841,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "logSha256": "26138ceb0cf9dca1ef18c2cd72fa299a15255445a694cbdd8639b5aee3a3714b"
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "status": "PASS",
+      "pid": 1609464,
+      "processGroup": 1609464,
+      "originalStartTicks": "17405001",
+      "startedAt": "2026-10-11T23:19:49.248749+00:00",
+      "endedAt": "2026-10-11T23:19:50.721004+00:00",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 1609480,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1609464,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 1609480,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1609464,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 1609480,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1609464,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "logSha256": "4e0393ae928a1bd42b3ab3015c5bb59798b9c483fb45f202d0946baa625837d8"
+    },
+    {
+      "stage": "physical-before",
+      "status": "PASS",
+      "pid": 1609527,
+      "processGroup": 1609527,
+      "originalStartTicks": "17405190",
+      "startedAt": "2026-10-11T23:19:51.134209+00:00",
+      "endedAt": "2026-10-11T23:19:52.004342+00:00",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "logSha256": "1913b7a4698a003c4e7dae73630284075fd0967d22227b7afc162d5e2eb25c88"
+    },
+    {
+      "stage": "current-source-build-and-pure24-witness",
+      "status": "PASS",
+      "pid": 1609555,
+      "processGroup": 1609555,
+      "originalStartTicks": "17405317",
+      "startedAt": "2026-10-11T23:19:52.407919+00:00",
+      "endedAt": "2026-10-11T23:19:52.879268+00:00",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "logSha256": "58a003b836270b1a2c7521719aa1c0fbd2b4a96c53448166a32c5fcaa494666d"
+    },
+    {
+      "stage": "original-one-current-file-start202-natural-focus",
+      "status": "PASS",
+      "pid": 1609927,
+      "processGroup": 1609927,
+      "originalStartTicks": "17408416",
+      "startedAt": "2026-10-11T23:20:23.396306+00:00",
+      "endedAt": "2026-10-11T23:20:36.145307+00:00",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "logSha256": "c969399d6ef776e1483f963454f13692997c1bd4bdaa246c5aaf84ab37d310eb"
+    },
+    {
+      "stage": "physical-after",
+      "status": "PASS",
+      "pid": 1610145,
+      "processGroup": 1610145,
+      "originalStartTicks": "17411871",
+      "startedAt": "2026-10-11T23:20:57.947299+00:00",
+      "endedAt": "2026-10-11T23:20:58.853632+00:00",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "logSha256": "77f0471291c4cbd249caffea9ee1e343bb14986efe504c02ec61d787e9505455"
+    },
+    {
+      "stage": "final-source-artifact-input-pins",
+      "status": "FAILED",
+      "pid": 1610173,
+      "processGroup": 1610173,
+      "originalStartTicks": "17412002",
+      "startedAt": "2026-10-11T23:20:59.255104+00:00",
+      "endedAt": "2026-10-11T23:20:59.758898+00:00",
+      "exitCode": 1,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 1,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "logSha256": "9bca656a91db6dfaa2a2e1dda6b4cfc8441aef52cf0d9d33f6ad444d0e493a1a"
+    }
+  ],
+  "nativeKernelGroup": [],
+  "knownExitedKernelZ": [
+    {
+      "pid": 1608806,
+      "state": "Z",
+      "ppid": 1,
+      "processGroup": 1608795,
+      "kernelResourcesExited": true,
+      "fdInspection": "PermissionError",
+      "owningOriginalStage": "fresh-two-version-sentinel"
+    },
+    {
+      "pid": 1608857,
+      "state": "Z",
+      "ppid": 1,
+      "processGroup": 1608841,
+      "kernelResourcesExited": true,
+      "fdInspection": "PermissionError",
+      "owningOriginalStage": "ordinary-actual24-local-migrations"
+    },
+    {
+      "pid": 1609480,
+      "state": "Z",
+      "ppid": 1,
+      "processGroup": 1609464,
+      "kernelResourcesExited": true,
+      "fdInspection": "PermissionError",
+      "owningOriginalStage": "synthetic-template-sentinels-only"
+    }
+  ],
+  "allStageGroupEmptyClaim": false,
+  "FDPermissionUnknownNotZeroClaim": true,
+  "ownedCleanupSignals": [],
+  "rawRefs": [
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/frozen-approved-plan.json",
+      "sha256": "3fbd169fc353cdbcb8722c37d761871983990b2d503ed3064c274b47e3f92b74",
+      "bytes": 21909
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/original-tool-responses.json",
+      "sha256": "85f78258256e9dbe6e5d31469cfd4e8022b1af7d56085797c888e8634dc336db",
+      "bytes": 36043
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight-command.json",
+      "sha256": "150edbfdac43105b7e8e33a8b056569882380f6add907fc711a175f16d908166",
+      "bytes": 1319
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight.log",
+      "sha256": "c4160a0c49b75db63594624dca05981b158dcd67cebbe588ffb3e5bebed64e0f",
+      "bytes": 117
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/isolated-copy-command.json",
+      "sha256": "26ad8e784cd428a74a4327ab5d313df3bdc4b1cba497046aea9e079dbc14e461",
+      "bytes": 1457
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/isolated-copy.log",
+      "sha256": "44ff3c9e7ee9d610f16931f45a6c38d4d56b0ccb8500b3352aa58545556c2bc7",
+      "bytes": 212
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/fresh-two-version-sentinel-command.json",
+      "sha256": "c167e3fc8dfc05f24b093116f74faf377587cca03a0ea95a9d7cddc8f5ca580c",
+      "bytes": 1943
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/fresh-two-version-sentinel.log",
+      "sha256": "d75886248c1e82985e076586346541f2f78b76d030b4677029f0fc0b707e7271",
+      "bytes": 250
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/ordinary-actual24-local-migrations-command.json",
+      "sha256": "c85e92de2bf4a53cfeec2ec71e679138d47f1872b8adcc1e1b383fada701ed70",
+      "bytes": 1923
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/ordinary-actual24-local-migrations.log",
+      "sha256": "26138ceb0cf9dca1ef18c2cd72fa299a15255445a694cbdd8639b5aee3a3714b",
+      "bytes": 149092
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/synthetic-template-sentinels-only-command.json",
+      "sha256": "30d47a3dc8b9f73a927066b2d5fe88766b68f18f0b4ad68ff2e5c7dc023026d2",
+      "bytes": 2023
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/synthetic-template-sentinels-only.log",
+      "sha256": "4e0393ae928a1bd42b3ab3015c5bb59798b9c483fb45f202d0946baa625837d8",
+      "bytes": 2747
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/physical-before-command.json",
+      "sha256": "f7c34241862e2f722d9e8952201b6026b9c6e63b9bc98a7fa1679e14546b8a79",
+      "bytes": 1410
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/physical-before.log",
+      "sha256": "1913b7a4698a003c4e7dae73630284075fd0967d22227b7afc162d5e2eb25c88",
+      "bytes": 177
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/current-source-build-and-pure24-witness-command.json",
+      "sha256": "07c0b25b51b0ef743240381f546b66d8889b23382e5acc5ee0f2c2a5749a6af0",
+      "bytes": 1278
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/current-source-build-and-pure24-witness.log",
+      "sha256": "58a003b836270b1a2c7521719aa1c0fbd2b4a96c53448166a32c5fcaa494666d",
+      "bytes": 222
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/original-one-current-file-start202-natural-focus-command.json",
+      "sha256": "3b30f6239e9c71c8609817032ba066e9057d870b85e5ef6266ad3c1ff3e0b752",
+      "bytes": 2376
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/original-one-current-file-start202-natural-focus.log",
+      "sha256": "c969399d6ef776e1483f963454f13692997c1bd4bdaa246c5aaf84ab37d310eb",
+      "bytes": 314
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/physical-after-command.json",
+      "sha256": "eb2ed92edd44210ebae86c20c7dd38e8d0a7ee2f7eef65dfedf2689746b356a4",
+      "bytes": 1815
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/physical-after.log",
+      "sha256": "77f0471291c4cbd249caffea9ee1e343bb14986efe504c02ec61d787e9505455",
+      "bytes": 191
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/final-source-artifact-input-pins-command.json",
+      "sha256": "056d9a00bdd43f1ea7c2e100af8a67f12cea5e5550898b70b28c1828d3aef8cf",
+      "bytes": 1269
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/final-source-artifact-input-pins.log",
+      "sha256": "9bca656a91db6dfaa2a2e1dda6b4cfc8441aef52cf0d9d33f6ad444d0e493a1a",
+      "bytes": 649
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/current02d-build-new-pure24-native-causal-carry.json",
+      "sha256": "c9577e98bcb88c1ee810d444e440175b5f97d917cf75f56d7242135614162b88",
+      "bytes": 1717
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/chromium-child-temp-owner.json",
+      "sha256": "0b0a0b031d4c32f2af45b120fbab7735a50480f218852c96179ec11f2330ee60",
+      "bytes": 606
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/fixture/process-fixture.json",
+      "sha256": "566eb7121dc1319e8a3c24fbc05ad23ee9701da61cc4f7bfce780b7cc188f0bf",
+      "bytes": 1592
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/fixture/process-fixture.sql",
+      "sha256": "c826b3f63305e0828e2ee11710dc42aa24d19fbde44768a076eb25791a92af76",
+      "bytes": 5579
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/fixture/physical-sqlite-before-api.json",
+      "sha256": "6d25b82047eb945dab2a801d18d14d5ec05fe8269ce8d664e1f388ac35790650",
+      "bytes": 69084
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/fixture/enabled-storage-draft-build-input-witness.json",
+      "sha256": "791a58d3156b89bb74c41e569db839aba19f6c7768f6e3454793756d7f2e98fb",
+      "bytes": 1546
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/fixture/genuine-file-start202-natural-focus-report.json",
+      "sha256": "503b85f232d43207f9d64a14cd97a42a76e6201e06b9441e6fa18a8f4ddd4b0c",
+      "bytes": 85809
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/fixture/genuine-file-start202-natural-focus-stop.json",
+      "sha256": "e11ae7665e958c833f30503badd8ae136b5518fbb5b172bbeeac439691351bd1",
+      "bytes": 500
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/fixture/physical-sqlite-after-current-file-status-refresh-keyboard.json",
+      "sha256": "3012c67a4b95a09601f6ea5bacc7319b1a77d8bac396d3f07070b8ebdac28943",
+      "bytes": 75974
+    },
+    {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/copy/isolation-receipt.json",
+      "sha256": "a793674e1948fbfcef3726ee171cb35fc38769517a6e97d7427600493672b640",
+      "bytes": 480869
+    }
+  ],
+  "actual118Manifest": {
+    "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/fresh-build-artifact-manifest.json",
+    "sha256": "597c4bc6edc4b4174abc45ece58d815f6d6e38e587710b01f267d084a7cfe7ae",
+    "bytes": 14601
+  },
+  "originalBuildRootRelease": {
+    "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/root-one-current2d07-cf-build-full-source-118-artifacts-original-owner-release.json",
+    "sha256": "b1cb83bb82248f03794703e3b1f516ca7a68343e3abab985e4668a4738f75e22",
+    "bytes": 16803
+  },
+  "frozenNativeHandoff": {
+    "path": "/tmp/phase5f-package-file-current2d07-three-native-finite-source-preparation-attempt1/file-start202/source-handoff.json",
+    "sha256": "c63af2d369a1628e57b19b732f32abbaf226e0190d0b5435ad9701ec5f734466",
+    "bytes": 5518
+  },
+  "rootExclusiveGO": {
+    "path": "/tmp/phase5f-package-file-current2d07-three-native-finite-source-preparation-attempt1/file-start202/root-after-package-refresh-full-release-file-start202-exclusive-go.json",
+    "sha256": "1cd358951543f6c92bcf68d9180b5d802392fb4b48dc1b407533e59adb84cc54",
+    "bytes": 2534
+  },
+  "old8beNativeFailureSeparateImmutable": {
+    "sameScenarioOriginal8beFocusFailure": {
+      "path": "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/actual-current8be-file-start202-original-ten-natural-focus-failure-closed-release.json",
+      "sha256": "bbea2bc4aaab95df371a89239794e5e6c813c5cc1514fa4cba86fb26d4200439",
+      "bytes": 43275
+    },
+    "sameScenarioOriginal8beRootRelease": {
+      "path": "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/root-current8be-file-start202-original-ten-natural-focus-failure-full-raw-source-owner-release.json",
+      "sha256": "dd40a814e5e4762af18a125285840c6e17fcfc9d96a5603ad9fd68f8495e2d73",
+      "bytes": 19746
+    },
+    "scope": "Exact prior failed native and accepted history remain immutable in their old independent namespace; no fields or runtime output are borrowed."
+  },
+  "remainingCurrentPackageStart202": "UNRUN; separate rootGO",
+  "newBuilds": 0,
+  "disabled84SeedRequests": 0,
+  "providerExecutionZIPWhole5F": "Not qualified; accepted metadata only",
+  "scope": "Original native File Preview200+accept202/same queuedgen0 onejob/oneitem/onehold+two releasedpermits and naturalsamePause focus before forcedfocus passed atcurrent2d07/c316; exact sourcePNG/targetempty/executorDisabled/old6permits preserved. Whole TEN is9PASS1FAIL because final carrier incorrectly requires reader files/migrations200 whereas original helper expects403. No browser/job/history retry or correction run; failed original preserved.",
+  "formalMetadataCorrection": {
+    "original": {
+      "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/actual-current2d07-file-start202-native-pass-final-carrier-failure-closed-release.json",
+      "sha256": "7da4580761bcf6758695b1fffb0a17ef4427369dcccdb947ebb701efdb5683ae",
+      "bytes": 27304
+    },
+    "soleIncorrectDescription": "Original helper strict nonempty bytes and exclusive128*1024; same original response bytes/hash, no retry/fallback",
+    "actualSourcePredicate": "assert(bytes.length<131072)",
+    "allActualResultsRawRecordsAndOwnersUnchanged": true
+  }
+}

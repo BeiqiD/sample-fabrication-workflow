@@ -1,0 +1,429 @@
+{
+  "kind": "portable-v26-actual-current-business-finite-qualification/1",
+  "status": "FAIL",
+  "sourceHead": "a823dda035109a69d094c9ef51ab308f1f834534",
+  "sourceTree": "656aaabb710615b19bc787889916c131ee31a03f",
+  "workingDirectory": "/tmp/portable-v26-business-e9eb709-private-source",
+  "planSha256": "0c7b23363ba2f08958c133eaba6c7c9cd55ad05580b86d025f05a468e34a91fe",
+  "preflightReceiptSha256": "812a68356e99fc2875c7e6bc1a094275bc03da0dc9e3583ec6113e99ed96a6f6",
+  "startedAt": "2026-10-10T21:23:12.904868+00:00",
+  "runtimeAuthority": "Explicit root conditional exclusive GO, after exact actual913 merge-tree and all source pins verified; Identity/service runtime released.",
+  "initialResources": {
+    "workerdPids": [
+      44327
+    ],
+    "temporaryFixturePaths": {
+      "portable-v26-real-": [],
+      "portable-v26-research-": [],
+      "portable-v25-research-": [],
+      "portable-current-workerd-": [],
+      "fp5-source-lifecycle-": []
+    },
+    "projectSmokePaths": []
+  },
+  "results": [
+    {
+      "index": 1,
+      "kind": "strict",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.server.json"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-10-10T21:23:12.905081+00:00",
+      "log": "/tmp/portable-v26-a823dda-combined-attempt1/01-strict-tsconfig.server.json.log",
+      "expectedCases": null,
+      "childPid": 220952,
+      "exitCode": 0,
+      "durationSeconds": 1.313,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "resourcesAfter": {
+        "workerdPids": [
+          44327
+        ],
+        "temporaryFixturePaths": {
+          "portable-v26-real-": [],
+          "portable-v26-research-": [],
+          "portable-v25-research-": [],
+          "portable-current-workerd-": [],
+          "fp5-source-lifecycle-": []
+        },
+        "projectSmokePaths": []
+      },
+      "ownedResourcesClosed": true,
+      "completedAt": "2026-10-10T21:23:14.262698+00:00"
+    },
+    {
+      "index": 2,
+      "kind": "strict",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.runtime-tests.json"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-10-10T21:23:14.263073+00:00",
+      "log": "/tmp/portable-v26-a823dda-combined-attempt1/02-strict-tsconfig.runtime-tests.json.log",
+      "expectedCases": null,
+      "childPid": 220981,
+      "exitCode": 0,
+      "durationSeconds": 1.074,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "resourcesAfter": {
+        "workerdPids": [
+          44327
+        ],
+        "temporaryFixturePaths": {
+          "portable-v26-real-": [],
+          "portable-v26-research-": [],
+          "portable-v25-research-": [],
+          "portable-current-workerd-": [],
+          "fp5-source-lifecycle-": []
+        },
+        "projectSmokePaths": []
+      },
+      "ownedResourcesClosed": true,
+      "completedAt": "2026-10-10T21:23:15.386321+00:00"
+    },
+    {
+      "index": 3,
+      "kind": "strict",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.worker.json"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-10-10T21:23:15.386547+00:00",
+      "log": "/tmp/portable-v26-a823dda-combined-attempt1/03-strict-tsconfig.worker.json.log",
+      "expectedCases": null,
+      "childPid": 221009,
+      "exitCode": 0,
+      "durationSeconds": 0.94,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "resourcesAfter": {
+        "workerdPids": [
+          44327
+        ],
+        "temporaryFixturePaths": {
+          "portable-v26-real-": [],
+          "portable-v26-research-": [],
+          "portable-v25-research-": [],
+          "portable-current-workerd-": [],
+          "fp5-source-lifecycle-": []
+        },
+        "projectSmokePaths": []
+      },
+      "ownedResourcesClosed": true,
+      "completedAt": "2026-10-10T21:23:16.369788+00:00"
+    },
+    {
+      "index": 4,
+      "kind": "strict",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.app.json"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-10-10T21:23:16.370034+00:00",
+      "log": "/tmp/portable-v26-a823dda-combined-attempt1/04-strict-tsconfig.app.json.log",
+      "expectedCases": null,
+      "childPid": 221037,
+      "exitCode": 0,
+      "durationSeconds": 1.783,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "resourcesAfter": {
+        "workerdPids": [
+          44327
+        ],
+        "temporaryFixturePaths": {
+          "portable-v26-real-": [],
+          "portable-v26-research-": [],
+          "portable-v25-research-": [],
+          "portable-current-workerd-": [],
+          "fp5-source-lifecycle-": []
+        },
+        "projectSmokePaths": []
+      },
+      "ownedResourcesClosed": true,
+      "completedAt": "2026-10-10T21:23:18.199408+00:00"
+    },
+    {
+      "index": 5,
+      "kind": "strict",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.shared.json"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-10-10T21:23:18.199648+00:00",
+      "log": "/tmp/portable-v26-a823dda-combined-attempt1/05-strict-tsconfig.shared.json.log",
+      "expectedCases": null,
+      "childPid": 221148,
+      "exitCode": 0,
+      "durationSeconds": 0.568,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "resourcesAfter": {
+        "workerdPids": [
+          44327
+        ],
+        "temporaryFixturePaths": {
+          "portable-v26-real-": [],
+          "portable-v26-research-": [],
+          "portable-v25-research-": [],
+          "portable-current-workerd-": [],
+          "fp5-source-lifecycle-": []
+        },
+        "projectSmokePaths": []
+      },
+      "ownedResourcesClosed": true,
+      "completedAt": "2026-10-10T21:23:18.816505+00:00"
+    },
+    {
+      "index": 6,
+      "kind": "strict",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.file-jobs-node.json"
+      ],
+      "status": "PASS",
+      "startedAt": "2026-10-10T21:23:18.816844+00:00",
+      "log": "/tmp/portable-v26-a823dda-combined-attempt1/06-strict-tsconfig.file-jobs-node.json.log",
+      "expectedCases": null,
+      "childPid": 221176,
+      "exitCode": 0,
+      "durationSeconds": 0.162,
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "resourcesAfter": {
+        "workerdPids": [
+          44327
+        ],
+        "temporaryFixturePaths": {
+          "portable-v26-real-": [],
+          "portable-v26-research-": [],
+          "portable-v25-research-": [],
+          "portable-current-workerd-": [],
+          "fp5-source-lifecycle-": []
+        },
+        "projectSmokePaths": []
+      },
+      "ownedResourcesClosed": true,
+      "completedAt": "2026-10-10T21:23:19.023694+00:00"
+    },
+    {
+      "index": 7,
+      "kind": "strict",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        ".tsconfig.v26-worker-tests.json"
+      ],
+      "status": "FAIL",
+      "startedAt": "2026-10-10T21:23:19.023993+00:00",
+      "log": "/tmp/portable-v26-a823dda-combined-attempt1/07-strict-.tsconfig.v26-worker-tests.json.log",
+      "expectedCases": null,
+      "childPid": 221205,
+      "exitCode": 1,
+      "durationSeconds": 1.207,
+      "logSha256": "fd4409e0225fdec3bfea2645cc1804577e5fec6f2295b657d11c1d181ce10cf3",
+      "firstActualFailureOutputTail": "worker/projects/service.ts(23,8): error TS6133: 'ReferenceTarget' is declared but its value is never read.\n",
+      "failure": "Actual command exited 1",
+      "resourcesAfter": {
+        "workerdPids": [
+          44327
+        ],
+        "temporaryFixturePaths": {
+          "portable-v26-real-": [],
+          "portable-v26-research-": [],
+          "portable-v25-research-": [],
+          "portable-current-workerd-": [],
+          "fp5-source-lifecycle-": []
+        },
+        "projectSmokePaths": []
+      },
+      "ownedResourcesClosed": true,
+      "completedAt": "2026-10-10T21:23:20.257565+00:00"
+    }
+  ],
+  "historicalD79QualificationBorrowed": false,
+  "noRemoteProviderOrProductionDeployment": true,
+  "provisionalMetadataOnly": true,
+  "currentOperationalNodeCatalogRemainsV25": true,
+  "authoredBudgetsUnchanged": true,
+  "completedAt": "2026-10-10T21:23:20.258021+00:00",
+  "durationSeconds": 7.353,
+  "finalResources": {
+    "workerdPids": [
+      44327
+    ],
+    "temporaryFixturePaths": {
+      "portable-v26-real-": [],
+      "portable-v26-research-": [],
+      "portable-v25-research-": [],
+      "portable-current-workerd-": [],
+      "fp5-source-lifecycle-": []
+    },
+    "projectSmokePaths": []
+  },
+  "unrunCommands": [
+    [
+      "node",
+      "node_modules/typescript/bin/tsc",
+      "-p",
+      ".tsconfig.v26-node-script.json"
+    ],
+    [
+      "node",
+      "node_modules/typescript/bin/tsc",
+      "-p",
+      ".tsconfig.v26-client-tests.json"
+    ],
+    [
+      "node",
+      "node_modules/typescript/bin/tsc",
+      "-p",
+      ".tsconfig.v26-research-tests.json"
+    ],
+    [
+      "node",
+      "node_modules/typescript/bin/tsc",
+      "-p",
+      "tsconfig.export-contract.json"
+    ],
+    [
+      "node",
+      "node_modules/typescript/bin/tsc",
+      "-p",
+      "tsconfig.file-migration.json"
+    ],
+    [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "--maxWorkers=1",
+      "--no-file-parallelism",
+      "--bail=1",
+      "server/recovery/portable-v26-checkpoint.test.ts"
+    ],
+    [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "--maxWorkers=1",
+      "--no-file-parallelism",
+      "--bail=1",
+      "scripts/lib/export-portable-runtime-v26.test.ts"
+    ],
+    [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "--maxWorkers=1",
+      "--no-file-parallelism",
+      "--bail=1",
+      "worker/export-portable-negotiation.test.ts"
+    ],
+    [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "--maxWorkers=1",
+      "--no-file-parallelism",
+      "--bail=1",
+      "src/lib/api-portable-export.test.ts"
+    ],
+    [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "--maxWorkers=1",
+      "--no-file-parallelism",
+      "--bail=1",
+      "worker/recovery/portable-backup-v26-workerd.test.ts"
+    ],
+    [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "--maxWorkers=1",
+      "--no-file-parallelism",
+      "--bail=1",
+      "worker/recovery/portable-backup-current-workerd.test.ts"
+    ],
+    [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "--maxWorkers=1",
+      "--no-file-parallelism",
+      "--bail=1",
+      "scripts/lib/export-portable-runtime.test.ts"
+    ],
+    [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "--maxWorkers=1",
+      "--no-file-parallelism",
+      "--bail=1",
+      "scripts/lib/export-restore-migrations.test.ts"
+    ],
+    [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "--maxWorkers=1",
+      "--no-file-parallelism",
+      "--bail=1",
+      "worker/reference-read.qualification.test.ts"
+    ],
+    [
+      "node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "--maxWorkers=1",
+      "--no-file-parallelism",
+      "--bail=1",
+      "worker/source-lifecycle-routes.test.ts"
+    ],
+    [
+      "node",
+      "--test",
+      "--test-concurrency=1",
+      "scripts/current-schema-source.test.mjs"
+    ],
+    [
+      "node",
+      "--test",
+      "--test-concurrency=1",
+      "scripts/remote-d1-migration-observation.test.mjs"
+    ],
+    [
+      "node",
+      "scripts/verify-project-worker.mjs"
+    ],
+    [
+      "npm",
+      "run",
+      "build"
+    ],
+    [
+      "node",
+      "scripts/verify-project-worker.mjs",
+      "--production-artifact"
+    ]
+  ],
+  "allSourcePinsUnchangedAfter": true,
+  "allOwnedResourcesClosedAfter": true
+}

@@ -1,0 +1,42 @@
+{
+  "status": "ROOT_FINAL_SOURCE_BINDING_CLEAR_NATIVE10_UNRUN_NO_GO",
+  "time": "2026-10-11T12:57:21.669167+00:00",
+  "handoff": {
+    "path": "/workspace/phase5f-file-preview-current-a7-native-copy-gate-final-peer-source-preparation-attempt11/source-handoff.json",
+    "sha256": "e1b8cb31e370873c4ba67fb9edb5208b1f9fe416cdda6d34a27e9dff3c557f01"
+  },
+  "peer": {
+    "path": "/workspace/file-preview-23b8-independent-final-two-peer-literal-seal-source-addendum.json",
+    "sha256": "1c9cb2f6fb49af15a2007860192a72cc13ee1c21ad12994fd67a93046a46ac7c"
+  },
+  "rehashedReferences": {
+    "/workspace/file-preview-23b8-independent-complete-copy-helper-and-three-qa-source-peer.json": "203eff74e677817ce98f75806438bbd4ccf97ef8e8cdf125a1842d001a3f6212",
+    "/workspace/file-preview-23b8-independent-prepared-original-ten-copy-gate-finite-source-peer.json": "95d23db974f2b93b783e940def0d9cb8f3a61a05a45d4c6aefef8a0801807e3f",
+    "/workspace/phase5f-file-preview-current-a7-native-copy-gate-final-peer-source-preparation-attempt11/finite-current-a7-genuine-two-r2-file-preview-ten-plan.json": "5784597f5147dda1181ae77ae3a9698f68d04ed07a6954b96b3b426b2a38048a",
+    "/workspace/phase5f-file-preview-current-a7-native-copy-gate-final-peer-source-preparation-attempt11/run-frozen-owned-stage.py": "7a59dea3668afd87c6537dd7365993d8689ae76a026e584142aa7e860529cb1e",
+    "/workspace/phase5f-file-preview-current-a7-native-copy-gate-final-peer-source-preparation-attempt11/carry-current-a7-genuine-two-r2-file-migration.py": "870c32fd19861733d5be3ce7b627089bc3792a8e29c9811d7ad78d8278a3427f",
+    "/workspace/phase5f-file-preview-current-a7-native-copy-gate-final-peer-source-preparation-attempt11/final-peer-only-complete-inverse-source-proof.json": "8a6b1e125167a53eeb024a89e7e1fec71959c32222b3ef10ce1338b2ff3b822b",
+    "/workspace/phase5f-file-preview-current-a7-one-cf-build-runtime-attempt5/actual-current-a7-one-cf-build-qualified-closed-release.json": "fa44be9a1823fa06b6464c59bbe37e5b30a24d4a32e9692833fe4b8179e52e2a",
+    "/workspace/phase5f-file-preview-current-a7-native-copy-gate-ten-source-preparation-attempt10/source-handoff.json": "cd7f3536e495bbbccef3abfd59c5500ae81ba93cca9661b6311a92e247be511b",
+    "/workspace/phase5f-file-capability-and-r2-contract-source-preparation-attempt6/complete-controller-browser-route-dto-source-audit.json": "92fd4abb693746ab3b428c1f0fc831b410d374572809b18091e65b6033f1db24",
+    "/workspace/file-two-r2-fresh-legacy-f228-private-attempt2/runtime/actual-file-c1cd-genuine-capabilities404-setup-failure-closed-release.json": "5271e9c3b7b0862f611eec2adf04e336c57b4c2c7ade6a867dc72631c29f3e7c",
+    "/workspace/dev270-file-preview-complete-native-helpers-source-preparation-attempt2/source-handoff.json": "daf9ed9349e50a21ddf6737e65c962612ea1fd93cae73a3232e2498e9b457d3c",
+    "/workspace/phase5f-file-preview-current-a7-native-qa-copy-gate-source-preparation-attempt9/source-handoff.json": "d7de99840422bff6f2200508137b0256766dfd05ffd1172b580005d749bb1b7b",
+    "/workspace/file-preview-a7-independent-complete-adoption-and-qa-closure-source-peer.json": "983c8ef9721dc8a6743907e8269b315551cf6e8c8f1358471b4a4b33f5b5c9bc",
+    "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/actual-file6e-genuine-preview200-keyboard-focus-failure-closed-release.json": "cecfb35007e536cbca9eba13dea29bbd05e18db2c745b533add67aa382000849",
+    "/workspace/file-preview-e92-independent-complete-current-qa-source-peer.json": "9327e18114ccb7ef13f02afd32d4bad26fe432c82bb74b6a10f0420e7285196b",
+    "/workspace/file-preview-e92-independent-current-original-ten-finite-source-peer.json": "149c9ed6d2b23d8a5efa98b79bd011f6e777a717a5c8157ddd591e394cb01799",
+    "/workspace/phase5f-cf-copy-f32-independent-command-gate-source-peer.json": "f56f85f07fc6dcc25d8980872913721c696cd558850d086f11bb10d8cfd985c1",
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt4/runtime/actual-current-a7-copy-package-gate-setup-failure-closed-release.json": "738c885e5f2c3f983584723d509c2d0205857b485b276a718c26fafe163563ed",
+    "/workspace/phase5f-file-preview-current-a7-native-copy-gate-final-peer-source-preparation-attempt11/source-handoff.json": "e1b8cb31e370873c4ba67fb9edb5208b1f9fe416cdda6d34a27e9dff3c557f01"
+  },
+  "producerAndConsumerAll2438WorkingGitModesExact": true,
+  "protected2435Exact": true,
+  "closedThreeQaExact": true,
+  "all118CurrentArtifactsExact": true,
+  "runner11Carrier3DefinitionsExactPrepared": true,
+  "wholeMinimalDiffRead": "Plan directory/hash, two real peer bindings and truthful prepared-runtime metadata only; complete source/finite peers read, original10/actions/budgets unchanged. No authored code invoked.",
+  "runtimeOnlyExact0600Plan0700Parent": true,
+  "copyFixtureTmpAbsent": true,
+  "exclusiveGOSeparate": true
+}

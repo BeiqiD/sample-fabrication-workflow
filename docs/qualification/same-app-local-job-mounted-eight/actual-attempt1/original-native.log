@@ -1,0 +1,23 @@
+
+ RUN  v4.1.10 /workspace/portable-current-node-mounted-local-jobs-typed-source-attempt2
+
+ ✓ server/files/jobs/local-runtime.qualification.ts > keeps omitted Job opt-in and the persisted executor disabled on the actual application > keeps omitted Job opt-in and the persisted executor disabled on the actual application 2731ms
+ ✓ server/files/jobs/local-runtime.qualification.ts > mounts current administrator Job HTTP without enabling startup work or shortening the original cadence > mounts current administrator Job HTTP without enabling startup work or shortening the original cadence 2421ms
+ ✓ server/files/jobs/local-runtime.qualification.ts > denies an ordinary authenticated account through the mounted current administrator boundary > denies an ordinary authenticated account through the mounted current administrator boundary 2027ms
+ ✓ server/files/jobs/local-runtime.qualification.ts > executes genuine accepted Local source bytes through one scheduled slot and exact verified cutover > executes genuine accepted Local source bytes through one scheduled slot and exact verified cutover 4061ms
+ ✓ server/files/jobs/local-runtime.qualification.ts > pauses queued accepted history on explicit executor reconfiguration and requires per-job resume > pauses queued accepted history on explicit executor reconfiguration and requires per-job resume 5755ms
+ ✓ server/files/jobs/local-runtime.qualification.ts > refuses a new scheduled source while real recovery is draining without touching queued history > refuses a new scheduled source while real recovery is draining without touching queued history 3558ms
+ ✓ server/files/jobs/local-runtime.qualification.ts > rechecks the real current Job administrator before claim and byte opening > rechecks the real current Job administrator before claim and byte opening 3720ms
+stdout | server/files/jobs/local-runtime.qualification.ts
+Retained explicitly configured Node File application fixture evidence: {
+  directory: '/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/private-fixtures/.node-same-app-local-jobs-9VJLUk'
+}
+
+ ✓ server/files/jobs/local-runtime.qualification.ts > drains the original scheduled Local byte work before its sole application native and physical owner closes > drains the original scheduled Local byte work before its sole application native and physical owner closes 5110ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  15:42:01
+   Duration  34.80s (transform 2.24s, setup 34ms, import 2.80s, tests 31.85s, environment 0ms)
+
+JSON report written to /workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/actual-native.json

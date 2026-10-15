@@ -1,0 +1,457 @@
+{
+  "version": 1,
+  "status": "FAILED-CLOSED-RELEASED",
+  "scope": "Original genuine dual-local-R2 File Migration preview characterization; desktop native keyboard Preview focus FAIL; mobile UNRUN. No executor/transfer/GC/provider/ZIP/main target. Historical f228 build remains historical and byte-bound, no new build.",
+  "completedAt": "2026-10-11T11:44:57.326172+00:00",
+  "qaConsumerHead": "6e531cf0e08069544723958dc0c7500766fd7479",
+  "sourceProducerHead": "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+  "logicalStages": {
+    "total": 10,
+    "passed": 9,
+    "failed": 1,
+    "unrun": 0
+  },
+  "nativeCases": {
+    "passed": 0,
+    "failed": 1,
+    "unrun": 1
+  },
+  "firstFailure": "AssertionError [ERR_ASSERTION]: Keyboard preview should retain focus after its pending original action settles.\n\nfalse !== true\n\n    at caseRun (file:///workspace/phase5f-file-two-r2-original-result-contract-source-attempt8/scripts/qa/phase5f/browser-genuine-two-r2-file-migration-preview.mjs:153:237)\n    at async file:///workspace/phase5f-file-two-r2-original-result-contract-source-attempt8/scripts/qa/phase5f/browser-genuine-two-r2-file-migration-preview.mjs:185:3",
+  "observedSuccessfulPrelude": [
+    {
+      "genuineOriginalPlan200": true,
+      "oneEligibleActualFile": 1,
+      "bytes": 68,
+      "stagingBytes": 340,
+      "maxTransferBytes": 1020,
+      "nativePreviewFocus": {
+        "active": false,
+        "focusVisible": false,
+        "disabled": false
+      }
+    }
+  ],
+  "costs": {
+    "setupPOSTs": 6,
+    "readerGETs": 2,
+    "nativeGETs": 7,
+    "nativePreviewPOSTs": 1,
+    "maxSetupPOSTs": 6,
+    "maxPreviewPOSTs": 2,
+    "newMigrationJobsOrExecutorSteps": 0
+  },
+  "setupPermitEvidence": {
+    "count": 6,
+    "actorSha256": "a0c568ef8e9db85a1f4cbc595c820cf580a06159f7f75715a9b1514a62f68bf8",
+    "kind": "http",
+    "generation": 0,
+    "allReleased": true,
+    "expiryMs": 300000,
+    "rowsSha256": "69910b10324e6d07b77f3f0e14f2ea065e6e56f50ace4c22be0a308121262789"
+  },
+  "nativeReport": {
+    "path": "/workspace/file-two-r2-route-result-f228-private-attempt3/fixture/genuine-two-r2-file-migration-preview-report.json",
+    "sha256": "cb9b66bb5e4e13b6d6a6045ab49e173721bd8c877ca883f28cb133a579b94662",
+    "bytes": 82995
+  },
+  "physicalAfter": {
+    "path": "/workspace/file-two-r2-route-result-f228-private-attempt3/fixture/physical-sqlite-after-two-local-r2-migration-preview.json",
+    "sha256": "7b61af2cc0e7708671e542e867e5e9d4dbd722c687f30f0385e5bc7de3956f31",
+    "bytes": 68768
+  },
+  "finalPins": {
+    "path": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/final-f228-source-and-genuine-two-r2-file-preview-pins.json",
+    "sha256": "7db6b2af144bcaffb70638024fb853267ad206f6e0ff68a8f4fc73416a9bad76",
+    "bytes": 3121
+  },
+  "originalNormalOwnerClosure": {
+    "status": "closed",
+    "browserCloseAwaited": true,
+    "originalPreparationOwnerClosure": {
+      "status": "closed",
+      "startedAt": "2026-10-11T11:43:48.160Z",
+      "originalRequestsAwaited": {
+        "count": 12,
+        "rejected": 0
+      },
+      "workerDisposeAwaited": true,
+      "workerPortRefused": true,
+      "originalOutboundWorkAwaited": {
+        "count": 1,
+        "rejected": 0
+      },
+      "jwksCloseAwaited": true,
+      "jwksPortRefused": true,
+      "completedAt": "2026-10-11T11:43:49.314Z"
+    }
+  },
+  "allDirectChildrenReaped": true,
+  "directChildExitCodes": {
+    "zero": 9,
+    "one": 1
+  },
+  "groupsScope": "Original per-stage groups at close: seven EMPTY, three Z/PPID1 with inaccessible FD metadata and exited kernel resources. No cleanup signals; no global quiescence or observed zero-FD claim.",
+  "commands": [
+    {
+      "path": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/final-source-artifact-input-pins-command.json",
+      "sha256": "8c5aee54334dd6a2ea251b6b6b3b3707fe5950822b9a36f0e008f755fa3ef7a3",
+      "bytes": 1261,
+      "stage": "final-source-artifact-input-pins",
+      "status": "PASS",
+      "pid": 1134178,
+      "processGroup": 1134178,
+      "originalStartTicks": "13230482",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "originalOwnedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "log": {
+        "path": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/final-source-artifact-input-pins.log",
+        "sha256": "ad52b9ce593de734db53249bb841596bbf00d7e1696e6d19ee015c9c0cb48f81",
+        "bytes": 207
+      }
+    },
+    {
+      "path": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/fresh-two-version-sentinel-command.json",
+      "sha256": "8beab49a445a0b94130405233b1435098356decb02424d04ed1884f5029177af",
+      "bytes": 1900,
+      "stage": "fresh-two-version-sentinel",
+      "status": "PASS",
+      "pid": 1133406,
+      "processGroup": 1133406,
+      "originalStartTicks": "13222552",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "originalOwnedClosure": {
+        "before": [
+          {
+            "pid": 1133417,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1133406,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 1133417,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1133406,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 1133417,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1133406,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "log": {
+        "path": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/fresh-two-version-sentinel.log",
+        "sha256": "4d8a2d7fd6c7fdf4bef7120e2f6ef7f4f242543061ce67db069758719f24b1cd",
+        "bytes": 228
+      }
+    },
+    {
+      "path": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/historical-current-source-build-and-pure24-witness-command.json",
+      "sha256": "21d32fe376d5aa469b851d1a8f00388a250c8d8002abb7e18dc595c71d2f36c8",
+      "bytes": 1294,
+      "stage": "historical-current-source-build-and-pure24-witness",
+      "status": "PASS",
+      "pid": 1133906,
+      "processGroup": 1133906,
+      "originalStartTicks": "13227331",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "originalOwnedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "log": {
+        "path": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/historical-current-source-build-and-pure24-witness.log",
+        "sha256": "2accda108d4c6762a9a426388c83d95e2cbf3c9d7a6f20ba31ffd4fd1d90ebbc",
+        "bytes": 204
+      }
+    },
+    {
+      "path": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/isolated-copy-command.json",
+      "sha256": "6b35594da70f4a40fe27c32368b67382f1015be74f0e4935841a0d35363b7dc6",
+      "bytes": 1421,
+      "stage": "isolated-copy",
+      "status": "PASS",
+      "pid": 1133320,
+      "processGroup": 1133320,
+      "originalStartTicks": "13221775",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "originalOwnedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "log": {
+        "path": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/isolated-copy.log",
+        "sha256": "309b9e5865e29b7a6dcfd2636f1446b6666db878d5e4737adc66060ab4f73d89",
+        "bytes": 201
+      }
+    },
+    {
+      "path": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/ordinary-actual24-local-migrations-command.json",
+      "sha256": "d15d4f85f2d0df4a646c51bc84ff2cab62faf200569e014d0cfd00d8bee9d6c7",
+      "bytes": 2014,
+      "stage": "ordinary-actual24-local-migrations",
+      "status": "PASS",
+      "pid": 1133448,
+      "processGroup": 1133448,
+      "originalStartTicks": "13223263",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "originalOwnedClosure": {
+        "before": [
+          {
+            "pid": 1133464,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1133448,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 1133464,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1133448,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 1133464,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1133448,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "log": {
+        "path": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/ordinary-actual24-local-migrations.log",
+        "sha256": "a4c2ee4f147f8110883945240afdfc2a2814e352b98694a6814440398a2d4360",
+        "bytes": 147956
+      }
+    },
+    {
+      "path": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/original-two-local-r2-file-migration-previews-command.json",
+      "sha256": "f32fdaea76a38426166eaa51cd990cfb91c44356da64a889785d1290b0a49d02",
+      "bytes": 2353,
+      "stage": "original-two-local-r2-file-migration-previews",
+      "status": "FAILED",
+      "pid": 1133947,
+      "processGroup": 1133947,
+      "originalStartTicks": "13227918",
+      "exitCode": 1,
+      "directChildReaped": true,
+      "originalOwnedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 1,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "log": {
+        "path": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/original-two-local-r2-file-migration-previews.log",
+        "sha256": "18ca8a260ef118c9b5e8b41ab4d5c1fbb7d41fe27dbe46d56216a2bd144aefbb",
+        "bytes": 300
+      }
+    },
+    {
+      "path": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/physical-after-command.json",
+      "sha256": "5528264c0ab2c5cb09532eba180e19a764d1b555f37267c7aebeced8515afd85",
+      "bytes": 1707,
+      "stage": "physical-after",
+      "status": "PASS",
+      "pid": 1134154,
+      "processGroup": 1134154,
+      "originalStartTicks": "13230062",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "originalOwnedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "log": {
+        "path": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/physical-after.log",
+        "sha256": "9e968599f66a9e4b307b91f8dd6f384b959436e3837fc029514923836a11348d",
+        "bytes": 174
+      }
+    },
+    {
+      "path": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/physical-before-command.json",
+      "sha256": "10b9c8a9972e15dbd1436d29fefe1de01c22b5ac81bddc1b5b657a407cf67b57",
+      "bytes": 1367,
+      "stage": "physical-before",
+      "status": "PASS",
+      "pid": 1133882,
+      "processGroup": 1133882,
+      "originalStartTicks": "13226898",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "originalOwnedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "log": {
+        "path": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/physical-before.log",
+        "sha256": "c81cd6f60626abe823939c2c472e0988fb4b17c0c443d350381981683dc090ce",
+        "bytes": 166
+      }
+    },
+    {
+      "path": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/qualified-original-f228-build-producer-preflight-command.json",
+      "sha256": "35e3bcd8cd02be0c043cbf228b78212fff19af44f68e24ac077515d9e26c3a52",
+      "bytes": 1301,
+      "stage": "qualified-original-f228-build-producer-preflight",
+      "status": "PASS",
+      "pid": 1133237,
+      "processGroup": 1133237,
+      "originalStartTicks": "13220877",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "originalOwnedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "log": {
+        "path": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/qualified-original-f228-build-producer-preflight.log",
+        "sha256": "44ebaa303713644672cafc49cfee64773c540ef7c1a048848ffbc026de299230",
+        "bytes": 99
+      }
+    },
+    {
+      "path": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/synthetic-template-sentinels-only-command.json",
+      "sha256": "d4d1d1408f9f1d9664fece2435df986abe14eead5b1b583a9aed999aa97f802c",
+      "bytes": 2103,
+      "stage": "synthetic-template-sentinels-only",
+      "status": "PASS",
+      "pid": 1133795,
+      "processGroup": 1133795,
+      "originalStartTicks": "13226128",
+      "exitCode": 0,
+      "directChildReaped": true,
+      "originalOwnedClosure": {
+        "before": [
+          {
+            "pid": 1133811,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1133795,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 1133811,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1133795,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 1133811,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1133795,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "log": {
+        "path": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/synthetic-template-sentinels-only.log",
+        "sha256": "769fd6f5b6fa2aecf50f3c9e6e84a4965331da91d3f65aac244d47ad083c4359",
+        "bytes": 1611
+      }
+    }
+  ],
+  "sourcePeer": {
+    "path": "/workspace/file6e531-independent-complete-dual-r2-route-contract-source-peer.json",
+    "sha256": "bfe16ba97609e297b4b6e722fc92eef0dca37e9531695ad0ec1de884887221d5"
+  },
+  "finalBindingPeer": {
+    "path": "/workspace/file6e531-final-ten-independent-cross-file-mature-binding-source-addendum.json",
+    "sha256": "daaf19069fb58f60c4598a4250eb08ab36184e313210f26fc7c568d02d821e9f"
+  },
+  "closure": "CLOSED",
+  "runtimeWindow": "RELEASED"
+}

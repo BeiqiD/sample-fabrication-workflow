@@ -1,0 +1,109 @@
+{
+  "patchSha256": "32470aaae1fd310406a37e7bc5bbd4ab0cce2267b23d858117c050b31e59205a",
+  "scope": {
+    "actualMetadataOperations": 4,
+    "productionFiles": 4,
+    "testFiles": 2,
+    "ddlChanges": false,
+    "runtimeAppMounted": false,
+    "liveEdits": false
+  },
+  "types": [
+    {
+      "command": "node node_modules/typescript/bin/tsc -p tsconfig.worker.json",
+      "exitCode": 0
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc -p tsconfig.server.json",
+      "exitCode": 0
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc --ignoreConfig --noEmit --target ES2022 --lib ES2022 --module ESNext --moduleResolution Bundler --strict --skipLibCheck --noUnusedLocals --noUnusedParameters --types node worker/samples/metadata-service.ts worker/samples/metadata-surface.ts",
+      "exitCode": 0
+    },
+    {
+      "command": "node node_modules/typescript/bin/tsc --ignoreConfig --noEmit --target ES2022 --lib ES2022 --module ESNext --moduleResolution Bundler --strict --skipLibCheck --noUnusedLocals --noUnusedParameters --types node,@cloudflare/workers-types worker/sample-description-update.test.ts",
+      "exitCode": 0
+    }
+  ],
+  "preservedInitialFailures": [
+    {
+      "kind": "Worker strict types",
+      "diagnostic": "metadata-surface.ts lines15/19/23: string|undefined passed to required id",
+      "fix": "Explicit literal Hono context path types; no casts",
+      "qualified": true
+    },
+    {
+      "kind": "TypeScript CLI",
+      "diagnostic": "TS5112: config present with explicit files; use --ignoreConfig",
+      "fix": "Explicit --ignoreConfig argument",
+      "qualified": true
+    },
+    {
+      "kind": "New Node HTTP expected audit count",
+      "diagnostic": "Expected2events butactual3: existing pinned trigger generates status audit on false-to-true update",
+      "fix": "Added exact Sample pinned/actor assertion, expecteddeletecount3; no production/old-test/deadline changes",
+      "qualified": true,
+      "log": "/tmp/rt1-sample-metadata-finite44-attempt1.log"
+    }
+  ],
+  "sourceCorrections": [
+    {
+      "finding": "Retained samples.pinned schema has permissive affinity, with no 0/1 CHECK; original uses Boolean",
+      "fix": "Keep exact-cell Boolean truthiness rather than narrowing historical SQL cells; normal writes remain0/1",
+      "runtimeQualified": true
+    }
+  ],
+  "runtime": {
+    "status": "qualified_bounded44_window_released",
+    "nodeVersion": "v24.19.0",
+    "attempts": [
+      {
+        "command": "node node_modules/vitest/vitest.mjs run server/sample-metadata.test.ts worker/sample-description-update.test.ts worker/sample-input-routes.test.ts worker/sample-update.test.ts",
+        "exitCode": 1,
+        "files": 4,
+        "passedCases": 43,
+        "failedCases": 1,
+        "totalCases": 44,
+        "seconds": 11.51,
+        "log": "/tmp/rt1-sample-metadata-finite44-attempt1.log",
+        "failure": "New Node four-route test expected2deleteevents; actual3includes existing samples_pinned_history audit"
+      },
+      {
+        "command": "node node_modules/vitest/vitest.mjs run server/sample-metadata.test.ts",
+        "exitCode": 0,
+        "files": 1,
+        "passedCases": 8,
+        "failedCases": 0,
+        "totalCases": 8,
+        "seconds": 3.23,
+        "log": "/tmp/rt1-sample-metadata-node8-correction.log"
+      }
+    ],
+    "qualifiedCases": 44,
+    "qualifiedNodeCases": 8,
+    "qualifiedGenuineWorkerCases": 3,
+    "qualifiedUnchangedInputCases": 30,
+    "qualifiedUnchangedAuditCases": 3,
+    "productionSourceUnchangedBetweenAttempts": true,
+    "existingAssertionsUnchanged": true,
+    "deadlinesWidened": false,
+    "nativeSetupHookMs": 30000,
+    "nativeSetupHookIsNew": true,
+    "originalPerCaseDeadlinesChanged": false,
+    "disposal": {
+      "vitestSessions": [
+        60083,
+        59886
+      ],
+      "bothExited": true,
+      "genuineWorkerMiniflareDisposeAwaited": true,
+      "ownedNodeHttpCloseAwaited": true,
+      "ownedSqliteCoresClosed": true,
+      "ownedPrivateFixtureDirectoriesRemaining": []
+    },
+    "windowReleasedToParent": true
+  },
+  "independentReview": "pending; peer prioritizing root V25 inventory",
+  "initialFrozenPatchSha256": "976f4087d7dc8ef356a64a0984f692f1d3e348d1c17c14675ea9defdffb0b7e9"
+}

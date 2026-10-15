@@ -1,0 +1,18 @@
+{
+  "sessionId": "967fbe26-c0d5-4949-9862-33466c21d61c",
+  "startedAt": "2026-10-11T07:53:34.589Z",
+  "status": "closed",
+  "originalSharedWorkBeforeDisableAwaited": 1,
+  "originalDisableAwaited": true,
+  "originalSharedWorkAwaited": {
+    "count": 2,
+    "rejected": 0
+  },
+  "originalApplicationCatalogRowsPermitsAndAcceptedHistoryVerified": true,
+  "executorDisabledReadBack": true,
+  "workerDisposeAwaited": true,
+  "workerPortRefused": true,
+  "jwksCloseAwaited": true,
+  "jwksPortRefused": true,
+  "completedAt": "2026-10-11T07:53:36.937Z"
+}

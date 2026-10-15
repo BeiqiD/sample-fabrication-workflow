@@ -1,0 +1,21 @@
+--- a/worker/evidence/legacy-routes.ts
++++ b/worker/evidence/legacy-routes.ts
+@@ -80,8 +80,8 @@
+        WHERE rs.updated_at = q.expected_updated_at
+      )
+      INSERT INTO run_step_comments
+-       (id, run_step_id, scope, operation_group_id, body, legacy_body, asset_id, actor_email, created_at)
+-     SELECT valid.comment_id, valid.step_id, ?, ?, ?, ?, ?, ?, ?
++       (id, run_step_id, scope, operation_group_id, legacy_body, asset_id, actor_email, created_at)
++     SELECT valid.comment_id, valid.step_id, ?, ?, ?, ?, ?, ?
+      FROM valid
+      WHERE (SELECT COUNT(*) FROM valid) = ?
+      RETURNING id`,
+@@ -89,7 +89,6 @@
+     ...requestedBindings,
+     input.scope,
+     operationGroupId,
+-    body,
+     body,
+     commentAsset?.id ?? null,
+     userEmail,

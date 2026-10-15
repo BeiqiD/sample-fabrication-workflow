@@ -1,0 +1,46 @@
+[
+  {
+    "stage": "affected-app-strict",
+    "kind": "exec",
+    "result": {
+      "chunk_id": "c2ee2e",
+      "wall_time_seconds": 1.000692883,
+      "session_id": 50002,
+      "original_token_count": 30,
+      "output": "{\"stage\": \"affected-app-strict\", \"ownedPid\": 1600693, \"ownedProcessGroup\": 1600693, \"originalStartTicks\": \"17250918\"}\n"
+    }
+  },
+  {
+    "stage": "affected-app-strict",
+    "kind": "same-original-wait",
+    "result": {
+      "chunk_id": "b4aa48",
+      "wall_time_seconds": 0.000031828,
+      "exit_code": 0,
+      "original_token_count": 256,
+      "output": "{\"stage\": \"affected-app-strict\", \"cwd\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source\", \"argv\": [\"node\", \"node_modules/typescript/bin/tsc\", \"-p\", \"tsconfig.app.json\"], \"env\": {\"TMPDIR\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1\", \"SQLITE_TMPDIR\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1\"}, \"startedAt\": \"2026-10-11T22:54:08.412062+00:00\", \"status\": \"PASS\", \"log\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/affected-app-strict.log\", \"pid\": 1600693, \"processGroup\": 1600693, \"originalStartTicks\": \"17250918\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [], \"after\": [], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": []}, \"endedAt\": \"2026-10-11T22:54:10.262815+00:00\", \"logSha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"}\n\n"
+    }
+  },
+  {
+    "stage": "affected-package-file-mounted-files",
+    "kind": "exec",
+    "result": {
+      "chunk_id": "682735",
+      "wall_time_seconds": 1.001221802,
+      "session_id": 69683,
+      "original_token_count": 34,
+      "output": "{\"stage\": \"affected-package-file-mounted-files\", \"ownedPid\": 1600790, \"ownedProcessGroup\": 1600790, \"originalStartTicks\": \"17252223\"}\n"
+    }
+  },
+  {
+    "stage": "affected-package-file-mounted-files",
+    "kind": "same-original-wait",
+    "result": {
+      "chunk_id": "c3c131",
+      "wall_time_seconds": 0.000046108,
+      "exit_code": 0,
+      "original_token_count": 455,
+      "output": "{\"stage\": \"affected-package-file-mounted-files\", \"cwd\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source\", \"argv\": [\"node\", \"node_modules/vitest/vitest.mjs\", \"run\", \"--config\", \"vitest.mounted.config.ts\", \"src/file-migrations.mount.test.tsx\", \"src/research-packages.mount.test.tsx\", \"--maxWorkers\", \"1\", \"--bail\", \"1\"], \"env\": {\"TMPDIR\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1\", \"SQLITE_TMPDIR\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1\"}, \"cases\": 59, \"originalTestTimeoutMs\": 5000, \"caseCounts\": {\"fileMigrations\": 19, \"researchPackages\": 40}, \"scope\": \"Original15 File+34 Package; new4+6 meaningful deferred/no-steal/stale focus checks. All original fixture inverse exact except one stricter manual Refresh expected target. Whole two files once, original default5/max1/bail1. No Storage37 repeat.\", \"startedAt\": \"2026-10-11T22:54:21.460595+00:00\", \"status\": \"PASS\", \"log\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/affected-package-file-mounted-files.log\", \"pid\": 1600790, \"processGroup\": 1600790, \"originalStartTicks\": \"17252223\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [], \"after\": [], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": []}, \"endedAt\": \"2026-10-11T22:54:25.863906+00:00\", \"logSha256\": \"022bc02aa26ac5d3cbafe481beff624febb5db86f1901ab27110e0766277baeb\"}\n\n RUN  v4.1.10 /tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source\n\n\n Test Files  2 passed (2)\n      Tests  59 passed (59)\n   Start at  22:54:21\n   Duration  4.02s (transform 391ms, setup 0ms, import 622ms, tests 2.64s, environment 551ms)\n\n\n"
+    }
+  }
+]

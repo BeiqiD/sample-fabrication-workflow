@@ -1,0 +1,47 @@
+{
+  "scope": "Node private-file keyring capability prototype; no installation/application composition or real credential input",
+  "patch": {
+    "path": "/tmp/portable-rt4-keyring-file-qualified.patch",
+    "sha256": "7b746f09d29e1802e3a438147a3dc2baa2d2caae7052fcec1c5d6ba279a9b3ed"
+  },
+  "sourceFiles": {
+    "server/auth/storage-keyring-file.ts": "c90d78bded99c7c88a4b86bb2578d408b2eddb6e4d82c39432f96314c716fcb9",
+    "server/auth/storage-keyring-file.test.ts": "20a394888cb97cf8144f174ca5ab74fd8374b7ef384942765daa8c8a54cc5d1b"
+  },
+  "dependency": {
+    "owner": "/root/project_retry_review",
+    "file": "worker/storage/credential-envelope.ts",
+    "change": "Node-compatible CryptoKey type alias only; same version1 parser/AES-GCM/AAD/key retention semantics"
+  },
+  "strictNodeTypes": "PASS /tmp/portable-rt4-keyring-types-attempt6.log",
+  "runtimeTests": {
+    "attempt1": "FAIL 8 failed,2 passed/10;344ms; actual root UID65534 mode0755 rejects ancestor currentUID1000/root0 policy before opening file",
+    "log": "/tmp/portable-rt4-keyring-file-runtime-attempt1.log",
+    "status": "STOPPED and slot explicitly released; no policy/test/deadline relaxation; parent deciding explicit reviewed filesystem root-owner policy",
+    "retry": {
+      "result": "PASS11/11,1file,366ms,exit0",
+      "log": "/tmp/portable-rt4-keyring-file-runtime-attempt2.log",
+      "exactCommand": "./node_modules/.bin/vitest run --config vitest.config.ts server/auth/storage-keyring-file.test.ts",
+      "cwd": "/workspace/portable-rt4-keyring-qualification",
+      "exclusiveWindow": "Parent explicit GO; finite retry exited; runtime slot explicitly released; no active runner",
+      "fixtureCleanup": "Actual synthetic keyring fixture directories and aliases removed"
+    }
+  },
+  "peerReview": "PASS bounded read-only sqlite_adapter_review after explicit root-owner pin delta; no reviewer edits or reruns",
+  "explicitLimits": [
+    "Linux local filesystem/canonical configured path; current-user private0400/0600 regular one-link file; non-root ancestors current-user/root0-owned and no group/other write; exact filesystem root defaultsUID0 or explicit bounded immutable deployment pin, never stat-derived production trust",
+    "Not protection from host administrator or another process with service UID/mount replacement",
+    "Transient JS raw JSON strings are GC-managed, buffers erased; no whole-process zeroization claim",
+    "No key generation/provisioning/cache/fallback/retirement policy or application authentication/settings activation",
+    "Foreign UID negative case has not been executed; tests run under ordinary workspace user only"
+  ],
+  "patchApplyCheck": "PASS against relocated parent private /workspace/portable-next-integration-7cdee51, no mutation",
+  "qualificationFilesystem": {
+    "path": "/workspace/portable-rt4-keyring-qualification",
+    "rootOwnerUid": 65534,
+    "rootMode": "0755",
+    "workspaceOwnerUid": 1000,
+    "trustedTestComposerConfig": "filesystemRootOwnerUid65534 explicitly passed by fixture, never a production fallback"
+  },
+  "installationComposition": "UNIMPLEMENTED; actual configured keyring input/provisioning/bootstrap/app activation/publicTLS remain separately owned"
+}

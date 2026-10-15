@@ -1,0 +1,2 @@
+{"status":"ready","baseUrl":"http://127.0.0.1:4219/","receiptPath":"/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11/isolated-server-receipt.json","sourceHead":"f88fffea3ba0654b52ca90ee87efdafdb70cd48c","sessionId":"3923564d-c126-4a79-ade6-c6bb5a1d0633","control":"Send stop on stdin and await exit."}
+{"status":"stopped","stopReceiptPath":"/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11/isolated-server-stop-receipt.json","sessionId":"3923564d-c126-4a79-ade6-c6bb5a1d0633"}

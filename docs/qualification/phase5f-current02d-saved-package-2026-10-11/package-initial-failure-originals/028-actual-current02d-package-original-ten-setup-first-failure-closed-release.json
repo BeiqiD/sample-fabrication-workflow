@@ -1,0 +1,528 @@
+{
+  "status": "FAILED",
+  "formalState": "CLOSED/RELEASED",
+  "completedAt": "2026-10-11T17:09:57.184088+00:00",
+  "domain": "package",
+  "sourceHead": "02d6dfbe5f2bd98847b3d6f509c219de5ad816ad",
+  "sourceTree": "40f4a540901e7c49d28184bb8b27a1f808b4f6b8",
+  "qaConsumerHead": "a4d80bc69cce4e366ab7a7c6d2a4a61ca13b22fd",
+  "qaConsumerTree": "40e2bff88806f2d439089d40346654794a4141e1",
+  "originalStagesOnce": [
+    {
+      "stage": "qualified-current02d-coherent-build-producer-preflight",
+      "status": "PASS",
+      "pid": 1386791,
+      "originalStartTicks": "15152889",
+      "exitCode": 0,
+      "logSha256": "3cdc53eb58a874d63edb9b707f58cfa2f802fd75cc9892e72330fb84f24aef10"
+    },
+    {
+      "stage": "isolated-copy",
+      "status": "PASS",
+      "pid": 1386878,
+      "originalStartTicks": "15154036",
+      "exitCode": 0,
+      "logSha256": "52a2b6661a422c37ed9619bd11d00100a30ae228eabdb05a8a2b5d44b3d0ee8d"
+    },
+    {
+      "stage": "fresh-two-version-sentinel",
+      "status": "PASS",
+      "pid": 1387123,
+      "originalStartTicks": "15159549",
+      "exitCode": 0,
+      "logSha256": "7d4f377384381324ad092e0600cf5d5c61e08a266627aea9034d41fc1b3da2e3"
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "status": "PASS",
+      "pid": 1387323,
+      "originalStartTicks": "15168129",
+      "exitCode": 0,
+      "logSha256": "49c7d82e3fab01d8e4dd2d6e675550b74765cef12cf745f0e1de7813c31d5fba"
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "status": "PASS",
+      "pid": 1387765,
+      "originalStartTicks": "15174958",
+      "exitCode": 0,
+      "logSha256": "427594d39c2112a70f9115333a2c3d2f1fa656e5dc3f74d9391a50a196a062b4"
+    },
+    {
+      "stage": "physical-before",
+      "status": "PASS",
+      "pid": 1387833,
+      "originalStartTicks": "15177270",
+      "exitCode": 0,
+      "logSha256": "3c0382ac3f004f55afaa824e00a3f569b2bbe771c618fedc13467c39e32fa0f8"
+    },
+    {
+      "stage": "current-source-build-and-pure24-witness",
+      "status": "PASS",
+      "pid": 1387859,
+      "originalStartTicks": "15177394",
+      "exitCode": 0,
+      "logSha256": "1491a71d7ab1b8b4f0e09c0c09cd1e0412647385ea5c070209713fbb03204fb1"
+    },
+    {
+      "stage": "original-one-current-package-saved-job-keyboard",
+      "status": "FAILED",
+      "pid": 1387905,
+      "originalStartTicks": "15177889",
+      "exitCode": 1,
+      "logSha256": "67e0d8dbd64ae6bd841589e51fa31c9cd4e8f00abde8416d36d198d0135c5c38"
+    },
+    {
+      "stage": "physical-after",
+      "status": "PASS",
+      "pid": 1387969,
+      "originalStartTicks": "15179582",
+      "exitCode": 0,
+      "logSha256": "01b4e4707db982934f3e107dc03c21492b21a1348d682fcba6a6876098055c17"
+    },
+    {
+      "stage": "final-source-artifact-input-pins",
+      "status": "PASS",
+      "pid": 1388003,
+      "originalStartTicks": "15180107",
+      "exitCode": 0,
+      "logSha256": "dbcdb4cf7553baef580b0d1706294e740242e57d94a0dafc3cce2fa3ceb35756"
+    }
+  ],
+  "nativeCases": {
+    "passed": 0,
+    "failed": 0,
+    "unrun": 1,
+    "caseStarted": false
+  },
+  "firstFailure": "AssertionError [ERR_ASSERTION]: file_shadow_control\n+ actual - expected\n\n  {\n    count: 1,\n+   sha256: '07e42706ce7226314ea631ebf3711dc73c445e4c67c0f7ea2601219a19696fe9'\n-   sha256: '177688b2e6b77153636997e122347b724967165f34195d55ffae3d598c477d71'\n  }\n\n    at prepareSample (file:///workspace/phase5f-coherent-saved-package-native-qa-source-attempt1/scripts/qa/phase5f/browser-current-coherent-package-saved-job-keyboard.mjs:116:140)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///workspace/phase5f-coherent-saved-package-native-qa-source-attempt1/scripts/qa/phase5f/browser-current-coherent-package-saved-job-keyboard.mjs:284:3",
+  "actualCosts": {
+    "setupPOSTs": 7,
+    "readerGETs": 0,
+    "nativeGETs": 0,
+    "nativeMetadataPOSTs": 0,
+    "ordinaryResearchPreparationPOSTs": 1,
+    "maxSetupPOSTs": 7,
+    "maxNativePOSTs": 5,
+    "maxTotalPOSTs": 12,
+    "observedAcceptedJobReceipts": 0,
+    "newExecutorSteps": 0
+  },
+  "ordinarySamplePreparation": {
+    "path": "/api/samples",
+    "method": "POST",
+    "startedAt": "2026-10-11T17:08:44.271Z",
+    "state": "accepted",
+    "status": 201,
+    "responseSha256": "62382e3cd579b6c1b04abf4b1c19232d918ea1ab87cb6c26865ce99735c66054",
+    "body": "completed",
+    "completedAt": "2026-10-11T17:08:45.529Z",
+    "exactOriginalReleasedPermit": {
+      "id": "8a4c19e4-54ab-47f7-a69c-a63f20ba8bf4",
+      "sha256": "40c3ad54265f9a36e37decb1d33e85605e40ffa02a7763a6aee2008d4d3cf63a",
+      "allEarlierRowsExact": true,
+      "requestWindowMatched": true
+    }
+  },
+  "normalOwnedClosure": {
+    "status": "failed",
+    "noReturnedBrowserHandle": true,
+    "finalCatalogError": "AssertionError [ERR_ASSERTION]: events\n+ actual - expected\n\n  {\n+   count: 1,\n+   sha256: '90728c465b6dc88de7022f5e4f29d01bb1b3c214eee31ea95dfb989355f0fab2'\n-   count: 0,\n-   sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'\n  }\n\n    at verifyAcceptedHistory (file:///workspace/phase5f-coherent-saved-package-native-qa-source-attempt1/scripts/qa/phase5f/browser-current-coherent-package-saved-job-keyboard.mjs:130:88)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///workspace/phase5f-coherent-saved-package-native-qa-source-attempt1/scripts/qa/phase5f/browser-current-coherent-package-saved-job-keyboard.mjs:303:37",
+    "originalPreparationOwnerClosure": {
+      "status": "closed",
+      "startedAt": "2026-10-11T17:08:47.824Z",
+      "originalRequestsAwaited": {
+        "count": 12,
+        "rejected": 0
+      },
+      "workerDisposeAwaited": true,
+      "workerPortRefused": true,
+      "originalOutboundWorkAwaited": {
+        "count": 1,
+        "rejected": 0
+      },
+      "jwksCloseAwaited": true,
+      "jwksPortRefused": true,
+      "completedAt": "2026-10-11T17:08:48.919Z"
+    }
+  },
+  "allOriginalCommandOwners": [
+    {
+      "stage": "qualified-current02d-coherent-build-producer-preflight",
+      "pid": 1386791,
+      "originalStartTicks": "15152889",
+      "closure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      }
+    },
+    {
+      "stage": "isolated-copy",
+      "pid": 1386878,
+      "originalStartTicks": "15154036",
+      "closure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      }
+    },
+    {
+      "stage": "fresh-two-version-sentinel",
+      "pid": 1387123,
+      "originalStartTicks": "15159549",
+      "closure": {
+        "before": [
+          {
+            "pid": 1387134,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1387123,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 1387134,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1387123,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 1387134,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1387123,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      }
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "pid": 1387323,
+      "originalStartTicks": "15168129",
+      "closure": {
+        "before": [
+          {
+            "pid": 1387339,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1387323,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 1387339,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1387323,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 1387339,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1387323,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      }
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "pid": 1387765,
+      "originalStartTicks": "15174958",
+      "closure": {
+        "before": [
+          {
+            "pid": 1387781,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1387765,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 1387781,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1387765,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 1387781,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1387765,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      }
+    },
+    {
+      "stage": "physical-before",
+      "pid": 1387833,
+      "originalStartTicks": "15177270",
+      "closure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      }
+    },
+    {
+      "stage": "current-source-build-and-pure24-witness",
+      "pid": 1387859,
+      "originalStartTicks": "15177394",
+      "closure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      }
+    },
+    {
+      "stage": "original-one-current-package-saved-job-keyboard",
+      "pid": 1387905,
+      "originalStartTicks": "15177889",
+      "closure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 1,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      }
+    },
+    {
+      "stage": "physical-after",
+      "pid": 1387969,
+      "originalStartTicks": "15179582",
+      "closure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      }
+    },
+    {
+      "stage": "final-source-artifact-input-pins",
+      "pid": 1388003,
+      "originalStartTicks": "15180107",
+      "closure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      }
+    }
+  ],
+  "physical": {
+    "status": "passed",
+    "receiptPath": "/workspace/coherent-package-saved-native02-private-attempt1/fixture/physical-sqlite-after-current-package-saved-job-keyboard.json",
+    "receiptSha256": "b5bfdc4a04f367f9db722837cac8f19e6ec7409bc8f6a5c2c2d8680f2dde8a93"
+  },
+  "rawReferences": [
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight-command.json",
+      "sha256": "5118b62d181a08e692f0ee6cbda315ef7ef605810616eb5b4ea94cc177e7abc0",
+      "sizeBytes": 1265
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight.log",
+      "sha256": "3cdc53eb58a874d63edb9b707f58cfa2f802fd75cc9892e72330fb84f24aef10",
+      "sizeBytes": 120
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/isolated-copy-command.json",
+      "sha256": "fe064a8c8b4fe65d9d75f35467f3b54cb4b3c33e7cae2d8597b18d7f9ad9214f",
+      "sizeBytes": 1391
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/isolated-copy.log",
+      "sha256": "52a2b6661a422c37ed9619bd11d00100a30ae228eabdb05a8a2b5d44b3d0ee8d",
+      "sizeBytes": 203
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/fresh-two-version-sentinel-command.json",
+      "sha256": "8dbd3f115fc12d3a2db11e32d4e650f094e79e36d15cd935431d682e99f08cbb",
+      "sizeBytes": 1878
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/fresh-two-version-sentinel.log",
+      "sha256": "7d4f377384381324ad092e0600cf5d5c61e08a266627aea9034d41fc1b3da2e3",
+      "sizeBytes": 232
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/ordinary-actual24-local-migrations-command.json",
+      "sha256": "99a398d32453fc42b0864aa3d09a5d31d4ed48bd2ab1600149ea2079dbccd505",
+      "sizeBytes": 1878
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/ordinary-actual24-local-migrations.log",
+      "sha256": "49c7d82e3fab01d8e4dd2d6e675550b74765cef12cf745f0e1de7813c31d5fba",
+      "sizeBytes": 149092
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/synthetic-template-sentinels-only-command.json",
+      "sha256": "34acab74422649230309309e9a48c374d7b2902fd89cb7cd3b47c03cacaef766",
+      "sizeBytes": 1969
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/synthetic-template-sentinels-only.log",
+      "sha256": "427594d39c2112a70f9115333a2c3d2f1fa656e5dc3f74d9391a50a196a062b4",
+      "sizeBytes": 2747
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/physical-before-command.json",
+      "sha256": "f741715086137d9aa8d4a0ee78a7e506f499b36654a29bc27cc6e8b9a2efc66f",
+      "sizeBytes": 1345
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/physical-before.log",
+      "sha256": "3c0382ac3f004f55afaa824e00a3f569b2bbe771c618fedc13467c39e32fa0f8",
+      "sizeBytes": 168
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/current-source-build-and-pure24-witness-command.json",
+      "sha256": "967f3e7766b7005c3227f5135b3669e1c2ed5b6c943137791a6780ceee5f3d6d",
+      "sizeBytes": 1224
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/current-source-build-and-pure24-witness.log",
+      "sha256": "1491a71d7ab1b8b4f0e09c0c09cd1e0412647385ea5c070209713fbb03204fb1",
+      "sizeBytes": 225
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/original-one-current-package-saved-job-keyboard-command.json",
+      "sha256": "777e34bcdf73bc6312f8090646b0576864fd736714be8c371ce49f3fc31d797a",
+      "sizeBytes": 2228
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/original-one-current-package-saved-job-keyboard.log",
+      "sha256": "67e0d8dbd64ae6bd841589e51fa31c9cd4e8f00abde8416d36d198d0135c5c38",
+      "sizeBytes": 201
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/physical-after-command.json",
+      "sha256": "976949c4ed247cdac809d4b40b9441a019540e8688463323a3e08117ce2f1493",
+      "sizeBytes": 1722
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/physical-after.log",
+      "sha256": "01b4e4707db982934f3e107dc03c21492b21a1348d682fcba6a6876098055c17",
+      "sizeBytes": 180
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/final-source-artifact-input-pins-command.json",
+      "sha256": "5afac589adaeaaa61b4e1005b6f6fab2d8cfa38e2f0782b4e01a45d93ffbb0cb",
+      "sizeBytes": 1213
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/final-source-artifact-input-pins.log",
+      "sha256": "dbcdb4cf7553baef580b0d1706294e740242e57d94a0dafc3cce2fa3ceb35756",
+      "sizeBytes": 228
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/fixture/genuine-package-saved-job-keyboard-report.json",
+      "sha256": "e970bfd7acec5b803613b624952c7ac362326e9242ac638d6d067435e0e4dcb5",
+      "sizeBytes": 78148
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/fixture/physical-sqlite-after-current-package-saved-job-keyboard.json",
+      "sha256": "b5bfdc4a04f367f9db722837cac8f19e6ec7409bc8f6a5c2c2d8680f2dde8a93",
+      "sizeBytes": 73429
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/fixture/physical-sqlite-before-api.json",
+      "sha256": "5dc7101f373496bfd1e4e65296fc790e16ce8abce1396a5b7f45290cc16258ef",
+      "sizeBytes": 66617
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/final-current02d-source-and-genuine-saved-job-pins.json",
+      "sha256": "484b17bfd6426333ab7aa6f9379c0dc8644ca1cbbda6c416eaf072db0404f743",
+      "sizeBytes": 3701
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/current02d-build-new-pure24-native-causal-carry.json",
+      "sha256": "e1e6d942042a4502e60f85722521fe37bc39c13d5292a06f6f370e5858ebab25",
+      "sizeBytes": 1335
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/chromium-child-temp-owner.json",
+      "sha256": "2ab8fe4536a7bd8c74fb66eccf336040839557cc1e96b535f17c48c472b2d80c",
+      "sizeBytes": 589
+    },
+    {
+      "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/frozen-approved-plan.json",
+      "sha256": "423aa228f6475a366a602ca97c752fbe55e5c9c1a014094093ef6fd1d6a7b278",
+      "sizeBytes": 15589
+    }
+  ],
+  "buildScope": "Historical actual ONE current02d build118 and copied121; no repeated compiler/mounted/build. Full causal source pins remain exact.",
+  "runtimeScope": "Fresh independent24 fixture; six original R2 preparation POSTs plus one ordinary Sample201 accepted. No native browser case or package job/control request executed. Accepted Sample/event and released permits retained; no rollback.",
+  "groupScope": "All ten original direct children samewait/reaped, no signals/no active owned group. Three recorded PPID1 kernelZ with FDPermissionError are retained, not observed0FD or globalPGEMPTY.",
+  "failureScope": "Primary file_shadow_control byte-hash assertion failed after accepted Sample201; final accepted-history assertion also failed on unrecorded actual events. Normal Worker/JWKS request/dispose/port-refusal ACKs succeeded; failed catalog ACK remains FAILED; no returned Browser handle is not a native spawn/exit claim."
+}

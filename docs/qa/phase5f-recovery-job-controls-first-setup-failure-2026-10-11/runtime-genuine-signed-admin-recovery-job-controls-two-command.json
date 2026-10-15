@@ -1,0 +1,47 @@
+{
+  "stage": "genuine-signed-admin-recovery-job-controls-two",
+  "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+  "argv": [
+    "node",
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source/scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs",
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/copy",
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture",
+    "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+    "2489",
+    "--exclusive-go-two-genuine-recovery-job-controls"
+  ],
+  "env": {
+    "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+    "CHROMIUM_PATH": "/usr/bin/chromium",
+    "TMPDIR": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1",
+    "SQLITE_TMPDIR": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1"
+  },
+  "cases": [
+    "historical-backup-controls-1280-light",
+    "historical-backup-controls-390-dark"
+  ],
+  "control": "Shared genuine executor enable200/disable200 once; each historical backup-preview200/backup202/pause200/resume200/cancel200 native actions. Max10 original metadata mutation requests, no scheduled/step/ZIP/target/provider. Strict original full native and backend Response bodies, no fallback. Exact3-table lineage/runtime audit and all original63 permits/other app rows preserved. Stop firstfailure after original routes/body/context settlement; remaining IDs UNRUN.",
+  "toolInvocation": {
+    "tty": true,
+    "originalControl": "Only explicitstop newline originalretainedTTY; awaitoriginalclosure/report/childexit120s guard, no SIGTERM-as-finally assumption."
+  },
+  "startedAt": "2026-10-11T07:53:29.975571+00:00",
+  "status": "FAILED",
+  "log": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/genuine-signed-admin-recovery-job-controls-two.log",
+  "pid": 981233,
+  "processGroup": 981233,
+  "originalStartTicks": "11847074",
+  "exitCode": 1,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 1,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T07:53:37.048592+00:00",
+  "logSha256": "6e9760399e7adad39d42c0c893abceb8709a4e640546d6b7854c8b3e60d1e49e"
+}

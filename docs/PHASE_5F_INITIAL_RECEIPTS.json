@@ -1,0 +1,398 @@
+{
+  "recordedAt": "2026-10-09T20:33:33.854756+00:00",
+  "implementation": {
+    "head": "3c1baf5fdb21994c0510754eb20919db8189a91a",
+    "tree": "eda8a59c55817a0c1adab5ba759f956a82e826f3",
+    "local": {
+      "mounted": {
+        "command": "taskset -c 0,1 npm run test:reference-mounted",
+        "exitCode": 0,
+        "files": 93,
+        "tests": 877,
+        "durationSeconds": 137.1,
+        "startUtc": "2026-10-09T20:04:49Z",
+        "individualTimeoutOverrides": false
+      },
+      "build": {
+        "command": "taskset -c 0,1 npm run build",
+        "exitCode": 0,
+        "includesTypescript": true,
+        "deploy": false
+      },
+      "focused": {
+        "files": 5,
+        "tests": 88,
+        "durationSeconds": 5.36
+      },
+      "baselineRed": {
+        "jobs": {
+          "failed": 12,
+          "passed": 0
+        },
+        "denial": {
+          "failed": 1,
+          "passed": 13
+        }
+      },
+      "database": {
+        "readOnly": true,
+        "schemaExact": true,
+        "typedRowsAndRowidsExact": true,
+        "quickCheck": "ok",
+        "foreignKeyErrors": 0
+      }
+    },
+    "artifactHashes": {
+      "/tmp/phase5f-final-full-mounted.log": {
+        "bytes": 553,
+        "sha256": "f6a2da1929564cf7be5229d43fdf2d334a5b8a1817a823bc9db16236e7f34163"
+      },
+      "/tmp/phase5f-final-build.log": {
+        "bytes": 12524,
+        "sha256": "eaafb2d0ff508fec0261971c8f61d400c3792062ffa3cc57b34e77652c184caf"
+      },
+      "/tmp/phase5f-jobs-control-final-focused.log": {
+        "bytes": 739,
+        "sha256": "e2241413c814962f87d7f53bad5f501c11fb7561fd03fbc1e649780f4254a448"
+      },
+      "/tmp/phase5f-jobs-control-baseline-red.log": {
+        "bytes": 10321,
+        "sha256": "11aba5e32c2a85ff31b90d612480da549350d91ea8e115b217b49550f87537ec"
+      },
+      "/tmp/phase5f-jobs-access-baseline-red.log": {
+        "bytes": 1898,
+        "sha256": "831bd43bde04177ac6be424615c784d62cfba6e7fa3e40724fe16a98eb24510b"
+      },
+      "/tmp/phase5f-development-data-final.json": {
+        "bytes": 19609,
+        "sha256": "8e33a8ba27a505779322c50f3c680c376066cd1ac2e877e501d457521baae13f"
+      },
+      "/tmp/phase5f-runtime-inputs-current-closure.json": {
+        "bytes": 1414514,
+        "sha256": "0e6aaece55ac8ef839f4ff228f9d486013dfab63bf8345bc60b23c0bedd32f33"
+      }
+    }
+  },
+  "remoteVerify": {
+    "id": 37984549600,
+    "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37984549600",
+    "head": "3c1baf5fdb21994c0510754eb20919db8189a91a",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "id": 114003140535,
+        "startedAt": "2026-10-09T20:04:49Z",
+        "completedAt": "2026-10-09T20:30:28Z",
+        "conclusion": "success",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Check out repository",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Set up Node.js",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Mark verification pending",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Install dependencies",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Record dependency status",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run shared verification checks",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Close verification statuses when the gate did not run",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Post Set up Node.js",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Post Check out repository",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      }
+    ],
+    "leafPlan": [
+      "verification-scripts",
+      "source",
+      "mounted",
+      "rich-text",
+      "export-contract",
+      "file-jobs-node",
+      "migrations",
+      "reference-worker",
+      "reference-search-worker",
+      "build",
+      "map-bundle",
+      "project-worker"
+    ],
+    "contexts": [
+      {
+        "context": "pre-pr/install",
+        "state": "success",
+        "updatedAt": "2026-10-09T20:05:03Z",
+        "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37984549600"
+      },
+      {
+        "context": "pre-pr/project-map-performance",
+        "state": "success",
+        "updatedAt": "2026-10-09T20:05:22Z",
+        "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37984549655"
+      },
+      {
+        "context": "pre-pr/project-foundation",
+        "state": "success",
+        "updatedAt": "2026-10-09T20:27:37Z",
+        "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37984549600"
+      },
+      {
+        "context": "pre-pr/tests",
+        "state": "success",
+        "updatedAt": "2026-10-09T20:28:58Z",
+        "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37984549600"
+      },
+      {
+        "context": "pre-pr/blob-lifecycle",
+        "state": "success",
+        "updatedAt": "2026-10-09T20:29:13Z",
+        "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37984549600"
+      },
+      {
+        "context": "pre-pr/reference-foundation",
+        "state": "success",
+        "updatedAt": "2026-10-09T20:29:52Z",
+        "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37984549600"
+      },
+      {
+        "context": "pre-pr/file-jobs",
+        "state": "success",
+        "updatedAt": "2026-10-09T20:29:58Z",
+        "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37984549600"
+      },
+      {
+        "context": "pre-pr/build",
+        "state": "success",
+        "updatedAt": "2026-10-09T20:29:58Z",
+        "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37984549600"
+      },
+      {
+        "context": "pre-pr/project-map",
+        "state": "success",
+        "updatedAt": "2026-10-09T20:29:59Z",
+        "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37984549600"
+      },
+      {
+        "context": "pre-pr/project-reference-placement",
+        "state": "success",
+        "updatedAt": "2026-10-09T20:29:59Z",
+        "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37984549600"
+      },
+      {
+        "context": "pre-pr/project-reading",
+        "state": "success",
+        "updatedAt": "2026-10-09T20:30:23Z",
+        "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37984549600"
+      },
+      {
+        "context": "pre-pr/project-edges",
+        "state": "success",
+        "updatedAt": "2026-10-09T20:30:23Z",
+        "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37984549600"
+      },
+      {
+        "context": "pre-pr/project-canvas-productivity",
+        "state": "success",
+        "updatedAt": "2026-10-09T20:30:23Z",
+        "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37984549600"
+      },
+      {
+        "context": "pre-pr/project-owned-content",
+        "state": "success",
+        "updatedAt": "2026-10-09T20:30:23Z",
+        "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37984549600"
+      },
+      {
+        "context": "pre-pr/project-persistence",
+        "state": "success",
+        "updatedAt": "2026-10-09T20:30:23Z",
+        "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37984549600"
+      }
+    ],
+    "remoteTestCounts": "not exposed by retrieved official status API; no counts asserted"
+  },
+  "docsPRCheckpoint": {
+    "number": 250,
+    "head": "4b7353ad8c792d790d379df0e38cbfba04730fb5",
+    "draft": true,
+    "mergeState": "CLEAN",
+    "checkRuns": [
+      {
+        "name": "verify",
+        "conclusion": "SUCCESS",
+        "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37985313770/job/114005725776"
+      },
+      {
+        "name": "verify",
+        "conclusion": "SUCCESS",
+        "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37985308040/job/114005707003"
+      },
+      {
+        "name": "verify",
+        "conclusion": "SUCCESS",
+        "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37985313683/job/114005725867"
+      },
+      {
+        "name": "verify",
+        "conclusion": "SUCCESS",
+        "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/37985307920/job/114005707004"
+      }
+    ],
+    "contexts": [
+      {
+        "context": "pre-pr/blob-lifecycle",
+        "state": "SUCCESS"
+      },
+      {
+        "context": "pre-pr/build",
+        "state": "SUCCESS"
+      },
+      {
+        "context": "pre-pr/install",
+        "state": "SUCCESS"
+      },
+      {
+        "context": "pre-pr/project-canvas-productivity",
+        "state": "SUCCESS"
+      },
+      {
+        "context": "pre-pr/project-edges",
+        "state": "SUCCESS"
+      },
+      {
+        "context": "pre-pr/project-foundation",
+        "state": "SUCCESS"
+      },
+      {
+        "context": "pre-pr/project-map",
+        "state": "SUCCESS"
+      },
+      {
+        "context": "pre-pr/project-map-performance",
+        "state": "SUCCESS"
+      },
+      {
+        "context": "pre-pr/project-owned-content",
+        "state": "SUCCESS"
+      },
+      {
+        "context": "pre-pr/project-persistence",
+        "state": "SUCCESS"
+      },
+      {
+        "context": "pre-pr/project-reading",
+        "state": "SUCCESS"
+      },
+      {
+        "context": "pre-pr/project-reference-placement",
+        "state": "SUCCESS"
+      },
+      {
+        "context": "pre-pr/reference-foundation",
+        "state": "SUCCESS"
+      },
+      {
+        "context": "pre-pr/tests",
+        "state": "SUCCESS"
+      }
+    ],
+    "scope": "Historical 4b docs checkpoint. A subsequent CI-status correction must qualify its own head before merge.",
+    "mergeObserved": false,
+    "cloudflareAutomaticDeploymentBoundary": "unconfirmed; owner development-only constraint remains"
+  },
+  "sourceDelta": {
+    "at": "2026-10-09T20:18:05.926540+00:00",
+    "beforeHead": "b7c624637b61a087c415b31e4c67a355867a9a69",
+    "beforeTree": "11b2c927b5521cb8b4728011087e960cc75bf104",
+    "afterHead": "3c1baf5fdb21994c0510754eb20919db8189a91a",
+    "afterTree": "eda8a59c55817a0c1adab5ba759f956a82e826f3",
+    "workingTreeClean": true,
+    "expectedChangesExact": true,
+    "changes": [
+      {
+        "status": "M",
+        "path": "src/pages/ResearchPackagesPage.tsx",
+        "beforeSHA256": "a93f36c6475dd9da0b892fad333149647e2e0cd53f9c1739dcc1fb7ea39f771d",
+        "afterSHA256": "6acd5ce1f3c66e9769666feb616a48816d3b20453e1feb67d8b98e5b1d077c67",
+        "bytes": 38326
+      },
+      {
+        "status": "M",
+        "path": "src/pages/SystemRecoveryPage.tsx",
+        "beforeSHA256": "b2d0740514c2cd99cce3498121dc2e8999bacdbb708fd87d7e699a719091cc3f",
+        "afterSHA256": "a8f6c74a527aca7c40ca631b3b3467cbcf1e370aac3e5b3b33d0744ac77f8e7b",
+        "bytes": 48086
+      },
+      {
+        "status": "A",
+        "path": "src/phase5f-jobs-control.mount.test.tsx",
+        "beforeSHA256": null,
+        "afterSHA256": "df4a98eef7d6c80d412be374c10443b06b641b4b3973919f37d4a52213012ca2",
+        "bytes": 11262
+      }
+    ],
+    "processingAndStylesEqualToBrowserCodeHead": {
+      "src/pages/ProcessingWorkspacePage.tsx": "6039c7bef62d1674e723913f5431b6506ffc633127d64b22a4cbe374772048a3",
+      "src/styles.css": "55b2eaa2950841ab70715fd844eea0ed796cbb4405c69ff995ce4856676b5bdc"
+    },
+    "priorRuntimeClosure": {
+      "path": "/tmp/phase5f-runtime-inputs-current-closure.json",
+      "sha256": "0e6aaece55ac8ef839f4ff228f9d486013dfab63bf8345bc60b23c0bedd32f33"
+    },
+    "scope": "Exact Git/source byte delta from the dated b7c runtime review; not a dependency rehash, browser rerun or retrospective browser qualification of package/recovery repairs."
+  },
+  "supportingReceipts": {
+    "/tmp/phase5f-3c1baf5-local-checkpoint.json": "f87bac72f5c2a43281f2d766bec1ce3385b30dcde8434c6ef83fe4805b95140d",
+    "/tmp/remote-ci-3c1baf5-final.json": "b190ed095463e4d902ebd364aba9a690926ef4501071f4a138a7c06777defcde",
+    "/tmp/remote-ci-3c1baf5-final-contexts.json": "e664c3044117f9316d4842cef7e7000f3992e0bf33562d9b73655ec5dea31fc2",
+    "/tmp/pr250-4b7353a-final-checks.json": "ef7b868fad696608fea0fd0b0cb077e3e37f03b402b8b701302e6eaeec347a7c",
+    "/tmp/phase5f-3c1baf5-source-delta.json": "a99d10c0d940c15f4e0caa7895482304e3441358dc4279243caa352e62fef949",
+    "/tmp/phase5f-development-data-final.json": "8e33a8ba27a505779322c50f3c680c376066cd1ac2e877e501d457521baae13f"
+  },
+  "limits": [
+    "This qualifies the bounded implementation, not whole Phase5F/release/provider/device admission.",
+    "No complete local canonical pass is claimed after the deliberately interrupted attempt.",
+    "Earlier browser-qualified Processing/styles bytes are unchanged; later package/recovery repairs were not retrospectively browser-qualified."
+  ]
+}

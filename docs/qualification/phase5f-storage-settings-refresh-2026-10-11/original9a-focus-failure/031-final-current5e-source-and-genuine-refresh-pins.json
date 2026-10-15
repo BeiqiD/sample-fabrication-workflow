@@ -1,0 +1,85 @@
+{
+  "status": "PASS",
+  "domain": "storage",
+  "producerHead": "5e65f4d0355f375ca7fe949b8de15082c043c19a",
+  "qaConsumerHead": "9a5f3217bbd55b0171a4568e90425bc4dc5517e9",
+  "all2726ProducerAndCopiedInputsExact": true,
+  "all2726OrdinaryQaInputsExact": true,
+  "threeOwnedRefreshQaInputs": {
+    "scripts/qa/phase5f/browser-current-coherent-package-status-refresh-keyboard.mjs": "d2d9e85468d795637844b617492f963484ba115b4eeb245630c6ce3f6761a1ae",
+    "scripts/qa/phase5f/browser-current-coherent-storage-settings-refresh-keyboard.mjs": "d82881d249731d52dc351d3e42ac739b11dacc2c8b682975e79cc0ad9cc41557",
+    "scripts/qa/phase5f/check-current-coherent-storage-package-refresh-physical-state.py": "21cf6669d163c92baf50870ed91c1c2240940cdcd7b562ece5d160ec4dafa073"
+  },
+  "all2729QaInputsBytePinned": true,
+  "actualOriginalArtifacts": 118,
+  "copiedArtifacts": 121,
+  "newBuilds": 0,
+  "disabledSeedRequests": 0,
+  "nativeQualification": {
+    "status": "failed",
+    "reportSha256": "2928c4489868d5d251a709861f3b9b54b77f14bc527604fdb7c3880da55c4ec5",
+    "ownedClosure": {
+      "status": "closed",
+      "browserCloseAwaited": true,
+      "originalPreparationOwnerClosure": {
+        "status": "closed",
+        "startedAt": "2026-10-11T21:24:05.740Z",
+        "originalRequestsAwaited": {
+          "count": 12,
+          "rejected": 0
+        },
+        "workerDisposeAwaited": true,
+        "workerPortRefused": true,
+        "originalOutboundWorkAwaited": {
+          "count": 1,
+          "rejected": 0
+        },
+        "jwksCloseAwaited": true,
+        "jwksPortRefused": true,
+        "completedAt": "2026-10-11T21:24:06.888Z"
+      }
+    },
+    "actualCosts": {
+      "setupPOSTs": 6,
+      "readerGETs": 2,
+      "nativeGETs": 4,
+      "nativeMetadataPOSTs": 0,
+      "maxSetupPOSTs": 6,
+      "maxNativePOSTs": 0,
+      "observedAcceptedJobReceipts": 0,
+      "newExecutorSteps": 0
+    },
+    "unrunCases": [],
+    "genuinePreparationStatus": "prepared",
+    "originalPreparationOwnerClosure": {
+      "status": "closed",
+      "startedAt": "2026-10-11T21:24:05.740Z",
+      "originalRequestsAwaited": {
+        "count": 12,
+        "rejected": 0
+      },
+      "workerDisposeAwaited": true,
+      "workerPortRefused": true,
+      "originalOutboundWorkAwaited": {
+        "count": 1,
+        "rejected": 0
+      },
+      "jwksCloseAwaited": true,
+      "jwksPortRefused": true,
+      "completedAt": "2026-10-11T21:24:06.888Z"
+    }
+  },
+  "originalChildWaitReapAndGroup": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 1,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "physicalStatus": "passed",
+  "physicalActualSQLiteGroups": 5,
+  "oldAcceptedNamespacesSeparateAndUntouched": true
+}

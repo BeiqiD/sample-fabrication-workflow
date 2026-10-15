@@ -1,0 +1,68 @@
+{
+  "kind": "pr266-4e-original-four-own-ci-one-failure-retained/1",
+  "atUtc": "2026-10-11T06:02:22.003874+00:00",
+  "head": "4e0b8244989b2456e802cf33c636680f13f75c1f",
+  "actualRuns": [
+    {
+      "id": 38114662688,
+      "event": "push",
+      "name": "Verify",
+      "conclusion": "success"
+    },
+    {
+      "id": 38114671135,
+      "event": "pull_request",
+      "name": "Verify",
+      "conclusion": "failure"
+    },
+    {
+      "id": 38114662584,
+      "event": "push",
+      "name": "Project Map performance",
+      "conclusion": "success"
+    },
+    {
+      "id": 38114671197,
+      "event": "pull_request",
+      "name": "Project Map performance",
+      "conclusion": "success"
+    }
+  ],
+  "actual15State": "success",
+  "actualStatusCounts": {
+    "success": 15,
+    "pending": 0,
+    "failure": 0,
+    "error": 0
+  },
+  "raw": [
+    {
+      "path": "/workspace/pr266-4e-original-four-own-ci-preserved-attempt1/original-run-38114662688.json",
+      "sha256": "974beb6a75451f40108829ed00da476a7e4fac14260eb4fdbec2da0aa766efc3",
+      "bytes": 14101
+    },
+    {
+      "path": "/workspace/pr266-4e-original-four-own-ci-preserved-attempt1/original-run-38114671135.json",
+      "sha256": "5bee8ceea82a859b9b71b09925558e57c779e4e6f955395ee09812fd49be28f3",
+      "bytes": 14100
+    },
+    {
+      "path": "/workspace/pr266-4e-original-four-own-ci-preserved-attempt1/original-run-38114662584.json",
+      "sha256": "3ccd6886e32de56bbe69990fda131bc880ab9a09d5c145b3507116a9e6542e6f",
+      "bytes": 14135
+    },
+    {
+      "path": "/workspace/pr266-4e-original-four-own-ci-preserved-attempt1/original-run-38114671197.json",
+      "sha256": "1dfeea7ce2c8b37893a179ffc86d5046efabadb10f0bdf45a99ef39022b3d01b",
+      "bytes": 14134
+    },
+    {
+      "path": "/workspace/pr266-4e-original-four-own-ci-preserved-attempt1/original-15-status-contexts.json",
+      "sha256": "4ec73c1d62538a46c1586bd23fb6b3c658a71a4a11247b7254ac9a9df79a86b8",
+      "bytes": 12937
+    }
+  ],
+  "failureAnnotationReceiptSha256": "8deabbf0fe267ebbe46f93c039c8086e3331e4bfb1a2465037ebc2f2f46c1235",
+  "noRerunOrOriginalHeadMutation": true,
+  "mergePerformed": false
+}

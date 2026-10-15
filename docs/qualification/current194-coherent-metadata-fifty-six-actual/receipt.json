@@ -1,0 +1,1421 @@
+{
+  "kind": "current194-coherent-metadata-fifty-six-owned-actual/1",
+  "status": "PASS",
+  "sourceHead": "ccc7478f6045b38421f4e35def3360d7a031dd88",
+  "sourceTree": "f713dd1ff9f0cf6b3a5a154a6bf1cab89c692a58",
+  "sourceFreezeSha256": "c8496d7dc1852712219ecdcac75fd620e222dbe33e66acec5172f976ba527fe7",
+  "planSha256": "2c5bcf173f1240f5efe4745c0f1677dab8e92873504451fb230cffb0d4d28e0a",
+  "runnerSha256": "dff8ceb4b57fb0257f522227a561c8629fbe4f882b7b58b00e47702f09a395a8",
+  "independentPeerSha256": "664fac369d9db631a573912af97c548d130900b2e9c80948fea4689b355d9af5",
+  "sourcePinsVerifiedBefore": true,
+  "alreadyActualCompiler": {
+    "receiptPath": "/tmp/portable-current194-coherent-metadata-owned-types-actual.json",
+    "receiptSha256": "7e00f2e4a7f675a4ea21fb99e6e3bc145894538ce5974d72e5bb9d5548c692b7",
+    "executedSourceHead": "07e35907e989464701eb40d801399c9e80f0b7b1",
+    "scope": "One actual current Worker composition compiler on original07; all1928 exact inputs remain frozen CCC, four documentation leaves added. No repeat compiler/no case carry."
+  },
+  "defaultBudgetsUnchanged": true,
+  "expectedSelectedCases": 56,
+  "steps": [
+    {
+      "name": "01-sample-split-routes.test",
+      "file": "worker/sample-split-routes.test.ts",
+      "sourceSha256": "dcc0fe7d0cbb5ff657f0ff60eb49ab5200e74984746fb828effa0fd4e8567512",
+      "expectedTitlePaths": [
+        [
+          "Sample split route characterization",
+          "inherits the completed process structure instead of the parent's inherited or initial state"
+        ],
+        [
+          "Sample split route characterization",
+          "rejects a stale parent revision without changing samples, structures, or audit events"
+        ],
+        [
+          "execution-image structure inheritance",
+          "materializes an ordered persistent diagram, downloads child images, and reuses its immutable identity"
+        ],
+        [
+          "execution-image structure inheritance",
+          "rejects a changed parent revision at the transaction boundary without publishing a state or children"
+        ],
+        [
+          "execution-image structure inheritance",
+          "rejects a changed execution order at the transaction boundary without publishing a state or children"
+        ],
+        [
+          "execution-image structure inheritance",
+          "rejects a changed completed step at the transaction boundary without publishing a state or children"
+        ],
+        [
+          "execution-image structure inheritance",
+          "rolls the materialized state back when a child code collides"
+        ],
+        [
+          "execution-image structure inheritance",
+          "preserves and rejects an inconsistent existing canonical content"
+        ],
+        [
+          "execution-image structure inheritance",
+          "preserves and rejects an inconsistent existing partial mapping"
+        ],
+        [
+          "execution-image structure inheritance",
+          "preserves and rejects an inconsistent existing empty mapping"
+        ],
+        [
+          "execution-image structure inheritance",
+          "rejects an incomplete representation that appears after the pre-read without filling its empty mapping"
+        ]
+      ],
+      "expectedSelectedCases": 11,
+      "status": "PASS",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/sample-split-routes.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--testNamePattern",
+        "(?:inherits\\ the\\ completed\\ process\\ structure\\ instead\\ of\\ the\\ parent's\\ inherited\\ or\\ initial\\ state|rejects\\ a\\ stale\\ parent\\ revision\\ without\\ changing\\ samples,\\ structures,\\ or\\ audit\\ events|materializes\\ an\\ ordered\\ persistent\\ diagram,\\ downloads\\ child\\ images,\\ and\\ reuses\\ its\\ immutable\\ identity|rejects\\ a\\ changed\\ parent\\ revision\\ at\\ the\\ transaction\\ boundary\\ without\\ publishing\\ a\\ state\\ or\\ children|rejects\\ a\\ changed\\ execution\\ order\\ at\\ the\\ transaction\\ boundary\\ without\\ publishing\\ a\\ state\\ or\\ children|rejects\\ a\\ changed\\ completed\\ step\\ at\\ the\\ transaction\\ boundary\\ without\\ publishing\\ a\\ state\\ or\\ children|rolls\\ the\\ materialized\\ state\\ back\\ when\\ a\\ child\\ code\\ collides|preserves\\ and\\ rejects\\ an\\ inconsistent\\ existing\\ canonical\\ content|preserves\\ and\\ rejects\\ an\\ inconsistent\\ existing\\ partial\\ mapping|preserves\\ and\\ rejects\\ an\\ inconsistent\\ existing\\ empty\\ mapping|rejects\\ an\\ incomplete\\ representation\\ that\\ appears\\ after\\ the\\ pre\\-read\\ without\\ filling\\ its\\ empty\\ mapping)$",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/01-sample-split-routes.test.json"
+      ],
+      "originalExplicitCaseMilliseconds": null,
+      "startedAt": "2026-10-11T04:46:30.283041+00:00",
+      "logPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/01-sample-split-routes.test.log",
+      "pid": 797633,
+      "processGroup": 797633,
+      "exitCode": 0,
+      "actualOriginalChildWaited": true,
+      "durationSeconds": 18.581,
+      "logSha256": "f73e61c8c4afae9a1ab21f42344db858f6ac7a3628bdab6d0c08338f07f95c92",
+      "completionGroupSnapshot": [],
+      "normalCompletionHadActiveChildren": false,
+      "closureInitialSnapshot": [],
+      "actualExitCode": 0,
+      "closureFinalSnapshot": [],
+      "ownedClosureProven": true,
+      "rawJsonPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/01-sample-split-routes.test.json",
+      "rawJsonSha256": "770149f306d4e5d6a8b89b5835454125e877f69fff9ff876a54ba6024f96bae7",
+      "actualSelectedTotal": 11,
+      "actualSelectedPassed": 11,
+      "actualSelectedFailed": 0,
+      "actualSelectedUnrun": 0,
+      "actualSelectedAssertions": [
+        {
+          "titlePath": [
+            "Sample split route characterization",
+            "inherits the completed process structure instead of the parent's inherited or initial state"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "Sample split route characterization",
+            "rejects a stale parent revision without changing samples, structures, or audit events"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "execution-image structure inheritance",
+            "materializes an ordered persistent diagram, downloads child images, and reuses its immutable identity"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "execution-image structure inheritance",
+            "rejects a changed parent revision at the transaction boundary without publishing a state or children"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "execution-image structure inheritance",
+            "rejects a changed execution order at the transaction boundary without publishing a state or children"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "execution-image structure inheritance",
+            "rejects a changed completed step at the transaction boundary without publishing a state or children"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "execution-image structure inheritance",
+            "rolls the materialized state back when a child code collides"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "execution-image structure inheritance",
+            "preserves and rejects an inconsistent existing canonical content"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "execution-image structure inheritance",
+            "preserves and rejects an inconsistent existing partial mapping"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "execution-image structure inheritance",
+            "preserves and rejects an inconsistent existing empty mapping"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "execution-image structure inheritance",
+            "rejects an incomplete representation that appears after the pre-read without filling its empty mapping"
+          ],
+          "status": "passed"
+        }
+      ],
+      "originalUnselectedAssertions": [],
+      "originalReporterCounts": {
+        "numTotalTests": 11,
+        "numPassedTests": 11,
+        "numFailedTests": 0,
+        "numPendingTests": 0
+      }
+    },
+    {
+      "name": "02-state-consumer-binding.test",
+      "file": "worker/state-consumer-binding.test.ts",
+      "sourceSha256": "88f9a889a8a286dfd35452262f6c85c545cf61a7e1aae061960840af5d26d110",
+      "expectedTitlePaths": [
+        [
+          "binds active state consumers and checks the exact File when splitting: available"
+        ],
+        [
+          "binds active state consumers and checks the exact File when splitting: unavailable-existing"
+        ],
+        [
+          "binds active state consumers and checks the exact File when splitting: unavailable-inherited"
+        ]
+      ],
+      "expectedSelectedCases": 3,
+      "status": "PASS",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/state-consumer-binding.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--testNamePattern",
+        "(?:binds\\ active\\ state\\ consumers\\ and\\ checks\\ the\\ exact\\ File\\ when\\ splitting:\\ available|binds\\ active\\ state\\ consumers\\ and\\ checks\\ the\\ exact\\ File\\ when\\ splitting:\\ unavailable\\-existing|binds\\ active\\ state\\ consumers\\ and\\ checks\\ the\\ exact\\ File\\ when\\ splitting:\\ unavailable\\-inherited)$",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/02-state-consumer-binding.test.json"
+      ],
+      "originalExplicitCaseMilliseconds": null,
+      "startedAt": "2026-10-11T04:46:49.287932+00:00",
+      "logPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/02-state-consumer-binding.test.log",
+      "pid": 798117,
+      "processGroup": 798117,
+      "exitCode": 0,
+      "actualOriginalChildWaited": true,
+      "durationSeconds": 7.543,
+      "logSha256": "af7fc18f05d8cd2e4464f1f3bb00c123a174266db1e65aa8d7b8dbb135a2696e",
+      "completionGroupSnapshot": [],
+      "normalCompletionHadActiveChildren": false,
+      "closureInitialSnapshot": [],
+      "actualExitCode": 0,
+      "closureFinalSnapshot": [],
+      "ownedClosureProven": true,
+      "rawJsonPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/02-state-consumer-binding.test.json",
+      "rawJsonSha256": "d2f41359b0f9f4fe001d0fc48df1cc06f051175177eba230ea6963d71e8e62bb",
+      "actualSelectedTotal": 3,
+      "actualSelectedPassed": 3,
+      "actualSelectedFailed": 0,
+      "actualSelectedUnrun": 0,
+      "actualSelectedAssertions": [
+        {
+          "titlePath": [
+            "binds active state consumers and checks the exact File when splitting: available"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "binds active state consumers and checks the exact File when splitting: unavailable-existing"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "binds active state consumers and checks the exact File when splitting: unavailable-inherited"
+          ],
+          "status": "passed"
+        }
+      ],
+      "originalUnselectedAssertions": [],
+      "originalReporterCounts": {
+        "numTotalTests": 3,
+        "numPassedTests": 3,
+        "numFailedTests": 0,
+        "numPendingTests": 0
+      }
+    },
+    {
+      "name": "03-native-sample-record.test",
+      "file": "worker/uploads/native-sample-record.test.ts",
+      "sourceSha256": "05329b525cd59243cc8653cdfb096cda8133c2da81e54dd49412b73814ec1738",
+      "expectedTitlePaths": [
+        [
+          "native File sample records",
+          "attaches by exact native asset ID, renders its URL and unlinks only the occurrence"
+        ],
+        [
+          "native File sample records",
+          "deletes a native photo note with the File binding retained and a photo audit label"
+        ],
+        [
+          "native File sample records",
+          "rejects contradictory or unavailable asset inputs without changing sample details"
+        ]
+      ],
+      "expectedSelectedCases": 3,
+      "status": "PASS",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/uploads/native-sample-record.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--testNamePattern",
+        "(?:attaches\\ by\\ exact\\ native\\ asset\\ ID,\\ renders\\ its\\ URL\\ and\\ unlinks\\ only\\ the\\ occurrence|deletes\\ a\\ native\\ photo\\ note\\ with\\ the\\ File\\ binding\\ retained\\ and\\ a\\ photo\\ audit\\ label|rejects\\ contradictory\\ or\\ unavailable\\ asset\\ inputs\\ without\\ changing\\ sample\\ details)$",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/03-native-sample-record.test.json"
+      ],
+      "originalExplicitCaseMilliseconds": null,
+      "startedAt": "2026-10-11T04:46:57.238393+00:00",
+      "logPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/03-native-sample-record.test.log",
+      "pid": 798196,
+      "processGroup": 798196,
+      "exitCode": 0,
+      "actualOriginalChildWaited": true,
+      "durationSeconds": 7.195,
+      "logSha256": "ec005d884fa429e0ee68cc198a9d6c0bc8fcef364a893e5ea4d06339f103a140",
+      "completionGroupSnapshot": [],
+      "normalCompletionHadActiveChildren": false,
+      "closureInitialSnapshot": [],
+      "actualExitCode": 0,
+      "closureFinalSnapshot": [],
+      "ownedClosureProven": true,
+      "rawJsonPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/03-native-sample-record.test.json",
+      "rawJsonSha256": "4b8a57800d1b8e11ff119c3ca09ca862f6b464ad655ac4d0e649e1449f0524d8",
+      "actualSelectedTotal": 3,
+      "actualSelectedPassed": 3,
+      "actualSelectedFailed": 0,
+      "actualSelectedUnrun": 0,
+      "actualSelectedAssertions": [
+        {
+          "titlePath": [
+            "native File sample records",
+            "attaches by exact native asset ID, renders its URL and unlinks only the occurrence"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "native File sample records",
+            "deletes a native photo note with the File binding retained and a photo audit label"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "native File sample records",
+            "rejects contradictory or unavailable asset inputs without changing sample details"
+          ],
+          "status": "passed"
+        }
+      ],
+      "originalUnselectedAssertions": [],
+      "originalReporterCounts": {
+        "numTotalTests": 3,
+        "numPassedTests": 3,
+        "numFailedTests": 0,
+        "numPendingTests": 0
+      }
+    },
+    {
+      "name": "04-comment-canonical-read-bridge.test",
+      "file": "worker/comment-canonical-read-bridge.test.ts",
+      "sourceSha256": "7e02b063b299cb8c9d2656f7e15c3b32027c85ce293829f011ab87d00f7cf649",
+      "expectedTitlePaths": [
+        [
+          "canonical Comment reading on retained S1 data",
+          "rejects a partial typed File schema before preparing native or historical projections"
+        ],
+        [
+          "canonical Comment reading on retained S1 data",
+          "deletes a retained S1 record without querying future File columns or changing stored assets"
+        ],
+        [
+          "canonical Comment reading on retained S1 data",
+          "deletes a retained S1 image without querying future File columns or changing stored assets"
+        ]
+      ],
+      "expectedSelectedCases": 3,
+      "status": "PASS",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/comment-canonical-read-bridge.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--testNamePattern",
+        "(?:rejects\\ a\\ partial\\ typed\\ File\\ schema\\ before\\ preparing\\ native\\ or\\ historical\\ projections|deletes\\ a\\ retained\\ S1\\ record\\ without\\ querying\\ future\\ File\\ columns\\ or\\ changing\\ stored\\ assets|deletes\\ a\\ retained\\ S1\\ image\\ without\\ querying\\ future\\ File\\ columns\\ or\\ changing\\ stored\\ assets)$",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/04-comment-canonical-read-bridge.test.json"
+      ],
+      "originalExplicitCaseMilliseconds": null,
+      "startedAt": "2026-10-11T04:47:04.849270+00:00",
+      "logPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/04-comment-canonical-read-bridge.test.log",
+      "pid": 798268,
+      "processGroup": 798268,
+      "exitCode": 0,
+      "actualOriginalChildWaited": true,
+      "durationSeconds": 3.728,
+      "logSha256": "0fbe799eb6230e802915f4b2f9d02700d6a41bbc56a8aef8089d6e6ca0f305bd",
+      "completionGroupSnapshot": [],
+      "normalCompletionHadActiveChildren": false,
+      "closureInitialSnapshot": [],
+      "actualExitCode": 0,
+      "closureFinalSnapshot": [],
+      "ownedClosureProven": true,
+      "rawJsonPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/04-comment-canonical-read-bridge.test.json",
+      "rawJsonSha256": "ae2881f6cf8be46d86d2ef86abe4ff75372c001f4c8d8dfaf14049647dd8269e",
+      "actualSelectedTotal": 3,
+      "actualSelectedPassed": 3,
+      "actualSelectedFailed": 0,
+      "actualSelectedUnrun": 0,
+      "actualSelectedAssertions": [
+        {
+          "titlePath": [
+            "canonical Comment reading on retained S1 data",
+            "rejects a partial typed File schema before preparing native or historical projections"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "canonical Comment reading on retained S1 data",
+            "deletes a retained S1 record without querying future File columns or changing stored assets"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "canonical Comment reading on retained S1 data",
+            "deletes a retained S1 image without querying future File columns or changing stored assets"
+          ],
+          "status": "passed"
+        }
+      ],
+      "originalUnselectedAssertions": [
+        {
+          "titlePath": [
+            "canonical Comment reading on retained S1 data",
+            "reads the processing directory before typed File columns exist"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "canonical Comment reading on retained S1 data",
+            "reads canonical text and legacy text by ownership without rewriting either stored row"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "canonical Comment reading on retained S1 data",
+            "keeps an empty canonical body empty instead of reviving the duplicated text"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "canonical Comment reading on retained S1 data",
+            "marks a dangling canonical submission inconsistent rather than treating it as legacy text"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "canonical Comment reading on retained S1 data",
+            "keeps canonical search singular and preserves legacy body search"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "canonical Comment reading on retained S1 data",
+            "uses canonical text for common occurrence lifecycle summaries and preserves identity"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "canonical Comment reading on retained S1 data",
+            "uses canonical text for individual occurrence lifecycle summaries and preserves identity"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "canonical Comment reading on retained S1 data",
+            "uses canonical text for common image deletion without deleting the Comment"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "canonical Comment reading on retained S1 data",
+            "uses canonical text for individual image deletion without deleting the Comment"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "canonical Comment reading on retained S1 data",
+            "keeps legacy schema-7 stored values and columns exact in the offline catalog"
+          ],
+          "status": "skipped"
+        }
+      ],
+      "originalReporterCounts": {
+        "numTotalTests": 13,
+        "numPassedTests": 3,
+        "numFailedTests": 0,
+        "numPendingTests": 10
+      }
+    },
+    {
+      "name": "05-native-file-ingress.test",
+      "file": "worker/uploads/native-file-ingress.test.ts",
+      "sourceSha256": "16652941dc198ca8ff95a094ee8ed021262717c5a266135536a7da00579682b8",
+      "expectedTitlePaths": [
+        [
+          "FabuBlox frozen per-file native targets",
+          "binds native planned, execution and verification assets by File and preserves them through occurrence delete/restore"
+        ]
+      ],
+      "expectedSelectedCases": 1,
+      "status": "PASS",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/uploads/native-file-ingress.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--testNamePattern",
+        "(?:binds\\ native\\ planned,\\ execution\\ and\\ verification\\ assets\\ by\\ File\\ and\\ preserves\\ them\\ through\\ occurrence\\ delete/restore)$",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/05-native-file-ingress.test.json"
+      ],
+      "originalExplicitCaseMilliseconds": null,
+      "startedAt": "2026-10-11T04:47:09.003857+00:00",
+      "logPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/05-native-file-ingress.test.log",
+      "pid": 798381,
+      "processGroup": 798381,
+      "exitCode": 0,
+      "actualOriginalChildWaited": true,
+      "durationSeconds": 6.148,
+      "logSha256": "63c1672e48056ad888700dcb42cdf57a284d42424b9aa4899e8fecb409fbb5d0",
+      "completionGroupSnapshot": [],
+      "normalCompletionHadActiveChildren": false,
+      "closureInitialSnapshot": [],
+      "actualExitCode": 0,
+      "closureFinalSnapshot": [],
+      "ownedClosureProven": true,
+      "rawJsonPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/05-native-file-ingress.test.json",
+      "rawJsonSha256": "c8ece4076b3a03efe742f0fd623e0c5ccce1d51c113ea6a0e905c32e7d30cae8",
+      "actualSelectedTotal": 1,
+      "actualSelectedPassed": 1,
+      "actualSelectedFailed": 0,
+      "actualSelectedUnrun": 0,
+      "actualSelectedAssertions": [
+        {
+          "titlePath": [
+            "FabuBlox frozen per-file native targets",
+            "binds native planned, execution and verification assets by File and preserves them through occurrence delete/restore"
+          ],
+          "status": "passed"
+        }
+      ],
+      "originalUnselectedAssertions": [
+        {
+          "titlePath": [
+            "native File accepted ordinary and metrology ingress",
+            "publishes ordinary atomically and replays a lost publication ACK without PUT after defaults change"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "native File accepted ordinary and metrology ingress",
+            "publishes metrology atomically and replays a lost publication ACK without PUT after defaults change"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "native File accepted ordinary and metrology ingress",
+            "separates embedded content from original purpose and shares the exact research File between metrology and Project attachments"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "native File accepted ordinary and metrology ingress",
+            "rolls ordinary publication and alias binding back while an uncertain candidate cannot repeat PUT"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "native File accepted ordinary and metrology ingress",
+            "rolls metrology publication and alias binding back while an uncertain candidate cannot repeat PUT"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "native File accepted ordinary and metrology ingress",
+            "observes corrupted native ready bytes without fallback, repair or receipt mutation"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "FabuBlox frozen per-file native targets",
+            "freezes native provenance and R2 embedded targets before a default change and replays without provider writes"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "FabuBlox frozen per-file native targets",
+            "rejects an incomplete companion inventory atomically before any provider I/O"
+          ],
+          "status": "skipped"
+        }
+      ],
+      "originalReporterCounts": {
+        "numTotalTests": 9,
+        "numPassedTests": 1,
+        "numFailedTests": 0,
+        "numPendingTests": 8
+      }
+    },
+    {
+      "name": "06-attachment-occurrence-metadata.test",
+      "file": "worker/attachment-occurrence-metadata.test.ts",
+      "sourceSha256": "2791bd1841694f05c5b0434b9124456b758648aa0631de06aa65ebedeb3d7847",
+      "expectedTitlePaths": [
+        [
+          "attachment occurrence metadata",
+          "stores contextual Run metadata through the real update route and rejects size mismatch"
+        ],
+        [
+          "attachment occurrence metadata",
+          "rejects unsafe occurrence MIME before persistence and serves validated MIME without header failure"
+        ],
+        [
+          "attachment occurrence metadata",
+          "keeps safe parameterized legacy MIME compatible while new Run JSON stays canonical"
+        ]
+      ],
+      "expectedSelectedCases": 3,
+      "status": "PASS",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/attachment-occurrence-metadata.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--testNamePattern",
+        "(?:stores\\ contextual\\ Run\\ metadata\\ through\\ the\\ real\\ update\\ route\\ and\\ rejects\\ size\\ mismatch|rejects\\ unsafe\\ occurrence\\ MIME\\ before\\ persistence\\ and\\ serves\\ validated\\ MIME\\ without\\ header\\ failure|keeps\\ safe\\ parameterized\\ legacy\\ MIME\\ compatible\\ while\\ new\\ Run\\ JSON\\ stays\\ canonical)$",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/06-attachment-occurrence-metadata.test.json"
+      ],
+      "originalExplicitCaseMilliseconds": null,
+      "startedAt": "2026-10-11T04:47:15.583416+00:00",
+      "logPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/06-attachment-occurrence-metadata.test.log",
+      "pid": 798431,
+      "processGroup": 798431,
+      "exitCode": 0,
+      "actualOriginalChildWaited": true,
+      "durationSeconds": 8.23,
+      "logSha256": "3be8e9a4aa19b1ec74301f5124792b1bfbe0fa276cbab64de7990d6bc0625be8",
+      "completionGroupSnapshot": [],
+      "normalCompletionHadActiveChildren": false,
+      "closureInitialSnapshot": [],
+      "actualExitCode": 0,
+      "closureFinalSnapshot": [],
+      "ownedClosureProven": true,
+      "rawJsonPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/06-attachment-occurrence-metadata.test.json",
+      "rawJsonSha256": "3fe50135a2d4e4068f745b8aeebeee9c2cbd08bb3e1a5581cd63294f39ae5778",
+      "actualSelectedTotal": 3,
+      "actualSelectedPassed": 3,
+      "actualSelectedFailed": 0,
+      "actualSelectedUnrun": 0,
+      "actualSelectedAssertions": [
+        {
+          "titlePath": [
+            "attachment occurrence metadata",
+            "stores contextual Run metadata through the real update route and rejects size mismatch"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "attachment occurrence metadata",
+            "rejects unsafe occurrence MIME before persistence and serves validated MIME without header failure"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "attachment occurrence metadata",
+            "keeps safe parameterized legacy MIME compatible while new Run JSON stays canonical"
+          ],
+          "status": "passed"
+        }
+      ],
+      "originalUnselectedAssertions": [
+        {
+          "titlePath": [
+            "attachment occurrence metadata",
+            "keeps Project presentation independent from one shared physical asset and preserves it on copy"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "attachment occurrence metadata",
+            "keeps current clients responsible for freezing contextual Run metadata"
+          ],
+          "status": "skipped"
+        }
+      ],
+      "originalReporterCounts": {
+        "numTotalTests": 5,
+        "numPassedTests": 3,
+        "numFailedTests": 0,
+        "numPendingTests": 2
+      }
+    },
+    {
+      "name": "07-legacy-comment-settlement.test",
+      "file": "worker/legacy-comment-settlement.test.ts",
+      "sourceSha256": "2fcd39c88a9045c98160893887098b080bcb1c3e51eecd543896b49983618a1a",
+      "expectedTitlePaths": [
+        [
+          "legacy Comment creation settlement",
+          "acknowledges the exact individual occurrence set despite BEFORE trigger changes"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "acknowledges the exact common occurrence set despite BEFORE trigger changes"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "acknowledges the exact individual occurrence set despite AFTER trigger changes"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "acknowledges the exact common occurrence set despite AFTER trigger changes"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "rejects missing results proof even when the reported change count looks correct"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "rejects null results proof even when the reported change count looks correct"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "rejects non-array results proof even when the reported change count looks correct"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "rejects missing occurrence proof even when the reported change count looks correct"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "rejects wrong occurrence proof even when the reported change count looks correct"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "rejects duplicate occurrence proof even when the reported change count looks correct"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "rejects missing id proof even when the reported change count looks correct"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "rejects non-string id proof even when the reported change count looks correct"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "rejects extra occurrence proof even when the reported change count looks correct"
+        ],
+        [
+          "legacy Comment creation settlement",
+          "preserves the all-target write guard when a step changes after validation"
+        ]
+      ],
+      "expectedSelectedCases": 14,
+      "status": "PASS",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/legacy-comment-settlement.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--testNamePattern",
+        "(?:acknowledges\\ the\\ exact\\ individual\\ occurrence\\ set\\ despite\\ BEFORE\\ trigger\\ changes|acknowledges\\ the\\ exact\\ common\\ occurrence\\ set\\ despite\\ BEFORE\\ trigger\\ changes|acknowledges\\ the\\ exact\\ individual\\ occurrence\\ set\\ despite\\ AFTER\\ trigger\\ changes|acknowledges\\ the\\ exact\\ common\\ occurrence\\ set\\ despite\\ AFTER\\ trigger\\ changes|rejects\\ missing\\ results\\ proof\\ even\\ when\\ the\\ reported\\ change\\ count\\ looks\\ correct|rejects\\ null\\ results\\ proof\\ even\\ when\\ the\\ reported\\ change\\ count\\ looks\\ correct|rejects\\ non\\-array\\ results\\ proof\\ even\\ when\\ the\\ reported\\ change\\ count\\ looks\\ correct|rejects\\ missing\\ occurrence\\ proof\\ even\\ when\\ the\\ reported\\ change\\ count\\ looks\\ correct|rejects\\ wrong\\ occurrence\\ proof\\ even\\ when\\ the\\ reported\\ change\\ count\\ looks\\ correct|rejects\\ duplicate\\ occurrence\\ proof\\ even\\ when\\ the\\ reported\\ change\\ count\\ looks\\ correct|rejects\\ missing\\ id\\ proof\\ even\\ when\\ the\\ reported\\ change\\ count\\ looks\\ correct|rejects\\ non\\-string\\ id\\ proof\\ even\\ when\\ the\\ reported\\ change\\ count\\ looks\\ correct|rejects\\ extra\\ occurrence\\ proof\\ even\\ when\\ the\\ reported\\ change\\ count\\ looks\\ correct|preserves\\ the\\ all\\-target\\ write\\ guard\\ when\\ a\\ step\\ changes\\ after\\ validation)$",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/07-legacy-comment-settlement.test.json"
+      ],
+      "originalExplicitCaseMilliseconds": null,
+      "startedAt": "2026-10-11T04:47:24.219877+00:00",
+      "logPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/07-legacy-comment-settlement.test.log",
+      "pid": 798593,
+      "processGroup": 798593,
+      "exitCode": 0,
+      "actualOriginalChildWaited": true,
+      "durationSeconds": 22.591,
+      "logSha256": "7548c6d0bf526597a1ca1e725fb480f7003bfcf315f21aa931f6439b722b8075",
+      "completionGroupSnapshot": [],
+      "normalCompletionHadActiveChildren": false,
+      "closureInitialSnapshot": [],
+      "actualExitCode": 0,
+      "closureFinalSnapshot": [],
+      "ownedClosureProven": true,
+      "rawJsonPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/07-legacy-comment-settlement.test.json",
+      "rawJsonSha256": "25725fb03f7f61240c492002a5eb44bf1f8c7c8d6ec42e11286ad399f9b15bfd",
+      "actualSelectedTotal": 14,
+      "actualSelectedPassed": 14,
+      "actualSelectedFailed": 0,
+      "actualSelectedUnrun": 0,
+      "actualSelectedAssertions": [
+        {
+          "titlePath": [
+            "legacy Comment creation settlement",
+            "acknowledges the exact individual occurrence set despite BEFORE trigger changes"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "legacy Comment creation settlement",
+            "acknowledges the exact common occurrence set despite BEFORE trigger changes"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "legacy Comment creation settlement",
+            "acknowledges the exact individual occurrence set despite AFTER trigger changes"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "legacy Comment creation settlement",
+            "acknowledges the exact common occurrence set despite AFTER trigger changes"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "legacy Comment creation settlement",
+            "rejects missing results proof even when the reported change count looks correct"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "legacy Comment creation settlement",
+            "rejects null results proof even when the reported change count looks correct"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "legacy Comment creation settlement",
+            "rejects non-array results proof even when the reported change count looks correct"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "legacy Comment creation settlement",
+            "rejects missing occurrence proof even when the reported change count looks correct"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "legacy Comment creation settlement",
+            "rejects wrong occurrence proof even when the reported change count looks correct"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "legacy Comment creation settlement",
+            "rejects duplicate occurrence proof even when the reported change count looks correct"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "legacy Comment creation settlement",
+            "rejects missing id proof even when the reported change count looks correct"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "legacy Comment creation settlement",
+            "rejects non-string id proof even when the reported change count looks correct"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "legacy Comment creation settlement",
+            "rejects extra occurrence proof even when the reported change count looks correct"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "legacy Comment creation settlement",
+            "preserves the all-target write guard when a step changes after validation"
+          ],
+          "status": "passed"
+        }
+      ],
+      "originalUnselectedAssertions": [],
+      "originalReporterCounts": {
+        "numTotalTests": 14,
+        "numPassedTests": 14,
+        "numFailedTests": 0,
+        "numPendingTests": 0
+      }
+    },
+    {
+      "name": "08-source-lifecycle-routes.test",
+      "file": "worker/source-lifecycle-routes.test.ts",
+      "sourceSha256": "990042e683134d918be3dd8ba6a619889cd537adb0273125c35c79f1a3a46c31",
+      "expectedTitlePaths": [
+        [
+          "source lifecycle routes",
+          "rejects a common-comment group mutation when any target ancestor is deleted"
+        ],
+        [
+          "source lifecycle routes",
+          "keeps timeline attachment deletion atomic when its Run moves to trash"
+        ],
+        [
+          "source lifecycle routes",
+          "deletes one execution occurrence and every timeline event that references it"
+        ],
+        [
+          "source lifecycle routes",
+          "resolves a legacy execution-image event to one occurrence before deletion"
+        ],
+        [
+          "source lifecycle routes",
+          "soft-deletes and restores execution and metrology attachment occurrences"
+        ],
+        [
+          "source lifecycle routes",
+          "keeps execution-image restore atomic when the Run moves to trash"
+        ],
+        [
+          "source lifecycle routes",
+          "does not add an ad-hoc Step after its Run moves to trash"
+        ],
+        [
+          "source lifecycle routes",
+          "does not reactivate a Run that finishes while an ad-hoc Step is being added"
+        ],
+        [
+          "source lifecycle routes",
+          "does not add an ad-hoc Step after its insertion point changes"
+        ],
+        [
+          "source lifecycle routes",
+          "keeps State verification atomic when its run moves to trash"
+        ],
+        [
+          "source lifecycle routes",
+          "keeps State verification atomic when its sample moves to trash"
+        ],
+        [
+          "source lifecycle routes",
+          "verifies state across 48 covered steps within D1's 100-parameter limit"
+        ],
+        [
+          "source lifecycle routes",
+          "verifies state across 180 covered steps within D1's 100-parameter limit"
+        ],
+        [
+          "source lifecycle routes",
+          "requires the canonical Comment before restoring its occurrence or legacy image"
+        ],
+        [
+          "source lifecycle routes",
+          "rechecks canonical restore target visibility inside the mutation batch"
+        ],
+        [
+          "source lifecycle routes",
+          "counts legacy comment rows exactly despite shadow trigger writes"
+        ],
+        [
+          "source lifecycle routes",
+          "rechecks common-comment group visibility inside the restore batch"
+        ]
+      ],
+      "expectedSelectedCases": 17,
+      "status": "PASS",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/source-lifecycle-routes.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--testNamePattern",
+        "(?:rejects\\ a\\ common\\-comment\\ group\\ mutation\\ when\\ any\\ target\\ ancestor\\ is\\ deleted|keeps\\ timeline\\ attachment\\ deletion\\ atomic\\ when\\ its\\ Run\\ moves\\ to\\ trash|deletes\\ one\\ execution\\ occurrence\\ and\\ every\\ timeline\\ event\\ that\\ references\\ it|resolves\\ a\\ legacy\\ execution\\-image\\ event\\ to\\ one\\ occurrence\\ before\\ deletion|soft\\-deletes\\ and\\ restores\\ execution\\ and\\ metrology\\ attachment\\ occurrences|keeps\\ execution\\-image\\ restore\\ atomic\\ when\\ the\\ Run\\ moves\\ to\\ trash|does\\ not\\ add\\ an\\ ad\\-hoc\\ Step\\ after\\ its\\ Run\\ moves\\ to\\ trash|does\\ not\\ reactivate\\ a\\ Run\\ that\\ finishes\\ while\\ an\\ ad\\-hoc\\ Step\\ is\\ being\\ added|does\\ not\\ add\\ an\\ ad\\-hoc\\ Step\\ after\\ its\\ insertion\\ point\\ changes|keeps\\ State\\ verification\\ atomic\\ when\\ its\\ run\\ moves\\ to\\ trash|keeps\\ State\\ verification\\ atomic\\ when\\ its\\ sample\\ moves\\ to\\ trash|verifies\\ state\\ across\\ 48\\ covered\\ steps\\ within\\ D1's\\ 100\\-parameter\\ limit|verifies\\ state\\ across\\ 180\\ covered\\ steps\\ within\\ D1's\\ 100\\-parameter\\ limit|requires\\ the\\ canonical\\ Comment\\ before\\ restoring\\ its\\ occurrence\\ or\\ legacy\\ image|rechecks\\ canonical\\ restore\\ target\\ visibility\\ inside\\ the\\ mutation\\ batch|counts\\ legacy\\ comment\\ rows\\ exactly\\ despite\\ shadow\\ trigger\\ writes|rechecks\\ common\\-comment\\ group\\ visibility\\ inside\\ the\\ restore\\ batch)$",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/08-source-lifecycle-routes.test.json"
+      ],
+      "originalExplicitCaseMilliseconds": null,
+      "startedAt": "2026-10-11T04:47:47.252178+00:00",
+      "logPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/08-source-lifecycle-routes.test.log",
+      "pid": 798662,
+      "processGroup": 798662,
+      "exitCode": 0,
+      "actualOriginalChildWaited": true,
+      "durationSeconds": 11.211,
+      "logSha256": "c0239625218b7d50e24ee6044687727dca818ae85c244e0cb477d48ecda9cde3",
+      "completionGroupSnapshot": [],
+      "normalCompletionHadActiveChildren": false,
+      "closureInitialSnapshot": [],
+      "actualExitCode": 0,
+      "closureFinalSnapshot": [],
+      "ownedClosureProven": true,
+      "rawJsonPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/08-source-lifecycle-routes.test.json",
+      "rawJsonSha256": "f65e14f2c8e580aed6378587b8c6dedb5f3aa40e9e0cc8e88166f71fc9fa76da",
+      "actualSelectedTotal": 17,
+      "actualSelectedPassed": 17,
+      "actualSelectedFailed": 0,
+      "actualSelectedUnrun": 0,
+      "actualSelectedAssertions": [
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "requires the canonical Comment before restoring its occurrence or legacy image"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "rechecks canonical restore target visibility inside the mutation batch"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "soft-deletes and restores execution and metrology attachment occurrences"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "counts legacy comment rows exactly despite shadow trigger writes"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "rejects a common-comment group mutation when any target ancestor is deleted"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "rechecks common-comment group visibility inside the restore batch"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "does not add an ad-hoc Step after its Run moves to trash"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "does not reactivate a Run that finishes while an ad-hoc Step is being added"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "does not add an ad-hoc Step after its insertion point changes"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "keeps State verification atomic when its run moves to trash"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "keeps State verification atomic when its sample moves to trash"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "verifies state across 48 covered steps within D1's 100-parameter limit"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "verifies state across 180 covered steps within D1's 100-parameter limit"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "keeps execution-image restore atomic when the Run moves to trash"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "keeps timeline attachment deletion atomic when its Run moves to trash"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "deletes one execution occurrence and every timeline event that references it"
+          ],
+          "status": "passed"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "resolves a legacy execution-image event to one occurrence before deletion"
+          ],
+          "status": "passed"
+        }
+      ],
+      "originalUnselectedAssertions": [
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "hides and restores a Sample without deleting its graph or detaching children"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "hides and restores a canonical Comment while retaining occurrences and managed files"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "exports managed attachment bytes after the item source is soft-deleted with archive schema 24"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "exports managed attachment bytes after the canonical source is soft-deleted with archive schema 24"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "exports managed attachment bytes after the item source is soft-deleted with archive schema 25"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "exports managed attachment bytes after the canonical source is soft-deleted with archive schema 25"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "exports managed attachment bytes after the item source is soft-deleted with archive schema 26"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "exports managed attachment bytes after the canonical source is soft-deleted with archive schema 26"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "hides a Sample Comment attachment download after the Sample enters trash but preserves export access"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "hides a run-step Comment attachment download after its only Run target enters trash but preserves export access"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "keeps a common Comment attachment downloadable while at least one target remains visible"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "enforces attachment ownership and restores a TIFF preview only after its original"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "keeps Comment finalize atomic when a target Run moves to trash"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "does not orphan a ready Comment attachment when Finalize wins a Cancel race"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "does not add embedded metrology after the process Run finishes"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "guards direct Comment-item restore at the mutation statement"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "uses deletion operation identity when timestamps and actors collide"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "keeps a deleted Recipe revision and restores the same identity"
+          ],
+          "status": "skipped"
+        },
+        {
+          "titlePath": [
+            "source lifecycle routes",
+            "preserves Run Comment text while the 24-hour attachment retention edge expires"
+          ],
+          "status": "skipped"
+        }
+      ],
+      "originalReporterCounts": {
+        "numTotalTests": 36,
+        "numPassedTests": 17,
+        "numFailedTests": 0,
+        "numPendingTests": 19
+      }
+    },
+    {
+      "name": "09-consumer-binding.test",
+      "file": "worker/files/consumer-binding.test.ts",
+      "sourceSha256": "8f2c02ea2e74df4138b2de9daca3abde24bd4a72088837b22e9ea7c1c8b39eee",
+      "expectedTitlePaths": [
+        [
+          "binds ordinary records, execution images, comments and verification to the accepted File atomically"
+        ]
+      ],
+      "expectedSelectedCases": 1,
+      "status": "PASS",
+      "argv": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "worker/files/consumer-binding.test.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--testNamePattern",
+        "(?:binds\\ ordinary\\ records,\\ execution\\ images,\\ comments\\ and\\ verification\\ to\\ the\\ accepted\\ File\\ atomically)$",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/09-consumer-binding.test.json"
+      ],
+      "originalExplicitCaseMilliseconds": 15000,
+      "startedAt": "2026-10-11T04:47:58.886311+00:00",
+      "logPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/09-consumer-binding.test.log",
+      "pid": 798802,
+      "processGroup": 798802,
+      "exitCode": 0,
+      "actualOriginalChildWaited": true,
+      "durationSeconds": 6.445,
+      "logSha256": "66ae5d02b3c65a103e1bb19c8eceec92c3dd1c4ee1f9aee9211252a490ff85a9",
+      "completionGroupSnapshot": [],
+      "normalCompletionHadActiveChildren": false,
+      "closureInitialSnapshot": [],
+      "actualExitCode": 0,
+      "closureFinalSnapshot": [],
+      "ownedClosureProven": true,
+      "rawJsonPath": "/tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/09-consumer-binding.test.json",
+      "rawJsonSha256": "77c029085f7112a32db66b297ea072b29e80c1f4b8f85e3fb3662475373f8b7d",
+      "actualSelectedTotal": 1,
+      "actualSelectedPassed": 1,
+      "actualSelectedFailed": 0,
+      "actualSelectedUnrun": 0,
+      "actualSelectedAssertions": [
+        {
+          "titlePath": [
+            "binds ordinary records, execution images, comments and verification to the accepted File atomically"
+          ],
+          "status": "passed"
+        }
+      ],
+      "originalUnselectedAssertions": [],
+      "originalReporterCounts": {
+        "numTotalTests": 1,
+        "numPassedTests": 1,
+        "numFailedTests": 0,
+        "numPendingTests": 0
+      }
+    }
+  ],
+  "scope": "Original Worker SQLite compatibility/provider doubles; no actual workerd, installed operational File/Request authority or native lease ACK claim.",
+  "finalOwnedGroups": {
+    "797633": [],
+    "798117": [],
+    "798196": [],
+    "798268": [],
+    "798381": [],
+    "798431": [],
+    "798593": [],
+    "798662": [],
+    "798802": []
+  },
+  "noActiveOrUnknownOwnedGroups": true,
+  "sourcePinsVerifiedBeforeAfter": true,
+  "laterStagesUnrun": [],
+  "actualSelectedPassed": 56,
+  "actualSelectedFailed": 0,
+  "allExpectedSelectedNotPassedOrFailed": 0,
+  "originalCleanupScope": "Original selected fixture hooks and cached direct-child cleanup; kernel group state/FD observations retained. Signals/termination alone do not prove business rollback or original fixture finally completion.",
+  "endedAt": "2026-10-11T04:48:05.809490+00:00"
+}

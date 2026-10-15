@@ -10,6 +10,20 @@ import {
 
 const sampleContext = { kind: "sample" as const, sampleId: "sample-123", expectedUpdatedAt: "2026-07-23T20:00:00Z" };
 
+function submissionWith(item: unknown) {
+  return {
+    id: "submission-123",
+    body: "Attachment",
+    context: sampleContext,
+    items: [item],
+  };
+}
+
+function expectValidationError(input: unknown, expected: string) {
+  expect(() => validateCommentSubmissionInput(input)).not.toThrow();
+  expect(validateCommentSubmissionInput(input)).toBe(expected);
+}
+
 describe("comment submission validation", () => {
   it("accepts text, processed images, unchanged attachments, and external links", () => {
     expect(validateCommentSubmissionInput({
@@ -79,6 +93,7 @@ describe("comment submission validation", () => {
   it("accepts only http attachment links and lowercase sha256 values", () => {
     expect(safeAttachmentUrl("https://example.com/data")).toBe(true);
     expect(safeAttachmentUrl("file:///tmp/data")).toBe(false);
+    expect(safeAttachmentUrl(123)).toBe(false);
     expect(validSha256("a".repeat(64))).toBe(true);
     expect(validSha256("A".repeat(64))).toBe(false);
   });
@@ -151,5 +166,167 @@ describe("comment submission validation", () => {
         relatedCommentImageId: "image-tiff",
       }],
     })).toBeNull();
+  });
+
+  it("accepts safe TIFF source metadata while preserving filename classification", () => {
+    for (const original of [
+      { filename: "surface.tif\t", mimeType: "image/png" },
+      { filename: "surface.bin", mimeType: "image/tiff; charset=binary" },
+    ]) {
+      const preview = {
+        id: "image-whitespace",
+        kind: "comment_image" as const,
+        filename: "surface.webp",
+        mimeType: "image/webp",
+        byteSize: 120_000,
+        originalFilename: original.filename,
+        originalMimeType: original.mimeType,
+        originalByteSize: 3_600_000,
+        relatedAttachmentId: "original-whitespace",
+      };
+      expect(validateCommentSubmissionInput({
+        id: "submission-123",
+        body: "SEM image",
+        context: sampleContext,
+        items: [preview, {
+          id: "original-whitespace",
+          kind: "attachment",
+          filename: original.filename,
+          mimeType: original.mimeType,
+          byteSize: 3_600_000,
+          relatedCommentImageId: "image-whitespace",
+        }],
+      })).toBeNull();
+    }
+  });
+
+  it("rejects NUL in persisted attachment presentation metadata", () => {
+    expect(validateCommentSubmissionInput({
+      id: "submission-123",
+      body: "SEM image",
+      context: sampleContext,
+      items: [{
+        id: "image-nul",
+        kind: "comment_image",
+        filename: "surface.webp",
+        mimeType: "image/webp",
+        byteSize: 120_000,
+        originalFilename: "\u0000surface.tif",
+        originalMimeType: "image/png",
+        originalByteSize: 3_600_000,
+      }],
+    })).toBe("Comment image metadata is invalid");
+
+    expect(validateCommentSubmissionInput({
+      id: "submission-123",
+      body: "file",
+      context: sampleContext,
+      items: [{
+        id: "file-nul",
+        kind: "attachment",
+        filename: "surface.tif",
+        mimeType: "image/tiff\u0000ignored",
+        byteSize: 1_024,
+      }],
+    })).toBe("Attachment metadata is invalid");
+  });
+
+  it("rejects malformed attachment JSON field types without throwing", () => {
+    const malformedValues: unknown[] = [123, [], {}];
+    const imageBase = {
+      id: "image-bad",
+      kind: "comment_image",
+      filename: "surface.webp",
+      mimeType: "image/webp",
+      byteSize: 120_000,
+      originalFilename: "surface.png",
+      originalMimeType: "image/png",
+      originalByteSize: 3_600_000,
+    };
+    for (const field of ["filename", "mimeType", "originalFilename", "originalMimeType", "relatedAttachmentId"] as const) {
+      for (const value of malformedValues) {
+        expectValidationError(
+          submissionWith({ ...imageBase, [field]: value }),
+          "Comment image metadata is invalid",
+        );
+      }
+    }
+    for (const field of ["byteSize", "originalByteSize"] as const) {
+      for (const value of ["1", [], {}]) {
+        expectValidationError(
+          submissionWith({ ...imageBase, [field]: value }),
+          "Comment image metadata is invalid",
+        );
+      }
+    }
+
+    const attachmentBase = {
+      id: "file-bad",
+      kind: "attachment",
+      filename: "measurement.csv",
+      mimeType: "text/csv",
+      byteSize: 1_024,
+    };
+    for (const field of ["filename", "mimeType", "title", "relatedCommentImageId"] as const) {
+      for (const value of malformedValues) {
+        expectValidationError(
+          submissionWith({ ...attachmentBase, [field]: value }),
+          "Attachment metadata is invalid",
+        );
+      }
+    }
+    for (const value of ["1024", 1.5, [], {}]) {
+      expectValidationError(
+        submissionWith({ ...attachmentBase, byteSize: value }),
+        "Attachment metadata is invalid",
+      );
+    }
+
+    const linkBase = {
+      id: "link-bad",
+      kind: "link",
+      title: "Dataset",
+      url: "https://example.com/data",
+    };
+    for (const field of ["title", "url", "description"] as const) {
+      for (const value of malformedValues) {
+        expectValidationError(
+          submissionWith({ ...linkBase, [field]: value }),
+          "Attachment link metadata is invalid",
+        );
+      }
+    }
+  });
+
+  it("rejects malformed context and run-step target field types without throwing", () => {
+    for (const value of [123, [], {}]) {
+      expectValidationError({
+        id: "submission-123",
+        body: "Comment",
+        context: { ...sampleContext, sampleId: value },
+        items: [],
+      }, "A current sample revision is required");
+    }
+
+    const target = {
+      sampleId: "sample-123",
+      runId: "run-12345",
+      stepId: "step-1234",
+      expectedUpdatedAt: "2026-07-23T20:00:00Z",
+    };
+    for (const field of ["sampleId", "runId", "stepId", "expectedUpdatedAt"] as const) {
+      for (const value of [123, [], {}]) {
+        expectValidationError({
+          id: "submission-123",
+          body: "Comment",
+          context: {
+            kind: "run_steps",
+            scope: "individual",
+            targets: [{ ...target, [field]: value }],
+          },
+          items: [],
+        }, "Valid process-step targets are required");
+      }
+    }
   });
 });

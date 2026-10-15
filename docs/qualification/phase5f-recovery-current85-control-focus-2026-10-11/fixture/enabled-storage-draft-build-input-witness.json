@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "command": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "actualExitCode": 0,
+  "directChildReaped": true,
+  "sourceHead": "85f70fd4f22530b98e6ceaafc7c1663f201e5b7a",
+  "sourceTree": "b3c41095d9aec295df8693ebd69ab3a20f9dd7a0",
+  "sourceRoot": "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2",
+  "sourceCopyRoot": "/workspace/recovery-current-focus-native-private-attempt7/copy",
+  "trackedInputInventorySha256": "b7026843598f7f84ce0f1ace279b52c187536322c2820bf76d0d33c49cc81fdf",
+  "workerSha256": "d2f71d546452c57fb227a1a7bb07eb5096e9d19cc84203a8b52820cf911e3ea8",
+  "activeBuildConfigSha256": "c4dc8bd91bd1e5cf3d3948b516a508c578134620c98602f3dfbabddd6c162e5f",
+  "copiedArtifactInventorySha256": "86e20c9efe213c41b823ea92dcd0ae43fe74ea8bd59f6d8d2cd389b7d9d33e0a",
+  "originalCommandReceiptSha256": "d5eb4baacb3044512c64e2ce927fa42cb622cc5d39635451bcd41764dee014d3",
+  "originalBuildLogSha256": "3b23e8497b1af79b21d10ee83ca5dbdeba96ea67ae2c07940a8d27632842fe0b",
+  "freshDistFileCount": 118,
+  "copiedArtifactFileCount": 121,
+  "scope": "ONE actual new current85 CF Worker/frontend build command exit0/directreap/full manifest output hashes; no additional build in13. Newphysical/current24/mature84 setup independently qualified; artifact counts derive from actual current manifest/copy. QAconsumerb498 solefocus/temp helper/all2345 other inputs exact. Primary6 sameoriginalapplicationResponse/reader/readPromise EOF/fullboundedbytes/requestidentity/DTO/backendhash; CDP separatelyrecorded/suppliedbytesmatch. Native samejob3controlfocus andsurvivingPreview remain strict. No historicalf228118 or Node/old5a substitution/newconsumerHead artifactclaim."
+}

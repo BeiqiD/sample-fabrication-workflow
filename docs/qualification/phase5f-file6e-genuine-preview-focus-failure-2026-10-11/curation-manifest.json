@@ -1,0 +1,220 @@
+{
+  "version": 1,
+  "status": "RETAINED_ACTUAL_FAILURE_CLOSED",
+  "sourceParent": "6e531cf0e08069544723958dc0c7500766fd7479",
+  "originalRecords": [
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/actual-file6e-genuine-preview200-keyboard-focus-failure-closed-release.json",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/actual-file6e-genuine-preview200-keyboard-focus-failure-closed-release.json",
+      "bytes": 16542,
+      "sha256": "cecfb35007e536cbca9eba13dea29bbd05e18db2c745b533add67aa382000849"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/chromium-child-temp-owner.json",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/chromium-child-temp-owner.json",
+      "bytes": 586,
+      "sha256": "c1769e91bbe4f31573fb57187e16fca6f120db31b5d89bdd1e4592816104cadd"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/final-f228-source-and-genuine-two-r2-file-preview-pins.json",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/final-f228-source-and-genuine-two-r2-file-preview-pins.json",
+      "bytes": 3121,
+      "sha256": "7db6b2af144bcaffb70638024fb853267ad206f6e0ff68a8f4fc73416a9bad76"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/final-source-artifact-input-pins-command.json",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/final-source-artifact-input-pins-command.json",
+      "bytes": 1261,
+      "sha256": "8c5aee54334dd6a2ea251b6b6b3b3707fe5950822b9a36f0e008f755fa3ef7a3"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/fresh-two-version-sentinel-command.json",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/fresh-two-version-sentinel-command.json",
+      "bytes": 1900,
+      "sha256": "8beab49a445a0b94130405233b1435098356decb02424d04ed1884f5029177af"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/frozen-approved-plan.json",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/frozen-approved-plan.json",
+      "bytes": 16511,
+      "sha256": "fd4620a8dfa35b396c033adfa0a0f6b3cd9da04f6839ddf5be1fc8ad5be8f9bb"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/historical-current-source-build-and-pure24-witness-command.json",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/historical-current-source-build-and-pure24-witness-command.json",
+      "bytes": 1294,
+      "sha256": "21d32fe376d5aa469b851d1a8f00388a250c8d8002abb7e18dc595c71d2f36c8"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/isolated-copy-command.json",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/isolated-copy-command.json",
+      "bytes": 1421,
+      "sha256": "6b35594da70f4a40fe27c32368b67382f1015be74f0e4935841a0d35363b7dc6"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/ordinary-actual24-local-migrations-command.json",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/ordinary-actual24-local-migrations-command.json",
+      "bytes": 2014,
+      "sha256": "d15d4f85f2d0df4a646c51bc84ff2cab62faf200569e014d0cfd00d8bee9d6c7"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/original-f228-build-new-pure24-file-fixture-causal-carry.json",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/original-f228-build-new-pure24-file-fixture-causal-carry.json",
+      "bytes": 1530,
+      "sha256": "82ab4b013dd7424802eecc2f9154e1919746447719d933d5b3dc3629cea572f1"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/original-two-local-r2-file-migration-previews-command.json",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/original-two-local-r2-file-migration-previews-command.json",
+      "bytes": 2353,
+      "sha256": "f32fdaea76a38426166eaa51cd990cfb91c44356da64a889785d1290b0a49d02"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/physical-after-command.json",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/physical-after-command.json",
+      "bytes": 1707,
+      "sha256": "5528264c0ab2c5cb09532eba180e19a764d1b555f37267c7aebeced8515afd85"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/physical-before-command.json",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/physical-before-command.json",
+      "bytes": 1367,
+      "sha256": "10b9c8a9972e15dbd1436d29fefe1de01c22b5ac81bddc1b5b657a407cf67b57"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/qualified-original-f228-build-producer-preflight-command.json",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/qualified-original-f228-build-producer-preflight-command.json",
+      "bytes": 1301,
+      "sha256": "35e3bcd8cd02be0c043cbf228b78212fff19af44f68e24ac077515d9e26c3a52"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/synthetic-template-sentinels-only-command.json",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/synthetic-template-sentinels-only-command.json",
+      "bytes": 2103,
+      "sha256": "d4d1d1408f9f1d9664fece2435df986abe14eead5b1b583a9aed999aa97f802c"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/final-source-artifact-input-pins.log",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/final-source-artifact-input-pins.log",
+      "bytes": 207,
+      "sha256": "ad52b9ce593de734db53249bb841596bbf00d7e1696e6d19ee015c9c0cb48f81"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/fresh-two-version-sentinel.log",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/fresh-two-version-sentinel.log",
+      "bytes": 228,
+      "sha256": "4d8a2d7fd6c7fdf4bef7120e2f6ef7f4f242543061ce67db069758719f24b1cd"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/historical-current-source-build-and-pure24-witness.log",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/historical-current-source-build-and-pure24-witness.log",
+      "bytes": 204,
+      "sha256": "2accda108d4c6762a9a426388c83d95e2cbf3c9d7a6f20ba31ffd4fd1d90ebbc"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/isolated-copy.log",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/isolated-copy.log",
+      "bytes": 201,
+      "sha256": "309b9e5865e29b7a6dcfd2636f1446b6666db878d5e4737adc66060ab4f73d89"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/ordinary-actual24-local-migrations.log",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/ordinary-actual24-local-migrations.log",
+      "bytes": 147956,
+      "sha256": "a4c2ee4f147f8110883945240afdfc2a2814e352b98694a6814440398a2d4360"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/original-two-local-r2-file-migration-previews.log",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/original-two-local-r2-file-migration-previews.log",
+      "bytes": 300,
+      "sha256": "18ca8a260ef118c9b5e8b41ab4d5c1fbb7d41fe27dbe46d56216a2bd144aefbb"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/physical-after.log",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/physical-after.log",
+      "bytes": 174,
+      "sha256": "9e968599f66a9e4b307b91f8dd6f384b959436e3837fc029514923836a11348d"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/physical-before.log",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/physical-before.log",
+      "bytes": 166,
+      "sha256": "c81cd6f60626abe823939c2c472e0988fb4b17c0c443d350381981683dc090ce"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/qualified-original-f228-build-producer-preflight.log",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/qualified-original-f228-build-producer-preflight.log",
+      "bytes": 99,
+      "sha256": "44ebaa303713644672cafc49cfee64773c540ef7c1a048848ffbc026de299230"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/synthetic-template-sentinels-only.log",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/synthetic-template-sentinels-only.log",
+      "bytes": 1611,
+      "sha256": "769fd6f5b6fa2aecf50f3c9e6e84a4965331da91d3f65aac244d47ad083c4359"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/fixture/enabled-storage-draft-build-input-witness.json",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/enabled-storage-draft-build-input-witness.json",
+      "bytes": 1337,
+      "sha256": "55dfef592cada4419b9160c5d397c1a5fcebe86ef96d567fe922858bdbf9a2bb"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/fixture/genuine-two-r2-file-migration-preview-report.json",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/genuine-two-r2-file-migration-preview-report.json",
+      "bytes": 82995,
+      "sha256": "cb9b66bb5e4e13b6d6a6045ab49e173721bd8c877ca883f28cb133a579b94662"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/fixture/genuine-two-r2-file-migration-preview-stop.json",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/genuine-two-r2-file-migration-preview-stop.json",
+      "bytes": 500,
+      "sha256": "b07ea62552837d9eddb1b9a1c749278450ddebc4917f31ade95b2995686afd3c"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/fixture/physical-sqlite-after-two-local-r2-migration-preview.json",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/physical-sqlite-after-two-local-r2-migration-preview.json",
+      "bytes": 68768,
+      "sha256": "7b61af2cc0e7708671e542e867e5e9d4dbd722c687f30f0385e5bc7de3956f31"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/fixture/physical-sqlite-before-api.json",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/physical-sqlite-before-api.json",
+      "bytes": 61887,
+      "sha256": "5cd5d2248e0f90b3aaf7e094a9426e816873570f900c202675075329ba339535"
+    },
+    {
+      "source": "/workspace/file-two-r2-route-result-f228-private-attempt3/fixture/process-fixture.json",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/process-fixture.json",
+      "bytes": 1576,
+      "sha256": "3faa846afe33639e2e10f3da9e743ab66ec51448255e1d86d9e2457a178616e2"
+    },
+    {
+      "source": "/workspace/file6e531-independent-complete-dual-r2-route-contract-source-peer.json",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/file6e531-independent-complete-dual-r2-route-contract-source-peer.json",
+      "bytes": 4770,
+      "sha256": "bfe16ba97609e297b4b6e722fc92eef0dca37e9531695ad0ec1de884887221d5"
+    },
+    {
+      "source": "/workspace/file6e531-final-ten-independent-cross-file-mature-binding-source-addendum.json",
+      "path": "docs/qualification/phase5f-file6e-genuine-preview-focus-failure-2026-10-11/records/file6e531-final-ten-independent-cross-file-mature-binding-source-addendum.json",
+      "bytes": 2846,
+      "sha256": "daaf19069fb58f60c4598a4250eb08ab36184e313210f26fc7c568d02d821e9f"
+    }
+  ],
+  "originalRecordCount": 33,
+  "noRawNormalization": true,
+  "nativeCases": {
+    "passed": 0,
+    "failed": 1,
+    "unrun": 1
+  },
+  "actualCommands": {
+    "passed": 9,
+    "failed": 1,
+    "unrun": 0
+  },
+  "historicalProducer": "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+  "newBuilds": 0,
+  "wholePhaseOrDeploymentQualified": false
+}

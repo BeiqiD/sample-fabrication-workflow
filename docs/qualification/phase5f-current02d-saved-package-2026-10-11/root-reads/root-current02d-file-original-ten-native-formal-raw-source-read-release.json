@@ -1,0 +1,48 @@
+{
+  "status": "PASS_CLOSED_ROOT_REVIEWED_RELEASED",
+  "completedAt": "2026-10-11T17:00:13.031165+00:00",
+  "formal": {
+    "path": "/workspace/coherent-file-saved-native02-private-attempt1/runtime/actual-current02d-file-saved-job-original-ten-qualified-closed-release.json",
+    "sha256": "8e927dd3e9f89c92d00035ebeb18201d10435e5f9c6d2d97f1cf4a59b7738378"
+  },
+  "nativeCases": {
+    "passed": 1,
+    "failed": 0,
+    "unrun": 0,
+    "id": "current-coherent-file-saved-job-keyboard-1280-light",
+    "viewport": [
+      1280,
+      1000
+    ],
+    "theme": "light"
+  },
+  "original10CommandsAllExit0ReapedNoSignals": true,
+  "raw30ReferencesRehashed": true,
+  "source2729AndProducerCopied2726GitModeBlobBytesExact": true,
+  "originalAndCopied118ArtifactsExact": true,
+  "physical5SQLiteQuickCheckForeignKeysPNGExact": true,
+  "knownThreeZombieDescendantsFdPermissionErrorPreserved": true,
+  "normalBrowserWorkerJwksClosure": {
+    "status": "closed",
+    "browserCloseAwaited": true,
+    "originalPreparationOwnerClosure": {
+      "status": "closed",
+      "startedAt": "2026-10-11T16:49:57.277Z",
+      "originalRequestsAwaited": {
+        "count": 12,
+        "rejected": 0
+      },
+      "workerDisposeAwaited": true,
+      "workerPortRefused": true,
+      "originalOutboundWorkAwaited": {
+        "count": 1,
+        "rejected": 0
+      },
+      "jwksCloseAwaited": true,
+      "jwksPortRefused": true,
+      "completedAt": "2026-10-11T16:49:58.460Z"
+    }
+  },
+  "normalActiveControlFocusOriginalFivePostsReviewed": true,
+  "scope": "Original desktop/light File saved job keyboard native1; Package/mobile/defaultNodeDocker/fullGroup separate."
+}

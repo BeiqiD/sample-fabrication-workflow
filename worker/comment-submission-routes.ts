@@ -1,22 +1,17 @@
+import { prepareFileRestoration } from "./files/business-lifecycle";
 import { Hono, type Context } from "hono";
 import { HTTPException } from "hono/http-exception";
+import { originalFileStorageStatus } from "./storage/originals-status";
+import { getBlob } from "./blob-lifecycle/storage";
+import { readFileAuthorityMode, readPublishedFile } from "./files/authority-reader";
 import {
-  MAX_COMMENT_IMAGE_UPLOAD_BYTES,
-  MAX_MANAGED_ATTACHMENT_BYTES,
-  requiresManagedStorage,
-  validateCommentSubmissionInput,
-  validSha256,
-  validSubmissionId,
-} from "../shared/comment-submissions";
-import type {
-  CommentSubmissionItemInput,
-  CreateCommentSubmissionInput,
-  RunStepTarget,
-} from "../shared/types";
-import { sha256Hex } from "../shared/content-addressing";
-import { managedObjectKey, managedStorage, managedStorageStatus } from "./managed-storage";
+  listItemBlobLocators,
+  markOrphanCandidate,
+  retryUntil,
+} from "./blob-lifecycle/reachability";
 import type { Env } from "./types";
 import { isTiffMetadata } from "../shared/tiff";
+import { acceptedComment, createAcceptedComment, uploadAcceptedCommentItem, finalizeAcceptedComment, cancelAcceptedComment, removeAcceptedCommentItem, rethrowCommentAcceptanceError } from "./uploads/comment-acceptance";
 
 type AppBindings = { Bindings: Env; Variables: { userEmail: string } };
 
@@ -28,58 +23,91 @@ type SubmissionRow = {
   body: string;
   status: "draft" | "uploading" | "ready" | "failed" | "cancelled";
   actor_email: string | null;
+  retry_until: string | null;
+  retry_closed_at: string | null;
 };
 
-type ItemRow = {
-  id: string;
-  submission_id: string;
-  kind: "comment_image" | "attachment" | "link";
-  status: "pending" | "uploading" | "ready" | "failed" | "cancelled";
-  filename: string | null;
-  mime_type: string | null;
-  byte_size: number | null;
-  asset_id: string | null;
-  storage_object_id: string | null;
-  actor_email: string | null;
-};
+const MAX_COMMENT_UPLOAD_FAILURE_MESSAGE_LENGTH = 1_000;
+const DEFAULT_COMMENT_UPLOAD_FAILURE_MESSAGE = "The upload did not reach the server";
 
-function validTargets(value: unknown): value is RunStepTarget[] {
-  if (!Array.isArray(value) || value.length < 1 || value.length > 12) return false;
-  const ids = new Set<string>();
-  return value.every((target) => {
-    if (!target || typeof target !== "object") return false;
-    const candidate = target as Partial<RunStepTarget>;
-    if (!candidate.sampleId || !candidate.runId || !candidate.stepId || !candidate.expectedUpdatedAt
-      || ids.has(candidate.stepId)) return false;
-    ids.add(candidate.stepId);
-    return true;
-  });
+function commentUploadFailureMessage(input: unknown) {
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    throw new HTTPException(400, { message: "Comment upload failure payload is invalid" });
+  }
+  const error = (input as Record<string, unknown>).error;
+  if (error === undefined) return DEFAULT_COMMENT_UPLOAD_FAILURE_MESSAGE;
+  if (typeof error !== "string"
+    || error.length > MAX_COMMENT_UPLOAD_FAILURE_MESSAGE_LENGTH
+    || error.includes("\u0000")) {
+    throw new HTTPException(400, { message: "Comment upload failure payload is invalid" });
+  }
+  return error.trim() || DEFAULT_COMMENT_UPLOAD_FAILURE_MESSAGE;
 }
 
-function itemBindings(item: CommentSubmissionItemInput, submissionId: string, position: number, now: string) {
-  if (item.kind === "comment_image") return [
-    item.id, submissionId, item.kind, "pending", position,
-    item.filename, item.mimeType, item.byteSize,
-    item.originalFilename, item.originalMimeType, item.originalByteSize,
-    null, null, null, now, now,
-  ];
-  if (item.kind === "attachment") return [
-    item.id, submissionId, item.kind, "pending", position,
-    item.filename, item.mimeType || "application/octet-stream", item.byteSize,
-    item.filename, item.mimeType || "application/octet-stream", item.byteSize,
-    item.title?.trim() || item.filename, null, null, now, now,
-  ];
-  return [
-    item.id, submissionId, item.kind, "ready", position,
-    null, null, null, null, null, null,
-    item.title.trim(), item.description?.trim() || null, item.url, now, now,
-  ];
+function visibleSubmissionTargetsSql(alias: string) {
+  return `(
+    (
+      ${alias}.context_kind = 'sample'
+      AND EXISTS (
+        SELECT 1 FROM samples s
+        WHERE s.id = ${alias}.sample_id AND s.deleted_at IS NULL
+      )
+    )
+    OR
+    (
+      ${alias}.context_kind = 'run_steps'
+      AND EXISTS (
+        SELECT 1 FROM comment_submission_targets cst
+        WHERE cst.submission_id = ${alias}.id
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM comment_submission_targets cst
+        LEFT JOIN samples s ON s.id = cst.sample_id
+        LEFT JOIN runs r ON r.id = cst.run_id AND r.sample_id = cst.sample_id
+        LEFT JOIN run_steps rs ON rs.id = cst.run_step_id AND rs.run_id = cst.run_id
+        WHERE cst.submission_id = ${alias}.id
+          AND (
+            s.id IS NULL OR s.deleted_at IS NOT NULL
+            OR r.id IS NULL OR r.deleted_at IS NOT NULL
+            OR rs.id IS NULL OR rs.deleted_at IS NOT NULL
+          )
+      )
+    )
+  )`;
+}
+
+function readableSubmissionTargetsSql(alias: string) {
+  return `(
+    (
+      ${alias}.context_kind = 'sample'
+      AND EXISTS (
+        SELECT 1 FROM samples s
+        WHERE s.id = ${alias}.sample_id AND s.deleted_at IS NULL
+      )
+    )
+    OR
+    (
+      ${alias}.context_kind = 'run_steps'
+      AND EXISTS (
+        SELECT 1
+        FROM comment_submission_targets cst
+        JOIN samples s ON s.id = cst.sample_id AND s.deleted_at IS NULL
+        JOIN runs r ON r.id = cst.run_id AND r.sample_id = cst.sample_id
+          AND r.deleted_at IS NULL
+        JOIN run_steps rs ON rs.id = cst.run_step_id AND rs.run_id = cst.run_id
+          AND rs.deleted_at IS NULL
+        WHERE cst.submission_id = ${alias}.id
+      )
+    )
+  )`;
 }
 
 async function ownedSubmission(c: Context<AppBindings>, id: string) {
   const submission = await c.env.DB.prepare(
-    `SELECT id, context_kind, sample_id, scope, body, status, actor_email
-     FROM comment_submissions WHERE id = ?`,
+    `SELECT id, context_kind, sample_id, scope, body, status, actor_email,
+            retry_until, retry_closed_at
+     FROM comment_submissions WHERE id = ? AND deleted_at IS NULL`,
   ).bind(id).first<SubmissionRow>();
   if (!submission) throw new HTTPException(404, { message: "Comment submission not found" });
   if (submission.actor_email && submission.actor_email !== c.get("userEmail")) {
@@ -88,309 +116,145 @@ async function ownedSubmission(c: Context<AppBindings>, id: string) {
   return submission;
 }
 
+async function requireVisibleSubmissionTargets(
+  c: Context<AppBindings>,
+  submission: Pick<SubmissionRow, "context_kind" | "sample_id">,
+  submissionId: string,
+) {
+  if (submission.context_kind === "sample") {
+    const sample = submission.sample_id
+      ? await c.env.DB.prepare("SELECT id FROM samples WHERE id = ? AND deleted_at IS NULL")
+        .bind(submission.sample_id).first<{ id: string }>()
+      : null;
+    if (!sample) throw new HTTPException(409, { message: "The comment target is no longer available" });
+    return;
+  }
+  const counts = await c.env.DB.prepare(
+    `SELECT COUNT(*) AS target_count,
+            COALESCE(SUM(CASE
+              WHEN s.id IS NOT NULL AND s.deleted_at IS NULL
+                AND r.id IS NOT NULL AND r.deleted_at IS NULL
+                AND rs.id IS NOT NULL AND rs.deleted_at IS NULL
+              THEN 1 ELSE 0 END), 0) AS visible_count
+     FROM comment_submission_targets cst
+     LEFT JOIN samples s ON s.id = cst.sample_id
+     LEFT JOIN runs r ON r.id = cst.run_id AND r.sample_id = cst.sample_id
+     LEFT JOIN run_steps rs ON rs.id = cst.run_step_id AND rs.run_id = cst.run_id
+     WHERE cst.submission_id = ?`,
+  ).bind(submissionId).first<{ target_count: number; visible_count: number }>();
+  if (!counts || Number(counts.target_count) < 1
+    || Number(counts.visible_count) !== Number(counts.target_count)) {
+    throw new HTTPException(409, { message: "One or more comment targets are no longer available" });
+  }
+}
+
+async function requireCommentItemDependency(
+  c: Context<AppBindings>,
+  submissionId: string,
+  itemId: string,
+  action: "delete" | "restore",
+) {
+  if (action === "delete") {
+    const requiredOriginal = await c.env.DB.prepare(
+      `SELECT image.original_filename, image.original_mime_type
+       FROM comment_submission_items original
+       JOIN comment_submission_items image
+        ON image.submission_id = original.submission_id
+        AND image.kind = 'comment_image'
+        AND image.related_item_id = original.id
+        AND image.status <> 'cancelled' AND image.deleted_at IS NULL
+       WHERE original.id = ? AND original.submission_id = ? AND original.kind = 'attachment'
+         AND original.deleted_at IS NULL`,
+    ).bind(itemId, submissionId).first<{ original_filename: string; original_mime_type: string }>();
+    if (requiredOriginal && isTiffMetadata(requiredOriginal.original_filename, requiredOriginal.original_mime_type)) {
+      throw new HTTPException(409, { message: "The original TIFF is required while its comment preview is present" });
+    }
+    return;
+  }
+
+  const preview = await c.env.DB.prepare(
+    `SELECT image.original_filename, image.original_mime_type,
+            original.id AS original_id, original.status AS original_status,
+            original.deleted_at AS original_deleted_at
+     FROM comment_submission_items image
+     LEFT JOIN comment_submission_items original
+       ON original.id = image.related_item_id
+       AND original.submission_id = image.submission_id
+       AND original.kind = 'attachment'
+     WHERE image.id = ? AND image.submission_id = ? AND image.kind = 'comment_image'`,
+  ).bind(itemId, submissionId).first<{
+    original_filename: string;
+    original_mime_type: string;
+    original_id: string | null;
+    original_status: string | null;
+    original_deleted_at: string | null;
+  }>();
+  if (preview && isTiffMetadata(preview.original_filename, preview.original_mime_type)
+    && (!preview.original_id || preview.original_status !== "ready" || preview.original_deleted_at !== null)) {
+    throw new HTTPException(409, { message: "Restore the original TIFF before restoring its comment preview" });
+  }
+}
+
 async function markItemFailed(env: Env, submissionId: string, itemId: string, message: string) {
-  const now = new Date().toISOString();
-  await env.DB.batch([
+  const nowDate = new Date();
+  const now = nowDate.toISOString();
+  const retryDeadline = retryUntil(nowDate);
+  const results = await env.DB.batch([
     env.DB.prepare(
       `UPDATE comment_submission_items
        SET status = 'failed', error_message = ?, updated_at = ?
        WHERE id = ? AND submission_id = ? AND status NOT IN ('ready', 'cancelled')
+         AND deleted_at IS NULL
          AND EXISTS (
            SELECT 1 FROM comment_submissions cs
-           WHERE cs.id = comment_submission_items.submission_id AND cs.status <> 'cancelled'
+           WHERE cs.id = comment_submission_items.submission_id
+             AND cs.status <> 'cancelled' AND cs.retry_closed_at IS NULL
+             AND cs.deleted_at IS NULL
          )`,
     ).bind(message.slice(0, 1_000), now, itemId, submissionId),
     env.DB.prepare(
       `UPDATE comment_submissions
-       SET status = 'failed', error_message = ?, updated_at = ?
-       WHERE id = ? AND status NOT IN ('ready', 'cancelled')`,
-    ).bind("One or more files could not be uploaded", now, submissionId),
+       SET status = 'failed', error_message = ?, retry_until = ?, updated_at = ?
+       WHERE id = ? AND status NOT IN ('ready', 'cancelled')
+         AND retry_closed_at IS NULL AND deleted_at IS NULL`,
+    ).bind("One or more files could not be uploaded", retryDeadline, now, submissionId),
   ]);
-}
-
-async function managedKeyForSubmission(
-  env: Env,
-  submission: SubmissionRow,
-  submissionId: string,
-  itemId: string,
-  filename: string,
-) {
-  if (submission.sample_id) {
-    const sample = await env.DB.prepare("SELECT id, code FROM samples WHERE id = ?")
-      .bind(submission.sample_id).first<{ id: string; code: string }>();
-    return managedObjectKey(submissionId, itemId, filename, sample ?? undefined);
-  }
-  const samples = await env.DB.prepare(
-    `SELECT DISTINCT s.id, s.code
-     FROM comment_submission_targets cst
-     JOIN samples s ON s.id = cst.sample_id
-     WHERE cst.submission_id = ?
-     ORDER BY s.code, s.id
-     LIMIT 2`,
-  ).bind(submissionId).all<{ id: string; code: string }>();
-  return managedObjectKey(
-    submissionId,
-    itemId,
-    filename,
-    samples.results.length === 1 ? samples.results[0] : undefined,
-  );
+  return Boolean(results[1].meta.changes);
 }
 
 export const routes = new Hono<AppBindings>();
 
-routes.get("/storage/status", async (c) => c.json(await managedStorageStatus(c.env)));
-
-routes.post("/comment-submissions", async (c) => {
-  const input = await c.req.json<CreateCommentSubmissionInput>().catch(() => null);
-  const validationError = validateCommentSubmissionInput(input);
-  if (validationError || !input) throw new HTTPException(400, { message: validationError || "Invalid comment submission" });
-  if (requiresManagedStorage(input.items)) {
-    const storageStatus = await managedStorageStatus(c.env);
-    if (!storageStatus.available) {
-      throw new HTTPException(503, { message: storageStatus.message });
-    }
-  }
-  if (input.context.kind === "run_steps" && !validTargets(input.context.targets)) {
-    throw new HTTPException(400, { message: "Valid process-step targets are required" });
-  }
-
-  const existing = await c.env.DB.prepare(
-    "SELECT id, actor_email FROM comment_submissions WHERE id = ?",
-  ).bind(input.id).first<{ id: string; actor_email: string | null }>();
-  if (existing) {
-    if (existing.actor_email !== c.get("userEmail")) throw new HTTPException(409, { message: "Submission ID is already in use" });
-    return c.json({ id: existing.id, deduplicated: true });
-  }
-
-  if (input.context.kind === "sample") {
-    const sample = await c.env.DB.prepare("SELECT updated_at FROM samples WHERE id = ?")
-      .bind(input.context.sampleId).first<{ updated_at: string }>();
-    if (!sample) throw new HTTPException(404, { message: "Sample not found" });
-    if (sample.updated_at !== input.context.expectedUpdatedAt) {
-      throw new HTTPException(409, { message: "This sample changed elsewhere. Reload it before adding the comment." });
-    }
-  } else {
-    const targets = input.context.targets;
-    const rows = await c.env.DB.prepare(
-      `SELECT rs.id, rs.updated_at, r.id AS run_id, r.sample_id
-       FROM run_steps rs JOIN runs r ON r.id = rs.run_id
-       WHERE rs.id IN (${targets.map(() => "?").join(", ")})`,
-    ).bind(...targets.map((target) => target.stepId)).all<{
-      id: string; updated_at: string; run_id: string; sample_id: string;
-    }>();
-    const byId = new Map(rows.results.map((row) => [row.id, row]));
-    if (targets.some((target) => {
-      const row = byId.get(target.stepId);
-      return !row || row.run_id !== target.runId || row.sample_id !== target.sampleId || row.updated_at !== target.expectedUpdatedAt;
-    })) throw new HTTPException(409, { message: "One or more process steps changed before the comment was submitted." });
-  }
-
-  const now = new Date().toISOString();
-  const userEmail = c.get("userEmail");
-  const statements = [c.env.DB.prepare(
-    `INSERT INTO comment_submissions
-     (id, context_kind, sample_id, scope, body, status, actor_email, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, 'uploading', ?, ?, ?)`,
-  ).bind(
-    input.id,
-    input.context.kind,
-    input.context.kind === "sample" ? input.context.sampleId : null,
-    input.context.kind === "run_steps" ? input.context.scope : null,
-    input.body.trim(),
-    userEmail,
-    now,
-    now,
-  )];
-  if (input.context.kind === "run_steps") {
-    for (const target of input.context.targets) statements.push(c.env.DB.prepare(
-      `INSERT INTO comment_submission_targets
-       (submission_id, sample_id, run_id, run_step_id, expected_updated_at)
-       VALUES (?, ?, ?, ?, ?)`,
-    ).bind(input.id, target.sampleId, target.runId, target.stepId, target.expectedUpdatedAt));
-  }
-  for (const [position, item] of input.items.entries()) statements.push(c.env.DB.prepare(
-    `INSERT INTO comment_submission_items
-     (id, submission_id, kind, status, position, filename, mime_type, byte_size,
-      original_filename, original_mime_type, original_byte_size, title, description,
-      external_url, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(...itemBindings(item, input.id, position, now)));
-  for (const item of input.items) {
-    const relatedId = item.kind === "comment_image"
-      ? item.relatedAttachmentId
-      : item.kind === "attachment" ? item.relatedCommentImageId : undefined;
-    if (relatedId) statements.push(c.env.DB.prepare(
-      "UPDATE comment_submission_items SET related_item_id = ? WHERE id = ? AND submission_id = ?",
-    ).bind(relatedId, item.id, input.id));
-  }
-  await c.env.DB.batch(statements);
-  return c.json({ id: input.id, deduplicated: false }, 201);
+routes.get("/storage/status", async (c) => {
+  c.header("Cache-Control", "private, no-store");
+  return c.json(await originalFileStorageStatus(c.env));
 });
 
-routes.put("/comment-submissions/:submissionId/items/:itemId/content", async (c) => {
-  const submissionId = c.req.param("submissionId");
-  const itemId = c.req.param("itemId");
-  if (!validSubmissionId(submissionId) || !validSubmissionId(itemId)) {
-    throw new HTTPException(400, { message: "Invalid upload identifier" });
-  }
-  const submission = await ownedSubmission(c, submissionId);
-  if (submission.status === "cancelled") throw new HTTPException(409, { message: "This upload was cancelled" });
-  if (submission.status === "ready") return c.json({ ok: true, deduplicated: true });
+routes.post("/comment-submissions", (c) => createAcceptedComment(c).catch(rethrowCommentAcceptanceError));
 
-  const item = await c.env.DB.prepare(
-    `SELECT csi.id, csi.submission_id, csi.kind, csi.status, csi.filename, csi.mime_type,
-            csi.byte_size, csi.asset_id, csi.storage_object_id, cs.actor_email
-     FROM comment_submission_items csi
-     JOIN comment_submissions cs ON cs.id = csi.submission_id
-     WHERE csi.id = ? AND csi.submission_id = ?`,
-  ).bind(itemId, submissionId).first<ItemRow>();
-  if (!item) throw new HTTPException(404, { message: "Upload item not found" });
-  if (item.kind === "link") throw new HTTPException(400, { message: "Link attachments do not receive file content" });
-  if (item.status === "ready") return c.json({ ok: true, deduplicated: true });
-  if (!c.req.raw.body || !item.filename || !item.mime_type || !item.byte_size) {
-    throw new HTTPException(400, { message: "The upload body is missing" });
-  }
-  const declaredSize = Number(c.req.header("x-upload-size"));
-  const contentType = c.req.header("content-type") || "application/octet-stream";
-  if (declaredSize !== item.byte_size || contentType !== item.mime_type) {
-    await markItemFailed(c.env, submissionId, itemId, "The uploaded file does not match the confirmed draft");
-    throw new HTTPException(400, { message: "The uploaded file does not match the confirmed draft" });
-  }
-  const now = new Date().toISOString();
-  await c.env.DB.prepare(
-    `UPDATE comment_submission_items SET status = 'uploading', error_message = NULL, updated_at = ?
-     WHERE id = ? AND submission_id = ? AND status <> 'ready'`,
-  ).bind(now, itemId, submissionId).run();
+routes.get("/comment-submissions/:submissionId/acceptance", (c) => acceptedComment(c).catch(rethrowCommentAcceptanceError));
 
-  try {
-    if (item.kind === "comment_image") {
-      if (!contentType.startsWith("image/") || item.byte_size > MAX_COMMENT_IMAGE_UPLOAD_BYTES) {
-        throw new HTTPException(415, { message: "Comment image content is invalid" });
-      }
-      const buffer = await c.req.arrayBuffer();
-      if (buffer.byteLength !== item.byte_size) throw new HTTPException(400, { message: "Comment image size changed during upload" });
-      const sha256 = await sha256Hex(buffer);
-      const existing = await c.env.DB.prepare(
-        "SELECT id, r2_key FROM assets WHERE sha256 = ? AND status = 'ready' LIMIT 1",
-      ).bind(sha256).first<{ id: string; r2_key: string }>();
-      let assetId = existing?.id;
-      let deduplicated = Boolean(existing);
-      if (!assetId) {
-        const key = `comments/${submissionId}/${itemId}-${item.filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-        assetId = crypto.randomUUID();
-        await c.env.ASSETS.put(key, buffer, { httpMetadata: { contentType } });
-        try {
-          await c.env.DB.prepare(
-            `INSERT INTO assets (id, r2_key, original_name, mime_type, byte_size, status, actor_email, created_at, sha256)
-             VALUES (?, ?, ?, ?, ?, 'ready', ?, ?, ?)`,
-          ).bind(assetId, key, item.filename, contentType, item.byte_size, c.get("userEmail"), now, sha256).run();
-        } catch (error) {
-          await c.env.ASSETS.delete(key);
-          const winner = await c.env.DB.prepare(
-            "SELECT id FROM assets WHERE sha256 = ? AND status = 'ready' LIMIT 1",
-          ).bind(sha256).first<{ id: string }>();
-          if (!winner) throw error;
-          assetId = winner.id;
-          deduplicated = true;
-        }
-      }
-      await c.env.DB.prepare(
-        `UPDATE comment_submission_items
-         SET status = CASE
-               WHEN EXISTS (
-                 SELECT 1 FROM comment_submissions cs
-                 WHERE cs.id = comment_submission_items.submission_id AND cs.status = 'cancelled'
-               ) THEN 'cancelled' ELSE 'ready' END,
-             asset_id = ?, sha256 = ?, error_message = NULL, updated_at = ?
-         WHERE id = ? AND submission_id = ?`,
-      ).bind(assetId, sha256, new Date().toISOString(), itemId, submissionId).run();
-      const latest = await c.env.DB.prepare("SELECT status FROM comment_submissions WHERE id = ?")
-        .bind(submissionId).first<{ status: string }>();
-      if (latest?.status === "cancelled") throw new HTTPException(409, { message: "This upload was cancelled" });
-      return c.json({ ok: true, deduplicated });
-    }
-
-    if (item.byte_size > MAX_MANAGED_ATTACHMENT_BYTES) throw new HTTPException(413, { message: "Managed attachments are limited to 100 MB" });
-    const sha256 = c.req.header("x-content-sha256")?.toLowerCase();
-    if (!validSha256(sha256)) throw new HTTPException(400, { message: "A SHA-256 content hash is required" });
-    const storage = managedStorage(c.env);
-    if (!storage) throw new HTTPException(503, { message: "Managed attachment storage is not configured" });
-    const existing = await c.env.DB.prepare(
-      `SELECT id FROM managed_storage_objects
-       WHERE provider = ? AND sha256 = ? AND byte_size = ? AND status = 'ready' LIMIT 1`,
-    ).bind(storage.provider, sha256, item.byte_size).first<{ id: string }>();
-    let storageObjectId = existing?.id;
-    let deduplicated = Boolean(existing);
-    if (!storageObjectId) {
-      storageObjectId = crypto.randomUUID();
-      const key = await managedKeyForSubmission(c.env, submission, submissionId, itemId, item.filename);
-      const stored = await storage.put({
-        key,
-        body: c.req.raw.body,
-        contentType,
-        filename: item.filename,
-        sha256,
-        byteSize: item.byte_size,
-      });
-      if (stored.byteSize !== item.byte_size) {
-        await storage.delete(key);
-        throw new HTTPException(400, { message: "Attachment size changed during upload" });
-      }
-      try {
-        await c.env.DB.prepare(
-          `INSERT INTO managed_storage_objects
-           (id, provider, object_key, original_name, mime_type, byte_size, sha256, status, actor_email, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, 'ready', ?, ?)`,
-        ).bind(storageObjectId, storage.provider, key, item.filename, contentType, item.byte_size, sha256, c.get("userEmail"), now).run();
-      } catch (error) {
-        await storage.delete(key);
-        const winner = await c.env.DB.prepare(
-          `SELECT id FROM managed_storage_objects
-           WHERE provider = ? AND sha256 = ? AND byte_size = ? AND status = 'ready' LIMIT 1`,
-        ).bind(storage.provider, sha256, item.byte_size).first<{ id: string }>();
-        if (!winner) throw error;
-        storageObjectId = winner.id;
-        deduplicated = true;
-      }
-    }
-    await c.env.DB.prepare(
-      `UPDATE comment_submission_items
-       SET status = CASE
-             WHEN EXISTS (
-               SELECT 1 FROM comment_submissions cs
-               WHERE cs.id = comment_submission_items.submission_id AND cs.status = 'cancelled'
-             ) THEN 'cancelled' ELSE 'ready' END,
-           storage_object_id = ?, sha256 = ?, error_message = NULL, updated_at = ?
-       WHERE id = ? AND submission_id = ?`,
-    ).bind(storageObjectId, sha256, new Date().toISOString(), itemId, submissionId).run();
-    const latest = await c.env.DB.prepare("SELECT status FROM comment_submissions WHERE id = ?")
-      .bind(submissionId).first<{ status: string }>();
-    if (latest?.status === "cancelled") {
-      await c.env.DB.prepare(
-        `UPDATE managed_storage_objects SET status = 'orphaned', orphaned_at = ?
-         WHERE id = ? AND status = 'ready'
-           AND NOT EXISTS (
-             SELECT 1 FROM comment_submission_items csi
-             JOIN comment_submissions cs ON cs.id = csi.submission_id
-             WHERE csi.storage_object_id = managed_storage_objects.id AND cs.status = 'ready'
-           )`,
-      ).bind(new Date().toISOString(), storageObjectId).run();
-      throw new HTTPException(409, { message: "This upload was cancelled" });
-    }
-    return c.json({ ok: true, deduplicated });
-  } catch (error) {
-    const message = error instanceof HTTPException ? error.message : "The file upload failed";
-    await markItemFailed(c.env, submissionId, itemId, message);
-    throw error;
-  }
-});
+routes.put("/comment-submissions/:submissionId/items/:itemId/content", (c) => uploadAcceptedCommentItem(c).catch(rethrowCommentAcceptanceError));
 
 routes.post("/comment-submissions/:submissionId/items/:itemId/fail", async (c) => {
   const submissionId = c.req.param("submissionId");
   const itemId = c.req.param("itemId");
-  await ownedSubmission(c, submissionId);
-  const input = await c.req.json<{ error?: string }>().catch((): { error?: string } => ({}));
-  await markItemFailed(c.env, submissionId, itemId, input.error?.trim() || "The upload did not reach the server");
+  const submission = await ownedSubmission(c, submissionId);
+  if (await c.env.DB.prepare("SELECT 1 FROM comment_submission_acceptances WHERE submission_id = ?").bind(submissionId).first()) {
+    throw new HTTPException(409, { message: "Check the accepted Comment upload before taking another action." });
+  }
+  if (submission.retry_closed_at || ["ready", "cancelled"].includes(submission.status)) {
+    throw new HTTPException(409, { message: "This upload no longer accepts retry updates" });
+  }
+  const input = await c.req.json<unknown>().catch(() => null);
+  const failureMessage = commentUploadFailureMessage(input);
+  if (!await markItemFailed(
+    c.env,
+    submissionId,
+    itemId,
+    failureMessage,
+  )) {
+    throw new HTTPException(409, { message: "The retry window for this upload is closed" });
+  }
   return c.json({ ok: true });
 });
 
@@ -398,180 +262,240 @@ routes.delete("/comment-submissions/:submissionId/items/:itemId", async (c) => {
   const submissionId = c.req.param("submissionId");
   const itemId = c.req.param("itemId");
   const submission = await ownedSubmission(c, submissionId);
-  if (submission.status === "ready" || submission.status === "cancelled") {
-    throw new HTTPException(409, { message: "Completed submissions cannot be changed" });
+  if (submission.status !== "ready" && await c.env.DB.prepare("SELECT 1 FROM comment_submission_acceptances WHERE submission_id = ?").bind(submissionId).first()) {
+    return removeAcceptedCommentItem(c).catch(rethrowCommentAcceptanceError);
   }
-  const requiredOriginal = await c.env.DB.prepare(
-    `SELECT image.original_filename, image.original_mime_type
-     FROM comment_submission_items original
-     JOIN comment_submission_items image
-       ON image.submission_id = original.submission_id
-      AND image.kind = 'comment_image'
-      AND image.related_item_id = original.id
-      AND image.status <> 'cancelled'
-     WHERE original.id = ? AND original.submission_id = ? AND original.kind = 'attachment'`,
-  ).bind(itemId, submissionId).first<{ original_filename: string; original_mime_type: string }>();
-  if (requiredOriginal && isTiffMetadata(requiredOriginal.original_filename, requiredOriginal.original_mime_type)) {
-    throw new HTTPException(409, { message: "The original TIFF is required while its comment preview is present" });
-  }
+  if (submission.status === "cancelled") throw new HTTPException(409, { message: "Cancelled submissions cannot be changed" });
+  await requireVisibleSubmissionTargets(c, submission, submissionId);
+  await requireCommentItemDependency(c, submissionId, itemId, "delete");
   const now = new Date().toISOString();
+  if (submission.status === "ready") {
+    const result = await c.env.DB.prepare(
+      `UPDATE comment_submission_items
+       SET deleted_at = ?, deleted_by = ?, updated_at = ?
+       WHERE id = ? AND submission_id = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM comment_submissions cs
+           WHERE cs.id = comment_submission_items.submission_id
+             AND cs.status = 'ready' AND cs.deleted_at IS NULL
+             AND ${visibleSubmissionTargetsSql("cs")}
+         )`,
+    ).bind(now, c.get("userEmail"), now, itemId, submissionId).run();
+    if (!result.meta.changes) {
+      throw new HTTPException(409, { message: "The comment target changed while the attachment was being deleted" });
+    }
+    return c.json({ ok: true, updatedAt: now });
+  }
   const result = await c.env.DB.prepare(
     `UPDATE comment_submission_items
      SET status = 'cancelled', error_message = NULL, updated_at = ?
-     WHERE id = ? AND submission_id = ? AND status <> 'cancelled'`,
+     WHERE id = ? AND submission_id = ? AND status <> 'cancelled' AND deleted_at IS NULL`,
   ).bind(now, itemId, submissionId).run();
   if (!result.meta.changes) throw new HTTPException(404, { message: "Submission item not found" });
+  const locators = await listItemBlobLocators(c.env.DB, submissionId, itemId);
+  for (const locator of locators) {
+    await markOrphanCandidate(c.env.DB, locator, crypto.randomUUID(), new Date(now));
+  }
   return c.json({ ok: true });
 });
 
-routes.post("/comment-submissions/:submissionId/finalize", async (c) => {
+routes.post("/comment-submissions/:submissionId/items/:itemId/restore", async (c) => {
   const submissionId = c.req.param("submissionId");
+  const itemId = c.req.param("itemId");
   const submission = await ownedSubmission(c, submissionId);
-  if (submission.status === "ready") return c.json({ ok: true, status: "ready" as const });
-  if (submission.status === "cancelled") throw new HTTPException(409, { message: "This upload was cancelled" });
-  const items = await c.env.DB.prepare(
-    "SELECT status FROM comment_submission_items WHERE submission_id = ?",
-  ).bind(submissionId).all<{ status: string }>();
-  const unfinished = items.results.filter((item) => !["ready", "cancelled"].includes(item.status));
-  if (unfinished.length) {
-    const now = new Date().toISOString();
-    await c.env.DB.prepare(
-      `UPDATE comment_submissions SET status = 'failed', error_message = ?, updated_at = ?
-       WHERE id = ? AND status NOT IN ('ready', 'cancelled')`,
-    ).bind("One or more files still require attention", now, submissionId).run();
-    throw new HTTPException(409, { message: "One or more files still require attention" });
-  }
-
-  const now = new Date().toISOString();
-  const userEmail = c.get("userEmail");
-  const statements = [c.env.DB.prepare(
-    `UPDATE comment_submissions
-     SET status = 'ready', error_message = NULL, completed_at = ?, updated_at = ?
-     WHERE id = ? AND status NOT IN ('ready', 'cancelled')`,
-  ).bind(now, now, submissionId)];
-  if (submission.context_kind === "sample" && submission.sample_id) {
-    statements.push(c.env.DB.prepare(
-      `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-       VALUES (?, ?, 'comment', ?, ?, ?, ?)`,
-    ).bind(
-      crypto.randomUUID(), submission.sample_id, submission.body,
-      JSON.stringify({ action: "comment_submission", submissionId }), userEmail, now,
-    ));
-    statements.push(c.env.DB.prepare(
-      "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?",
-    ).bind(userEmail, now, submission.sample_id));
-  } else {
-    const targets = await c.env.DB.prepare(
-      `SELECT sample_id, run_id, run_step_id
-       FROM comment_submission_targets WHERE submission_id = ? ORDER BY run_step_id`,
-    ).bind(submissionId).all<{ sample_id: string; run_id: string; run_step_id: string }>();
-    const operationGroupId = targets.results.length > 1 ? crypto.randomUUID() : null;
-    for (const target of targets.results) statements.push(c.env.DB.prepare(
-      `INSERT INTO run_step_comments
-       (id, run_step_id, scope, operation_group_id, body, submission_id, actor_email, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).bind(crypto.randomUUID(), target.run_step_id, submission.scope, operationGroupId, submission.body, submissionId, userEmail, now));
-    for (const target of targets.results) statements.push(c.env.DB.prepare(
-      "UPDATE run_steps SET updated_by = ?, updated_at = ? WHERE id = ? AND run_id = ?",
-    ).bind(userEmail, now, target.run_step_id, target.run_id));
-    for (const sampleId of new Set(targets.results.map((target) => target.sample_id))) {
-      const stepIds = targets.results.filter((target) => target.sample_id === sampleId).map((target) => target.run_step_id);
-      statements.push(c.env.DB.prepare(
-        `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-         VALUES (?, ?, 'comment', ?, ?, ?, ?)`,
-      ).bind(
-        crypto.randomUUID(), sampleId,
-        `${submission.scope === "common" ? "Common step comment" : "Step comment"}: ${submission.body || "Files attached"}`,
-        JSON.stringify({ action: "comment_submission", submissionId, scope: submission.scope, stepIds }),
-        userEmail, now,
-      ));
-      statements.push(c.env.DB.prepare(
-        "UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?",
-      ).bind(userEmail, now, sampleId));
-    }
-  }
-  const results = await c.env.DB.batch(statements);
-  if (!results[0].meta.changes) throw new HTTPException(409, { message: "This submission changed while it was being finalized" });
-  return c.json({ ok: true, status: "ready" as const });
-});
-
-routes.post("/comment-submissions/:submissionId/cancel", async (c) => {
-  const submissionId = c.req.param("submissionId");
-  const submission = await ownedSubmission(c, submissionId);
-  if (submission.status === "ready") throw new HTTPException(409, { message: "A completed comment cannot be cancelled" });
-  const now = new Date().toISOString();
-  await c.env.DB.batch([
-    c.env.DB.prepare(
-      `UPDATE comment_submissions
-       SET status = 'cancelled', error_message = NULL, cancelled_at = ?, updated_at = ?
-       WHERE id = ? AND status <> 'ready'`,
-    ).bind(now, now, submissionId),
-    c.env.DB.prepare(
-      `UPDATE comment_submission_items SET status = 'cancelled', updated_at = ?
-       WHERE submission_id = ? AND status NOT IN ('ready', 'cancelled')`,
-    ).bind(now, submissionId),
-    c.env.DB.prepare(
-      `UPDATE managed_storage_objects SET status = 'orphaned', orphaned_at = ?
-       WHERE id IN (
-         SELECT storage_object_id FROM comment_submission_items
-         WHERE submission_id = ? AND storage_object_id IS NOT NULL
-       )
-       AND NOT EXISTS (
-         SELECT 1 FROM comment_submission_items other
-         JOIN comment_submissions cs ON cs.id = other.submission_id
-         WHERE other.storage_object_id = managed_storage_objects.id
-           AND other.submission_id <> ? AND cs.status = 'ready'
+  if (submission.status !== "ready") throw new HTTPException(409, { message: "Only completed comment attachments can be restored" });
+  await requireVisibleSubmissionTargets(c, submission, submissionId);
+  await requireCommentItemDependency(c, submissionId, itemId, "restore");
+  const item = await c.env.DB.prepare(
+    `SELECT csi.deleted_at
+     FROM comment_submission_items csi
+     JOIN comment_submissions cs ON cs.id = csi.submission_id
+     WHERE csi.id = ? AND csi.submission_id = ? AND csi.deleted_at IS NOT NULL
+       AND cs.status = 'ready' AND cs.deleted_at IS NULL`,
+  ).bind(itemId, submissionId).first<{ deleted_at: string }>();
+  if (!item) throw new HTTPException(404, { message: "Deleted attachment occurrence not found" });
+  const now = new Date(Math.max(Date.now(), Date.parse(item.deleted_at) + 1)).toISOString();
+  const fences = await prepareFileRestoration(c.env.DB, "comment_item", [itemId]);
+  const mutation = c.env.DB.prepare(
+    `UPDATE comment_submission_items
+     SET deleted_at = NULL, deleted_by = NULL, updated_at = ?
+     WHERE id = ? AND submission_id = ? AND deleted_at = ?
+       AND EXISTS (
+         SELECT 1 FROM comment_submissions cs
+         WHERE cs.id = comment_submission_items.submission_id
+           AND cs.status = 'ready' AND cs.deleted_at IS NULL
+           AND ${visibleSubmissionTargetsSql("cs")}
        )`,
-    ).bind(now, submissionId, submissionId),
-  ]);
-  return c.json({ ok: true });
+  ).bind(now, itemId, submissionId, item.deleted_at);
+  const result = fences.length ? (await c.env.DB.batch([...fences, mutation]))[fences.length] : await mutation.run();
+  if (!result.meta.changes) {
+    throw new HTTPException(409, { message: "The attachment changed while it was being restored" });
+  }
+  return c.json({ ok: true, updatedAt: now });
 });
+
+routes.post("/comment-submissions/:submissionId/finalize", (c) => finalizeAcceptedComment(c).catch(rethrowCommentAcceptanceError));
+
+routes.post("/comment-submissions/:submissionId/cancel", (c) => cancelAcceptedComment(c).catch(rethrowCommentAcceptanceError));
 
 routes.delete("/comment-submissions/:submissionId", async (c) => {
   const submissionId = c.req.param("submissionId");
   const submission = await c.env.DB.prepare(
     `SELECT id, context_kind, sample_id, scope, body, status, actor_email
-     FROM comment_submissions WHERE id = ?`,
+     FROM comment_submissions WHERE id = ? AND deleted_at IS NULL`,
   ).bind(submissionId).first<SubmissionRow>();
   if (!submission || submission.status === "cancelled") throw new HTTPException(404, { message: "Comment not found" });
   if (submission.status !== "ready") throw new HTTPException(409, { message: "Use cancel for an unfinished upload" });
+  await requireVisibleSubmissionTargets(c, submission, submissionId);
   const now = new Date().toISOString();
   const userEmail = c.get("userEmail");
-  const statements = [c.env.DB.prepare(
-    `UPDATE comment_submissions
-     SET status = 'cancelled', cancelled_at = ?, updated_at = ?
-     WHERE id = ? AND status = 'ready'`,
-  ).bind(now, now, submissionId)];
+  const deletionOperationId = crypto.randomUUID();
+  const submissionMutation = submission.context_kind === "sample" && submission.sample_id
+    ? c.env.DB.prepare(
+      `UPDATE comment_submissions
+       SET deleted_at = ?, deleted_by = ?, deletion_operation_id = ?,
+           last_mutation_id = ?, updated_at = ?
+       WHERE id = ? AND status = 'ready' AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM samples s
+           WHERE s.id = comment_submissions.sample_id AND s.deleted_at IS NULL
+         )`,
+    ).bind(now, userEmail, deletionOperationId, deletionOperationId, now, submissionId)
+    : c.env.DB.prepare(
+      `UPDATE comment_submissions
+       SET deleted_at = ?, deleted_by = ?, deletion_operation_id = ?,
+           last_mutation_id = ?, updated_at = ?
+       WHERE id = ? AND status = 'ready' AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM comment_submission_targets cst
+           WHERE cst.submission_id = comment_submissions.id
+         )
+         AND NOT EXISTS (
+           SELECT 1
+           FROM comment_submission_targets cst
+           LEFT JOIN samples s ON s.id = cst.sample_id
+           LEFT JOIN runs r ON r.id = cst.run_id AND r.sample_id = cst.sample_id
+           LEFT JOIN run_steps rs ON rs.id = cst.run_step_id AND rs.run_id = cst.run_id
+           WHERE cst.submission_id = comment_submissions.id
+             AND (
+               s.id IS NULL OR s.deleted_at IS NOT NULL
+               OR r.id IS NULL OR r.deleted_at IS NOT NULL
+               OR rs.id IS NULL OR rs.deleted_at IS NOT NULL
+             )
+         )`,
+    ).bind(now, userEmail, deletionOperationId, deletionOperationId, now, submissionId);
+  const statements: D1PreparedStatement[] = [submissionMutation];
   if (submission.context_kind === "sample" && submission.sample_id) {
     statements.push(c.env.DB.prepare(
       `UPDATE events
-       SET metadata_json = json_set(metadata_json, '$.deletedAt', ?, '$.deletedBy', ?)
-       WHERE sample_id = ? AND json_extract(metadata_json, '$.submissionId') = ?`,
-    ).bind(now, userEmail, submission.sample_id, submissionId));
+       SET metadata_json = json_set(metadata_json,
+         '$.deletedAt', ?, '$.deletedBy', ?, '$.deletionOperationId', ?)
+       WHERE sample_id = ? AND json_extract(metadata_json, '$.submissionId') = ?
+         AND EXISTS (
+           SELECT 1 FROM comment_submissions cs
+           WHERE cs.id = ? AND cs.deletion_operation_id = ?
+             AND cs.last_mutation_id = ?
+         )`,
+    ).bind(
+      now,
+      userEmail,
+      deletionOperationId,
+      submission.sample_id,
+      submissionId,
+      submissionId,
+      deletionOperationId,
+      deletionOperationId,
+    ));
     statements.push(c.env.DB.prepare(
       `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-       VALUES (?, ?, 'comment', ?, ?, ?, ?)`,
+       SELECT ?, ?, 'comment', ?, ?, ?, ?
+       WHERE EXISTS (
+         SELECT 1 FROM comment_submissions cs
+         WHERE cs.id = ? AND cs.deletion_operation_id = ?
+           AND cs.last_mutation_id = ?
+       )`,
     ).bind(
       crypto.randomUUID(), submission.sample_id,
       `Deleted sample comment · ${submission.body || "Files attached"}`,
       JSON.stringify({ action: "comment_submission_deleted", submissionId }), userEmail, now,
+      submissionId, deletionOperationId, deletionOperationId,
     ));
-    statements.push(c.env.DB.prepare("UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?")
-      .bind(userEmail, now, submission.sample_id));
+    statements.push(c.env.DB.prepare(
+      `UPDATE samples SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM comment_submissions cs
+           WHERE cs.id = ? AND cs.deletion_operation_id = ?
+             AND cs.last_mutation_id = ?
+         )`,
+    )
+      .bind(
+        userEmail,
+        now,
+        submission.sample_id,
+        submissionId,
+        deletionOperationId,
+        deletionOperationId,
+      ));
   } else {
     const targets = await c.env.DB.prepare(
-      "SELECT DISTINCT sample_id, run_step_id FROM comment_submission_targets WHERE submission_id = ?",
+      `SELECT DISTINCT r.sample_id, rsc.run_step_id
+       FROM run_step_comments rsc
+       JOIN run_steps rs ON rs.id = rsc.run_step_id AND rs.deleted_at IS NULL
+       JOIN runs r ON r.id = rs.run_id AND r.deleted_at IS NULL
+       JOIN samples s ON s.id = r.sample_id AND s.deleted_at IS NULL
+       WHERE rsc.submission_id = ? AND rsc.deleted_at IS NULL`,
     ).bind(submissionId).all<{ sample_id: string; run_step_id: string }>();
     statements.push(c.env.DB.prepare(
-      "DELETE FROM run_step_comments WHERE submission_id = ?",
-    ).bind(submissionId));
+      `UPDATE run_step_comments
+       SET deleted_at = ?, deleted_by = ?, deletion_operation_id = ?,
+           last_mutation_id = ?, updated_at = ?, updated_by = ?
+       WHERE submission_id = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM comment_submissions cs
+           WHERE cs.id = run_step_comments.submission_id
+             AND cs.deletion_operation_id = ?
+             AND cs.last_mutation_id = ?
+         )`,
+    ).bind(
+      now,
+      userEmail,
+      deletionOperationId,
+      deletionOperationId,
+      now,
+      userEmail,
+      submissionId,
+      deletionOperationId,
+      deletionOperationId,
+    ));
     for (const target of targets.results) statements.push(c.env.DB.prepare(
-      "UPDATE run_steps SET updated_by = ?, updated_at = ? WHERE id = ?",
-    ).bind(userEmail, now, target.run_step_id));
+      `UPDATE run_steps SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM run_step_comments rsc
+           WHERE rsc.run_step_id = run_steps.id AND rsc.submission_id = ?
+             AND rsc.deletion_operation_id = ? AND rsc.last_mutation_id = ?
+         )`,
+    ).bind(
+      userEmail,
+      now,
+      target.run_step_id,
+      submissionId,
+      deletionOperationId,
+      deletionOperationId,
+    ));
     for (const sampleId of new Set(targets.results.map((target) => target.sample_id))) {
       statements.push(c.env.DB.prepare(
         `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
-         VALUES (?, ?, 'comment', ?, ?, ?, ?)`,
+         SELECT ?, ?, 'comment', ?, ?, ?, ?
+         WHERE EXISTS (
+           SELECT 1
+           FROM run_step_comments rsc
+           JOIN run_steps rs ON rs.id = rsc.run_step_id
+           JOIN runs r ON r.id = rs.run_id
+           WHERE rsc.submission_id = ? AND r.sample_id = ?
+             AND rsc.deletion_operation_id = ? AND rsc.last_mutation_id = ?
+         )`,
       ).bind(
         crypto.randomUUID(), sampleId,
         `Deleted ${submission.scope === "common" ? "common " : ""}step comment · ${submission.body || "Files attached"}`,
@@ -582,43 +506,327 @@ routes.delete("/comment-submissions/:submissionId", async (c) => {
         }),
         userEmail,
         now,
+        submissionId,
+        sampleId,
+        deletionOperationId,
+        deletionOperationId,
       ));
-      statements.push(c.env.DB.prepare("UPDATE samples SET updated_by = ?, updated_at = ? WHERE id = ?")
-        .bind(userEmail, now, sampleId));
+      statements.push(c.env.DB.prepare(
+        `UPDATE samples SET updated_by = ?, updated_at = ?
+         WHERE id = ? AND deleted_at IS NULL
+           AND EXISTS (
+             SELECT 1
+             FROM run_step_comments rsc
+             JOIN run_steps rs ON rs.id = rsc.run_step_id
+             JOIN runs r ON r.id = rs.run_id
+             WHERE rsc.submission_id = ? AND r.sample_id = samples.id
+               AND rsc.deletion_operation_id = ? AND rsc.last_mutation_id = ?
+           )`,
+      )
+        .bind(
+          userEmail,
+          now,
+          sampleId,
+          submissionId,
+          deletionOperationId,
+          deletionOperationId,
+        ));
     }
   }
-  statements.push(c.env.DB.prepare(
-    `UPDATE managed_storage_objects SET status = 'orphaned', orphaned_at = ?
-     WHERE id IN (
-       SELECT storage_object_id FROM comment_submission_items
-       WHERE submission_id = ? AND storage_object_id IS NOT NULL
-     )
-     AND NOT EXISTS (
-       SELECT 1 FROM comment_submission_items other
-       JOIN comment_submissions cs ON cs.id = other.submission_id
-       WHERE other.storage_object_id = managed_storage_objects.id
-         AND other.submission_id <> ? AND cs.status = 'ready'
-     )`,
-  ).bind(now, submissionId, submissionId));
   const results = await c.env.DB.batch(statements);
   if (!results[0].meta.changes) throw new HTTPException(409, { message: "The comment changed while it was being deleted" });
   return c.json({ ok: true });
 });
 
+routes.post("/comment-submissions/:submissionId/restore", async (c) => {
+  const submissionId = c.req.param("submissionId");
+  const submission = await c.env.DB.prepare(
+    `SELECT id, context_kind, sample_id, scope, body, status, deleted_at, deleted_by,
+            deletion_operation_id
+     FROM comment_submissions WHERE id = ? AND deleted_at IS NOT NULL`,
+  ).bind(submissionId).first<SubmissionRow & {
+    deleted_at: string;
+    deleted_by: string | null;
+    deletion_operation_id: string | null;
+  }>();
+  if (!submission) throw new HTTPException(404, { message: "Deleted comment not found" });
+  if (submission.status !== "ready") throw new HTTPException(409, { message: "Only completed comments can be restored" });
+  if (!submission.deletion_operation_id) {
+    throw new HTTPException(409, { message: "This deleted Comment has no recoverable operation identity" });
+  }
+  await requireVisibleSubmissionTargets(c, submission, submissionId);
+  const now = new Date(Math.max(Date.now(), Date.parse(submission.deleted_at) + 1)).toISOString();
+  const userEmail = c.get("userEmail");
+  const mutationId = crypto.randomUUID();
+  const submissionMutation = submission.context_kind === "sample" && submission.sample_id
+    ? c.env.DB.prepare(
+      `UPDATE comment_submissions
+       SET deleted_at = NULL, deleted_by = NULL, deletion_operation_id = NULL,
+           last_mutation_id = ?, updated_at = ?
+       WHERE id = ? AND status = 'ready' AND deletion_operation_id = ?
+         AND EXISTS (
+           SELECT 1 FROM samples s
+           WHERE s.id = comment_submissions.sample_id AND s.deleted_at IS NULL
+         )`,
+    ).bind(mutationId, now, submissionId, submission.deletion_operation_id)
+    : c.env.DB.prepare(
+      `UPDATE comment_submissions
+       SET deleted_at = NULL, deleted_by = NULL, deletion_operation_id = NULL,
+           last_mutation_id = ?, updated_at = ?
+       WHERE id = ? AND status = 'ready' AND deletion_operation_id = ?
+         AND EXISTS (
+           SELECT 1 FROM comment_submission_targets cst
+           WHERE cst.submission_id = comment_submissions.id
+         )
+         AND NOT EXISTS (
+           SELECT 1
+           FROM comment_submission_targets cst
+           LEFT JOIN samples s ON s.id = cst.sample_id
+           LEFT JOIN runs r ON r.id = cst.run_id AND r.sample_id = cst.sample_id
+           LEFT JOIN run_steps rs ON rs.id = cst.run_step_id AND rs.run_id = cst.run_id
+           WHERE cst.submission_id = comment_submissions.id
+             AND (
+               s.id IS NULL OR s.deleted_at IS NOT NULL
+               OR r.id IS NULL OR r.deleted_at IS NOT NULL
+               OR rs.id IS NULL OR rs.deleted_at IS NOT NULL
+             )
+         )`,
+    ).bind(mutationId, now, submissionId, submission.deletion_operation_id);
+  const statements: D1PreparedStatement[] = [submissionMutation];
+  if (submission.context_kind === "sample" && submission.sample_id) {
+    statements.push(c.env.DB.prepare(
+      `UPDATE events
+       SET metadata_json = json_remove(
+         metadata_json, '$.deletedAt', '$.deletedBy', '$.deletionOperationId'
+       )
+       WHERE sample_id = ? AND json_extract(metadata_json, '$.submissionId') = ?
+         AND json_extract(metadata_json, '$.deletionOperationId') = ?
+         AND EXISTS (
+           SELECT 1 FROM comment_submissions cs
+           WHERE cs.id = ? AND cs.deleted_at IS NULL
+             AND cs.last_mutation_id = ?
+         )`,
+    ).bind(
+      submission.sample_id,
+      submissionId,
+      submission.deletion_operation_id,
+      submissionId,
+      mutationId,
+    ));
+    statements.push(c.env.DB.prepare(
+      `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+       SELECT ?, id, 'comment', ?, ?, ?, ? FROM samples
+       WHERE id = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM comment_submissions cs
+           WHERE cs.id = ? AND cs.deleted_at IS NULL
+             AND cs.last_mutation_id = ?
+         )`,
+    ).bind(
+      crypto.randomUUID(), submission.body || "Files attached",
+      JSON.stringify({ action: "comment_submission_restored", submissionId }),
+      userEmail, now, submission.sample_id, submissionId, mutationId,
+    ));
+    statements.push(c.env.DB.prepare(
+      `UPDATE samples SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM comment_submissions cs
+           WHERE cs.id = ? AND cs.deleted_at IS NULL
+             AND cs.last_mutation_id = ?
+         )`,
+    ).bind(userEmail, now, submission.sample_id, submissionId, mutationId));
+  } else {
+    const targets = await c.env.DB.prepare(
+      `SELECT DISTINCT r.sample_id, rsc.run_step_id
+       FROM run_step_comments rsc
+       JOIN run_steps rs ON rs.id = rsc.run_step_id AND rs.deleted_at IS NULL
+       JOIN runs r ON r.id = rs.run_id AND r.deleted_at IS NULL
+       JOIN samples s ON s.id = r.sample_id AND s.deleted_at IS NULL
+       WHERE rsc.submission_id = ?
+         AND rsc.deletion_operation_id = ?`,
+    ).bind(
+      submissionId,
+      submission.deletion_operation_id,
+    ).all<{ sample_id: string; run_step_id: string }>();
+    statements.push(c.env.DB.prepare(
+      `UPDATE run_step_comments
+       SET deleted_at = NULL, deleted_by = NULL, deletion_operation_id = NULL,
+           last_mutation_id = ?, updated_at = ?, updated_by = ?
+       WHERE submission_id = ? AND deletion_operation_id = ?
+         AND EXISTS (
+           SELECT 1 FROM comment_submissions cs
+           WHERE cs.id = run_step_comments.submission_id
+             AND cs.deleted_at IS NULL AND cs.last_mutation_id = ?
+         )
+         AND EXISTS (
+           SELECT 1 FROM run_steps rs
+           JOIN runs r ON r.id = rs.run_id
+           JOIN samples s ON s.id = r.sample_id
+           WHERE rs.id = run_step_comments.run_step_id
+             AND s.deleted_at IS NULL AND r.deleted_at IS NULL AND rs.deleted_at IS NULL
+         )`,
+    ).bind(
+      mutationId,
+      now,
+      userEmail,
+      submissionId,
+      submission.deletion_operation_id,
+      mutationId,
+    ));
+    for (const target of targets.results) statements.push(c.env.DB.prepare(
+      `UPDATE run_steps SET updated_by = ?, updated_at = ?
+       WHERE id = ? AND deleted_at IS NULL
+         AND EXISTS (
+           SELECT 1 FROM run_step_comments rsc
+           WHERE rsc.run_step_id = run_steps.id AND rsc.submission_id = ?
+             AND rsc.deleted_at IS NULL AND rsc.last_mutation_id = ?
+         )`,
+    ).bind(userEmail, now, target.run_step_id, submissionId, mutationId));
+    for (const sampleId of new Set(targets.results.map((target) => target.sample_id))) {
+      const stepIds = targets.results
+        .filter((target) => target.sample_id === sampleId)
+        .map((target) => target.run_step_id);
+      statements.push(c.env.DB.prepare(
+        `INSERT INTO events (id, sample_id, kind, body, metadata_json, actor_email, created_at)
+         SELECT ?, ?, 'comment', ?, ?, ?, ?
+         WHERE EXISTS (
+           SELECT 1
+           FROM run_step_comments rsc
+           JOIN run_steps rs ON rs.id = rsc.run_step_id
+           JOIN runs r ON r.id = rs.run_id
+           WHERE rsc.submission_id = ? AND r.sample_id = ?
+             AND rsc.deleted_at IS NULL AND rsc.last_mutation_id = ?
+         )`,
+      ).bind(
+        crypto.randomUUID(), sampleId,
+        `Restored ${submission.scope === "common" ? "common " : ""}step comment · ${submission.body || "Files attached"}`,
+        JSON.stringify({ action: "comment_submission_restored", submissionId, stepIds }),
+        userEmail, now, submissionId, sampleId, mutationId,
+      ));
+      statements.push(c.env.DB.prepare(
+        `UPDATE samples SET updated_by = ?, updated_at = ?
+         WHERE id = ? AND deleted_at IS NULL
+           AND EXISTS (
+             SELECT 1
+             FROM run_step_comments rsc
+             JOIN run_steps rs ON rs.id = rsc.run_step_id
+             JOIN runs r ON r.id = rs.run_id
+             WHERE rsc.submission_id = ? AND r.sample_id = samples.id
+               AND rsc.deleted_at IS NULL AND rsc.last_mutation_id = ?
+           )`,
+      ).bind(userEmail, now, sampleId, submissionId, mutationId));
+    }
+  }
+  const fences = await prepareFileRestoration(c.env.DB, "comment_submission", [submissionId]);
+  const results = (await c.env.DB.batch([...fences, ...statements])).slice(fences.length);
+  if (!results[0].meta.changes) {
+    throw new HTTPException(409, { message: "The comment changed while it was being restored" });
+  }
+  return c.json({ ok: true, updatedAt: now });
+});
+
+routes.get("/exports/attachments/:itemId", async (c) => {
+  const itemId = c.req.param("itemId");
+  const mode = await readFileAuthorityMode(c.env.DB).catch(() => {
+    throw new HTTPException(503, { message: "Attachment storage is unavailable" });
+  });
+  if (mode === "active") {
+    // Export retains ready attachments in Trash. The File binding, rather than
+    // the old managed locator or current upload default, selects their bytes.
+    const row = await c.env.DB.prepare(`
+      SELECT file_id, COALESCE(filename, 'attachment') AS filename, mime_type
+      FROM comment_submission_items
+      WHERE id=? AND kind='attachment' AND status='ready'
+    `).bind(itemId).first<{ file_id: string | null; filename: string; mime_type: string | null }>();
+    if (!row) throw new HTTPException(404, { message: "Export attachment not found" });
+    const object = await readPublishedFile(c.env, { fileId: row.file_id, purpose: "research_source" });
+    if (object.outcome === "missing") throw new HTTPException(404, { message: "Attachment object not found" });
+    if (object.outcome !== "available") throw new HTTPException(503, { message: "Attachment storage is unavailable" });
+    const fallback = row.filename.replace(/[^a-zA-Z0-9._-]/g, "_") || "attachment";
+    return new Response(object.body, { headers: {
+      "content-type": object.contentType || row.mime_type || "application/octet-stream",
+      "content-disposition": `attachment; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(row.filename)}`,
+      "cache-control": "private, no-store", "x-content-type-options": "nosniff",
+      ...(object.etag ? { etag: object.etag } : {}),
+    } });
+  }
+  const row = await c.env.DB.prepare(
+    `SELECT COALESCE(csi.filename, mso.original_name, 'attachment') AS filename,
+            mso.provider, mso.object_key, mso.mime_type
+     FROM comment_submission_items csi
+     JOIN managed_storage_objects mso ON mso.id = csi.storage_object_id AND mso.status = 'ready'
+     WHERE csi.id = ? AND csi.kind = 'attachment' AND csi.status = 'ready'`,
+  ).bind(itemId).first<{ filename: string; provider: string; object_key: string; mime_type: string }>();
+  if (!row) throw new HTTPException(404, { message: "Export attachment not found" });
+  const object = await getBlob(c.env, {
+    storeKind: "managed", provider: row.provider, objectKey: row.object_key, blobRecordId: null,
+  });
+  if (object.outcome === "provider_unavailable") {
+    throw new HTTPException(503, { message: "Attachment storage is unavailable" });
+  }
+  if (object.outcome === "missing") throw new HTTPException(404, { message: "Attachment object not found" });
+  const fallback = row.filename.replace(/[^a-zA-Z0-9._-]/g, "_") || "attachment";
+  const encoded = encodeURIComponent(row.filename);
+  return new Response(object.body, {
+    headers: {
+      "content-type": object.contentType || row.mime_type,
+      "content-disposition": `attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`,
+      "cache-control": "private, no-store",
+      "x-content-type-options": "nosniff",
+      ...(object.etag ? { etag: object.etag } : {}),
+    },
+  });
+});
+
 routes.get("/attachments/:itemId/download", async (c) => {
   const itemId = c.req.param("itemId");
+  const mode = await readFileAuthorityMode(c.env.DB).catch(() => {
+    throw new HTTPException(503, { message: "Attachment storage is unavailable" });
+  });
+  if (mode === "active") {
+    const row = await c.env.DB.prepare(`
+      SELECT csi.file_id, csi.filename, csi.mime_type
+      FROM comment_submission_items csi
+      JOIN comment_submissions cs ON cs.id=csi.submission_id AND cs.status='ready' AND cs.deleted_at IS NULL
+      WHERE csi.id=? AND csi.kind='attachment' AND csi.status='ready' AND csi.deleted_at IS NULL
+        AND ${readableSubmissionTargetsSql("cs")}
+    `).bind(itemId).first<{ file_id: string | null; filename: string; mime_type: string }>();
+    if (!row) throw new HTTPException(404, { message: "Attachment not found" });
+    const object = await readPublishedFile(c.env, { fileId: row.file_id, purpose: "research_source" });
+    if (object.outcome === "missing") throw new HTTPException(404, { message: "Attachment object not found" });
+    if (object.outcome !== "available") throw new HTTPException(503, { message: "Attachment storage is unavailable" });
+    const fallback = row.filename.replace(/[^a-zA-Z0-9._-]/g, "_") || "attachment";
+    return new Response(object.body, { headers: {
+      "content-type": object.contentType || row.mime_type,
+      "content-disposition": `attachment; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(row.filename)}`,
+      "cache-control": "private, no-store", "x-content-type-options": "nosniff",
+      ...(object.etag ? { etag: object.etag } : {}),
+    } });
+  }
   const row = await c.env.DB.prepare(
     `SELECT csi.filename, mso.provider, mso.object_key, mso.mime_type
      FROM comment_submission_items csi
      JOIN managed_storage_objects mso ON mso.id = csi.storage_object_id AND mso.status = 'ready'
-     JOIN comment_submissions cs ON cs.id = csi.submission_id AND cs.status = 'ready'
-     WHERE csi.id = ? AND csi.kind = 'attachment' AND csi.status = 'ready'`,
+     JOIN comment_submissions cs ON cs.id = csi.submission_id
+       AND cs.status = 'ready' AND cs.deleted_at IS NULL
+     WHERE csi.id = ? AND csi.kind = 'attachment' AND csi.status = 'ready'
+       AND csi.deleted_at IS NULL
+       AND NOT EXISTS (
+         SELECT 1 FROM blob_integrity_quarantine biq
+         WHERE biq.store_kind = 'managed' AND biq.provider = mso.provider
+           AND biq.object_key = mso.object_key
+       )
+       AND ${readableSubmissionTargetsSql("cs")}`,
   ).bind(itemId).first<{ filename: string; provider: string; object_key: string; mime_type: string }>();
   if (!row) throw new HTTPException(404, { message: "Attachment not found" });
-  const storage = managedStorage(c.env);
-  if (!storage || storage.provider !== row.provider) throw new HTTPException(503, { message: "Attachment storage is unavailable" });
-  const object = await storage.get(row.object_key);
-  if (!object) throw new HTTPException(404, { message: "Attachment object not found" });
+  const object = await getBlob(c.env, {
+    storeKind: "managed", provider: row.provider, objectKey: row.object_key, blobRecordId: null,
+  });
+  if (object.outcome === "provider_unavailable") {
+    throw new HTTPException(503, { message: "Attachment storage is unavailable" });
+  }
+  if (object.outcome === "missing") throw new HTTPException(404, { message: "Attachment object not found" });
   const fallback = row.filename.replace(/[^a-zA-Z0-9._-]/g, "_") || "attachment";
   const encoded = encodeURIComponent(row.filename);
   return new Response(object.body, {

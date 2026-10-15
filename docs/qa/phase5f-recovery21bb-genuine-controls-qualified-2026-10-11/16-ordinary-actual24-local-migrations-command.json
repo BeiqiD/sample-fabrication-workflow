@@ -1,0 +1,69 @@
+{
+  "stage": "ordinary-actual24-local-migrations",
+  "cwd": "/workspace/recovery-native-proof-f228-private-attempt5/copy",
+  "argv": [
+    "node",
+    "node_modules/wrangler/bin/wrangler.js",
+    "d1",
+    "migrations",
+    "apply",
+    "DB",
+    "--local",
+    "--config",
+    ".wrangler/deploy.jsonc",
+    "--persist-to",
+    "/workspace/recovery-native-proof-f228-private-attempt5/copy/.wrangler/state"
+  ],
+  "env": {
+    "WRANGLER_SEND_METRICS": "false",
+    "WRANGLER_LOG_PATH": "/workspace/recovery-native-proof-f228-private-attempt5/fixture/wrangler-logs",
+    "TMPDIR": "/workspace/recovery-native-proof-f228-private-attempt5",
+    "SQLITE_TMPDIR": "/workspace/recovery-native-proof-f228-private-attempt5"
+  },
+  "startedAt": "2026-10-11T09:54:50.177673+00:00",
+  "status": "PASS",
+  "log": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/ordinary-actual24-local-migrations.log",
+  "pid": 1041909,
+  "processGroup": 1041909,
+  "originalStartTicks": "12575094",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1041925,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1041909,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1041925,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1041909,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1041925,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1041909,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T09:55:03.700791+00:00",
+  "logSha256": "a4c2ee4f147f8110883945240afdfc2a2814e352b98694a6814440398a2d4360"
+}

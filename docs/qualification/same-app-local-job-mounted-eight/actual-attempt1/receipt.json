@@ -1,0 +1,271 @@
+{
+  "kind": "same-app-mounted-local-job-genuine-eight-actual/1",
+  "status": "PASS",
+  "sourceHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+  "sourceTree": "2a5c10a8190f6807f59d8a2282411b82f46c78e5",
+  "sourceFreezeSha256": "063a64ed0b236e1433cc6963c8e4690f99af16db0e21e23737d9477f2be73fa8",
+  "planSha256": "901d349f20f479a3d48463ed3ee36b324e75ddd4806c2a445c1f4ab803bc11b9",
+  "runnerSha256": "21e260db7744e49004e78d6b9ba432cd136ed49f6249c20be75d1e57a69c3963",
+  "sourcePinsVerifiedBefore": true,
+  "strictCarry": {
+    "dependencyCanonicalTarget": "/workspace/sample-fabrication-workflow/node_modules",
+    "nodeExecutableSha256": "bc17c508ffeed0ec622934f9b7fa72f8e78da65350e63c3eceb56fa688aa5e12",
+    "typescriptEntrypointSha256": "2219f428a7e55aaf1f7ad85b9b0f0cf5078aeb76ccc9a7c6036c92d48f492ffd",
+    "actualOwnedFixtureCompilerReceiptPath": "/workspace/same-app-local-job-mounted-typed-source-handoffs/affected-node-worker-types-attempt1/receipt.json",
+    "actualOwnedFixtureCompilerReceiptSha256": "04efb5ce2f9e1189a0fa9df66eae318fada40660c4c5f0056cce353d46cdce1e",
+    "actualCompilerSourceHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+    "causalInputClosurePath": "/workspace/same-app-local-job-mounted-typed-source-handoffs/complete-before-affected-node-worker-types-source-freeze.json",
+    "causalInputClosureSha256": "063a64ed0b236e1433cc6963c8e4690f99af16db0e21e23737d9477f2be73fa8",
+    "scope": "Both actual current affected Node owned fixture and Worker strict PASS on b131; all2585 inputs/modes verified beforeafter. No repeated compiler or Native case carry.",
+    "actualCompilerSourceTree": "2a5c10a8190f6807f59d8a2282411b82f46c78e5"
+  },
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "local-job-runtime-qualification.vitest.config.mts",
+    "--reporter=verbose",
+    "--reporter=json",
+    "--outputFile.json=/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/actual-native.json"
+  ],
+  "expectedTotal": 8,
+  "expectedSelected": 8,
+  "expectedUnselected": 0,
+  "caseDefaultMs": 5000,
+  "hookDefaultMs": 10000,
+  "observedFilesystemRootOwnerUid": 65534,
+  "runtimeResults": [
+    {
+      "name": "same-app-mounted-local-job-eight",
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "local-job-runtime-qualification.vitest.config.mts",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/actual-native.json"
+      ],
+      "pid": 1314879,
+      "processGroup": 1314879,
+      "exitCode": 0,
+      "durationSeconds": 35.195,
+      "actualOriginalChildWaited": true,
+      "logPath": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/original-native.log",
+      "logSha256": "1de98c7c982930d0c4ba0fd8c68a4e7954608fbf228ae88388da3055bd8a1dd1",
+      "rawJsonPath": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/actual-native.json",
+      "ownedClosure": {
+        "processGroup": 1314879,
+        "processes": [],
+        "activeOrUnknownOwner": false,
+        "observedFixtureDescriptorCount": 0,
+        "kernelExitedUnreadableDescriptorsInformationalOnly": []
+      },
+      "rawJsonSha256": "c1620a48fc809ee3fe1340fcde9340acc6a20902b3183200d1d90e5fe8d1472b",
+      "actualTotal": 8,
+      "actualPassed": 8,
+      "actualFailed": 0,
+      "actualPending": 0,
+      "actualReporterPending": 0,
+      "actualAssertions": [
+        {
+          "title": "keeps omitted Job opt-in and the persisted executor disabled on the actual application",
+          "status": "passed"
+        },
+        {
+          "title": "mounts current administrator Job HTTP without enabling startup work or shortening the original cadence",
+          "status": "passed"
+        },
+        {
+          "title": "denies an ordinary authenticated account through the mounted current administrator boundary",
+          "status": "passed"
+        },
+        {
+          "title": "executes genuine accepted Local source bytes through one scheduled slot and exact verified cutover",
+          "status": "passed"
+        },
+        {
+          "title": "pauses queued accepted history on explicit executor reconfiguration and requires per-job resume",
+          "status": "passed"
+        },
+        {
+          "title": "refuses a new scheduled source while real recovery is draining without touching queued history",
+          "status": "passed"
+        },
+        {
+          "title": "rechecks the real current Job administrator before claim and byte opening",
+          "status": "passed"
+        },
+        {
+          "title": "drains the original scheduled Local byte work before its sole application native and physical owner closes",
+          "status": "passed"
+        }
+      ],
+      "actualSelectedTotal": 8,
+      "actualSelectedPassed": 8,
+      "actualSelectedFailed": 0,
+      "actualSelectedPending": 0,
+      "actualUnselected": 0,
+      "status": "PASS"
+    }
+  ],
+  "authorityScope": "Same original configured application mounts ten current administrator Job HTTP endpoints and exact trusted scheduler slots on its one Native/core/opening/physical writer. Eight wholly fresh controls; no elapsed120s cadence or terminal-negative fault qualification. Default Job opt-in and persisted executor remain disabled unless genuinely configured. Original private Request/current administrator/Job incarnation/recovery/profile/body/provider and cached first-close ACK boundaries remain required. No Group/V28, other domain, CLI/Docker or Native case carry.",
+  "privateTemporaryDirectoryBefore": {
+    "path": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/private-tmp",
+    "dev": 27,
+    "ino": 880064,
+    "uid": 1000,
+    "gid": 1000,
+    "mode": "0o700",
+    "freeBytesBeforeChild": 1330376704,
+    "childEnvOverrides": {
+      "TMPDIR": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/private-tmp",
+      "SQLITE_TMPDIR": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/private-tmp"
+    }
+  },
+  "privateFixtureDirectoryBefore": {
+    "path": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/private-fixtures",
+    "dev": 27,
+    "ino": 880067,
+    "uid": 1000,
+    "gid": 1000,
+    "mode": "0o700",
+    "childEnvOverride": {
+      "NODE_PROTOTYPE_FIXTURE_PARENT": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/private-fixtures"
+    }
+  },
+  "explicitInheritedCatalogKdfBeforeAllMs": 20000,
+  "actualHistoricalCompilerReceipts": [
+    {
+      "path": "/workspace/same-app-local-job-mounted-typed-source-handoffs/affected-node-worker-types-attempt1/receipt.json",
+      "sha256": "04efb5ce2f9e1189a0fa9df66eae318fada40660c4c5f0056cce353d46cdce1e",
+      "actualSourceHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+      "actualSourceTree": "2a5c10a8190f6807f59d8a2282411b82f46c78e5",
+      "actualScopes": [
+        "node-job-runtime-owned-tests",
+        "worker"
+      ],
+      "scope": "Both actual current affected Node owned fixture and Worker strict PASS on b131; all2585 inputs/modes verified beforeafter. No repeated compiler or Native case carry."
+    }
+  ],
+  "originalChildCustody": {
+    "pid": 1314879,
+    "processGroup": 1314879,
+    "command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "--config",
+      "local-job-runtime-qualification.vitest.config.mts",
+      "--reporter=verbose",
+      "--reporter=json",
+      "--outputFile.json=/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/actual-native.json"
+    ],
+    "status": "RUNNING",
+    "normalCompletionSnapshot": [],
+    "normalCompletionHadActiveChildren": false,
+    "closureInitialSnapshot": [],
+    "actualExitCode": 0,
+    "closureFinalSnapshot": [],
+    "ownedClosureProven": true,
+    "actualOriginalChildWaited": true,
+    "exitCode": 0,
+    "helperSha256": "b623484a36325020644d64479cc41939c20a984a07a1ba585e4be1a17e812889"
+  },
+  "sourcePinsVerifiedBeforeAfter": true,
+  "retainedRuntimeFixtureArtifacts": [
+    {
+      "path": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/private-fixtures/.node-same-app-local-jobs-9VJLUk",
+      "uid": 1000,
+      "mode": "0o700",
+      "symlink": false,
+      "files": [
+        "case-1/00000083-0000-4000-8000-000000000001/namespace.json",
+        "case-1/00000083-0000-4000-8000-000000000002/namespace.json",
+        "case-1/client/index.html",
+        "case-1/data/application.sqlite",
+        "case-1/data/application.sqlite.writer-lock",
+        "case-1/runtime.json",
+        "case-2/00000083-0000-4000-8000-000000000001/namespace.json",
+        "case-2/00000083-0000-4000-8000-000000000002/namespace.json",
+        "case-2/client/index.html",
+        "case-2/data/application.sqlite",
+        "case-2/data/application.sqlite.writer-lock",
+        "case-2/runtime.json",
+        "case-3/00000083-0000-4000-8000-000000000001/namespace.json",
+        "case-3/00000083-0000-4000-8000-000000000002/namespace.json",
+        "case-3/client/index.html",
+        "case-3/data/application.sqlite",
+        "case-3/data/application.sqlite.writer-lock",
+        "case-3/runtime.json",
+        "case-4/00000083-0000-4000-8000-000000000001/namespace.json",
+        "case-4/00000083-0000-4000-8000-000000000001/objects/052e32c642d43cc8eb52bdc419728bea2fcc4ae88d70e153eff4f24fbbcaf253/data",
+        "case-4/00000083-0000-4000-8000-000000000001/objects/052e32c642d43cc8eb52bdc419728bea2fcc4ae88d70e153eff4f24fbbcaf253/metadata.json",
+        "case-4/00000083-0000-4000-8000-000000000002/namespace.json",
+        "case-4/00000083-0000-4000-8000-000000000002/objects/72979dca481d8ac2541b5d77791a67f60ed92d7564844f4eeb970a4c0ef3d01e/data",
+        "case-4/00000083-0000-4000-8000-000000000002/objects/72979dca481d8ac2541b5d77791a67f60ed92d7564844f4eeb970a4c0ef3d01e/metadata.json",
+        "case-4/client/index.html",
+        "case-4/data/application.sqlite",
+        "case-4/data/application.sqlite.writer-lock",
+        "case-4/runtime.json",
+        "case-5/00000083-0000-4000-8000-000000000001/namespace.json",
+        "case-5/00000083-0000-4000-8000-000000000001/objects/be6f958931a6dc0b0f329a276729f93df69804d9fdd4259d1fc8f04b46797f69/data",
+        "case-5/00000083-0000-4000-8000-000000000001/objects/be6f958931a6dc0b0f329a276729f93df69804d9fdd4259d1fc8f04b46797f69/metadata.json",
+        "case-5/00000083-0000-4000-8000-000000000002/namespace.json",
+        "case-5/client/index.html",
+        "case-5/data/application.sqlite",
+        "case-5/data/application.sqlite.writer-lock",
+        "case-5/runtime.json",
+        "case-6/00000083-0000-4000-8000-000000000001/namespace.json",
+        "case-6/00000083-0000-4000-8000-000000000001/objects/55e3fc0c8903848c0b75d86c81f8d3b4090317a46de125bb636a2b6fc957322a/data",
+        "case-6/00000083-0000-4000-8000-000000000001/objects/55e3fc0c8903848c0b75d86c81f8d3b4090317a46de125bb636a2b6fc957322a/metadata.json",
+        "case-6/00000083-0000-4000-8000-000000000002/namespace.json",
+        "case-6/client/index.html",
+        "case-6/data/application.sqlite",
+        "case-6/data/application.sqlite.writer-lock",
+        "case-6/runtime.json",
+        "case-7/00000083-0000-4000-8000-000000000001/namespace.json",
+        "case-7/00000083-0000-4000-8000-000000000001/objects/0f8c24e1d9565ec35a389c2bd9ba95fa5ac1e553df3a97e9256c2ca9a35c0f5f/data",
+        "case-7/00000083-0000-4000-8000-000000000001/objects/0f8c24e1d9565ec35a389c2bd9ba95fa5ac1e553df3a97e9256c2ca9a35c0f5f/metadata.json",
+        "case-7/00000083-0000-4000-8000-000000000002/namespace.json",
+        "case-7/client/index.html",
+        "case-7/data/application.sqlite",
+        "case-7/data/application.sqlite.writer-lock",
+        "case-7/runtime.json",
+        "case-8/00000083-0000-4000-8000-000000000001/namespace.json",
+        "case-8/00000083-0000-4000-8000-000000000001/objects/8a0477634f78a4c4c7987481af70a87a09c4fd49416bc8629ed54764733e6b88/data",
+        "case-8/00000083-0000-4000-8000-000000000001/objects/8a0477634f78a4c4c7987481af70a87a09c4fd49416bc8629ed54764733e6b88/metadata.json",
+        "case-8/00000083-0000-4000-8000-000000000002/namespace.json",
+        "case-8/00000083-0000-4000-8000-000000000002/objects/1ad618d20025f0ed233dd461682a8d8e3012f145375538fe4de237febf2d9059/data",
+        "case-8/00000083-0000-4000-8000-000000000002/objects/1ad618d20025f0ed233dd461682a8d8e3012f145375538fe4de237febf2d9059/metadata.json",
+        "case-8/client/index.html",
+        "case-8/data/application.sqlite",
+        "case-8/data/application.sqlite.writer-lock",
+        "case-8/runtime.json",
+        "installed-template.sqlite",
+        "installed-template.sqlite.writer-lock"
+      ]
+    }
+  ],
+  "privateTemporaryDirectoryAfter": {
+    "path": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/private-tmp",
+    "dev": 27,
+    "ino": 880064,
+    "uid": 1000,
+    "gid": 1000,
+    "mode": "0o700"
+  },
+  "privateFixtureDirectoryAfter": {
+    "path": "/workspace/same-app-local-job-mounted-original-eight-owned-actual-attempt1/private-fixtures",
+    "dev": 27,
+    "ino": 880067,
+    "uid": 1000,
+    "gid": 1000,
+    "mode": "0o700"
+  },
+  "finalClosureSha256": "62f87a0fd3cd46d25c02c89e46995793e12937b5aaa957cd86fd6c721ac3815e",
+  "allOwnedProcessGroupsKernelClosedAfter": true,
+  "closureScope": "Original whole setup/case ALS roots retain original filesystem/acquire/socket/app/Response/body and secondary owners. Cached original successful full-body read or cancel and HTTP/component drain precede same Native/core ACK and physical lease release. Failed/quarantined original remains retained; no retry/fallback, provider/default activation or expanded budgets."
+}

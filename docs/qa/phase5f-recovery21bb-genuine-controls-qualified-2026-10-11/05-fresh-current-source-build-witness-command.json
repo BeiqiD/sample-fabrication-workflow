@@ -1,0 +1,35 @@
+{
+  "stage": "fresh-current-source-build-witness",
+  "control": "Original f228 build command/output causal carry and new physical24+84 setup/owners; passive helper consumer2488 inputs exact. Zero repeatbuild; strict nativebody/readiness/acceptedhistory retained.",
+  "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+  "argv": [
+    "python3",
+    "-B",
+    "/workspace/phase5f-recovery-job-controls-native-byte-proof-final-finite-source-review-attempt7/carry-original-f228-new-fixture-native-byte-proof.py",
+    "--coherent-cf-producer-for-genuine-job-controls-two",
+    "witness"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/recovery-native-proof-f228-private-attempt5",
+    "SQLITE_TMPDIR": "/workspace/recovery-native-proof-f228-private-attempt5"
+  },
+  "startedAt": "2026-10-11T09:56:15.828509+00:00",
+  "status": "PASS",
+  "log": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/fresh-current-source-build-witness.log",
+  "pid": 1042562,
+  "processGroup": 1042562,
+  "originalStartTicks": "12583659",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T09:56:16.225997+00:00",
+  "logSha256": "87a79b9d62aab84a4ab851c12f5bab4e3a1fc8bcb2a5f4df95849a163b6f7f92"
+}

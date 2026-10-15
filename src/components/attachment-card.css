@@ -1,0 +1,74 @@
+.attachment-card {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: var(--surface-warm);
+}
+
+.attachment-card--comfortable { gap: 10px 12px; padding: 13px; font-size: 14px; }
+.attachment-card--compact { gap: 7px 9px; padding: 9px; font-size: 12px; }
+.attachment-card--dense { gap: 4px 7px; padding: 6px 7px; font-size: 11px; }
+
+.attachment-card .attachment-card__mark {
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  color: var(--muted);
+  background: var(--paper);
+}
+
+.attachment-card--comfortable .attachment-card__mark { width: 38px; height: 38px; }
+.attachment-card--compact .attachment-card__mark { width: 30px; height: 30px; }
+.attachment-card--dense .attachment-card__mark { width: 24px; height: 24px; }
+
+.attachment-card .attachment-card__copy { min-width: 0; display: grid; gap: 3px; }
+.attachment-card .attachment-card__title,
+.attachment-card .attachment-card__filename { overflow-wrap: anywhere; font-size: inherit; line-height: 1.4; }
+.attachment-card .attachment-card__filename { font-weight: 650; }
+.attachment-card .attachment-card__title + .attachment-card__filename { font-weight: 400; }
+.attachment-card .attachment-card__metadata { overflow-wrap: anywhere; color: var(--muted); line-height: 1.4; }
+.attachment-card .attachment-card__metadata > span { color: inherit; font-size: inherit; }
+.attachment-card--comfortable .attachment-card__metadata { font-size: 12px; }
+.attachment-card--compact .attachment-card__metadata { font-size: 11px; }
+.attachment-card--dense .attachment-card__metadata { font-size: 10px; }
+.attachment-card .attachment-card__description { margin: 0; overflow-wrap: anywhere; line-height: 1.45; }
+.attachment-card .attachment-card__status { display: grid; gap: 2px; overflow-wrap: anywhere; font-size: inherit; line-height: 1.4; }
+.attachment-card .attachment-card__status > span { font-size: inherit; }
+.attachment-card .attachment-card__status--pending { color: var(--info); }
+.attachment-card .attachment-card__status--failed { color: var(--danger); }
+.attachment-card .attachment-card__status--unavailable { color: var(--muted); }
+
+.attachment-card .attachment-card__actions {
+  grid-column: 2;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.attachment-card .attachment-card__primary {
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  color: var(--ink);
+  background: var(--paper);
+  overflow-wrap: anywhere;
+  text-decoration: none;
+  font-size: inherit;
+  line-height: 1.3;
+}
+
+.attachment-card--comfortable .attachment-card__primary { min-height: 40px; padding: 7px 11px; }
+.attachment-card--compact .attachment-card__primary { min-height: 34px; padding: 6px 9px; }
+.attachment-card--dense .attachment-card__primary { min-height: 28px; padding: 4px 7px; }
+.attachment-card .attachment-card__primary:hover { color: var(--accent); border-color: var(--accent); }
+.attachment-card .attachment-card__primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

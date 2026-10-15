@@ -1,0 +1,12 @@
+{
+  "scope": "Source-only evidence curation, not compiler/application/runtime failure.",
+  "originalCheck": [
+    "git",
+    "diff",
+    "--cached",
+    "--check"
+  ],
+  "exitCode": 2,
+  "finding": "Two immutable original Wranglermigration/SQL raw logs contain existing trailing whitespace on Resource location: local. Exact raw bytes retained; no log edit.",
+  "correctedCheckScope": "Docs/manifest/JSON only, excluding byte-exact raw .log records."
+}

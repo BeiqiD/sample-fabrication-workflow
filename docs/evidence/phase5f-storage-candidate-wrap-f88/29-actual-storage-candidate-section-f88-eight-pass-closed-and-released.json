@@ -1,0 +1,354 @@
+{
+  "version": 1,
+  "status": "PASS",
+  "ownershipStatus": "CLOSED",
+  "runtimeWindow": "RELEASED",
+  "recordedAt": "2026-10-11T02:51:56.310647+00:00",
+  "sourceHead": "f88fffea3ba0654b52ca90ee87efdafdb70cd48c",
+  "sourceTree": "df05a78afcdee28f7136a349001464c399531e9c",
+  "sourceRoot": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+  "sourceCopyRoot": "/tmp/phase5f-storage-candidate-section-wrap-copy-attempt10",
+  "fixtureDirectory": "/tmp/phase5f-storage-candidate-section-wrap-fixture-attempt10",
+  "stageCount": 8,
+  "actualAppStrict": "PASS",
+  "actualMounted": {
+    "files": 1,
+    "passed": 24,
+    "failed": 0,
+    "unrun": 0,
+    "defaultBudgetMs": 5000
+  },
+  "freshBuild": {
+    "command": [
+      "npm",
+      "run",
+      "build"
+    ],
+    "actualCommandPid": 619045,
+    "actualExitCode": 0,
+    "originalDirectReaped": true,
+    "distFiles": 118,
+    "copiedArtifactsAndConfigs": 121,
+    "witnessSha256": "4276143465a61cd05c11aa4f6dd4fa4796242fc6ec7755a2af2ea7d01b6c2ca9",
+    "postRuntimeAllOutputAndCopiedBytesExact": true
+  },
+  "browserCases": {
+    "passed": 1,
+    "failed": 0,
+    "unrun": 0,
+    "id": "retained-candidates-read-only-layout-390-dark",
+    "scope": "Readonlyretained390dark; genuineenabledAccess/freshprivatekeyring butoriginalcredentialkey unavailable. Old01acceptedstate separatefromnewactualfreshf88Worker+frontendartifact."
+  },
+  "geometry": {
+    "surface": "retained-candidates-read-only-layout",
+    "geometry": {
+      "width": 390,
+      "viewport": {
+        "width": 390,
+        "height": 900
+      },
+      "root": 390,
+      "body": 390,
+      "theme": "dark",
+      "inspectedElements": 151,
+      "totalElements": 151,
+      "offendingElements": [],
+      "remainingOffenderCount": 0
+    }
+  },
+  "actualOrdinaryApi": {
+    "get": 6,
+    "all200": true,
+    "mutations": 0
+  },
+  "retainedApplicationSchemaAndAllRowsUnchanged": true,
+  "ownedClosure": {
+    "sessionId": "b410a79a-3162-4816-afb8-c49cd067ad17",
+    "startedAt": "2026-10-11T02:50:48.661Z",
+    "status": "closed",
+    "browserCloseAwaited": true,
+    "originalCatalogUnrelatedRowsAndAcceptedHistoryVerified": true,
+    "workerDisposeAwaited": true,
+    "workerPortRefused": true,
+    "jwksCloseAwaited": true,
+    "jwksPortRefused": true,
+    "completedAt": "2026-10-11T02:50:49.931Z"
+  },
+  "owners": [
+    {
+      "stage": "affected-app-strict",
+      "originalDirectPid": 618891,
+      "originalStartTicks": "10026584",
+      "actualExitCode": 0,
+      "originalDirectReaped": true,
+      "originalPidNowAbsent": true,
+      "scopedGroup": [],
+      "ownedCleanupSignals": []
+    },
+    {
+      "stage": "affected-storage-mounted-file",
+      "originalDirectPid": 618936,
+      "originalStartTicks": "10027160",
+      "actualExitCode": 0,
+      "originalDirectReaped": true,
+      "originalPidNowAbsent": true,
+      "scopedGroup": [],
+      "ownedCleanupSignals": []
+    },
+    {
+      "stage": "one-fresh-final-QA-source-build",
+      "originalDirectPid": 619045,
+      "originalStartTicks": "10027961",
+      "actualExitCode": 0,
+      "originalDirectReaped": true,
+      "originalPidNowAbsent": true,
+      "scopedGroup": [
+        {
+          "pid": 619124,
+          "state": "Z",
+          "ppid": 1,
+          "processGroup": 619045,
+          "fdInspection": "PermissionError",
+          "kernelResourcesExited": true
+        }
+      ],
+      "ownedCleanupSignals": []
+    },
+    {
+      "stage": "isolated-copy",
+      "originalDirectPid": 619153,
+      "originalStartTicks": "10028848",
+      "actualExitCode": 0,
+      "originalDirectReaped": true,
+      "originalPidNowAbsent": true,
+      "scopedGroup": [],
+      "ownedCleanupSignals": []
+    },
+    {
+      "stage": "fresh-storage-layout-build-input-witness",
+      "originalDirectPid": 619215,
+      "originalStartTicks": "10029265",
+      "actualExitCode": 0,
+      "originalDirectReaped": true,
+      "originalPidNowAbsent": true,
+      "scopedGroup": [],
+      "ownedCleanupSignals": []
+    },
+    {
+      "stage": "source-preflight-and-state-copy",
+      "originalDirectPid": 619250,
+      "originalStartTicks": "10029565",
+      "actualExitCode": 0,
+      "originalDirectReaped": true,
+      "originalPidNowAbsent": true,
+      "scopedGroup": [],
+      "ownedCleanupSignals": []
+    },
+    {
+      "stage": "one-read-only-retained390-layout",
+      "originalDirectPid": 619274,
+      "originalStartTicks": "10030299",
+      "actualExitCode": 0,
+      "originalDirectReaped": true,
+      "originalPidNowAbsent": true,
+      "scopedGroup": [],
+      "ownedCleanupSignals": []
+    },
+    {
+      "stage": "mandatory-postphysical-and-original-pins",
+      "originalDirectPid": 619440,
+      "originalStartTicks": "10031361",
+      "actualExitCode": 0,
+      "originalDirectReaped": true,
+      "originalPidNowAbsent": true,
+      "scopedGroup": [],
+      "ownedCleanupSignals": []
+    }
+  ],
+  "physical": {
+    "status": "PASS",
+    "sqliteResults": [
+      {
+        "file": "v3/d1/miniflare-D1DatabaseObject/faaf2b0445ab934c3aac48ddf0cdfade8f9bac050be98993748742cdd2cb05fb.sqlite",
+        "quickCheck": [
+          [
+            "ok"
+          ]
+        ],
+        "foreignKeyCheck": [],
+        "originalReaderClosed": true
+      },
+      {
+        "file": "v3/d1/miniflare-D1DatabaseObject/metadata.sqlite",
+        "quickCheck": [
+          [
+            "ok"
+          ]
+        ],
+        "foreignKeyCheck": [],
+        "originalReaderClosed": true
+      },
+      {
+        "file": "v3/r2/miniflare-R2BucketObject/eaa2fcb26d4038a3ef7dc7a68c7d2b0194f2d07ce329fb4925ae44e7f0611f87.sqlite",
+        "quickCheck": [
+          [
+            "ok"
+          ]
+        ],
+        "foreignKeyCheck": [],
+        "originalReaderClosed": true
+      },
+      {
+        "file": "v3/r2/miniflare-R2BucketObject/metadata.sqlite",
+        "quickCheck": [
+          [
+            "ok"
+          ]
+        ],
+        "foreignKeyCheck": [],
+        "originalReaderClosed": true
+      }
+    ],
+    "pngAndOtherOriginalBlobBytesExact": true,
+    "png": [
+      {
+        "file": "v3/r2/sample-fabrication-workflow-local-assets/blobs/97d0169fcfc716a8d6477679d9f078f72ed9e55dab8409b4a151cfd02b53834c000001a128b6c926",
+        "sha256": "5e3d382db4dd83d59aa5742793ad6b7903409e865c83bcbc54835049f043bc15"
+      }
+    ],
+    "originalStateMainWalAndOtherBytesExact": true,
+    "originalShmBytesRead": false,
+    "originalShmStatExact": true,
+    "all1792OriginalSourceAnd121ArtifactsExact": true,
+    "all1790OtherConsumerProductAndSourceBytesEqual": true,
+    "retainedApplicationSchemaAndAllRowsUnchanged": true,
+    "scope": "Copied readers only; original state was never opened by SQLite or Miniflare. No original accepted history or ciphertext rollback."
+  },
+  "sourcePins": {
+    "working1792ExactCleanFrozenHead": true,
+    "freshCopiedTracked1792AndArtifact121ExactAfterRuntime": true,
+    "builderDist118ExactAfterRuntime": true,
+    "historical01StateArtifactsAndShmStatExact": true,
+    "originalShmBytesRead": false
+  },
+  "rawRecords": [
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/frozen-approved-plan.json",
+      "sha256": "20d549143ab4730142119cc7f5aab513c64b990ba6069ea4e1dc7bb319e1e19d"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/fresh-build-artifact-manifest.json",
+      "sha256": "908d0ca51a39ebf1b7ae78532058d1d0d5e126248ae31dd956b92b10b409a559"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/affected-app-strict-command.json",
+      "sha256": "1089298626b0449c8dcbf416d921f3e6f6d3913e1fa08b98b59e19314bb56163"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/affected-app-strict.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/affected-storage-mounted-file-command.json",
+      "sha256": "54bbeb12ef24ad359e11c62e65fc11eaf593e94b3edd2defb4e48ba179448b5f"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/affected-storage-mounted-file.log",
+      "sha256": "d6599c0c4b1a118f391142942af83a21b2ef0913605f2e857d90d79b70658e44"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/one-fresh-final-QA-source-build-command.json",
+      "sha256": "c6f7403a033b154a8b46b9f53b89b315474808afc99f4493d7abcc87eb01be28"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/one-fresh-final-QA-source-build.log",
+      "sha256": "a3fd280b617a6174c06592006f101df0a0a3dacfe33ca9aacf32fe377b586f7c"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/isolated-copy-command.json",
+      "sha256": "1ee2ae7106f21b3095fbf79b572ded9e20be3e07b267a9718dfb6ae9b233a20e"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/isolated-copy.log",
+      "sha256": "c7fa7f114fd1ac82e15c03011da59497ac62ac4a06ae4744cfd1f4a1b21588a7"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/fresh-storage-layout-build-input-witness-command.json",
+      "sha256": "071b9de9cb8a89797d3c74ba500d9b5ce1c50d3cd6b8c0dde3f27f53267949c7"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/fresh-storage-layout-build-input-witness.log",
+      "sha256": "af53b8639d268a3a8b9932a84f37b5c18c60204910d15985e958c605058f8299"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/source-preflight-and-state-copy-command.json",
+      "sha256": "40719f9875b52447ff4db8424ec6e39cf78b1e7823478d061c0ad351284b3dfe"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/source-preflight-and-state-copy.log",
+      "sha256": "5ba4ac44d02d9165d92d1d1c0cbaa669ba704df1c0b499518ffacc703bcf473f"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/one-read-only-retained390-layout-command.json",
+      "sha256": "a888c72bc4eb71e7a5eccb60901603b824e0e7bc6300120c051023ca2ad2b92d"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/one-read-only-retained390-layout.log",
+      "sha256": "4e378d354d7f2ceb15ceb8ee4b54de4b28d73fb6d77c953464e3c5367edcf588"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/mandatory-postphysical-and-original-pins-command.json",
+      "sha256": "5d24a17c427a6cc0d7801d99814de16ed17dbc23a488cd81f48a8170caf2dd98"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/mandatory-postphysical-and-original-pins.log",
+      "sha256": "f68560888cc08682e5a366838490dd5a877c3057c0c131914c907de45e0057f5"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-fixture-attempt10/enabled-storage-draft-browser-report.json",
+      "sha256": "b07fed080919761449e6b92073ef980fce95b163b2c7d70876620a5563a03642"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-fixture-attempt10/enabled-storage-draft-runtime-stop.json",
+      "sha256": "88dcdd13c7ae84a3f8e87b3e1331b1f1f13e9f200f2358061f76fbc11ac857ed"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-fixture-attempt10/enabled-storage-draft-browser-progress.ndjson",
+      "sha256": "331a1146386dfa7e94f386e51c3dbf4dfc616dbf9a89e862ad2053aae6deef84"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-fixture-attempt10/retained-state-copy-receipt.json",
+      "sha256": "329a152b66e95cf6eef66499ef1b44a6d638feed9603dee43495cce6d606c9fb"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-fixture-attempt10/read-only-layout-postphysical-and-original-input-pins.json",
+      "sha256": "16e2e43620163a177c767f643a773054a65bd784a7889809a3efa0f3b9f7b46d"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-fixture-attempt10/enabled-storage-draft-browser-artifacts/retained-candidates-read-only-layout-390-dark.retained-candidates-read-only-layout.geometry.json",
+      "sha256": "fb4af4032ff79a4a9484c98629c3aa4edcbb624851a767d884c0077eacbc4644"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-copy-attempt10/isolation-receipt.json",
+      "sha256": "104ab9729c8f87071f167c3854d60d147e771bacfc39a0743c23c0b0119b99fb"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-copy-attempt10/fresh-storage-layout-build-input-witness.json",
+      "sha256": "4276143465a61cd05c11aa4f6dd4fa4796242fc6ec7755a2af2ea7d01b6c2ca9"
+    },
+    {
+      "path": "/tmp/phase5f-storage-f88-independent-fresh-artifact-source-peer.json",
+      "sha256": "a211efba5c14c3c5f591990ba466a2c7c620af118fffb815cfe2470302b879b3"
+    },
+    {
+      "path": "/tmp/phase5f-storage-candidate-section-wrap-source-review-attempt10/source-plan-runner-handoff.json",
+      "sha256": "c8bba6a3ba4811f9bc20d87aca730cf015285520c698885bcdae11720fa7be7e"
+    }
+  ],
+  "scopeNotes": [
+    "The two stale inherited plan prose strings Fresh3b6/all1791 remain immutable; actual bindings sourcef88/protected1790 independently checked bypeer and helper.",
+    "Seven scoped groups EMPTY; build group has one kernelZ/PPID1 with FDPermissionError. No activeownedprocess/no signals; inaccessible FD metadata is not an observedzeroFD.",
+    "Historical01Storage2 overall1PASS1FAIL and558readonlyFAIL(root/body945) remain ownactualscopes. Originalacceptedhistory3revisionsretained; notrolledback.",
+    "Storage2 create/lostACK/revision409 andPackage2 have not rerun onf88. No whole5F/device/IME/otherengine/provider/deployedacceptance."
+  ]
+}

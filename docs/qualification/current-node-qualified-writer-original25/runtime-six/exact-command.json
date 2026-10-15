@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "local-file-runtime-optin-qualification.vitest.config.mts",
+    "--reporter=verbose",
+    "--reporter=json",
+    "--outputFile.json=/workspace/current-a5-qualified-writer-runtime-six-owned-actual-attempt1/actual-native.json"
+  ],
+  "status": "RESERVED_BEFORE_EFFECTS"
+}

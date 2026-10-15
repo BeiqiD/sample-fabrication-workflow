@@ -1,0 +1,31 @@
+import { PORTABLE_IDENTITY_MIGRATION_NAMES } from "../../shared/contracts/export-portable-runtime";
+import { reviewedPortableMigrationSources } from "../../test/reviewed-portable-migration-sources";
+import { expect, it } from "vitest";
+import { planExportRestoreMigrations } from "./export-restore";
+import { SYSTEM_STORAGE_CONFIGURATION_MIGRATIONS } from "../../shared/contracts/storage-configuration-schema";
+
+it("keeps V7–V25 content upgrades while excluding reviewed cleanup and installation configuration, check evidence and key-maintenance receipts", () => {
+  const cleanup = "0011_fp1_retire_legacy_test_projects.sql";
+  const names = reviewedPortableMigrationSources(25).map(source => source.name);
+  expect(names).not.toContain("0024_rt3_local_volume_profiles.sql");
+  expect(names).toContain("0017_fp2_native_storage_profiles.sql");
+  expect(names).toContain("0021_fp5_system_recovery.sql");
+  expect(names).toContain("0022_fp5_recovery_evidence.sql");
+  const schemaNames = names.filter(name => name !== cleanup && !SYSTEM_STORAGE_CONFIGURATION_MIGRATIONS.includes(name as typeof SYSTEM_STORAGE_CONFIGURATION_MIGRATIONS[number]) && !PORTABLE_IDENTITY_MIGRATION_NAMES.includes(name as typeof PORTABLE_IDENTITY_MIGRATION_NAMES[number]));
+  expect(schemaNames).not.toContain("0021_fp5_system_recovery.sql");
+  expect(schemaNames).not.toContain("0023_portable_local_identity.sql");
+  for (let version = 7; version <= 25; version++) {
+    const plan = planExportRestoreMigrations(names, version);
+    expect(plan).toEqual(planExportRestoreMigrations(schemaNames, version));
+    expect(plan.schemaNames).toEqual(schemaNames);
+    expect(plan.forwardNames).toEqual(schemaNames.slice(Math.max(1, version - 7)));
+  }
+  expect(planExportRestoreMigrations(names, 23).forwardNames).toEqual(["0022_fp5_recovery_evidence.sql"]);
+  expect(planExportRestoreMigrations(names, 24).forwardNames).toEqual([]);
+  const legacyPrefix = schemaNames.slice(0, 3);
+  expect(planExportRestoreMigrations(legacyPrefix, 8)).toEqual({
+    schemaNames: legacyPrefix, forwardNames: legacyPrefix.slice(1),
+  });
+  const otherMigration = "0016_unreviewed_cleanup.sql";
+  expect(planExportRestoreMigrations([...names, otherMigration], 17).schemaNames).toContain(otherMigration);
+});

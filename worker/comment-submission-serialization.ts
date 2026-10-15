@@ -1,3 +1,4 @@
+import { nativeAssetUrl } from "../shared/contracts/r2-upload";
 import type {
   CommentAttachment,
   CommentImage,
@@ -36,7 +37,10 @@ export type CommentSubmissionItemRow = {
   related_item_id: string | null;
   error_message: string | null;
   asset_key: string | null;
+  asset_id?: string | null;
   storage_object_id: string | null;
+  // Retained legacy schemas do not have the typed File binding yet.
+  file_id?: string | null;
 };
 
 export function serializeCommentSubmissions(
@@ -60,6 +64,9 @@ export function serializeCommentSubmissions(
         originalMimeType: item.original_mime_type || "application/octet-stream",
         originalByteSize: Number(item.original_byte_size || 0),
         assetKey: item.asset_key,
+        ...(!item.asset_key && item.asset_id && item.file_id && item.status === "ready" ? {
+          assetId: item.asset_id, fileId: item.file_id, assetUrl: nativeAssetUrl(item.asset_id),
+        } : {}),
         status: item.status,
         error: item.error_message,
         relatedAttachmentId: item.related_item_id,
@@ -83,7 +90,8 @@ export function serializeCommentSubmissions(
         mimeType: item.mime_type || "application/octet-stream",
         byteSize: Number(item.byte_size || 0),
         sha256: item.sha256,
-        downloadUrl: item.status === "ready" && item.storage_object_id
+        downloadUrl: submission.status === "ready" && item.status === "ready"
+          && (item.file_id || item.storage_object_id)
           ? `/api/attachments/${encodeURIComponent(item.id)}/download`
           : null,
         status: item.status,

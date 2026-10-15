@@ -1,0 +1,52 @@
+{
+  "status": "COMPLETE_POSTMERGE_CI_SUCCESS",
+  "recordedAt": "2026-10-11T11:30:26.599351+00:00",
+  "pr": 268,
+  "developmentBranch": "v2/backend-foundation",
+  "mergeHead": "b1975d22c9397bde82320209ae8c6f7b572f404e",
+  "runIds": [
+    38134192377,
+    38134192341
+  ],
+  "ownPostmergeRunConclusions": [
+    "success",
+    "success"
+  ],
+  "all15LatestStatusContexts": "success",
+  "contexts": [
+    "pre-pr/blob-lifecycle",
+    "pre-pr/build",
+    "pre-pr/file-jobs",
+    "pre-pr/install",
+    "pre-pr/project-canvas-productivity",
+    "pre-pr/project-edges",
+    "pre-pr/project-foundation",
+    "pre-pr/project-map",
+    "pre-pr/project-map-performance",
+    "pre-pr/project-owned-content",
+    "pre-pr/project-persistence",
+    "pre-pr/project-reading",
+    "pre-pr/project-reference-placement",
+    "pre-pr/reference-foundation",
+    "pre-pr/tests"
+  ],
+  "sourceQualificationNotRetagged": true,
+  "raw": [
+    {
+      "path": "/workspace/pr268-b197-postmerge-complete-ci-attempt1/verify-run.json",
+      "sha256": "72cc2f0ff0341ad929666e1a193484735052b10c7d726ea331559a9373815569"
+    },
+    {
+      "path": "/workspace/pr268-b197-postmerge-complete-ci-attempt1/map-run.json",
+      "sha256": "f74bbd87e391edf47fdd1f56c98ac91acfd8648b3f4504cc178e516859f4b02a"
+    },
+    {
+      "path": "/workspace/pr268-b197-postmerge-complete-ci-attempt1/combined-status.json",
+      "sha256": "03c2c08b42acbadcbeb94b8434f8773d95a727cbbe2b6faf057b2b9050511ec2"
+    },
+    {
+      "path": "/workspace/pr268-b197-postmerge-complete-ci-attempt1/development-branch.json",
+      "sha256": "f119847e230074970d25a4dd8f43e6d3f316c9ef87366b36f5bb3bb198080e24"
+    }
+  ]
+}

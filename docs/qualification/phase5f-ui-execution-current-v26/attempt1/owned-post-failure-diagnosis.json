@@ -1,0 +1,50 @@
+{
+  "at": "2026-10-10T22:37:16.014222+00:00",
+  "kind": "actual-owned-post-failure-diagnosis/1",
+  "originalRunnerExitCode": 1,
+  "groups": [
+    {
+      "group": 297541,
+      "members": []
+    },
+    {
+      "group": 297559,
+      "members": []
+    },
+    {
+      "group": 297575,
+      "members": []
+    },
+    {
+      "group": 297711,
+      "members": []
+    },
+    {
+      "group": 297775,
+      "members": [
+        {
+          "pid": 297808,
+          "state": "Z",
+          "ppid": 1,
+          "pgid": 297775,
+          "starttime": "8501664",
+          "fdInspection": "PermissionError",
+          "kernelResourcesExited": true
+        },
+        {
+          "pid": 297817,
+          "state": "Z",
+          "ppid": 1,
+          "pgid": 297775,
+          "starttime": "8501668",
+          "fdInspection": "PermissionError",
+          "kernelResourcesExited": true
+        }
+      ]
+    }
+  ],
+  "allDirectChildrenReapedInOriginalReceipt": true,
+  "actualNoLiveOwnedMember": true,
+  "noAdditionalSignalsOrCleanup": true,
+  "scope": "Stat state is actual kernel state; unreadable zombie fd directories are recorded honestly. No whole-host absence or reaping of unowned PPID1."
+}

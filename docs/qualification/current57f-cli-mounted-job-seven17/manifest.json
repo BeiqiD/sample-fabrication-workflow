@@ -1,0 +1,305 @@
+{
+  "schema": "current57f-cli-mounted-job-seven17-qualified-documentary-checkpoint/1",
+  "baseCurrentDevelopment": "57f4344b387ce06a91b5260e10fc9f5ecedda68a",
+  "actualSourceCommit": "f883e64086bee44b353f3840271fa3eaaafdcc7d",
+  "actualSourceTree": "dda4d903cab9f410073ccb88d98e372f6f8d3fbd",
+  "actualQualification": {
+    "originalToolSession": 85222,
+    "toolTerminalChunk": "ce3247",
+    "exitCode": 0,
+    "sevenStages": "all PASS",
+    "freshCases": {
+      "manifest": 8,
+      "parser": 6,
+      "genuineBundledV5Cli": 3,
+      "total": 17
+    },
+    "nativeCarry": 0,
+    "frontendArtifacts": 114,
+    "distributionArtifacts": 123,
+    "backendBundleOwners": [
+      "main.mjs ESM",
+      "identity-cli.cjs",
+      "installation-cli.cjs",
+      "restore-v28-cli.cjs"
+    ],
+    "currentAffectedCompilerActualInputs": 331,
+    "newCompilerRunsInSevenStageWindow": 0
+  },
+  "historicalQualifiedJob8": "b131 source closure byte-exact; original historical eight PASS remains on b131, not rerun by these 17 cases",
+  "scope": "Current fresh frontend/map and fixed four-bundle distribution; full same-D1 inert V28/V5 CLI three. Default operational V26/current24 remains unchanged; Group/initialization/volume activation, enabled Docker and elapsed120s Job cadence not claimed. Current Job issuer configuration remains explicit opt-in; no new blanket grants.",
+  "closure": "Original seven direct waits complete, no signals, all original ownership ACKs; builder descendant1376408 kernel Z with FD PermissionError remains recorded, active start ticks missed and UNKNOWN.",
+  "protectedBaseSourceEntries": 2794,
+  "records": [
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/actual/closed-manifest-eight.log",
+      "originalPath": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/closed-manifest-eight.log",
+      "bytes": 936,
+      "sha256": "ef78196dca76cb3c75aafc750ce7a8377af7e3bc52d3b8c240ea4fc6b3c058de",
+      "gitBlob": "586d8edf426a5704bbd3e0bc54d0667c8509d070",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/actual/closed-parser-six.json",
+      "originalPath": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/closed-parser-six.json",
+      "bytes": 2766,
+      "sha256": "9748e518a947d355b2b0bba62afc51085213328e138a14fd11c652a60146d491",
+      "gitBlob": "ea1807ffa1fc1fd9542151d625ca1aeee4cc771f",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/actual/closed-parser-six.log",
+      "originalPath": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/closed-parser-six.log",
+      "bytes": 126,
+      "sha256": "515864dc7fa97420dfe7a64a40284de0920e008a9186840aba984684e0e69ac0",
+      "gitBlob": "74587a9bbc91a7018c50e11f66d8bd0bfa251896",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/actual/current-client-build-map-pair.json",
+      "originalPath": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/current-client-build-map-pair.json",
+      "bytes": 124311,
+      "sha256": "aa4191da34765335d1c0c0f1f4e266e06a9031110d661c8115c1f1e75f3b6ac0",
+      "gitBlob": "9b50f8d273ef07ae322cfc2684e6302c06b1d48e",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/actual/current-fixed-four-bundle-build.log",
+      "originalPath": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/current-fixed-four-bundle-build.log",
+      "bytes": 1681,
+      "sha256": "bcfec97df88810339358b5ff72d9cfa06ef304e253ffdfcd2ee384075d398d50",
+      "gitBlob": "4d8415014304b9cbcbf107cb928c3c224762155e",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/actual/current-node-client-build.log",
+      "originalPath": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/current-node-client-build.log",
+      "bytes": 11335,
+      "sha256": "300358c2b5bb3acb6b5f1d00a8b10d198e9f5457c8488fb695233e799185c232",
+      "gitBlob": "26afcfc46cf55de1cf6cadaae08fd6f8b3851347",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/actual/current-node-client-map-verifier.log",
+      "originalPath": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/current-node-client-map-verifier.log",
+      "bytes": 70,
+      "sha256": "10c166b70cd96883311a8a6c744ce142738afb3c3aeacdd83192a32c3ca65260",
+      "gitBlob": "3d7015986fabd8eb459b6b02f33a0e95ce8a7b6c",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/actual/current-v3-runtime-verifier.log",
+      "originalPath": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/current-v3-runtime-verifier.log",
+      "bytes": 1647,
+      "sha256": "4a12961a5ed5ee7a4a076e7f18c6a2e982db7423319f7f6bd81d757143992cdf",
+      "gitBlob": "431d5e08af13d05bea633c5b3e2ad656cfd99702",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/actual/formal-closure-release.json",
+      "originalPath": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/formal-closure-release.json",
+      "bytes": 5438,
+      "sha256": "cfd27b84306358629dc8c4f23545d3a198b0d45d710ac9abaee1e2f1c6f87970",
+      "gitBlob": "e4cd4c81f42732d2e9246cec71815eb606664fcb",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/actual/genuine-bundled-v5-cli-three.json",
+      "originalPath": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/genuine-bundled-v5-cli-three.json",
+      "bytes": 1994,
+      "sha256": "f37c2ad4d8b68fc03801a80addcdf474b560e0230fe97de0c84d6e3543726790",
+      "gitBlob": "50187cc2a91e30f0c5c82424cb22437bd81ecf19",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/actual/genuine-bundled-v5-cli-three.log",
+      "originalPath": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/genuine-bundled-v5-cli-three.log",
+      "bytes": 137,
+      "sha256": "78d01b311c820acdde3277271d89bc94f20b83a49e13353359bb8041ad19ef0d",
+      "gitBlob": "e45eb742fe5405570028fae322027c82e325b1d7",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/actual/receipt.json",
+      "originalPath": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/receipt.json",
+      "bytes": 64594,
+      "sha256": "f24bba824e6800152808c0379b11ec4bedbcc46a2dd3db7ef088dbb8a871bf6f",
+      "gitBlob": "44cc6b90b7742c29028505e609a119d78bffbcec",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/actual/root-current-f883-original-seven-17-formal-raw-source-artifact-read-release.json",
+      "originalPath": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/root-current-f883-original-seven-17-formal-raw-source-artifact-read-release.json",
+      "bytes": 1146,
+      "sha256": "a0422316b4917b42725890ffc89f9369c1f5661b16c415aae023861df9d5e78c",
+      "gitBlob": "7215033f75adbf12134569b7f815e332dce07445",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/source/exact-current75-adoption-map.json",
+      "originalPath": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/exact-current75-adoption-map.json",
+      "bytes": 45255,
+      "sha256": "18724da90e639b0b0986d885db5b2c344908e79f0992de48de6b07f51d07c0df",
+      "gitBlob": "1442e18556a347c854e6bd4b3164d50b720cfed0",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/source/complete-relative-cli-job-source-closure.json",
+      "originalPath": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/complete-relative-cli-job-source-closure.json",
+      "bytes": 319045,
+      "sha256": "dabe03c3688b3506379c5e780231303d604ae8ae7670349a6147e2cfff189d8a",
+      "gitBlob": "1bb989a2a0e9ac42f784577ef6280c414cb0a9fb",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/source/original-producer-and-compiler-current-causal-differences.json",
+      "originalPath": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/original-producer-and-compiler-current-causal-differences.json",
+      "bytes": 4427,
+      "sha256": "f0ee4be9941443b945192e6645c6e97ce2f937f0b2db6c71f0b367b6c182cf1b",
+      "gitBlob": "7689dc9e7ee2cbd69ab992ccc6d1fd780f31b55c",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/source/complete-current-source-and-one-affected-cli-type-handoff.json",
+      "originalPath": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/complete-current-source-and-one-affected-cli-type-handoff.json",
+      "bytes": 4989,
+      "sha256": "7718f45e1003a82c641a8886f37ab5a11e953b606bf95a971b12c713bea16e0b",
+      "gitBlob": "69144ae07365815231caab302620309e9f251802",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/source/complete-current-source-freeze.json",
+      "originalPath": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/complete-current-source-freeze.json",
+      "bytes": 784113,
+      "sha256": "8111df541f639d55607a7a10fc7dce45de3addde8b8485f009e458cd5e14e1dc",
+      "gitBlob": "d677222f082e0d828fc692d2afb3faa0c04c98c8",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/source/root-current57f-f883-complete75-source-adoption-review.json",
+      "originalPath": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/root-current57f-f883-complete75-source-adoption-review.json",
+      "bytes": 917,
+      "sha256": "7922f0304323229add451ff4747953ae84ed643874d20bbb8c17ea294b593c3b",
+      "gitBlob": "44bc26262fdc7c5f8a9aea7e5586466eea0621b0",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/finite/current-seven-stage-finite-plan.json",
+      "originalPath": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/finite-current-original-seven-stage-seventeen-peerbound-attempt1/current-seven-stage-finite-plan.json",
+      "bytes": 14302,
+      "sha256": "ce43222f613aff7e2717ea8b445ba682b5c46e634426eddf30c6729c466cc0e6",
+      "gitBlob": "e061ea1bfb4bac0f98330ec223fb94c12f3f18a2",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/finite/current-seven-stage-source-inputs.json",
+      "originalPath": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/finite-current-original-seven-stage-seventeen-peerbound-attempt1/current-seven-stage-source-inputs.json",
+      "bytes": 887208,
+      "sha256": "29d33740fde7ef92ce6fc700955c1ed231431b32e0cb6a81d05d73b3a14c315d",
+      "gitBlob": "d9f4be0aef408fa64a7fddfd4e77dab51ff44121",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/finite/current-seven-stage-mature-owned-runner.py",
+      "originalPath": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/finite-current-original-seven-stage-seventeen-peerbound-attempt1/current-seven-stage-mature-owned-runner.py",
+      "bytes": 21595,
+      "sha256": "1fabb243c1010c3143e5d1c1688b0cfb9dd1ea83eba7ac606ae72cfe6b00b728",
+      "gitBlob": "704e82b1da066f33444b354e24b033507c2b284c",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/finite/whole-current-original-seven-stage-mature-binding-inverse.json",
+      "originalPath": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/finite-current-original-seven-stage-seventeen-peerbound-attempt1/whole-current-original-seven-stage-mature-binding-inverse.json",
+      "bytes": 1876,
+      "sha256": "05615bfe14b36ef48a74e3dbfc49b63dc9518d0b07c40026b956eaabc4d0a906",
+      "gitBlob": "9fe0d1ad0ca0e32e6aa3d377d387c547e7d32a67",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/finite/final-current-seven-stage-mature-seventeen-source-handoff.json",
+      "originalPath": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/finite-current-original-seven-stage-seventeen-peerbound-attempt1/final-current-seven-stage-mature-seventeen-source-handoff.json",
+      "bytes": 4218,
+      "sha256": "0a5a99de167a65d9e36881fcb2e9976ae5f09efb5b63eefeaa372f0b4c2544b3",
+      "gitBlob": "91c0f435529337e83c1f3a17e0950ae4d27422f3",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/finite/root-current-f883-original-seven-stage-complete-finite-source-peer.json",
+      "originalPath": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/finite-current-original-seven-stage-seventeen-peerbound-attempt1/root-current-f883-original-seven-stage-complete-finite-source-peer.json",
+      "bytes": 975,
+      "sha256": "e4dbbddac3b07473a183f8cd9661a9da5a794409e170ca248090b3094345094d",
+      "gitBlob": "8b12481ad3b5d1d0782a8ade161d0b18d664f5aa",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/types/receipt.json",
+      "originalPath": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/affected-cli-types-attempt1/receipt.json",
+      "bytes": 71499,
+      "sha256": "e53f48f198b4f07eee6d31af3d7570d74e4c1cf7370406412be68b50d70761fd",
+      "gitBlob": "71611d00a3a6d5f4f86e64109905254f95d0573f",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/types/original-cli-types.log",
+      "originalPath": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/affected-cli-types-attempt1/original-cli-types.log",
+      "bytes": 32487,
+      "sha256": "64cf801bd0b494288eecc5221389a75969029c04a6a7b5fbcf64a3e0492687c6",
+      "gitBlob": "d7f0376e333e40504851f0cbb2b03d06d47982dd",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/source/independent-composition-source-peer.json",
+      "originalPath": "/workspace/current-f883-independent-job-cli-composition-source-peer.json",
+      "bytes": 9052,
+      "sha256": "867cd24588fc7f8047c7cd318f5600f165cef93ed8c68b177724a0aec9d4bf58",
+      "gitBlob": "4d286bfabfa1092ff7cf2e035579f8747e03c9e1",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/distribution/manifest.json",
+      "originalPath": "/workspace/current-dev57f-qualified-cli-mounted-jobs-source-attempt1/dist-node/distribution/manifest.json",
+      "bytes": 23460,
+      "sha256": "97c3ad0ed03f2a2336a98434ecf62a5c18f05f6f25fe9b11d21a24b7320968ec",
+      "gitBlob": "b7e8f14869ecbb4566a188f375e4624b260e1ecc",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    },
+    {
+      "path": "docs/qualification/current57f-cli-mounted-job-seven17/distribution/source-inputs.json",
+      "originalPath": "/workspace/current-dev57f-qualified-cli-mounted-jobs-source-attempt1/dist-node/distribution/source-inputs.json",
+      "bytes": 144505,
+      "sha256": "c8e8560a967180b537d58bf291897521704bc4c6b6d3e0c7042c2c4021864be0",
+      "gitBlob": "0a0472a4327dcff6150b6a2056a7b81a9e16814a",
+      "mode": "100644",
+      "originalBytesUnchanged": true
+    }
+  ]
+}

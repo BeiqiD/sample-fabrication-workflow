@@ -1,0 +1,29 @@
+{
+  "stage": "affected-app-strict",
+  "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+  "argv": [
+    "node",
+    "node_modules/typescript/bin/tsc",
+    "-p",
+    "tsconfig.app.json"
+  ],
+  "startedAt": "2026-10-11T02:50:05.079597+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/affected-app-strict.log",
+  "pid": 618891,
+  "processGroup": 618891,
+  "originalStartTicks": "10026584",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T02:50:06.661411+00:00",
+  "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

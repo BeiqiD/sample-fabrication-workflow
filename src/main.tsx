@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { App } from "./App";
 import { installCommentFileRouting } from "./lib/comment-file-routing";
 import { installProcessPlanCommentDraftGuard } from "./lib/process-plan-comment-draft-guard";
@@ -13,10 +13,13 @@ import "./processing-form-roles.css";
 installCommentFileRouting();
 installProcessPlanCommentDraftGuard();
 
+const router = createBrowserRouter([{
+  path: "*",
+  element: <App />,
+}]);
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <RouterProvider router={router} />
   </StrictMode>,
 );

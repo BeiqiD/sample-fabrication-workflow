@@ -1,0 +1,89 @@
+{
+  "kind": "ROOT_EXPLICIT_CURRENT2D07_C3C102_MOBILE_FILE_START202_ORIGINAL_TEN_GO",
+  "exclusiveNativeWindow": true,
+  "template": false,
+  "sourceHandoff": {
+    "path": "/tmp/phase5f-current2d07-three-mobile-capacity-placement-source-preparation-attempt2/file-start202/source-handoff.json",
+    "sha256": "2958869ca3f0d29557e4cdcc4f4e870d10eea2cf03d20c2bd30caf0c082f1570",
+    "bytes": 4648
+  },
+  "plan": {
+    "path": "/tmp/phase5f-current2d07-three-mobile-capacity-placement-source-preparation-attempt2/file-start202/finite-current2d07-mobile-original-ten-plan.json",
+    "sha256": "1fc5fb9f4fcbf5e7622558f787e8fbb844a8ffb09fb0d72ab1bae5fc86a5ff26",
+    "bytes": 24391
+  },
+  "runner": {
+    "path": "/tmp/phase5f-current2d07-three-mobile-capacity-placement-source-preparation-attempt2/file-start202/run-frozen-owned-stage.py",
+    "sha256": "ed18361ea48e9fc948c9cee553a727f311ec4837f70eae054130462b2aecf26e",
+    "bytes": 11545
+  },
+  "carrier": {
+    "path": "/tmp/phase5f-current2d07-three-mobile-capacity-placement-source-preparation-attempt2/file-start202/carry-current2d07-mobile-original-native.py",
+    "sha256": "53c0bada949e2ea29e9c8d79f1c2987814597d81720672007775470e67142a23",
+    "bytes": 17573
+  },
+  "rootThreeMobileFinitePeer": {
+    "path": "/tmp/phase5f-current2d07-three-mobile-capacity-placement-source-preparation-attempt2/independent-root-three-original-ten-whole-mobile-and-second-third-placement-static-peer.json",
+    "sha256": "2383466c9886187bb550bcd8d86326233608f3a37cc61ac2c1977bdee6e61c29",
+    "bytes": 3968
+  },
+  "priorExclusiveOwnerFormalRootRelease": {
+    "path": "/workspace/closed-second35-historical-source-share-actual-attempt2/root-original-second35-source-only95-current56825-protected-full-release.json",
+    "sha256": "93d63817a69b19ac64b3b540fcf88dcb9e72de3760cc16ea4dc017a14ea55d41",
+    "bytes": 1982
+  },
+  "startArgv": [
+    "python3",
+    "-B",
+    "/tmp/phase5f-current2d07-three-mobile-capacity-placement-source-preparation-attempt2/file-start202/run-frozen-owned-stage.py",
+    "--exclusive-go-exact-c3c1027-current2d07-mobile-file-start202-stage",
+    "qualified-current02d-coherent-build-producer-preflight"
+  ],
+  "tenCommandsOnceOriginalOrder": [
+    "qualified-current02d-coherent-build-producer-preflight",
+    "isolated-copy",
+    "fresh-two-version-sentinel",
+    "ordinary-actual24-local-migrations",
+    "synthetic-template-sentinels-only",
+    "physical-before",
+    "current-source-build-and-pure24-witness",
+    "original-one-current-file-start202-natural-focus",
+    "physical-after",
+    "final-source-artifact-input-pins"
+  ],
+  "budgets": {
+    "nativeOperationBodyAndReadinessMs": 20000,
+    "originalTTYSupervisionMs": 120000,
+    "supervisionProgressEveryMs": 20000,
+    "bodyMaximumExclusiveBytes": 131072,
+    "overflowPx": 2
+  },
+  "expectedCosts": {
+    "setupPOSTMaximum": 6,
+    "readerGETs": 2,
+    "nativePOSTMaximum": 2,
+    "maximumTotalPOSTs": 8,
+    "genuinePackageFiveSecondPollingRetained": false,
+    "newAcceptedJobs": 1,
+    "newNativePermits": 2,
+    "newOrdinarySamplePermit": 0,
+    "newBuilds": 0,
+    "disabled84SeedRequests": 0,
+    "executorSteps": 0,
+    "subsequentJobControls": 0
+  },
+  "mandatoryAfterOnFailure": [
+    "physical-after",
+    "final-source-artifact-input-pins"
+  ],
+  "capacity": {
+    "/workspace": 703193088,
+    "/tmp": 653443072
+  },
+  "workspaceNamespaceReserveBytes": 117440512,
+  "workspaceShortChildReserveBytes": 33554432,
+  "eachFilesystemMinimumBytes": 536870912,
+  "newCompilerBuildApp59": 0,
+  "originalFailuresRetainedNoRetry": true,
+  "scope": "ONE mobile390x844dark File Start202 realjob/natural keyboardfocus, originalTEN separate namespace. No executor steps or broad mobile/device qualification."
+}

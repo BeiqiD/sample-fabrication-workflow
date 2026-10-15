@@ -1,0 +1,34 @@
+
+ RUN  v4.1.10 /workspace/storage-refresh-focus-commit-current4e-source-attempt1
+
+ ✓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > returns an explicitly focused Refresh after its disabled interval without focusing the initial read 113ms
+ ✓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > preserves focus moved to another native control while an explicitly focused Refresh is pending 32ms
+ ↓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > keeps an unconfigured administrator policy read only without requesting candidate metadata
+ ↓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > shows unavailable encrypted credentials as status and preserves native R2 without requiring a key
+ ↓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > saves an S3 candidate as a draft, clears credential fields and never tests or activates storage
+ ↓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > saves an optional 12-digit owner for an AWS S3 candidate without running a connection test
+ ↓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > keeps an entered owner visible after switching to generic S3 and requires clearing it before saving
+ ↓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > retains expected owner when saving an AWS candidate revision
+ ↓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > omits a cleared expected owner when saving an AWS candidate revision
+ ↓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > clears matching check evidence when revising the expected owner and marks the earlier test historical
+ ↓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > edits an immutable candidate by expected revision and retains its encrypted credentials
+ ↓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > does not replay a lost save response, clears secrets and requires a refresh to resume editing
+ ↓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > saves WebDAV credentials without rendering or persisting the password
+ ↓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > loads test history on reload and marks old results as historical without qualifying a new revision
+ ↓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > captures the exact candidate revision and test ID before starting, then reads its recorded result
+ ↓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > reconciles a lost POST response with GET and never replays the write
+ ↓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > retains a lost test ID across reload when GET returns 404 and blocks a replacement write
+ ↓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > cleans only the recorded object with unavailable current credentials and retains interrupted-write uncertainty
+ ↓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > allows an independent new test after a terminal uncertain result while preserving its warning
+ ↓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > describes an unconfirmed delete after an acknowledged write without claiming the write was interrupted
+ ↓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > retains an unresolved test ID when a recorded result has a different revision
+ ↓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > aborts checks and hides administrator controls after a 403 without further polling
+ ↓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > reconciles a pending earlier revision and restores controls after a candidate revision changes
+ ↓ src/storage-configuration.mount.test.tsx > administrator storage candidate Settings > bounds automatic status polling without starting another provider write
+
+ Test Files  1 passed (1)
+      Tests  2 passed | 22 skipped (24)
+   Start at  06:00:20
+   Duration  884ms (transform 242ms, setup 0ms, import 350ms, tests 147ms, environment 280ms)
+
+JSON report written to /workspace/storage-refresh-focus-commit-current4e-original-two-mounted-actual-attempt1/original-two.json

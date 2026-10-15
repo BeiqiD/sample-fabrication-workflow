@@ -1,0 +1,68 @@
+{
+  "stage": "synthetic-template-sentinels-only",
+  "cwd": "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/copy",
+  "argv": [
+    "node",
+    "node_modules/wrangler/bin/wrangler.js",
+    "d1",
+    "execute",
+    "DB",
+    "--local",
+    "--config",
+    ".wrangler/deploy.jsonc",
+    "--persist-to",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/copy/.wrangler/state",
+    "--file",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/fixture/process-fixture.sql"
+  ],
+  "env": {
+    "TMPDIR": "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1",
+    "SQLITE_TMPDIR": "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1"
+  },
+  "startedAt": "2026-10-11T21:20:37.158399+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/synthetic-template-sentinels-only.log",
+  "pid": 1535714,
+  "processGroup": 1535714,
+  "originalStartTicks": "16689792",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1535730,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1535714,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1535730,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1535714,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1535730,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1535714,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T21:20:38.764836+00:00",
+  "logSha256": "d720aaa47d157938f2323ea62be324423c23d0103453ef7299dbe8df054f99f6"
+}

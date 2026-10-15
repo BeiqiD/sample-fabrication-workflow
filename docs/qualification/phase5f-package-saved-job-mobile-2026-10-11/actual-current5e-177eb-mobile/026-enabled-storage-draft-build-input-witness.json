@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "command": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "actualExitCode": 0,
+  "directChildReaped": true,
+  "sourceHead": "5e65f4d0355f375ca7fe949b8de15082c043c19a",
+  "sourceTree": "4df8f0e910ef1fa085c1a74bad3b402cd266f73d",
+  "sourceRoot": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source",
+  "sourceCopyRoot": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/copy",
+  "trackedInputInventorySha256": "64a325093577ed38d1746364007ee687385ed1fd0a993379a452afc5258877ac",
+  "workerSha256": "e2323a0df645e108a1b7132465141543737e05cdbb190a1b16fcf7b7281cad0b",
+  "activeBuildConfigSha256": "c4f93f970df286f457c297240d633613d85f41135f49ce5bc97ad486d0392ba2",
+  "copiedArtifactInventorySha256": "14d775dd7f63348895db7ae38b2ffe416c62292dda7dfe5f1d27f67e6bca7b68",
+  "originalCommandReceiptSha256": "860a3f0c63ac38a7e162246f466ef4ef906e16d9aef0b56fc570fa9cd83d763e",
+  "originalBuildLogSha256": "dfa13775e1102eee774625102080578adbf93bc1122c3f0bd8feb8b468014cde",
+  "freshDistFileCount": 118,
+  "copiedArtifactFileCount": 121,
+  "scope": "Actual original5e ONECF118 source2726/QA2728 all2726 ordinary bytes exact plus2 owned mobileQA; original02d App34 is historical separate scope. Independent new pure24/sentinels beforeAPI; no historicala7 artifacts/pausedjobs borrowed, no additionalbuild/84seed/old63permits or seedWorker lifecycle."
+}

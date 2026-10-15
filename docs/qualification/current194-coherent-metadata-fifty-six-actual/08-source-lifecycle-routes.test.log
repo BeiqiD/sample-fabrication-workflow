@@ -1,0 +1,46 @@
+
+ RUN  v4.1.10 /workspace/portable-current194-coherent-metadata-source-only-attempt1
+
+ ↓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > hides and restores a Sample without deleting its graph or detaching children
+ ↓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > hides and restores a canonical Comment while retaining occurrences and managed files
+ ↓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > exports managed attachment bytes after the item source is soft-deleted with archive schema 24
+ ↓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > exports managed attachment bytes after the canonical source is soft-deleted with archive schema 24
+ ↓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > exports managed attachment bytes after the item source is soft-deleted with archive schema 25
+ ↓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > exports managed attachment bytes after the canonical source is soft-deleted with archive schema 25
+ ↓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > exports managed attachment bytes after the item source is soft-deleted with archive schema 26
+ ↓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > exports managed attachment bytes after the canonical source is soft-deleted with archive schema 26
+ ↓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > hides a Sample Comment attachment download after the Sample enters trash but preserves export access
+ ↓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > hides a run-step Comment attachment download after its only Run target enters trash but preserves export access
+ ↓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > keeps a common Comment attachment downloadable while at least one target remains visible
+ ✓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > requires the canonical Comment before restoring its occurrence or legacy image 598ms
+ ✓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > rechecks canonical restore target visibility inside the mutation batch 298ms
+ ✓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > soft-deletes and restores execution and metrology attachment occurrences 461ms
+ ↓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > enforces attachment ownership and restores a TIFF preview only after its original
+ ✓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > counts legacy comment rows exactly despite shadow trigger writes 652ms
+ ✓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > rejects a common-comment group mutation when any target ancestor is deleted 202ms
+ ✓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > rechecks common-comment group visibility inside the restore batch 287ms
+ ↓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > keeps Comment finalize atomic when a target Run moves to trash
+ ↓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > does not orphan a ready Comment attachment when Finalize wins a Cancel race
+ ✓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > does not add an ad-hoc Step after its Run moves to trash 340ms
+ ✓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > does not reactivate a Run that finishes while an ad-hoc Step is being added 345ms
+ ✓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > does not add an ad-hoc Step after its insertion point changes 310ms
+ ↓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > does not add embedded metrology after the process Run finishes
+ ✓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > keeps State verification atomic when its run moves to trash 287ms
+ ✓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > keeps State verification atomic when its sample moves to trash 259ms
+ ✓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > verifies state across 48 covered steps within D1's 100-parameter limit 294ms
+ ✓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > verifies state across 180 covered steps within D1's 100-parameter limit 386ms
+ ✓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > keeps execution-image restore atomic when the Run moves to trash 364ms
+ ↓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > guards direct Comment-item restore at the mutation statement
+ ✓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > keeps timeline attachment deletion atomic when its Run moves to trash 362ms
+ ✓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > deletes one execution occurrence and every timeline event that references it 312ms
+ ✓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > resolves a legacy execution-image event to one occurrence before deletion 303ms
+ ↓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > uses deletion operation identity when timestamps and actors collide
+ ↓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > keeps a deleted Recipe revision and restores the same identity
+ ↓ worker/source-lifecycle-routes.test.ts > source lifecycle routes > preserves Run Comment text while the 24-hour attachment retention edge expires
+
+ Test Files  1 passed (1)
+      Tests  17 passed | 19 skipped (36)
+   Start at  04:47:47
+   Duration  10.91s (transform 2.46s, setup 28ms, import 3.06s, tests 7.71s, environment 0ms)
+
+JSON report written to /tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/08-source-lifecycle-routes.test.json

@@ -1,0 +1,26 @@
+{
+  "kind": "postmerge-ci-step-skip-interpretation/1",
+  "priorReceiptSha256": "2383d3a665934167451cb513e225521bfe0414295b7b97a8be84cf61c2ea4c6d",
+  "at": "2026-10-10T22:37:12.129916+00:00",
+  "runs": [
+    {
+      "id": 38090002753,
+      "nonSuccessSteps": [
+        {
+          "name": "Close verification statuses when the gate did not run",
+          "conclusion": "skipped"
+        }
+      ]
+    },
+    {
+      "id": 38090002713,
+      "nonSuccessSteps": [
+        {
+          "name": "Close verification statuses when the gate did not run",
+          "conclusion": "skipped"
+        }
+      ]
+    }
+  ],
+  "meaning": "The conditional failure-cleanup status closer was skipped because the gate ran successfully. It is not a skipped verification leaf. Both Verify/Map jobs and all15 public contexts succeeded."
+}

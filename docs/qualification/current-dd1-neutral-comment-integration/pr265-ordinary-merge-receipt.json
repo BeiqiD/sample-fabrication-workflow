@@ -1,0 +1,15 @@
+{
+  "status": "ORDINARY_PR265_MERGE_OBSERVED_EXACT_QUALIFIED_TREE",
+  "pr": 265,
+  "mergedAt": "2026-10-11T04:52:12Z",
+  "mergedCommit": "dd1aa12711860faecf7f2c67a92935535c080c8f",
+  "developmentHead": "dd1aa12711860faecf7f2c67a92935535c080c8f",
+  "qualifiedHead": "d68058494cf2c18762188bcb54738092ab138207",
+  "qualifiedTree": "d1e234360013ee74213b2f896a4a911c12cff51f",
+  "wholeMergedTreeExactlyQualifiedHead": true,
+  "ownFourAndFifteenReceiptSha256": "089b569f40d812a7d49b7b2546746e1377576d6777f5ae52fd4b14854b491622",
+  "noChecksBypassed": true,
+  "mainProductionDeployment": false,
+  "postmergeChecks": "Separate actual runs required; no inherited result claim",
+  "rawAfterMergeSha256": "e8a307e1a2ba0818e9d31032de7383387bd1c621512435d465de8ace38828982"
+}

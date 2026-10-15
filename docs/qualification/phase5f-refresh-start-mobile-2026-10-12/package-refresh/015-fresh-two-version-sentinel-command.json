@@ -1,0 +1,60 @@
+{
+  "stage": "fresh-two-version-sentinel",
+  "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+  "argv": [
+    "node",
+    "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source/scripts/qa/phase5f/generate-process-fixture.mjs",
+    "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy",
+    "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1",
+    "SQLITE_TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1"
+  },
+  "startedAt": "2026-10-12T01:44:26.596495+00:00",
+  "status": "PASS",
+  "log": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/fresh-two-version-sentinel.log",
+  "pid": 1673654,
+  "processGroup": 1673654,
+  "originalStartTicks": "18272736",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1673665,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1673654,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1673665,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1673654,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1673665,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1673654,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-12T01:44:28.682373+00:00",
+  "logSha256": "085fa099c56de4d8ffd69b6772782d2f83d16496f077b4d0cf60e30e3d2adfa5"
+}

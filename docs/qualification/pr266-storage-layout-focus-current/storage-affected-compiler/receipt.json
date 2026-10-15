@@ -1,0 +1,27 @@
+{
+  "kind": "storage-refresh-commit-focus-one-affected-app-compiler/1",
+  "head": "ff643e2709e9348dee304971ebdd4031a6e123dd",
+  "atUtc": "2026-10-11T05:57:08.025902+00:00",
+  "argv": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "node_modules/typescript/bin/tsc",
+    "--project",
+    "tsconfig.app.json",
+    "--pretty",
+    "false"
+  ],
+  "pid": 866190,
+  "exitCode": 0,
+  "actualOriginalHandleWaitedReaped": true,
+  "inputPinsBeforeAfterExact": {
+    "src/pages/StorageConfigurationPage.tsx": "1e3447e9a5e32bc5d9c42bfb7f9401f25968b25e63b197a205d1f267c8e44fe3",
+    "src/storage-configuration.mount.test.tsx": "ccf9c2b20cf038f9f276b309366fa02b39a1331d85ebde4832ec07ab504b5dfe",
+    "tsconfig.app.json": "2a56d25a041e9e6d411c7e64a66d7c65880d6672f154458cdec33a5267c78bf5",
+    "package-lock.json": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a"
+  },
+  "log": "/workspace/storage-refresh-focus-commit-current4e-one-affected-app-compiler-attempt1/original-app-compiler.log",
+  "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "status": "PASS",
+  "mountedRuntimeCases": 0,
+  "frontendBuilds": 0
+}

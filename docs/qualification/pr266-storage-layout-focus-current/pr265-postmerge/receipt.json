@@ -1,0 +1,23 @@
+{
+  "kind": "pr265-development-postmerge-exact-head-complete-ci/1",
+  "status": "PASS",
+  "head": "dd1aa12711860faecf7f2c67a92935535c080c8f",
+  "verifyRun": 38112946658,
+  "mapRun": 38112946661,
+  "all15ContextsSuccess": true,
+  "rawFiles": [
+    {
+      "path": "/workspace/phase5f-pr265-postmerge-complete-ci-attempt1/verify.json",
+      "sha256": "6b882046d04102a675fecc7777af3578b5b438eb54b809ccc56f2036cdca1bd4"
+    },
+    {
+      "path": "/workspace/phase5f-pr265-postmerge-complete-ci-attempt1/project-map.json",
+      "sha256": "e835d339a08577e20a98e12f2c7dc4970db3c1ff9e9339892c7c015299b63ede"
+    },
+    {
+      "path": "/workspace/phase5f-pr265-postmerge-complete-ci-attempt1/statuses.json",
+      "sha256": "206e70a6a0e365a7d817ebc3e7f720a5cf61aef258771f6698f1b4e9af2183b1"
+    }
+  ],
+  "scope": "Development exact merged head; no serving schema provider or production deployment assertion"
+}

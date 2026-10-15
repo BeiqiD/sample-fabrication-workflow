@@ -1,0 +1,24 @@
+{
+  "status": "PASS",
+  "domain": "package",
+  "producerHead": "5e65f4d0355f375ca7fe949b8de15082c043c19a",
+  "producerTree": "4df8f0e910ef1fa085c1a74bad3b402cd266f73d",
+  "qaConsumerHead": "177eb79fe583f201cdf8b38eef7085b4028b970a",
+  "qaConsumerTree": "3ea252d3c3613ba08786f485bb5978d356ad05eb",
+  "originalBuildCommandReceiptSha256": "860a3f0c63ac38a7e162246f466ef4ef906e16d9aef0b56fc570fa9cd83d763e",
+  "originalBuildLogSha256": "dfa13775e1102eee774625102080578adbf93bc1122c3f0bd8feb8b468014cde",
+  "originalProducerCount": 2726,
+  "all2726ProducerInputsOnConsumerExact": true,
+  "extraNativeQaInputs": {
+    "scripts/qa/phase5f/browser-current-coherent-package-saved-job-keyboard-mobile.mjs": "482d47b7472358442a43877cc33962896c498ff01f921628b336f73bc7399f1b",
+    "scripts/qa/phase5f/check-current-coherent-saved-job-mobile-physical-state.py": "92772d9505d300a49cea7dbede3fee26adcf682dfc3d0321a2781a9793ed342c"
+  },
+  "actualOriginalArtifacts": 118,
+  "newBuilds": 0,
+  "freshIndependentPure24FixtureRequired": true,
+  "disabledSeedRequests": 0,
+  "setupPOSTMaximum": 7,
+  "originalNativeMetadataPOSTMaximum": 5,
+  "maximumTotalPOSTs": 12,
+  "oldPausedLineagesNotOpenedOrChanged": true
+}

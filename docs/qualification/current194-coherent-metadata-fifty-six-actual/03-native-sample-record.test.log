@@ -1,0 +1,13 @@
+
+ RUN  v4.1.10 /workspace/portable-current194-coherent-metadata-source-only-attempt1
+
+ ✓ worker/uploads/native-sample-record.test.ts > native File sample records > attaches by exact native asset ID, renders its URL and unlinks only the occurrence 1351ms
+ ✓ worker/uploads/native-sample-record.test.ts > native File sample records > deletes a native photo note with the File binding retained and a photo audit label 1280ms
+ ✓ worker/uploads/native-sample-record.test.ts > native File sample records > rejects contradictory or unavailable asset inputs without changing sample details 1146ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  04:46:57
+   Duration  6.86s (transform 2.40s, setup 28ms, import 2.95s, tests 3.78s, environment 0ms)
+
+JSON report written to /tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/03-native-sample-record.test.json

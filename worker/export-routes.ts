@@ -1,0 +1,431 @@
+import { snapshotFullExportV26 } from "./export-v26-snapshot";
+import { supportedPortableV26ExportRequest } from "../shared/contracts/export-portable-runtime-v26";
+import { snapshotFullExportV23 } from "./export-v23-snapshot";
+import { snapshotFullExportV24 } from "./export-v24-snapshot";
+import { snapshotFullExportV25 } from "./export-v25-snapshot";
+import { supportedPortableExportRequest, PORTABLE_IDENTITY_TABLE_NAMES } from "../shared/contracts/export-portable-runtime";
+import { SYSTEM_RECOVERY_EVIDENCE_EXPORT_COLUMNS } from "../shared/contracts/export-system-recovery-evidence";
+import { RESEARCH_PACKAGE_EXPORT_COLUMNS, RESEARCH_PACKAGE_LOCAL_TABLE_NAMES } from "../shared/contracts/export-research-package-schema";
+import { snapshotFullExportV20 } from "./export-v20-snapshot";
+import { snapshotFullExportV21 } from "./export-v21-snapshot";
+import { snapshotFullExportV22 } from "./export-v22-snapshot";
+import { FILE_JOBS_EXPORT_COLUMNS, FILE_JOBS_LOCAL_TABLE_NAMES } from "../shared/contracts/export-file-jobs-schema";
+import { FILE_NATIVE_RUNTIME_TABLE_COLUMNS, FILE_NATIVE_RUNTIME_ADDED_COLUMNS } from "../shared/contracts/file-native-runtime";
+import { STORAGE_PROFILE_ADMISSIONS_EXPORT_COLUMNS } from "../shared/contracts/export-file-native-admission";
+import { snapshotFullExportV19 } from "./export-v19-snapshot";
+import { STORAGE_ROLE_DEFAULTS_EXPORT_COLUMNS } from "../shared/contracts/export-file-role-policy";
+import { snapshotFullExportV18 } from "./export-v18-snapshot";
+import { FILE_SHADOW_ADJUDICATION_EXPORT_COLUMNS } from "../shared/contracts/file-shadow-adjudication";
+import { snapshotFullExportV17 } from "./export-v17-snapshot";
+import { FILE_SHADOW_WITHDRAWAL_EXPORT_COLUMNS } from "../shared/contracts/file-shadow-withdrawal";
+import { snapshotFullExportV16 } from "./export-v16-snapshot";
+import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
+import { supportedExportRequest } from "../shared/contracts/export-protocol";
+import { FILE_FOUNDATION_EXPORT_COLUMNS } from "../shared/contracts/export-file-foundation";
+import { IMPORT_ACCEPTANCE_EXPORT_COLUMNS } from "../shared/contracts/export-import-acceptance";
+import { R2_UPLOAD_ACCEPTANCE_EXPORT_COLUMNS } from "../shared/contracts/export-r2-upload-acceptance";
+import { METROLOGY_REFERENCE_ACCEPTANCE_EXPORT_COLUMNS } from "../shared/contracts/export-metrology-reference-acceptance";
+import { COMMENT_ACCEPTANCE_EXPORT_COLUMNS } from "../shared/contracts/export-comment-acceptance";
+import { FILE_AUTHORITY_CONSUMER_COLUMNS, FILE_AUTHORITY_EXPORT_COLUMNS } from "../shared/contracts/export-file-authority";
+import { FILE_SHADOW_EXPORT_COLUMNS, FILE_SHADOW_RUNTIME_GUARD_COLUMNS, FILE_SHADOW_RUNTIME_INCARNATION_COLUMNS } from "../shared/contracts/file-shadow-schema";
+import { snapshotFullExportV8 } from "./export-v8-snapshot";
+import { snapshotFullExportV9 } from "./export-v9-snapshot";
+import { snapshotFullExportV13 } from "./export-v13-snapshot";
+import { snapshotFullExportV14 } from "./export-v14-snapshot";
+import { snapshotFullExportV15 } from "./export-v15-snapshot";
+import { snapshotFullExportV12 } from "./export-v12-snapshot";
+import { snapshotFullExportV11 } from "./export-v11-snapshot";
+import { snapshotFullExportV10 } from "./export-v10-snapshot";
+import { getBlob } from "./blob-lifecycle/storage";
+import { primaryD1 } from "./d1-primary";
+import { openShadowProfile } from "./files/shadow-profile";
+import type { Env } from "./types";
+
+type AppBindings = { Bindings: Env; Variables: { userEmail: string } };
+
+// Snapshot and byte delivery stay at their original registration positions in
+// the root Worker, with authentication and error handling owned by that root.
+export const snapshotRoutes = new Hono<AppBindings>();
+export const blobRoutes = new Hono<AppBindings>();
+
+type SchemaObjectType = "table" | "index" | "trigger" | "view";
+type SchemaMarker = readonly [SchemaObjectType, string];
+
+const BASE_EXPORT_MARKERS = [
+  ["table", "samples"], ["table", "imports"], ["table", "run_step_comments"],
+  ["table", "blob_gc_ledger"], ["view", "blob_retention_edges"],
+] as const satisfies readonly SchemaMarker[];
+const FILE_FOUNDATION_MARKERS = [
+  ["table", "storage_profiles"], ["table", "files"], ["table", "file_locations"],
+  ["table", "legacy_file_mappings"], ["index", "file_locations_file_idx"],
+  ["trigger", "storage_profiles_immutable"], ["trigger", "files_immutable"],
+  ["trigger", "file_locations_immutable"], ["trigger", "legacy_file_mappings_immutable"],
+  ["trigger", "legacy_file_mappings_profile_guard"], ["trigger", "storage_profiles_insert_identity_guard"],
+  ["trigger", "storage_profiles_delete_guard"], ["trigger", "files_insert_identity_guard"],
+  ["trigger", "files_delete_guard"], ["trigger", "file_locations_insert_identity_guard"],
+  ["trigger", "file_locations_delete_guard"], ["trigger", "legacy_file_mappings_insert_identity_guard"],
+  ["trigger", "legacy_file_mappings_delete_guard"],
+] as const satisfies readonly SchemaMarker[];
+const IMPORT_ACCEPTANCE_MARKERS = [
+  ["index", "imports_accepted_request_idx"], ["trigger", "imports_acceptance_insert_guard"],
+  ["trigger", "imports_acceptance_update_guard"], ["trigger", "imports_acceptance_publication_guard"],
+  ["trigger", "imports_acceptance_delete_guard"],
+] as const satisfies readonly SchemaMarker[];
+const R2_ACCEPTANCE_MARKERS = [
+  ["table", "r2_upload_requests"], ["trigger", "r2_upload_requests_insert_guard"],
+  ["trigger", "r2_upload_requests_update_guard"], ["trigger", "r2_upload_requests_publication_guard"],
+  ["trigger", "r2_upload_requests_delete_guard"],
+] as const satisfies readonly SchemaMarker[];
+const METROLOGY_ACCEPTANCE_MARKERS = [
+  ["table", "metrology_reference_upload_requests"],
+  ["trigger", "metrology_reference_upload_requests_insert_guard"],
+  ["trigger", "metrology_reference_upload_requests_update_guard"],
+  ["trigger", "metrology_reference_upload_requests_publication_guard"],
+  ["trigger", "metrology_reference_upload_requests_delete_guard"],
+] as const satisfies readonly SchemaMarker[];
+const COMMENT_ACCEPTANCE_MARKERS = [
+  ["table", "comment_submission_acceptances"], ["table", "comment_item_acceptances"],
+  ["trigger", "comment_submission_acceptances_insert_guard"],
+  ["trigger", "comment_submission_acceptances_update_guard"],
+  ["trigger", "comment_submission_acceptances_publication_guard"],
+  ["trigger", "comment_submission_acceptances_delete_guard"],
+  ["trigger", "comment_item_acceptances_insert_guard"],
+  ["trigger", "comment_item_acceptances_update_guard"],
+  ["trigger", "comment_item_acceptances_publication_guard"],
+  ["trigger", "comment_item_acceptances_delete_guard"],
+  ["trigger", "comment_accepted_submission_identity_guard"],
+  ["trigger", "comment_accepted_submission_cancel"], ["trigger", "comment_accepted_item_cancel"],
+  ["trigger", "comment_accepted_submission_replace_guard"], ["trigger", "comment_accepted_item_replace_guard"],
+  ["trigger", "comment_accepted_target_replace_guard"], ["trigger", "comment_accepted_target_update_guard"],
+  ["trigger", "comment_accepted_target_delete_guard"], ["trigger", "comment_accepted_item_identity_guard"],
+] as const satisfies readonly SchemaMarker[];
+
+function sqlLiteral(value: string) { return `'${value.replaceAll("'", "''")}'`; }
+function markerCountSql(markers: readonly SchemaMarker[]) {
+  return `(SELECT count(*) FROM sqlite_schema WHERE sql IS NOT NULL AND (${markers
+    .map(([type, name]) => `(type = ${sqlLiteral(type)} AND name = ${sqlLiteral(name)})`).join(" OR ")}))`;
+}
+function columnCountSql(columns: Record<string, readonly string[]>) {
+  return Object.entries(columns).map(([table, names]) =>
+    `(SELECT count(*) FROM pragma_table_xinfo(${sqlLiteral(table)}) WHERE name IN (${names.map(sqlLiteral).join(", ")}))`,
+  ).join(" + ");
+}
+function totalColumns(columns: Record<string, readonly string[]>) {
+  return Object.values(columns).reduce((count, names) => count + names.length, 0);
+}
+
+const R2_ACCEPTANCE_COLUMNS = { r2_upload_requests: R2_UPLOAD_ACCEPTANCE_EXPORT_COLUMNS };
+const METROLOGY_ACCEPTANCE_COLUMNS = { metrology_reference_upload_requests: METROLOGY_REFERENCE_ACCEPTANCE_EXPORT_COLUMNS };
+const FILE_AUTHORITY_TABLE_MARKERS = Object.keys(FILE_AUTHORITY_EXPORT_COLUMNS)
+  .map((name) => ["table", name] as const);
+// This 0007-only guard is created after all authority tables, typed columns,
+// views and primary lifecycle guards. A control/table-only partial execution
+// must not be mistaken for the complete V14 generation.
+const FILE_AUTHORITY_COMPLETION_MARKERS = [
+  ["trigger", "template_versions_file_replace_guard"],
+] as const satisfies readonly SchemaMarker[];
+const FILE_SHADOW_COLUMNS = { ...FILE_SHADOW_EXPORT_COLUMNS, file_shadow_runtime_guard: FILE_SHADOW_RUNTIME_GUARD_COLUMNS,
+  file_shadow_runtime_incarnations: FILE_SHADOW_RUNTIME_INCARNATION_COLUMNS };
+const FILE_SHADOW_TABLE_MARKERS = Object.keys(FILE_SHADOW_COLUMNS).map((name) => ["table", name] as const);
+const FILE_SHADOW_COMPLETION_MARKERS = [["trigger", "file_shadow_generation_complete"]] as const satisfies readonly SchemaMarker[];
+
+const FILE_SHADOW_WITHDRAWAL_MARKERS = [
+  ["table", "file_shadow_withdrawals"], ["trigger", "file_shadow_withdrawals_insert_guard"],
+  ["trigger", "file_shadow_withdrawals_update_guard"], ["trigger", "file_shadow_withdrawals_delete_guard"],
+  ["trigger", "file_shadow_operations_withdrawal_guard"],
+] as const satisfies readonly SchemaMarker[];
+
+const FILE_SHADOW_ADJUDICATION_MARKERS = [
+  ...Object.keys(FILE_SHADOW_ADJUDICATION_EXPORT_COLUMNS).map((name) => ["table", name] as const),
+  ["trigger", "file_shadow_adjudication_generation_complete"],
+] as const satisfies readonly SchemaMarker[];
+
+const FILE_R2_ROLE_DEFAULT_MARKERS = [["table", "storage_role_defaults"], ["trigger", "file_r2_role_defaults_generation_complete"]] as const satisfies readonly SchemaMarker[];
+const FILE_R2_ROLE_DEFAULT_COLUMNS = { ...STORAGE_ROLE_DEFAULTS_EXPORT_COLUMNS, comment_submission_acceptances: ["storage_role_policy_revision"] } as const;
+
+const FILE_NATIVE_ADMISSION_MARKERS = [["table", "storage_profile_admissions"], ["trigger", "file_native_storage_profiles_generation_complete"]] as const satisfies readonly SchemaMarker[];
+const FILE_NATIVE_RUNTIME_MARKERS = [
+  ...Object.keys(FILE_NATIVE_RUNTIME_TABLE_COLUMNS).map(name => ["table", name] as const),
+  ["trigger", "file_native_runtime_generation_complete"],
+] as const satisfies readonly SchemaMarker[];
+const FILE_NATIVE_RUNTIME_COLUMNS = { ...FILE_NATIVE_RUNTIME_TABLE_COLUMNS, ...FILE_NATIVE_RUNTIME_ADDED_COLUMNS };
+const FILE_MIGRATION_MARKERS = [
+  ...Object.keys(FILE_JOBS_EXPORT_COLUMNS).map(name => ["table", name] as const),
+  ...FILE_JOBS_LOCAL_TABLE_NAMES.map(name => ["table", name] as const),
+  ["view", "file_migration_live_verified_attempts"], ["trigger", "file_migration_cutover_fence"],
+  ["trigger", "file_migration_attempts_delete"],
+] as const satisfies readonly SchemaMarker[];
+
+const RESEARCH_PACKAGE_MARKERS = [
+  ...Object.keys(RESEARCH_PACKAGE_EXPORT_COLUMNS).map(name => ["table", name] as const),
+  ...RESEARCH_PACKAGE_LOCAL_TABLE_NAMES.map(name => ["table", name] as const),
+  ["view", "research_package_live_verified_attempts"], ["view", "research_package_verified_aliases"],
+  ["trigger", "research_package_attempts_delete"],
+] as const satisfies readonly SchemaMarker[];
+
+const SYSTEM_RECOVERY_MARKERS = [
+  ...Object.keys(SYSTEM_RECOVERY_EVIDENCE_EXPORT_COLUMNS).map(name => ["table", name] as const),
+  ["trigger", "recovery_file_evidence_insert_guard"], ["trigger", "recovery_file_evidence_update_guard"],
+  ["trigger", "recovery_file_evidence_delete_guard"], ["trigger", "recovery_file_alias_evidence_update_guard"],
+  ["trigger", "recovery_file_alias_evidence_delete_guard"], ["trigger", "recovery_file_binding_evidence_update_guard"],
+  ["trigger", "recovery_file_binding_evidence_delete_guard"], ["trigger", "assets_recovery_insert_guard"],
+] as const satisfies readonly SchemaMarker[];
+
+const FILE_AUTHORITY_RUNTIME_MARKERS = [["trigger", "file_authority_runtime_generation_complete"]] as const satisfies readonly SchemaMarker[];
+
+const EXPORT_SCHEMA_GENERATION_PROBE = `SELECT
+  ${markerCountSql(BASE_EXPORT_MARKERS)} AS base_markers,
+  ${markerCountSql(FILE_FOUNDATION_MARKERS)} AS foundation_markers,
+  ${columnCountSql(FILE_FOUNDATION_EXPORT_COLUMNS)} AS foundation_columns,
+  ${markerCountSql(IMPORT_ACCEPTANCE_MARKERS)} AS import_markers,
+  ${columnCountSql({ imports: IMPORT_ACCEPTANCE_EXPORT_COLUMNS })} AS import_columns,
+  ${markerCountSql(R2_ACCEPTANCE_MARKERS)} AS r2_markers,
+  ${columnCountSql(R2_ACCEPTANCE_COLUMNS)} AS r2_columns,
+  ${markerCountSql(METROLOGY_ACCEPTANCE_MARKERS)} AS metrology_markers,
+  ${columnCountSql(METROLOGY_ACCEPTANCE_COLUMNS)} AS metrology_columns,
+  ${markerCountSql(COMMENT_ACCEPTANCE_MARKERS)} AS comment_markers,
+  ${columnCountSql(COMMENT_ACCEPTANCE_EXPORT_COLUMNS)} AS comment_columns,
+  ${markerCountSql(FILE_AUTHORITY_TABLE_MARKERS)} AS authority_markers,
+  ${columnCountSql(FILE_AUTHORITY_EXPORT_COLUMNS)} AS authority_columns,
+  ${columnCountSql(FILE_AUTHORITY_CONSUMER_COLUMNS)} AS authority_consumer_columns,
+  ${markerCountSql(FILE_AUTHORITY_COMPLETION_MARKERS)} AS authority_completion_markers,
+  ${markerCountSql(FILE_SHADOW_TABLE_MARKERS)} AS shadow_markers,
+  ${columnCountSql(FILE_SHADOW_COLUMNS)} AS shadow_columns,
+  ${markerCountSql(FILE_SHADOW_COMPLETION_MARKERS)} AS shadow_completion_markers,
+  ${markerCountSql(FILE_SHADOW_WITHDRAWAL_MARKERS)} AS withdrawal_markers,
+  ${columnCountSql(FILE_SHADOW_WITHDRAWAL_EXPORT_COLUMNS)} AS withdrawal_columns,
+  ${markerCountSql(FILE_SHADOW_ADJUDICATION_MARKERS)} AS adjudication_markers,
+  ${columnCountSql(FILE_SHADOW_ADJUDICATION_EXPORT_COLUMNS)} AS adjudication_columns,
+  ${markerCountSql(FILE_AUTHORITY_RUNTIME_MARKERS)} AS file_runtime_markers,
+  ${markerCountSql(FILE_R2_ROLE_DEFAULT_MARKERS)} AS role_default_markers,
+  ${columnCountSql(FILE_R2_ROLE_DEFAULT_COLUMNS)} AS role_default_columns,
+  ${markerCountSql(FILE_NATIVE_ADMISSION_MARKERS)} AS native_admission_markers,
+  ${columnCountSql(STORAGE_PROFILE_ADMISSIONS_EXPORT_COLUMNS)} AS native_admission_columns,
+  ${markerCountSql(FILE_NATIVE_RUNTIME_MARKERS)} AS native_runtime_markers,
+  ${columnCountSql(FILE_NATIVE_RUNTIME_COLUMNS)} AS native_runtime_columns,
+  ${markerCountSql(FILE_MIGRATION_MARKERS)} AS migration_markers,
+  ${columnCountSql(FILE_JOBS_EXPORT_COLUMNS)} AS migration_columns,
+  ${markerCountSql(RESEARCH_PACKAGE_MARKERS)} AS package_markers,
+  ${columnCountSql(RESEARCH_PACKAGE_EXPORT_COLUMNS)} AS package_columns,
+  ${markerCountSql(SYSTEM_RECOVERY_MARKERS)} AS recovery_markers,
+  ${columnCountSql(SYSTEM_RECOVERY_EVIDENCE_EXPORT_COLUMNS)} AS recovery_columns`;
+
+type ExportSchemaGenerationProbe = {
+  base_markers: number;
+  foundation_markers: number; foundation_columns: number;
+  import_markers: number; import_columns: number;
+  r2_markers: number; r2_columns: number;
+  metrology_markers: number; metrology_columns: number;
+  comment_markers: number; comment_columns: number;
+  authority_markers: number; authority_columns: number; authority_consumer_columns: number;
+  authority_completion_markers: number;
+  shadow_markers: number; shadow_columns: number; shadow_completion_markers: number;
+  withdrawal_markers: number; withdrawal_columns: number;
+  adjudication_markers: number; adjudication_columns: number; file_runtime_markers: number; role_default_markers: number; role_default_columns: number; native_admission_markers: number; native_admission_columns: number;
+  native_runtime_markers: number; native_runtime_columns: number;
+  migration_markers: number; migration_columns: number;
+  package_markers: number; package_columns: number;
+  recovery_markers: number; recovery_columns: number;
+};
+
+const COMPLETE_GENERATION_COUNTS = [
+  BASE_EXPORT_MARKERS.length,
+  FILE_FOUNDATION_MARKERS.length, totalColumns(FILE_FOUNDATION_EXPORT_COLUMNS),
+  IMPORT_ACCEPTANCE_MARKERS.length, IMPORT_ACCEPTANCE_EXPORT_COLUMNS.length,
+  R2_ACCEPTANCE_MARKERS.length, R2_UPLOAD_ACCEPTANCE_EXPORT_COLUMNS.length,
+  METROLOGY_ACCEPTANCE_MARKERS.length, METROLOGY_REFERENCE_ACCEPTANCE_EXPORT_COLUMNS.length,
+  COMMENT_ACCEPTANCE_MARKERS.length, totalColumns(COMMENT_ACCEPTANCE_EXPORT_COLUMNS),
+  FILE_AUTHORITY_TABLE_MARKERS.length, totalColumns(FILE_AUTHORITY_EXPORT_COLUMNS),
+  totalColumns(FILE_AUTHORITY_CONSUMER_COLUMNS), FILE_AUTHORITY_COMPLETION_MARKERS.length,
+  FILE_SHADOW_TABLE_MARKERS.length, totalColumns(FILE_SHADOW_COLUMNS), FILE_SHADOW_COMPLETION_MARKERS.length,
+  FILE_SHADOW_WITHDRAWAL_MARKERS.length, totalColumns(FILE_SHADOW_WITHDRAWAL_EXPORT_COLUMNS),
+  FILE_SHADOW_ADJUDICATION_MARKERS.length, totalColumns(FILE_SHADOW_ADJUDICATION_EXPORT_COLUMNS),
+  FILE_AUTHORITY_RUNTIME_MARKERS.length,
+  FILE_R2_ROLE_DEFAULT_MARKERS.length, totalColumns(FILE_R2_ROLE_DEFAULT_COLUMNS),
+  FILE_NATIVE_ADMISSION_MARKERS.length, totalColumns(STORAGE_PROFILE_ADMISSIONS_EXPORT_COLUMNS),
+  FILE_NATIVE_RUNTIME_MARKERS.length, totalColumns(FILE_NATIVE_RUNTIME_COLUMNS),
+  FILE_MIGRATION_MARKERS.length, totalColumns(FILE_JOBS_EXPORT_COLUMNS),
+  RESEARCH_PACKAGE_MARKERS.length, totalColumns(RESEARCH_PACKAGE_EXPORT_COLUMNS),
+  SYSTEM_RECOVERY_MARKERS.length, totalColumns(SYSTEM_RECOVERY_EVIDENCE_EXPORT_COLUMNS),
+] as const;
+const COMPLETE_FIELDS_BY_GENERATION = [1, 3, 5, 7, 9, 11, 15, 18, 20, 22, 23, 25, 27, 29, 31, 33, COMPLETE_GENERATION_COUNTS.length] as const;
+
+function generationCounts(row: ExportSchemaGenerationProbe) {
+  return [row.base_markers, row.foundation_markers, row.foundation_columns, row.import_markers, row.import_columns,
+    row.r2_markers, row.r2_columns, row.metrology_markers, row.metrology_columns, row.comment_markers,
+    row.comment_columns, row.authority_markers, row.authority_columns, row.authority_consumer_columns,
+    row.authority_completion_markers, row.shadow_markers, row.shadow_columns, row.shadow_completion_markers, row.withdrawal_markers, row.withdrawal_columns, row.adjudication_markers, row.adjudication_columns, row.file_runtime_markers, row.role_default_markers, row.role_default_columns, row.native_admission_markers, row.native_admission_columns,
+    row.native_runtime_markers, row.native_runtime_columns, row.migration_markers, row.migration_columns, row.package_markers, row.package_columns, row.recovery_markers, row.recovery_columns];
+}
+
+async function installedExportSchema(database: D1Database) {
+  const row = await database.prepare(EXPORT_SCHEMA_GENERATION_PROBE).first<ExportSchemaGenerationProbe>();
+  if (!row || generationCounts(row).some((value) => !Number.isSafeInteger(value) || value < 0)) return null;
+  const observed = generationCounts(row);
+  for (let index = COMPLETE_FIELDS_BY_GENERATION.length - 1; index >= 0; index -= 1) {
+    const version = index + 8;
+    const expected = COMPLETE_GENERATION_COUNTS.map((value, position) =>
+      position < COMPLETE_FIELDS_BY_GENERATION[index] ? value : 0);
+    if (observed.every((value, position) => value === expected[position])) return version;
+  }
+  return null;
+}
+
+// Both portable-generation markers are schema metadata, so observe them in one
+// bounded statement before the unchanged canonical row/schema snapshot batch.
+const PORTABLE_EXPORT_SCHEMA_PRESENCE_PROBE = `SELECT
+  EXISTS(SELECT 1 FROM sqlite_schema WHERE tbl_name IN('local_storage_profile_registrations','local_storage_profile_activations','local_storage_profile_checks','local_storage_profile_admissions','local_storage_profile_bindings') LIMIT 1) AS local_profile_present,
+  EXISTS(SELECT 1 FROM sqlite_schema WHERE tbl_name IN (${PORTABLE_IDENTITY_TABLE_NAMES.map(() => "?").join(",")}) LIMIT 1) AS identity_present`;
+
+snapshotRoutes.get("/exports/all", async (c) => {
+  if (!supportedExportRequest(new URL(c.req.url)) && !supportedPortableExportRequest(new URL(c.req.url)) && !supportedPortableV26ExportRequest(new URL(c.req.url))) {
+    throw new HTTPException(409, { message: "This archive writer is out of date. Refresh the page and download the full ZIP again." });
+  }
+  try {
+    const requestedSchema = c.req.query("archiveSchema");
+    const installedSchema = await installedExportSchema(c.env.DB);
+    if (installedSchema === null) throw new Error("Installed export schema generation is incomplete or inconsistent");
+    const portable = await c.env.DB.prepare(PORTABLE_EXPORT_SCHEMA_PRESENCE_PROBE)
+      .bind(...PORTABLE_IDENTITY_TABLE_NAMES).first<{ local_profile_present: number; identity_present: number }>();
+    if (!portable || ![0, 1].includes(portable.local_profile_present) || ![0, 1].includes(portable.identity_present)) {
+      throw new Error("Installed portable export schema presence probe was incomplete or inconsistent");
+    }
+    if (portable.local_profile_present) {
+      if (installedSchema !== 24 || requestedSchema !== "26") throw new HTTPException(409, { message: "This archive writer is out of date. Refresh the page and download the full ZIP again." });
+      return c.json(await snapshotFullExportV26(c.env.DB));
+    }
+    if (portable.identity_present) {
+      if (installedSchema !== 24 || requestedSchema !== "25") throw new HTTPException(409, { message: "This archive writer is out of date. Refresh the page and download the full ZIP again." });
+      // Presence selects strict whole-current admission. Partial/newer DDL does
+      // not become a valid generation merely by adding a marker table.
+      return c.json(await snapshotFullExportV25(c.env.DB));
+    }
+    if (Number(requestedSchema) !== installedSchema) {
+      throw new HTTPException(409, { message: "This archive writer is out of date. Refresh the page and download the full ZIP again." });
+    }
+    if (requestedSchema === "24") return c.json(await snapshotFullExportV24(c.env.DB));
+    if (requestedSchema === "23") return c.json(await snapshotFullExportV23(c.env.DB));
+    if (requestedSchema === "22") return c.json(await snapshotFullExportV22(c.env.DB));
+    if (requestedSchema === "21") return c.json(await snapshotFullExportV21(c.env.DB));
+    if (requestedSchema === "20") return c.json(await snapshotFullExportV20(c.env.DB));
+    if (requestedSchema === "19") return c.json(await snapshotFullExportV19(c.env.DB));
+    if (requestedSchema === "18") return c.json(await snapshotFullExportV18(c.env.DB));
+    if (requestedSchema === "17") return c.json(await snapshotFullExportV17(c.env.DB));
+    if (requestedSchema === "16") return c.json(await snapshotFullExportV16(c.env.DB));
+    if (requestedSchema === "15") return c.json(await snapshotFullExportV15(c.env.DB));
+    if (requestedSchema === "14") return c.json(await snapshotFullExportV14(c.env.DB));
+    if (c.req.query("archiveSchema") === "13") return c.json(await snapshotFullExportV13(c.env.DB));
+    if (c.req.query("archiveSchema") === "12") return c.json(await snapshotFullExportV12(c.env.DB));
+    if (c.req.query("archiveSchema") === "11") return c.json(await snapshotFullExportV11(c.env.DB));
+    if (c.req.query("archiveSchema") === "10") return c.json(await snapshotFullExportV10(c.env.DB));
+    if (c.req.query("archiveSchema") === "9") return c.json(await snapshotFullExportV9(c.env.DB));
+    return c.json(await snapshotFullExportV8(c.env.DB));
+  }
+  catch (error) {
+    if (error instanceof Error && /requires archive schema (9|10|11|12|13|14|15|16)/.test(error.message)) {
+      throw new HTTPException(409, { message: "This archive writer is out of date. Refresh the page and download the full ZIP again." });
+    }
+    throw error;
+  }
+});
+
+blobRoutes.get("/exports/r2/:key{.+}", async (c) => {
+  const key = c.req.param("key");
+  const registered = await c.env.DB.prepare(
+    `SELECT 1 AS registered
+     WHERE (
+       EXISTS (SELECT 1 FROM assets WHERE r2_key = ?)
+       OR EXISTS (SELECT 1 FROM imports WHERE workbook_asset_key = ? OR manifest_asset_key = ?)
+       OR EXISTS (SELECT 1 FROM template_versions WHERE source_asset_key = ?)
+       OR EXISTS (SELECT 1 FROM events WHERE asset_key = ?)
+       OR EXISTS (
+         SELECT 1 FROM blob_retention_edges
+         WHERE store_kind = 'r2' AND provider = 'r2' AND object_key = ?
+       )
+     )
+     AND NOT EXISTS (
+       SELECT 1 FROM blob_gc_ledger
+       WHERE store_kind = 'r2' AND provider = 'r2' AND object_key = ? AND state = 'deleted'
+     )`,
+  ).bind(key, key, key, key, key, key, key).first<{ registered: number }>();
+  if (!registered) throw new HTTPException(404, { message: "Export blob not found" });
+  const object = await getBlob(c.env, {
+    storeKind: "r2", provider: "r2", objectKey: key, blobRecordId: null,
+  });
+  if (object.outcome === "missing") throw new HTTPException(404, { message: "Export blob is missing" });
+  if (object.outcome === "provider_unavailable") {
+    throw new HTTPException(503, { message: "R2 is unavailable" });
+  }
+  return new Response(object.body, {
+    headers: {
+      "content-type": object.contentType,
+      "cache-control": "private, no-store",
+      "x-content-type-options": "nosniff",
+      ...(object.etag ? { etag: object.etag } : {}),
+    },
+  });
+});
+
+blobRoutes.get("/exports/managed/:objectId", async (c) => {
+  const objectId = c.req.param("objectId");
+  const row = await c.env.DB.prepare(
+    `SELECT mso.id, mso.provider, mso.object_key, mso.mime_type
+     FROM managed_storage_objects mso
+     WHERE mso.id = ? AND mso.status IN ('ready', 'orphaned')
+       AND NOT EXISTS (
+         SELECT 1 FROM blob_gc_ledger bg
+         WHERE bg.store_kind = 'managed' AND bg.provider = mso.provider
+           AND bg.object_key = mso.object_key AND bg.state = 'deleted'
+       )`,
+  ).bind(objectId).first<{
+    id: string; provider: string; object_key: string; mime_type: string;
+  }>();
+  if (!row) throw new HTTPException(404, { message: "Export blob not found" });
+  const object = await getBlob(c.env, {
+    storeKind: "managed",
+    provider: row.provider,
+    objectKey: row.object_key,
+    blobRecordId: row.id,
+  });
+  if (object.outcome === "missing") throw new HTTPException(404, { message: "Export blob is missing" });
+  if (object.outcome === "provider_unavailable") {
+    throw new HTTPException(503, { message: "Managed storage is unavailable" });
+  }
+  return new Response(object.body, {
+    headers: {
+      "content-type": object.contentType || row.mime_type,
+      "cache-control": "private, no-store",
+      "x-content-type-options": "nosniff",
+      ...(object.etag ? { etag: object.etag } : {}),
+    },
+  });
+});
+
+// V15 locations have a profile-qualified physical identity. The legacy routes
+// cannot deliver them by key alone: two namespaces can contain the same key.
+blobRoutes.get("/exports/file-locations/:locationId", async (c) => {
+  const locationId = c.req.param("locationId"), profileId = c.req.query("profile");
+  const revisionText = c.req.query("revision");
+  if (!profileId || !revisionText || !/^[1-9][0-9]*$/.test(revisionText)
+    || !Number.isSafeInteger(Number(revisionText))) throw new HTTPException(400, { message: "A complete File location identity is required" });
+  const revision = Number(revisionText);
+  const row = await primaryD1(c.env.DB).prepare(`SELECT fl.object_key
+    FROM file_locations fl JOIN storage_profiles sp ON sp.id=fl.storage_profile_id
+    JOIN file_location_availability available ON available.location_id=fl.id
+    WHERE fl.id=? AND fl.storage_profile_id=? AND sp.configuration_revision=?
+      AND available.availability='available'`)
+    .bind(locationId, profileId, revision).first<{ object_key: string }>();
+  if (!row) throw new HTTPException(404, { message: "Export File location is unavailable" });
+  let storage;
+  try { storage = await openShadowProfile(c.env, { profileId, configurationRevision: revision }, "read"); }
+  catch { throw new HTTPException(503, { message: "The recorded File storage profile is unavailable" }); }
+  const object = await storage.reader.read(row.object_key);
+  if (object.outcome === "missing") throw new HTTPException(404, { message: "Export File bytes are missing" });
+  if (object.outcome !== "available") throw new HTTPException(503, { message: "The recorded File storage profile is unavailable" });
+  return new Response(object.body, { headers: {
+    "content-type": object.contentType,
+    "cache-control": "private, no-store",
+    "x-content-type-options": "nosniff",
+  } });
+});

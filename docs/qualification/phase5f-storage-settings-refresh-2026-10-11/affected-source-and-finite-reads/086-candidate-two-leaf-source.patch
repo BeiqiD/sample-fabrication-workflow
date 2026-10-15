@@ -1,0 +1,104 @@
+diff --git a/src/current-storage-settings.mount.test.tsx b/src/current-storage-settings.mount.test.tsx
+index 28400f52b2ab8617aeb8e62020fa4d98cad19295..2fde898d4426dc77b20b309aa1de4870ae5fa2dc 100644
+--- a/src/current-storage-settings.mount.test.tsx
++++ b/src/current-storage-settings.mount.test.tsx
+@@ -43,6 +43,47 @@ async function saveButton() {
+ }
+ const mutations = () => network.mock.calls.filter(([, options]) => ["PUT", "POST"].includes(options?.method ?? ""));
+ describe("current storage Settings controls", () => {
++  it("returns an explicitly focused Refresh after the original disabled interval without focusing the initial read", async () => {
++    let settingsReads = 0, finishRefresh!: (value: Response) => void;
++    network.mockImplementation(async path => String(path) === settingsPath
++      ? ++settingsReads === 2 ? new Promise<Response>(resolve => { finishRefresh = resolve; }) : json(snapshot())
++      : json({ canManage: true, credentialEditingAvailable: true }));
++    render(<StorageSettingsPage />); await screen.findByText("Registered; activation required");
++    const refresh = screen.getByRole("button", { name: "Refresh" }) as HTMLButtonElement;
++    expect(document.activeElement).not.toBe(refresh);
++    refresh.focus(); fireEvent.click(refresh); expect(refresh.disabled).toBe(true);
++    // Model the prior actual Chromium disabled-button blur; this is not a new browser proof.
++    // jsdom ignores blur() on a disabled button, so move native DOM focus to body.
++    const originalTabIndex = document.body.getAttribute("tabindex");
++    try { document.body.tabIndex = -1; document.body.focus(); }
++    finally {
++      if (originalTabIndex === null) document.body.removeAttribute("tabindex");
++      else document.body.setAttribute("tabindex", originalTabIndex);
++    }
++    expect(document.activeElement).toBe(document.body);
++    await act(async () => finishRefresh(json(snapshot())));
++    await screen.findByText("Registered; activation required");
++    expect(refresh.isConnected).toBe(true); expect(refresh.disabled).toBe(false);
++    expect(document.activeElement).toBe(refresh); expect(settingsReads).toBe(2); expect(mutations()).toHaveLength(0);
++  });
++
++  it("preserves focus moved to another native control while the original Refresh response is pending", async () => {
++    let settingsReads = 0, finishRefresh!: (value: Response) => void;
++    network.mockImplementation(async path => String(path) === settingsPath
++      ? ++settingsReads === 2 ? new Promise<Response>(resolve => { finishRefresh = resolve; }) : json(snapshot())
++      : json({ canManage: true, credentialEditingAvailable: true }));
++    render(<StorageSettingsPage />); await screen.findByText("Registered; activation required");
++    const refresh = screen.getByRole("button", { name: "Refresh" }) as HTMLButtonElement;
++    refresh.focus(); fireEvent.click(refresh); expect(refresh.disabled).toBe(true);
++    const other = screen.getByRole("link", { name: "Data packages, reports and import" }); other.focus();
++    expect(document.activeElement).toBe(other);
++    await act(async () => finishRefresh(json(snapshot())));
++    await screen.findByText("Registered; activation required");
++    expect(refresh.isConnected).toBe(true); expect(refresh.disabled).toBe(false);
++    expect(other.isConnected).toBe(true); expect(document.activeElement).toBe(other);
++    expect(settingsReads).toBe(2); expect(mutations()).toHaveLength(0);
++  });
++
+   it("shows exact unavailable S3 choices and registration while keeping a nonadministrator read only", async () => {
+     const value = snapshot(); value.roleDefaults.originals!.availability = "unavailable"; value.profiles.items[1].availability = "unavailable";
+     value.profiles.items[1].bindingMatch = "mismatch"; value.profiles.items[1].bindingRevision = null;
+diff --git a/src/pages/StorageSettingsPage.tsx b/src/pages/StorageSettingsPage.tsx
+index 58e10da2a2c5d07e5f1a38060993037485a0a874..efbe4946ec09eb85ea03c4c2b7beb677e986d6d0 100644
+--- a/src/pages/StorageSettingsPage.tsx
++++ b/src/pages/StorageSettingsPage.tsx
+@@ -1,4 +1,4 @@
+-import { useEffect, useRef, useState } from "react";
++import { useEffect, useLayoutEffect, useRef, useState } from "react";
+ import type { CurrentStorageSettings, CurrentStorageSettingsStatus } from "../../shared/contracts/current-storage-settings";
+ import { api } from "../lib/api";
+ import { storageConfigurationClient, StorageConfigurationRequestError } from "../lib/storage-configuration-client";
+@@ -15,10 +15,15 @@ export function StorageSettingsPage() {
+   const [loading, setLoading] = useState(true), [error, setError] = useState(false);
+   const sequence = useRef(0), controller = useRef<AbortController | null>(null);
+ 
+-  async function refresh() {
++  const refreshButton = useRef<HTMLButtonElement>(null);
++  const returnRefreshFocus = useRef<{ request: number; signal: AbortSignal } | null>(null);
++
++  async function refresh(returnFocus = false) {
+     const request = ++sequence.current;
+     controller.current?.abort();
+     const pending = new AbortController(); controller.current = pending;
++    returnRefreshFocus.current = returnFocus && document.activeElement === refreshButton.current
++      ? { request, signal: pending.signal } : null;
+     setLoading(true); setError(false); setStatus(null);
+     try {
+       const value = await api.getCurrentStorageSettings(pending.signal);
+@@ -29,15 +34,22 @@ export function StorageSettingsPage() {
+       if (request === sequence.current && !pending.signal.aborted) setLoading(false);
+     }
+   }
++  useLayoutEffect(() => {
++    if (loading) return;
++    const intent = returnRefreshFocus.current; returnRefreshFocus.current = null;
++    if (!intent || intent.request !== sequence.current || intent.signal.aborted) return;
++    const button = refreshButton.current;
++    if (button?.isConnected && !button.disabled && (document.activeElement === document.body || document.activeElement === button)) button.focus();
++  }, [loading]);
+   useEffect(() => {
+     void refresh();
+-    return () => { sequence.current += 1; controller.current?.abort(); };
++    return () => { sequence.current += 1; controller.current?.abort(); returnRefreshFocus.current = null; };
+   }, []);
+ 
+   return <div className="page storage-settings-page">
+     <div className="page-heading"><div><p className="eyebrow">Settings</p><h1>Storage</h1>
+       <p className="lead">View current upload destinations and registered storage profiles.</p></div>
+-      <button className="button" type="button" disabled={loading} onClick={() => void refresh()}>{loading ? "Refreshing…" : "Refresh"}</button></div>
++      <button ref={refreshButton} className="button" type="button" disabled={loading} onClick={() => void refresh(true)}>{loading ? "Refreshing…" : "Refresh"}</button></div>
+     <p><a href="/settings/data">Data packages, reports and import</a></p>
+     {loading && <p role="status">Reading storage configuration…</p>}
+     {error && <div className="error-banner" role="alert"><p>Storage information is unavailable. Refresh to try again.</p></div>}

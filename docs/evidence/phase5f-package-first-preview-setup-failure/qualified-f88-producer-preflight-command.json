@@ -1,0 +1,31 @@
+{
+  "stage": "qualified-f88-producer-preflight",
+  "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+  "argv": [
+    "python3",
+    "-B",
+    "/tmp/phase5f-package-two-genuine-preview-finite-source-review-attempt1/verify-qualified-f88-producer-and-package-two-witness.py",
+    "--qualified-f88-producer-for-package-two",
+    "producer"
+  ],
+  "control": "Read only exact actual eight-stage CLOSED f88 producer receipt/raw28/source1792/dist118/originalbuild command and directreap. Newcopy/fixture must not exist. No compiler/build/DB/server/browser starts.",
+  "startedAt": "2026-10-11T03:39:59.175821+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/qualified-f88-producer-preflight.log",
+  "pid": 686155,
+  "processGroup": 686155,
+  "originalStartTicks": "10325994",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T03:39:59.534452+00:00",
+  "logSha256": "41f00eceeeddf13815ab4bebe25f555bdee7dfd60013d98f588e361f692356d0"
+}
