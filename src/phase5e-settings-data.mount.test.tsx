@@ -198,7 +198,7 @@ describe("Phase 5E truthful Settings and Data read states", () => {
     const original = { action: "export", input: { requestId: "unconfirmed:package", kind: "report", roots: [{ kind: "sample", id: "sample:1" }] } };
     sessionStorage.setItem("research-package-operation", JSON.stringify(original));
     let unavailable = false;
-    network.mockImplementation(async path => String(path).includes("/requests/") ? json({}, 404)
+    network.mockImplementation(async path => String(path).includes("/requests/") ? json({ schema: "research-package-request-absent/1", requestId: original.input.requestId }, 404)
       : String(path).endsWith("/executor") ? json(executor)
         : unavailable ? json({}, 503) : json({ jobs: [packageJob()] }));
     mountData(); await screen.findByText("saved:package");
@@ -206,7 +206,7 @@ describe("Phase 5E truthful Settings and Data read states", () => {
     await screen.findByRole("alert");
     expect(screen.getAllByText("saved:package")).toHaveLength(1);
     expect(screen.getByText("Showing previously read package work. Its current status could not be refreshed.")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Check or retry original request" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Check original package request" })).toBeTruthy();
     expect(JSON.parse(sessionStorage.getItem("research-package-operation")!)).toEqual(original);
     expect(screen.queryByText("No package jobs are recorded for your account.")).toBeNull(); expect(mutations()).toHaveLength(0);
   });
@@ -230,7 +230,7 @@ describe("Phase 5E truthful Settings and Data read states", () => {
     const original = { action: "backup", input: { requestId: "unconfirmed:backup", kind: "backup", mode: "historical" } };
     sessionStorage.setItem("system-recovery-operation", JSON.stringify(original));
     let unavailable = false;
-    network.mockImplementation(async path => String(path).includes("/requests/") ? json({}, 404)
+    network.mockImplementation(async path => String(path).includes("/requests/") ? json({ schema: "system-recovery-request-absent/1", requestId: original.input.requestId }, 404)
       : String(path).endsWith("/capabilities") ? json(recoveryAccess)
         : String(path).endsWith("/maintenance") ? json(maintenance)
           : unavailable ? json({}, 503) : json({ jobs: [recoveryJob()] }));
@@ -238,7 +238,7 @@ describe("Phase 5E truthful Settings and Data read states", () => {
     unavailable = true; fireEvent.click(screen.getByRole("button", { name: "Refresh recovery status" }));
     await screen.findByRole("alert"); expect(screen.getAllByText("saved:backup")).toHaveLength(1);
     expect(screen.getByText("Showing previously read system work. Its current status could not be refreshed.")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Check or retry original request" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Check original recovery request" })).toBeTruthy();
     expect(JSON.parse(sessionStorage.getItem("system-recovery-operation")!)).toEqual(original);
     expect(screen.queryByText("No system backup or recovery jobs are recorded.")).toBeNull(); expect(mutations()).toHaveLength(0);
   });

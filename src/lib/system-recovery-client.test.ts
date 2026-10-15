@@ -4,7 +4,7 @@ import {
   type SystemRecoveryImportInput, type SystemRecoveryJobStatus, type SystemRecoveryMaintenanceStatus,
   type SystemRecoveryPreview, type SystemRecoverySourceResumeInput, type SystemRecoverySourceResumeReceipt,
 } from "../../shared/contracts/system-recovery";
-import { systemRecoveryClient, systemRecoveryErrorMessage, SystemRecoveryRequestError } from "./system-recovery-client";
+import { systemRecoveryClient, systemRecoveryErrorMessage, SystemRecoveryRequestError, SystemRecoveryRequestMissingError } from "./system-recovery-client";
 
 const base = "/api/system-recovery", at = "2026-10-06T12:00:00.000Z", digest = "a".repeat(64);
 const backup = { requestId: "backup-request", kind: "backup" as const, mode: "historical" as const };
@@ -177,4 +177,30 @@ describe("privileged system backup and recovery client", () => {
     }), { headers: { "content-type": "application/json" } }));
     await expect(systemRecoveryClient.capabilities()).rejects.toThrow("Invalid system recovery response."); expect(cancel).toHaveBeenCalledOnce();
   });
+  it("recognizes only the exact checked absent request envelope and keeps lookup GET-only", async () => {
+    mock().mockResolvedValue(json({ schema: "system-recovery-request-absent/1", requestId: backup.requestId }, 404));
+    await expect(systemRecoveryClient.readRequest(backup.requestId)).rejects.toBeInstanceOf(SystemRecoveryRequestMissingError);
+    expect(network).toHaveBeenCalledOnce();
+    expect(network.mock.calls[0]).toEqual([`${base}/requests/backup-request`, expect.objectContaining({ method: "GET", cache: "no-store", redirect: "error" })]);
+  });
+  it.each([
+    ["generic JSON", () => json({}, 404)],
+    ["wrong request", () => json({ schema: "system-recovery-request-absent/1", requestId: "other-request" }, 404)],
+    ["unknown fields", () => json({ schema: "system-recovery-request-absent/1", requestId: backup.requestId, private: true }, 404)],
+    ["wrong schema", () => json({ schema: "other/1", requestId: backup.requestId }, 404)],
+    ["HTML fallback", () => new Response("PRIVATE_HTML", { status: 404, headers: { "content-type": "text/html" } })],
+    ["malformed JSON", () => new Response("{", { status: 404, headers: { "content-type": "application/json" } })],
+    ["typed body on 409", () => json({ schema: "system-recovery-request-absent/1", requestId: backup.requestId }, 409)],
+    ["typed body on 403", () => json({ schema: "system-recovery-request-absent/1", requestId: backup.requestId }, 403)],
+  ] as const)("does not treat %s as authoritative absence", async (_label, response) => {
+    mock().mockResolvedValue(response());
+    await expect(systemRecoveryClient.readRequest(backup.requestId)).rejects.not.toBeInstanceOf(SystemRecoveryRequestMissingError);
+    expect(network).toHaveBeenCalledOnce();
+  });
+  it("does not reinterpret maintenance or source resume 404s as a job request absence", async () => {
+    mock().mockResolvedValue(json({ schema: "system-recovery-request-absent/1", requestId: "request" }, 404));
+    await expect(systemRecoveryClient.readMaintenanceRequest("request")).rejects.not.toBeInstanceOf(SystemRecoveryRequestMissingError);
+    await expect(systemRecoveryClient.readSourceResumeRequest("request")).rejects.not.toBeInstanceOf(SystemRecoveryRequestMissingError);
+  });
+
 });

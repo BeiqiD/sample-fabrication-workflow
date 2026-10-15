@@ -89,7 +89,8 @@ function fallback(path: RequestInfo | URL, options?: RequestInit): Response {
     const receipt = { requestId: input.requestId, job: accepted, reused: false }; receipts.set(input.requestId, receipt); return json(receipt, 202);
   }
   if (pathname.startsWith(`${base}/requests/`) && method === "GET") {
-    const value = receipts.get(decodeURIComponent(pathname.slice(`${base}/requests/`.length))); return value ? json(value) : json({}, 404);
+    const requestId = decodeURIComponent(pathname.slice(`${base}/requests/`.length)), value = receipts.get(requestId);
+    return value ? json(value) : json({ schema: "system-recovery-request-absent/1", requestId }, 404);
   }
   if (pathname.endsWith("/upload") && method === "PUT") {
     const accepted = { ...jobs.find(value => value.id === "upload:job")!, state: "queued" as const, phase: "validate" as const }; remember(accepted); return json(accepted);
@@ -271,7 +272,7 @@ describe("privileged website system backup and recovery workflow", () => {
     await mount(); fireEvent.click(await enabled("Preview system backup")); fireEvent.click(await enabled("Start durable system backup"));
     await screen.findByRole("heading", { name: "Unconfirmed operation" });
     const original = JSON.parse(sessionStorage.getItem(intentKey)!); expect(original.action).toBe("backup");
-    fireEvent.click(await enabled("Check or retry original request")); await screen.findByText(/original saved operation|Operation saved/);
+    fireEvent.click(await enabled("Check original recovery request")); await screen.findByText(/original saved operation|Operation saved/);
     expect(calls("/jobs", "POST")).toHaveLength(1); expect(calls(`/requests/${original.input.requestId}`, "GET")).toHaveLength(1);
     expect(sessionStorage.getItem(intentKey)).toBeNull(); expect(document.body.textContent).not.toContain("PRIVATE_LOST_ACK");
   });
@@ -601,5 +602,254 @@ describe("privileged website system backup and recovery workflow", () => {
     await act(async () => resolve(fallback(...calls("/jobs/backup%3Ajob/control", "POST")[0])));
     await enabled("Resume"); expect(pause.isConnected).toBe(false); expect(document.activeElement).toBe(other);
     expect(calls("/jobs/backup%3Ajob/control", "POST")).toHaveLength(1); expect(mutations()).toHaveLength(1);
+  });
+});
+
+const rejectionKey = "system-recovery-operation-rejection", historyKey = "system-recovery-earlier-requests";
+const operationKinds = ["backup", "upload", "recovery", "cutover"] as const;
+function originalIntent(action: typeof operationKinds[number]) {
+  if (action === "backup") return { action, input: { requestId: "original-backup", kind: "backup" as const, mode: "historical" as const } };
+  if (action === "upload") return { action, input: { requestId: "original-upload", byteSize: 32, sha256: digest } };
+  if (action === "recovery") return { action, input: { requestId: "original-recovery", uploadJobId: "upload:job", expectedTargetId: "isolated:1",
+    mapping: [{ sourceProfileId: "source:r2", destinationProfileId: "target:s3", configurationRevision: 3 }], mode: "historical" as const,
+    acknowledgeLaterChanges: true, acknowledgePartial: false } };
+  return { action, jobId: "recovery:job", input: { requestId: "original-cutover", expectedTargetId: "isolated:1", expectedCheckpoint: digest } };
+}
+function storeOriginal(action: typeof operationKinds[number], rejected = false) {
+  const intent = originalIntent(action); sessionStorage.setItem(intentKey, JSON.stringify(intent));
+  if (rejected) sessionStorage.setItem(rejectionKey, JSON.stringify({ schema: "system-recovery-rejection/1", intent }));
+  return intent;
+}
+const requestReads = (requestId: string) => calls(`/requests/${encodeURIComponent(requestId)}`, "GET");
+const missingRequest = (requestId: string) => json({ schema: "system-recovery-request-absent/1", requestId }, 404);
+function receiptFor(intent: ReturnType<typeof originalIntent>, id?: string): SystemRecoveryReceipt {
+  const kind = intent.action === "cutover" ? "recovery" : intent.action;
+  return { requestId: intent.input.requestId, reused: true,
+    job: { ...job(kind, "queued", id ?? (intent.action === "cutover" ? intent.jobId : `${kind}:original`)), requestId: intent.input.requestId } };
+}
+function assertOperationLocked() {
+  expect(screen.getByRole("button", { name: "Preview system backup" }).matches(":disabled")).toBe(true);
+  expect(screen.queryByRole("button", { name: "Review new recovery work" })).toBeNull();
+}
+
+describe("recovery operation request reconciliation", () => {
+  it.each(operationKinds)("keeps legacy %s intent uncertain after absent lookup and rejected explicit retry, including reload", async action => {
+    const intent = storeOriginal(action), original = sessionStorage.getItem(intentKey);
+    network.mockImplementation(async (path, options) => options?.method === "POST" ? json({}, 409) : fallback(path, options));
+    const first = await mount(); await enabled("Retry original recovery request");
+    expect(mutations()).toHaveLength(0); assertOperationLocked();
+    fireEvent.click(await enabled("Check original recovery request")); await enabled("Retry original recovery request");
+    expect(mutations()).toHaveLength(0); expect(requestReads(intent.input.requestId)).toHaveLength(2);
+    fireEvent.click(await enabled("Retry original recovery request")); await enabled("Retry original recovery request");
+    expect(mutations()).toHaveLength(1); expect(requestReads(intent.input.requestId)).toHaveLength(4);
+    expect(JSON.parse(String(mutations()[0][1]?.body))).toEqual(intent.input);
+    expect(sessionStorage.getItem(intentKey)).toBe(original); expect(sessionStorage.getItem(rejectionKey)).toBeNull(); assertOperationLocked();
+    first.unmount(); await mount(); await enabled("Retry original recovery request");
+    expect(sessionStorage.getItem(intentKey)).toBe(original); expect(mutations()).toHaveLength(1); assertOperationLocked();
+  });
+
+  it.each(operationKinds)("checks accepted %s before retry and reopens its same job without a POST", async action => {
+    const intent = storeOriginal(action); await mount(); await enabled("Retry original recovery request");
+    const receipt = receiptFor(intent); receipts.set(intent.input.requestId, receipt); remember(receipt.job);
+    fireEvent.click(await enabled("Retry original recovery request")); await waitFor(() => expect(sessionStorage.getItem(intentKey)).toBeNull());
+    expect(mutations()).toHaveLength(0); expect(requestReads(intent.input.requestId)).toHaveLength(2);
+    expect(JSON.parse(sessionStorage.getItem(historyKey)!)).toEqual([{ intent, jobId: receipt.job.id }]);
+    expect(screen.getByText(receipt.job.id, { selector: 'p[role="status"] code' })).toBeTruthy();
+  });
+
+  it.each(operationKinds)("retains complete rejected %s before an explicit fresh review and preserves it on reload", async action => {
+    const intent = storeOriginal(action, true); const first = await mount();
+    fireEvent.click(await enabled("Review new recovery work"));
+    await waitFor(() => expect(sessionStorage.getItem(intentKey)).toBeNull());
+    expect(requestReads(intent.input.requestId)).toHaveLength(2); expect(mutations()).toHaveLength(0);
+    expect(JSON.parse(sessionStorage.getItem(historyKey)!)).toEqual([{ intent, jobId: null }]);
+    expect(screen.getByRole("button", { name: "Preview system backup" }).matches(":disabled")).toBe(false);
+    first.unmount(); await mount();
+    fireEvent.click(await enabled(`Check earlier recovery request ${intent.input.requestId}`));
+    await screen.findByText(/No receipt is recorded for this earlier request at this time/);
+    expect(JSON.parse(sessionStorage.getItem(historyKey)!)).toEqual([{ intent, jobId: null }]); expect(mutations()).toHaveLength(0);
+  });
+
+  it.each(["lost", "malformed"] as const)("keeps a fresh backup %s ACK sticky when a later retry rejects", async fault => {
+    let attempts = 0;
+    network.mockImplementation(async (path, options) => {
+      if (String(path) === `${base}/jobs` && options?.method === "POST") {
+        if (++attempts > 1) return json({}, 409);
+        if (fault === "lost") throw new Error("PRIVATE_LOST_ACK");
+        const input = JSON.parse(String(options.body)); return json({ requestId: input.requestId, job: {}, reused: false }, 202);
+      }
+      return fallback(path, options);
+    });
+    await mount(); fireEvent.click(await enabled("Preview system backup")); fireEvent.click(await enabled("Start durable system backup"));
+    await enabled("Check original recovery request"); const original = sessionStorage.getItem(intentKey);
+    fireEvent.click(await enabled("Check original recovery request")); await enabled("Retry original recovery request");
+    fireEvent.click(await enabled("Retry original recovery request")); await enabled("Retry original recovery request");
+    expect(calls("/jobs", "POST")).toHaveLength(2); expect(sessionStorage.getItem(intentKey)).toBe(original);
+    expect(sessionStorage.getItem(rejectionKey)).toBeNull(); assertOperationLocked();
+  });
+
+  it("retains a first rejected backup until explicit review, and a raced receipt reopens the original job", async () => {
+    network.mockImplementation(async (path, options) => String(path) === `${base}/jobs` && options?.method === "POST" ? json({}, 409) : fallback(path, options));
+    await mount(); fireEvent.click(await enabled("Preview system backup")); fireEvent.click(await enabled("Start durable system backup"));
+    await enabled("Review new recovery work"); const intent = JSON.parse(sessionStorage.getItem(intentKey)!);
+    expect(JSON.parse(sessionStorage.getItem(rejectionKey)!).intent).toEqual(intent);
+    const receipt = receiptFor(intent); receipts.set(intent.input.requestId, receipt); remember(receipt.job);
+    const review = await enabled("Review new recovery work"); review.focus(); fireEvent.click(review);
+    await waitFor(() => expect(sessionStorage.getItem(intentKey)).toBeNull());
+    const pause = await enabled("Pause"); await waitFor(() => expect(document.activeElement).toBe(pause));
+    expect(calls("/jobs", "POST")).toHaveLength(1); expect(requestReads(intent.input.requestId)).toHaveLength(2);
+    expect(JSON.parse(sessionStorage.getItem(historyKey)!)).toEqual([{ intent, jobId: receipt.job.id }]);
+  });
+
+  it.each([
+    ["generic JSON", () => json({}, 404)],
+    ["wrong identifier", () => missingRequest("wrong-request")],
+    ["HTML fallback", () => new Response("PRIVATE_ROUTE_FALLBACK", { status: 404, headers: { "content-type": "text/html" } })],
+    ["unknown fields", () => json({ schema: "system-recovery-request-absent/1", requestId: "original-backup", private: true }, 404)],
+  ] as const)("keeps %s lookup failures locked without exposing retry or replacement", async (_label, response) => {
+    const intent = storeOriginal("backup", true);
+    network.mockImplementation(async (path, options) => String(path) === `${base}/requests/${intent.input.requestId}` ? response() : fallback(path, options));
+    await mount(); await enabled("Check original recovery request");
+    expect(screen.queryByRole("button", { name: "Retry original recovery request" })).toBeNull(); assertOperationLocked();
+    expect(JSON.parse(sessionStorage.getItem(intentKey)!)).toEqual(intent); expect(mutations()).toHaveLength(0);
+  });
+
+  it("requires an exact whole-intent rejection marker rather than a request identifier match", async () => {
+    const intent = storeOriginal("backup");
+    sessionStorage.setItem(rejectionKey, JSON.stringify({ schema: "system-recovery-rejection/1", intent: { ...intent, input: { ...intent.input, mode: "planned" } } }));
+    await mount(); await enabled("Retry original recovery request"); assertOperationLocked(); expect(mutations()).toHaveLength(0);
+  });
+
+  it("does not silently truncate earlier intents when reviewing the next operation", async () => {
+    const rows = Array.from({ length: 25 }, (_, index) => ({ intent: { ...originalIntent("backup"), input: { ...originalIntent("backup").input, requestId: `earlier-${index}` } }, jobId: null }));
+    sessionStorage.setItem(historyKey, JSON.stringify(rows)); const intent = storeOriginal("recovery", true);
+    await mount(); fireEvent.click(await enabled("Review new recovery work"));
+    await waitFor(() => expect(sessionStorage.getItem(intentKey)).toBeNull());
+    expect(JSON.parse(sessionStorage.getItem(historyKey)!)).toEqual([...rows, { intent, jobId: null }]); expect(mutations()).toHaveLength(0);
+  });
+
+  it("refuses to lose pending work if writing complete history fails", async () => {
+    const intent = storeOriginal("backup", true); await mount(); const original = sessionStorage.getItem(intentKey);
+    const write = Storage.prototype.setItem;
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key, value) {
+      if (key === historyKey) throw new Error("PRIVATE_QUOTA"); return write.call(this, key, value);
+    });
+    fireEvent.click(await enabled("Review new recovery work")); await screen.findByText(/Browser session storage is unavailable/);
+    expect(sessionStorage.getItem(intentKey)).toBe(original); expect(sessionStorage.getItem(historyKey)).toBeNull(); expect(mutations()).toHaveLength(0);
+    expect(screen.getByRole("button", { name: "Preview system backup" }).matches(":disabled")).toBe(true);
+    expect(requestReads(intent.input.requestId)).toHaveLength(2);
+  });
+
+  it("keeps an earlier accepted job immutable and preserves a different current pending operation", async () => {
+    const prior = originalIntent("upload"), current = storeOriginal("recovery"), original = sessionStorage.getItem(intentKey);
+    sessionStorage.setItem(historyKey, JSON.stringify([{ intent: prior, jobId: null }]));
+    await mount(); await enabled("Retry original recovery request");
+    const receipt = receiptFor(prior); receipts.set(prior.input.requestId, receipt); remember(receipt.job);
+    fireEvent.click(await enabled(`Check earlier recovery request ${prior.input.requestId}`));
+    await waitFor(() => expect(JSON.parse(sessionStorage.getItem(historyKey)!)[0].jobId).toBe(receipt.job.id));
+    expect(sessionStorage.getItem(intentKey)).toBe(original); expect(JSON.parse(sessionStorage.getItem(intentKey)!)).toEqual(current); expect(mutations()).toHaveLength(0);
+    receipts.set(prior.input.requestId, receiptFor(prior, "different:job"));
+    fireEvent.click(await enabled(`Check earlier recovery request ${prior.input.requestId}`));
+    await screen.findByRole("alert");
+    expect(JSON.parse(sessionStorage.getItem(historyKey)!)).toEqual([{ intent: prior, jobId: receipt.job.id }]);
+    expect(sessionStorage.getItem(intentKey)).toBe(original); expect(mutations()).toHaveLength(0);
+  });
+
+  it.each(["check", "review"] as const)("does not apply %s after navigation or steal focus moved away while its exact lookup is pending", async operation => {
+    const intent = storeOriginal("backup", true); const view = await mount(); await enabled("Review new recovery work");
+    let finish!: (response: Response) => void;
+    network.mockImplementation(async (path, options) => String(path) === `${base}/requests/${intent.input.requestId}`
+      ? new Promise<Response>(resolve => { finish = resolve; }) : fallback(path, options));
+    const name = operation === "check" ? "Check original recovery request" : "Review new recovery work";
+    const button = await enabled(name); button.focus(); fireEvent.click(button);
+    await waitFor(() => expect(requestReads(intent.input.requestId)).toHaveLength(2));
+    const link = screen.getByRole("link", { name: "Research packages and reports" }); link.focus();
+    const receipt = receiptFor(intent); remember(receipt.job);
+    await act(async () => finish(json(receipt))); await enabled("Pause"); expect(document.activeElement).toBe(link);
+    expect(mutations()).toHaveLength(0);
+    view.unmount(); sessionStorage.setItem(intentKey, JSON.stringify(intent)); sessionStorage.setItem(rejectionKey, JSON.stringify({ schema: "system-recovery-rejection/1", intent }));
+    network.mockImplementation(async (path, options) => fallback(path, options)); receipts.delete(intent.input.requestId);
+    const next = await mount(); await enabled("Review new recovery work");
+    network.mockImplementation(async (path, options) => String(path) === `${base}/requests/${intent.input.requestId}`
+      ? new Promise<Response>(resolve => { finish = resolve; }) : fallback(path, options));
+    fireEvent.click(await enabled(name)); await waitFor(() => expect(requestReads(intent.input.requestId)).toHaveLength(4));
+    const original = sessionStorage.getItem(intentKey); next.unmount(); await act(async () => finish(json(receipt)));
+    expect(sessionStorage.getItem(intentKey)).toBe(original); expect(mutations()).toHaveLength(0);
+  });
+
+  it("drops privileged state on a denied original receipt and retains its pending intent", async () => {
+    const intent = storeOriginal("cutover"); await mount(); await enabled("Retry original recovery request");
+    network.mockImplementation(async (path, options) => String(path) === `${base}/requests/${intent.input.requestId}` ? json({}, 403) : fallback(path, options));
+    fireEvent.click(await enabled("Retry original recovery request")); await screen.findByRole("heading", { name: "Administrator access required" });
+    expect(JSON.parse(sessionStorage.getItem(intentKey)!)).toEqual(intent); expect(mutations()).toHaveLength(0);
+    expect(screen.queryByRole("heading", { name: "Saved system work" })).toBeNull();
+  });
+
+  it("hands a focused read-only check to the matching accepted job and a fresh review to its status message", async () => {
+    const intent = storeOriginal("backup", true); const first = await mount(); await enabled("Review new recovery work");
+    const receipt = receiptFor(intent); receipts.set(intent.input.requestId, receipt); remember(receipt.job);
+    const check = await enabled("Check original recovery request"); check.focus(); fireEvent.click(check);
+    const pause = await enabled("Pause"); await waitFor(() => expect(document.activeElement).toBe(pause)); expect(mutations()).toHaveLength(0);
+    first.unmount(); receipts.clear(); jobs = []; storeOriginal("backup", true); await mount();
+    const review = await enabled("Review new recovery work"); review.focus(); fireEvent.click(review);
+    const status = await screen.findByText(/Review a fresh backup preview or recovery report before creating new work/);
+    await waitFor(() => expect(document.activeElement).toBe(status)); expect(status.getAttribute("tabindex")).toBe("-1"); expect(mutations()).toHaveLength(0);
+  });
+});
+
+describe("recovery request receipt freshness", () => {
+  it("keeps an accepted cutover receipt when an older overlapping poll finishes later", async () => {
+    const intent = storeOriginal("cutover");
+    const previous: SystemRecoveryJobStatus = { ...job("recovery", "completed", "recovery:job"), phase: "ready",
+      result: { targetId: "isolated:1", ready: true, cutover: false, checkpoint: digest } };
+    const timers = vi.spyOn(globalThis, "setTimeout");
+    jobs = [previous]; await mount(); await enabled("Retry original recovery request");
+    const timerIndex = timers.mock.calls.findIndex(([, delay]) => delay === 5000), poll = timers.mock.calls[timerIndex][0];
+    expect(typeof poll).toBe("function"); clearTimeout(timers.mock.results[timerIndex].value);
+    let finish!: (response: Response) => void;
+    network.mockImplementation(async (path, options) => String(path) === `${base}/jobs` && options?.method === "GET"
+      ? new Promise<Response>(resolve => { finish = resolve; }) : fallback(path, options));
+    // Invoke the captured page poll at its existing boundary; no production
+    // deadline or polling interval is changed by this mounted race fixture.
+    await act(async () => { if (typeof poll === "function") poll(); });
+    await waitFor(() => expect(calls("/jobs", "GET")).toHaveLength(2));
+    const receipt: SystemRecoveryReceipt = { requestId: intent.input.requestId, reused: true,
+      job: { ...previous, result: { ...previous.result!, cutover: true } } };
+    receipts.set(intent.input.requestId, receipt); remember(receipt.job);
+    fireEvent.click(await enabled("Check original recovery request"));
+    await waitFor(() => expect(sessionStorage.getItem(intentKey)).toBeNull());
+    expect(screen.getByText(/Target.*cutover handoff prepared/)).toBeTruthy();
+    await act(async () => finish(json({ jobs: [previous] })));
+    expect(screen.getByText(/Target.*cutover handoff prepared/)).toBeTruthy();
+    expect(screen.queryByText(/Target.*verified and ready for cutover review/)).toBeNull(); expect(mutations()).toHaveLength(0);
+  });
+  it("blocks replacement when complete earlier history is malformed instead of discarding it", async () => {
+    const corrupt = JSON.stringify([{ input: "unsupported-checkpoint" }]); sessionStorage.setItem(historyKey, corrupt);
+    await mount(); expect(screen.getByRole("button", { name: "Preview system backup" }).matches(":disabled")).toBe(true);
+    expect(screen.getByText(/Saved recovery request history could not be read/)).toBeTruthy();
+    expect(sessionStorage.getItem(historyKey)).toBe(corrupt); expect(mutations()).toHaveLength(0);
+  });
+});
+
+describe("recovery upload authority while hashing", () => {
+  it.each([false, true])("stops a deferred %s-checkpoint upload when a real background access read denies the administrator", async resumed => {
+    if (resumed) savedUpload("awaiting_upload");
+    const savedBytes = sessionStorage.getItem(uploadKey), pendingBytes = sessionStorage.getItem(intentKey);
+    let finishHash!: (value: { byteSize: number; sha256: string }) => void;
+    vi.mocked(hashResearchFile).mockImplementation(() => new Promise(resolve => { finishHash = resolve; }));
+    const timers = vi.spyOn(globalThis, "setTimeout"); await mount();
+    const timerIndex = timers.mock.calls.findIndex(([, delay]) => delay === 5000), poll = timers.mock.calls[timerIndex][0];
+    expect(typeof poll).toBe("function"); clearTimeout(timers.mock.results[timerIndex].value);
+    const archive = new File([new Uint8Array(32)], "bounded-recovery.zip", { type: "application/zip" });
+    fireEvent.change(screen.getByLabelText("System recovery ZIP"), { target: { files: [archive] } });
+    fireEvent.click(await enabled(resumed ? "Resume original recovery upload" : "Upload and validate recovery archive"));
+    await waitFor(() => expect(hashResearchFile).toHaveBeenCalledOnce()); expect(mutations()).toHaveLength(0);
+    network.mockImplementation(async (path, options) => String(path) === `${base}/capabilities` ? json({}, 403) : fallback(path, options));
+    await act(async () => { if (typeof poll === "function") poll(); });
+    await screen.findByRole("heading", { name: "Administrator access required" });
+    await act(async () => finishHash({ byteSize: 32, sha256: digest }));
+    expect(calls("/uploads", "POST")).toHaveLength(0); expect(calls("/jobs/upload%3Ajob/upload", "PUT")).toHaveLength(0);
+    expect(mutations()).toHaveLength(0); expect(sessionStorage.getItem(intentKey)).toBe(pendingBytes);
+    expect(sessionStorage.getItem(uploadKey)).toBe(savedBytes); expect(screen.queryByRole("heading", { name: "Saved system work" })).toBeNull();
   });
 });

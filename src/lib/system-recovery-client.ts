@@ -1,6 +1,6 @@
 import { applicationFetch } from "./authentication-client";
 import {
-  checkedSystemRecoveryBackupInput, checkedSystemRecoveryBackupPreview, checkedSystemRecoveryCapabilities,
+  checkedSystemRecoveryBackupInput, checkedSystemRecoveryBackupPreview, checkedSystemRecoveryCapabilities, checkedSystemRecoveryRequestAbsent,
   checkedSystemRecoveryCutoverInput, checkedSystemRecoveryImportInput, checkedSystemRecoveryJobControl,
   checkedSystemRecoveryJobStatus, checkedSystemRecoveryPreview, checkedSystemRecoveryReceipt,
   checkedSystemRecoveryMaintenanceInput, checkedSystemRecoveryMaintenanceReceipt, checkedSystemRecoveryMaintenanceStatus,
@@ -24,6 +24,9 @@ export class SystemRecoveryRequestError extends Error {
                 : "The recovery response is unavailable. Check the original request before retrying.");
     this.name = "SystemRecoveryRequestError";
   }
+}
+export class SystemRecoveryRequestMissingError extends SystemRecoveryRequestError {
+  constructor() { super(404); this.name = "SystemRecoveryRequestMissingError"; }
 }
 export function systemRecoveryErrorMessage(error: unknown): string {
   return error instanceof SystemRecoveryRequestError ? error.message
@@ -50,7 +53,7 @@ async function readJson(response: Response): Promise<unknown> {
     return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
   } finally { reader.releaseLock(); }
 }
-async function request(path: string, method: "GET" | "POST" | "PUT" = "GET", body?: unknown, signal?: AbortSignal): Promise<unknown> {
+async function request(path: string, method: "GET" | "POST" | "PUT" = "GET", body?: unknown, signal?: AbortSignal, absentRequestId?: string): Promise<unknown> {
   let response: Response;
   const raw = body instanceof Blob;
   try {
@@ -60,6 +63,10 @@ async function request(path: string, method: "GET" | "POST" | "PUT" = "GET", bod
   } catch { throw new SystemRecoveryRequestError(null); }
   // Provider errors, encrypted settings and archive-provided text never select
   // a public error label. Successful metadata must satisfy the exact DTO.
+  if (response.status === 404 && absentRequestId !== undefined) {
+    checkedSystemRecoveryRequestAbsent(await readJson(response), absentRequestId);
+    throw new SystemRecoveryRequestMissingError();
+  }
   if (!response.ok) throw new SystemRecoveryRequestError(response.status);
   return readJson(response);
 }
@@ -127,7 +134,7 @@ export const systemRecoveryClient = {
     return receipt(await request("/recoveries", "POST", checked, signal), checked.requestId, "recovery");
   },
   async readRequest(requestId: string, signal?: AbortSignal) {
-    return receipt(await request(`/requests/${identity(requestId)}`, "GET", undefined, signal), requestId);
+    return receipt(await request(`/requests/${identity(requestId)}`, "GET", undefined, signal, requestId), requestId);
   },
   async status(jobId: string, signal?: AbortSignal) {
     const job = checkedSystemRecoveryJobStatus(await request(`/jobs/${identity(jobId)}`, "GET", undefined, signal));

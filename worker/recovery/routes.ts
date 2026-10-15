@@ -5,7 +5,7 @@ import { HTTPException } from "hono/http-exception";
 import type { Env } from "../types";
 import { assertSystemAdministrator } from "../storage/system-administrator";
 import { checkedSystemRecoveryBackupInput, checkedSystemRecoveryUploadInput, checkedSystemRecoveryImportInput, checkedSystemRecoveryCutoverInput,
-  checkedSystemRecoveryJobControl, checkedSystemRecoveryJobStatus, checkedSystemRecoveryCapabilities, checkedSystemRecoveryPreview,
+  checkedSystemRecoveryJobControl, checkedSystemRecoveryJobStatus, checkedSystemRecoveryCapabilities, checkedSystemRecoveryPreview, checkedSystemRecoveryRequestAbsent,
   type SystemRecoveryBackupPreview, type SystemRecoveryReceipt, type SystemRecoveryPublicReport } from "../../shared/contracts/system-recovery";
 import { recoveryRepository,recoveryActorAllowed,systemRecoveryCapabilities,systemRecoveryJobStatus,systemRecoveryPreview,workerSystemRecoveryCapabilities, closeWorkerV5RecoveryExecutions,freezeRecoveryArtifactNamespace,assertRecoveryArtifactNamespace } from "./service";
 import { writeSystemRecoveryUpload, runBoundedSystemRecoveryReadAction } from "./jobs";
@@ -123,8 +123,14 @@ systemRecoveryRoutes.post("/system-recovery/uploads",async c=>{const acceptedInp
   const checkpoint=await freezeRecoveryArtifactNamespace(c.env);
   const accepted=await repository.accept({id:crypto.randomUUID(),requestId:acceptedInput.requestId,actor,kind:"upload",input:acceptedInput,checkpoint},()=>recoveryActorAllowed(c.env,actor));
   return c.json(await receipt(c.env,acceptedInput.requestId,accepted),202);});
-systemRecoveryRoutes.get("/system-recovery/requests/:requestId",async c=>{const actor=c.get("userEmail"),found=await recoveryRepository(c.env).request(c.req.param("requestId"),actor);if(!found)throw fail("Recovery request is not accepted",404);
-  return c.json(await receipt(c.env,c.req.param("requestId"),{job:found,reused:true}));});
+systemRecoveryRoutes.get("/system-recovery/requests/:requestId",async c=>{const actor=c.get("userEmail"),requestId=c.req.param("requestId");
+  const current=()=>{if(c.req.raw.signal.aborted)throw fail("Recovery request has ended",409);assertSystemAdministrator(c.env,actor);
+    if(!recoveryActorAllowed(c.env,actor))throw fail("System administrator access is required.",403);};current();let absent;
+  try{absent=checkedSystemRecoveryRequestAbsent({schema:"system-recovery-request-absent/1",requestId},requestId);}
+  catch{throw fail("Invalid recovery request identity",400);}
+  const found=await recoveryRepository(c.env).request(requestId,actor);current();
+  if(!found)return c.json(absent,404);
+  const value=await receipt(c.env,requestId,{job:found,reused:true});current();return c.json(value);});
 systemRecoveryRoutes.get("/system-recovery/jobs/:jobId",async c=>c.json(checkedSystemRecoveryJobStatus(await systemRecoveryJobStatus(c.env,await owned(c.env,c.req.param("jobId"),c.get("userEmail"))))));
 systemRecoveryRoutes.get("/system-recovery/jobs/:jobId/upload-intent",async c=>{const job=await owned(c.env,c.req.param("jobId"),c.get("userEmail"));if(job.kind!=="upload")throw fail("Recovery job has no upload intent",404);return c.json(checkedSystemRecoveryUploadInput(JSON.parse(job.input_json)));});
 systemRecoveryRoutes.put("/system-recovery/jobs/:jobId/upload",async c=>{const actor=c.get("userEmail"),job=await owned(c.env,c.req.param("jobId"),actor);if(job.kind!=="upload")throw fail("This is not a recovery upload",400);

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   checkedResearchExecutorStatus, checkedResearchExportInput, checkedResearchExportPlanInput,
   checkedResearchImportInput, checkedResearchJobControl, checkedResearchJobStatus,
-  checkedResearchPackagePreview, checkedResearchPreflightError, checkedResearchRequestReceipt, checkedResearchRoot, checkedResearchUploadInput,
+  checkedResearchPackagePreview, checkedResearchPreflightError, checkedResearchRequestReceipt, checkedResearchRequestAbsent, checkedResearchRoot, checkedResearchUploadInput,
   RESEARCH_PACKAGE_MAX_ARCHIVE_BYTES, RESEARCH_PACKAGE_MAX_FILES, RESEARCH_PACKAGE_MAX_FILE_BYTES,
   RESEARCH_PACKAGE_MAX_METADATA_BYTES, RESEARCH_PACKAGE_MAX_RECORDS, RESEARCH_PACKAGE_MAX_ROOTS,
   ResearchPackageInputError, type ResearchJobStatus, type ResearchPackagePreview,
@@ -22,6 +22,20 @@ const preview = (): ResearchPackagePreview => ({ schema: "research-package-previ
     { purpose: "embedded_content", role: "internal", profileId: "profile:r2", configurationRevision: 1, available: true }], existingImportJobId: null });
 const executor = () => ({ supported: true, enabled: true, stale: false, canManage: false, lastHeartbeatAt: at,
   cadenceSeconds: 120, maxStepMs: 60000, reason: null });
+
+describe("request-bound research package absence", () => {
+  it("accepts only the exact queried operation and closed absence schema", () => {
+    const value = { schema: "research-package-request-absent/1", requestId: "original:request" };
+    expect(checkedResearchRequestAbsent(value, value.requestId)).toEqual(value);
+    for (const candidate of [{ error: "Not found" }, { ...value, schema: "research-package-request-absent/2" },
+      { ...value, requestId: "other-request" }, { ...value, neverAccepted: true }, null]) {
+      expect(() => checkedResearchRequestAbsent(candidate, value.requestId)).toThrow(ResearchPackageInputError);
+    }
+    for (const requestId of ["", ".", "..", "path/private", "path\\private", "with space", "x".repeat(129), "bad\u0000id"]) {
+      expect(() => checkedResearchRequestAbsent({ ...value, requestId }, requestId)).toThrow(ResearchPackageInputError);
+    }
+  });
+});
 
 describe("research operation inputs", () => {
   it("preserves root namespaces, explicit output intent and explicit copy/naming choices", () => {

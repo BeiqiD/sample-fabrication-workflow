@@ -1,10 +1,18 @@
 # Product goal and roadmap
 
 **Current development scope — 2026-10-15:** [Capability ledger](./CURRENT_DEVELOPMENT_CAPABILITIES.md).
-The bounded backend milestone through #312 and recovery frontend work in #313–#314 are integrated.
-Draft [#315](https://github.com/BeiqiD/sample-fabrication-workflow/pull/315) at `1c5bbe0d` passed its three main-target workflows, three development push workflows and all 15 head status contexts; it remains unmerged.
-The current stabilization slice fixes [File Migration request recovery](./FILE_MIGRATION_REQUEST_RECOVERY.md): definitive rejection can return to planning, while uncertain results retain their exact identity. Its local and hosted results retain their own source scope.
-Genuine Package browser copy/import, two-built-version local tab handover and populated current-chain Wrangler rehearsal remain independent next gates. Physical-device and deployed-provider acceptance remain open. Older dated sections retain historical status.
+The bounded backend milestone through #312, recovery frontend work in #313–#314,
+and File Migration request recovery in #316 are integrated. Development base
+`5206eb34` and Draft [#315](https://github.com/BeiqiD/sample-fabrication-workflow/pull/315)
+passed their six push/main-target workflows and fifteen head contexts before this slice.
+The current [main integration checkpoint](./MAIN_MERGE_READINESS.md) fixes Package
+and Recovery uncertain-request retention, strict absence receipts, explicit retry
+and retained replan history. Its focused tests, independent review and final build
+passed. Two genuine Package browser cases, two actual-built-version handover cases
+and three populated current-chain Wrangler cases passed locally. The adopting
+candidate and updated main proposal still require their own hosted qualification.
+Physical-device, other-engine and deployed-provider acceptance remain operational
+release gates. Older dated sections retain historical status.
 
 **Supported recovery frontend development checkpoint — 2026-10-15.**
 PR #312 completed the bounded Node/Worker backend milestone at `abdc2d98`;

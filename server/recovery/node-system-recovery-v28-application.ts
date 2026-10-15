@@ -23,6 +23,7 @@ import { runSystemRecoveryJobStep, runSystemRecoveryJobStepAndDrain, writeSystem
 import { SqlSystemRecoveryRepository, type RecoveryAttempt, type RecoveryClaim, type RecoveryJob } from "../../worker/recovery/sql-repository.ts";
 import { checkedSystemRecoveryBackupInput, checkedSystemRecoveryUploadInput, checkedSystemRecoveryJobControl,
   checkedSystemRecoveryCapabilities, checkedSystemRecoveryJobStatus, checkedSystemRecoveryPreview, checkedSystemRecoveryMaintenanceInput, checkedSystemRecoveryMaintenanceStatus,
+  checkedSystemRecoveryRequestAbsent,
   checkedSystemRecoveryImportInput, checkedSystemRecoveryCutoverInput,
   type SystemRecoveryCapabilities, type SystemRecoveryJobStatus } from "../../shared/contracts/system-recovery.ts";
 import { openNodePrivateRecoveryArtifacts, type NodePrivateRecoveryArtifacts } from "./node-private-artifacts.ts";
@@ -979,8 +980,11 @@ function createRecoveryEngine(options: Omit<OriginalRecoveryOptions, "hasher"> &
         checkpoint: owner.artifacts!.checkpoint() }, () => { try { sessionCurrent(c.req.raw, actor); return true; } catch { return false; } });
       return c.json(await receipt(repo, input.requestId, accepted), 202); });
     app.get("/api/system-recovery/requests/:requestId", async c => { const actor = c.get("userEmail"), repo = requestOwner(c.req.raw, actor);
-      const job = await repo.request(c.req.param("requestId"), actor); if (!job) throw fail("Recovery request is not accepted", 404);
-      return c.json(await receipt(repo, c.req.param("requestId"), { job, reused: true })); });
+      const requestId = c.req.param("requestId"), job = await repo.request(requestId, actor);
+      sessionCurrent(c.req.raw, actor);
+      if (!job) return c.json(checkedSystemRecoveryRequestAbsent({ schema: "system-recovery-request-absent/1", requestId }, requestId), 404);
+      const result = await receipt(repo, requestId, { job, reused: true });
+      sessionCurrent(c.req.raw, actor); return c.json(result); });
     app.get("/api/system-recovery/jobs/:jobId", async c => { const actor = c.get("userEmail"), repo = requestOwner(c.req.raw, actor);
       return c.json(await status(repo, await owned(repo, c.req.param("jobId"), actor))); });
     app.get("/api/system-recovery/jobs/:jobId/upload-intent", async c => { const actor = c.get("userEmail"), repo = requestOwner(c.req.raw, actor);

@@ -2,7 +2,7 @@ import { applicationFetch } from "./authentication-client";
 import {
   checkedResearchExecutorStatus, checkedResearchExportInput, checkedResearchExportPlanInput,
   checkedResearchImportInput, checkedResearchJobControl, checkedResearchJobStatus,
-  checkedResearchPackagePreview, checkedResearchPreflightError, checkedResearchRequestReceipt, checkedResearchUploadInput,
+  checkedResearchPackagePreview, checkedResearchPreflightError, checkedResearchRequestReceipt, checkedResearchRequestAbsent, checkedResearchUploadInput,
   RESEARCH_PACKAGE_MAX_ARCHIVE_BYTES,
   type ResearchExportInput, type ResearchExportPlanInput, type ResearchImportInput,
   type ResearchJobControl, type ResearchJobKind, type ResearchPackagePreflightReason, type ResearchRequestReceipt, type ResearchUploadInput,
@@ -31,6 +31,9 @@ export class ResearchPackageRequestError extends Error {
                 : "The package response is unavailable. Check the original request before retrying.");
     this.name = "ResearchPackageRequestError";
   }
+}
+export class ResearchPackageRequestMissingError extends ResearchPackageRequestError {
+  constructor() { super(404); this.name = "ResearchPackageRequestMissingError"; }
 }
 export function researchPackageErrorMessage(error: unknown): string {
   return error instanceof ResearchPackageRequestError ? error.message : "The research package could not be validated. Refresh and try again.";
@@ -110,7 +113,17 @@ export const researchPackagesClient = {
     return receipt(await request("/imports", "POST", checked, signal), checked.requestId, "import");
   },
   async readRequest(requestId: string, signal?: AbortSignal) {
-    return receipt(await request(`/requests/${identity(requestId)}`, "GET", undefined, signal), requestId);
+    const path = `/requests/${identity(requestId)}`;
+    let response: Response;
+    try { response = await applicationFetch(`${base}${path}`, { method: "GET", credentials: "same-origin", cache: "no-store", redirect: "error", signal }); }
+    catch { throw new ResearchPackageRequestError(null); }
+    if (response.status === 404) {
+      ensure(/^application\/json(?:\s*;|$)/i.test(response.headers.get("content-type") ?? ""));
+      checkedResearchRequestAbsent(await response.json(), requestId);
+      throw new ResearchPackageRequestMissingError();
+    }
+    if (!response.ok) throw new ResearchPackageRequestError(response.status);
+    return receipt(await response.json(), requestId);
   },
   async status(jobId: string, signal?: AbortSignal) {
     const job = checkedResearchJobStatus(await request(`/jobs/${identity(jobId)}`, "GET", undefined, signal));

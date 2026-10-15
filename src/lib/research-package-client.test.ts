@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { RESEARCH_PACKAGE_MAX_ARCHIVE_BYTES, RESEARCH_PACKAGE_MAX_RECORDS, RESEARCH_PACKAGE_MAX_ROOTS,
   type ResearchImportInput, type ResearchJobStatus, type ResearchPackagePreview } from "../../shared/contracts/research-package-api";
-import { researchPackageErrorMessage, ResearchPackageRequestError, researchPackagesClient } from "./research-package-client";
+import { researchPackageErrorMessage, ResearchPackageRequestError, ResearchPackageRequestMissingError, researchPackagesClient } from "./research-package-client";
 
 const base = "/api/packages", at = "2026-10-06T09:00:00.000Z", sha256 = "a".repeat(64);
 const exportInput = { requestId: "export:1", kind: "data_package" as const,
@@ -81,6 +81,27 @@ describe("private research package operations", () => {
     expect(network.mock.calls.map(([, options]) => options?.method)).toEqual(["POST", "GET"]);
     expect(JSON.parse(String(network.mock.calls[0][1]?.body))).toEqual(exportInput);
     expect(network.mock.calls[1][1]?.body).toBeUndefined();
+  });
+
+  it("recognizes only a checked exact request absence and never replays a missing receipt", async () => {
+    mockNetwork().mockResolvedValueOnce(json({ schema: "research-package-request-absent/1", requestId: exportInput.requestId }, 404));
+    await expect(researchPackagesClient.readRequest(exportInput.requestId)).rejects.toBeInstanceOf(ResearchPackageRequestMissingError);
+    expect(network).toHaveBeenCalledOnce(); expect(network.mock.calls[0]).toEqual([`${base}/requests/export%3A1`,
+      { method: "GET", credentials: "same-origin", cache: "no-store", redirect: "error", signal: undefined }]);
+  });
+
+  it.each([
+    ["generic route 404", json({ error: "PRIVATE_ROUTE" }, 404)],
+    ["another request", json({ schema: "research-package-request-absent/1", requestId: "another:request" }, 404)],
+    ["unknown private fields", json({ schema: "research-package-request-absent/1", requestId: exportInput.requestId, privateCredential: "PRIVATE" }, 404)],
+    ["HTML fallback", new Response("PRIVATE_HTML", { status: 404, headers: { "content-type": "text/html" } })],
+    ["malformed JSON", new Response("{", { status: 404, headers: { "content-type": "application/json" } })],
+  ])("keeps uncertainty for %s instead of authorizing retry or fresh work", async (_label, response) => {
+    mockNetwork().mockResolvedValueOnce(response);
+    const error = await researchPackagesClient.readRequest(exportInput.requestId).catch(error => error);
+    expect(error).toBeInstanceOf(Error); expect(error).not.toBeInstanceOf(ResearchPackageRequestMissingError);
+    expect(researchPackageErrorMessage(error)).not.toContain("PRIVATE"); expect(network).toHaveBeenCalledOnce();
+    expect(network.mock.calls[0][1]?.method).toBe("GET");
   });
 
   it("reads a checked upload intent with GET only and rejects private extensions, invalid hashes and unsafe paths", async () => {

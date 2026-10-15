@@ -44,7 +44,7 @@ function fallback(path: RequestInfo | URL, options?: RequestInit): Response {
   }
   if (url.pathname.startsWith(`${base}/requests/`) && method === "GET") {
     const receipt = receipts.get(decodeURIComponent(url.pathname.slice(`${base}/requests/`.length)));
-    return receipt ? json(receipt) : json({ error: "PRIVATE_MISSING_RECEIPT" }, 404);
+    return receipt ? json(receipt) : json({ schema: "research-package-request-absent/1", requestId: decodeURIComponent(url.pathname.slice(`${base}/requests/`.length)) }, 404);
   }
   if (url.pathname === `${base}/jobs` && method === "POST") {
     const input = JSON.parse(String(options?.body)), accepted = { ...job(input.kind), requestId: input.requestId };
@@ -117,6 +117,19 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); sessionStorage.clear(); });
 
 describe("native research package browser workflow", () => {
+  it.each(["data_package", "report", "import"] as const)("labels %s result roots according to their source or imported identity", async kind => {
+    jobs = [{ ...job(kind, "completed"), result: { roots: [{ kind: "sample", id: "sample:original" }, { kind: "project", id: "project:original" }], reused: false } }];
+    await mount();
+    const identity = kind === "import" ? "imported" : "source", other = kind === "import" ? "source" : "imported";
+    expect(screen.getByRole("link", { name: `Open ${identity} sample` }).getAttribute("href")).toBe("/samples/sample%3Aoriginal");
+    expect(screen.getByRole("link", { name: `Open ${identity} project` }).getAttribute("href")).toBe("/projects/project%3Aoriginal");
+    expect(screen.queryByRole("link", { name: `Open ${other} sample` })).toBeNull();
+    expect(screen.queryByRole("link", { name: `Open ${other} project` })).toBeNull();
+    if (kind === "import") expect(screen.getByText("Research copy published.")).toBeTruthy();
+    else { expect(screen.getByText("Export source research.")).toBeTruthy(); expect(screen.queryByText("Research copy published.")).toBeNull(); }
+    expect(savedMutations()).toHaveLength(0);
+  });
+
   it("moves a focused Start to only the accepted package job's Pause after its original receipt body settles", async () => {
     let finishBody!: (value: unknown) => void;
     const body = new Promise<unknown>(resolve => { finishBody = resolve; }), other = job("report", "queued", "other:job"); jobs = [other];
@@ -478,6 +491,34 @@ describe("native research package browser workflow", () => {
     expect(sessionStorage.getItem(intentKey)).toBeNull();
   });
 
+  it.each([
+    { resumed: false, stage: "hash" }, { resumed: false, stage: "validation" },
+    { resumed: true, stage: "hash" }, { resumed: true, stage: "validation" },
+  ])("does not dispatch or replace checkpoints after poll denial during $stage (resumed: $resumed)", async ({ resumed, stage }) => {
+    vi.useFakeTimers(); if (resumed) rememberUpload("awaiting_upload");
+    const uploadBytes = sessionStorage.getItem(uploadKey), uuid = vi.spyOn(crypto, "randomUUID");
+    let finish!: () => void; const held = new Promise<void>(resolve => { finish = resolve; });
+    if (stage === "hash") vi.mocked(hashResearchFile).mockImplementationOnce(async file => { await held; return { byteSize: file.size, sha256 }; });
+    else vi.mocked(validateStoreArchive).mockImplementationOnce(async () => { await held; return { byteSize: 12, sha256, entries: [], metadata: new Map() }; });
+    await act(async () => { render(<MemoryRouter><ResearchPackagesPage /></MemoryRouter>); for (let i = 0; i < 30; i++) await Promise.resolve(); });
+    const file = new File(["archive data"], "original.zip", { type: "application/zip" });
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText("Native package ZIP"), { target: { files: [file] } });
+      fireEvent.click(screen.getByRole("button", { name: resumed ? "Resume original upload" : "Upload and validate package" }));
+      for (let i = 0; i < 20; i++) await Promise.resolve();
+    });
+    expect(hashResearchFile).toHaveBeenCalledTimes(1); expect(validateStoreArchive).toHaveBeenCalledTimes(stage === "hash" ? 0 : 1);
+    network.mockImplementation(async (path, options) => String(path) === `${base}/jobs` && options?.method === "GET"
+      ? json({ error: "PRIVATE_POLL_DENIAL" }, 403) : fallback(path, options));
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    expect(screen.getByText(/Sign in with an account allowed to use the application/)).toBeTruthy();
+    await act(async () => { finish(); for (let i = 0; i < 40; i++) await Promise.resolve(); });
+    expect(savedMutations()).toHaveLength(0); expect(uuid).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem(uploadKey)).toBe(uploadBytes); expect(sessionStorage.getItem(intentKey)).toBeNull();
+    expect(sessionStorage.getItem("research-package-earlier-requests")).toBeNull();
+    expect(document.body.textContent).not.toContain("PRIVATE");
+  });
+
   it("retains a lost acceptance across reload, checks it with GET only and retries only the exact original intent", async () => {
     network.mockImplementation(async (path, options) => {
       if (String(path) === `${base}/jobs` && options?.method === "POST" && callsTo("/jobs", "POST").length === 1) {
@@ -487,7 +528,7 @@ describe("native research package browser workflow", () => {
       return fallback(path, options);
     });
     const first = await mount("?rootType=sample&rootId=sample%3A1"); fireEvent.click(await previewExport());
-    await screen.findByRole("button", { name: "Check or retry original request" });
+    await screen.findByRole("button", { name: "Check original package request" });
     await screen.findByText(/Check the original request before retrying/);
     const original = JSON.parse(String(callsTo("/jobs", "POST")[0][1]?.body)); first.unmount();
     await mount("?rootType=project&rootId=changed-selection");
@@ -496,7 +537,7 @@ describe("native research package browser workflow", () => {
     expect(callsTo(`/requests/${encodeURIComponent(original.requestId)}`, "GET")).toHaveLength(1);
     expect(screen.getByLabelText("Sample and Project roots").matches(":disabled")).toBe(true);
     expect(document.body.textContent).not.toContain("PRIVATE");
-    fireEvent.click(await enabled("Check or retry original request"));
+    fireEvent.click(await enabled("Retry original package request"));
     await waitFor(() => expect(sessionStorage.getItem(intentKey)).toBeNull());
     expect(callsTo("/jobs", "POST")).toHaveLength(2);
     expect(JSON.parse(String(callsTo("/jobs", "POST")[1][1]?.body))).toEqual(original);
@@ -613,9 +654,10 @@ describe("native research package browser workflow", () => {
     await waitFor(() => expect(network.mock.calls.filter(([path]) => String(path).includes("/preview?")).length).toBe(2));
     expect(callsTo("/imports", "POST")).toHaveLength(1);
     expect(JSON.parse(sessionStorage.getItem(intentKey)!).input).toEqual(original);
-    fireEvent.click(await enabled("Check or retry original request"));
-    await screen.findByText("The preview or destination policy changed. Refresh the preview before accepting new work.");
-    await waitFor(() => expect(sessionStorage.getItem(intentKey)).toBeNull());
+    fireEvent.click(await enabled("Retry original package request"));
+    await screen.findByText("The earlier package request remains unconfirmed. A later rejected retry does not settle its original result.");
+    expect(JSON.parse(sessionStorage.getItem(intentKey)!).input).toEqual(original);
+    expect(screen.queryByRole("button", { name: "Review a new package request" })).toBeNull();
     expect(callsTo("/imports", "POST")).toHaveLength(2);
     expect(JSON.parse(String(callsTo("/imports", "POST")[1][1]?.body))).toEqual(original);
     expect(importPreview.rolePolicyRevision).toBe(4);
@@ -630,11 +672,15 @@ describe("native research package browser workflow", () => {
       return fallback(path, options);
     });
     await mount(); fireEvent.click(await enabled("Import research copy"));
-    await screen.findByText("The preview or destination policy changed. Refresh the preview before accepting new work.");
+    await enabled("Review a new package request");
     const original = JSON.parse(String(callsTo("/imports", "POST")[0][1]?.body));
     expect(callsTo(`/requests/${encodeURIComponent(original.requestId)}`, "GET")).toHaveLength(1);
-    expect(sessionStorage.getItem(intentKey)).toBeNull(); expect(screen.queryByRole("button", { name: "Import research copy" })).toBeNull();
+    expect(JSON.parse(sessionStorage.getItem(intentKey)!).input).toEqual(original);
+    expect(screen.getByRole("button", { name: "Import research copy" }).matches(":disabled")).toBe(true);
     expect(callsTo("/imports", "POST")).toHaveLength(1); expect(document.body.textContent).not.toContain("PRIVATE_STALE_POLICY");
+    fireEvent.click(await enabled("Review a new package request"));
+    await waitFor(() => expect(sessionStorage.getItem(intentKey)).toBeNull());
+    expect(callsTo(`/requests/${encodeURIComponent(original.requestId)}`, "GET")).toHaveLength(2);
     fireEvent.click(await enabled("Refresh import preview")); fireEvent.click(await enabled("Import research copy"));
     await screen.findByText("Research copy published.");
     const replacement = JSON.parse(String(callsTo("/imports", "POST")[1][1]?.body));
@@ -662,7 +708,9 @@ describe("native research package browser workflow", () => {
     await screen.findByText("A destination name cannot be assigned safely. Choose another suffix and refresh the preview.");
     const input = JSON.parse(String(callsTo("/imports", "POST")[0][1]?.body));
     expect(callsTo(`/requests/${encodeURIComponent(input.requestId)}`, "GET")).toHaveLength(1);
-    expect(sessionStorage.getItem(intentKey)).toBeNull(); expect(screen.queryByRole("button", { name: "Import research copy" })).toBeNull();
+    expect(JSON.parse(sessionStorage.getItem(intentKey)!).input).toEqual(input);
+    expect(screen.getByRole("button", { name: "Import research copy" }).matches(":disabled")).toBe(true);
+    expect(screen.getByRole("button", { name: "Review a new package request" })).toBeTruthy();
     expect(document.body.textContent).not.toContain("The preview or destination policy changed");
     expect(document.body.textContent).not.toContain("PRIVATE"); expect(callsTo("/imports", "POST")).toHaveLength(1);
   });
@@ -681,12 +729,12 @@ describe("native research package browser workflow", () => {
       return fallback(path, options);
     });
     await mount(); fireEvent.click(await enabled("Import research copy"));
-    await enabled("Check or retry original request");
+    await enabled("Check original package request");
     const original = JSON.parse(String(callsTo("/imports", "POST")[0][1]?.body));
     await waitFor(() => expect(receiptReads).toBe(1));
     expect(JSON.parse(sessionStorage.getItem(intentKey)!).input).toEqual(original); expect(original.expectedRolePolicyRevision).toBe(3);
     expect(document.body.textContent).not.toContain("PRIVATE");
-    fireEvent.click(await enabled("Check or retry original request"));
+    fireEvent.click(await enabled("Check original package request"));
     await screen.findByText("The existing completed import is available.");
     expect(sessionStorage.getItem(intentKey)).toBeNull(); expect(callsTo("/imports", "POST")).toHaveLength(1);
     expect(callsTo(`/requests/${encodeURIComponent(original.requestId)}`, "GET")).toHaveLength(2);

@@ -4,7 +4,7 @@
 .research-packages-page textarea { width: 100%; resize: vertical; }
 .research-package-preview { margin: 24px 0; }
 .research-package-preview h3 { margin: 20px 0 10px; }
-.research-package-preview code, .research-package-job code { overflow-wrap: anywhere; }
+.research-package-preview code, .research-package-job code, .research-package-history code { overflow-wrap: anywhere; }
 .research-package-table { overflow-x: auto; margin: 16px 0; }
 .research-package-table table { width: 100%; border-collapse: collapse; text-align: left; }
 .research-package-table th, .research-package-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); }
