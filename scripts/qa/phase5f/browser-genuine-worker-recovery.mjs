@@ -62,7 +62,14 @@ try {
     }
   }
   report.status = 'passed';
-} catch (error) { report.status = 'failed'; report.error = error.stack ?? String(error); process.exitCode = 1; }
+} catch (error) {
+  report.status = 'failed'; report.error = error.stack ?? String(error); process.exitCode = 1;
+  if (process.env.GITHUB_ACTIONS === 'true') {
+    const detail = `${report.cases?.at(-1)?.name ?? args[2]}: ${report.error}`.slice(0, 12000)
+      .replaceAll('%', '%25').replaceAll('\r', '%0D').replaceAll('\n', '%0A');
+    process.stdout.write(`::error title=Genuine recovery failure::${detail}\n`);
+  }
+}
 finally {
   if (owner) await owner.close();
   if (browser) await browser.close();

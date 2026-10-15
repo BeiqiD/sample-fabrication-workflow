@@ -79,6 +79,19 @@ edge header during download, proxy Origin mismatch and redundant CDP response-bo
 inspection. These QA fixes preserved actual JWT/Origin checks and product code.
 The final74.8s result is a local test duration, not production latency or cadence.
 
+A later `CI=true` reproduction exposed another secondary inspector-body read
+failure after the real client had rendered a successful backup preview. The
+helper now checks exact browser HTTP statuses, validates each original POST input
+and its exact signed request receipt, and checks the real client's job/intent
+state. It does not read response bodies again through CDP. Downloaded archive and
+report bytes, independent native readback and all five browser mutations retain
+their original assertions. The original failed local and hosted runs remain
+separate evidence; a local reproduction does not establish the inaccessible
+hosted error message.
+The corrected helper passed both full `CI=true` local cases in
+`/tmp/pr314-cdp-body-fix-ci-true-local-full-attempt1/report.json`; this remains
+local evidence, separate from the candidate's hosted workflow results.
+
 ## GitHub automation
 
 The dedicated `Genuine Worker recovery browser` workflow builds the checked-out
@@ -90,3 +103,5 @@ allowance retains the helper's three-minute QA job-step deadline and existing
 production kernel limits. Reports and screenshots are explicitly listed for
 artifact upload; databases, R2 persistence, ZIPs and runtime configuration are
 excluded. Hosted results are recorded separately when the successor runs.
+On failure, one bounded escaped Actions error annotation preserves the original
+exception in the Checks API as well as the report; failure still exits nonzero.

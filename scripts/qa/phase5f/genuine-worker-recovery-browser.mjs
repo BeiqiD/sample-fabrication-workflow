@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { sha256 } from './genuine-worker-recovery-runtime.mjs';
+import { checkedSystemRecoveryBackupInput, checkedSystemRecoveryUploadInput, checkedSystemRecoveryImportInput,
+  checkedSystemRecoveryReceipt } from '../../../shared/contracts/system-recovery.ts';
 
 const base = '/api/system-recovery';
 const button = (page, name) => page.getByRole('button', { name, exact: true });
@@ -17,12 +19,33 @@ async function capture(page, root, name) {
   await page.screenshot({ path: resolve(root, `${name}.full.png`), fullPage: true });
   return { geometry, viewport: `${name}.png`, fullPage: `${name}.full.png` };
 }
-async function responseAfter(page, path, method, operation) {
+async function responseAfter(page, path, method, operation, expectedStatus = 200) {
   const wait = page.waitForResponse(response => new URL(response.url()).pathname === path && response.request().method() === method);
   // A failed action still closes the owning context; consume that wait rejection.
   void wait.catch(() => {});
   await operation(); const response = await wait;
-  assert(response.ok(), `${method} ${path}: HTTP ${response.status()}${response.ok() ? '' : ` ${await response.text()}`}`); return response.json();
+  assert.equal(response.status(), expectedStatus, `${method} ${path}: HTTP ${response.status()}`);
+  return response;
+}
+async function acceptedAfter(page, owner, value, path, kind, operation) {
+  const response = await responseAfter(page, path, 'POST', operation, 202);
+  const rawInput = response.request().postDataJSON();
+  const input = kind === 'backup' ? checkedSystemRecoveryBackupInput(rawInput)
+    : kind === 'upload' ? checkedSystemRecoveryUploadInput(rawInput) : checkedSystemRecoveryImportInput(rawInput);
+  // The real client validates the original ACK. Exact signed receipt reads
+  // supply observer metadata without depending on Chromium's inspector cache.
+  const receipt = checkedSystemRecoveryReceipt(await owner.request(`${base}/requests/${encodeURIComponent(input.requestId)}`));
+  assert.equal(receipt.requestId, input.requestId); assert.equal(receipt.job.requestId, input.requestId);
+  assert.equal(receipt.job.kind, kind); assert.equal(receipt.reused, true);
+  await page.locator('.system-recovery-job').filter({ has: page.getByText(receipt.job.id, { exact: true }) }).waitFor();
+  await page.waitForFunction(() => sessionStorage.getItem('system-recovery-operation') === null);
+  if (kind === 'upload') {
+    const checkpoint = await page.evaluate(() => JSON.parse(sessionStorage.getItem('system-recovery-upload')));
+    assert.deepEqual(checkpoint, { input, jobId: receipt.job.id });
+  } else await page.getByText('Operation saved.', { exact: false }).waitFor();
+  (value.originalRequestReceipts ??= []).push({ requestId: input.requestId, jobId: receipt.job.id, kind,
+    originalBrowserStatus: response.status(), exactSignedReceiptRead: true, checkedClientJobVisible: true, clientIntentCleared: true });
+  return receipt;
 }
 async function download(page, link, path) {
   const wait = page.waitForEvent('download'); void wait.catch(() => {});
@@ -80,12 +103,13 @@ export async function qualifyGenuineRecoveryBrowser(owner, context, value) {
     await page.goto(`${owner.browserOrigin}/settings/data/system`);
     await page.getByRole('heading', { name: 'System backup and recovery', exact: true }).waitFor();
     await responseAfter(page, `${base}/executor`, 'POST', () => keyboard(page, button(page, 'Enable system recovery executor')));
+    await enabled(button(page, 'Disable system recovery executor'));
     const previewButton = button(page, 'Preview system backup');
     await responseAfter(page, `${base}/backup-preview`, 'GET', () => keyboard(page, previewButton));
     await enabled(button(page, 'Start durable system backup'));
     assert(await previewButton.evaluate(element => element === document.activeElement));
     value.backupPreviewKeyboardFocus = true;
-    const backupReceipt = await responseAfter(page, `${base}/jobs`, 'POST', () => keyboard(page, button(page, 'Start durable system backup')));
+    const backupReceipt = await acceptedAfter(page, owner, value, `${base}/jobs`, 'backup', () => keyboard(page, button(page, 'Start durable system backup')));
     const backup = await owner.scheduleUntil(backupReceipt.job.id, 'completed'); assert(backup.output?.available);
     await keyboard(page, button(page, 'Refresh recovery status'));
     const backupArticle = page.locator('.system-recovery-job').filter({ has: page.getByText(backup.id, { exact: true }) });
@@ -95,7 +119,7 @@ export async function qualifyGenuineRecoveryBrowser(owner, context, value) {
     await page.getByLabel('System recovery ZIP').setInputFiles(archivePath);
     const uploaded = page.waitForResponse(response => new URL(response.url()).pathname.endsWith('/upload') && response.request().method() === 'PUT');
     void uploaded.catch(() => {});
-    const uploadReceipt = await responseAfter(page, `${base}/uploads`, 'POST', () => keyboard(page, button(page, 'Upload and validate recovery archive')));
+    const uploadReceipt = await acceptedAfter(page, owner, value, `${base}/uploads`, 'upload', () => keyboard(page, button(page, 'Upload and validate recovery archive')));
     const uploadResponse = await uploaded; assert(uploadResponse.ok());
     // The real client validates the PUT receipt. Chromium may evict a binary
     // upload's inspector body; do not depend on a second CDP body read.
@@ -114,7 +138,7 @@ export async function qualifyGenuineRecoveryBrowser(owner, context, value) {
       await page.getByLabel(`Revision for ${profile.id}`, { exact: true }).fill('1');
     }
     await enabled(stage); value.mappingScreenshot = await capture(page, owner.output, 'actual-explicit-mapping');
-    const recoveryReceipt = await responseAfter(page, `${base}/recoveries`, 'POST', () => keyboard(page, stage));
+    const recoveryReceipt = await acceptedAfter(page, owner, value, `${base}/recoveries`, 'recovery', () => keyboard(page, stage));
     const recovery = await owner.scheduleUntil(recoveryReceipt.job.id, 'completed'); assert.equal(recovery.result?.ready, true); assert.equal(recovery.result.cutover, false);
     await keyboard(page, button(page, 'Refresh recovery status'));
     const recoveryArticle = page.locator('.system-recovery-job').filter({ has: page.getByText(recovery.id, { exact: true }) });

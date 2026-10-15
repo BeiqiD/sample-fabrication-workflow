@@ -1,8 +1,11 @@
 # Current development capabilities
 
-Recorded 2026-10-15 against PR #313 candidate `6ca0d8ccc600aeb8b1fbfd59fc5067c64e8a4650`.
+Recorded 2026-10-15 against PR #313 candidate `6ca0d8ccc600aeb8b1fbfd59fc5067c64e8a4650`,
+merged into development as `860c61d25e6f7e7f30546ea6e1d16e17bc9e28b0`.
 This is a development/review ledger, not production activation or release approval.
-[PR #313](https://github.com/BeiqiD/sample-fabrication-workflow/pull/313) tracks the frontend policy integration; its own hosted checks and merge receipt remain separate from the local results below.
+[PR #313](https://github.com/BeiqiD/sample-fabrication-workflow/pull/313) passed its
+four push/PR workflows and fifteen status contexts before that merge. Its hosted
+checks and merge receipt remain separate from the local results below.
 
 ## Completed backend milestone
 
@@ -66,6 +69,9 @@ target execution. Read-only Storage/Migration/Data/Recovery navigation reopened
 the original verified report without another mutation. These are two new genuine
 local browser cases, separate from PR313's seven HTTP-fixture cases. See the
 [qualification and repeatable command](./GENUINE_WORKER_RECOVERY_BROWSER.md).
+The follow-on [PR #314](https://github.com/BeiqiD/sample-fabrication-workflow/pull/314)
+adds repeatable automation and records its own candidate-specific hosted results;
+local passes and PR313's checks do not qualify a later candidate.
 Only observed defects require product changes. Keep heavy checks local/GitHub CI;
 the minimal Cloudflare bundle/upload path is unchanged.
 
