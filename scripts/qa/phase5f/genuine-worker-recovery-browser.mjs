@@ -12,12 +12,47 @@ async function enabled(locator) {
 }
 async function keyboard(page, locator) { await enabled(locator); await locator.focus(); await page.keyboard.press('Enter'); }
 async function capture(page, root, name) {
-  const geometry = await page.evaluate(() => ({ viewport: innerWidth, width: document.documentElement.scrollWidth, theme: document.documentElement.dataset.theme }));
-  assert(geometry.width <= geometry.viewport + 1, `Page horizontal overflow: ${JSON.stringify(geometry)}`);
+  const layout = await page.evaluate(() => {
+    const geometry = { viewport: innerWidth, width: document.documentElement.scrollWidth, theme: document.documentElement.dataset.theme };
+    const selector = element => `${element.tagName.toLowerCase()}${[...element.classList].slice(0, 3).map(value => `.${value}`).join('')}`.slice(0, 140);
+    const bounds = element => {
+      const rect = element.getBoundingClientRect(), offset = getComputedStyle(element).position === 'fixed' ? 0 : scrollX;
+      return { left: Math.round((rect.left + offset) * 10) / 10, right: Math.round((rect.right + offset) * 10) / 10, width: Math.round(rect.width * 10) / 10 };
+    };
+    const describe = element => {
+      const style = getComputedStyle(element);
+      return { selector: selector(element), ...bounds(element), clientWidth: element.clientWidth, scrollWidth: element.scrollWidth,
+        display: style.display, position: style.position, overflowX: style.overflowX, whiteSpace: style.whiteSpace,
+        minWidth: style.minWidth, maxWidth: style.maxWidth, flexShrink: style.flexShrink,
+        fontFamily: style.fontFamily, fontSize: style.fontSize, fontWeight: style.fontWeight };
+    };
+    const clippedInsideViewport = element => {
+      for (let parent = element.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
+        if (['auto', 'scroll', 'hidden', 'clip'].includes(getComputedStyle(parent).overflowX)) {
+          const rect = bounds(parent);
+          if (rect.left >= -1 && rect.right <= innerWidth + 1) return true;
+        }
+      }
+      return false;
+    };
+    const candidates = [...document.body.querySelectorAll('*')].filter(element => {
+      const rect = element.getBoundingClientRect(), box = bounds(element);
+      return rect.width > 0 && rect.height > 0 && (box.right > innerWidth + 1 || box.left < -1) && !clippedInsideViewport(element);
+    }).sort((left, right) => bounds(left).width - bounds(right).width).slice(0, 6).map(element => ({ ...describe(element),
+      ancestors: [element.parentElement, element.parentElement?.parentElement].filter(Boolean).map(describe) }));
+    const bodyStyle = getComputedStyle(document.body), canvas = document.createElement('canvas'), context = canvas.getContext('2d');
+    context.font = bodyStyle.font;
+    return { geometry, documentClientWidth: document.documentElement.clientWidth, scrollX, devicePixelRatio,
+      bodyFont: bodyStyle.font, resumeUploadTextWidth: context.measureText('Resume original recovery upload').width,
+      candidates, controls: [...document.querySelectorAll('.system-recovery-page button, .system-recovery-page select, .system-recovery-page input[type=file]')]
+        .filter(element => !clippedInsideViewport(element)).slice(0, 18).map(describe) };
+  });
+  const { geometry } = layout;
+  assert(geometry.width <= geometry.viewport + 1, `Page horizontal overflow: ${JSON.stringify(layout)}`);
   await page.screenshot({ path: resolve(root, `${name}.png`) });
   await page.evaluate(() => scrollTo(0, 0));
   await page.screenshot({ path: resolve(root, `${name}.full.png`), fullPage: true });
-  return { geometry, viewport: `${name}.png`, fullPage: `${name}.full.png` };
+  return { geometry, layout, viewport: `${name}.png`, fullPage: `${name}.full.png` };
 }
 async function responseAfter(page, path, method, operation, expectedStatus = 200) {
   const wait = page.waitForResponse(response => new URL(response.url()).pathname === path && response.request().method() === method);

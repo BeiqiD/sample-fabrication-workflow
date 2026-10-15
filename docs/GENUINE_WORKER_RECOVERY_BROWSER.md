@@ -3,9 +3,10 @@
 The recovery page's actual current24 Worker path passed two local Chromium
 cases on 2026-10-15: **1280/light** and **390/dark**. Each case used its own
 Wrangler-migrated source D1, fresh target D1 and Miniflare R2 namespace. The
-tested local build accompanies PR313 candidate `6ca0d8c`; its Worker
+first tested local build used PR313 candidate `6ca0d8c`; its Worker
 entry SHA-256 was `5626ffb3213a79fe4cfa418f0cb61f36812ce6dca6941020705100450bd3c69b`.
-The QA/documentation successor changes no product runtime source.
+The initial QA result changed no product runtime source. The subsequent
+responsive control correction below changes recovery-page CSS only.
 
 ## Actual path
 
@@ -91,6 +92,21 @@ hosted error message.
 The corrected helper passed both full `CI=true` local cases in
 `/tmp/pr314-cdp-body-fix-ci-true-local-full-attempt1/report.json`; this remains
 local evidence, separate from the candidate's hosted workflow results.
+
+The corrected observer then exposed a genuine hosted mobile layout failure:
+390px viewport,402px document. Actual styled-DOM diagnosis with DejaVu Sans
+reproduced the402px width: the nonwrapping "Release source maintenance window"
+button extended to402.17px. Recovery-page buttons now stay within their available
+width and wrap their labels. The same diagnosis then measured a390px document;
+the mapping tables retain their own horizontal scrolling. This layout diagnosis
+does not replace the full genuine-backend browser qualification or its hosted
+results. The original hosted failures remain recorded separately.
+After rebuilding the scoped CSS change, both complete `CI=true` genuine cases
+passed in `/tmp/pr314-recovery-button-wrap-genuine-ci-true-attempt1/report.json`.
+Mapping and final-report document widths were exactly1280/390px, with all native
+readback, receipt, mutation and closure checks retained. Separately, twelve
+rebuilt-CSS layout cases (three fonts, four long labels) passed without injecting
+a style fix. Those static cases are layout diagnosis, not twelve backend cases.
 
 ## GitHub automation
 
