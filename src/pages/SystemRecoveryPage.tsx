@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import {
   checkedSystemRecoveryBackupInput, checkedSystemRecoveryCutoverInput, checkedSystemRecoveryImportInput,
   checkedSystemRecoveryMaintenanceInput,
+  checkedSystemRecoveryMaintenanceReceipt, checkedSystemRecoverySourceResumeInput,
   checkedSystemRecoveryUploadInput, SYSTEM_RECOVERY_MAX_ARCHIVE_BYTES,
   type SystemRecoveryBackupInput, type SystemRecoveryBackupPreview, type SystemRecoveryCapabilities,
   type SystemRecoveryCutoverInput, type SystemRecoveryImportInput, type SystemRecoveryJobControl,
@@ -10,6 +11,7 @@ import {
   type SystemRecoveryStorageMapping, type SystemRecoveryUploadInput,
   type SystemRecoveryMaintenanceInput, type SystemRecoveryMaintenanceStatus,
   type SystemRecoveryMaintenanceReceipt,
+  type SystemRecoverySourceResumeInput, type SystemRecoverySourceResumeReceipt,
 } from "../../shared/contracts/system-recovery";
 import { hashResearchFile } from "../../shared/domain/research-sha256";
 import { systemRecoveryClient, systemRecoveryErrorMessage, SystemRecoveryRequestError } from "../lib/system-recovery-client";
@@ -19,6 +21,9 @@ import "./system-recovery.css";
 
 const intentKey = "system-recovery-operation", uploadKey = "system-recovery-upload", receiptsKey = "system-recovery-receipts";
 const maintenanceKey = "system-recovery-maintenance";
+const sourceResumeKey = "system-recovery-source-resume", sourceReleaseKey = "system-recovery-source-release";
+const sourceBackupKey = "system-recovery-source-backup";
+type SourceRelease = { release: SystemRecoveryMaintenanceReceipt; backupJobId: string };
 type Intent = { action: "backup"; input: SystemRecoveryBackupInput } | { action: "upload"; input: SystemRecoveryUploadInput }
   | { action: "recovery"; input: SystemRecoveryImportInput } | { action: "cutover"; jobId: string; input: SystemRecoveryCutoverInput };
 type UploadCheckpoint = { input: SystemRecoveryUploadInput; jobId: string };
@@ -66,6 +71,18 @@ function savedMaintenance(): SystemRecoveryMaintenanceInput | null {
   try { const value = JSON.parse(sessionStorage.getItem(maintenanceKey) || "null"); return value ? checkedSystemRecoveryMaintenanceInput(value) : null; }
   catch { return null; }
 }
+function savedSourceResume(): SystemRecoverySourceResumeInput | null {
+  try { const value = JSON.parse(sessionStorage.getItem(sourceResumeKey) || "null"); return value ? checkedSystemRecoverySourceResumeInput(value) : null; }
+  catch { return null; }
+}
+function savedSourceRelease(): SourceRelease | null {
+  try {
+    const value = JSON.parse(sessionStorage.getItem(sourceReleaseKey) || "null");
+    if (!value || Object.keys(value).length !== 2 || !localIdentity(value.backupJobId)) return null;
+    const release = checkedSystemRecoveryMaintenanceReceipt(value.release);
+    return release.action === "release" && release.status.state === "open" ? { release, backupJobId: value.backupJobId } : null;
+  } catch { return null; }
+}
 const reasons: Record<string, string> = {
   executor_disabled: "Independent execution is paused", runtime_unsupported: "This runtime does not support system recovery",
   administrator_required: "Current system administrator authority is required", administrator_revoked: "Administrator authority changed",
@@ -110,8 +127,9 @@ function Report({ value }: { value: SystemRecoveryPreview }) {
     <p className="muted">Archive SHA-256: <code>{value.archive.sha256}</code>.</p>
   </div>;
 }
-function Job({ value, busy, currentSignal, onControl, onReport, onSelectUpload, onCutover }: {
+function Job({ value, busy, recoveryCleanup, currentSignal, onControl, onReport, onSelectUpload, onCutover }: {
   value: SystemRecoveryJobStatus; busy: boolean; currentSignal: AbortSignal | null;
+  recoveryCleanup: boolean;
   onControl: (action: SystemRecoveryJobControl, onStarting: (signal: AbortSignal) => void) => void;
   onReport: () => void; onSelectUpload: () => void; onCutover: () => void;
 }) {
@@ -133,15 +151,15 @@ function Job({ value, busy, currentSignal, onControl, onReport, onSelectUpload, 
   if (["queued", "running"].includes(value.state)) controls.push("pause");
   if (value.state === "paused") controls.push("resume", "retry");
   if (!["completed", "cancelled"].includes(value.state)) controls.push("cancel");
-  if (["completed", "cancelled", "preview"].includes(value.state)) controls.push("cleanup");
+  if (["completed", "cancelled", "preview"].includes(value.state) && (value.kind !== "recovery" || recoveryCleanup)) controls.push("cleanup");
   return <article className="system-recovery-job"><h3>{value.kind === "backup" ? "System backup" : value.kind === "upload" ? "Archive validation" : "Isolated system recovery"}</h3>
     <p ref={status} role="status" tabIndex={-1}><code>{value.id}</code> · {reasonText(value.state)} · {reasonText(value.phase)}</p>
     <p>Files: {value.progress.completedFiles} / {value.progress.totalFiles}. Bytes: {size(value.progress.bytesDone)} / {size(value.progress.bytesTotal)}.</p>
     {value.reason && <p className="warning-card">{reasonText(value.reason)}.</p>}
     <div className="storage-candidate-actions">{controls.map(action => <button key={action} className="button" disabled={busy}
       ref={button => { if (button) controlButtons.current.set(action, button); else controlButtons.current.delete(action); }}
-      onClick={event => { const origin = event.currentTarget; onControl(action, signal => {
-        if (document.activeElement === origin) returnFocus.current = { action, origin, signal };
+      onClick={event => { const origin = event.currentTarget, hadFocus = document.activeElement === origin; onControl(action, signal => {
+        if (hadFocus && (document.activeElement === origin || document.activeElement === document.body)) returnFocus.current = { action, origin, signal };
       }); }}>
       {action === "cleanup" ? "Clean up job artifacts" : action[0].toUpperCase() + action.slice(1)}</button>)}
       {value.kind === "upload" && <button className="button" disabled={busy} onClick={onSelectUpload}>Select saved upload</button>}
@@ -157,11 +175,16 @@ function Job({ value, busy, currentSignal, onControl, onReport, onSelectUpload, 
 
 export function SystemRecoveryPage() {
   const [capability, setCapability] = useState<SystemRecoveryCapabilities | null>(null);
+  const capabilityRef = useRef(capability);
   const [backupPreview, setBackupPreview] = useState<SystemRecoveryBackupPreview | null>(null);
   const [backupMode, setBackupMode] = useState<"historical" | "planned">("historical");
   const [maintenance, setMaintenance] = useState<SystemRecoveryMaintenanceStatus | null>(null);
   const [pendingMaintenance, setPendingMaintenance] = useState<SystemRecoveryMaintenanceInput | null>(savedMaintenance);
   const pendingMaintenanceRef = useRef(pendingMaintenance);
+  const [sourceRelease, setSourceRelease] = useState<SourceRelease | null>(savedSourceRelease);
+  const sourceReleaseRef = useRef(sourceRelease);
+  const [pendingSourceResume, setPendingSourceResume] = useState<SystemRecoverySourceResumeInput | null>(savedSourceResume);
+  const pendingSourceResumeRef = useRef(pendingSourceResume);
   const [executorUncertain, setExecutorUncertain] = useState(false);
   const [jobs, setJobs] = useState<SystemRecoveryJobStatus[]>([]);
   const [pending, setPending] = useState<Intent | null>(savedIntent), pendingRef = useRef(pending);
@@ -180,6 +203,8 @@ export function SystemRecoveryPage() {
   const backupPreviewButton = useRef<HTMLButtonElement>(null);
   const returnBackupPreviewFocus = useRef<{ button: HTMLButtonElement; signal: AbortSignal } | null>(null);
   const lifetime = useRef<AbortController | null>(null), refreshSequence = useRef(0), reportSequence = useRef(0), reportIdentity = useRef("");
+  const activeRead = useRef<Promise<void> | null>(null);
+  const exclusiveOperation = useRef(false);
   const currentUpload = upload ? jobs.find(job => job.id === upload.jobId) : null;
 
   function setMessage(value: string) { setMessageText(value); setMessageError(false); }
@@ -194,6 +219,9 @@ export function SystemRecoveryPage() {
   function saveUpload(value: UploadCheckpoint | null) { storeSession(uploadKey, value); uploadRef.current = value; setUpload(value); }
   function rememberMaintenance(value: SystemRecoveryMaintenanceInput | null) {
     storeSession(maintenanceKey, value); pendingMaintenanceRef.current = value; setPendingMaintenance(value);
+  }
+  function rememberSourceResume(value: SystemRecoverySourceResumeInput | null) {
+    storeSession(sourceResumeKey, value); pendingSourceResumeRef.current = value; setPendingSourceResume(value);
   }
   function updateJob(value: SystemRecoveryJobStatus) { setJobs(current => [value, ...current.filter(job => job.id !== value.id)].slice(0, 100)); }
   function accept(intent: Intent, receipt: SystemRecoveryReceipt) {
@@ -261,6 +289,12 @@ export function SystemRecoveryPage() {
     setPreview(value);
   }
   async function refresh(signal: AbortSignal, announce = false) {
+    if (activeRead.current) { await activeRead.current; return; }
+    const reading = readStatus(signal, announce); activeRead.current = reading;
+    try { await reading; }
+    finally { if (activeRead.current === reading) activeRead.current = null; }
+  }
+  async function readStatus(signal: AbortSignal, announce = false) {
     if (signal.aborted || deniedRef.current) return;
     const sequence = ++refreshSequence.current;
     if (announce) setReadPhase("loading");
@@ -268,14 +302,18 @@ export function SystemRecoveryPage() {
       const access = await systemRecoveryClient.capabilities(signal);
       if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
       setCapability(access);
+      capabilityRef.current = access;
       if (!access.canManage) {
         deniedRef.current = true; setDenied(true); setJobs([]); setPreview(null); setBackupPreview(null);
         setCutoverJob(null); setFile(null); setMapping([]); return;
       }
       if (pendingMaintenanceRef.current) await reconcileMaintenance(signal);
+      if (pendingSourceResumeRef.current) await reconcileSourceResume(signal);
       if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
       const [list, maintenanceStatus] = await Promise.all([systemRecoveryClient.list(signal), systemRecoveryClient.maintenance(signal)]);
-      const ids = [...new Set(savedReceipts().map(row => row.jobId))].filter(id => !list.some(job => job.id === id));
+      const resumeContext = sourceReleaseRef.current;
+      const ids = [...new Set([...savedReceipts().map(row => row.jobId), ...(resumeContext ? [resumeContext.backupJobId] : [])])]
+        .filter(id => !list.some(job => job.id === id));
       const recovered = await Promise.all(ids.map(async id => {
         try { return await systemRecoveryClient.status(id, signal); }
         catch (error) { if (error instanceof SystemRecoveryRequestError && [404, 410].includes(error.status || 0)) return null; throw error; }
@@ -304,7 +342,7 @@ export function SystemRecoveryPage() {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const poll = async () => {
       if (controller.signal.aborted || deniedRef.current) return;
-      await refresh(controller.signal);
+      if (!exclusiveOperation.current) await refresh(controller.signal);
       if (!controller.signal.aborted && !deniedRef.current) timer = setTimeout(() => void poll(), 5000);
     };
     void (async () => {
@@ -323,13 +361,18 @@ export function SystemRecoveryPage() {
     if (button === backupPreviewButton.current && button.isConnected && !button.matches(":disabled")
       && (document.activeElement === document.body || document.activeElement === button)) button.focus();
   }, [busy]);
-  async function act(operation: (signal: AbortSignal) => Promise<unknown>, preserveMessage = false) {
+  async function act(operation: (signal: AbortSignal) => Promise<unknown>, preserveMessage = false, exclusive = false) {
     const controller = lifetime.current;
     if (!controller || controller.signal.aborted || deniedRef.current || busyRef.current) return;
-    busyRef.current = true; setBusy(true); if (!preserveMessage) setMessage("");
-    try { await operation(controller.signal); }
+    busyRef.current = true; exclusiveOperation.current = exclusive; setBusy(true); if (!preserveMessage) setMessage("");
+    try {
+      // A source resume validates the original backup under exclusive Recovery
+      // ownership. Finish the page's existing reads before issuing a mutation.
+      if (exclusive && activeRead.current) await activeRead.current;
+      if (!controller.signal.aborted && !deniedRef.current) await operation(controller.signal);
+    }
     catch (error) { if (!controller.signal.aborted) failure(error); }
-    finally { if (!controller.signal.aborted) { busyRef.current = false; setBusy(false); } }
+    finally { if (!controller.signal.aborted) { busyRef.current = false; exclusiveOperation.current = false; setBusy(false); } }
   }
   async function prepareUpload(signal: AbortSignal) {
     if (!file || pendingRef.current) return;
@@ -380,6 +423,18 @@ export function SystemRecoveryPage() {
     if (receipt.requestId !== input.requestId || receipt.action !== input.action || receipt.expectedGeneration !== input.expectedGeneration) {
       throw new Error("Invalid maintenance operation receipt.");
     }
+    if (input.action === "release" && capabilityRef.current?.policy.sourceResume) {
+      let backupJobId: string | null | undefined;
+      try {
+        const saved = JSON.parse(sessionStorage.getItem(sourceBackupKey) || "null");
+        if (saved?.generation === input.expectedGeneration && localIdentity(saved.jobId)) backupJobId = saved.jobId;
+      } catch { /* An absent local checkpoint cannot select a different backup. */ }
+      if (!backupJobId && maintenance?.generation === input.expectedGeneration) backupJobId = maintenance.backupJobId;
+      if (backupJobId) {
+        const context = { release: receipt, backupJobId };
+        storeSession(sourceReleaseKey, context); sourceReleaseRef.current = context; setSourceRelease(context);
+      }
+    }
     setMaintenance(receipt.status); rememberMaintenance(null);
   }
   async function reconcileMaintenance(signal: AbortSignal, retryMissing = false) {
@@ -396,16 +451,61 @@ export function SystemRecoveryPage() {
     }
   }
   async function beginMaintenance(action: SystemRecoveryMaintenanceInput["action"], signal: AbortSignal) {
-    if (!maintenance || pendingMaintenanceRef.current || pendingRef.current) return;
+    if (!maintenance || pendingMaintenanceRef.current || pendingRef.current || pendingSourceResumeRef.current) return;
+    if (action === "release" && capability?.policy.sourceResume && maintenance.backupJobId) {
+      storeSession(sourceBackupKey, { jobId: maintenance.backupJobId, generation: maintenance.generation });
+    }
     const input = checkedSystemRecoveryMaintenanceInput({ requestId: crypto.randomUUID(), action, expectedGeneration: maintenance.generation });
     rememberMaintenance(input); await changeMaintenance(input, signal);
   }
-  const blocked = busy || !!pending || !!pendingMaintenance || denied || !capability?.canManage;
+  function acceptSourceResume(input: SystemRecoverySourceResumeInput, receipt: SystemRecoverySourceResumeReceipt) {
+    if (receipt.requestId !== input.requestId || receipt.releaseRequestId !== input.releaseRequestId
+      || receipt.backupJobId !== input.backupJobId || receipt.expectedGeneration !== input.expectedGeneration) throw new Error("Invalid source resume receipt.");
+    rememberSourceResume(null); storeSession(sourceReleaseKey, null); storeSession(sourceBackupKey, null); sourceReleaseRef.current = null; setSourceRelease(null);
+    setMessage("Original source writes are enabled. Shadow conversion and file jobs remain paused; no target binding changed and no old work was replayed.");
+  }
+  async function submitSourceResume(input: SystemRecoverySourceResumeInput, signal: AbortSignal) {
+    let receipt: SystemRecoverySourceResumeReceipt;
+    try { receipt = await systemRecoveryClient.resumeSource(input, signal); }
+    catch (error) {
+      if (signal.aborted) return;
+      if (!(error instanceof SystemRecoveryRequestError) || error.status !== 409) throw error;
+      try { receipt = await systemRecoveryClient.readSourceResumeRequest(input.requestId, signal); }
+      catch (lookup) {
+        if (signal.aborted) return;
+        if (lookup instanceof SystemRecoveryRequestError && lookup.status === 404) {
+          rememberSourceResume(null); await refresh(signal);
+          setMessage("Source resume was not accepted. Review the released source window and its completed backup before trying again."); return;
+        }
+        throw lookup;
+      }
+    }
+    if (!signal.aborted && !deniedRef.current) acceptSourceResume(input, receipt);
+  }
+  async function reconcileSourceResume(signal: AbortSignal, retryMissing = false) {
+    const input = pendingSourceResumeRef.current; if (!input) return;
+    try {
+      const receipt = await systemRecoveryClient.readSourceResumeRequest(input.requestId, signal);
+      if (!signal.aborted && !deniedRef.current) acceptSourceResume(input, receipt);
+    } catch (error) {
+      if (signal.aborted) return;
+      if (error instanceof SystemRecoveryRequestError && error.status === 404) {
+        if (retryMissing && capability?.policy.sourceResume) await submitSourceResume(input, signal);
+        else setMessage("Source resume is unconfirmed. Check its original receipt before explicitly retrying the same request.");
+      } else throw error;
+    }
+  }
+  const blocked = busy || !!pending || !!pendingMaintenance || !!pendingSourceResume || denied || !capability?.canManage;
   const isSelectedUpload = !!upload && reportJobId === upload.jobId;
   const readyReportJob = jobs.find(job => job.id === reportJobId && job.kind === "recovery" && job.state === "completed"
     && job.phase === "ready" && job.result?.ready);
-  const mappingValid = !!preview && mapping.length === preview.profiles.length && mapping.every(row => localIdentity(row.destinationProfileId)
-    && Number.isSafeInteger(row.configurationRevision) && row.configurationRevision >= 1);
+  const preserveProfiles = capability?.policy.recoveryMapping === "inert-preserve";
+  const mappingValid = !!preview && (preserveProfiles || mapping.length === preview.profiles.length && mapping.every(row => localIdentity(row.destinationProfileId)
+    && Number.isSafeInteger(row.configurationRevision) && row.configurationRevision >= 1));
+  const backupNeedsFence = capability?.policy.backupMaintenance === "always" || backupMode === "planned";
+  const sourceResumeBackup = sourceRelease && jobs.find(job => job.id === sourceRelease.backupJobId && job.kind === "backup" && job.state === "completed");
+  const mayResumeSource = !!capability?.policy.sourceResume && !capability.enabled && !executorUncertain && !!sourceRelease && !!sourceResumeBackup && maintenance?.state === "open"
+    && sourceRelease.release.status.generation === maintenance.generation;
   const plannedReady = capability?.maintenance.state === "fenced" && !!preview?.source.checkpoint
     && capability.maintenance.checkpoint === preview.source.checkpoint;
   const mayRecover = !!preview?.canRecover && preview.target.available && !!preview.target.id && mappingValid
@@ -413,7 +513,7 @@ export function SystemRecoveryPage() {
   async function startRecovery(signal: AbortSignal) {
     if (!mayRecover || !preview || !upload || !isSelectedUpload || pendingRef.current) return;
     const intent: Intent = { action: "recovery", input: checkedSystemRecoveryImportInput({ requestId: crypto.randomUUID(), uploadJobId: upload.jobId,
-      expectedTargetId: preview.target.id, mapping, mode, acknowledgeLaterChanges: mode === "historical" && acknowledgeLaterChanges, acknowledgePartial: false }) };
+      expectedTargetId: preview.target.id, mapping: preserveProfiles ? [] : mapping, mode, acknowledgeLaterChanges: mode === "historical" && acknowledgeLaterChanges, acknowledgePartial: false }) };
     remember(intent); await submit(intent, signal);
   }
   async function prepareCutover(signal: AbortSignal) {
@@ -444,7 +544,9 @@ export function SystemRecoveryPage() {
         {capability.reason && <p className="muted">{reasonText(capability.reason)}.</p>}
         <p className="muted">Saved work persists after the browser closes. Refreshing and polling only read status. Supported ZIP limits: 100 MiB total, 96 MiB file content, 100 physical files and 4 MiB metadata; each execution step is bounded to 60 seconds.</p>
         <p>Isolated target: {capability.target.configured ? <code>{capability.target.id}</code> : "Not configured"}. Source maintenance: {reasonText(capability.maintenance.state)}.</p>
-        <p className="muted">Target provisioning, authentication, encryption roots and database binding activation are deployment responsibilities. Storage mappings allocate isolated recovery keys and never overwrite source objects.</p>
+        <p className="muted">Target provisioning, authentication, encryption roots and database binding activation are deployment responsibilities. {preserveProfiles
+          ? "Recovered files are staged in the isolated target's inert local volume; source profile evidence is retained."
+          : "Storage mappings allocate isolated recovery keys and never overwrite source objects."}</p>
         <p><Link to="/settings/storage/migrations">Administrator executor controls</Link></p>
         <div className="storage-candidate-actions"><button className="button" disabled={blocked || !capability.supported || executorUncertain} onClick={() => void act(async signal => {
           try {
@@ -454,14 +556,30 @@ export function SystemRecoveryPage() {
         })}>{capability.enabled ? "Disable system recovery executor" : "Enable system recovery executor"}</button></div>
         {executorUncertain && <p className="warning-card">Executor configuration is unconfirmed. Refresh its saved state before changing it again.</p>}
       </section>
-      <section className="card storage-settings-section"><h2 className="card-title">Planned migration source window</h2>
-        <p className="muted">Ordinary historical backups do not require a maintenance window. For planned migration, stop new source writes, drain accepted work, then fence the source before the final snapshot. Reads remain available where safe.</p>
+      <section className="card storage-settings-section"><h2 className="card-title">Source maintenance window</h2>
+        <p className="muted">{capability.policy.backupMaintenance === "always"
+          ? "This runtime requires a fenced and drained source for every system backup, including historical backups. A recovery target is optional for creating a backup."
+          : "Ordinary historical backups do not require a maintenance window. Planned migration requires a fenced and drained source before the final snapshot."} Stop new source writes, drain accepted work, then confirm the fence. Reads remain available where safe.</p>
         {maintenance && <><p>State: {reasonText(maintenance.state)}. Active accepted writers: {maintenance.activeWriters}. Generation: {maintenance.generation}.</p>
           {maintenance.checkpoint && <p className="muted">Frozen source checkpoint: <code>{maintenance.checkpoint}</code>.</p>}
-          <div className="storage-candidate-actions"><button className="button" disabled={blocked || !capability.target.configured || maintenance.state !== "open"} onClick={() => void act(signal => beginMaintenance("enter", signal))}>Stop new source writes</button>
+          <div className="storage-candidate-actions"><button className="button" disabled={blocked || !capability.target.configured && !capability.policy.maintenanceWithoutTarget || maintenance.state !== "open"} onClick={() => void act(signal => beginMaintenance("enter", signal))}>Stop new source writes</button>
             <button className="button" disabled={blocked || maintenance.state !== "draining" || maintenance.activeWriters !== 0} onClick={() => void act(signal => beginMaintenance("finalize", signal))}>Confirm drained source fence</button>
             <button className="button" disabled={blocked || maintenance.state === "open"} onClick={() => void act(signal => beginMaintenance("release", signal))}>Release source maintenance window</button></div>
           <p className="muted">Unknown provider writes must settle positively. Expired leases never force a writer to be considered drained.</p></>}
+        {capability.policy.sourceResume && <div className="system-recovery-handoff">
+          <h3>Resume the original source</h3>
+          <p>Releasing maintenance does not enable source writes on this runtime. After a completed backup and its accepted release, pause the recovery executor and let accepted work settle before explicitly resuming the unchanged original source. Shadow conversion and file jobs stay paused.</p>
+          {sourceRelease && <p>Released window: <code>{sourceRelease.release.requestId}</code>. Backup: <code>{sourceRelease.backupJobId}</code>.</p>}
+          <button className="button" disabled={blocked || !mayResumeSource} onClick={() => void act(async signal => {
+            if (!sourceRelease || !mayResumeSource) return;
+            const input = checkedSystemRecoverySourceResumeInput({ requestId: crypto.randomUUID(), releaseRequestId: sourceRelease.release.requestId,
+              backupJobId: sourceRelease.backupJobId, expectedGeneration: sourceRelease.release.status.generation });
+            rememberSourceResume(input); await submitSourceResume(input, signal);
+          }, false, true)}>Resume source writes after backup</button>
+          {!sourceRelease && <p className="muted">Create a backup in this maintenance window, then release the window to retain its source resume identifiers.</p>}
+        </div>}
+        {pendingSourceResume && <><p className="warning-card">Source resume request <code>{pendingSourceResume.requestId}</code> is unconfirmed. Its original release, backup and generation are retained.</p>
+          <button className="button" disabled={busy} onClick={() => void act(signal => reconcileSourceResume(signal, true), false, true)}>Check or retry original source resume request</button></>}
         {pendingMaintenance && <><p className="warning-card">The {pendingMaintenance.action} maintenance request <code>{pendingMaintenance.requestId}</code> is unconfirmed. Review current state before retrying its original identifier.</p>
           <button className="button" disabled={busy} onClick={() => void act(async signal => {
             const value = await systemRecoveryClient.maintenance(signal); if (!signal.aborted && !deniedRef.current) setMaintenance(value);
@@ -475,16 +593,19 @@ export function SystemRecoveryPage() {
         <p className="muted">Includes canonical identities, history, recoverable deletion states, promised files and eligible protected settings. Encrypted external credentials require a separately provisioned recovery key. Protect the downloaded archive accordingly.</p>
         <label>System backup mode<select value={backupMode} disabled={blocked} onChange={event => { setBackupMode(event.target.value as "historical" | "planned"); setBackupPreview(null); }}>
           <option value="historical">Ordinary historical backup</option><option value="planned">Final planned migration snapshot</option></select></label>
-        <button ref={backupPreviewButton} className="button" disabled={blocked || !capability.supported} onClick={() => void act(async signal => {
+        <button ref={backupPreviewButton} className="button" disabled={blocked || !capability.supported} onClick={() => {
           const button = backupPreviewButton.current;
-          returnBackupPreviewFocus.current = button && document.activeElement === button ? { button, signal } : null;
-          const value = await systemRecoveryClient.backupPreview(signal); if (!signal.aborted && !deniedRef.current) setBackupPreview(value);
-        })}>Preview system backup</button>
+          const hadFocus = !!button && document.activeElement === button;
+          void act(async signal => {
+            returnBackupPreviewFocus.current = button && hadFocus && (document.activeElement === button || document.activeElement === document.body) ? { button, signal } : null;
+            const value = await systemRecoveryClient.backupPreview(signal); if (!signal.aborted && !deniedRef.current) setBackupPreview(value);
+          });
+        }}>Preview system backup</button>
         {backupPreview && <><p>Source maintenance: {reasonText(backupPreview.maintenance.state)}. {backupPreview.available ? "The bounded backup can be accepted." : "Backup acceptance is unavailable."}</p>
           <ul>{backupPreview.reasons.map(code => <li key={code}>{reasonText(code)}</li>)}</ul>
           <p className="muted">Final file outcomes determine whether the archive is complete. Missing bytes remain visible in its recovery report.</p>
-          {backupMode === "planned" && backupPreview.maintenance.state !== "fenced" && <p className="warning-card">Drain and fence the source before accepting the final planned snapshot.</p>}
-          <button className="button primary" disabled={blocked || !backupPreview.available || backupMode === "planned" && backupPreview.maintenance.state !== "fenced"} onClick={() => void act(async signal => {
+          {backupNeedsFence && backupPreview.maintenance.state !== "fenced" && <p className="warning-card">Drain and fence the source before accepting this system backup.</p>}
+          <button className="button primary" disabled={blocked || !backupPreview.available || backupNeedsFence && backupPreview.maintenance.state !== "fenced"} onClick={() => void act(async signal => {
             const intent: Intent = { action: "backup", input: checkedSystemRecoveryBackupInput({ requestId: crypto.randomUUID(), kind: "backup", mode: backupMode }) };
             remember(intent); await submit(intent, signal);
           })}>Start durable system backup</button></>}
@@ -513,12 +634,14 @@ export function SystemRecoveryPage() {
             {mode === "historical" ? <label><input type="checkbox" checked={acknowledgeLaterChanges} onChange={event => setAcknowledgeLaterChanges(event.target.checked)} />
               <span>I understand that this recovers the archive recovery point and does not include later source changes.</span></label>
               : <p className={plannedReady ? "muted" : "warning-card"}>Planned migration requires fenced and drained source writers, a final snapshot, and an unchanged source checkpoint at cutover. {plannedReady ? "The report matches the current fenced checkpoint." : "The current source has not satisfied that checkpoint requirement."}</p>}
-            {preview.profiles.length > 0 && <div className="system-recovery-table"><table><thead><tr><th>Source profile</th><th>Destination profile</th><th>Configuration revision</th></tr></thead><tbody>
+            {!preserveProfiles && preview.profiles.length > 0 && <div className="system-recovery-table"><table><thead><tr><th>Source profile</th><th>Destination profile</th><th>Configuration revision</th></tr></thead><tbody>
               {mapping.map((row, index) => <tr key={row.sourceProfileId}><td><code>{row.sourceProfileId}</code><p className="muted">{preview.profiles[index]?.adapterType}</p></td>
                 <td><label>Destination for {row.sourceProfileId}<input value={row.destinationProfileId} maxLength={128} onChange={event => setMapping(current => current.map((value, at) => at === index ? { ...value, destinationProfileId: event.target.value } : value))} /></label></td>
                 <td><label>Revision for {row.sourceProfileId}<input type="number" min={1} step={1} value={row.configurationRevision} onChange={event => setMapping(current => current.map((value, at) => at === index ? { ...value, configurationRevision: Number(event.target.value) } : value))} /></label></td></tr>)}
             </tbody></table></div>}
-            <p className="muted">Map every source profile to a verified target profile. Recorded file purposes remain intact; destination profile identities and revisions freeze with the accepted operation.</p>
+            {preserveProfiles ? <><p className="muted">The isolated target preserves source profile evidence and stages verified files in its inert local volume. Destination mappings are not accepted. Review and configure storage separately before target activation.</p>
+              {preview.profiles.length > 0 && <ul>{preview.profiles.map(profile => <li key={profile.id}><code>{profile.id}</code> · {profile.adapterType}</li>)}</ul>}</>
+              : <p className="muted">Map every source profile to a verified target profile. Recorded file purposes remain intact; destination profile identities and revisions freeze with the accepted operation.</p>}
             {!preview.archive.complete && <p className="warning-card">Partial archives remain available for inspection. Resolve unavailable required files and create a verified complete backup before staging recovery.</p>}
             <button className="button primary" disabled={!mayRecover} onClick={() => void act(startRecovery)}>Stage isolated recovery</button>
           </fieldset></>}
@@ -534,13 +657,14 @@ export function SystemRecoveryPage() {
               onClick={() => void act(prepareCutover)}>Prepare reviewed cutover handoff</button></>}</div>
       </section>}
       <section className="card storage-settings-section"><h2 className="card-title">Saved system work</h2>
-        <p className="muted">Pause, retry and cancellation act at safe boundaries. Cleanup removes only this job's eligible artifacts; it does not delete source files or published recovery data.</p>
+        <p className="muted">Pause, retry and cancellation act at safe boundaries. Cleanup removes only this job's eligible artifacts; it does not delete source files or published recovery data.
+          {!capability.policy.recoveryCleanup && " Recovery targets and their verification ledger are retained; cleanup is available only for backup and upload jobs."}</p>
         {!jobsLoaded && readPhase === "error" && <p className="muted">Saved system work has not been read. Refresh recovery status to check it.</p>}
         {jobsLoaded && readPhase !== "ready" && jobs.length > 0 && <p className="muted">{readPhase === "error"
           ? "Showing previously read system work. Its current status could not be refreshed."
           : "Showing previously read system work while status is refreshed."}</p>}
         {!jobs.length && readPhase === "ready" && <p className="muted">No system backup or recovery jobs are recorded.</p>}
-        {jobs.map(job => <Job key={job.id} value={job} busy={blocked} currentSignal={lifetime.current?.signal ?? null}
+        {jobs.map(job => <Job key={job.id} value={job} busy={blocked} recoveryCleanup={capability.policy.recoveryCleanup} currentSignal={lifetime.current?.signal ?? null}
           onControl={(action, onStarting) => void act(async signal => {
           onStarting(signal);
           const value = await systemRecoveryClient.control(job.id, action, signal); if (!signal.aborted && !deniedRef.current) { refreshSequence.current++; updateJob(value); }

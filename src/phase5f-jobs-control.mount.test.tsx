@@ -38,7 +38,8 @@ const executor: ResearchExecutorStatus = { supported: true, enabled: true, stale
   lastHeartbeatAt: oldAt, cadenceSeconds: 120, maxStepMs: 60000, reason: null };
 const capability: SystemRecoveryCapabilities = { supported: true, canManage: true, enabled: true, stale: false,
   lastHeartbeatAt: oldAt, cadenceSeconds: 120, maxStepMs: 60000, reason: null,
-  target: { configured: true, id: "target:isolated", mode: "fresh" }, maintenance: { state: "open", checkpoint: null } };
+  target: { configured: true, id: "target:isolated", mode: "fresh" }, maintenance: { state: "open", checkpoint: null },
+  policy: { recoveryMapping: "explicit-profile", backupMaintenance: "planned-only", maintenanceWithoutTarget: false, recoveryCleanup: true, sourceResume: false } };
 const maintenance: SystemRecoveryMaintenanceStatus = { state: "open", generation: 0, token: null, checkpoint: null,
   backupJobId: null, activeWriters: 0 };
 let oldList: ReturnType<typeof deferred<Response>>, controlAck: ReturnType<typeof deferred<Response>>;

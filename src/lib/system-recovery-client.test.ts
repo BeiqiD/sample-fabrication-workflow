@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   SYSTEM_RECOVERY_MAX_ARCHIVE_BYTES, type SystemRecoveryBackupPreview, type SystemRecoveryCapabilities,
   type SystemRecoveryImportInput, type SystemRecoveryJobStatus, type SystemRecoveryMaintenanceStatus,
-  type SystemRecoveryPreview,
+  type SystemRecoveryPreview, type SystemRecoverySourceResumeInput, type SystemRecoverySourceResumeReceipt,
 } from "../../shared/contracts/system-recovery";
 import { systemRecoveryClient, systemRecoveryErrorMessage, SystemRecoveryRequestError } from "./system-recovery-client";
 
@@ -13,6 +13,10 @@ const recovery: SystemRecoveryImportInput = { requestId: "recovery-request", upl
   mapping: [{ sourceProfileId: "source:r2", destinationProfileId: "target:s3", configurationRevision: 3 }],
   mode: "historical", acknowledgeLaterChanges: true, acknowledgePartial: false };
 const cutover = { requestId: "cutover-request", expectedTargetId: recovery.expectedTargetId, expectedCheckpoint: digest };
+const sourceResume: SystemRecoverySourceResumeInput = { requestId: "source_resume", releaseRequestId: "source_release", backupJobId: "backup_job", expectedGeneration: 2 };
+const sourceResumed: SystemRecoverySourceResumeReceipt = { schema: "node-original-source-resume/1", ...sourceResume,
+  sourceInstallationId: "original_installation", incarnation: "original_incarnation", sourceCheckpoint: digest, resumedAt: at,
+  enabled: true, shadowEnabled: false, jobsEnabled: false, noBindingCutover: true, noJobReplay: true };
 function job(kind: SystemRecoveryJobStatus["kind"] = "backup", requestId = backup.requestId): SystemRecoveryJobStatus {
   return { id: "job:1", requestId, kind, state: "queued", phase: "snapshot", acceptedAt: at, updatedAt: at, reason: null,
     progress: { completedFiles: 0, totalFiles: 1, bytesDone: 0, bytesTotal: 32 }, output: null, result: null };
@@ -20,7 +24,8 @@ function job(kind: SystemRecoveryJobStatus["kind"] = "backup", requestId = backu
 const receipt = (requestId: string, kind: SystemRecoveryJobStatus["kind"] = "backup") => ({ requestId, job: job(kind, requestId), reused: false });
 const capability: SystemRecoveryCapabilities = { supported: true, canManage: true, enabled: false, stale: true, lastHeartbeatAt: null,
   cadenceSeconds: 120, maxStepMs: 60000, reason: "executor_disabled", target: { configured: true, id: "isolated:1", mode: "fresh" },
-  maintenance: { state: "open", checkpoint: null } };
+  maintenance: { state: "open", checkpoint: null }, policy: { recoveryMapping: "explicit-profile", backupMaintenance: "planned-only",
+    maintenanceWithoutTarget: false, recoveryCleanup: true, sourceResume: false } };
 const maintenance: SystemRecoveryMaintenanceStatus = { state: "open", generation: 0, token: null, checkpoint: null, backupJobId: null, activeWriters: 0 };
 const backupPreview: SystemRecoveryBackupPreview = { schema: "system-backup-preview/1", available: true, reasons: [],
   bounds: { archiveBytes: 104857600, payloadBytes: 100663296, metadataBytes: 4194304, files: 100, maxStepMs: 60000 },
@@ -94,6 +99,49 @@ describe("privileged system backup and recovery client", () => {
     expect(network.mock.calls[1][1]?.method).toBe("GET");
     expect(JSON.parse(String(network.mock.calls[2][1]?.body))).toEqual({ enabled: true });
     await expect(systemRecoveryClient.changeMaintenance(input)).rejects.toThrow("Invalid system recovery response.");
+  });
+  it("submits source resume separately and reads only its exact original receipt", async () => {
+    mock().mockResolvedValueOnce(json(sourceResumed)).mockResolvedValueOnce(json(sourceResumed));
+    const signal = new AbortController().signal;
+    expect(await systemRecoveryClient.resumeSource(sourceResume, signal)).toEqual(sourceResumed);
+    expect(await systemRecoveryClient.readSourceResumeRequest(sourceResume.requestId, signal)).toEqual(sourceResumed);
+    expect(network.mock.calls).toEqual([
+      [`${base}/source-resume`, { method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error", signal,
+        headers: { "content-type": "application/json" }, body: JSON.stringify(sourceResume) }],
+      [`${base}/source-resume/requests/source_resume`, { method: "GET", credentials: "same-origin", cache: "no-store", redirect: "error", signal,
+        headers: undefined, body: undefined }],
+    ]);
+  });
+  it("retains one source resume mutation after an unknown ACK and reconciles without an automatic retry", async () => {
+    mock().mockRejectedValueOnce(new Error("PRIVATE_SOURCE_RESUME_ACK")).mockResolvedValueOnce(json(sourceResumed));
+    await expect(systemRecoveryClient.resumeSource(sourceResume)).rejects.toMatchObject({ status: null });
+    expect(network).toHaveBeenCalledOnce(); expect(await systemRecoveryClient.readSourceResumeRequest(sourceResume.requestId)).toEqual(sourceResumed);
+    expect(network.mock.calls.map(([, options]) => options?.method)).toEqual(["POST", "GET"]);
+    expect(JSON.parse(String(network.mock.calls[0][1]?.body))).toEqual(sourceResume);
+  });
+  it.each(["requestId", "releaseRequestId", "backupJobId", "expectedGeneration"] as const)("rejects a source resume acceptance with a different %s", async field => {
+    const response = { ...sourceResumed, [field]: field === "expectedGeneration" ? 3 : "different_identity" };
+    mock().mockResolvedValue(json(response));
+    await expect(systemRecoveryClient.resumeSource(sourceResume)).rejects.toThrow("Invalid system recovery response.");
+    expect(network).toHaveBeenCalledOnce();
+  });
+  it("rejects a different source resume request receipt and private successor fields", async () => {
+    mock().mockResolvedValueOnce(json({ ...sourceResumed, requestId: "another_request" }))
+      .mockResolvedValueOnce(json({ ...sourceResumed, privateCredential: "PRIVATE_SECRET" }));
+    await expect(systemRecoveryClient.readSourceResumeRequest(sourceResume.requestId)).rejects.toThrow("Invalid system recovery response.");
+    await expect(systemRecoveryClient.readSourceResumeRequest(sourceResume.requestId)).rejects.toThrow("Invalid system recovery input or response.");
+  });
+  it("rejects invalid source resume generations and identifiers before any request", async () => {
+    mock();
+    for (const input of [{ ...sourceResume, expectedGeneration: 1 }, { ...sourceResume, requestId: "source:resume" },
+      { ...sourceResume, releaseRequestId: "release/other" }, { ...sourceResume, backupJobId: "backup with spaces" }]) {
+      await expect(systemRecoveryClient.resumeSource(input)).rejects.toThrow();
+    }
+    expect(network).not.toHaveBeenCalled();
+  });
+  it.each(["recoveryMapping", "backupMaintenance", "maintenanceWithoutTarget", "recoveryCleanup", "sourceResume"] as const)("rejects unsupported capability policy %s before exposing controls", async field => {
+    mock().mockResolvedValue(json({ ...capability, policy: { ...capability.policy, [field]: "unsupported" } }));
+    await expect(systemRecoveryClient.capabilities()).rejects.toThrow("Invalid system recovery input or response.");
   });
   it("rejects mismatched operation identities, unknown secret fields, impossible counts and duplicate jobs", async () => {
     mock().mockResolvedValueOnce(json(receipt("other-request"))).mockResolvedValueOnce(json({ ...job(), id: "other-job" }))

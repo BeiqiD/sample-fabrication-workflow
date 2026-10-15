@@ -627,16 +627,18 @@ function createRecoveryEngine(options: Omit<OriginalRecoveryOptions, "hasher"> &
   }
   async function publicCapabilities(repo: NodeRecoveryRepository, actor: string): Promise<SystemRecoveryCapabilities> {
     const canManage = administrator(actor);
+    const policy: SystemRecoveryCapabilities["policy"] = { recoveryMapping: "inert-preserve", backupMaintenance: "always",
+      maintenanceWithoutTarget: true, recoveryCleanup: false, sourceResume: canManage && !borrowed };
     if (!canManage) return checkedSystemRecoveryCapabilities({ supported: false, canManage: false, enabled: false, stale: true,
       lastHeartbeatAt: null, cadenceSeconds: 120, maxStepMs: 60000, reason: "administrator_required",
-      target: { configured: false, id: null, mode: "fresh" }, maintenance: { state: "open", checkpoint: null } });
+      target: { configured: false, id: null, mode: "fresh" }, maintenance: { state: "open", checkpoint: null }, policy });
     const source = maintenance();
     const runtime = canManage ? await repo.runtime() : null;
     return checkedSystemRecoveryCapabilities({ supported: canManage, canManage, enabled: canManage && runtime?.enabled === 1,
       stale: !runtime?.last_heartbeat_at || Date.now() - Date.parse(runtime.last_heartbeat_at) > 300_000,
       lastHeartbeatAt: runtime?.last_heartbeat_at ?? null, cadenceSeconds: 120, maxStepMs: 60000,
       reason: !canManage ? "administrator_required" : runtime?.enabled === 1 ? null : "executor_disabled",
-      target: { configured: owner.target !== undefined, id: owner.target?.identity.targetId ?? null, mode: "fresh" }, maintenance: { state: source.state, checkpoint: source.checkpoint } });
+      target: { configured: owner.target !== undefined, id: owner.target?.identity.targetId ?? null, mode: "fresh" }, maintenance: { state: source.state, checkpoint: source.checkpoint }, policy });
   }
   async function owned(repo: NodeRecoveryRepository, id: string, actor: string): Promise<RecoveryJob> {
     const job = await repo.job(id); if (!job || job.actor !== actor) throw fail("Recovery job does not exist", 404); return job;

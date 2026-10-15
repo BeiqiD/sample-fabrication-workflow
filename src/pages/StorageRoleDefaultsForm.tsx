@@ -76,7 +76,7 @@ export function StorageRoleDefaultsForm({ status, canManage, accessStatus = "res
   }
   return <section className="card storage-settings-section" aria-labelledby="storage-default-policy-title">
     <h2 className="card-title" id="storage-default-policy-title">Upload destinations</h2>
-    <p className="muted">Choose where new files are stored. Existing files keep their recorded storage location.</p>
+    <p className="muted">Choose an available R2 or S3 profile for new uploads. Existing files keep their recorded storage location.</p>
     <ReadStatus loading={accessStatus === "checking"} loadingMessage="Checking administrator access…"
       error={accessStatus === "unavailable" ? "Administrator access could not be checked. Upload destinations are read only until access can be confirmed." : null}
       errorTitle="Access check unavailable" onRetry={onRetryAccess} retryLabel="Retry access check" />

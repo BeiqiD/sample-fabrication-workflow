@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { Hono } from "hono";
+import { checkedSystemRecoveryCapabilities } from "../../shared/contracts/system-recovery";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SqliteD1Database, referenceTestDatabase } from "../reference-test-support";
 import { systemRecoveryRoutes } from "./routes";
@@ -37,10 +38,22 @@ async function readyRecoveryFixture(mode:"historical"|"planned"="historical",ack
   return{...f,uploadId,jobId,backupId,handoffInput:{requestId:"handoff",expectedTargetId:acceptedInput.expectedTargetId,expectedCheckpoint:handoffCheckpoint}};
 }
 describe("FP5 real privileged website routes",()=>{
+  it("advertises Worker mapping and maintenance requirements independently of target configuration",async()=>{
+    const f=fixture(),read=async()=>{
+      const response=await f.app.request("/api/system-recovery/capabilities",undefined,f.env);
+      expect(response.status).toBe(200);return checkedSystemRecoveryCapabilities(await response.json());
+    };
+    const policy={recoveryMapping:"explicit-profile",backupMaintenance:"planned-only",maintenanceWithoutTarget:false,recoveryCleanup:true,sourceResume:false};
+    expect(await read()).toMatchObject({supported:true,target:{configured:false,id:null},policy});
+    const target=fixture();f.env.RECOVERY_DB=target.env.DB;f.env.RECOVERY_TARGET_ID="isolated-target";
+    expect(await read()).toMatchObject({target:{configured:true,id:"isolated-target"},policy});
+    expect(f.put).not.toHaveBeenCalled();expect(f.remove).not.toHaveBeenCalled();
+  });
   it("returns a closed safe capability to ordinary actors and denies every privileged action",async()=>{
     const f=fixture(),headers={"X-Fixture-Actor":"ordinary@example.test"};
     const response=await f.app.request("/api/system-recovery/capabilities",{headers},f.env);expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({canManage:false,supported:false,enabled:false,target:{configured:false,id:null}});
+    expect(checkedSystemRecoveryCapabilities(await response.json())).toMatchObject({canManage:false,supported:false,enabled:false,target:{configured:false,id:null},
+      policy:{recoveryMapping:"explicit-profile",backupMaintenance:"planned-only",maintenanceWithoutTarget:false,recoveryCleanup:true,sourceResume:false}});
     for(const path of ["/jobs","/backup-preview","/jobs/missing/download","/jobs/missing/report"]){expect((await f.app.request(`/api/system-recovery${path}`,{headers},f.env)).status).toBe(403);}
     const rejected=await f.app.request("/api/system-recovery/uploads",{...json({requestId:"forbidden",byteSize:30,sha256:"a".repeat(64)}),headers:{...headers,"Content-Type":"application/json"}},f.env);
     expect(rejected.status).toBe(403);expect(f.sql.prepare("SELECT count(*) n FROM system_recovery_jobs").get()!.n).toBe(0);expect(f.put).not.toHaveBeenCalled();

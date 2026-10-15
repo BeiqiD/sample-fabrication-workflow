@@ -14,6 +14,14 @@ export interface SystemRecoveryMaintenanceStatus {
 }
 export interface SystemRecoveryMaintenanceInput { requestId: string; action: "enter" | "finalize" | "release"; expectedGeneration: number }
 export interface SystemRecoveryMaintenanceReceipt extends SystemRecoveryMaintenanceInput { status: SystemRecoveryMaintenanceStatus }
+export interface SystemRecoverySourceResumeInput {
+  requestId: string; releaseRequestId: string; backupJobId: string; expectedGeneration: number;
+}
+export interface SystemRecoverySourceResumeReceipt extends SystemRecoverySourceResumeInput {
+  schema: "node-original-source-resume/1"; sourceInstallationId: string; incarnation: string;
+  sourceCheckpoint: string; resumedAt: string; enabled: true; shadowEnabled: false; jobsEnabled: false;
+  noBindingCutover: true; noJobReplay: true;
+}
 export interface SystemRecoveryUploadInput { requestId: string; byteSize: number; sha256: string }
 export interface SystemRecoveryStorageMapping { sourceProfileId: string; destinationProfileId: string; configurationRevision: number }
 export interface SystemRecoveryImportInput {
@@ -38,6 +46,11 @@ export interface SystemRecoveryCapabilities {
   cadenceSeconds: 120; maxStepMs: 60000; reason: string | null;
   target: { configured: boolean; id: string | null; mode: "fresh" };
   maintenance: { state: "open" | "draining" | "fenced"; checkpoint: string | null };
+  policy: {
+    recoveryMapping: "explicit-profile" | "inert-preserve";
+    backupMaintenance: "planned-only" | "always";
+    maintenanceWithoutTarget: boolean; recoveryCleanup: boolean; sourceResume: boolean;
+  };
 }
 export interface SystemRecoveryPreview {
   schema: "system-recovery-preview/1";
@@ -142,12 +155,16 @@ function maintenance(value: unknown): SystemRecoveryCapabilities["maintenance"] 
   return { state: oneOf(item.state, ["open", "draining", "fenced"]), checkpoint: item.checkpoint === null ? null : sha(item.checkpoint) };
 }
 export function checkedSystemRecoveryCapabilities(value: unknown): SystemRecoveryCapabilities {
-  const row = object(value, ["supported", "canManage", "enabled", "stale", "lastHeartbeatAt", "cadenceSeconds", "maxStepMs", "reason", "target", "maintenance"]);
+  const row = object(value, ["supported", "canManage", "enabled", "stale", "lastHeartbeatAt", "cadenceSeconds", "maxStepMs", "reason", "target", "maintenance", "policy"]);
   const target = object(row.target, ["configured", "id", "mode"]);
+  const policy = object(row.policy, ["recoveryMapping", "backupMaintenance", "maintenanceWithoutTarget", "recoveryCleanup", "sourceResume"]);
   if (row.cadenceSeconds !== 120 || row.maxStepMs !== 60000 || target.mode !== "fresh") invalid();
   return { supported: bool(row.supported), canManage: bool(row.canManage), enabled: bool(row.enabled), stale: bool(row.stale),
     lastHeartbeatAt: row.lastHeartbeatAt === null ? null : timestamp(row.lastHeartbeatAt), cadenceSeconds: 120, maxStepMs: 60000,
-    reason: reason(row.reason), target: { configured: bool(target.configured), id: target.id === null ? null : id(target.id), mode: "fresh" }, maintenance: maintenance(row.maintenance) };
+    reason: reason(row.reason), target: { configured: bool(target.configured), id: target.id === null ? null : id(target.id), mode: "fresh" }, maintenance: maintenance(row.maintenance),
+    policy: { recoveryMapping: oneOf(policy.recoveryMapping, ["explicit-profile", "inert-preserve"]),
+      backupMaintenance: oneOf(policy.backupMaintenance, ["planned-only", "always"]),
+      maintenanceWithoutTarget: bool(policy.maintenanceWithoutTarget), recoveryCleanup: bool(policy.recoveryCleanup), sourceResume: bool(policy.sourceResume) } };
 }
 export function checkedSystemRecoveryBackupPreview(value: unknown): SystemRecoveryBackupPreview {
   const row = object(value, ["schema", "available", "reasons", "bounds", "includesProtectedSettings", "credentialsRequireKeyring", "maintenance"]);
@@ -194,4 +211,20 @@ export function checkedSystemRecoveryMaintenanceInput(value: unknown): SystemRec
 export function checkedSystemRecoveryMaintenanceReceipt(value: unknown): SystemRecoveryMaintenanceReceipt {
   const row = object(value, ["requestId", "action", "expectedGeneration", "status"]);
   return { ...checkedSystemRecoveryMaintenanceInput({ requestId: row.requestId, action: row.action, expectedGeneration: row.expectedGeneration }), status: checkedSystemRecoveryMaintenanceStatus(row.status) };
+}
+export function checkedSystemRecoverySourceResumeInput(value: unknown): SystemRecoverySourceResumeInput {
+  const row = object(value, ["requestId", "releaseRequestId", "backupJobId", "expectedGeneration"]);
+  const resumeId = (value: unknown) => { const result = text(value, 96); if (!/^[A-Za-z0-9_-]+$/.test(result)) invalid(); return result; };
+  return { requestId: resumeId(row.requestId), releaseRequestId: resumeId(row.releaseRequestId), backupJobId: resumeId(row.backupJobId),
+    expectedGeneration: integer(row.expectedGeneration, Number.MAX_SAFE_INTEGER, 2) };
+}
+export function checkedSystemRecoverySourceResumeReceipt(value: unknown): SystemRecoverySourceResumeReceipt {
+  const row = object(value, ["schema", "requestId", "releaseRequestId", "backupJobId", "expectedGeneration", "sourceInstallationId", "incarnation",
+    "sourceCheckpoint", "resumedAt", "enabled", "shadowEnabled", "jobsEnabled", "noBindingCutover", "noJobReplay"]);
+  if (row.schema !== "node-original-source-resume/1" || row.enabled !== true || row.shadowEnabled !== false || row.jobsEnabled !== false
+    || row.noBindingCutover !== true || row.noJobReplay !== true) invalid();
+  return { ...checkedSystemRecoverySourceResumeInput({ requestId: row.requestId, releaseRequestId: row.releaseRequestId,
+    backupJobId: row.backupJobId, expectedGeneration: row.expectedGeneration }), schema: "node-original-source-resume/1",
+    sourceInstallationId: id(row.sourceInstallationId), incarnation: id(row.incarnation), sourceCheckpoint: sha(row.sourceCheckpoint),
+    resumedAt: timestamp(row.resumedAt), enabled: true, shadowEnabled: false, jobsEnabled: false, noBindingCutover: true, noJobReplay: true };
 }
