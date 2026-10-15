@@ -60,6 +60,65 @@ without relaxing server admission or drain checks.
   separately from these browser fixtures. Earlier genuine backup/recovery and
   handoff acceptance remains attached to its original recorded source scopes.
 
+Run the focused native capability check from the repository root on Linux with
+the pinned Node version and installed dependencies. Use a private fixture parent
+under trusted, non-writable-by-others ancestors, outside `/tmp`; the real writer
+lease rejects world-writable ancestors. Read the filesystem root UID inside the
+same execution context that runs Vitest (sandbox and host UID views may differ):
+
+```sh
+mkdir -m 700 /workspace/recovery-policy-fixtures
+CURRENT_V28_CANONICAL_COMMENT_FIXTURE_PARENT=/workspace/recovery-policy-fixtures \
+NODE_PROTOTYPE_FILESYSTEM_ROOT_OWNER_UID="$(stat -c %u /)" \
+npx vitest run --config vitest.recovery-policy.config.ts
+```
+
+Choose a fresh fixture-parent path if that directory already exists. The two
+cases passed locally on 2026-10-15 using the actual source factories, local
+authentication, loopback HTTP, SQLite and original writer/close ownership. They
+check Recovery-only no-target policy, an ordinary account's denied capabilities,
+and borrowed workflow policy with source-resume refusal. They do not perform a
+compiled-CLI, backup/restore or elapsed scheduler-cadence qualification.
+
 No physical-device, other-engine, deployed-provider or installed Node SPA result
 is inferred. A later release candidate must review those relevant deployment
 boundaries separately. This slice keeps the existing minimal Cloudflare build.
+
+## Local development verification (2026-10-15)
+
+The affected mounted suites passed 72 tests across three files; the client,
+shared-contract and Worker-route suites passed 42 tests across three files.
+Application and server/runtime-test type checks, Worker build, Node client build,
+and the closed offline distribution manifest check passed. The genuine native
+capability suite passed two source-factory cases, separately from compiled-main
+or full archive acceptance.
+
+The browser helper passed seven Chromium 151.0.7922.173 cases on Node 24.19.0.
+At 390/dark and 1280/light, document width matched the viewport and the deferred
+backup preview restored visible keyboard focus. The lost-ACK scenario made one
+original resume POST and one exact receipt GET after reload. Expected truncated
+response and denied-access diagnostics are distinguished from unexpected page
+errors. Fixture maintenance follows generation 0 → enter 1 → finalize 1 →
+release 2. The browser and local fixture server closed after the run.
+
+Repeat the bounded UI checks with the repository's installed dependencies:
+
+```sh
+npm run typecheck
+npm run typecheck:server
+node_modules/.bin/vitest run --config vitest.mounted.config.ts src/system-recovery.mount.test.tsx src/phase5e-settings-data.mount.test.tsx src/phase5f-jobs-control.mount.test.tsx
+node_modules/.bin/vitest run src/lib/system-recovery-client.test.ts shared/contracts/system-recovery.test.ts worker/recovery/routes.test.ts
+npm run build
+npm run build:node-client
+```
+
+The optional browser helper uses an existing Playwright Core and Chromium;
+it does not download browsers. Point the two variables to installed binaries,
+then choose a new evidence directory outside the checkout:
+
+```sh
+PLAYWRIGHT_MODULE_PATH=/opt/codex/runtimes/cua/lib/node_modules/playwright-core \
+CHROMIUM_PATH=/usr/bin/chromium \
+node scripts/qa/phase5f/browser-supported-recovery.mjs \
+  --client dist-node/client --output /tmp/NEW_OUTPUT_DIRECTORY
+```
