@@ -1,10 +1,11 @@
 import {
-  checkedAcceptFileMigration, FILE_JOB_LEASE_MS, FILE_JOB_MAX_BYTES, FILE_JOB_MAX_ATTEMPTS, FILE_JOB_SOURCE_GRACE_MS,
+  checkedAcceptFileMigration, checkedFileMigrationRequestId, checkedFileMigrationRequestReceipt, FILE_JOB_LEASE_MS, FILE_JOB_MAX_BYTES, FILE_JOB_MAX_ATTEMPTS, FILE_JOB_SOURCE_GRACE_MS,
   FILE_JOB_HEARTBEAT_STALE_MS, type AcceptFileMigrationInput, type FileJobExecutorStatus,
-  type FileJobStatus, type FileMigrationPlan, type FileMigrationInventory, type FileMigrationItems, type FileMigrationItemStatus,
+  type FileJobStatus, type FileMigrationPlan, type FileMigrationInventory, type FileMigrationItems, type FileMigrationItemStatus, type FileMigrationRequestReceipt,
 } from "../../../shared/contracts/file-jobs";
 import type { FilePurpose } from "../../../shared/contracts/files";
 import type { FileJobRepository, JobClaim, MigrationAttempt, MigrationItem, MigrationCleanupCopy, MigrationCleanupArtifact } from "./types";
+import { FileMigrationRequestActorMismatchError } from "./types";
 
 export interface JobSqlStatement {
   bind(...values: unknown[]): JobSqlStatement;
@@ -114,6 +115,20 @@ export class SqlFileJobRepository implements FileJobRepository {
       .bind(input.requestId).first<{ id: string; actor: string; input_json: string }>();
     if (!committed || committed.actor !== actor || committed.input_json !== inputJson) throw new Error("File migration acceptance did not commit");
     return (await this.status(committed.id))!;
+  }
+  async requestReceipt(rawRequestId: string, actor: string): Promise<FileMigrationRequestReceipt | null> {
+    const requestId = checkedFileMigrationRequestId(rawRequestId);
+    const accepted = await this.database.primary().prepare("SELECT id,actor,input_json FROM file_migration_jobs WHERE request_id=?")
+      .bind(requestId).first<{ id: string; actor: string; input_json: string }>();
+    // Absence is a current primary observation, not a promise that an original
+    // in-flight acceptance cannot commit later. This read creates no tombstone.
+    if (!accepted) return null;
+    if (accepted.actor !== actor) throw new FileMigrationRequestActorMismatchError();
+    const input = checkedAcceptFileMigration(JSON.parse(accepted.input_json));
+    if (JSON.stringify(input) !== accepted.input_json || input.requestId !== requestId) throw new Error("File migration receipt input is unavailable");
+    const job = await this.status(accepted.id);
+    if (!job || job.actor !== actor) throw new Error("File migration receipt job is unavailable");
+    return checkedFileMigrationRequestReceipt({ requestId, input, job });
   }
   async claim(incarnation: string, owner: string, authorize: (actor: string) => boolean): Promise<JobClaim | null> {
     const db = this.database.primary();

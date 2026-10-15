@@ -17,6 +17,7 @@
 .storage-configuration-note { font-size: var(--font-meta); color: var(--muted); margin: 18px 0 0; }
 .storage-profile-list { list-style: none; margin: 0; padding: 0; }
 .storage-settings-section[aria-labelledby="storage-candidates-title"] .button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.storage-settings-section[aria-labelledby="file-migration-plan-title"] .button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 .storage-settings-section[aria-labelledby="file-migration-jobs-title"] .button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 .storage-profile-list > li { border-top: 1px solid var(--line); padding: 20px 0; min-width: 0; }
 .storage-profile-list > li:last-child { padding-bottom: 0; }

@@ -1,5 +1,5 @@
 import { applicationFetch } from "./authentication-client";
-import { checkedAcceptFileMigration, checkedFileJobStatus, checkedFileJobTarget, FILE_JOB_MAX_ATTEMPTS, FILE_JOB_MAX_BYTES, FILE_JOB_MAX_FILES,
+import { checkedAcceptFileMigration, checkedFileJobStatus, checkedFileJobTarget, checkedFileMigrationRequestReceipt, checkedFileMigrationRequestAbsent, FILE_JOB_MAX_ATTEMPTS, FILE_JOB_MAX_BYTES, FILE_JOB_MAX_FILES,
   type AcceptFileMigrationInput, type FileJobExecutorStatus, type FileJobStatus, type FileMigrationPlan,
   type FileMigrationItems } from "../../shared/contracts/file-jobs";
 import type { FilePurpose } from "../../shared/contracts/files";
@@ -12,6 +12,9 @@ export class FileMigrationRequestError extends Error {
       : status === 409 ? "The migration request could not be confirmed. Refresh its plan or retry the original accepted request."
         : "File migration request is unavailable. Try again using the original request.");
   }
+}
+export class FileMigrationRequestMissingError extends FileMigrationRequestError {
+  constructor() { super(404); }
 }
 export function fileMigrationErrorMessage(error: unknown): string {
   return error instanceof FileMigrationRequestError ? error.message : "File migration operation is unavailable. Refresh and try again.";
@@ -136,6 +139,24 @@ export const fileJobsClient = {
     ensure(value.target.profileId === checked.target.profileId && value.target.configurationRevision === checked.target.configurationRevision,
       "Invalid File migration acceptance.");
     return value;
+  },
+  async readRequest(input: AcceptFileMigrationInput, signal?: AbortSignal) {
+    const checked = checkedAcceptFileMigration(input);
+    let response: Response;
+    try {
+      response = await applicationFetch(`/api/files/migrations/requests/${encodeURIComponent(checked.requestId)}`,
+        { method: "GET", credentials: "same-origin", cache: "no-store", redirect: "error", signal });
+    } catch { throw new FileMigrationRequestError(null); }
+    if (response.status === 404) {
+      ensure(/^application\/json(?:\s*;|$)/i.test(response.headers.get("content-type") ?? ""), "Invalid File migration absence response.");
+      checkedFileMigrationRequestAbsent(await response.json(), checked.requestId);
+      throw new FileMigrationRequestMissingError();
+    }
+    if (!response.ok) throw new FileMigrationRequestError(response.status);
+    const value = checkedFileMigrationRequestReceipt(await response.json());
+    ensure(JSON.stringify(value.input) === JSON.stringify(checked) && value.requestId === checked.requestId,
+      "Invalid File migration request receipt.");
+    return { ...value, job: job(value.job) };
   },
   async control(id: string, action: "pause" | "resume" | "cancel" | "retry" | "cleanup", signal?: AbortSignal) {
     ensure(identity(id) && ["pause", "resume", "cancel", "retry", "cleanup"].includes(action), "Invalid File job control.");

@@ -1,14 +1,15 @@
 import { Hono, type MiddlewareHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { checkedAcceptFileMigration, type FileJobExecutorStatus } from "../../shared/contracts/file-jobs";
+import { checkedAcceptFileMigration, checkedFileMigrationRequestId, checkedFileMigrationRequestReceipt, checkedFileMigrationRequestAbsent, type FileJobExecutorStatus } from "../../shared/contracts/file-jobs";
 import type { FileJobRepository } from "./jobs/types";
+import { FileMigrationRequestActorMismatchError } from "./jobs/types";
 
 export type FileMigrationHttpRepository = Pick<FileJobRepository,
-  "list" | "inventory" | "executorStatus" | "plan" | "accept" | "status" | "items" | "requestCleanup" | "control">;
+  "list" | "inventory" | "executorStatus" | "plan" | "accept" | "requestReceipt" | "status" | "items" | "requestCleanup" | "control">;
 export type FileMigrationEnvironment<Bindings extends object> = {
   Bindings: Bindings; Variables: { userEmail: string };
 };
-/** The complete original ten metadata endpoints. Callers provide actual
+/** Bounded metadata endpoints. Callers provide actual
  * installation/Request-owned authority and lifetime; this router issues no
  * grant, opens no provider and dispatches no background step. */
 export function createFileMigrationRoutes<Bindings extends object>(options: {
@@ -76,6 +77,23 @@ migrationRoutes.post("/files/migrations", async c => {
   try { return c.json(await options.repository(c.req.raw, c.env, c.get("userEmail")).accept(input, c.get("userEmail"),
     () => options.canAdminister(c.req.raw, c.env, c.get("userEmail"))), 202); }
   catch { throw new HTTPException(409, { message: "File migration could not be accepted; refresh its plan or reuse the accepted input" }); }
+});
+migrationRoutes.get("/files/migrations/requests/:requestId", async c => {
+  const actor = c.get("userEmail"), authorized = () => options.canAdminister(c.req.raw, c.env, actor);
+  if (!authorized()) throw new HTTPException(403, { message: "System administrator access is required." });
+  let requestId: string;
+  try { requestId = checkedFileMigrationRequestId(c.req.param("requestId")); }
+  catch { throw new HTTPException(400, { message: "Invalid File migration request identity" }); }
+  let receipt;
+  try { receipt = await options.repository(c.req.raw, c.env, actor).requestReceipt(requestId, actor); }
+  catch (error) {
+    if (!authorized()) throw new HTTPException(403, { message: "System administrator access is required." });
+    if (error instanceof FileMigrationRequestActorMismatchError) throw new HTTPException(409, { message: "File migration request conflicts with its accepted identity" });
+    throw error;
+  }
+  if (!authorized()) throw new HTTPException(403, { message: "System administrator access is required." });
+  if (!receipt) return c.json(checkedFileMigrationRequestAbsent({ schema: "file-migration-request-absent/1", requestId }, requestId), 404);
+  return c.json(checkedFileMigrationRequestReceipt(receipt));
 });
 migrationRoutes.get("/files/migrations/:jobId", async c => {
   const status = await options.repository(c.req.raw, c.env, c.get("userEmail")).status(c.req.param("jobId"));

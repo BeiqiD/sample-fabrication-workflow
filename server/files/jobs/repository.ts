@@ -106,7 +106,8 @@ export function createOwnedNodeFileJobPort(options: {
     return repo(Object.freeze({ kind: "principal", actor: claim.actor, jobId: claim.id })); };
   const maintenance = (jobId?: string) => repo(Object.freeze({ kind: "maintenance", incarnation, jobId }));
   const repository: FileJobRepository = {
-    plan: input => owned.plan(input), accept: async () => unavailableHttp(), control: async () => unavailableHttp(), requestCleanup: async () => unavailableHttp(),
+    plan: input => owned.plan(input), accept: async () => unavailableHttp(), requestReceipt: async () => unavailableHttp(),
+    control: async () => unavailableHttp(), requestCleanup: async () => unavailableHttp(),
     async claim(value, token, restrict) {
       sameIncarnation(value);
       // This lexical policy belongs ONLY to this one claim call; concurrent

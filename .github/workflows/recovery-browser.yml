@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - codex/genuine-worker-browser-recovery
+      - codex/migration-rejected-intent-recovery
       - v2/backend-foundation
     paths:
       - .github/workflows/recovery-browser.yml
@@ -24,6 +25,10 @@ on:
       - scripts/qa/phase5f/browser-genuine-worker-recovery.mjs
       - scripts/qa/phase5f/genuine-worker-recovery-browser.mjs
       - scripts/qa/phase5f/genuine-worker-recovery-runtime.mjs
+      - scripts/qa/phase5f/browser-genuine-migration-intent.mjs
+      - scripts/qa/phase5f/genuine-migration-intent-runtime.mjs
+      - scripts/qa/phase5f/genuine-migration-intent-browser.mjs
+      - scripts/qa/phase5f/prepare-file-migration-historical-r2-profiles.mjs
   pull_request:
     branches:
       - v2/backend-foundation
@@ -46,6 +51,10 @@ on:
       - scripts/qa/phase5f/browser-genuine-worker-recovery.mjs
       - scripts/qa/phase5f/genuine-worker-recovery-browser.mjs
       - scripts/qa/phase5f/genuine-worker-recovery-runtime.mjs
+      - scripts/qa/phase5f/browser-genuine-migration-intent.mjs
+      - scripts/qa/phase5f/genuine-migration-intent-runtime.mjs
+      - scripts/qa/phase5f/genuine-migration-intent-browser.mjs
+      - scripts/qa/phase5f/prepare-file-migration-historical-r2-profiles.mjs
 
 permissions:
   contents: read
@@ -62,6 +71,7 @@ jobs:
         shell: bash
         run: |
           printf 'RECOVERY_BROWSER_OUTPUT=%s/recovery-browser-%s-%s\n' "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+          printf 'MIGRATION_BROWSER_OUTPUT=%s/migration-browser-%s-%s\n' "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
 
       - name: Check out candidate
         uses: actions/checkout@v4
@@ -96,6 +106,9 @@ jobs:
         # production kernel limits; scheduled events are issued manually.
         run: node scripts/qa/phase5f/browser-genuine-worker-recovery.mjs --output "$RECOVERY_BROWSER_OUTPUT" --browser
 
+      - name: Qualify genuine migration request recovery
+        run: node scripts/qa/phase5f/browser-genuine-migration-intent.mjs --output "$MIGRATION_BROWSER_OUTPUT"
+
       - name: Retain reports and screenshots only
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
@@ -116,3 +129,10 @@ jobs:
             ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-390-dark/actual-verified-recovery-report.png
             ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-390-dark/actual-verified-recovery-report.full.png
             ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-390-dark/browser-failure.png
+            ${{ env.MIGRATION_BROWSER_OUTPUT }}/report.json
+            ${{ env.MIGRATION_BROWSER_OUTPUT }}/actual-other-admin-409-1280-light/actual-409-awaiting-explicit-replan.png
+            ${{ env.MIGRATION_BROWSER_OUTPUT }}/actual-other-admin-409-1280-light/actual-original-request-reconciled.png
+            ${{ env.MIGRATION_BROWSER_OUTPUT }}/actual-other-admin-409-1280-light/browser-failure.png
+            ${{ env.MIGRATION_BROWSER_OUTPUT }}/actual-lost-ack-390-dark/actual-committed-ack-lost.png
+            ${{ env.MIGRATION_BROWSER_OUTPUT }}/actual-lost-ack-390-dark/actual-original-request-reconciled.png
+            ${{ env.MIGRATION_BROWSER_OUTPUT }}/actual-lost-ack-390-dark/browser-failure.png

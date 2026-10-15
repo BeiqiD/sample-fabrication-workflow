@@ -214,6 +214,7 @@ export function createNodeV28WorkflowApplication(options:{
     const fileRoutes=[{method:"GET",path:"/files/migrations"},{method:"GET",path:"/files/migrations/files"},
       {method:"GET",path:"/files/migrations/executor"},{method:"POST",path:"/files/migrations/executor"},
       {method:"POST",path:"/files/migrations/plans"},{method:"POST",path:"/files/migrations"},
+      {method:"GET",path:"/files/migrations/requests/:requestId"},
       {method:"GET",path:"/files/migrations/:jobId"},{method:"GET",path:"/files/migrations/:jobId/items"},
       {method:"POST",path:"/files/migrations/:jobId/cleanup"},{method:"POST",path:"/files/migrations/:jobId/:action"}];
     admittedRoutes=Object.freeze([{method:"POST",path:"/api/auth/login"},{method:"GET",path:"/api/auth/session"},

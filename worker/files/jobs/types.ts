@@ -1,4 +1,4 @@
-import type { FileJobStatus, FileJobTarget, AcceptFileMigrationInput, FileMigrationPlan, FileJobExecutorStatus, FileMigrationInventory, FileMigrationItems } from "../../../shared/contracts/file-jobs";
+import type { FileJobStatus, FileJobTarget, AcceptFileMigrationInput, FileMigrationPlan, FileJobExecutorStatus, FileMigrationInventory, FileMigrationItems, FileMigrationRequestReceipt } from "../../../shared/contracts/file-jobs";
 import type { ByteReader } from "../byte-reader";
 import type { ByteWriter } from "../byte-writer";
 import type { Sha256Factory } from "../byte-verification";
@@ -28,6 +28,7 @@ export interface MigrationCleanupArtifact extends MigrationAttempt {
 export interface FileJobRepository {
   plan(input: AcceptFileMigrationInput): Promise<FileMigrationPlan>;
   accept(input: AcceptFileMigrationInput, actor: string, authorize?: () => boolean): Promise<FileJobStatus>;
+  requestReceipt(requestId: string, actor: string): Promise<FileMigrationRequestReceipt | null>;
   claim(incarnation: string, owner: string, authorize: (actor: string) => boolean): Promise<JobClaim | null>;
   owns(claim: JobClaim): Promise<boolean>;
   nextItem(claim: JobClaim): Promise<MigrationItem | null>;
@@ -56,6 +57,9 @@ export interface FileJobRepository {
   runtimeEnabled(incarnation: string): Promise<boolean>;
   cleanupGranted(jobId: string, incarnation: string): Promise<boolean>;
   releaseUnneededSource(incarnation: string): Promise<boolean>;
+}
+export class FileMigrationRequestActorMismatchError extends Error {
+  constructor() { super("File migration request conflicts with its accepted identity"); this.name = "FileMigrationRequestActorMismatchError"; }
 }
 export interface JobBoundStorage {
   namespaceIdentity: string; adapterType: "r2" | "switchdrive" | "s3" | "local";

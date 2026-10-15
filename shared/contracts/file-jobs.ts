@@ -30,6 +30,12 @@ export interface FileJobStatus {
   acceptedAt: string; updatedAt: string; reason: string | null;
   moved: number; remaining: number; failed: number; cleanupPending: number;
 }
+export interface FileMigrationRequestReceipt {
+  requestId: string; input: AcceptFileMigrationInput; job: FileJobStatus;
+}
+export interface FileMigrationRequestAbsent {
+  schema: "file-migration-request-absent/1"; requestId: string;
+}
 export interface FileJobExecutorStatus {
   enabled: boolean; lastHeartbeatAt: string | null; stale: boolean;
   cadenceSeconds: 120; maxFilesPerStep: 1; maxStepMs: 60000;
@@ -77,6 +83,15 @@ export function checkedAcceptFileMigration(value: unknown): AcceptFileMigrationI
   if (new Set(fileIds).size !== fileIds.length) throw new Error("Duplicate File selection");
   return { requestId: id(row.requestId), fileIds, target: checkedFileJobTarget(row.target) };
 }
+export function checkedFileMigrationRequestId(value: unknown): string { return id(value); }
+export function checkedFileMigrationRequestAbsent(value: unknown, expectedRequestId: string): FileMigrationRequestAbsent {
+  const row = object(value); keys(row, ["schema", "requestId"]);
+  const requestId = checkedFileMigrationRequestId(row.requestId);
+  if (row.schema !== "file-migration-request-absent/1" || requestId !== checkedFileMigrationRequestId(expectedRequestId)) {
+    throw new Error("File migration absence differs from its queried request");
+  }
+  return { schema: "file-migration-request-absent/1", requestId };
+}
 export function checkedFileJobStatus(value: unknown): FileJobStatus {
   const row = object(value), states = ["queued", "running", "paused", "cancel_requested", "completed", "cancelled"];
   if (!states.includes(String(row.state)) || typeof row.actor !== "string" || typeof row.acceptedAt !== "string"
@@ -87,4 +102,13 @@ export function checkedFileJobStatus(value: unknown): FileJobStatus {
   return { id: id(row.id), actor: row.actor, state: row.state as FileJobState, target: checkedFileJobTarget(row.target),
     acceptedAt: row.acceptedAt, updatedAt: row.updatedAt, reason: row.reason as string | null,
     moved: Number(row.moved), remaining: Number(row.remaining), failed: Number(row.failed), cleanupPending: Number(row.cleanupPending) };
+}
+export function checkedFileMigrationRequestReceipt(value: unknown): FileMigrationRequestReceipt {
+  const row = object(value); keys(row, ["requestId", "input", "job"]);
+  const requestId = checkedFileMigrationRequestId(row.requestId), input = checkedAcceptFileMigration(row.input), status = object(row.job);
+  keys(status, ["id", "actor", "state", "target", "acceptedAt", "updatedAt", "reason", "moved", "remaining", "failed", "cleanupPending"]);
+  const job = checkedFileJobStatus(status);
+  if (input.requestId !== requestId || job.target.profileId !== input.target.profileId
+    || job.target.configurationRevision !== input.target.configurationRevision) throw new Error("File migration receipt differs from its accepted input");
+  return { requestId, input, job };
 }

@@ -1,8 +1,10 @@
 # Product goal and roadmap
 
 **Current development scope — 2026-10-15:** [Capability ledger](./CURRENT_DEVELOPMENT_CAPABILITIES.md).
-The bounded backend milestone through #312 is complete; frontend policy integration is tracked in #313.
-The genuine local Worker browser successor adds qualified local evidence; older dated sections retain historical status.
+The bounded backend milestone through #312 and recovery frontend work in #313–#314 are integrated.
+Draft [#315](https://github.com/BeiqiD/sample-fabrication-workflow/pull/315) at `1c5bbe0d` passed its three main-target workflows, three development push workflows and all 15 head status contexts; it remains unmerged.
+The current stabilization slice fixes [File Migration request recovery](./FILE_MIGRATION_REQUEST_RECOVERY.md): definitive rejection can return to planning, while uncertain results retain their exact identity. Its local and hosted results retain their own source scope.
+Genuine Package browser copy/import, two-built-version local tab handover and populated current-chain Wrangler rehearsal remain independent next gates. Physical-device and deployed-provider acceptance remain open. Older dated sections retain historical status.
 
 **Supported recovery frontend development checkpoint — 2026-10-15.**
 PR #312 completed the bounded Node/Worker backend milestone at `abdc2d98`;

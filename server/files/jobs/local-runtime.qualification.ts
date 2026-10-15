@@ -79,6 +79,9 @@ scenario("mounts current administrator Job HTTP without enabling startup work or
   const before = snapshot(f.native), answer = await f.request("GET", prefix + "/executor");
   expect(answer.status).toBe(200); expect(answer.headers.get("cache-control")).toBe("private, no-store");
   expect(answer.value).toEqual({ enabled: false, lastHeartbeatAt: null, stale: true, cadenceSeconds: 120, maxFilesPerStep: 1, maxStepMs: 60000 });
+  const absentRequestId = crypto.randomUUID(), receipt = await f.request("GET", prefix + "/requests/" + absentRequestId);
+  expect(receipt.status).toBe(404); expect(receipt.headers.get("cache-control")).toBe("private, no-store");
+  expect(receipt.value).toEqual({ schema: "file-migration-request-absent/1", requestId: absentRequestId });
   expect(NODE_LOCAL_FILE_JOB_CADENCE_MS).toBe(120000);
   expect(await f.dispatchJobsOnce()).toEqual({ jobId: null, outcome: "disabled" });
   expect(snapshot(f.native)).toEqual(before); released(f);

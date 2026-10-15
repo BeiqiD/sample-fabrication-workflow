@@ -3,13 +3,40 @@ import { checkedAcceptFileMigration, type AcceptFileMigrationInput, type FileJob
 import type { StorageSettingsProfile } from "../../shared/contracts/storage-settings";
 import { ReadStatus } from "../components/ReadStatus";
 import { api, StoragePolicyRequestError } from "../lib/api";
-import { fileJobsClient, FileMigrationRequestError, fileMigrationErrorMessage, type MigrationInventory } from "../lib/file-jobs-client";
+import { fileJobsClient, FileMigrationRequestError, FileMigrationRequestMissingError, fileMigrationErrorMessage, type MigrationInventory } from "../lib/file-jobs-client";
 import { storageConfigurationClient, StorageConfigurationRequestError } from "../lib/storage-configuration-client";
 import "./storage-settings.css";
 
 const intentKey = "file-migration-acceptance";
+const rejectionKey = "file-migration-acceptance-rejection", historyKey = "file-migration-earlier-requests";
+type EarlierRequest = { input: AcceptFileMigrationInput; jobId: string | null };
+const sameInput = (left: AcceptFileMigrationInput, right: AcceptFileMigrationInput) => JSON.stringify(left) === JSON.stringify(right);
 function remembered(): AcceptFileMigrationInput | null {
   try { const saved = sessionStorage.getItem(intentKey); return saved ? checkedAcceptFileMigration(JSON.parse(saved)) : null; } catch { return null; }
+}
+function rememberedRejection(): AcceptFileMigrationInput | null {
+  try {
+    const row = JSON.parse(sessionStorage.getItem(rejectionKey) || "null"), pending = remembered();
+    if (!row || Object.keys(row).length !== 2 || row.schema !== "file-migration-rejection/1") return null;
+    const input = checkedAcceptFileMigration(row.input);
+    return pending && sameInput(input, pending) ? input : null;
+  } catch { return null; }
+}
+function rememberedHistory(): EarlierRequest[] | null {
+  try {
+    const rows: unknown = JSON.parse(sessionStorage.getItem(historyKey) || "[]");
+    if (!Array.isArray(rows)) return null;
+    const seen = new Set<string>();
+    return rows.map(row => {
+      if (!row || Object.keys(row).length !== 2 || !(row.jobId === null || typeof row.jobId === "string" && row.jobId.length > 0 && row.jobId.length <= 128)) throw new Error();
+      const input = checkedAcceptFileMigration(row.input);
+      if (seen.has(input.requestId)) throw new Error(); seen.add(input.requestId);
+      return { input, jobId: row.jobId };
+    });
+  } catch { return null; }
+}
+class MigrationCheckpointError extends Error {
+  constructor() { super("Browser request checkpoints could not be retained. Keep the original migration request and restore session storage before continuing."); }
 }
 const size = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(2)} MiB`;
 const jobReasons: Record<string, string> = {
@@ -23,9 +50,10 @@ const jobReasons: Record<string, string> = {
 };
 const jobReason = (reason: string) => jobReasons[reason] ?? "Job needs attention; refresh its details";
 type FileJobControl = Parameters<typeof fileJobsClient.control>[1];
-function SavedJobControls({ job, busy, allowed, currentSignal, onControl, onPauseTarget }: {
+function SavedJobControls({ job, busy, allowed, currentSignal, onControl, onPauseTarget, onStatusTarget }: {
   job: FileJobStatus; busy: boolean; allowed: boolean; currentSignal: AbortSignal | null;
   onPauseTarget: (job: FileJobStatus, button: HTMLButtonElement | null) => void;
+  onStatusTarget: (job: FileJobStatus, element: HTMLParagraphElement | null) => void;
   onControl: (action: FileJobControl, onStarting: (signal: AbortSignal) => void, onReceipt: (receipt: FileJobStatus) => void) => void;
 }) {
   const buttons = useRef(new Map<FileJobControl, HTMLButtonElement>());
@@ -58,7 +86,7 @@ function SavedJobControls({ job, busy, allowed, currentSignal, onControl, onPaus
   if (!["completed", "cancelled", "cancel_requested"].includes(job.state)) controls.push("cancel");
   if (job.cleanupPending > 0) controls.push("cleanup");
   return <>
-    <p ref={status} role="status" tabIndex={-1}>{job.state} · {job.moved} moved · {job.remaining} remaining · {job.failed} failed · {job.cleanupPending} cleanup pending</p>
+    <p ref={element => { status.current = element; onStatusTarget(job, element); }} role="status" tabIndex={-1}>{job.state} · {job.moved} moved · {job.remaining} remaining · {job.failed} failed · {job.cleanupPending} cleanup pending</p>
     <p className="muted">Destination: {job.target.profileId}{job.reason && <> · {jobReason(job.reason)}</>}</p>
     <div className="storage-candidate-actions">{controls.map(action => <button key={action} type="button" className="button" disabled={busy}
       ref={button => { if (button) buttons.current.set(action, button); else buttons.current.delete(action);
@@ -85,6 +113,10 @@ export function FileMigrationsPage() {
   const [selection, setSelection] = useState<string[]>([]), [target, setTarget] = useState("");
   const [jobs, setJobs] = useState<FileJobStatus[]>([]), [executor, setExecutor] = useState<FileJobExecutorStatus | null>(null);
   const [plan, setPlan] = useState<FileMigrationPlan | null>(null), [pending, setPending] = useState(remembered);
+  const pendingRef = useRef(pending);
+  const [rejected, setRejected] = useState(rememberedRejection), rejectedRef = useRef(rejected);
+  const [receiptMissing, setReceiptMissing] = useState(false);
+  const [earlier, setEarlier] = useState(rememberedHistory), earlierRef = useRef(earlier);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState("");
   const [messageIsError, setMessageIsError] = useState(false);
   const [accessLoading, setAccessLoading] = useState(true), [accessError, setAccessError] = useState("");
@@ -95,17 +127,21 @@ export function FileMigrationsPage() {
   const lifetime = useRef<AbortController | null>(null), busyRef = useRef(false), sequence = useRef(0);
   const canManage = useRef(false), refreshSequence = useRef(0);
   const metadataSequence = useRef(0), retryInitialRead = useRef<() => void>(() => {});
+  const initialIntentRead = useRef(false);
   const previewButton = useRef<HTMLButtonElement>(null);
   const returnPreviewFocus = useRef<{ button: HTMLButtonElement; signal: AbortSignal } | null>(null);
   const startButton = useRef<HTMLButtonElement>(null);
+  const retryButton = useRef<HTMLButtonElement>(null);
+  const replanButton = useRef<HTMLButtonElement>(null), destination = useRef<HTMLSelectElement>(null);
   const pauseTargets = useRef(new Map<string, { job: FileJobStatus; button: HTMLButtonElement }>());
+  const statusTargets = useRef(new Map<string, { job: FileJobStatus; element: HTMLParagraphElement }>());
   type StartFocusIntent = { origin: HTMLButtonElement; signal: AbortSignal; sequence: number; receipt: FileJobStatus | null;
-    movedAway: boolean; stopObserving: () => void };
+    replan: boolean; movedAway: boolean; stopObserving: () => void };
   const returnStartFocus = useRef<StartFocusIntent | null>(null);
   function clearStartFocus() { returnStartFocus.current?.stopObserving(); returnStartFocus.current = null; }
   function beginStartFocus(origin: HTMLButtonElement, signal: AbortSignal) {
-    if (document.activeElement !== origin || origin !== startButton.current || !origin.isConnected) return null;
-    const intent: StartFocusIntent = { origin, signal, sequence: sequence.current, receipt: null, movedAway: false,
+    if (document.activeElement !== origin || origin !== startButton.current && origin !== retryButton.current && origin !== replanButton.current || !origin.isConnected) return null;
+    const intent: StartFocusIntent = { origin, signal, sequence: sequence.current, receipt: null, replan: origin === replanButton.current, movedAway: false,
       stopObserving: () => { document.removeEventListener("focusin", moved, true); window.removeEventListener("blur", blurred); } };
     const moved = (event: FocusEvent) => { if (event.target !== origin && event.target !== document.body) intent.movedAway = true; };
     const blurred = () => { intent.movedAway = true; };
@@ -122,15 +158,16 @@ export function FileMigrationsPage() {
       || document.activeElement !== document.body && document.activeElement !== intent.origin) return;
     const receipt = intent.receipt;
     if (!receipt) {
-      if (intent.origin === startButton.current && intent.origin.isConnected && !intent.origin.disabled) intent.origin.focus();
+      if (intent.replan && !pendingRef.current && destination.current?.isConnected && !destination.current.disabled) destination.current.focus();
+      else if ((intent.origin === startButton.current || intent.origin === retryButton.current || intent.origin === replanButton.current) && intent.origin.isConnected && !intent.origin.disabled) intent.origin.focus();
       return;
     }
-    const target = pauseTargets.current.get(receipt.id), presented = jobs.find(job => job.id === receipt.id);
-    if (!target || !presented || target.job !== presented || presented.actor !== receipt.actor || presented.acceptedAt !== receipt.acceptedAt
+    const target = pauseTargets.current.get(receipt.id), savedStatus = statusTargets.current.get(receipt.id), presented = jobs.find(job => job.id === receipt.id);
+    if (!presented || presented.actor !== receipt.actor || presented.acceptedAt !== receipt.acceptedAt
       || presented.target.profileId !== receipt.target.profileId || presented.target.configurationRevision !== receipt.target.configurationRevision
-      || presented.state !== receipt.state || presented.updatedAt !== receipt.updatedAt
-      || !["queued", "running"].includes(presented.state) || !target.button.isConnected || target.button.disabled) return;
-    target.button.focus();
+      || presented.state !== receipt.state || presented.updatedAt !== receipt.updatedAt) return;
+    if (target?.job === presented && ["queued", "running"].includes(presented.state) && target.button.isConnected && !target.button.disabled) target.button.focus();
+    else if (savedStatus?.job === presented && savedStatus.element.isConnected) savedStatus.element.focus();
   }, [busy, authorized, jobs]);
   function checkAccessError(error: unknown) {
     if ((error instanceof FileMigrationRequestError || error instanceof StorageConfigurationRequestError || error instanceof StoragePolicyRequestError)
@@ -142,7 +179,48 @@ export function FileMigrationsPage() {
   }
   function reportError(error: unknown) {
     checkAccessError(error);
-    setMessageIsError(true); setMessage(fileMigrationErrorMessage(error));
+    setMessageIsError(true); setMessage(error instanceof MigrationCheckpointError ? error.message : fileMigrationErrorMessage(error));
+  }
+  function remember(input: AcceptFileMigrationInput | null) {
+    try { if (input) sessionStorage.setItem(intentKey, JSON.stringify(input)); else sessionStorage.removeItem(intentKey); }
+    catch { throw new MigrationCheckpointError(); }
+    pendingRef.current = input; setPending(input); setReceiptMissing(false);
+  }
+  function rememberRejection(input: AcceptFileMigrationInput | null) {
+    try { if (input) sessionStorage.setItem(rejectionKey, JSON.stringify({ schema: "file-migration-rejection/1", input })); else sessionStorage.removeItem(rejectionKey); }
+    catch { throw new MigrationCheckpointError(); }
+    rejectedRef.current = input; setRejected(input); setReceiptMissing(false);
+  }
+  function retainEarlier(input: AcceptFileMigrationInput, jobId: string | null) {
+    const saved = earlierRef.current;
+    if (!saved) throw new MigrationCheckpointError();
+    const previous = saved.find(row => row.input.requestId === input.requestId);
+    if (previous && (!sameInput(previous.input, input) || previous.jobId && jobId && previous.jobId !== jobId)) throw new Error("Invalid migration request checkpoint.");
+    const row = { input, jobId: previous?.jobId ?? jobId }, next = [...saved.filter(row => row.input.requestId !== input.requestId), row];
+    try { sessionStorage.setItem(historyKey, JSON.stringify(next)); } catch { throw new MigrationCheckpointError(); }
+    earlierRef.current = next; setEarlier(next);
+  }
+  function currentOperation(signal: AbortSignal, current: number) { return !signal.aborted && canManage.current && current === sequence.current; }
+  function acceptReceipt(input: AcceptFileMigrationInput, value: FileJobStatus) {
+    retainEarlier(input, value.id);
+    rememberRejection(null); remember(null); setPlan(null); setSelection([]);
+    setMessageIsError(false); setMessage(`Migration ${value.id} accepted. You can leave this page while the executor continues.`);
+    return value;
+  }
+  async function checkPending(signal: AbortSignal, current: number) {
+    const original = pendingRef.current; if (!original) return null;
+    try {
+      const receipt = await fileJobsClient.readRequest(original, signal);
+      if (currentOperation(signal, current) && pendingRef.current && sameInput(pendingRef.current, original)) return acceptReceipt(original, receipt.job);
+    } catch (error) {
+      if (!currentOperation(signal, current)) return null;
+      if (!(error instanceof FileMigrationRequestMissingError)) { setReceiptMissing(false); throw error; }
+      setReceiptMissing(true); setMessageIsError(false);
+      setMessage(rejectedRef.current && sameInput(rejectedRef.current, original)
+        ? "No saved receipt was found for this rejected request. Review a fresh plan or explicitly retry the original request. This status does not cancel work in another tab."
+        : "No saved receipt is recorded yet. The original request remains unconfirmed; check again or explicitly retry the same request.");
+    }
+    return null;
   }
   async function readMetadata(signal: AbortSignal) {
     if (!canManage.current || signal.aborted) return;
@@ -219,7 +297,16 @@ export function FileMigrationsPage() {
         if (!controller.signal.aborted) setAccessLoading(false);
         reading = false; return;
       }
-      try { await readMetadata(controller.signal); await poll(); }
+      try {
+        if (pendingRef.current && !initialIntentRead.current) {
+          initialIntentRead.current = true;
+          const current = ++sequence.current; busyRef.current = true; setBusy(true);
+          try { await checkPending(controller.signal, current); }
+          catch (error) { if (currentOperation(controller.signal, current)) reportError(error); }
+          finally { if (!controller.signal.aborted && current === sequence.current) { busyRef.current = false; setBusy(false); } }
+        }
+        if (canManage.current && !controller.signal.aborted) { await readMetadata(controller.signal); await poll(); }
+      }
       catch (error) { if (!controller.signal.aborted) checkAccessError(error); }
       finally { reading = false; }
     };
@@ -251,15 +338,51 @@ export function FileMigrationsPage() {
   function changeSelection(ids: string[]) { setSelection(ids); setPlan(null); }
   function input(): AcceptFileMigrationInput { return checkedAcceptFileMigration({ requestId: crypto.randomUUID(), fileIds: selection,
     target: { profileId: target, configurationRevision: profiles.find(profile => profile.id === target)?.configurationRevision } }); }
-  async function accept(signal: AbortSignal) {
-    const acceptedInput = pending ?? input();
-    sessionStorage.setItem(intentKey, JSON.stringify(acceptedInput)); setPending(acceptedInput);
-    const value = await fileJobsClient.accept(acceptedInput, signal);
-    if (signal.aborted) return;
-    sessionStorage.removeItem(intentKey); setPending(null); setPlan(null); setSelection([]);
-    setMessageIsError(false);
-    setMessage(`Migration ${value.id} accepted. You can leave this page while the executor continues.`);
-    return value;
+  async function accept(signal: AbortSignal, retry = false) {
+    const current = sequence.current, saved = pendingRef.current;
+    const acceptedInput = saved ?? input();
+    if (saved) {
+      const receipt = await checkPending(signal, current);
+      if (receipt || !retry || !currentOperation(signal, current) || !pendingRef.current) return receipt;
+    } else remember(acceptedInput);
+    // A legacy or unknown ACK stays uncertain even when a later retry rejects.
+    const mayRecordRejection = !saved || !!rejectedRef.current && sameInput(rejectedRef.current, acceptedInput);
+    rememberRejection(null);
+    try {
+      const value = await fileJobsClient.accept(acceptedInput, signal);
+      if (currentOperation(signal, current)) return acceptReceipt(acceptedInput, value);
+    } catch (error) {
+      if (!currentOperation(signal, current)) return;
+      if (error instanceof FileMigrationRequestError && error.status === 409) {
+        if (mayRecordRejection) rememberRejection(acceptedInput);
+        return checkPending(signal, current);
+      }
+      throw error;
+    }
+  }
+  async function reviewNewPlan(signal: AbortSignal) {
+    const current = sequence.current, original = pendingRef.current;
+    if (!original || !rejectedRef.current || !sameInput(original, rejectedRef.current)) return;
+    await readMetadata(signal);
+    if (!currentOperation(signal, current)) return;
+    const receipt = await checkPending(signal, current);
+    if (receipt || !currentOperation(signal, current) || !pendingRef.current || !sameInput(pendingRef.current, original)) return receipt;
+    retainEarlier(original, null); rememberRejection(null); remember(null);
+    setPlan(null); setSelection([]); setTarget("");
+    if (currentOperation(signal, current)) { setMessageIsError(false); setMessage("Review the refreshed files and destination before creating a new migration plan. The earlier request identifier is retained below for later status checks."); }
+  }
+  async function checkEarlier(row: EarlierRequest, signal: AbortSignal) {
+    const current = sequence.current;
+    try {
+      const receipt = await fileJobsClient.readRequest(row.input, signal);
+      if (!currentOperation(signal, current)) return;
+      retainEarlier(row.input, receipt.job.id);
+      setMessageIsError(false); setMessage(`Earlier request ${row.input.requestId} has saved migration ${receipt.job.id}. Its original work is retained.`);
+    } catch (error) {
+      if (!currentOperation(signal, current)) return;
+      if (!(error instanceof FileMigrationRequestMissingError)) throw error;
+      setMessageIsError(false); setMessage("No saved receipt is recorded for that earlier request at this check. Its original identifier remains retained.");
+    }
   }
   return <div className="page storage-settings-page">
     <div className="page-heading"><div><p className="eyebrow">Settings</p><h1>File migrations</h1>
@@ -271,7 +394,7 @@ export function FileMigrationsPage() {
     {authorized !== false && (authorized === null || accessLoading || accessError) && <ReadStatus loading={accessLoading} error={accessError} loadingMessage="Reading administrator access…"
       errorTitle="Administrator access is unavailable" retryLabel="Retry administrator access" onRetry={() => retryInitialRead.current()} />}
     {authorized === false && <p role="status">System administrator access is required to manage File migrations.</p>}
-    {message && <p className={messageIsError ? "error-banner" : undefined} role={messageIsError ? "alert" : "status"}>{message}</p>}
+    {message && authorized === true && <p className={messageIsError ? "error-banner" : undefined} role={messageIsError ? "alert" : "status"}>{message}</p>}
     {authorized && <>
       <section className="card storage-settings-section" aria-labelledby="file-migration-executor-title"><h2 className="card-title" id="file-migration-executor-title">Independent executor</h2>
         {!jobsRead && !jobsError && <p role="status">Waiting for saved executor status…</p>}
@@ -287,7 +410,7 @@ export function FileMigrationsPage() {
         <ReadStatus loading={metadataLoading} error={metadataError} loadingMessage="Reading storage profiles and File inventory…"
           errorTitle="Migration metadata is unavailable" retryLabel="Retry migration metadata" onRetry={() => retryInitialRead.current()} />
         {metadataRead && metadataError && <p className="muted">Previously read profiles and Files remain listed below.</p>}
-        <label>Destination <select aria-label="Migration destination" value={target} disabled={busy || !!pending || metadataLoading || !metadataRead} onChange={event => { setTarget(event.target.value); setPlan(null); }}>
+        <label>Destination <select ref={destination} aria-label="Migration destination" value={target} disabled={busy || !!pending || metadataLoading || !metadataRead} onChange={event => { setTarget(event.target.value); setPlan(null); }}>
           <option value="">Choose a writable profile</option>{profiles.map(profile => <option key={profile.id} value={profile.id}>{profile.adapterType}: {profile.id}</option>)}</select></label>
         {metadataRead && !metadataLoading && !metadataError && !profiles.length && <p className="muted">No writable destination is available. Activate and bind a storage profile in Storage settings.</p>}
         <ul className="storage-profile-list">{inventory.items.map(file => <li key={file.fileId}><label className="storage-candidate-checkbox">
@@ -308,7 +431,18 @@ export function FileMigrationsPage() {
             onClick={event => { const origin = event.currentTarget; void act(async signal => {
               const intent = beginStartFocus(origin, signal), receipt = await accept(signal);
               if (intent && returnStartFocus.current === intent && receipt) intent.receipt = receipt;
-            }); }}>{pending ? "Check or retry accepted request" : "Start migration"}</button>}</div>
+            }); }}>{pending ? "Check original migration request" : "Start migration"}</button>}
+          {pending && receiptMissing && <button ref={retryButton} type="button" className="button" disabled={busy} onClick={event => {
+            const origin = event.currentTarget; void act(async signal => {
+              const intent = beginStartFocus(origin, signal), receipt = await accept(signal, true);
+              if (intent && returnStartFocus.current === intent && receipt) intent.receipt = receipt;
+            });
+          }}>Retry original migration request</button>}
+          {pending && receiptMissing && rejected && sameInput(rejected, pending) && <button ref={replanButton} type="button" className="button" disabled={busy}
+            onClick={event => { const origin = event.currentTarget; void act(async signal => {
+              const intent = beginStartFocus(origin, signal), receipt = await reviewNewPlan(signal);
+              if (intent && returnStartFocus.current === intent && receipt) intent.receipt = receipt;
+            }); }}>Review a new migration plan</button>}</div>
         {pending && <p className="muted">An acceptance result is awaiting confirmation for {pending.fileIds.length} files to <code>{pending.target.profileId}</code>.
           Retry keeps the original files, destination and request identity.</p>}
         {plan && <><p>{plan.items.length} files · {size(plan.bytes)} total · up to {size(plan.stagingBytes)} staging.</p>
@@ -317,6 +451,12 @@ export function FileMigrationsPage() {
           <p className="muted">This preview reads metadata. The executor verifies every byte before switching a File.</p>
           {plan.items.filter(item => item.status !== "eligible").map(item => <p key={item.fileId}>{item.fileId}: {item.status === "same_profile" ? "Already on the destination profile" : "Exceeds the per-file limit"}</p>)}</>}
       </section>
+      {earlier?.length ? <section className="card storage-settings-section"><h2 className="card-title">Earlier migration requests</h2>
+        <p className="muted">These original request identifiers remain available after acceptance or explicit replanning. Checking them only reads saved receipts.</p>
+        <ul className="storage-profile-list">{earlier.map(row => <li key={row.input.requestId}><code>{row.input.requestId}</code>
+          {row.jobId && <p>Saved migration: <code>{row.jobId}</code>.</p>}
+          <button type="button" className="button" aria-label={`Check earlier request ${row.input.requestId}`} disabled={busy} onClick={() => void act(signal => checkEarlier(row, signal))}>Check saved receipt</button></li>)}</ul>
+      </section> : null}
       <section className="card storage-settings-section" aria-labelledby="file-migration-jobs-title"><h2 className="card-title" id="file-migration-jobs-title">Saved jobs</h2>
         <ReadStatus loading={jobsLoading && !jobsRead} error={jobsError} loadingMessage="Reading saved migrations and executor status…"
           errorTitle="Saved migrations are unavailable" retryLabel="Retry saved migrations" onRetry={() => void act(async () => {}, true)} />
@@ -326,6 +466,8 @@ export function FileMigrationsPage() {
         <ul className="storage-profile-list">{jobs.map(job => <li key={job.id}><h3><code>{job.id}</code></h3>
           <SavedJobControls job={job} onPauseTarget={(presented, button) => {
             if (button) pauseTargets.current.set(presented.id, { job: presented, button }); else pauseTargets.current.delete(presented.id);
+          }} onStatusTarget={(presented, element) => {
+            if (element) statusTargets.current.set(presented.id, { job: presented, element }); else statusTargets.current.delete(presented.id);
           }} busy={busy} allowed={authorized === true && canManage.current} currentSignal={lifetime.current?.signal ?? null}
             onControl={(action, onStarting, onReceipt) => void act(async signal => {
               onStarting(signal); const receipt = await fileJobsClient.control(job.id, action, signal);

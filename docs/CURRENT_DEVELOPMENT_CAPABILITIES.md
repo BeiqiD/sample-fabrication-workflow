@@ -3,6 +3,10 @@
 Recorded 2026-10-15 against PR #313 candidate `6ca0d8ccc600aeb8b1fbfd59fc5067c64e8a4650`,
 merged into development as `860c61d25e6f7e7f30546ea6e1d16e17bc9e28b0`.
 This is a development/review ledger, not production activation or release approval.
+Draft [PR #315](https://github.com/BeiqiD/sample-fabrication-workflow/pull/315)
+at `1c5bbe0d` passed its three main-target workflows, three development push
+workflows and all 15 head contexts, observed on 2026-10-15 at 15:28 CEST. Its
+results do not qualify subsequent changes or close the external gates below.
 [PR #313](https://github.com/BeiqiD/sample-fabrication-workflow/pull/313) passed its
 four push/PR workflows and fifteen status contexts before that merge. Its hosted
 checks and merge receipt remain separate from the local results below.
@@ -28,6 +32,13 @@ These results do not establish complete Node self-hosting or deployed-provider a
 | System Recovery | Validate an installation archive and restore into a qualified fresh target with identity-preserving recovery rules | Protected authority is quarantined/disabled, old jobs do not replay automatically, and target verification is not activation |
 | Node V28 shared workflow | Explicitly admitted API routes and File/Package/Recovery runtime composition | Actual capabilities remain `fullReady:false`, `spa:false`, `generalFileLifecycle:false`, `imageBytes:false`; no installed Node SPA or Storage Settings route |
 | Node Recovery-only | Native authenticated recovery/backup API and separate offline operator paths | No installed SPA; original-source resume is a separate proven operation, not target activation |
+
+File Migration now distinguishes a rejected first acceptance from an uncertain
+response. Exact read-only receipts reconcile accepted work; explicit replanning
+after a checked rejection/absence retains the earlier identity. Generic 404s and
+unknown responses keep the checkpoint. See the
+[request-recovery scope and local qualification](./FILE_MIGRATION_REQUEST_RECOVERY.md);
+the adopting PR records its own hosted checks and development integration.
 
 The ordinary Worker source currently produces the V3 archive on its normal schema.
 The separately qualified V5 path requires its admitted V28 schema/control state
@@ -75,9 +86,12 @@ local passes and PR313's checks do not qualify a later candidate.
 Only observed defects require product changes. Keep heavy checks local/GitHub CI;
 the minimal Cloudflare bundle/upload path is unchanged.
 
-After that gate and qualified development integration, prepare a reviewable
-`main` candidate with an explicit enabled/deferred capability list and ancestry/
-handoff notes. Preparing the candidate does not authorize a `main` merge.
+Draft #315 now provides the reviewable `main` candidate with enabled/deferred
+capabilities and ancestry/handoff notes. Further stabilization changes need their
+own qualification before updating that candidate. Next independent local gates
+include genuine Package browser copy/import, two-built-version tab handover and
+populated current-chain Wrangler rehearsal. A prepared draft does not authorize
+a `main` merge.
 
 ## Selected 6A6 / 6B acceptance
 
