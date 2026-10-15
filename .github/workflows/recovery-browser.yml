@@ -57,8 +57,12 @@ jobs:
     env:
       WRANGLER_SEND_METRICS: 'false'
       PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
-      RECOVERY_BROWSER_OUTPUT: ${{ runner.temp }}/recovery-browser-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
+      - name: Prepare evidence directory
+        shell: bash
+        run: |
+          printf 'RECOVERY_BROWSER_OUTPUT=%s/recovery-browser-%s-%s\n' "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+
       - name: Check out candidate
         uses: actions/checkout@v4
         with:
