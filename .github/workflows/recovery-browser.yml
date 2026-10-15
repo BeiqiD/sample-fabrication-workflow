@@ -1,0 +1,118 @@
+name: Genuine Worker recovery browser
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - codex/genuine-worker-browser-recovery
+      - v2/backend-foundation
+    paths:
+      - .github/workflows/recovery-browser.yml
+      - src/**
+      - worker/**
+      - shared/**
+      - migrations/**
+      - public/**
+      - index.html
+      - package.json
+      - package-lock.json
+      - vite.config.ts
+      - wrangler.jsonc
+      - scripts/production-worker-artifact.mjs
+      - scripts/generate-wrangler-config.mjs
+      - scripts/temml-bundler-compat.mjs
+      - scripts/qa/phase5f/browser-genuine-worker-recovery.mjs
+      - scripts/qa/phase5f/genuine-worker-recovery-browser.mjs
+      - scripts/qa/phase5f/genuine-worker-recovery-runtime.mjs
+  pull_request:
+    branches:
+      - v2/backend-foundation
+      - main
+    paths:
+      - .github/workflows/recovery-browser.yml
+      - src/**
+      - worker/**
+      - shared/**
+      - migrations/**
+      - public/**
+      - index.html
+      - package.json
+      - package-lock.json
+      - vite.config.ts
+      - wrangler.jsonc
+      - scripts/production-worker-artifact.mjs
+      - scripts/generate-wrangler-config.mjs
+      - scripts/temml-bundler-compat.mjs
+      - scripts/qa/phase5f/browser-genuine-worker-recovery.mjs
+      - scripts/qa/phase5f/genuine-worker-recovery-browser.mjs
+      - scripts/qa/phase5f/genuine-worker-recovery-runtime.mjs
+
+permissions:
+  contents: read
+
+jobs:
+  genuine-worker-recovery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      WRANGLER_SEND_METRICS: 'false'
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+    steps:
+      - name: Prepare evidence directory
+        shell: bash
+        run: |
+          printf 'RECOVERY_BROWSER_OUTPUT=%s/recovery-browser-%s-%s\n' "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+
+      - name: Check out candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+          cache: npm
+
+      - name: Install committed dependencies
+        run: npm ci
+
+      - name: Build Worker and client
+        run: npm run build
+
+      - name: Use installed Chrome and pinned browser client
+        shell: bash
+        run: |
+          chrome_path="$(command -v google-chrome || command -v google-chrome-stable)"
+          "$chrome_path" --version
+          browser_tools="$RUNNER_TEMP/recovery-browser-tools"
+          npm install --prefix "$browser_tools" --no-save --no-package-lock --ignore-scripts --no-audit --no-fund playwright-core@1.57.0
+          printf 'CHROMIUM_PATH=%s\n' "$chrome_path" >> "$GITHUB_ENV"
+          printf 'PLAYWRIGHT_MODULE_PATH=%s\n' "$browser_tools/node_modules/playwright-core" >> "$GITHUB_ENV"
+
+      - name: Qualify genuine desktop and mobile recovery
+        # The helper retains its original three-minute QA step deadline and
+        # production kernel limits; scheduled events are issued manually.
+        run: node scripts/qa/phase5f/browser-genuine-worker-recovery.mjs --output "$RECOVERY_BROWSER_OUTPUT" --browser
+
+      - name: Retain reports and screenshots only
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: genuine-worker-recovery-browser-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          path: |
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/report.json
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-1280-light/actual-downloaded-recovery-report.json
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-1280-light/actual-explicit-mapping.png
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-1280-light/actual-explicit-mapping.full.png
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-1280-light/actual-verified-recovery-report.png
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-1280-light/actual-verified-recovery-report.full.png
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-1280-light/browser-failure.png
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-390-dark/actual-downloaded-recovery-report.json
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-390-dark/actual-explicit-mapping.png
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-390-dark/actual-explicit-mapping.full.png
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-390-dark/actual-verified-recovery-report.png
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-390-dark/actual-verified-recovery-report.full.png
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-390-dark/browser-failure.png

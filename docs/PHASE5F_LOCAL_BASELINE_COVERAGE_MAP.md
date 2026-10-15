@@ -1,5 +1,9 @@
 # Phase 5F local baseline and coverage map
 
+**Historical baseline map:** the observations below retain their original sources and limits.
+Use the [current capability ledger](./CURRENT_DEVELOPMENT_CAPABILITIES.md) for subsequent development status.
+Its older Node Package/nonempty-transfer gaps are superseded by the bounded #305–#312 results.
+
 Recorded 2026-10-13 UTC at development merge `ab0339bce591abd2fed61690916c2d098de2a43d` / tree `1a04056ef5cc1a6a11ea31b51648c3eeb3f50902`, with observed status through 05:05:34 UTC. **Supported local Phase5F candidate qualification and role/coverage mapping are complete at the independently qualified71/092 heads and their exact-tree merges. Ordinary post-merge Verify/all15 remain PENDING; whole5F is not complete.** Fresh finite20 evidence below belongs to exact `092be4319c726edf9636a1f2ef51a30fe9afcf10`. This document maps supported local scope and explicit omissions; it does not rename historical sources or sum separate qualification totals.
 
 | Fresh full20 | Original run/job | Actual result |

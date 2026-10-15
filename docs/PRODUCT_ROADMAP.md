@@ -1,5 +1,9 @@
 # Product goal and roadmap
 
+**Current development scope — 2026-10-15:** [Capability ledger](./CURRENT_DEVELOPMENT_CAPABILITIES.md).
+The bounded backend milestone through #312 is complete; frontend policy integration is tracked in #313.
+The genuine local Worker browser successor adds qualified local evidence; older dated sections retain historical status.
+
 **Supported recovery frontend development checkpoint — 2026-10-15.**
 PR #312 completed the bounded Node/Worker backend milestone at `abdc2d98`;
 its post-merge Verify, Project Map, all 15 contexts and Cloudflare check passed.

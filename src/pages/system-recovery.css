@@ -1,4 +1,5 @@
 .system-recovery-navigation { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0; }
+.system-recovery-page .button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 .system-recovery-page fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 .system-recovery-page input[type=file] { max-width: 100%; margin: 12px 0; }
 .system-recovery-page code { overflow-wrap: anywhere; }
