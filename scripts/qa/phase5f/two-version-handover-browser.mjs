@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { resolve } from 'node:path';
+import { readOwnedCheckpoint } from './browser-owned-checkpoints.mjs';
 
 const button = (page, name) => page.getByRole('button', { name, exact: true });
 async function enabled(locator) {
@@ -95,15 +96,20 @@ export async function qualifyTwoVersionBrowser(owner, context, value, a, b, queu
       const beforePosts = value.edge.requests.filter(row => row.method === 'POST' && row.path === '/api/packages/jobs').length;
       await page.locator('.system-recovery-navigation').getByRole('link', { name: 'Research packages and reports', exact: true }).click();
       await page.getByRole('heading', { name: 'Data', exact: true, level: 1 }).waitFor();
-      await page.waitForFunction(() => sessionStorage.getItem('research-package-operation') === null);
+      await page.getByRole('status').filter({ hasText: 'Earlier browser recovery records have no verified account owner' }).waitFor();
       await page.locator('.research-package-job').filter({ has: page.getByText(queued.jobId, { exact: true }) }).waitFor();
-      const receiptCheckpoint = await page.evaluate(() => JSON.parse(sessionStorage.getItem('research-package-receipts')));
-      assert(receiptCheckpoint.some(row => row.requestId === queued.requestId && row.jobId === queued.jobId));
-      assert(value.edge.requests.some(row => row.version === 'B' && row.method === 'GET' && row.path === `/api/packages/requests/${encodeURIComponent(queued.requestId)}` && row.status === 200));
+      assert.deepEqual(await page.evaluate(() => JSON.parse(sessionStorage.getItem('research-package-operation'))), value.originalQueuedCheckpoint,
+        'The old client did not prove checkpoint ownership; retain its original bytes without adopting them.');
+      assert.equal(await readOwnedCheckpoint(page, 'research-package-operation'), null);
+      assert.equal(await page.getByRole('heading', { name: 'Unconfirmed operation', exact: true }).count(), 0);
+      assert.equal(await button(page, 'Check original package request').count(), 0);
+      assert(value.edge.requests.some(row => row.version === 'B' && row.method === 'GET' && row.path === '/api/packages/jobs' && row.status === 200));
+      assert.equal(value.edge.requests.filter(row => row.version === 'B' && row.path === `/api/packages/requests/${encodeURIComponent(queued.requestId)}`).length, 0);
       assert.equal(value.edge.requests.filter(row => row.method === 'POST' && row.path === '/api/packages/jobs').length, beforePosts); assert.equal(beforePosts, 1);
       value.originalJob = await screenshot(page, owner.output, 'original-queued-job.png');
       value.queuedOriginalReconciliation = { requestId: queued.requestId, jobId: queued.jobId, actualOldAcceptedAckLost: true,
-        realBReceiptRead: true, originalExportPostCount: 1, originalSessionCheckpointAccepted: true, noMutationReplay: true };
+        realBAccountScopedJobListRead: true, originalExportPostCount: 1, unownedOriginalCheckpointPreserved: true,
+        originalSessionCheckpointAccepted: false, legacyOwnershipWarningVisible: true, noUnownedReceiptRead: true, noMutationReplay: true };
     }
     assert.equal(value.edge.requests.filter(row => !['GET', 'HEAD'].includes(row.method)).length, mutationCount);
     value.independentReadback = await owner.verifyPreserved(queued);

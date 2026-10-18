@@ -25,7 +25,7 @@ try {
   await build({
     entryPoints: [join(root, "scripts/lib/export-restore.ts")],
     bundle: true, platform: "node", format: "esm", outfile: output, logLevel: "silent",
-    banner: { js: 'import { createRequire } from "node:module"; const require = createRequire(import.meta.url);' },
+    banner: { js: 'import { createRequire as __sfwBundleCreateRequire } from "node:module"; const require = __sfwBundleCreateRequire(import.meta.url);' },
   });
   const { restoreExportToIsolatedDirectory } = await import(pathToFileURL(output).href);
   const result = await restoreExportToIsolatedDirectory({

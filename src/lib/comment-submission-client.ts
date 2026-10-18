@@ -1,8 +1,16 @@
-import { applicationFetch } from "./authentication-client";
+import { captureApplicationOwner, usesLocalAuthentication, type ApplicationOwner } from "./authentication-client";
+import { checkpointStorage } from "./browser-checkpoints";
 import type { CreateCommentSubmissionInput } from "../../shared/types";
 import { stableJson } from "../../shared/domain/content-addressing";
 import { canonicalCommentAcceptanceInput, validateCommentAcceptanceInput, validateCommentPublicationResult, MAX_COMMENT_ACCEPTANCE_INPUT_BYTES, type AcceptedCommentSubmissionInput, type CommentAcceptanceState } from "../../shared/contracts/comment-acceptance";
+const inputOwners = new WeakMap<object, ApplicationOwner>();
 
+export class CommentAcceptanceError extends Error {
+  constructor(message: string) { super(message); this.name = "CommentAcceptanceError"; }
+}
+
+function createCommentClient(owner: ApplicationOwner) {
+  const storage = checkpointStorage(owner), applicationFetch = owner.fetch;
 const PREFIX = "comment-acceptance-v1:";
 const MAX_CHECKPOINT_BYTES = MAX_COMMENT_ACCEPTANCE_INPUT_BYTES + 4096;
 interface Checkpoint { version: 1; sourceKey: string; input: AcceptedCommentSubmissionInput; inputSha256: string; attempted: boolean; observedReady: boolean; cancelling?: boolean; removing?: string[] }
@@ -10,15 +18,14 @@ const known = new Map<string, Checkpoint>();
 const actions = new Map<string, Promise<unknown>>();
 const creates = new Map<string, { json: string; promise: Promise<{ id: string; deduplicated: boolean }> }>();
 const discarded = new Set<string>();
-function requireTracked(id: string) { if (discarded.has(id)) throw new CommentAcceptanceError("This local comment request was discarded. Submit a new comment to start another request."); }
-export class CommentAcceptanceError extends Error {
-  constructor(message: string) { super(message); this.name = "CommentAcceptanceError"; }
-}
+function requireTracked(id: string) { owner.assertCurrent(); if (discarded.has(id)) throw new CommentAcceptanceError("This local comment request was discarded. Submit a new comment to start another request."); }
+
 function requireDigest() {
   if (!globalThis.crypto?.subtle) throw new CommentAcceptanceError("Comment submission requires a secure HTTPS connection with browser cryptography available.");
 }
 const fileHashes = new WeakMap<File, Promise<string>>();
-export function commentFileSha256(file: File): Promise<string> {
+function commentFileSha256(file: File): Promise<string> {
+  owner.assertCurrent();
   const existing = fileHashes.get(file); if (existing) return existing;
   const result = (async () => {
     requireDigest();
@@ -28,7 +35,8 @@ export function commentFileSha256(file: File): Promise<string> {
       reader.onload = () => reader.result instanceof ArrayBuffer ? resolve(reader.result) : reject(new Error("The selected comment file could not be read."));
       reader.readAsArrayBuffer(file);
     });
-    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    owner.assertCurrent();
+    const digest = await crypto.subtle.digest("SHA-256", bytes); owner.assertCurrent();
     return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
   })();
   fileHashes.set(file, result); void result.catch(() => { if (fileHashes.get(file) === result) fileHashes.delete(file); });
@@ -37,7 +45,7 @@ export function commentFileSha256(file: File): Promise<string> {
 function record(value: unknown): value is Record<string, unknown> { return value !== null && typeof value === "object" && !Array.isArray(value); }
 function read(id: string): Checkpoint | null {
   try {
-    const raw = sessionStorage.getItem(`${PREFIX}${id}`);
+    const raw = storage.getItem(`${PREFIX}${id}`);
     if (!raw) return known.get(id) ?? null;
     if (new TextEncoder().encode(raw).byteLength > MAX_CHECKPOINT_BYTES) throw new Error();
     const value: unknown = JSON.parse(raw);
@@ -55,46 +63,48 @@ function save(checkpoint: Checkpoint) {
   try {
     const raw = JSON.stringify(checkpoint);
     if (new TextEncoder().encode(raw).byteLength > MAX_CHECKPOINT_BYTES) throw new Error();
-    sessionStorage.setItem(`${PREFIX}${checkpoint.input.id}`, raw);
-    if (sessionStorage.getItem(`${PREFIX}${checkpoint.input.id}`) !== raw) throw new Error();
+    storage.setItem(`${PREFIX}${checkpoint.input.id}`, raw);
+    if (storage.getItem(`${PREFIX}${checkpoint.input.id}`) !== raw) throw new Error();
     known.set(checkpoint.input.id, checkpoint);
   } catch { throw new CommentAcceptanceError("The comment request could not be saved in this browser. Restore session storage before submitting."); }
 }
-export function savedCommentSubmissions(sourceKey?: string): AcceptedCommentSubmissionInput[] {
+function savedCommentSubmissions(sourceKey?: string): AcceptedCommentSubmissionInput[] {
   const result: AcceptedCommentSubmissionInput[] = [];
   try {
-    for (let index = 0; index < sessionStorage.length; index += 1) {
-      const key = sessionStorage.key(index);
-      if (key?.startsWith(PREFIX)) { const checkpoint = read(key.slice(PREFIX.length)); if (checkpoint && (sourceKey === undefined || checkpoint.sourceKey === sourceKey)) result.push(checkpoint.input); }
+    for (let index = 0; index < storage.length; index += 1) {
+      const key = storage.key(index);
+      if (key?.startsWith(PREFIX)) { const checkpoint = read(key.slice(PREFIX.length)); if (checkpoint && (sourceKey === undefined || checkpoint.sourceKey === sourceKey)) {
+        inputOwners.set(checkpoint.input, owner); result.push(checkpoint.input);
+      } }
     }
   } catch { throw new CommentAcceptanceError("The saved comment requests could not be read. Restore browser session storage before retrying."); }
   return result;
 }
-export function commentComposerSource(context: CreateCommentSubmissionInput["context"]): string {
+function commentComposerSource(context: CreateCommentSubmissionInput["context"]): string {
   return context.kind === "sample" ? `sample:${context.sampleId}` : `${context.scope}:${context.targets.map((target) => `${target.sampleId}/${target.runId}/${target.stepId}`).sort().join(",")}`;
 }
-export async function prepareDurableCommentSubmission(value: AcceptedCommentSubmissionInput, sourceKey = commentComposerSource(value.context)) {
+async function prepareDurableCommentSubmission(value: AcceptedCommentSubmissionInput, sourceKey = commentComposerSource(value.context)) {
   requireDigest();
   const canonical = await canonicalCommentAcceptanceInput(JSON.parse(JSON.stringify(value)));
   const prior = read(canonical.input.id);
   if (prior && prior.inputSha256 !== canonical.sha256) throw new CommentAcceptanceError("The accepted comment cannot be changed. Start a new comment for different content.");
   if (!sourceKey || sourceKey.length > 2048) throw new CommentAcceptanceError("The comment editing context is invalid.");
   const checkpoint: Checkpoint = prior ?? { version: 1, sourceKey, input: canonical.input, inputSha256: canonical.sha256, attempted: false, observedReady: false };
-  save(checkpoint); return canonical.input;
+  save(checkpoint); inputOwners.set(canonical.input, owner); return canonical.input;
 }
-export function commentCancellationPending(id: string): boolean { return read(id)?.cancelling === true; }
+function commentCancellationPending(id: string): boolean { return read(id)?.cancelling === true; }
 /** Clear local tracking without claiming the server execution was cancelled. */
-export function discardLocalCommentSubmission(id: string): void {
+function discardLocalCommentSubmission(id: string): void {
   const checkpoint = read(id);
   if (!checkpoint?.cancelling) throw new CommentAcceptanceError("Try cancelling this comment before discarding local tracking.");
   try {
-    sessionStorage.removeItem(`${PREFIX}${id}`);
-    if (sessionStorage.getItem(`${PREFIX}${id}`) !== null) throw new Error();
+    storage.removeItem(`${PREFIX}${id}`);
+    if (storage.getItem(`${PREFIX}${id}`) !== null) throw new Error();
   } catch { throw new CommentAcceptanceError("The local comment request could not be discarded. Restore browser session storage and try again."); }
   known.set(id, checkpoint); discarded.add(id);
 }
-export function finishCommentSubmission(id: string): void {
-  try { sessionStorage.removeItem(`${PREFIX}${id}`); } catch { /* Keeping settled tracking is safe. */ }
+function finishCommentSubmission(id: string): void {
+  try { storage.removeItem(`${PREFIX}${id}`); } catch { /* Keeping settled tracking is safe. */ }
 }
 function oneAction<T>(key: string, action: () => Promise<T>): Promise<T> {
   const previous = actions.get(key); if (previous) return previous as Promise<T>;
@@ -109,6 +119,7 @@ function stateError(state: CommentAcceptanceState): never {
   throw new CommentAcceptanceError("This comment is no longer available. Check its status before submitting a new comment.");
 }
 async function verifyState(value: unknown, id: string): Promise<CommentAcceptanceState> {
+  owner.assertCurrent();
   const state = record(value) ? value.request : null;
   if (!record(state) || state.submissionId !== id || !["pending", "ready", "cancelled", "expired", "unavailable", "legacy"].includes(String(state.status)) || !Array.isArray(state.items)) {
     throw new CommentAcceptanceError("The comment request status could not be verified. Check the same request again.");
@@ -120,6 +131,7 @@ async function verifyState(value: unknown, id: string): Promise<CommentAcceptanc
   let canonical: Awaited<ReturnType<typeof canonicalCommentAcceptanceInput>>;
   try { canonical = await canonicalCommentAcceptanceInput(state.input); }
   catch { throw new CommentAcceptanceError("The comment request status could not be verified. Check the same request again."); }
+  owner.assertCurrent();
   if (canonical.input.id !== id || canonical.sha256 !== state.inputSha256 || typeof state.expiresAt !== "string" || !Number.isFinite(Date.parse(state.expiresAt))) {
     throw new CommentAcceptanceError("The comment request status could not be verified. Check the same request again.");
   }
@@ -148,7 +160,7 @@ async function verifyState(value: unknown, id: string): Promise<CommentAcceptanc
   }
   return state as unknown as CommentAcceptanceState;
 }
-export async function getCommentAcceptance(id: string): Promise<CommentAcceptanceState | null> {
+async function getCommentAcceptance(id: string): Promise<CommentAcceptanceState | null> {
   let response: Response;
   try { response = await applicationFetch(`/api/comment-submissions/${encodeURIComponent(id)}/acceptance`, { cache: "no-store" }); }
   catch { throw new CommentAcceptanceError("The comment status could not be checked. Retry to check the same request."); }
@@ -166,7 +178,7 @@ async function mutation(path: string, id: string, init: RequestInit): Promise<Co
   const state = await verifyState(payload, id);
   requireTracked(id); return state;
 }
-export async function createDurableCommentSubmission(value: AcceptedCommentSubmissionInput): Promise<{ id: string; deduplicated: boolean }> {
+async function createDurableCommentSubmission(value: AcceptedCommentSubmissionInput): Promise<{ id: string; deduplicated: boolean }> {
   requireTracked(value.id); requireDigest();
   const frozen = validateCommentAcceptanceInput(JSON.parse(JSON.stringify(value)));
   const json = stableJson(frozen);
@@ -211,7 +223,7 @@ async function requireState(id: string) {
   if (!state) throw new CommentAcceptanceError("The comment request could not be found. Retry the original comment before uploading files.");
   return state;
 }
-export async function uploadDurableCommentItem(id: string, itemId: string, file: File, sha256: string | null, onProgress: (progress: number) => void, signal?: AbortSignal): Promise<{ ok: true; deduplicated: boolean }> {
+async function uploadDurableCommentItem(id: string, itemId: string, file: File, sha256: string | null, onProgress: (progress: number) => void, signal?: AbortSignal): Promise<{ ok: true; deduplicated: boolean }> {
   requireTracked(id);
   if (signal?.aborted) throw new DOMException("Upload cancelled", "AbortError");
   const actualSha256 = await commentFileSha256(file);
@@ -232,22 +244,34 @@ export async function uploadDurableCommentItem(id: string, itemId: string, file:
       ? "This file upload is still processing. Retry checks its status without uploading the file again."
       : "This file cannot be uploaded again. Remove it or cancel the comment before starting another request.");
     if (signal?.aborted) throw new DOMException("Upload cancelled", "AbortError");
-    const payload = await new Promise<unknown>((resolve, reject) => {
+    let payload: unknown;
+    if (usesLocalAuthentication()) {
+      // XHR cannot disable redirects. Keep the local session's CSRF on the
+      // same-origin, redirect-rejecting transport used by other mutations.
+      onProgress(0);
+      const response = await applicationFetch(`/api/comment-submissions/${encodeURIComponent(id)}/items/${encodeURIComponent(itemId)}/content`, {
+        method: "PUT", headers: { "content-type": input.mimeType, "x-upload-size": String(file.size), "x-content-sha256": sha256! }, body: file, signal,
+      });
+      payload = await response.json().catch(() => null);
+      if (!response.ok) throw new CommentAcceptanceError("The upload did not complete. Retry to check its status.");
+    } else payload = await new Promise<unknown>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       const abort = () => xhr.abort();
       const clean = () => signal?.removeEventListener("abort", abort);
       xhr.open("PUT", `/api/comment-submissions/${encodeURIComponent(id)}/items/${encodeURIComponent(itemId)}/content`);
       xhr.setRequestHeader("content-type", input.mimeType); xhr.setRequestHeader("x-upload-size", String(file.size)); xhr.setRequestHeader("x-content-sha256", sha256!);
+      if (owner.subject?.startsWith("access:")) xhr.setRequestHeader("x-sfw-expected-subject", owner.subject.slice("access:".length));
       xhr.upload.addEventListener("progress", (event) => { if (event.lengthComputable) onProgress(Math.max(0, Math.min(100, Math.round(event.loaded / event.total * 100)))); });
       xhr.addEventListener("load", () => {
-        clean(); let value: unknown; try { value = JSON.parse(xhr.responseText); } catch { reject(new CommentAcceptanceError("The upload response could not be verified. Retry to check its status.")); return; }
+        clean(); owner.observeResponse(xhr.status, !!owner.subject && xhr.getResponseHeader("x-sfw-identity-result") === "mismatch");
+        let value: unknown; try { owner.assertCurrent(); value = JSON.parse(xhr.responseText); } catch { reject(new CommentAcceptanceError("The upload response could not be verified. Retry to check its status.")); return; }
         if (xhr.status >= 200 && xhr.status < 300) resolve(value);
         else reject(new CommentAcceptanceError(record(value) && typeof value.error === "string" ? value.error : "The upload did not complete. Retry to check its status."));
       });
       xhr.addEventListener("error", () => { clean(); reject(new CommentAcceptanceError("The upload response was lost. Retry to check its status.")); });
       xhr.addEventListener("abort", () => { clean(); reject(new DOMException("Upload cancelled", "AbortError")); });
       signal?.addEventListener("abort", abort, { once: true });
-      xhr.send(file); onProgress(0);
+      owner.assertCurrent(); xhr.send(file); onProgress(0);
     });
     const latest = await verifyState(payload, id);
     requireTracked(id);
@@ -255,7 +279,7 @@ export async function uploadDurableCommentItem(id: string, itemId: string, file:
     onProgress(100); return { ok: true, deduplicated: false };
   });
 }
-export function finalizeDurableCommentSubmission(id: string): Promise<{ ok: true; status: "ready" }> {
+function finalizeDurableCommentSubmission(id: string): Promise<{ ok: true; status: "ready" }> {
   return oneAction(`finalize:${id}`, async () => {
     const state = await requireState(id);
     if (state.status === "ready") return { ok: true, status: "ready" };
@@ -268,7 +292,7 @@ export function finalizeDurableCommentSubmission(id: string): Promise<{ ok: true
     return { ok: true, status: "ready" };
   });
 }
-export function removeDurableCommentItem(id: string, itemId: string): Promise<{ ok: true }> {
+function removeDurableCommentItem(id: string, itemId: string): Promise<{ ok: true }> {
   requireTracked(id);
   return oneAction(`remove:${id}:${itemId}`, async () => {
     const checkpoint = read(id);
@@ -284,7 +308,7 @@ export function removeDurableCommentItem(id: string, itemId: string): Promise<{ 
     return { ok: true };
   });
 }
-export function cancelDurableCommentSubmission(id: string): Promise<{ ok: true }> {
+function cancelDurableCommentSubmission(id: string): Promise<{ ok: true }> {
   requireTracked(id);
   return oneAction(`cancel:${id}`, async () => {
     const checkpoint = read(id);
@@ -304,3 +328,29 @@ export function cancelDurableCommentSubmission(id: string): Promise<{ ok: true }
     return { ok: true };
   });
 }
+
+  return { commentFileSha256, savedCommentSubmissions, commentComposerSource, prepareDurableCommentSubmission, commentCancellationPending, discardLocalCommentSubmission, finishCommentSubmission, getCommentAcceptance, createDurableCommentSubmission, uploadDurableCommentItem, finalizeDurableCommentSubmission, removeDurableCommentItem, cancelDurableCommentSubmission };
+}
+type CommentClient = ReturnType<typeof createCommentClient>;
+let current: { key: string; client: CommentClient } | null = null;
+function currentClient(): CommentClient {
+  const owner = captureApplicationOwner();
+  if (!current || current.key !== owner.cacheKey) current = { key: owner.cacheKey, client: createCommentClient(owner) };
+  return current.client;
+}
+export const commentFileSha256 = (...args: Parameters<CommentClient["commentFileSha256"]>) => currentClient().commentFileSha256(...args);
+export const savedCommentSubmissions = (...args: Parameters<CommentClient["savedCommentSubmissions"]>) => currentClient().savedCommentSubmissions(...args);
+export const commentComposerSource = (...args: Parameters<CommentClient["commentComposerSource"]>) => currentClient().commentComposerSource(...args);
+export const prepareDurableCommentSubmission = (...args: Parameters<CommentClient["prepareDurableCommentSubmission"]>) => currentClient().prepareDurableCommentSubmission(...args);
+export const commentCancellationPending = (...args: Parameters<CommentClient["commentCancellationPending"]>) => currentClient().commentCancellationPending(...args);
+export const discardLocalCommentSubmission = (...args: Parameters<CommentClient["discardLocalCommentSubmission"]>) => currentClient().discardLocalCommentSubmission(...args);
+export const finishCommentSubmission = (...args: Parameters<CommentClient["finishCommentSubmission"]>) => currentClient().finishCommentSubmission(...args);
+export const getCommentAcceptance = (...args: Parameters<CommentClient["getCommentAcceptance"]>) => currentClient().getCommentAcceptance(...args);
+export const createDurableCommentSubmission = (...args: Parameters<CommentClient["createDurableCommentSubmission"]>) => {
+  inputOwners.get(args[0])?.assertCurrent();
+  return currentClient().createDurableCommentSubmission(...args);
+};
+export const uploadDurableCommentItem = (...args: Parameters<CommentClient["uploadDurableCommentItem"]>) => currentClient().uploadDurableCommentItem(...args);
+export const finalizeDurableCommentSubmission = (...args: Parameters<CommentClient["finalizeDurableCommentSubmission"]>) => currentClient().finalizeDurableCommentSubmission(...args);
+export const removeDurableCommentItem = (...args: Parameters<CommentClient["removeDurableCommentItem"]>) => currentClient().removeDurableCommentItem(...args);
+export const cancelDurableCommentSubmission = (...args: Parameters<CommentClient["cancelDurableCommentSubmission"]>) => currentClient().cancelDurableCommentSubmission(...args);

@@ -1,4 +1,5 @@
-import { applicationFetch } from "./authentication-client";
+import { captureApplicationOwner, type ApplicationOwner } from "./authentication-client";
+import { checkpointStorage } from "./browser-checkpoints";
 import {
   FABUBLOX_IMPORT_REQUEST_HEADER,
   normalizeFabubloxImportRequestId,
@@ -18,6 +19,8 @@ export interface SavedFabubloxImport {
   requestId: string;
   title: string;
 }
+
+const owners = new WeakMap<object, ApplicationOwner>();
 
 export const FABUBLOX_IMPORT_SESSION_KEY = "fabublox-import-request-v1";
 
@@ -54,6 +57,7 @@ export async function prepareFabubloxImport(
   recipeFamilyId?: string,
   existingRequestId?: string,
 ): Promise<PreparedFabubloxImport> {
+  const owner = captureApplicationOwner();
   // This body and request identity belong to one attempt, including every retry.
   const requestId = existingRequestId === undefined ? crypto.randomUUID() : normalizeFabubloxImportRequestId(existingRequestId);
   if (!requestId) throw new Error("The saved import request identity is invalid.");
@@ -64,19 +68,21 @@ export async function prepareFabubloxImport(
   for (const image of preview.images) {
     const sourceName = image.sourcePart.split("/").pop() || `${image.localId}.png`;
     const source = new File([new Uint8Array(image.data)], sourceName, { type: image.mimeType });
-    const compressed = await compressLayerStackImage(source);
+    const compressed = await compressLayerStackImage(source); owner.assertCurrent();
     form.append(`image:${image.localId}`, compressed, compressed.name);
   }
-  return { requestId, title: preview.title.trim(), form };
+  owner.assertCurrent();
+  const prepared = { requestId, title: preview.title.trim(), form }; owners.set(prepared, owner); return prepared;
 }
 
 export async function submitFabubloxImport(prepared: PreparedFabubloxImport): Promise<FabubloxImportResult> {
-  const response = await applicationFetch("/api/imports/fabublox", {
+  const owner = owners.get(prepared) ?? captureApplicationOwner();
+  const response = await owner.fetch("/api/imports/fabublox", {
     method: "POST",
     headers: { [FABUBLOX_IMPORT_REQUEST_HEADER]: prepared.requestId },
     body: prepared.form,
   });
-  const payload: unknown = await response.json().catch(() => null);
+  const payload: unknown = await response.json().catch(() => null); owner.assertCurrent();
   if (response.ok && importResult(payload)) return payload;
   const state = record(payload) && requestState(payload.request, prepared.requestId) ? payload.request : undefined;
   const message = record(payload) && typeof payload.error === "string" ? payload.error
@@ -86,16 +92,18 @@ export async function submitFabubloxImport(prepared: PreparedFabubloxImport): Pr
 }
 
 export async function getFabubloxImportRequest(requestId: string, signal?: AbortSignal): Promise<FabubloxImportRequestState | null> {
-  const response = await applicationFetch(`/api/imports/fabublox/requests/${encodeURIComponent(requestId)}`, { cache: "no-store", ...(signal ? { signal } : {}) });
+  const owner = captureApplicationOwner();
+  const response = await owner.fetch(`/api/imports/fabublox/requests/${encodeURIComponent(requestId)}`, { cache: "no-store", ...(signal ? { signal } : {}) });
   if (response.status === 404) return null;
-  const payload: unknown = await response.json().catch(() => null);
+  const payload: unknown = await response.json().catch(() => null); owner.assertCurrent();
   if (response.ok && requestState(payload, requestId)) return payload;
   throw new Error(record(payload) && typeof payload.error === "string" ? payload.error : "The import status could not be checked. Try checking again.");
 }
 
 export function loadSavedFabubloxImport(): SavedFabubloxImport | null {
   try {
-    const stored = sessionStorage.getItem(FABUBLOX_IMPORT_SESSION_KEY);
+    const storage = checkpointStorage();
+    const stored = storage.getItem(FABUBLOX_IMPORT_SESSION_KEY);
     if (!stored || stored.length > 2048) return null;
     const value: unknown = JSON.parse(stored);
     if (!record(value) || typeof value.requestId !== "string" || normalizeFabubloxImportRequestId(value.requestId) !== value.requestId
@@ -106,14 +114,16 @@ export function loadSavedFabubloxImport(): SavedFabubloxImport | null {
 
 export function saveFabubloxImport(prepared: Pick<PreparedFabubloxImport, "requestId" | "title">): void {
   try {
+    const storage = checkpointStorage(owners.get(prepared) ?? captureApplicationOwner());
     const value = JSON.stringify({ requestId: prepared.requestId, title: prepared.title.slice(0, 256) });
-    sessionStorage.setItem(FABUBLOX_IMPORT_SESSION_KEY, value);
-    if (sessionStorage.getItem(FABUBLOX_IMPORT_SESSION_KEY) !== value) throw new Error("Checkpoint unavailable");
+    storage.setItem(FABUBLOX_IMPORT_SESSION_KEY, value);
+    if (storage.getItem(FABUBLOX_IMPORT_SESSION_KEY) !== value) throw new Error("Checkpoint unavailable");
   } catch {
     throw new Error("This browser could not save the import request for recovery. Enable session storage before importing.");
   }
 }
 
 export function clearSavedFabubloxImport(): void {
-  sessionStorage.removeItem(FABUBLOX_IMPORT_SESSION_KEY);
+  const storage = checkpointStorage();
+  storage.removeItem(FABUBLOX_IMPORT_SESSION_KEY);
 }

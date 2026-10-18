@@ -1,0 +1,513 @@
+{
+  "method": "LOCAL comparison only against previously obtained audit report; no new registry audit request or fresh audit assurance",
+  "auditSourceSha256": "1b30a6418151351b2bdbaaae5bd7ed0b5b90cb94e970411a11144d546e9d70cb",
+  "manifestSha256": "3bb2d1368f2d41dac4c4d54688d305f14fa4a175518f2505ffcce9c27f53ac50",
+  "lockSha256": "b2a1922654dc60757c012bcc310548393cbe67aa77f4bb3ed21644ff79037fb0",
+  "node": "v24.19.0",
+  "platform": "linux",
+  "arch": "x64",
+  "publicResolved": 288,
+  "changes": [
+    {
+      "path": "node_modules/@cloudflare/vite-plugin",
+      "before": "1.45.1",
+      "after": "1.49.0"
+    },
+    {
+      "path": "node_modules/@cloudflare/workerd-darwin-64",
+      "before": "1.20260714.1",
+      "after": "1.20260730.1"
+    },
+    {
+      "path": "node_modules/@cloudflare/workerd-darwin-arm64",
+      "before": "1.20260714.1",
+      "after": "1.20260730.1"
+    },
+    {
+      "path": "node_modules/@cloudflare/workerd-linux-64",
+      "before": "1.20260714.1",
+      "after": "1.20260730.1"
+    },
+    {
+      "path": "node_modules/@cloudflare/workerd-linux-arm64",
+      "before": "1.20260714.1",
+      "after": "1.20260730.1"
+    },
+    {
+      "path": "node_modules/@cloudflare/workerd-windows-64",
+      "before": "1.20260714.1",
+      "after": "1.20260730.1"
+    },
+    {
+      "path": "node_modules/@cloudflare/workers-types",
+      "before": "5.20260719.1",
+      "after": "5.20260730.1"
+    },
+    {
+      "path": "node_modules/@emnapi/runtime",
+      "before": "1.11.2",
+      "after": "1.11.3"
+    },
+    {
+      "path": "node_modules/@img/sharp-darwin-arm64",
+      "before": "0.34.5",
+      "after": "0.35.5"
+    },
+    {
+      "path": "node_modules/@img/sharp-darwin-x64",
+      "before": "0.34.5",
+      "after": "0.35.5"
+    },
+    {
+      "path": "node_modules/@img/sharp-freebsd-wasm32",
+      "before": null,
+      "after": "0.35.5"
+    },
+    {
+      "path": "node_modules/@img/sharp-libvips-darwin-arm64",
+      "before": "1.2.4",
+      "after": "1.3.4"
+    },
+    {
+      "path": "node_modules/@img/sharp-libvips-darwin-x64",
+      "before": "1.2.4",
+      "after": "1.3.4"
+    },
+    {
+      "path": "node_modules/@img/sharp-libvips-linux-arm",
+      "before": "1.2.4",
+      "after": "1.3.4"
+    },
+    {
+      "path": "node_modules/@img/sharp-libvips-linux-arm64",
+      "before": "1.2.4",
+      "after": "1.3.4"
+    },
+    {
+      "path": "node_modules/@img/sharp-libvips-linux-ppc64",
+      "before": "1.2.4",
+      "after": "1.3.4"
+    },
+    {
+      "path": "node_modules/@img/sharp-libvips-linux-riscv64",
+      "before": "1.2.4",
+      "after": "1.3.4"
+    },
+    {
+      "path": "node_modules/@img/sharp-libvips-linux-s390x",
+      "before": "1.2.4",
+      "after": "1.3.4"
+    },
+    {
+      "path": "node_modules/@img/sharp-libvips-linux-x64",
+      "before": "1.2.4",
+      "after": "1.3.4"
+    },
+    {
+      "path": "node_modules/@img/sharp-libvips-linuxmusl-arm64",
+      "before": "1.2.4",
+      "after": "1.3.4"
+    },
+    {
+      "path": "node_modules/@img/sharp-libvips-linuxmusl-x64",
+      "before": "1.2.4",
+      "after": "1.3.4"
+    },
+    {
+      "path": "node_modules/@img/sharp-linux-arm",
+      "before": "0.34.5",
+      "after": "0.35.5"
+    },
+    {
+      "path": "node_modules/@img/sharp-linux-arm64",
+      "before": "0.34.5",
+      "after": "0.35.5"
+    },
+    {
+      "path": "node_modules/@img/sharp-linux-ppc64",
+      "before": "0.34.5",
+      "after": "0.35.5"
+    },
+    {
+      "path": "node_modules/@img/sharp-linux-riscv64",
+      "before": "0.34.5",
+      "after": "0.35.5"
+    },
+    {
+      "path": "node_modules/@img/sharp-linux-s390x",
+      "before": "0.34.5",
+      "after": "0.35.5"
+    },
+    {
+      "path": "node_modules/@img/sharp-linux-x64",
+      "before": "0.34.5",
+      "after": "0.35.5"
+    },
+    {
+      "path": "node_modules/@img/sharp-linuxmusl-arm64",
+      "before": "0.34.5",
+      "after": "0.35.5"
+    },
+    {
+      "path": "node_modules/@img/sharp-linuxmusl-x64",
+      "before": "0.34.5",
+      "after": "0.35.5"
+    },
+    {
+      "path": "node_modules/@img/sharp-wasm32",
+      "before": "0.34.5",
+      "after": "0.35.5"
+    },
+    {
+      "path": "node_modules/@img/sharp-webcontainers-wasm32",
+      "before": null,
+      "after": "0.35.5"
+    },
+    {
+      "path": "node_modules/@img/sharp-win32-arm64",
+      "before": "0.34.5",
+      "after": "0.35.5"
+    },
+    {
+      "path": "node_modules/@img/sharp-win32-ia32",
+      "before": "0.34.5",
+      "after": "0.35.5"
+    },
+    {
+      "path": "node_modules/@img/sharp-win32-x64",
+      "before": "0.34.5",
+      "after": "0.35.5"
+    },
+    {
+      "path": "node_modules/@vitest/expect",
+      "before": "4.1.10",
+      "after": "4.1.11"
+    },
+    {
+      "path": "node_modules/@vitest/mocker",
+      "before": "4.1.10",
+      "after": "4.1.11"
+    },
+    {
+      "path": "node_modules/@vitest/pretty-format",
+      "before": "4.1.10",
+      "after": "4.1.11"
+    },
+    {
+      "path": "node_modules/@vitest/runner",
+      "before": "4.1.10",
+      "after": "4.1.11"
+    },
+    {
+      "path": "node_modules/@vitest/snapshot",
+      "before": "4.1.10",
+      "after": "4.1.11"
+    },
+    {
+      "path": "node_modules/@vitest/spy",
+      "before": "4.1.10",
+      "after": "4.1.11"
+    },
+    {
+      "path": "node_modules/@vitest/utils",
+      "before": "4.1.10",
+      "after": "4.1.11"
+    },
+    {
+      "path": "node_modules/@xmldom/xmldom",
+      "before": "0.9.10",
+      "after": "0.9.12"
+    },
+    {
+      "path": "node_modules/hono",
+      "before": "4.12.31",
+      "after": "4.13.7"
+    },
+    {
+      "path": "node_modules/miniflare",
+      "before": "4.20260714.0",
+      "after": "4.20260730.0"
+    },
+    {
+      "path": "node_modules/nanoid",
+      "before": "3.3.16",
+      "after": "3.3.18"
+    },
+    {
+      "path": "node_modules/postcss",
+      "before": "8.5.20",
+      "after": "8.5.23"
+    },
+    {
+      "path": "node_modules/react-router",
+      "before": "7.18.1",
+      "after": "7.18.2"
+    },
+    {
+      "path": "node_modules/react-router-dom",
+      "before": "7.18.1",
+      "after": "7.18.2"
+    },
+    {
+      "path": "node_modules/sharp",
+      "before": "0.34.5",
+      "after": "0.35.5"
+    },
+    {
+      "path": "node_modules/source-map-js",
+      "before": "1.2.1",
+      "after": "1.2.2"
+    },
+    {
+      "path": "node_modules/undici",
+      "before": "7.28.0",
+      "after": "7.29.1"
+    },
+    {
+      "path": "node_modules/vitest",
+      "before": "4.1.10",
+      "after": "4.1.11"
+    },
+    {
+      "path": "node_modules/workerd",
+      "before": "1.20260714.1",
+      "after": "1.20260730.1"
+    },
+    {
+      "path": "node_modules/wrangler",
+      "before": "4.112.0",
+      "after": "4.116.0"
+    }
+  ],
+  "currentPlatformEngineFailures": [],
+  "nonCurrentPlatformEngineRanges": [
+    {
+      "path": "node_modules/@img/sharp-win32-ia32",
+      "version": "0.35.5",
+      "node": "^20.9.0",
+      "optional": true,
+      "os": [
+        "win32"
+      ],
+      "cpu": [
+        "ia32"
+      ]
+    }
+  ],
+  "knownVulnerablePackageGroups": 14,
+  "knownDirectAdvisoryEntries": 45,
+  "knownAdvisoryRangeMatches": [],
+  "knownPackages": [
+    {
+      "name": "@cloudflare/vite-plugin",
+      "nodes": [
+        {
+          "path": "node_modules/@cloudflare/vite-plugin",
+          "version": "1.49.0"
+        }
+      ],
+      "directAdvisoryCount": 0,
+      "viaPackages": [
+        "miniflare",
+        "wrangler"
+      ],
+      "oldAggregateRange": "<=0.0.0-7ae5dd357 || 1.2.3 - 1.46.0",
+      "oldAggregateRangeStillMatches": false
+    },
+    {
+      "name": "@vitest/mocker",
+      "nodes": [
+        {
+          "path": "node_modules/@vitest/mocker",
+          "version": "4.1.11"
+        }
+      ],
+      "directAdvisoryCount": 1,
+      "viaPackages": [],
+      "oldAggregateRange": "2.1.0 - 4.1.10",
+      "oldAggregateRangeStillMatches": false
+    },
+    {
+      "name": "@xmldom/xmldom",
+      "nodes": [
+        {
+          "path": "node_modules/@xmldom/xmldom",
+          "version": "0.9.12"
+        }
+      ],
+      "directAdvisoryCount": 13,
+      "viaPackages": [],
+      "oldAggregateRange": "0.9.0-beta.1 - 0.9.11",
+      "oldAggregateRangeStillMatches": false
+    },
+    {
+      "name": "hono",
+      "nodes": [
+        {
+          "path": "node_modules/hono",
+          "version": "4.13.7"
+        }
+      ],
+      "directAdvisoryCount": 8,
+      "viaPackages": [],
+      "oldAggregateRange": "<=4.13.6",
+      "oldAggregateRangeStillMatches": false
+    },
+    {
+      "name": "miniflare",
+      "nodes": [
+        {
+          "path": "node_modules/miniflare",
+          "version": "4.20260730.0"
+        }
+      ],
+      "directAdvisoryCount": 0,
+      "viaPackages": [
+        "sharp",
+        "undici"
+      ],
+      "oldAggregateRange": "<=0.0.0-fec45ed61 || 4.20250508.3 - 5.20260801.0-alpha",
+      "oldAggregateRangeStillMatches": true
+    },
+    {
+      "name": "nanoid",
+      "nodes": [
+        {
+          "path": "node_modules/nanoid",
+          "version": "3.3.18"
+        }
+      ],
+      "directAdvisoryCount": 1,
+      "viaPackages": [],
+      "oldAggregateRange": "<3.3.18",
+      "oldAggregateRangeStillMatches": false
+    },
+    {
+      "name": "postcss",
+      "nodes": [
+        {
+          "path": "node_modules/postcss",
+          "version": "8.5.23"
+        }
+      ],
+      "directAdvisoryCount": 1,
+      "viaPackages": [],
+      "oldAggregateRange": "<=8.5.22",
+      "oldAggregateRangeStillMatches": false
+    },
+    {
+      "name": "react-router",
+      "nodes": [
+        {
+          "path": "node_modules/react-router",
+          "version": "7.18.2"
+        }
+      ],
+      "directAdvisoryCount": 1,
+      "viaPackages": [],
+      "oldAggregateRange": "7.12.0 - 7.18.1",
+      "oldAggregateRangeStillMatches": false
+    },
+    {
+      "name": "react-router-dom",
+      "nodes": [
+        {
+          "path": "node_modules/react-router-dom",
+          "version": "7.18.2"
+        }
+      ],
+      "directAdvisoryCount": 0,
+      "viaPackages": [
+        "react-router"
+      ],
+      "oldAggregateRange": "7.12.0-pre.0 - 7.18.1",
+      "oldAggregateRangeStillMatches": false
+    },
+    {
+      "name": "sharp",
+      "nodes": [
+        {
+          "path": "node_modules/sharp",
+          "version": "0.35.5"
+        }
+      ],
+      "directAdvisoryCount": 3,
+      "viaPackages": [],
+      "oldAggregateRange": "<=0.35.5-rc.1",
+      "oldAggregateRangeStillMatches": false
+    },
+    {
+      "name": "source-map-js",
+      "nodes": [
+        {
+          "path": "node_modules/source-map-js",
+          "version": "1.2.2"
+        }
+      ],
+      "directAdvisoryCount": 1,
+      "viaPackages": [],
+      "oldAggregateRange": "1.0.0 - 1.2.1",
+      "oldAggregateRangeStillMatches": false
+    },
+    {
+      "name": "undici",
+      "nodes": [
+        {
+          "path": "node_modules/undici",
+          "version": "7.29.1"
+        }
+      ],
+      "directAdvisoryCount": 15,
+      "viaPackages": [],
+      "oldAggregateRange": "7.0.0 - 7.29.0",
+      "oldAggregateRangeStillMatches": false
+    },
+    {
+      "name": "vitest",
+      "nodes": [
+        {
+          "path": "node_modules/vitest",
+          "version": "4.1.11"
+        }
+      ],
+      "directAdvisoryCount": 1,
+      "viaPackages": [
+        "@vitest/mocker"
+      ],
+      "oldAggregateRange": "2.1.0-beta.1 - 4.1.10",
+      "oldAggregateRangeStillMatches": false
+    },
+    {
+      "name": "wrangler",
+      "nodes": [
+        {
+          "path": "node_modules/wrangler",
+          "version": "4.116.0"
+        }
+      ],
+      "directAdvisoryCount": 0,
+      "viaPackages": [
+        "miniflare"
+      ],
+      "oldAggregateRange": "<=0.0.0-7ae5dd357 || 4.16.0 - 4.113.0",
+      "oldAggregateRangeStillMatches": false
+    }
+  ],
+  "networkLog": {
+    "requests": 191,
+    "auditEndpointPresent": false,
+    "postPresent": false
+  },
+  "install": {
+    "command": "npm ci --ignore-scripts --no-audit --no-fund --offline",
+    "exitCode": 0
+  },
+  "dependencyGraph": {
+    "command": "npm ls --all --json",
+    "exitCode": 0
+  },
+  "limitations": [
+    "This is not a fresh npm audit result. Old Miniflare aggregate affected ranges describe vulnerable transitive defaults; scoped overrides replace those actual resolved dependencies.",
+    "Only Linux x64 Node 24.19.0 installation/runtime is tested; a Win32 ia32 optional sharp package declares Node ^20.9.0 and is not installed here."
+  ]
+}

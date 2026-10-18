@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { canonicalCommentAcceptanceInput, type AcceptedCommentSubmissionInput, type CommentAcceptanceState } from "../../shared/contracts/comment-acceptance";
 import { cancelDurableCommentSubmission, createDurableCommentSubmission, discardLocalCommentSubmission, finalizeDurableCommentSubmission, finishCommentSubmission, getCommentAcceptance, prepareDurableCommentSubmission, removeDurableCommentItem, savedCommentSubmissions, uploadDurableCommentItem } from "./comment-submission-client";
+import { readAuthentication } from "./authentication-client";
 function storage() { const values = new Map<string, string>(); return { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => { values.set(key, value); }, removeItem: (key: string) => { values.delete(key); }, key: (index: number) => [...values.keys()][index] ?? null, get length() { return values.size; } }; }
 const json = (payload: unknown, status = 200) => new Response(JSON.stringify(payload), { status, headers: { "content-type": "application/json" } });
 function input(binary = false): AcceptedCommentSubmissionInput { return { protocol: "comment-submission/1", id: crypto.randomUUID(), body: "Frozen comment", context: { kind: "sample", sampleId: "sample-a", expectedUpdatedAt: "2026-09-14T00:00:00.000Z" }, items: binary ? [{ id: crypto.randomUUID(), kind: "attachment", filename: "manual.bin", mimeType: "application/octet-stream", byteSize: 4, sha256: createHash("sha256").update("data").digest("hex") }] : [] }; }
@@ -24,8 +25,26 @@ class FakeXHR extends EventTarget {
   abort() { this.dispatchEvent(new Event("abort")); }
 }
 beforeEach(() => { saved = storage(); fetchMock = vi.fn<typeof fetch>(); xhrs = []; uploadResponse = {}; vi.stubGlobal("sessionStorage", saved); vi.stubGlobal("fetch", fetchMock); vi.stubGlobal("XMLHttpRequest", FakeXHR); });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 describe("durable Comment client", () => {
+  it("sends local comment bytes through authenticated same-origin transport with CSRF", async () => {
+    vi.stubEnv("VITE_LOCAL_AUTHENTICATION", "1");
+    vi.stubGlobal("window", { location: { origin: "http://localhost", href: "http://localhost/samples/sample-a" } });
+    const id = "local_6f3e32c5-d935-44ab-8567-0966b13d91ae";
+    fetchMock.mockResolvedValueOnce(json({ principal: { id, actor: `local-account:${id}`,
+      capabilities: { systemAdministrator: true, fileEvidenceOperator: false } }, csrf: "A".repeat(43) }));
+    await readAuthentication(); fetchMock.mockClear();
+    const source = input(true), item = source.items[0], file = new File(["data"], "manual.bin", { type: "application/octet-stream" });
+    fetchMock.mockResolvedValueOnce(json(await state(source))).mockResolvedValueOnce(json(await state(source, "pending", "ready")));
+    const progress = vi.fn();
+    await expect(uploadDurableCommentItem(source.id, item.id, file, item.sha256!, progress)).resolves.toEqual({ ok: true, deduplicated: false });
+    const sent = fetchMock.mock.calls.find(([, init]) => init?.method === "PUT");
+    expect(sent?.[0]).toBe(`/api/comment-submissions/${source.id}/items/${item.id}/content`);
+    expect(sent?.[1]).toMatchObject({ credentials: "same-origin", redirect: "error", body: file });
+    expect(new Headers(sent?.[1]?.headers).get("x-sfw-csrf")).toBe("A".repeat(43));
+    expect(progress.mock.calls.map(([value]) => value)).toEqual([0, 100]); expect(xhrs).toHaveLength(0);
+  });
+
   it("freezes protocol, text, item SHA and target revision in durable storage before create", async () => {
     const source = input(true); let observed: unknown;
     const prepared = await prepareDurableCommentSubmission(source, "source-a");

@@ -1,4 +1,5 @@
 import type { SampleDetail } from "../../shared/types";
+import { captureApplicationOwner } from "./authentication-client";
 
 function safeName(value: string) {
   return value.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -13,7 +14,9 @@ function attachmentPath(id: string, filename: string) {
 }
 
 export async function exportSample(sample: SampleDetail) {
+  const owner = captureApplicationOwner();
   const { default: JSZip } = await import("jszip");
+  owner.assertCurrent();
   const zip = new JSZip();
   const assetPaths = new Map<string, string>();
   const nativeAssetPaths = new Map<string, string>();
@@ -46,14 +49,14 @@ export async function exportSample(sample: SampleDetail) {
     for (const image of comment.images) { if (image.assetKey) keys.add(image.assetKey); addNative(image.assetUrl); }
   }
   for (const key of keys) {
-    const response = await fetch(`/api/assets/${key}`);
+    const response = await owner.fetch(`/api/assets/${key}`);
     if (!response.ok) throw new Error(`Could not export asset ${key}`);
     const path = assetPath(key);
     zip.file(path, await response.blob());
     assetPaths.set(key, path);
   }
   for (const url of nativeUrls) {
-    const response = await fetch(url);
+    const response = await owner.fetch(url);
     if (!response.ok) throw new Error("Could not export a native File asset");
     const path = `assets/native/${safeName(decodeURIComponent(url.slice("/api/file-assets/".length)))}`;
     zip.file(path, await response.blob()); nativeAssetPaths.set(url, path);
@@ -70,7 +73,7 @@ export async function exportSample(sample: SampleDetail) {
     for (const attachment of comment.attachments) {
       if (attachment.kind !== "file" || !attachment.downloadUrl || seenAttachments.has(attachment.id)) continue;
       seenAttachments.add(attachment.id);
-      const response = await fetch(attachment.downloadUrl);
+      const response = await owner.fetch(attachment.downloadUrl);
       if (!response.ok) throw new Error(`Could not export attachment ${attachment.filename}`);
       const path = attachmentPath(attachment.id, attachment.filename);
       zip.file(path, await response.blob());
@@ -164,7 +167,9 @@ export async function exportSample(sample: SampleDetail) {
 
   zip.file("sample.json", JSON.stringify(sample, null, 2));
   zip.file("sample.md", lines.join("\n"));
+  owner.assertCurrent();
   const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } });
+  owner.assertCurrent();
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;

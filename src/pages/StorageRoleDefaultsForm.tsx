@@ -1,3 +1,5 @@
+import { checkpointStorage, type CheckpointStorage } from "../lib/browser-checkpoints";
+import { captureApplicationOwner } from "../lib/authentication-client";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { CurrentStorageSettingsStatus } from "../../shared/contracts/current-storage-settings";
 import { checkedStorageRolePolicyInput, type StorageRolePolicyInput, type StorageRolePolicyReceipt } from "../../shared/contracts/storage-policy";
@@ -5,22 +7,24 @@ import { api, StoragePolicyRequestError } from "../lib/api";
 import { ReadStatus } from "../components/ReadStatus";
 
 const key = "storage-role-policy:pending";
-function remembered(): StorageRolePolicyInput | null {
-  try { const value = sessionStorage.getItem(key); return value ? checkedStorageRolePolicyInput(JSON.parse(value)) : null; } catch { return null; }
+function remembered(storage: CheckpointStorage): StorageRolePolicyInput | null {
+  try { const value = storage.getItem(key); return value ? checkedStorageRolePolicyInput(JSON.parse(value)) : null; } catch { return null; }
 }
 export function StorageRoleDefaultsForm({ status, canManage, accessStatus = "resolved", onChanged, onRetryAccess, onForbidden }: {
   status: CurrentStorageSettingsStatus; canManage: boolean; onChanged: () => void; onRetryAccess: () => void; onForbidden: () => void;
   accessStatus?: "checking" | "unavailable" | "resolved";
 }) {
+  const [owner] = useState(captureApplicationOwner);
+  const [storage] = useState(() => checkpointStorage(owner));
   const eligible = status.profiles.items.filter(profile => profile.availability === "available" && ["r2", "s3"].includes(profile.adapterType));
   const [internal, setInternal] = useState(status.roleDefaults.internal?.profileId ?? eligible[0]?.id ?? "");
   const [originals, setOriginals] = useState(status.roleDefaults.originals?.profileId ?? eligible[0]?.id ?? "");
-  const [pending, setPending] = useState(remembered), [busy, setBusy] = useState(false), [message, setMessage] = useState("");
+  const [pending, setPending] = useState(() => remembered(storage)), [busy, setBusy] = useState(false), [message, setMessage] = useState("");
   const [stale, setStale] = useState(false);
   const pendingRef = useRef(pending), operationBusy = useRef(false), generation = useRef(0), controller = useRef<AbortController | null>(null);
   const enabled = canManage && !stale && status.authority.mode === "active" && status.authority.fileAccess === "enabled";
   function remember(input: StorageRolePolicyInput | null) {
-    try { if (input) sessionStorage.setItem(key, JSON.stringify(input)); else sessionStorage.removeItem(key); }
+    try { if (input) storage.setItem(key, JSON.stringify(input)); else storage.removeItem(key); }
     catch { if (input) return false; }
     pendingRef.current = input; setPending(input); return true;
   }
@@ -33,19 +37,23 @@ export function StorageRoleDefaultsForm({ status, canManage, accessStatus = "res
     if (!(failure instanceof StoragePolicyRequestError) || failure.status !== 403) return false;
     onForbidden(); setMessage("System administrator access is required. Refresh to check your access."); return true;
   }
-  async function submit(input: StorageRolePolicyInput, current: number, signal: AbortSignal) {
-    try { const value = await api.setStorageRoleDefaults(input, signal); if (current === generation.current && !signal.aborted) accept(value, input); }
+  async function submit(input: StorageRolePolicyInput, current: number, signal: AbortSignal, initial = false) {
+    if (!owner.isCurrent()) return;
+    try { const value = await api.setStorageRoleDefaults(input, signal); if (owner.isCurrent() && current === generation.current && !signal.aborted) accept(value, input); }
     catch (failure) {
-      if (current !== generation.current || signal.aborted || denied(failure)) return;
-      if (failure instanceof StoragePolicyRequestError && [400, 404, 409].includes(failure.status)) {
+      if (!owner.isCurrent() || current !== generation.current || signal.aborted || denied(failure)) return;
+      // Only a first-attempt rejection is conclusive. A retry can race the
+      // original commit and fail its CAS check before the receipt is observed.
+      if (initial && failure instanceof StoragePolicyRequestError && [400, 404, 409].includes(failure.status)) {
         remember(null); setStale(true); setMessage("The selected profiles or policy changed. Refresh storage settings before saving again.");
       } else await reconcile(input, current, signal, false);
     }
   }
   async function reconcile(input: StorageRolePolicyInput, current: number, signal: AbortSignal, retry: boolean) {
-    try { const value = await api.readStorageRolePolicy(input.operationId, signal); if (current === generation.current && !signal.aborted) accept(value, input); }
+    if (!owner.isCurrent()) return;
+    try { const value = await api.readStorageRolePolicy(input.operationId, signal); if (owner.isCurrent() && current === generation.current && !signal.aborted) accept(value, input); }
     catch (failure) {
-      if (current !== generation.current || signal.aborted || denied(failure)) return;
+      if (!owner.isCurrent() || current !== generation.current || signal.aborted || denied(failure)) return;
       if (retry && enabled && failure instanceof StoragePolicyRequestError && failure.status === 404) { await submit(input, current, signal); return; }
       setMessage("The save result is unconfirmed. Check or retry the original save before making another selection.");
     }
@@ -54,15 +62,15 @@ export function StorageRoleDefaultsForm({ status, canManage, accessStatus = "res
     if (operationBusy.current) return;
     operationBusy.current = true; setBusy(true); setMessage("");
     const current = generation.current, request = new AbortController(); controller.current = request;
-    try { if (initial) await submit(input, current, request.signal); else await reconcile(input, current, request.signal, true); }
-    finally { if (current === generation.current) { operationBusy.current = false; setBusy(false); } }
+    try { if (initial) await submit(input, current, request.signal, true); else await reconcile(input, current, request.signal, true); }
+    finally { if (owner.isCurrent() && current === generation.current) { operationBusy.current = false; setBusy(false); } }
   }
   useEffect(() => {
     const current = ++generation.current;
     if (canManage && pendingRef.current) {
       const input = pendingRef.current, request = new AbortController(); controller.current = request;
       operationBusy.current = true; setBusy(true);
-      void reconcile(input, current, request.signal, false).finally(() => { if (current === generation.current) { operationBusy.current = false; setBusy(false); } });
+      void reconcile(input, current, request.signal, false).finally(() => { if (owner.isCurrent() && current === generation.current) { operationBusy.current = false; setBusy(false); } });
     }
     return () => { generation.current += 1; controller.current?.abort(); operationBusy.current = false; };
   }, [canManage]);

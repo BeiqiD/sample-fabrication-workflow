@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { StorageCandidate, StorageConfigurationStatus } from "../shared/contracts/storage-configuration";
 import type { ReenvelopeStorageCredentialInput, StorageCredentialEnvelopeMetadata, StorageCredentialReenvelopeReceipt } from "../shared/contracts/storage-credential-reenvelope";
 import { StorageConfigurationPage } from "./pages/StorageConfigurationPage";
+import { readAuthentication } from "./lib/authentication-client";
+import { checkpointStorage } from "./lib/browser-checkpoints";
 
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json" } });
 const profileId = "candidate-example", intentKey = `storage-credential-reenvelope:${profileId}`;
@@ -23,7 +25,7 @@ const fallback = (path: RequestInfo | URL) => String(path).endsWith("/capability
   : String(path).includes("/checks?") ? json({ items: [], hasMore: false }) : String(path).includes("/credential-envelopes?") ? envelopeList() : json(configuration());
 const posts = () => network.mock.calls.filter(([, options]) => options?.method === "POST");
 beforeEach(() => { vi.stubGlobal("fetch", network); network.mockReset(); network.mockImplementation(async path => fallback(path)); });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); localStorage.clear(); sessionStorage.clear(); });
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); localStorage.clear(); sessionStorage.clear(); });
 async function openEncryption() {
   fireEvent.click(await screen.findByRole("button", { name: "Credential encryption for Research archive" }));
   return screen.findByRole("region", { name: "Credential encryption for Research archive" });
@@ -34,6 +36,25 @@ async function readyUpdate(revision = 2) {
 }
 
 describe("administrator credential encryption Settings", () => {
+  it("does not replay a held encryption lookup under another account before React unmounts the old component", async () => {
+    vi.stubEnv("VITE_LOCAL_AUTHENTICATION", "1");
+    const input: ReenvelopeStorageCredentialInput = { operationId: "d8992768-d864-444b-8e97-e58a5d8f40b0", profileId, revision: 2, credentialRef: "opaque-current", expectedEnvelopeRevision: 1 };
+    let principal = "local_6f3e32c5-d935-44ab-8567-0966b13d91ae", hold = false, deliver!: (response: Response) => void;
+    network.mockImplementation(async (path, options) => {
+      if (String(path) === "/api/auth/session") return json({ principal: { id: principal, actor: `local-account:${principal}`,
+        capabilities: { systemAdministrator: true, fileEvidenceOperator: false } }, csrf: "A".repeat(43) });
+      if (String(path).includes("/credential-reenvelopes/")) return hold ? new Promise<Response>(resolve => { deliver = resolve; }) : json({}, 404);
+      return options?.method === "POST" ? json(receipt(input)) : fallback(path);
+    });
+    await readAuthentication(); checkpointStorage().setItem(intentKey, JSON.stringify(input));
+    render(<StorageConfigurationPage />); await screen.findByText("The encryption update result is unavailable. Check or retry this same operation.");
+    hold = true; fireEvent.click(screen.getByRole("button", { name: "Check or retry encryption update" }));
+    await waitFor(() => expect(deliver).toBeTypeOf("function"));
+    principal = "local_3408b493-0ff6-41eb-8f8b-0cfe7bb4ef1a"; await act(async () => readAuthentication());
+    await act(async () => deliver(json({}, 404)));
+    expect(posts()).toHaveLength(0); expect(checkpointStorage().length).toBe(0);
+    expect([...Array(sessionStorage.length)].map((_, index) => sessionStorage.getItem(sessionStorage.key(index)!))).toEqual([JSON.stringify(input)]);
+  });
   it("does not request encryption metadata or offer actions without administrator capability", async () => {
     network.mockResolvedValue(json({ canManage: false, credentialEditingAvailable: false }));
     render(<StorageConfigurationPage />); await screen.findByRole("heading", { name: "Read only" });
@@ -117,6 +138,29 @@ describe("administrator credential encryption Settings", () => {
     await screen.findByText("Uses the current encryption key");
     expect(screen.queryByRole("button", { name: "Update encryption for revision 2" })).toBeNull();
     expect(sessionStorage.length).toBe(0); expect(posts()).toHaveLength(1);
+  });
+
+  it.each([400, 409])("retains an uncertain encryption operation when a later retry returns %s and recovers its original receipt", async status => {
+    let input!: ReenvelopeStorageCredentialInput, attempts = 0, receiptVisible = false;
+    network.mockImplementation(async (path, options) => {
+      if (options?.method === "POST") {
+        const submitted = JSON.parse(String(options.body));
+        if (++attempts === 1) { input = submitted; throw new Error("original acknowledgement lost"); }
+        expect(submitted).toEqual(input); return json({}, status);
+      }
+      if (String(path).includes("/credential-reenvelopes/")) return receiptVisible ? json(receipt(input)) : json({}, 404);
+      return fallback(path);
+    });
+    const first = render(<StorageConfigurationPage />); await openEncryption(); fireEvent.click(await readyUpdate());
+    await screen.findByText("The encryption update result is unavailable. Check or retry this same operation.");
+    fireEvent.click(screen.getByRole("button", { name: "Check or retry encryption update" }));
+    await waitFor(() => expect(posts()).toHaveLength(2));
+    await waitFor(() => expect((screen.getByRole("button", { name: "Check or retry encryption update" }) as HTMLButtonElement).disabled).toBe(false));
+    expect(JSON.parse(sessionStorage.getItem(intentKey)!)).toEqual(input);
+    expect((screen.getByRole("button", { name: "Update encryption for revision 2" }) as HTMLButtonElement).disabled).toBe(true);
+    receiptVisible = true; first.unmount(); render(<StorageConfigurationPage />);
+    await screen.findByText("Credential encryption updated for revision 2.");
+    expect(sessionStorage.getItem(intentKey)).toBeNull(); expect(posts()).toHaveLength(2);
   });
 
   it("offers no update for unavailable payloads and does not render rejected secret fields", async () => {

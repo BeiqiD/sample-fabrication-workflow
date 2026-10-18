@@ -1,3 +1,5 @@
+import { captureApplicationOwner } from "./authentication-client";
+import { checkpointStorage, type CheckpointStorage } from "./browser-checkpoints";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type {
   ProjectEdgeLifecycleInput,
@@ -76,9 +78,9 @@ function recoveryStorageKey(projectId: string) {
   return `project-trash-recovery:${projectId}`;
 }
 
-function readRememberedEdges(projectId: string): ProjectRecoverableEdge[] {
+function readRememberedEdges(storage: CheckpointStorage, projectId: string): ProjectRecoverableEdge[] {
   try {
-    const value: unknown = JSON.parse(sessionStorage.getItem(recoveryStorageKey(projectId)) ?? "[]");
+    const value: unknown = JSON.parse(storage.getItem(recoveryStorageKey(projectId)) ?? "[]");
     if (!Array.isArray(value)) return [];
     return value.filter((entry): entry is ProjectRecoverableEdge => entry !== null
       && typeof entry === "object" && typeof entry.edgeId === "string"
@@ -88,6 +90,8 @@ function readRememberedEdges(projectId: string): ProjectRecoverableEdge[] {
 
 /** Keeps acknowledged work and the exact uncertain request until it is resolved. */
 export function useProjectItemTrash(options: UseProjectItemTrashOptions) {
+  const [owner] = useState(captureApplicationOwner);
+  const [storage] = useState(() => checkpointStorage(owner));
   const optionsRef = useRef(options);
   optionsRef.current = options;
   const [isOpen, setIsOpen] = useState(false);
@@ -102,8 +106,9 @@ export function useProjectItemTrash(options: UseProjectItemTrashOptions) {
   const journalRef = useRef<TrashJournal | null>(null);
   const runningRef = useRef(false);
   const activeRef = useRef(true);
+  const isActive = useCallback(() => owner.isCurrent() && activeRef.current, [owner]);
   const generationRef = useRef(0);
-  const initialRemembered = useMemo(() => readRememberedEdges(options.projectId), [options.projectId]);
+  const initialRemembered = useMemo(() => readRememberedEdges(storage, options.projectId), [options.projectId]);
   const rememberedRef = useRef<ProjectRecoverableEdge[]>(initialRemembered);
   const unsafeRef = useRef(false);
 
@@ -126,13 +131,15 @@ export function useProjectItemTrash(options: UseProjectItemTrashOptions) {
   }, [initialRemembered, options.projectId]);
 
   const remember = useCallback((edges: ProjectRecoverableEdge[]) => {
+    if (!isActive()) return;
     rememberedRef.current = edges;
     try {
-      sessionStorage.setItem(recoveryStorageKey(optionsRef.current.projectId), JSON.stringify(edges));
+      storage.setItem(recoveryStorageKey(optionsRef.current.projectId), JSON.stringify(edges));
     } catch { /* Recovery still works in this session when storage is unavailable. */ }
   }, []);
 
   const onRemoved = useCallback((result: ProjectItemMutationResponse, operationId?: string) => {
+    if (!isActive()) return;
     const token = operationId ?? result.item.deletionOperationId;
     if (!token || !result.item.deletedAt) return;
     const current = lastRemovalRef.current;
@@ -156,19 +163,19 @@ export function useProjectItemTrash(options: UseProjectItemTrashOptions) {
   }, []);
 
   const refresh = useCallback(async () => {
-    if (journalRef.current || runningRef.current) return;
+    if (!isActive() || journalRef.current || runningRef.current) return;
     const generation = ++generationRef.current;
     setLoading(true);
     setError("");
     try {
       const fresh = await projectApi.readTrash(optionsRef.current.projectId);
-      if (!activeRef.current || generation !== generationRef.current) return;
+      if (!isActive() || generation !== generationRef.current) return;
       setTrashSnapshot(fresh);
     } catch (caught) {
-      if (!activeRef.current || generation !== generationRef.current) return;
+      if (!isActive() || generation !== generationRef.current) return;
       setError(caught instanceof Error ? caught.message : "Trash could not be loaded.");
     } finally {
-      if (activeRef.current && generation === generationRef.current) setLoading(false);
+      if (isActive() && generation === generationRef.current) setLoading(false);
     }
   }, []);
 
@@ -177,19 +184,19 @@ export function useProjectItemTrash(options: UseProjectItemTrashOptions) {
 
   const run = useCallback(async () => {
     const journal = journalRef.current;
-    if (!journal || runningRef.current || !activeRef.current) return;
+    if (!journal || runningRef.current || !isActive()) return;
     const projectId = optionsRef.current.projectId;
     runningRef.current = true;
     generationRef.current += 1;
     setLoading(false);
     setError("");
-    while (activeRef.current && journalRef.current === journal) {
+    while (isActive() && journalRef.current === journal) {
       setPending({ kind: journal.kind, status: "working", completed: journal.acknowledged, total: journal.ids.length });
       let mutationInFlight = false;
       try {
         if (journal.phase === "prepare") {
           const fresh = await projectApi.readTrash(projectId);
-          if (!activeRef.current || journalRef.current !== journal) break;
+          if (!isActive() || journalRef.current !== journal) break;
           const ids = new Set(journal.ids);
           const candidates = fresh.items.filter((item) => ids.has(item.id) && item.deletedAt !== null);
           const items = candidates.filter((item) => !journal.expectedDeletions
@@ -219,7 +226,7 @@ export function useProjectItemTrash(options: UseProjectItemTrashOptions) {
           mutationInFlight = true;
           if (task.kind === "edge") {
             const result = await projectApi.restoreEdge(projectId, task.edgeId, task.input);
-            if (!activeRef.current || journalRef.current !== journal) break;
+            if (!isActive() || journalRef.current !== journal) break;
             journal.uncertainMutation = false;
             journal.cursor += 1;
             remember(rememberedRef.current.filter((edge) => edge.edgeId !== task.edgeId));
@@ -228,7 +235,7 @@ export function useProjectItemTrash(options: UseProjectItemTrashOptions) {
             const result = task.kind === "remove"
               ? await projectApi.removeItem(projectId, task.itemId, task.input)
               : await projectApi.restoreItem(projectId, task.itemId, task.input);
-            if (!activeRef.current || journalRef.current !== journal) break;
+            if (!isActive() || journalRef.current !== journal) break;
             journal.uncertainMutation = false;
             journal.cursor += 1;
             journal.acknowledged += 1;
@@ -243,7 +250,7 @@ export function useProjectItemTrash(options: UseProjectItemTrashOptions) {
         if (journal.phase === "prepare-edges") {
           // Re-read after every item is acknowledged; both endpoints must now be active.
           const fresh = await projectApi.readTrash(projectId);
-          if (!activeRef.current || journalRef.current !== journal) break;
+          if (!isActive() || journalRef.current !== journal) break;
           journal.tasks = projectRecoverableEdges(fresh, rememberedRef.current).map((edge): EdgeTask => ({
             kind: "edge", edgeId: edge.id,
             input: { expectedRevision: edge.revision, operationId: createProjectApiId("operation") },
@@ -254,7 +261,7 @@ export function useProjectItemTrash(options: UseProjectItemTrashOptions) {
         }
 
         const fresh = await projectApi.readTrash(projectId);
-        if (!activeRef.current || journalRef.current !== journal) break;
+        if (!isActive() || journalRef.current !== journal) break;
         setTrashSnapshot(fresh);
         if (fresh.project.deletedAt !== null) {
           setError("This Project has been moved to trash. Return to Projects to continue.");
@@ -288,7 +295,7 @@ export function useProjectItemTrash(options: UseProjectItemTrashOptions) {
         setPending(null);
         break;
       } catch (caught) {
-        if (!activeRef.current || journalRef.current !== journal) break;
+        if (!isActive() || journalRef.current !== journal) break;
         const detail = caught instanceof Error ? caught.message : "The operation could not be completed.";
         // A later access/validation rejection describes only the retry. It cannot
         // prove that the original unacknowledged mutation will not still commit.
@@ -297,12 +304,12 @@ export function useProjectItemTrash(options: UseProjectItemTrashOptions) {
           && caught instanceof ProjectApiError && caught.status === 409) {
           try {
             const fresh = await projectApi.readTrash(projectId);
-            if (!activeRef.current || journalRef.current !== journal) break;
+            if (!isActive() || journalRef.current !== journal) break;
             const task = journal.tasks[journal.cursor];
             rejectionSettled = task !== undefined && taskRevisionHasAdvanced(fresh, task);
           } catch {
             // Missing proof cannot release the original request or navigation lock.
-            if (!activeRef.current || journalRef.current !== journal) break;
+            if (!isActive() || journalRef.current !== journal) break;
           }
         }
         if (mutationInFlight && definiteRejection(caught) && rejectionSettled) {
@@ -323,7 +330,7 @@ export function useProjectItemTrash(options: UseProjectItemTrashOptions) {
 
   const removeItems = useCallback((itemIds: readonly string[]) => {
     const current = optionsRef.current;
-    if (journalRef.current || current.externalBusy || !current.snapshot) return false;
+    if (!isActive() || journalRef.current || current.externalBusy || !current.snapshot) return false;
     const ids = new Set(itemIds);
     const items = current.snapshot.items.filter((item) => ids.has(item.id) && item.deletedAt === null);
     if (items.length === 0) return false;
@@ -342,7 +349,7 @@ export function useProjectItemTrash(options: UseProjectItemTrashOptions) {
   }, [run]);
 
   const restoreItems = useCallback((itemIds: readonly string[], expectedDeletions?: Record<string, string>) => {
-    if (journalRef.current || optionsRef.current.externalBusy || itemIds.length === 0) return false;
+    if (!isActive() || journalRef.current || optionsRef.current.externalBusy || itemIds.length === 0) return false;
     journalRef.current = { kind: "restore", ids: [...new Set(itemIds)], tasks: [], cursor: 0, acknowledged: 0, phase: "prepare", rejection: null, expectedDeletions };
     unsafeRef.current = true;
     void run();
@@ -356,7 +363,7 @@ export function useProjectItemTrash(options: UseProjectItemTrashOptions) {
   ), [restoreItems]);
 
   const restoreConnections = useCallback(() => {
-    if (journalRef.current || optionsRef.current.externalBusy) return false;
+    if (!isActive() || journalRef.current || optionsRef.current.externalBusy) return false;
     journalRef.current = {
       kind: "restore", ids: [], tasks: [], cursor: 0, acknowledged: 0,
       phase: "prepare-edges", rejection: null,

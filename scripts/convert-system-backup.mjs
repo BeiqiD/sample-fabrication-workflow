@@ -12,7 +12,7 @@ const temporary = await mkdtemp(join(tmpdir(), "system-backup-converter-"));
 try {
   const output = join(temporary, "converter.mjs");
   await build({ entryPoints: [join(root, "scripts/lib/convert-system-backup.ts")], bundle: true, platform: "node", format: "esm", outfile: output, logLevel: "silent",
-    banner: { js: 'import { createRequire } from "node:module"; const require = createRequire(import.meta.url);' } });
+    banner: { js: 'import { createRequire as __sfwBundleCreateRequire } from "node:module"; const require = __sfwBundleCreateRequire(import.meta.url);' } });
   const { convertLegacySystemBackup } = await import(pathToFileURL(output).href);
   process.stdout.write(`${JSON.stringify(await convertLegacySystemBackup({ archivePath: resolve(args[1]), destination: resolve(args[3]), migrationsDirectory: join(root, "migrations") }), null, 2)}\n`);
 } finally { await rm(temporary, { recursive: true, force: true }); }

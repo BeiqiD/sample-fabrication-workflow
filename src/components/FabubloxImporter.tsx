@@ -1,3 +1,4 @@
+import { captureApplicationOwner } from "../lib/authentication-client";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { FabubloxImportPreview, ParsedFabubloxImage } from "../../shared/types";
 import { api, type ProcessTemplateFamilyOption } from "../lib/api";
@@ -44,6 +45,7 @@ function observedOperation(saved: SavedFabubloxImport, state: FabubloxImportRequ
 }
 
 export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
+  const [owner] = useState(captureApplicationOwner);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<FabubloxImportPreview | null>(null);
   const [recipeFamilyId, setRecipeFamilyId] = useState("");
@@ -55,6 +57,7 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
   const actionInFlight = useRef(Boolean(saved));
   const parseGeneration = useRef(0);
   const mounted = useRef(true);
+  const isCurrentSession = () => owner.isCurrent() && mounted.current;
   const [busy, setBusy] = useState(Boolean(saved));
   const [error, setError] = useState("");
   const [familyError, setFamilyError] = useState("");
@@ -62,11 +65,13 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
 
   useEffect(() => {
     const controller = new AbortController();
+    if (!isCurrentSession()) return;
     api.listTemplateFamilyOptions(controller.signal).then(({ families }) => {
+      if (!isCurrentSession() || controller.signal.aborted) return;
       setFamilies(families);
       setFamilyError("");
     }).catch((error: Error) => {
-      if (error.name !== "AbortError") setFamilyError(`Existing process templates could not be loaded: ${error.message}`);
+      if (isCurrentSession() && error.name !== "AbortError") setFamilyError(`Existing process templates could not be loaded: ${error.message}`);
     });
     return () => controller.abort();
   }, []);
@@ -79,50 +84,53 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
   useEffect(() => {
     mounted.current = true;
     const controller = new AbortController();
-    if (saved) {
+    if (saved && isCurrentSession()) {
       getFabubloxImportRequest(saved.requestId, controller.signal).then((state) => {
-        if (!controller.signal.aborted) updateOperation(observedOperation(saved, state));
+        if (isCurrentSession() && !controller.signal.aborted) updateOperation(observedOperation(saved, state));
       }).catch((error: Error) => {
-        if (!controller.signal.aborted) setError(error.message);
+        if (isCurrentSession() && !controller.signal.aborted) setError(error.message);
       }).finally(() => {
-        if (!controller.signal.aborted) { actionInFlight.current = false; setBusy(false); }
+        if (isCurrentSession() && !controller.signal.aborted) { actionInFlight.current = false; setBusy(false); }
       });
     }
     return () => { mounted.current = false; parseGeneration.current += 1; controller.abort(); };
   }, [saved]);
 
   async function choose(nextFile: File | null) {
+    if (!isCurrentSession()) return;
     if ((operationRef.current && operationRef.current.status !== "reselect") || actionInFlight.current) return;
     const generation = ++parseGeneration.current;
     if (!nextFile) { setFile(null); setPreview(null); setBusy(false); setError(""); return; }
     setFile(nextFile); setPreview(null); setBusy(true); setError("");
     try {
       const parsed = await parseFabuBloxWorkbook(nextFile);
-      if (mounted.current && parseGeneration.current === generation) setPreview(parsed);
+      if (isCurrentSession() && parseGeneration.current === generation) setPreview(parsed);
     } catch (error) {
-      if (mounted.current && parseGeneration.current === generation) setError(`Could not read FabuBlox workbook: ${(error as Error).message}`);
+      if (isCurrentSession() && parseGeneration.current === generation) setError(`Could not read FabuBlox workbook: ${(error as Error).message}`);
     } finally {
-      if (mounted.current && parseGeneration.current === generation) setBusy(false);
+      if (isCurrentSession() && parseGeneration.current === generation) setBusy(false);
     }
   }
 
   async function openResult(result: FabubloxImportResult, title: string) {
+    if (!isCurrentSession()) return;
     try {
       await onImported({ templateVersionId: result.templateVersionId, version: result.version, name: title });
     } catch (error) {
-      if (mounted.current) setError(`The import completed, but its process template could not be opened: ${(error as Error).message}`);
+      if (isCurrentSession()) setError(`The import completed, but its process template could not be opened: ${(error as Error).message}`);
     }
   }
 
   async function submitPrepared(prepared: PreparedFabubloxImport) {
+    if (!isCurrentSession()) return;
     updateOperation({ requestId: prepared.requestId, title: prepared.title, status: "unknown" });
     try {
       const result = await api.importFabublox(prepared);
-      if (!mounted.current) return;
+      if (!isCurrentSession()) return;
       updateOperation({ requestId: prepared.requestId, title: prepared.title, status: "ready", result });
       await openResult(result, prepared.title);
     } catch (error) {
-      if (!mounted.current) return;
+      if (!isCurrentSession()) return;
       if (error instanceof FabubloxImportRequestError && error.request) {
         updateOperation(observedOperation(prepared, error.request));
       }
@@ -131,41 +139,44 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
   }
 
   async function confirm() {
+    if (!isCurrentSession()) return;
     if (!file || !preview || (operationRef.current && operationRef.current.status !== "reselect") || actionInFlight.current) return;
     actionInFlight.current = true;
     setBusy(true); setError("");
     try {
       const prepared = await prepareFabubloxImport(file, preview, recipeFamilyId || undefined, operationRef.current?.requestId);
-      if (!mounted.current) return;
+      if (!isCurrentSession()) return;
       // Save the identity before any request can be accepted by the server.
       saveFabubloxImport(prepared);
       preparedRef.current = prepared;
       await submitPrepared(prepared);
     } catch (error) {
-      if (mounted.current) setError((error as Error).message);
+      if (isCurrentSession()) setError((error as Error).message);
     } finally {
       actionInFlight.current = false;
-      if (mounted.current) setBusy(false);
+      if (isCurrentSession()) setBusy(false);
     }
   }
 
   async function checkStatus() {
+    if (!isCurrentSession()) return;
     const current = operationRef.current;
     if (!current || actionInFlight.current) return;
     actionInFlight.current = true;
     setBusy(true); setError("");
     try {
       const state = await getFabubloxImportRequest(current.requestId);
-      if (mounted.current) updateOperation(observedOperation(current, state));
+      if (isCurrentSession()) updateOperation(observedOperation(current, state));
     } catch (error) {
-      if (mounted.current) setError((error as Error).message);
+      if (isCurrentSession()) setError((error as Error).message);
     } finally {
       actionInFlight.current = false;
-      if (mounted.current) setBusy(false);
+      if (isCurrentSession()) setBusy(false);
     }
   }
 
   async function retryOriginal() {
+    if (!isCurrentSession()) return;
     const prepared = preparedRef.current;
     if (operationRef.current?.status !== "not_found" || !prepared || actionInFlight.current) return;
     actionInFlight.current = true;
@@ -174,23 +185,25 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
       saveFabubloxImport(prepared);
       await submitPrepared(prepared);
     } catch (error) {
-      if (mounted.current) setError((error as Error).message);
+      if (isCurrentSession()) setError((error as Error).message);
     } finally {
       actionInFlight.current = false;
-      if (mounted.current) setBusy(false);
+      if (isCurrentSession()) setBusy(false);
     }
   }
 
   async function openCompleted() {
+    if (!isCurrentSession()) return;
     const current = operationRef.current;
     if (current?.status !== "ready" || actionInFlight.current) return;
     actionInFlight.current = true;
     setBusy(true); setError("");
     try { await openResult(current.result, current.title); }
-    finally { actionInFlight.current = false; if (mounted.current) setBusy(false); }
+    finally { actionInFlight.current = false; if (isCurrentSession()) setBusy(false); }
   }
 
   function reselectWorkbook() {
+    if (!isCurrentSession()) return;
     const current = operationRef.current;
     if (actionInFlight.current || current?.status !== "not_found" || preparedRef.current) return;
     // A 404 can precede acceptance of an older POST. Preserve its identity even
@@ -200,6 +213,7 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
   }
 
   function startNewImport() {
+    if (!isCurrentSession()) return;
     if (actionInFlight.current || !["failed", "ready"].includes(operationRef.current?.status ?? "")) return;
     try { clearSavedFabubloxImport(); }
     catch { setError("The saved import request could not be cleared. Enable session storage before starting another import."); return; }

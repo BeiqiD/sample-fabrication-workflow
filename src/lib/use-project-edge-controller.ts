@@ -1,3 +1,4 @@
+import { captureApplicationOwner } from "./authentication-client";
 import {
   useCallback,
   useEffect,
@@ -142,6 +143,7 @@ export function useProjectEdgeController({
   externalBusy,
   onHistory,
 }: UseProjectEdgeControllerOptions) {
+  const [owner] = useState(captureApplicationOwner);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [editor, setEditorState] = useState<ProjectEdgeEditorState | null>(null);
   const [pending, setPendingState] = useState<ProjectPendingEdgeMutation | null>(null);
@@ -152,6 +154,7 @@ export function useProjectEdgeController({
   const deletedEdgesRef = useRef<Record<string, ProjectEdgeRecord>>({});
   const transitionRef = useRef<(() => void) | null>(null);
   const activeRef = useRef(true);
+  const isActive = useCallback(() => owner.isCurrent() && activeRef.current, [owner]);
   const externalBusyRef = useRef(externalBusy);
   const unsafeRef = useRef(false);
 
@@ -185,13 +188,14 @@ export function useProjectEdgeController({
   }, []);
 
   const finishTransition = useCallback(() => {
+    if (!isActive()) return;
     const continuation = transitionRef.current;
     transitionRef.current = null;
     continuation?.();
   }, []);
 
   const runMutation = useCallback(async (mutation: ProjectPendingEdgeMutation) => {
-    if (!projectId || !activeRef.current) return;
+    if (!projectId || !isActive()) return;
     const saving = { ...mutation, status: "saving" as const, message: null } as ProjectPendingEdgeMutation;
     updatePending(saving);
     setActionError("");
@@ -202,7 +206,7 @@ export function useProjectEdgeController({
     try {
       if (saving.kind === "create") {
         const result = await projectApi.createEdge(projectId, saving.input);
-        if (!activeRef.current) return;
+        if (!isActive()) return;
         mergeActiveEdge(setSnapshot, result.value);
         setSelectedEdgeId(result.value.id);
         if (saving.recordHistory) onHistory({
@@ -213,7 +217,7 @@ export function useProjectEdgeController({
         });
       } else if (saving.kind === "update") {
         const result = await projectApi.updateEdge(projectId, saving.edgeId, saving.input);
-        if (!activeRef.current) return;
+        if (!isActive()) return;
         mergeActiveEdge(setSnapshot, result.value);
         if (saving.recordHistory) {
           const identity = {
@@ -230,7 +234,7 @@ export function useProjectEdgeController({
         if (editorRef.current?.edgeId === saving.edgeId) updateEditor(null);
       } else if (saving.kind === "delete") {
         const result = await projectApi.deleteEdge(projectId, saving.edgeId, saving.input);
-        if (!activeRef.current) return;
+        if (!isActive()) return;
         deletedEdgesRef.current[saving.edgeId] = result.value;
         removeActiveEdge(setSnapshot, saving.edgeId);
         setSelectedEdgeId((current) => current === saving.edgeId ? null : current);
@@ -242,7 +246,7 @@ export function useProjectEdgeController({
         });
       } else {
         const result = await projectApi.restoreEdge(projectId, saving.edgeId, saving.input);
-        if (!activeRef.current) return;
+        if (!isActive()) return;
         delete deletedEdgesRef.current[saving.edgeId];
         mergeActiveEdge(setSnapshot, result.value);
         setSelectedEdgeId(result.value.id);
@@ -250,7 +254,7 @@ export function useProjectEdgeController({
       updatePending(null);
       finishTransition();
     } catch (caught) {
-      if (!activeRef.current) return;
+      if (!isActive()) return;
       const failureStatus = edgeFailureStatus(caught);
       let status = failureStatus;
       if (mutation.status === "uncertain") {
@@ -263,11 +267,11 @@ export function useProjectEdgeController({
           if (!settled) {
             try {
               const fresh = await projectApi.readTrash(projectId);
-              if (!activeRef.current || pendingRef.current !== saving) return;
+              if (!isActive() || pendingRef.current !== saving) return;
               settled = fresh.project.id === projectId && edgeMutationRevisionHasAdvanced(fresh, saving);
             } catch {
               // A failed read or a missing row is not evidence of settlement.
-              if (!activeRef.current || pendingRef.current !== saving) return;
+              if (!isActive() || pendingRef.current !== saving) return;
             }
           }
           if (settled) status = "conflict";
@@ -282,7 +286,7 @@ export function useProjectEdgeController({
       }
       if (status !== "uncertain") transitionRef.current = null;
     }
-  }, [finishTransition, onHistory, projectId, setSnapshot, updateEditor, updatePending]);
+  }, [finishTransition, isActive, onHistory, projectId, setSnapshot, updateEditor, updatePending]);
 
   const connect = useCallback((connection: {
     sourceItemId: string;

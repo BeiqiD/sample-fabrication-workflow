@@ -138,6 +138,14 @@ export function createLocalAuthentication<Bindings extends object = object>(opti
   const middleware: MiddlewareHandler<LocalAuthEnvironment<Bindings>> = async (c, next) => {
     c.header('Cache-Control', 'private, no-store');
     const principal = await authenticateRequest(c.req.raw);
+    // Another tab can replace the shared cookie without updating this page's
+    // JavaScript generation. Match its optional witness before domain reads or
+    // writes; the witness never replaces the real session or mutation CSRF.
+    const expected = c.req.header('x-sfw-expected-subject');
+    if (expected !== undefined && expected !== principal.id) {
+      c.header('x-sfw-identity-result', 'mismatch');
+      return c.json({ error: 'Sign-in identity changed. Refresh before continuing saved work.' }, 409);
+    }
     c.set('userEmail', principal.actor); c.set('currentPrincipal', principal);
     await next();
   };

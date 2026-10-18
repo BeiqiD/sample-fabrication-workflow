@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProjectGeometryCommand, ProjectNodeDescriptor } from "./lib/project-map-model";
@@ -7,6 +7,7 @@ import type { ProjectItemSelection } from "./lib/project-canvas-productivity";
 import type { ProjectMapMarkdownEditorState } from "./lib/project-owned-content";
 import { ProjectPage } from "./pages/ProjectPage";
 import { projectTestSnapshot } from "./project-test-fixture";
+import { readAuthentication } from "./lib/authentication-client";
 
 vi.mock("./components/ReferenceSearchSurface", () => ({
   ReferenceSearchSurface: () => null,
@@ -139,6 +140,40 @@ describe("mounted Phase 4B Canvas productivity", () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it("stops a multi-item paste after the account changes before its first acknowledgement, without waiting for unmount", async () => {
+    vi.stubEnv("VITE_LOCAL_AUTHENTICATION", "1");
+    let principal = "local_6f3e32c5-d935-44ab-8567-0966b13d91ae", mutations = 0;
+    let acknowledge!: () => void;
+    const firstAcknowledgement = new Promise<void>(resolve => { acknowledge = resolve; });
+    let snapshot = projectTestSnapshot();
+    fetchMock.mockImplementation(async (input, init) => {
+      const path = String(input);
+      if (path === "/api/auth/session") return jsonResponse({ principal: { id: principal, actor: `local-account:${principal}`,
+        capabilities: { systemAdministrator: true, fileEvidenceOperator: false } }, csrf: (principal.includes("6f3e32c5") ? "A" : "B").repeat(43) });
+      if (init?.method === "POST" && /\/items\/(reference|markdown)$/.test(path)) {
+        const { result, next } = createProjectItemResponse(snapshot, path, JSON.parse(String(init.body)));
+        snapshot = next;
+        if (++mutations === 1) await firstAcknowledgement;
+        return jsonResponse(result);
+      }
+      return jsonResponse(snapshot);
+    });
+    await readAuthentication(); renderProjectPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Select two items" }));
+    fireEvent.keyDown(document, { key: "c", ctrlKey: true });
+    await screen.findByText("2 copied");
+    fireEvent.keyDown(document, { key: "v", ctrlKey: true });
+    await waitFor(() => expect(mutations).toBe(1));
+    principal = "local_3408b493-0ff6-41eb-8f8b-0cfe7bb4ef1a";
+    await act(async () => { await readAuthentication(); });
+    await act(async () => { acknowledge(); });
+    expect(mutations).toBe(1);
+    const writes = fetchMock.mock.calls.filter(([, init]) => init?.method === "POST");
+    expect(writes).toHaveLength(1);
+    expect(new Headers(writes[0][1]?.headers).get("x-sfw-csrf")).toBe("A".repeat(43));
   });
 
   it("projects multi-selection into a bounded Inspector summary and returns to no selection", async () => {

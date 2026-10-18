@@ -21,8 +21,10 @@ on:
       - wrangler.jsonc
       - scripts/production-worker-artifact.mjs
       - scripts/generate-wrangler-config.mjs
+      - scripts/lib/cloudflare-bootstrap.mjs
       - scripts/temml-bundler-compat.mjs
       - scripts/qa/phase5f/browser-two-version-handover.mjs
+      - scripts/qa/phase5f/browser-owned-checkpoints.mjs
       - scripts/qa/phase5f/two-version-handover-runtime.mjs
       - scripts/qa/phase5f/two-version-handover-browser.mjs
       - scripts/rehearse-current-local-migrations.mjs
@@ -49,8 +51,10 @@ on:
       - wrangler.jsonc
       - scripts/production-worker-artifact.mjs
       - scripts/generate-wrangler-config.mjs
+      - scripts/lib/cloudflare-bootstrap.mjs
       - scripts/temml-bundler-compat.mjs
       - scripts/qa/phase5f/browser-two-version-handover.mjs
+      - scripts/qa/phase5f/browser-owned-checkpoints.mjs
       - scripts/qa/phase5f/two-version-handover-runtime.mjs
       - scripts/qa/phase5f/two-version-handover-browser.mjs
       - scripts/rehearse-current-local-migrations.mjs
@@ -76,7 +80,9 @@ jobs:
       - name: Check out current candidate
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          # For pull_request, github.sha is the proposed merge with its base.
+          # Rehearse the same combination that the main Verify gate checks.
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Check out the exact earlier version
@@ -92,13 +98,15 @@ jobs:
           node-version: '24.19.0'
           cache: npm
 
-      - name: Install committed dependencies
-        run: npm ci
+      - name: Install current committed dependencies
+        run: npm ci --no-audit
 
-      - name: Build both unchanged version inputs
+      - name: Install earlier version's committed dependencies
+        working-directory: .handover-version-a
+        run: npm ci --no-audit
+
+      - name: Build each version with its own unchanged dependency lock
         run: |
-          cmp package-lock.json .handover-version-a/package-lock.json
-          ln -s "$GITHUB_WORKSPACE/node_modules" .handover-version-a/node_modules
           npm --prefix .handover-version-a run build
           npm run build
 
@@ -146,7 +154,7 @@ jobs:
       - name: Check out candidate
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Set up pinned Node.js

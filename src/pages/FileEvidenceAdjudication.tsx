@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { captureApplicationOwner } from "../lib/authentication-client";
+import { checkpointKey } from "../lib/browser-checkpoints";
 import type { FileShadowReviewKey } from "../../shared/contracts/file-shadow-evidence-review";
 import {
   adjudicationJournalIdentity, canDismissAdjudication, createFileShadowAdjudicationClient,
@@ -10,6 +12,7 @@ const readable = (value: string) => value.replaceAll("_", " ");
 
 /** This panel never reads or modifies the separate conversion journal. */
 export function FileEvidenceAdjudication({ selected }: { selected: FileShadowReviewKey | null }) {
+  const [owner] = useState(captureApplicationOwner);
   const [client] = useState(createFileShadowAdjudicationClient);
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [revocations, setRevocations] = useState<AdjudicationJournal[]>([]);
@@ -61,7 +64,8 @@ export function FileEvidenceAdjudication({ selected }: { selected: FileShadowRev
   useEffect(() => {
     if (!allowed) return;
     const changed = (event: StorageEvent) => {
-      if (event.key !== null && event.key !== FILE_SHADOW_ADJUDICATION_JOURNAL_KEY && event.key !== FILE_SHADOW_REVOCATION_JOURNAL_KEY) return;
+      if (event.key !== null && event.key !== checkpointKey(FILE_SHADOW_ADJUDICATION_JOURNAL_KEY, owner)
+        && event.key !== checkpointKey(FILE_SHADOW_REVOCATION_JOURNAL_KEY, owner)) return;
       readSequence.current += 1; setPrepared(null); resetForm(); reloadJournal();
       setNotice("The saved evidence request changed in another tab. Review its current state before continuing.");
     };

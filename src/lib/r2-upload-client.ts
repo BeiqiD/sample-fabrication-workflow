@@ -1,4 +1,5 @@
-import { applicationFetch } from "./authentication-client";
+import { captureApplicationOwner, type ApplicationOwner } from "./authentication-client";
+import { checkpointStorage } from "./browser-checkpoints";
 import { sha256Hex } from "../../shared/content-addressing";
 import { createUuid } from "./uuid";
 import { R2_UPLOAD_REQUEST_HEADER, validateFileUploadResult, validateR2UploadInput, type R2UploadIngress, type R2UploadResult } from "../../shared/contracts/r2-upload";
@@ -10,18 +11,23 @@ interface Checkpoint {
   filename: string; mimeType: string; byteSize: number; sha256: string;
 }
 interface Prepared { checkpoint: Checkpoint; file: Blob; attempted: boolean; result?: R2UploadResult; terminal?: string }
+const preparedOwners = new WeakMap<Blob, Map<string, ApplicationOwner>>();
+export class R2UploadRequestError extends Error {
+  constructor(message: string, readonly terminal = false) { super(message); this.name = "R2UploadRequestError"; }
+}
+
+function createR2Client(owner: ApplicationOwner) {
+  const storage = checkpointStorage(owner), applicationFetch = owner.fetch;
 const PREFIX = "r2-upload-request-v1:";
 const preparedFiles = new WeakMap<Blob, Map<string, Promise<Blob>>>();
 const operations = new WeakMap<Blob, Map<string, Promise<Prepared>>>();
 const generations = new Map<string, number>();
 const active = new Map<string, { file: Blob; filename: string; promise: Promise<R2UploadResult> }>();
 
-export class R2UploadRequestError extends Error {
-  constructor(message: string, readonly terminal = false) { super(message); this.name = "R2UploadRequestError"; }
-}
+
 
 /** Preparation belongs to the selected file/form, so retry never recompresses it. */
-export async function prepareR2UploadFile<T extends Blob>(file: T, context: string, prepare: () => Promise<T>): Promise<T> {
+async function prepareR2UploadFile<T extends Blob>(file: T, context: string, prepare: () => Promise<T>): Promise<T> {
   let entries = preparedFiles.get(file);
   if (!entries) { entries = new Map(); preparedFiles.set(file, entries); }
   let pending = entries.get(context);
@@ -29,7 +35,10 @@ export async function prepareR2UploadFile<T extends Blob>(file: T, context: stri
     pending = prepare(); entries.set(context, pending);
     pending.catch(() => { if (entries?.get(context) === pending) entries.delete(context); });
   }
-  return await pending as T;
+  const result = await pending as T; owner.assertCurrent();
+  let owners = preparedOwners.get(result);
+  if (!owners) { owners = new Map(); preparedOwners.set(result, owners); }
+  owners.set(context, owner); return result;
 }
 
 function record(value: unknown): value is Record<string, unknown> {
@@ -39,12 +48,13 @@ function validResult(value: unknown): value is R2UploadResult {
   try { validateFileUploadResult(value); return true; } catch { return false; }
 }
 function storageKey(ingress: R2UploadIngress, context: string) {
+  owner.assertCurrent();
   if (!context || context.length > 1024 || context.includes("\0")) throw new Error("Invalid upload form identity");
   return `${PREFIX}${ingress}:${encodeURIComponent(context)}`;
 }
 function loadCheckpoint(key: string): Checkpoint | null {
   try {
-    const raw = sessionStorage.getItem(key);
+    const raw = storage.getItem(key);
     if (!raw) return null;
     if (new TextEncoder().encode(raw).byteLength > 4096) throw new Error();
     const value: unknown = JSON.parse(raw);
@@ -62,13 +72,13 @@ function saveCheckpoint(key: string, value: Checkpoint) {
   try {
     const raw = JSON.stringify(value);
     if (new TextEncoder().encode(raw).byteLength > 4096) throw new Error();
-    sessionStorage.setItem(key, raw);
-    if (sessionStorage.getItem(key) !== raw) throw new Error();
+    storage.setItem(key, raw);
+    if (storage.getItem(key) !== raw) throw new Error();
   } catch { throw new R2UploadRequestError("The browser could not save this upload request. Free browser storage or discard an earlier upload, then retry."); }
 }
 function clearCheckpoint(key: string, requestId: string) {
   // Do not erase a newer form's checkpoint if it changed while awaiting I/O.
-  try { if (loadCheckpoint(key)?.requestId === requestId) sessionStorage.removeItem(key); } catch { /* Retaining a settled checkpoint is safe. */ }
+  try { if (loadCheckpoint(key)?.requestId === requestId) storage.removeItem(key); } catch { /* Retaining a settled checkpoint is safe. */ }
 }
 async function bytes(file: Blob): Promise<ArrayBuffer> {
   if (typeof file.arrayBuffer === "function") return file.arrayBuffer();
@@ -94,6 +104,7 @@ async function prepare(file: Blob, filename: string, ingress: R2UploadIngress, k
   return { checkpoint, file, attempted: prior !== null };
 }
 function settleState(value: unknown, prepared: Prepared, key: string): R2UploadResult {
+  owner.assertCurrent();
   const expected = prepared.checkpoint;
   if (!record(value) || value.requestId !== expected.requestId || value.ingress !== expected.ingress
     || typeof value.expiresAt !== "string" || !Number.isFinite(Date.parse(value.expiresAt))) {
@@ -129,6 +140,7 @@ async function execute(prepared: Prepared, key: string): Promise<R2UploadResult>
     catch { throw new R2UploadRequestError("The upload status could not be checked. Retry to check the same request."); }
     if (response.status !== 404) {
       const payload: unknown = await response.json().catch(() => null);
+      owner.assertCurrent();
       if (response.ok) return settleState(payload, prepared, key);
       throw new R2UploadRequestError("The upload status could not be checked. Retry to check the same request.");
     }
@@ -154,6 +166,7 @@ async function execute(prepared: Prepared, key: string): Promise<R2UploadResult>
     });
   } catch { throw new R2UploadRequestError("The upload response was lost. Retry to check the same request."); }
   const payload: unknown = await response.json().catch(() => null);
+  owner.assertCurrent();
   if (response.ok && response.status !== 202 && validResult(payload)) {
     prepared.result = payload; checkpoint.observedReady = true; clearCheckpoint(key, checkpoint.requestId); return payload;
   }
@@ -165,18 +178,18 @@ async function execute(prepared: Prepared, key: string): Promise<R2UploadResult>
 }
 
 /** Explicitly abandons client tracking; it does not cancel a server execution. */
-export function discardR2Upload(ingress: R2UploadIngress, context: string): void {
+function discardR2Upload(ingress: R2UploadIngress, context: string): void {
   const key = storageKey(ingress, context);
   if (active.has(key)) throw new R2UploadRequestError("Wait for the current upload check before discarding it.");
   try {
-    sessionStorage.removeItem(key);
-    if (sessionStorage.getItem(key) !== null) throw new Error();
+    storage.removeItem(key);
+    if (storage.getItem(key) !== null) throw new Error();
   } catch { throw new R2UploadRequestError("This browser could not discard the saved upload request. Restore session storage and try again."); }
   generations.set(key, (generations.get(key) ?? 0) + 1);
 }
 
 /** The checkpoint is persisted before POST; status checks never create new IDs. */
-export async function uploadR2Asset(file: Blob, filename: string, ingress: R2UploadIngress, options: R2UploadOptions = { context: "upload" }): Promise<R2UploadResult> {
+async function uploadR2Asset(file: Blob, filename: string, ingress: R2UploadIngress, options: R2UploadOptions = { context: "upload" }): Promise<R2UploadResult> {
   const key = storageKey(ingress, options.context);
   const previous = active.get(key);
   if (previous?.file === file && previous.filename === filename) return previous.promise;
@@ -196,3 +209,21 @@ export async function uploadR2Asset(file: Blob, filename: string, ingress: R2Upl
   active.set(key, current);
   try { return await operation; } finally { if (active.get(key) === current) active.delete(key); }
 }
+
+  return { prepareR2UploadFile, discardR2Upload, uploadR2Asset };
+}
+type R2Client = ReturnType<typeof createR2Client>;
+let current: { key: string; client: R2Client } | null = null;
+function currentClient(): R2Client {
+  const owner = captureApplicationOwner();
+  if (!current || current.key !== owner.cacheKey) current = { key: owner.cacheKey, client: createR2Client(owner) };
+  return current.client;
+}
+export function prepareR2UploadFile<T extends Blob>(file: T, context: string, prepare: () => Promise<T>): Promise<T> {
+  return currentClient().prepareR2UploadFile(file, context, prepare);
+}
+export const discardR2Upload = (...args: Parameters<R2Client["discardR2Upload"]>) => currentClient().discardR2Upload(...args);
+export const uploadR2Asset = (...args: Parameters<R2Client["uploadR2Asset"]>) => {
+  preparedOwners.get(args[0])?.get(args[3]?.context ?? "upload")?.assertCurrent();
+  return currentClient().uploadR2Asset(...args);
+};

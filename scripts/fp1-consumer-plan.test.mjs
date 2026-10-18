@@ -156,7 +156,7 @@ async function seed(db) {
 async function bundle(source, platform = "node") {
   return (await build({ stdin: { contents: source, resolveDir: root, sourcefile: "fp1-consumer-qualification.ts" },
     bundle: true, format: "esm", platform, write: false,
-    ...(platform === "node" ? { banner: { js: 'import { createRequire } from "node:module"; const require = createRequire(import.meta.url);' } } : {}),
+    ...(platform === "node" ? { banner: { js: 'import { createRequire as __sfwBundleCreateRequire } from "node:module"; const require = __sfwBundleCreateRequire(import.meta.url);' } } : {}),
   })).outputFiles[0].text;
 }
 

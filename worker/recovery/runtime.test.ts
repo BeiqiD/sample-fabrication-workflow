@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { SYSTEM_RECOVERY_MAX_STEP_MS } from "../../shared/contracts/system-recovery";
 import { SqliteD1Database } from "../reference-test-support";
 import { SystemRecoveryRepository } from "./repository";
 import { runSystemRecoveryJobStep, writeSystemRecoveryUpload, type SystemRecoveryCapabilitiesAdapter } from "./jobs";
@@ -10,16 +11,16 @@ const databases:DatabaseSync[]=[];
 afterEach(()=>{for(const database of databases.splice(0))database.close();vi.useRealTimers();});
 const bytes=new TextEncoder().encode("Verified system backup staging bytes, never a research File.");
 const sha=createHash("sha256").update(bytes).digest("hex");
-function setup(){
+function setup(now:()=>Date=()=>new Date()){
   const sql=new DatabaseSync(":memory:");databases.push(sql);sql.exec("PRAGMA foreign_keys=ON");
   sql.exec(readFileSync(new URL("../../migrations/0021_fp5_system_recovery.sql",import.meta.url),"utf8"));
-  const repository=new SystemRecoveryRepository(new SqliteD1Database(sql) as unknown as D1Database),objects=new Map<string,Uint8Array>();
+  const repository=new SystemRecoveryRepository(new SqliteD1Database(sql) as unknown as D1Database,now),objects=new Map<string,Uint8Array>();
   const hash=()=>{const digest=createHash("sha256");return{async write(chunk:Uint8Array){digest.update(chunk);},async finish(){return digest.digest("hex");},async abort(){}};};
   let allowed=true;
-  const capabilities:SystemRecoveryCapabilitiesAdapter={repository,incarnation:"",authorizeActor:()=>allowed,now:()=>new Date(),randomId:()=>crypto.randomUUID(),hash,
+  const capabilities:SystemRecoveryCapabilitiesAdapter={repository,incarnation:"",authorizeActor:()=>allowed,now,randomId:()=>crypto.randomUUID(),hash,
     async step(){return{patch:{state:"preview",phase:"done"},outcome:"preview"};},async exportBody(){return new Response(bytes.slice()).body!;},
     put:vi.fn(async(key,body)=>{objects.set(key,new Uint8Array(await new Response(body).arrayBuffer()));}),read:vi.fn(async key=>objects.has(key)?new Response(objects.get(key)!.slice()).body:null)};
-  return{sql,repository,objects,capabilities,revoke(){allowed=false;}};
+  return{sql,repository,objects,capabilities,revoke(){allowed=false;},restoreActor(){allowed=true;}};
 }
 async function enable(fixture:ReturnType<typeof setup>){await fixture.repository.configure(true);fixture.capabilities.incarnation=(await fixture.repository.runtime())!.incarnation;}
 async function upload(fixture:ReturnType<typeof setup>){const id=crypto.randomUUID(),input={requestId:crypto.randomUUID(),byteSize:bytes.byteLength,sha256:sha};
@@ -51,6 +52,33 @@ describe("FP5 actual durable staging and execution fences",()=>{
     const f=setup();await enable(f);const accepted=await upload(f),claim=await accepted.claim();f.revoke();
     await expect(writeSystemRecoveryUpload(f.capabilities,claim,new Response(bytes.slice()).body!)).rejects.toThrow();
     expect((await f.repository.job(accepted.id))!.state).toBe("paused");expect(f.capabilities.put).not.toHaveBeenCalled();
+  });
+  it.each(["actor","deadline"] as const)("retains verified backup bytes when the %s fence changes before publication",async(fence)=>{
+    let now=Date.now();const f=setup(()=>new Date(now));await enable(f);
+    const id=crypto.randomUUID(),requestId=crypto.randomUUID(),actor="administrator@example.test";
+    await f.repository.accept({id,requestId,actor,kind:"backup",input:{requestId,kind:"backup",mode:"historical"},totalFiles:1,bytesTotal:bytes.byteLength},()=>true);
+    const preparation=await f.repository.claim(id,actor,f.capabilities.incarnation,crypto.randomUUID());expect(preparation).not.toBeNull();
+    await f.repository.finish(preparation!,{state:"queued",phase:"write",archive_byte_size:bytes.byteLength,archive_sha256:sha});
+    const verify=f.repository.verifyAttempt.bind(f.repository);
+    vi.spyOn(f.repository,"verifyAttempt").mockImplementationOnce(async(...args)=>{
+      await verify(...args);
+      if(fence==="actor")f.revoke();else now+=SYSTEM_RECOVERY_MAX_STEP_MS;
+    });
+
+    expect(await runSystemRecoveryJobStep(f.capabilities)).toEqual({jobId:id,outcome:"paused"});
+    const paused=(await f.repository.job(id))!,attempts=await f.repository.attempts(id);expect(attempts).toHaveLength(1);
+    const attempt=attempts[0];
+    expect(paused).toMatchObject({state:"paused",phase:"write",reason:"administrator_revoked",artifact_key:null,expires_at:null,completed_files:0,bytes_done:0});
+    expect(attempt).toMatchObject({state:"verified",expected_byte_size:bytes.byteLength,expected_sha256:sha});
+    expect(attempt.settled_at).not.toBeNull();expect(attempt.verified_at).not.toBeNull();
+    expect(f.objects.get(attempt.object_key)).toEqual(bytes);
+    expect(f.capabilities.put).toHaveBeenCalledTimes(1);expect(f.capabilities.read).toHaveBeenCalledTimes(1);
+
+    f.restoreActor();await f.repository.control(paused,"resume");
+    expect(await runSystemRecoveryJobStep(f.capabilities)).toEqual({jobId:id,outcome:"completed"});
+    expect(await f.repository.job(id)).toMatchObject({state:"completed",phase:"done",artifact_key:attempt.object_key,completed_files:1,bytes_done:bytes.byteLength});
+    expect(await f.repository.attempts(id)).toHaveLength(1);
+    expect(f.capabilities.put).toHaveBeenCalledTimes(1);expect(f.capabilities.read).toHaveBeenCalledTimes(2);
   });
   it("never replays an unknown raw PUT; its original late ACK can reconcile under a fresh owner",async()=>{
     const f=setup();await enable(f);const accepted=await upload(f),old=await accepted.claim();

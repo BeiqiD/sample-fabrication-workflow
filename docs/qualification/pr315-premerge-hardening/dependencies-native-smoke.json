@@ -1,0 +1,47 @@
+{
+  "node": "v24.19.0",
+  "platform": "linux",
+  "arch": "x64",
+  "sharp": {
+    "version": "0.35.5",
+    "libvips": "8.18.7",
+    "format": "png",
+    "width": 2,
+    "height": 3,
+    "bytes": 95
+  },
+  "tools": [
+    {
+      "name": "esbuild",
+      "exitCode": 0,
+      "stdout": "0.28.1",
+      "stderr": ""
+    },
+    {
+      "name": "vitest",
+      "exitCode": 0,
+      "stdout": "vitest/4.1.11 linux-x64 node-v24.19.0",
+      "stderr": ""
+    },
+    {
+      "name": "wrangler",
+      "exitCode": 0,
+      "stdout": "4.116.0",
+      "stderr": "\u001b[33m▲ \u001b[43;33m[\u001b[43;30mWARNING\u001b[43;33m]\u001b[0m \u001b[1mProxy environment variables detected. We'll use your proxy for fetch requests.\u001b[0m"
+    }
+  ],
+  "miniflare": {
+    "version": "4.20260730.0",
+    "undici": "7.29.1",
+    "workerd": "1.20260730.1",
+    "status": 200,
+    "payload": {
+      "value": "candidate",
+      "bytes": [
+        5,
+        8,
+        13
+      ]
+    }
+  }
+}

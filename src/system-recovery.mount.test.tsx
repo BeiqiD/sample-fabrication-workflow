@@ -9,6 +9,8 @@ import {
 } from "../shared/contracts/system-recovery";
 import { hashResearchFile } from "../shared/domain/research-sha256";
 import { SystemRecoveryPage } from "./pages/SystemRecoveryPage";
+import { readAuthentication } from "./lib/authentication-client";
+import { checkpointStorage } from "./lib/browser-checkpoints";
 
 vi.mock("../shared/domain/research-sha256", async importOriginal => ({
   ...await importOriginal<typeof import("../shared/domain/research-sha256")>(), hashResearchFile: vi.fn(),
@@ -151,9 +153,25 @@ beforeEach(() => {
   vi.mocked(hashResearchFile).mockReset(); vi.mocked(hashResearchFile).mockImplementation(async archive => ({ byteSize: archive.size, sha256: digest }));
   network.mockReset(); network.mockImplementation(async (path, options) => fallback(path, options)); vi.stubGlobal("fetch", network);
 });
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); sessionStorage.clear(); });
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); sessionStorage.clear(); });
 
 describe("privileged website system backup and recovery workflow", () => {
+  it("does not resume old recovery bytes after an account change while the hash is pending before React cleanup", async () => {
+    vi.stubEnv("VITE_LOCAL_AUTHENTICATION", "1");
+    let principal = "local_6f3e32c5-d935-44ab-8567-0966b13d91ae", release!: () => void;
+    network.mockImplementation(async (path, options) => String(path) === "/api/auth/session" ? json({ principal: { id: principal, actor: `local-account:${principal}`,
+      capabilities: { systemAdministrator: true, fileEvidenceOperator: false } }, csrf: "A".repeat(43) }) : fallback(path, options));
+    await readAuthentication(); const input = { requestId: "upload-request", byteSize: 32, sha256: digest };
+    const original = JSON.stringify({ input, jobId: "upload:job" }); checkpointStorage().setItem(uploadKey, original);
+    jobs = [{ ...job("upload", "awaiting_upload", "upload:job"), requestId: input.requestId }];
+    const held = new Promise<void>(resolve => { release = resolve; });
+    vi.mocked(hashResearchFile).mockImplementation(async () => { await held; return input; });
+    await mount(); fireEvent.change(screen.getByLabelText("System recovery ZIP"), { target: { files: [new File([new Uint8Array(32)], "original.zip", { type: "application/zip" })] } });
+    fireEvent.click(await enabled("Resume original recovery upload")); await waitFor(() => expect(hashResearchFile).toHaveBeenCalledOnce());
+    principal = "local_3408b493-0ff6-41eb-8f8b-0cfe7bb4ef1a"; await act(async () => readAuthentication()); await act(async () => release());
+    expect(mutations()).toHaveLength(0); expect(checkpointStorage().length).toBe(0);
+    expect([...Array(sessionStorage.length)].map((_, index) => sessionStorage.getItem(sessionStorage.key(index)!))).toEqual([original]);
+  });
   it("returns focus to an explicitly focused Preview system backup after its original deferred GET", async () => {
     let finishPreview!: (value: Response) => void;
     let originalPreview!: Response;
@@ -291,6 +309,37 @@ describe("privileged website system backup and recovery workflow", () => {
     sessionStorage.setItem(maintenanceKey, JSON.stringify(input)); maintenance = { ...maintenance, state: "draining", generation: 1, token: "another-admin-enter" };
     await mount(); expect(sessionStorage.getItem(maintenanceKey)).not.toBeNull();
     expect(screen.getByText(/is unconfirmed\. Review current state/)).toBeTruthy(); expect(calls("/maintenance", "POST")).toHaveLength(0);
+  });
+  it.each([
+    { route: "/maintenance", key: maintenanceKey, start: "Stop new source writes", retry: "Check or retry original maintenance request" },
+    { route: "/source-resume", key: sourceResumeKey, start: "Resume source writes after backup", retry: "Check or retry original source resume request" },
+  ])("retains a lost $route operation through a rejected retry and only clears it when its original receipt arrives", async ({ route, key, start, retry }) => {
+    if (route === "/source-resume") savedSourceRelease();
+    let attempts = 0;
+    network.mockImplementation(async (path, options) => {
+      if (String(path) === `${base}${route}` && options?.method === "POST") {
+        if (++attempts === 1) throw new Error("PRIVATE_LOST_OPERATION_ACK");
+        return json({ error: "PRIVATE_RETRY_CONFLICT" }, 409);
+      }
+      return fallback(path, options);
+    });
+    const first = await mount(); fireEvent.click(await enabled(start));
+    await waitFor(() => expect(calls(route, "POST")).toHaveLength(1));
+    await enabled("Refresh recovery status"); const original = sessionStorage.getItem(key)!; expect(original).not.toBeNull();
+    first.unmount(); const second = await mount();
+    expect(sessionStorage.getItem(key)).toBe(original); expect(calls(route, "POST")).toHaveLength(1);
+    fireEvent.click(await enabled(retry)); await waitFor(() => expect(calls(route, "POST")).toHaveLength(2));
+    await enabled("Refresh recovery status");
+    expect(sessionStorage.getItem(key)).toBe(original);
+    expect(screen.getByRole("button", { name: start }).matches(":disabled")).toBe(true);
+    expect(screen.getByRole("button", { name: retry })).toBeTruthy();
+    expect(document.body.textContent).not.toMatch(/PRIVATE_LOST_OPERATION_ACK|PRIVATE_RETRY_CONFLICT/);
+    // Complete the original server attempt after the retry and absent receipt.
+    fallback(`${base}${route}`, { method: "POST", body: original });
+    second.unmount(); await mount();
+    await waitFor(() => expect(sessionStorage.getItem(key)).toBeNull());
+    expect(calls(route, "POST")).toHaveLength(2); expect(mutations()).toHaveLength(2);
+    if (route === "/source-resume") expect(sessionStorage.getItem(sourceReleaseKey)).toBeNull();
   });
   it("separates release from Node source resume and submits the original backup, release receipt and generation", async () => {
     sourceBackup(); capability = { ...capability, enabled: true }; await mount();

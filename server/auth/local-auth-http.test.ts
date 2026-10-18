@@ -45,6 +45,8 @@ async function fixture(options: { initialized?: boolean; admit?: boolean; bind?:
   const auth = createLocalAuthentication({ identity, transport, now: () => timestamp });
   const app = new Hono<LocalAuthEnvironment>(); app.route('/api/auth', auth.routes);
   app.use('/api/protected', auth.middleware); app.use('/api/admin', auth.middleware);
+  const protectedCalls: string[] = [];
+  app.use('/api/protected', async (c, next) => { protectedCalls.push(c.req.method); await next(); });
   app.get('/api/protected', c => c.json({ actor: c.get('userEmail'), principal: c.get('currentPrincipal') }));
   app.post('/api/protected', c => c.json({ accepted: true, actor: c.get('userEmail') }));
   app.post('/api/admin', async c => c.json({ administrator: await auth.authorize(c.req.raw, c.get('userEmail'), 'systemAdministrator'),
@@ -74,18 +76,57 @@ async function fixture(options: { initialized?: boolean; admit?: boolean; bind?:
     return request('/api/auth/login', { method: 'POST', headers: { 'content-type': 'application/json', origin, 'sec-fetch-site': 'same-origin' },
       body: JSON.stringify({ username: 'operator', password: 'synthetic HTTP password' }), ...init });
   }
-  return { identity, offline, native, database, path, origin, transport, auth, principal, request, login,
+  return { identity, offline, native, database, path, origin, transport, auth, principal, request, login, protectedCalls,
     advance(ms: number) { timestamp += ms; } };
 }
 function bearer(response: Response): string { return response.headers.getSetCookie()[0]!.split(';', 1)[0]!; }
 function secret(cookie: string): string { return cookie.slice(cookie.indexOf('=') + 1); }
 async function delivery(f: Awaited<ReturnType<typeof fixture>>) {
   const response = await f.login(); expect(response.status).toBe(200);
-  const cookie = bearer(response), body = await response.json() as { principal: { actor: string }; csrf: string };
+  const cookie = bearer(response), body = await response.json() as { principal: { id: string; actor: string }; csrf: string };
   return { response, cookie, body };
 }
 
 describe('private genuine local identity HTTP library over actual loopback sockets', () => {
+  it('rejects another tab changing the cookie before a bound page reads or mutates domain data', async () => {
+    const f = await fixture(), original = await delivery(f);
+    // This identity-library fixture seeds an ordinary account; both sessions
+    // still use the actual password verifier, HTTP login and persisted cookies.
+    const replacement = { id: `local_${crypto.randomUUID()}`, actor: '' };
+    replacement.actor = `local-account:${replacement.id}`;
+    f.native.prepare(`INSERT INTO local_accounts(principal_id,username,password_verifier,credential_revision,enabled,created_at)
+      SELECT ?,'second',password_verifier,1,1,created_at FROM local_accounts WHERE principal_id=?`).run(replacement.id, f.principal!.id);
+    const login = await f.login({ body: JSON.stringify({ username: 'second', password: 'synthetic HTTP password' }) });
+    expect(login.status).toBe(200);
+    const cookie = bearer(login), session = await login.json() as { principal: { id: string }; csrf: string };
+    expect(session.principal.id).toBe(replacement.id);
+    for (const method of ['GET', 'HEAD', 'POST', 'PUT', 'DELETE']) {
+      const response = await f.request('/api/protected', { method, headers: { cookie, origin: f.origin,
+        'x-sfw-csrf': session.csrf, 'x-sfw-expected-subject': original.body.principal.id } });
+      expect(response.status).toBe(409);
+      expect(response.headers.get('cache-control')).toBe('private, no-store');
+      expect(response.headers.get('x-sfw-identity-result')).toBe('mismatch');
+      const text = await response.text();
+      expect(text).not.toContain(replacement.id); expect(text).not.toContain(replacement.actor);
+    }
+    expect(f.protectedCalls).toEqual([]);
+    const refreshed = await f.request('/api/auth/session', { headers: { cookie } });
+    expect(refreshed.status).toBe(200); expect((await refreshed.json() as { principal: { id: string } }).principal.id).toBe(replacement.id);
+    expect((await f.request('/api/protected', { headers: { cookie, 'x-sfw-expected-subject': replacement.id } })).status).toBe(200);
+    expect((await f.request('/api/protected', { headers: { cookie } })).status).toBe(200);
+    expect(f.protectedCalls).toEqual(['GET', 'GET']);
+  });
+
+  it('never treats the optional expected identity as authentication or a CSRF grant', async () => {
+    const f = await fixture(), { cookie, body } = await delivery(f);
+    const witness = { 'x-sfw-expected-subject': body.principal.id };
+    expect((await f.request('/api/protected', { headers: witness })).status).toBe(401);
+    expect((await f.request('/api/protected', { method: 'POST', headers: { cookie, origin: f.origin, ...witness } })).status).toBe(403);
+    expect((await f.request('/api/protected', { headers: { cookie, 'x-sfw-expected-subject': '' } })).status).toBe(409);
+    expect(f.protectedCalls).toEqual([]);
+    expect((await f.request('/api/protected', { method: 'POST', headers: { cookie, origin: f.origin, ...witness, 'x-sfw-csrf': body.csrf } })).status).toBe(200);
+  });
+
   it('delivers the raw bearer only in its development HttpOnly cookie and persists only its hash', async () => {
     const f = await fixture(), { response, cookie, body } = await delivery(f), token = secret(cookie);
     expect(response.headers.get('set-cookie')).toContain('Path=/; HttpOnly; SameSite=Strict; Expires=');

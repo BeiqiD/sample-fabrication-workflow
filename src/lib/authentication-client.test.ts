@@ -43,6 +43,41 @@ describe("local authentication browser client protocol", () => {
     expect(client.authenticationSnapshot().phase).toBe("loading");
   });
 
+  it("binds explicitly initialized Cloudflare requests to the checked owner and refreshes a changed identity without replay", async () => {
+    vi.stubEnv("VITE_LOCAL_AUTHENTICATION", "");
+    const client = await import("./authentication-client");
+    fetchMock.mockResolvedValueOnce(json({ schema: "application-identity/1", subject: "a".repeat(64) }));
+    await client.readApplicationIdentity();
+    expect(fetchMock.mock.calls[0]).toEqual(["/api/identity", { cache: "no-store", credentials: "same-origin", redirect: "error" }]);
+    const owner = client.captureApplicationOwner();
+    fetchMock.mockResolvedValueOnce(json({ samples: [] }));
+    await client.applicationFetch("/api/samples", { signal: new AbortController().signal });
+    expect(new Headers(fetchMock.mock.calls[1][1]?.headers).get("x-sfw-expected-subject")).toBe("a".repeat(64));
+    const response = new Response("safe mismatch", { status: 409, headers: { "x-sfw-identity-result": "mismatch" } });
+    fetchMock.mockResolvedValueOnce(response);
+    expect(await client.applicationFetch("/api/samples", { method: "POST", body: "original intent" })).toBe(response);
+    expect(client.authenticationSnapshot().phase).toBe("anonymous");
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    await expect(owner.fetch("/api/samples", { method: "POST", body: "original intent" })).rejects.toThrow("sign-in changed");
+    fetchMock.mockResolvedValueOnce(json({ schema: "application-identity/1", subject: "b".repeat(64) }));
+    await client.readApplicationIdentity();
+    expect(fetchMock.mock.calls[3]).toEqual(["/api/identity", { cache: "no-store", credentials: "same-origin", redirect: "error" }]);
+    expect(client.authenticationSnapshot().principal?.id).toBe("b".repeat(64));
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it.each([null, { schema: "application-identity/1", subject: "not-an-owner" },
+    { schema: "application-identity/1", subject: "a".repeat(64), credential: "private" }])("keeps malformed Cloudflare identity delivery outside the application", async value => {
+    vi.stubEnv("VITE_LOCAL_AUTHENTICATION", "");
+    const client = await import("./authentication-client");
+    fetchMock.mockResolvedValueOnce(json(value)); await client.readApplicationIdentity();
+    expect(client.authenticationSnapshot().phase).toBe("error"); expect(client.authenticationSnapshot().principal).toBeNull();
+    expect(() => client.captureApplicationOwner()).toThrow("Check your sign-in");
+    expect(client.authenticationSnapshot().message).not.toContain("private");
+    await expect(client.applicationFetch("/api/samples", { method: "POST" })).rejects.toThrow("Check application access");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("does not put CSRF on local reads or alter the original response/body/signal", async () => {
     const client = await import("./authentication-client");
     fetchMock.mockResolvedValueOnce(json(delivered())); await client.readAuthentication();
@@ -56,6 +91,7 @@ describe("local authentication browser client protocol", () => {
     expect(sent?.cache).toBe("no-store"); expect(sent?.credentials).toBe("same-origin"); expect(sent?.redirect).toBe("error");
     const headers = new Headers(sent?.headers);
     expect(headers.has("x-sfw-csrf")).toBe(false); expect(headers.get("x-kept")).toBe("yes");
+    expect(headers.get("x-sfw-expected-subject")).toBe(id);
     expect(init.headers["x-sfw-csrf"]).toBe("caller-value");
     expect(await response.text()).toBe("unchanged");
     const request = new Request(`${origin}/api/samples`, { method: "POST", body, signal,
@@ -64,7 +100,24 @@ describe("local authentication browser client protocol", () => {
     await client.applicationFetch(request);
     expect(fetchMock.mock.calls[1]![0]).toBe(request); expect(request.bodyUsed).toBe(false);
     expect(new Headers(fetchMock.mock.calls[1]![1]?.headers).get("x-sfw-csrf")).toBe(tokenA);
+    expect(new Headers(fetchMock.mock.calls[1]![1]?.headers).get("x-sfw-expected-subject")).toBe(id);
     expect(request.headers.get("x-sfw-csrf")).toBe("caller-value"); expect(await request.text()).toBe(body);
+  });
+
+  it("invalidates a local read when another tab changed its server session and explicitly refreshes without the old witness", async () => {
+    const client = await import("./authentication-client");
+    fetchMock.mockResolvedValueOnce(json(delivered())); await client.readAuthentication();
+    const response = new Response("identity changed", { status: 409, headers: { "x-sfw-identity-result": "mismatch" } });
+    fetchMock.mockResolvedValueOnce(response);
+    expect(await client.applicationFetch("/api/samples")).toBe(response);
+    expect(new Headers(fetchMock.mock.calls[1][1]?.headers).get("x-sfw-expected-subject")).toBe(id);
+    expect(client.authenticationSnapshot().phase).toBe("anonymous");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    fetchMock.mockResolvedValueOnce(json(delivered(tokenB, otherId))); await client.readAuthentication();
+    expect(fetchMock.mock.calls[2][0]).toBe("/api/auth/session");
+    expect(new Headers(fetchMock.mock.calls[2][1]?.headers).has("x-sfw-expected-subject")).toBe(false);
+    fetchMock.mockResolvedValueOnce(json({ items: [] })); await client.applicationFetch("/api/samples");
+    expect(new Headers(fetchMock.mock.calls[3][1]?.headers).get("x-sfw-expected-subject")).toBe(otherId);
   });
 
   it("rejects foreign origins, credentials in URLs and non-API paths before any request", async () => {

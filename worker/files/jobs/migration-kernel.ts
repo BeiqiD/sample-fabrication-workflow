@@ -17,8 +17,9 @@ export async function runFileJobStep(capabilities: FileJobCapabilities): Promise
   const deadline = capabilities.now().getTime() + FILE_JOB_STEP_MS;
   const abort = new AbortController();
   let expired = false, timer: ReturnType<typeof setTimeout> | undefined;
-  const current = async () => !expired && capabilities.now().getTime() < deadline
-    && capabilities.authorizeAdministrator(claim.actor) && await repository.owns(claim);
+  const local = () => !expired && !abort.signal.aborted && capabilities.now().getTime() < deadline
+    && capabilities.authorizeAdministrator(claim.actor);
+  const current = async () => local() && await repository.owns(claim) && local();
   try {
     if (!await current()) { await repository.pause(claim, "execution_not_authorized"); return { jobId: claim.id, outcome: "paused" }; }
     item = await repository.nextItem(claim);
@@ -108,9 +109,11 @@ export async function runFileJobCleanupStep(capabilities: FileJobCapabilities) {
   if (!capabilities.authorizeSystemCleanup()) return { outcome: "disabled" };
   const deadline = capabilities.now().getTime() + FILE_JOB_STEP_MS;
   const abort = new AbortController();
-  const allowed = async (jobId?: string) => capabilities.authorizeSystemCleanup() && capabilities.now().getTime() < deadline
+  const local = () => !abort.signal.aborted && capabilities.authorizeSystemCleanup()
+    && capabilities.now().getTime() < deadline;
+  const allowed = async (jobId?: string) => local()
     && await (jobId ? capabilities.repository.cleanupGranted(jobId, capabilities.incarnation)
-      : capabilities.repository.runtimeEnabled(capabilities.incarnation));
+      : capabilities.repository.runtimeEnabled(capabilities.incarnation)) && local();
   const artifact = await capabilities.repository.cleanupArtifact(capabilities.incarnation);
   if (artifact) {
     let timer: ReturnType<typeof setTimeout> | undefined;

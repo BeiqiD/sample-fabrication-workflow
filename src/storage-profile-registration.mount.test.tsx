@@ -5,6 +5,8 @@ import type { StorageCandidateReadiness as Readiness } from "../shared/contracts
 import type { StorageProfileAdmissionInput, StorageProfileAdmissionReceipt } from "../shared/contracts/storage-profile-admission";
 import { StorageProfileRegistration } from "./pages/StorageProfileRegistration";
 import { StorageCandidateReadiness } from "./pages/StorageCandidateReadiness";
+import { readAuthentication } from "./lib/authentication-client";
+import { checkpointStorage } from "./lib/browser-checkpoints";
 
 const checkId = "0f5f7a34-5532-4463-bf51-8c5eb9537f63", operationId = "d8992768-d864-444b-8e97-e58a5d8f40b0";
 const nativeProfileId = `storage-profile:aws-s3:${"a".repeat(64)}`;
@@ -25,9 +27,27 @@ const network = vi.fn<typeof fetch>();
 const props = () => ({ candidate: candidate(), evidence: readiness(), blocked: false, onForbidden: vi.fn(), onStaleEvidence: vi.fn() });
 const posts = () => network.mock.calls.filter(([, options]) => options?.method === "POST");
 beforeEach(() => { vi.stubGlobal("fetch", network); network.mockReset(); network.mockResolvedValue(json({}, 404)); });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); sessionStorage.clear(); });
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); sessionStorage.clear(); });
 
 describe("read-only AWS profile registration", () => {
+  it("does not replay a held receipt lookup under another account before React unmounts the old component", async () => {
+    vi.stubEnv("VITE_LOCAL_AUTHENTICATION", "1");
+    let principal = "local_6f3e32c5-d935-44ab-8567-0966b13d91ae", hold = false, deliver!: (response: Response) => void;
+    network.mockImplementation(async (path, options) => {
+      if (String(path) === "/api/auth/session") return json({ principal: { id: principal, actor: `local-account:${principal}`,
+        capabilities: { systemAdministrator: true, fileEvidenceOperator: false } }, csrf: "A".repeat(43) });
+      if (String(path).endsWith(`/registrations/${operationId}`) && hold) return new Promise<Response>(resolve => { deliver = resolve; });
+      return options?.method === "POST" ? json(receipt()) : json({}, 404);
+    });
+    await readAuthentication(); const original = checkpointStorage(); original.setItem(sessionKey, JSON.stringify(input()));
+    render(<StorageProfileRegistration {...props()} />); await screen.findByText(/The registration result is unavailable/);
+    hold = true; fireEvent.click(screen.getByRole("button", { name: "Check or retry registration" }));
+    await waitFor(() => expect(deliver).toBeTypeOf("function"));
+    principal = "local_3408b493-0ff6-41eb-8f8b-0cfe7bb4ef1a"; await act(async () => readAuthentication());
+    await act(async () => deliver(json({}, 404)));
+    expect(posts()).toHaveLength(0); expect(checkpointStorage().length).toBe(0);
+    expect([...Array(sessionStorage.length)].map((_, index) => sessionStorage.getItem(sessionStorage.key(index)!))).toEqual([JSON.stringify(input())]);
+  });
   it("records an exact intent before registering and describes registration without enabling file access", async () => {
     let submitted!: StorageProfileAdmissionInput;
     network.mockImplementation(async (_path, options) => {
@@ -112,32 +132,28 @@ describe("read-only AWS profile registration", () => {
     expect(JSON.parse(sessionStorage.getItem(sessionKey)!)).toEqual(submitted);
   });
 
-  it("replays an unchanged earlier intent explicitly, settles stale conflict and permits a newly qualified registration", async () => {
+  it.each([400, 404, 409])("retains an uncertain earlier registration after retry status %s until its original receipt is found", async status => {
     sessionStorage.setItem(sessionKey, JSON.stringify(input()));
     const value = props(); value.candidate.revision = 2; value.evidence.revision = 2;
+    let receiptVisible = false;
     network.mockImplementation(async (path, options) => {
       if (String(path).includes("/readiness?")) return json(value.evidence);
-      if (options?.method === "POST") {
-        const submitted = JSON.parse(String(options.body)) as StorageProfileAdmissionInput;
-        if (submitted.operationId === operationId) {
-          expect(submitted).toEqual(input()); return json({}, 409);
-        }
-        expect(submitted).toMatchObject({ profileId: "candidate-example", expectedRevision: 2, expectedEnvelopeRevision: 2, checkId });
-        return json(receipt(submitted));
-      }
+      if (options?.method === "POST") { expect(JSON.parse(String(options.body))).toEqual(input()); return json({}, status); }
+      if (String(path).endsWith(`/registrations/${operationId}`) && receiptVisible) return json(receipt());
       return json({}, 404);
     });
-    render(<StorageCandidateReadiness candidate={value.candidate} evidenceGeneration={0} blocked={false} onForbidden={value.onForbidden} />);
+    const first = render(<StorageCandidateReadiness candidate={value.candidate} evidenceGeneration={0} blocked={false} onForbidden={value.onForbidden} />);
     await screen.findByText(/The registration result is unavailable/);
-    expect(JSON.parse(sessionStorage.getItem(sessionKey)!)).toEqual(input()); expect(posts()).toHaveLength(0);
     fireEvent.click(screen.getByRole("button", { name: "Check or retry registration" }));
-    await screen.findByText(/This storage may already be registered/);
-    expect(JSON.parse(String(posts()[0][1]?.body))).toEqual(input()); expect(sessionStorage.getItem(sessionKey)).toBeNull();
+    await waitFor(() => expect(posts()).toHaveLength(1));
+    await waitFor(() => expect((screen.getByRole("button", { name: "Check or retry registration" }) as HTMLButtonElement).disabled).toBe(false));
+    expect(JSON.parse(sessionStorage.getItem(sessionKey)!)).toEqual(input());
     expect(screen.queryByRole("button", { name: "Register profile" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Refresh evidence" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Register profile" }));
-    await screen.findByText(nativeProfileId); expect(posts()).toHaveLength(2);
-    expect(JSON.parse(String(posts()[1][1]?.body)).operationId).not.toBe(operationId);
+    receiptVisible = true; first.unmount();
+    render(<StorageCandidateReadiness candidate={value.candidate} evidenceGeneration={0} blocked={false} onForbidden={value.onForbidden} />);
+    await screen.findByText(/Registration confirmed for revision 1/);
+    expect(screen.queryByRole("button", { name: "Check or retry registration" })).toBeNull();
+    expect(JSON.parse(sessionStorage.getItem(sessionKey)!)).toEqual(input()); expect(posts()).toHaveLength(1);
   });
 
   it("allows explicit original-intent replay with unavailable current credentials but keeps unknown outcomes pending", async () => {

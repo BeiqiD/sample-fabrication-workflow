@@ -1,3 +1,5 @@
+import { checkpointStorage, type CheckpointStorage } from "../lib/browser-checkpoints";
+import { captureApplicationOwner } from "../lib/authentication-client";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { checkedAcceptFileMigration, type AcceptFileMigrationInput, type FileJobExecutorStatus, type FileJobStatus, type FileMigrationPlan, type FileMigrationItems } from "../../shared/contracts/file-jobs";
 import type { StorageSettingsProfile } from "../../shared/contracts/storage-settings";
@@ -11,20 +13,20 @@ const intentKey = "file-migration-acceptance";
 const rejectionKey = "file-migration-acceptance-rejection", historyKey = "file-migration-earlier-requests";
 type EarlierRequest = { input: AcceptFileMigrationInput; jobId: string | null };
 const sameInput = (left: AcceptFileMigrationInput, right: AcceptFileMigrationInput) => JSON.stringify(left) === JSON.stringify(right);
-function remembered(): AcceptFileMigrationInput | null {
-  try { const saved = sessionStorage.getItem(intentKey); return saved ? checkedAcceptFileMigration(JSON.parse(saved)) : null; } catch { return null; }
+function remembered(storage: CheckpointStorage): AcceptFileMigrationInput | null {
+  try { const saved = storage.getItem(intentKey); return saved ? checkedAcceptFileMigration(JSON.parse(saved)) : null; } catch { return null; }
 }
-function rememberedRejection(): AcceptFileMigrationInput | null {
+function rememberedRejection(storage: CheckpointStorage): AcceptFileMigrationInput | null {
   try {
-    const row = JSON.parse(sessionStorage.getItem(rejectionKey) || "null"), pending = remembered();
+    const row = JSON.parse(storage.getItem(rejectionKey) || "null"), pending = remembered(storage);
     if (!row || Object.keys(row).length !== 2 || row.schema !== "file-migration-rejection/1") return null;
     const input = checkedAcceptFileMigration(row.input);
     return pending && sameInput(input, pending) ? input : null;
   } catch { return null; }
 }
-function rememberedHistory(): EarlierRequest[] | null {
+function rememberedHistory(storage: CheckpointStorage): EarlierRequest[] | null {
   try {
-    const rows: unknown = JSON.parse(sessionStorage.getItem(historyKey) || "[]");
+    const rows: unknown = JSON.parse(storage.getItem(historyKey) || "[]");
     if (!Array.isArray(rows)) return null;
     const seen = new Set<string>();
     return rows.map(row => {
@@ -108,15 +110,17 @@ function SavedJobControls({ job, busy, allowed, currentSignal, onControl, onPaus
   </>;
 }
 export function FileMigrationsPage() {
+  const [owner] = useState(captureApplicationOwner);
+  const [storage] = useState(() => checkpointStorage(owner));
   const [authorized, setAuthorized] = useState<boolean | null>(null), [profiles, setProfiles] = useState<StorageSettingsProfile[]>([]);
   const [inventory, setInventory] = useState<MigrationInventory>({ items: [], nextCursor: null });
   const [selection, setSelection] = useState<string[]>([]), [target, setTarget] = useState("");
   const [jobs, setJobs] = useState<FileJobStatus[]>([]), [executor, setExecutor] = useState<FileJobExecutorStatus | null>(null);
-  const [plan, setPlan] = useState<FileMigrationPlan | null>(null), [pending, setPending] = useState(remembered);
+  const [plan, setPlan] = useState<FileMigrationPlan | null>(null), [pending, setPending] = useState(() => remembered(storage));
   const pendingRef = useRef(pending);
-  const [rejected, setRejected] = useState(rememberedRejection), rejectedRef = useRef(rejected);
+  const [rejected, setRejected] = useState(() => rememberedRejection(storage)), rejectedRef = useRef(rejected);
   const [receiptMissing, setReceiptMissing] = useState(false);
-  const [earlier, setEarlier] = useState(rememberedHistory), earlierRef = useRef(earlier);
+  const [earlier, setEarlier] = useState(() => rememberedHistory(storage)), earlierRef = useRef(earlier);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState("");
   const [messageIsError, setMessageIsError] = useState(false);
   const [accessLoading, setAccessLoading] = useState(true), [accessError, setAccessError] = useState("");
@@ -170,6 +174,7 @@ export function FileMigrationsPage() {
     else if (savedStatus?.job === presented && savedStatus.element.isConnected) savedStatus.element.focus();
   }, [busy, authorized, jobs]);
   function checkAccessError(error: unknown) {
+    if (!owner.isCurrent()) return false;
     if ((error instanceof FileMigrationRequestError || error instanceof StorageConfigurationRequestError || error instanceof StoragePolicyRequestError)
       && (error.status === 401 || error.status === 403)) {
       canManage.current = false; setAuthorized(false);
@@ -182,12 +187,12 @@ export function FileMigrationsPage() {
     setMessageIsError(true); setMessage(error instanceof MigrationCheckpointError ? error.message : fileMigrationErrorMessage(error));
   }
   function remember(input: AcceptFileMigrationInput | null) {
-    try { if (input) sessionStorage.setItem(intentKey, JSON.stringify(input)); else sessionStorage.removeItem(intentKey); }
+    try { if (input) storage.setItem(intentKey, JSON.stringify(input)); else storage.removeItem(intentKey); }
     catch { throw new MigrationCheckpointError(); }
     pendingRef.current = input; setPending(input); setReceiptMissing(false);
   }
   function rememberRejection(input: AcceptFileMigrationInput | null) {
-    try { if (input) sessionStorage.setItem(rejectionKey, JSON.stringify({ schema: "file-migration-rejection/1", input })); else sessionStorage.removeItem(rejectionKey); }
+    try { if (input) storage.setItem(rejectionKey, JSON.stringify({ schema: "file-migration-rejection/1", input })); else storage.removeItem(rejectionKey); }
     catch { throw new MigrationCheckpointError(); }
     rejectedRef.current = input; setRejected(input); setReceiptMissing(false);
   }
@@ -197,10 +202,10 @@ export function FileMigrationsPage() {
     const previous = saved.find(row => row.input.requestId === input.requestId);
     if (previous && (!sameInput(previous.input, input) || previous.jobId && jobId && previous.jobId !== jobId)) throw new Error("Invalid migration request checkpoint.");
     const row = { input, jobId: previous?.jobId ?? jobId }, next = [...saved.filter(row => row.input.requestId !== input.requestId), row];
-    try { sessionStorage.setItem(historyKey, JSON.stringify(next)); } catch { throw new MigrationCheckpointError(); }
+    try { storage.setItem(historyKey, JSON.stringify(next)); } catch { throw new MigrationCheckpointError(); }
     earlierRef.current = next; setEarlier(next);
   }
-  function currentOperation(signal: AbortSignal, current: number) { return !signal.aborted && canManage.current && current === sequence.current; }
+  function currentOperation(signal: AbortSignal, current: number) { return owner.isCurrent() && !signal.aborted && canManage.current && current === sequence.current; }
   function acceptReceipt(input: AcceptFileMigrationInput, value: FileJobStatus) {
     retainEarlier(input, value.id);
     rememberRejection(null); remember(null); setPlan(null); setSelection([]);
@@ -223,49 +228,49 @@ export function FileMigrationsPage() {
     return null;
   }
   async function readMetadata(signal: AbortSignal) {
-    if (!canManage.current || signal.aborted) return;
+    if (!owner.isCurrent() || !canManage.current || signal.aborted) return;
     const currentRead = ++metadataSequence.current;
     setMetadataLoading(true); setMetadataError("");
     try {
       const [settings, files] = await Promise.all([api.getCurrentStorageSettings(signal), fileJobsClient.inventory(undefined, signal)]);
-      if (signal.aborted || !canManage.current || currentRead !== metadataSequence.current) return;
+      if (!owner.isCurrent() || signal.aborted || !canManage.current || currentRead !== metadataSequence.current) return;
       setProfiles(settings.version === 3 ? settings.profiles.items.filter(profile => profile.runtimeAccess === "read_write" && profile.availability === "available")
         : settings.profiles.items.filter(profile => profile.runtimeAccess === "read_write" && profile.bindingMatch === "matched"));
       setInventory(files); setMetadataRead(true);
     } catch (error) {
-      if (!signal.aborted && canManage.current && currentRead === metadataSequence.current) {
+      if (owner.isCurrent() && !signal.aborted && canManage.current && currentRead === metadataSequence.current) {
         setMetadataError("Storage profiles and File inventory could not be read. Retry only refreshes metadata; it does not start a migration.");
         checkAccessError(error);
       }
       throw error;
     } finally {
-      if (!signal.aborted && currentRead === metadataSequence.current) setMetadataLoading(false);
+      if (owner.isCurrent() && !signal.aborted && currentRead === metadataSequence.current) setMetadataLoading(false);
     }
   }
   async function refresh(signal: AbortSignal) {
-    if (!canManage.current || signal.aborted) return;
+    if (!owner.isCurrent() || !canManage.current || signal.aborted) return;
     const currentRefresh = ++refreshSequence.current;
     setJobsLoading(true); setJobsError("");
     try {
       const [list, current] = await Promise.all([fileJobsClient.list(signal), fileJobsClient.executor(signal)]);
-      if (signal.aborted || !canManage.current || currentRefresh !== refreshSequence.current) return;
+      if (!owner.isCurrent() || signal.aborted || !canManage.current || currentRefresh !== refreshSequence.current) return;
       setJobs(list); setExecutor(current); setJobsRead(true);
     } catch (error) {
-      if (!signal.aborted && canManage.current && currentRefresh === refreshSequence.current) {
+      if (owner.isCurrent() && !signal.aborted && canManage.current && currentRefresh === refreshSequence.current) {
         setJobsError("Saved migrations and executor status could not be refreshed. Retry only reads their current status.");
         checkAccessError(error);
       }
       return;
     } finally {
-      if (!signal.aborted && currentRefresh === refreshSequence.current) setJobsLoading(false);
+      if (owner.isCurrent() && !signal.aborted && currentRefresh === refreshSequence.current) setJobsLoading(false);
     }
     const detail = detailJob.current;
     if (detail) {
       try {
         const value = await fileJobsClient.items(detail, signal);
-        if (!signal.aborted && canManage.current && detailJob.current === detail && currentRefresh === refreshSequence.current) setDetails(value);
+        if (owner.isCurrent() && !signal.aborted && canManage.current && detailJob.current === detail && currentRefresh === refreshSequence.current) setDetails(value);
       } catch (error) {
-        if (!signal.aborted && canManage.current && detailJob.current === detail && currentRefresh === refreshSequence.current) {
+        if (owner.isCurrent() && !signal.aborted && canManage.current && detailJob.current === detail && currentRefresh === refreshSequence.current) {
           setJobsError("Saved migration details could not be refreshed. Retry only reads their current status.");
           checkAccessError(error);
         }
@@ -278,23 +283,23 @@ export function FileMigrationsPage() {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let reading = false;
     const poll = async () => {
-      try { await refresh(controller.signal); } catch (error) { if (!controller.signal.aborted) checkAccessError(error); }
-      if (!controller.signal.aborted && canManage.current) timer = setTimeout(() => void poll(), 5000);
+      try { await refresh(controller.signal); } catch (error) { if (owner.isCurrent() && !controller.signal.aborted) checkAccessError(error); }
+      if (owner.isCurrent() && !controller.signal.aborted && canManage.current) timer = setTimeout(() => void poll(), 5000);
     };
     const readInitial = async () => {
-      if (reading || busyRef.current || controller.signal.aborted) return;
+      if (!owner.isCurrent() || reading || busyRef.current || controller.signal.aborted) return;
       reading = true; setAccessLoading(true); setAccessError("");
       if (timer) clearTimeout(timer);
       try {
         const capability = await storageConfigurationClient.capability(controller.signal);
-        if (controller.signal.aborted) return;
+        if (!owner.isCurrent() || controller.signal.aborted) return;
         setAuthorized(capability.canManage);
         canManage.current = capability.canManage;
         setAccessLoading(false);
         if (!capability.canManage) return;
       } catch (error) {
-        if (!controller.signal.aborted && !checkAccessError(error)) setAccessError("Administrator access could not be checked. Retry only checks access and reads migration metadata.");
-        if (!controller.signal.aborted) setAccessLoading(false);
+        if (owner.isCurrent() && !controller.signal.aborted && !checkAccessError(error)) setAccessError("Administrator access could not be checked. Retry only checks access and reads migration metadata.");
+        if (owner.isCurrent() && !controller.signal.aborted) setAccessLoading(false);
         reading = false; return;
       }
       try {
@@ -303,11 +308,11 @@ export function FileMigrationsPage() {
           const current = ++sequence.current; busyRef.current = true; setBusy(true);
           try { await checkPending(controller.signal, current); }
           catch (error) { if (currentOperation(controller.signal, current)) reportError(error); }
-          finally { if (!controller.signal.aborted && current === sequence.current) { busyRef.current = false; setBusy(false); } }
+          finally { if (owner.isCurrent() && !controller.signal.aborted && current === sequence.current) { busyRef.current = false; setBusy(false); } }
         }
-        if (canManage.current && !controller.signal.aborted) { await readMetadata(controller.signal); await poll(); }
+        if (owner.isCurrent() && canManage.current && !controller.signal.aborted) { await readMetadata(controller.signal); await poll(); }
       }
-      catch (error) { if (!controller.signal.aborted) checkAccessError(error); }
+      catch (error) { if (owner.isCurrent() && !controller.signal.aborted) checkAccessError(error); }
       finally { reading = false; }
     };
     retryInitialRead.current = () => void readInitial();
@@ -323,17 +328,17 @@ export function FileMigrationsPage() {
       && (document.activeElement === document.body || document.activeElement === button)) button.focus();
   }, [busy]);
   async function act(operation: (signal: AbortSignal) => Promise<unknown>, preserveMessage = false) {
-    if (!canManage.current || busyRef.current || !lifetime.current || lifetime.current.signal.aborted) return;
+    if (!owner.isCurrent() || !canManage.current || busyRef.current || !lifetime.current || lifetime.current.signal.aborted) return;
     const signal = lifetime.current.signal, current = ++sequence.current; clearStartFocus(); busyRef.current = true; setBusy(true);
     if (!preserveMessage) { setMessage(""); setMessageIsError(false); }
-    try { await operation(signal); if (!signal.aborted) await refresh(signal); }
+    try { await operation(signal); if (owner.isCurrent() && !signal.aborted) await refresh(signal); }
     catch (error) {
-      if (!signal.aborted && current === sequence.current) {
+      if (owner.isCurrent() && !signal.aborted && current === sequence.current) {
         if (preserveMessage) checkAccessError(error);
         else reportError(error);
       }
     }
-    finally { if (!signal.aborted && current === sequence.current) { busyRef.current = false; setBusy(false); } }
+    finally { if (owner.isCurrent() && !signal.aborted && current === sequence.current) { busyRef.current = false; setBusy(false); } }
   }
   function changeSelection(ids: string[]) { setSelection(ids); setPlan(null); }
   function input(): AcceptFileMigrationInput { return checkedAcceptFileMigration({ requestId: crypto.randomUUID(), fileIds: selection,
@@ -388,7 +393,7 @@ export function FileMigrationsPage() {
     <div className="page-heading"><div><p className="eyebrow">Settings</p><h1>File migrations</h1>
       <p className="lead">Copy selected files, verify their contents, then switch their recorded location.</p></div>
       {authorized && <button className="button" type="button" disabled={busy} onClick={() => void act(async signal => {
-        await readMetadata(signal); if (!signal.aborted) setPlan(null);
+        await readMetadata(signal); if (owner.isCurrent() && !signal.aborted) setPlan(null);
       }, true)}>Refresh</button>}</div>
     <p><a href="/settings/storage">Storage settings</a></p>
     {authorized !== false && (authorized === null || accessLoading || accessError) && <ReadStatus loading={accessLoading} error={accessError} loadingMessage="Reading administrator access…"
@@ -419,13 +424,13 @@ export function FileMigrationsPage() {
           <span><code>{file.fileId}</code> · {file.purpose} · {size(file.byteSize)}<br /><small>Current profile: {file.profileId}</small></span></label></li>)}</ul>
         {metadataRead && !metadataLoading && !metadataError && !inventory.items.length && <p className="muted">No published Files are available for migration.</p>}
         {inventory.nextCursor && <button type="button" className="button" disabled={busy || !!pending} onClick={() => void act(async signal => {
-          const next = await fileJobsClient.inventory(inventory.nextCursor!, signal); if (!signal.aborted) setInventory(current => ({ items: [...current.items, ...next.items], nextCursor: next.nextCursor }));
+          const next = await fileJobsClient.inventory(inventory.nextCursor!, signal); if (owner.isCurrent() && !signal.aborted) setInventory(current => ({ items: [...current.items, ...next.items], nextCursor: next.nextCursor }));
         })}>Load more files</button>}
         <div className="storage-candidate-actions"><button ref={previewButton} type="button" className="button" disabled={busy || !!pending || !target || !selection.length}
           onClick={() => void act(async signal => {
             const button = previewButton.current;
             returnPreviewFocus.current = button && document.activeElement === button ? { button, signal } : null;
-            const value = await fileJobsClient.plan(input(), signal); if (!signal.aborted) setPlan(value);
+            const value = await fileJobsClient.plan(input(), signal); if (owner.isCurrent() && !signal.aborted) setPlan(value);
           })}>Preview migration</button>
           {(plan || pending) && <button ref={startButton} type="button" className="button primary" disabled={busy || !pending && plan!.items.some(item => item.status !== "eligible")}
             onClick={event => { const origin = event.currentTarget; void act(async signal => {
@@ -471,11 +476,11 @@ export function FileMigrationsPage() {
           }} busy={busy} allowed={authorized === true && canManage.current} currentSignal={lifetime.current?.signal ?? null}
             onControl={(action, onStarting, onReceipt) => void act(async signal => {
               onStarting(signal); const receipt = await fileJobsClient.control(job.id, action, signal);
-              if (!signal.aborted && canManage.current) onReceipt(receipt);
+              if (owner.isCurrent() && !signal.aborted && canManage.current) onReceipt(receipt);
             })} />
           <button type="button" className="button" disabled={busy} onClick={() => void act(async signal => {
             detailJob.current = job.id; setDetailId(job.id); setDetails(null);
-            const value = await fileJobsClient.items(job.id, signal); if (!signal.aborted && detailJob.current === job.id) setDetails(value);
+            const value = await fileJobsClient.items(job.id, signal); if (owner.isCurrent() && !signal.aborted && detailJob.current === job.id) setDetails(value);
           })}>View files in {job.id}</button>
           {detailId === job.id && details && <ul>{details.items.map(item => <li key={item.fileId}><code>{item.fileId}</code>: {item.state}
             {item.reason && <> · {jobReason(item.reason)}</>} · {item.attemptCount}/{item.maxAttempts} attempts · cleanup {item.cleanupState.replaceAll("_", " ")}
