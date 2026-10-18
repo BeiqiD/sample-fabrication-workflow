@@ -1,0 +1,41 @@
+{
+  "status": "passed",
+  "sourceCommit": "3965c90627af91d8e0c680c3aee7fd53e077310c",
+  "dirtySource": true,
+  "wrangler": "4.116.0",
+  "workerd": "1.20260730.1",
+  "packageManifestSha256": "3bb2d1368f2d41dac4c4d54688d305f14fa4a175518f2505ffcce9c27f53ac50",
+  "packageLockSha256": "b2a1922654dc60757c012bcc310548393cbe67aa77f4bb3ed21644ff79037fb0",
+  "remoteExecutionAuthorized": false,
+  "cases": [
+    {
+      "name": "populated-ladder",
+      "status": "passed",
+      "snapshots": 14,
+      "closures": 33,
+      "commands": 9,
+      "expectedFailedCommands": [],
+      "allOriginalClosesObserved": true
+    },
+    {
+      "name": "populated-direct",
+      "status": "passed",
+      "snapshots": 2,
+      "closures": 5,
+      "commands": 2,
+      "expectedFailedCommands": [],
+      "allOriginalClosesObserved": true
+    },
+    {
+      "name": "partial-prefix-retry",
+      "status": "passed",
+      "snapshots": 4,
+      "closures": 11,
+      "commands": 3,
+      "expectedFailedCommands": [
+        "expected-19-ledger-failure"
+      ],
+      "allOriginalClosesObserved": true
+    }
+  ]
+}

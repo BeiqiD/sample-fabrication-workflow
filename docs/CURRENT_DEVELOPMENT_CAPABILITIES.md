@@ -1,14 +1,21 @@
 # Current development capabilities
 
-Updated 2026-10-15. Development base `5206eb34` includes the supported Recovery
-frontend, genuine Recovery browser lifecycle and File Migration request recovery.
+Updated 2026-10-18. Development base `3965c906` includes the supported Recovery
+frontend, genuine Recovery browser lifecycle, File Migration request recovery
+and the Package/Recovery integration work merged through
+[PR #317](https://github.com/BeiqiD/sample-fabrication-workflow/pull/317).
 This is a development/review ledger, not production activation or release approval.
-Draft [PR #315](https://github.com/BeiqiD/sample-fabrication-workflow/pull/315)
-at that base passed its three main-target workflows, three development push
-workflows and all fifteen head contexts. The new
-[main integration checkpoint](./MAIN_MERGE_READINESS.md) records the current
-Package/Recovery fixes and completed local gates; the adopting candidate and
-updated main proposal need their own exact-source hosted results.
+The open, non-draft [PR #315](https://github.com/BeiqiD/sample-fabrication-workflow/pull/315)
+targets `main`. At review start, its current head and actual combined candidate
+each had fifteen successful status contexts, with four successful main-target
+workflows. The [main integration checkpoint](./MAIN_MERGE_READINESS.md) records
+the corresponding full commit identities. The additional
+[premerge repairs](./PREMERGE_HARDENING_20261018.md) passed all 16 complete local
+verification leaves, eight genuine browser cases and three populated migration
+scenarios on their repaired inputs. Their hosted results belong to their own
+candidate; the previous passes do not qualify later changes.
+
+Historical qualification remains separate:
 [PR #313](https://github.com/BeiqiD/sample-fabrication-workflow/pull/313) passed its
 four push/PR workflows and fifteen status contexts before that merge. Its hosted
 checks and merge receipt remain separate from the local results below.
@@ -104,8 +111,8 @@ earlier intent. Async denial, stale polls and damaged-history admission are
 covered. Export jobs show source links; only completed imports claim a new copy.
 These fixes retain actor/privacy, maintenance and original-source-resume fences.
 
-Draft #315 carries enabled/deferred capabilities and ancestry/handoff notes.
-Its final main-target CI remains separate from local qualification and the
+PR #315 carries enabled/deferred capabilities and ancestry/handoff notes.
+Its current main-target CI remains separate from local qualification and the
 adopting development PR's checks. A prepared proposal does not authorize a main
 merge or close physical-device, other-engine or deployed-provider release gates.
 

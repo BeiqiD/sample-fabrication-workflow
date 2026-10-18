@@ -1,0 +1,207 @@
+{
+  "version": 1,
+  "status": "passed",
+  "completedAt": "2026-10-18T20:04:35.418526+00:00",
+  "scope": "Final local Node client build from the successful CI plan, rebuilt distribution, embedded integrity/runtime-version verifier, actual compiled CLI --help, and exhaustive input byte/hash comparison. Live serving, archive restore, provider execution, deployment and release acceptance are outside this distribution receipt.",
+  "source": {
+    "baselineCommit": "3965c90627af91d8e0c680c3aee7fd53e077310c",
+    "baselineTree": "fc082ef9f41490bbdaf5491d6b98228b6a683e80",
+    "branch": "codex/pr315-premerge-hardening",
+    "dirtySource": true,
+    "sourceCodeCommit": "4c855567c874de8e17dc18b1268fd96b1997a45d",
+    "sourceCodeTree": "8b8fc8ff93d3517610abba1c962333b9556e8b88",
+    "sourceCommitVerification": "Root independently read the GitHub Git Data commit object: this tree and sole parent 3965c90627af91d8e0c680c3aee7fd53e077310c. The validation agent independently compared the locally available tree to all non-documentation files.",
+    "sourceIdentityScope": "The snapshot came from the dirty 3965 baseline. The later immutable source commit identifies the tested code; it is not the original checkout HEAD.",
+    "snapshotCreatedAt": "2026-10-18T19:41:24.662443+00:00",
+    "copiedSourceFiles": 3918,
+    "originalSnapshotProvenanceSha256": "335efe30275c3c6bd3c1126a8bec5f10e2437229804c81200ade7398a2c511ef",
+    "lateSourceUpdatesSha256": "7a72df512946e6d9f578e03e639ff4585f93f11656ab00ebcb75589fde5a3c2a",
+    "packageManifestSha256": "3bb2d1368f2d41dac4c4d54688d305f14fa4a175518f2505ffcce9c27f53ac50",
+    "packageLockSha256": "b2a1922654dc60757c012bcc310548393cbe67aa77f4bb3ed21644ff79037fb0"
+  },
+  "isolation": {
+    "independentSourceAndNodeModulesCopies": true,
+    "sharedBuildOutputUsed": false,
+    "identityHttpFixtureDirectoriesExcluded": true,
+    "privateFixtureAncestryUsed": true
+  },
+  "runtime": {
+    "nodeVersion": "24.19.0",
+    "platform": "linux",
+    "architecture": "x64"
+  },
+  "commands": [
+    {
+      "command": "npm run verify:node-client",
+      "invokedBy": "VERIFY_PUBLISH_STATUSES=0 npm run verify:ci (node-client leaf)",
+      "exitCode": 0,
+      "logSha256": "7cc25c611942ee79f30397ab2096a780e2249969544dcc41220081dbed51c149",
+      "clientBuildReusedForDistribution": true
+    },
+    {
+      "command": "node scripts/build-node.mjs",
+      "exitCode": 0,
+      "log": "/tmp/pr315-final-private-node-build.log",
+      "logSha256": "a1e4a3bcd8295188cfae778a74fd3967f4d1f3dfaa45b1c1719287a19c11c2d3"
+    },
+    {
+      "command": "node dist-node/distribution/tools/verify-node-distribution.mjs dist-node/distribution --runtime",
+      "exitCode": 0,
+      "log": "/tmp/pr315-final-private-node-verifier.log",
+      "logSha256": "057b400182d7cb070d733fe952fae000bc92ecfd1e76a5bed54a4cb723fd02b8"
+    }
+  ],
+  "distribution": {
+    "format": "sample-workflow-node-distribution",
+    "version": 3,
+    "capabilityScope": "restricted-development",
+    "inventoryFiles": 124,
+    "inventoryBytes": 39279308,
+    "manifestSha256": "027eb62666682671334df06560c5a6c396e9510bf844b9bb73fb421f58d5fd4d",
+    "sourceInputsSha256": "cacca58a5a9e45fc4198290e002e8857899b273cc2260beb1d9ca34d35b602ad"
+  },
+  "inputValidation": {
+    "checkedAt": "2026-10-18T20:04:35.418526+00:00",
+    "inputsChecked": 989,
+    "everyInputMatchesIsolatedSnapshot": true,
+    "everyInputMatchesCurrentWorkingTree": true,
+    "nonDocumentationFilesMatchedToSourceCodeTree": 1993,
+    "newSrcInputsIncluded": [
+      {
+        "path": "src/comment-owner-continuations.mount.test.tsx",
+        "sha256": "130500a63c8b35afe2dc6aaafdb78c898e9d1a7882061d750f2f8163c7269b0f"
+      },
+      {
+        "path": "src/lib/browser-checkpoints.test.ts",
+        "sha256": "7e843935164daf9316018c4829ca525cc7690057ceeaf401788ab9f8a5ac273b"
+      },
+      {
+        "path": "src/lib/browser-checkpoints.ts",
+        "sha256": "e93b8b7da5be31cb937ca6697bdd34b01d1ede1313645e56cbb604d489a44be3"
+      },
+      {
+        "path": "src/local-checkpoint-isolation.mount.test.tsx",
+        "sha256": "cc6dbc98365f7f5fed3d4cca0d335b14dd174fb11f3e393d7baa2db8c70962a7"
+      },
+      {
+        "path": "src/project-item-trash-owner.mount.test.tsx",
+        "sha256": "ab364c610083c4178d9a16fbed718e1476361cd2a4df3655c2b7f1c4b57170e3"
+      }
+    ],
+    "copiedNewNonNodeSources": [
+      "scripts/qa/phase5f/browser-owned-checkpoints.mjs",
+      "worker/platform/identity.test.ts",
+      "worker/platform/identity.ts",
+      "worker/storage/s3-stream-settlement.test.ts"
+    ],
+    "newNonNodeSourceScope": "Cloudflare adapter source, Worker tests, and browser QA helper are copied but do not enter the Node build graph.",
+    "changesSincePreviousDistribution": [
+      {
+        "path": "src/file-authority.mount.test.tsx",
+        "previousSha256": "bc5d5c67fea86ee532bec5a29b2fbf9d35f99a4074842df765ae97e63ee4d43a",
+        "currentSha256": "1885049d9fe3599512245c0dee827468412c251aa1fde0ca4684f833a97d66b4",
+        "bytes": 8459
+      },
+      {
+        "path": "src/reference-source-integration.test.ts",
+        "previousSha256": "05537ec66fd247d55322e1fa066bc69f89051d6cb3f8308543ea0be904e37bc7",
+        "currentSha256": "00760b92f09ad2f3f154f33fd735af6fc135654f44fb9346b3adc6f7202f847a",
+        "bytes": 4266
+      },
+      {
+        "path": "src/storage-settings.mount.test.tsx",
+        "previousSha256": "36e2bc5f66508a4bc30543943df6193f982e557c8b77d24beda334f88bab3c48",
+        "currentSha256": "ad2578cf22d88823b04d24911e73a25454af23d57a52d887aebbc0f4779a3d53",
+        "bytes": 13377
+      }
+    ]
+  },
+  "compiledExecutables": [
+    {
+      "entry": "dist-node/distribution/server/main.mjs",
+      "args": [
+        "--help"
+      ],
+      "exitCode": 0,
+      "executableSha256": "f7413acf592f2cef5ce969ab53eae186a0ca3e7cdf9479d7a40a0700ddfa4a4e",
+      "stdoutBytes": 460,
+      "stderrBytes": 0,
+      "stdoutSha256": "13217c30c75005eab8535d4d4050aac60a6d35acb92442d5f9a2ac693377730c",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdoutLog": "/tmp/pr315-final-private-main.mjs.help.stdout.log",
+      "stderrLog": "/tmp/pr315-final-private-main.mjs.help.stderr.log"
+    },
+    {
+      "entry": "dist-node/distribution/server/identity-cli.cjs",
+      "args": [
+        "--help"
+      ],
+      "exitCode": 0,
+      "executableSha256": "86cc5d85f794d832a3a739a7786c02e13723ccdcec09bfd28cf0cddb9a365f75",
+      "stdoutBytes": 506,
+      "stderrBytes": 0,
+      "stdoutSha256": "e463cc24052d5cf7075ac958049393c7992e6e7ce86c698815daea0d848aff19",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdoutLog": "/tmp/pr315-final-private-identity-cli.cjs.help.stdout.log",
+      "stderrLog": "/tmp/pr315-final-private-identity-cli.cjs.help.stderr.log"
+    },
+    {
+      "entry": "dist-node/distribution/server/installation-cli.cjs",
+      "args": [
+        "--help"
+      ],
+      "exitCode": 0,
+      "executableSha256": "e358f78ea02ec50031701214965e329a853f7c532280f83a40fac87cca1e1328",
+      "stdoutBytes": 2250,
+      "stderrBytes": 0,
+      "stdoutSha256": "ba879de571cf985a2c752e474491b8455b3a69b7c0271afc340bb8272c6c30d2",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdoutLog": "/tmp/pr315-final-private-installation-cli.cjs.help.stdout.log",
+      "stderrLog": "/tmp/pr315-final-private-installation-cli.cjs.help.stderr.log"
+    },
+    {
+      "entry": "dist-node/distribution/server/restore-v28-cli.cjs",
+      "args": [
+        "--help"
+      ],
+      "exitCode": 0,
+      "executableSha256": "0e9715be1b2bcc9474a90b9f4e1ef0a9668e0716456e4f306f4f9e965788650a",
+      "stdoutBytes": 373,
+      "stderrBytes": 0,
+      "stdoutSha256": "dcb371bc1b352fed8ff62030491dd86b6918e1b649779757e3e51a4748f44adc",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdoutLog": "/tmp/pr315-final-private-restore-v28-cli.cjs.help.stdout.log",
+      "stderrLog": "/tmp/pr315-final-private-restore-v28-cli.cjs.help.stderr.log"
+    }
+  ],
+  "mainHelpIncludesV28Workflow": true,
+  "retainedUnchangedDistributionContractChecks": {
+    "command": "node --test --test-timeout=5000 scripts/node-distribution-v28.test.mjs",
+    "exitCode": 0,
+    "summary": {
+      "tests": 8,
+      "passed": 8,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "recordedAt": "2026-10-18T16:19:45.945176+00:00",
+    "executionLocation": "Shared working tree before the three final frontend test-file updates",
+    "testSourceSha256": "56a76e3448fd10dd1f401f2585a1a1b8ec8b5a3369f98c375d0c75a819609756",
+    "log": "/tmp/pr315-final-node-distribution-v28-tests.log",
+    "logSha256": "80ffbebb4beeee9aa2a84a9094edbe857cb1858cfcf29e2f5dda664528c88551",
+    "evidenceCarriedForward": true,
+    "basis": "Only three frontend test files changed within the Node source graph. The distribution contract test, Node implementation and dependency manifests remain unchanged; no repeat of these eight checks was needed."
+  },
+  "fullVerificationReceipt": {
+    "path": "docs/qualification/pr315-premerge-hardening/verification-summary.json",
+    "sha256": "2f543a64bcd08233e829142c5ca2b3494097607a0dc37bb05cd6e4c9a2025dbe"
+  },
+  "supersedes": {
+    "receiptSha256": "d867a481b463f7ce89e805f8eed247ada0ad54d5488f7c0f36aaf4a9efd651a5",
+    "manifestSha256": "5c40ab6c19f5758fcee0c0cc5166ece077c9145477e718da7560273098598c56",
+    "sourceInputsSha256": "c24e448d07762a18285341189d3ea784f8a41a220be555894ca4c8235b6113d2"
+  },
+  "localEvidenceDirectory": "/root/pr315-private-validation-zv4wug1q"
+}

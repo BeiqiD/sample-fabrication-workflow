@@ -1,14 +1,31 @@
 # Main integration readiness
 
-Software checkpoint, 2026-10-15. Base development commit:
-`5206eb34c7b890af5bcae6db4df158d3d2bf18c3`.
-The current main proposal is [PR #315](https://github.com/BeiqiD/sample-fabrication-workflow/pull/315).
-The local software gates below have passed. Its adopting PR and final main-target
-checks must qualify their own actual source before integration; earlier green
-checks remain historical. This document accompanies that qualification rather
-than claiming a future hosted result.
+Review checkpoint, 2026-10-18. Current development base:
+`3965c90627af91d8e0c680c3aee7fd53e077310c` (`v2/backend-foundation`, including
+[PR #317](https://github.com/BeiqiD/sample-fabrication-workflow/pull/317)).
+The current main proposal is the open, non-draft
+[PR #315](https://github.com/BeiqiD/sample-fabrication-workflow/pull/315).
+Its base is `main` at `1788c1958b35ef6e3df917ec17d6ef13503b0ffe`; the observed
+combined candidate is `114f6dfeeb93d7eb0b1547b6d773cf27532c0f5f`.
+At review start, the development head and that combined candidate each had
+fifteen successful status contexts, and the four main-target workflows had
+succeeded. These results qualify that baseline, not the subsequent repairs.
 
-## Required software gates
+The additional repairs are on `codex/pr315-premerge-hardening`, with frozen
+code commit `4c855567c874de8e17dc18b1268fd96b1997a45d`.
+Its [repair and validation record](./PREMERGE_HARDENING_20261018.md) supersedes
+older pending-status descriptions while preserving their original evidence.
+All 16 complete local verification leaves passed, together with eight genuine
+browser cases and three populated migration scenarios under the repaired lock.
+Hosted checks belong to each actual pushed/PR candidate and are recorded on its
+repair PR; the original #315 checks above do not qualify these additional inputs.
+The review does not authorize the main merge or operational release.
+
+## Prior software qualification (2026-10-15)
+
+The following table and detailed local results describe the earlier checkpoint
+from `5206eb34c7b890af5bcae6db4df158d3d2bf18c3`, later integrated through #317.
+Its pending labels are historical and do not describe the current repair branch.
 
 | Gate | Current result |
 | --- | --- |
@@ -47,7 +64,7 @@ The two original pre-fix mounted probes are preserved separately:
   the same bounded sequence lost its original checkpoint. These probes do not
   establish actual backend/browser execution or passing acceptance.
 
-Current backend qualification: **132 passed** across the four focused contract/
+The 2026-10-15 backend qualification: **132 passed** across the four focused contract/
 Worker-route files, plus **two genuine Node Recovery HTTP cases passed**. Those
 counts retain their own scopes. Server and Node File-job type checks passed.
 Package qualification: **76 client** and **78 mounted** cases passed. Recovery:

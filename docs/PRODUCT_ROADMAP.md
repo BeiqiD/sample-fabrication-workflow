@@ -1,16 +1,22 @@
 # Product goal and roadmap
 
-**Current development scope — 2026-10-15:** [Capability ledger](./CURRENT_DEVELOPMENT_CAPABILITIES.md).
+**Current development scope — 2026-10-18:** [Capability ledger](./CURRENT_DEVELOPMENT_CAPABILITIES.md).
 The bounded backend milestone through #312, recovery frontend work in #313–#314,
-and File Migration request recovery in #316 are integrated. Development base
-`5206eb34` and Draft [#315](https://github.com/BeiqiD/sample-fabrication-workflow/pull/315)
-passed their six push/main-target workflows and fifteen head contexts before this slice.
-The current [main integration checkpoint](./MAIN_MERGE_READINESS.md) fixes Package
-and Recovery uncertain-request retention, strict absence receipts, explicit retry
-and retained replan history. Its focused tests, independent review and final build
-passed. Two genuine Package browser cases, two actual-built-version handover cases
-and three populated current-chain Wrangler cases passed locally. The adopting
-candidate and updated main proposal still require their own hosted qualification.
+File Migration request recovery in #316, and Package/Recovery integration fixes
+in #317 are integrated at development base `3965c906`.
+The open, non-draft [#315](https://github.com/BeiqiD/sample-fabrication-workflow/pull/315)
+has successful baseline main-target checks; full source identities are recorded
+in the [main integration checkpoint](./MAIN_MERGE_READINESS.md).
+A further [premerge review and repair](./PREMERGE_HARDENING_20261018.md) on
+`codex/pr315-premerge-hardening` covers account-bound browser
+recovery state, final publication/cleanup authorization, original S3 operation
+settlement, dependency security and actual combined-candidate CI coverage.
+All 16 complete local verification leaves, eight genuine browser cases and
+three populated migration scenarios passed on the repaired inputs. Hosted
+qualification remains tied to each actual pushed/PR candidate; earlier passing
+tests remain evidence for their original sources. The earlier two genuine Package browser
+cases, two actual-built-version handover cases and three populated current-chain
+Wrangler cases keep their recorded scopes.
 Physical-device, other-engine and deployed-provider acceptance remain operational
 release gates. Older dated sections retain historical status.
 
