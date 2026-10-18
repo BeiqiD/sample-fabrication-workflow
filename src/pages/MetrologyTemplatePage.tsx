@@ -1,3 +1,4 @@
+import { captureApplicationOwner } from "../lib/authentication-client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
@@ -18,6 +19,7 @@ export function MetrologyTemplatePage() {
 }
 
 function MetrologyTemplateSession({ templateId }: { templateId: string }) {
+  const [owner] = useState(captureApplicationOwner);
   const location = useLocation();
   const locationSearchRef = useRef(location.search);
   locationSearchRef.current = location.search;
@@ -40,20 +42,21 @@ function MetrologyTemplateSession({ templateId }: { templateId: string }) {
   const [referenceToDelete, setReferenceToDelete] = useState<{ id: string; filename: string } | null>(null);
   const [referenceDeleteError, setReferenceDeleteError] = useState("");
   const sessionActive = useRef(true);
+  const isCurrentSession = useCallback(() => owner.isCurrent() && sessionActive.current, [owner]);
   const loadSequence = useRef(0);
   const initialReadSequence = useRef(0);
   const initialReadInFlight = useRef(false);
   const load = useCallback(async (syncReferenceNotes = true) => {
-    if (!sessionActive.current) return;
+    if (!isCurrentSession()) return;
     const sequence = ++loadSequence.current;
     let result: Awaited<ReturnType<typeof api.getTemplate>>;
     try {
       result = await api.getTemplate(templateId);
     } catch (error) {
-      if (!sessionActive.current || sequence !== loadSequence.current) return;
+      if (!isCurrentSession() || sequence !== loadSequence.current) return;
       throw error;
     }
-    if (!sessionActive.current || sequence !== loadSequence.current) return;
+    if (!isCurrentSession() || sequence !== loadSequence.current) return;
     if (result.template.templateKind !== "metrology") {
       navigate(`${templateDetailPath(templateId, "process")}${locationSearchRef.current}`, { replace: true });
       return;
@@ -64,24 +67,24 @@ function MetrologyTemplateSession({ templateId }: { templateId: string }) {
     setTemplate(result.template);
     if (syncReferenceNotes) setReferenceNotes(result.template.metrologyNotes || "");
     return result.template;
-  }, [navigate, templateId]);
+  }, [isCurrentSession, navigate, templateId]);
   const readInitialTemplate = useCallback(async () => {
-    if (!sessionActive.current || initialReadInFlight.current) return;
+    if (!isCurrentSession() || initialReadInFlight.current) return;
     const sequence = ++initialReadSequence.current;
     initialReadInFlight.current = true;
     setReading(true); setReadError("");
     try { await load(true); }
     catch (caught) {
-      if (sessionActive.current && sequence === initialReadSequence.current) {
+      if (isCurrentSession() && sequence === initialReadSequence.current) {
         setReadError(caught instanceof Error ? caught.message : "The metrology template could not be read.");
       }
     } finally {
-      if (sessionActive.current && sequence === initialReadSequence.current) {
+      if (isCurrentSession() && sequence === initialReadSequence.current) {
         initialReadInFlight.current = false;
         setReading(false);
       }
     }
-  }, [load]);
+  }, [isCurrentSession, load]);
   useEffect(() => {
     sessionActive.current = true;
     initialReadInFlight.current = false;
@@ -99,33 +102,36 @@ function MetrologyTemplateSession({ templateId }: { templateId: string }) {
   }, [readInitialTemplate, templateId]);
 
   async function update(input: MetrologyTemplateInput) {
+    if (!isCurrentSession()) return;
     await api.updateMetrologyTemplate(templateId, input);
-    if (!sessionActive.current) return;
+    if (!isCurrentSession()) return;
     await load(false);
-    if (!sessionActive.current) return;
+    if (!isCurrentSession()) return;
     setNotice("Template details saved.");
   }
 
   async function saveReferenceNotes() {
+    if (!isCurrentSession()) return;
     setSavingReference(true); setError(""); setNotice("");
     try {
       await api.updateMetrologyTemplateNotes(templateId, referenceNotes);
-      if (!sessionActive.current) return;
+      if (!isCurrentSession()) return;
       await load();
-      if (!sessionActive.current) return;
+      if (!isCurrentSession()) return;
       setNotice("Equipment and method notes saved.");
-    } catch (error) { if (sessionActive.current) setError((error as Error).message); }
-    finally { if (sessionActive.current) setSavingReference(false); }
+    } catch (error) { if (isCurrentSession()) setError((error as Error).message); }
+    finally { if (isCurrentSession()) setSavingReference(false); }
   }
 
   async function uploadReference() {
+    if (!isCurrentSession()) return;
     if (!referenceFile) return;
     setSavingReference(true); setError(""); setNotice("");
     try {
       const result = await api.uploadMetrologyTemplateReference(templateId, referenceFile);
-      if (!sessionActive.current) return;
+      if (!isCurrentSession()) return;
       const refreshed = await load(false);
-      if (!sessionActive.current) return;
+      if (!isCurrentSession()) return;
       if (!refreshed?.referenceAttachments.some((reference) => reference.id === result.reference.id)) {
         throw new Error("The uploaded reference is not visible yet. Check the same upload again to refresh the template.");
       }
@@ -135,38 +141,40 @@ function MetrologyTemplateSession({ templateId }: { templateId: string }) {
       setReferenceUploadRecoveryName(null);
       setNotice("Reference file attached.");
     } catch (error) {
-      if (sessionActive.current) {
+      if (isCurrentSession()) {
         setError((error as Error).message);
         setReferenceUploadProblem(true);
       }
     }
-    finally { if (sessionActive.current) setSavingReference(false); }
+    finally { if (isCurrentSession()) setSavingReference(false); }
   }
 
   async function deleteReference() {
+    if (!isCurrentSession()) return;
     if (!referenceToDelete) return;
     setSavingReference(true); setReferenceDeleteError(""); setNotice("");
     try {
       await api.deleteMetrologyTemplateReference(templateId, referenceToDelete.id);
-      if (!sessionActive.current) return;
+      if (!isCurrentSession()) return;
       setReferenceToDelete(null);
       await load(false);
-      if (!sessionActive.current) return;
+      if (!isCurrentSession()) return;
       setNotice("Reference file removed.");
-    } catch (error) { if (sessionActive.current) setReferenceDeleteError((error as Error).message); }
-    finally { if (sessionActive.current) setSavingReference(false); }
+    } catch (error) { if (isCurrentSession()) setReferenceDeleteError((error as Error).message); }
+    finally { if (isCurrentSession()) setSavingReference(false); }
   }
 
   async function remove() {
+    if (!isCurrentSession()) return;
     if (!template) return;
     setDeleting(true); setTemplateDeleteError("");
     try {
       await api.removeTemplate(template.id);
-      if (!sessionActive.current) return;
+      if (!isCurrentSession()) return;
       setConfirmingTemplateDeletion(false);
       navigate("/templates");
     } catch (error) {
-      if (!sessionActive.current) return;
+      if (!isCurrentSession()) return;
       setTemplateDeleteError((error as Error).message);
       setDeleting(false);
     }

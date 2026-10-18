@@ -1,4 +1,5 @@
-import { applicationFetch } from "./authentication-client";
+import { captureApplicationOwner } from "./authentication-client";
+import { checkpointStorage, type CheckpointStorage } from "./browser-checkpoints";
 import {
   checkedShadowAdjudicationRequest, checkedShadowAdjudicationRevocationRequest,
   shadowAdjudicationRequestSha256, shadowAdjudicationRevocationRequestSha256,
@@ -104,13 +105,14 @@ export function canDismissAdjudication(journal: AdjudicationJournal): boolean {
 export function createFileShadowAdjudicationClient(options: {
   fetch?: typeof fetch; storage?: Storage; withLock?: <T>(action: () => Promise<T>) => Promise<T>;
 } = {}) {
-  const fetcher = options.fetch ?? ((...args) => applicationFetch(...args));
+  const owner = captureApplicationOwner();
+  const fetcher = options.fetch ?? owner.fetch;
   let authorized = false;
   let preparations = new WeakMap<AdjudicationPreparation, string>();
   const receipts = new WeakMap<AdjudicationReceipt, string>();
-  function authorize() { if (!authorized) fail("Operator access is unavailable. You can continue reviewing evidence without recording a decision."); }
+  function authorize() { owner.assertCurrent(); if (!authorized) fail("Operator access is unavailable. You can continue reviewing evidence without recording a decision."); }
   const storage = () => {
-    try { return options.storage ?? localStorage; } catch { return fail("Persistent browser storage is unavailable. No decision was sent."); }
+    try { return checkpointStorage(owner, options.storage ?? localStorage); } catch { return fail("Persistent browser storage is unavailable. No decision was sent."); }
   };
   function loadJournal(): AdjudicationJournal | null {
     authorize();

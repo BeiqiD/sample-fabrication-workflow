@@ -44,14 +44,17 @@ const primaryNavigation: Array<{ to: string; label: string; icon: NavigationIcon
 export function App() {
   const location = useLocation();
   const [theme, setTheme] = useState<"light" | "dark">(() => {
-    const saved = window.localStorage.getItem("sample-workflow-theme");
-    if (saved === "light" || saved === "dark") return saved;
+    try {
+      const saved = window.localStorage.getItem("sample-workflow-theme");
+      if (saved === "light" || saved === "dark") return saved;
+    } catch { /* A blocked preference store must not prevent sign-in or route recovery. */ }
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   });
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    window.localStorage.setItem("sample-workflow-theme", theme);
+    try { window.localStorage.setItem("sample-workflow-theme", theme); }
+    catch { /* Theme changes remain available for this mounted application. */ }
 
     const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
     const canvasColor = getComputedStyle(document.documentElement).getPropertyValue("--canvas").trim();
@@ -86,7 +89,7 @@ export function App() {
         </div>
       </header>
       <main>
-        <LocalAuthenticationGate>
+        <LocalAuthenticationGate verifyRemoteIdentity>
         <RouteErrorBoundary resetKey={location.pathname}>
           <Suspense fallback={<div className="page route-loading"><p className="muted">Loading…</p></div>}>
           <Routes>

@@ -1,3 +1,5 @@
+import { checkpointStorage, type CheckpointStorage } from "../lib/browser-checkpoints";
+import { captureApplicationOwner } from "../lib/authentication-client";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
@@ -23,8 +25,8 @@ type ReceiptCheckpoint = { requestId: string; jobId: string; reused: boolean };
 class SessionIntentError extends Error {
   constructor() { super("Browser session storage is unavailable. Enable it to save and recover operation identifiers."); }
 }
-function writeSession(key: string, value: unknown | null) {
-  try { if (value === null) sessionStorage.removeItem(key); else sessionStorage.setItem(key, JSON.stringify(value)); }
+function writeSession(storage: CheckpointStorage, key: string, value: unknown | null) {
+  try { if (value === null) storage.removeItem(key); else storage.setItem(key, JSON.stringify(value)); }
   catch { throw new SessionIntentError(); }
 }
 function checkedIntent(value: unknown): Intent {
@@ -35,16 +37,16 @@ function checkedIntent(value: unknown): Intent {
   if (row.action === "import") return { action: "import", input: checkedResearchImportInput(row.input) };
   throw new Error("Invalid package intent.");
 }
-function savedIntent(): Intent | null {
+function savedIntent(storage: CheckpointStorage): Intent | null {
   try {
-    const value = JSON.parse(sessionStorage.getItem(intentKey) || "null");
+    const value = JSON.parse(storage.getItem(intentKey) || "null");
     return value ? checkedIntent(value) : null;
   } catch { /* A malformed local intent does not authorize an operation. */ }
   return null;
 }
-function savedRejection(): Intent | null {
+function savedRejection(storage: CheckpointStorage): Intent | null {
   try {
-    const row = JSON.parse(sessionStorage.getItem(rejectionKey) || "null"), pending = savedIntent();
+    const row = JSON.parse(storage.getItem(rejectionKey) || "null"), pending = savedIntent(storage);
     if (!row || Object.keys(row).length !== 2 || row.schema !== "research-package-rejection/1") return null;
     const intent = checkedIntent(row.intent);
     return pending && sameIntent(pending, intent) ? intent : null;
@@ -53,9 +55,9 @@ function savedRejection(): Intent | null {
 function checkedReceiptKind(intent: Intent, receipt: ResearchRequestReceipt) {
   if (receipt.requestId !== intent.input.requestId || receipt.job.kind !== (intent.action === "export" ? intent.input.kind : intent.action)) throw new Error("Invalid operation receipt.");
 }
-function savedHistory(): EarlierRequest[] | null {
+function savedHistory(storage: CheckpointStorage): EarlierRequest[] | null {
   try {
-    const rows: unknown = JSON.parse(sessionStorage.getItem(historyKey) || "[]");
+    const rows: unknown = JSON.parse(storage.getItem(historyKey) || "[]");
     if (!Array.isArray(rows)) return null;
     const seen = new Set<string>();
     return rows.map(row => {
@@ -67,17 +69,17 @@ function savedHistory(): EarlierRequest[] | null {
     });
   } catch { return null; }
 }
-function savedUpload(): UploadCheckpoint | null {
+function savedUpload(storage: CheckpointStorage): UploadCheckpoint | null {
   try {
-    const value = JSON.parse(sessionStorage.getItem(uploadKey) || "null");
+    const value = JSON.parse(storage.getItem(uploadKey) || "null");
     if (!value || Object.keys(value).length !== 2 || typeof value.jobId !== "string") return null;
     researchPackagesClient.downloadUrl(value.jobId);
     return { input: checkedResearchUploadInput(value.input), jobId: value.jobId };
   } catch { return null; }
 }
-function savedReceipts(): ReceiptCheckpoint[] {
+function savedReceipts(storage: CheckpointStorage): ReceiptCheckpoint[] {
   try {
-    const raw = JSON.parse(sessionStorage.getItem(receiptsKey) || "[]");
+    const raw = JSON.parse(storage.getItem(receiptsKey) || "[]");
     if (!Array.isArray(raw)) return [];
     return raw.filter((item): item is ReceiptCheckpoint => {
       if (!item || typeof item !== "object" || Object.keys(item).length !== 3 || typeof item.requestId !== "string"
@@ -216,20 +218,22 @@ function Job({ job, busy, allowed, currentSignal, reused, onControl, onSelectUpl
 }
 
 export function ResearchPackagesPage() {
+  const [owner] = useState(captureApplicationOwner);
+  const [storage] = useState(() => checkpointStorage(owner));
   const [query] = useSearchParams();
   const [rootText, setRootText] = useState(() => ["sample", "project"].includes(query.get("rootType") || "") && query.get("rootId")
     ? `${query.get("rootType")}:${query.get("rootId")}` : "");
   const [kind, setKind] = useState<ResearchExportKind>(() => query.get("kind") === "report" ? "report" : "data_package");
   const [exportPreview, setExportPreview] = useState<ResearchPackagePreview | null>(null);
-  const [pending, setPending] = useState<Intent | null>(savedIntent), pendingRef = useRef(pending);
-  const [rejected, setRejected] = useState(savedRejection), rejectedRef = useRef(rejected);
+  const [pending, setPending] = useState<Intent | null>(() => savedIntent(storage)), pendingRef = useRef(pending);
+  const [rejected, setRejected] = useState(() => savedRejection(storage)), rejectedRef = useRef(rejected);
   const [receiptMissing, setReceiptMissing] = useState(false);
-  const [earlier, setEarlier] = useState(savedHistory), earlierRef = useRef(earlier);
-  const [upload, setUpload] = useState<UploadCheckpoint | null>(savedUpload), uploadRef = useRef(upload);
+  const [earlier, setEarlier] = useState(() => savedHistory(storage)), earlierRef = useRef(earlier);
+  const [upload, setUpload] = useState<UploadCheckpoint | null>(() => savedUpload(storage)), uploadRef = useRef(upload);
   const [file, setFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<ResearchPackagePreview | null>(null);
   const [acceptedScope, setAcceptedScope] = useState<{ jobId: string; preview: ResearchPackagePreview } | null>(null);
-  const [receipts, setReceipts] = useState(savedReceipts);
+  const [receipts, setReceipts] = useState(() => savedReceipts(storage));
   const [suffix, setSuffix] = useState(" (imported)"), suffixRef = useRef(suffix); suffixRef.current = suffix;
   const [jobs, setJobs] = useState<ResearchJobStatus[]>([]), [executor, setExecutor] = useState<ResearchExecutorStatus | null>(null);
   const [readPhase, setReadPhase] = useState<"loading" | "ready" | "error">("loading"), [readError, setReadError] = useState<string | null>(null);
@@ -265,7 +269,7 @@ export function ResearchPackagesPage() {
   useLayoutEffect(() => {
     if (busy) return;
     const intent = returnPageFocus.current; clearPageFocus();
-    if (!intent || intent.signal !== lifetime.current?.signal || intent.signal.aborted || deniedRef.current || denied
+    if (!intent || intent.signal !== lifetime.current?.signal || !currentOperation(intent.signal) || denied
       || intent.sequence !== actionSequence.current || intent.movedAway
       || document.activeElement !== document.body && document.activeElement !== intent.origin) return;
     if (intent.action === "refresh") {
@@ -291,17 +295,18 @@ export function ResearchPackagesPage() {
   function setMessage(value: string) { setMessageText(value); setMessageError(false); }
 
   function reportFailure(error: unknown) {
+    if (!owner.isCurrent()) return;
     if (error instanceof ResearchPackageRequestError && [401, 403].includes(error.status || 0)) {
       deniedRef.current = true; setDenied(true); setJobs([]); setExportPreview(null); setImportPreview(null); setAcceptedScope(null); setFile(null);
     }
     setMessageText(error instanceof SessionIntentError ? error.message : researchPackageErrorMessage(error)); setMessageError(true);
   }
   function remember(value: Intent | null) {
-    writeSession(intentKey, value);
+    writeSession(storage, intentKey, value);
     pendingRef.current = value; setPending(value); setReceiptMissing(false);
   }
   function rememberRejection(value: Intent | null) {
-    writeSession(rejectionKey, value ? { schema: "research-package-rejection/1", intent: value } : null);
+    writeSession(storage, rejectionKey, value ? { schema: "research-package-rejection/1", intent: value } : null);
     rejectedRef.current = value; setRejected(value);
   }
   function retainEarlier(intent: Intent, receipt: ResearchRequestReceipt | null) {
@@ -312,20 +317,21 @@ export function ResearchPackagesPage() {
     if (previous && (!sameIntent(previous.intent, intent) || previous.receipt && receipt && previous.receipt.job.id !== receipt.job.id)) throw new Error("Invalid earlier package receipt.");
     const row = { intent, receipt: receipt ?? previous?.receipt ?? null };
     const next = [...current.filter(row => row.intent.input.requestId !== intent.input.requestId), row];
-    writeSession(historyKey, next); earlierRef.current = next; setEarlier(next);
+    writeSession(storage, historyKey, next); earlierRef.current = next; setEarlier(next);
   }
   function rememberReceipt(receipt: ResearchRequestReceipt) {
     const checkpoint = [{ requestId: receipt.requestId, jobId: receipt.job.id, reused: receipt.reused },
-      ...savedReceipts().filter(item => item.requestId !== receipt.requestId)].slice(0, 20);
-    writeSession(receiptsKey, checkpoint); setReceipts(checkpoint);
+      ...savedReceipts(storage).filter(item => item.requestId !== receipt.requestId)].slice(0, 20);
+    writeSession(storage, receiptsKey, checkpoint); setReceipts(checkpoint);
   }
   function saveUpload(value: UploadCheckpoint | null) {
-    writeSession(uploadKey, value);
+    writeSession(storage, uploadKey, value);
     uploadRef.current = value; setUpload(value);
   }
   function updateJob(job: ResearchJobStatus) { setJobs(current => [job, ...current.filter(item => item.id !== job.id)].slice(0, 100)); }
+  function currentOperation(signal: AbortSignal) { return owner.isCurrent() && !signal.aborted && !deniedRef.current; }
   function ownsIntent(intent: Intent, signal: AbortSignal) {
-    return !signal.aborted && !deniedRef.current && pendingRef.current === intent;
+    return currentOperation(signal) && pendingRef.current === intent;
   }
   function acceptReceipt(intent: Intent, receipt: ResearchRequestReceipt, signal: AbortSignal) {
     if (!ownsIntent(intent, signal)) return null;
@@ -402,23 +408,23 @@ export function ResearchPackagesPage() {
   async function checkEarlier(row: EarlierRequest, signal: AbortSignal) {
     try {
       const receipt = await researchPackagesClient.readRequest(row.intent.input.requestId, signal);
-      if (signal.aborted || deniedRef.current) return;
+      if (!currentOperation(signal)) return;
       checkedReceiptKind(row.intent, receipt); refreshSequence.current++; retainEarlier(row.intent, receipt); rememberReceipt(receipt); updateJob(receipt.job);
       setMessage(`Earlier package request ${row.intent.input.requestId} has saved job ${receipt.job.id}. No new operation was started.`);
     } catch (error) {
-      if (signal.aborted || deniedRef.current) return;
+      if (!currentOperation(signal)) return;
       if (!(error instanceof ResearchPackageRequestMissingError)) throw error;
       setMessage("No saved receipt was found for that earlier package request at this check. Its original identifier is retained.");
     }
   }
   async function refresh(signal: AbortSignal, announce = false) {
-    if (signal.aborted || deniedRef.current) return;
+    if (!currentOperation(signal)) return;
     const sequence = ++refreshSequence.current;
     if (announce) setReadPhase("loading");
     try {
       const [list, status] = await Promise.all([researchPackagesClient.list(signal), researchPackagesClient.executor(signal)]);
-      if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
-      const savedIds = [...new Set(savedReceipts().map(receipt => receipt.jobId))].filter(id => !list.some(job => job.id === id));
+      if (!currentOperation(signal) || sequence !== refreshSequence.current) return;
+      const savedIds = [...new Set(savedReceipts(storage).map(receipt => receipt.jobId))].filter(id => !list.some(job => job.id === id));
       const recovered = await Promise.all(savedIds.map(async id => {
         try { return await researchPackagesClient.status(id, signal); }
         catch (error) {
@@ -426,23 +432,23 @@ export function ResearchPackagesPage() {
           throw error;
         }
       }));
-      if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
+      if (!currentOperation(signal) || sequence !== refreshSequence.current) return;
       const visible = [...recovered.filter((job): job is ResearchJobStatus => job !== null), ...list].slice(0, 100);
       setJobs(visible); setExecutor(status); setJobsLoaded(true); setReadError(null); setReadPhase("ready");
       const checkpoint = uploadRef.current;
       if (checkpoint) {
         const uploaded = visible.find(job => job.id === checkpoint.jobId) || await researchPackagesClient.status(checkpoint.jobId, signal);
-        if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current || uploadRef.current?.jobId !== checkpoint.jobId) return;
+        if (!currentOperation(signal) || sequence !== refreshSequence.current || uploadRef.current?.jobId !== checkpoint.jobId) return;
         if (!visible.some(job => job.id === uploaded.id)) updateJob(uploaded);
         if (uploaded?.state === "preview") {
           const previewSuffix = suffixRef.current;
           const preview = await researchPackagesClient.preview(checkpoint.jobId, previewSuffix, signal);
-          if (!signal.aborted && !deniedRef.current && sequence === refreshSequence.current && suffixRef.current === previewSuffix
+          if (currentOperation(signal) && sequence === refreshSequence.current && suffixRef.current === previewSuffix
             && uploadRef.current?.jobId === checkpoint.jobId) setImportPreview(preview);
         } else if (uploaded) setImportPreview(null);
       }
     } catch (error) {
-      if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
+      if (!currentOperation(signal) || sequence !== refreshSequence.current) return;
       if (error instanceof ResearchPackageRequestError && [401, 403].includes(error.status || 0)) reportFailure(error);
       else {
         const helpfulReadFailure = error instanceof ResearchPackageRequestError
@@ -457,13 +463,13 @@ export function ResearchPackagesPage() {
     const controller = new AbortController(); lifetime.current = controller;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const poll = async () => {
-      if (controller.signal.aborted || deniedRef.current) return;
+      if (!currentOperation(controller.signal)) return;
       await refresh(controller.signal);
-      if (!controller.signal.aborted && !deniedRef.current) timer = setTimeout(() => void poll(), 5000);
+      if (currentOperation(controller.signal)) timer = setTimeout(() => void poll(), 5000);
     };
     void (async () => {
-      if (pendingRef.current) { try { await reconcile(controller.signal); } catch (error) { if (!controller.signal.aborted) reportFailure(error); } }
-      if (!controller.signal.aborted && !deniedRef.current) await poll();
+      if (pendingRef.current) { try { await reconcile(controller.signal); } catch (error) { if (currentOperation(controller.signal)) reportFailure(error); } }
+      if (currentOperation(controller.signal)) await poll();
     })();
     return () => { controller.abort(); refreshSequence.current++; if (timer) clearTimeout(timer); };
   }, []);
@@ -471,17 +477,17 @@ export function ResearchPackagesPage() {
     if (busy || !returnExportPreviewFocus.current) return;
     const { button, signal } = returnExportPreviewFocus.current;
     returnExportPreviewFocus.current = null;
-    if (signal !== lifetime.current?.signal || signal.aborted || deniedRef.current) return;
+    if (signal !== lifetime.current?.signal || !currentOperation(signal)) return;
     if (button === exportPreviewButton.current && button.isConnected && !button.matches(":disabled")
       && (document.activeElement === document.body || document.activeElement === button)) button.focus();
   }, [busy]);
   async function act(operation: (signal: AbortSignal) => Promise<void>, preserveMessage = false) {
     const controller = lifetime.current;
-    if (!controller || controller.signal.aborted || deniedRef.current || busyRef.current) return;
+    if (!controller || !currentOperation(controller.signal) || busyRef.current) return;
     actionSequence.current++; clearPageFocus(); busyRef.current = true; setBusy(true); if (!preserveMessage) setMessage("");
     try { await operation(controller.signal); }
-    catch (error) { if (!controller.signal.aborted) reportFailure(error); }
-    finally { if (!controller.signal.aborted) { busyRef.current = false; setBusy(false); } }
+    catch (error) { if (currentOperation(controller.signal)) reportFailure(error); }
+    finally { if (currentOperation(controller.signal)) { busyRef.current = false; setBusy(false); } }
   }
   function exportInput() {
     const roots = rootText.split(/\r?\n/).map(line => line.trim()).filter(Boolean).map(line => {
@@ -490,7 +496,7 @@ export function ResearchPackagesPage() {
     return checkedResearchExportPlanInput({ kind, roots });
   }
   async function startExport(signal: AbortSignal) {
-    if (!exportPreview || pendingRef.current || deniedRef.current || signal.aborted || earlierRef.current === null) return;
+    if (!exportPreview || pendingRef.current || !currentOperation(signal) || earlierRef.current === null) return;
     const capability = kind === "report" ? exportPreview.capabilities.report : exportPreview.capabilities.dataPackage;
     if (!capability.available || kind === "data_package" && !exportPreview.complete) return;
     const intent: Intent = { action: "export", input: checkedResearchExportInput({ requestId: crypto.randomUUID(), ...exportInput() }) };
@@ -498,7 +504,7 @@ export function ResearchPackagesPage() {
   }
   async function prepareUpload(signal: AbortSignal) {
     const selectedFile = file, originalUpload = uploadRef.current, sequence = actionSequence.current;
-    const ownsPreparation = (checkpoint: UploadCheckpoint | null) => !signal.aborted && !deniedRef.current
+    const ownsPreparation = (checkpoint: UploadCheckpoint | null) => currentOperation(signal)
       && signal === lifetime.current?.signal && sequence === actionSequence.current && !pendingRef.current
       && uploadRef.current === checkpoint && earlierRef.current !== null;
     if (!selectedFile || !ownsPreparation(originalUpload)) return;
@@ -532,7 +538,7 @@ export function ResearchPackagesPage() {
   async function startImport(signal: AbortSignal, anotherCopy: boolean) {
     if (!uploadRef.current || !importPreview || importPreview.rolePolicyRevision === null || importPreview.kind !== "data_package" || !importPreview.complete
       || !importPreview.capabilities.dataPackage.available || pendingRef.current) return;
-    if (deniedRef.current || signal.aborted || earlierRef.current === null) return;
+    if (!currentOperation(signal) || earlierRef.current === null) return;
     const intent: Intent = { action: "import", input: checkedResearchImportInput({ requestId: crypto.randomUUID(), uploadJobId: uploadRef.current.jobId,
       anotherCopy, expectedRolePolicyRevision: importPreview.rolePolicyRevision, naming: { suffix } }) };
     remember(intent); await submit(intent, signal, true);
@@ -599,7 +605,7 @@ export function ResearchPackagesPage() {
         <form onSubmit={event => { event.preventDefault(); void act(async signal => {
           const button = exportPreviewButton.current;
           returnExportPreviewFocus.current = button && document.activeElement === button ? { button, signal } : null;
-          const preview = await researchPackagesClient.plan(exportInput(), signal); if (!signal.aborted) setExportPreview(preview);
+          const preview = await researchPackagesClient.plan(exportInput(), signal); if (currentOperation(signal)) setExportPreview(preview);
         }); }}>
           <fieldset disabled={blocked || executor?.supported === false}><div className="storage-candidate-fields">
             <label>Export format<select value={kind} onChange={event => { setKind(event.target.value as ResearchExportKind); setExportPreview(null); }}>
@@ -629,7 +635,7 @@ export function ResearchPackagesPage() {
         {upload && currentUpload?.state === "preview" && <><label>Imported name suffix<input maxLength={32} value={suffix} disabled={blocked}
           onChange={event => { setSuffix(event.target.value); setImportPreview(null); }} /></label>
           <button ref={importReviewButton} className="button" disabled={blocked} onClick={() => void act(async signal => {
-            const value = await researchPackagesClient.preview(upload.jobId, suffix, signal); if (!signal.aborted) setImportPreview(value);
+            const value = await researchPackagesClient.preview(upload.jobId, suffix, signal); if (currentOperation(signal)) setImportPreview(value);
           })}>Refresh import preview</button></>}
         {importPreview && <>
           <Preview value={importPreview} />
@@ -663,19 +669,19 @@ export function ResearchPackagesPage() {
           reused={receipts.some(receipt => receipt.jobId === job.id && receipt.reused)}
           onViewScope={id => void act(async signal => {
             const preview = await researchPackagesClient.preview(id, undefined, signal);
-            if (!signal.aborted) setAcceptedScope({ jobId: id, preview });
+            if (currentOperation(signal)) setAcceptedScope({ jobId: id, preview });
           })} onSelectUpload={id => void act(async signal => {
           const [input, value] = await Promise.all([researchPackagesClient.uploadIntent(id, signal), researchPackagesClient.status(id, signal)]);
-          if (signal.aborted) return;
+          if (!currentOperation(signal)) return;
           if (value.kind !== "upload" || value.requestId !== input.requestId) throw new Error("Invalid saved upload.");
           saveUpload({ input, jobId: id }); updateJob(value); setFile(null); setImportPreview(null);
           if (value.state === "preview") {
-            const preview = await researchPackagesClient.preview(id, suffix, signal); if (!signal.aborted) setImportPreview(preview);
+            const preview = await researchPackagesClient.preview(id, suffix, signal); if (currentOperation(signal)) setImportPreview(preview);
           }
           setMessage(value.state === "awaiting_upload" ? "Saved upload selected. Reselect the original ZIP to verify and continue it." : "Saved package selected. Its validated preview is available when validation finishes.");
         })} onControl={(id, action, onStarting, onReceipt) => void act(async signal => {
           onStarting(signal);
-          const value = await researchPackagesClient.control(id, action, signal); if (!signal.aborted && !deniedRef.current) {
+          const value = await researchPackagesClient.control(id, action, signal); if (currentOperation(signal)) {
             refreshSequence.current++; updateJob(value); onReceipt(value); setMessage("Saved job state updated. Check status to follow its independent progress.");
           }
         })} />)}

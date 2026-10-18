@@ -1,3 +1,5 @@
+import { checkpointStorage, type CheckpointStorage } from "../lib/browser-checkpoints";
+import { captureApplicationOwner } from "../lib/authentication-client";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -34,8 +36,8 @@ type ReceiptCheckpoint = { requestId: string; jobId: string };
 class SessionIntentError extends Error {
   constructor() { super("Browser session storage is unavailable. Enable it to retain and reconcile recovery operation identifiers."); }
 }
-function storeSession(key: string, value: unknown | null) {
-  try { if (value === null) sessionStorage.removeItem(key); else sessionStorage.setItem(key, JSON.stringify(value)); }
+function storeSession(storage: CheckpointStorage, key: string, value: unknown | null) {
+  try { if (value === null) storage.removeItem(key); else storage.setItem(key, JSON.stringify(value)); }
   catch { throw new SessionIntentError(); }
 }
 function localIdentity(value: unknown): value is string {
@@ -54,20 +56,20 @@ function checkedIntent(value: unknown): Intent {
   if (row.action === "recovery") return { action: "recovery", input: checkedSystemRecoveryImportInput(row.input) };
   throw new Error("Invalid recovery intent.");
 }
-function savedIntent(): Intent | null {
-  try { return checkedIntent(JSON.parse(sessionStorage.getItem(intentKey) || "null")); }
+function savedIntent(storage: CheckpointStorage): Intent | null {
+  try { return checkedIntent(JSON.parse(storage.getItem(intentKey) || "null")); }
   catch { return null; }
 }
-function savedRejection(): Intent | null {
+function savedRejection(storage: CheckpointStorage): Intent | null {
   try {
-    const row = JSON.parse(sessionStorage.getItem(rejectionKey) || "null"), pending = savedIntent();
+    const row = JSON.parse(storage.getItem(rejectionKey) || "null"), pending = savedIntent(storage);
     if (!row || Object.keys(row).length !== 2 || row.schema !== "system-recovery-rejection/1") return null;
     const intent = checkedIntent(row.intent); return pending && sameIntent(pending, intent) ? intent : null;
   } catch { return null; }
 }
-function savedEarlier(): EarlierRequest[] | null {
+function savedEarlier(storage: CheckpointStorage): EarlierRequest[] | null {
   try {
-    const rows: unknown = JSON.parse(sessionStorage.getItem(historyKey) || "[]");
+    const rows: unknown = JSON.parse(storage.getItem(historyKey) || "[]");
     if (!Array.isArray(rows)) return null;
     const seen = new Set<string>();
     return rows.map(row => {
@@ -79,31 +81,31 @@ function savedEarlier(): EarlierRequest[] | null {
     });
   } catch { return null; }
 }
-function savedUpload(): UploadCheckpoint | null {
+function savedUpload(storage: CheckpointStorage): UploadCheckpoint | null {
   try {
-    const value = JSON.parse(sessionStorage.getItem(uploadKey) || "null");
+    const value = JSON.parse(storage.getItem(uploadKey) || "null");
     if (value && Object.keys(value).length === 2 && localIdentity(value.jobId)) return { input: checkedSystemRecoveryUploadInput(value.input), jobId: value.jobId };
   } catch { /* Server receipts remain authoritative. */ }
   return null;
 }
-function savedReceipts(): ReceiptCheckpoint[] {
+function savedReceipts(storage: CheckpointStorage): ReceiptCheckpoint[] {
   try {
-    const value = JSON.parse(sessionStorage.getItem(receiptsKey) || "[]");
+    const value = JSON.parse(storage.getItem(receiptsKey) || "[]");
     if (!Array.isArray(value) || value.length > 20) return [];
     return value.filter(row => row && Object.keys(row).length === 2 && localIdentity(row.requestId) && localIdentity(row.jobId));
   } catch { return []; }
 }
-function savedMaintenance(): SystemRecoveryMaintenanceInput | null {
-  try { const value = JSON.parse(sessionStorage.getItem(maintenanceKey) || "null"); return value ? checkedSystemRecoveryMaintenanceInput(value) : null; }
+function savedMaintenance(storage: CheckpointStorage): SystemRecoveryMaintenanceInput | null {
+  try { const value = JSON.parse(storage.getItem(maintenanceKey) || "null"); return value ? checkedSystemRecoveryMaintenanceInput(value) : null; }
   catch { return null; }
 }
-function savedSourceResume(): SystemRecoverySourceResumeInput | null {
-  try { const value = JSON.parse(sessionStorage.getItem(sourceResumeKey) || "null"); return value ? checkedSystemRecoverySourceResumeInput(value) : null; }
+function savedSourceResume(storage: CheckpointStorage): SystemRecoverySourceResumeInput | null {
+  try { const value = JSON.parse(storage.getItem(sourceResumeKey) || "null"); return value ? checkedSystemRecoverySourceResumeInput(value) : null; }
   catch { return null; }
 }
-function savedSourceRelease(): SourceRelease | null {
+function savedSourceRelease(storage: CheckpointStorage): SourceRelease | null {
   try {
-    const value = JSON.parse(sessionStorage.getItem(sourceReleaseKey) || "null");
+    const value = JSON.parse(storage.getItem(sourceReleaseKey) || "null");
     if (!value || Object.keys(value).length !== 2 || !localIdentity(value.backupJobId)) return null;
     const release = checkedSystemRecoveryMaintenanceReceipt(value.release);
     return release.action === "release" && release.status.state === "open" ? { release, backupJobId: value.backupJobId } : null;
@@ -202,23 +204,25 @@ function Job({ value, busy, recoveryCleanup, currentSignal, onControl, onReport,
 }
 
 export function SystemRecoveryPage() {
+  const [owner] = useState(captureApplicationOwner);
+  const [storage] = useState(() => checkpointStorage(owner));
   const [capability, setCapability] = useState<SystemRecoveryCapabilities | null>(null);
   const capabilityRef = useRef(capability);
   const [backupPreview, setBackupPreview] = useState<SystemRecoveryBackupPreview | null>(null);
   const [backupMode, setBackupMode] = useState<"historical" | "planned">("historical");
   const [maintenance, setMaintenance] = useState<SystemRecoveryMaintenanceStatus | null>(null);
-  const [pendingMaintenance, setPendingMaintenance] = useState<SystemRecoveryMaintenanceInput | null>(savedMaintenance);
+  const [pendingMaintenance, setPendingMaintenance] = useState<SystemRecoveryMaintenanceInput | null>(() => savedMaintenance(storage));
   const pendingMaintenanceRef = useRef(pendingMaintenance);
-  const [sourceRelease, setSourceRelease] = useState<SourceRelease | null>(savedSourceRelease);
+  const [sourceRelease, setSourceRelease] = useState<SourceRelease | null>(() => savedSourceRelease(storage));
   const sourceReleaseRef = useRef(sourceRelease);
-  const [pendingSourceResume, setPendingSourceResume] = useState<SystemRecoverySourceResumeInput | null>(savedSourceResume);
+  const [pendingSourceResume, setPendingSourceResume] = useState<SystemRecoverySourceResumeInput | null>(() => savedSourceResume(storage));
   const pendingSourceResumeRef = useRef(pendingSourceResume);
   const [executorUncertain, setExecutorUncertain] = useState(false);
   const [jobs, setJobs] = useState<SystemRecoveryJobStatus[]>([]);
-  const [pending, setPending] = useState<Intent | null>(savedIntent), pendingRef = useRef(pending);
-  const [rejected, setRejected] = useState(savedRejection), rejectedRef = useRef(rejected);
+  const [pending, setPending] = useState<Intent | null>(() => savedIntent(storage)), pendingRef = useRef(pending);
+  const [rejected, setRejected] = useState(() => savedRejection(storage)), rejectedRef = useRef(rejected);
   const [receiptMissing, setReceiptMissing] = useState(false);
-  const [earlier, setEarlier] = useState(savedEarlier), earlierRef = useRef(earlier);
+  const [earlier, setEarlier] = useState(() => savedEarlier(storage)), earlierRef = useRef(earlier);
   const messageTarget = useRef<HTMLParagraphElement>(null);
   const jobPauseTargets = useRef(new Map<string, { job: SystemRecoveryJobStatus; element: HTMLButtonElement }>());
   const jobStatusTargets = useRef(new Map<string, { job: SystemRecoveryJobStatus; element: HTMLParagraphElement }>());
@@ -226,7 +230,7 @@ export function SystemRecoveryPage() {
     movedAway: boolean; stopObserving: () => void };
   const requestFocus = useRef<RequestFocus | null>(null);
   function clearRequestFocus() { requestFocus.current?.stopObserving(); requestFocus.current = null; }
-  const [upload, setUpload] = useState<UploadCheckpoint | null>(savedUpload), uploadRef = useRef(upload);
+  const [upload, setUpload] = useState<UploadCheckpoint | null>(() => savedUpload(storage)), uploadRef = useRef(upload);
   const [file, setFile] = useState<File | null>(null), [preview, setPreview] = useState<SystemRecoveryPreview | null>(null);
   const [reportJobId, setReportJobId] = useState<string | null>(null), reportJobRef = useRef<string | null>(null);
   const [mapping, setMapping] = useState<SystemRecoveryStorageMapping[]>([]);
@@ -253,9 +257,9 @@ export function SystemRecoveryPage() {
     }
     setMessageText(error instanceof SessionIntentError ? error.message : systemRecoveryErrorMessage(error)); setMessageError(true);
   }
-  function remember(value: Intent | null) { storeSession(intentKey, value); pendingRef.current = value; setPending(value); setReceiptMissing(false); }
+  function remember(value: Intent | null) { storeSession(storage, intentKey, value); pendingRef.current = value; setPending(value); setReceiptMissing(false); }
   function rememberRejection(value: Intent | null) {
-    storeSession(rejectionKey, value ? { schema: "system-recovery-rejection/1", intent: value } : null);
+    storeSession(storage, rejectionKey, value ? { schema: "system-recovery-rejection/1", intent: value } : null);
     rejectedRef.current = value; setRejected(value); setReceiptMissing(false);
   }
   function retainEarlier(intent: Intent, jobId: string | null) {
@@ -263,14 +267,14 @@ export function SystemRecoveryPage() {
     const previous = rows.find(row => row.intent.input.requestId === intent.input.requestId);
     if (previous && (!sameIntent(previous.intent, intent) || previous.jobId && jobId && previous.jobId !== jobId)) throw new Error("Invalid recovery request checkpoint.");
     const next = [...rows.filter(row => row.intent.input.requestId !== intent.input.requestId), { intent, jobId: previous?.jobId ?? jobId }];
-    storeSession(historyKey, next); earlierRef.current = next; setEarlier(next);
+    storeSession(storage, historyKey, next); earlierRef.current = next; setEarlier(next);
   }
-  function saveUpload(value: UploadCheckpoint | null) { storeSession(uploadKey, value); uploadRef.current = value; setUpload(value); }
+  function saveUpload(value: UploadCheckpoint | null) { storeSession(storage, uploadKey, value); uploadRef.current = value; setUpload(value); }
   function rememberMaintenance(value: SystemRecoveryMaintenanceInput | null) {
-    storeSession(maintenanceKey, value); pendingMaintenanceRef.current = value; setPendingMaintenance(value);
+    storeSession(storage, maintenanceKey, value); pendingMaintenanceRef.current = value; setPendingMaintenance(value);
   }
   function rememberSourceResume(value: SystemRecoverySourceResumeInput | null) {
-    storeSession(sourceResumeKey, value); pendingSourceResumeRef.current = value; setPendingSourceResume(value);
+    storeSession(storage, sourceResumeKey, value); pendingSourceResumeRef.current = value; setPendingSourceResume(value);
   }
   function updateJob(value: SystemRecoveryJobStatus) { setJobs(current => [value, ...current.filter(job => job.id !== value.id)].slice(0, 100)); }
   function accept(intent: Intent, receipt: SystemRecoveryReceipt) {
@@ -281,8 +285,8 @@ export function SystemRecoveryPage() {
     retainEarlier(intent, receipt.job.id);
     refreshSequence.current++; updateJob(receipt.job);
     if (intent.action === "upload") saveUpload({ input: intent.input, jobId: receipt.job.id });
-    storeSession(receiptsKey, [{ requestId: receipt.requestId, jobId: receipt.job.id },
-      ...savedReceipts().filter(row => row.requestId !== receipt.requestId)].slice(0, 20));
+    storeSession(storage, receiptsKey, [{ requestId: receipt.requestId, jobId: receipt.job.id },
+      ...savedReceipts(storage).filter(row => row.requestId !== receipt.requestId)].slice(0, 20));
     rememberRejection(null); remember(null);
     if (intent.action === "backup") setBackupPreview(null);
     if (intent.action === "cutover") { setCutoverJob(receipt.job); setCutoverAcknowledged(false); }
@@ -292,7 +296,7 @@ export function SystemRecoveryPage() {
     return receipt.job;
   }
   function currentOperation(signal: AbortSignal) {
-    return !signal.aborted && signal === lifetime.current?.signal && !deniedRef.current;
+    return owner.isCurrent() && !signal.aborted && signal === lifetime.current?.signal && !deniedRef.current;
   }
   function ownsIntent(intent: Intent, signal: AbortSignal) {
     return currentOperation(signal) && !!pendingRef.current && sameIntent(pendingRef.current, intent);
@@ -355,14 +359,14 @@ export function SystemRecoveryPage() {
   async function checkEarlier(row: EarlierRequest, signal: AbortSignal) {
     try {
       const receipt = await systemRecoveryClient.readRequest(row.intent.input.requestId, signal);
-      if (signal.aborted || deniedRef.current) return null;
+      if (!currentOperation(signal)) return null;
       const expectedKind = row.intent.action === "cutover" ? "recovery" : row.intent.action;
       if (receipt.job.kind !== expectedKind || row.intent.action === "cutover" && receipt.job.id !== row.intent.jobId) throw new Error("Invalid recovery request checkpoint.");
       retainEarlier(row.intent, receipt.job.id); refreshSequence.current++; updateJob(receipt.job);
       setMessage("The earlier request's saved operation was returned. Any current unconfirmed operation remains retained.");
       return receipt.job;
     } catch (error) {
-      if (signal.aborted || deniedRef.current) return null;
+      if (!currentOperation(signal)) return null;
       if (!(error instanceof SystemRecoveryRequestMissingError)) throw error;
       setMessage("No receipt is recorded for this earlier request at this time. Its original input remains retained; no operation was started."); return null;
     }
@@ -372,7 +376,7 @@ export function SystemRecoveryPage() {
     if (reportJobRef.current !== id) setPreview(null);
     reportJobRef.current = id; setReportJobId(id);
     const value = await systemRecoveryClient.preview(id, signal);
-    if (signal.aborted || deniedRef.current || sequence !== reportSequence.current || reportJobRef.current !== id) return;
+    if (!currentOperation(signal) || sequence !== reportSequence.current || reportJobRef.current !== id) return;
     const identity = JSON.stringify([id, value.archive.sha256, value.target.id, value.source.checkpoint]);
     if (identity !== reportIdentity.current) {
       reportIdentity.current = identity; setAcknowledgeLaterChanges(false); setMode(value.source.mode);
@@ -387,12 +391,12 @@ export function SystemRecoveryPage() {
     finally { if (activeRead.current === reading) activeRead.current = null; }
   }
   async function readStatus(signal: AbortSignal, announce = false) {
-    if (signal.aborted || deniedRef.current) return;
+    if (!currentOperation(signal)) return;
     const sequence = ++refreshSequence.current;
     if (announce) setReadPhase("loading");
     try {
       const access = await systemRecoveryClient.capabilities(signal);
-      if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
+      if (!currentOperation(signal) || sequence !== refreshSequence.current) return;
       setCapability(access);
       capabilityRef.current = access;
       if (!access.canManage) {
@@ -401,22 +405,22 @@ export function SystemRecoveryPage() {
       }
       if (pendingMaintenanceRef.current) await reconcileMaintenance(signal);
       if (pendingSourceResumeRef.current) await reconcileSourceResume(signal);
-      if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
+      if (!currentOperation(signal) || sequence !== refreshSequence.current) return;
       const [list, maintenanceStatus] = await Promise.all([systemRecoveryClient.list(signal), systemRecoveryClient.maintenance(signal)]);
       const resumeContext = sourceReleaseRef.current;
-      const ids = [...new Set([...(earlierRef.current || []).flatMap(row => row.jobId ? [row.jobId] : []), ...savedReceipts().map(row => row.jobId), ...(resumeContext ? [resumeContext.backupJobId] : [])])]
+      const ids = [...new Set([...(earlierRef.current || []).flatMap(row => row.jobId ? [row.jobId] : []), ...savedReceipts(storage).map(row => row.jobId), ...(resumeContext ? [resumeContext.backupJobId] : [])])]
         .filter(id => !list.some(job => job.id === id));
       const recovered = await Promise.all(ids.map(async id => {
         try { return await systemRecoveryClient.status(id, signal); }
         catch (error) { if (error instanceof SystemRecoveryRequestError && [404, 410].includes(error.status || 0)) return null; throw error; }
       }));
-      if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
+      if (!currentOperation(signal) || sequence !== refreshSequence.current) return;
       const visible = [...recovered.filter((job): job is SystemRecoveryJobStatus => job !== null), ...list].slice(0, 100);
       setJobs(visible); setMaintenance(maintenanceStatus); setExecutorUncertain(false); setJobsLoaded(true); setReadError(null); setReadPhase("ready");
       const checkpoint = uploadRef.current;
       if (checkpoint) {
         const value = visible.find(job => job.id === checkpoint.jobId) || await systemRecoveryClient.status(checkpoint.jobId, signal);
-        if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current || uploadRef.current?.jobId !== checkpoint.jobId) return;
+        if (!currentOperation(signal) || sequence !== refreshSequence.current || uploadRef.current?.jobId !== checkpoint.jobId) return;
         if (!visible.some(job => job.id === value.id)) updateJob(value);
         if (value.state === "preview" && (!reportJobRef.current || reportJobRef.current === value.id)) await loadReport(value.id, signal);
       }
@@ -424,7 +428,7 @@ export function SystemRecoveryPage() {
         const latest = visible.find(job => job.id === cutoverRef.current?.id); if (latest) setCutoverJob(latest);
       }
     } catch (error) {
-      if (signal.aborted || deniedRef.current || sequence !== refreshSequence.current) return;
+      if (!currentOperation(signal) || sequence !== refreshSequence.current) return;
       if (error instanceof SystemRecoveryRequestError && [401, 403].includes(error.status || 0)) failure(error);
       else { setReadError("Recovery access or status could not be read. Retry the status check."); setReadPhase("error"); }
     }
@@ -433,15 +437,15 @@ export function SystemRecoveryPage() {
     const controller = new AbortController(); lifetime.current = controller;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const poll = async () => {
-      if (controller.signal.aborted || deniedRef.current) return;
+      if (!currentOperation(controller.signal)) return;
       if (!exclusiveOperation.current) await refresh(controller.signal);
-      if (!controller.signal.aborted && !deniedRef.current) timer = setTimeout(() => void poll(), 5000);
+      if (currentOperation(controller.signal)) timer = setTimeout(() => void poll(), 5000);
     };
     void (async () => {
       if (pendingRef.current) {
-        try { await reconcile(controller.signal); } catch (error) { if (!controller.signal.aborted) failure(error); }
+        try { await reconcile(controller.signal); } catch (error) { if (currentOperation(controller.signal)) failure(error); }
       }
-      if (!controller.signal.aborted && !deniedRef.current) await poll();
+      if (currentOperation(controller.signal)) await poll();
     })();
     return () => { controller.abort(); refreshSequence.current++; reportSequence.current++; if (timer) clearTimeout(timer); };
   }, []);
@@ -449,28 +453,28 @@ export function SystemRecoveryPage() {
     if (busy || !returnBackupPreviewFocus.current) return;
     const { button, signal } = returnBackupPreviewFocus.current;
     returnBackupPreviewFocus.current = null;
-    if (signal !== lifetime.current?.signal || signal.aborted || deniedRef.current) return;
+    if (signal !== lifetime.current?.signal || !currentOperation(signal)) return;
     if (button === backupPreviewButton.current && button.isConnected && !button.matches(":disabled")
       && (document.activeElement === document.body || document.activeElement === button)) button.focus();
   }, [busy]);
   async function act(operation: (signal: AbortSignal) => Promise<unknown>, preserveMessage = false, exclusive = false) {
     const controller = lifetime.current;
-    if (!controller || controller.signal.aborted || deniedRef.current || busyRef.current) return;
+    if (!controller || !currentOperation(controller.signal) || busyRef.current) return;
     busyRef.current = true; exclusiveOperation.current = exclusive; setBusy(true); if (!preserveMessage) setMessage("");
     try {
       // A source resume validates the original backup under exclusive Recovery
       // ownership. Finish the page's existing reads before issuing a mutation.
       if (exclusive && activeRead.current) await activeRead.current;
-      if (!controller.signal.aborted && !deniedRef.current) await operation(controller.signal);
+      if (currentOperation(controller.signal)) await operation(controller.signal);
     }
-    catch (error) { if (!controller.signal.aborted) failure(error); }
-    finally { if (!controller.signal.aborted) { busyRef.current = false; exclusiveOperation.current = false; setBusy(false); } }
+    catch (error) { if (currentOperation(controller.signal)) failure(error); }
+    finally { if (currentOperation(controller.signal)) { busyRef.current = false; exclusiveOperation.current = false; setBusy(false); } }
   }
   useLayoutEffect(() => () => clearRequestFocus(), []);
   useLayoutEffect(() => {
     if (busy) return;
     const intent = requestFocus.current; clearRequestFocus();
-    if (!intent || intent.signal !== lifetime.current?.signal || intent.signal.aborted || deniedRef.current || intent.movedAway
+    if (!intent || intent.signal !== lifetime.current?.signal || !currentOperation(intent.signal) || intent.movedAway
       || document.activeElement !== document.body && document.activeElement !== intent.origin) return;
     const row = intent.receipt && (["queued", "running"].includes(intent.receipt.state)
       ? jobPauseTargets.current.get(intent.receipt.id) : jobStatusTargets.current.get(intent.receipt.id));
@@ -513,25 +517,27 @@ export function SystemRecoveryPage() {
     const value = await systemRecoveryClient.upload(id, file, signal);
     if (currentOperation(signal)) { updateJob(value); setFile(null); setPreview(null); setMessage("Archive bytes accepted. The independent executor validates inventory, canonical data and file hashes before recovery can be reviewed."); }
   }
-  async function changeMaintenance(input: SystemRecoveryMaintenanceInput, signal: AbortSignal) {
+  async function changeMaintenance(input: SystemRecoveryMaintenanceInput, signal: AbortSignal, fresh = false) {
+    if (!currentOperation(signal)) return;
     let receipt: SystemRecoveryMaintenanceReceipt;
     try { receipt = await systemRecoveryClient.changeMaintenance(input, signal); }
     catch (error) {
-      if (signal.aborted) return;
+      if (!currentOperation(signal)) return;
       if (!(error instanceof SystemRecoveryRequestError) || error.status !== 409) throw error;
       try { receipt = await systemRecoveryClient.readMaintenanceRequest(input.requestId, signal); }
       catch (lookup) {
-        if (signal.aborted) return;
+        if (!currentOperation(signal)) return;
         if (lookup instanceof SystemRecoveryRequestError && lookup.status === 404) {
-          // A definitive atomic CAS rejection and absent exact receipt do not
-          // authorize replay with a new generation. Refresh before new intent.
+          // A rejected retry and absent receipt cannot cancel an older delivery
+          // still waiting for accepted writers to settle.
+          if (!fresh) { setMessage("The original maintenance request remains unconfirmed. A rejected retry does not settle its original result."); return; }
           rememberMaintenance(null); await refresh(signal);
           setMessage("The source window changed before this maintenance operation was accepted. Review current state before a new action."); return;
         }
         throw lookup;
       }
     }
-    if (signal.aborted || deniedRef.current) return;
+    if (!currentOperation(signal)) return;
     acceptMaintenance(input, receipt); setBackupPreview(null); setPreview(null);
     setMessage(input.action === "enter" ? "The source write window is draining. Existing accepted writers must positively settle before fencing."
       : input.action === "finalize" ? "The source write fence was confirmed. Capture and verify the final planned backup before cutover."
@@ -545,24 +551,25 @@ export function SystemRecoveryPage() {
     if (input.action === "release" && capabilityRef.current?.policy.sourceResume) {
       let backupJobId: string | null | undefined;
       try {
-        const saved = JSON.parse(sessionStorage.getItem(sourceBackupKey) || "null");
+        const saved = JSON.parse(storage.getItem(sourceBackupKey) || "null");
         if (saved?.generation === input.expectedGeneration && localIdentity(saved.jobId)) backupJobId = saved.jobId;
       } catch { /* An absent local checkpoint cannot select a different backup. */ }
       if (!backupJobId && maintenance?.generation === input.expectedGeneration) backupJobId = maintenance.backupJobId;
       if (backupJobId) {
         const context = { release: receipt, backupJobId };
-        storeSession(sourceReleaseKey, context); sourceReleaseRef.current = context; setSourceRelease(context);
+        storeSession(storage, sourceReleaseKey, context); sourceReleaseRef.current = context; setSourceRelease(context);
       }
     }
     setMaintenance(receipt.status); rememberMaintenance(null);
   }
   async function reconcileMaintenance(signal: AbortSignal, retryMissing = false) {
+    if (!currentOperation(signal)) return;
     const input = pendingMaintenanceRef.current; if (!input) return;
     try {
       const receipt = await systemRecoveryClient.readMaintenanceRequest(input.requestId, signal);
-      if (!signal.aborted && !deniedRef.current) acceptMaintenance(input, receipt);
+      if (currentOperation(signal)) acceptMaintenance(input, receipt);
     } catch (error) {
-      if (signal.aborted) return;
+      if (!currentOperation(signal)) return;
       if (error instanceof SystemRecoveryRequestError && error.status === 404) {
         if (retryMissing) await changeMaintenance(input, signal);
         else setMessage("No maintenance receipt is recorded yet. Keep its original identifier and explicitly retry after reviewing source state.");
@@ -570,44 +577,48 @@ export function SystemRecoveryPage() {
     }
   }
   async function beginMaintenance(action: SystemRecoveryMaintenanceInput["action"], signal: AbortSignal) {
+    if (!currentOperation(signal)) return;
     if (!maintenance || pendingMaintenanceRef.current || pendingRef.current || pendingSourceResumeRef.current) return;
     if (action === "release" && capability?.policy.sourceResume && maintenance.backupJobId) {
-      storeSession(sourceBackupKey, { jobId: maintenance.backupJobId, generation: maintenance.generation });
+      storeSession(storage, sourceBackupKey, { jobId: maintenance.backupJobId, generation: maintenance.generation });
     }
     const input = checkedSystemRecoveryMaintenanceInput({ requestId: crypto.randomUUID(), action, expectedGeneration: maintenance.generation });
-    rememberMaintenance(input); await changeMaintenance(input, signal);
+    rememberMaintenance(input); await changeMaintenance(input, signal, true);
   }
   function acceptSourceResume(input: SystemRecoverySourceResumeInput, receipt: SystemRecoverySourceResumeReceipt) {
     if (receipt.requestId !== input.requestId || receipt.releaseRequestId !== input.releaseRequestId
       || receipt.backupJobId !== input.backupJobId || receipt.expectedGeneration !== input.expectedGeneration) throw new Error("Invalid source resume receipt.");
-    rememberSourceResume(null); storeSession(sourceReleaseKey, null); storeSession(sourceBackupKey, null); sourceReleaseRef.current = null; setSourceRelease(null);
+    rememberSourceResume(null); storeSession(storage, sourceReleaseKey, null); storeSession(storage, sourceBackupKey, null); sourceReleaseRef.current = null; setSourceRelease(null);
     setMessage("Original source writes are enabled. Shadow conversion and file jobs remain paused; no target binding changed and no old work was replayed.");
   }
-  async function submitSourceResume(input: SystemRecoverySourceResumeInput, signal: AbortSignal) {
+  async function submitSourceResume(input: SystemRecoverySourceResumeInput, signal: AbortSignal, fresh = false) {
+    if (!currentOperation(signal)) return;
     let receipt: SystemRecoverySourceResumeReceipt;
     try { receipt = await systemRecoveryClient.resumeSource(input, signal); }
     catch (error) {
-      if (signal.aborted) return;
+      if (!currentOperation(signal)) return;
       if (!(error instanceof SystemRecoveryRequestError) || error.status !== 409) throw error;
       try { receipt = await systemRecoveryClient.readSourceResumeRequest(input.requestId, signal); }
       catch (lookup) {
-        if (signal.aborted) return;
+        if (!currentOperation(signal)) return;
         if (lookup instanceof SystemRecoveryRequestError && lookup.status === 404) {
+          if (!fresh) { setMessage("The original source resume request remains unconfirmed. Check its original receipt; the later retry did not settle it."); return; }
           rememberSourceResume(null); await refresh(signal);
           setMessage("Source resume was not accepted. Review the released source window and its completed backup before trying again."); return;
         }
         throw lookup;
       }
     }
-    if (!signal.aborted && !deniedRef.current) acceptSourceResume(input, receipt);
+    if (currentOperation(signal)) acceptSourceResume(input, receipt);
   }
   async function reconcileSourceResume(signal: AbortSignal, retryMissing = false) {
+    if (!currentOperation(signal)) return;
     const input = pendingSourceResumeRef.current; if (!input) return;
     try {
       const receipt = await systemRecoveryClient.readSourceResumeRequest(input.requestId, signal);
-      if (!signal.aborted && !deniedRef.current) acceptSourceResume(input, receipt);
+      if (currentOperation(signal)) acceptSourceResume(input, receipt);
     } catch (error) {
-      if (signal.aborted) return;
+      if (!currentOperation(signal)) return;
       if (error instanceof SystemRecoveryRequestError && error.status === 404) {
         if (retryMissing && capability?.policy.sourceResume) await submitSourceResume(input, signal);
         else setMessage("Source resume is unconfirmed. Check its original receipt before explicitly retrying the same request.");
@@ -670,8 +681,8 @@ export function SystemRecoveryPage() {
         <div className="storage-candidate-actions"><button className="button" disabled={blocked || !capability.supported || executorUncertain} onClick={() => void act(async signal => {
           try {
             const value = await systemRecoveryClient.configureExecutor(!capability.enabled, signal);
-            if (!signal.aborted && !deniedRef.current) { setCapability(value); setMessage("Executor configuration saved. Paused jobs require explicit resume; this action did not replay old work."); }
-          } catch (error) { if (!signal.aborted) setExecutorUncertain(true); throw error; }
+            if (currentOperation(signal)) { setCapability(value); setMessage("Executor configuration saved. Paused jobs require explicit resume; this action did not replay old work."); }
+          } catch (error) { if (currentOperation(signal)) setExecutorUncertain(true); throw error; }
         })}>{capability.enabled ? "Disable system recovery executor" : "Enable system recovery executor"}</button></div>
         {executorUncertain && <p className="warning-card">Executor configuration is unconfirmed. Refresh its saved state before changing it again.</p>}
       </section>
@@ -693,7 +704,7 @@ export function SystemRecoveryPage() {
             if (!sourceRelease || !mayResumeSource) return;
             const input = checkedSystemRecoverySourceResumeInput({ requestId: crypto.randomUUID(), releaseRequestId: sourceRelease.release.requestId,
               backupJobId: sourceRelease.backupJobId, expectedGeneration: sourceRelease.release.status.generation });
-            rememberSourceResume(input); await submitSourceResume(input, signal);
+            rememberSourceResume(input); await submitSourceResume(input, signal, true);
           }, false, true)}>Resume source writes after backup</button>
           {!sourceRelease && <p className="muted">Create a backup in this maintenance window, then release the window to retain its source resume identifiers.</p>}
         </div>}
@@ -701,7 +712,7 @@ export function SystemRecoveryPage() {
           <button className="button" disabled={busy} onClick={() => void act(signal => reconcileSourceResume(signal, true), false, true)}>Check or retry original source resume request</button></>}
         {pendingMaintenance && <><p className="warning-card">The {pendingMaintenance.action} maintenance request <code>{pendingMaintenance.requestId}</code> is unconfirmed. Review current state before retrying its original identifier.</p>
           <button className="button" disabled={busy} onClick={() => void act(async signal => {
-            const value = await systemRecoveryClient.maintenance(signal); if (!signal.aborted && !deniedRef.current) setMaintenance(value);
+            const value = await systemRecoveryClient.maintenance(signal); if (currentOperation(signal)) setMaintenance(value);
           })}>Read source maintenance state</button>
           <button className="button" disabled={busy} onClick={() => void act(signal => reconcileMaintenance(signal, true))}>Check or retry original maintenance request</button></>}
       </section>
@@ -726,7 +737,7 @@ export function SystemRecoveryPage() {
           const hadFocus = !!button && document.activeElement === button;
           void act(async signal => {
             returnBackupPreviewFocus.current = button && hadFocus && (document.activeElement === button || document.activeElement === document.body) ? { button, signal } : null;
-            const value = await systemRecoveryClient.backupPreview(signal); if (!signal.aborted && !deniedRef.current) setBackupPreview(value);
+            const value = await systemRecoveryClient.backupPreview(signal); if (currentOperation(signal)) setBackupPreview(value);
           });
         }}>Preview system backup</button>
         {backupPreview && <><p>Source maintenance: {reasonText(backupPreview.maintenance.state)}. {backupPreview.available ? "The bounded backup can be accepted." : "Backup acceptance is unavailable."}</p>
@@ -797,10 +808,10 @@ export function SystemRecoveryPage() {
           onStatusTarget={(value, element) => { if (element) jobStatusTargets.current.set(value.id, { job: value, element }); else jobStatusTargets.current.delete(value.id); }}
           onControl={(action, onStarting) => void act(async signal => {
           onStarting(signal);
-          const value = await systemRecoveryClient.control(job.id, action, signal); if (!signal.aborted && !deniedRef.current) { refreshSequence.current++; updateJob(value); }
+          const value = await systemRecoveryClient.control(job.id, action, signal); if (currentOperation(signal)) { refreshSequence.current++; updateJob(value); }
         })} onReport={() => void act(signal => loadReport(job.id, signal))} onSelectUpload={() => void act(async signal => {
           const [input, value] = await Promise.all([systemRecoveryClient.uploadIntent(job.id, signal), systemRecoveryClient.status(job.id, signal)]);
-          if (signal.aborted || deniedRef.current) return;
+          if (!currentOperation(signal)) return;
           if (value.kind !== "upload" || value.requestId !== input.requestId) throw new Error("Invalid saved upload.");
           saveUpload({ input, jobId: job.id }); setFile(null); updateJob(value); setPreview(null); reportJobRef.current = job.id; setReportJobId(job.id);
           if (value.state === "preview") await loadReport(job.id, signal);

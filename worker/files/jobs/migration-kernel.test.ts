@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { referenceTestDatabase, SqliteD1Database } from "../../reference-test-support";
 import { d1FileJobDatabase } from "./d1-repository";
 import { SqlFileJobRepository } from "./sql-repository";
@@ -10,7 +10,7 @@ import { runFileGarbageCollection } from "../authority-gc";
 import { BLOB_ORPHAN_GRACE_MS, BLOB_REGISTRATION_GRACE_MS } from "../../blob-lifecycle/reachability";
 import type { Env } from "../../types";
 import { setFileJobExecution } from "./worker-runtime";
-import { FILE_JOB_MAX_BYTES } from "../../../shared/contracts/file-jobs";
+import { FILE_JOB_MAX_BYTES, FILE_JOB_STEP_MS } from "../../../shared/contracts/file-jobs";
 
 const data = new TextEncoder().encode("source bytes 验证");
 const SHA = createHash("sha256").update(data).digest("hex");
@@ -88,6 +88,51 @@ function fixture(purposes = ["embedded_content"], byteSize = data.length) {
 }
 
 describe("persisted bounded File migration kernel", () => {
+  it.each(["administrator", "deadline"] as const)("retains the source when %s admission expires during the final ownership read", async change => {
+    const f = fixture(), job = await f.repository.accept(f.input, "admin@example.test");
+    let armed = false, elapsed = 0;
+    const verify = f.repository.verify.bind(f.repository), owns = f.repository.owns.bind(f.repository);
+    vi.spyOn(f.repository, "verify").mockImplementation(async (...input) => { await verify(...input); armed = true; });
+    vi.spyOn(f.repository, "owns").mockImplementation(async claim => {
+      const result = await owns(claim);
+      if (armed) { armed = false; if (change === "administrator") f.admin(false); else elapsed = FILE_JOB_STEP_MS; }
+      return result;
+    });
+    const result = await runFileJobStep({ ...f.capabilities, now: () => new Date(Date.now() + elapsed) });
+    expect(result).toEqual({ jobId: job.id, outcome: "paused" });
+    expect(await f.repository.status(job.id)).toMatchObject({ state: "paused", moved: 0 });
+    expect(f.sql.prepare("SELECT active_location_id FROM file_publications WHERE file_id='file-0'").get()!.active_location_id).toBe("source-0");
+    expect(f.sql.prepare("SELECT released_at FROM file_location_holds WHERE location_id='source-0' AND hold_kind='transition_source'").get()!.released_at).toBeNull();
+    expect(f.sql.prepare("SELECT verified_sha256 FROM file_migration_attempts").get()!.verified_sha256).toBe(SHA);
+    expect(f.requests.filter(request => request === "PUT:target")).toHaveLength(1);
+  });
+
+  it.each(["administrator", "deadline"] as const)("retains the source cleanup hold when %s admission expires during its grant read", async change => {
+    const f = fixture(), job = await f.repository.accept(f.input, "admin@example.test");
+    expect(await runFileJobStep(f.capabilities)).toMatchObject({ outcome: "moved" });
+    await f.repository.requestCleanup(job.id, "admin@example.test");
+    f.sql.prepare("UPDATE file_migration_items SET cleanup_not_before=? WHERE job_id=?").run(new Date(Date.now() - 1000).toISOString(), job.id);
+    let armed = false, permitted = true, elapsed = 0;
+    const cleanupGranted = f.repository.cleanupGranted.bind(f.repository);
+    vi.spyOn(f.repository, "cleanupGranted").mockImplementation(async (...input) => {
+      const result = await cleanupGranted(...input);
+      if (armed) { armed = false; if (change === "administrator") permitted = false; else elapsed = FILE_JOB_STEP_MS; }
+      return result;
+    });
+    const release = vi.spyOn(f.repository, "releaseCleanup");
+    const result = await runFileJobCleanupStep({ ...f.capabilities,
+      now: () => new Date(Date.now() + elapsed), authorizeSystemCleanup: () => permitted,
+      async openStorage(...input) {
+        const opened = await f.capabilities.openStorage(...input);
+        return { ...opened, dispose: async () => { armed = true; } };
+      },
+    });
+    expect(result).toEqual({ outcome: "paused" });
+    expect(release).not.toHaveBeenCalled();
+    expect(f.sql.prepare("SELECT released_at FROM file_location_holds WHERE location_id='source-0' AND hold_kind='transition_source'").get()!.released_at).toBeNull();
+    expect(f.sql.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+  });
+
   it("blocks oversized verified Files and more than 100 explicit Files before acceptance or provider I/O", async () => {
     const oversized = fixture(["embedded_content"], FILE_JOB_MAX_BYTES + 1);
     expect((await oversized.repository.plan(oversized.input)).items[0].status).toBe("unsupported_size");

@@ -83,32 +83,38 @@
   },
   "dependencies": {
     "@xyflow/react": "^12.11.2",
-    "hono": "^4.12.31",
+    "hono": "^4.13.7",
     "jose": "^6.2.3",
     "jszip": "^3.10.1",
     "marked": "18.0.9",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router-dom": "^7.18.1",
+    "react-router-dom": "^7.18.2",
     "temml": "0.13.3",
     "utif": "^3.1.0"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "^1.45.1",
-    "@cloudflare/workers-types": "^5.20260719.1",
+    "@cloudflare/vite-plugin": "1.49.0",
+    "@cloudflare/workers-types": "^5.20260730.1",
     "@testing-library/react": "^16.3.0",
     "@types/node": "22.19.7",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
-    "@xmldom/xmldom": "^0.9.10",
+    "@xmldom/xmldom": "^0.9.12",
     "esbuild": "0.28.1",
     "jsdom": "^26.1.0",
-    "miniflare": "4.20260714.0",
+    "miniflare": "4.20260730.0",
     "rolldown": "1.1.5",
     "typescript": "^7.0.2",
     "vite": "^8.1.5",
-    "vitest": "^4.1.10",
-    "wrangler": "^4.112.0"
+    "vitest": "^4.1.11",
+    "wrangler": "4.116.0"
+  },
+  "overrides": {
+    "miniflare@4.20260730.0": {
+      "undici": "7.29.1",
+      "sharp": "0.35.5"
+    }
   }
 }

@@ -53,7 +53,11 @@ beforeEach(() => {
   hostConsole().on("jsdomError", observeNavigation);
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false, addEventListener() {}, removeEventListener() {} })));
-  vi.stubGlobal("fetch", vi.fn(() => { throw new Error("Unexpected HTTP request"); }));
+  vi.stubGlobal("fetch", vi.fn(async (path: RequestInfo | URL) => {
+    if (String(path) === "/api/identity") return new Response(JSON.stringify({ schema: "application-identity/1", subject: "a".repeat(64) }),
+      { headers: { "content-type": "application/json" } });
+    throw new Error("Unexpected business HTTP request");
+  }));
 });
 afterEach(() => {
   cleanup(); hostConsole().removeListener("jsdomError", observeNavigation);
@@ -61,9 +65,23 @@ afterEach(() => {
 });
 
 describe("explicit recovery of a rejected actual App lazy route", () => {
+  it.each(["getItem", "setItem"] as const)("keeps the actual App and current draft usable when theme storage %s throws", async method => {
+    vi.spyOn(Storage.prototype, method).mockImplementation(() => { throw new DOMException("Storage is unavailable", "SecurityError"); });
+    mount("/samples");
+    const draft = await screen.findByRole("textbox", { name: "Sample draft" });
+    fireEvent.change(draft, { target: { value: "Retained without browser storage" } });
+    fireEvent.click(screen.getByRole("button", { name: "Switch to night mode" }));
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(screen.getByRole("textbox", { name: "Sample draft" })).toBe(draft);
+    expect((draft as HTMLInputElement).value).toBe("Retained without browser storage");
+    expect(screen.getByRole("navigation", { name: "Primary navigation" })).toBeTruthy();
+    expect(screen.queryByText("Unhandled route failure")).toBeNull();
+    expect(vi.mocked(fetch).mock.calls.map(([path]) => path)).toEqual(["/api/identity"]);
+  });
+
   it("keeps navigation and shows a focused safe recovery after the pending import rejects", async () => {
     mount();
-    expect(screen.getByText("Loading…")).toBeTruthy();
+    expect(await screen.findByText("Loading…")).toBeTruthy();
     expect(screen.getByRole("navigation", { name: "Primary navigation" })).toBeTruthy();
     await act(async () => { failedImports.pending.reject(new Error("Failed to fetch dynamically imported module: private-old-chunk.js")); });
     const recovery = await screen.findByRole("alert");
@@ -74,7 +92,7 @@ describe("explicit recovery of a rejected actual App lazy route", () => {
     expect(screen.getByRole("navigation", { name: "Primary navigation" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Reload page" })).toBeTruthy();
     expect(navigationErrors()).toHaveLength(0);
-    expect(fetch).not.toHaveBeenCalled();
+    expect(vi.mocked(fetch).mock.calls.map(([path]) => path)).toEqual(["/api/identity"]);
   });
 
   it("reloads only on explicit activation and retains the current full browser URL", async () => {
@@ -94,7 +112,7 @@ describe("explicit recovery of a rejected actual App lazy route", () => {
       expect(navigationErrors()).toHaveLength(1);
       expect(window.location.pathname + window.location.search + window.location.hash).toBe(retained);
       expect(screen.getByTestId("location").textContent).toBe(retained);
-      expect(fetch).not.toHaveBeenCalled();
+      expect(vi.mocked(fetch).mock.calls.map(([path]) => path)).toEqual(["/api/identity"]);
     } finally { window.history.replaceState(null, "", original); }
   });
 
@@ -109,7 +127,7 @@ describe("explicit recovery of a rejected actual App lazy route", () => {
     expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.getByTestId("location").textContent).toBe("/samples");
     expect(navigationErrors()).toHaveLength(0);
-    expect(fetch).not.toHaveBeenCalled();
+    expect(vi.mocked(fetch).mock.calls.map(([path]) => path)).toEqual(["/api/identity"]);
   });
 
   it("preserves an existing healthy route draft during query and hash focus navigation", async () => {
@@ -120,7 +138,7 @@ describe("explicit recovery of a rejected actual App lazy route", () => {
     await waitFor(() => expect(screen.getByTestId("location").textContent).toBe("/samples?focus=sample#record"));
     expect(screen.getByRole("textbox", { name: "Sample draft" })).toBe(draft);
     expect((draft as HTMLInputElement).value).toBe("Retained local draft");
-    expect(fetch).not.toHaveBeenCalled();
+    expect(vi.mocked(fetch).mock.calls.map(([path]) => path)).toEqual(["/api/identity"]);
   });
 
   it("handles page render failures through the same safe explicit recovery", async () => {
@@ -132,6 +150,6 @@ describe("explicit recovery of a rejected actual App lazy route", () => {
     expect(document.activeElement).toBe(recovery);
     expect(screen.getByRole("navigation", { name: "Primary navigation" })).toBeTruthy();
     expect(navigationErrors()).toHaveLength(0);
-    expect(fetch).not.toHaveBeenCalled();
+    expect(vi.mocked(fetch).mock.calls.map(([path]) => path)).toEqual(["/api/identity"]);
   });
 });

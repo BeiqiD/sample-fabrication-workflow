@@ -127,23 +127,31 @@ describe("current storage Settings controls", () => {
     await waitFor(() => expect(sessionStorage.getItem("storage-role-policy:pending")).toBeNull());
     expect(mutations()).toHaveLength(1); expect(document.body.textContent).not.toContain("private-network-detail");
   });
-  it("preserves an uncertain original intent across reload and rejects a stale replay before allowing another edit", async () => {
-    let attempts = 0, submitted!: StorageRolePolicyInput;
+  it.each([400, 404, 409])("retains an uncertain save after a retry returns %s and later recovers its receipt without another mutation", async status => {
+    let attempts = 0, submitted!: StorageRolePolicyInput, receiptVisible = false;
     network.mockImplementation(async (path, options) => {
       if (options?.method === "PUT") {
         const input = JSON.parse(String(options.body)); if (++attempts === 1) { submitted = input; throw new Error("lost"); }
-        expect(input).toEqual(submitted); return json({ error: "private-conflict" }, 409);
+        expect(input).toEqual(submitted); return json({ error: "private-conflict" }, status);
       }
-      if (String(path).includes("/defaults/")) return json({}, 404);
+      if (String(path).includes("/defaults/")) return receiptVisible ? json(receipt(submitted)) : json({}, 404);
       return String(path) === settingsPath ? json(snapshot()) : json({ canManage: true, credentialEditingAvailable: true });
     });
     const first = render(<StorageSettingsPage />); fireEvent.click(await saveButton());
-    await screen.findByText(/The save result is unconfirmed/); first.unmount(); render(<StorageSettingsPage />);
+    await screen.findByText(/The save result is unconfirmed/); first.unmount(); const second = render(<StorageSettingsPage />);
     await screen.findByText(/The save result is unconfirmed/); expect(mutations()).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Check or retry save" }));
-    await screen.findByText(/The selected profiles or policy changed/); expect(mutations()).toHaveLength(2);
+    await waitFor(() => expect(mutations()).toHaveLength(2));
+    await waitFor(() => expect((screen.getByRole("button", { name: "Check or retry save" }) as HTMLButtonElement).disabled).toBe(false));
+    expect(screen.getByText(/The save result is unconfirmed/)).toBeTruthy();
     expect((screen.getByRole("button", { name: "Save upload destinations" }).closest("fieldset") as HTMLFieldSetElement).disabled).toBe(true);
-    expect(sessionStorage.getItem("storage-role-policy:pending")).toBeNull(); expect(document.body.textContent).not.toContain("private-conflict");
+    expect(JSON.parse(sessionStorage.getItem("storage-role-policy:pending")!)).toEqual(submitted);
+    expect(document.body.textContent).not.toContain("private-conflict");
+    // The original request can commit after the retry's absence check. Only its
+    // matching receipt proves completion, even when the retry is rejected.
+    receiptVisible = true; second.unmount(); render(<StorageSettingsPage />);
+    await waitFor(() => expect(sessionStorage.getItem("storage-role-policy:pending")).toBeNull());
+    expect(mutations()).toHaveLength(2);
   });
   it("disables mutations while File access is paused and after current administrator access is revoked", async () => {
     const value = snapshot(); value.authority.fileAccess = "paused";

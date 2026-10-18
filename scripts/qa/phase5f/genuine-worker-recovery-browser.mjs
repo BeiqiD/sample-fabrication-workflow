@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { sha256 } from './genuine-worker-recovery-runtime.mjs';
+import { readOwnedCheckpoint, waitForOwnedCheckpointCleared } from './browser-owned-checkpoints.mjs';
 import { checkedSystemRecoveryBackupInput, checkedSystemRecoveryUploadInput, checkedSystemRecoveryImportInput,
   checkedSystemRecoveryReceipt } from '../../../shared/contracts/system-recovery.ts';
 
@@ -73,9 +74,9 @@ async function acceptedAfter(page, owner, value, path, kind, operation) {
   assert.equal(receipt.requestId, input.requestId); assert.equal(receipt.job.requestId, input.requestId);
   assert.equal(receipt.job.kind, kind); assert.equal(receipt.reused, true);
   await page.locator('.system-recovery-job').filter({ has: page.getByText(receipt.job.id, { exact: true }) }).waitFor();
-  await page.waitForFunction(() => sessionStorage.getItem('system-recovery-operation') === null);
+  await waitForOwnedCheckpointCleared(page, 'system-recovery-operation');
   if (kind === 'upload') {
-    const checkpoint = await page.evaluate(() => JSON.parse(sessionStorage.getItem('system-recovery-upload')));
+    const checkpoint = await readOwnedCheckpoint(page, 'system-recovery-upload');
     assert.deepEqual(checkpoint, { input, jobId: receipt.job.id });
   } else await page.getByText('Operation saved.', { exact: false }).waitFor();
   (value.originalRequestReceipts ??= []).push({ requestId: input.requestId, jobId: receipt.job.id, kind,

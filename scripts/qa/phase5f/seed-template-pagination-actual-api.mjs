@@ -267,7 +267,7 @@ try {
   const parserPath = resolve(ownerDirectory, 'genuine-workbook-parser.mjs');
   await build({ entryPoints: [resolve(sourceCopyRoot, 'src/lib/fabublox.ts')], outfile: parserPath,
     bundle: true, platform: 'node', format: 'esm', logLevel: 'silent',
-    banner: { js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);" } });
+    banner: { js: "import { createRequire as __sfwBundleCreateRequire } from 'node:module'; const require = __sfwBundleCreateRequire(import.meta.url);" } });
   await chmod(parserPath, 0o600); Object.defineProperty(globalThis, 'DOMParser', { value: DOMParser, configurable: true });
   const { parseFabuBloxWorkbook } = await import(pathToFileURL(parserPath));
   receipt.parser = { sourceSha256: isolation.trackedFiles['src/lib/fabublox.ts'],

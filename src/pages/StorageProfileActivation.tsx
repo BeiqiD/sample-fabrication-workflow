@@ -1,3 +1,5 @@
+import { checkpointStorage, type CheckpointStorage } from "../lib/browser-checkpoints";
+import { captureApplicationOwner } from "../lib/authentication-client";
 import { useEffect, useRef, useState } from "react";
 import type { StorageCandidate } from "../../shared/contracts/storage-configuration";
 import type { StorageCandidateReadiness } from "../../shared/contracts/storage-candidate-readiness";
@@ -6,9 +8,9 @@ import { checkedNativeStorageActivationInput, type NativeStorageActivationInput,
 import { api, StoragePolicyRequestError } from "../lib/api";
 
 const intentKey = (id: string) => `storage-profile-activation:${id}`;
-function remembered(id: string): NativeStorageActivationInput | null {
+function remembered(storage: CheckpointStorage, id: string): NativeStorageActivationInput | null {
   try {
-    const raw = sessionStorage.getItem(intentKey(id)), value = raw ? checkedNativeStorageActivationInput(JSON.parse(raw)) : null;
+    const raw = storage.getItem(intentKey(id)), value = raw ? checkedNativeStorageActivationInput(JSON.parse(raw)) : null;
     return value?.candidateProfileId === id ? value : null;
   } catch { return null; }
 }
@@ -16,8 +18,10 @@ export function StorageProfileActivation({ candidate, nativeProfileId, evidence,
   candidate: StorageCandidate; nativeProfileId: string; evidence: StorageCandidateReadiness | null; blocked: boolean;
   onForbidden: () => void; onStaleEvidence: () => void;
 }) {
+  const [owner] = useState(captureApplicationOwner);
+  const [storage] = useState(() => checkpointStorage(owner));
   const [status, setStatus] = useState<CurrentStorageSettingsStatus | null>(null), [loading, setLoading] = useState(true);
-  const [pending, setPending] = useState(() => remembered(candidate.profileId)), [busy, setBusy] = useState(false), [message, setMessage] = useState("");
+  const [pending, setPending] = useState(() => remembered(storage, candidate.profileId)), [busy, setBusy] = useState(false), [message, setMessage] = useState("");
   const [forbidden, setForbidden] = useState(false), [readError, setReadError] = useState("");
   const generation = useRef(0), operationBusy = useRef(false), pendingRef = useRef(pending), requests = useRef(new Set<AbortController>());
   const loadGeneration = useRef(0);
@@ -28,11 +32,12 @@ export function StorageProfileActivation({ candidate, nativeProfileId, evidence,
     && evidence.credential.envelopeRevision !== null && evidence.evidence.exactCurrentContextSuccess
     && !evidence.evidence.inProgressCount && !evidence.evidence.unresolvedCleanupCount;
   async function request<T>(operation: (signal: AbortSignal) => Promise<T>) {
+    owner.assertCurrent();
     const controller = new AbortController(); requests.current.add(controller);
-    try { return await operation(controller.signal); } finally { requests.current.delete(controller); }
+    try { const value = await operation(controller.signal); owner.assertCurrent(); return value; } finally { requests.current.delete(controller); }
   }
   function remember(input: NativeStorageActivationInput | null, profileId = input?.candidateProfileId ?? candidate.profileId) {
-    try { if (input) sessionStorage.setItem(intentKey(profileId), JSON.stringify(input)); else sessionStorage.removeItem(intentKey(profileId)); }
+    try { if (input) storage.setItem(intentKey(profileId), JSON.stringify(input)); else storage.removeItem(intentKey(profileId)); }
     catch { if (input) return false; }
     pendingRef.current = input; setPending(input); return true;
   }
@@ -45,9 +50,9 @@ export function StorageProfileActivation({ candidate, nativeProfileId, evidence,
   async function load(current = generation.current) {
     const reading = ++loadGeneration.current;
     setLoading(true); setStatus(null); setReadError("");
-    try { const value = await request(signal => api.getCurrentStorageSettings(signal)); if (current === generation.current && reading === loadGeneration.current && value.version === 3) setStatus(value); }
-    catch (failure) { if (current === generation.current && reading === loadGeneration.current && !denied(failure)) setReadError("Activation settings are unavailable. Refresh activation status to try again."); }
-    finally { if (current === generation.current && reading === loadGeneration.current) setLoading(false); }
+    try { const value = await request(signal => api.getCurrentStorageSettings(signal)); if (owner.isCurrent() && current === generation.current && reading === loadGeneration.current && value.version === 3) setStatus(value); }
+    catch (failure) { if (owner.isCurrent() && current === generation.current && reading === loadGeneration.current && !denied(failure)) setReadError("Activation settings are unavailable. Refresh activation status to try again."); }
+    finally { if (owner.isCurrent() && current === generation.current && reading === loadGeneration.current) setLoading(false); }
   }
   function accept(value: NativeStorageActivationReceipt, input: NativeStorageActivationInput) {
     if (value.operationId !== input.operationId || value.nativeProfileId !== input.nativeProfileId || value.candidateProfileId !== input.candidateProfileId
@@ -55,30 +60,32 @@ export function StorageProfileActivation({ candidate, nativeProfileId, evidence,
       || input.expectedBindingRevision !== null && value.bindingRevision !== input.expectedBindingRevision + 1) throw new Error("Invalid storage activation receipt.");
     remember(null, input.candidateProfileId); setMessage("Profile activation confirmed. Select this profile in current storage settings to use it for new uploads.");
   }
-  async function submit(input: NativeStorageActivationInput, current: number) {
-    try { const value = await request(signal => api.activateStorageProfile(input, signal)); if (current === generation.current) { accept(value, input); await load(current); } }
+  async function submit(input: NativeStorageActivationInput, current: number, initial = false) {
+    try { const value = await request(signal => api.activateStorageProfile(input, signal)); if (owner.isCurrent() && current === generation.current) { accept(value, input); await load(current); } }
     catch (failure) {
-      if (current !== generation.current || denied(failure)) return;
-      if (failure instanceof StoragePolicyRequestError && [400, 404, 409].includes(failure.status)) {
+      if (!owner.isCurrent() || current !== generation.current || denied(failure)) return;
+      // A rejected replay cannot settle the original attempt: it may have
+      // committed between the receipt lookup and the retry's stale-CAS check.
+      if (initial && failure instanceof StoragePolicyRequestError && [400, 404, 409].includes(failure.status)) {
         remember(null, input.candidateProfileId); onStaleEvidence(); setMessage("Activation could not be completed. Refresh evidence and activation status before trying again.");
       } else await reconcile(input, current, false);
     }
   }
   async function reconcile(input: NativeStorageActivationInput, current: number, retry: boolean) {
-    try { const value = await request(signal => api.readStorageActivation(input.operationId, signal)); if (current === generation.current) { accept(value, input); await load(current); } }
+    try { const value = await request(signal => api.readStorageActivation(input.operationId, signal)); if (owner.isCurrent() && current === generation.current) { accept(value, input); await load(current); } }
     catch (failure) {
-      if (current !== generation.current || denied(failure)) return;
+      if (!owner.isCurrent() || current !== generation.current || denied(failure)) return;
       if (retry && enabled && failure instanceof StoragePolicyRequestError && failure.status === 404) { await submit(input, current); return; }
       setMessage("The activation result is unconfirmed. Check or retry the original activation before starting another.");
     }
   }
   useEffect(() => {
-    const current = ++generation.current, saved = remembered(candidate.profileId);
+    const current = ++generation.current, saved = remembered(storage, candidate.profileId);
     pendingRef.current = saved; setPending(saved); setMessage(""); operationBusy.current = false; setBusy(false);
     void load(current);
     if (saved) {
       operationBusy.current = true; setBusy(true);
-      void reconcile(saved, current, false).finally(() => { if (current === generation.current) { operationBusy.current = false; setBusy(false); } });
+      void reconcile(saved, current, false).finally(() => { if (owner.isCurrent() && current === generation.current) { operationBusy.current = false; setBusy(false); } });
     }
     return () => { generation.current += 1; for (const request of requests.current) request.abort(); operationBusy.current = false; };
   }, [candidate.profileId, nativeProfileId]);
@@ -90,12 +97,12 @@ export function StorageProfileActivation({ candidate, nativeProfileId, evidence,
       checkId: evidence.evidence.exactCurrentContextSuccess.checkId, expectedBindingRevision: profile.bindingRevision };
     if (!remember(input)) { setMessage("Browser session storage is unavailable. Enable it before activating a profile."); return; }
     const current = generation.current; operationBusy.current = true; setBusy(true); setMessage("");
-    try { await submit(input, current); } finally { if (current === generation.current) { operationBusy.current = false; setBusy(false); } }
+    try { await submit(input, current, true); } finally { if (owner.isCurrent() && current === generation.current) { operationBusy.current = false; setBusy(false); } }
   }
   async function retry() {
     if (!pendingRef.current || operationBusy.current) return;
     const input = pendingRef.current, current = generation.current; operationBusy.current = true; setBusy(true);
-    try { await reconcile(input, current, true); } finally { if (current === generation.current) { operationBusy.current = false; setBusy(false); } }
+    try { await reconcile(input, current, true); } finally { if (owner.isCurrent() && current === generation.current) { operationBusy.current = false; setBusy(false); } }
   }
   return <div className="storage-profile-activation">
     <h4>Profile activation</h4>

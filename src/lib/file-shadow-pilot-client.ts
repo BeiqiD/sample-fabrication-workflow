@@ -1,4 +1,5 @@
-import { applicationFetch } from "./authentication-client";
+import { captureApplicationOwner } from "./authentication-client";
+import { checkpointStorage, type CheckpointStorage } from "./browser-checkpoints";
 import type { FilePurpose } from "../../shared/contracts/files";
 import { checkedShadowWithdrawalRequest, shadowWithdrawalRequestSha256, type ShadowWithdrawalRequest } from "../../shared/contracts/file-shadow-withdrawal";
 import { createUuid } from "./uuid";
@@ -236,9 +237,10 @@ export function createFileShadowPilotClient(options: {
 } = {}): FileShadowPilotClient {
   let baselines = new WeakMap<PilotBaseline, string>();
   const statuses = new WeakMap<PilotStatus, string>();
-  const fetcher = options.fetch ?? ((...args) => applicationFetch(...args));
-  const storage = (): Storage => {
-    try { return options.storage ?? localStorage; } catch { return fail("Persistent browser storage is unavailable. No command was sent."); }
+  const owner = captureApplicationOwner();
+  const fetcher = options.fetch ?? owner.fetch;
+  const storage = (): CheckpointStorage => {
+    try { return checkpointStorage(owner, options.storage ?? localStorage); } catch { return fail("Persistent browser storage is unavailable. No command was sent."); }
   };
   function loadJournal(): PilotJournal | null {
     try {

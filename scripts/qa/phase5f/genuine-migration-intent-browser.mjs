@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
 import { checkedAcceptFileMigration, checkedFileMigrationRequestAbsent, checkedFileMigrationRequestReceipt } from '../../../shared/contracts/file-jobs.ts';
 import { migrationBase } from './genuine-migration-intent-runtime.mjs';
+import { ownedCheckpointKey, waitForOwnedCheckpointCleared } from './browser-owned-checkpoints.mjs';
 
 const button = (page, name) => page.getByRole('button', { name, exact: true });
 async function enabled(locator) {
@@ -15,8 +16,11 @@ async function responseAfter(page, path, method, operation, status = 200) {
   assert.equal(response.status(), status, `${method} ${path}: HTTP${response.status()}`); return response;
 }
 async function checkpoint(page) {
-  return page.evaluate(() => Object.fromEntries(['file-migration-acceptance', 'file-migration-acceptance-rejection', 'file-migration-earlier-requests']
-    .map(key => [key, JSON.parse(sessionStorage.getItem(key) ?? 'null')])));
+  const prefix = await ownedCheckpointKey(page, '');
+  return page.evaluate(prefix => {
+    const keys = ['file-migration-acceptance', 'file-migration-acceptance-rejection', 'file-migration-earlier-requests'];
+    return Object.fromEntries(keys.map(key => [key, JSON.parse(sessionStorage.getItem(prefix + key) ?? 'null')]));
+  }, prefix);
 }
 async function capture(page, owner, name) {
   await page.evaluate(() => scrollTo(0, 0));
@@ -39,7 +43,7 @@ async function receipt(owner, input) {
 async function savedVisible(page, jobId) {
   const saved = page.locator('section').filter({ has: page.getByRole('heading', { name: 'Saved jobs', exact: true }) });
   await saved.getByRole('heading', { name: jobId, exact: true }).waitFor();
-  await page.waitForFunction(() => sessionStorage.getItem('file-migration-acceptance') === null);
+  await waitForOwnedCheckpointCleared(page, 'file-migration-acceptance');
   await page.getByText(`Migration ${jobId} accepted. You can leave this page while the executor continues.`, { exact: true }).waitFor();
 }
 async function rejectedPlan(owner, page, value) {

@@ -22,8 +22,10 @@ on:
       - wrangler.jsonc
       - scripts/production-worker-artifact.mjs
       - scripts/generate-wrangler-config.mjs
+      - scripts/lib/cloudflare-bootstrap.mjs
       - scripts/temml-bundler-compat.mjs
       - scripts/qa/phase5f/browser-genuine-worker-recovery.mjs
+      - scripts/qa/phase5f/browser-owned-checkpoints.mjs
       - scripts/qa/phase5f/genuine-worker-recovery-browser.mjs
       - scripts/qa/phase5f/genuine-worker-recovery-runtime.mjs
       - scripts/qa/phase5f/browser-genuine-migration-intent.mjs
@@ -51,8 +53,10 @@ on:
       - wrangler.jsonc
       - scripts/production-worker-artifact.mjs
       - scripts/generate-wrangler-config.mjs
+      - scripts/lib/cloudflare-bootstrap.mjs
       - scripts/temml-bundler-compat.mjs
       - scripts/qa/phase5f/browser-genuine-worker-recovery.mjs
+      - scripts/qa/phase5f/browser-owned-checkpoints.mjs
       - scripts/qa/phase5f/genuine-worker-recovery-browser.mjs
       - scripts/qa/phase5f/genuine-worker-recovery-runtime.mjs
       - scripts/qa/phase5f/browser-genuine-migration-intent.mjs
@@ -84,7 +88,8 @@ jobs:
       - name: Check out candidate
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          # Exercise the proposed base/head combination on pull requests.
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Set up Node.js

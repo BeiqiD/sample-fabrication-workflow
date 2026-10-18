@@ -36,9 +36,12 @@ describe("reference source-focus integration", () => {
     expect(processTemplatePage).not.toContain("}, [location.search, navigate, templateId]);");
 
     expect(metrologyPage).toContain("const locationSearchRef = useRef(location.search);");
+    expect(metrologyPage).toContain("locationSearchRef.current = location.search;");
     expect(metrologyPage).toContain('`${templateDetailPath(templateId, "process")}${locationSearchRef.current}`');
-    expect(metrologyPage).toContain("}, [navigate, templateId]);");
-    expect(metrologyPage).not.toContain("}, [location.search, navigate, templateId]);");
+    const metrologyLoadDependencies = metrologyPage.match(/const load = useCallback\([\s\S]*?\}, \[([^\]]*)\]\);/)?.[1]
+      ?.split(",").map(dependency => dependency.trim());
+    expect(metrologyLoadDependencies).toEqual(["isCurrentSession", "navigate", "templateId"]);
+    expect(metrologyLoadDependencies).not.toContain("location.search");
   });
 
   it("uses stable occurrence media rather than exposing a physical locator", () => {

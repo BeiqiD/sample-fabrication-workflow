@@ -1,3 +1,4 @@
+import { captureApplicationOwner } from "./authentication-client";
 import {
   useCallback,
   useEffect,
@@ -185,6 +186,7 @@ export function useProjectCanvasCopyPaste({
   onEdgeAcknowledged,
   onAuthoritativeSnapshot,
 }: UseProjectCanvasCopyPasteOptions): ProjectCanvasCopyPasteController {
+  const [owner] = useState(captureApplicationOwner);
   const projectIdRef = useRef(projectId);
   projectIdRef.current = projectId;
   const clipboardRef = useRef<ProjectCanvasClipboard | null>(null);
@@ -206,11 +208,11 @@ export function useProjectCanvasCopyPaste({
     requestProjectId: string,
     journalId: string,
   ) => (
-    mountedRef.current
+    owner.isCurrent() && mountedRef.current
     && generationRef.current === generation
     && projectIdRef.current === requestProjectId
     && pasteStateRef.current?.journal.journalId === journalId
-  ), []);
+  ), [owner]);
 
   const createSessionClients = useCallback((
     generation: number,
@@ -393,7 +395,7 @@ export function useProjectCanvasCopyPaste({
     snapshot: ProjectSnapshot,
     selectedItemIds: readonly string[],
   ) => {
-    if (pasteStateRef.current || snapshot.project.id !== projectIdRef.current) return false;
+    if (!owner.isCurrent() || pasteStateRef.current || snapshot.project.id !== projectIdRef.current) return false;
     try {
       const next = buildProjectCanvasClipboard(snapshot, selectedItemIds);
       if (!next) return false;
@@ -422,7 +424,7 @@ export function useProjectCanvasCopyPaste({
 
   const pasteClipboard = useCallback((snapshot: ProjectSnapshot, point?: { x: number; y: number }) => {
     const source = clipboardRef.current;
-    if (!source || pasteStateRef.current || snapshot.project.id !== projectIdRef.current) return false;
+    if (!owner.isCurrent() || !source || pasteStateRef.current || snapshot.project.id !== projectIdRef.current) return false;
     try {
       const pasteOrdinal = pasteOrdinalRef.current + 1;
       const journal = createProjectCanvasPasteJournal(snapshot, source, {

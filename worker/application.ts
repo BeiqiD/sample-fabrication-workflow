@@ -24,6 +24,7 @@ import { packageRoutes } from "./packages/routes";
 import { sourceMaintenanceAdmission } from "./recovery/maintenance";
 import { maintenanceRoutes } from "./recovery/maintenance-routes";
 import { systemRecoveryRoutes } from "./recovery/routes";
+import { applicationIdentityAdmission, applicationIdentityRoutes } from "./platform/identity";
 
 /** Transitional Cloudflare composition; business routes still require Env. */
 export function createWorkerApplication() {
@@ -37,6 +38,8 @@ export function createWorkerApplication() {
   app.use("/storage/configuration", storageConfigurationCacheControl);
   app.use("/storage/configuration/*", storageConfigurationCacheControl);
   app.use("*", authenticateApiRequest);
+  app.use("*", applicationIdentityAdmission);
+  app.route("/", applicationIdentityRoutes);
   app.use("*", sourceMaintenanceAdmission);
   // Privileged recovery remains reachable while research execution is paused.
   app.route("/", maintenanceRoutes);

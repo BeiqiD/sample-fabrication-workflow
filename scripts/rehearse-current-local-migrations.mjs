@@ -55,8 +55,14 @@ async function freezeSources() {
       if (index >= 16) schemas.set(index + 1, normalizeSchema(observeHostSchema(host)));
     }
   } finally { host.close(); }
-  const commit = (await execute("git", ["rev-parse", "HEAD"], { cwd: source })).stdout.trim();
-  return { sql, schemas, recoveryTableSnapshotSql, evidence: { source, sourceCommit: commit, node: process.version,
+  const [commit, status, manifest, lock] = await Promise.all([
+    execute("git", ["rev-parse", "HEAD"], { cwd: source }),
+    execute("git", ["status", "--porcelain", "--untracked-files=all"], { cwd: source }),
+    readFile(join(source, "package.json")), readFile(join(source, "package-lock.json")),
+  ]);
+  return { sql, schemas, recoveryTableSnapshotSql, evidence: { source, sourceCommit: commit.stdout.trim(), node: process.version,
+    dirtySource: status.stdout.length > 0, workingTreeStatus: status.stdout.trim(),
+    packageManifestSha256: hash(manifest), packageLockSha256: hash(lock),
     wrangler: require("wrangler/package.json").version, workerd: require("workerd/package.json").version,
     sourceQualification: "Exact SQL bytes and named helper inputs; no application-build or clean-working-tree claim",
     migrations: names.map((name, index) => ({ name, sha256: hash(sql[index]) })),

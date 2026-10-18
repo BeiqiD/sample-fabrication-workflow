@@ -13,7 +13,7 @@ assert(args.length === 4 && args[0] === '--source-a' && isAbsolute(args[1]) && a
   'Usage: node scripts/qa/phase5f/browser-two-version-handover.mjs --source-a /absolute/BUILT_VERSION_A --output /absolute/NEW_OUTPUT');
 const output = resolve(args[3]); await mkdir(output, { mode: 0o700 });
 const report = { version: 1, status: 'running', nodeVersion: process.version, startedAt: new Date().toISOString(),
-  scope: 'Two actual built Worker/client versions, stable local signed Access edge and sequential original runtimes over unchanged local D1/R2. Real retired lazy-route asset failure, explicit keyboard reload and original queued request reconciliation. No production, physical device, arbitrary dirty draft, provider, Package execution, elapsed cadence or full release qualification.', cases: [] };
+  scope: 'Two actual built Worker/client versions, stable local signed Access edge and sequential original runtimes over unchanged local D1/R2. Real retired lazy-route asset failure, explicit keyboard reload, preserved unowned legacy checkpoint and original accepted-job discovery through the authenticated account list without replay. No production, physical device, arbitrary dirty draft, provider, Package execution, elapsed cadence or full release qualification.', cases: [] };
 let owner, browser;
 try {
   const a = await inspectVersion(resolve(args[1]), true), b = await inspectVersion(source);

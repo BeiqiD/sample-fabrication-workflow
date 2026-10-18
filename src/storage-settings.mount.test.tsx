@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { StorageSettingsStatus } from "../shared/contracts/storage-settings";
 import { App } from "./App";
 import { StorageSettingsPage } from "./pages/StorageSettingsPage";
+import { authenticationSnapshot, readApplicationIdentity } from "./lib/authentication-client";
 
 const snapshot = (id = "registered-r2"): StorageSettingsStatus => ({
   version: 2, kind: "storage-settings-status", readOnly: true, configurationSource: "deployment", health: "not_checked",
@@ -21,12 +22,23 @@ function pending() {
   return { promise, resolve };
 }
 const network = vi.fn<typeof fetch>();
-beforeEach(() => {
-  network.mockReset(); network.mockImplementation(async () => json(snapshot()));
+const identitySubject = "b".repeat(64);
+beforeEach(async () => {
+  vi.stubEnv("VITE_LOCAL_AUTHENTICATION", "0");
+  network.mockReset(); network.mockImplementation(async path => {
+    if (path === "/api/identity") return json({ schema: "application-identity/1", subject: identitySubject });
+    if (path === "/api/settings/storage?version=3") return json(snapshot());
+    throw new Error(`Unexpected request ${path}`);
+  });
   vi.stubGlobal("fetch", network);
   vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false })));
+  // Establish a fresh real authentication generation before direct page tests;
+  // App cases still exercise the Gate's own identity read below.
+  await readApplicationIdentity();
+  expect(authenticationSnapshot().phase).toBe("authenticated");
+  network.mockClear();
 });
-afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); localStorage.clear(); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); localStorage.clear(); });
 const refresh = () => screen.getByRole("button", { name: "Refresh" });
 async function clickRefresh() { await act(async () => { fireEvent.click(refresh()); }); }
 
@@ -48,7 +60,9 @@ describe("read-only storage Settings", () => {
     expect(screen.getByRole("link", { name: "File authority maintenance" }).getAttribute("href")).toBe("/maintenance/file-authority");
     expect(document.body.textContent).not.toMatch(/healthy|connected|default storage|S3|FP1/);
     expect(screen.queryByRole("textbox")).toBeNull();
-    expect(network).toHaveBeenCalledExactlyOnceWith("/api/settings/storage?version=3", expect.objectContaining({ method: "GET", cache: "no-store", credentials: "same-origin", redirect: "error" }));
+    expect(network.mock.calls.map(([path]) => path)).toEqual(["/api/identity", "/api/settings/storage?version=3"]);
+    expect(network).toHaveBeenLastCalledWith("/api/settings/storage?version=3", expect.objectContaining({ method: "GET", cache: "no-store", credentials: "same-origin", redirect: "error" }));
+    expect(new Headers(network.mock.calls.at(-1)![1]?.headers).get("x-sfw-expected-subject")).toBe(identitySubject);
     const buttons = screen.getAllByRole("button").map((button) => button.textContent);
     expect(buttons).toEqual(["Night", "Refresh"]);
   });

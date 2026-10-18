@@ -1,3 +1,5 @@
+import { checkpointStorage, type CheckpointStorage } from "../lib/browser-checkpoints";
+import { captureApplicationOwner } from "../lib/authentication-client";
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { supportsExpectedS3BucketOwner, type SaveStorageCandidateInput, type StorageCandidate, type StorageConfigurationStatus } from "../../shared/contracts/storage-configuration";
 import { checkedStartStorageCandidateCheckInput, MAX_STORAGE_CANDIDATE_CHECKS, type StartStorageCandidateCheckInput, type StorageCandidateCheck,
@@ -13,6 +15,7 @@ const blank = { label: "", provider: "s3" as Provider, endpoint: "", bucket: "",
   accessKeyId: "", secretAccessKey: "", sessionToken: "", username: "", password: "" };
 
 export function StorageConfigurationPage() {
+  const [owner] = useState(captureApplicationOwner);
   const [capability, setCapability] = useState<StorageConfigurationCapability | null>(null);
   const [status, setStatus] = useState<StorageConfigurationStatus | null>(null);
   const [loading, setLoading] = useState(true), [saving, setSaving] = useState(false);
@@ -24,7 +27,7 @@ export function StorageConfigurationPage() {
     setEvidenceState(current => ({ ...current, [profileId]: { generation: (current[profileId]?.generation ?? 0) + 1, pending: (current[profileId]?.pending ?? 0) + 1 } }));
     let finished = false;
     return () => {
-      if (finished) return; finished = true;
+      if (finished || !owner.isCurrent()) return; finished = true;
       setEvidenceState(current => ({ ...current, [profileId]: { generation: current[profileId]?.generation ?? 0, pending: Math.max(0, (current[profileId]?.pending ?? 0) - 1) } }));
     };
   }
@@ -37,6 +40,7 @@ export function StorageConfigurationPage() {
     setError("System administrator access is required. Refresh to check your access.");
   }
   async function refresh() {
+    if (!owner.isCurrent()) return;
     const current = ++sequence.current;
     controller.current?.abort(); const pending = new AbortController(); controller.current = pending;
     setLoading(true); setError(""); setCapability(null); setStatus(null);
@@ -44,14 +48,15 @@ export function StorageConfigurationPage() {
     resetEditor();
     try {
       const permission = await storageConfigurationClient.capability(pending.signal);
+      if (!owner.isCurrent() || current !== sequence.current || pending.signal.aborted) return;
       const result = permission.canManage ? await storageConfigurationClient.read(pending.signal) : null;
-      if (current !== sequence.current || pending.signal.aborted) return;
+      if (!owner.isCurrent() || current !== sequence.current || pending.signal.aborted) return;
       setCapability(permission); setStatus(result); setUncertainSave(false);
     } catch (failure) {
-      if (current === sequence.current && failure instanceof StorageConfigurationRequestError && failure.status === 403) { accessDenied(); return; }
-      if (current === sequence.current && !pending.signal.aborted) setError("Storage configuration is unavailable. Refresh to try again.");
+      if (owner.isCurrent() && current === sequence.current && failure instanceof StorageConfigurationRequestError && failure.status === 403) { accessDenied(); return; }
+      if (owner.isCurrent() && current === sequence.current && !pending.signal.aborted) setError("Storage configuration is unavailable. Refresh to try again.");
     } finally {
-      if (current === sequence.current && !pending.signal.aborted) setLoading(false);
+      if (owner.isCurrent() && current === sequence.current && !pending.signal.aborted) setLoading(false);
     }
   }
   // Consume focus intent with the committed enabled button, before a later
@@ -71,7 +76,7 @@ export function StorageConfigurationPage() {
         expectedBucketOwner: namespace.expectedBucketOwner ?? "" } : {}) });
   }
   async function save(event: FormEvent) {
-    event.preventDefault(); if (saving || uncertainSave || !capability?.credentialEditingAvailable) return;
+    event.preventDefault(); if (!owner.isCurrent() || saving || uncertainSave || !capability?.credentialEditingAvailable) return;
     if (form.provider === "s3" && form.expectedBucketOwner && !supportsExpectedS3BucketOwner(form.endpoint, form.region)) {
       setError("Expected AWS bucket owner requires a matching AWS S3 endpoint and region. Correct them or clear the owner."); return;
     }
@@ -88,20 +93,20 @@ export function StorageConfigurationPage() {
     setSaving(true); setError(""); setNotice("");
     try {
       await storageConfigurationClient.save(input, signal);
-      if (current !== sequence.current || signal?.aborted) return;
+      if (!owner.isCurrent() || current !== sequence.current || signal?.aborted) return;
       resetEditor();
       // A successful commit is shown even if the subsequent metadata read fails.
       setNotice("Candidate saved as a draft. Current upload destinations are unchanged.");
       try {
         const latest = await storageConfigurationClient.read(signal);
-        if (current === sequence.current && !signal?.aborted) setStatus(latest);
+        if (owner.isCurrent() && current === sequence.current && !signal?.aborted) setStatus(latest);
       } catch (failure) {
-        if (current !== sequence.current || signal?.aborted) return;
+        if (!owner.isCurrent() || current !== sequence.current || signal?.aborted) return;
         if (failure instanceof StorageConfigurationRequestError && failure.status === 403) { accessDenied(); return; }
         setError("Draft saved. Refresh to read the latest candidates."); setUncertainSave(true);
       }
     } catch (failure) {
-      if (current !== sequence.current || signal?.aborted) return;
+      if (!owner.isCurrent() || current !== sequence.current || signal?.aborted) return;
       // Clear entered credentials after every attempt; never echo server details.
       setForm(current => ({ ...current, accessKeyId: "", secretAccessKey: "", sessionToken: "", username: "", password: "" }));
       if (failure instanceof StorageConfigurationRequestError && failure.status === 400) setError("The candidate is invalid. Check its storage address and configuration, then enter credentials again.");
@@ -112,7 +117,7 @@ export function StorageConfigurationPage() {
       } else {
         setError("The save result is unavailable. Refresh saved candidates before trying again."); setUncertainSave(true);
       }
-    } finally { finishEvidenceChange(); if (current === sequence.current) setSaving(false); }
+    } finally { finishEvidenceChange(); if (owner.isCurrent() && current === sequence.current) setSaving(false); }
   }
   const set = (name: keyof typeof blank, value: string | boolean) => setForm(current => ({ ...current, [name]: value }));
   const externalEditing = capability?.credentialEditingAvailable && status?.credentialEditingAvailable;
@@ -199,9 +204,9 @@ const codeNames: Record<NonNullable<StorageCandidateCheck["code"]>, string> = {
 };
 const activeCheck = (check: StorageCandidateCheck) => check.status === "running" || check.cleanup === "running";
 const intentKey = (profileId: string) => `storage-candidate-check:${profileId}`;
-function rememberedIntent(profileId: string): StartStorageCandidateCheckInput | null {
+function rememberedIntent(storage: CheckpointStorage, profileId: string): StartStorageCandidateCheckInput | null {
   try {
-    const raw = sessionStorage.getItem(intentKey(profileId));
+    const raw = storage.getItem(intentKey(profileId));
     if (!raw) return null;
     const input = checkedStartStorageCandidateCheckInput(JSON.parse(raw));
     return input.profileId === profileId ? input : null;
@@ -213,21 +218,24 @@ function rememberedIntent(profileId: string): StartStorageCandidateCheckInput | 
 function CandidateChecks({ candidate, canTest, canCleanup, onForbidden, onEvidenceChange }: {
   candidate: StorageCandidate; canTest: boolean; canCleanup: boolean; onForbidden: () => void; onEvidenceChange: () => () => void;
 }) {
+  const [owner] = useState(captureApplicationOwner);
+  const [storage] = useState(() => checkpointStorage(owner));
   const [history, setHistory] = useState<StorageCandidateCheckList>({ items: [], hasMore: false });
   const [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [message, setMessage] = useState("");
-  const [pending, setPending] = useState<StartStorageCandidateCheckInput | null>(() => rememberedIntent(candidate.profileId));
+  const [pending, setPending] = useState<StartStorageCandidateCheckInput | null>(() => rememberedIntent(storage, candidate.profileId));
   const pendingRef = useRef(pending), generation = useRef(0), requests = useRef(new Set<AbortController>());
   const pollCount = useRef({ id: "", count: 0 });
   function remember(input: StartStorageCandidateCheckInput | null) {
     try {
-      if (input) sessionStorage.setItem(intentKey(candidate.profileId), JSON.stringify(input));
-      else sessionStorage.removeItem(intentKey(candidate.profileId));
+      if (input) storage.setItem(intentKey(candidate.profileId), JSON.stringify(input));
+      else storage.removeItem(intentKey(candidate.profileId));
     } catch { if (input) return false; }
     pendingRef.current = input; setPending(input); return true;
   }
   async function request<T>(operation: (signal: AbortSignal) => Promise<T>) {
+    owner.assertCurrent();
     const controller = new AbortController(); requests.current.add(controller);
-    try { return await operation(controller.signal); } finally { requests.current.delete(controller); }
+    try { const value = await operation(controller.signal); owner.assertCurrent(); return value; } finally { requests.current.delete(controller); }
   }
   function denied(failure: unknown) {
     if (!(failure instanceof StorageConfigurationRequestError) || failure.status !== 403) return false;
@@ -248,10 +256,10 @@ function CandidateChecks({ candidate, canTest, canCleanup, onForbidden, onEviden
     const finishEvidenceChange = onEvidenceChange();
     try {
       const check = await request(signal => storageConfigurationClient.readCheck(id, signal));
-      if (current !== generation.current) return;
+      if (!owner.isCurrent() || current !== generation.current) return;
       accept(check); setMessage("");
     } catch (failure) {
-      if (current !== generation.current || denied(failure)) return;
+      if (!owner.isCurrent() || current !== generation.current || denied(failure)) return;
       setMessage("The test result is not available yet. Check its status before starting another test.");
     } finally { finishEvidenceChange(); }
   }
@@ -261,16 +269,16 @@ function CandidateChecks({ candidate, canTest, canCleanup, onForbidden, onEviden
     setLoading(true); setMessage("");
     try {
       const list = await request(signal => storageConfigurationClient.listChecks(candidate.profileId, signal));
-      if (current !== generation.current) return;
+      if (!owner.isCurrent() || current !== generation.current) return;
       const intent = pendingRef.current, known = intent && list.items.find(item => item.id === intent.checkId);
       if (known && known.revision !== intent.expectedRevision) throw new Error("Invalid storage test response.");
       setHistory(previous => ({ ...list, items: list.items.map(check => previous.items.find(item => item.id === check.id && item.updatedAt > check.updatedAt) ?? check) }));
       if (known && !activeCheck(known)) remember(null);
       else if (intent && !known) await reconcile(intent.checkId, current);
     } catch (failure) {
-      if (current !== generation.current || denied(failure)) return;
+      if (!owner.isCurrent() || current !== generation.current || denied(failure)) return;
       setMessage("Test history is unavailable. Check its status before starting a test.");
-    } finally { finishEvidenceChange(); if (current === generation.current) setLoading(false); }
+    } finally { finishEvidenceChange(); if (owner.isCurrent() && current === generation.current) setLoading(false); }
   }
   useEffect(() => {
     generation.current += 1; setBusy(false); pollCount.current = { id: "", count: 0 }; void load();
@@ -294,16 +302,16 @@ function CandidateChecks({ candidate, canTest, canCleanup, onForbidden, onEviden
     const current = generation.current; setBusy(true); setMessage("");
     try {
       const check = await request(signal => storageConfigurationClient.startCheck(input, signal));
-      if (current === generation.current) accept(check);
+      if (owner.isCurrent() && current === generation.current) accept(check);
     } catch (failure) {
-      if (current !== generation.current || denied(failure)) return;
+      if (!owner.isCurrent() || current !== generation.current || denied(failure)) return;
       if (failure instanceof StorageConfigurationRequestError && [400, 409].includes(failure.status)) {
         remember(null); setMessage("This candidate changed or another test is active. Check its status before testing again.");
       } else {
         setMessage("The test response was lost. Reading its recorded result…");
         await reconcile(input.checkId, current);
       }
-    } finally { finishEvidenceChange(); if (current === generation.current) setBusy(false); }
+    } finally { finishEvidenceChange(); if (owner.isCurrent() && current === generation.current) setBusy(false); }
   }
   async function clean(check: StorageCandidateCheck) {
     if (!canCleanup || loading || busy || activeCheck(check) || check.cleanup === "confirmed_absent") return;
@@ -311,12 +319,12 @@ function CandidateChecks({ candidate, canTest, canCleanup, onForbidden, onEviden
     const current = generation.current; setBusy(true); setMessage("");
     try {
       const result = await request(signal => storageConfigurationClient.cleanupCheck(check.id, signal));
-      if (current === generation.current) accept(result);
+      if (owner.isCurrent() && current === generation.current) accept(result);
     } catch (failure) {
-      if (current !== generation.current || denied(failure)) return;
+      if (!owner.isCurrent() || current !== generation.current || denied(failure)) return;
       setMessage("The cleanup response was lost. Reading its recorded result…");
       await reconcile(check.id, current);
-    } finally { finishEvidenceChange(); if (current === generation.current) setBusy(false); }
+    } finally { finishEvidenceChange(); if (owner.isCurrent() && current === generation.current) setBusy(false); }
   }
   return <div className="storage-candidate-checks">
     <h4>Connection tests</h4>

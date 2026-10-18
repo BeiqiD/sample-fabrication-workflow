@@ -117,6 +117,7 @@ async function runOriginalSystemRecoveryJobStep<Statement extends SystemRecovery
       if(!claim.archive_sha256||!claim.archive_byte_size)throw new Error("archive_invalid");
       const expected={byteSize:claim.archive_byte_size,sha256:claim.archive_sha256};
       const written=await writeArtifact(capabilities,claim,()=>capabilities.exportBody(claim,current,signal,deadlineAt),expected,current,value=>{attempt=value;},deadlineAt,signal);
+      if(!await current())throw new Error("administrator_revoked");
       await repository.finish(claim,{state:"completed",phase:"done",reason:null,artifact_key:written.object_key,expires_at:new Date(capabilities.now().getTime()+24*60*60_000).toISOString(),bytes_done:claim.bytes_total,completed_files:claim.total_files});
       return{jobId:claim.id,outcome:"completed"};
     }

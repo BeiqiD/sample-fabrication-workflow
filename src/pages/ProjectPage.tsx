@@ -1,3 +1,4 @@
+import { captureApplicationOwner } from "../lib/authentication-client";
 import { discardR2Upload, R2UploadRequestError } from "../lib/r2-upload-client";
 import { findAvailableProjectPlacementPoint } from "../lib/project-placement-position";
 import {
@@ -283,6 +284,7 @@ function projectDeletionOutcomeIsUncertain(caught: unknown) {
 }
 
 export function ProjectPage() {
+  const [owner] = useState(captureApplicationOwner);
   const { projectId = "" } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -428,8 +430,8 @@ export function ProjectPage() {
   }, []);
 
   const ownedContentMutationIsActive = useCallback((generation: number) => (
-    pageActiveRef.current && ownedContentGenerationRef.current === generation
-  ), []);
+    owner.isCurrent() && pageActiveRef.current && ownedContentGenerationRef.current === generation
+  ), [owner]);
 
   const clearOwnedContentState = useCallback(() => {
     setOwnedContentReloadPending(false);
@@ -447,19 +449,19 @@ export function ProjectPage() {
   }, [updateAttachmentEditor, updateMarkdownEditor, updatePendingAttachment]);
 
   const saveSessionIsActive = useCallback((generation: number) => (
-    pageActiveRef.current && saveSessionGenerationRef.current === generation
-  ), []);
+    owner.isCurrent() && pageActiveRef.current && saveSessionGenerationRef.current === generation
+  ), [owner]);
 
   const referenceInsertionIsActive = useCallback((generation: number) => (
-    pageActiveRef.current && referenceInsertionGenerationRef.current === generation
-  ), []);
+    owner.isCurrent() && pageActiveRef.current && referenceInsertionGenerationRef.current === generation
+  ), [owner]);
 
   const referenceRemovalIsActive = useCallback((generation: number) => (
-    pageActiveRef.current && referenceRemovalGenerationRef.current === generation
-  ), []);
+    owner.isCurrent() && pageActiveRef.current && referenceRemovalGenerationRef.current === generation
+  ), [owner]);
 
   const updateSaveState = useCallback((next: SaveState) => {
-    if (!pageActiveRef.current) return;
+    if (!owner.isCurrent() || !pageActiveRef.current) return;
     saveStateRef.current = next;
     setSaveState(next);
   }, []);
@@ -854,9 +856,9 @@ export function ProjectPage() {
   };
 
   const loadProject = useCallback(async (signal?: AbortSignal) => {
-    if (!projectId) return;
+    if (!owner.isCurrent() || !projectId) return;
     const generation = ++loadGenerationRef.current;
-    const requestIsCurrent = () => pageActiveRef.current && !signal?.aborted
+    const requestIsCurrent = () => owner.isCurrent() && pageActiveRef.current && !signal?.aborted
       && projectIdRef.current === projectId && loadGenerationRef.current === generation;
     projectReadyRef.current = false;
     saveSessionGenerationRef.current += 1;
@@ -881,7 +883,7 @@ export function ProjectPage() {
     } finally {
       if (requestIsCurrent()) setLoading(false);
     }
-  }, [installSnapshot, projectId]);
+  }, [installSnapshot, owner, projectId]);
 
   useEffect(() => {
     // Discarding a conflicted draft must refresh its revision before reopening.
@@ -907,7 +909,7 @@ export function ProjectPage() {
 
   const performProjectDeletion = useCallback(async (request: ProjectDeletionRequest) => {
     const requestIsCurrent = () => (
-      pageActiveRef.current
+      owner.isCurrent() && pageActiveRef.current
       && projectIdRef.current === request.projectId
       && projectDeleteRequestRef.current === request
     );
@@ -947,7 +949,7 @@ export function ProjectPage() {
         ? caught.message
         : "The Project could not be moved to trash");
     } finally {
-      if (pageActiveRef.current && projectIdRef.current === request.projectId) setDeletingProject(false);
+      if (owner.isCurrent() && pageActiveRef.current && projectIdRef.current === request.projectId) setDeletingProject(false);
     }
   }, [loadProject, navigate]);
 
@@ -1048,7 +1050,7 @@ export function ProjectPage() {
   }, []);
 
   const scheduleAutosave = useCallback(() => {
-    if (!pageActiveRef.current || saveStateRef.current === "conflict") return;
+    if (!owner.isCurrent() || !pageActiveRef.current || saveStateRef.current === "conflict") return;
     const generation = saveSessionGenerationRef.current;
     if (autosaveTimerRef.current !== null) window.clearTimeout(autosaveTimerRef.current);
     autosaveTimerRef.current = window.setTimeout(() => {
@@ -1786,6 +1788,7 @@ export function ProjectPage() {
         queueReferenceCancellationRemoval(result.item.id, result.item.revision, leave);
         return;
       } catch (caught) {
+        if (!referenceInsertionIsActive(generation)) return;
         if (!(caught instanceof ProjectApiError) || caught.status !== 409
           || !projectCreateReplayIsAuthoritativelySettled(caught)) throw caught;
       }
@@ -2069,7 +2072,7 @@ export function ProjectPage() {
   }, [mergeOwnedContentInsertion, ownedContentMutationIsActive, projectId, updatePendingAttachment]);
 
   const uploadAndCreateAttachment = useCallback(async (file: File, point: { x: number; y: number }) => {
-    if (!snapshot || pendingAttachmentRef.current) return;
+    if (!owner.isCurrent() || !snapshot || pendingAttachmentRef.current) return;
     const maxZ = workingMaximumProjectZIndex(geometryRef.current);
     const attachmentGeometry = projectAttachmentGeometryAtPoint(
       point,
@@ -2457,7 +2460,7 @@ export function ProjectPage() {
     stableLinkCopyGenerationRef.current = generation;
     setStableLinkCopyState(null);
     const requestIsCurrent = () => (
-      pageActiveRef.current
+      owner.isCurrent() && pageActiveRef.current
       && stableLinkCopyGenerationRef.current === generation
       && projectIdRef.current === requestProjectId
     );

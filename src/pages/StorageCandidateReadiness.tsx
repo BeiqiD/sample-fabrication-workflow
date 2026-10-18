@@ -1,3 +1,4 @@
+import { captureApplicationOwner } from "../lib/authentication-client";
 import { useEffect, useId, useRef, useState } from "react";
 import type { StorageCandidate } from "../../shared/contracts/storage-configuration";
 import type { StorageCandidateReadiness as Readiness } from "../../shared/contracts/storage-candidate-readiness";
@@ -15,6 +16,7 @@ const credentialNames: Record<Readiness["credential"]["status"], string> = {
 export function StorageCandidateReadiness({ candidate, evidenceGeneration, blocked, onForbidden }: {
   candidate: StorageCandidate; evidenceGeneration: number; blocked: boolean; onForbidden: () => void;
 }) {
+  const [owner] = useState(captureApplicationOwner);
   const [expanded, setExpanded] = useState(() => hasRememberedProfileRegistration(candidate.profileId)), [loading, setLoading] = useState(false), [message, setMessage] = useState("");
   const [observation, setObservation] = useState<{ key: string; value: Readiness } | null>(null);
   const sequence = useRef(0), request = useRef<AbortController | null>(null);
@@ -23,22 +25,22 @@ export function StorageCandidateReadiness({ candidate, evidenceGeneration, block
   const panelId = useId(), key = `${candidate.profileId}:${candidate.revision}:${evidenceGeneration}`;
   const result = !blocked && observation?.key === key ? observation.value : null;
   async function refresh() {
-    if (blocked) return;
+    if (!owner.isCurrent() || blocked) return;
     const current = ++sequence.current;
     request.current?.abort(); const controller = new AbortController(); request.current = controller;
     setObservation(null); setMessage(""); setLoading(true);
     try {
       const value = await storageConfigurationClient.readReadiness({ profileId: candidate.profileId, expectedRevision: candidate.revision }, controller.signal);
-      if (current === sequence.current && !controller.signal.aborted) setObservation({ key, value });
+      if (owner.isCurrent() && current === sequence.current && !controller.signal.aborted) setObservation({ key, value });
     } catch (failure) {
-      if (current !== sequence.current || controller.signal.aborted) return;
+      if (!owner.isCurrent() || current !== sequence.current || controller.signal.aborted) return;
       if (failure instanceof StorageConfigurationRequestError && failure.status === 403) {
         sequence.current += 1; controller.abort(); setObservation(null); forbidden.current(); return;
       }
       setMessage(failure instanceof StorageConfigurationRequestError && failure.status === 409
         ? "This candidate changed. Refresh saved candidates before reading its evidence."
         : "Check evidence is unavailable. Refresh evidence to try again.");
-    } finally { if (current === sequence.current) setLoading(false); }
+    } finally { if (owner.isCurrent() && current === sequence.current) setLoading(false); }
   }
   useEffect(() => {
     sequence.current += 1; request.current?.abort(); setObservation(null); setMessage(""); setLoading(false);

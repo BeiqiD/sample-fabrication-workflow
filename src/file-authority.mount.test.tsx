@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "./App";
 import type { FileAuthorityStatus } from "./lib/file-authority-client";
 import { FileAuthorityPage } from "./pages/FileAuthorityPage";
+import { authenticationSnapshot, readApplicationIdentity } from "./lib/authentication-client";
 
 const shadowIncarnation = "9743cf72-834c-40ed-929e-ec0a6ce3a293";
 const snapshot = (updates: Partial<FileAuthorityStatus> = {}): FileAuthorityStatus => ({
@@ -16,6 +17,7 @@ const snapshot = (updates: Partial<FileAuthorityStatus> = {}): FileAuthorityStat
 });
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json" } });
 const network = vi.fn<typeof fetch>();
+const identitySubject = "a".repeat(64);
 let state: FileAuthorityStatus;
 let operator: boolean;
 let submit: (input: Record<string, unknown>) => Response | Promise<Response>;
@@ -23,7 +25,8 @@ let readStatus: () => Response | Promise<Response>;
 const posts = () => network.mock.calls.filter(([, options]) => options?.method === "POST");
 const click = async (name: string) => { await act(async () => { fireEvent.click(screen.getByRole("button", { name })); }); };
 
-beforeEach(() => {
+beforeEach(async () => {
+  vi.stubEnv("VITE_LOCAL_AUTHENTICATION", "0");
   state = snapshot(); operator = true;
   readStatus = () => json(state);
   submit = input => {
@@ -32,6 +35,7 @@ beforeEach(() => {
   };
   network.mockReset();
   network.mockImplementation(async (path, init) => {
+    if (path === "/api/identity") return json({ schema: "application-identity/1", subject: identitySubject });
     if (path === "/api/files/shadow/evidence/capabilities") return json({ canAdjudicate: operator });
     if (path === "/api/files/authority/status" && init?.method === "GET") return readStatus();
     if (init?.method === "POST" && ["/api/files/authority/activate", "/api/files/authority/enable-recovered"].includes(String(path))) {
@@ -41,17 +45,24 @@ beforeEach(() => {
   });
   vi.stubGlobal("fetch", network);
   vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false })));
+  // Direct page cases start behind the same authenticated boundary as App.
+  // Refresh through the real client so a previous case cannot own this session.
+  await readApplicationIdentity();
+  expect(authenticationSnapshot().phase).toBe("authenticated");
+  network.mockClear();
 });
-afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); localStorage.clear(); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); localStorage.clear(); });
 
 it("opens the maintenance route and activates once with the observed cutoff", async () => {
   render(<MemoryRouter initialEntries={["/maintenance/file-authority"]}><App /></MemoryRouter>);
   await screen.findByRole("button", { name: "Activate File authority" });
+  expect(network.mock.calls.filter(([path]) => path === "/api/identity")).toHaveLength(1);
   expect(screen.getByText("4 / 4")).toBeTruthy();
   expect(posts()).toHaveLength(0);
   await click("Activate File authority");
   expect(posts()).toHaveLength(1);
   expect(posts()[0][0]).toBe("/api/files/authority/activate");
+  expect(new Headers(posts()[0][1]?.headers).get("x-sfw-expected-subject")).toBe(identitySubject);
   expect(JSON.parse(String(posts()[0][1]?.body))).toEqual({
     requestId: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/),
     expectedEpoch: 42, expectedShadowIncarnation: shadowIncarnation,

@@ -15,8 +15,10 @@ export async function runPackageJobStep(capabilities:PackageCapabilities) {
   let attempt:PackageAttempt|null=null;
   const abort=new AbortController(),deadline=capabilities.now().getTime()+PACKAGE_STEP_MS;
   let expired=false,timer:ReturnType<typeof setTimeout>|undefined;
-  const current=async()=>!expired&&!abort.signal.aborted&&capabilities.now().getTime()<deadline
-    && capabilities.authorizeActor(claim.actor)&&await repository.owns(claim);
+  const local=()=>!expired&&!abort.signal.aborted&&capabilities.now().getTime()<deadline&&capabilities.authorizeActor(claim.actor);
+  // A primary ownership read can finish after cancellation, revocation or the
+  // stage deadline. Its old positive result cannot reopen local execution.
+  const current=async()=>local()&&await repository.owns(claim)&&local();
   const perform=async(active:PackageCapabilities)=>{
     if(!await current()) throw new Error("actor_or_lease_unavailable");
     if(claim.kind==="upload"&&claim.phase==="validate") {
@@ -69,6 +71,7 @@ export async function runPackageJobStep(capabilities:PackageCapabilities) {
       }
       if(!await current()) throw new Error("actor_or_lease_unavailable");
       await repository.verify(claim,file,attempt);
+      if(!await current()) throw new Error("actor_or_lease_unavailable");
       if(claim.kind!=="import") await repository.publish(claim,[],{roots:JSON.parse(claim.input_json).roots ?? [],reused:false});
       else {await repository.publishFile(claim,file,attempt);await repository.checkpoint(claim,"copy");}
       return "file_verified";
@@ -79,6 +82,7 @@ export async function runPackageJobStep(capabilities:PackageCapabilities) {
       await repository.publish(claim,publication.statements,publication.result);
       return "completed";
     }
+    if(!await current()) throw new Error("actor_or_lease_unavailable");
     await repository.publish(claim,[],{roots:JSON.parse(claim.input_json).roots ?? [],reused:false});
     return "completed";
   };
@@ -101,7 +105,8 @@ export async function runPackageJobStep(capabilities:PackageCapabilities) {
 export async function writePackageUpload(capabilities:PackageCapabilities,claim:PackageClaim,body:ReadableStream<Uint8Array>) {
   const repository=capabilities.repository,abort=new AbortController(),deadline=capabilities.now().getTime()+PACKAGE_STEP_MS;
   let expired=false,timer:ReturnType<typeof setTimeout>|undefined,attempt:PackageAttempt|null=null;
-  const current=async()=>!expired&&!abort.signal.aborted&&capabilities.now().getTime()<deadline&&capabilities.authorizeActor(claim.actor)&&await repository.owns(claim);
+  const local=()=>!expired&&!abort.signal.aborted&&capabilities.now().getTime()<deadline&&capabilities.authorizeActor(claim.actor);
+  const current=async()=>local()&&await repository.owns(claim)&&local();
   assertFileJobExecutionsOpen(capabilities);
   let forwarded:ReadableStream<Uint8Array>|undefined;
   let closeBody:(reason?:unknown)=>Promise<void>=()=>Promise.resolve();
@@ -110,14 +115,19 @@ export async function writePackageUpload(capabilities:PackageCapabilities,claim:
     const file=(await repository.files(claim.id)).find(row=>row.entry_kind==="artifact");
     if(!file) throw new Error("Upload has no admitted archive identity");
     attempt=await repository.attempt(file);
-    if(file.state==="published"||attempt?.state==="published"){await repository.publish(claim);return;}
+    if(file.state==="published"||attempt?.state==="published"){
+      if(!await current())throw new Error("actor_or_lease_unavailable");
+      await repository.publish(claim);return;
+    }
     if(attempt&&["write_started","unknown","verified"].includes(attempt.state)){
       if(!attempt.io_settled_at)throw new Error("write_settlement_required");
       const previous=await active.openStorage({profileId:file.target_profile_id!,configurationRevision:file.target_profile_revision!},"read",current,abort.signal);
       if(previous.namespaceIdentity!==file.target_namespace)throw new Error("frozen_target_unavailable");
       await verifyStoredBytes(previous.reader,attempt.object_key,{byteSize:file.byte_size,sha256:file.sha256},previous.createHash);
       if(!await current())throw new Error("actor_or_lease_unavailable");
-      await repository.verify(claim,file,attempt);await repository.publish(claim);return;
+      await repository.verify(claim,file,attempt);
+      if(!await current())throw new Error("actor_or_lease_unavailable");
+      await repository.publish(claim);return;
     }
     if(!["pending","copying","failed"].includes(file.state))throw new Error("Upload requires its existing verified publication");
     if(attempt){
@@ -141,7 +151,9 @@ export async function writePackageUpload(capabilities:PackageCapabilities,claim:
     await writeVerifiedBytes({...destination,writer:{accepts:transport.accepts,async write(input){await transport.write(input);await repository.settled(ownedAttempt);}}},
       {key:attempt.object_key,body:forwarded!,byteSize:file.byte_size,sha256:file.sha256,contentType:"application/zip",filename:"research-package.zip"});
     if(!await current()) throw new Error("actor_or_lease_unavailable");
-    await repository.verify(claim,file,attempt);await repository.publish(claim);
+    await repository.verify(claim,file,attempt);
+    if(!await current())throw new Error("actor_or_lease_unavailable");
+    await repository.publish(claim);
   };
   const original=retainFileJobExecution(capabilities,async scope=>{
     const reader=body.getReader(),pending=new Set<ReturnType<typeof reader.read>>();

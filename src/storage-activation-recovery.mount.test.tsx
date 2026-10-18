@@ -40,6 +40,34 @@ async function ready() { const button = await screen.findByRole("button", { name
   await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false)); return button; }
 
 describe("activation context and recovery", () => {
+  it.each([400, 404, 409])("retains an uncertain activation after a retry returns %s until its matching receipt is available", async status => {
+    let attempts = 0, submitted!: NativeStorageActivationInput, receiptVisible = false;
+    const value = props();
+    network.mockImplementation(async (path, options) => {
+      if (options?.method === "POST") {
+        const intent = JSON.parse(String(options.body));
+        if (++attempts === 1) { submitted = intent; throw new Error("lost activation response"); }
+        expect(intent).toEqual(submitted); return json({ error: "private-conflict" }, status);
+      }
+      if (String(path).startsWith(`${activationPath}/`)) return receiptVisible ? json(receipt(submitted)) : json({}, 404);
+      return json(snapshot());
+    });
+    const first = render(<StorageProfileActivation {...value} />); fireEvent.click(await ready());
+    await screen.findByText(/The activation result is unconfirmed/); first.unmount();
+    const second = render(<StorageProfileActivation {...value} />); await screen.findByText(/The activation result is unconfirmed/);
+    const retry = screen.getByRole("button", { name: "Check or retry activation" });
+    await waitFor(() => expect((retry as HTMLButtonElement).disabled).toBe(false)); fireEvent.click(retry);
+    await waitFor(() => expect(mutations()).toHaveLength(2));
+    await waitFor(() => expect((screen.getByRole("button", { name: "Check or retry activation" }) as HTMLButtonElement).disabled).toBe(false));
+    expect(screen.getByText(/The activation result is unconfirmed/)).toBeTruthy();
+    expect(JSON.parse(sessionStorage.getItem("storage-profile-activation:candidate")!)).toEqual(submitted);
+    expect(value.onStaleEvidence).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: "Update profile activation" })).toBeNull();
+    expect(document.body.textContent).not.toContain("private-conflict");
+    receiptVisible = true; second.unmount(); render(<StorageProfileActivation {...value} />);
+    await screen.findByText(/Profile activation confirmed/);
+    expect(sessionStorage.getItem("storage-profile-activation:candidate")).toBeNull(); expect(mutations()).toHaveLength(2);
+  });
   it("isolates uncertain activation intents on candidate switches and ignores a late receipt from the previous candidate", async () => {
     const old = input("candidate", "old-intent"), other = input("other", "other-intent"), pending = deferred<Response>();
     sessionStorage.setItem("storage-profile-activation:candidate", JSON.stringify(old)); sessionStorage.setItem("storage-profile-activation:other", JSON.stringify(other));

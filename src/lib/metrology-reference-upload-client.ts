@@ -1,4 +1,5 @@
-import { applicationFetch } from "./authentication-client";
+import { captureApplicationOwner, type ApplicationOwner } from "./authentication-client";
+import { checkpointStorage } from "./browser-checkpoints";
 import { sha256Hex } from "../../shared/content-addressing";
 import type { MetrologyTemplateReference } from "../../shared/contracts/template";
 import {
@@ -14,13 +15,17 @@ interface Checkpoint {
 }
 interface Prepared { checkpoint: Checkpoint; file: File; attempted: boolean; terminal?: string }
 export interface MetrologyReferenceUploadResult { requestId: string; reference: MetrologyTemplateReference }
+export class MetrologyReferenceUploadError extends Error {
+  constructor(message: string, readonly terminal = false) { super(message); this.name = "MetrologyReferenceUploadError"; }
+}
+
+function createMetrologyClient(owner: ApplicationOwner) {
+  const storage = checkpointStorage(owner), applicationFetch = owner.fetch;
 const operations = new WeakMap<File, Map<string, Promise<Prepared>>>();
 const generations = new Map<string, number>();
 const active = new Map<string, { file: File; promise: Promise<MetrologyReferenceUploadResult> }>();
 
-export class MetrologyReferenceUploadError extends Error {
-  constructor(message: string, readonly terminal = false) { super(message); this.name = "MetrologyReferenceUploadError"; }
-}
+
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -31,12 +36,13 @@ function timestamp(value: unknown): value is string {
   return typeof value === "string" && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
 }
 function keyFor(templateId: string) {
+  owner.assertCurrent();
   if (!text(templateId, 256)) throw new Error("Invalid metrology template identity");
   return `${PREFIX}${encodeURIComponent(templateId)}`;
 }
 function readCheckpoint(key: string): Checkpoint | null {
   try {
-    const raw = sessionStorage.getItem(key);
+    const raw = storage.getItem(key);
     if (!raw) return null;
     if (new TextEncoder().encode(raw).byteLength > 8192) throw new Error();
     const value: unknown = JSON.parse(raw);
@@ -54,8 +60,8 @@ function saveCheckpoint(key: string, value: Checkpoint) {
   try {
     const raw = JSON.stringify(value);
     if (new TextEncoder().encode(raw).byteLength > 8192) throw new Error();
-    sessionStorage.setItem(key, raw);
-    if (sessionStorage.getItem(key) !== raw) throw new Error();
+    storage.setItem(key, raw);
+    if (storage.getItem(key) !== raw) throw new Error();
   } catch { throw new MetrologyReferenceUploadError("This browser could not save the reference upload request. Restore session storage before retrying."); }
 }
 async function bytes(file: File): Promise<ArrayBuffer> {
@@ -85,6 +91,7 @@ async function prepare(templateId: string, file: File, key: string): Promise<Pre
   return { checkpoint, file, attempted: prior !== null };
 }
 function settle(payload: unknown, prepared: Prepared, key: string): MetrologyReferenceUploadResult {
+  owner.assertCurrent();
   const checkpoint = prepared.checkpoint;
   const state = record(payload) ? payload.request : null;
   if (!record(state) || state.requestId !== checkpoint.requestId || state.templateId !== checkpoint.templateId
@@ -140,6 +147,7 @@ async function execute(prepared: Prepared, key: string): Promise<MetrologyRefere
     });
   } catch { throw new MetrologyReferenceUploadError("The reference upload response was lost. Retry to check the same request."); }
   const payload: unknown = await response.json().catch(() => null);
+  owner.assertCurrent();
   if (record(payload) && record(payload.request)
     && (payload.request.status === "ready" && [200, 201].includes(response.status)
       || payload.request.status === "pending" && response.status === 202
@@ -152,25 +160,25 @@ async function execute(prepared: Prepared, key: string): Promise<MetrologyRefere
 }
 
 /** Reloads retain metadata only; the original file must be selected to retry. */
-export function savedMetrologyReferenceUploadFilename(templateId: string): string | null {
+function savedMetrologyReferenceUploadFilename(templateId: string): string | null {
   return readCheckpoint(keyFor(templateId))?.filename ?? null;
 }
 /** Forget tracking only after the published reference is visible in the page. */
-export function finishMetrologyReferenceUpload(templateId: string, requestId: string): void {
+function finishMetrologyReferenceUpload(templateId: string, requestId: string): void {
   const key = keyFor(templateId);
-  try { if (readCheckpoint(key)?.requestId === requestId) sessionStorage.removeItem(key); } catch { /* A retained ready receipt remains safe to recheck. */ }
+  try { if (readCheckpoint(key)?.requestId === requestId) storage.removeItem(key); } catch { /* A retained ready receipt remains safe to recheck. */ }
 }
 /** Discarding tracking does not cancel a reference publication already in flight. */
-export function discardMetrologyReferenceUpload(templateId: string): void {
+function discardMetrologyReferenceUpload(templateId: string): void {
   const key = keyFor(templateId);
   if (active.has(key)) throw new MetrologyReferenceUploadError("Wait for the current reference upload check before discarding it.");
   try {
-    sessionStorage.removeItem(key);
-    if (sessionStorage.getItem(key) !== null) throw new Error();
+    storage.removeItem(key);
+    if (storage.getItem(key) !== null) throw new Error();
   } catch { throw new MetrologyReferenceUploadError("This browser could not discard the reference upload. Restore session storage and try again."); }
   generations.set(key, (generations.get(key) ?? 0) + 1);
 }
-export async function uploadMetrologyReference(templateId: string, file: File): Promise<MetrologyReferenceUploadResult> {
+async function uploadMetrologyReference(templateId: string, file: File): Promise<MetrologyReferenceUploadResult> {
   const key = keyFor(templateId);
   const previous = active.get(key);
   if (previous?.file === file) return previous.promise;
@@ -189,3 +197,17 @@ export async function uploadMetrologyReference(templateId: string, file: File): 
   const current = { file, promise: operation }; active.set(key, current);
   try { return await operation; } finally { if (active.get(key) === current) active.delete(key); }
 }
+
+  return { savedMetrologyReferenceUploadFilename, finishMetrologyReferenceUpload, discardMetrologyReferenceUpload, uploadMetrologyReference };
+}
+type MetrologyClient = ReturnType<typeof createMetrologyClient>;
+let current: { key: string; client: MetrologyClient } | null = null;
+function currentClient(): MetrologyClient {
+  const owner = captureApplicationOwner();
+  if (!current || current.key !== owner.cacheKey) current = { key: owner.cacheKey, client: createMetrologyClient(owner) };
+  return current.client;
+}
+export const savedMetrologyReferenceUploadFilename = (...args: Parameters<MetrologyClient["savedMetrologyReferenceUploadFilename"]>) => currentClient().savedMetrologyReferenceUploadFilename(...args);
+export const finishMetrologyReferenceUpload = (...args: Parameters<MetrologyClient["finishMetrologyReferenceUpload"]>) => currentClient().finishMetrologyReferenceUpload(...args);
+export const discardMetrologyReferenceUpload = (...args: Parameters<MetrologyClient["discardMetrologyReferenceUpload"]>) => currentClient().discardMetrologyReferenceUpload(...args);
+export const uploadMetrologyReference = (...args: Parameters<MetrologyClient["uploadMetrologyReference"]>) => currentClient().uploadMetrologyReference(...args);

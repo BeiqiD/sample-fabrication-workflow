@@ -1,3 +1,5 @@
+import { checkpointStorage, type CheckpointStorage } from "../lib/browser-checkpoints";
+import { captureApplicationOwner } from "../lib/authentication-client";
 import { useEffect, useRef, useState } from "react";
 import type { StorageCandidate } from "../../shared/contracts/storage-configuration";
 import type { StorageCandidateReadiness } from "../../shared/contracts/storage-candidate-readiness";
@@ -7,15 +9,15 @@ import { storageConfigurationClient, StorageConfigurationRequestError } from "..
 import { StorageProfileActivation } from "./StorageProfileActivation";
 
 const intentKey = (profileId: string) => `storage-profile-registration:${profileId}`;
-function rememberedIntent(profileId: string): StorageProfileAdmissionInput | null {
+function rememberedIntent(storage: CheckpointStorage, profileId: string): StorageProfileAdmissionInput | null {
   try {
-    const raw = sessionStorage.getItem(intentKey(profileId));
+    const raw = storage.getItem(intentKey(profileId));
     if (!raw) return null;
     const input = checkedStorageProfileAdmissionInput(JSON.parse(raw));
     return input.profileId === profileId ? input : null;
   } catch { return null; }
 }
-export const hasRememberedProfileRegistration = (profileId: string) => !!rememberedIntent(profileId);
+export const hasRememberedProfileRegistration = (profileId: string) => !!rememberedIntent(checkpointStorage(), profileId);
 function supported(candidate: StorageCandidate): boolean {
   try { awsS3NativeNamespace(candidate.namespace); return true; } catch { return false; }
 }
@@ -33,7 +35,9 @@ export function StorageProfileRegistration({ candidate, evidence, blocked, onFor
   onForbidden: () => void; onStaleEvidence: () => void;
   enableActivation?: boolean;
 }) {
-  const [pending, setPending] = useState<StorageProfileAdmissionInput | null>(() => rememberedIntent(candidate.profileId));
+  const [owner] = useState(captureApplicationOwner);
+  const [storage] = useState(() => checkpointStorage(owner));
+  const [pending, setPending] = useState<StorageProfileAdmissionInput | null>(() => rememberedIntent(storage, candidate.profileId));
   const [receipt, setReceipt] = useState<StorageProfileAdmissionReceipt | null>(null);
   const [lookup, setLookup] = useState<{ key: string; state: "loading" | "absent" | "unavailable" | "registered"; receipt?: StorageProfileAdmissionReceipt } | null>(null);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState("");
@@ -47,6 +51,7 @@ export function StorageProfileRegistration({ candidate, evidence, blocked, onFor
   // the server return its durable receipt or reject an uncommitted stale intent.
   const pendingCanRetry = !blocked;
   async function loadRegistration() {
+    if (!owner.isCurrent()) return;
     const current = ++lookupGeneration.current;
     lookupController.current?.abort();
     if (!supported(candidate)) { setLookup(null); return; }
@@ -54,23 +59,24 @@ export function StorageProfileRegistration({ candidate, evidence, blocked, onFor
     setLookup({ key: candidateKey, state: "loading" });
     try {
       const value = await storageConfigurationClient.findProfileRegistration({ profileId: candidate.profileId, expectedRevision: candidate.revision }, controller.signal);
-      if (current === lookupGeneration.current && !controller.signal.aborted) setLookup({ key: candidateKey, state: "registered", receipt: value });
+      if (owner.isCurrent() && current === lookupGeneration.current && !controller.signal.aborted) setLookup({ key: candidateKey, state: "registered", receipt: value });
     } catch (failure) {
-      if (current !== lookupGeneration.current || controller.signal.aborted || denied(failure)) return;
+      if (!owner.isCurrent() || current !== lookupGeneration.current || controller.signal.aborted || denied(failure)) return;
       setLookup({ key: candidateKey, state: failure instanceof StorageConfigurationRequestError && failure.status === 404 ? "absent" : "unavailable" });
       if (failure instanceof StorageConfigurationRequestError && failure.status === 409) onStaleEvidence();
     }
   }
   function remember(input: StorageProfileAdmissionInput | null) {
     try {
-      if (input) sessionStorage.setItem(intentKey(candidate.profileId), JSON.stringify(input));
-      else sessionStorage.removeItem(intentKey(candidate.profileId));
+      if (input) storage.setItem(intentKey(candidate.profileId), JSON.stringify(input));
+      else storage.removeItem(intentKey(candidate.profileId));
     } catch { if (input) return false; }
     pendingRef.current = input; setPending(input); return true;
   }
   async function request<T>(operation: (signal: AbortSignal) => Promise<T>) {
+    owner.assertCurrent();
     const controller = new AbortController(); requests.current.add(controller);
-    try { return await operation(controller.signal); } finally { requests.current.delete(controller); }
+    try { const value = await operation(controller.signal); owner.assertCurrent(); return value; } finally { requests.current.delete(controller); }
   }
   function denied(failure: unknown) {
     if (!(failure instanceof StorageConfigurationRequestError) || failure.status !== 403) return false;
@@ -93,22 +99,23 @@ export function StorageProfileRegistration({ candidate, evidence, blocked, onFor
   async function reconcile(input: StorageProfileAdmissionInput, current: number, retryMissing: boolean) {
     try {
       const value = await request(signal => storageConfigurationClient.readProfileRegistration(input.operationId, signal));
-      if (current === generation.current) accept(value, input);
+      if (owner.isCurrent() && current === generation.current) accept(value, input);
     } catch (failure) {
-      if (current !== generation.current || denied(failure)) return;
+      if (!owner.isCurrent() || current !== generation.current || denied(failure)) return;
       if (retryMissing && failure instanceof StorageConfigurationRequestError && failure.status === 404) {
         await submit(input, current); return;
       }
       setMessage("The registration result is unavailable. Check its status before starting another registration.");
     }
   }
-  async function submit(input: StorageProfileAdmissionInput, current: number) {
+  async function submit(input: StorageProfileAdmissionInput, current: number, fresh = false) {
     try {
       const value = await request(signal => storageConfigurationClient.registerProfile(input, signal));
-      if (current === generation.current) accept(value, input);
+      if (owner.isCurrent() && current === generation.current) accept(value, input);
     } catch (failure) {
-      if (current !== generation.current || denied(failure)) return;
-      if (failure instanceof StorageConfigurationRequestError && [400, 404, 409].includes(failure.status)) {
+      if (!owner.isCurrent() || current !== generation.current || denied(failure)) return;
+      // An older invocation may still commit after this replay's receipt check.
+      if (fresh && failure instanceof StorageConfigurationRequestError && [400, 404, 409].includes(failure.status)) {
         remember(null); onStaleEvidence();
         setMessage(failure.status === 409 ? "Registration could not be completed. This storage may already be registered, or its configuration or evidence changed. Refresh evidence before trying again."
           : "Registration could not be completed. Refresh saved candidates and check evidence before trying again.");
@@ -121,7 +128,7 @@ export function StorageProfileRegistration({ candidate, evidence, blocked, onFor
     if (pendingRef.current) {
       operationBusy.current = true; setBusy(true);
       void reconcile(pendingRef.current, current, false).finally(() => {
-        if (current === generation.current) { operationBusy.current = false; setBusy(false); }
+        if (owner.isCurrent() && current === generation.current) { operationBusy.current = false; setBusy(false); }
       });
     }
     return () => { generation.current += 1; for (const controller of requests.current) controller.abort(); };
@@ -138,15 +145,15 @@ export function StorageProfileRegistration({ candidate, evidence, blocked, onFor
       checkId: evidence.evidence.exactCurrentContextSuccess.checkId };
     if (!remember(input)) { setMessage("Browser session storage is unavailable. Enable it before registering a profile."); return; }
     const current = generation.current; operationBusy.current = true; setBusy(true); setMessage("");
-    try { await submit(input, current); }
-    finally { if (current === generation.current) { operationBusy.current = false; setBusy(false); } }
+    try { await submit(input, current, true); }
+    finally { if (owner.isCurrent() && current === generation.current) { operationBusy.current = false; setBusy(false); } }
   }
   async function checkOrRetry() {
     if (operationBusy.current || !pendingRef.current) return;
     const input = pendingRef.current, current = generation.current;
     operationBusy.current = true; setBusy(true); setMessage("");
     try { await reconcile(input, current, pendingCanRetry); }
-    finally { if (current === generation.current) { operationBusy.current = false; setBusy(false); } }
+    finally { if (owner.isCurrent() && current === generation.current) { operationBusy.current = false; setBusy(false); } }
   }
   return <>
     {eligible && !pending && currentLookup?.state === "absent" && <>

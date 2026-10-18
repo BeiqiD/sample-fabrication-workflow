@@ -7,6 +7,7 @@ import { checkedResearchExportInput, checkedResearchImportInput, checkedResearch
   checkedResearchRequestReceipt, checkedResearchUploadInput } from '../../../shared/contracts/research-package-api.ts';
 import { sha256 } from './genuine-worker-recovery-runtime.mjs';
 import { packageBase } from './genuine-worker-package-runtime.mjs';
+import { readOwnedCheckpoint as checkpoint, waitForOwnedCheckpointCleared } from './browser-owned-checkpoints.mjs';
 
 const execute = promisify(execFile), button = (page, name) => page.getByRole('button', { name, exact: true });
 async function enabled(locator) { await locator.waitFor(); await locator.page().waitForFunction(element => !element.disabled, await locator.elementHandle()); return locator; }
@@ -22,7 +23,6 @@ async function capture(page, owner, name) {
   assert(geometry.width <= geometry.viewport + 1, `Package horizontal overflow: ${JSON.stringify(geometry)}`);
   await page.screenshot({ path: resolve(owner.output, `${name}.png`), fullPage: true }); return { geometry, screenshot: `${name}.png` };
 }
-async function checkpoint(page, key) { return page.evaluate(key => JSON.parse(sessionStorage.getItem(key) ?? 'null'), key); }
 async function readReceipt(owner, input, kind) {
   const receipt = checkedResearchRequestReceipt(await owner.request(`${packageBase}/requests/${input.requestId}`));
   assert.equal(receipt.requestId, input.requestId); assert.equal(receipt.job.kind, kind);
@@ -31,7 +31,7 @@ async function readReceipt(owner, input, kind) {
 }
 async function acceptedClient(page, receipt, input) {
   await article(page, receipt.job.id).waitFor();
-  await page.waitForFunction(() => sessionStorage.getItem('research-package-operation') === null);
+  await waitForOwnedCheckpointCleared(page, 'research-package-operation');
   const checkpoints = await checkpoint(page, 'research-package-receipts');
   assert(checkpoints.some(row => row.requestId === receipt.requestId && row.jobId === receipt.job.id && row.reused === receipt.reused));
   const history = await checkpoint(page, 'research-package-earlier-requests');

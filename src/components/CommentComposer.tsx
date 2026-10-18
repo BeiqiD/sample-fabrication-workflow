@@ -17,6 +17,7 @@ import { commentUploadQueue } from "../lib/commentUploadQueue";
 import { isTiffFile, prepareCommentImage } from "../lib/images";
 import { attachmentStatusLabel, formatAttachmentBytes } from "../lib/attachment-presentation";
 import { useOriginalFileStorageStatus } from "../lib/useManagedStorageStatus";
+import { captureApplicationOwner } from "../lib/authentication-client";
 
 interface CommentComposerProps {
   label: string;
@@ -47,9 +48,11 @@ export function CommentSubmissionRecovery({
   onSubmitted: () => Promise<void>;
   localSourceKey?: string;
 }) {
+  const [owner] = useState(captureApplicationOwner);
   const [progress, setProgress] = useState<Record<string, number>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const active = useRef(true);
+  const isCurrentSession = () => owner.isCurrent() && active.current;
   const recoveryUploads = useRef(new Map<string, AbortController>());
   useEffect(() => {
     active.current = true;
@@ -62,30 +65,34 @@ export function CommentSubmissionRecovery({
   const recoverySequence = useRef(0);
   const visibleIds = visibleSubmissions.map((submission) => submission.id).sort().join(",");
   useEffect(() => {
+    if (!isCurrentSession()) return;
     const sequence = ++recoverySequence.current;
     for (const id of visibleIds.split(",").filter(Boolean)) {
       void api.getCommentSubmissionAcceptance(id).then((state) => {
-        if (active.current && sequence === recoverySequence.current && state) setRecoveryStates((current) => ({ ...current, [id]: state.status }));
+        if (isCurrentSession() && sequence === recoverySequence.current && state) setRecoveryStates((current) => ({ ...current, [id]: state.status }));
       }).catch(() => undefined);
     }
     return () => { recoverySequence.current += 1; };
   }, [visibleIds]);
   async function refresh(submissionId: string) {
-    if (!active.current) return;
+    if (!isCurrentSession()) return;
     await onSubmitted();
+    if (!isCurrentSession()) return;
     finishCommentSubmission(submissionId);
   }
   async function finish(submissionId: string) {
+    if (!isCurrentSession()) return;
     try { await api.finalizeCommentSubmission(submissionId); await refresh(submissionId); }
-    catch (error) { if (active.current) setErrors((current) => ({ ...current, [submissionId]: (error as Error).message })); }
+    catch (error) { if (isCurrentSession()) setErrors((current) => ({ ...current, [submissionId]: (error as Error).message })); }
   }
   async function cancel(submissionId: string) {
+    if (!isCurrentSession()) return;
     try { await api.cancelCommentSubmission(submissionId); await refresh(submissionId); }
-    catch (error) { if (active.current) setErrors((current) => ({ ...current, [submissionId]: (error as Error).message })); }
+    catch (error) { if (isCurrentSession()) setErrors((current) => ({ ...current, [submissionId]: (error as Error).message })); }
   }
 
   async function retryFile(submission: CommentSubmission, item: CommentImage | Extract<CommentAttachment, { kind: "file" }>, selected: File) {
-    if (recoveryUploads.current.has(item.id)) return;
+    if (!isCurrentSession() || recoveryUploads.current.has(item.id)) return;
     const controller = new AbortController(); recoveryUploads.current.set(item.id, controller);
     try {
       let upload = selected;
@@ -106,32 +113,33 @@ export function CommentSubmissionRecovery({
         }
         sha256 = await fileSha256(selected);
       }
-      sha256 = await fileSha256(upload);
-      if (!active.current) return;
+      owner.assertCurrent(); sha256 = await fileSha256(upload);
+      if (!isCurrentSession()) return;
       setErrors((current) => ({ ...current, [item.id]: "" }));
       await commentUploadQueue.run(() => {
-        if (!active.current || controller.signal.aborted) throw new DOMException("Upload cancelled", "AbortError");
+        if (!isCurrentSession() || controller.signal.aborted) throw new DOMException("Upload cancelled", "AbortError");
         return api.uploadCommentSubmissionItem(submission.id, item.id, upload, sha256, (value) => {
-          if (active.current) setProgress((current) => ({ ...current, [item.id]: value }));
+          if (isCurrentSession()) setProgress((current) => ({ ...current, [item.id]: value }));
         }, controller.signal);
       }, controller.signal);
-      if (!active.current) return;
+      if (!isCurrentSession()) return;
       await api.finalizeCommentSubmission(submission.id).catch(() => undefined);
       await refresh(submission.id);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Retry failed";
-      if (active.current) setErrors((current) => ({ ...current, [item.id]: message }));
+      if (isCurrentSession()) setErrors((current) => ({ ...current, [item.id]: message }));
     } finally { if (recoveryUploads.current.get(item.id) === controller) recoveryUploads.current.delete(item.id); }
   }
 
   async function removeItem(submissionId: string, itemId: string) {
+    if (!isCurrentSession()) return;
     try {
       await api.removeCommentSubmissionItem(submissionId, itemId);
-      if (!active.current) return;
+      if (!isCurrentSession()) return;
       await api.finalizeCommentSubmission(submissionId).catch(() => undefined);
       await refresh(submissionId);
     } catch (error) {
-      if (active.current) setErrors((current) => ({ ...current, [itemId]: error instanceof Error ? error.message : "Remove failed" }));
+      if (isCurrentSession()) setErrors((current) => ({ ...current, [itemId]: error instanceof Error ? error.message : "Remove failed" }));
     }
   }
 
@@ -274,7 +282,9 @@ function CommentComposerSession({
   submitLabel = "Add",
   adaptiveToolbarLayout = false,
 }: CommentComposerProps) {
+  const [owner] = useState(captureApplicationOwner);
   const sessionActive = useRef(true);
+  const isCurrentSession = () => owner.isCurrent() && sessionActive.current;
   const discardedSubmissions = useRef(new Set<string>());
   const sourceIdentity = sourceKey ?? commentComposerSource(context);
   const [body, setBody] = useState("");
@@ -409,7 +419,7 @@ function CommentComposerSession({
   }, [showAttachmentMenu]);
 
   function updateSubmission(id: string, update: (submission: LocalSubmission) => LocalSubmission) {
-    if (sessionActive.current && !discardedSubmissions.current.has(id)) setSubmissions((current) => current.map((submission) => submission.id === id ? update(submission) : submission));
+    if (isCurrentSession() && !discardedSubmissions.current.has(id)) setSubmissions((current) => current.map((submission) => submission.id === id ? update(submission) : submission));
   }
 
   function updateUploadItem(submissionId: string, itemId: string, update: (item: LocalUploadItem) => LocalUploadItem) {
@@ -524,7 +534,7 @@ function CommentComposerSession({
   }
 
   async function uploadItem(submissionId: string, item: LocalUploadItem, submissionSignal?: AbortSignal) {
-    if (!sessionActive.current || discardedSubmissions.current.has(submissionId)) return false;
+    if (!isCurrentSession() || discardedSubmissions.current.has(submissionId)) return false;
     if (item.kind === "link" || item.status === "removed") return true;
     if (!item.file) {
       const state = await api.getCommentSubmissionAcceptance(submissionId);
@@ -535,7 +545,7 @@ function CommentComposerSession({
       }
       return false;
     }
-    if (submissionSignal?.aborted) return false;
+    if (!isCurrentSession() || submissionSignal?.aborted) return false;
     let sha256 = item.sha256;
     try {
       if (!sha256) {
@@ -543,7 +553,7 @@ function CommentComposerSession({
         sha256 = await fileSha256(item.file);
         updateUploadItem(submissionId, item.id, (current) => ({ ...current, sha256 }));
       }
-      if (submissionSignal?.aborted) return false;
+      if (!isCurrentSession() || submissionSignal?.aborted) return false;
       updateUploadItem(submissionId, item.id, (current) => ({ ...current, status: "uploading", progress: 0, error: "" }));
       const controllerKey = `${submissionId}:${item.id}`;
       const controller = new AbortController();
@@ -569,13 +579,14 @@ function CommentComposerSession({
   }
 
   async function finalizeIfComplete(submissionId: string) {
-    if (!sessionActive.current || discardedSubmissions.current.has(submissionId)) return false;
+    if (!isCurrentSession() || discardedSubmissions.current.has(submissionId)) return false;
     try {
       await api.finalizeCommentSubmission(submissionId);
-      if (!sessionActive.current || discardedSubmissions.current.has(submissionId)) return false;
+      if (!isCurrentSession() || discardedSubmissions.current.has(submissionId)) return false;
       await onSubmitted();
+      if (!isCurrentSession()) return false;
       finishCommentSubmission(submissionId);
-      if (sessionActive.current) setSubmissions((current) => current.filter((submission) => submission.id !== submissionId));
+      if (isCurrentSession()) setSubmissions((current) => current.filter((submission) => submission.id !== submissionId));
       return true;
     } catch (error) {
       updateSubmission(submissionId, (submission) => ({
@@ -588,11 +599,12 @@ function CommentComposerSession({
   }
 
   async function startSubmission(input: AcceptedCommentSubmissionInput, local: LocalSubmission) {
+    if (!isCurrentSession()) return;
     const queueController = new AbortController();
     submissionQueueControllers.current.set(local.id, queueController);
     try {
       await api.createCommentSubmission(input);
-      if (!sessionActive.current || queueController.signal.aborted || discardedSubmissions.current.has(local.id)) return;
+      if (!isCurrentSession() || queueController.signal.aborted || discardedSubmissions.current.has(local.id)) return;
       updateSubmission(local.id, (submission) => ({ ...submission, status: "uploading", error: "" }));
       const results = await Promise.all(local.items.map(async (item) => {
         try {
@@ -623,7 +635,7 @@ function CommentComposerSession({
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (preparing || (!body.trim() && !images.length && !attachments.length && !links.length)) return;
+    if (!isCurrentSession() || preparing || (!body.trim() && !images.length && !attachments.length && !links.length)) return;
     if (!storageReady && (attachments.length > 0 || images.some((image) => image.attachOriginal))) {
       setDraftError(storageMessage);
       return;
@@ -736,15 +748,15 @@ function CommentComposerSession({
     try {
       for (const item of localItems) {
         if (!item.file) continue;
-        item.sha256 = await commentUploadQueue.run(() => fileSha256(item.file!));
+        item.sha256 = await commentUploadQueue.run(() => { owner.assertCurrent(); return fileSha256(item.file!); });
         const accepted = itemInputs.find((candidate) => candidate.id === item.id)!;
         accepted.sha256 = item.sha256;
-        if (!sessionActive.current) return;
+        if (!isCurrentSession()) return;
       }
       input = await prepareDurableCommentSubmission({ protocol: "comment-submission/1", id: submissionId, body: frozenBody, context: frozenContext, items: itemInputs }, sourceIdentity);
-      if (!sessionActive.current) return;
-    } catch (error) { if (sessionActive.current) setDraftError((error as Error).message); return; }
-    finally { if (sessionActive.current) setPreparing(false); }
+      if (!isCurrentSession()) return;
+    } catch (error) { if (isCurrentSession()) setDraftError((error as Error).message); return; }
+    finally { if (isCurrentSession()) setPreparing(false); }
     const local: LocalSubmission = {
       id: submissionId,
       body: frozenBody,
@@ -766,6 +778,7 @@ function CommentComposerSession({
   }
 
   async function retryItem(submissionId: string, itemId: string, selected?: File) {
+    if (!isCurrentSession()) return;
     const submission = submissionsRef.current.find((candidate) => candidate.id === submissionId);
     let item = submission?.items.find((candidate) => candidate.id === itemId);
     if (!item || !submission) return;
@@ -775,9 +788,10 @@ function CommentComposerSession({
         if (!accepted || accepted.kind === "link") return;
         if (accepted.kind === "comment_image" && (selected.name !== accepted.originalFilename || selected.size !== accepted.originalByteSize || (selected.type || "application/octet-stream") !== accepted.originalMimeType)) throw new Error("Select the same original image used for this comment.");
         const upload = accepted.kind === "comment_image" ? await prepareCommentImage(selected) : selected;
+        owner.assertCurrent();
         const sha256 = await fileSha256(upload);
         if (sha256 !== accepted.sha256 || upload.name !== accepted.filename || upload.size !== accepted.byteSize || (upload.type || "application/octet-stream") !== accepted.mimeType) throw new Error("The selected file does not match the accepted comment. Select its unchanged original file.");
-        if (!sessionActive.current) return;
+        if (!isCurrentSession()) return;
         item = { ...item, file: upload, sha256 };
         updateUploadItem(submissionId, itemId, () => item!);
       } catch (error) { updateUploadItem(submissionId, itemId, (current) => ({ ...current, error: (error as Error).message })); return; }
@@ -806,6 +820,7 @@ function CommentComposerSession({
   }
 
   async function removeFailedItem(submissionId: string, itemId: string) {
+    if (!isCurrentSession()) return;
     try {
       await api.removeCommentSubmissionItem(submissionId, itemId);
       updateSubmission(submissionId, (submission) => ({
@@ -830,6 +845,7 @@ function CommentComposerSession({
   }
 
   async function cancelSubmission(submissionId: string) {
+    if (!isCurrentSession()) return;
     try {
       submissionQueueControllers.current.get(submissionId)?.abort();
       for (const [key, controller] of uploadControllers.current) {
@@ -839,10 +855,11 @@ function CommentComposerSession({
         }
       }
       await api.cancelCommentSubmission(submissionId);
-      if (!sessionActive.current) return;
+      if (!isCurrentSession()) return;
       await onSubmitted();
+      if (!isCurrentSession()) return;
       finishCommentSubmission(submissionId);
-      if (sessionActive.current) setSubmissions((current) => current.filter((submission) => submission.id !== submissionId));
+      if (isCurrentSession()) setSubmissions((current) => current.filter((submission) => submission.id !== submissionId));
     } catch (error) {
       updateSubmission(submissionId, (submission) => ({
         ...submission,

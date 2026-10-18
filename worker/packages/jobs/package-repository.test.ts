@@ -52,6 +52,56 @@ const body=()=>new Response(bytes.slice()).body!;
 const count=(table:string,where:string,id:string)=>Number(fixture.sql.prepare(`SELECT count(*) n FROM ${table} WHERE ${where}=?`).get(id)!.n);
 
 describe("actual FP4 receipt, publication and cleanup guards",()=>{
+  it.each(["actor", "deadline"] as const)("retains verified upload bytes when the %s fence changes before publication",async(change)=>{
+    const accepted=await acceptUpload(),owned=await claim(accepted.id),file=(await repository.files(accepted.id))[0];
+    let allowed=true,elapsed=0;
+    const originalVerify=repository.verify.bind(repository),verify=vi.spyOn(repository,"verify").mockImplementation(async(...args)=>{
+      await originalVerify(...args);if(change==="actor")allowed=false;else elapsed=PACKAGE_STEP_MS;
+    });
+    const fenced:PackageCapabilities={...capabilities,authorizeActor:actor=>allowed&&capabilities.authorizeActor(actor),now:()=>new Date(Date.now()+elapsed)};
+    try{
+      await expect(writePackageUpload(fenced,owned,body())).rejects.toThrow("actor_or_lease_unavailable");
+      expect(await repository.job(accepted.id)).toMatchObject({state:"paused",phase:"write"});
+      expect(fixture.sql.prepare("SELECT 1 FROM file_publications WHERE file_id=?").get(file.candidate_file_id)).toBeUndefined();
+      expect((await repository.attempt(file))!).toMatchObject({state:"verified",verified_sha256:sha});
+      expect(fixture.sql.prepare("SELECT released_at FROM file_holds WHERE operation_id=?").get(`fp4-output:${accepted.id}`)!.released_at).toBeNull();
+    }finally{verify.mockRestore();}
+    await repository.control(accepted.id,actor,"cancel");await repository.maintain(capabilities.incarnation);
+  },30_000);
+
+  it.each(["actor", "deadline"] as const)("refuses domain publication when the %s fence changes during the final primary ownership read",async(change)=>{
+    const app=new Hono<{Bindings:Env;Variables:{userEmail:string}}>();app.use("*",async(c,next)=>{c.set("userEmail",actor);await next();});app.route("/api",packageRoutes);
+    const post=async(path:string,input:unknown)=>{const response=await app.request(`/api/packages/${path}`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(input)},fixture.env);
+      expect(response.status).toBe(202);return await response.json() as {job:{id:string}};};
+    const exported=await post("jobs",{requestId:crypto.randomUUID(),kind:"data_package",roots:[{kind:"sample",id:"sample-native"}]});
+    expect(await runPackageJobStep(capabilities)).toEqual({jobId:exported.job.id,outcome:"measured"});
+    expect(await runPackageJobStep(capabilities)).toEqual({jobId:exported.job.id,outcome:"file_verified"});
+    const download=await app.request(`/api/packages/jobs/${exported.job.id}/download`,undefined,fixture.env);expect(download.status).toBe(200);
+    const archive=new Uint8Array(await download.arrayBuffer()),upload=await acceptUpload(archive);
+    await writePackageUpload(capabilities,await claim(upload.id),new Response(archive).body!);
+    expect(await runPackageJobStep(capabilities)).toEqual({jobId:upload.id,outcome:"preview"});
+    const imported=await post("imports",{requestId:crypto.randomUUID(),uploadJobId:upload.id,anotherCopy:true,expectedRolePolicyRevision:targets.job_output.policyRevision});
+    const destinationId=JSON.parse((await repository.job(imported.job.id))!.domain_plan_json!).roots[0].id as string;
+    let armed=false,allowed=true,elapsed=0;
+    const originalOwns=repository.owns.bind(repository),owns=vi.spyOn(repository,"owns").mockImplementation(async owned=>{
+      const result=await originalOwns(owned);
+      if(armed&&owned.id===imported.job.id){armed=false;if(change==="actor")allowed=false;else elapsed=PACKAGE_STEP_MS;}
+      return result;
+    });
+    const fenced:PackageCapabilities={...capabilities,authorizeActor:actor=>allowed&&capabilities.authorizeActor(actor),now:()=>new Date(Date.now()+elapsed),
+      async importPublication(owned){const publication=await capabilities.importPublication(owned);armed=true;return publication;}};
+    fixture.s3Fetch.mockClear();fixture.r2Put.mockClear();
+    try{
+      expect(await runPackageJobStep(fenced)).toEqual({jobId:imported.job.id,outcome:"paused"});
+      expect(await repository.job(imported.job.id)).toMatchObject({state:"paused",reason:"actor_or_lease_unavailable",result_json:null});
+      expect(fixture.sql.prepare("SELECT 1 FROM samples WHERE id=?").get(destinationId)).toBeUndefined();
+      expect(fixture.sql.prepare("SELECT released_at FROM file_location_holds WHERE operation_id=?").get(`fp4-source:${imported.job.id}`)!.released_at).toBeNull();
+      expect(fixture.s3Fetch).not.toHaveBeenCalled();expect(fixture.r2Put).not.toHaveBeenCalled();
+    }finally{owns.mockRestore();}
+    await repository.control(imported.job.id,actor,"cancel");await repository.maintain(capabilities.incarnation);
+    await repository.control(upload.id,actor,"cleanup");await repository.maintain(capabilities.incarnation);
+  },30_000);
+
   it("accepts and reconciles exact requests without provider I/O or changing frozen identity",async()=>{
     const accepted=await acceptUpload();
     expect(fixture.s3Fetch).not.toHaveBeenCalled();expect(fixture.r2Put).not.toHaveBeenCalled();

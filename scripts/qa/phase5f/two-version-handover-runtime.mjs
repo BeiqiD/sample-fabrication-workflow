@@ -5,7 +5,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { createServer } from 'node:http';
 import { createConnection } from 'node:net';
-import { readFile, readdir, writeFile } from 'node:fs/promises';
+import { readFile, readdir, realpath, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { relative, resolve } from 'node:path';
 import { Readable } from 'node:stream';
@@ -18,6 +18,20 @@ export const versionACommit = 'abdc2d98541c01e887bbea540c50bb07a7e1cab5';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const payload = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=', 'base64');
 async function git(source, args) { return (await execute('git', ['-C', source, ...args], { maxBuffer: 1024 * 1024 })).stdout.trim(); }
+async function dependencyInputs(source) {
+  const manifest = await readFile(resolve(source, 'package.json')), lockBytes = await readFile(resolve(source, 'package-lock.json'));
+  const lock = JSON.parse(lockBytes), installed = JSON.parse(await readFile(resolve(source, 'node_modules/.package-lock.json'), 'utf8'));
+  assert.equal(await realpath(resolve(source, 'node_modules')), resolve(source, 'node_modules'), 'Each version must own its installed dependencies.');
+  assert.equal(lock.lockfileVersion, 3); assert.equal(installed.lockfileVersion, 3);
+  const names = Object.keys(installed.packages); assert(names.length > 0);
+  for (const name of names) {
+    const entry = installed.packages[name], expected = lock.packages[name];
+    assert(expected, `Installed package absent from this version lock: ${name}`);
+    for (const field of ['version', 'resolved', 'integrity']) assert.equal(entry[field], expected[field], `${name}: installed ${field} must match its own lock`);
+  }
+  return { manifestSha256: sha256(manifest), lockSha256: sha256(lockBytes), installedLockSha256: sha256(JSON.stringify(installed)),
+    installedPackagesChecked: names.length, independentInstallation: true, installedEntriesMatchOwnLock: true };
+}
 export async function inspectVersion(source, old = false) {
   const artifact = await productionWorkerArtifact(source), client = artifact.assets.directory;
   const names = await readdir(resolve(client, 'assets'));
@@ -29,7 +43,8 @@ export async function inspectVersion(source, old = false) {
   const info = { source, workerSha256: sha256(await readFile(artifact.scriptPath)), htmlSha256: sha256(html),
     entry: entry[1], entrySha256: sha256(await readFile(resolve(client, `.${entry[1]}`))),
     recovery: `/assets/${recovery[0]}`, recoverySha256: sha256(await readFile(resolve(client, 'assets', recovery[0]))),
-    recoveryCss: names.filter(name => /^SystemRecoveryPage-.*\.css$/.test(name)).map(name => `/assets/${name}`) };
+    recoveryCss: names.filter(name => /^SystemRecoveryPage-.*\.css$/.test(name)).map(name => `/assets/${name}`),
+    dependencies: await dependencyInputs(source) };
   let ownCheckout = false;
   try { ownCheckout = resolve(await git(source, ['rev-parse', '--show-toplevel'])) === resolve(source); } catch { /* Ordinary archive requires its original receipt. */ }
   if (ownCheckout) {
@@ -51,14 +66,15 @@ export async function compatibleVersions(a, b) {
   const hashes = {};
   const migrations = (await readdir(resolve(a.info.source, 'migrations'))).filter(name => name.endsWith('.sql')).sort();
   assert.deepEqual((await readdir(resolve(b.info.source, 'migrations'))).filter(name => name.endsWith('.sql')).sort(), migrations);
-  for (const path of ['package.json', 'package-lock.json', 'vite.config.ts', 'wrangler.jsonc', ...migrations.map(name => `migrations/${name}`)]) {
+  for (const path of ['vite.config.ts', 'wrangler.jsonc', ...migrations.map(name => `migrations/${name}`)]) {
     const before = sha256(await readFile(resolve(a.info.source, path))), after = sha256(await readFile(resolve(b.info.source, path)));
     assert.equal(before, after, `This schema-compatible rehearsal requires unchanged ${path}`); hashes[path] = before;
   }
   assert.notEqual(a.info.recovery, b.info.recovery); assert.notEqual(a.info.recoverySha256, b.info.recoverySha256);
   assert(!b.names.includes(a.info.recovery.split('/').at(-1)), 'B must truly lack A\'s Recovery module.');
   assert.notEqual(a.info.htmlSha256, b.info.htmlSha256);
-  return { exactSharedInputHashes: hashes, originalRecoveryModuleAbsentFromB: true, realDistinctRecoveryModules: true };
+  return { exactSharedInputHashes: hashes, independentDependencyInputs: { A: a.info.dependencies, B: b.info.dependencies },
+    originalRecoveryModuleAbsentFromB: true, realDistinctRecoveryModules: true };
 }
 async function listen(server) {
   await new Promise((done, fail) => { server.once('error', fail); server.listen(0, '127.0.0.1', done); });
@@ -73,7 +89,6 @@ async function closedPort(port) {
 export async function startTwoVersionRuntime(a, b, output, report) {
   assert(!process.execArgv.some(value => value.startsWith('--input-type')), 'Run a normal .mjs file: --input-type is inherited by Miniflare\'s CommonJS synchronous-fetch eval worker.');
   const require = createRequire(resolve(b.info.source, 'package.json'));
-  const { Miniflare, Log, LogLevel } = require('miniflare');
   const { generateKeyPair, exportJWK, SignJWT } = await import(require.resolve('jose'));
   const databaseId = randomUUID(), recoveryId = randomUUID(), bucketName = `handover-${randomUUID()}`;
   const namespace = JSON.stringify({ kind: 'local-r2', installationId: randomUUID(), bucketName });
@@ -119,6 +134,7 @@ export async function startTwoVersionRuntime(a, b, output, report) {
       .setAudience(audience).setSubject(`fixture:${email}`).setIssuedAt().setExpirationTime('15m').sign(keys.privateKey);
     const tokens = { admin: await token(actor), reader: await token(reader) };
     async function open(selected, label) {
+      const { Miniflare, Log, LogLevel } = createRequire(resolve(selected.info.source, 'package.json'))('miniflare');
       const runtime = new Miniflare({ ...selected.artifact, rootPath: selected.info.source, modulesRoot: selected.info.source, modules: true, host: '127.0.0.1', port: 0,
         d1Databases: { DB: databaseId, RECOVERY_DB: recoveryId }, d1Persist: resolve(persist, 'v3/d1'),
         r2Buckets: { ASSETS: bucketName }, r2Persist: resolve(persist, 'v3/r2'), log: new Log(LogLevel.ERROR),

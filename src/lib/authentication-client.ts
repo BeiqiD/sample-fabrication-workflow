@@ -1,5 +1,5 @@
-/** Only the independent Node client enables this gate. Server session checks
- * remain authoritative; this module never stores a bearer or retries writes. */
+/** The independent Node client uses local sign-in. Cloudflare authentication
+ * stays server-owned; neither mode stores a bearer or retries writes. */
 export const usesLocalAuthentication = () => import.meta.env.VITE_LOCAL_AUTHENTICATION === "1";
 export interface BrowserPrincipal { id: string; actor: string }
 export interface AuthenticationSnapshot {
@@ -10,8 +10,10 @@ export interface AuthenticationSnapshot {
 let snapshot: AuthenticationSnapshot = Object.freeze({ phase: "loading", principal: null, message: null });
 let csrf: string | null = null;
 let generation = 0;
+let remoteIdentityEnabled = false;
 const listeners = new Set<() => void>();
 export const authenticationSnapshot = () => snapshot;
+export const authenticationGeneration = () => generation;
 export function subscribeAuthentication(listener: () => void): () => void {
   listeners.add(listener); return () => { listeners.delete(listener); };
 }
@@ -21,12 +23,66 @@ function publish(phase: AuthenticationSnapshot["phase"], principal: BrowserPrinc
 function anonymous(message: string | null = null): void { csrf = null; publish("anonymous", null, message); }
 function required(): void { generation++; anonymous("Your session ended. Sign in to continue."); }
 
+/** A durable operation belongs to the principal and the mounted sign-in
+ * generation that started it. The stable subject scopes stored checkpoints;
+ * the generation also fences hashing, delivery and module-level caches. */
+export interface ApplicationOwner {
+  readonly subject: string | null;
+  readonly cacheKey: string;
+  isCurrent(): boolean;
+  assertCurrent(): void;
+  observeResponse(status: number, identityMismatch?: boolean): void;
+  fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
+}
+export function captureApplicationOwner(): ApplicationOwner {
+  const local = usesLocalAuthentication(), tracked = local || remoteIdentityEnabled;
+  const owner = generation, principal = snapshot.principal;
+  if (tracked && (snapshot.phase !== "authenticated" || !principal)) throw new Error("Check your sign-in before continuing this operation.");
+  const subject = tracked ? `${local ? "local" : "access"}:${principal!.actor}` : null;
+  const isCurrent = () => local === usesLocalAuthentication() && tracked === (usesLocalAuthentication() || remoteIdentityEnabled)
+    && (!tracked || owner === generation && snapshot.phase === "authenticated" && snapshot.principal === principal);
+  const assertCurrent = () => {
+    if (!isCurrent()) {
+      throw new Error("Your sign-in changed. Return to the original account to check this operation.");
+    }
+  };
+  return { subject, cacheKey: subject === null ? "legacy" : `${subject}:${owner}`, isCurrent, assertCurrent,
+    observeResponse(status, identityMismatch = false) {
+      if (tracked && owner === generation && (status === 401 || status === 409 && identityMismatch)) required();
+    },
+    async fetch(input, init) {
+      assertCurrent();
+      const response = arguments.length === 1 ? await applicationFetch(input) : await applicationFetch(input, init);
+      assertCurrent(); return response;
+    } };
+}
+
+/** Cloudflare authentication remains server-owned. This read only returns an
+ * opaque owner witness; it never signs in, retries a write or changes a grant. */
+export async function readApplicationIdentity(): Promise<void> {
+  if (usesLocalAuthentication()) return readAuthentication();
+  remoteIdentityEnabled = true;
+  const owner = ++generation; publish("loading");
+  try {
+    // Do not send a previous owner's witness to the identity refresh itself.
+    const response = await fetch("/api/identity", { cache: "no-store", credentials: "same-origin", redirect: "error" });
+    if (!response.ok) throw new Error();
+    const value: unknown = await response.json();
+    if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).length !== 2) throw new Error();
+    const row = value as Record<string, unknown>;
+    if (row.schema !== "application-identity/1" || typeof row.subject !== "string" || !/^[a-f0-9]{64}$/.test(row.subject)) throw new Error();
+    if (owner === generation) publish("authenticated", Object.freeze({ id: row.subject, actor: row.subject }));
+  } catch { if (owner === generation) publish("error", null, "Application access could not be checked. Check access again to continue."); }
+}
+
 /** Keep the original request and response, including uncertain mutation results.
  * Local mutations carry only the domain-separated CSRF delivered by the server.
- * No cross-origin URL or redirect can receive that value. Cloudflare requests
- * retain their exact existing arguments and never perform a mode/session probe. */
+ * No cross-origin URL or redirect can receive that value. Authenticated
+ * shells supply a separate owner witness on reads and mutations;
+ * legacy callers outside that shell retain their original request arguments. */
 export async function applicationFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  if (!usesLocalAuthentication()) return arguments.length === 1 ? fetch(input) : fetch(input, init);
+  const local = usesLocalAuthentication();
+  if (!local && !remoteIdentityEnabled) return arguments.length === 1 ? fetch(input) : fetch(input, init);
   const request = input instanceof Request ? input : null;
   const url = new URL(request ? request.url : String(input), window.location.href);
   if (url.origin !== window.location.origin || !["http:", "https:"].includes(url.protocol)
@@ -34,13 +90,17 @@ export async function applicationFetch(input: RequestInfo | URL, init?: RequestI
   const method = (init?.method ?? request?.method ?? "GET").toUpperCase();
   const headers = new Headers(init?.headers ?? request?.headers);
   headers.delete("x-sfw-csrf");
-  if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
+  headers.delete("x-sfw-expected-subject");
+  if (!local) {
+    if (snapshot.phase !== "authenticated" || !snapshot.principal) throw new Error("Check application access before continuing.");
+  } else if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
     if (!csrf || snapshot.phase !== "authenticated") throw new Error("Sign in before changing records.");
     headers.set("x-sfw-csrf", csrf);
   }
+  if (snapshot.phase === "authenticated" && snapshot.principal) headers.set("x-sfw-expected-subject", snapshot.principal.id);
   const owner = generation;
   const response = await fetch(input, { ...init, headers, credentials: "same-origin", redirect: "error" });
-  if (response.status === 401 && owner === generation) required();
+  if ((response.status === 401 || response.status === 409 && response.headers.get("x-sfw-identity-result") === "mismatch") && owner === generation) required();
   return response;
 }
 

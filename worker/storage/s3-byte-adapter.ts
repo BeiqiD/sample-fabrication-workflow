@@ -123,6 +123,7 @@ export function s3ByteAdapter(rawNamespace: S3StorageNamespace, rawCredentials: 
     async write(input: ByteWriteInput) {
       let source: ReadableStreamDefaultReader<Uint8Array> | undefined, output: WritableStreamDefaultWriter<ArrayBuffer | ArrayBufferView> | undefined;
       let fixed: FixedLengthStream | undefined, stopped = false, ended = false;
+      let pumping: Promise<void> | undefined, putting: Promise<void> | undefined;
       const abort = new AbortController();
       try {
         validateByteExpectation(input, "source");
@@ -135,7 +136,7 @@ export function s3ByteAdapter(rawNamespace: S3StorageNamespace, rawCredentials: 
         }
         fixed = new FixedLengthStream(input.byteSize); source = input.body.getReader(); output = fixed.writable.getWriter();
         const incoming = source, outgoing = output;
-        const pumping = (async () => {
+        pumping = (async () => {
           let observed = 0;
           while (!stopped) {
             const next = await incoming.read();
@@ -149,7 +150,7 @@ export function s3ByteAdapter(rawNamespace: S3StorageNamespace, rawCredentials: 
             observed += next.value.byteLength; await outgoing.write(next.value);
           }
         })();
-        const putting = (async () => {
+        putting = (async () => {
           const response = await request("PUT", input.key, input.sha256, fixed!.readable, input.contentType, abort.signal);
           try {
             if (response.redirected || ![200, 201, 204].includes(response.status)) throw new ByteVerificationError("destination", "unavailable");
@@ -160,9 +161,14 @@ export function s3ByteAdapter(rawNamespace: S3StorageNamespace, rawCredentials: 
       } catch (error) {
         stopped = true; abort.abort();
         const cancellation = source ? source.cancel() : input.body instanceof ArrayBuffer ? Promise.resolve() : input.body.cancel();
-        if (output) void output.abort().catch(() => undefined);
-        if (fixed && !fixed.readable.locked) await fixed.readable.cancel().catch(() => undefined);
-        await cancellation.catch(() => undefined);
+        const cleanup = [cancellation, ...(output ? [output.abort()] : []),
+          ...(fixed && !fixed.readable.locked ? [fixed.readable.cancel()] : [])];
+        // Promise.all rejects as soon as one branch fails. Abort requests
+        // cancellation, but the original signed-request guard/provider and
+        // source pump still own their work until their promises acknowledge it.
+        // Start every cancellation before joining, and release stream locks
+        // only after all original branches and cleanup promises have settled.
+        await Promise.allSettled([...cleanup, ...(pumping ? [pumping] : []), ...(putting ? [putting] : [])]);
         throw error instanceof ByteVerificationError ? error : new ByteVerificationError("destination", "unavailable");
       } finally { source?.releaseLock(); output?.releaseLock(); }
     },

@@ -1,3 +1,5 @@
+import { checkpointStorage, type CheckpointStorage } from "../lib/browser-checkpoints";
+import { captureApplicationOwner } from "../lib/authentication-client";
 import { useEffect, useId, useRef, useState } from "react";
 import type { StorageCandidate } from "../../shared/contracts/storage-configuration";
 import { checkedReenvelopeStorageCredentialInput, type ReenvelopeStorageCredentialInput, type StorageCredentialEnvelopeList,
@@ -5,9 +7,9 @@ import { checkedReenvelopeStorageCredentialInput, type ReenvelopeStorageCredenti
 import { storageConfigurationClient, StorageConfigurationRequestError } from "../lib/storage-configuration-client";
 
 const intentKey = (profileId: string) => `storage-credential-reenvelope:${profileId}`;
-function rememberedIntent(profileId: string): ReenvelopeStorageCredentialInput | null {
+function rememberedIntent(storage: CheckpointStorage, profileId: string): ReenvelopeStorageCredentialInput | null {
   try {
-    const raw = sessionStorage.getItem(intentKey(profileId));
+    const raw = storage.getItem(intentKey(profileId));
     if (!raw) return null;
     const input = checkedReenvelopeStorageCredentialInput(JSON.parse(raw));
     return input.profileId === profileId ? input : null;
@@ -22,8 +24,10 @@ const statusNames: Record<StorageCredentialEnvelopeMetadata["status"], string> =
 export function StorageCredentialEncryption({ candidate, canUpdate, onForbidden, onEvidenceChange }: {
   candidate: StorageCandidate; canUpdate: boolean; onForbidden: () => void; onEvidenceChange: () => () => void;
 }) {
-  const [pending, setPending] = useState<ReenvelopeStorageCredentialInput | null>(() => rememberedIntent(candidate.profileId));
-  const [expanded, setExpanded] = useState(() => !!rememberedIntent(candidate.profileId));
+  const [owner] = useState(captureApplicationOwner);
+  const [storage] = useState(() => checkpointStorage(owner));
+  const [pending, setPending] = useState<ReenvelopeStorageCredentialInput | null>(() => rememberedIntent(storage, candidate.profileId));
+  const [expanded, setExpanded] = useState(() => !!rememberedIntent(storage, candidate.profileId));
   const [metadata, setMetadata] = useState<StorageCredentialEnvelopeList>({ items: [], hasMore: false });
   const [metadataReady, setMetadataReady] = useState(false);
   const [loading, setLoading] = useState(false), [busy, setBusy] = useState(false);
@@ -32,14 +36,15 @@ export function StorageCredentialEncryption({ candidate, canUpdate, onForbidden,
   const panelId = useId();
   function remember(input: ReenvelopeStorageCredentialInput | null) {
     try {
-      if (input) sessionStorage.setItem(intentKey(candidate.profileId), JSON.stringify(input));
-      else sessionStorage.removeItem(intentKey(candidate.profileId));
+      if (input) storage.setItem(intentKey(candidate.profileId), JSON.stringify(input));
+      else storage.removeItem(intentKey(candidate.profileId));
     } catch { if (input) return false; }
     pendingRef.current = input; setPending(input); return true;
   }
   async function request<T>(operation: (signal: AbortSignal) => Promise<T>) {
+    owner.assertCurrent();
     const controller = new AbortController(); requests.current.add(controller);
-    try { return await operation(controller.signal); } finally { requests.current.delete(controller); }
+    try { const value = await operation(controller.signal); owner.assertCurrent(); return value; } finally { requests.current.delete(controller); }
   }
   function denied(failure: unknown) {
     if (!(failure instanceof StorageConfigurationRequestError) || failure.status !== 403) return false;
@@ -57,18 +62,18 @@ export function StorageCredentialEncryption({ candidate, canUpdate, onForbidden,
       : `Revision ${receipt.revision} already uses the current encryption key.`);
   }
   async function readMetadata(current: number) {
-    if (current === generation.current) setMetadataReady(false);
+    if (owner.isCurrent() && current === generation.current) setMetadataReady(false);
     const list = await request(signal => storageConfigurationClient.listCredentialEnvelopes(candidate.profileId, signal));
-    if (current === generation.current) { setMetadata(list); setMetadataReady(true); }
+    if (owner.isCurrent() && current === generation.current) { setMetadata(list); setMetadataReady(true); }
   }
   async function reconcile(input: ReenvelopeStorageCredentialInput, current: number, retryMissing: boolean): Promise<void> {
     try {
       const receipt = await request(signal => storageConfigurationClient.readCredentialReenvelope(input.operationId, signal));
-      if (current !== generation.current) return;
+      if (!owner.isCurrent() || current !== generation.current) return;
       accept(receipt, input);
       await readMetadata(current);
     } catch (failure) {
-      if (current !== generation.current || denied(failure)) return;
+      if (!owner.isCurrent() || current !== generation.current || denied(failure)) return;
       if (retryMissing && canUpdate && failure instanceof StorageConfigurationRequestError && failure.status === 404) {
         await submit(input, current); return;
       }
@@ -76,26 +81,26 @@ export function StorageCredentialEncryption({ candidate, canUpdate, onForbidden,
         : "Encryption updated. Refresh encryption status to read the latest result.");
     }
   }
-  async function submit(input: ReenvelopeStorageCredentialInput, current: number) {
+  async function submit(input: ReenvelopeStorageCredentialInput, current: number, fresh = false) {
     try {
       const receipt = await request(signal => storageConfigurationClient.reenvelopeCredential(input, signal));
-      if (current !== generation.current) return;
+      if (!owner.isCurrent() || current !== generation.current) return;
       accept(receipt, input);
       await readMetadata(current);
     } catch (failure) {
-      if (current !== generation.current || denied(failure)) return;
-      if (failure instanceof StorageConfigurationRequestError && failure.status === 409) {
+      if (!owner.isCurrent() || current !== generation.current || denied(failure)) return;
+      if (fresh && failure instanceof StorageConfigurationRequestError && failure.status === 409) {
         remember(null); setMessage("Stored credential encryption changed. Read the latest status before trying again.");
         try { await readMetadata(current); } catch (readFailure) {
-          if (current !== generation.current || denied(readFailure)) return;
+          if (!owner.isCurrent() || current !== generation.current || denied(readFailure)) return;
           setMessage("Stored credential encryption changed. Refresh encryption status before trying again.");
         }
-      } else if (failure instanceof StorageConfigurationRequestError && failure.status === 400) {
-        // Invalid input is rejected before persistence. Unknown outcomes, including
-        // server unavailability after commit, retain the same operation identifier.
+      } else if (fresh && failure instanceof StorageConfigurationRequestError && failure.status === 400) {
+        // Only the first live rejection settles this attempt. A later rejected
+        // replay cannot settle uncertainty from the original delivery.
         remember(null); setMessage("Credential encryption cannot be updated. Refresh encryption status before trying again.");
         try { await readMetadata(current); } catch (readFailure) {
-          if (current !== generation.current || denied(readFailure)) return;
+          if (!owner.isCurrent() || current !== generation.current || denied(readFailure)) return;
         }
       } else if (pendingRef.current) await reconcile(input, current, false);
       else setMessage("Encryption updated. Refresh encryption status to read the latest result.");
@@ -107,12 +112,12 @@ export function StorageCredentialEncryption({ candidate, canUpdate, onForbidden,
     setLoading(true); setMessage("");
     try {
       await readMetadata(current);
-      if (current !== generation.current) return;
+      if (!owner.isCurrent() || current !== generation.current) return;
       if (pendingRef.current) await reconcile(pendingRef.current, current, false);
     } catch (failure) {
-      if (current !== generation.current || denied(failure)) return;
+      if (!owner.isCurrent() || current !== generation.current || denied(failure)) return;
       setMessage("Credential encryption status is unavailable. Refresh encryption status to try again.");
-    } finally { finishEvidenceChange(); if (current === generation.current) setLoading(false); }
+    } finally { finishEvidenceChange(); if (owner.isCurrent() && current === generation.current) setLoading(false); }
   }
   useEffect(() => {
     generation.current += 1; operationBusy.current = false; setBusy(false); setMetadata({ items: [], hasMore: false }); setMetadataReady(false); setLoading(false);
@@ -126,13 +131,13 @@ export function StorageCredentialEncryption({ candidate, canUpdate, onForbidden,
     if (!remember(input)) { setMessage("Browser session storage is unavailable. Enable it before updating credential encryption."); return; }
     const finishEvidenceChange = onEvidenceChange();
     const current = generation.current; operationBusy.current = true; setBusy(true); setMessage(""); setNotice("");
-    try { await submit(input, current); } finally { finishEvidenceChange(); if (current === generation.current) { operationBusy.current = false; setBusy(false); } }
+    try { await submit(input, current, true); } finally { finishEvidenceChange(); if (owner.isCurrent() && current === generation.current) { operationBusy.current = false; setBusy(false); } }
   }
   async function checkOrRetry() {
     if (loading || operationBusy.current || !pendingRef.current) return;
     const finishEvidenceChange = onEvidenceChange();
     const current = generation.current; operationBusy.current = true; setBusy(true); setMessage("");
-    try { await reconcile(pendingRef.current, current, true); } finally { finishEvidenceChange(); if (current === generation.current) { operationBusy.current = false; setBusy(false); } }
+    try { await reconcile(pendingRef.current, current, true); } finally { finishEvidenceChange(); if (owner.isCurrent() && current === generation.current) { operationBusy.current = false; setBusy(false); } }
   }
   return <div className="storage-credential-encryption">
     <button className="button" type="button" aria-expanded={expanded} aria-controls={panelId} onClick={() => setExpanded(current => !current)}>
