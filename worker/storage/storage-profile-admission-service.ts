@@ -5,10 +5,11 @@ import { awsS3NativeNamespace, canonicalNativeS3Namespace, checkedStorageProfile
   type StorageProfileAdmissionInput, type StorageProfileAdmissionReceipt } from "../../shared/contracts/storage-profile-admission";
 import { primaryD1 } from "../d1-primary";
 import type { Env } from "../types";
-import { decryptStorageCredential, parseStorageCredentialKeyring } from "./credential-envelope";
+import { captureStorageCredentialRoot, resolveStorageCredentialRoot, storageCredentialRootUnchanged } from "./installation-secret-seed";
+import { decryptStorageCredential } from "./credential-envelope";
 import { assertSystemAdministrator } from "./system-administrator";
 
-type AdmissionEnvironment = Pick<Env, "DB" | "AUTH_MODE" | "SYSTEM_ADMIN_EMAILS" | "STORAGE_CREDENTIAL_KEYRING">;
+type AdmissionEnvironment = Pick<Env, "DB" | "AUTH_MODE" | "SYSTEM_ADMIN_EMAILS" | "STORAGE_CREDENTIAL_KEYRING" | "INSTALLATION_SECRET_SEED">;
 export class StorageProfileAdmissionError extends Error {
   constructor(readonly status: 400 | 404 | 409 | 503, message: string) { super(message); this.name = "StorageProfileAdmissionError"; }
 }
@@ -150,12 +151,13 @@ export async function registerStorageProfile(env: AdmissionEnvironment, rawInput
   try {
     const prior = await storedReceipt(env, input.operationId);
     if (prior) return matchingReceipt(prior, input);
+    const capturedRoot = captureStorageCredentialRoot(env);
     const source = await currentSource(env, input.profileId, input.expectedRevision), namespace = await parsedNamespace(source);
     let namespaceIdentity: string;
     try { namespaceIdentity = awsS3NativeNamespace(namespace); }
     catch { throw new StorageProfileAdmissionError(400, "Registration requires a qualified commercial AWS S3 bucket owner."); }
     if (source.envelope_revision !== input.expectedEnvelopeRevision) throw conflict();
-    const keys = await parseStorageCredentialKeyring(env.STORAGE_CREDENTIAL_KEYRING);
+    const keys = (await resolveStorageCredentialRoot(capturedRoot)).keyring;
     if (source.key_id !== keys.currentKeyId) throw new StorageProfileAdmissionError(409, "Re-envelope the candidate credentials and run a new check before registration.");
     const opened = await decryptStorageCredential(keys, { profileId: source.profile_id, configurationRevision: input.expectedRevision,
       credentialRef: source.credential_ref!, namespaceSha256: source.namespace_sha256 },
@@ -174,6 +176,8 @@ export async function registerStorageProfile(env: AdmissionEnvironment, rawInput
       status: "succeeded", write_outcome: "acknowledged", read_outcome: "verified", metadata_outcome: "verified", delete_outcome: "acknowledged",
       cleanup_outcome: "confirmed_absent", result_code: null };
     if (!check.completed_at || Object.entries(expected).some(([name, value]) => check[name as keyof CheckRow] !== value)) throw conflict();
+    assertSystemAdministrator(env, actor);
+    if (!storageCredentialRootUnchanged(env, capturedRoot)) throw conflict();
     const createdAt = new Date().toISOString();
     try {
       await env.DB.batch([

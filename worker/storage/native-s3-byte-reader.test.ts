@@ -19,6 +19,8 @@ const actor = "admin@example.test", material = (n: number) => btoa(String.fromCh
 const oldRing = JSON.stringify({ version: 1, currentKeyId: "old", keys: { old: material(11) } });
 const newRing = JSON.stringify({ version: 1, currentKeyId: "new", keys: { old: material(11), new: material(22) } });
 const newOnly = JSON.stringify({ version: 1, currentKeyId: "new", keys: { new: material(22) } });
+const seed = "sfi-seed-v1." + material(71).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+const otherSeed = "sfi-seed-v1." + material(79).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
 const namespace: S3StorageNamespace = { kind: "s3", endpoint: "https://s3.us-east-1.amazonaws.com", region: "us-east-1",
   bucket: "native-reader-fixture", root: "research", forcePathStyle: true, expectedBucketOwner: "111122223333" };
 const credentials = { accessKeyId: "fixture-old-access", secretAccessKey: "fixture-old-secret", sessionToken: "fixture-old-token" };
@@ -53,10 +55,10 @@ function pristineDatabase() {
   database.exec("PRAGMA foreign_keys=ON");
   return database;
 }
-async function fixture() {
+async function fixture(root: Pick<Env, "STORAGE_CREDENTIAL_KEYRING" | "INSTALLATION_SECRET_SEED"> = { STORAGE_CREDENTIAL_KEYRING: oldRing }) {
   const sql = pristineDatabase(); databases.push(sql);
   const db = new SqliteD1Database(sql), env = { DB: db as unknown as D1Database, AUTH_MODE: "access", SYSTEM_ADMIN_EMAILS: actor,
-    STORAGE_CREDENTIAL_KEYRING: oldRing } as Env;
+    ...root } as Env;
   const candidate = { expectedRevision: null, label: "Reader fixture", namespace, credentials: { mode: "replace", value: credentials } };
   const saved = await saveStorageCandidate(env, candidate, actor), objects = new Map<string, ArrayBuffer>();
   const fetch = vi.fn(async (request: Request) => {
@@ -85,6 +87,35 @@ async function fixture() {
 afterEach(() => { vi.restoreAllMocks(); databases.splice(0).forEach(db => db.close()); });
 
 describe("registered native S3 read transport", () => {
+  it("authenticates a seed-backed admitted reader across a fresh environment and fails safely on the wrong root", async () => {
+    const f = await fixture({ INSTALLATION_SECRET_SEED: seed });
+    const env = { ...f.env }, reader = nativeS3ByteReader(env, f.profile, { fetch: f.fetch });
+    expect(await reader.stat("files/known")).toMatchObject({ outcome: "available", byteSize: 11 });
+    env.INSTALLATION_SECRET_SEED = otherSeed;
+    const calls = f.fetch.mock.calls.length;
+    expect(await reader.read("files/known")).toEqual({ outcome: "unavailable" });
+    expect(f.fetch).toHaveBeenCalledTimes(calls);
+    env.INSTALLATION_SECRET_SEED = seed;
+    const read = await reader.read("files/known");
+    if (read.outcome !== "available") throw new Error("Expected authenticated restored seed reader");
+    expect(await new Response(read.body).text()).toBe("known bytes");
+    expect(f.sql.prepare("SELECT count(*) n FROM file_locations").get()).toEqual({ n: 0 });
+  });
+
+  it.each(["seed", "source"] as const)("rejects %s changes during signing without sending the old derived credential", async change => {
+    const f = await fixture({ INSTALLATION_SECRET_SEED: seed });
+    const reader = nativeS3ByteReader(f.env, f.profile, { fetch: f.fetch, now: () => {
+      if (change === "seed") f.env.INSTALLATION_SECRET_SEED = otherSeed;
+      else f.env.STORAGE_CREDENTIAL_KEYRING = oldRing;
+      return new Date();
+    } });
+    expect(await reader.stat("files/known")).toEqual({ outcome: "unavailable" });
+    expect(f.fetch).not.toHaveBeenCalled();
+    f.env.INSTALLATION_SECRET_SEED = seed; f.env.STORAGE_CREDENTIAL_KEYRING = undefined;
+    expect(await nativeS3ByteReader(f.env, f.profile, { fetch: f.fetch }).stat("files/known")).toMatchObject({ outcome: "available" });
+    expect(f.fetch).toHaveBeenCalledTimes(1);
+  });
+
   it("isolates candidate revisions, credential policy and provider objects across fresh copies", async () => {
     const f = await fixture(); await f.revise();
     f.env.STORAGE_CREDENTIAL_KEYRING = undefined;

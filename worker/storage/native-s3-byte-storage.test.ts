@@ -10,29 +10,32 @@ import type { Sha256Factory } from "../files/byte-verification";
 import { SqliteD1Database } from "../reference-test-support";
 import type { Env } from "../types";
 import { saveStorageCandidate } from "./configuration-registry";
-import { startStorageCandidateCheck } from "./candidate-check-service";
+import { cleanupStorageCandidateCheck, startStorageCandidateCheck } from "./candidate-check-service";
 import { activateNativeStorageProfile } from "./native-profile-activation";
 import { nativeS3ByteStorage } from "./native-s3-byte-storage";
 import type { S3RequestOperation } from "./s3-byte-adapter";
 import { readStorageProfileAdmission, registerStorageProfile } from "./storage-profile-admission-service";
-import { reenvelopeStoredStorageCredential } from "./credential-reenvelope-service";
+import { listStorageCredentialEnvelopes, reenvelopeStoredStorageCredential } from "./credential-reenvelope-service";
+import { readStorageCandidateReadiness } from "./candidate-readiness-service";
 import { setStorageRoleDefaults } from "./storage-role-policy";
 
 const actor = "admin@example.test";
 const material = (number: number) => btoa(String.fromCharCode(...new Uint8Array(32).fill(number)));
 const ring = JSON.stringify({ version: 1, currentKeyId: "old", keys: { old: material(31) } });
 const rotated = JSON.stringify({ version: 1, currentKeyId: "new", keys: { old: material(31), new: material(47) } });
+const seed = "sfi-seed-v1." + material(71).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+const otherSeed = "sfi-seed-v1." + material(79).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
 const namespace: S3StorageNamespace = { kind: "s3", endpoint: "https://s3.us-east-1.amazonaws.com", region: "us-east-1",
   bucket: "native-file-fixture", root: "recorded-root", forcePathStyle: true, expectedBucketOwner: "111122223333" };
 const hash: Sha256Factory = () => { const value = createHash("sha256"); return {
   async write(bytes) { value.update(bytes); }, async finish() { return value.digest("hex"); }, async abort() {},
 }; };
 const databases: ReturnType<typeof futureActiveRuntimeDatabase>[] = [];
-async function fixture() {
+async function fixture(root: Pick<Env, "STORAGE_CREDENTIAL_KEYRING" | "INSTALLATION_SECRET_SEED"> = { STORAGE_CREDENTIAL_KEYRING: ring }) {
   const sql = futureActiveRuntimeDatabase(undefined, { throughMigration: "0018_fp2_native_file_runtime.sql" });
   databases.push(sql);
   const env = { DB: new SqliteD1Database(sql) as unknown as D1Database, AUTH_MODE: "access", SYSTEM_ADMIN_EMAILS: actor,
-    STORAGE_CREDENTIAL_KEYRING: ring } as Env;
+    ...root } as Env;
   const candidate = { expectedRevision: null, label: "Native File", namespace,
     credentials: { mode: "replace" as const, value: { accessKeyId: "fixture-retained-access", secretAccessKey: "fixture-retained-secret" } } };
   const saved = await saveStorageCandidate(env, candidate, actor);
@@ -60,6 +63,185 @@ async function fixture() {
 afterEach(() => { vi.restoreAllMocks(); databases.splice(0).forEach(database => database.close()); });
 
 describe("activated exact-profile native File transport", () => {
+  it("uses a seed-only root through check, registration, activation, readiness, wrapping and explicit defaults across fresh consumers", async () => {
+    const f = await fixture({ INSTALLATION_SECRET_SEED: seed });
+    expect(f.env.STORAGE_CREDENTIAL_KEYRING).toBeUndefined();
+    expect(await readStorageCandidateReadiness(f.env, { profileId: f.saved.profileId, expectedRevision: 1 }, actor))
+      .toMatchObject({ credential: { status: "current", envelopeRevision: 1 }, evidence: { currentConfigurationSuccessCount: 1 } });
+    expect(await listStorageCredentialEnvelopes(f.env, f.saved.profileId, actor))
+      .toMatchObject({ items: [{ status: "current", envelopeRevision: 1 }] });
+    const wrapping = { operationId: crypto.randomUUID(), profileId: f.saved.profileId,
+      revision: 1, credentialRef: f.saved.credentials.ref, expectedEnvelopeRevision: 1 };
+    const receipt = await reenvelopeStoredStorageCredential(f.env, wrapping, actor);
+    expect(receipt.outcome).toBe("already_current");
+    const fresh = { ...f.env };
+    const storage = nativeS3ByteStorage(fresh, f.profile, "write", { fetch: f.fetch });
+    await storage.writer.write(f.input);
+    const read = await nativeS3ByteStorage({ ...fresh }, f.profile, "read", { fetch: f.fetch }).reader.read(f.input.key);
+    expect(read.outcome).toBe("available");
+    if (read.outcome !== "available") throw new Error("Expected authenticated seed-backed read");
+    expect(await new Response(read.body).arrayBuffer()).toEqual(f.input.body);
+    const selected = await setStorageRoleDefaults(fresh, { operationId: crypto.randomUUID(), expectedPolicyRevision: null,
+      internalProfileId: f.profile.profileId, originalsProfileId: f.profile.profileId }, actor);
+    expect(selected).toMatchObject({ internalProfileId: f.profile.profileId, originalsProfileId: f.profile.profileId });
+    const protectedRows = JSON.stringify({ payloads: f.sql.prepare("SELECT * FROM system_storage_credential_payloads").all(),
+      checks: f.sql.prepare("SELECT * FROM system_storage_candidate_checks").all() });
+    expect(protectedRows).not.toContain(seed);
+    const calls = f.fetch.mock.calls.length;
+    fresh.INSTALLATION_SECRET_SEED = otherSeed;
+    expect(await storage.reader.stat(f.input.key)).toEqual({ outcome: "unavailable" });
+    expect(f.fetch).toHaveBeenCalledTimes(calls);
+    fresh.INSTALLATION_SECRET_SEED = seed;
+    expect(await storage.reader.stat(f.input.key)).toMatchObject({ outcome: "available", byteSize: f.input.byteSize });
+    fresh.INSTALLATION_SECRET_SEED = undefined;
+    expect(await reenvelopeStoredStorageCredential(fresh, wrapping, actor)).toEqual(receipt);
+    expect(await registerStorageProfile(fresh, f.command, actor)).toEqual(f.admission);
+    expect(f.sql.prepare("SELECT count(*) n FROM file_locations").get()).toEqual({ n: 0 });
+  });
+
+
+
+  it("rechecks the seed after the last asynchronous candidate-check lease query before sending", async () => {
+    const f = await fixture({ INSTALLATION_SECRET_SEED: seed });
+    const prepare = f.env.DB.prepare.bind(f.env.DB);
+    let changed = false;
+    vi.spyOn(f.env.DB, "prepare").mockImplementation(sql => {
+      const statement = prepare(sql);
+      if (sql !== "SELECT * FROM system_storage_candidate_checks WHERE id=?") return statement;
+      return new Proxy(statement, { get(target, property) {
+        if (property !== "bind") {
+          const value = Reflect.get(target, property, target);
+          return typeof value === "function" ? value.bind(target) : value;
+        }
+        return (...values: unknown[]) => {
+          const bound = target.bind(...values);
+          return new Proxy(bound, { get(current, name) {
+            const value = Reflect.get(current, name, current);
+            if (name !== "first") return typeof value === "function" ? value.bind(current) : value;
+            return async (...args: unknown[]) => {
+              const row = await Reflect.apply(value, current, args);
+              if (row?.status === "running" && row.write_outcome === "unknown") {
+                f.env.INSTALLATION_SECRET_SEED = otherSeed; changed = true;
+              }
+              return row;
+            };
+          } });
+        };
+      } });
+    });
+    const checked = await startStorageCandidateCheck(f.env, { checkId: crypto.randomUUID(), profileId: f.saved.profileId,
+      expectedRevision: 1 }, actor, { fetch: f.fetch, createHash: hash });
+    expect(changed).toBe(true);
+    expect(checked).toMatchObject({ status: "failed", write: "unknown", cleanup: "required" });
+    expect(f.fetch).not.toHaveBeenCalled();
+    expect(f.objects.size).toBe(0);
+  });
+
+  it("retains a failed seed-backed check for exact cleanup after the original root is restored", async () => {
+    const f = await fixture({ INSTALLATION_SECRET_SEED: seed });
+    const command = { checkId: crypto.randomUUID(), profileId: f.saved.profileId, expectedRevision: 1 };
+    const rotatedFetch = vi.fn(async (request: Request) => {
+      const response = await f.fetch(request);
+      if (request.method === "PUT") f.env.INSTALLATION_SECRET_SEED = otherSeed;
+      return response;
+    });
+    const result = await startStorageCandidateCheck(f.env, command, actor, { fetch: rotatedFetch, createHash: hash });
+    expect(result).toMatchObject({ status: "failed", write: "passed", cleanup: "required" });
+    expect(rotatedFetch.mock.calls.map(([request]) => request.method)).toEqual(["PUT"]);
+    expect(f.objects.size).toBe(1);
+    f.env.INSTALLATION_SECRET_SEED = seed;
+    const cleaned = await cleanupStorageCandidateCheck(f.env, command.checkId, actor, { fetch: f.fetch, createHash: hash });
+    expect(cleaned).toMatchObject({ status: "failed", cleanup: "confirmed_absent" });
+    expect(f.objects.size).toBe(0);
+    expect(f.fetch.mock.calls.map(([request]) => request.method)).toEqual(["PUT", "DELETE", "HEAD"]);
+    const snapshot = f.sql.prepare("SELECT key_id,nonce,ciphertext FROM system_storage_candidate_checks WHERE id=?").get(command.checkId);
+    expect(snapshot?.ciphertext).toEqual(expect.any(String));
+    expect(await startStorageCandidateCheck({ ...f.env, INSTALLATION_SECRET_SEED: undefined }, command, actor)).toEqual(cleaned);
+  });
+
+  it("rejects activation when the seed changes after envelope authentication and preserves portable bindings", async () => {
+    const f = await fixture({ INSTALLATION_SECRET_SEED: seed });
+    const before = f.sql.prepare("SELECT total_changes() n").get();
+    const decrypt = crypto.subtle.decrypt.bind(crypto.subtle);
+    vi.spyOn(crypto.subtle, "decrypt").mockImplementation(async (...args) => {
+      const value = await decrypt(...args);
+      f.env.INSTALLATION_SECRET_SEED = otherSeed;
+      return value;
+    });
+    await expect(activateNativeStorageProfile(f.env, { operationId: crypto.randomUUID(), nativeProfileId: f.profile.profileId,
+      candidateProfileId: f.saved.profileId, expectedCandidateRevision: 1, expectedEnvelopeRevision: 1,
+      checkId: f.command.checkId, expectedBindingRevision: 1 }, actor)).rejects.toMatchObject({ status: 409 });
+    expect(f.sql.prepare("SELECT total_changes() n").get()).toEqual(before);
+    expect(f.sql.prepare("SELECT binding_revision FROM system_storage_native_bindings").get()).toEqual({ binding_revision: 1 });
+    expect(f.fetch).not.toHaveBeenCalled();
+  });
+
+
+  it.each(["registration", "wrapping", "defaults"] as const)("fences seed changes after authenticating a new %s operation before its transaction", async operation => {
+    const f = await fixture({ INSTALLATION_SECRET_SEED: seed });
+    let command: Parameters<typeof registerStorageProfile>[1] | null = null;
+    if (operation === "registration") {
+      const saved = await saveStorageCandidate(f.env, { ...f.candidate,
+        namespace: { ...namespace, bucket: "separate-registration-fixture" } }, actor);
+      const checked = await startStorageCandidateCheck(f.env, { checkId: crypto.randomUUID(), profileId: saved.profileId,
+        expectedRevision: 1 }, actor, { fetch: f.fetch, createHash: hash });
+      expect(checked.status).toBe("succeeded");
+      command = { operationId: crypto.randomUUID(), profileId: saved.profileId, expectedRevision: 1,
+        expectedEnvelopeRevision: 1, checkId: checked.id };
+    }
+    f.fetch.mockClear();
+    const before = f.sql.prepare("SELECT total_changes() n").get();
+    const decrypt = crypto.subtle.decrypt.bind(crypto.subtle);
+    let authentications = 0;
+    vi.spyOn(crypto.subtle, "decrypt").mockImplementation(async (...args) => {
+      const value = await decrypt(...args);
+      if (++authentications === (operation === "defaults" ? 2 : 1)) f.env.INSTALLATION_SECRET_SEED = otherSeed;
+      return value;
+    });
+    const pending = operation === "registration" ? registerStorageProfile(f.env, command, actor)
+      : operation === "wrapping" ? reenvelopeStoredStorageCredential(f.env, { operationId: crypto.randomUUID(),
+        profileId: f.saved.profileId, revision: 1, credentialRef: f.saved.credentials.ref, expectedEnvelopeRevision: 1 }, actor)
+      : setStorageRoleDefaults(f.env, { operationId: crypto.randomUUID(), expectedPolicyRevision: null,
+        internalProfileId: f.profile.profileId, originalsProfileId: f.profile.profileId }, actor);
+    await expect(pending).rejects.toMatchObject({ status: 409 });
+    expect(authentications).toBe(operation === "defaults" ? 2 : 1);
+    expect(f.sql.prepare("SELECT total_changes() n").get()).toEqual(before);
+    expect(f.fetch).not.toHaveBeenCalled();
+  });
+
+  it.each(["GET", "HEAD", "PUT", "DELETE"] as const)("fences seed rotation and conflicting source during %s signing", async method => {
+    for (const change of ["seed", "source"] as const) {
+      const f = await fixture({ INSTALLATION_SECRET_SEED: seed });
+      const before = f.sql.prepare("SELECT total_changes() n").get();
+      const beforeRequest = vi.fn(async () => {
+        if (change === "seed") f.env.INSTALLATION_SECRET_SEED = otherSeed;
+        else f.env.STORAGE_CREDENTIAL_KEYRING = ring;
+        return true;
+      });
+      const storage = nativeS3ByteStorage(f.env, f.profile, "write", { fetch: f.fetch, beforeRequest });
+      if (method === "GET") expect(await storage.reader.read(f.input.key)).toEqual({ outcome: "unavailable" });
+      if (method === "HEAD") expect(await storage.reader.stat(f.input.key)).toEqual({ outcome: "unavailable" });
+      if (method === "DELETE") expect(await storage.deleter.delete(f.input.key)).toEqual({ outcome: "unavailable" });
+      if (method === "PUT") await expect(storage.writer.write(f.input)).rejects.toMatchObject({ phase: "destination", reason: "unavailable" });
+      expect(beforeRequest).toHaveBeenCalledTimes(1);
+      expect(f.fetch).not.toHaveBeenCalled();
+      expect(f.sql.prepare("SELECT total_changes() n").get()).toEqual(before);
+    }
+  });
+
+
+  it.each(["GET", "HEAD", "PUT", "DELETE"] as const)("revokes the legacy root when a conflicting seed appears during %s signing", async method => {
+    const f = await fixture();
+    const beforeRequest = vi.fn(async () => { f.env.INSTALLATION_SECRET_SEED = seed; return true; });
+    const storage = nativeS3ByteStorage(f.env, f.profile, "write", { fetch: f.fetch, beforeRequest });
+    if (method === "GET") expect(await storage.reader.read(f.input.key)).toEqual({ outcome: "unavailable" });
+    if (method === "HEAD") expect(await storage.reader.stat(f.input.key)).toEqual({ outcome: "unavailable" });
+    if (method === "DELETE") expect(await storage.deleter.delete(f.input.key)).toEqual({ outcome: "unavailable" });
+    if (method === "PUT") await expect(storage.writer.write(f.input)).rejects.toMatchObject({ phase: "destination", reason: "unavailable" });
+    expect(beforeRequest).toHaveBeenCalledTimes(1);
+    expect(f.fetch).not.toHaveBeenCalled();
+  });
+
   it("opens authenticated capabilities without provider I/O and verifies complete write/readback/stat/delete against the recorded namespace", async () => {
     const f = await fixture();
     const globalFetch = vi.spyOn(globalThis, "fetch").mockImplementation(f.fetch);

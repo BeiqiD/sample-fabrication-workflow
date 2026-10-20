@@ -137,6 +137,7 @@ function CurrentStorageSettingsView({ status, onChanged }: { status: CurrentStor
   return <>
     <div className="storage-settings-observation"><strong>Connection not checked</strong>
       <p className="muted">This page reads saved choices and local credential availability. Refreshing does not test provider connectivity or stored files.</p></div>
+    {access === true && <p><a className="button" href="/settings/storage/configuration#storage-add-title">Add storage</a></p>}
     <section className="card storage-settings-section" aria-labelledby="storage-uploads-title">
       <h2 className="card-title" id="storage-uploads-title">Current uploads</h2>
       <p className="muted">These destinations apply to new uploads. Existing files keep their recorded storage location.</p>

@@ -6,14 +6,15 @@ import {
 } from "../../shared/contracts/storage-candidate-check";
 import { checkedSaveStorageCandidateInput, type S3StorageCredentials, type S3StorageNamespace } from "../../shared/contracts/storage-configuration";
 import type { Env } from "../types";
+import { captureStorageCredentialRoot, resolveStorageCredentialRoot, storageCredentialRootUnchanged, type StorageCredentialRootEnvironment } from "./installation-secret-seed";
 import { ByteVerificationError, type Sha256Factory } from "../files/byte-verification";
 import { writeVerifiedBytes } from "../files/byte-writer";
 import { cloudflareSha256 } from "../files/storage-adapters/cloudflare-sha256";
-import { decryptStorageCredential, parseStorageCredentialKeyring } from "./credential-envelope";
+import { decryptStorageCredential } from "./credential-envelope";
 import { s3ByteAdapter, type S3ByteAdapter } from "./s3-byte-adapter";
 import { assertSystemAdministrator } from "./system-administrator";
 
-type CheckEnvironment = Pick<Env, "DB" | "AUTH_MODE" | "SYSTEM_ADMIN_EMAILS" | "STORAGE_CREDENTIAL_KEYRING">;
+type CheckEnvironment = Pick<Env, "DB" | "AUTH_MODE" | "SYSTEM_ADMIN_EMAILS" | "STORAGE_CREDENTIAL_KEYRING" | "INSTALLATION_SECRET_SEED">;
 export interface StorageCandidateCheckOptions {
   fetch?: (request: Request) => Promise<Response>;
   now?: () => Date;
@@ -96,9 +97,9 @@ async function reconcile(env: CheckEnvironment, now: string, id?: string, profil
       .bind(now, now, now, ...(id ? [id] : profileId ? [profileId] : [])).run();
   } catch { throw unavailable(); }
 }
-async function capturedAdapter(env: CheckEnvironment, row: CheckRow, options: { fetch: (request: Request) => Promise<Response>; now: () => Date }): Promise<S3ByteAdapter | null> {
+async function capturedAdapter(root: StorageCredentialRootEnvironment, row: CheckRow, options: { fetch: (request: Request) => Promise<Response>; now: () => Date }): Promise<S3ByteAdapter | null> {
   try {
-    const ring = await parseStorageCredentialKeyring(env.STORAGE_CREDENTIAL_KEYRING);
+    const { keyring: ring } = await resolveStorageCredentialRoot(root);
     const opened = await decryptStorageCredential(ring, { profileId: row.profile_id, configurationRevision: row.configuration_revision,
       credentialRef: row.credential_ref, namespaceSha256: row.namespace_sha256 },
     { version: row.envelope_version, keyId: row.key_id, nonce: row.nonce, ciphertext: row.ciphertext });
@@ -118,7 +119,7 @@ class LeaseStopped extends Error {}
  * bounded race handles a provider that ignores cancellation; such a PUT stays
  * unknown, and a late continuation cannot start another request or publish. */
 async function execute(env: CheckEnvironment, accepted: CheckRow, payload: ArrayBuffer | null, options: StorageCandidateCheckOptions): Promise<StorageCandidateCheck> {
-  const config = settings(options), abort = new AbortController();
+  const config = settings(options), abort = new AbortController(), capturedRoot = captureStorageCredentialRoot(env);
   let row = accepted, stopped = false, databaseFailed = false;
   const stamp = () => config.now().toISOString();
   const owns = (value: CheckRow | null, time: string) => !!value && value.execution_token === accepted.execution_token
@@ -155,6 +156,9 @@ async function execute(env: CheckEnvironment, accepted: CheckRow, payload: Array
   }
   const guardedFetch = async (request: Request): Promise<Response> => {
     await guard();
+    // The lease check awaits D1. Observe the captured root after that final
+    // suspension, immediately before issuing the already-signed request.
+    if (!storageCredentialRootUnchanged(env, capturedRoot)) throw new Error("Storage credential configuration changed.");
     const signal = AbortSignal.any([abort.signal, request.signal]);
     return config.fetch(new Request(request, { signal }));
   };
@@ -163,7 +167,7 @@ async function execute(env: CheckEnvironment, accepted: CheckRow, payload: Array
     timeout = setTimeout(() => { stopped = true; abort.abort(); reject(new LeaseStopped()); }, Math.max(1, Date.parse(accepted.execution_deadline) - config.now().getTime()));
   });
   const work = (async () => {
-    const adapter = await capturedAdapter(env, row, { fetch: guardedFetch, now: config.now });
+    const adapter = await capturedAdapter(capturedRoot, row, { fetch: guardedFetch, now: config.now });
     if (!adapter) {
       await publish(accepted.execution_kind === "check"
         ? { status: "failed", cleanup_outcome: "confirmed_absent", result_code: "credential_unavailable", completed_at: stamp() }

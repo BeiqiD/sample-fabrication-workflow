@@ -43,6 +43,15 @@ async function saveButton() {
 }
 const mutations = () => network.mock.calls.filter(([, options]) => ["PUT", "POST"].includes(options?.method ?? ""));
 describe("current storage Settings controls", () => {
+  it("offers administrator Add storage without requiring an encryption root or starting setup", async () => {
+    network.mockImplementation(async path => String(path) === settingsPath ? json(snapshot())
+      : json({ canManage: true, credentialEditingAvailable: false }));
+    render(<StorageSettingsPage />);
+    const add = await screen.findByRole("link", { name: "Add storage" });
+    expect(add.getAttribute("href")).toBe("/settings/storage/configuration#storage-add-title");
+    expect(network.mock.calls.some(([path]) => String(path).includes("/encryption-readiness"))).toBe(false);
+    expect(mutations()).toHaveLength(0);
+  });
   it("returns an explicitly focused Refresh after the original disabled interval without focusing the initial read", async () => {
     let settingsReads = 0, finishRefresh!: (value: Response) => void;
     network.mockImplementation(async path => String(path) === settingsPath
@@ -93,6 +102,7 @@ describe("current storage Settings controls", () => {
     expect(original.getByText("S3")).toBeTruthy(); expect(original.getByText(nativeId)).toBeTruthy(); expect(original.queryByText("Cloudflare R2")).toBeNull();
     expect(original.getByText("Unavailable in the current configuration")).toBeTruthy();
     expect(screen.getByText("Registered; activation required")).toBeTruthy(); expect(screen.queryByRole("combobox")).toBeNull();
+    expect(screen.queryByRole("link", { name: "Add storage" })).toBeNull();
     expect(document.body.textContent).not.toMatch(/File access is not available for this registered profile|private-/); expect(mutations()).toHaveLength(0);
   });
   it("saves independent profile choices with the observed CAS revision and a durable request identifier", async () => {

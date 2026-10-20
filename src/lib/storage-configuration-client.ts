@@ -1,5 +1,5 @@
 import { applicationFetch } from "./authentication-client";
-import { checkedStorageConfigurationStatus, type SaveStorageCandidateInput, type StorageConfigurationStatus } from "../../shared/contracts/storage-configuration";
+import { checkedSaveStorageCandidateInput, checkedStorageConfigurationStatus, type SaveStorageCandidateInput, type StorageCandidate, type StorageConfigurationStatus } from "../../shared/contracts/storage-configuration";
 import { checkedStorageCandidateCheck, checkedStorageCandidateCheckId, checkedStorageCandidateCheckList, checkedStorageCandidateCheckProfileId,
   checkedStartStorageCandidateCheckInput, type StartStorageCandidateCheckInput, type StorageCandidateCheck, type StorageCandidateCheckList } from "../../shared/contracts/storage-candidate-check";
 import { checkedReenvelopeStorageCredentialInput, checkedStorageCredentialEnvelopeList, checkedStorageCredentialEnvelopeProfileId,
@@ -9,6 +9,7 @@ import { checkedReenvelopeStorageCredentialInput, checkedStorageCredentialEnvelo
 import { checkedStorageCandidateReadinessInput, checkedStorageCandidateReadiness, type StorageCandidateReadiness } from "../../shared/contracts/storage-candidate-readiness";
 import { checkedStorageProfileAdmissionInput, checkedStorageProfileAdmissionOperationId, checkedStorageProfileAdmissionReceipt,
   type StorageProfileAdmissionInput, type StorageProfileAdmissionReceipt } from "../../shared/contracts/storage-profile-admission";
+import { checkedStorageCredentialSetupStatus, type StorageCredentialSetupStatus } from "../../shared/contracts/storage-credential-setup";
 
 export interface StorageConfigurationCapability { canManage: boolean; credentialEditingAvailable: boolean }
 export class StorageConfigurationRequestError extends Error {
@@ -22,6 +23,8 @@ async function request(path: string, init: RequestInit): Promise<unknown> {
   return response.json();
 }
 export const storageConfigurationClient = {
+  readEncryptionReadiness: async (signal?: AbortSignal): Promise<StorageCredentialSetupStatus> =>
+    checkedStorageCredentialSetupStatus(await request("/encryption-readiness", { method: "GET", signal })),
   capability: async (signal?: AbortSignal): Promise<StorageConfigurationCapability> => {
     const value = await request("/capability", { method: "GET", signal });
     if (!value || typeof value !== "object" || Array.isArray(value)
@@ -34,6 +37,16 @@ export const storageConfigurationClient = {
   save: async (input: SaveStorageCandidateInput, signal?: AbortSignal): Promise<void> => {
     // No automatic replay: a lost response is reconciled by reading saved drafts.
     await request("/candidates", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(input), signal });
+  },
+  saveForOnboarding: async (input: SaveStorageCandidateInput, signal?: AbortSignal): Promise<StorageCandidate> => {
+    const checked = checkedSaveStorageCandidateInput(input);
+    const value = await request("/candidates", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(checked), signal });
+    const saved = checkedStorageConfigurationStatus({ scope: "system", credentialEditingAvailable: true,
+      candidates: { items: [value], hasMore: false } }).candidates.items[0]!;
+    if (checked.profileId && saved.profileId !== checked.profileId || saved.revision !== (checked.expectedRevision ?? 0) + 1
+      || saved.label !== checked.label || JSON.stringify(saved.namespace) !== JSON.stringify(checked.namespace)
+      || saved.credentials.status !== "configured") throw new Error("Invalid saved storage candidate response.");
+    return saved;
   },
   readReadiness: async (input: { profileId: string; expectedRevision: number }, signal?: AbortSignal): Promise<StorageCandidateReadiness> => {
     const checked = checkedStorageCandidateReadinessInput(input);

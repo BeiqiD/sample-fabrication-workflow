@@ -81,8 +81,8 @@ async function fixture() {
       const response = await native.dispatchFetch("https://fixture.test", { method: "POST", body: JSON.stringify(input) });
       return { status: response.status, body: await response.json() };
     };
-    const save = async (command: unknown = candidate) => {
-      const result = await call({ action: "save", command }); expect(result.status).toBe(200); return result.body as StorageCandidate;
+    const save = async (command: unknown = candidate, keyring = oldKeyring) => {
+      const result = await call({ action: "save", command, keyring }); expect(result.status).toBe(200); return result.body as StorageCandidate;
     };
     const readiness = async (saved: StorageCandidate, extra: Record<string, unknown> = {}) => {
       const result = await call({ action: "readiness", command: { profileId: saved.profileId, expectedRevision: saved.revision }, ...extra });
@@ -156,8 +156,13 @@ describe("candidate readiness with native Worker crypto and D1", () => {
       expect(current.status).toBe(200); expect(checkedStorageCredentialReenvelopeReceipt(current.body).outcome).toBe("already_current");
       const afterNoop = await f.readiness(saved, { keyring: nextOnlyKeyring });
       expect(afterNoop.credential).toEqual(beforeNoop.credential); expect(afterNoop.evidence).toEqual(beforeNoop.evidence);
-      const next = await f.save(revised(saved));
-      expect((await f.readiness(next)).evidence).toEqual({ currentConfigurationSuccessCount: 0, historicalConfigurationSuccessCount: 2,
+      // A simulated deployment rotation must not silently rewind to the fixture's
+      // old-only default. New writes retain the current and historical keys.
+      const beforeRevision = await f.snapshot();
+      expect((await f.call({ action: "save", command: revised(saved), keyring: oldKeyring })).status).toBe(503);
+      expect(await f.snapshot()).toEqual(beforeRevision);
+      const next = await f.save(revised(saved), nextKeyring);
+      expect((await f.readiness(next, { keyring: nextKeyring })).evidence).toEqual({ currentConfigurationSuccessCount: 0, historicalConfigurationSuccessCount: 2,
         exactCurrentContextSuccess: null, inProgressCount: 0, unresolvedCleanupCount: 0 });
       const finalIo = (await f.call({ action: "io" })).body as { calls: string[]; remaining: number; unexpectedFetches: number };
       expect(finalIo.calls.filter(method => method === "PUT")).toHaveLength(2); expect(finalIo.remaining).toBe(0); expect(finalIo.unexpectedFetches).toBe(0);

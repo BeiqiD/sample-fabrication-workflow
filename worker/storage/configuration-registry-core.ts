@@ -8,6 +8,14 @@ export interface StorageConfigurationCapabilities {
   database(): ConfigurationSqlDatabase;
   authorizeAdministrator(actor: string): boolean | Promise<boolean>;
   keyring(): Promise<StorageCredentialKeyring>;
+  /** Optional runtime fence; local runtimes retain their own secret loader. */
+  assertCredentialRootCurrent?(): void | Promise<void>;
+  /** Worker seed roots have stable key IDs. Fence a concurrent first-use writer
+   * against a different root inside the existing candidate transaction. */
+  enforceCredentialRootHistory?: boolean;
+  credentialRootHistoryWasEmpty?(): boolean;
+  credentialRootHistoryIncludesChecks?(): boolean;
+  credentialRootHistoryHadProtectedPayloads?(): boolean;
 }
 export class StorageConfigurationError extends Error {
   readonly status: 400 | 409 | 503;
@@ -99,8 +107,10 @@ export function createStorageConfigurationRegistry(capabilities: StorageConfigur
     try {
       const keyring = await maybeKeyring();
       const result = await capabilities.database().primary().prepare(`${CANDIDATE_SELECT} ORDER BY r.created_at DESC,r.profile_id LIMIT ?`).bind(MAX_STORAGE_CANDIDATES + 1).all();
-      return { scope: "system", credentialEditingAvailable: !!keyring,
+      const status: StorageConfigurationStatus = { scope: "system", credentialEditingAvailable: !!keyring,
         candidates: { items: await Promise.all(result.results.slice(0, MAX_STORAGE_CANDIDATES).map(row => candidate(candidateRow(row), keyring))), hasMore: result.results.length > MAX_STORAGE_CANDIDATES } };
+      await capabilities.assertCredentialRootCurrent?.();
+      return status;
     } catch { throw unavailable(); }
   }
 
@@ -142,10 +152,26 @@ export function createStorageConfigurationRegistry(capabilities: StorageConfigur
       if (input.expectedRevision === null) statements.push(db.prepare(`INSERT INTO system_storage_profiles
         (id,adapter_type,namespace_json,namespace_sha256,latest_revision,created_at) VALUES (?,?,?,?,0,?)`)
         .bind(profileId, input.namespace.kind, physicalNamespace(input.namespace), namespaceSha256, now));
-      statements.push(
-        db.prepare(`INSERT INTO system_storage_credential_descriptors
+      const rootKeys = [...keyring.keys.keys()];
+      const firstRoot = capabilities.credentialRootHistoryWasEmpty?.() === true;
+      const firstProtected = capabilities.credentialRootHistoryHadProtectedPayloads?.() === false;
+      const hasChecks = capabilities.credentialRootHistoryIncludesChecks?.() === true;
+      const protectedKeys = `SELECT key_id FROM system_storage_credential_payloads${hasChecks
+        ? " UNION ALL SELECT key_id FROM system_storage_candidate_checks" : ""}`;
+      const rootGuard = firstRoot || firstProtected
+        ? `${firstRoot ? "NOT EXISTS(SELECT 1 FROM system_storage_credential_descriptors) AND " : ""}NOT EXISTS(SELECT 1 FROM (${protectedKeys}))`
+        : `NOT EXISTS(SELECT 1 FROM (${protectedKeys}) WHERE key_id NOT IN (${rootKeys.map(() => "?").join(",")}))`;
+      const descriptor = capabilities.enforceCredentialRootHistory
+        ? db.prepare(`INSERT INTO system_storage_credential_descriptors
+          (credential_ref,profile_id,configuration_revision,namespace_sha256,created_at)
+          VALUES (CASE WHEN ${rootGuard}
+            THEN ? ELSE NULL END,?,?,?,?)`)
+          .bind(...(firstRoot || firstProtected ? [] : rootKeys), credentialRef, profileId, revision, namespaceSha256, now)
+        : db.prepare(`INSERT INTO system_storage_credential_descriptors
           (credential_ref,profile_id,configuration_revision,namespace_sha256,created_at) VALUES (?,?,?,?,?)`)
-          .bind(credentialRef, profileId, revision, namespaceSha256, now),
+          .bind(credentialRef, profileId, revision, namespaceSha256, now);
+      statements.push(
+        descriptor,
         db.prepare(`INSERT INTO system_storage_credential_payloads
           (credential_ref,envelope_revision,envelope_version,key_id,nonce,ciphertext) VALUES (?,1,?,?,?,?)`)
           .bind(credentialRef, sealed.version, sealed.keyId, sealed.nonce, sealed.ciphertext),
@@ -159,6 +185,7 @@ export function createStorageConfigurationRegistry(capabilities: StorageConfigur
       // Revision trigger performs the final CAS inside the atomic batch.
       // A stale concurrent writer rolls back its descriptor/payload and audit.
       await assertAdministrator(actor);
+      await capabilities.assertCredentialRootCurrent?.();
       try {
         const result = await db.batch(statements);
         if (result.length !== statements.length || result.some(item => item.directChanges !== 1)) {

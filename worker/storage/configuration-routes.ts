@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Env } from "../types";
-import { canAdministerSystemSettings } from "./system-administrator";
+import { canAdministerSystemSettings, requireSystemAdministrator } from "./system-administrator";
+import { readStorageCredentialSetup } from "./credential-setup";
 import { createStorageConfigurationCacheControl, createStorageConfigurationSurface } from "./configuration-surface";
 import { readStorageConfiguration, saveStorageCandidate, storageCredentialEditingAvailable, StorageConfigurationError } from "./configuration-registry";
 import { storageCandidateCheckRoutes } from "./candidate-check-routes";
@@ -11,6 +12,9 @@ import { storagePolicyRoutes } from "./policy-routes";
 
 type Bindings = { Bindings: Env; Variables: { userEmail: string } };
 export const storageConfigurationRoutes = new Hono<Bindings>();
+storageConfigurationRoutes.get("/storage/configuration/encryption-readiness", requireSystemAdministrator, async c => {
+  return c.json(await readStorageCredentialSetup(c.env, c.get("userEmail")));
+});
 storageConfigurationRoutes.route("/", storageCandidateCheckRoutes);
 storageConfigurationRoutes.route("/", storageCandidateReadinessRoutes);
 storageConfigurationRoutes.route("/", storageCredentialReenvelopeRoutes);

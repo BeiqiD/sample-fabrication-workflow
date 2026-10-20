@@ -8,6 +8,7 @@ on:
       - codex/migration-rejected-intent-recovery
       - codex/main-readiness-request-recovery
       - codex/performance-readiness-fixes
+      - codex/storage-onboarding-seed
       - v2/backend-foundation
     paths:
       - .github/workflows/recovery-browser.yml
@@ -39,6 +40,7 @@ on:
       - scripts/verify-project-worker.mjs
       - scripts/qa/phase5f/genuine-worker-package-runtime.mjs
       - scripts/qa/phase5f/genuine-worker-package-browser.mjs
+      - scripts/qa/phase5f/genuine-storage-onboarding*.mjs
   pull_request:
     branches:
       - v2/backend-foundation
@@ -73,6 +75,7 @@ on:
       - scripts/verify-project-worker.mjs
       - scripts/qa/phase5f/genuine-worker-package-runtime.mjs
       - scripts/qa/phase5f/genuine-worker-package-browser.mjs
+      - scripts/qa/phase5f/genuine-storage-onboarding*.mjs
 
 permissions:
   contents: read
@@ -92,6 +95,7 @@ jobs:
           printf 'MIGRATION_BROWSER_OUTPUT=%s/migration-browser-%s-%s\n' "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
           printf 'PACKAGE_BROWSER_OUTPUT=%s/package-browser-%s-%s\n' "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
           printf 'CONTENT_EXPORT_OUTPUT=%s/content-export-%s-%s\n' "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+          printf 'STORAGE_ONBOARDING_OUTPUT=%s/storage-onboarding-%s-%s\n' "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
 
       - name: Check out candidate
         uses: actions/checkout@v4
@@ -137,6 +141,10 @@ jobs:
         timeout-minutes: 5
         run: node --experimental-transform-types scripts/qa/phase5f/browser-full-content-export.mjs --output "$CONTENT_EXPORT_OUTPUT"
 
+      - name: Qualify conditional S3 onboarding and original-root recovery
+        timeout-minutes: 5
+        run: node scripts/qa/phase5f/genuine-storage-onboarding.mjs --output "$STORAGE_ONBOARDING_OUTPUT" --browser
+
       - name: Retain reports and screenshots only
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
@@ -144,6 +152,21 @@ jobs:
           name: genuine-worker-recovery-browser-${{ github.run_id }}-${{ github.run_attempt }}
           if-no-files-found: warn
           path: |
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/report.json
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/seed-first-s3-1280-light/migrations.log
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/seed-first-s3-1280-light/first-s3-before-generate.png
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/seed-first-s3-1280-light/candidate-saved-before-provider-test.png
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/seed-first-s3-1280-light/tested-registered-activated.png
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/seed-first-s3-1280-light/explicit-upload-destinations.png
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/seed-first-s3-390-dark/migrations.log
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/seed-first-s3-390-dark/first-s3-before-generate.png
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/seed-first-s3-390-dark/candidate-saved-before-provider-test.png
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/seed-first-s3-390-dark/tested-registered-activated.png
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/seed-first-s3-390-dark/explicit-upload-destinations.png
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/legacy-keyring-1280-light/migrations.log
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/legacy-keyring-1280-light/candidate-saved-before-provider-test.png
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/legacy-keyring-1280-light/tested-registered-activated.png
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/legacy-keyring-1280-light/explicit-upload-destinations.png
             ${{ env.CONTENT_EXPORT_OUTPUT }}/report.json
             ${{ env.CONTENT_EXPORT_OUTPUT }}/migrations.log
             ${{ env.CONTENT_EXPORT_OUTPUT }}/desktop-compression-cancel/cancelled.png

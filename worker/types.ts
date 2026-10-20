@@ -19,4 +19,6 @@ export interface Env {
   FILE_EVIDENCE_OPERATOR_EMAILS?: string;
   SYSTEM_ADMIN_EMAILS?: string;
   STORAGE_CREDENTIAL_KEYRING?: string;
+  /** Protected runtime Secret for application-owned, purpose-separated keys. */
+  INSTALLATION_SECRET_SEED?: string;
 }

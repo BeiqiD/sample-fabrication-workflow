@@ -21,19 +21,21 @@ export const hasRememberedProfileRegistration = (profileId: string) => !!remembe
 function supported(candidate: StorageCandidate): boolean {
   try { awsS3NativeNamespace(candidate.namespace); return true; } catch { return false; }
 }
-function qualifies(candidate: StorageCandidate, evidence: StorageCandidateReadiness | null): boolean {
+export function qualifiesStorageCandidateEvidence(candidate: StorageCandidate, evidence: StorageCandidateReadiness | null): boolean {
   if (!evidence || evidence.profileId !== candidate.profileId || evidence.revision !== candidate.revision
     || evidence.credential.status !== "current" || evidence.credential.envelopeRevision === null
     || !evidence.evidence.exactCurrentContextSuccess || evidence.evidence.inProgressCount || evidence.evidence.unresolvedCleanupCount) return false;
   return supported(candidate);
 }
+export interface StorageProfileSetupProgress { profileId: string; revision: number; registered: boolean; activated: boolean }
 
 /** Registration uses recorded evidence only. Retaining the request identifier
  * permits receipt reconciliation after reload; it stores no namespace or secrets. */
-export function StorageProfileRegistration({ candidate, evidence, blocked, onForbidden, onStaleEvidence, enableActivation = false }: {
+export function StorageProfileRegistration({ candidate, evidence, blocked, onForbidden, onStaleEvidence, enableActivation = false, onProgress }: {
   candidate: StorageCandidate; evidence: StorageCandidateReadiness | null; blocked: boolean;
   onForbidden: () => void; onStaleEvidence: () => void;
   enableActivation?: boolean;
+  onProgress?: (value: StorageProfileSetupProgress) => void;
 }) {
   const [owner] = useState(captureApplicationOwner);
   const [storage] = useState(() => checkpointStorage(owner));
@@ -41,12 +43,21 @@ export function StorageProfileRegistration({ candidate, evidence, blocked, onFor
   const [receipt, setReceipt] = useState<StorageProfileAdmissionReceipt | null>(null);
   const [lookup, setLookup] = useState<{ key: string; state: "loading" | "absent" | "unavailable" | "registered"; receipt?: StorageProfileAdmissionReceipt } | null>(null);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState("");
+  const [activationProgress, setActivationProgress] = useState<{ key: string; nativeProfileId: string; confirmed: boolean } | null>(null);
   const generation = useRef(0), operationBusy = useRef(false), pendingRef = useRef(pending), requests = useRef(new Set<AbortController>());
   const lookupGeneration = useRef(0), lookupController = useRef<AbortController | null>(null);
   const candidateKey = `${candidate.profileId}:${candidate.revision}`, currentCandidate = useRef(candidateKey); currentCandidate.current = candidateKey;
   const currentLookup = lookup?.key === candidateKey ? lookup : null;
   const registered = currentLookup?.state === "registered" ? currentLookup.receipt : null;
-  const eligible = !blocked && qualifies(candidate, evidence);
+  const activationContext = `${candidateKey}:${evidence?.credential.envelopeRevision ?? "none"}:${evidence?.evidence.exactCurrentContextSuccess?.checkId ?? "none"}`;
+  const eligible = !blocked && qualifiesStorageCandidateEvidence(candidate, evidence);
+  const registrationConfirmed = !blocked && !busy && !pending && !!registered;
+  const activationConfirmed = registrationConfirmed && activationProgress?.key === activationContext
+    && activationProgress.nativeProfileId === registered?.nativeProfileId && activationProgress.confirmed;
+  useEffect(() => {
+    if (owner.isCurrent()) onProgress?.({ profileId: candidate.profileId, revision: candidate.revision,
+      registered: registrationConfirmed, activated: !!activationConfirmed });
+  }, [candidate.profileId, candidate.revision, registrationConfirmed, activationConfirmed, onProgress]);
   // A pending operation keeps its original context. An explicit replay lets
   // the server return its durable receipt or reject an uncommitted stale intent.
   const pendingCanRetry = !blocked;
@@ -169,7 +180,12 @@ export function StorageProfileRegistration({ candidate, evidence, blocked, onFor
       </button></>}
     {registered && <p role="status">Profile <code>{registered.nativeProfileId}</code> {enableActivation ? "is registered. Review its activation below." : "is registered as read only. File access is not enabled and upload destinations are unchanged."} <a href="/settings/storage">View registered profiles</a></p>}
     {registered && enableActivation && <StorageProfileActivation candidate={candidate} nativeProfileId={registered.nativeProfileId} evidence={evidence}
-      blocked={blocked} onForbidden={onForbidden} onStaleEvidence={onStaleEvidence} />}
+      blocked={blocked} onForbidden={onForbidden} onStaleEvidence={onStaleEvidence}
+      onActivationChange={onProgress ? value => {
+        if (value.profileId !== candidate.profileId || value.revision !== candidate.revision || value.nativeProfileId !== registered.nativeProfileId) return;
+        setActivationProgress(current => current?.key === activationContext && current.nativeProfileId === value.nativeProfileId && current.confirmed === value.confirmed
+          ? current : { key: activationContext, nativeProfileId: value.nativeProfileId, confirmed: value.confirmed });
+      } : undefined} />}
     {receipt && !registered && <p role="status">Registration confirmed for revision {receipt.revision}. <a href="/settings/storage">View registered profiles</a></p>}
     {message && <p role="status">{message}</p>}
   </>;

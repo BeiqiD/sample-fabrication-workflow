@@ -160,6 +160,15 @@ through #251; **actual deployed operation and real AWS qualification remain open
 candidate or local test does not make an upload destination active on the
 existing deployment. See [phase and release gates](./docs/PRODUCT_ROADMAP.md#fp2-completion-units).
 
+Bootstrap R2, administrator sign-in and read-only Storage Settings require no
+credential-encryption seed. The first administrator-added AWS S3 profile uses
+the [guided external-storage setup](./docs/STORAGE_ONBOARDING.md): generate a
+strong installation seed in the browser, save it once as a protected Worker
+runtime Secret, then recheck and continue. Later S3 additions reuse that root.
+Existing `STORAGE_CREDENTIAL_KEYRING` installations retain their keys and history;
+they do not need a new seed. The setup and provider qualification have separate
+acceptance gates before this UX can be advertised in a main release.
+
 Historical SWITCHdrive files continue to use their recorded provider and require
 working HTTPS WebDAV credentials. Configure that environment-backed adapter
 through Worker variables/secrets; passwords and tokens belong in encrypted Secrets:

@@ -1,18 +1,27 @@
 import { checkpointStorage, type CheckpointStorage } from "../lib/browser-checkpoints";
-import { captureApplicationOwner } from "../lib/authentication-client";
+import { captureApplicationOwner, subscribeAuthentication } from "../lib/authentication-client";
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { supportsExpectedS3BucketOwner, type SaveStorageCandidateInput, type StorageCandidate, type StorageConfigurationStatus } from "../../shared/contracts/storage-configuration";
+import { awsS3NativeNamespace } from "../../shared/contracts/storage-profile-admission";
 import { checkedStartStorageCandidateCheckInput, MAX_STORAGE_CANDIDATE_CHECKS, type StartStorageCandidateCheckInput, type StorageCandidateCheck,
   type StorageCandidateCheckList, type StorageCandidateCheckStage } from "../../shared/contracts/storage-candidate-check";
 import { storageConfigurationClient, StorageConfigurationRequestError, type StorageConfigurationCapability } from "../lib/storage-configuration-client";
-import { StorageCandidateReadiness } from "./StorageCandidateReadiness";
+import { StorageCandidateReadiness, type StorageCandidateSetupProgress } from "./StorageCandidateReadiness";
 import { StorageCredentialEncryption } from "./StorageCredentialEncryption";
+import { StorageCredentialSetup } from "./StorageCredentialSetup";
 import "./storage-settings.css";
 
 type Provider = "s3" | "webdav" | "switchdrive";
 const names: Record<Provider, string> = { s3: "S3 compatible", webdav: "WebDAV", switchdrive: "SWITCHdrive" };
 const blank = { label: "", provider: "s3" as Provider, endpoint: "", bucket: "", region: "", root: "", forcePathStyle: true, expectedBucketOwner: "",
   accessKeyId: "", secretAccessKey: "", sessionToken: "", username: "", password: "" };
+function nativeCandidate(candidate: StorageCandidate): boolean {
+  try { awsS3NativeNamespace(candidate.namespace); return true; } catch { return false; }
+}
+interface WizardSelection {
+  profileId: string; revision: number; flow: number; testPassed: boolean;
+  evidenceStage: StorageCandidateSetupProgress["stage"]; evidence: StorageCandidateSetupProgress["evidence"];
+}
 
 export function StorageConfigurationPage() {
   const [owner] = useState(captureApplicationOwner);
@@ -22,6 +31,10 @@ export function StorageConfigurationPage() {
   const [error, setError] = useState(""), [notice, setNotice] = useState("");
   const [form, setForm] = useState(blank), [editing, setEditing] = useState<StorageCandidate | null>(null);
   const [replaceCredentials, setReplaceCredentials] = useState(true), [uncertainSave, setUncertainSave] = useState(false);
+  const [setupRequested, setSetupRequested] = useState(false), [awsFlow, setAwsFlow] = useState(false);
+  const [wizardStage, setWizardStage] = useState<1 | 2 | 3>(1);
+  const [selection, setSelection] = useState<WizardSelection | null>(null);
+  const flowGeneration = useRef(0);
   const [evidenceState, setEvidenceState] = useState<Record<string, { generation: number; pending: number }>>({});
   function beginEvidenceChange(profileId: string) {
     setEvidenceState(current => ({ ...current, [profileId]: { generation: (current[profileId]?.generation ?? 0) + 1, pending: (current[profileId]?.pending ?? 0) + 1 } }));
@@ -33,9 +46,30 @@ export function StorageConfigurationPage() {
   }
   const sequence = useRef(0), controller = useRef<AbortController | null>(null);
   const refreshButton = useRef<HTMLButtonElement>(null), returnRefreshFocus = useRef(false);
+  const candidateName = useRef<HTMLInputElement>(null), returnSetupFocus = useRef(false);
   function resetEditor() { setForm(blank); setEditing(null); setReplaceCredentials(true); }
+  function clearSelection() { flowGeneration.current += 1; setSelection(null); }
+  function selectCandidate(candidate: StorageCandidate) {
+    if (!owner.isCurrent() || !nativeCandidate(candidate)) return;
+    const flow = ++flowGeneration.current;
+    setSelection({ profileId: candidate.profileId, revision: candidate.revision, flow, testPassed: false, evidenceStage: 3, evidence: "unobserved" });
+    setAwsFlow(true); setWizardStage(3);
+  }
+  function progress(value: StorageCandidateSetupProgress, flow: number) {
+    if (!owner.isCurrent()) return;
+    setSelection(current => !current || current.flow !== flow || current.profileId !== value.profileId || current.revision !== value.revision
+      || current.evidenceStage === value.stage && current.evidence === value.evidence ? current : { ...current, evidenceStage: value.stage, evidence: value.evidence });
+  }
+  function testProgress(value: { profileId: string; revision: number; passed: boolean }, flow: number) {
+    if (!owner.isCurrent()) return;
+    setSelection(current => !current || current.flow !== flow || current.profileId !== value.profileId || current.revision !== value.revision
+      || current.testPassed === value.passed ? current : { ...current, testPassed: value.passed });
+  }
   function accessDenied() {
     sequence.current += 1; controller.current?.abort(); resetEditor(); setStatus(null);
+    setSetupRequested(false); setAwsFlow(false);
+    clearSelection();
+    returnSetupFocus.current = false;
     setCapability({ canManage: false, credentialEditingAvailable: false }); setLoading(false); setSaving(false);
     setError("System administrator access is required. Refresh to check your access.");
   }
@@ -44,6 +78,9 @@ export function StorageConfigurationPage() {
     const current = ++sequence.current;
     controller.current?.abort(); const pending = new AbortController(); controller.current = pending;
     setLoading(true); setError(""); setCapability(null); setStatus(null);
+    setSetupRequested(false); setAwsFlow(false);
+    clearSelection();
+    returnSetupFocus.current = false;
     // Credentials are intentionally never retained across refreshes.
     resetEditor();
     try {
@@ -67,9 +104,44 @@ export function StorageConfigurationPage() {
     const button = refreshButton.current;
     if (button?.isConnected && !button.disabled && (document.activeElement === document.body || document.activeElement === button)) button.focus();
   }, [loading]);
-  useEffect(() => { void refresh(); return () => { sequence.current += 1; controller.current?.abort(); }; }, []);
+  useLayoutEffect(() => {
+    if (setupRequested || !returnSetupFocus.current) return;
+    returnSetupFocus.current = false;
+    if (owner.isCurrent() && document.activeElement === document.body && candidateName.current?.isConnected) candidateName.current.focus();
+  }, [setupRequested, capability, status]);
+  useEffect(() => {
+    void refresh();
+    const unsubscribe = subscribeAuthentication(() => { if (!owner.isCurrent()) accessDenied(); });
+    return () => { unsubscribe(); sequence.current += 1; controller.current?.abort(); };
+  }, []);
+  function beginAwsStorage() {
+    if (!owner.isCurrent() || !capability?.canManage || !status || loading || saving || uncertainSave) return;
+    resetEditor(); setError(""); setNotice(""); setAwsFlow(true);
+    clearSelection();
+    returnSetupFocus.current = false;
+    setForm({ ...blank, endpoint: "https://s3.us-east-1.amazonaws.com", region: "us-east-1", forcePathStyle: false });
+    const ready = capability.credentialEditingAvailable && status.credentialEditingAvailable;
+    setSetupRequested(!ready); setWizardStage(ready ? 2 : 1);
+  }
+  async function continueAfterSetup(signal: AbortSignal) {
+    owner.assertCurrent();
+    const current = sequence.current;
+    const permission = await storageConfigurationClient.capability(signal);
+    if (!owner.isCurrent() || signal.aborted || current !== sequence.current) return;
+    if (!permission.canManage) { accessDenied(); return; }
+    const latest = await storageConfigurationClient.read(signal);
+    if (!owner.isCurrent() || signal.aborted || current !== sequence.current) return;
+    if (!permission.credentialEditingAvailable || !latest.credentialEditingAvailable) throw new Error("Credential setup remains unavailable");
+    // Recheck observes configuration only. No seed or provider credential is
+    // delivered, persisted or replayed while the operator applies the Secret.
+    returnSetupFocus.current = document.activeElement === document.body || !!document.activeElement?.closest(".storage-credential-setup");
+    setCapability(permission); setStatus(latest); setSetupRequested(false); setWizardStage(2);
+  }
   function edit(candidate: StorageCandidate) {
     const namespace = candidate.namespace;
+    setSetupRequested(false); setAwsFlow(false);
+    clearSelection();
+    returnSetupFocus.current = false;
     setEditing(candidate); setReplaceCredentials(false); setNotice(""); setError("");
     setForm({ ...blank, label: candidate.label, provider: namespace.kind, endpoint: namespace.endpoint, root: namespace.root,
       ...(namespace.kind === "s3" ? { bucket: namespace.bucket, region: namespace.region, forcePathStyle: namespace.forcePathStyle,
@@ -90,11 +162,20 @@ export function StorageConfigurationPage() {
       label: form.label, namespace, credentials };
     const current = sequence.current, signal = controller.current?.signal;
     const finishEvidenceChange = editing ? beginEvidenceChange(editing.profileId) : () => {};
+    if (awsFlow) { clearSelection(); setWizardStage(2); }
     setSaving(true); setError(""); setNotice("");
     try {
-      await storageConfigurationClient.save(input, signal);
+      let saved: StorageCandidate | null = null;
+      if (awsFlow) saved = await storageConfigurationClient.saveForOnboarding(input, signal);
+      else await storageConfigurationClient.save(input, signal);
       if (!owner.isCurrent() || current !== sequence.current || signal?.aborted) return;
+      if (saved && input.expectedRevision === null && status?.candidates.items.some(item => item.profileId === saved.profileId))
+        throw new Error("New storage candidate identity was not new");
       resetEditor();
+      if (awsFlow && saved) {
+        if (nativeCandidate(saved)) selectCandidate(saved);
+        else { setAwsFlow(false); setWizardStage(3); }
+      }
       // A successful commit is shown even if the subsequent metadata read fails.
       setNotice("Candidate saved as a draft. Current upload destinations are unchanged.");
       try {
@@ -121,6 +202,12 @@ export function StorageConfigurationPage() {
   }
   const set = (name: keyof typeof blank, value: string | boolean) => setForm(current => ({ ...current, [name]: value }));
   const externalEditing = capability?.credentialEditingAvailable && status?.credentialEditingAvailable;
+  const selectedCandidate = selection && status?.candidates.items.find(item => item.profileId === selection.profileId && item.revision === selection.revision && nativeCandidate(item));
+  const selected = selectedCandidate ? selection : null;
+  const currentWizardStage = selected ? selected.evidence === "current" ? selected.evidenceStage
+    : selected.evidence === "pending" || selected.evidence === "unavailable" ? 3 : selected.testPassed ? 4 : 3 : wizardStage;
+  const standardAwsEndpoint = form.provider === "s3" && supportsExpectedS3BucketOwner(form.endpoint, form.region)
+    && !/^(?:cn-|us-gov-)|(?:^|-)iso[a-z]*-/.test(form.region);
   return <div className="page storage-settings-page">
     <div className="page-heading"><div><p className="eyebrow">Settings</p><h1>Storage configuration</h1>
       <p className="lead">Save storage candidates, test S3 connections and maintain credential encryption.</p></div>
@@ -137,37 +224,69 @@ export function StorageConfigurationPage() {
     {capability?.canManage && status && <>
       <div className="storage-settings-observation"><strong>Candidate storage</strong>
         <p className="muted">Saving does not test the connection, activate a provider or change upload destinations. Cloudflare R2 storage does not require external credentials.</p></div>
-      {!externalEditing && <p className="muted">External credential editing is unavailable. An administrator must configure the installation encryption key before saving external candidates.</p>}
+      <section className="card storage-settings-section storage-add-section" aria-labelledby="storage-add-title">
+        <h2 className="card-title" id="storage-add-title">Add storage</h2>
+        <p>Connect AWS S3 for new upload destinations. Set up encrypted credentials only when you first add external storage; built-in R2 needs no seed.</p>
+        <button className="button primary" type="button" disabled={loading || saving || uncertainSave || setupRequested} onClick={beginAwsStorage}>Add AWS S3 storage</button>
+        <p className="muted">An additional R2 bucket needs an operator-provisioned bucket binding. Other S3-compatible, WebDAV and SWITCHdrive connections remain saved candidates until their native support is separately qualified.</p>
+        {awsFlow && <nav className="storage-onboarding-stages" aria-label="Add AWS S3 stages"><ol>
+          <li aria-current={currentWizardStage === 1 ? "step" : undefined}>Secure credentials</li>
+          <li aria-current={currentWizardStage === 2 ? "step" : undefined}>Save connection</li>
+          <li aria-current={currentWizardStage === 3 ? "step" : undefined}><a href={selected ? "#storage-wizard-candidate" : "#storage-candidates-title"}>Test connection</a></li>
+          <li aria-current={currentWizardStage === 4 ? "step" : undefined}><a href={selected ? "#storage-wizard-candidate" : "#storage-candidates-title"}>Review evidence and register</a></li>
+          <li aria-current={currentWizardStage === 5 ? "step" : undefined}>Confirm profile activation</li>
+          <li aria-current={currentWizardStage === 6 ? "step" : undefined}><a href="/settings/storage">Choose upload destinations</a></li>
+        </ol></nav>}
+        {setupRequested && <StorageCredentialSetup onReady={continueAfterSetup} onForbidden={accessDenied} onCancel={() => {
+          returnSetupFocus.current = false; setSetupRequested(false); setAwsFlow(false); clearSelection(); resetEditor();
+        }} />}
+        {selectedCandidate && <p className="storage-wizard-selection">Setup selected: <strong>{selectedCandidate.label}</strong>, revision {selectedCandidate.revision}.</p>}
+        {awsFlow && currentWizardStage === 3 && <p role="status">Run or reconcile a connection test for the selected saved connection, then review its evidence. Each later step needs its own confirmation.</p>}
+        {awsFlow && currentWizardStage === 4 && <p role="status">Review the selected connection’s current evidence and register the matching tested configuration.</p>}
+        {awsFlow && currentWizardStage === 5 && <p role="status">The profile is registered. Confirm or update its activation using this exact saved connection and current test evidence.</p>}
+        {awsFlow && currentWizardStage === 6 && <p role="status">Activation and current availability are confirmed for this connection. Choose upload destinations separately; no defaults have changed.</p>}
+      </section>
       <section className="card storage-settings-section" aria-labelledby="storage-candidates-title"><h2 className="card-title" id="storage-candidates-title">Saved candidates</h2>
         {status.candidates.items.length === 0 ? <p className="muted">No external storage candidates have been saved.</p> : <ul className="storage-profile-list">
-          {status.candidates.items.map(candidate => <li key={candidate.profileId}>
-            <div className="storage-profile-heading"><h3>{candidate.label}</h3><span>{names[candidate.namespace.kind]} · Draft · Revision {candidate.revision}</span></div>
+          {status.candidates.items.map(candidate => <li key={candidate.profileId}
+            id={selected?.profileId === candidate.profileId && selected.revision === candidate.revision ? "storage-wizard-candidate" : undefined}>
+            <div className="storage-profile-heading"><h3>{candidate.label}</h3><span>{nativeCandidate(candidate) ? "AWS S3" : candidate.namespace.kind === "s3" ? "S3 compatible — candidate only" : names[candidate.namespace.kind]} · Draft · Revision {candidate.revision}</span></div>
             <dl><div><dt>Storage address</dt><dd>{candidate.namespace.endpoint}{candidate.namespace.kind === "s3" ? ` / ${candidate.namespace.bucket}` : ""}</dd></div>
               <div><dt>Root folder</dt><dd>{candidate.namespace.root || "/"}</dd></div><div><dt>Credentials</dt><dd>{candidate.credentials.status === "configured" ? "Configured" : "Unavailable"}</dd></div></dl>
             {externalEditing && <button className="button" type="button" disabled={saving || uncertainSave} onClick={() => edit(candidate)}>Edit {candidate.label}</button>}
+            {externalEditing && nativeCandidate(candidate) && <button className="button" type="button"
+              disabled={saving || uncertainSave || selected?.profileId === candidate.profileId && selected.revision === candidate.revision}
+              onClick={() => selectCandidate(candidate)}>Continue setup for {candidate.label}</button>}
             <CandidateChecks candidate={candidate} canTest={!!externalEditing && candidate.credentials.status === "configured" && !saving && !uncertainSave}
               canCleanup={!saving && !uncertainSave}
+              onProgress={selected?.profileId === candidate.profileId && selected.revision === candidate.revision
+                ? value => testProgress(value, selected.flow) : undefined}
               onForbidden={accessDenied} onEvidenceChange={() => beginEvidenceChange(candidate.profileId)} />
             <StorageCandidateReadiness candidate={candidate} evidenceGeneration={evidenceState[candidate.profileId]?.generation ?? 0}
-              blocked={saving || uncertainSave || !!evidenceState[candidate.profileId]?.pending} onForbidden={accessDenied} />
+              blocked={saving || uncertainSave || !!evidenceState[candidate.profileId]?.pending} onForbidden={accessDenied}
+              onProgress={selected?.profileId === candidate.profileId && selected.revision === candidate.revision
+                ? value => progress(value, selected.flow) : undefined} />
             <StorageCredentialEncryption candidate={candidate} canUpdate={!!externalEditing && !saving && !uncertainSave}
               onForbidden={accessDenied} onEvidenceChange={() => beginEvidenceChange(candidate.profileId)} />
           </li>)}
         </ul>}
         {status.candidates.hasMore && <p className="muted">Additional saved candidates are not shown.</p>}
       </section>
-      {externalEditing && <section className="card storage-settings-section" aria-labelledby="storage-editor-title"><h2 className="card-title" id="storage-editor-title">{editing ? "New candidate revision" : "New candidate"}</h2>
+      {externalEditing && (!awsFlow || wizardStage < 3) && <section className="card storage-settings-section" aria-labelledby="storage-editor-title"><h2 className="card-title" id="storage-editor-title">{editing ? "New candidate revision" : "New candidate"}</h2>
+        {awsFlow && <p className="muted">{standardAwsEndpoint ? "AWS S3 connection." : "S3-compatible candidate only: this endpoint is outside the supported AWS native path."} Saving is separate from testing, activation and choosing upload destinations.</p>}
         <form className="storage-candidate-form" onSubmit={event => void save(event)} autoComplete="off">
           <fieldset disabled={saving || uncertainSave}><div className="storage-candidate-fields">
-            <label>Name<input required maxLength={120} value={form.label} onChange={event => set("label", event.target.value)} /></label>
-            <label>Provider<select value={form.provider} disabled={!!editing} onChange={event => setForm({ ...blank, label: form.label, provider: event.target.value as Provider })}>
-              <option value="s3">S3 compatible</option><option value="webdav">WebDAV</option><option value="switchdrive">SWITCHdrive</option></select></label>
+            <label>Name<input ref={candidateName} required maxLength={120} value={form.label} onChange={event => set("label", event.target.value)} /></label>
+            <label>Provider<select value={form.provider} disabled={!!editing} onChange={event => {
+              setAwsFlow(false); clearSelection(); setForm({ ...blank, label: form.label, provider: event.target.value as Provider });
+            }}>
+              <option value="s3">{awsFlow && standardAwsEndpoint ? "AWS S3" : "S3 compatible — candidate only"}</option><option value="webdav">WebDAV</option><option value="switchdrive">SWITCHdrive</option></select></label>
             <label>HTTPS endpoint<input required type="url" disabled={!!editing} value={form.endpoint} onChange={event => set("endpoint", event.target.value)} placeholder="https://storage.example.org" /></label>
             <label>Root folder<input disabled={!!editing} value={form.root} onChange={event => set("root", event.target.value)} /></label>
             {form.provider === "s3" && <><label>Bucket<input required disabled={!!editing} value={form.bucket} onChange={event => set("bucket", event.target.value)} /></label>
               <label>Region<input required value={form.region} onChange={event => set("region", event.target.value)} /></label>
               {(supportsExpectedS3BucketOwner(form.endpoint, form.region) || form.expectedBucketOwner) && <div>
-                <label>Expected AWS bucket owner (optional)<input inputMode="numeric" pattern="[0-9]{12}" maxLength={12}
+                <label>{awsFlow && standardAwsEndpoint ? "AWS bucket owner account ID" : "Expected AWS bucket owner (optional)"}<input required={awsFlow && standardAwsEndpoint} inputMode="numeric" pattern="[0-9]{12}" maxLength={12}
                   title="Enter the bucket owner's 12-digit AWS account ID." aria-describedby="storage-expected-owner-help"
                   value={form.expectedBucketOwner} onChange={event => set("expectedBucketOwner", event.target.value)} /></label>
                 <small id="storage-expected-owner-help" className="muted">For standard AWS S3 endpoints only. Enter the bucket owner's 12-digit AWS account ID, or leave blank. Changing this value requires a new connection test.</small>
@@ -215,8 +334,9 @@ function rememberedIntent(storage: CheckpointStorage, profileId: string): StartS
 
 /** A remembered identifier permits GET reconciliation after a lost response.
  * Neither credentials nor form inputs are written to browser storage. */
-function CandidateChecks({ candidate, canTest, canCleanup, onForbidden, onEvidenceChange }: {
+function CandidateChecks({ candidate, canTest, canCleanup, onForbidden, onEvidenceChange, onProgress }: {
   candidate: StorageCandidate; canTest: boolean; canCleanup: boolean; onForbidden: () => void; onEvidenceChange: () => () => void;
+  onProgress?: (value: { profileId: string; revision: number; passed: boolean }) => void;
 }) {
   const [owner] = useState(captureApplicationOwner);
   const [storage] = useState(() => checkpointStorage(owner));
@@ -225,6 +345,12 @@ function CandidateChecks({ candidate, canTest, canCleanup, onForbidden, onEviden
   const [pending, setPending] = useState<StartStorageCandidateCheckInput | null>(() => rememberedIntent(storage, candidate.profileId));
   const pendingRef = useRef(pending), generation = useRef(0), requests = useRef(new Set<AbortController>());
   const pollCount = useRef({ id: "", count: 0 });
+  const passed = !loading && !busy && !pending && !message && !history.items.some(activeCheck)
+    && history.items.some(check => check.profileId === candidate.profileId && check.revision === candidate.revision && check.status === "succeeded"
+      && check.write === "passed" && check.read === "passed" && check.metadata === "passed" && check.delete === "passed" && check.cleanup === "confirmed_absent");
+  useEffect(() => {
+    if (owner.isCurrent()) onProgress?.({ profileId: candidate.profileId, revision: candidate.revision, passed });
+  }, [candidate.profileId, candidate.revision, passed, onProgress]);
   function remember(input: StartStorageCandidateCheckInput | null) {
     try {
       if (input) storage.setItem(intentKey(candidate.profileId), JSON.stringify(input));
