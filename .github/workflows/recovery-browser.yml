@@ -12,6 +12,8 @@ on:
       - v2/backend-foundation
     paths:
       - .github/workflows/recovery-browser.yml
+      - .github/workflows/main-readiness.yml
+      - scripts/qa/phase5f/**
       - src/**
       - worker/**
       - shared/**
@@ -47,6 +49,8 @@ on:
       - main
     paths:
       - .github/workflows/recovery-browser.yml
+      - .github/workflows/main-readiness.yml
+      - scripts/qa/phase5f/**
       - src/**
       - worker/**
       - shared/**
