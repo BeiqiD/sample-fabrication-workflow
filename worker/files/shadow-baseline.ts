@@ -9,6 +9,7 @@ import { FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/c
 import { checkedShadowAdjudicationRequest, shadowAdjudicationRequestSha256, MAX_SHADOW_ADJUDICATION_REQUEST_BYTES } from "../../shared/contracts/file-shadow-adjudication";
 import { FILE_SHADOW_WITHDRAWAL_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-shadow-withdrawals";
 import { V26_BUSINESS_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/portable-runtime-v26-recovery-catalog";
+import { WORKER_SCHEDULER_BUSINESS_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/worker-scheduler-schema-extension";
 import { portableBusinessSchemaV26 } from "../../shared/contracts/export-portable-runtime-v26";
 import { inspectV26CloudflareSchema } from "../recovery/v26-cloudflare-schema";
 import { sha256Hex } from "../../shared/domain/content-addressing";
@@ -160,9 +161,10 @@ async function readShadowSnapshot(database: LiveConsumerDatabase, inputKey: Live
       const admitted = await inspectV26CloudflareSchema(schema);
       schemaSha256 = await fileShadowSchemaFingerprint(portableBusinessSchemaV26(admitted.applicationObjects));
     } catch { throw new Error("Unsupported shadow schema generation"); }
-    if (schemaSha256 !== V26_BUSINESS_SCHEMA_FINGERPRINT_SHA256) throw new Error("Unsupported shadow schema generation");
+    if (schemaSha256 !== V26_BUSINESS_SCHEMA_FINGERPRINT_SHA256
+      && schemaSha256 !== WORKER_SCHEDULER_BUSINESS_SCHEMA_FINGERPRINT_SHA256) throw new Error("Unsupported shadow schema generation");
   }
-  const hasAdjudications = [FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256, FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256, FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256, FILE_NATIVE_ADMISSION_SCHEMA_FINGERPRINT_SHA256, FILE_NATIVE_RUNTIME_SCHEMA_FINGERPRINT_SHA256, FILE_MIGRATION_SCHEMA_FINGERPRINT_SHA256, RESEARCH_PACKAGE_SCHEMA_FINGERPRINT_SHA256, SYSTEM_RECOVERY_SCHEMA_FINGERPRINT_SHA256, V26_BUSINESS_SCHEMA_FINGERPRINT_SHA256].includes(schemaSha256);
+  const hasAdjudications = [FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256, FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256, FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256, FILE_NATIVE_ADMISSION_SCHEMA_FINGERPRINT_SHA256, FILE_NATIVE_RUNTIME_SCHEMA_FINGERPRINT_SHA256, FILE_MIGRATION_SCHEMA_FINGERPRINT_SHA256, RESEARCH_PACKAGE_SCHEMA_FINGERPRINT_SHA256, SYSTEM_RECOVERY_SCHEMA_FINGERPRINT_SHA256, V26_BUSINESS_SCHEMA_FINGERPRINT_SHA256, WORKER_SCHEDULER_BUSINESS_SCHEMA_FINGERPRINT_SHA256].includes(schemaSha256);
   if (!overlayRead && hasAdjudications) throw new Error("Shadow schema changed during baseline read");
   if (!Number.isSafeInteger(row.shadow_epoch) || Number(row.shadow_epoch) < 0 || typeof row.shadow_runtime !== "string") throw new Error("Incomplete shadow runtime snapshot");
   if (row.page_count !== row.record_count || ![0, 1].includes(row.record_count) || !Number.isSafeInteger(row.payload_bytes)

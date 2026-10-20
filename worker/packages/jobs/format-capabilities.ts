@@ -121,9 +121,21 @@ export function bindPackageFormatCapabilities(base: Omit<PackageCapabilities,
       ?"SELECT 1 FROM file_location_holds WHERE location_id=? AND operation_id=? AND released_at IS NULL"
       :"SELECT 1 FROM file_holds WHERE file_id=? AND operation_id=? AND released_at IS NULL")
       .bind(claim.kind==="import"?file.result_location_id:file.result_file_id,claim.kind==="import"?`fp4-source:${claim.id}`:`fp4-output:${claim.id}`).first());
-    return sourceFromStream(file.byte_size,async(reopenSignal)=>{const storage=await active.openStorage({profileId:location.storage_profile_id,configurationRevision:location.configuration_revision},"read",fence,reopenSignal ?? signal);
+    let fallbackStorage:Awaited<ReturnType<PackageCapabilities["openStorage"]>>|undefined;
+    return sourceFromStream(file.byte_size,async(reopenSignal)=>{const storage=fallbackStorage??await active.openStorage({profileId:location.storage_profile_id,configurationRevision:location.configuration_revision},"read",fence,reopenSignal ?? signal);fallbackStorage=undefined;
       if(storage.namespaceIdentity!==location.namespace_identity)throw new Error("Held archive namespace changed");
-      const object=await storage.reader.read(location.object_key);if(object.outcome!=="available")throw new Error("Held archive bytes unavailable");return object.body;});
+      const object=await storage.reader.read(location.object_key);if(object.outcome!=="available")throw new Error("Held archive bytes unavailable");return object.body;},
+      async(offset,length,reopenSignal)=>{
+        const storage=await active.openStorage({profileId:location.storage_profile_id,configurationRevision:location.configuration_revision},"read",fence,reopenSignal ?? signal);
+        if(storage.namespaceIdentity!==location.namespace_identity)throw new Error("Held archive namespace changed");
+        if(!storage.reader.readRange){fallbackStorage=storage;return undefined;}
+        const object=await storage.reader.readRange(location.object_key,{offset,length});
+        if(object.outcome!=="available")throw new Error("Held archive range unavailable");
+        if(object.byteSize!==file.byte_size||object.range.offset!==offset||object.range.length!==length){
+          await object.body.cancel();throw new Error("Held archive range changed");
+        }
+        return object.body;
+      });
   }
   return capabilities;
 }

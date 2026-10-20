@@ -6,11 +6,10 @@ import { inspectV26CloudflareSchema } from "./v26-cloudflare-schema";
 import { recoveryTableSnapshotSql } from "../../shared/contracts/system-recovery-image";
 import type { ExportSchemaObject } from "../../shared/contracts/export";
 import { createFullExportV26, portableBusinessSchemaV26 } from "../../shared/contracts/export-portable-runtime-v26";
-import { PORTABLE_RUNTIME_CHECKPOINT_ID, PORTABLE_RUNTIME_RECOVERY_SCHEMA_SHA256, PORTABLE_RUNTIME_RECOVERY_TABLES,
-  PORTABLE_RUNTIME_RECOVERY_MIGRATIONS } from "../../shared/contracts/portable-runtime-v26-recovery-catalog";
+import { PORTABLE_RUNTIME_CHECKPOINT_ID, PORTABLE_RUNTIME_RECOVERY_SCHEMA_SHA256, PORTABLE_RUNTIME_RECOVERY_TABLES } from "../../shared/contracts/portable-runtime-v26-recovery-catalog";
 import { SYSTEM_BACKUP_MAX_RECORDS_BYTES } from "../../shared/contracts/system-backup";
 import { SYSTEM_BACKUP_RECORDS_SCHEMA_V3, systemBackupProtectedConfigurationV3, protectedIdentityPolicy,
-  validateCloudflareMigrationProvenanceV3, validateSystemBackupRecordsV3, type SystemBackupRecordsV3 } from "../../shared/contracts/system-backup-v3";
+  reviewedV3CloudflareMigrationSha256, validateCloudflareMigrationProvenanceV3, validateSystemBackupRecordsV3, type SystemBackupRecordsV3 } from "../../shared/contracts/system-backup-v3";
 import { stableJson } from "../../shared/domain/content-addressing";
 
 const tables = PORTABLE_RUNTIME_RECOVERY_TABLES.filter(table => !table.local);
@@ -71,7 +70,7 @@ export async function capturePortableV26SystemBackupSnapshot(database: D1Databas
   const sourceMigrationLedger = validateCloudflareMigrationProvenanceV3({ kind: "cloudflare-observed-migrations/1",
     status: ledgerPresent ? "observed" : "unavailable", entries: ledgerPresent
       ? (results[at + tables.length + 1].results as Array<{ id: string; name: string; appliedAt: string | null }>).map(row => ({
-        ...row, rawSha256: PORTABLE_RUNTIME_RECOVERY_MIGRATIONS.find(migration => migration.name === row.name)?.sha256 ?? null,
+        ...row, rawSha256: reviewedV3CloudflareMigrationSha256(row.name),
       })) : [] });
   const records = await validateSystemBackupRecordsV3({ schema: SYSTEM_BACKUP_RECORDS_SCHEMA_V3, backupId: options.backupId, createdAt, content,
     image: { version: 3, kind: "system-recovery-image", checkpointId: PORTABLE_RUNTIME_CHECKPOINT_ID,

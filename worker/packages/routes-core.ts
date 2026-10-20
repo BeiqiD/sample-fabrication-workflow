@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { FilePurpose } from "../../shared/contracts/files";
 import { checkedResearchExportPlanInput,checkedResearchExportInput,checkedResearchUploadInput,checkedResearchImportInput,
-  checkedResearchJobControl,checkedResearchJobStatus,checkedResearchRequestAbsent,RESEARCH_PACKAGE_PREFLIGHT_REASONS,RESEARCH_PACKAGE_PREFLIGHT_ERROR,type ResearchJobStatus,type ResearchPackagePreview } from "../../shared/contracts/research-package-api";
+  checkedResearchJobControl,checkedResearchRequestAbsent,RESEARCH_PACKAGE_PREFLIGHT_REASONS,RESEARCH_PACKAGE_PREFLIGHT_ERROR,type ResearchJobStatus,type ResearchPackagePreview } from "../../shared/contracts/research-package-api";
 import { roleForFilePurpose } from "../files/storage-role-defaults-core";
 import type { ByteReadResult } from "../files/byte-reader";
 import { stableJson } from "../../shared/domain/content-addressing";
@@ -13,6 +13,7 @@ import { readValidatedPackage,readPackageUploadMetadata } from "./jobs/format-ca
 import type { SqlPackageRepository } from "./jobs/sql-repository";
 import type { PackageTargets,PackageJob,PackageCapabilities,PackageClaim } from "./jobs/types";
 import type { JobSqlDatabase,JobSqlStatement } from "../files/jobs/sql-repository";
+import { publicPackageStatus } from "./jobs/status-projection";
 
 export interface PackageRequestPorts {
   readonly actor:string;
@@ -57,19 +58,8 @@ export async function readPackageRequestJson(request:Request,body:ReadableStream
 export async function readPackageRolePolicyRevision(database:JobSqlDatabase){return(await database.primary().prepare("SELECT MAX(policy_revision) revision FROM storage_role_policy_revisions")
   .first<{revision:number|null}>())?.revision??null;}
 const currentRevision=(ports:PackageRequestPorts)=>readPackageRolePolicyRevision(ports.database);
-async function publicStatus(ports:PackageRequestPorts,id:string,actor:string):Promise<ResearchJobStatus|null>{const repository=ports.repository,job=await repository.job(id);
-  if(!job||job.actor!==actor)return null;const files=await repository.files(id),artifact=files.find(file=>file.entry_kind==="artifact");
-  const business=files.filter(file=>file.entry_kind!=="artifact"),items=job.kind==="upload"?files:business;
-  const exportMeasured=["write","done"].includes(job.phase)&&(job.kind==="data_package"||job.kind==="report");
-  const completed=items.filter(file=>exportMeasured||["verified","published"].includes(file.state));
-  const retained=artifact?.result_file_id?Boolean(await repository.database.primary().prepare(`SELECT 1 FROM file_usable_publications f
-    JOIN file_holds h ON h.file_id=f.file_id AND h.operation_id=? AND h.released_at IS NULL WHERE f.file_id=? AND f.purpose='job_output'`)
-    .bind(`fp4-output:${id}`,artifact.result_file_id).first()):false;
-  const output=artifact&&job.expires_at?{available:retained&&artifact.state==="published"&&job.state==="completed"&&Date.parse(job.expires_at)>Date.now(),
-    byteSize:artifact.byte_size,sha256:artifact.sha256,expiresAt:job.expires_at}:null;
-  return checkedResearchJobStatus({id,requestId:job.request_id,kind:job.kind,state:job.state,phase:job.phase,acceptedAt:job.accepted_at,updatedAt:job.updated_at,
-    reason:job.reason,progress:{completedFiles:completed.length,totalFiles:items.length,bytesDone:completed.reduce((n,f)=>n+f.byte_size,0),bytesTotal:items.reduce((n,f)=>n+f.byte_size,0)},
-    output,result:job.result_json?JSON.parse(job.result_json):null});}
+async function publicStatus(ports:PackageRequestPorts,id:string,actor:string):Promise<ResearchJobStatus|null>{
+  const row=await ports.repository.statusProjection(id,actor);return row?publicPackageStatus(row):null;}
 const receipt=async(ports:PackageRequestPorts,input:{requestId:string;job:{id:string};reused:boolean} ,actor:string)=>({requestId:input.requestId,job:(await publicStatus(ports,input.job.id,actor))!,reused:input.reused});
 async function ownedJob(ports:PackageRequestPorts,id:string,actor:string){const job=await ports.repository.job(id);if(!job||job.actor!==actor)throw fail("Package job does not exist",404);return job;}
 async function identity(ports:PackageRequestPorts){const row=await ports.database.primary().prepare("SELECT installation_id FROM research_package_source_identity WHERE singleton=1")
@@ -101,7 +91,8 @@ export function createPackageRoutes<Bindings extends object>(binding:PackageRout
   routes.onError((error,c)=>error instanceof HTTPException?c.json({error:error.message},error.status)
     :error instanceof ImportDomainError&&publicPreflightReasons.has(error.reason)?c.json({error:RESEARCH_PACKAGE_PREFLIGHT_ERROR,reason:error.reason},409)
     :c.json({error:"Package operation conflicts with accepted state or an unavailable capability. Inspect the request receipt and refresh its preview."},409));
-routes.get("/packages/jobs",c=>binding.run(c.req.raw,c.env,c.get("userEmail"),async ports=>{const rows=await ports.repository.list(ports.actor);return c.json({jobs:await Promise.all(rows.map(row=>publicStatus(ports,row.id,ports.actor)))});}));
+routes.get("/packages/jobs",c=>binding.run(c.req.raw,c.env,c.get("userEmail"),async ports=>{
+  const rows=await ports.repository.listStatusProjections(ports.actor);return c.json({jobs:rows.map(row=>publicPackageStatus(row))});}));
 routes.get("/packages/executor",c=>binding.run(c.req.raw,c.env,c.get("userEmail"),async ports=>{const runtime=await ports.inspectRuntime(),db=ports.database;
   const installed=Boolean(await db.primary().prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='research_package_jobs'").first());
   const guard=installed?await db.primary().prepare("SELECT enabled,last_heartbeat_at FROM file_job_runtime_guard WHERE singleton=1").first<{enabled:number;last_heartbeat_at:string|null}>():null;

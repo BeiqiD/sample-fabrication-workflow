@@ -6,6 +6,8 @@ import { resolve } from "node:path";
 import { build } from "esbuild";
 import { Log, LogLevel, Miniflare } from "miniflare";
 import { productionWorkerArtifact } from "./production-worker-artifact.mjs";
+import { WORKER_SCHEDULER_SOURCE_CHECKPOINT_ID, WORKER_SCHEDULER_APPLICATION_SCHEMA_SHA256,
+  WORKER_SCHEDULER_APPLICATION_LEXICAL_SCHEMA_SHA256, WORKER_SCHEDULER_BUSINESS_SCHEMA_FINGERPRINT_SHA256 } from "../shared/contracts/worker-scheduler-schema-extension.ts";
 
 const root = process.cwd();
 const scratchRoot = resolve(root, ".wrangler");
@@ -128,9 +130,35 @@ try {
   assert.equal(fullExport.schemaVersion, 26);
   assert.equal(fullExport.archiveProfile, "portable-runtime-local-volume");
   assert.equal(fullExport.archiveWriter, 1);
-  assert.equal(fullExport.artifacts.portableCheckpoint.value.checkpointId, "portable-runtime/v26");
+  const checkpoint = fullExport.artifacts.portableCheckpoint.value;
+  assert.equal(checkpoint.checkpointId, WORKER_SCHEDULER_SOURCE_CHECKPOINT_ID);
+  assert.equal(checkpoint.applicationSchemaSha256, WORKER_SCHEDULER_APPLICATION_SCHEMA_SHA256);
+  assert.equal(checkpoint.schemaComparison, "reviewed-sqlite-lexical-tokens/1");
+  assert.equal(checkpoint.identityPolicy, "protected-only-no-research-credentials-or-authority/1");
   assert(fullExport.tables.samples.some((row) => row.id === "reference-sample-a"));
   const sourceSchema = fullExport.artifacts.sourceSchema.value;
+  // Check the actual observed DDL as well as its declared checkpoint. Reuse
+  // the shared lexical policy without adding a second SQL tokenizer here.
+  const schemaProof = await build({
+    stdin: { contents: [
+      'export { canonicalFileAuthoritySchemaSql } from "./shared/contracts/export-file-authority.ts";',
+      'export { fullExportSourceSchemaV26 } from "./shared/contracts/export-portable-runtime-v26.ts";',
+      'export { fileShadowSchemaFingerprint } from "./shared/contracts/export-file-shadow.ts";',
+    ].join("\n"), resolveDir: root, sourcefile: "project-worker-schema-proof.ts", loader: "ts" },
+    bundle: true, format: "esm", platform: "node", target: "node24.19.0", write: false, logLevel: "silent",
+  });
+  const { canonicalFileAuthoritySchemaSql, fullExportSourceSchemaV26, fileShadowSchemaFingerprint } = await import(
+    `data:text/javascript;base64,${Buffer.from(schemaProof.outputFiles[0].contents).toString("base64")}`,
+  );
+  const applicationObjects = [...sourceSchema.objects, ...checkpoint.installationObjects];
+  assert.deepEqual(await fullExportSourceSchemaV26(applicationObjects), {
+    checkpointId: WORKER_SCHEDULER_SOURCE_CHECKPOINT_ID, applicationSchemaSha256: WORKER_SCHEDULER_APPLICATION_SCHEMA_SHA256,
+  });
+  const lexicalObjects = applicationObjects.filter(object => object.sql !== null && !object.name.startsWith("sqlite_"))
+    .map(({ type, name, tableName, sql }) => ({ type, name, tableName, sql: canonicalFileAuthoritySchemaSql(sql) }))
+    .sort((left, right) => left.type < right.type ? -1 : left.type > right.type ? 1 : left.name < right.name ? -1 : left.name > right.name ? 1 : 0);
+  assert.equal(createHash("sha256").update(JSON.stringify(lexicalObjects)).digest("hex"), WORKER_SCHEDULER_APPLICATION_LEXICAL_SCHEMA_SHA256);
+  assert.equal(await fileShadowSchemaFingerprint(sourceSchema.objects), WORKER_SCHEDULER_BUSINESS_SCHEMA_FINGERPRINT_SHA256);
   assert(sourceSchema.objects.some((entry) => entry.type === "table" && entry.name === "samples"));
   assert(!sourceSchema.compatibilityColumns.samples.includes("process_revision"));
   assert(!sourceSchema.compatibilityColumns.run_step_comments.includes("body"));

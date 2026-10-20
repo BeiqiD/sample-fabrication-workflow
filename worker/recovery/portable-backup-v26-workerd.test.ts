@@ -92,7 +92,9 @@ function workerSource(): Promise<string> {
 }
 async function installCurrent(db: NativeD1): Promise<void> {
   const directory = new URL("../../migrations/", import.meta.url);
-  const names = readdirSync(directory).filter(name => name.endsWith(".sql")).sort();
+  // This independently named qualification keeps its original 24-step source
+  // scope. The Worker scheduler successor has a separate current25 proof.
+  const names = readdirSync(directory).filter(name => name.endsWith(".sql") && name <= "0024_rt3_local_volume_profiles.sql").sort();
   expect(names).toEqual(PORTABLE_RUNTIME_RECOVERY_MIGRATIONS.map(migration => migration.name));
   for (const migration of PORTABLE_RUNTIME_RECOVERY_MIGRATIONS) {
     const sql = readFileSync(new URL(migration.name, directory), "utf8");

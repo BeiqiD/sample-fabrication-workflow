@@ -27,6 +27,21 @@ const owned = `id=? AND owner_token=? AND generation=? AND runtime_incarnation=?
   AND state='running' AND julianday(lease_expires_at)>julianday('now') AND ${execution}`;
 const claimValues = (claim: JobClaim) => [claim.id, claim.owner_token, claim.generation, claim.runtime_incarnation];
 interface PlanRow extends MigrationItem { purpose: FilePurpose }
+// Count each item once even when it retains several failed attempts/holds.
+const cleanupPendingItem = `((i.state IN('moved','stale') AND NOT EXISTS(
+  SELECT 1 FROM file_location_gc_ledger g WHERE g.location_id=i.source_location_id AND g.state='deleted'))
+  OR EXISTS(SELECT 1 FROM file_migration_attempts a
+    WHERE a.job_id=i.job_id AND a.file_id=i.file_id AND a.state<>'published'
+      AND ((a.write_started_at IS NOT NULL AND NOT EXISTS(SELECT 1 FROM file_location_gc_ledger g
+        WHERE g.location_id=a.location_id AND g.state='deleted'))
+        OR EXISTS(SELECT 1 FROM file_location_holds h WHERE h.location_id=a.location_id
+          AND h.operation_id=i.hold_operation_id AND h.released_at IS NULL))))`;
+function fileJobStatus(row: Record<string, unknown>): FileJobStatus {
+  return { id: String(row.id), actor: String(row.actor), state: row.state as FileJobStatus["state"],
+    target: { profileId: String(row.target_profile_id), configurationRevision: Number(row.target_configuration_revision) },
+    acceptedAt: String(row.accepted_at), updatedAt: String(row.updated_at), reason: row.reason as string | null,
+    moved: Number(row.moved), remaining: Number(row.remaining), failed: Number(row.failed), cleanupPending: Number(row.cleanup_pending) };
+}
 
 /** Repository commands use native atomic batches/transactions. Object I/O and
  * policy evaluation stay outside them. A lost acknowledgement is settled by a
@@ -291,24 +306,28 @@ export class SqlFileJobRepository implements FileJobRepository {
       (SELECT count(*) FROM file_migration_items i WHERE i.job_id=j.id AND i.state='moved') AS moved,
       (SELECT count(*) FROM file_migration_items i WHERE i.job_id=j.id AND i.state IN('pending','copying')) AS remaining,
       (SELECT count(*) FROM file_migration_items i WHERE i.job_id=j.id AND i.state IN('failed','stale')) AS failed,
-      (SELECT count(*) FROM file_migration_items i WHERE i.job_id=j.id AND ((i.state IN('moved','stale') AND NOT EXISTS(
-          SELECT 1 FROM file_location_gc_ledger g WHERE g.location_id=i.source_location_id AND g.state='deleted'))
-        OR EXISTS(SELECT 1 FROM file_migration_attempts a
-          WHERE a.job_id=i.job_id AND a.file_id=i.file_id AND a.state<>'published'
-            AND ((a.write_started_at IS NOT NULL AND NOT EXISTS(SELECT 1 FROM file_location_gc_ledger g
-              WHERE g.location_id=a.location_id AND g.state='deleted'))
-              OR EXISTS(SELECT 1 FROM file_location_holds h WHERE h.location_id=a.location_id
-                AND h.operation_id=i.hold_operation_id AND h.released_at IS NULL))))) AS cleanup_pending
+      (SELECT count(*) FROM file_migration_items i WHERE i.job_id=j.id AND ${cleanupPendingItem}) AS cleanup_pending
       FROM file_migration_jobs j WHERE j.id=?`).bind(id).first<Record<string, unknown>>();
-    if (!row) return null;
-    return { id: String(row.id), actor: String(row.actor), state: row.state as FileJobStatus["state"],
-      target: { profileId: String(row.target_profile_id), configurationRevision: Number(row.target_configuration_revision) },
-      acceptedAt: String(row.accepted_at), updatedAt: String(row.updated_at), reason: row.reason as string | null,
-      moved: Number(row.moved), remaining: Number(row.remaining), failed: Number(row.failed), cleanupPending: Number(row.cleanup_pending) };
+    return row ? fileJobStatus(row) : null;
   }
   async list() {
-    const ids = await this.database.primary().prepare("SELECT id FROM file_migration_jobs ORDER BY accepted_at DESC,id DESC LIMIT 100").all<{ id: string }>();
-    return Promise.all(ids.results.map(async row => (await this.status(row.id))!));
+    // Keep selected jobs as the outer loop so aggregation seeks their items
+    // instead of scanning the complete migration-item history.
+    const rows = await this.database.primary().prepare(`WITH selected_jobs AS (
+      SELECT id,actor,state,target_profile_id,target_configuration_revision,accepted_at,updated_at,reason
+      FROM file_migration_jobs ORDER BY accepted_at DESC,id DESC LIMIT 100
+    ), progress AS (
+      SELECT i.job_id,
+        sum(CASE WHEN i.state='moved' THEN 1 ELSE 0 END) moved,
+        sum(CASE WHEN i.state IN('pending','copying') THEN 1 ELSE 0 END) remaining,
+        sum(CASE WHEN i.state IN('failed','stale') THEN 1 ELSE 0 END) failed,
+        sum(CASE WHEN ${cleanupPendingItem} THEN 1 ELSE 0 END) cleanup_pending
+      FROM selected_jobs j CROSS JOIN file_migration_items i ON i.job_id=j.id GROUP BY i.job_id
+    ) SELECT j.*,coalesce(p.moved,0) moved,coalesce(p.remaining,0) remaining,
+      coalesce(p.failed,0) failed,coalesce(p.cleanup_pending,0) cleanup_pending
+      FROM selected_jobs j LEFT JOIN progress p ON p.job_id=j.id ORDER BY j.accepted_at DESC,j.id DESC`)
+      .all<Record<string, unknown>>();
+    return rows.results.map(fileJobStatus);
   }
   async executorStatus(): Promise<FileJobExecutorStatus> {
     const row = await this.database.primary().prepare("SELECT enabled,last_heartbeat_at FROM file_job_runtime_guard WHERE singleton=1")

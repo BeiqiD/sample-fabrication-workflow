@@ -7,6 +7,7 @@ on:
       - codex/genuine-worker-browser-recovery
       - codex/migration-rejected-intent-recovery
       - codex/main-readiness-request-recovery
+      - codex/performance-readiness-fixes
       - v2/backend-foundation
     paths:
       - .github/workflows/recovery-browser.yml
@@ -33,6 +34,9 @@ on:
       - scripts/qa/phase5f/genuine-migration-intent-browser.mjs
       - scripts/qa/phase5f/prepare-file-migration-historical-r2-profiles.mjs
       - scripts/qa/phase5f/browser-genuine-worker-packages.mjs
+      - scripts/qa/phase5f/browser-full-content-export.mjs
+      - scripts/lib/export-portable-runtime-v26.test.ts
+      - scripts/verify-project-worker.mjs
       - scripts/qa/phase5f/genuine-worker-package-runtime.mjs
       - scripts/qa/phase5f/genuine-worker-package-browser.mjs
   pull_request:
@@ -64,6 +68,9 @@ on:
       - scripts/qa/phase5f/genuine-migration-intent-browser.mjs
       - scripts/qa/phase5f/prepare-file-migration-historical-r2-profiles.mjs
       - scripts/qa/phase5f/browser-genuine-worker-packages.mjs
+      - scripts/qa/phase5f/browser-full-content-export.mjs
+      - scripts/lib/export-portable-runtime-v26.test.ts
+      - scripts/verify-project-worker.mjs
       - scripts/qa/phase5f/genuine-worker-package-runtime.mjs
       - scripts/qa/phase5f/genuine-worker-package-browser.mjs
 
@@ -84,6 +91,7 @@ jobs:
           printf 'RECOVERY_BROWSER_OUTPUT=%s/recovery-browser-%s-%s\n' "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
           printf 'MIGRATION_BROWSER_OUTPUT=%s/migration-browser-%s-%s\n' "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
           printf 'PACKAGE_BROWSER_OUTPUT=%s/package-browser-%s-%s\n' "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+          printf 'CONTENT_EXPORT_OUTPUT=%s/content-export-%s-%s\n' "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
 
       - name: Check out candidate
         uses: actions/checkout@v4
@@ -125,6 +133,10 @@ jobs:
       - name: Qualify genuine Package copy and original-request recovery
         run: node scripts/qa/phase5f/browser-genuine-worker-packages.mjs --output "$PACKAGE_BROWSER_OUTPUT"
 
+      - name: Qualify built content-export Worker cancellation and retry
+        timeout-minutes: 5
+        run: node --experimental-transform-types scripts/qa/phase5f/browser-full-content-export.mjs --output "$CONTENT_EXPORT_OUTPUT"
+
       - name: Retain reports and screenshots only
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
@@ -132,6 +144,12 @@ jobs:
           name: genuine-worker-recovery-browser-${{ github.run_id }}-${{ github.run_attempt }}
           if-no-files-found: warn
           path: |
+            ${{ env.CONTENT_EXPORT_OUTPUT }}/report.json
+            ${{ env.CONTENT_EXPORT_OUTPUT }}/migrations.log
+            ${{ env.CONTENT_EXPORT_OUTPUT }}/desktop-compression-cancel/cancelled.png
+            ${{ env.CONTENT_EXPORT_OUTPUT }}/desktop-compression-cancel/archive-ready.png
+            ${{ env.CONTENT_EXPORT_OUTPUT }}/mobile-unmount-cancel/cancelled.png
+            ${{ env.CONTENT_EXPORT_OUTPUT }}/mobile-unmount-cancel/archive-ready.png
             ${{ env.RECOVERY_BROWSER_OUTPUT }}/report.json
             ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-1280-light/actual-downloaded-recovery-report.json
             ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-1280-light/actual-explicit-mapping.png

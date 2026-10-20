@@ -72,7 +72,9 @@ export async function startMigrationIntentRuntime(source, output, report) {
     const database = await runtime.getD1Database('DB'), sourceBucket = await runtime.getR2Bucket('ASSETS'), targetBucket = await runtime.getR2Bucket('MIGRATION_TARGET'), worker = await runtime.getWorker();
     const rows = async (sql, bindings = []) => (await database.prepare(sql).bind(...bindings).all()).results;
     const migrations = (await rows('SELECT name FROM d1_migrations ORDER BY id')).map(row => row.name);
-    assert.equal(migrations.length, 24); assert(migrations.at(-1).startsWith('0024_')); report.migrations = migrations;
+    assert.equal(migrations.length, 25); assert.equal(migrations.at(-1), '0025_scheduler_fair_turn.sql'); report.migrations = migrations;
+    const scheduler = await rows('SELECT enabled,next_queue FROM file_job_runtime_guard WHERE singleton=1');
+    assert.deepEqual(scheduler, [{ enabled: 0, next_queue: 'package' }]); report.initialSchedulerGuard = scheduler[0];
     async function request(path, method = 'GET', body, expected = 200, headers = {}, identity = 'admin') {
       assert(tokens[identity]); const binary = body instanceof Uint8Array;
       const response = await fetch(`${origin}${path}`, { method, redirect: 'error', signal: AbortSignal.timeout(20000),

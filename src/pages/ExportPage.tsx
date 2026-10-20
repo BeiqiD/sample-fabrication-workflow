@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { exportAll } from "../lib/exportAll";
+import type { FullExportProgress } from "../lib/full-export-safety";
 
 type PreparedArchive = {
   url: string;
@@ -12,31 +13,45 @@ type PreparedArchive = {
 export function ExportPage() {
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState<{ completed: number; total: number } | null>(null);
+  const [stageProgress, setStageProgress] = useState<FullExportProgress | null>(null);
+  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [prepared, setPrepared] = useState<PreparedArchive | null>(null);
   const archiveUrl = useRef<string | null>(null);
   const requestId = useRef(0);
   const busy = useRef(false);
+  const active = useRef<AbortController | null>(null);
 
   useEffect(() => () => {
     requestId.current += 1;
+    active.current?.abort(); active.current = null;
     if (archiveUrl.current) URL.revokeObjectURL(archiveUrl.current);
     archiveUrl.current = null;
   }, []);
+
+  function cancelExport() {
+    requestId.current += 1;
+    active.current?.abort(); active.current = null; busy.current = false;
+    setExporting(false); setProgress(null); setStageProgress(null); setError("");
+    setMessage("Export cancelled. You can start another export.");
+  }
 
   async function startExport() {
     if (busy.current) return;
     busy.current = true;
     const request = ++requestId.current;
+    const controller = new AbortController(); active.current = controller;
     if (archiveUrl.current) URL.revokeObjectURL(archiveUrl.current);
     archiveUrl.current = null;
-    setExporting(true); setError(""); setProgress(null); setPrepared(null);
+    setExporting(true); setError(""); setMessage(""); setProgress(null); setStageProgress(null); setPrepared(null);
     try {
       const result = await exportAll((completed, total) => {
-        if (requestId.current === request) setProgress({ completed, total });
-      });
+        if (requestId.current === request && !controller.signal.aborted) setProgress({ completed, total });
+      }, { signal: controller.signal, onStageProgress: value => {
+        if (requestId.current === request && !controller.signal.aborted) setStageProgress(value);
+      } });
       // A completed build must not start a download after the page was left.
-      if (requestId.current !== request) return;
+      if (requestId.current !== request || controller.signal.aborted) return;
       const url = URL.createObjectURL(result.archive);
       archiveUrl.current = url;
       setPrepared({ url, filename: result.filename, total: result.results.length,
@@ -50,14 +65,24 @@ export function ExportPage() {
       catch { setError("The automatic download could not start. Use the download link below."); }
       finally { anchor.remove(); }
     } catch (error) {
-      if (requestId.current === request) setError(error instanceof Error ? error.message : "Full export failed.");
+      if (requestId.current === request) {
+        if (controller.signal.aborted || error instanceof Error && error.name === "AbortError") setMessage("Export cancelled. You can start another export.");
+        else setError(error instanceof Error ? error.message : "Full export failed.");
+      }
     } finally {
       if (requestId.current === request) {
         busy.current = false;
+        active.current = null;
         setExporting(false);
       }
     }
   }
+
+  const phaseText = stageProgress?.stage === "preparing" ? "Preparing export manifest…"
+    : stageProgress?.stage === "reading" ? `Reading attachments: ${stageProgress.completed} / ${stageProgress.total} processed; ${(stageProgress.bytesRead / 1_000_000).toFixed(1)} MB read…`
+      : stageProgress?.stage === "verifying" ? `Verifying attachments: ${stageProgress.completed} / ${stageProgress.total} processed…`
+        : stageProgress?.stage === "compressing" ? `Compressing archive… ${Math.round(stageProgress.percent ?? 0)}%`
+          : progress ? `Assets processed: ${progress.completed} / ${progress.total}. Building archive…` : "Building archive…";
 
   return <div className="page export-page">
     <p className="eyebrow">Backup</p><h1>Export content</h1>
@@ -66,9 +91,11 @@ export function ExportPage() {
     <section className="card export-card">
       <h2 className="card-title">Content archive</h2>
       <p className="muted">Includes samples, timeline history, process runs, template versions, FabuBlox manifests and source workbooks, layer images, comment files, final blob outcomes, and export warnings.</p>
+      <p className="muted">Browser export limits: 50 MB of asset bytes, 8 MB of metadata and a 64 MB ZIP. Exceeding a limit stops the export. For larger backups, use a configured system backup workflow.</p>
       <button className="button primary" disabled={exporting} onClick={() => void startExport()}>{exporting ? "Building archive…" : "Download full ZIP"}</button>
-      {exporting && <p className="muted" role="status">{progress
-        ? `Assets processed: ${progress.completed} / ${progress.total}. Building archive…` : "Building archive…"}</p>}
+      {exporting && <button className="button" onClick={cancelExport}>Cancel export</button>}
+      {exporting && <p className="muted" role="status">{phaseText}</p>}
+      {message && <p className="muted" role="status">{message}</p>}
       {prepared && <div>
         <p role="status">Archive ready. Assets included: {prepared.packaged} / {prepared.total}.</p>
         {prepared.warningCount > 0 && <p className="warning-card" role="status">

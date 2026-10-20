@@ -50,11 +50,12 @@ export async function workerFileJobCapabilities(env: Env): Promise<FileJobCapabi
 /** Independent scheduled entry point. HTTP handlers only persist/control jobs.
  * Composition may await this bounded step in a scheduled event; no production
  * cadence/trigger is installed by this development change. */
-export async function dispatchFileJobs(env: Env) {
+export async function dispatchFileJobs(env: Env, expectedIncarnation?: string) {
   const status = await inspectWorkerFileJobRuntime(env);
   if (status.outcome !== "available") return { jobId: null, outcome: status.outcome };
   const capabilities = await workerFileJobCapabilities(env);
   if (!capabilities) return { jobId: null, outcome: "disabled" };
+  if (expectedIncarnation !== undefined && capabilities.incarnation !== expectedIncarnation) return { jobId: null, outcome: "reconfigured" };
   await ensureFileAuthorityExecution(env.DB);
   const cleanup = await runFileJobCleanupStep(capabilities);
   if (!["idle", "disabled"].includes(cleanup.outcome)) return { jobId: null, outcome: cleanup.outcome };

@@ -9,7 +9,7 @@ import { normalizeSchemaSql } from "./d1-migration-plan.mjs";
 const root = new URL("../", import.meta.url);
 const sqlNames = (directory) => readdirSync(new URL(directory, root)).filter((name) => name.endsWith(".sql")).sort();
 
-for (const filename of ["0021_fp5_system_recovery.sql", "0022_fp5_recovery_evidence.sql", "0023_portable_local_identity.sql", "0024_rt3_local_volume_profiles.sql"]) {
+for (const filename of ["0021_fp5_system_recovery.sql", "0022_fp5_recovery_evidence.sql", "0023_portable_local_identity.sql", "0024_rt3_local_volume_profiles.sql", "0025_scheduler_fair_turn.sql"]) {
   test(`${filename} commits populated whole-file and Wrangler-split upgrades without changing original cells, physical IDs or receipts`, () => {
     const actual = new DatabaseSync(":memory:"), whole = new DatabaseSync(":memory:");
     const quote = name => `"${name.replaceAll('"', '""')}"`;
@@ -30,6 +30,7 @@ for (const filename of ["0021_fp5_system_recovery.sql", "0022_fp5_recovery_evide
         db.exec(readFileSync(new URL("worker/fixtures/reference-graph.sql", root), "utf8"));
         db.prepare("UPDATE assets SET rowid=? WHERE id='reference-execution-asset'").run(9223372036854775806n);
         db.prepare("UPDATE samples SET rowid=? WHERE id='reference-sample-a'").run(-9223372036854775807n);
+        if (filename === "0025_scheduler_fair_turn.sql") db.prepare("UPDATE file_job_runtime_guard SET enabled=1,incarnation='retained-runtime',last_heartbeat_at='2026-10-05T00:00:00.000Z' WHERE singleton=1").run();
       }
       const names = actual.prepare("SELECT name FROM sqlite_schema WHERE type='table' AND name NOT GLOB 'sqlite_*' ORDER BY name").all().map(row => row.name);
       const priorRows = new Map(names.map(name => [name, rows(actual, name)]));
@@ -42,8 +43,10 @@ for (const filename of ["0021_fp5_system_recovery.sql", "0022_fp5_recovery_evide
       actual.prepare("INSERT INTO d1_migrations(name) VALUES(?)").run(filename); actual.exec("COMMIT");
       for (const [name, expected] of priorRows) {
         const observed = rows(actual, name);
-        assert.deepEqual(name === "d1_migrations" ? observed.slice(0, expected.length) : observed, expected, `Original typed cells and rowids: ${name}`);
-        assert.deepEqual(rows(whole, name), priorWholeRows.get(name), `Whole-file preservation: ${name}`);
+        const originalCells = values => filename === "0025_scheduler_fair_turn.sql" && name === "file_job_runtime_guard"
+          ? values.map(row => { const original = Object.assign(Object.create(Object.getPrototypeOf(row)), row); delete original.next_queue; return original; }) : values;
+        assert.deepEqual(name === "d1_migrations" ? observed.slice(0, expected.length) : originalCells(observed), expected, `Original typed cells and rowids: ${name}`);
+        assert.deepEqual(originalCells(rows(whole, name)), priorWholeRows.get(name), `Whole-file preservation: ${name}`);
       }
       // Wrangler strips comments inside CREATE statements; compare every schema
       // object and executable token while retaining quoted SQL bytes exactly.
@@ -54,12 +57,16 @@ for (const filename of ["0021_fp5_system_recovery.sql", "0022_fp5_recovery_evide
       assert.equal(actual.prepare("PRAGMA foreign_keys").get().foreign_keys, 1);
       assert.equal(actual.prepare("SELECT enabled FROM system_recovery_runtime").get().enabled, 0);
       assert.equal(actual.prepare("SELECT mode FROM file_authority_control").get().mode, "legacy");
+      if (filename === "0025_scheduler_fair_turn.sql") {
+        assert.deepEqual(actual.prepare("SELECT next_queue FROM file_job_runtime_guard").all().map(row => ({ ...row })), [{ next_queue: "package" }]);
+        assert.throws(() => actual.prepare("UPDATE file_job_runtime_guard SET next_queue='unreviewed'").run(), /CHECK constraint/);
+      }
     } finally { actual.close(); whole.close(); }
   });
 }
 
 test("the current chain admits the reviewed FP1–FP5 and portable identity/local-volume metadata suffix and retains the S2 baseline and all 37 historical SQL files byte-for-byte", () => {
-  assert.deepEqual(sqlNames("migrations/"), ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql", "0006_comment_acceptance.sql", "0007_fp1_file_authority_transition.sql", "0008_fp1_shadow_runtime.sql", "0009_fp1_shadow_withdrawals.sql", "0010_fp1_shadow_adjudications.sql", "0011_fp1_retire_legacy_test_projects.sql", "0012_fp1_file_authority_runtime.sql", "0013_fp1_r2_role_defaults.sql", "0014_fp2_storage_configuration.sql", "0015_fp2_storage_candidate_checks.sql", "0016_fp2_credential_reenvelopes.sql", "0017_fp2_native_storage_profiles.sql", "0018_fp2_native_file_runtime.sql", "0019_fp3_file_jobs.sql", "0020_fp4_research_packages.sql", "0021_fp5_system_recovery.sql", "0022_fp5_recovery_evidence.sql", "0023_portable_local_identity.sql", "0024_rt3_local_volume_profiles.sql"]);
+  assert.deepEqual(sqlNames("migrations/"), ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql", "0006_comment_acceptance.sql", "0007_fp1_file_authority_transition.sql", "0008_fp1_shadow_runtime.sql", "0009_fp1_shadow_withdrawals.sql", "0010_fp1_shadow_adjudications.sql", "0011_fp1_retire_legacy_test_projects.sql", "0012_fp1_file_authority_runtime.sql", "0013_fp1_r2_role_defaults.sql", "0014_fp2_storage_configuration.sql", "0015_fp2_storage_candidate_checks.sql", "0016_fp2_credential_reenvelopes.sql", "0017_fp2_native_storage_profiles.sql", "0018_fp2_native_file_runtime.sql", "0019_fp3_file_jobs.sql", "0020_fp4_research_packages.sql", "0021_fp5_system_recovery.sql", "0022_fp5_recovery_evidence.sql", "0023_portable_local_identity.sql", "0024_rt3_local_volume_profiles.sql", "0025_scheduler_fair_turn.sql"]);
   const baseline = readFileSync(new URL("scripts/fixtures/backend-schema/s2-baseline.sql", root));
   assert.deepEqual(readFileSync(new URL("migrations/0001_v3_baseline.sql", root)), baseline);
   const recorded = [...baseline.toString("utf8").matchAll(/^-- Source migrations\/([^ /]+\.sql) sha256=([a-f0-9]{64})$/gm)];

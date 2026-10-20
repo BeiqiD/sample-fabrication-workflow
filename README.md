@@ -6,32 +6,31 @@ This is intentionally not a general LIMS, inventory system, or enterprise MES. T
 
 ## Development status
 
-The active V3 development/test integration line is `v2/backend-foundation`.
-Planning PR #250 and implementation [PR #251](https://github.com/BeiqiD/sample-fabrication-workflow/pull/251)
-are merged; #251 landed at `aa497d9` on 2026-10-10 at 13:30:26 UTC.
-Its tree matches qualified source `af8f374`: all 12 local default verification
-leaves, four remote Verify/Map runs and all 15 final status contexts passed.
-This integrates FP2–FP5, C4/5D/5E and bounded 5F repairs into development.
-**5F remains in progress**. Open [PR #252](https://github.com/BeiqiD/sample-fabrication-workflow/pull/252)
-implements owner-scoped Processing refresh and the Metrology search label, and
-adopts the isolated QA pipeline. At `ee171339`, its built Worker passed the
-20-case matrix, 84-request seed, six Processing cost cases and 12 additional
-Project scenario identities; controlled disposal and physical DB/PNG checks passed.
-At `c06cb71` / tree `2466e718`, a fresh 20-case matrix and both named
-Metrology cases passed; awaited stop and physical DB/FK/PNG/original-byte
-checks passed again. Final-head complete remote checks remain pending. See
-[current browser evidence](./docs/PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md) and
-[historical integrated evidence](./docs/PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md).
-The #251 post-merge Verify/Map checks and all 15 contexts succeeded; Workers
-Build `114224522096` succeeded. Three anonymous routes still returned Access 302.
-Actual serving code/schema, authenticated testing, providers and physical-device
-acceptance remain open. The last authenticated historical runtime was V20;
-the development integration contains V24. `main` has not received its first
-integrated V3 production release. The
-[autonomous development goal](./docs/ROADMAP_AUTONOMOUS_DEVELOPMENT_GOAL.md)
-records the continuing work.
-See the [version-aware roadmap](./docs/PRODUCT_ROADMAP.md#current-checkpoint)
-before using any capability on a live installation.
+The active development/test integration line is `v2/backend-foundation`.
+FP2–FP5, the supported recovery frontend, and the bounded Node/R2 interoperability
+milestone are integrated. PR #252 and its later 5F successors are merged;
+[PR #315](https://github.com/BeiqiD/sample-fabrication-workflow/pull/315) is the
+main integration proposal. Each subsequent change requires its own checks.
+
+The current [performance and operational-readiness work](./docs/PERFORMANCE_READINESS_20261020.md)
+starts from development `580cbf7`: bounded task-list queries, cancellable/coalesced
+status reads, bounded browser ZIP export, persistent scheduler fairness and actual
+archive range reads. Its local and hosted results retain their exact source scope.
+See [current capabilities](./docs/CURRENT_DEVELOPMENT_CAPABILITIES.md),
+[main readiness](./docs/MAIN_MERGE_READINESS.md) and the
+[roadmap](./docs/PRODUCT_ROADMAP.md) before enabling a live installation.
+
+| Operation | Effect |
+| --- | --- |
+| Storage defaults | Select destinations for new uploads; existing File locations remain authoritative. |
+| File Migration | Explicitly verify a copy and publish the new location for selected existing Files. |
+| Research Package | Copy selected research into fresh record identities with explicit naming/dependencies. |
+| System Recovery | Preserve research identities in a qualified isolated target; verification does not activate it or replay jobs. |
+
+Worker trigger configuration, real provider/device acceptance and production
+activation remain separate. The checked-in daily cron is not proof of a deployed
+two-minute cadence. Historical browser and test records remain in their dated
+qualification documents; their old pending/failure states are not current status.
 
 ## Core model
 

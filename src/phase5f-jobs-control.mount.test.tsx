@@ -123,10 +123,12 @@ describe.each(scenarios)("$name control ACK owns rendered job state", scenario =
     await act(async () => { oldList.resolve(json({ jobs: [scenario.paused] })); });
     expectJob(scenario, action === "resume" ? scenario.resumed : scenario.cancelled);
     expect(screen.queryByRole("alert")).toBeNull(); expectOneControl(scenario, action);
+    // The settled stale round is followed immediately by one fresh read requested by the acknowledged control.
+    expect(jobsReadCount).toBe(3);
     authoritative = action === "resume" ? scenario.freshResume : scenario.freshCancel;
     await nextPoll();
     expectJob(scenario, authoritative); expectOneControl(scenario, action);
-    expect(jobsReadCount).toBe(3);
+    expect(jobsReadCount).toBe(4);
   });
 
   it.each([500, 403])("ignores old %s failure after Cancel ACK while later current failures still apply", async status => {

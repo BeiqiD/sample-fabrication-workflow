@@ -113,8 +113,14 @@ export async function generatePortableRuntimeSchema(root = defaultRoot, { check 
   if (successor) ensure(successor.isFile()
     && hash(await readFile(join(root, "migrations", successorName))) === "010414ba121247175e3bf6fe2eb88028ff8557035b123cfa12970c37e3985533",
   "unreviewed V26 successor inventory");
+  const workerSuccessorName = "0025_scheduler_fair_turn.sql";
+  const workerSuccessor = entries.find(entry => entry.name === workerSuccessorName);
+  if (workerSuccessor) ensure(workerSuccessor.isFile()
+    && hash(await readFile(join(root, "migrations", workerSuccessorName))) === "cbc1395de4ad21c1f06606eed804ed8936c073168fbcd8ffff89f77063692e78",
+  "unreviewed Worker scheduler successor inventory");
   // README.md is documentation, never an executable migration input.
-  ensure(entries.every(entry => entry.isFile()) && JSON.stringify(entries.filter(entry => entry.name !== "README.md" && entry.name !== successorName).map(entry => entry.name).sort())
+  ensure(entries.every(entry => entry.isFile()) && JSON.stringify(entries.filter(entry => entry.name !== "README.md" && entry.name !== successorName
+    && entry.name !== workerSuccessorName).map(entry => entry.name).sort())
     === JSON.stringify(reviewedMigrations.map(value => value.name)), "unknown, missing, or non-file migration inventory");
   const migrations = [];
   for (const reviewed of reviewedMigrations) {

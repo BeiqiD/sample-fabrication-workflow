@@ -1,4 +1,5 @@
 import { restoreV26ResearchExportToIsolatedDirectory } from "./export-restore-v26";
+import { WORKER_SCHEDULER_MIGRATION_NAME, WORKER_SCHEDULER_MIGRATION_SHA256 } from "../../shared/contracts/worker-scheduler-schema-extension";
 import { validateFullExportV25, PORTABLE_RUNTIME_SOURCE_CHECKPOINT_PATH, PORTABLE_IDENTITY_MIGRATION_NAMES } from "../../shared/contracts/export-portable-runtime";
 import { SYSTEM_RECOVERY_SCHEMA_FINGERPRINT_SHA256, buildSystemRecoveryBlobExportPlan } from "../../shared/contracts/export-system-recovery";
 import { SYSTEM_RECOVERY_EVIDENCE_EXPORT_COLUMNS } from "../../shared/contracts/export-system-recovery-evidence";
@@ -397,8 +398,10 @@ export async function restoreExportToIsolatedDirectory(options: {
     const inventory = (await readdir(options.migrationsDirectory)).filter((name) => name.endsWith(".sql")).sort();
     if (inventory.includes(successor)) ensure(hash(await readFile(join(options.migrationsDirectory, successor)))
       === "010414ba121247175e3bf6fe2eb88028ff8557035b123cfa12970c37e3985533", "Unreviewed V26 successor migration");
+    if (inventory.includes(WORKER_SCHEDULER_MIGRATION_NAME)) ensure(hash(await readFile(join(options.migrationsDirectory, WORKER_SCHEDULER_MIGRATION_NAME)))
+      === WORKER_SCHEDULER_MIGRATION_SHA256, "Unreviewed Worker scheduler successor migration");
     // Exact known successor is not executed by any historical research reader.
-    const migrationNames = inventory.filter(name => name !== successor);
+    const migrationNames = inventory.filter(name => name !== successor && name !== WORKER_SCHEDULER_MIGRATION_NAME);
     ensure(migrationNames.length > 0, "No local migrations found");
     const migrations: Array<{ name: string; sha256: string }> = [];
     // Historical profiles first restore against their exact reviewed physical

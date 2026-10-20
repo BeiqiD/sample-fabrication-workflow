@@ -38,6 +38,24 @@ export function r2ByteReader(bucket: Pick<R2Bucket, "get" | "head">): ByteReader
         return { outcome: "unavailable" };
       }
     },
+    async readRange(key, range) {
+      const offset = range.offset, length = range.length;
+      if (!Number.isSafeInteger(offset) || offset < 0 || !Number.isSafeInteger(length)
+        || length <= 0 || !Number.isSafeInteger(offset + length)) return { outcome: "unavailable" };
+      let body: ReadableStream | undefined;
+      try {
+        const object = await bucket.get(key, { range: { offset, length } });
+        if (!object) return { outcome: "missing" };
+        body = object.body;
+        if (!Number.isSafeInteger(object.size) || offset > object.size || length > object.size - offset
+          || !object.range || !("offset" in object.range) || !("length" in object.range)
+          || object.range.offset !== offset || object.range.length !== length) {
+          await body.cancel().catch(() => undefined); return { outcome: "unavailable" };
+        }
+        return { outcome: "available", body, byteSize: object.size,
+          range: { offset, length }, ...metadata(object) };
+      } catch { await body?.cancel().catch(() => undefined); return { outcome: "unavailable" }; }
+    },
     async stat(key) {
       try {
         const object = await bucket.head(key);

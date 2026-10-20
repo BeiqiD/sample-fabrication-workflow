@@ -1,3 +1,4 @@
+import { createReadCoordinator, isReadCancellation, ReadTimeoutError, startVisibleReadPolling, type ReadRound } from "../lib/read-coordinator";
 import { checkpointStorage, type CheckpointStorage } from "../lib/browser-checkpoints";
 import { captureApplicationOwner } from "../lib/authentication-client";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -241,6 +242,8 @@ export function ResearchPackagesPage() {
   const [denied, setDenied] = useState(false), deniedRef = useRef(false), [message, setMessageText] = useState("");
   const [messageError, setMessageError] = useState(false);
   const lifetime = useRef<AbortController | null>(null), refreshSequence = useRef(0);
+  const reads = useRef(createReadCoordinator()), polling = useRef<ReturnType<typeof startVisibleReadPolling> | null>(null);
+  const pollActive = useRef(true), needsFreshRead = useRef(false);
   const exportPreviewButton = useRef<HTMLButtonElement>(null);
   const returnExportPreviewFocus = useRef<{ button: HTMLButtonElement; signal: AbortSignal } | null>(null);
   const currentUpload = upload ? jobs.find(job => job.id === upload.jobId) : null;
@@ -297,7 +300,7 @@ export function ResearchPackagesPage() {
   function reportFailure(error: unknown) {
     if (!owner.isCurrent()) return;
     if (error instanceof ResearchPackageRequestError && [401, 403].includes(error.status || 0)) {
-      deniedRef.current = true; setDenied(true); setJobs([]); setExportPreview(null); setImportPreview(null); setAcceptedScope(null); setFile(null);
+      deniedRef.current = true; reads.current.cancel(); setDenied(true); setJobs([]); setExportPreview(null); setImportPreview(null); setAcceptedScope(null); setFile(null);
     }
     setMessageText(error instanceof SessionIntentError ? error.message : researchPackageErrorMessage(error)); setMessageError(true);
   }
@@ -328,7 +331,10 @@ export function ResearchPackagesPage() {
     writeSession(storage, uploadKey, value);
     uploadRef.current = value; setUpload(value);
   }
-  function updateJob(job: ResearchJobStatus) { setJobs(current => [job, ...current.filter(item => item.id !== job.id)].slice(0, 100)); }
+  function updateJob(job: ResearchJobStatus, refreshAfter = true) {
+    if (refreshAfter) { refreshSequence.current++; needsFreshRead.current = true; pollActive.current = true; }
+    setJobs(current => [job, ...current.filter(item => item.id !== job.id)].slice(0, 100));
+  }
   function currentOperation(signal: AbortSignal) { return owner.isCurrent() && !signal.aborted && !deniedRef.current; }
   function ownsIntent(intent: Intent, signal: AbortSignal) {
     return currentOperation(signal) && pendingRef.current === intent;
@@ -417,15 +423,25 @@ export function ResearchPackagesPage() {
       setMessage("No saved receipt was found for that earlier package request at this check. Its original identifier is retained.");
     }
   }
-  async function refresh(signal: AbortSignal, announce = false) {
+  function refresh(signal: AbortSignal, announce = false, fresh = announce) {
+    let sequence = 0;
+    return reads.current.run(signal, round => {
+      sequence = refreshSequence.current + 1;
+      return readStatus(round, signal, announce);
+    }, { fresh, onTimeout(error) {
+      if (currentOperation(signal) && sequence === refreshSequence.current) { pollActive.current = true; setReadError(error.message); setReadPhase("error"); }
+    } });
+  }
+  async function readStatus(round: ReadRound, ownerSignal: AbortSignal, announce = false) {
+    const signal = round.signal;
     if (!currentOperation(signal)) return;
     const sequence = ++refreshSequence.current;
     if (announce) setReadPhase("loading");
     try {
-      const [list, status] = await Promise.all([researchPackagesClient.list(signal), researchPackagesClient.executor(signal)]);
+      const [list, status] = await round.all([researchPackagesClient.list(signal), researchPackagesClient.executor(signal)]);
       if (!currentOperation(signal) || sequence !== refreshSequence.current) return;
       const savedIds = [...new Set(savedReceipts(storage).map(receipt => receipt.jobId))].filter(id => !list.some(job => job.id === id));
-      const recovered = await Promise.all(savedIds.map(async id => {
+      const recovered = await round.all(savedIds.map(async id => {
         try { return await researchPackagesClient.status(id, signal); }
         catch (error) {
           if (error instanceof ResearchPackageRequestError && [404, 410].includes(error.status || 0)) return null;
@@ -434,12 +450,15 @@ export function ResearchPackagesPage() {
       }));
       if (!currentOperation(signal) || sequence !== refreshSequence.current) return;
       const visible = [...recovered.filter((job): job is ResearchJobStatus => job !== null), ...list].slice(0, 100);
+      pollActive.current = visible.some(job => ["queued", "running", "cancel_requested"].includes(job.state)) || !!pendingRef.current;
+      needsFreshRead.current = false;
       setJobs(visible); setExecutor(status); setJobsLoaded(true); setReadError(null); setReadPhase("ready");
       const checkpoint = uploadRef.current;
       if (checkpoint) {
         const uploaded = visible.find(job => job.id === checkpoint.jobId) || await researchPackagesClient.status(checkpoint.jobId, signal);
         if (!currentOperation(signal) || sequence !== refreshSequence.current || uploadRef.current?.jobId !== checkpoint.jobId) return;
-        if (!visible.some(job => job.id === uploaded.id)) updateJob(uploaded);
+        if (["queued", "running", "cancel_requested"].includes(uploaded.state)) pollActive.current = true;
+        if (!visible.some(job => job.id === uploaded.id)) updateJob(uploaded, false);
         if (uploaded?.state === "preview") {
           const previewSuffix = suffixRef.current;
           const preview = await researchPackagesClient.preview(checkpoint.jobId, previewSuffix, signal);
@@ -448,12 +467,13 @@ export function ResearchPackagesPage() {
         } else if (uploaded) setImportPreview(null);
       }
     } catch (error) {
-      if (!currentOperation(signal) || sequence !== refreshSequence.current) return;
+      if (!currentOperation(ownerSignal) || sequence !== refreshSequence.current || isReadCancellation(signal)) return;
+      pollActive.current = true;
       if (error instanceof ResearchPackageRequestError && [401, 403].includes(error.status || 0)) reportFailure(error);
       else {
         const helpfulReadFailure = error instanceof ResearchPackageRequestError
           && (error.reason !== null || [400, 410, 413, 422, 503].includes(error.status || 0));
-        setReadError(helpfulReadFailure ? researchPackageErrorMessage(error)
+        setReadError(signal.reason instanceof ReadTimeoutError ? signal.reason.message : helpfulReadFailure ? researchPackageErrorMessage(error)
           : "Package status could not be read. Retry the status check.");
         setReadPhase("error");
       }
@@ -461,17 +481,16 @@ export function ResearchPackagesPage() {
   }
   useEffect(() => {
     const controller = new AbortController(); lifetime.current = controller;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const poll = async () => {
-      if (!currentOperation(controller.signal)) return;
-      await refresh(controller.signal);
-      if (currentOperation(controller.signal)) timer = setTimeout(() => void poll(), 5000);
-    };
+    let stopped = false;
     void (async () => {
       if (pendingRef.current) { try { await reconcile(controller.signal); } catch (error) { if (currentOperation(controller.signal)) reportFailure(error); } }
-      if (currentOperation(controller.signal)) await poll();
+      if (!stopped && currentOperation(controller.signal)) polling.current = startVisibleReadPolling({
+        read: () => refresh(controller.signal), current: () => currentOperation(controller.signal),
+        active: () => pollActive.current || !!pendingRef.current,
+        cancel: () => reads.current.cancel(),
+      });
     })();
-    return () => { controller.abort(); refreshSequence.current++; if (timer) clearTimeout(timer); };
+    return () => { stopped = true; controller.abort(); reads.current.cancel(); polling.current?.stop(); polling.current = null; refreshSequence.current++; };
   }, []);
   useEffect(() => {
     if (busy || !returnExportPreviewFocus.current) return;
@@ -487,7 +506,9 @@ export function ResearchPackagesPage() {
     actionSequence.current++; clearPageFocus(); busyRef.current = true; setBusy(true); if (!preserveMessage) setMessage("");
     try { await operation(controller.signal); }
     catch (error) { if (currentOperation(controller.signal)) reportFailure(error); }
-    finally { if (currentOperation(controller.signal)) { busyRef.current = false; setBusy(false); } }
+    finally { if (currentOperation(controller.signal)) { busyRef.current = false; setBusy(false);
+      if (needsFreshRead.current) { needsFreshRead.current = false; polling.current?.refresh(); }
+    } }
   }
   function exportInput() {
     const roots = rootText.split(/\r?\n/).map(line => line.trim()).filter(Boolean).map(line => {

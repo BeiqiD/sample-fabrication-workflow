@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - codex/main-readiness-request-recovery
+      - codex/performance-readiness-fixes
       - v2/backend-foundation
     paths:
       - .github/workflows/main-readiness.yml
@@ -28,6 +29,8 @@ on:
       - scripts/qa/phase5f/two-version-handover-runtime.mjs
       - scripts/qa/phase5f/two-version-handover-browser.mjs
       - scripts/rehearse-current-local-migrations.mjs
+      - scripts/lib/export-portable-runtime-v26.test.ts
+      - scripts/verify-project-worker.mjs
       - scripts/d1-migration-observer.mjs
       - scripts/d1-migration-plan.mjs
       - scripts/lib/backend-schema-baseline.mjs
@@ -58,6 +61,8 @@ on:
       - scripts/qa/phase5f/two-version-handover-runtime.mjs
       - scripts/qa/phase5f/two-version-handover-browser.mjs
       - scripts/rehearse-current-local-migrations.mjs
+      - scripts/lib/export-portable-runtime-v26.test.ts
+      - scripts/verify-project-worker.mjs
       - scripts/d1-migration-observer.mjs
       - scripts/d1-migration-plan.mjs
       - scripts/lib/backend-schema-baseline.mjs

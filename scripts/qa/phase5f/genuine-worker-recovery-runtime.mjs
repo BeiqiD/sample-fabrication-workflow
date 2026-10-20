@@ -65,9 +65,11 @@ export async function startGenuineRecoveryRuntime(source, output, report) {
     const database = await runtime.getD1Database('DB'), target = await runtime.getD1Database('RECOVERY_DB'), bucket = await runtime.getR2Bucket('ASSETS'), worker = await runtime.getWorker();
     const rows = async (sql, bindings = [], selected = database) => (await selected.prepare(sql).bind(...bindings).all()).results;
     const migrationNames = (await rows('SELECT name FROM d1_migrations ORDER BY id')).map(row => row.name);
-    assert.equal(migrationNames.length, 24); assert(migrationNames.at(-1).startsWith('0024_'));
+    assert.equal(migrationNames.length, 25); assert.equal(migrationNames.at(-1), '0025_scheduler_fair_turn.sql');
+    const scheduler = await rows('SELECT enabled,next_queue FROM file_job_runtime_guard WHERE singleton=1');
+    assert.deepEqual(scheduler, [{ enabled: 0, next_queue: 'package' }]); report.initialSchedulerGuard = scheduler[0];
     assert.deepEqual(await rows("SELECT name FROM sqlite_schema WHERE type='table' AND name='collaboration_control'"), []);
-    report.migrations.names = migrationNames; report.archiveSelection = { defaultCurrentMigrations: 24, expectedRecords: 'system-backup-records/3', expectedManifest: 'system-backup/3', collaborationV5Enabled: false };
+    report.migrations.names = migrationNames; report.archiveSelection = { defaultCurrentMigrations: 25, expectedRecords: 'system-backup-records/3', expectedManifest: 'system-backup/3', collaborationV5Enabled: false };
     report.authorization = { localSignedIssuer: issuer, explicitAdministratorAllowlist: true, explicitFileOperatorAllowlist: true, jwksRequests };
     report.api = requests; report.schedule = issued;
     async function request(path, method = 'GET', body, expected = 200, headers = {}, identity = 'admin') {

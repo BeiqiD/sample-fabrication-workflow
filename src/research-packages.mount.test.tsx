@@ -87,6 +87,11 @@ function fallback(path: RequestInfo | URL, options?: RequestInit): Response {
     const controlled = { ...value, state: nextState, reason: action === "pause" ? "actor_paused" : action === "cancel" ? "operator_cancelled" : null };
     jobs = [controlled, ...jobs.filter(item => item.id !== id)]; return json(controlled);
   }
+  if (url.pathname.startsWith(`${base}/jobs/`) && method === "GET") {
+    const id = decodeURIComponent(url.pathname.slice(`${base}/jobs/`.length));
+    const value = jobs.find(job => job.id === id) || [...receipts.values()].find(receipt => receipt.job.id === id)?.job;
+    if (value) return json(value);
+  }
   return json({ error: "PRIVATE_UNKNOWN_ROUTE" }, 404);
 }
 const callsTo = (path: string, method?: string) => network.mock.calls.filter(([url, options]) => String(url) === `${base}${path}` && (!method || options?.method === method));
@@ -147,6 +152,7 @@ describe("native research package browser workflow", () => {
     try {
       document.body.tabIndex = -1; document.body.focus(); expect(document.activeElement).toBe(document.body);
       expect(screen.queryByText(accepted.id)).toBeNull(); expect(callsTo("/jobs", "POST")).toHaveLength(1);
+      jobs = [accepted, other];
       await act(async () => finishBody({ requestId: input.requestId, job: accepted, reused: false }));
       const row = screen.getByText(accepted.id).closest("article")!, pause = within(row).getByRole("button", { name: "Pause" });
       await waitFor(() => expect(document.activeElement).toBe(pause)); expect(start.isConnected).toBe(false);
@@ -170,6 +176,7 @@ describe("native research package browser workflow", () => {
     const originalTabIndex = document.body.getAttribute("tabindex");
     try {
       document.body.tabIndex = -1; document.body.focus(); expect(document.activeElement).toBe(document.body);
+      jobs = [accepted];
       await act(async () => finish(json({ requestId: input.requestId, job: accepted, reused: false }, 202)));
       const pause = await enabled("Pause"); expect(pause.isConnected).toBe(true); expect(start.isConnected).toBe(false);
       expect(document.activeElement).toBe(document.body); expect(savedMutations()).toHaveLength(1); expect(sessionStorage.getItem(intentKey)).toBeNull();
@@ -229,7 +236,7 @@ describe("native research package browser workflow", () => {
     }
   });
 
-  it("does not apply an obsolete manual Refresh focus intent after a newer genuine polling read supersedes it", async () => {
+  it("coalesces polling behind a pending manual Refresh and waits before another genuine read", async () => {
     vi.useFakeTimers(); let finishOld!: (value: Response) => void;
     await act(async () => { render(<MemoryRouter><ResearchPackagesPage /></MemoryRouter>); for (let i = 0; i < 30; i++) await Promise.resolve(); });
     expect(screen.getByText("No package jobs are recorded for your account.")).toBeTruthy();
@@ -243,9 +250,11 @@ describe("native research package browser workflow", () => {
       document.body.tabIndex = -1; document.body.focus(); expect(document.activeElement).toBe(document.body);
       jobs = [job("report", "queued", "newer:polled:job")];
       await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
-      expect(screen.getByText("newer:polled:job")).toBeTruthy(); expect(refresh.matches(":disabled")).toBe(true);
-      await act(async () => { finishOld(json({ jobs: [] })); for (let i = 0; i < 10; i++) await Promise.resolve(); });
-      expect(refresh.matches(":disabled")).toBe(false); expect(document.activeElement).toBe(document.body);
+      expect(screen.queryByText("newer:polled:job")).toBeNull(); expect(refresh.matches(":disabled")).toBe(true);
+      expect(callsTo("/jobs", "GET")).toHaveLength(2);
+      await act(async () => { finishOld(json({ jobs: [] })); for (let i = 0; i < 20; i++) await Promise.resolve(); });
+      expect(refresh.matches(":disabled")).toBe(false); expect(document.activeElement).toBe(refresh);
+      await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
       expect(screen.getByText("newer:polled:job")).toBeTruthy(); expect(savedMutations()).toHaveLength(0); expect(callsTo("/jobs", "GET")).toHaveLength(3);
     } finally {
       if (originalTabIndex === null) document.body.removeAttribute("tabindex"); else document.body.setAttribute("tabindex", originalTabIndex);

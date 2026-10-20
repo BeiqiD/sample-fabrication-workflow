@@ -1,4 +1,5 @@
 import { applicationFetch } from "./authentication-client";
+import { FULL_EXPORT_METADATA_MAX_BYTES, readBoundedExportResponse } from "./full-export-safety";
 import { checkedStorageSettingsStatus } from "../../shared/contracts/storage-settings";
 import { checkedCurrentStorageSettings } from "../../shared/contracts/current-storage-settings";
 import { checkedNativeStorageActivationInput, checkedNativeStorageActivationReceipt, checkedStorageRolePolicyInput, checkedStorageRolePolicyReceipt,
@@ -27,6 +28,18 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(payload.error || `Request failed (${response.status})`);
   }
   return response.json() as Promise<T>;
+}
+
+async function requestFullExport(signal?: AbortSignal): Promise<FullExportManifestV26> {
+  const response = await applicationFetch("/api/exports/all?archiveSchema=26&archiveWriter=1", signal ? { signal } : undefined);
+  const bytes = await readBoundedExportResponse(response, FULL_EXPORT_METADATA_MAX_BYTES, signal, undefined, "metadata");
+  const text = new TextDecoder().decode(bytes);
+  if (!response.ok) {
+    let message = response.statusText;
+    try { message = (JSON.parse(text) as { error?: string }).error || message; } catch { /* Keep the HTTP refusal. */ }
+    throw new Error(message || `Request failed (${response.status})`);
+  }
+  return JSON.parse(text) as FullExportManifestV26;
 }
 export class StoragePolicyRequestError extends Error {
   constructor(readonly status: number) { super("Storage policy request failed."); }
@@ -313,7 +326,7 @@ export const api = {
     method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
   }),
   deleteTemplateStep: (templateId: string, stepId: string) => request<{ ok: true }>(`/templates/${templateId}/steps/${stepId}`, { method: "DELETE" }),
-  getFullExport: () => request<FullExportManifestV26>("/exports/all?archiveSchema=26&archiveWriter=1"),
+  getFullExport: requestFullExport,
   importFabublox: submitFabubloxImport,
 };
 

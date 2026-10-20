@@ -7,6 +7,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { distributionFormat, distributionVersion, distributionNodeVersion, distributionCapabilityScope, distributionInstallationCheckpoint, distributionOfflineRecoveryCheckpoint,
   inventoryDistribution, verifyNodeDistribution } from "./lib/node-distribution-v28-manifest.mjs";
+import { WORKER_SCHEDULER_MIGRATION_NAME, WORKER_SCHEDULER_MIGRATION_SHA256 } from "../shared/contracts/worker-scheduler-schema-extension.ts";
 
 // Fixed application/operations owners. This script intentionally cannot select
 // an arbitrary prototype entry. A genuine main may package the current partial
@@ -48,6 +49,18 @@ try {
     try { await access(path.join(root, entry.source), constants.R_OK); }
     catch { throw new Error(`Distribution executable ${entry.source} is not implemented; no prototype entry fallback is supplied`); }
   }
+  // Worker scheduling has a separately reviewed physical suffix. Do not put
+  // that SQL in this bounded Node24 installation or its source-input receipt.
+  // Refuse changed bytes even though the known suffix is not a Node migration.
+  const workerSuccessor = WORKER_SCHEDULER_MIGRATION_NAME;
+  const migrationInventory = await readdir(path.join(root, "migrations"), { withFileTypes: true });
+  const workerMigration = migrationInventory.find(entry => entry.name === workerSuccessor);
+  if (workerMigration && (!workerMigration.isFile()
+    || sha256(await readFile(path.join(root, "migrations", workerSuccessor))) !== WORKER_SCHEDULER_MIGRATION_SHA256)) {
+    throw new Error("Unreviewed Worker scheduler successor migration");
+  }
+  if (migrationInventory.some(entry => entry.name > "0024_rt3_local_volume_profiles.sql" && entry.name.endsWith(".sql")
+    && entry.name !== workerSuccessor)) throw new Error("Unreviewed Node migration successor inventory");
   for (const relative of ["server/operational-installation-catalog.ts", "server/installation-catalog-v26.ts",
     "migrations/0024_rt3_local_volume_profiles.sql",
     "server/installation-catalog-v28-candidate.ts",

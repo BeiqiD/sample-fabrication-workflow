@@ -11,6 +11,8 @@ import { validateSystemRecoveryImage, type SystemRecoveryImageV1 } from "./syste
 import { PORTABLE_RUNTIME_CHECKPOINT_ID, PORTABLE_RUNTIME_RECOVERY_SCHEMA_SHA256, PORTABLE_RUNTIME_RECOVERY_MIGRATIONS,
   PORTABLE_RUNTIME_RECOVERY_TABLES, PORTABLE_NODE_CHECKPOINT_SCHEMA_SHA256 } from "./portable-runtime-v26-recovery-catalog";
 import { sha256Hex, stableJson } from "../domain/content-addressing";
+import { WORKER_SCHEDULER_MIGRATION_NAME, WORKER_SCHEDULER_MIGRATION_SHA256,
+  WORKER_SCHEDULER_SOURCE_CHECKPOINT_ID } from "./worker-scheduler-schema-extension";
 
 export const SYSTEM_BACKUP_SCHEMA_V3 = "system-backup/3" as const;
 export const SYSTEM_BACKUP_RECORDS_SCHEMA_V3 = "system-backup-records/3" as const;
@@ -102,10 +104,14 @@ export function validateCloudflareMigrationProvenanceV3(value: unknown): Cloudfl
       && BigInt(row.id) >= -9223372036854775808n && BigInt(row.id) <= 9223372036854775807n && !ids.has(row.id)
       && text(row.name, 256) && !names.has(row.name)
       && (row.appliedAt === null || text(row.appliedAt, 200) && Number.isFinite(Date.parse(row.appliedAt))), "cloudflare migration receipt");
-    ensure(row.rawSha256 === (PORTABLE_RUNTIME_RECOVERY_MIGRATIONS.find(migration => migration.name === row.name)?.sha256 ?? null), "cloudflare raw migration digest");
+    ensure(row.rawSha256 === reviewedV3CloudflareMigrationSha256(row.name), "cloudflare raw migration digest");
     ids.add(row.id); names.add(row.name);
   }
   return value as unknown as CloudflareMigrationProvenance;
+}
+export function reviewedV3CloudflareMigrationSha256(name: string): string | null {
+  return name === WORKER_SCHEDULER_MIGRATION_NAME ? WORKER_SCHEDULER_MIGRATION_SHA256
+    : PORTABLE_RUNTIME_RECOVERY_MIGRATIONS.find(migration => migration.name === name)?.sha256 ?? null;
 }
 export async function sourceBackupCheckpointV3(records: SystemBackupRecordsV3): Promise<string> {
   const tables = Object.fromEntries(Object.entries(records.image.tables).map(([name, table]) => {
@@ -152,6 +158,8 @@ export async function validateSystemBackupRecordsV3(recordsValue: unknown): Prom
   exact(recordsValue.origin, ["format", "schemaVersion", "capturePolicy"]);
   ensure(recordsValue.origin.format === "native" && recordsValue.origin.schemaVersion === 26, "native origin");
   const nodeCapture = recordsValue.origin.capturePolicy === "quiesced-writers-and-bytes/1";
+  ensure(!nodeCapture || content.artifacts.portableCheckpoint.value.checkpointId !== WORKER_SCHEDULER_SOURCE_CHECKPOINT_ID,
+    "Worker scheduler source requires Cloudflare provenance");
   ensure(nodeCapture && content.backupHoldOwner === null || recordsValue.origin.capturePolicy === "atomic-primary-with-byte-holds/1"
     && content.backupHoldOwner === recordsValue.backupId, "native capture policy");
   const protectedConfiguration = systemBackupProtectedConfigurationV3(image);

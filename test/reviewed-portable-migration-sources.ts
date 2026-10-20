@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import { PORTABLE_RUNTIME_RECOVERY_MIGRATIONS as V25_MIGRATIONS } from "../shared/contracts/portable-runtime-recovery-catalog";
 import { PORTABLE_RUNTIME_RECOVERY_MIGRATIONS as V26_MIGRATIONS } from "../shared/contracts/portable-runtime-v26-recovery-catalog";
+import { WORKER_SCHEDULER_MIGRATION_NAME, WORKER_SCHEDULER_MIGRATION_SHA256 } from "../shared/contracts/worker-scheduler-schema-extension";
 
 /** Read exact reviewed fixture bytes, without executing SQL. A frozen V25
  * fixture still verifies the complete newer source inventory, then executes
@@ -11,7 +12,11 @@ export function reviewedPortableMigrationSources(version: 25 | 26,
   directory = new URL("../migrations/", import.meta.url)) {
   if (version !== 25 && version !== 26) throw new Error("Unreviewed portable fixture version");
   const entries = readdirSync(directory, { withFileTypes: true });
-  const names = entries.filter(entry => entry.name !== "README.md").map(entry => entry.name).sort();
+  const workerSuccessor = entries.find(entry => entry.name === WORKER_SCHEDULER_MIGRATION_NAME);
+  if (workerSuccessor && (!workerSuccessor.isFile() || createHash("sha256")
+    .update(readFileSync(new URL(WORKER_SCHEDULER_MIGRATION_NAME, directory))).digest("hex") !== WORKER_SCHEDULER_MIGRATION_SHA256))
+    throw new Error("Unreviewed Worker scheduler fixture successor digest");
+  const names = entries.filter(entry => entry.name !== "README.md" && entry.name !== WORKER_SCHEDULER_MIGRATION_NAME).map(entry => entry.name).sort();
   if (entries.some(entry => !entry.isFile())
     || JSON.stringify(names) !== JSON.stringify(V26_MIGRATIONS.map(migration => migration.name)))
     throw new Error("Unreviewed portable fixture migration inventory");

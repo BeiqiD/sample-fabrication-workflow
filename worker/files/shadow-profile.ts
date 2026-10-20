@@ -162,6 +162,14 @@ export async function openShadowProfile(
                 return { ...result, body: abortableBody(result.body, providerLifecycle.signal) };
               } catch { return { outcome: "unavailable" }; }
             },
+            async readRange(key, range) {
+              try {
+                if (!await legacyFence(storage, Object.freeze({ method: "GET", key }))) return { outcome: "unavailable" };
+                const result = await reader.readRange!(key, range);
+                if (result.outcome !== "available") return result;
+                return { ...result, body: abortableBody(result.body, providerLifecycle.signal) };
+              } catch { return { outcome: "unavailable" }; }
+            },
             async stat(key) { try { return await legacyFence(storage, Object.freeze({ method: "HEAD", key })) ? await reader.stat(key) : { outcome: "unavailable" }; } catch { return { outcome: "unavailable" }; } },
           },
           ...(access === "write" ? { writer: boundWriter, deleter: boundDeleter } : {}),

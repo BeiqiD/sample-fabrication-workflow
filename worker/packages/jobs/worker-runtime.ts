@@ -38,9 +38,10 @@ export async function workerPackageCapabilities(env:Env):Promise<PackageCapabili
 
 /** Uses the existing explicitly enabled independent invocation, one action.
  * No trigger/cadence or job execution is installed by an HTTP route. */
-export async function dispatchPackageJobs(env:Env){
+export async function dispatchPackageJobs(env:Env,expectedIncarnation?:string){
   if(!await packageSqlDatabase(env.DB).primary().prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='research_package_jobs'").first())return {jobId:null,outcome:"unsupported"};
   const capabilities=await workerPackageCapabilities(env);if(!capabilities)return {jobId:null,outcome:"disabled"};
+  if(expectedIncarnation!==undefined&&capabilities.incarnation!==expectedIncarnation)return {jobId:null,outcome:"reconfigured"};
   await capabilities.repository.database.primary().prepare("UPDATE file_job_runtime_guard SET last_heartbeat_at=? WHERE singleton=1 AND enabled=1 AND incarnation=?")
     .bind(new Date().toISOString(),capabilities.incarnation).run();
   if(await (capabilities.repository as SqlPackageRepository).maintain(capabilities.incarnation))return {jobId:null,outcome:"cleaned"};
