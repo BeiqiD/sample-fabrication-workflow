@@ -176,11 +176,15 @@ and File authority activation remains separate.
 `0025_scheduler_fair_turn.sql` adds an installation-local `next_queue` field to
 `file_job_runtime_guard`, defaulting to `package`. It changes no historical job,
 executor enablement, provider binding or trigger. Apply it only through the
-reviewed retained-data forward path; no reset is required. The dual-queue Worker
-scheduler requires this cursor, including after restoring an older inert target.
+reviewed retained-data forward path for the ordinary Worker V26/V3 profile;
+no reset is required. That profile's dual-queue scheduler requires this cursor,
+including after restoring its older inert V26/V3 target.
 
 Its exact source-schema extension is recorded separately from frozen V26/V28
 catalogs. Historical recovery target plans keep their reviewed DDL and seeds;
 applying this source migration afterward is explicit and leaves execution off.
+The separately constructed V28/V5 Worker profile is not admitted by this source
+extension. Do not apply migration25 to a V28/V5 installation or restored target;
+its closed schema and separately qualified Recovery operations remain unchanged.
 The [performance checkpoint](../docs/PERFORMANCE_READINESS_20261020.md) records
 current25 upgrade/backup scope and the separate natural-trigger release gate.

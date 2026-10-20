@@ -63,10 +63,11 @@ and process restart. Lost acknowledgements do not justify a second claim/replay.
 
 The scheduler still advances at most one Package/Migration action per invocation;
 only idle/unsupported may yield to the other queue. File-only historical schemas
-retain their existing path. A dual-queue schema without migration25 reports that
-the new scheduler is unsupported; apply the reviewed local schema upgrade before
-expecting scheduler execution/fairness. The independent Node runtime's frozen
-catalogs and scheduler profiles are not silently upgraded by this Worker migration.
+retain their existing path. The ordinary Worker V26/V3 dual-queue schema without
+migration25 reports that the new scheduler is unsupported; apply the reviewed
+local schema upgrade before expecting scheduler execution/fairness. The independent
+Node runtime's frozen catalogs and scheduler profiles are not silently upgraded
+by this Worker migration.
 
 An explicit closed Worker source-schema variant retains the new observed DDL and
 its exact fingerprints in content/backup provenance. It does not rewrite the source
@@ -74,6 +75,13 @@ to look like current24, relax unknown-DDL checks or refresh frozen V26/V28 pins.
 V3 restores and legacy research-only restore targets keep their reviewed inert
 catalogs; applying migration25 afterward is explicit and does not enable jobs.
 Target verification and scheduler metadata are not activation receipts.
+This upgrade instruction applies only to that V26/V3 source profile. A separately
+constructed V28/V5 Worker installation or restored target must retain its closed
+catalog; applying migration25 there is unsupported and would prevent V5 capture.
+Its separately qualified Recovery path does not require this cursor upgrade.
+The new durable Package/Migration scheduler is not qualified for that constructed
+or restored V28/V5 Worker profile; manually enabling its queues does not supply
+that missing qualification.
 
 Two-built-version tab recovery remains a separate backward-compatibility check on
 the unchanged Version A current24 database. Migration25 is not applied during that
