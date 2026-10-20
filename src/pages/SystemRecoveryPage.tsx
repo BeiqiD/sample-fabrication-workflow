@@ -1,3 +1,4 @@
+import { createReadCoordinator, isReadCancellation, ReadTimeoutError, startVisibleReadPolling, type ReadRound } from "../lib/read-coordinator";
 import { checkpointStorage, type CheckpointStorage } from "../lib/browser-checkpoints";
 import { captureApplicationOwner } from "../lib/authentication-client";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -245,7 +246,8 @@ export function SystemRecoveryPage() {
   const backupPreviewButton = useRef<HTMLButtonElement>(null);
   const returnBackupPreviewFocus = useRef<{ button: HTMLButtonElement; signal: AbortSignal } | null>(null);
   const lifetime = useRef<AbortController | null>(null), refreshSequence = useRef(0), reportSequence = useRef(0), reportIdentity = useRef("");
-  const activeRead = useRef<Promise<void> | null>(null);
+  const reads = useRef(createReadCoordinator()), polling = useRef<ReturnType<typeof startVisibleReadPolling> | null>(null);
+  const pollActive = useRef(true), needsFreshRead = useRef(false);
   const exclusiveOperation = useRef(false);
   const currentUpload = upload ? jobs.find(job => job.id === upload.jobId) : null;
 
@@ -253,7 +255,7 @@ export function SystemRecoveryPage() {
 
   function failure(error: unknown) {
     if (error instanceof SystemRecoveryRequestError && [401, 403].includes(error.status || 0)) {
-      deniedRef.current = true; setDenied(true); setJobs([]); setPreview(null); setBackupPreview(null); setCutoverJob(null); setFile(null); setMapping([]);
+      deniedRef.current = true; reads.current.cancel(); setDenied(true); setJobs([]); setPreview(null); setBackupPreview(null); setCutoverJob(null); setFile(null); setMapping([]);
     }
     setMessageText(error instanceof SessionIntentError ? error.message : systemRecoveryErrorMessage(error)); setMessageError(true);
   }
@@ -276,7 +278,11 @@ export function SystemRecoveryPage() {
   function rememberSourceResume(value: SystemRecoverySourceResumeInput | null) {
     storeSession(storage, sourceResumeKey, value); pendingSourceResumeRef.current = value; setPendingSourceResume(value);
   }
-  function updateJob(value: SystemRecoveryJobStatus) { setJobs(current => [value, ...current.filter(job => job.id !== value.id)].slice(0, 100)); }
+  function invalidateReads() { refreshSequence.current++; needsFreshRead.current = true; pollActive.current = true; }
+  function updateJob(value: SystemRecoveryJobStatus, refreshAfter = true) {
+    if (refreshAfter) invalidateReads();
+    setJobs(current => [value, ...current.filter(job => job.id !== value.id)].slice(0, 100));
+  }
   function accept(intent: Intent, receipt: SystemRecoveryReceipt) {
     const expectedKind = intent.action === "cutover" ? "recovery" : intent.action;
     if (receipt.requestId !== intent.input.requestId || receipt.job.kind !== expectedKind || intent.action === "cutover" && receipt.job.id !== intent.jobId) {
@@ -298,6 +304,7 @@ export function SystemRecoveryPage() {
   function currentOperation(signal: AbortSignal) {
     return owner.isCurrent() && !signal.aborted && signal === lifetime.current?.signal && !deniedRef.current;
   }
+  function currentRead(signal: AbortSignal, ownerSignal: AbortSignal) { return currentOperation(ownerSignal) && !signal.aborted; }
   function ownsIntent(intent: Intent, signal: AbortSignal) {
     return currentOperation(signal) && !!pendingRef.current && sameIntent(pendingRef.current, intent);
   }
@@ -371,12 +378,12 @@ export function SystemRecoveryPage() {
       setMessage("No receipt is recorded for this earlier request at this time. Its original input remains retained; no operation was started."); return null;
     }
   }
-  async function loadReport(id: string, signal: AbortSignal) {
+  async function loadReport(id: string, signal: AbortSignal, ownerSignal = signal) {
     const sequence = ++reportSequence.current;
     if (reportJobRef.current !== id) setPreview(null);
     reportJobRef.current = id; setReportJobId(id);
     const value = await systemRecoveryClient.preview(id, signal);
-    if (!currentOperation(signal) || sequence !== reportSequence.current || reportJobRef.current !== id) return;
+    if (!currentRead(signal, ownerSignal) || sequence !== reportSequence.current || reportJobRef.current !== id) return;
     const identity = JSON.stringify([id, value.archive.sha256, value.target.id, value.source.checkpoint]);
     if (identity !== reportIdentity.current) {
       reportIdentity.current = identity; setAcknowledgeLaterChanges(false); setMode(value.source.mode);
@@ -384,70 +391,79 @@ export function SystemRecoveryPage() {
     }
     setPreview(value);
   }
-  async function refresh(signal: AbortSignal, announce = false) {
-    if (activeRead.current) { await activeRead.current; return; }
-    const reading = readStatus(signal, announce); activeRead.current = reading;
-    try { await reading; }
-    finally { if (activeRead.current === reading) activeRead.current = null; }
+  function refresh(signal: AbortSignal, announce = false, fresh = true) {
+    let sequence = 0;
+    return reads.current.run(signal, round => {
+      sequence = refreshSequence.current + 1;
+      return readStatus(round, signal, announce);
+    }, { fresh, onTimeout(error) {
+      if (currentOperation(signal) && sequence === refreshSequence.current) { pollActive.current = true; setReadError(error.message); setReadPhase("error"); }
+    } });
   }
-  async function readStatus(signal: AbortSignal, announce = false) {
-    if (!currentOperation(signal)) return;
+  async function readStatus(round: ReadRound, ownerSignal: AbortSignal, announce = false) {
+    const signal = round.signal;
+    if (!currentRead(signal, ownerSignal)) return;
     const sequence = ++refreshSequence.current;
     if (announce) setReadPhase("loading");
     try {
       const access = await systemRecoveryClient.capabilities(signal);
-      if (!currentOperation(signal) || sequence !== refreshSequence.current) return;
+      if (!currentRead(signal, ownerSignal) || sequence !== refreshSequence.current) return;
       setCapability(access);
       capabilityRef.current = access;
       if (!access.canManage) {
-        deniedRef.current = true; setDenied(true); setJobs([]); setPreview(null); setBackupPreview(null);
+        deniedRef.current = true; reads.current.cancel(); setDenied(true); setJobs([]); setPreview(null); setBackupPreview(null);
         setCutoverJob(null); setFile(null); setMapping([]); return;
       }
-      if (pendingMaintenanceRef.current) await reconcileMaintenance(signal);
-      if (pendingSourceResumeRef.current) await reconcileSourceResume(signal);
-      if (!currentOperation(signal) || sequence !== refreshSequence.current) return;
-      const [list, maintenanceStatus] = await Promise.all([systemRecoveryClient.list(signal), systemRecoveryClient.maintenance(signal)]);
+      if (pendingMaintenanceRef.current) await reconcileMaintenance(signal, false, ownerSignal);
+      if (pendingSourceResumeRef.current) await reconcileSourceResume(signal, false, ownerSignal);
+      if (!currentRead(signal, ownerSignal) || sequence !== refreshSequence.current) return;
+      const [list, maintenanceStatus] = await round.all([systemRecoveryClient.list(signal), systemRecoveryClient.maintenance(signal)]);
+      if (!currentRead(signal, ownerSignal) || sequence !== refreshSequence.current) return;
       const resumeContext = sourceReleaseRef.current;
       const ids = [...new Set([...(earlierRef.current || []).flatMap(row => row.jobId ? [row.jobId] : []), ...savedReceipts(storage).map(row => row.jobId), ...(resumeContext ? [resumeContext.backupJobId] : [])])]
         .filter(id => !list.some(job => job.id === id));
-      const recovered = await Promise.all(ids.map(async id => {
+      const recovered = await round.all(ids.map(async id => {
         try { return await systemRecoveryClient.status(id, signal); }
         catch (error) { if (error instanceof SystemRecoveryRequestError && [404, 410].includes(error.status || 0)) return null; throw error; }
       }));
-      if (!currentOperation(signal) || sequence !== refreshSequence.current) return;
+      if (!currentRead(signal, ownerSignal) || sequence !== refreshSequence.current) return;
       const visible = [...recovered.filter((job): job is SystemRecoveryJobStatus => job !== null), ...list].slice(0, 100);
+      pollActive.current = visible.some(job => ["queued", "running"].includes(job.state)) || !!pendingRef.current || !!pendingMaintenanceRef.current || !!pendingSourceResumeRef.current;
+      needsFreshRead.current = false;
       setJobs(visible); setMaintenance(maintenanceStatus); setExecutorUncertain(false); setJobsLoaded(true); setReadError(null); setReadPhase("ready");
       const checkpoint = uploadRef.current;
       if (checkpoint) {
         const value = visible.find(job => job.id === checkpoint.jobId) || await systemRecoveryClient.status(checkpoint.jobId, signal);
-        if (!currentOperation(signal) || sequence !== refreshSequence.current || uploadRef.current?.jobId !== checkpoint.jobId) return;
-        if (!visible.some(job => job.id === value.id)) updateJob(value);
-        if (value.state === "preview" && (!reportJobRef.current || reportJobRef.current === value.id)) await loadReport(value.id, signal);
+        if (!currentRead(signal, ownerSignal) || sequence !== refreshSequence.current || uploadRef.current?.jobId !== checkpoint.jobId) return;
+        if (["queued", "running"].includes(value.state)) pollActive.current = true;
+        if (!visible.some(job => job.id === value.id)) updateJob(value, false);
+        if (value.state === "preview" && (!reportJobRef.current || reportJobRef.current === value.id)) await loadReport(value.id, signal, ownerSignal);
       }
       if (cutoverRef.current) {
         const latest = visible.find(job => job.id === cutoverRef.current?.id); if (latest) setCutoverJob(latest);
       }
     } catch (error) {
-      if (!currentOperation(signal) || sequence !== refreshSequence.current) return;
+      if (!currentOperation(ownerSignal) || sequence !== refreshSequence.current || isReadCancellation(signal)) return;
+      pollActive.current = true;
       if (error instanceof SystemRecoveryRequestError && [401, 403].includes(error.status || 0)) failure(error);
-      else { setReadError("Recovery access or status could not be read. Retry the status check."); setReadPhase("error"); }
+      else { setReadError(signal.reason instanceof ReadTimeoutError ? signal.reason.message : "Recovery access or status could not be read. Retry the status check."); setReadPhase("error"); }
     }
   }
   useEffect(() => {
     const controller = new AbortController(); lifetime.current = controller;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const poll = async () => {
-      if (!currentOperation(controller.signal)) return;
-      if (!exclusiveOperation.current) await refresh(controller.signal);
-      if (currentOperation(controller.signal)) timer = setTimeout(() => void poll(), 5000);
-    };
+    let stopped = false;
     void (async () => {
       if (pendingRef.current) {
         try { await reconcile(controller.signal); } catch (error) { if (currentOperation(controller.signal)) failure(error); }
       }
-      if (currentOperation(controller.signal)) await poll();
+      if (!stopped && currentOperation(controller.signal)) polling.current = startVisibleReadPolling({
+        read: () => exclusiveOperation.current ? Promise.resolve() : refresh(controller.signal, false, false),
+        current: () => currentOperation(controller.signal),
+        active: () => pollActive.current || !!pendingRef.current || !!pendingMaintenanceRef.current || !!pendingSourceResumeRef.current,
+        cancel: () => reads.current.cancel(),
+      });
     })();
-    return () => { controller.abort(); refreshSequence.current++; reportSequence.current++; if (timer) clearTimeout(timer); };
+    return () => { stopped = true; controller.abort(); reads.current.cancel(); polling.current?.stop(); polling.current = null; refreshSequence.current++; reportSequence.current++; };
   }, []);
   useEffect(() => {
     if (busy || !returnBackupPreviewFocus.current) return;
@@ -464,11 +480,13 @@ export function SystemRecoveryPage() {
     try {
       // A source resume validates the original backup under exclusive Recovery
       // ownership. Finish the page's existing reads before issuing a mutation.
-      if (exclusive && activeRead.current) await activeRead.current;
+      if (exclusive) await reads.current.idle();
       if (currentOperation(controller.signal)) await operation(controller.signal);
     }
     catch (error) { if (currentOperation(controller.signal)) failure(error); }
-    finally { if (currentOperation(controller.signal)) { busyRef.current = false; exclusiveOperation.current = false; setBusy(false); } }
+    finally { if (currentOperation(controller.signal)) { busyRef.current = false; exclusiveOperation.current = false; setBusy(false);
+      if (needsFreshRead.current) { needsFreshRead.current = false; polling.current?.refresh(); }
+    } }
   }
   useLayoutEffect(() => () => clearRequestFocus(), []);
   useLayoutEffect(() => {
@@ -538,7 +556,7 @@ export function SystemRecoveryPage() {
       }
     }
     if (!currentOperation(signal)) return;
-    acceptMaintenance(input, receipt); setBackupPreview(null); setPreview(null);
+    invalidateReads(); acceptMaintenance(input, receipt); setBackupPreview(null); setPreview(null);
     setMessage(input.action === "enter" ? "The source write window is draining. Existing accepted writers must positively settle before fencing."
       : input.action === "finalize" ? "The source write fence was confirmed. Capture and verify the final planned backup before cutover."
         : "The source maintenance window was released. Earlier planned checkpoints require fresh review.");
@@ -562,16 +580,16 @@ export function SystemRecoveryPage() {
     }
     setMaintenance(receipt.status); rememberMaintenance(null);
   }
-  async function reconcileMaintenance(signal: AbortSignal, retryMissing = false) {
-    if (!currentOperation(signal)) return;
+  async function reconcileMaintenance(signal: AbortSignal, retryMissing = false, ownerSignal = signal) {
+    if (!currentRead(signal, ownerSignal)) return;
     const input = pendingMaintenanceRef.current; if (!input) return;
     try {
       const receipt = await systemRecoveryClient.readMaintenanceRequest(input.requestId, signal);
-      if (currentOperation(signal)) acceptMaintenance(input, receipt);
+      if (currentRead(signal, ownerSignal)) { if (signal === ownerSignal) invalidateReads(); acceptMaintenance(input, receipt); }
     } catch (error) {
-      if (!currentOperation(signal)) return;
+      if (!currentRead(signal, ownerSignal)) return;
       if (error instanceof SystemRecoveryRequestError && error.status === 404) {
-        if (retryMissing) await changeMaintenance(input, signal);
+        if (retryMissing && signal === ownerSignal) await changeMaintenance(input, signal);
         else setMessage("No maintenance receipt is recorded yet. Keep its original identifier and explicitly retry after reviewing source state.");
       } else throw error;
     }
@@ -609,18 +627,18 @@ export function SystemRecoveryPage() {
         throw lookup;
       }
     }
-    if (currentOperation(signal)) acceptSourceResume(input, receipt);
+    if (currentOperation(signal)) { invalidateReads(); acceptSourceResume(input, receipt); }
   }
-  async function reconcileSourceResume(signal: AbortSignal, retryMissing = false) {
-    if (!currentOperation(signal)) return;
+  async function reconcileSourceResume(signal: AbortSignal, retryMissing = false, ownerSignal = signal) {
+    if (!currentRead(signal, ownerSignal)) return;
     const input = pendingSourceResumeRef.current; if (!input) return;
     try {
       const receipt = await systemRecoveryClient.readSourceResumeRequest(input.requestId, signal);
-      if (currentOperation(signal)) acceptSourceResume(input, receipt);
+      if (currentRead(signal, ownerSignal)) { if (signal === ownerSignal) invalidateReads(); acceptSourceResume(input, receipt); }
     } catch (error) {
-      if (!currentOperation(signal)) return;
+      if (!currentRead(signal, ownerSignal)) return;
       if (error instanceof SystemRecoveryRequestError && error.status === 404) {
-        if (retryMissing && capability?.policy.sourceResume) await submitSourceResume(input, signal);
+        if (retryMissing && signal === ownerSignal && capability?.policy.sourceResume) await submitSourceResume(input, signal);
         else setMessage("Source resume is unconfirmed. Check its original receipt before explicitly retrying the same request.");
       } else throw error;
     }
@@ -681,7 +699,7 @@ export function SystemRecoveryPage() {
         <div className="storage-candidate-actions"><button className="button" disabled={blocked || !capability.supported || executorUncertain} onClick={() => void act(async signal => {
           try {
             const value = await systemRecoveryClient.configureExecutor(!capability.enabled, signal);
-            if (currentOperation(signal)) { setCapability(value); setMessage("Executor configuration saved. Paused jobs require explicit resume; this action did not replay old work."); }
+            if (currentOperation(signal)) { invalidateReads(); setCapability(value); capabilityRef.current = value; setMessage("Executor configuration saved. Paused jobs require explicit resume; this action did not replay old work."); }
           } catch (error) { if (currentOperation(signal)) setExecutorUncertain(true); throw error; }
         })}>{capability.enabled ? "Disable system recovery executor" : "Enable system recovery executor"}</button></div>
         {executorUncertain && <p className="warning-card">Executor configuration is unconfirmed. Refresh its saved state before changing it again.</p>}

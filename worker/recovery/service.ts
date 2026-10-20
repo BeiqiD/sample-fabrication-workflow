@@ -102,17 +102,33 @@ export async function recoveryArchiveSource(env:Env,job:RecoveryJob,current:()=>
   const held=Boolean(await recoveryRepository(env).db().prepare("SELECT 1 FROM system_recovery_jobs WHERE source_upload_job_id=? AND state IN('queued','running','paused')").bind(job.id).first());
   if(!job.artifact_key||!job.archive_byte_size||!job.archive_sha256||!job.expires_at||Date.parse(job.expires_at)<=Date.now()&&!held)throw new Error("archive_invalid");
   const attempt=(await recoveryRepository(env).attempts(job.id)).find(row=>row.object_key===job.artifact_key&&row.state==="verified");if(!attempt)throw new Error("archive_invalid");
-  return sourceFromStream(job.archive_byte_size,async()=>{if(signal?.aborted||!await current())throw new Error("administrator_revoked");
+  async function openArchive(reopenSignal?:AbortSignal,range?:{offset:number;length:number}) {
+    if(signal?.aborted||reopenSignal?.aborted||!await current())throw new Error("administrator_revoked");
     await assertRecoveryArtifactNamespace(env,job);
-    if(signal?.aborted||!await current()||signal?.aborted||!recoveryActorAllowed(env,job.actor))throw new Error("administrator_revoked");
+    if(signal?.aborted||reopenSignal?.aborted||!await current()||!recoveryActorAllowed(env,job.actor))throw new Error("administrator_revoked");
     const intent=original?await beginWorkerV5SourceCloseIntent(original.owner,original.claim,"body",
       stableJson({uploadId:job.id,key:job.artifact_key,sha256:job.archive_sha256}),current,original.signal,original.deadlineAt):undefined;
     if(original){if(!await current())throw new Error("administrator_revoked");localOriginal();}
     if(intent)assertWorkerV5OriginalSourceIntentIssue(intent);
-    const object=await env.ASSETS.get(job.artifact_key!);if(!object)throw new Error("source_unavailable");
-    if(!intent)return object.body;
-    const stream=ownWorkerV5SourceStream(object.body,async()=>{localOriginal();if(!await current())throw new Error("administrator_revoked");localOriginal();});
-    ownWorkerV5OriginalSourceBody(intent,stream);return stream.body;});
+    const object=range?await env.ASSETS.get(job.artifact_key!,{range}):await env.ASSETS.get(job.artifact_key!);
+    if(!object)throw new Error("source_unavailable");
+    // Retain the actual body before any later validation/guard await. Invalid
+    // ranged metadata must close this SAME original body, never a replacement.
+    let body=object.body;
+    if(intent){
+      const stream=ownWorkerV5SourceStream(body,async()=>{localOriginal();if(!await current())throw new Error("administrator_revoked");localOriginal();});
+      ownWorkerV5OriginalSourceBody(intent,stream);body=stream.body;
+    }
+    try {
+      if(range&&(object.size!==job.archive_byte_size||!object.range||!("offset" in object.range)||!("length" in object.range)
+        ||object.range.offset!==range.offset||object.range.length!==range.length))throw new Error("archive_range_invalid");
+      if(signal?.aborted||reopenSignal?.aborted||!await current()||!recoveryActorAllowed(env,job.actor))throw new Error("administrator_revoked");
+      await assertRecoveryArtifactNamespace(env,job);
+      return body;
+    } catch(error) {await body.cancel();throw error;}
+  }
+  return sourceFromStream(job.archive_byte_size,reopenSignal=>openArchive(reopenSignal),
+    (offset,length,reopenSignal)=>openArchive(reopenSignal,{offset,length}));
 }
 async function openFrozenPayload(env:Env,upload:RecoveryJob,file:WorkerRecoveryFile,current:()=>Promise<boolean>,signal:AbortSignal,original?:PlannedArchiveOriginalOwnership){
   const repository=recoveryRepository(env),index=await repository.metadata(upload.id,"index") as ArchiveIndexEntry[]|null;

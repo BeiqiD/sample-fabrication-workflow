@@ -1,3 +1,4 @@
+import { createReadCoordinator, isReadCancellation, ReadTimeoutError, startVisibleReadPolling, type ReadRound } from "../lib/read-coordinator";
 import { checkpointStorage, type CheckpointStorage } from "../lib/browser-checkpoints";
 import { captureApplicationOwner } from "../lib/authentication-client";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -131,6 +132,8 @@ export function FileMigrationsPage() {
   const lifetime = useRef<AbortController | null>(null), busyRef = useRef(false), sequence = useRef(0);
   const canManage = useRef(false), refreshSequence = useRef(0);
   const metadataSequence = useRef(0), retryInitialRead = useRef<() => void>(() => {});
+  const reads = useRef(createReadCoordinator()), metadataReads = useRef(createReadCoordinator()), accessReads = useRef(createReadCoordinator());
+  const polling = useRef<ReturnType<typeof startVisibleReadPolling> | null>(null), pollActive = useRef(true);
   const initialIntentRead = useRef(false);
   const previewButton = useRef<HTMLButtonElement>(null);
   const returnPreviewFocus = useRef<{ button: HTMLButtonElement; signal: AbortSignal } | null>(null);
@@ -177,7 +180,7 @@ export function FileMigrationsPage() {
     if (!owner.isCurrent()) return false;
     if ((error instanceof FileMigrationRequestError || error instanceof StorageConfigurationRequestError || error instanceof StoragePolicyRequestError)
       && (error.status === 401 || error.status === 403)) {
-      canManage.current = false; setAuthorized(false);
+      canManage.current = false; reads.current.cancel(); metadataReads.current.cancel(); accessReads.current.cancel(); setAuthorized(false);
       return true;
     }
     return false;
@@ -227,42 +230,64 @@ export function FileMigrationsPage() {
     }
     return null;
   }
-  async function readMetadata(signal: AbortSignal) {
+  function readMetadata(signal: AbortSignal) {
+    let sequence = 0;
+    return metadataReads.current.run(signal, round => {
+      sequence = metadataSequence.current + 1;
+      return readMetadataRound(round, signal);
+    }, { fresh: true, onTimeout(error) {
+      if (owner.isCurrent() && !signal.aborted && canManage.current && sequence === metadataSequence.current) { setMetadataError(error.message); setMetadataLoading(false); }
+    } });
+  }
+  async function readMetadataRound(round: ReadRound, ownerSignal: AbortSignal) {
+    const signal = round.signal;
     if (!owner.isCurrent() || !canManage.current || signal.aborted) return;
     const currentRead = ++metadataSequence.current;
     setMetadataLoading(true); setMetadataError("");
     try {
-      const [settings, files] = await Promise.all([api.getCurrentStorageSettings(signal), fileJobsClient.inventory(undefined, signal)]);
+      const [settings, files] = await round.all([api.getCurrentStorageSettings(signal), fileJobsClient.inventory(undefined, signal)]);
       if (!owner.isCurrent() || signal.aborted || !canManage.current || currentRead !== metadataSequence.current) return;
       setProfiles(settings.version === 3 ? settings.profiles.items.filter(profile => profile.runtimeAccess === "read_write" && profile.availability === "available")
         : settings.profiles.items.filter(profile => profile.runtimeAccess === "read_write" && profile.bindingMatch === "matched"));
       setInventory(files); setMetadataRead(true);
     } catch (error) {
-      if (owner.isCurrent() && !signal.aborted && canManage.current && currentRead === metadataSequence.current) {
-        setMetadataError("Storage profiles and File inventory could not be read. Retry only refreshes metadata; it does not start a migration.");
+      if (owner.isCurrent() && !ownerSignal.aborted && canManage.current && currentRead === metadataSequence.current && !isReadCancellation(signal)) {
+        setMetadataError(signal.reason instanceof ReadTimeoutError ? signal.reason.message : "Storage profiles and File inventory could not be read. Retry only refreshes metadata; it does not start a migration.");
         checkAccessError(error);
       }
       throw error;
     } finally {
-      if (owner.isCurrent() && !signal.aborted && currentRead === metadataSequence.current) setMetadataLoading(false);
+      if (owner.isCurrent() && !ownerSignal.aborted && currentRead === metadataSequence.current) setMetadataLoading(false);
     }
   }
-  async function refresh(signal: AbortSignal) {
+  function refresh(signal: AbortSignal, fresh = true) {
+    let sequence = 0;
+    return reads.current.run(signal, round => {
+      sequence = refreshSequence.current + 1;
+      return readStatus(round, signal);
+    }, { fresh, onTimeout(error) {
+      if (owner.isCurrent() && !signal.aborted && canManage.current && sequence === refreshSequence.current) { pollActive.current = true; setJobsError(error.message); setJobsLoading(false); }
+    } });
+  }
+  async function readStatus(round: ReadRound, ownerSignal: AbortSignal) {
+    const signal = round.signal;
     if (!owner.isCurrent() || !canManage.current || signal.aborted) return;
     const currentRefresh = ++refreshSequence.current;
     setJobsLoading(true); setJobsError("");
     try {
-      const [list, current] = await Promise.all([fileJobsClient.list(signal), fileJobsClient.executor(signal)]);
+      const [list, current] = await round.all([fileJobsClient.list(signal), fileJobsClient.executor(signal)]);
       if (!owner.isCurrent() || signal.aborted || !canManage.current || currentRefresh !== refreshSequence.current) return;
+      pollActive.current = list.some(job => ["queued", "running", "cancel_requested"].includes(job.state)) || !!pendingRef.current;
       setJobs(list); setExecutor(current); setJobsRead(true);
     } catch (error) {
-      if (owner.isCurrent() && !signal.aborted && canManage.current && currentRefresh === refreshSequence.current) {
-        setJobsError("Saved migrations and executor status could not be refreshed. Retry only reads their current status.");
+      if (owner.isCurrent() && !ownerSignal.aborted && canManage.current && currentRefresh === refreshSequence.current && !isReadCancellation(signal)) {
+        pollActive.current = true;
+        setJobsError(signal.reason instanceof ReadTimeoutError ? signal.reason.message : "Saved migrations and executor status could not be refreshed. Retry only reads their current status.");
         checkAccessError(error);
       }
       return;
     } finally {
-      if (owner.isCurrent() && !signal.aborted && currentRefresh === refreshSequence.current) setJobsLoading(false);
+      if (owner.isCurrent() && !ownerSignal.aborted && currentRefresh === refreshSequence.current) setJobsLoading(false);
     }
     const detail = detailJob.current;
     if (detail) {
@@ -270,8 +295,8 @@ export function FileMigrationsPage() {
         const value = await fileJobsClient.items(detail, signal);
         if (owner.isCurrent() && !signal.aborted && canManage.current && detailJob.current === detail && currentRefresh === refreshSequence.current) setDetails(value);
       } catch (error) {
-        if (owner.isCurrent() && !signal.aborted && canManage.current && detailJob.current === detail && currentRefresh === refreshSequence.current) {
-          setJobsError("Saved migration details could not be refreshed. Retry only reads their current status.");
+        if (owner.isCurrent() && !ownerSignal.aborted && canManage.current && detailJob.current === detail && currentRefresh === refreshSequence.current && !isReadCancellation(signal)) {
+          setJobsError(signal.reason instanceof ReadTimeoutError ? signal.reason.message : "Saved migration details could not be refreshed. Retry only reads their current status.");
           checkAccessError(error);
         }
         throw error;
@@ -280,27 +305,33 @@ export function FileMigrationsPage() {
   }
   useEffect(() => {
     const controller = new AbortController(); lifetime.current = controller;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let reading = false;
-    const poll = async () => {
-      try { await refresh(controller.signal); } catch (error) { if (owner.isCurrent() && !controller.signal.aborted) checkAccessError(error); }
-      if (owner.isCurrent() && !controller.signal.aborted && canManage.current) timer = setTimeout(() => void poll(), 5000);
-    };
+    let reading = false, readAgain = false;
+    function finishInitial() {
+      reading = false;
+      const resume = readAgain; readAgain = false;
+      if (resume && !document.hidden && !polling.current && owner.isCurrent() && !controller.signal.aborted) void readInitial();
+    }
     const readInitial = async () => {
-      if (!owner.isCurrent() || reading || busyRef.current || controller.signal.aborted) return;
+      if (!owner.isCurrent() || reading || busyRef.current || controller.signal.aborted || document.hidden) return;
       reading = true; setAccessLoading(true); setAccessError("");
-      if (timer) clearTimeout(timer);
       try {
-        const capability = await storageConfigurationClient.capability(controller.signal);
-        if (!owner.isCurrent() || controller.signal.aborted) return;
+        let capability: Awaited<ReturnType<typeof storageConfigurationClient.capability>> | undefined;
+        await accessReads.current.run(controller.signal, async round => {
+          const value = await storageConfigurationClient.capability(round.signal);
+          if (!round.signal.aborted) capability = value;
+        }, { onTimeout(error) {
+          if (owner.isCurrent() && !controller.signal.aborted) { setAccessError(error.message); setAccessLoading(false); }
+        } });
+        if (!capability) { finishInitial(); return; }
+        if (!owner.isCurrent() || controller.signal.aborted) { finishInitial(); return; }
         setAuthorized(capability.canManage);
         canManage.current = capability.canManage;
         setAccessLoading(false);
-        if (!capability.canManage) return;
+        if (!capability.canManage) { finishInitial(); return; }
       } catch (error) {
         if (owner.isCurrent() && !controller.signal.aborted && !checkAccessError(error)) setAccessError("Administrator access could not be checked. Retry only checks access and reads migration metadata.");
         if (owner.isCurrent() && !controller.signal.aborted) setAccessLoading(false);
-        reading = false; return;
+        finishInitial(); return;
       }
       try {
         if (pendingRef.current && !initialIntentRead.current) {
@@ -310,14 +341,30 @@ export function FileMigrationsPage() {
           catch (error) { if (currentOperation(controller.signal, current)) reportError(error); }
           finally { if (owner.isCurrent() && !controller.signal.aborted && current === sequence.current) { busyRef.current = false; setBusy(false); } }
         }
-        if (owner.isCurrent() && canManage.current && !controller.signal.aborted) { await readMetadata(controller.signal); await poll(); }
+        if (owner.isCurrent() && canManage.current && !controller.signal.aborted && !document.hidden) {
+          await readMetadata(controller.signal);
+          if (owner.isCurrent() && canManage.current && !controller.signal.aborted) {
+            polling.current?.stop();
+            polling.current = startVisibleReadPolling({
+              read: async () => { try { await refresh(controller.signal, false); } catch (error) { if (owner.isCurrent() && !controller.signal.aborted) checkAccessError(error); } },
+              current: () => owner.isCurrent() && !controller.signal.aborted && canManage.current,
+              active: () => pollActive.current || !!pendingRef.current,
+              cancel: () => reads.current.cancel(),
+            });
+          }
+        }
       }
       catch (error) { if (owner.isCurrent() && !controller.signal.aborted) checkAccessError(error); }
-      finally { reading = false; }
+      finally { finishInitial(); }
     };
+    const visibility = () => {
+      if (document.hidden) { reads.current.cancel(); metadataReads.current.cancel(); accessReads.current.cancel(); }
+      else if (!polling.current) { if (reading) readAgain = true; else void readInitial(); }
+    };
+    document.addEventListener("visibilitychange", visibility);
     retryInitialRead.current = () => void readInitial();
     void readInitial();
-    return () => { controller.abort(); if (timer) clearTimeout(timer); sequence.current++; metadataSequence.current++; };
+    return () => { controller.abort(); reads.current.cancel(); metadataReads.current.cancel(); accessReads.current.cancel(); polling.current?.stop(); polling.current = null; document.removeEventListener("visibilitychange", visibility); sequence.current++; metadataSequence.current++; };
   }, []);
   useLayoutEffect(() => {
     if (busy || !returnPreviewFocus.current) return;
@@ -331,7 +378,7 @@ export function FileMigrationsPage() {
     if (!owner.isCurrent() || !canManage.current || busyRef.current || !lifetime.current || lifetime.current.signal.aborted) return;
     const signal = lifetime.current.signal, current = ++sequence.current; clearStartFocus(); busyRef.current = true; setBusy(true);
     if (!preserveMessage) { setMessage(""); setMessageIsError(false); }
-    try { await operation(signal); if (owner.isCurrent() && !signal.aborted) await refresh(signal); }
+    try { await operation(signal); if (owner.isCurrent() && !signal.aborted) { refreshSequence.current++; pollActive.current = true; await refresh(signal); } }
     catch (error) {
       if (owner.isCurrent() && !signal.aborted && current === sequence.current) {
         if (preserveMessage) checkAccessError(error);

@@ -65,7 +65,13 @@ export async function inspectVersion(source, old = false) {
 export async function compatibleVersions(a, b) {
   const hashes = {};
   const migrations = (await readdir(resolve(a.info.source, 'migrations'))).filter(name => name.endsWith('.sql')).sort();
-  assert.deepEqual((await readdir(resolve(b.info.source, 'migrations'))).filter(name => name.endsWith('.sql')).sort(), migrations);
+  const currentMigrations = (await readdir(resolve(b.info.source, 'migrations'))).filter(name => name.endsWith('.sql')).sort();
+  const schedulerMigration = '0025_scheduler_fair_turn.sql';
+  const schedulerSha256 = 'cbc1395de4ad21c1f06606eed804ed8936c073168fbcd8ffff89f77063692e78';
+  const hasSchedulerMigration = currentMigrations.includes(schedulerMigration);
+  assert.deepEqual(currentMigrations, hasSchedulerMigration ? [...migrations, schedulerMigration] : migrations);
+  if (hasSchedulerMigration) assert.equal(sha256(await readFile(resolve(b.info.source, 'migrations', schedulerMigration))), schedulerSha256,
+    'Only the exact reviewed installation-local scheduler suffix may differ.');
   for (const path of ['vite.config.ts', 'wrangler.jsonc', ...migrations.map(name => `migrations/${name}`)]) {
     const before = sha256(await readFile(resolve(a.info.source, path))), after = sha256(await readFile(resolve(b.info.source, path)));
     assert.equal(before, after, `This schema-compatible rehearsal requires unchanged ${path}`); hashes[path] = before;
@@ -74,6 +80,8 @@ export async function compatibleVersions(a, b) {
   assert(!b.names.includes(a.info.recovery.split('/').at(-1)), 'B must truly lack A\'s Recovery module.');
   assert.notEqual(a.info.htmlSha256, b.info.htmlSha256);
   return { exactSharedInputHashes: hashes, independentDependencyInputs: { A: a.info.dependencies, B: b.info.dependencies },
+    schemaScope: 'Unchanged Version A current24 database throughout the tab handover; current25 upgrade is qualified independently.',
+    deferredSchedulerMigration: hasSchedulerMigration ? { name: schedulerMigration, sha256: schedulerSha256, appliedDuringHandover: false } : null,
     originalRecoveryModuleAbsentFromB: true, realDistinctRecoveryModules: true };
 }
 async function listen(server) {
@@ -121,7 +129,8 @@ export async function startTwoVersionRuntime(a, b, output, report) {
     const migration = await execute(process.execPath, [resolve(a.info.source, 'node_modules/wrangler/bin/wrangler.js'), 'd1', 'migrations', 'apply', 'DB', '--local', '--persist-to', persist, '--config', config],
       { cwd: a.info.source, timeout: 120000, maxBuffer: 2 * 1024 * 1024, env: { ...process.env, CI: '1', WRANGLER_SEND_METRICS: 'false' } });
     await writeFile(resolve(output, 'migrations.log'), migration.stdout + migration.stderr, { flag: 'wx', mode: 0o600 });
-    report.migrations = { appliedOnceUnderA: true, command: 'wrangler d1 migrations apply DB --local', log: 'migrations.log' };
+    report.migrations = { appliedOnceUnderA: true, command: 'wrangler d1 migrations apply DB --local', log: 'migrations.log',
+      scope: 'Version A current24 only; no schema upgrade during this backward-compatible code/asset handover.' };
     const keys = await generateKeyPair('RS256'), audience = `handover-${randomUUID()}`;
     const publicKey = { ...await exportJWK(keys.publicKey), kid: 'handover-local-key', alg: 'RS256', use: 'sig' };
     const jwksBytes = Buffer.from(JSON.stringify({ keys: [publicKey] }));

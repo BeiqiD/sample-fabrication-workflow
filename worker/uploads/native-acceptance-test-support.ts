@@ -52,10 +52,15 @@ export async function nativeAcceptanceFixture(internalNative = true,
     });
     vi.stubGlobal("fetch", s3Fetch);
     const r2Put = vi.fn(async (key: string, body: BodyInit) => { r2Objects.set(key, await new Response(body).arrayBuffer()); });
-    const r2Get = vi.fn(async (key: string) => {
-      const bytes = r2Objects.get(key);
-      return bytes ? { body: new Response(bytes.slice(0)).body!, size: bytes.byteLength, httpEtag: '"r2-comment"',
-        writeHttpMetadata(headers: Headers) { headers.set("content-type", "image/png"); } } : null;
+    const r2Get = vi.fn(async (key: string, options?: { range?: { offset: number; length: number } }) => {
+      const bytes = r2Objects.get(key); if (!bytes) return null;
+      const requested = options?.range;
+      if (requested && (!Number.isSafeInteger(requested.offset) || requested.offset < 0 || requested.offset >= bytes.byteLength
+        || !Number.isSafeInteger(requested.length) || requested.length <= 0)) throw new Error("Invalid fixture R2 range");
+      const range = requested ? { offset: requested.offset, length: Math.min(requested.length, bytes.byteLength - requested.offset) } : undefined;
+      return { body: new Response(range ? bytes.slice(range.offset, range.offset + range.length) : bytes.slice(0)).body!,
+        size: bytes.byteLength, ...(range ? { range } : {}), httpEtag: '"r2-comment"',
+        writeHttpMetadata(headers: Headers) { headers.set("content-type", "image/png"); } };
     });
     const r2Delete = vi.fn(async (key: string) => { r2Objects.delete(key); });
     const db = new SqliteD1Database(sql);

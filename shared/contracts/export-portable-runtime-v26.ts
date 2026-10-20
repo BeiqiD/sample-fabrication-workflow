@@ -9,14 +9,17 @@ import { contentExportSchemaObjects } from "./storage-configuration-schema";
 import { PORTABLE_RUNTIME_CHECKPOINT_ID, PORTABLE_RUNTIME_RECOVERY_SCHEMA_SHA256, PORTABLE_RUNTIME_RECOVERY_LEXICAL_SCHEMA_SHA256, PORTABLE_RUNTIME_INTERNAL_SCHEMA_OBJECTS } from "./portable-runtime-v26-recovery-catalog";
 import { canonicalFileAuthoritySchemaSql } from "./export-file-authority";
 import { sha256Hex, stableJson } from "../domain/content-addressing";
+import { WORKER_SCHEDULER_APPLICATION_SCHEMA_SHA256, WORKER_SCHEDULER_APPLICATION_LEXICAL_SCHEMA_SHA256,
+  WORKER_SCHEDULER_SOURCE_CHECKPOINT_ID } from "./worker-scheduler-schema-extension";
 
 export const PORTABLE_IDENTITY_MIGRATION_NAMES = ["0023_portable_local_identity.sql"] as const;
 export const PORTABLE_RUNTIME_SOURCE_CHECKPOINT_PATH = "artifacts/portable-runtime-checkpoint.json";
 export const PORTABLE_IDENTITY_TABLE_NAMES = ["local_identity_installation", "local_accounts", "local_admin_grants",
   "local_sessions", "local_login_throttle", "local_auth_events"] as const;
 export interface PortableRuntimeSourceCheckpointV26 {
-  version: 2; kind: "portable-runtime-source-checkpoint"; checkpointId: typeof PORTABLE_RUNTIME_CHECKPOINT_ID;
-  applicationSchemaSha256: typeof PORTABLE_RUNTIME_RECOVERY_SCHEMA_SHA256;
+  version: 2; kind: "portable-runtime-source-checkpoint";
+  checkpointId: typeof PORTABLE_RUNTIME_CHECKPOINT_ID | typeof WORKER_SCHEDULER_SOURCE_CHECKPOINT_ID;
+  applicationSchemaSha256: typeof PORTABLE_RUNTIME_RECOVERY_SCHEMA_SHA256 | typeof WORKER_SCHEDULER_APPLICATION_SCHEMA_SHA256;
   schemaComparison: "reviewed-sqlite-lexical-tokens/1";
   installationObjects: ExportSchemaObject[];
   identityPolicy: "protected-only-no-research-credentials-or-authority/1";
@@ -62,13 +65,26 @@ export async function checkedPortableApplicationSchemaV26(values: readonly Expor
   }).sort((left, right) => compare(left.type, right.type) || compare(left.name, right.name));
   const internal = objects.filter(value => value.sql === null || value.name.startsWith("sqlite_"));
   ensure(stableJson(internal) === stableJson(PORTABLE_RUNTIME_INTERNAL_SCHEMA_OBJECTS), "current internal schema inventory");
-  const canonical = objects.filter(value => value.sql !== null && !value.name.startsWith("sqlite_"));
   // D1's reviewed migration splitter omits SQL comments. The separately pinned
   // lexical object proof admits that presentation without changing raw native
   // installation receipts, quoted SQL bytes, object ownership or internal DDL.
-  const lexical = canonical.map(object => ({ ...object, sql: canonicalFileAuthoritySchemaSql(object.sql!) }));
-  ensure(await sha256Hex(JSON.stringify(lexical)) === PORTABLE_RUNTIME_RECOVERY_LEXICAL_SCHEMA_SHA256, "current application schema");
+  await sourceSchemaTupleV26(objects);
   return objects;
+}
+/** A closed source variant changes neither historical target catalogs nor the
+ * archived observation. Full object inventory and quoted SQL bytes are pinned. */
+async function sourceSchemaTupleV26(objects: readonly ExportSchemaObject[]) {
+  const canonical = objects.filter(value => value.sql !== null && !value.name.startsWith("sqlite_"));
+  const lexical = canonical.map(object => ({ ...object, sql: canonicalFileAuthoritySchemaSql(object.sql!) }));
+  const digest = await sha256Hex(JSON.stringify(lexical));
+  if (digest === WORKER_SCHEDULER_APPLICATION_LEXICAL_SCHEMA_SHA256) return {
+    checkpointId: WORKER_SCHEDULER_SOURCE_CHECKPOINT_ID, applicationSchemaSha256: WORKER_SCHEDULER_APPLICATION_SCHEMA_SHA256,
+  } as const;
+  ensure(digest === PORTABLE_RUNTIME_RECOVERY_LEXICAL_SCHEMA_SHA256, "current application schema");
+  return { checkpointId: PORTABLE_RUNTIME_CHECKPOINT_ID, applicationSchemaSha256: PORTABLE_RUNTIME_RECOVERY_SCHEMA_SHA256 } as const;
+}
+export async function fullExportSourceSchemaV26(objects: readonly ExportSchemaObject[]) {
+  return sourceSchemaTupleV26(await checkedPortableApplicationSchemaV26(objects));
 }
 export function portableBusinessSchemaV26(objects: readonly ExportSchemaObject[]): ExportSchemaObject[] {
   const identity = new Set<string>([...PORTABLE_IDENTITY_TABLE_NAMES, ...LOCAL_PROFILE_HISTORY_TABLE_NAMES, ...LOCAL_PROFILE_INSTALLATION_TABLE_NAMES]);
@@ -80,9 +96,10 @@ export function portableBusinessManifestV26(content: FullExportManifestV26): Ful
 }
 export async function createFullExportV26(content: FullExportBusinessManifestV26, applicationObjects: readonly ExportSchemaObject[]): Promise<FullExportManifestV26> {
   const objects = await checkedPortableApplicationSchemaV26(applicationObjects);
+  const source = await sourceSchemaTupleV26(objects);
   const contentNames = new Set(content.artifacts.sourceSchema.value.objects.map(object => object.name));
   const value: PortableRuntimeSourceCheckpointV26 = { version: 2, kind: "portable-runtime-source-checkpoint",
-    checkpointId: PORTABLE_RUNTIME_CHECKPOINT_ID, applicationSchemaSha256: PORTABLE_RUNTIME_RECOVERY_SCHEMA_SHA256,
+    ...source,
     schemaComparison: "reviewed-sqlite-lexical-tokens/1",
     installationObjects: objects.filter(object => !contentNames.has(object.name)), identityPolicy: "protected-only-no-research-credentials-or-authority/1" };
   return validateFullExportV26({ ...content, schemaVersion: FULL_EXPORT_ARCHIVE_SCHEMA_V26, archiveProfile: FULL_EXPORT_ARCHIVE_PROFILE_V26,
@@ -96,8 +113,9 @@ export async function validateFullExportV26(value: unknown): Promise<FullExportM
   exact(checkpoint, ["path", "byteSize", "sha256", "value"]);
   exact(checkpoint.value, ["version", "kind", "checkpointId", "applicationSchemaSha256", "schemaComparison", "installationObjects", "identityPolicy"]);
   const proof = checkpoint.value;
-  ensure(proof.version === 2 && proof.kind === "portable-runtime-source-checkpoint" && proof.checkpointId === PORTABLE_RUNTIME_CHECKPOINT_ID
-    && proof.applicationSchemaSha256 === PORTABLE_RUNTIME_RECOVERY_SCHEMA_SHA256
+  ensure(proof.version === 2 && proof.kind === "portable-runtime-source-checkpoint"
+    && (proof.checkpointId === PORTABLE_RUNTIME_CHECKPOINT_ID && proof.applicationSchemaSha256 === PORTABLE_RUNTIME_RECOVERY_SCHEMA_SHA256
+      || proof.checkpointId === WORKER_SCHEDULER_SOURCE_CHECKPOINT_ID && proof.applicationSchemaSha256 === WORKER_SCHEDULER_APPLICATION_SCHEMA_SHA256)
     && proof.schemaComparison === "reviewed-sqlite-lexical-tokens/1"
     && proof.identityPolicy === "protected-only-no-research-credentials-or-authority/1", "checkpoint policy");
   const { portableCheckpoint: _checkpoint, ...artifacts } = value.artifacts;
@@ -105,6 +123,8 @@ export async function validateFullExportV26(value: unknown): Promise<FullExportM
   ensure(Array.isArray(proof.installationObjects), "installation schema inventory");
   const objects = await checkedPortableApplicationSchemaV26([...business.artifacts.sourceSchema.value.objects,
     ...proof.installationObjects as ExportSchemaObject[]]);
+  const source = await sourceSchemaTupleV26(objects);
+  ensure(proof.checkpointId === source.checkpointId && proof.applicationSchemaSha256 === source.applicationSchemaSha256, "source checkpoint schema");
   ensure(stableJson(business.artifacts.sourceSchema.value.objects) === stableJson(portableBusinessSchemaV26(objects)), "current content projection");
   const contentNames = new Set(business.artifacts.sourceSchema.value.objects.map(object => object.name));
   const expected = await createExportArtifact(PORTABLE_RUNTIME_SOURCE_CHECKPOINT_PATH, { ...proof,

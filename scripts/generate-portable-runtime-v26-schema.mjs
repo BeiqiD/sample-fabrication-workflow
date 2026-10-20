@@ -130,8 +130,15 @@ export async function generatePortableV26RuntimeSchema(root = defaultRoot, { che
   ensure(schemaDigest(expectedV26Objects) === reviewedPolicy.expectedApplicationSchemaSha256, "reviewed V26 source policy digest");
   const reviewedMigrations = [...frozen.RECOVERY_MIGRATIONS, newMigration, { name: "0024_rt3_local_volume_profiles.sql", sha256: reviewedPolicy.rawMigrationSha256, appliedToFreshSchema: true }];
   const entries = await readdir(join(root, "migrations"), { withFileTypes: true });
+  // The separate Worker-only source extension never changes this frozen
+  // 24-migration Node catalog, target DDL, deterministic seeds or outputs.
+  const workerSuccessorName = "0025_scheduler_fair_turn.sql";
+  const workerSuccessor = entries.find(entry => entry.name === workerSuccessorName);
+  if (workerSuccessor) ensure(workerSuccessor.isFile()
+    && hash(await readFile(join(root, "migrations", workerSuccessorName))) === "cbc1395de4ad21c1f06606eed804ed8936c073168fbcd8ffff89f77063692e78",
+  "unreviewed Worker scheduler successor inventory");
   // README.md is documentation, never an executable migration input.
-  ensure(entries.every(entry => entry.isFile()) && JSON.stringify(entries.filter(entry => entry.name !== "README.md").map(entry => entry.name).sort())
+  ensure(entries.every(entry => entry.isFile()) && JSON.stringify(entries.filter(entry => entry.name !== "README.md" && entry.name !== workerSuccessorName).map(entry => entry.name).sort())
     === JSON.stringify(reviewedMigrations.map(value => value.name)), "unknown, missing, or non-file migration inventory");
   const migrations = [];
   for (const reviewed of reviewedMigrations) {
@@ -234,7 +241,7 @@ export async function generatePortableV26RuntimeSchema(root = defaultRoot, { che
       if (!objectIndexes.has(key)) { objectIndexes.set(key, uniqueObjects.length); uniqueObjects.push(object); }
     }
     const checkpointSource = current => `Object.freeze({ id: ${JSON.stringify(current.id)}, applicationObjects: Object.freeze([${current.applicationObjects.map(object => `schemaObjects[${objectIndexes.get(JSON.stringify(object))}]!`).join(",")}]), schemaSha256: ${JSON.stringify(current.schemaSha256)}, recoveryAdmission: Object.freeze({ kind: "node-installation-recovery-admission/1" as const, checkpointId: ${JSON.stringify(current.id)}, schemaSha256: ${JSON.stringify(current.schemaSha256)}, platformObjects: NODE_PLATFORM_OBJECTS }) })`;
-    const installation = `${header}import { NODE_PLATFORM_OBJECTS, type InstallationSchemaObject } from "../shared/contracts/node-installation-schema";\nimport type { ReviewedInstallationCatalog } from "./migrations";\nconst schemaObjects: readonly InstallationSchemaObject[] = Object.freeze([\n${uniqueObjects.map(object => `  Object.freeze<InstallationSchemaObject>(${JSON.stringify(object)}),`).join("\n")}\n]);\n// Includes 0011 as its reviewed raw SQL/data-only receipt; recovery seed construction skips it.\nexport const V26_NODE_INSTALLATION_CATALOG: ReviewedInstallationCatalog = Object.freeze({\n  id: ${JSON.stringify(catalogId)},\n  emptyCheckpoint: ${checkpointSource(emptyCheckpoint)},\n  migrations: Object.freeze([\n${migrations.map((migration, index) => `    Object.freeze({ name: ${JSON.stringify(migration.name)}, sql: ${JSON.stringify(migration.sql)}, rawSha256: ${JSON.stringify(migration.sha256)}, checkpoint: ${checkpointSource(checkpoints[index])} }),`).join("\n")}\n  ]),\n});\n`;
+    const installation = `${header}import { NODE_PLATFORM_OBJECTS, type InstallationSchemaObject } from "../shared/contracts/node-installation-schema.ts";\nimport type { ReviewedInstallationCatalog } from "./migrations";\nconst schemaObjects: readonly InstallationSchemaObject[] = Object.freeze([\n${uniqueObjects.map(object => `  Object.freeze<InstallationSchemaObject>(${JSON.stringify(object)}),`).join("\n")}\n]);\n// Includes 0011 as its reviewed raw SQL/data-only receipt; recovery seed construction skips it.\nexport const V26_NODE_INSTALLATION_CATALOG: ReviewedInstallationCatalog = Object.freeze({\n  id: ${JSON.stringify(catalogId)},\n  emptyCheckpoint: ${checkpointSource(emptyCheckpoint)},\n  migrations: Object.freeze([\n${migrations.map((migration, index) => `    Object.freeze({ name: ${JSON.stringify(migration.name)}, sql: ${JSON.stringify(migration.sql)}, rawSha256: ${JSON.stringify(migration.sha256)}, checkpoint: ${checkpointSource(checkpoints[index])} }),`).join("\n")}\n  ]),\n});\n`;
     const outputs = [catalog, trusted, installation];
     // All SQL, schema, and classification validation finishes before any write.
     for (const [index, path] of outputPaths.entries()) {

@@ -65,7 +65,9 @@ export async function startGenuinePackageRuntime(source, output, report) {
     const database = await runtime.getD1Database('DB'), bucket = await runtime.getR2Bucket('ASSETS'), worker = await runtime.getWorker();
     const rows = async (sql, bindings = []) => (await database.prepare(sql).bind(...bindings).all()).results;
     report.migrations = (await rows('SELECT name FROM d1_migrations ORDER BY id')).map(row => row.name);
-    assert.equal(report.migrations.length, 24); assert(report.migrations.at(-1).startsWith('0024_'));
+    assert.equal(report.migrations.length, 25); assert.equal(report.migrations.at(-1), '0025_scheduler_fair_turn.sql');
+    const scheduler = await rows('SELECT enabled,next_queue FROM file_job_runtime_guard WHERE singleton=1');
+    assert.deepEqual(scheduler, [{ enabled: 0, next_queue: 'package' }]); report.initialSchedulerGuard = scheduler[0];
     async function request(path, method = 'GET', body, expected = 200, headers = {}) {
       const binary = body instanceof Uint8Array;
       const response = await fetch(`${origin}${path}`, { method, redirect: 'error', signal: AbortSignal.timeout(20000),

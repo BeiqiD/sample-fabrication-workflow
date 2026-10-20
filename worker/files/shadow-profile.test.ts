@@ -128,3 +128,29 @@ describe("profile-bound File deletion", () => {
     expect(f.providerFetch).toHaveBeenCalledOnce();
   });
 });
+
+describe("profile-bound exact range reads", () => {
+  it("forwards the exact range under the existing request fence and cancels its same body on abort", async () => {
+    const f = writableFixture(), cancel = vi.fn(), controller = new AbortController();
+    const get = vi.fn(async () => ({ size: 100, range: { offset: 7, length: 11 }, httpEtag: '"opaque"', writeHttpMetadata() {},
+      body: new ReadableStream<Uint8Array>({ cancel }, { highWaterMark: 0 }) }));
+    f.env.ASSETS.get = get as unknown as R2Bucket["get"];
+    const beforeRequest = vi.fn(async () => true);
+    const bound = await openShadowProfile(f.env, { profileId: "bound", configurationRevision: 1 }, "read", { signal: controller.signal, beforeRequest });
+    const result = await bound.reader.readRange!("owned/range", { offset: 7, length: 11 });
+    expect(result.outcome).toBe("available"); expect(get).toHaveBeenCalledExactlyOnceWith("owned/range", { range: { offset: 7, length: 11 } });
+    expect(beforeRequest).toHaveBeenCalledWith({ method: "GET", key: "owned/range" });
+    if (result.outcome !== "available") throw new Error("range unavailable");
+    controller.abort(); await expect(new Response(result.body).arrayBuffer()).rejects.toThrow("interrupted");
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+  it.each(["denied", "namespace", "binding"])("refuses range I/O after %s changes", async mode => {
+    const f = writableFixture(); let allowed = true;
+    const bound = await openShadowProfile(f.env, { profileId: "bound", configurationRevision: 1 }, "read", { beforeRequest: async () => allowed });
+    if (mode === "denied") allowed = false;
+    if (mode === "namespace") f.env.R2_BOOTSTRAP_NAMESPACE = JSON.stringify({ kind: "cloudflare-r2", accountId: "b".repeat(32), bucketName: "file-shadow-test" });
+    if (mode === "binding") f.env.ASSETS = { get: vi.fn() } as unknown as R2Bucket;
+    expect(await bound.reader.readRange!("owned/range", { offset: 7, length: 11 })).toEqual({ outcome: "unavailable" });
+    expect(f.get).not.toHaveBeenCalled();
+  });
+});

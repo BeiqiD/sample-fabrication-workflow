@@ -1,5 +1,6 @@
 // Separate V26 research-only rehearsal. Old V7–V25 readers remain distinct.
 import { validateFullExportV26, portableBusinessSchemaV26, PORTABLE_RUNTIME_SOURCE_CHECKPOINT_PATH } from "../../shared/contracts/export-portable-runtime-v26";
+import { WORKER_SCHEDULER_MIGRATION_NAME, WORKER_SCHEDULER_MIGRATION_SHA256 } from "../../shared/contracts/worker-scheduler-schema-extension";
 import { V26_BUSINESS_SCHEMA_FINGERPRINT_SHA256, PORTABLE_RUNTIME_INTERNAL_SCHEMA_OBJECTS, PORTABLE_RUNTIME_RECOVERY_MIGRATIONS, PORTABLE_RUNTIME_RECOVERY_TABLES } from "../../shared/contracts/portable-runtime-v26-recovery-catalog";
 import { PORTABLE_RUNTIME_SCHEMA_STATEMENTS, PORTABLE_RUNTIME_SEED_TABLE_ROWS } from "../../worker/recovery/portable-runtime-v26-trusted-schema";
 import { recoveryCellBinding } from "../../shared/contracts/system-recovery-image";
@@ -300,7 +301,10 @@ export async function restoreV26ResearchExportToIsolatedDirectory(options: {
 
     database = new DatabaseSync(join(staging, "database.sqlite"), { allowExtension: false, enableForeignKeyConstraints: true });
     const entries = await readdir(options.migrationsDirectory, { withFileTypes: true });
-    ensure(entries.every(entry => entry.isFile()) && canonical(entries.filter(entry => entry.name !== "README.md").map(entry => entry.name).sort())
+    if (entries.some(entry => entry.name === WORKER_SCHEDULER_MIGRATION_NAME)) ensure(hash(await readFile(join(options.migrationsDirectory, WORKER_SCHEDULER_MIGRATION_NAME)))
+      === WORKER_SCHEDULER_MIGRATION_SHA256, "Unreviewed Worker scheduler successor migration");
+    ensure(entries.every(entry => entry.isFile()) && canonical(entries.filter(entry => entry.name !== "README.md"
+      && entry.name !== WORKER_SCHEDULER_MIGRATION_NAME).map(entry => entry.name).sort())
       === canonical(PORTABLE_RUNTIME_RECOVERY_MIGRATIONS.map(entry => entry.name)), "Unreviewed V26 migration inventory");
     const migrations: Array<{ name: string; sha256: string }> = [];
     for (const receipt of PORTABLE_RUNTIME_RECOVERY_MIGRATIONS) {

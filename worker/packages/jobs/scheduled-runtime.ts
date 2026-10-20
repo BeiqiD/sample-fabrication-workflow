@@ -1,14 +1,18 @@
 import type { Env } from "../../types";
 import { dispatchFileJobs } from "../../files/jobs/worker-runtime";
 import { dispatchPackageJobs } from "./worker-runtime";
+import { claimResearchSchedulerTurn } from "./scheduler-turn";
 
-/** The existing independent 120-second invocation performs one durable action.
- * Alternating first choice prevents either queue from monopolizing the runner;
- * an idle queue can yield its slot without running two actions together. */
-export async function dispatchResearchAndFileJobs(env: Env, scheduledTime: number) {
-  const packageFirst = Math.floor(scheduledTime / 120_000) % 2 === 0;
-  const first = packageFirst ? dispatchPackageJobs : dispatchFileJobs;
-  const second = packageFirst ? dispatchFileJobs : dispatchPackageJobs;
-  const result = await first(env);
-  return ["idle","unsupported"].includes(result.outcome) ? second(env) : result;
+/** One advancing Package/Migration action per independently admitted invocation.
+ * The persisted turn is independent of cron frequency, missed slots and restart.
+ * An idle/unsupported queue may yield; no second busy action runs in this event.
+ * This entry point does not install or verify a deployment's trigger/cadence. */
+export async function dispatchResearchAndFileJobs(env: Env, _scheduledTime: number) {
+  const turn = await claimResearchSchedulerTurn(env.DB);
+  if (turn.outcome === "migration_only") return dispatchFileJobs(env);
+  if (turn.outcome !== "selected") return { jobId: null, outcome: turn.outcome };
+  const first = turn.queue === "package" ? dispatchPackageJobs : dispatchFileJobs;
+  const second = turn.queue === "package" ? dispatchFileJobs : dispatchPackageJobs;
+  const result = await first(env, turn.incarnation);
+  return ["idle", "unsupported"].includes(result.outcome) ? second(env, turn.incarnation) : result;
 }

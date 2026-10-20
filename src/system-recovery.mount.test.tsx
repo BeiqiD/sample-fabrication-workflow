@@ -156,6 +156,31 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); sessionStorage.clear(); });
 
 describe("privileged website system backup and recovery workflow", () => {
+  it("keeps a resumed upload ACK when an older poll returns denial before its queued fresh read", async () => {
+    vi.useFakeTimers(); savedUpload("awaiting_upload");
+    let resolveList!: (value: Response) => void, resolveUpload!: (value: Response) => void, reads = 0;
+    const old = new Promise<Response>(yes => { resolveList = yes; }), upload = new Promise<Response>(yes => { resolveUpload = yes; });
+    network.mockImplementation(async (path, options) => {
+      if (String(path) === `${base}/jobs` && options?.method === "GET" && ++reads === 2) return old;
+      if (String(path) === `${base}/jobs/upload%3Ajob/upload` && options?.method === "PUT") return upload;
+      return fallback(path, options);
+    });
+    await act(async () => { render(<MemoryRouter><SystemRecoveryPage /></MemoryRouter>); for (let i = 0; i < 100; i++) await Promise.resolve(); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); }); expect(reads).toBe(2);
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText("System recovery ZIP"), { target: { files: [new File([new Uint8Array(32)], "original.zip")] } });
+      fireEvent.click(screen.getByRole("button", { name: "Resume original recovery upload" }));
+      for (let i = 0; i < 80; i++) await Promise.resolve();
+    });
+    expect(calls("/jobs/upload%3Ajob/upload", "PUT")).toHaveLength(1);
+    jobs = [{ ...jobs[0], state: "queued", phase: "validate", updatedAt: "2026-10-20T09:00:00Z" }];
+    await act(async () => { resolveUpload(json(jobs[0])); for (let i = 0; i < 80; i++) await Promise.resolve(); });
+    await act(async () => { resolveList(json({ error: "PRIVATE_OLD_POLL_DENIAL" }, 403)); for (let i = 0; i < 100; i++) await Promise.resolve(); });
+    expect(document.body.textContent).not.toContain("System administrator access is required");
+    expect(document.body.textContent).not.toContain("PRIVATE_OLD_POLL_DENIAL");
+    expect(document.querySelector(".system-recovery-job")?.textContent).toContain("upload:job"); expect(reads).toBe(3); expect(calls("/jobs/upload%3Ajob/upload", "PUT")).toHaveLength(1);
+  });
+
   it("does not resume old recovery bytes after an account change while the hash is pending before React cleanup", async () => {
     vi.stubEnv("VITE_LOCAL_AUTHENTICATION", "1");
     let principal = "local_6f3e32c5-d935-44ab-8567-0966b13d91ae", release!: () => void;
@@ -428,8 +453,9 @@ describe("privileged website system backup and recovery workflow", () => {
     const original = calls("/source-resume", "POST")[0];
     await act(async () => { finishResume(fallback(...original)); await flushReads(); });
     expect(sessionStorage.getItem(sourceResumeKey)).toBeNull(); expect(sessionStorage.getItem(sourceReleaseKey)).toBeNull();
+    expect(jobReads).toBe(3);
     await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
-    expect(jobReads).toBe(3); expect(calls("/source-resume", "POST")).toHaveLength(1);
+    expect(jobReads).toBe(4); expect(calls("/source-resume", "POST")).toHaveLength(1);
   });
   it("retains a newly released source backup when a scheduled jobs list omits that older job", async () => {
     sourceBackup(); vi.useFakeTimers(); let omitBackup = false;

@@ -23,7 +23,8 @@ const names = ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_i
   "0009_fp1_shadow_withdrawals.sql", "0010_fp1_shadow_adjudications.sql", "0011_fp1_retire_legacy_test_projects.sql", "0012_fp1_file_authority_runtime.sql",
   "0013_fp1_r2_role_defaults.sql", "0014_fp2_storage_configuration.sql", "0015_fp2_storage_candidate_checks.sql", "0016_fp2_credential_reenvelopes.sql",
   "0017_fp2_native_storage_profiles.sql", "0018_fp2_native_file_runtime.sql", "0019_fp3_file_jobs.sql", "0020_fp4_research_packages.sql",
-  "0021_fp5_system_recovery.sql", "0022_fp5_recovery_evidence.sql", "0023_portable_local_identity.sql", "0024_rt3_local_volume_profiles.sql"];
+  "0021_fp5_system_recovery.sql", "0022_fp5_recovery_evidence.sql", "0023_portable_local_identity.sql", "0024_rt3_local_volume_profiles.sql",
+  "0025_scheduler_fair_turn.sql"];
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const json = value => JSON.stringify(value, null, 2) + "\n";
 const quote = name => `"${name.replaceAll('"', '""')}"`;
@@ -277,12 +278,22 @@ async function createFixture(root, name, frozen, signal) {
       const positions = old.columns.map(column => { const at = current.columns.indexOf(column); assert(at >= 0, `Original column absent: ${name}.${column}`); return at; });
       assert.deepEqual(ordered(current.rows.map(row => ({ rowid: row.rowid, cells: positions.map(at => row.cells[at]) }))), ordered(old.rows), `Original typed cells/rowids preserved: ${name}`);
     }
+    if (before.observation.ledger.rows.length === 24 && after.observation.ledger.rows.length === 25) {
+      assert.deepEqual(Object.keys(after.tables).sort(), Object.keys(before.tables).sort(), "Scheduler migration adds no tables");
+      for (const [name, old] of Object.entries(before.tables)) {
+        assert.deepEqual(after.tables[name].columns, name === "file_job_runtime_guard" ? [...old.columns, "next_queue"] : old.columns,
+          `Only the installation-local scheduler cursor is added: ${name}`);
+      }
+    }
     assert.deepEqual(ordered(after.retention), ordered(before.retention), "Legacy retention projection preserved");
   };
   const cell = (value, table, column) => value.tables[table].rows.map(row => row.cells[value.tables[table].columns.indexOf(column)]);
   const inert = value => {
     for (const table of ["file_shadow_runtime_guard", "file_authority_runtime_guard", "file_job_runtime_guard", "system_recovery_runtime"]) {
       if (value.tables[table]) assert.deepEqual(cell(value, table, "enabled"), [{ type: "integer", value: "0" }], `${table} stays disabled`);
+    }
+    if (value.tables.file_job_runtime_guard?.columns.includes("next_queue")) {
+      assert.deepEqual(cell(value, "file_job_runtime_guard", "next_queue"), [{ type: "text", value: "package" }], "New scheduler cursor starts with Package without enabling execution");
     }
     assert.deepEqual(cell(value, "file_authority_control", "mode"), [{ type: "text", value: "legacy" }]);
     if (value.tables.local_storage_profile_bindings) assert.equal(value.tables.local_storage_profile_bindings.rows.length, 0);
@@ -315,7 +326,7 @@ export async function rehearseCurrentLocalMigrations(destination, { signal } = {
   assert(isAbsolute(destination) && resolve(destination) === destination, "Choose a new absolute local fixture directory");
   await mkdir(destination, { mode: 0o700 });
   const report = { version: 1, status: "running", startedAt: new Date().toISOString(), destination, remoteExecutionAuthorized: false,
-    scope: "Actual installed Wrangler populated current-prefix17 to24 ladder, direct suffix and partial-prefix ledger failure/exact retry; local synthetic metadata only, no providers/Node V28/serving handover/remote migration or deployment",
+    scope: "Actual installed Wrangler populated current-prefix17 to25 ladder, direct suffix and partial-prefix ledger failure/exact retry; local synthetic metadata only, no providers/Node V28/serving handover/remote migration or deployment",
     cases: [] };
   try {
     const frozen = await freezeSources(); report.source = frozen.evidence;
@@ -324,21 +335,21 @@ export async function rehearseCurrentLocalMigrations(destination, { signal } = {
       try {
         let current = await fixture.initial();
         if (name === "populated-ladder") {
-          for (let prefix = 18; prefix <= 24; prefix++) {
+          for (let prefix = 18; prefix <= 25; prefix++) {
             current = await fixture.apply(prefix, current, `upgrade-${prefix}`);
             const seed = stageSeed(prefix);
             if (seed) { await fixture.setup(seed, `history-at-${prefix}`); current = await fixture.snapshot(`history-at-${prefix}`); fixture.assertPrefix(current, prefix); fixture.inert(current); }
           }
-          const reopened = await fixture.snapshot("reopened-current24"); assert.deepEqual(reopened, current, "Closed/reopened local database preserves all typed data and identity");
-          assert((await fixture.cli("current24-no-op")).success);
-          const noOp = await fixture.snapshot("after-current24-no-op"); assert.deepEqual(noOp, reopened, "Actual CLI no-op changes nothing");
-          fixture.report.cases.push({ kind: "seven actual CLI suffix steps, later history fixtures, closed-owner reopen and exact no-op", passed: true });
+          const reopened = await fixture.snapshot("reopened-current25"); assert.deepEqual(reopened, current, "Closed/reopened local database preserves all typed data and identity");
+          assert((await fixture.cli("current25-no-op")).success);
+          const noOp = await fixture.snapshot("after-current25-no-op"); assert.deepEqual(noOp, reopened, "Actual CLI no-op changes nothing");
+          fixture.report.cases.push({ kind: "eight actual CLI suffix steps, later history fixtures, closed-owner reopen and exact no-op", passed: true });
         } else if (name === "populated-direct") {
-          await fixture.apply(24, current, "direct-18-through24");
-          fixture.report.cases.push({ kind: "one actual CLI applies unchanged complete suffix18..24", passed: true });
+          await fixture.apply(25, current, "direct-18-through25");
+          fixture.report.cases.push({ kind: "one actual CLI applies unchanged complete suffix18..25", passed: true });
         } else {
           await fixture.setup(faultSql, "test-only-ledger-fault");
-          await fixture.stage(24); const failed = await fixture.cli("expected-19-ledger-failure");
+          await fixture.stage(25); const failed = await fixture.cli("expected-19-ledger-failure");
           assert.equal(failed.success, false); assert.notEqual(failed.exitCode, 0); assert.equal(failed.signal, null, "Expected SQL failure, not timeout/cancellation");
           const failureText = await readFile(join(fixture.directory, failed.stdout), "utf8") + await readFile(join(fixture.directory, failed.stderr), "utf8");
           assert.match(failureText, /QA current migration19 ledger fault/);
@@ -346,8 +357,8 @@ export async function rehearseCurrentLocalMigrations(destination, { signal } = {
           assert(!partial.tables.file_job_runtime_guard && !partial.tables.file_migration_jobs, "Failed19's actual preceding DDL rolled back");
           await fixture.setup(`DROP TRIGGER ${faultName};`, "remove-only-test-fault");
           const restart = await fixture.snapshot("restart-at-18"); fixture.assertPrefix(restart, 18);
-          await fixture.apply(24, restart, "identical-19-through24-retry");
-          fixture.report.cases.push({ kind: "actual ledger fault after19 DDL, committed18 retained, failed19 rolled back, unchanged19..24 retry", passed: true });
+          await fixture.apply(25, restart, "identical-19-through25-retry");
+          fixture.report.cases.push({ kind: "actual ledger fault after19 DDL, committed18 retained, failed19 rolled back, unchanged19..25 retry", passed: true });
         }
         await fixture.finish("passed"); report.cases.at(-1).status = "passed";
       } catch (error) { await fixture.finish("failed", error); report.cases.at(-1).status = "failed"; throw error; }

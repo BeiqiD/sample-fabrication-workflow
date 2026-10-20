@@ -1,5 +1,7 @@
 # Current development capabilities
 
+**2026-10-20 performance checkpoint:** The current change starts from integrated development `580cbf7` and addresses bounded task-list queries, failure-safe status polling, browser ZIP capacity/cancellation, Worker scheduler fairness and archive range reads. See [the implementation and qualification scope](./PERFORMANCE_READINESS_20261020.md). Migration25 is a reviewed Worker-only source extension; frozen Node catalogs and historical qualification retain their own scope. Its adopting candidate requires its own hosted checks.
+
 Updated 2026-10-18. Development base `3965c906` includes the supported Recovery
 frontend, genuine Recovery browser lifecycle, File Migration request recovery
 and the Package/Recovery integration work merged through

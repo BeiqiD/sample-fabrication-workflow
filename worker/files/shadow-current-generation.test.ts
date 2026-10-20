@@ -5,6 +5,7 @@ import { FILE_MIGRATION_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts
 import { RESEARCH_PACKAGE_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-research-packages";
 import { SYSTEM_RECOVERY_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-system-recovery";
 import { V26_BUSINESS_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/portable-runtime-v26-recovery-catalog";
+import { WORKER_SCHEDULER_MIGRATION_NAME, WORKER_SCHEDULER_BUSINESS_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/worker-scheduler-schema-extension";
 import { sha256Hex } from "../../shared/domain/content-addressing";
 import { referenceTestDatabase, SqliteD1Database } from "../reference-test-support";
 import { nativeAcceptanceFixture } from "../uploads/native-acceptance-test-support";
@@ -23,6 +24,7 @@ describe("operational shadow metadata on the current native File generations", (
     ["0020_fp4_research_packages.sql", RESEARCH_PACKAGE_SCHEMA_FINGERPRINT_SHA256],
     ["0022_fp5_recovery_evidence.sql", SYSTEM_RECOVERY_SCHEMA_FINGERPRINT_SHA256],
     ["0024_rt3_local_volume_profiles.sql", V26_BUSINESS_SCHEMA_FINGERPRINT_SHA256],
+    [WORKER_SCHEDULER_MIGRATION_NAME, WORKER_SCHEDULER_BUSINESS_SCHEMA_FINGERPRINT_SHA256],
   ] as const)("qualifies an actual historical consumer on %s within the unchanged complete schema bounds", async (throughMigration, fingerprint) => {
     const sql = referenceTestDatabase({ throughMigration }); databases.push(sql);
     const now = new Date().toISOString(), db = new SqliteD1Database(sql), opaqueKey = "historical/%2F shared key";
@@ -42,6 +44,25 @@ describe("operational shadow metadata on the current native File generations", (
       locator: { storeKind: "r2", provider: "r2", objectKey: opaqueKey } });
     const { baselineSha256, ...metadata } = baseline;
     expect(baselineSha256).toBe(await sha256Hex(canonicalShadowMetadata(metadata)));
+    if (baseline.record) {
+      const { baselineSha256: recordSha256, ...record } = baseline.record;
+      expect(recordSha256).toBe(await sha256Hex(canonicalShadowMetadata({ version: 1, schemaSha256: fingerprint,
+        authority: baseline.authority, record })));
+    }
+    expect(sql.prepare("SELECT count(*) n FROM file_shadow_operations").get()).toEqual({ n: 0 });
+  });
+
+  it.each([
+    ["unknown application table", "CREATE TABLE local_unreviewed_shadow_probe(id TEXT PRIMARY KEY)"],
+    ["unknown scheduler field", "ALTER TABLE file_job_runtime_guard ADD COLUMN unreviewed TEXT"],
+    ["altered protected local-profile trigger", `DROP TRIGGER local_storage_profile_bindings_insert_guard;
+      CREATE TRIGGER local_storage_profile_bindings_insert_guard BEFORE INSERT ON local_storage_profile_bindings BEGIN SELECT 1; END;`],
+    ["altered Cloudflare platform table", "CREATE TABLE _cf_METADATA(key INTEGER PRIMARY KEY,value TEXT)"],
+  ] as const)("rejects Worker25 %s before qualifying a legacy consumer", async (_reason, mutation) => {
+    const sql = referenceTestDatabase({ throughMigration: WORKER_SCHEDULER_MIGRATION_NAME }); databases.push(sql);
+    sql.exec(mutation);
+    await expect(readShadowBaseline(new SqliteD1Database(sql), key("absent-consumer")))
+      .rejects.toThrow("Unsupported shadow schema generation");
     expect(sql.prepare("SELECT count(*) n FROM file_shadow_operations").get()).toEqual({ n: 0 });
   });
 

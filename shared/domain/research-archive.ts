@@ -190,20 +190,34 @@ export async function measureStoreArchive(entries: readonly ArchiveEntry[], open
   } catch (error) { abortHash(hash); throw error; }
 }
 
-/** A retained sequential cursor supports bounded read() calls. Backward reads
- * reopen once; forward reads discard prefixes without retaining them. open()
- * creates one independent range stream with bounded output. close() cancels
- * every held reader. bytesRead counts physical skipped and delivered bytes. */
-export function sourceFromStream(byteSize: number, reopen: (signal?: AbortSignal) => Promise<ReadableStream<Uint8Array>>): ArchiveSource & { readonly bytesRead: number; close(): void; dispose(): void } {
+/** Optional exact provider range. Returning undefined declares unsupported
+ * transport; errors never cause a fallback to another request/provider. */
+export type ArchiveRangeOpener = (offset: number, length: number, signal?: AbortSignal) => Promise<ReadableStream<Uint8Array> | undefined>;
+
+/** A retained sequential cursor supports bounded read() calls. Providers with
+ * exact range transport read only the requested bytes; other providers reopen
+ * and discard prefixes. Every held cursor is cancelled by close(). bytesRead
+ * counts actual provider chunks, including prefixes on the fallback path. */
+export function sourceFromStream(byteSize: number, reopen: (signal?: AbortSignal) => Promise<ReadableStream<Uint8Array>>,
+  reopenRange?: ArchiveRangeOpener): ArchiveSource & { readonly bytesRead: number; close(): void; dispose(): void } {
   if (!safeNumber(byteSize) || byteSize > RESEARCH_ARCHIVE_MAX_BYTES) limit();
-  interface RawCursor { reader: ReadableStreamDefaultReader<Uint8Array>; position: number; pending: Uint8Array; signal?: AbortSignal; onAbort: () => void; closed: boolean }
-  const cursors = new Set<RawCursor>(); let retained: RawCursor | undefined, bytesRead = 0, busy = false;
+  interface RawCursor { reader: ReadableStreamDefaultReader<Uint8Array>; position: number; end: number; pending: Uint8Array; signal?: AbortSignal; onAbort: () => void; closed: boolean }
+  const cursors = new Set<RawCursor>(); let retained: RawCursor | undefined, bytesRead = 0, busy = false, rangeSupported = Boolean(reopenRange);
   const closeCursor = (cursor: RawCursor) => { if (cursor.closed) return; cursor.closed = true; cursor.signal?.removeEventListener("abort", cursor.onAbort); cancel(cursor.reader); try { cursor.reader.releaseLock(); } catch { /* Pending read is cancelled. */ } cursors.delete(cursor); };
-  async function cursor(signal?: AbortSignal): Promise<RawCursor> {
-    aborted(signal); const raw = await reopen(signal), reader = raw.getReader();
+  function acquire(raw: ReadableStream<Uint8Array>, position: number, end: number, signal?: AbortSignal): RawCursor {
+    const reader = raw.getReader();
     if (signal?.aborted) { cancel(reader, signal.reason); reader.releaseLock(); aborted(signal); }
-    const value: RawCursor = { reader, position: 0, pending: new Uint8Array(), signal, closed: false, onAbort: () => closeCursor(value) };
+    const value: RawCursor = { reader, position, end, pending: new Uint8Array(), signal, closed: false, onAbort: () => closeCursor(value) };
     cursors.add(value); signal?.addEventListener("abort", value.onAbort, { once: true }); if (signal?.aborted) { closeCursor(value); aborted(signal); } return value;
+  }
+  async function cursor(signal?: AbortSignal): Promise<RawCursor> {
+    aborted(signal); return acquire(await reopen(signal), 0, byteSize, signal);
+  }
+  async function rangedCursor(offset: number, length: number, signal?: AbortSignal): Promise<RawCursor | undefined> {
+    if (!rangeSupported || !reopenRange) return undefined;
+    aborted(signal); const raw = await reopenRange(offset, length, signal);
+    if (raw === undefined) { rangeSupported = false; aborted(signal); return undefined; }
+    return acquire(raw, offset, offset + length, signal);
   }
   async function take(value: RawCursor, maximum: number) {
     aborted(value.signal); if (value.closed) invalid("Research source reader is closed.");
@@ -211,7 +225,7 @@ export function sourceFromStream(byteSize: number, reopen: (signal?: AbortSignal
       const next = await value.reader.read(); aborted(value.signal); if (next.done) integrity("Research source is truncated.");
       if (!(next.value instanceof Uint8Array)) invalid("Research source did not supply byte chunks.");
       bytesRead += next.value.length; value.pending = next.value;
-      if (next.value.length > byteSize - value.position) integrity("Research source exceeds its declared byte size.");
+      if (next.value.length > value.end - value.position) integrity("Research source exceeds its declared byte range.");
     }
     const bytes = value.pending.subarray(0, maximum); value.pending = value.pending.subarray(bytes.length); value.position += bytes.length; return bytes;
   }
@@ -221,21 +235,32 @@ export function sourceFromStream(byteSize: number, reopen: (signal?: AbortSignal
     byteSize, get bytesRead() { return bytesRead; },
     async read(offset, length, signal) {
       range(source, offset, length); if (length > RESEARCH_ARCHIVE_CHUNK_BYTES) limit(); aborted(signal); if (busy) invalid("Concurrent retained research reads are unsupported."); busy = true;
+      let direct: RawCursor | undefined;
       try {
+        if (!length) return new Uint8Array();
+        direct = await rangedCursor(offset, length, signal);
+        if (direct) {
+          const bytes = new Uint8Array(length); let at = 0;
+          while (at < length) { const part = await take(direct, length - at); bytes.set(part, at); at += part.length; }
+          await end(direct); return bytes;
+        }
         if (!retained || retained.closed || retained.position > offset || retained.signal !== signal) { if (retained) closeCursor(retained); retained = await cursor(signal); }
         await skip(retained, offset); const bytes = new Uint8Array(length); let at = 0;
         while (at < length) { const part = await take(retained, length - at); bytes.set(part, at); at += part.length; }
         if (offset + length === byteSize) { await end(retained); closeCursor(retained); } return bytes;
-      } catch (error) { if (retained) closeCursor(retained); throw error; } finally { busy = false; }
+      } catch (error) { if (retained) closeCursor(retained); throw error; } finally { if (direct) closeCursor(direct); busy = false; }
     },
     async open(offset, length, signal) {
-      range(source, offset, length); aborted(signal); const value = await cursor(signal); let remaining = length, started = false, output: ReadableStreamDefaultController<Uint8Array>;
+      range(source, offset, length); aborted(signal);
+      if (!length) return new ReadableStream<Uint8Array>({ start(controller) { controller.close(); } });
+      const value = await rangedCursor(offset, length, signal) ?? await cursor(signal);
+      let remaining = length, started = value.position === offset, output: ReadableStreamDefaultController<Uint8Array>;
       const onAbort = () => { output.error(signal?.reason ?? new DOMException("The operation was aborted.", "AbortError")); closeCursor(value); };
       return new ReadableStream<Uint8Array>({
         start(controller) { output = controller; signal?.addEventListener("abort", onAbort, { once: true }); if (signal?.aborted) onAbort(); },
         async pull(controller) {
           try { aborted(signal); if (!started) { await skip(value, offset); started = true; }
-            if (!remaining) { if (offset + length === byteSize) await end(value); signal?.removeEventListener("abort", onAbort); closeCursor(value); controller.close(); return; }
+            if (!remaining) { if (offset + length === value.end) await end(value); signal?.removeEventListener("abort", onAbort); closeCursor(value); controller.close(); return; }
             const bytes = await take(value, Math.min(remaining, RESEARCH_ARCHIVE_CHUNK_BYTES)); remaining -= bytes.length; controller.enqueue(bytes);
           } catch (error) { signal?.removeEventListener("abort", onAbort); closeCursor(value); controller.error(error); }
         }, cancel() { signal?.removeEventListener("abort", onAbort); closeCursor(value); },

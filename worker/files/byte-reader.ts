@@ -2,8 +2,9 @@
  *
  * The caller owns authorization, locator selection and retention. An available
  * stream or provider size/ETag is not verified File identity. This boundary only
- * supports full-object reads: no range, conditional request, checksum, retry or
- * fallback guarantee is implied. Successful reads transfer stream ownership to
+ * supports full-object reads, with optional exact-range transport where the
+ * bound provider supports it. No checksum, retry or fallback guarantee is
+ * implied. Successful reads transfer stream ownership to
  * the caller, including cancellation and errors that occur after opening it.
  */
 export interface ByteMetadata {
@@ -23,9 +24,16 @@ export type ByteReadResult = ByteReadFailure
 export type ByteStatResult = ByteReadFailure
   | ({ outcome: "available"; byteSize: number | null } & ByteMetadata);
 
+export interface ByteRange { offset: number; length: number }
+export type ByteRangeReadResult = ByteReadFailure
+  | ({ outcome: "available"; body: ReadableStream; range: ByteRange; byteSize: number } & ByteMetadata);
+
 export interface ByteReader {
   read(key: string): Promise<ByteReadResult>;
   stat(key: string): Promise<ByteStatResult>;
+  /** Exact provider-declared range of the same opaque object. The consumer
+   * still verifies body EOF and cryptographic identity; no fallback is implied. */
+  readRange?(key: string, range: Readonly<ByteRange>): Promise<ByteRangeReadResult>;
 }
 
 export function observedByteSize(size: unknown): number | null {

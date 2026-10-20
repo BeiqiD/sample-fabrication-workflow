@@ -2,6 +2,7 @@ import { stableJson } from "../../../shared/domain/content-addressing";
 import type { JobSqlDatabase, JobSqlStatement } from "../../files/jobs/sql-repository";
 import type { PackageClaim, PackageFile, PackageAttempt, PackageJob, PackageKind, PackageRecord,
   PackageRepository, PackageStatus, PackageTargets } from "./types";
+import { packageRepositoryStatus, type PackageStatusProjection } from "./status-projection";
 
 const execution = `EXISTS(SELECT 1 FROM file_job_runtime_guard g JOIN file_authority_runtime_guard fg
  ON fg.singleton=g.singleton AND fg.enabled=1 JOIN file_authority_control fc ON fc.singleton=g.singleton AND fc.mode='active'
@@ -117,8 +118,46 @@ export class SqlPackageRepository implements PackageRepository {
       expiresAt:job.expires_at };
   }
   async list(actor: string) {
-    const rows = await this.database.primary().prepare("SELECT id FROM research_package_jobs WHERE actor=? ORDER BY accepted_at DESC,id DESC LIMIT 100").bind(actor).all<{ id: string }>();
-    return Promise.all(rows.results.map(async row => (await this.status(row.id,actor))!));
+    return (await this.listStatusProjections(actor)).map(packageRepositoryStatus);
+  }
+  async statusProjection(id: string, actor: string) {
+    return (await this.statusProjections(actor,id))[0] ?? null;
+  }
+  async listStatusProjections(actor: string) {
+    return this.statusProjections(actor);
+  }
+  private async statusProjections(actor: string, id?: string): Promise<PackageStatusProjection[]> {
+    // Selection, progress and output retention share one primary statement.
+    // CROSS JOIN keeps the bounded selection outside the child index seeks;
+    // an ordinary join can scan every historical file before filtering jobs.
+    const query = this.database.primary().prepare(`WITH selected_jobs AS (
+      SELECT id,request_id,kind,state,phase,accepted_at,updated_at,reason,package_id,result_json,expires_at
+      FROM research_package_jobs WHERE actor=?${id === undefined ? "" : " AND id=?"}
+      ORDER BY accepted_at DESC,id DESC LIMIT 100
+    ), progress AS (
+      SELECT f.job_id,
+        sum(CASE WHEN f.entry_kind<>'artifact' THEN 1 ELSE 0 END) files_total,
+        sum(CASE WHEN f.entry_kind<>'artifact' AND f.state IN('verified','published') THEN 1 ELSE 0 END) files_verified,
+        sum(CASE WHEN f.entry_kind<>'artifact' THEN f.byte_size ELSE 0 END) bytes_total,
+        sum(CASE WHEN f.entry_kind<>'artifact' AND f.state IN('verified','published') THEN f.byte_size ELSE 0 END) bytes_verified,
+        count(*) all_files_total,
+        sum(CASE WHEN f.state IN('verified','published') THEN 1 ELSE 0 END) all_files_verified,
+        sum(f.byte_size) all_bytes_total,
+        sum(CASE WHEN f.state IN('verified','published') THEN f.byte_size ELSE 0 END) all_bytes_verified
+      FROM selected_jobs j CROSS JOIN research_package_files f ON f.job_id=j.id GROUP BY f.job_id
+    ) SELECT j.*,
+      coalesce(p.files_total,0) files_total,coalesce(p.files_verified,0) files_verified,
+      coalesce(p.bytes_total,0) bytes_total,coalesce(p.bytes_verified,0) bytes_verified,
+      coalesce(p.all_files_total,0) all_files_total,coalesce(p.all_files_verified,0) all_files_verified,
+      coalesce(p.all_bytes_total,0) all_bytes_total,coalesce(p.all_bytes_verified,0) all_bytes_verified,
+      a.state output_state,a.byte_size output_byte_size,a.sha256 output_sha256,
+      EXISTS(SELECT 1 FROM file_usable_publications f JOIN file_holds h
+        ON h.file_id=f.file_id AND h.operation_id='fp4-output:'||j.id AND h.released_at IS NULL
+        WHERE f.file_id=a.result_file_id AND f.purpose='job_output') output_retained
+      FROM selected_jobs j LEFT JOIN progress p ON p.job_id=j.id
+      LEFT JOIN research_package_files a ON a.job_id=j.id AND a.entry_kind='artifact'
+      ORDER BY j.accepted_at DESC,j.id DESC`);
+    return (await query.bind(...(id === undefined ? [actor] : [actor,id])).all<PackageStatusProjection>()).results;
   }
   async claim(incarnation: string, owner: string, authorize: (actor: string) => boolean): Promise<PackageClaim | null> {
     const rows = await this.database.primary().prepare(`SELECT id,actor FROM research_package_jobs WHERE state='queued'

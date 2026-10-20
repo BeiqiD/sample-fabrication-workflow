@@ -170,3 +170,17 @@ No database reset or binding replacement is needed. The V17 operator boundary
 remains disabled until explicitly configured as documented in
 [Deployment](../docs/DEPLOYMENT.md). Positive adjudication requires real evidence,
 and File authority activation remains separate.
+
+## Worker scheduler preference (0025)
+
+`0025_scheduler_fair_turn.sql` adds an installation-local `next_queue` field to
+`file_job_runtime_guard`, defaulting to `package`. It changes no historical job,
+executor enablement, provider binding or trigger. Apply it only through the
+reviewed retained-data forward path; no reset is required. The dual-queue Worker
+scheduler requires this cursor, including after restoring an older inert target.
+
+Its exact source-schema extension is recorded separately from frozen V26/V28
+catalogs. Historical recovery target plans keep their reviewed DDL and seeds;
+applying this source migration afterward is explicit and leaves execution off.
+The [performance checkpoint](../docs/PERFORMANCE_READINESS_20261020.md) records
+current25 upgrade/backup scope and the separate natural-trigger release gate.

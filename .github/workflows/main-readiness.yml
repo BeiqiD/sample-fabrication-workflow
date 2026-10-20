@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - codex/main-readiness-request-recovery
+      - codex/performance-readiness-fixes
       - v2/backend-foundation
     paths:
       - .github/workflows/main-readiness.yml

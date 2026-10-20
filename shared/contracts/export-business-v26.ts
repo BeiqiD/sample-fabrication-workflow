@@ -14,6 +14,7 @@ import { buildSystemRecoveryBlobExportPlan, validateSystemRecoveryEvidenceHistor
 import { validateSystemRecoveryNativeRuntimeExportV26 } from "./export-file-system-recovery-runtime-v26";
 import { validateLocalProfileMetadataV26 } from "./export-local-profiles-v26";
 import { V26_BUSINESS_SCHEMA_FINGERPRINT_SHA256 } from "./portable-runtime-v26-recovery-catalog";
+import { WORKER_SCHEDULER_BUSINESS_SCHEMA_FINGERPRINT_SHA256 } from "./worker-scheduler-schema-extension";
 import { sqliteTableColumns } from "../domain/sqlite-table-columns";
 import { stableJson } from "../domain/content-addressing";
 
@@ -56,7 +57,9 @@ export async function validateFullExportBusinessV26(value: unknown): Promise<Ful
       && (!["table", "view"].includes(entry.type) || entry.name === entry.tableName) && !names.has(`${entry.type}:${entry.name}`), "schema object");
     names.add(`${entry.type}:${entry.name}`);
   }
-  ensure(await fileShadowSchemaFingerprint(schema.objects) === V26_BUSINESS_SCHEMA_FINGERPRINT_SHA256, "V26 business schema");
+  const fingerprint = await fileShadowSchemaFingerprint(schema.objects);
+  ensure(fingerprint === V26_BUSINESS_SCHEMA_FINGERPRINT_SHA256
+    || fingerprint === WORKER_SCHEDULER_BUSINESS_SCHEMA_FINGERPRINT_SHA256, "V26 business schema");
   for (const name of ["samples", "run_step_comments"] as const) {
     const entry = schema.objects.find((entry: ExportSchemaObject) => entry.type === "table" && entry.name === name);
     ensure(entry && typeof entry.sql === "string" && stableJson(sqliteTableColumns(entry.sql, name)) === stableJson(schema.compatibilityColumns[name]), "compatibility schema columns");
@@ -94,11 +97,12 @@ export async function validateFullExportBusinessV26(value: unknown): Promise<Ful
   const packages = validateResearchPackageHistory(manifest.tables), migrations = validateFileJobHistory(manifest.tables), recovery = validateSystemRecoveryEvidenceHistory(manifest.tables);
   const imported = researchImportedPreviewEvidence(manifest.tables), aliases = researchNativeR2AssetEvidence(manifest.tables);
   await validateSystemRecoveryNativeRuntimeExportV26(manifest.tables, schema.objects, manifest.artifacts.sourceRowids.value, {
-    schemaSha256: V26_BUSINESS_SCHEMA_FINGERPRINT_SHA256, publishedLocations: new Set([...migrations.publishedLocations, ...packages.publishedLocations, ...recovery.publishedLocations]),
+    schemaSha256: fingerprint, publishedLocations: new Set([...migrations.publishedLocations, ...packages.publishedLocations, ...recovery.publishedLocations]),
     historicalResultLocation: (fileId, source, destination) => migrations.historicalResultLocation(fileId, source, destination) || recovery.historicalResultLocation(fileId, source, destination),
     importedPreviewEvidence: (table, row, column) => imported(table, row, column) || recovery.importedPreviewEvidence(table, row, column),
     packageR2AssetEvidence: asset => aliases(asset) || recovery.packageR2AssetEvidence(asset), recoveredAliasEvidence: recovery.recoveredAliasEvidence,
-    historicalSchemaSha256s: [FILE_MIGRATION_SCHEMA_FINGERPRINT_SHA256, RESEARCH_PACKAGE_SCHEMA_FINGERPRINT_SHA256, SYSTEM_RECOVERY_EVIDENCE_SCHEMA_FINGERPRINT_SHA256],
+    historicalSchemaSha256s: [FILE_MIGRATION_SCHEMA_FINGERPRINT_SHA256, RESEARCH_PACKAGE_SCHEMA_FINGERPRINT_SHA256, SYSTEM_RECOVERY_EVIDENCE_SCHEMA_FINGERPRINT_SHA256,
+      ...(fingerprint === WORKER_SCHEDULER_BUSINESS_SCHEMA_FINGERPRINT_SHA256 ? [V26_BUSINESS_SCHEMA_FINGERPRINT_SHA256] : [])],
   }, schema.snapshotClock, localProfileIds);
   return manifest;
 }

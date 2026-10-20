@@ -353,6 +353,25 @@ describe("saved File migrations", () => {
     expect(mutations().map(([path]) => path)).toEqual([`${base}/job%3A1/cancel`, `${base}/job%3A1/cleanup`]);
   });
 
+  it("invalidates an older denied poll before waiting for the coalesced post-control read", async () => {
+    vi.useFakeTimers(); jobs = [job()]; const old = deferred<Response>(); let listReads = 0;
+    network.mockImplementation(async (path, options) => {
+      if (String(path) === base && options?.method === "GET" && ++listReads === 2) return old.promise;
+      if (String(path) === `${base}/job%3A1/cancel` && options?.method === "POST") {
+        jobs = [{ ...job("cancelled"), updatedAt: "2026-10-20T09:00:00Z" }]; return json(jobs[0]);
+      }
+      return fallback(path, options);
+    });
+    await act(async () => { render(<FileMigrationsPage />); for (let i = 0; i < 70; i++) await Promise.resolve(); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); }); expect(listReads).toBe(2);
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Cancel remaining files" })); for (let i = 0; i < 50; i++) await Promise.resolve(); });
+    expect(listReads).toBe(2); expect(mutations()).toHaveLength(1);
+    await act(async () => { old.resolve(json({ error: "PRIVATE_OLD_DENIAL" }, 403)); for (let i = 0; i < 80; i++) await Promise.resolve(); });
+    expect(document.body.textContent).not.toContain("System administrator access is required");
+    expect(document.body.textContent).not.toContain("PRIVATE_OLD_DENIAL");
+    expect(screen.getByText(/cancelled · 0 moved/)).toBeTruthy(); expect(listReads).toBe(3); expect(mutations()).toHaveLength(1);
+  });
+
   it("polls saved progress and heartbeat only, shows uncertain writes, and stops all reads on unmount", async () => {
     vi.useFakeTimers(); jobs = [{ ...job("paused"), reason: "write_settlement_required" }]; executor.stale = true;
     let mounted!: ReturnType<typeof render>;
