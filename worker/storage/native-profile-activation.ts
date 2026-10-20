@@ -3,10 +3,11 @@ import { awsS3NativeNamespace, canonicalNativeS3Namespace } from "../../shared/c
 import { checkedSaveStorageCandidateInput } from "../../shared/contracts/storage-configuration";
 import { primaryD1 } from "../d1-primary";
 import type { Env } from "../types";
-import { decryptStorageCredential, parseStorageCredentialKeyring } from "./credential-envelope";
+import { captureStorageCredentialRoot, resolveStorageCredentialRoot, storageCredentialRootUnchanged } from "./installation-secret-seed";
+import { decryptStorageCredential } from "./credential-envelope";
 import { assertSystemAdministrator } from "./system-administrator";
 
-type ActivationEnvironment = Pick<Env, "DB" | "AUTH_MODE" | "SYSTEM_ADMIN_EMAILS" | "STORAGE_CREDENTIAL_KEYRING">;
+type ActivationEnvironment = Pick<Env, "DB" | "AUTH_MODE" | "SYSTEM_ADMIN_EMAILS" | "STORAGE_CREDENTIAL_KEYRING" | "INSTALLATION_SECRET_SEED">;
 export class StoragePolicyError extends Error {
   constructor(readonly status: 400 | 404 | 409 | 503, message: string) { super(message); this.name = "StoragePolicyError"; }
 }
@@ -83,7 +84,7 @@ export async function activateNativeStorageProfile(env: ActivationEnvironment, r
   try {
     const previous = await stored(env.DB, input.operationId);
     if (previous) return match(previous, input);
-    const capturedKeyring = env.STORAGE_CREDENTIAL_KEYRING, db = primaryD1(env.DB);
+    const capturedRoot = captureStorageCredentialRoot(env), db = primaryD1(env.DB);
     const row = await db.prepare(SOURCE).bind(input.checkId, input.nativeProfileId, input.candidateProfileId).first<Source>();
     if (!row) throw new StoragePolicyError(404, "Registered storage profile or candidate check was not found.");
     if (row.latest_revision !== input.expectedCandidateRevision || row.revision !== input.expectedCandidateRevision
@@ -91,7 +92,7 @@ export async function activateNativeStorageProfile(env: ActivationEnvironment, r
       || !Number.isSafeInteger(row.activation_head) || Number(row.activation_head) < 0
       || input.expectedBindingRevision !== null && row.activation_head !== input.expectedBindingRevision
       || !["read_only", "read_write"].includes(String(row.runtime_state)) || row.runtime_retired !== null) throw storagePolicyConflict();
-    const ring = await parseStorageCredentialKeyring(capturedKeyring);
+    const ring = (await resolveStorageCredentialRoot(capturedRoot)).keyring;
     if (ring.currentKeyId !== row.key_id) throw storagePolicyConflict();
     const opened = await decryptStorageCredential(ring, { profileId: input.candidateProfileId, configurationRevision: input.expectedCandidateRevision,
       credentialRef: String(row.credential_ref), namespaceSha256: String(row.namespace_sha256) },
@@ -112,7 +113,7 @@ export async function activateNativeStorageProfile(env: ActivationEnvironment, r
       || row.status !== "succeeded" || row.write_outcome !== "acknowledged" || row.read_outcome !== "verified" || row.metadata_outcome !== "verified"
       || row.delete_outcome !== "acknowledged" || row.cleanup_outcome !== "confirmed_absent" || row.result_code !== null || !row.completed_at) throw storagePolicyConflict();
     assertSystemAdministrator(env, actor);
-    if (env.STORAGE_CREDENTIAL_KEYRING !== capturedKeyring) throw storagePolicyConflict();
+    if (!storageCredentialRootUnchanged(env, capturedRoot)) throw storagePolicyConflict();
     const now = new Date().toISOString(), revision = Number(row.activation_head) + 1;
     if (!Number.isSafeInteger(revision)) throw storagePolicyConflict();
     try {

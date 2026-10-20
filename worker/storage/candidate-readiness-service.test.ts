@@ -110,10 +110,14 @@ describe("read-only candidate readiness", () => {
 
   it("authenticates payload bytes and AAD instead of inferring availability from the key ID", async () => {
     const f = await fixture();
-    f.sql.exec("UPDATE system_storage_credential_payloads SET envelope_revision=2,ciphertext=substr(ciphertext,1,20)||'AAAA'||substr(ciphertext,25)");
-    expect((await f.read()).credential).toEqual({ envelopeRevision: 2, status: "unavailable" });
+    // Prepare both genuine envelopes before deliberately corrupting one. The
+    // read-only authentication test must not depend on new credential writes
+    // being admitted after protected installation history becomes unreadable.
     const other = await saveStorageCandidate(f.env, { ...input, namespace: { ...input.namespace, root: "other" } }, actor);
     const swapped = f.sql.prepare("SELECT * FROM system_storage_credential_payloads WHERE credential_ref=?").get(other.credentials.ref)!;
+    f.sql.prepare("UPDATE system_storage_credential_payloads SET envelope_revision=2,ciphertext=substr(ciphertext,1,20)||'AAAA'||substr(ciphertext,25) WHERE credential_ref=?")
+      .run(f.saved.credentials.ref);
+    expect((await f.read()).credential).toEqual({ envelopeRevision: 2, status: "unavailable" });
     f.sql.prepare("UPDATE system_storage_credential_payloads SET envelope_revision=3,nonce=?,ciphertext=? WHERE credential_ref=?")
       .run(swapped.nonce, swapped.ciphertext, f.saved.credentials.ref);
     expect((await f.read()).credential).toEqual({ envelopeRevision: 3, status: "unavailable" });

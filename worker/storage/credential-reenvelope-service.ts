@@ -7,13 +7,14 @@ import {
   type StorageCredentialEnvelopeMetadata, type StorageCredentialReenvelopeReceipt,
 } from "../../shared/contracts/storage-credential-reenvelope";
 import type { Env } from "../types";
+import { captureStorageCredentialRoot, resolveStorageCredentialRoot, storageCredentialRootUnchanged, type StorageCredentialRootEnvironment } from "./installation-secret-seed";
 import {
-  decryptStorageCredential, parseStorageCredentialKeyring, reenvelopeStorageCredential,
+  decryptStorageCredential, reenvelopeStorageCredential,
   type StorageCredentialEnvelope, type StorageCredentialIdentity, type StorageCredentialKeyring,
 } from "./credential-envelope";
 import { assertSystemAdministrator } from "./system-administrator";
 
-type ReenvelopeEnvironment = Pick<Env, "DB" | "AUTH_MODE" | "SYSTEM_ADMIN_EMAILS" | "STORAGE_CREDENTIAL_KEYRING">;
+type ReenvelopeEnvironment = Pick<Env, "DB" | "AUTH_MODE" | "SYSTEM_ADMIN_EMAILS" | "STORAGE_CREDENTIAL_KEYRING" | "INSTALLATION_SECRET_SEED">;
 export class StorageCredentialReenvelopeError extends Error {
   constructor(readonly status: 400 | 404 | 409 | 503, message: string) {
     super(message); this.name = "StorageCredentialReenvelopeError";
@@ -66,8 +67,8 @@ function envelope(row: EnvelopeRow): StorageCredentialEnvelope | null {
   return row.envelope_version === 1 && row.key_id && row.nonce && row.ciphertext
     ? { version: 1, keyId: row.key_id, nonce: row.nonce, ciphertext: row.ciphertext } : null;
 }
-async function keyring(env: ReenvelopeEnvironment): Promise<StorageCredentialKeyring | null> {
-  try { return await parseStorageCredentialKeyring(env.STORAGE_CREDENTIAL_KEYRING); } catch { return null; }
+async function keyring(root: StorageCredentialRootEnvironment): Promise<StorageCredentialKeyring | null> {
+  try { return (await resolveStorageCredentialRoot(root)).keyring; } catch { return null; }
 }
 function receipt(row: ReceiptRow): StorageCredentialReenvelopeReceipt {
   return checkedStorageCredentialReenvelopeReceipt({ operationId: row.operation_id, profileId: row.profile_id,
@@ -94,7 +95,7 @@ export async function listStorageCredentialEnvelopes(env: ReenvelopeEnvironment,
   try { profileId = checkedStorageCredentialEnvelopeProfileId(rawProfileId); }
   catch { throw new StorageCredentialReenvelopeError(400, "Invalid storage credential re-envelope."); }
   try {
-    const keys = await keyring(env);
+    const capturedRoot = captureStorageCredentialRoot(env), keys = await keyring(capturedRoot);
     const result = await env.DB.prepare(`${ENVELOPE_SELECT} WHERE d.profile_id=?
       ORDER BY d.configuration_revision DESC,d.credential_ref LIMIT ?`).bind(profileId, MAX_STORAGE_CREDENTIAL_ENVELOPES + 1).all<EnvelopeRow>();
     const items = await Promise.all(result.results.slice(0, MAX_STORAGE_CREDENTIAL_ENVELOPES).map(async row => {
@@ -104,6 +105,7 @@ export async function listStorageCredentialEnvelopes(env: ReenvelopeEnvironment,
         envelopeRevision: row.envelope_revision, isCurrentCandidate: row.is_current_candidate === 1,
         status } satisfies StorageCredentialEnvelopeMetadata;
     }));
+    if (!storageCredentialRootUnchanged(env, capturedRoot)) throw unavailable();
     return checkedStorageCredentialEnvelopeList({ items, hasMore: result.results.length > MAX_STORAGE_CREDENTIAL_ENVELOPES });
   } catch { throw unavailable(); }
 }
@@ -138,12 +140,13 @@ export async function reenvelopeStoredStorageCredential(env: ReenvelopeEnvironme
     // keyring is read, including after a response was lost or a later rotation.
     const previous = await storedReceipt(env, input.operationId);
     if (previous) return matchingReceipt(previous, input);
+    const capturedRoot = captureStorageCredentialRoot(env);
     const row = await env.DB.prepare(`${ENVELOPE_SELECT} WHERE d.credential_ref=? AND d.profile_id=?
       AND d.configuration_revision=?`).bind(input.credentialRef, input.profileId, input.revision).first<EnvelopeRow>();
     if (!row) throw conflict();
     if (row.envelope_revision === null) throw encryptionUnavailable();
     if (row.envelope_revision !== input.expectedEnvelopeRevision) throw conflict();
-    const stored = envelope(row), keys = await keyring(env);
+    const stored = envelope(row), keys = await keyring(capturedRoot);
     if (!stored || !keys) throw encryptionUnavailable();
     let replacement = stored, outcome: StorageCredentialReenvelopeReceipt["outcome"] = "already_current";
     if (stored.keyId === keys.currentKeyId) {
@@ -174,6 +177,8 @@ export async function reenvelopeStoredStorageCredential(env: ReenvelopeEnvironme
       .bind(input.operationId, input.profileId, input.revision, input.credentialRef, input.expectedEnvelopeRevision,
         input.credentialRef, envelopeRevision, replacement.version, replacement.keyId, replacement.nonce, replacement.ciphertext,
         outcome, stored.keyId, replacement.keyId, createdAt, actor));
+    assertSystemAdministrator(env, actor);
+    if (!storageCredentialRootUnchanged(env, capturedRoot)) throw conflict();
     try { await env.DB.batch(statements); }
     catch (error) {
       // Two requests for one ID can prepare distinct fresh nonces. Only one

@@ -3,10 +3,11 @@ import { awsS3NativeNamespace, canonicalNativeS3Namespace, checkedStorageProfile
 import { primaryD1 } from "../d1-primary";
 import type { ByteReader } from "../files/byte-reader";
 import type { Env } from "../types";
-import { decryptStorageCredential, parseStorageCredentialKeyring } from "./credential-envelope";
+import { captureStorageCredentialRoot, resolveStorageCredentialRoot, storageCredentialRootUnchanged } from "./installation-secret-seed";
+import { decryptStorageCredential } from "./credential-envelope";
 import { s3ByteAdapter, S3StorageUnavailableError, type S3ByteAdapterOptions } from "./s3-byte-adapter";
 
-type ReaderEnvironment = Pick<Env, "DB" | "STORAGE_CREDENTIAL_KEYRING">;
+type ReaderEnvironment = Pick<Env, "DB" | "STORAGE_CREDENTIAL_KEYRING" | "INSTALLATION_SECRET_SEED">;
 export interface NativeS3ReaderProfile { profileId: string; configurationRevision: number }
 
 // The admission fixes the candidate revision. Its mutable head is deliberately
@@ -58,7 +59,7 @@ async function transport(env: ReaderEnvironment, profile: NativeS3ReaderProfile,
     || !Number.isSafeInteger(source.envelope_revision) || (source.envelope_revision as number) < receipt.envelopeRevision
     || source.descriptor_namespace_sha256 !== source.candidate_namespace_sha256) return unavailable();
 
-  const keyringJson = env.STORAGE_CREDENTIAL_KEYRING, keyring = await parseStorageCredentialKeyring(keyringJson);
+  const capturedRoot = captureStorageCredentialRoot(env), { keyring } = await resolveStorageCredentialRoot(capturedRoot);
   const opened = await decryptStorageCredential(keyring, { profileId: receipt.profileId, configurationRevision: receipt.revision,
     credentialRef: source.credential_ref as string, namespaceSha256: source.candidate_namespace_sha256 as string },
   { version: source.envelope_version, keyId: source.key_id, nonce: source.nonce, ciphertext: source.ciphertext });
@@ -78,7 +79,7 @@ async function transport(env: ReaderEnvironment, profile: NativeS3ReaderProfile,
   return s3ByteAdapter(namespace, checked.credentials.value, { ...options, fetch: async request => {
     const bound = await primaryD1(env.DB).prepare(`SELECT 1 AS bound ${FROM} AND ${GUARD}`)
       .bind(profile.profileId, profile.configurationRevision, ...Object.keys(COLUMNS).map(key => source[key as keyof Source])).first();
-    if (!bound || env.STORAGE_CREDENTIAL_KEYRING !== keyringJson) return unavailable();
+    if (!bound || !storageCredentialRootUnchanged(env, capturedRoot)) return unavailable();
     return (options.fetch ?? fetch)(request);
   } }).reader;
 }

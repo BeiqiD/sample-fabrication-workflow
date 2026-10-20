@@ -4,10 +4,11 @@ import {
 } from "../../shared/contracts/storage-candidate-readiness";
 import { primaryD1 } from "../d1-primary";
 import type { Env } from "../types";
-import { decryptStorageCredential, parseStorageCredentialKeyring } from "./credential-envelope";
+import { captureStorageCredentialRoot, resolveStorageCredentialRoot, storageCredentialRootUnchanged, type StorageCredentialRootEnvironment } from "./installation-secret-seed";
+import { decryptStorageCredential } from "./credential-envelope";
 import { assertSystemAdministrator } from "./system-administrator";
 
-type ReadinessEnvironment = Pick<Env, "DB" | "AUTH_MODE" | "SYSTEM_ADMIN_EMAILS" | "STORAGE_CREDENTIAL_KEYRING">;
+type ReadinessEnvironment = Pick<Env, "DB" | "AUTH_MODE" | "SYSTEM_ADMIN_EMAILS" | "STORAGE_CREDENTIAL_KEYRING" | "INSTALLATION_SECRET_SEED">;
 export class StorageCandidateReadinessError extends Error {
   constructor(readonly status: 400 | 404 | 409 | 503, message: string) {
     super(message); this.name = "StorageCandidateReadinessError";
@@ -48,9 +49,9 @@ interface EvidenceRow {
   current_count: number; historical_count: number; in_progress_count: number; cleanup_count: number;
   exact_check_id: string | null; exact_completed_at: string | null;
 }
-async function credentialStatus(env: ReadinessEnvironment, source: SourceRow): Promise<StorageCandidateReadiness["credential"]["status"]> {
+async function credentialStatus(root: StorageCredentialRootEnvironment, source: SourceRow): Promise<StorageCandidateReadiness["credential"]["status"]> {
   try {
-    const ring = await parseStorageCredentialKeyring(env.STORAGE_CREDENTIAL_KEYRING);
+    const ring = (await resolveStorageCredentialRoot(root)).keyring;
     const opened = await decryptStorageCredential(ring, { profileId: source.profile_id, configurationRevision: source.revision!,
       credentialRef: source.credential_ref!, namespaceSha256: source.namespace_sha256 },
     { version: source.envelope_version, keyId: source.key_id, nonce: source.nonce, ciphertext: source.ciphertext });
@@ -68,6 +69,7 @@ export async function readStorageCandidateReadiness(env: ReadinessEnvironment, r
   try { input = checkedStorageCandidateReadinessInput(rawInput); }
   catch { throw new StorageCandidateReadinessError(400, "Invalid storage candidate readiness."); }
   try {
+    const capturedRoot = captureStorageCredentialRoot(env);
     const source = await primaryD1(env.DB).prepare(SOURCE_SELECT).bind(input.profileId).first<SourceRow>();
     if (!source) throw new StorageCandidateReadinessError(404, "Storage candidate was not found.");
     if (source.latest_revision !== input.expectedRevision) throw conflict();
@@ -78,7 +80,7 @@ export async function readStorageCandidateReadiness(env: ReadinessEnvironment, r
     const configurationBytes = new TextEncoder().encode(JSON.stringify(JSON.parse(source.namespace_json)));
     const configurationSha256 = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", configurationBytes)),
       value => value.toString(16).padStart(2, "0")).join("");
-    const status = await credentialStatus(env, source);
+    const status = await credentialStatus(capturedRoot, source);
     const guard = Object.values(SOURCE_COLUMNS).map(column => `${column} IS ?`).join(" AND ");
     // A session only pins its first query to primary. Open a new primary
     // session for this final snapshot instead of relying on session reuse.
@@ -106,7 +108,7 @@ export async function readStorageCandidateReadiness(env: ReadinessEnvironment, r
         FROM source CROSS JOIN counts LEFT JOIN latest_exact ON 1=1`)
       .bind(input.profileId, ...Object.keys(SOURCE_COLUMNS).map(key => source[key as keyof SourceRow]), configurationSha256)
       .first<EvidenceRow>();
-    if (!result) throw conflict();
+    if (!result || !storageCredentialRootUnchanged(env, capturedRoot)) throw conflict();
     return checkedStorageCandidateReadiness({ profileId: input.profileId, revision: input.expectedRevision,
       observedAt: new Date().toISOString(), credential: { envelopeRevision: source.envelope_revision, status },
       evidence: { currentConfigurationSuccessCount: result.current_count, historicalConfigurationSuccessCount: result.historical_count,

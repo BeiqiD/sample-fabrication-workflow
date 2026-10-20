@@ -5,6 +5,7 @@ import { assertR2BootstrapProfile, ensureR2BootstrapProfile, type R2BootstrapPro
 import { openShadowProfile } from "../files/shadow-profile";
 import { resolveR2ProfileBinding } from "../files/r2-profile-bindings";
 import type { Env } from "../types";
+import { captureStorageCredentialRoot, storageCredentialRootUnchanged } from "./installation-secret-seed";
 import { StoragePolicyError, storagePolicyConflict, storagePolicyUnavailable } from "./native-profile-activation";
 import { assertSystemAdministrator } from "./system-administrator";
 
@@ -123,7 +124,7 @@ export async function setStorageRoleDefaults(env: Env, raw: unknown, actor: stri
   let input: StorageRolePolicyInput;
   try { input = checkedStorageRolePolicyInput(raw); } catch { throw new StoragePolicyError(400, "Invalid storage role policy."); }
   try {
-    const capturedKeyring = env.STORAGE_CREDENTIAL_KEYRING;
+    const capturedRoot = captureStorageCredentialRoot(env);
     const prior = await receipt(env.DB, input.operationId);
     if (prior) return match(prior, input);
     const db = primaryD1(env.DB), stored = await readStorageRoleDefaults(db);
@@ -132,7 +133,7 @@ export async function setStorageRoleDefaults(env: Env, raw: unknown, actor: stri
     const revision = Math.max(3, (input.expectedPolicyRevision ?? 2) + 1), now = new Date().toISOString();
     if (!Number.isSafeInteger(revision)) throw storagePolicyConflict();
     assertSystemAdministrator(env, actor);
-    if (env.STORAGE_CREDENTIAL_KEYRING !== capturedKeyring) throw storagePolicyConflict();
+    if (!storageCredentialRootUnchanged(env, capturedRoot)) throw storagePolicyConflict();
     try { await db.batch(prepareRolePolicyStatements(db, stored, profiles, revision, input.operationId, actor, now)); }
     catch { const committed = await receipt(env.DB, input.operationId); if (committed) return match(committed, input); throw storagePolicyConflict(); }
     const committed = await receipt(env.DB, input.operationId);

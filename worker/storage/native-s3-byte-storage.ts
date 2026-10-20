@@ -2,11 +2,12 @@ import { checkedSaveStorageCandidateInput } from "../../shared/contracts/storage
 import { awsS3NativeNamespace, canonicalNativeS3Namespace } from "../../shared/contracts/storage-profile-admission";
 import { primaryD1 } from "../d1-primary";
 import type { Env } from "../types";
+import { captureStorageCredentialRoot, resolveStorageCredentialRoot, storageCredentialRootUnchanged } from "./installation-secret-seed";
 import { ByteVerificationError } from "../files/byte-verification";
-import { decryptStorageCredential, parseStorageCredentialKeyring } from "./credential-envelope";
+import { decryptStorageCredential } from "./credential-envelope";
 import { s3ByteAdapter, S3StorageUnavailableError, type S3ByteAdapter, type S3ByteAdapterOptions } from "./s3-byte-adapter";
 
-type NativeEnvironment = Pick<Env, "DB" | "STORAGE_CREDENTIAL_KEYRING">;
+type NativeEnvironment = Pick<Env, "DB" | "STORAGE_CREDENTIAL_KEYRING" | "INSTALLATION_SECRET_SEED">;
 export interface NativeStorageProfile { profileId: string; configurationRevision: number }
 
 // Resolve the explicit current installation binding, never the candidate's
@@ -78,8 +79,8 @@ async function transport(env: NativeEnvironment, profile: NativeStorageProfile, 
     || !Number.isSafeInteger(source.envelope_revision) || (source.envelope_revision as number) < (source.binding_envelope_revision as number)
     || source.descriptor_namespace_sha256 !== source.candidate_namespace_sha256) return unavailable();
 
-  const keyringJson = env.STORAGE_CREDENTIAL_KEYRING;
-  const opened = await decryptStorageCredential(await parseStorageCredentialKeyring(keyringJson), {
+  const capturedRoot = captureStorageCredentialRoot(env);
+  const opened = await decryptStorageCredential((await resolveStorageCredentialRoot(capturedRoot)).keyring, {
     profileId: source.candidate_profile_id as string, configurationRevision: source.candidate_revision as number,
     credentialRef: source.credential_ref as string, namespaceSha256: source.candidate_namespace_sha256 as string,
   }, { version: source.envelope_version, keyId: source.key_id, nonce: source.nonce, ciphertext: source.ciphertext });
@@ -99,7 +100,7 @@ async function transport(env: NativeEnvironment, profile: NativeStorageProfile, 
     if (options.beforeRequest && await options.beforeRequest(operation) !== true) return false;
     const bound = await primaryD1(database).prepare(`SELECT 1 AS bound ${FROM} AND ${GUARD}`)
       .bind(profile.profileId, profile.configurationRevision, ...Object.keys(COLUMNS).map(key => source[key as keyof Source])).first();
-    return Boolean(bound) && env.DB === database && env.STORAGE_CREDENTIAL_KEYRING === keyringJson;
+    return Boolean(bound) && env.DB === database && storageCredentialRootUnchanged(env, capturedRoot);
   } });
 }
 

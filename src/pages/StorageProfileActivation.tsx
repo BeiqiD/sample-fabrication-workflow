@@ -14,15 +14,17 @@ function remembered(storage: CheckpointStorage, id: string): NativeStorageActiva
     return value?.candidateProfileId === id ? value : null;
   } catch { return null; }
 }
-export function StorageProfileActivation({ candidate, nativeProfileId, evidence, blocked, onForbidden, onStaleEvidence }: {
+export function StorageProfileActivation({ candidate, nativeProfileId, evidence, blocked, onForbidden, onStaleEvidence, onActivationChange }: {
   candidate: StorageCandidate; nativeProfileId: string; evidence: StorageCandidateReadiness | null; blocked: boolean;
   onForbidden: () => void; onStaleEvidence: () => void;
+  onActivationChange?: (value: { profileId: string; revision: number; nativeProfileId: string; confirmed: boolean }) => void;
 }) {
   const [owner] = useState(captureApplicationOwner);
   const [storage] = useState(() => checkpointStorage(owner));
   const [status, setStatus] = useState<CurrentStorageSettingsStatus | null>(null), [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(() => remembered(storage, candidate.profileId)), [busy, setBusy] = useState(false), [message, setMessage] = useState("");
   const [forbidden, setForbidden] = useState(false), [readError, setReadError] = useState("");
+  const [confirmedReceipt, setConfirmedReceipt] = useState<NativeStorageActivationReceipt | null>(null);
   const generation = useRef(0), operationBusy = useRef(false), pendingRef = useRef(pending), requests = useRef(new Set<AbortController>());
   const loadGeneration = useRef(0);
   const profile = status?.profiles.items.find(item => item.id === nativeProfileId);
@@ -31,6 +33,16 @@ export function StorageProfileActivation({ candidate, nativeProfileId, evidence,
     && evidence?.profileId === candidate.profileId && evidence.revision === candidate.revision && evidence.credential.status === "current"
     && evidence.credential.envelopeRevision !== null && evidence.evidence.exactCurrentContextSuccess
     && !evidence.evidence.inProgressCount && !evidence.evidence.unresolvedCleanupCount;
+  // Current settings alone do not identify which candidate revision was bound.
+  // A different candidate's existing activation cannot finish this wizard.
+  const confirmed = !!(eligible && !loading && !busy && !pending && !readError && confirmedReceipt
+    && confirmedReceipt.candidateProfileId === candidate.profileId && confirmedReceipt.candidateRevision === candidate.revision
+    && confirmedReceipt.nativeProfileId === nativeProfileId && confirmedReceipt.envelopeRevision === evidence?.credential.envelopeRevision
+    && confirmedReceipt.checkId === evidence?.evidence.exactCurrentContextSuccess?.checkId
+    && profile?.availability === "available" && profile.bindingRevision === confirmedReceipt.bindingRevision);
+  useEffect(() => {
+    if (owner.isCurrent()) onActivationChange?.({ profileId: candidate.profileId, revision: candidate.revision, nativeProfileId, confirmed });
+  }, [candidate.profileId, candidate.revision, nativeProfileId, confirmed, onActivationChange]);
   async function request<T>(operation: (signal: AbortSignal) => Promise<T>) {
     owner.assertCurrent();
     const controller = new AbortController(); requests.current.add(controller);
@@ -58,7 +70,8 @@ export function StorageProfileActivation({ candidate, nativeProfileId, evidence,
     if (value.operationId !== input.operationId || value.nativeProfileId !== input.nativeProfileId || value.candidateProfileId !== input.candidateProfileId
       || value.candidateRevision !== input.expectedCandidateRevision || value.envelopeRevision !== input.expectedEnvelopeRevision || value.checkId !== input.checkId
       || input.expectedBindingRevision !== null && value.bindingRevision !== input.expectedBindingRevision + 1) throw new Error("Invalid storage activation receipt.");
-    remember(null, input.candidateProfileId); setMessage("Profile activation confirmed. Select this profile in current storage settings to use it for new uploads.");
+    remember(null, input.candidateProfileId); setConfirmedReceipt(value);
+    setMessage("Profile activation confirmed. Select this profile in current storage settings to use it for new uploads.");
   }
   async function submit(input: NativeStorageActivationInput, current: number, initial = false) {
     try { const value = await request(signal => api.activateStorageProfile(input, signal)); if (owner.isCurrent() && current === generation.current) { accept(value, input); await load(current); } }

@@ -3,27 +3,43 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { StorageCandidate } from "../../shared/contracts/storage-configuration";
 import type { StorageCandidateReadiness as Readiness } from "../../shared/contracts/storage-candidate-readiness";
 import { storageConfigurationClient, StorageConfigurationRequestError } from "../lib/storage-configuration-client";
-import { hasRememberedProfileRegistration, StorageProfileRegistration } from "./StorageProfileRegistration";
+import { hasRememberedProfileRegistration, qualifiesStorageCandidateEvidence, StorageProfileRegistration, type StorageProfileSetupProgress } from "./StorageProfileRegistration";
 
 const credentialNames: Record<Readiness["credential"]["status"], string> = {
   current: "Credentials readable; current encryption",
   needs_reenvelope: "Credentials readable; encryption update available",
   unavailable: "Credentials unavailable",
 };
+export interface StorageCandidateSetupProgress {
+  profileId: string; revision: number; stage: 3 | 4 | 5 | 6;
+  evidence: "unobserved" | "pending" | "unavailable" | "current";
+}
 
 /** Evidence is a dated observation, never activation permission or a new provider test.
  * Every operation invalidation drops the observation; only opening or refreshing reads again. */
-export function StorageCandidateReadiness({ candidate, evidenceGeneration, blocked, onForbidden }: {
+export function StorageCandidateReadiness({ candidate, evidenceGeneration, blocked, onForbidden, onProgress }: {
   candidate: StorageCandidate; evidenceGeneration: number; blocked: boolean; onForbidden: () => void;
+  onProgress?: (value: StorageCandidateSetupProgress) => void;
 }) {
   const [owner] = useState(captureApplicationOwner);
   const [expanded, setExpanded] = useState(() => hasRememberedProfileRegistration(candidate.profileId)), [loading, setLoading] = useState(false), [message, setMessage] = useState("");
   const [observation, setObservation] = useState<{ key: string; value: Readiness } | null>(null);
+  const [registrationProgress, setRegistrationProgress] = useState<{ key: string; value: StorageProfileSetupProgress } | null>(null);
   const sequence = useRef(0), request = useRef<AbortController | null>(null);
   const previous = useRef({ expanded: false, profileId: candidate.profileId, revision: candidate.revision });
   const forbidden = useRef(onForbidden); forbidden.current = onForbidden;
   const panelId = useId(), key = `${candidate.profileId}:${candidate.revision}:${evidenceGeneration}`;
   const result = !blocked && observation?.key === key ? observation.value : null;
+  const registrationKey = `${key}:${result?.credential.envelopeRevision ?? "none"}:${result?.evidence.exactCurrentContextSuccess?.checkId ?? "none"}`;
+  const evidenceCurrent = qualifiesStorageCandidateEvidence(candidate, result);
+  const registered = registrationProgress?.key === registrationKey && registrationProgress.value.profileId === candidate.profileId
+    && registrationProgress.value.revision === candidate.revision ? registrationProgress.value : null;
+  const stage: StorageCandidateSetupProgress["stage"] = !evidenceCurrent ? 3 : !registered?.registered ? 4 : registered.activated ? 6 : 5;
+  const progressEvidence: StorageCandidateSetupProgress["evidence"] = blocked || loading ? "pending" : evidenceCurrent ? "current"
+    : result || message ? "unavailable" : "unobserved";
+  useEffect(() => {
+    if (owner.isCurrent()) onProgress?.({ profileId: candidate.profileId, revision: candidate.revision, stage, evidence: progressEvidence });
+  }, [candidate.profileId, candidate.revision, stage, progressEvidence, onProgress]);
   async function refresh() {
     if (!owner.isCurrent() || blocked) return;
     const current = ++sequence.current;
@@ -78,6 +94,9 @@ export function StorageCandidateReadiness({ candidate, evidenceGeneration, block
       </>}
       <StorageProfileRegistration candidate={candidate} evidence={result} blocked={blocked} onForbidden={onForbidden}
         enableActivation
+        onProgress={onProgress ? value => setRegistrationProgress(current => current?.key === registrationKey && current.value.profileId === value.profileId
+          && current.value.revision === value.revision && current.value.registered === value.registered && current.value.activated === value.activated
+          ? current : { key: registrationKey, value }) : undefined}
         onStaleEvidence={() => { sequence.current += 1; request.current?.abort(); setObservation(null); setLoading(false); }} />
       <p className="muted">Register a tested profile, activate it, then choose it in current storage settings for new uploads.</p>
     </section>}
