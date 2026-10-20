@@ -90,11 +90,17 @@ async function lostImport(page, owner, value) {
 }
 async function readonlyNavigation(page, owner, value, job, copied) {
   const before = value.edge.requests.filter(row => row.method !== 'GET').length, graph = await owner.graphFingerprint();
-  await keyboard(page, article(page, job.id).getByRole('link', { name: 'Open imported sample', exact: true }));
+  await Promise.all([
+    page.waitForURL(url => url.pathname === `/samples/${copied.freshSampleId}`),
+    keyboard(page, article(page, job.id).getByRole('link', { name: 'Open imported sample', exact: true })),
+  ]);
   assert.equal(new URL(page.url()).pathname, `/samples/${copied.freshSampleId}`);
   await page.getByRole('heading', { name: value.sourceFixture.sampleTitle, exact: true, level: 1 }).waitFor();
   await page.goto(`${owner.browserOrigin}/settings/data`); await article(page, job.id).getByText('Research copy published.', { exact: true }).waitFor();
-  await keyboard(page, article(page, job.id).getByRole('link', { name: 'Open imported project', exact: true }));
+  await Promise.all([
+    page.waitForURL(url => url.pathname === `/projects/${copied.freshProjectId}`),
+    keyboard(page, article(page, job.id).getByRole('link', { name: 'Open imported project', exact: true })),
+  ]);
   assert.equal(new URL(page.url()).pathname, `/projects/${copied.freshProjectId}`);
   await page.locator('header[aria-label="Project workspace controls"]').getByRole('heading', { level: 1 }).waitFor();
   if (value.width >= 1000) await keyboard(page, page.getByRole('group', { name: 'Project view', exact: true }).getByRole('button', { name: 'Reading', exact: true }));
