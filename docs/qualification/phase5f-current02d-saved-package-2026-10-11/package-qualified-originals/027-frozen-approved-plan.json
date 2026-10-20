@@ -1,0 +1,335 @@
+{
+  "version": 1,
+  "installedDependencies": {
+    "root": "/workspace/sample-fabrication-workflow/node_modules",
+    "package": "5c8a504d14b7208edb3d77b8c5049c713d55e4e7821d8e43b7b54e6dbeebe8fc",
+    "dependencyParentPackage": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+    "lock": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a",
+    "hiddenLock": "95202718d08fd50cc286bcddf0af66b08503d63b494e992006c50d4246d69a98"
+  },
+  "budgets": {
+    "nativeOperationBodyAndReadinessMs": 20000,
+    "originalTTYSupervisionMs": 120000,
+    "supervisionProgressEveryMs": 20000,
+    "bodyMaximumExclusiveBytes": 131072,
+    "overflowPx": 2
+  },
+  "status": "SOURCE_ONLY_ORIGINAL_TEN_NEW_NAMESPACE_PREPARED_UNRUN_PENDING_SOURCE_PEER_AND_EXCLUSIVE_GO",
+  "domain": "package",
+  "sourceRoot": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+  "sourceHead": "02d6dfbe5f2bd98847b3d6f509c219de5ad816ad",
+  "sourceTree": "40f4a540901e7c49d28184bb8b27a1f808b4f6b8",
+  "trackedFileCount": 2726,
+  "qaConsumerRoot": "/workspace/phase5f-coherent-saved-package-native-qa-source-attempt1",
+  "qaConsumerHead": "a7876c3c1c145c60978c9a302d198bbe4efff7c3",
+  "qaConsumerTree": "7906a67754a94c69874bb0d2e347c888d3179c28",
+  "qaConsumerTrackedCount": 2729,
+  "runtimeRoot": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime",
+  "roots": {
+    "copy": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/copy",
+    "fixture": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/fixture",
+    "runtime": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime",
+    "parent": "/workspace/coherent-package-sample-shadow-native02-private-attempt2",
+    "shortChromiumChildTemp": "/workspace/.sfpk2"
+  },
+  "ownedExtraQaLeaves": {
+    "scripts/qa/phase5f/browser-current-coherent-local-r2-file-saved-job-keyboard.mjs": "603bc4cb0eaaef1243fd3ac08ce2e00fa9517faebacc0ad34b98a732d962c525",
+    "scripts/qa/phase5f/browser-current-coherent-package-saved-job-keyboard.mjs": "8cc5643a8ac995ee5f859024524ce8e7a34e50c406eb110787abfcb0dc00dfc9",
+    "scripts/qa/phase5f/check-current-coherent-saved-job-physical-state.py": "f62ce9ff0ac39ce306df8fa409d14948971c0aad2ae4a03a5b1e6d4176610ee0"
+  },
+  "copiedOrdinaryPrepareHelperSha256": "fba64e958ba1042a7ea406ef9d502ce12829c194c4ec3ea65ee447b3f3105292",
+  "nativeHelperPath": "/workspace/phase5f-coherent-saved-package-native-qa-source-attempt1/scripts/qa/phase5f/browser-current-coherent-package-saved-job-keyboard.mjs",
+  "nativeStage": "original-one-current-package-saved-job-keyboard",
+  "nativePermit": "--exclusive-go-one-current-coherent-package-saved-job-keyboard",
+  "cases": [
+    "current-coherent-package-saved-job-keyboard-1280-light"
+  ],
+  "expectedCosts": {
+    "domain": "package",
+    "id": "current-coherent-package-saved-job-keyboard-1280-light",
+    "viewport": [
+      1280,
+      1000
+    ],
+    "theme": "light",
+    "setupPOSTs": 7,
+    "setupIncludes": "Six original genuine dualR2 then one ordinary research Sample201+created event; reader owns researchjob, admin onlysetup.",
+    "maxNativePOSTs": 5,
+    "totalPOSTs": 12,
+    "mutationSequence": [
+      "Preview200",
+      "accept202",
+      "Pause200",
+      "Resume200",
+      "Cancel200"
+    ],
+    "expectedFinalSqlState": "cancel_requested",
+    "expectedRawGeneration": 3,
+    "expectedNativeChangedTables": [
+      "system_recovery_write_leases",
+      "research_package_jobs",
+      "research_package_requests",
+      "research_package_records"
+    ],
+    "capturedRecords": [
+      "genuineSample",
+      "genuineCreatedEvent"
+    ],
+    "capturedFiles": 0,
+    "oldSixSetupPermitsExact": true,
+    "oneUniqueReleasedSampleAndFiveNativeHTTPPermits": true,
+    "namespace": "FUTURE_FRESH_INDEPENDENT_PACKAGE_NO_SHARED_FILE_SETUP_OR_ACCEPTED_HISTORY",
+    "shortChildTemp": "/workspace/.sfpk2"
+  },
+  "actualFreshCurrentBuild": {
+    "path": "/workspace/phase5f-saved-file-package-coherent-one-cf-build-runtime-attempt1/actual-one-current02d-cf-build-qualified-closed-release.json",
+    "sha256": "ce43c814467daaf3889f9f8b1696e00d73d8214072c17ca973f7bbf8324dcdd3"
+  },
+  "actualBuildManifest": {
+    "path": "/workspace/phase5f-saved-file-package-coherent-one-cf-build-runtime-attempt1/fresh-build-artifact-manifest.json",
+    "sha256": "589f7e3463f10a066cf274257ff4234ba74ad24dc4664bedfb671c6f44063b22",
+    "actualFiles": 118
+  },
+  "currentAppAndPackage34Formal": {
+    "path": "/workspace/phase5f-saved-package-typed-role-name-first-two-runtime-attempt2/actual-current02d-app-strict-and-whole-package34-qualified-closed-release.json",
+    "sha256": "9100d8754ab1601919a2ad5b485ba9b4c9a98cf0df600810b11f4c5de9de1726"
+  },
+  "nativeSourceHandoff": {
+    "path": "/workspace/phase5f-package-sample-shadow-trigger-fresh-temp-source-preparation-attempt3/source-handoff.json",
+    "sha256": "8203fc0c48c451549149264054e8d1847dd7c6884468ebc2e05dbd5c0514f12b"
+  },
+  "nativeSourceFreeze": {
+    "path": "/workspace/phase5f-package-sample-shadow-trigger-fresh-temp-source-preparation-attempt3/complete-qa-source-freeze.json",
+    "sha256": "c0e0d55fb7b4804c12846faaf2def67d7069074facf3d17e089308f0d9a33236"
+  },
+  "runtimePreparation": {
+    "parent": {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2",
+      "mode": "0700",
+      "uid": 1000,
+      "dev": "27",
+      "ino": "141126"
+    },
+    "runtime": {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime",
+      "mode": "0700",
+      "uid": 1000,
+      "dev": "27",
+      "ino": "141128"
+    }
+  },
+  "stopControl": "Exact originalTTY, <=120s outer supervisor/progress20s; only explicitstop newline to samehandle, wait original body/route/context/browser/Worker/JWKS ACK/directchild/reap/group/ports. Firstfailure stopnormal, mandatoryphysicalafter+finalpins after originalsettlement evenfailednative; no rollback/history deletion.",
+  "scope": "Current02d ONECF118 actual source2726/QA2729; all2726 ordinary inputs exact. Fresh namespace24+pure sentinel, original6 genuine setup APIs instead of84research seed. File11 totalPOST vs Package12 totalPOST precise. No build/compile/mounted/executor/ZIP/provider/Recovery target/runtime invocation.",
+  "independentNamespace": "Never share copy/fixture/runtime/installation/R2 namespace with otherdomain or historicalfailedPausedJob; expected newlineage metadata only.",
+  "commands": [
+    {
+      "stage": "qualified-current02d-coherent-build-producer-preflight",
+      "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-package-exact-sample-shadow-native-finite-source-preparation-attempt2/carry-current-coherent-saved-job.py",
+        "--current02d-coherent-saved-job",
+        "producer-preflight"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2",
+        "SQLITE_TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2"
+      }
+    },
+    {
+      "stage": "isolated-copy",
+      "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1/scripts/qa/phase5f/prepare-isolated-copy.py",
+        "--source-root",
+        "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+        "--destination",
+        "/workspace/coherent-package-sample-shadow-native02-private-attempt2/copy",
+        "--dependency-root",
+        "/workspace/sample-fabrication-workflow/node_modules"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2",
+        "SQLITE_TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2"
+      }
+    },
+    {
+      "stage": "fresh-two-version-sentinel",
+      "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+      "argv": [
+        "node",
+        "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1/scripts/qa/phase5f/generate-process-fixture.mjs",
+        "/workspace/coherent-package-sample-shadow-native02-private-attempt2/copy",
+        "/workspace/coherent-package-sample-shadow-native02-private-attempt2/fixture"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2",
+        "SQLITE_TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2"
+      }
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "cwd": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/copy",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "migrations",
+        "apply",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/workspace/coherent-package-sample-shadow-native02-private-attempt2/copy/.wrangler/state"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2",
+        "SQLITE_TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2"
+      }
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "cwd": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/copy",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "execute",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/workspace/coherent-package-sample-shadow-native02-private-attempt2/copy/.wrangler/state",
+        "--file",
+        "/workspace/coherent-package-sample-shadow-native02-private-attempt2/fixture/process-fixture.sql"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2",
+        "SQLITE_TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2"
+      }
+    },
+    {
+      "stage": "physical-before",
+      "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1/scripts/qa/phase5f/check-isolated-state.py",
+        "--source-copy",
+        "/workspace/coherent-package-sample-shadow-native02-private-attempt2/copy",
+        "--fixture-directory",
+        "/workspace/coherent-package-sample-shadow-native02-private-attempt2/fixture",
+        "--stage",
+        "before-api"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2",
+        "SQLITE_TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2"
+      }
+    },
+    {
+      "stage": "current-source-build-and-pure24-witness",
+      "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-package-exact-sample-shadow-native-finite-source-preparation-attempt2/carry-current-coherent-saved-job.py",
+        "--current02d-coherent-saved-job",
+        "witness"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2",
+        "SQLITE_TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2"
+      }
+    },
+    {
+      "stage": "original-one-current-package-saved-job-keyboard",
+      "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+      "argv": [
+        "node",
+        "/workspace/phase5f-coherent-saved-package-native-qa-source-attempt1/scripts/qa/phase5f/browser-current-coherent-package-saved-job-keyboard.mjs",
+        "/workspace/coherent-package-sample-shadow-native02-private-attempt2/copy",
+        "/workspace/coherent-package-sample-shadow-native02-private-attempt2/fixture",
+        "02d6dfbe5f2bd98847b3d6f509c219de5ad816ad",
+        "--exclusive-go-one-current-coherent-package-saved-job-keyboard"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2",
+        "SQLITE_TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2",
+        "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+        "CHROMIUM_PATH": "/usr/bin/chromium",
+        "PHASE5F_FILE_MIGRATION_CHROMIUM_TEMP": "/workspace/.sfpk2",
+        "PHASE5F_FILE_MIGRATION_RUNTIME_ROOT": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime"
+      },
+      "cases": [
+        "current-coherent-package-saved-job-keyboard-1280-light"
+      ],
+      "toolInvocation": {
+        "tty": true,
+        "originalStdinControl": "Only explicit stop newline originalretainedTTY;120s supervision/noSIGTERM graceful claim"
+      },
+      "control": "ONE genuine current package keyboard acceptance; exact Preview200/accept202/Pause200/Resume200/Cancel200 once, alltrue sourceDTO/state. Independentnamespace, no executor/ZIP/fakejob/bodyfallback."
+    },
+    {
+      "stage": "physical-after",
+      "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-coherent-saved-package-native-qa-source-attempt1/scripts/qa/phase5f/check-current-coherent-saved-job-physical-state.py",
+        "--domain",
+        "package",
+        "--source-copy",
+        "/workspace/coherent-package-sample-shadow-native02-private-attempt2/copy",
+        "--fixture-directory",
+        "/workspace/coherent-package-sample-shadow-native02-private-attempt2/fixture",
+        "--runtime-directory",
+        "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2",
+        "SQLITE_TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2"
+      },
+      "control": "Mandatory after original native child/directwait/reap and context/route/body/controller/browser/Worker/JWKS settlement. New physical output alias; preserve any accepted job/item/hold/permit partial history. Failed native case stays failed."
+    },
+    {
+      "stage": "final-source-artifact-input-pins",
+      "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-package-exact-sample-shadow-native-finite-source-preparation-attempt2/carry-current-coherent-saved-job.py",
+        "--current02d-coherent-saved-job",
+        "final-pins"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2",
+        "SQLITE_TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2"
+      }
+    }
+  ],
+  "actualCommandCount": 10,
+  "matureRecorderBasis": {
+    "path": "/workspace/phase5f-file-saved-job-keyboard-current-a7-final-peer-source-preparation-attempt2/run-frozen-owned-stage.py",
+    "sha256": "85781520cc22ed5be6adec0ea1c47967e728e1b8057a38d49255ad65e9ce5024",
+    "scope": "10 functions+1 class; verify_source census2438\u21922726 only, other10 definitions AST exact. Globals/path/token/current initial stage binding are separately compared."
+  },
+  "carrierPath": "/workspace/phase5f-package-exact-sample-shadow-native-finite-source-preparation-attempt2/carry-current-coherent-saved-job.py",
+  "carrierSha256": "7366ecdd923a58e6adc1d0a35472e63c113e66d22a8f94b5c5417ad3e125c9f2",
+  "originalBuildCommand": {
+    "path": "/workspace/phase5f-saved-file-package-coherent-one-cf-build-runtime-attempt1/one-fresh-final-QA-source-build-command.json",
+    "sha256": "ae558f4ec6af56dd6d4632f02da485eb0a51b8b613abc21ea7c88f4b02581c65",
+    "scope": "Actualcurrent02d once; commandexit0/samewait/reaped/noactive/noSignals, one kernelZ/FD PermissionError; not PGEMPTY or observed0FD."
+  },
+  "priorOriginalFailure": {
+    "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/actual-current02d-package-original-ten-setup-first-failure-closed-release.json",
+    "sha256": "bd528a2cc1ab7f2429545792c05bb5aca6c5244ffb85d2c12e114f52804dffaa",
+    "scope": "Original10 ninePASS/one pre-case setupFAILED, native0P0F1UNRUN; seven accepted setup POSTs remain immutable; normal Worker/JWKS ACK successful, finalcatalogACK FAILED; no reuse/rollback."
+  },
+  "newNamespaceNecessity": "Original Sample201 is accepted but original report omitted returned Sample id/event/source row hashes because the before/after shadow assertion stopped before packageBaseline publication. Original preparation lifetime is closed and its six-write admission is fresh-only; no complete accepted packageBaseline or native case exists to safely replay. A new independent pure24 namespace is required for genuine next case; original Sample/event and all seven released permits remain immutable. No repeated product build/type/mounted."
+}

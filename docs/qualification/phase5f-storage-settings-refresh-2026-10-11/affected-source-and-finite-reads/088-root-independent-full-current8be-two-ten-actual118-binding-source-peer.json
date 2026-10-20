@@ -1,0 +1,130 @@
+{
+  "status": "ROOT_INDEPENDENT_CURRENT8BE_TWO_TEN_SOURCE_CLEAR_ONLY_NOT_NATIVE_GO",
+  "utc": "2026-10-11T21:52:01.923276+00:00",
+  "fullProducer3086Consumer3092PhysicalGitMode": true,
+  "plans": {
+    "storage": {
+      "plan": {
+        "path": "/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/storage/finite-current8be-genuine-refresh-ten-plan.json",
+        "sha256": "607eeab20bda87e87441761e1e28b7e61dcace8db40800d91f8837dd913e59af"
+      },
+      "runner": {
+        "path": "/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/storage/run-frozen-owned-stage.py",
+        "sha256": "6664be1d8e8b26017cd01b992ee0865ea8ba94726be1f831f0827e4d48017820"
+      },
+      "carrier": {
+        "path": "/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/storage/carry-current8be-genuine-readonly-refresh.py",
+        "sha256": "7f8cffab2b9f183e25fd6c8827605f09bb92b8452c4e4efe82acc6bca21e9ba3"
+      },
+      "inverse": {
+        "path": "/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/storage/whole-runner-carrier-binding-inverses.json",
+        "sha256": "89b3d4185922eb9584f53c02d3a7e1f41acb9a053e94e09f0998847f79c9c220"
+      },
+      "startArgv": [
+        "python3",
+        "-B",
+        "/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/storage/run-frozen-owned-stage.py",
+        "--exclusive-go-exact-8c460eb-storage-readonly-refresh-stage",
+        "qualified-current02d-coherent-build-producer-preflight"
+      ],
+      "nativeStage": "original-one-current-storage-settings-refresh-keyboard",
+      "commands": 10,
+      "runtimePreparation": {
+        "privateRuntime0700": true,
+        "oneFrozenPlan0600": "frozen-approved-plan.json",
+        "copyFixtureAndShortTempAbsent": true,
+        "dev": "34",
+        "ino": "2048670",
+        "uid": 1000,
+        "rootPreparedOnly": true
+      },
+      "roots": {
+        "copy": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/copy",
+        "fixture": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/fixture",
+        "runtime": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime",
+        "parent": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2",
+        "shortChromiumChildTemp": "/workspace/.ssrf2"
+      }
+    },
+    "package": {
+      "plan": {
+        "path": "/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/package/finite-current8be-genuine-refresh-ten-plan.json",
+        "sha256": "fc4a4b7a40f45f244b67b7cc98699d1cc1d3cc93a8728dd3d7fbb3271d85e7e7"
+      },
+      "runner": {
+        "path": "/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/package/run-frozen-owned-stage.py",
+        "sha256": "c10e7c7409785bacd9553356ce52c55c1f4dc7001b217c583975384b9473937d"
+      },
+      "carrier": {
+        "path": "/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/package/carry-current8be-genuine-readonly-refresh.py",
+        "sha256": "bafe1b076e89c5b8a92e5f8b7fec24fba6aac28df2834fae8ae3ee5d0d2541c4"
+      },
+      "inverse": {
+        "path": "/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/package/whole-runner-carrier-binding-inverses.json",
+        "sha256": "4337d6d4318f63d163c5a409d17ce7497181e524a645ee5982138045988bbf3d"
+      },
+      "startArgv": [
+        "python3",
+        "-B",
+        "/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/package/run-frozen-owned-stage.py",
+        "--exclusive-go-exact-8c460eb-package-readonly-refresh-stage",
+        "qualified-current02d-coherent-build-producer-preflight"
+      ],
+      "nativeStage": "original-one-current-package-status-refresh-keyboard",
+      "commands": 10,
+      "runtimePreparation": {
+        "privateRuntime0700": true,
+        "oneFrozenPlan0600": "frozen-approved-plan.json",
+        "copyFixtureAndShortTempAbsent": true,
+        "dev": "34",
+        "ino": "2048678",
+        "uid": 1000,
+        "rootPreparedOnly": true
+      },
+      "roots": {
+        "copy": "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/copy",
+        "fixture": "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/fixture",
+        "runtime": "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime",
+        "parent": "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2",
+        "shortChromiumChildTemp": "/workspace/.pkrf2"
+      }
+    }
+  },
+  "allRunnerWholeInverseTenOwnerDefsExactSoleVerifyCount": true,
+  "all3CarrierDefsAndWholeLiteralInverse": true,
+  "allTypedRawRefs": {
+    "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/build-runtime/actual-one-current8be-cf-build-qualified-closed-release.json": "df880ac57d855e4208661077bcb0edcc2a6ef5191c993f3b955acc968e46c2e8",
+    "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/build-runtime/fresh-build-artifact-manifest.json": "5afe10d664711d498d1b5d3967f815ee63524d4e2d7c934d246584448109faca",
+    "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/build-runtime/root-one-current8be-cf-build-full-original118-raw-owner-release.json": "6aeda8b7f1c1f7d98faa771c2a44bed44942bf2ec7f4e9b24ba71c14b01ecd53",
+    "/tmp/phase5f-refresh-start202-current8be-six-qa-source-preparation-attempt1/root-independent-narrow-current8be-six-qa-whole-inverse-source-peer.json": "10810215b9afd6fd23b51560598675ba16d560b22f91c3be64ac6ffe67954922",
+    "/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/storage/finite-current8be-genuine-refresh-ten-plan.json": "607eeab20bda87e87441761e1e28b7e61dcace8db40800d91f8837dd913e59af",
+    "/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/storage/run-frozen-owned-stage.py": "6664be1d8e8b26017cd01b992ee0865ea8ba94726be1f831f0827e4d48017820",
+    "/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/storage/carry-current8be-genuine-readonly-refresh.py": "7f8cffab2b9f183e25fd6c8827605f09bb92b8452c4e4efe82acc6bca21e9ba3",
+    "/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/storage/whole-runner-carrier-binding-inverses.json": "89b3d4185922eb9584f53c02d3a7e1f41acb9a053e94e09f0998847f79c9c220",
+    "/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/package/finite-current8be-genuine-refresh-ten-plan.json": "fc4a4b7a40f45f244b67b7cc98699d1cc1d3cc93a8728dd3d7fbb3271d85e7e7",
+    "/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/package/run-frozen-owned-stage.py": "c10e7c7409785bacd9553356ce52c55c1f4dc7001b217c583975384b9473937d",
+    "/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/package/carry-current8be-genuine-readonly-refresh.py": "bafe1b076e89c5b8a92e5f8b7fec24fba6aac28df2834fae8ae3ee5d0d2541c4",
+    "/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/package/whole-runner-carrier-binding-inverses.json": "4337d6d4318f63d163c5a409d17ce7497181e524a645ee5982138045988bbf3d",
+    "/tmp/phase5f-refresh-current5e-two-native-final-peer-source-preparation-attempt2/storage/finite-current5e-genuine-refresh-ten-plan.json": "3fafd3b893bf12c2d42a57033144bbd80d11edf466086b8398a36fa947b377a9",
+    "/tmp/phase5f-refresh-current5e-two-native-final-peer-source-preparation-attempt2/storage/run-frozen-owned-stage.py": "fcd43e5f9031ae45f2fe504ce09e6855729da001c78c50cc05fd7a7b9937ab56",
+    "/tmp/phase5f-refresh-current5e-two-native-final-peer-source-preparation-attempt2/storage/carry-current5e-genuine-readonly-refresh.py": "7a4f8e9eaebd45f47eb1e447c40a41480bfba3c1b3bf1b8e85b1bb928fc00390",
+    "/tmp/phase5f-refresh-start202-current8be-six-qa-source-preparation-attempt1/source-handoff.json": "7e84129912d86ac8d6a7f40fe399a874e18d09464c333acbeec663fcac56c062",
+    "/tmp/phase5f-refresh-start202-current8be-six-qa-source-preparation-attempt1/complete-current3092-git-source-freeze.json": "72e2f4d4c864e113cc5cfc886c151c80a30a918f522ad360d41f1f835a132f22",
+    "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/build-runtime/one-fresh-final-QA-source-build-command.json": "ecf011cef96ba080e7eaec8d0a8883b666e2871fea8274d6754f36cfc57cc4a3",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/actual-current5e-storage-refresh-original-ten-focus-failure-closed-release.json": "853ef8090aaaa562393486a8c3d9c1193bb851b5d1eec0d6dcf703187da6aefa",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/root-current9a5-original-ten-focus-failure-full-raw-source-owner-release.json": "ff81346b129faa7b8abe6798407223b4d1fd686e0a4c24a5b5e8192c34e348bd",
+    "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/runtime/actual-current8be-app-and-affected37-qualified-closed-release.json": "be8f13911b873405bcdb7913e50b6623c6efc3b189e5462e1ff9af7130bdc561",
+    "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/runtime/root-current8be-affected-app37-full-raw-owner-release.json": "4c3735ce8b45c1b0d012835168c80b7c6db3341ef36c950884694210074295ca",
+    "/tmp/phase5f-refresh-start202-current8be-six-qa-source-preparation-attempt1/current-qa-source-materialization.json": "1f4a1eee2a02c6ec786bf6690c591a960b7b4cf2336d8356da744d2d40f3132d",
+    "/tmp/phase5f-refresh-current5e-readonly-physical-git-only-source-preparation-attempt7/independent-affected-current5e-refresh-two-header-and-seven-physical-selector-source-peer.json": "53f974d94516716c3bb0a7c25c5bfc0da72a7ac8145b9e86f84928c0e23feb13",
+    "/tmp/phase5f-refresh-current5e-two-native-finite-source-preparation-attempt1/independent-complete-two-current5e-readonly-refresh-original-ten-finite-source-peer.json": "f9f6e50338d1b64fe1f43a4d30491bce44d9f811bec20d8d6f1dee456e45fe39",
+    "/tmp/phase5f-refresh-current5e-two-native-final-peer-source-preparation-attempt2/package/finite-current5e-genuine-refresh-ten-plan.json": "8f9579a78e27c665fb831eb0d285776fcdc9394b01ad74c984e52b82d169bbb6",
+    "/tmp/phase5f-refresh-current5e-two-native-final-peer-source-preparation-attempt2/package/run-frozen-owned-stage.py": "2cee1ef9a7f8a2c992794c836a26fb2af4539f9862766b9faf9a8bcd1097535a",
+    "/tmp/phase5f-refresh-current5e-two-native-final-peer-source-preparation-attempt2/package/carry-current5e-genuine-readonly-refresh.py": "813479fae88da2316fd060a0aaa0a105876353e53d7fa84272edb888c4253d7b"
+  },
+  "actualNewBuildManifest118AndPriorAPP37Bound": true,
+  "original10CommandsEachCosts6POST2GETAndNativeGETOnly120s20sPlus2Preserved": true,
+  "packageOriginalReal5sPollingUnchanged": true,
+  "storageOld9a853FailurePreserved": true,
+  "exclusiveCurrentGroupAndLaterRootGoRequired": true
+}

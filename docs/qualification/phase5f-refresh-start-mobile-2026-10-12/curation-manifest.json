@@ -1,0 +1,821 @@
+{
+  "status": "BYTE_EXACT_THREE_COMPLEMENTARY_390_DARK_ORIGINAL_TEN_QUALIFICATION",
+  "baseHead": "88ed98859282c994cd2574c4624f14a54771b7a2",
+  "baseTree": "69a07a4a34c8ee19dd5d8ab2b575114a319ae56a",
+  "producerHead": "2d07b57c4e79403099261528ae8988c0072d28c6",
+  "consumerHead": "c3c1027b66cca605c7d1ee5e9b7d30427d5c3ca4",
+  "productMOD": 0,
+  "newQaADD": 5,
+  "actualNativeCases": {
+    "passed": 3,
+    "failed": 0,
+    "unrun": 0
+  },
+  "actualOriginalCommands": {
+    "passed": 30,
+    "failed": 0,
+    "unrun": 0
+  },
+  "actualPOSTsAcrossIndependentNamespaces": 23,
+  "newBuilds": 0,
+  "newCompilerOrMountedChecks": 0,
+  "originals": [
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/actual-current2d07-package-refresh-mobile-original-ten-complete-raw-qualified-closed-pending-root-release.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/001-actual-current2d07-package-refresh-mobile-original-ten-complete-raw-qualified-closed-pending-root-release.json",
+      "sha256": "96a7e7db5918f2947e44e7cc82b5e09c60076c474df38655fd24489416fef9d7",
+      "bytes": 36769,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/enabled-storage-draft-build-input-witness.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/002-enabled-storage-draft-build-input-witness.json",
+      "sha256": "5cc8e436a14883152c84b56b821de8b485d3b0bcf8d49a06aa5c4a3b3b8deecb",
+      "bytes": 1464,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/genuine-package-status-refresh-keyboard-report.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/003-genuine-package-status-refresh-keyboard-report.json",
+      "sha256": "338e089388eb3f4f287f23b472f823a6a3a5ef1b42dc4578feea3a409ece2233",
+      "bytes": 80105,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/genuine-package-status-refresh-keyboard-stop.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/004-genuine-package-status-refresh-keyboard-stop.json",
+      "sha256": "e9cc3624a33e46d75e85dbc7632d7d6e42844d79180664cba6f00c37715480f9",
+      "bytes": 500,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/physical-sqlite-after-current-package-status-refresh-keyboard.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/005-physical-sqlite-after-current-package-status-refresh-keyboard.json",
+      "sha256": "664a7ebe461fccbaa561d331ae0b401e8caf498ba7450dfca4d045ec14d6cc7e",
+      "bytes": 76455,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/physical-sqlite-before-api.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/006-physical-sqlite-before-api.json",
+      "sha256": "a3ffdda5d2af7468a3348efbacf1ca3bd03fda99a34348f2cfa536f2fdaec223",
+      "bytes": 69561,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/process-fixture.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/007-process-fixture.json",
+      "sha256": "5d7b310ad63fc449b3073402bb014373eee3f8ab8b10af12ec4b2a767cb5d9bd",
+      "bytes": 1610,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/chromium-child-temp-owner.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/008-chromium-child-temp-owner.json",
+      "sha256": "c958cc4b94bad777ee7407b93bb4a027bb78f07fa5ba007a3a6d29ed419d9454",
+      "bytes": 625,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/current-source-build-and-pure24-witness-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/009-current-source-build-and-pure24-witness-command.json",
+      "sha256": "f2e86e98ad5850c839683cefbb6d3a9778b91f05dc2bb17000a95fb0a883570c",
+      "bytes": 1314,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/current-source-build-and-pure24-witness.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/010-current-source-build-and-pure24-witness.log",
+      "sha256": "997e4a0f3060ccbd36c87990c87798b41254330d957496f0645b17024564c652",
+      "bytes": 225,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/current02d-build-new-pure24-native-causal-carry.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/011-current02d-build-new-pure24-native-causal-carry.json",
+      "sha256": "9cfe9dc73ee9b0dd2be6123b9f6666db37715a57b0793ef80d3130f7c0b84e95",
+      "bytes": 2592,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/final-current2d07-source-and-genuine-refresh-pins.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/012-final-current2d07-source-and-genuine-refresh-pins.json",
+      "sha256": "5c8272d440a5f09cbeb74d7135b4277b30bd6feafba9ef020babe7b26cda30fd",
+      "bytes": 4096,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/final-source-artifact-input-pins-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/013-final-source-artifact-input-pins-command.json",
+      "sha256": "77ed21f32916106a78504494603a0d8ec8fbfc7cfdb9132cb4fa30922dc8eb02",
+      "bytes": 1303,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/final-source-artifact-input-pins.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/014-final-source-artifact-input-pins.log",
+      "sha256": "128244a858c9c65f5546b38121be562884ec2495d168aa33f04d0fc210a8b8a0",
+      "bytes": 228,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/fresh-two-version-sentinel-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/015-fresh-two-version-sentinel-command.json",
+      "sha256": "4fd656d795cfa1715ca72b74866a40a5873196d0f9e25cc27dff86e2e8966722",
+      "bytes": 1988,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/fresh-two-version-sentinel.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/016-fresh-two-version-sentinel.log",
+      "sha256": "085fa099c56de4d8ffd69b6772782d2f83d16496f077b4d0cf60e30e3d2adfa5",
+      "bytes": 268,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/frozen-approved-plan.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/017-frozen-approved-plan.json",
+      "sha256": "08cf3807eeee507bf644803f08543a72e78d1bc7f580bcb9b6948dd99fc80a92",
+      "bytes": 22885,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/isolated-copy-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/018-isolated-copy-command.json",
+      "sha256": "c6cad6020b524d12574d14533b61ec7991b8ea163862462c0aeb8675fe88e698",
+      "bytes": 1493,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/isolated-copy.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/019-isolated-copy.log",
+      "sha256": "4bb0541cd30f69be442ebc59232356b00164944385587f322b040fe870cbdbab",
+      "bytes": 221,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/ordinary-actual24-local-migrations-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/020-ordinary-actual24-local-migrations-command.json",
+      "sha256": "3399f4dfa07deda41ab964b235ef3eea8328684681323b176f4b72bbcd945d3d",
+      "bytes": 1968,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/ordinary-actual24-local-migrations.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/021-ordinary-actual24-local-migrations.log",
+      "sha256": "d7a4512db7e0c9e8f900b340ccacd2f43d6572b6d915da4a8fe49bc2fbd19198",
+      "bytes": 149092,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/original-one-current-package-status-refresh-keyboard-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/022-original-one-current-package-status-refresh-keyboard-command.json",
+      "sha256": "d88b47481a269f62d5ee9abb67439425458cf0867d0848b04d5407db649a757f",
+      "bytes": 2366,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/original-one-current-package-status-refresh-keyboard.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/023-original-one-current-package-status-refresh-keyboard.log",
+      "sha256": "2b208c81d156b96a36e7f5f39843159751094c2a46b6cc03a256944beb13d84e",
+      "bytes": 338,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/original-tool-responses.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/024-original-tool-responses.json",
+      "sha256": "af31c5a42c81717e71707373fbec5f11281ebac3b25093b9a0e6b1067f46d7a5",
+      "bytes": 37988,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/physical-after-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/025-physical-after-command.json",
+      "sha256": "db63e3778509e3fe4d42244d20540edbed6cfc1e297ae166cef549f2e3a64a84",
+      "bytes": 1865,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/physical-after.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/026-physical-after.log",
+      "sha256": "392906688ad288ffcd674a362e318c4e717275192c9a89cee40fb128dc11567b",
+      "bytes": 203,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/physical-before-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/027-physical-before-command.json",
+      "sha256": "6f29ee6cfd3c131705b88bc5e77ac196f0ff96c13f8cd4419166a0f456c9ca5c",
+      "bytes": 1455,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/physical-before.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/028-physical-before.log",
+      "sha256": "22542e39b9e067144934201b325012082b01c794dc7c5668efc5b7e3f2477ac8",
+      "bytes": 186,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/029-qualified-current02d-coherent-build-producer-preflight-command.json",
+      "sha256": "bd3d166c5ae4befeff278c0868fa7f1395eede7a358aab5986c6b5fab628f6f3",
+      "bytes": 1355,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/030-qualified-current02d-coherent-build-producer-preflight.log",
+      "sha256": "3cdc53eb58a874d63edb9b707f58cfa2f802fd75cc9892e72330fb84f24aef10",
+      "bytes": 120,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/synthetic-template-sentinels-only-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/031-synthetic-template-sentinels-only-command.json",
+      "sha256": "5deb2b755ddf75ca0795976ffb405a1d8fa3957d7a0494f1477a1a030158945a",
+      "bytes": 2077,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/synthetic-template-sentinels-only.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/032-synthetic-template-sentinels-only.log",
+      "sha256": "21e54fe0ed1bd23c4c0691519d3298e3fe313d19f4e64f619d6de1b454657186",
+      "bytes": 2747,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/process-fixture.sql",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/033-process-fixture.sql",
+      "sha256": "fb63d207cb83485fd70facdf9f58baace7c5bfd36acfbec71a15be67b745a9e5",
+      "bytes": 5579,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/fixture-hashing.mjs",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/034-fixture-hashing.mjs",
+      "sha256": "c12a9fcb13570ac9230c528cb98090369dea6348602165697c5077f4dddb2c10",
+      "bytes": 2958,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/root-first-mobile390dark-package-refresh-original-ten-full-raw-source-physical-owner-release.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/035-root-first-mobile390dark-package-refresh-original-ten-full-raw-source-physical-owner-release.json",
+      "sha256": "f4d95ff8d1579c4a9865448c9db4e18f52178dd64968cc3a74da565a67ecddf5",
+      "bytes": 12654,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/actual-current2d07-file-start202-mobile-original-ten-qualified-closed-pending-root-release.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/036-actual-current2d07-file-start202-mobile-original-ten-qualified-closed-pending-root-release.json",
+      "sha256": "ed40cf750ed9ac4bf9451c5b20daddad3c640fbc59f9e7b3b445c4b71df80299",
+      "bytes": 37903,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/fixture/enabled-storage-draft-build-input-witness.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/037-enabled-storage-draft-build-input-witness.json",
+      "sha256": "72dc9dc47ea1f6769305ca6fa99cbd246b363db916e0d7056deee9ce97adc8c7",
+      "bytes": 1569,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/fixture/fixture-hashing.mjs",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/038-fixture-hashing.mjs",
+      "sha256": "5e19dd8669804cf5b73d8545d7a1794092a7503ed4bc27ac80318069a96d3c39",
+      "bytes": 2956,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/fixture/genuine-file-start202-natural-focus-report.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/039-genuine-file-start202-natural-focus-report.json",
+      "sha256": "9e9d52e47513e3359e70e6e0fa0fe25810085ec50011f1dc360b65775ff1c90c",
+      "bytes": 85817,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/fixture/genuine-file-start202-natural-focus-stop.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/040-genuine-file-start202-natural-focus-stop.json",
+      "sha256": "97053dfa15ac3b094f88169f41552586eb5f20a2b717d725a9bba7055e7508c1",
+      "bytes": 500,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/fixture/physical-sqlite-after-current-file-status-refresh-keyboard.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/041-physical-sqlite-after-current-file-status-refresh-keyboard.json",
+      "sha256": "4ec61f2c922fefe04311659dd15d9cc0eac86a20b824eb3bd64a5fa7a3a59bbe",
+      "bytes": 76625,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/fixture/physical-sqlite-before-api.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/042-physical-sqlite-before-api.json",
+      "sha256": "d570d92206770e4c86c02c150d90ab0c174486dcf98cf4a8b5100bbf0587cd1e",
+      "bytes": 69735,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/fixture/process-fixture.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/043-process-fixture.json",
+      "sha256": "24a05c7f3d46e6e29f59495f6477b932120f56af841a5ed7df6912dfeebf1697",
+      "bytes": 1606,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/fixture/process-fixture.sql",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/044-process-fixture.sql",
+      "sha256": "d1eb33ef85a7939cae0167be431384f10aba703375e348baf5efbb6e28e5efa0",
+      "bytes": 5579,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/chromium-child-temp-owner.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/045-chromium-child-temp-owner.json",
+      "sha256": "d00a0f14943234e1c6eed37a9226800a38e47ff58036a16e22161c5bc9a353b6",
+      "bytes": 621,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/current-source-build-and-pure24-witness-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/046-current-source-build-and-pure24-witness-command.json",
+      "sha256": "b1d9421b65da5cd6cd63d1dcb35e800cc36d1a75d72602257f2e740b56be62b8",
+      "bytes": 1305,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/current-source-build-and-pure24-witness.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/047-current-source-build-and-pure24-witness.log",
+      "sha256": "b4a53af5e373a1253e7ec3ccc1948f867bc258ef490c6802c29b5f8794a095b6",
+      "bytes": 222,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/current02d-build-new-pure24-native-causal-carry.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/048-current02d-build-new-pure24-native-causal-carry.json",
+      "sha256": "602759c49f9bd7bfd6a3c598c3458a6c062c69cdadbb36966b818ecc8993bccf",
+      "bytes": 2589,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/final-current2d07-source-and-genuine-start202-pins.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/049-final-current2d07-source-and-genuine-start202-pins.json",
+      "sha256": "b9b2bd886f72d76e91d8abe96d7b20bb632c662502fad3e3427c75d271edeb61",
+      "bytes": 4093,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/final-source-artifact-input-pins-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/050-final-source-artifact-input-pins-command.json",
+      "sha256": "e8addf7f39d9f445087f9456d520ced153e7cdb93254aad7e113487816cb125b",
+      "bytes": 1294,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/final-source-artifact-input-pins.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/051-final-source-artifact-input-pins.log",
+      "sha256": "c4bbc01c4e830c813b041f7a949ec7197121fee23d3c77194ebb61840dd52859",
+      "bytes": 225,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/fresh-two-version-sentinel-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/052-fresh-two-version-sentinel-command.json",
+      "sha256": "7ae9f70b544fb24e4d82ad223db0c304f19418e8b2705e802c94c508bc484fcc",
+      "bytes": 1978,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/fresh-two-version-sentinel.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/053-fresh-two-version-sentinel.log",
+      "sha256": "83d38595409f5c938aaa15be14443cf696135f6f4ce9ca3206212dd64b49cadc",
+      "bytes": 264,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/frozen-approved-plan.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/054-frozen-approved-plan.json",
+      "sha256": "1fc5fb9f4fcbf5e7622558f787e8fbb844a8ffb09fb0d72ab1bae5fc86a5ff26",
+      "bytes": 24391,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/isolated-copy-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/055-isolated-copy-command.json",
+      "sha256": "7637a1870d60798163bf0dc0b5b6a2eb8008e4822f15db400fdc0f06acf96e14",
+      "bytes": 1485,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/isolated-copy.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/056-isolated-copy.log",
+      "sha256": "512da79c65b770aacbee1803759397cbfc1abeffc3ba48072d761edc1e0f7f50",
+      "bytes": 219,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/ordinary-actual24-local-migrations-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/057-ordinary-actual24-local-migrations-command.json",
+      "sha256": "1ad7851184d394ad1d1788676bb5f83d51d1eaf7154175b22c0c3f9e0ecf3283",
+      "bytes": 1958,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/ordinary-actual24-local-migrations.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/058-ordinary-actual24-local-migrations.log",
+      "sha256": "35ffb579f461dc71779d4ff75f616292a17b8a1b1d9996bf9b804d1eacd4d9d9",
+      "bytes": 149092,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/original-one-current-file-start202-natural-focus-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/059-original-one-current-file-start202-natural-focus-command.json",
+      "sha256": "f47bfe379a4fea825dbdfccf00315ed2a1818bda9fef308ad48411b0af98819d",
+      "bytes": 2417,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/original-one-current-file-start202-natural-focus.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/060-original-one-current-file-start202-natural-focus.log",
+      "sha256": "4412a8395463b0387ece4f6636f943e51f7df80e908dbf31b865e975316d1c0a",
+      "bytes": 319,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/original-tool-responses.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/061-original-tool-responses.json",
+      "sha256": "b235d005c5040dbc15705dd01478f56d055d1934977302da3aa500ba1bacc453",
+      "bytes": 37455,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/physical-after-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/062-physical-after-command.json",
+      "sha256": "a8c7ef7452caa4c70997d57cbb4b6cab09b76358856eee65134c991d938240b4",
+      "bytes": 1857,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/physical-after.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/063-physical-after.log",
+      "sha256": "e10912d4dd41fbd4f4c418b9d5ffe18e653d1d127799f8cf3100ca28421710f2",
+      "bytes": 198,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/physical-before-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/064-physical-before-command.json",
+      "sha256": "a388f74f0bee9dba427ee5dc26b22ccd8f3dd544caa0d4fdfd2995dd1843c47d",
+      "bytes": 1445,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/physical-before.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/065-physical-before.log",
+      "sha256": "f30803a6f401898feafe3c8e81a5b3515666219718a00e274a0e0307ffff5118",
+      "bytes": 184,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/066-qualified-current02d-coherent-build-producer-preflight-command.json",
+      "sha256": "f9b781ea1c2d520e0351103d90cfcbe9e23f67f76d0b83932ce2440e14abc46d",
+      "bytes": 1346,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/067-qualified-current02d-coherent-build-producer-preflight.log",
+      "sha256": "c4160a0c49b75db63594624dca05981b158dcd67cebbe588ffb3e5bebed64e0f",
+      "bytes": 117,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/synthetic-template-sentinels-only-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/068-synthetic-template-sentinels-only-command.json",
+      "sha256": "dde98a1deaae1db9066e4e5474f30c96b02bf0723926ba200ce4c7400b8ae7a8",
+      "bytes": 2065,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/synthetic-template-sentinels-only.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/069-synthetic-template-sentinels-only.log",
+      "sha256": "a6cce5b1dcbc733ec6c28d7e9252e3ff30df1a0971d9627528c47074df6e125c",
+      "bytes": 2747,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/root-mobile390dark-file-start202-original-ten-full-raw-source-physical-owner-release.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/070-root-mobile390dark-file-start202-original-ten-full-raw-source-physical-owner-release.json",
+      "sha256": "383fd6348db965ae81e8d2fadc2655a8bd25984e9751f27afc6b6a3c385e413f",
+      "bytes": 12895,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/actual-current2d07-package-start202-mobile-original-ten-qualified-closed-pending-root-release.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/071-actual-current2d07-package-start202-mobile-original-ten-qualified-closed-pending-root-release.json",
+      "sha256": "77c708eb76ad021f7b265851262267fb951e12c221787773a3a09a2fb2eeb77e",
+      "bytes": 49086,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/chromium-child-temp-owner.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/072-chromium-child-temp-owner.json",
+      "sha256": "2c6732730b6c642f4fecbed2d86c1a7b5f40612f3a5841f15042f3f9477e942c",
+      "bytes": 627,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/current-source-build-and-pure24-witness-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/073-current-source-build-and-pure24-witness-command.json",
+      "sha256": "a41d954625a85c16b54350d5d7f7df86319346662598332c84a84003d7f87662",
+      "bytes": 1317,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/current-source-build-and-pure24-witness.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/074-current-source-build-and-pure24-witness.log",
+      "sha256": "997e4a0f3060ccbd36c87990c87798b41254330d957496f0645b17024564c652",
+      "bytes": 225,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/current02d-build-new-pure24-native-causal-carry.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/075-current02d-build-new-pure24-native-causal-carry.json",
+      "sha256": "3f66611c2db3a35ddea51ce8cd80e33d8621bc19822d04fb9d3af81f0793637a",
+      "bytes": 2592,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/final-current2d07-source-and-genuine-start202-pins.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/076-final-current2d07-source-and-genuine-start202-pins.json",
+      "sha256": "13ab3a5cf83ccb077970a60fcf0ecb121e5daa154a53083ec56fe3b025ac9346",
+      "bytes": 4168,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/final-source-artifact-input-pins-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/077-final-source-artifact-input-pins-command.json",
+      "sha256": "c0f19c4a14e856de53ae5693dfc0241b190b8330e18057300f594d293e6fd4df",
+      "bytes": 1306,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/final-source-artifact-input-pins.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/078-final-source-artifact-input-pins.log",
+      "sha256": "128244a858c9c65f5546b38121be562884ec2495d168aa33f04d0fc210a8b8a0",
+      "bytes": 228,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/fresh-two-version-sentinel-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/079-fresh-two-version-sentinel-command.json",
+      "sha256": "5cb889855b5bcf05441c50ff155e93528bacb2825791ea48488f14c40ebac451",
+      "bytes": 1993,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/fresh-two-version-sentinel.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/080-fresh-two-version-sentinel.log",
+      "sha256": "65217447348f09b2a46338419cbad844ad4326fe892e9987f85cda68581be21b",
+      "bytes": 270,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/frozen-approved-plan.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/081-frozen-approved-plan.json",
+      "sha256": "99a1d86d324ffd3eb2ef39492d7712ad6b00452c3f1dccb5f552e243591d9ba0",
+      "bytes": 23444,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/isolated-copy-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/082-isolated-copy-command.json",
+      "sha256": "f86abd87d72c3508009c106e3126d88209a1a0c4c3de4d3d3ee9f1aaa92e5055",
+      "bytes": 1497,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/isolated-copy.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/083-isolated-copy.log",
+      "sha256": "4eea05883f2f22ef379506694cc7cb1836d29d72aab837a7427669ff0e95e1a0",
+      "bytes": 222,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/ordinary-actual24-local-migrations-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/084-ordinary-actual24-local-migrations-command.json",
+      "sha256": "b08fe49f5cb1579677e9da11a20c826f964ab0d1c5c49245c562c632cef4682f",
+      "bytes": 1973,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/ordinary-actual24-local-migrations.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/085-ordinary-actual24-local-migrations.log",
+      "sha256": "b74866903b1b5358cc6c0cb8f51478844afc51d732cfba6cd2a2e44501d85253",
+      "bytes": 149092,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/original-one-current-package-start202-natural-focus-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/086-original-one-current-package-start202-natural-focus-command.json",
+      "sha256": "e766cf0de543b15802a721c26f4eefc3822826d058817453b6dd2274574b24ad",
+      "bytes": 2450,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/original-one-current-package-start202-natural-focus.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/087-original-one-current-package-start202-natural-focus.log",
+      "sha256": "954b6793fa9b011c4cd1db3b0124a48c3d495ed29150fe9ab2da4fbc55dc780c",
+      "bytes": 328,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/original-tool-responses.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/088-original-tool-responses.json",
+      "sha256": "bf7bc2ba5d77b21cffcad991414d550404abef157d97401d6f74a9e4a8458882",
+      "bytes": 37758,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/physical-after-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/089-physical-after-command.json",
+      "sha256": "0f338b63b78d0bb2001bb816249cdc840d46574d6820cc71e555da0ce111e67e",
+      "bytes": 1878,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/physical-after.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/090-physical-after.log",
+      "sha256": "f72d509f77fb052232b4cdcae8201ac0003cafa51a7145251a37cf0f6fefc30f",
+      "bytes": 204,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/physical-before-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/091-physical-before-command.json",
+      "sha256": "b9a820ae07f0734b93dbd8cbc6b9232b137d65de9731cbf09af905ea8fcc357b",
+      "bytes": 1460,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/physical-before.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/092-physical-before.log",
+      "sha256": "3eb106fd575617a9e582ee58c5d25be9995ae92626fab335882296d3c27acfd2",
+      "bytes": 187,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/093-qualified-current02d-coherent-build-producer-preflight-command.json",
+      "sha256": "99d5a1ed04b5fd3f1f37c87f0aa3fa02c23034c0c446c22af181ceb379cbd2ce",
+      "bytes": 1358,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/094-qualified-current02d-coherent-build-producer-preflight.log",
+      "sha256": "3cdc53eb58a874d63edb9b707f58cfa2f802fd75cc9892e72330fb84f24aef10",
+      "bytes": 120,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/synthetic-template-sentinels-only-command.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/095-synthetic-template-sentinels-only-command.json",
+      "sha256": "718dec0a53d8125f5f7142aba5b8f9808cd5a70725eb84b30c32e7e132edee69",
+      "bytes": 2083,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/synthetic-template-sentinels-only.log",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/096-synthetic-template-sentinels-only.log",
+      "sha256": "c84f074db431868d3d84c3273acfb381af42a494a4edd0d60cee29c71332d8c4",
+      "bytes": 2747,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/fixture/enabled-storage-draft-build-input-witness.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/097-enabled-storage-draft-build-input-witness.json",
+      "sha256": "822e328c4565b05c624a7391fb146eaaa379ebb90aa2e7f7add54afaa34af29c",
+      "bytes": 1572,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/fixture/fixture-hashing.mjs",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/098-fixture-hashing.mjs",
+      "sha256": "af9a3008f0716bb1df35e1d466e37c0a6517ec16fce9eb01372371dd0b32dbef",
+      "bytes": 2959,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/fixture/genuine-package-start202-natural-focus-report.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/099-genuine-package-start202-natural-focus-report.json",
+      "sha256": "a40769df6a5ff3fef82ec55fee9865853b1dcdb45c59134977383dd5ce8d7ad2",
+      "bytes": 85423,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/fixture/genuine-package-start202-natural-focus-stop.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/100-genuine-package-start202-natural-focus-stop.json",
+      "sha256": "0e23ed14983f4cbf1bee2ef3d7505ec16d0feb42f97c3a79e633119eca557210",
+      "bytes": 500,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/fixture/physical-sqlite-after-current-package-status-refresh-keyboard.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/101-physical-sqlite-after-current-package-status-refresh-keyboard.json",
+      "sha256": "ecc5ddd36a8ba84911c08c6aaa869975dec86c8d12e088a0ce79e6e69acbfe0f",
+      "bytes": 76811,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/fixture/physical-sqlite-before-api.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/102-physical-sqlite-before-api.json",
+      "sha256": "a1afa1c995f66d1ffe3bf460de6bead1d1369c6f41063eefd16e2b008ec12669",
+      "bytes": 69924,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/fixture/process-fixture.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/103-process-fixture.json",
+      "sha256": "3e9570e3538cb923d6640f3aa4102e643860188a2ee02dfdb0250c5913c3f6cf",
+      "bytes": 1612,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/fixture/process-fixture.sql",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/104-process-fixture.sql",
+      "sha256": "30de8d791cb0743edbabde317275c7bca2f8cee23f00ee1c38f9a44c872f3d74",
+      "bytes": 5579,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/root-mobile390dark-package-start202-original-ten-full-raw-source-physical-owner-release.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/105-root-mobile390dark-package-start202-original-ten-full-raw-source-physical-owner-release.json",
+      "sha256": "571c176f603908836767f9bfa0547542fd35a3dedc576dc7005b08e8a84ded62",
+      "bytes": 15686,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/actual-current2d07-package-refresh-mobile-original-ten-qualified-closed-pending-root-release.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/106-actual-current2d07-package-refresh-mobile-original-ten-qualified-closed-pending-root-release.json",
+      "sha256": "858bfcf9bf29177469d7caa5aa1546c22b544d6b86858dd707ac530ff0d7399a",
+      "bytes": 35543,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-current2d07-three-mobile-complementary-qa-source-preparation-attempt1/source-handoff.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/source/107-source-handoff.json",
+      "sha256": "dffba0630f5938d817fc137fb74fbbe1d35e6ee4a6dc703f8f5f3ecb27e11483",
+      "bytes": 4222,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-current2d07-three-mobile-complementary-qa-source-preparation-attempt1/five-owned-mobile-qa-and-whole-donor-inverses.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/source/108-five-owned-mobile-qa-and-whole-donor-inverses.json",
+      "sha256": "6c6c473fac9a60e37ee671e450f1c5b3b31bf5aee91f4126e79c7fb39a05cc91",
+      "bytes": 4413,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/currentc3c102-independent-mobile-complementary-source-peer-attempt1/independent-complete-c3c102-five-mobile-complementary-source-peer.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/source/109-independent-complete-c3c102-five-mobile-complementary-source-peer.json",
+      "sha256": "d0f5853e057de7118418b7c1f560d2a87af130002f0b0525e091dccafa0bdc99",
+      "bytes": 11178,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-current2d07-three-mobile-capacity-placement-source-preparation-attempt2/independent-root-three-original-ten-whole-mobile-and-second-third-placement-static-peer.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/source/110-independent-root-three-original-ten-whole-mobile-and-second-third-placement-static-peer.json",
+      "sha256": "2383466c9886187bb550bcd8d86326233608f3a37cc61ac2c1977bdee6e61c29",
+      "bytes": 3968,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-current2d07-mobile-package-refresh-workspace-placement-source-preparation-attempt3/root-first-mobile-workspace-original-ten-superseding-unused-tmp-exclusive-go.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-refresh/111-root-first-mobile-workspace-original-ten-superseding-unused-tmp-exclusive-go.json",
+      "sha256": "dfea29e6f1fa6d2db64d201cacffb8c6742c981a475fdf45d092e17b03dc273e",
+      "bytes": 4741,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/tmp/phase5f-current2d07-three-mobile-capacity-placement-source-preparation-attempt2/file-start202/root-after-second35-full-release-mobile390dark-file-start202-original-ten-exclusive-go.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/file-start202/112-root-after-second35-full-release-mobile390dark-file-start202-original-ten-exclusive-go.json",
+      "sha256": "1d56493fe18c0623e2e66e05bef07c9c2439757d74cb4763397241c15809345e",
+      "bytes": 3740,
+      "originalOwnerMode": "0o600"
+    },
+    {
+      "originalPath": "/workspace/phase5f-current2d07-mobile-package-start202-root-control-attempt1/root-after-third40-full-release-mobile390dark-package-start202-original-ten-exclusive-go.json",
+      "repositoryPath": "docs/qualification/phase5f-refresh-start-mobile-2026-10-12/package-start202/113-root-after-third40-full-release-mobile390dark-package-start202-original-ten-exclusive-go.json",
+      "sha256": "3288820aba0ccd0d361ee96230ae2131ef7d390561e4d41a9b1e88e3bf75ad70",
+      "bytes": 3801,
+      "originalOwnerMode": "0o600"
+    }
+  ],
+  "originalCount": 113,
+  "allOriginalLogsExplicitlyTracked": true,
+  "desktopFileOriginal9P1FAndOffline1PRemainUnchanged": true,
+  "priorPublic279Own4AndPostMerge2All15": "PASS",
+  "newPublicOwnCI": "UNRUN",
+  "scope": "Only additive five mobile QA and documentary qualification; all product/non-document producer inputs already merged exact. No whole5F or executor/provider claim."
+}

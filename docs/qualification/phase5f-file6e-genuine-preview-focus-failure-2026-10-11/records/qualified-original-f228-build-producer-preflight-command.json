@@ -1,0 +1,34 @@
+{
+  "stage": "qualified-original-f228-build-producer-preflight",
+  "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+  "argv": [
+    "python3",
+    "-B",
+    "/workspace/phase5f-file-two-r2-route-result-final-finite-source-review-attempt6/carry-original-f228-genuine-two-r2-file-migration.py",
+    "--original-f228-producer-for-genuine-two-r2-file-preview",
+    "producer-preflight"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3",
+    "SQLITE_TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3"
+  },
+  "startedAt": "2026-10-11T11:42:28.005142+00:00",
+  "status": "PASS",
+  "log": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime/qualified-original-f228-build-producer-preflight.log",
+  "pid": 1133237,
+  "processGroup": 1133237,
+  "originalStartTicks": "13220877",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T11:42:28.419809+00:00",
+  "logSha256": "44ebaa303713644672cafc49cfee64773c540ef7c1a048848ffbc026de299230"
+}

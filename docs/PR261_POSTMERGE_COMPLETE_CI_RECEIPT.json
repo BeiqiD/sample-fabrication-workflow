@@ -1,0 +1,93 @@
+{
+  "observedAt": "2026-10-11T01:37:15.670391+00:00",
+  "sourceHead": "1be6642406ae44f62c1b0bdb56e9e2877e6ed081",
+  "status": "POSTMERGE_VERIFY_MAP_REQUIRED15_SUCCESS",
+  "ownRuns": [
+    {
+      "id": 38100508911,
+      "name": "Verify",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38100508911"
+    },
+    {
+      "id": 38100508960,
+      "name": "Project Map performance",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38100508960"
+    }
+  ],
+  "requiredContexts": [
+    {
+      "context": "pre-pr/install",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-map-performance",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-foundation",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/tests",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/blob-lifecycle",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/reference-foundation",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/build",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/file-jobs",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-reference-placement",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-map",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-persistence",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-owned-content",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-canvas-productivity",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-edges",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-reading",
+      "state": "success"
+    }
+  ],
+  "otherObservedChecks": [
+    {
+      "name": "Workers Builds: sample-workflow-v3",
+      "status": "completed",
+      "conclusion": "failure",
+      "url": "https://dash.cloudflare.com/26171bb455a3f1da991acb2ab8d843f3/workers/services/view/sample-workflow-v3/production/builds/73120910-1b39-4cf0-a5a0-acc1002a63d1"
+    }
+  ],
+  "scope": "Post-merge complete CI and required contexts only; no served version, schema, provider or deployment assertion.",
+  "originalReceiptSha256": "a202b2d099f1a3073d64c8c0a3769902e6b9e706010b7cba8928c3dc50a7cd0d"
+}

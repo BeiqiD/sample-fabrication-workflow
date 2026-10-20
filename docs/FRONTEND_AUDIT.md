@@ -1,3 +1,44 @@
+## 2026-09-13 — Current Project refinement evidence
+
+Project refinements through merged PR #185 are deployed on the isolated v3
+integration site. The [current C4 record](./PROJECT_C4_ACCEPTANCE.md#current-integration-check--2026-09-13)
+owns exact build identity, CI evidence and the remaining acceptance matrix.
+It includes completed shortcut/command ownership, editing resize, Markdown
+composition, panel-state/dialog and source-focus refinements. At 1363 × 936,
+References and Inspector both measure 340px on Map and 380px in Reading, with
+matching 14px padding and 12px radius. The Sample note Referenced badge no longer
+intersects its timestamp; Delete note has 14px right clearance. Light and dark
+desktop checks passed. These measurements do not replace native-device or
+unverified viewport acceptance, or alter the frozen historical baseline below.
+
+## Historical 2026-09-11 — Math rendering and cross-surface card audit
+
+Follow-up to merged #167, prompted by Project Markdown displaying TeX source. This pass covers the shared renderer, Project Map/Reading/Inspector, Comment surfaces, Search controls, template/import cards, descriptions and confirmation dialogs.
+
+| Finding | Correction |
+| --- | --- |
+| Map and Inspector used a truncated plain-text Markdown excerpt | Render the complete source with the shared lazy renderer. Full-detail Map cards have a keyboard-accessible scroll region; compact/overview retain lightweight descriptors and visible-node culling. |
+| Generated card titles repeated Markdown/TeX source | Full Markdown cards use the document's own headings/content in Map, Reading and Inspector. Non-Markdown titles remain; Map titles wrap to two lines. |
+| Parent card heading/paragraph selectors and Reading pre-wrap leaked into rich content | Scope card chrome selectors and restore normal Markdown whitespace and zero-minimum grid columns. |
+| Explicit TeX parentheses rejected whitespace/newlines; escaped dollars closed formulas early | Scan unescaped closing delimiters, keep separate dollar and explicit-parenthesis rules. Only complete standalone display blocks interrupt paragraphs. |
+| Malformed TeX exposed fixed-color parser error HTML | Keep escaped source readable with the existing theme-aware error style. |
+| Compact Timeline line-clamped the rich tree and clipped matrices/fractions | Preserve complete content in a focusable scroll region. |
+| Global input/table styles distorted task-list checkboxes and scientific table headers | Reset native checkbox/radio sizes and rich-text table-header casing/typography. This also repairs Search filter controls. |
+| Common Comment pre-wrap doubled renderer-generated line breaks | Restrict legacy plain-text whitespace rules. |
+| Long template names, workbook fields and import parameters overflowed cards | Allow wrapping and zero-minimum grid columns; keep preview images in their column. |
+| Short-viewport confirmations lost action access | Constrain dialog height to the available viewport with internal scrolling. |
+| Sample/reference descriptions lost authored line breaks | Preserve whitespace on these plain-text description fields. |
+
+Validation: added renderer regressions for fractions, scripts, matrices/aligned, escaped delimiters, malformed TeX and protected code; mounted regressions cover complete Map/Inspector content past the old excerpt boundary, reading-key isolation, link double-click behavior, native text shortcuts in the actual ProjectPage, and compact Timeline scroll access. Existing representative Map performance and repository CI gates remain required. The representative performance fixture covers compact/overview and existing scale contracts; complex full-detail MathML layout still needs browser timing.
+
+At that initial checkpoint, the execution environment disconnected before
+implementation; source edits were prepared through the repository connection
+and locked Marked 18.0.9 / Temml 0.13.3 parsing was exercised in an isolated
+JavaScript runtime. The then-pending build and browser checks were subsequently
+recorded in `PROJECT_UX_REPAIR_ACCEPTANCE.md`, `PROJECT_C3_ACCEPTANCE.md` and
+`PROJECT_C4_ACCEPTANCE.md`. Preserve their specific versions and viewport
+limits; CI alone does not establish viewport or MathML font-layout acceptance.
+
 # Frontend implementation baseline
 
 Status: **frozen reference baseline**  

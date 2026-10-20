@@ -1,0 +1,60 @@
+{
+  "kind": "phase5f-ui-native-terminal-independent-source-peer/1",
+  "status": "SOURCE_CLEAR_NEW_ADMIN4_RUNTIME_UNRUN",
+  "reviewedAt": "2026-10-11T00:41:22.597089+00:00",
+  "reviewer": "/root/v26_qualification",
+  "sourceRoot": "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5",
+  "sourceHead": "63d720a807ab8b21a8f8c152cc3cb8314e615355",
+  "sourceTree": "bd0aac2ca2f0de8b7fddbbad4e5865b9e89dd0d8",
+  "sourceFreeze": {
+    "path": "/tmp/phase5f-admin-explicit-refresh-original-request-source-review-attempt5/frozen-single-QA-native-terminal-source.json",
+    "sha256": "a0b13f008f1d27a2ebeaf7bda50b9260670f8b3a5df85dd8d0404c03b4ab4886"
+  },
+  "exactInputs": {
+    "trackedWorkingBlobsIndependentlyVerified": 1707,
+    "same95ModeBlobWorkingEntries": 1706,
+    "soleChangedPath": "scripts/qa/phase5f/browser-enabled-admin-actual-api.mjs",
+    "helperSha256": "5b7334dd74fd0205fb1fa8c20772a5278c1300cba1ed50f226b66c7a759adede",
+    "full95PatchSha256": "9d3746c694299dfec37919891456d6e8269dbd15cca3293489c0c03a79bf9d0d",
+    "deltaFromUnrunFfc": "49 additions / 22 deletions, one helper only",
+    "cleanWorkingTree": true
+  },
+  "priorFinding": {
+    "sourceHead": "ffcaccb5622bff6ebffe2747b0b3ae3da062ebb2",
+    "freezeSha256": "c9064d91210109ab31109d216ab0d889ee39db1b7108bb4df6dcd50abb720640",
+    "finding": "Mandatory requestfailed and exact body error were not guaranteed by status-only503 product code. No actual run on ffc.",
+    "correction": "63d admits a genuinely finished original request and completed bounded/hash body; it does not require the hypothesized engine failure."
+  },
+  "observerReview": [
+    "Native requestfinished/requestfailed listeners arm before navigation. WeakMaps bind exactly response.request(); the same Response calls body once and retains that original terminal Promise.",
+    "Only admin-390-dark-read-retry, GET /api/storage/configuration503 can use the one body exception. Exact typed fixture restoration and genuine focused Refresh200 still precede the closed terminal/body-pair check under existing20s.",
+    "Finished branch requires native failure null. Body completed keeps observed hash and131072 bound; exact CDPNoData may instead be explicitly unused-error-body-unavailable with no payload/hash/cancellation claim.",
+    "Failed branch requires exact native ERR_ABORTED event observed after the controlled Refresh marker. Any unavailable-body exception must be the same original single body Promise and exact CDPNoData error; duplicate terminals and all other errors reject.",
+    "Every other API body remains completed/bounded/hashed, all original roles, denied readerPUT, alert/retry/display and schema/row assertions remain. No product source changes."
+  ],
+  "originalControlReview": [
+    "Original inherited TTY is required before owned startup. Explicit stop newline caches one stop Promise, marks interruption, restores the memoized original DDL while Worker/D1 remains alive, then awaits cached original context and browser closes.",
+    "Case finally closes the same original context and waits original body observations. Top finally awaits the same control-stop Promise, restores any retained fault, closes the cached browser, checks exact snapshot, awaits original Worker/JWKS disposal and port-refusal observations. Failed original closures remain failures; no retry or alternate disposer.",
+    "No self-await cycle found in the stated stop/action/finally graph. Main finally remains responsible for owners delivered after a stop snapshot. Waiting on genuinely unsettled original external work is conservative retention, not successful closure."
+  ],
+  "causalBuildCarry": {
+    "producerHead": "95ad6b88d833c16d6f9e62f4787101c7919b31c5",
+    "producerTree": "b2b18885a5b91c05b1272384897e24c8bf58476a",
+    "commandReceiptSha256": "6334349862c338c34370ac2a4ec83354d30dae17f13e798d1151e4b5eb074d0e",
+    "actualOriginalExitCode": 0,
+    "actualOriginalDirectChildReaped": true,
+    "actualOriginalNoActiveOwnedProcessOrFd": true,
+    "artifactManifestSha256": "491bb8208e6ac94da0266a12c98e8db2d713787e22acc1c329702422dc8f7562",
+    "regularProducerArtifactsIndependentlyRehashed": 118,
+    "regularCopiedInputsIndependentlyRehashed": 121,
+    "preservedInputCount": 1706,
+    "preservedInputInventorySha256": "46ccb104c44bfbaa6af7c4c9665d0ce5646093f8f7f23738d237023c22019057",
+    "claim": "Original95 actual build remains original95. Distinct63d QA consumer is eligible only through exact other-input equivalence; no new-head build or runtime claim."
+  },
+  "limits": [
+    "Native event order around the Refresh marker is observation evidence, not proof of browser engine root cause or that body bytes were observed when CDP reports NoData.",
+    "SIGTERM/143 remains external interruption; source does not promise graceful signal cleanup. TTY stop must be sent to the original live session; generic hung external initializer/cancellation still requires actual closure evidence.",
+    "Read-only Git/hash/source review only: zero compiler, build, browser, Worker, SQLite or socket invocations. All new admin4 and new stdin control behavior remain UNRUN pending parent finite approval/GO.",
+    "Historical focus2 and failed95 attempt remain historical. Draft-plan legacy whyFreshBuildIsQueued wording describes the old95 build; final approved plan should state the original95 causal carry explicitly."
+  ]
+}

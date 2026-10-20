@@ -1,0 +1,13 @@
+{
+  "status": "SOURCE_ONLY_UNRUN",
+  "originalRunner93Sha256": "93dadd450bc17084015b86f6047ef9bfbddcf97cb6ddf6e34474f6fcfaa82efd",
+  "correctedSharedRunnerSourcePath": "/tmp/phase5f-ui-execution-currente108-source-reconciliation/run-exact-finite-plan.z-preserving-source.py",
+  "correctedSharedRunnerSourceSha256": "7158a3aa96562639b73825744f32f6aa312659d7fc374e2aa9b99d73f46524b5",
+  "narrowPatchSha256": "3b470d0230f1dff19f94d9d2ccd6a2c81a9f00b2e8d895bbfabd6c267dc11f3b",
+  "delta": "Only group_members state metadata: preserve read stat pid/state/ppid/pgid and kernelResourcesExited for actualZ/X; fd permission recorded separately with no invented observed zeroFDcount. All other functions/body bytes are exact93. No source product/test/config/budget edits.",
+  "originalActualFirstFailureReceiptSha256": "d0881d89c8681266b9bad3ce136864e9523ca7f83ea5a1cbd5bc99685638c3a3",
+  "actualPostFailureDiagnosisPath": "/tmp/phase5f-ui-execution-currente108-runtime-98d81a1-attempt1/owned-post-failure-diagnosis.json",
+  "actualPostFailureDiagnosisSha256": "5ef3e0d9aa9db3b4fa7406315b5526d80e9375b69c4548e90b787359b062dbe5",
+  "runtimeExecutedAfterFailure": false,
+  "nextPlan": "Only original fresh npm run build after peer/newGO; no five-stagererun"
+}

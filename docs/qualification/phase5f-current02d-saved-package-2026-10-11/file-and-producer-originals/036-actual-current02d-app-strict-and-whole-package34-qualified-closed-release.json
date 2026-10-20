@@ -1,0 +1,65 @@
+{
+  "status": "PASS_CURRENT_APP_AND_WHOLE_PACKAGE34_CLOSED_RELEASED",
+  "sourceHead": "02d6dfbe5f2bd98847b3d6f509c219de5ad816ad",
+  "sourceTree": "40f4a540901e7c49d28184bb8b27a1f808b4f6b8",
+  "all2726WorkingTrackedBytesExact": true,
+  "actualCounts": {
+    "appStrict": 1,
+    "PackageMounted": {
+      "passed": 34,
+      "failed": 0,
+      "pending": 0,
+      "unrun": 0
+    },
+    "CFbuild": "UNRUN",
+    "SavedNative": "UNRUN",
+    "PackageNative": "UNRUN"
+  },
+  "originalChildren": [
+    {
+      "stage": "affected-app-strict",
+      "toolSession": 97250,
+      "pid": 1354240,
+      "startTicks": "14841959",
+      "exitCode": 0,
+      "originalWaitReaped": true,
+      "group": [],
+      "signals": []
+    },
+    {
+      "stage": "affected-package-mounted-file",
+      "toolSession": 94326,
+      "pid": 1355538,
+      "startTicks": "14868102",
+      "exitCode": 0,
+      "originalWaitReaped": true,
+      "group": [],
+      "signals": []
+    }
+  ],
+  "raw": {
+    "affected-app-strict-command.json": {
+      "path": "/workspace/phase5f-saved-package-typed-role-name-first-two-runtime-attempt2/affected-app-strict-command.json",
+      "sha256": "c4c1d6b4dd0bcafe639f521a291cf86a4aadf1fab495ea86a6f57333addd80e1",
+      "byteLength": 974
+    },
+    "affected-app-strict.log": {
+      "path": "/workspace/phase5f-saved-package-typed-role-name-first-two-runtime-attempt2/affected-app-strict.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "byteLength": 0
+    },
+    "affected-package-mounted-file-command.json": {
+      "path": "/workspace/phase5f-saved-package-typed-role-name-first-two-runtime-attempt2/affected-package-mounted-file-command.json",
+      "sha256": "7d2b8213c50673a030df7a331608588e3d77b444ffd90a879abe75b6eb2b755f",
+      "byteLength": 1383
+    },
+    "affected-package-mounted-file.log": {
+      "path": "/workspace/phase5f-saved-package-typed-role-name-first-two-runtime-attempt2/affected-package-mounted-file.log",
+      "sha256": "80637e4d2fcb63f12b276cb075e60c4483010baa36cb526752ed051e53deb004",
+      "byteLength": 260
+    }
+  },
+  "originalB4StaticFailurePreserved": "/workspace/phase5f-saved-file-package-focus-current-a0d-first-two-runtime-attempt1/original-b4-app-strict-first-failure-closed-release.json",
+  "scope": "Only original explicit app strict and wholePackage34 once on corrected02; File81215 exact source-equivalence historical carry, not rerun. Normal DOM cleanup/original child waits/reaps/groups empty/no signals. No Worker/browser/SQLite/fixture/build started or global process quiescence claim.",
+  "recordedAt": "2026-10-11T16:17:41.879594+00:00"
+}

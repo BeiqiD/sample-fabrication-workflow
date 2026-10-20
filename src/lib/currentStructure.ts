@@ -48,11 +48,12 @@ export function currentStructurePresentation(sample: CurrentStructureSample): Cu
 }
 
 export function hasRecordedStructure(
-  sample: Pick<SampleSummary, "currentStateStepTitle" | "currentStateThumbnailKey" | "latestWorkflowName" | "inheritedStateHash">,
+  sample: Pick<SampleSummary, "currentStateStepTitle" | "currentStateThumbnailKey" | "currentStateThumbnailUrl" | "latestWorkflowName" | "inheritedStateHash">,
 ) {
   return Boolean(
     sample.currentStateStepTitle
     || sample.currentStateThumbnailKey
+    || sample.currentStateThumbnailUrl
     || sample.latestWorkflowName
     || sample.inheritedStateHash,
   );

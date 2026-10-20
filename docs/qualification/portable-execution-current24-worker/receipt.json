@@ -1,0 +1,279 @@
+{
+  "kind": "portable-current-execution-four-nineteen-owned-actual/1",
+  "startedAt": "2026-10-10T22:14:02.888788+00:00",
+  "head": "4928ce953b37eb3fe5c7452d560fa0f41c0d6110",
+  "tree": "3fb2735159a27d0181de9e653d040ed5bca7436e",
+  "planSha256": "272e482019d9a483fe3182ff6500ddccf320ecb9ed70145d0b27c3f93b02151c",
+  "peer": "/tmp/portable-execution-current4928-independent-source-peer.json",
+  "peerSha256": "b13f8a1f810516bf992afc068fae2f81bae4c49577bd7f5ef03d482538d7b2b6",
+  "stages": [
+    {
+      "stage": "worker-strict",
+      "argv": [
+        "node_modules/.bin/tsc",
+        "--noEmit",
+        "-p",
+        "tsconfig.worker.json"
+      ],
+      "pid": 270263,
+      "processGroup": 270263,
+      "exitCode": 0,
+      "ownedClosure": "NO_ACTIVE_OWNED_PROCESSES",
+      "durationSeconds": 0.945,
+      "log": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/01-worker-strict.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "processGroupMembers": [],
+      "status": "PASS"
+    },
+    {
+      "stage": "server-strict",
+      "argv": [
+        "node_modules/.bin/tsc",
+        "--noEmit",
+        "-p",
+        "tsconfig.server.json"
+      ],
+      "pid": 270279,
+      "processGroup": 270279,
+      "exitCode": 0,
+      "ownedClosure": "NO_ACTIVE_OWNED_PROCESSES",
+      "durationSeconds": 1.185,
+      "log": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/02-server-strict.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "processGroupMembers": [],
+      "status": "PASS"
+    },
+    {
+      "stage": "execution-fixtures-strict",
+      "argv": [
+        "node_modules/.bin/tsc",
+        "--noEmit",
+        "-p",
+        "execution-metadata-qualification.tsconfig.json"
+      ],
+      "pid": 270326,
+      "processGroup": 270326,
+      "exitCode": 0,
+      "ownedClosure": "NO_ACTIVE_OWNED_PROCESSES",
+      "durationSeconds": 0.718,
+      "log": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/03-execution-fixtures-strict.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "processGroupMembers": [],
+      "status": "PASS"
+    },
+    {
+      "stage": "legacy-fixtures-strict",
+      "argv": [
+        "node_modules/.bin/tsc",
+        "--noEmit",
+        "-p",
+        "execution-legacy-fixture-ci-followup.tsconfig.json"
+      ],
+      "pid": 270342,
+      "processGroup": 270342,
+      "exitCode": 0,
+      "ownedClosure": "NO_ACTIVE_OWNED_PROCESSES",
+      "durationSeconds": 0.978,
+      "log": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/04-legacy-fixtures-strict.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "processGroupMembers": [],
+      "status": "PASS"
+    },
+    {
+      "stage": "legacy-seven",
+      "argv": [
+        "node_modules/.bin/vitest",
+        "run",
+        "worker/delete-run-route.test.ts",
+        "worker/metrology-routes.test.ts",
+        "--config",
+        "execution-legacy-fixture-ci-followup.vitest.config.mts",
+        "--bail=1",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/05-legacy-seven.json"
+      ],
+      "pid": 270359,
+      "processGroup": 270359,
+      "exitCode": 0,
+      "ownedClosure": "NO_ACTIVE_OWNED_PROCESSES",
+      "durationSeconds": 13.629,
+      "log": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/05-legacy-seven.log",
+      "logSha256": "9e6bb4ab019dafde3a8caebfb92bac580c572136b3e2371bac6860c67389cf82",
+      "processGroupMembers": [],
+      "rawJson": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/05-legacy-seven.json",
+      "rawJsonSha256": "ac818c729976754d0b9fa67a20f19a887efe95479ee8212f83280c8dd44dacf2",
+      "counts": {
+        "numTotalTests": 7,
+        "numPassedTests": 7,
+        "numFailedTests": 0,
+        "numPendingTests": 0,
+        "success": true
+      },
+      "actualAssertionStatuses": [
+        "passed",
+        "passed",
+        "passed",
+        "passed",
+        "passed",
+        "passed",
+        "passed"
+      ],
+      "status": "PASS"
+    },
+    {
+      "stage": "run-trash-current24-four",
+      "argv": [
+        "node_modules/.bin/vitest",
+        "run",
+        "worker/run-trash.qualification.test.ts",
+        "--config",
+        "execution-metadata-qualification.vitest.config.mts",
+        "--bail=1",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/06-run-trash-current24-four.json"
+      ],
+      "pid": 270450,
+      "processGroup": 270450,
+      "exitCode": 0,
+      "ownedClosure": "NO_ACTIVE_OWNED_PROCESSES",
+      "durationSeconds": 36.128,
+      "log": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/06-run-trash-current24-four.log",
+      "logSha256": "6c97ddb8d51beaf6dbd8d1513cb9d2c5aeaee535bc9cbd1c11d81082b5be5f97",
+      "processGroupMembers": [
+        {
+          "pid": 270483,
+          "state": "Z",
+          "kernelResourcesExited": true
+        },
+        {
+          "pid": 270492,
+          "state": "Z",
+          "kernelResourcesExited": true
+        }
+      ],
+      "rawJson": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/06-run-trash-current24-four.json",
+      "rawJsonSha256": "5bb5ab7cc452a7691d58bbe04637a73536f479efea9b734f7915247d946a5ccc",
+      "counts": {
+        "numTotalTests": 4,
+        "numPassedTests": 4,
+        "numFailedTests": 0,
+        "numPendingTests": 0,
+        "success": true
+      },
+      "actualAssertionStatuses": [
+        "passed",
+        "passed",
+        "passed",
+        "passed"
+      ],
+      "status": "PASS"
+    },
+    {
+      "stage": "metrology-current24-four",
+      "argv": [
+        "node_modules/.bin/vitest",
+        "run",
+        "worker/metrology-write.qualification.test.ts",
+        "--config",
+        "execution-metadata-qualification.vitest.config.mts",
+        "--bail=1",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/07-metrology-current24-four.json"
+      ],
+      "pid": 270657,
+      "processGroup": 270657,
+      "exitCode": 0,
+      "ownedClosure": "NO_ACTIVE_OWNED_PROCESSES",
+      "durationSeconds": 36.804,
+      "log": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/07-metrology-current24-four.log",
+      "logSha256": "a3fa66024911633f91c64dbe553758516dbe4fd76c15e7a3b7d19752576d34ec",
+      "processGroupMembers": [
+        {
+          "pid": 270690,
+          "state": "Z",
+          "kernelResourcesExited": true
+        },
+        {
+          "pid": 270699,
+          "state": "Z",
+          "kernelResourcesExited": true
+        }
+      ],
+      "rawJson": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/07-metrology-current24-four.json",
+      "rawJsonSha256": "0879a3effaaadc6477b9b70cff35ee714e322483c29c5fe1b2708a54805d2eed",
+      "counts": {
+        "numTotalTests": 4,
+        "numPassedTests": 4,
+        "numFailedTests": 0,
+        "numPendingTests": 0,
+        "success": true
+      },
+      "actualAssertionStatuses": [
+        "passed",
+        "passed",
+        "passed",
+        "passed"
+      ],
+      "status": "PASS"
+    },
+    {
+      "stage": "confirmation-current24-four",
+      "argv": [
+        "node_modules/.bin/vitest",
+        "run",
+        "worker/step-confirmation.qualification.test.ts",
+        "--config",
+        "execution-metadata-qualification.vitest.config.mts",
+        "--bail=1",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile.json=/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/08-confirmation-current24-four.json"
+      ],
+      "pid": 272304,
+      "processGroup": 272304,
+      "exitCode": 0,
+      "ownedClosure": "NO_ACTIVE_OWNED_PROCESSES",
+      "durationSeconds": 39.553,
+      "log": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/08-confirmation-current24-four.log",
+      "logSha256": "b6a8796379bb338b93ea1655242b64b616951179836d91b91f733d25bc7cb436",
+      "processGroupMembers": [
+        {
+          "pid": 272337,
+          "state": "Z",
+          "kernelResourcesExited": true
+        },
+        {
+          "pid": 272346,
+          "state": "Z",
+          "kernelResourcesExited": true
+        }
+      ],
+      "rawJson": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/08-confirmation-current24-four.json",
+      "rawJsonSha256": "0f0cb0e71b4b03346e18769ec0eebd1693a96cbc2fa1e7f4899546225f774d9d",
+      "counts": {
+        "numTotalTests": 4,
+        "numPassedTests": 4,
+        "numFailedTests": 0,
+        "numPendingTests": 0,
+        "success": true
+      },
+      "actualAssertionStatuses": [
+        "passed",
+        "passed",
+        "passed",
+        "passed"
+      ],
+      "status": "PASS"
+    }
+  ],
+  "runtimeReleased": true,
+  "oldCurrent23Native18Worker12": "HISTORICAL_NOT_RERUN",
+  "mountedNodeAuthPhysicalWriterComposition": false,
+  "completedAt": "2026-10-10T22:16:12.835174+00:00",
+  "remainingStagesUnrun": [],
+  "status": "PASS_FRESH_FOUR_STRICT_LEGACY7_CURRENT24_WORKER12",
+  "sourceCleanAfter": true
+}

@@ -1,0 +1,275 @@
+{
+  "version": 1,
+  "status": "CLOSED_RELEASED_WITH_ORIGINAL_STRICT_NATIVE_BODY_FAILURE",
+  "completedAt": "2026-10-11T09:25:58.045245+00:00",
+  "sourceHead": "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+  "qaConsumerHead": "83ca5d0c1ea0d170febd36e3043b37512478e60c",
+  "helperSha256": "ea70694752afee763dbb066bf35f6c6725a7fc12627d06b5562287a6439aeeb0",
+  "actualCommands": {
+    "count": 12,
+    "passed": 11,
+    "failed": 1,
+    "originalSeedStopLogicalStage": "PASS",
+    "whole13Stages": {
+      "passed": 12,
+      "failed": 1
+    }
+  },
+  "cases": {
+    "passed": 0,
+    "failed": 1,
+    "unrun": 1,
+    "failedID": "historical-backup-controls-1280-light",
+    "unrunIDs": [
+      "historical-backup-controls-390-dark"
+    ]
+  },
+  "failure": {
+    "scope": "Original native Pause200 response.body CDP NoData; original exact Request net::ERR_ABORTED before context cleanup",
+    "nativeInitialBodies": "caps/jobs/maintenance completed",
+    "backupPreview200": "completed",
+    "backup202": "completed and native/backend hashes match",
+    "callerSignalAbortObserved": false,
+    "originalApplicationPauseStream": {
+      "EOF": true,
+      "bytes": 366,
+      "hashScope": "complete-original-application-consumed-stream",
+      "hashMatchesSameOriginalBackendBody": true,
+      "cancelCalls": 0,
+      "releaseCalls": 1
+    },
+    "strictNativeBodyCriterionUnchanged": true,
+    "noProductCauseInference": true,
+    "noOldFailureCauseInference": true
+  },
+  "history": [
+    {
+      "stage": "settled-historical-backup-controls-1280-light",
+      "schemaExact": true,
+      "onlyThreeExplicitMetadataTablesMayDiffer": true,
+      "allOtherApplicationTablesExact": true,
+      "original63WritePermitsExact": true,
+      "addedPermits": 0,
+      "acceptedJobs": 1,
+      "requestRows": 1,
+      "runtimeEnabled": 1,
+      "runtimeIncarnationSha256": "536c9d2474493168f4724f4b4aa27bb45d8290e768b387263f1a2132515bce50",
+      "runtimeRowSha256": "2a1b84a1618e5938d8278d5fed08a7006bed520daf3b9ad5cbb0b11f3dad15d6",
+      "lineages": [
+        {
+          "jobId": "faa5ffac-4002-4b2f-a1a5-ccb902e0a89c",
+          "requestId": "0fa5ae7f-1499-469f-b1c6-211db8d5f6df",
+          "actorMatchesCurrentSignedSubject": true,
+          "actorSha256": "5e685ebf41964f639f7cfd400fdfe7af27235920b84afae43456490d57625260",
+          "inputSha256": "dab5b4e87455f5eb96d1c5a2882af0894e3d3ced578c3825bd240e45089225e1",
+          "checkpointSha256": "944281dab220b6b58386d470c482560520fef6a8df927785d35d9c12e18936cf",
+          "state": "paused",
+          "generation": 1,
+          "reason": "paused_by_administrator",
+          "jobSha256": "05cd215b59682240b609e6614635a663d9947c95ef0b975978eb6db8ef1f1e7d",
+          "requestSha256": "3ed20a09f32e54c8652a75dd442cf3fd259a92daa9647d9be312244db27d0857",
+          "noExecutionOrTargetOrArtifactWork": true
+        }
+      ]
+    },
+    {
+      "stage": "after-original-shared-disable",
+      "schemaExact": true,
+      "onlyThreeExplicitMetadataTablesMayDiffer": true,
+      "allOtherApplicationTablesExact": true,
+      "original63WritePermitsExact": true,
+      "addedPermits": 0,
+      "acceptedJobs": 1,
+      "requestRows": 1,
+      "runtimeEnabled": 0,
+      "runtimeIncarnationSha256": "7cdc30be4708ed018241a83ffd13fc677e00cfbe57965878c2d1336120a7ee03",
+      "runtimeRowSha256": "969a5078403555d9e244f0d12598bb7ec31cd3a55e600c62e404457860d378a8",
+      "lineages": [
+        {
+          "jobId": "faa5ffac-4002-4b2f-a1a5-ccb902e0a89c",
+          "requestId": "0fa5ae7f-1499-469f-b1c6-211db8d5f6df",
+          "actorMatchesCurrentSignedSubject": true,
+          "actorSha256": "5e685ebf41964f639f7cfd400fdfe7af27235920b84afae43456490d57625260",
+          "inputSha256": "dab5b4e87455f5eb96d1c5a2882af0894e3d3ced578c3825bd240e45089225e1",
+          "checkpointSha256": "944281dab220b6b58386d470c482560520fef6a8df927785d35d9c12e18936cf",
+          "state": "paused",
+          "generation": 1,
+          "reason": "paused_by_administrator",
+          "jobSha256": "05cd215b59682240b609e6614635a663d9947c95ef0b975978eb6db8ef1f1e7d",
+          "requestSha256": "3ed20a09f32e54c8652a75dd442cf3fd259a92daa9647d9be312244db27d0857",
+          "noExecutionOrTargetOrArtifactWork": true
+        }
+      ]
+    }
+  ],
+  "acceptedMutations": [
+    {
+      "ordinal": 1,
+      "kind": "shared-enable",
+      "status": 200,
+      "outcome": "response_accepted"
+    },
+    {
+      "ordinal": 2,
+      "kind": "backup",
+      "status": 202,
+      "outcome": "response_accepted"
+    },
+    {
+      "ordinal": 3,
+      "kind": "control",
+      "status": 200,
+      "outcome": "response_accepted"
+    },
+    {
+      "ordinal": 4,
+      "kind": "shared-disable",
+      "status": 200,
+      "outcome": "response_accepted"
+    }
+  ],
+  "closure": {
+    "originalSeedTTY": 5217,
+    "originalBrowserTTY": 13711,
+    "all12DirectChildrenReaped": true,
+    "normalHelperClosure": {
+      "sessionId": "7898c656-b441-444a-9e97-39ac2de3a1bf",
+      "startedAt": "2026-10-11T09:24:19.695Z",
+      "status": "closed",
+      "browserCloseAwaited": true,
+      "originalSharedWorkBeforeDisableAwaited": 1,
+      "originalDisableAwaited": true,
+      "originalSharedWorkAwaited": {
+        "count": 2,
+        "rejected": 0
+      },
+      "originalApplicationCatalogRowsPermitsAndAcceptedHistoryVerified": true,
+      "executorDisabledReadBack": true,
+      "workerDisposeAwaited": true,
+      "workerPortRefused": true,
+      "jwksCloseAwaited": true,
+      "jwksPortRefused": true,
+      "completedAt": "2026-10-11T09:24:22.309Z"
+    },
+    "noOwnedCleanupSignals": true,
+    "groupsEmpty": 9,
+    "groupsWithOnlyKernelExitedZAndPermissionError": 3,
+    "FDInspectionLimit": "Kernel Z/PPID1 resources exited; recorded FD PermissionError, no observed zeroFD/global quiescence claim"
+  },
+  "physical": {
+    "beforeGroups": 2,
+    "afterGroups": 4,
+    "afterStatus": "passed"
+  },
+  "finalPins": "PASS original2489/protected2488/actual118/copied121 causal source scope; zero builds",
+  "actualApiCosts": {
+    "auxiliaryGets": 2,
+    "browserGets": 4,
+    "browserMutationIntents": 2,
+    "originalServerMutationRequestsIssued": 4,
+    "sharedMutationRequests": 2,
+    "originalMutationRequestsMaximum": 10,
+    "acceptedMetadataMutationResponses": 4,
+    "productionPollingMayAddReadOnlyGets": true,
+    "originalRouteFetchForwardsOneNativeIntentOnce": true,
+    "scheduledOrStepInvocationsByHelper": 0,
+    "zipOrProviderOrTargetOperationsByHelper": 0
+  },
+  "originals": [
+    {
+      "path": "/workspace/recovery-initial-reader-f228-private-attempt4/runtime/final-source-artifact-input-pins-command.json",
+      "sha256": "78f914f426f450b9c6916480d56ac8297022ac1963d21e7d0693c8290bd84e3a",
+      "bytes": 1483
+    },
+    {
+      "path": "/workspace/recovery-initial-reader-f228-private-attempt4/runtime/fresh-current-source-build-witness-command.json",
+      "sha256": "b0617f4f19e6b8a3ba376d9caf8c442c43042fa76c721bdff0615415993ccd32",
+      "bytes": 1484
+    },
+    {
+      "path": "/workspace/recovery-initial-reader-f228-private-attempt4/runtime/fresh-two-version-sentinel-command.json",
+      "sha256": "c33eaaee11f2020fd2dad43a70514ff74933aeb14eb0558c601f7dd61799c51d",
+      "bytes": 1895
+    },
+    {
+      "path": "/workspace/recovery-initial-reader-f228-private-attempt4/runtime/genuine-signed-admin-recovery-job-controls-two-command.json",
+      "sha256": "668862aabd2e89bc82a37b919f0335c38cdb07d6d95f6f2c4d18f347dcc76c8d",
+      "bytes": 2545
+    },
+    {
+      "path": "/workspace/recovery-initial-reader-f228-private-attempt4/runtime/isolated-copy-command.json",
+      "sha256": "33624436c3c9527e3b55c16fd5fcc79e6f2f25e0cc1630e7edb3473677a6a2eb",
+      "bytes": 1417
+    },
+    {
+      "path": "/workspace/recovery-initial-reader-f228-private-attempt4/runtime/mature-genuine-api-84-only-command.json",
+      "sha256": "c08c766975440c56ee88a77802f7bc95e2daa88db9f68ad3bda967e367ad971d",
+      "bytes": 1273
+    },
+    {
+      "path": "/workspace/recovery-initial-reader-f228-private-attempt4/runtime/ordinary-actual24-local-migrations-command.json",
+      "sha256": "49d88bb75a84f9e0639aad33d5fd72e46a3f7c3882033ae1378fbe949e373f96",
+      "bytes": 2008
+    },
+    {
+      "path": "/workspace/recovery-initial-reader-f228-private-attempt4/runtime/owned-built-worker-command.json",
+      "sha256": "ce316b239db12384ab18b6508a75477032824637dcae0802f005b6bf9eace7ca",
+      "bytes": 1733
+    },
+    {
+      "path": "/workspace/recovery-initial-reader-f228-private-attempt4/runtime/physical-after-command.json",
+      "sha256": "a554e5602944c5f2431942dc93158427b1aac03251d36f7817893d337f40a80c",
+      "bytes": 1668
+    },
+    {
+      "path": "/workspace/recovery-initial-reader-f228-private-attempt4/runtime/physical-before-command.json",
+      "sha256": "6541f3944fcfdcd93f21340d3171edd09a7ef0c4a7675020caf4196595e98cbf",
+      "bytes": 1352
+    },
+    {
+      "path": "/workspace/recovery-initial-reader-f228-private-attempt4/runtime/qualified-original-f228-build-producer-preflight-command.json",
+      "sha256": "86645fcd4990fd9f370c0dfbc96711318750c09e76a4ced8f9e0bad3f563c659",
+      "bytes": 1490
+    },
+    {
+      "path": "/workspace/recovery-initial-reader-f228-private-attempt4/runtime/synthetic-template-sentinels-only-command.json",
+      "sha256": "d25d28daee834fd46a500179c0b4e7db14f5c9da8a0b85a6fffd4b9f821c70e2",
+      "bytes": 2096
+    },
+    {
+      "path": "/workspace/recovery-initial-reader-f228-private-attempt4/fixture/genuine-recovery-job-controls-browser-report-original-initial-reader-attempt4.json",
+      "sha256": "0d56f2271d722416e1f6b7737cebdeb5191c8b8f2b6449ceaabd1ad2b23d7a2b",
+      "bytes": 70632
+    },
+    {
+      "path": "/workspace/recovery-initial-reader-f228-private-attempt4/fixture/genuine-recovery-job-controls-runtime-stop-original-initial-reader-attempt4.json",
+      "sha256": "16d65e7ca38b02f34126323479cc35a5fe932c0265e88abf844f1fa90da9029a",
+      "bytes": 579
+    },
+    {
+      "path": "/workspace/recovery-initial-reader-f228-private-attempt4/fixture/physical-sqlite-before-api.json",
+      "sha256": "d1b31c4eeb0d256f33c70c992792747ed25384f65c9f104abe427b9acb1464bc",
+      "bytes": 58314
+    },
+    {
+      "path": "/workspace/recovery-initial-reader-f228-private-attempt4/fixture/physical-sqlite-after-shutdown.json",
+      "sha256": "7830bfb187e69ec2a703311a802d837ca6274a23a8f5e8da5761c70d6bcd29c3",
+      "bytes": 63204
+    },
+    {
+      "path": "/workspace/recovery-initial-reader-f228-private-attempt4/fixture/isolated-server-receipt.json",
+      "sha256": "bf35b9549fe8f641112ded1d596b55bcc0889f145b2152381180742d6f5331a6",
+      "bytes": 3462
+    },
+    {
+      "path": "/workspace/recovery-initial-reader-f228-private-attempt4/fixture/isolated-server-stop-receipt.json",
+      "sha256": "7e28f856c126641a3a907f6ee38f45f46c7474715c18e73de88d9274246bb4a0",
+      "bytes": 1057
+    },
+    {
+      "path": "/workspace/recovery-initial-reader-f228-private-attempt4/fixture/actual-api-fixture-receipt.json",
+      "sha256": "0bee9064fb925b45f8087e7b709c4f2d306449ff2d1090c39072e8de8eac20fe",
+      "bytes": 51646
+    }
+  ]
+}

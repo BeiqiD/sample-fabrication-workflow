@@ -1,0 +1,27 @@
+{
+  "status": "ORDINARY_DEVELOPMENT_SQUASH_MERGED_EXACT_QUALIFIED_TREE",
+  "recordedAt": "2026-10-11T12:46:04.732621+00:00",
+  "pr": 270,
+  "qualifiedHead": "bfebbd63d537f13c4da66a18ef7295b7eab6a38b",
+  "mergeHead": "51ab2b59fea69c2e033994ab6a02b146f9ab6071",
+  "qualifiedAndMergedTree": "ca40022eaf64147b876dfe457b55d36edcf47186",
+  "mergeCommand": [
+    "gh",
+    "pr",
+    "merge",
+    "270",
+    "--repo",
+    "BeiqiD/sample-fabrication-workflow",
+    "--squash",
+    "--match-head-commit",
+    "bfebbd63d537f13c4da66a18ef7295b7eab6a38b"
+  ],
+  "adminBypass": false,
+  "premergeReceiptSha256": "3051eb04a187f4db789b767c6133660951d4ab710a3dc6d91ca7a2b20b4a1f54",
+  "postmergeCI": "SEPARATE_PENDING",
+  "records": {
+    "merged-pr270.json": "1154b354354b29cf53ab27e0eabb4f1e3d3df4085492149faaa5856c2acacf04",
+    "merged-git-commit.json": "f9c147a1c6afd9c07659b5755ac9bcd47aad30eb59cecf96acc1a00b2978c60b",
+    "merged-development-branch.json": "a253f9bf044931e011f4031aa833d044439e304fac4e83485da705e0f928595d"
+  }
+}

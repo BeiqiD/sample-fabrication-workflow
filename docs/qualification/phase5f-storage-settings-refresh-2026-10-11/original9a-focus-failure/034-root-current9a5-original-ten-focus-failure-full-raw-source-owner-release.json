@@ -1,0 +1,167 @@
+{
+  "status": "ROOT_STORAGE9A5_ORIGINAL_TEN_FOCUS_FAILURE_FULL_READ_CLOSED_RELEASED",
+  "utc": "2026-10-11T21:38:01.122979+00:00",
+  "formal": {
+    "path": "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/actual-current5e-storage-refresh-original-ten-focus-failure-closed-release.json",
+    "sha256": "853ef8090aaaa562393486a8c3d9c1193bb851b5d1eec0d6dcf703187da6aefa"
+  },
+  "all32OriginalRawReferences": {
+    "/tmp/phase5f-refresh-current5e-two-native-final-peer-source-preparation-attempt2/storage/finite-current5e-genuine-refresh-ten-plan.json": "3fafd3b893bf12c2d42a57033144bbd80d11edf466086b8398a36fa947b377a9",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/original-tool-responses.json": "e18c2e1083fab7092218dea0447afcb6b8776d4b30e4e4542c2f533361cf0ecc",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight-command.json": "56b62ea54e9cb3db5fe30b4a57ccfa0d6de38bb5202c7aa8a02c0171797f9215",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight.log": "811fc33b462a648eb40b3d9fa8daccec7b45c556cafa10699b4aafd36202afd8",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/isolated-copy-command.json": "3fea9501692394045b843ecee541a8a165905a47c396e41d40f755fdd6bea4d2",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/isolated-copy.log": "952ec7259eda1602ac2b1c727c7aa9c892057cbba01621ce3365468a1ec1608f",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/fresh-two-version-sentinel-command.json": "b50e64ba991840ad375ef9e25ac6a90eeb742032d563bf6cf0ac1c866ecb63ea",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/fresh-two-version-sentinel.log": "0de2e50a384acc0a23d853f03f4d3dcd1c01b9b6c011e56f8ec6850480eeeeff",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/ordinary-actual24-local-migrations-command.json": "75519905fb20a2aa05fa3876a721d4d5321854c8e03d95495bbb7ad00c04e1e9",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/ordinary-actual24-local-migrations.log": "ebfb1793825a936e2099b29fcee350f7780d11eb4c19f2fa4ac353369255f24d",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/synthetic-template-sentinels-only-command.json": "360367013fd9686875e6d9017b0f27a16f03d420ab43b2ca0a1892ae7382a67b",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/synthetic-template-sentinels-only.log": "d720aaa47d157938f2323ea62be324423c23d0103453ef7299dbe8df054f99f6",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/physical-before-command.json": "0ad0fab73a30dde695bceced7b0b12999bfacb0333de033a35106e42de4a0823",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/physical-before.log": "5c97acce70d45c541162570f13ed91238fd416fc2ee021c33bef11c065a98ba1",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/current-source-build-and-pure24-witness-command.json": "350a690731acb10b83a63cc1320e4c2de4b1c0bf580eff8cd7e1adfd98298dc5",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/current-source-build-and-pure24-witness.log": "a4d1f829534cbde102c7be9d0d82705e3ce8b0600747e78d98d055d7c7a54927",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/original-one-current-storage-settings-refresh-keyboard-command.json": "0331663f39ccce1d6d7be5f2f4a81f22a688457f110eda82035e4d3f0ae8c1b5",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/original-one-current-storage-settings-refresh-keyboard.log": "75b189c1cb691259dd0a8275deb4ae28873d85d58d39258c427a0c0325afa0d6",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/physical-after-command.json": "e73b197cc6133f6c39d4013b09ff00241deac05466116fe1396d76438813775c",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/physical-after.log": "f2fc19fc36a4915a2c801d7d05c1a5b56cdf31859ca87b73c29c9547e6f56544",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/final-source-artifact-input-pins-command.json": "f0abd4f201300e3e58b568b30db454f521916e535523033a3a14f2b9cabe4b7c",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/final-source-artifact-input-pins.log": "14096c5d1f80e38d845954773cf7c8fd91c0ea2707a81322229b04df6f125b26",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/fixture/process-fixture.json": "a88551326e672b0890057e8ca76df4ee4e86ef016dda16e0cb5a85a1ba13fc99",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/fixture/process-fixture.sql": "34b2f2fedce7ceea232c6e97348145ec12505c6ea0c89c2b07155d9e96775e83",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/fixture/physical-sqlite-before-api.json": "c46e8a66c49ea8943e2360d0ed69025e2cd189f01fd9a1666c3576a9050df81d",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/fixture/enabled-storage-draft-build-input-witness.json": "a52768061849b68afcc26ac7ac6a366efd103f3be1f720f874aaef9be36c910f",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/fixture/genuine-storage-settings-refresh-keyboard-report.json": "2928c4489868d5d251a709861f3b9b54b77f14bc527604fdb7c3880da55c4ec5",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/fixture/genuine-storage-settings-refresh-keyboard-stop.json": "07fce0f72a5f8224882379469718a2db740a396d71070d7a67d242c2cdf7bdba",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/fixture/physical-sqlite-after-current-storage-status-refresh-keyboard.json": "d43fcd4d3b65ec4d3cbcbf04e652dbe47ede7c7895ce049c031084c64e69abe5",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/final-current5e-source-and-genuine-refresh-pins.json": "8f1bf38761740419f3d40bad287eb0d4667162fdf54c791d18df0de6e2b10820",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/chromium-child-temp-owner.json": "9ebd129d9d6e5bd0412d15beecdd897bc85e1e3226ae81aa031f21b70a3b311f",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/current02d-build-new-pure24-native-causal-carry.json": "a7134f5f7b77145e5d653824783cea8dd8ecbc42adbe20ae5445140a3e6a734d"
+  },
+  "fullProducerGitPhysicalModes": 2726,
+  "fullConsumerGitPhysicalModes": 2729,
+  "fullCopyTracked2726Artifacts121Original118": true,
+  "allOriginal10DirectWaitReapedNoSignals": true,
+  "actualCommandCounts": {
+    "total": 10,
+    "passed": 9,
+    "failed": 1,
+    "unrun": 0
+  },
+  "actualNativeCounts": {
+    "passed": 0,
+    "failed": 1,
+    "unrun": 0
+  },
+  "case": {
+    "id": "current-coherent-storage-settings-refresh-keyboard-1280-light",
+    "width": 1280,
+    "height": 1000,
+    "theme": "light",
+    "error": "{\"kind\":\"object\",\"name\":\"TimeoutError\",\"message\":\"page.waitForFunction: Timeout 19935ms exceeded.\"}",
+    "assertions": [
+      {
+        "initialCurrentSettings": {
+          "version": 3,
+          "profileCount": 2,
+          "originalBodiesCompleted": true
+        }
+      },
+      {
+        "refreshedCurrentSettings": {
+          "version": 3,
+          "profileCount": 2,
+          "originalBodiesCompleted": true
+        }
+      }
+    ],
+    "originalRoutesAwaited": {
+      "count": 23,
+      "rejected": 0
+    },
+    "originalBodiesAwaited": {
+      "count": 4,
+      "rejected": 0
+    },
+    "originalWaitsAwaited": {
+      "count": 4,
+      "rejected": 0
+    },
+    "originalReadOnlyHistory": {
+      "stage": "settled-current-coherent-storage-settings-refresh-keyboard-1280-light",
+      "allSchemaAndTypedTableRowsExact": true,
+      "old6PermitsExact": true,
+      "newReleasedPermits": 0,
+      "sourceBytesExact": true,
+      "targetEmpty": true,
+      "executorSteps": 0
+    },
+    "contextCloseAwaited": true,
+    "apiStatusBodyRecords": [
+      {
+        "path": "/api/settings/storage",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "c598cd85d871eb6d6b3bc0c14a26217377053126180d263a694e5f060c5037c4"
+      },
+      {
+        "path": "/api/storage/configuration/capability",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "635c1a510be4a89b46d9144f09780f1a1e794d1235555fd6f60b7d3761299e54"
+      },
+      {
+        "path": "/api/settings/storage",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "c598cd85d871eb6d6b3bc0c14a26217377053126180d263a694e5f060c5037c4"
+      },
+      {
+        "path": "/api/storage/configuration/capability",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "635c1a510be4a89b46d9144f09780f1a1e794d1235555fd6f60b7d3761299e54"
+      }
+    ]
+  },
+  "normalOriginalOwnerClosure": {
+    "status": "closed",
+    "browserCloseAwaited": true,
+    "originalPreparationOwnerClosure": {
+      "status": "closed",
+      "startedAt": "2026-10-11T21:24:05.740Z",
+      "originalRequestsAwaited": {
+        "count": 12,
+        "rejected": 0
+      },
+      "workerDisposeAwaited": true,
+      "workerPortRefused": true,
+      "originalOutboundWorkAwaited": {
+        "count": 1,
+        "rejected": 0
+      },
+      "jwksCloseAwaited": true,
+      "jwksPortRefused": true,
+      "completedAt": "2026-10-11T21:24:06.888Z"
+    }
+  },
+  "physicalCounts": {
+    "before": 2,
+    "after": 5,
+    "status": "passed",
+    "originalStateBytesUnchanged": true,
+    "genuineUploadPhysicalPNGMatched": true
+  },
+  "knownKernelScope": {
+    "emptyOwnedGroups": 7,
+    "kernelExitedZombieGroups": 3,
+    "fdLimitation": "Original Z/PPID1 records retain FD PermissionError; no observed zero-FD or all-groups-empty/global-quiescence claim. No signals."
+  },
+  "exclusiveReleased": true,
+  "nextAction": "Product focus repair 8be requires own affected checks and ONE new current build; same9a retry prohibited. Package old9a and Start202 unrun."
+}

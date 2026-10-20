@@ -1,0 +1,108 @@
+{
+  "kind": "independent-ui-execution98-source-union-peer/1",
+  "at": "2026-10-10T22:32:48.896175+00:00",
+  "result": "CLEAR_PRODUCT_SOURCE_AND_RETAINED_EVIDENCE_ONLY_RUNNER_CORRECTION_REQUIRED",
+  "root": "/workspace/remaining-5f-ui-execution-currente108-source-integration",
+  "head": "98d81a170394a140fb63e970b31d1985bd56f68d",
+  "tree": "62d67e1c9fb3d59d74c49e0eceebe4ef2975ffe4",
+  "base": "e10849614afbb4807c86b3f0fc2fc357ba70ceda",
+  "parents": [
+    "d0c2088b1acc5cc1789c519fd912b29d7420feba",
+    "4928ce953b37eb3fe5c7452d560fa0f41c0d6110"
+  ],
+  "sourceReceiptSha256": "7e46f73ac538f30ef0dc59c8fe165fa2f675869f4fff1e9eddb2f980cd292b8b",
+  "finitePlanSha256": "17c2984c99f3850074fc69cdcdaef1984c9ac6a4febdcd55e89d92d5c995ffd5",
+  "cleanHeadAll1642WorkingBytesMatchCommitted": true,
+  "union": {
+    "paths": 90,
+    "UI": 35,
+    "Execution": 35,
+    "parentPathSetsDisjoint": true,
+    "newCuratedEvidence": 20,
+    "unchangedBaseModeBlobBytes": 1552,
+    "all114CurrentV26EntriesModeBlobBytesPreserved": true,
+    "Execution35Exactly4928": true,
+    "UI31ExceptFourDatedDocsExactlyD0": true
+  },
+  "inputPins": {
+    "sharedMiddlewareAndRuntimeInputsExactBothParents": 15,
+    "finiteDirectInputsExactD0": 17,
+    "prior13BrowserEntryInputsExact3cAndD0": 13,
+    "finiteRelativeInputInventory": 419,
+    "changedFiniteInputsExactlyAcceptedExecution12": [
+      "worker/execution/confirmation-d1.ts",
+      "worker/execution/confirmation-service.ts",
+      "worker/execution/confirmation-sql.ts",
+      "worker/execution/confirmation-surface.ts",
+      "worker/execution/confirmation-worker.ts",
+      "worker/execution/metrology-write-service.ts",
+      "worker/execution/metrology-write-surface.ts",
+      "worker/execution/metrology-write-worker.ts",
+      "worker/execution/routes.ts",
+      "worker/execution/run-trash-service.ts",
+      "worker/execution/run-trash-surface.ts",
+      "worker/execution/run-trash-worker.ts"
+    ],
+    "executionRelativeChangedInputsExactlyUIWitness6": [
+      "shared/contracts/project-creation-subject.ts",
+      "shared/project-creation-subject.ts",
+      "worker/project-routes.ts",
+      "worker/projects/creation-subject.ts",
+      "worker/projects/read-surface.ts",
+      "worker/projects/read-worker.ts"
+    ],
+    "relativeClosureScope": "Owner conservative literal relative-import inventories are bounded source evidence, not complete browser/compiler/config/asset closure; complete tree preservation independently verified."
+  },
+  "retainedExecutionEvidence": {
+    "source": "4928ce953b37eb3fe5c7452d560fa0f41c0d6110",
+    "sourceTree": "3fb2735159a27d0181de9e653d040ed5bca7436e",
+    "originalRawFiles": 14,
+    "originalRawAndCuratedBytesAllRehashed": true,
+    "frozenSourcePlanPeerAndExactGitPatchRehashed": true,
+    "strictStages": 4,
+    "testCases": 19,
+    "rawReporterCounts": [
+      7,
+      4,
+      4,
+      4
+    ],
+    "failed": 0,
+    "pending": 0,
+    "allEightOwnedGroupsActuallyEmptyInRetainedFinalInspection": true,
+    "notNewCombinedExecution12": true,
+    "notNewCurrent24Native18": true
+  },
+  "dependencyProvenance": {
+    "sharedInstalledRealRoot": "/workspace/sample-fabrication-workflow/node_modules",
+    "packageAndLockAndInstalledHiddenLockRehashed": true,
+    "perPackageAttestation": false
+  },
+  "finiteAffectedPlan": {
+    "commands6ArgumentsExactlyPriorD0": true,
+    "expectedCases": [
+      6,
+      37,
+      38
+    ],
+    "originalConfigsAssertionsAndBudgetsPreserved": true,
+    "freshCombinedBuildRequired": true,
+    "runtimeStatus": "UNRUN_PARENT_EXCLUSIVE_GO_REQUIRED",
+    "completeOwnVerifyMapRequiredOnFinalCombinedHead": true
+  },
+  "sourceDocsReview": [
+    "Final dated docs correctly identify Step-confirmation, Run trash/restore and Metrology metadata MUTATION services and retain distinct genuine proof scopes.",
+    "HistoricalUI3c4/2f6 remain separate; no newcombined browser acceptance or old121 artifact reuse.",
+    "Draft260 superseded only after qualified combined259 merge; no independent260merge claim.",
+    "Whole5F/RT1-6/NodeFile/jobs/provider/device/fullDocker gates remain unfinished."
+  ],
+  "ownedRunnerSource": {
+    "path": "/tmp/phase5f-ui-execution-currente108-source-reconciliation/run-exact-finite-plan.py",
+    "sha256": "bb19e3995d1086b6304d110004628a54eefa7e49add5622b246d08726de097d1",
+    "result": "BLOCKED_ORIGINAL_SOURCE",
+    "finding": "process.wait is outside try/finally and detached child ownership has no interruption/signal closure; runner interruption or unexpected wait/log exception can bypass close_owned_group and final receipt. Owner is preparing separate runner-only fix. All six product commands remain source-clear, but this runner must not be invoked until corrected source is independently reviewed.",
+    "reviewOnly": "AST parse and full source read; no invocation"
+  },
+  "typesTestsSqlBuildDockerGeneratorsExecutedByReviewer": false,
+  "canonicalOrRemoteMutation": false
+}

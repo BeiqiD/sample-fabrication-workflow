@@ -1,0 +1,21 @@
+{
+  "status": "PR277_ORDINARY_MERGE_PASS_EXACT_QUALIFIED_TREE",
+  "head": "553be9e0d1dc9415bd4f3676a6121a9fbea5f056",
+  "baseBefore": "d3ab40c8d341c1dcc310803ddcd01eb2d3f6eec2",
+  "mergedAt": "2026-10-11T21:41:25Z",
+  "mergeCommit": "c0613686710863e2adf4d30379a12ea76827b043",
+  "mergedTree": "f9f8e218d5c12eeefb77b2a9c432f748c7e90c67",
+  "qualifiedTree": "f9f8e218d5c12eeefb77b2a9c432f748c7e90c67",
+  "treeExactlyEqual": true,
+  "ownFourAndAll15Passed": true,
+  "rootGO": {
+    "path": "/tmp/root-pr277-own-complete-ci-ordinary-merge-attempt2/root-full-own-ci-exact-source-ordinary-merge-go.json",
+    "sha256": "7ae77c6f518a915c8f00719fe0fff5d224507420d4e84e5bc3eb67548558389f"
+  },
+  "originalOneMerge": {
+    "path": "/tmp/root-pr277-own-complete-ci-ordinary-merge-attempt2/original-one-ordinary-merge-child-wait.json",
+    "sha256": "5f3f35b28c93975a7689819070d316608af49e7ec377dc6c3413547eb67e8a9a"
+  },
+  "postmergeCompleteChecks": "NEW_SCOPE_PENDING_NOT_INHERITED",
+  "developmentOnly": true
+}

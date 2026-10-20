@@ -1,0 +1,21 @@
+
+ RUN  v4.1.10 /workspace/portable-current-a5-qualified-writer-continuation-source-attempt1
+
+ ✓ server/files/local-file-runtime-optin.qualification.ts > explicitly starts the real operational File runtime and restarts with the same published bytes and exact native cells 4260ms
+ ✓ server/files/local-file-runtime-optin.qualification.ts > keeps existing active profiles unavailable to File HTTP when the explicit runtime opt-in is omitted 2115ms
+ ✓ server/files/local-file-runtime-optin.qualification.ts > keeps explicit false unavailable without inventing a default File role or publishing an asset 2093ms
+ ✓ server/files/local-file-runtime-optin.qualification.ts > refuses nonboolean opt-in and enabled configurations without independently pinned volumes before starting a runtime 2464ms
+ ✓ server/files/local-file-runtime-optin.qualification.ts > retains the original operational runtime through an admitted held Request and commits only after original body EOF 3006ms
+stdout | server/files/local-file-runtime-optin.qualification.ts
+Retained explicitly configured Node File application fixture evidence: {
+  directory: '/workspace/current-a5-qualified-writer-runtime-six-owned-actual-attempt1/private-fixtures/.node-local-file-runtime-optin-rWaUag'
+}
+
+ ✓ server/files/local-file-runtime-optin.qualification.ts > requires the original current authenticated Request even with explicitly enabled stored File authority 2062ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  13:30:46
+   Duration  22.14s (transform 3.28s, setup 46ms, import 3.63s, tests 18.34s, environment 0ms)
+
+JSON report written to /workspace/current-a5-qualified-writer-runtime-six-owned-actual-attempt1/actual-native.json

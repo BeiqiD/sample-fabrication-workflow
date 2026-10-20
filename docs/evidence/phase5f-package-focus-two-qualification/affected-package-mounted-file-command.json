@@ -1,0 +1,36 @@
+{
+  "stage": "affected-package-mounted-file",
+  "cwd": "/tmp/phase5f-package-preview-focus-current1943-source-attempt3",
+  "argv": [
+    "node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "vitest.mounted.config.ts",
+    "src/research-packages.mount.test.tsx",
+    "--maxWorkers",
+    "1",
+    "--bail",
+    "1"
+  ],
+  "control": "Whole original affected file (26 mature + 2 new = 28cases), unchanged mounted configuration/default5s/max1/bail1. Firstfailure stops build/fixture/browser.",
+  "startedAt": "2026-10-11T04:11:24.346678+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-package-preview-focus-fresh-build-runtime-attempt3/affected-package-mounted-file.log",
+  "pid": 727452,
+  "processGroup": 727452,
+  "originalStartTicks": "10514511",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T04:11:26.706820+00:00",
+  "logSha256": "b07dfe708736cb91906190eb6e19e6b791dfc79d991adc8f6093ff64c1dc444f"
+}

@@ -1,0 +1,47 @@
+{
+  "kind": "selective-qualified-writer-one-affected-node-static/1",
+  "status": "PASS",
+  "scope": "current-node-server",
+  "sourceHead": "eaef0b5d1346faaa5cdf0fc8db0d9439919f1c42",
+  "sourceTree": "0908d3c9f3c17a46ca0c8c5459ed906e6ccd4512",
+  "sourceInputs": 2575,
+  "sourcePinsVerifiedBefore": true,
+  "sourceFreezePath": "/workspace/current-a5-qualified-writer-continuation-source-handoffs/complete-before-affected-node-types-source-freeze.json",
+  "sourceFreezeSha256": "bd8f5568cd5abfd542c068884c83490721150a1d85316a553f5cf03efdd88ede",
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "/workspace/sample-fabrication-workflow/node_modules/typescript/bin/tsc",
+    "--project",
+    "tsconfig.server.json",
+    "--noEmit",
+    "--incremental",
+    "false"
+  ],
+  "noRuntimeOrWorkerAppRepeat": true,
+  "exitCode": 0,
+  "originalChildWaitedReaped": true,
+  "originalChildCustody": {
+    "pid": 1215366,
+    "processGroup": 1215366,
+    "command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "/workspace/sample-fabrication-workflow/node_modules/typescript/bin/tsc",
+      "--project",
+      "tsconfig.server.json",
+      "--noEmit",
+      "--incremental",
+      "false"
+    ],
+    "closureInitialSnapshot": [],
+    "actualExitCode": 0,
+    "closureFinalSnapshot": [],
+    "ownedClosureProven": true
+  },
+  "durationSeconds": 1.472,
+  "sourcePinsVerifiedBeforeAfter": true,
+  "logPath": "/workspace/current-a5-qualified-writer-continuation-source-handoffs/affected-node-types-attempt1/original-types.log",
+  "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "originalGroupAfter": [],
+  "closed": true,
+  "compilerChecks": 1
+}

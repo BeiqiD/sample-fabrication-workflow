@@ -1,0 +1,228 @@
+{
+  "status": "source-only-static-candidate; native DDL/pins unobserved",
+  "checkpointId": "portable-runtime/v28",
+  "rawMigrationPath": "design/collaboration/0026_group_enforcement.sql",
+  "rawMigrationName": "0026_group_enforcement.sql",
+  "rawMigrationSha256": "a9d8c46e53ff0f0c5d7d39472454c72e8b544dec50b14c3e91e9014ac46b1dfd",
+  "expectedApplicationSchemaSha256": "604e3b04fefed5d3d8aa8281c4fd728cd73cd69dd40056d268ee1880ed558efd",
+  "expectedLexicalSchemaSha256": "f8e87a2a7c6fa6c0e89d0e02f8cca81e0880598ce6ded5a1dce99e7d4b7a83ca",
+  "expectedNodeSchemaSha256": "6f09258e8e2a46799e149000a64ab2363696d689fbda68be8816f01d89de46cb",
+  "replacementSchemaObjects": [
+    {
+      "type": "table",
+      "name": "collaboration_control",
+      "tableName": "collaboration_control",
+      "sql": "CREATE TABLE collaboration_control (\n singleton INTEGER PRIMARY KEY CHECK(singleton=1),\n schema_version INTEGER NOT NULL CHECK(schema_version=2),\n enforcement TEXT NOT NULL CHECK(enforcement IN('disabled','enabled')),\n revision INTEGER NOT NULL CHECK(typeof(revision)='integer' AND revision BETWEEN 1 AND 9007199254740991)\n) WITHOUT ROWID"
+    },
+    {
+      "type": "trigger",
+      "name": "collaboration_control_update_guard",
+      "tableName": "collaboration_control",
+      "sql": "CREATE TRIGGER collaboration_control_update_guard BEFORE UPDATE ON collaboration_control BEGIN\n SELECT RAISE(ABORT,'Collaboration control identity is immutable')\n  WHERE NEW.singleton IS NOT OLD.singleton OR NEW.schema_version IS NOT OLD.schema_version;\n SELECT RAISE(ABORT,'Collaboration control requires an exact next revision')\n  WHERE NEW.revision<>OLD.revision+1;\nEND"
+    },
+    {
+      "type": "trigger",
+      "name": "collaboration_control_delete_guard",
+      "tableName": "collaboration_control",
+      "sql": "CREATE TRIGGER collaboration_control_delete_guard BEFORE DELETE ON collaboration_control\n BEGIN SELECT RAISE(ABORT,'Collaboration control is installation owned'); END"
+    },
+    {
+      "type": "trigger",
+      "name": "collaboration_control_insert_guard",
+      "tableName": "collaboration_control",
+      "sql": "CREATE TRIGGER collaboration_control_insert_guard BEFORE INSERT ON collaboration_control\n BEGIN SELECT RAISE(ABORT,'Collaboration control is installation owned'); END"
+    },
+    {
+      "type": "table",
+      "name": "local_auth_events",
+      "tableName": "local_auth_events",
+      "sql": "CREATE TABLE local_auth_events (\n    sequence INTEGER PRIMARY KEY,\n    principal_id TEXT,\n    kind TEXT NOT NULL CHECK(kind IN ('bootstrap','destination_bootstrap','login','login_denied','session_rotated','password_reset','account_disabled','administrator_revoked','account_created')),\n    happened_at INTEGER NOT NULL CHECK(happened_at >= 0)\n  ) STRICT"
+    }
+  ],
+  "localRecoveryTableSpecs": [
+    {
+      "name": "collaboration_control",
+      "columns": [
+        "singleton",
+        "schema_version",
+        "enforcement",
+        "revision"
+      ],
+      "withoutRowid": true,
+      "local": true,
+      "classification": "local",
+      "primaryKeyColumns": [
+        "singleton"
+      ]
+    },
+    {
+      "name": "collaboration_members",
+      "columns": [
+        "member_id",
+        "display_name",
+        "state",
+        "workspace_role",
+        "can_create_samples",
+        "can_create_projects",
+        "can_create_templates",
+        "revision"
+      ],
+      "withoutRowid": true,
+      "local": true,
+      "classification": "local",
+      "primaryKeyColumns": [
+        "member_id"
+      ]
+    },
+    {
+      "name": "collaboration_identities",
+      "columns": [
+        "provider",
+        "issuer",
+        "subject",
+        "member_id",
+        "enabled",
+        "revision"
+      ],
+      "withoutRowid": true,
+      "local": true,
+      "classification": "local",
+      "primaryKeyColumns": [
+        "provider",
+        "issuer",
+        "subject"
+      ]
+    },
+    {
+      "name": "collaboration_resources",
+      "columns": [
+        "root_kind",
+        "root_id",
+        "visibility",
+        "revision"
+      ],
+      "withoutRowid": true,
+      "local": true,
+      "classification": "local",
+      "primaryKeyColumns": [
+        "root_kind",
+        "root_id"
+      ]
+    },
+    {
+      "name": "collaboration_grants",
+      "columns": [
+        "root_kind",
+        "root_id",
+        "member_id",
+        "capability",
+        "enabled",
+        "revision"
+      ],
+      "withoutRowid": true,
+      "local": true,
+      "classification": "local",
+      "primaryKeyColumns": [
+        "root_kind",
+        "root_id",
+        "member_id"
+      ]
+    }
+  ],
+  "localSeedRows": {
+    "collaboration_control": {
+      "columns": [
+        "singleton",
+        "schema_version",
+        "enforcement",
+        "revision"
+      ],
+      "rows": [
+        {
+          "rowid": null,
+          "cells": [
+            {
+              "type": "integer",
+              "value": "1"
+            },
+            {
+              "type": "integer",
+              "value": "2"
+            },
+            {
+              "type": "text",
+              "value": "disabled"
+            },
+            {
+              "type": "integer",
+              "value": "1"
+            }
+          ]
+        }
+      ]
+    },
+    "collaboration_members": {
+      "columns": [
+        "member_id",
+        "display_name",
+        "state",
+        "workspace_role",
+        "can_create_samples",
+        "can_create_projects",
+        "can_create_templates",
+        "revision"
+      ],
+      "rows": []
+    },
+    "collaboration_identities": {
+      "columns": [
+        "provider",
+        "issuer",
+        "subject",
+        "member_id",
+        "enabled",
+        "revision"
+      ],
+      "rows": []
+    },
+    "collaboration_resources": {
+      "columns": [
+        "root_kind",
+        "root_id",
+        "visibility",
+        "revision"
+      ],
+      "rows": []
+    },
+    "collaboration_grants": {
+      "columns": [
+        "root_kind",
+        "root_id",
+        "member_id",
+        "capability",
+        "enabled",
+        "revision"
+      ],
+      "rows": []
+    }
+  },
+  "historicalV27ReviewSha256": "5fab96e8549e8bc94f2f4500eb57ad37d3f08b2472e3f3351077b4d84109c10f",
+  "historicalV27ExpectedPins": {
+    "expectedApplicationSchemaSha256": "f1303c296bd189e0724df97d02653633b6393582b7b0cc890f3c975ea99bfc92",
+    "expectedLexicalSchemaSha256": "a559f5c9f31c8b15be7dfdcb592cebe7b6acaefdf6cc90327094e308f74af4ca",
+    "expectedNodeSchemaSha256": "ee71d6f59c6e0141f2df309d95230919f1d2b21ffb5c9700ee9f9820453f575f"
+  },
+  "ordinaryAccountAuthority": "no administrator/session/member/root grants",
+  "operationalDefault": "unchanged portable-runtime/v26; raw migration inventory24",
+  "forwardRecovery": "system-backup/5 records/5 image5; all5authoritytables omitted; targetcontrol(1,2,disabled,1)+4empty",
+  "historicalV26Inputs": {
+    "shared/contracts/portable-runtime-v26-recovery-catalog.ts": "933d14153cda618ad7e19c3e147047e22bff7cd2838304ba90ac936275c86c85",
+    "worker/recovery/portable-runtime-v26-trusted-schema.ts": "4c89c3c1586aee88017e8a35fe713bc9041ab94e5c34081c8055a3438eb27aaa",
+    "server/installation-catalog-v26.ts": "55688ec4bbfea94423bdc00ae58a5097ed277e4d3169be3ba070b4f09a537aff",
+    "server/operational-installation-catalog.ts": "eb07706e3145278645d1b2077da37e6c247ea605dcc9d8125b7341479ca87100",
+    "shared/contracts/system-backup-v3.ts": "325559ae3165981b7cc0d8fc8edd8408497431210e802f91841b66512fdf9df3",
+    "shared/contracts/export-portable-runtime-v26.ts": "79aed8a993233463f19ca28ff0ee7479e4c475bfbda70e3d73d27faa0acb3e9f",
+    "shared/contracts/export-business-v26.ts": "48d554c78135889db48b2465153a5d7b946de510806209a60971e06a6ed8bef3"
+  },
+  "inertPredecessorAuthority": "all4authoritytables must be empty; no grandfathered proposal grants"
+}

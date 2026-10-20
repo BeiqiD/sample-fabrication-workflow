@@ -1,0 +1,31 @@
+{
+  "stage": "fresh-current-source-build-witness",
+  "control": "After actual f88 producer PASS, new isolated1792+121 copy and mature84 PASS plus originalseedWorker normalstop/directreap, bind original118 actual dist build to the newly generated namespace/config inventory. No new build, no old01/95 application artifacts.",
+  "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+  "argv": [
+    "python3",
+    "-B",
+    "/tmp/phase5f-package-two-genuine-preview-finite-source-review-attempt1/verify-qualified-f88-producer-and-package-two-witness.py",
+    "--qualified-f88-producer-for-package-two",
+    "witness"
+  ],
+  "startedAt": "2026-10-11T03:41:30.810919+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/fresh-current-source-build-witness.log",
+  "pid": 689072,
+  "processGroup": 689072,
+  "originalStartTicks": "10335158",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T03:41:31.114371+00:00",
+  "logSha256": "1d0dfc4a5d8ca3a9a451c8e9b5e3fcb905afc814121055de2943b92287de54bf"
+}

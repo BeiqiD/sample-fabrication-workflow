@@ -1,0 +1,78 @@
+import fs from "node:fs";
+import { describe, expect, it } from "vitest";
+
+describe("Phase 3B4 edge contract", () => {
+  it("keeps the bounded edge model and persistence routes explicit", () => {
+    const types = fs.readFileSync("shared/contracts/project-types.ts", "utf8");
+    const api = fs.readFileSync("shared/contracts/project-api.ts", "utf8");
+    const routes = fs.readFileSync("worker/project-routes.ts", "utf8");
+    expect(types).toContain('PROJECT_EDGE_HANDLES = ["top", "right", "bottom", "left"]');
+    expect(types).toContain('PROJECT_EDGE_MARKERS = ["none", "arrow"]');
+    expect(api).toContain("interface CreateProjectEdgeInput");
+    expect(api).toContain("candidate.sourceItemId !== candidate.targetItemId");
+    expect(routes).toContain('routes.post("/projects/:projectId/edges"');
+    expect(routes).toContain('routes.patch("/projects/:projectId/edges/:edgeId"');
+    expect(routes).toContain('routes.delete("/projects/:projectId/edges/:edgeId"');
+    expect(routes).toContain('routes.post("/projects/:projectId/edges/:edgeId/restore"');
+  });
+
+  it("keeps endpoint reconnection and advanced routing outside the first edge slice", () => {
+    const plan = fs.readFileSync("docs/PROJECT_EDGES_IMPLEMENTATION_PLAN.md", "utf8");
+    const roadmap = fs.readFileSync("docs/PRODUCT_ROADMAP.md", "utf8");
+    const canvas = fs.readFileSync("docs/PROJECT_CANVAS_INTERACTION_CONTRACT.md", "utf8");
+    const surface = fs.readFileSync("src/components/project/ProjectMapSurface.tsx", "utf8");
+    const page = fs.readFileSync("src/pages/ProjectPage.tsx", "utf8");
+    expect(plan).toContain("Changing source/target occurrence or either handle is deliberately **not** an update");
+    expect(plan).toContain("ordinary Bezier edges only");
+    expect(plan).toContain("No first-version self-loop, obstacle avoidance, draggable control point, relation ontology");
+    expect(roadmap).toContain("**Status:** complete; squash-merged in PR #136.");
+    for (const document of [plan, roadmap, canvas]) expect(document).not.toContain("Draft PR #136");
+    expect(canvas).toContain("Phase 4B Canvas productivity is");
+    expect(canvas).toContain("Phase 4B1 — multi-selection and grouped geometry");
+    expect(canvas).toContain("**Geometry undo/redo**");
+    expect(canvas).toContain("**Edge undo/redo**");
+    expect(canvas).toContain("[PROJECT_EDGES_IMPLEMENTATION_PLAN.md](./PROJECT_EDGES_IMPLEMENTATION_PLAN.md)");
+    expect(surface).toContain("edgeInteractionDisabled?: boolean");
+    expect(page).toContain("edgeInteractionDisabled={edgeController.interactionDisabled}");
+    expect(page).not.toContain('externalBusy: saveState !== "saved"');
+    expect(page).toContain("Dirty/saving placement state must not serialize");
+  });
+
+  it("owns Project edge theme, interaction, and failure-state language", () => {
+    const surface = fs.readFileSync("src/components/project/ProjectMapSurface.tsx", "utf8");
+    const css = fs.readFileSync("src/components/project/project-map-surface.css", "utf8");
+    expect(css).toMatch(/\.project-flow-canvas\s*\{[\s\S]*?--xy-edge-stroke:\s*var\(--line-strong\);/);
+    expect(css).toContain("--xy-edge-stroke-selected: var(--accent);");
+    expect(css).toContain("--xy-connectionline-stroke: var(--accent);");
+    expect(css).toContain("--xy-edge-label-background-color: var(--paper);");
+    expect(css).toContain("--xy-edge-label-color: var(--ink);");
+    expect(css).toContain(".react-flow__edge.project-edge-pending.error .react-flow__edge-path");
+    expect(css).toContain(".react-flow__edge.project-edge-pending.conflict .react-flow__edge-path");
+    expect(surface).toContain('selected ? "var(--accent)" : "var(--line-strong)"');
+    expect(surface).toContain('status === "error" || status === "conflict"');
+    expect(css).not.toMatch(/--xy-edge-[^:]+:\s*#[0-9a-f]/i);
+  });
+
+  it("keeps Phase 3B4 in the permanent fail-closed verification chain", async () => {
+    const pkg = JSON.parse(fs.readFileSync("package.json", "utf8")) as { scripts: Record<string, string> };
+    const workflow = fs.readFileSync(".github/workflows/verify.yml", "utf8");
+    const statusPublisher = fs.readFileSync("scripts/publish-commit-status.mjs", "utf8");
+    expect(pkg.scripts["test:project-edges"]).toContain("src/project-edges-contract.test.ts");
+    expect(pkg.scripts["test:project-edges-mounted"]).toContain("src/project-edges.mount.test.tsx");
+    expect(pkg.scripts["test:project-edges-mounted"]).toContain("src/project-edge-surface.mount.test.tsx");
+    expect(pkg.scripts["verify:project-edges"]).toContain("verify:project-worker");
+    expect(pkg.scripts["verify:project-edges"]).toContain("verify-project-map-bundle.mjs");
+    expect(pkg.scripts["verify:v3-deployment"]).toContain("run-verification.mjs --mode deploy");
+    expect(workflow).toContain("npm run verify:ci");
+    expect(workflow).toContain('VERIFY_PUBLISH_STATUSES: "1"');
+    // The shared plan owns domain status dependencies; its executable tests
+    // enforce coverage/configuration parity without fixing workflow formatting.
+    const { verificationPlan } = await import("../scripts/verification-plan.mjs");
+    for (const mode of ["ci", "deploy"]) {
+      expect(verificationPlan(mode).contexts["pre-pr/project-edges"]).toEqual(
+        expect.arrayContaining(["source", "mounted", "build", "map-bundle", "project-worker"]),
+      );
+    }
+    expect(statusPublisher).not.toContain("`${baseContext}/${slug}`");
+  });
+});

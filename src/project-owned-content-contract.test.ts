@@ -1,0 +1,236 @@
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+
+const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
+
+describe("Phase 3B3 Project-owned content contract", () => {
+  it("keeps new Markdown renderer-local until an explicit save starts the authoritative create", () => {
+    const page = read("./pages/ProjectPage.tsx");
+    const map = read("./components/project/ProjectMapSurface.tsx");
+    expect(map).toContain("onMarkdownCreateRequest(point)");
+    expect(map).toContain('ariaLabel={markdownEditor.isNew ? "New Project Markdown"');
+    expect(page).toContain("projectMarkdownGeometryAtPoint");
+    expect(page).toContain("markdownCreateInputRef.current = null");
+    expect(page).toContain("projectApi.createMarkdownItem(projectId, input)");
+    expect(page.indexOf("projectApi.createMarkdownItem(projectId, input)")).toBeGreaterThan(page.indexOf("const saveMarkdown"));
+  });
+
+  // Escape now cancels editable existing drafts as well as new ones. Behavioral
+  // and unresolved-save coverage lives in project-markdown-editor.mount.test.tsx
+  // and project-inspector-edit-session.mount.test.tsx.
+
+  it("uploads generic files through the Project asset route before creating one authoritative occurrence", () => {
+    const page = read("./pages/ProjectPage.tsx");
+    const client = read("./lib/project-client.ts");
+    const foundation = read("../worker/project-foundation-routes.ts");
+    const uploadClient = read("./lib/r2-upload-client.ts");
+    expect(client).toContain('uploadAttachmentAsset: (file: File,');
+    expect(uploadClient).toContain('"/api/project-assets"');
+    expect(uploadClient).toContain('"x-project-filename-uri": encodeURIComponent(checkpoint.filename)');
+    expect(client).toContain('/items/attachment`');
+    expect(foundation).toContain('routes.post("/project-assets"');
+    expect(foundation).not.toContain('startsWith("image/")');
+    expect(foundation).toContain("decodeURIComponent(encoded)");
+    expect(page).toContain("const asset = await projectApi.uploadAttachmentAsset(file, { context:");
+    expect(page).toContain("locator: { assetId: asset.id }");
+    expect(page).toContain("await performAttachmentProjectCreate(generation, input, file)");
+  });
+
+  it("freezes uncertain requests while allowing correction after a determined rejection", () => {
+    const page = read("./pages/ProjectPage.tsx");
+    const map = read("./components/project/ProjectMapSurface.tsx");
+    expect(page).toContain("markdownCreateInputRef.current");
+    expect(page).toContain("markdownUpdateInputRef.current");
+    expect(page).toContain("pendingAttachmentInputRef.current");
+    expect(page).toContain("attachmentUpdateInputRef.current");
+    const editor = read("./components/project/ProjectMarkdownEditor.tsx");
+    expect(map).toContain("editor={markdownEditor}");
+    expect(editor).toContain('const canEdit = editor.status === "editing" || editor.status === "error"');
+    expect(editor).toContain("disabled={!canEdit}");
+    expect(page).toContain('disabled={attachmentEditor.status !== "editing" && attachmentEditor.status !== "error"}');
+    expect(page).toContain('current.status === "uncertain" && failureStatus === "error"');
+  });
+
+  it("only exact-retries outcome-uncertain owned-content mutations", () => {
+    const page = read("./pages/ProjectPage.tsx");
+    expect(page).toContain('if (!current || current.status !== "uncertain") return;\n    void saveMarkdown();');
+    expect(page).toContain('if (!file || !current || current.status !== "uncertain") return;');
+    expect(page).toContain('if (!current || current.status !== "uncertain") return;\n    void saveAttachmentMetadata();');
+    expect(page).toContain('pendingAttachment?.status === "uncertain"');
+    expect(page).toContain('markdownEditor?.status === "uncertain"');
+    expect(page).toContain('attachmentEditor?.status === "uncertain"');
+    expect(page).not.toContain('pendingAttachment?.status === "error" || pendingAttachment?.status === "conflict" || pendingAttachment?.status === "uncertain") && <button type="button" className="button primary compact-button" onClick={retryAttachment}');
+  });
+
+  it("uses MIME identity for image rendering and keeps source attachments on the reference path", () => {
+    const page = read("./pages/ProjectPage.tsx");
+    const map = read("./components/project/ProjectMapSurface.tsx");
+    const model = read("./lib/project-map-model.ts");
+    expect(map).toContain("projectAttachmentCanPreviewImage(descriptor.mimeType)");
+    expect(map).toContain('className="project-node-image"');
+    expect(map).toContain("onError={() => setFailedPreviewUrl(previewUrl)}");
+    const reading = read("./components/project/ProjectReadingSurface.tsx");
+    const presentation = read("./components/project/ProjectAttachmentPresentation.tsx");
+    expect(reading).toContain("<ProjectAttachmentPresentation");
+    expect(presentation).toContain("projectAttachmentCanPreviewImage(mimeType)");
+    expect(presentation).toContain("setFailedPreviewUrl(imagePreviewUrl)");
+    expect(model).toContain("attachmentCaption");
+    expect(page).toContain("<ReferenceSearchSurface");
+    expect(page).not.toContain("sourceAttachmentId");
+  });
+
+  it("keeps occurrence classification textual and reserves semantic color for real state", () => {
+    const model = read("./lib/project-map-model.ts");
+    const map = read("./components/project/ProjectMapSurface.tsx");
+    const reading = read("./components/project/ProjectReadingSurface.tsx");
+    const inspector = read("./lib/project-inspector-model.ts");
+    const inspectorDetails = read("./components/project/ProjectInspectorDetails.tsx");
+    const css = read("./components/project/project-map-surface.css");
+    expect(model).toContain("export function projectNodeKindLabel");
+    expect(map).toContain("projectNodeKindLabel(descriptor.kind)");
+    expect(reading).toContain("projectNodeKindLabel(node.kind)");
+    expect(inspector).toContain("projectNodeKindLabel(descriptor.kind)");
+    expect(inspectorDetails).toContain("projectNodeKindLabel(descriptor.kind)");
+    expect(css).toMatch(/\.project-map-node > header\s*\{[\s\S]*?flex-wrap:\s*wrap;/);
+    expect(css).not.toContain(".project-map-node-markdown::before");
+    expect(css).not.toContain(".project-map-node-attachment::before");
+    expect(css).not.toContain(".project-map-node-reference::before");
+    expect(css).toContain(".project-map-node.pending.error::before");
+    expect(css).toContain(".project-map-node.pending.conflict::before");
+  });
+
+  it("anchors the context menu to the Project Map canvas", () => {
+    const css = read("./components/project/project-map-surface.css");
+    expect(css).toMatch(/\.project-flow-canvas\s*\{[\s\S]*?position:\s*relative;/);
+    expect(css).toContain(".project-map-context-menu {");
+    expect(css).toContain("position: absolute;");
+  });
+
+  it("keeps the Canvas borderless beneath floating panels and owns a complete context menu", () => {
+    const page = read("./pages/ProjectPage.tsx");
+    const map = read("./components/project/ProjectMapSurface.tsx");
+    const projectCss = read("./project.css");
+    const mapCss = read("./components/project/project-map-surface.css");
+
+    expect(page).toContain('data-reference-open={desktopView === "map" && referencePanelOpen}');
+    expect(page).toContain('data-inspector-open={desktopView === "map" && inspectorPanelOpen}');
+    expect(page).toContain('data-panel-presentation={desktop ? "floating" : "modal"}');
+    expect(page).toContain("contextCommands={contextCommands}");
+    const workspaceOpening = page.match(/<div className="project-desktop-workspace[^>]+>/)?.[0];
+    expect(workspaceOpening).toBeDefined();
+    expect(workspaceOpening).not.toContain("aria-modal");
+    expect(workspaceOpening).not.toContain("inert=");
+
+    expect(projectCss).toMatch(/\.project-desktop-workspace\s*\{[\s\S]*?position:\s*relative;[\s\S]*?border:\s*0;/);
+    expect(projectCss).toMatch(/\.project-map-panel\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?inset:\s*0;/);
+    expect(projectCss).toMatch(/\.project-reference-sidebar,\s*\.project-inspector\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?border:\s*1px solid var\(--line\);/);
+    expect(projectCss).toContain('--project-map-controls-left: calc(');
+    expect(mapCss).toContain("left: var(--project-map-controls-left, 10px)");
+
+    expect(map).toContain("onPaneContextMenu={handlePaneContextMenu}");
+    expect(map).toContain("onNodeContextMenu={handleNodeContextMenu}");
+    expect(map).toContain("onEdgeContextMenu={handleEdgeContextMenu}");
+    expect(map).toContain('"Add Markdown here"');
+    expect(map).toContain('"Paste here"');
+    expect(map).toContain("contextCommands.pasteSelection(contextMenu.point)");
+    expect(map).toContain('"Align horizontal centers"');
+    expect(map).toContain('"Copy stable link"');
+    expect(map).toContain('"Edit edge"');
+    expect(map).toContain('"Delete edge"');
+    expect(map).toContain('event.key === "ArrowDown"');
+    expect(map).toContain('event.key === "Escape"');
+
+    expect(map).toContain('import { createPortal } from "react-dom"');
+    expect(map).toContain('closest<HTMLElement>(".project-desktop-workspace")');
+    expect(map).toContain("createPortal(contextMenuElement, contextMenuPortalTarget)");
+    expect(projectCss).toMatch(/\.project-desktop-workspace > \.project-map-context-menu\s*\{[^}]*z-index:\s*30;/s);
+    expect(projectCss).toMatch(/\.project-reference-sidebar,\s*\.project-inspector\s*\{[^}]*z-index:\s*6;/s);
+
+    expect(map).toContain('label: "Open attachment"');
+    expect(map).toContain('label: "Open source URL"');
+    expect(map).toContain("projectMarkdownSafeImageSrc(descriptor.fileUrl)");
+    expect(map).toContain("projectMarkdownSafeHref(descriptor.attachmentSourceUrl)");
+    expect(map).not.toContain("descriptor.attachmentSourceUrl || descriptor.fileUrl");
+
+    expect(page).toContain("createDisabled: createCommandDisabled");
+    expect(page).toContain("edgeInspectDisabled");
+    expect(page).toContain("edgeEditDisabled: edgeMutationCommandsDisabled");
+    expect(page).toContain("edgeDeleteDisabled: edgeMutationCommandsDisabled");
+    expect(page).toContain("const edgeMutationCommandsDisabled = edgeController.interactionDisabled");
+    expect(page).not.toContain("edgeCommandsDisabled");
+    expect(page).toContain("if (selectProjectEdge(edgeId) === false) return");
+    expect(map).toContain("if (onEdgeSelect(edge.id) === false) return");
+    expect(map).toContain("disabled: contextCommands.edgeInspectDisabled");
+    expect(map).toContain("disabled: contextCommands.edgeEditDisabled");
+    expect(map).toContain("disabled: contextCommands.edgeDeleteDisabled");
+    expect(page).toContain("alignmentDisabled: alignmentActionDisabled");
+    expect(page).toContain("zOrderDisabled: zOrderActionDisabled");
+    expect(map).toContain('disabled: contextCommands.alignmentDisabled("left")');
+    expect(map).toContain('disabled: contextCommands.zOrderDisabled("bring-to-front")');
+    expect(page).toContain("focusReferencePanel");
+    expect(page).toContain("focusInspectorPanel");
+    // Panel visibility and focus behavior are exercised by the mounted session
+    // regressions rather than requiring the former Inspector-only ref name.
+  });
+
+  it("keeps the dedicated gate on the real Project asset Worker path", () => {
+    const packageJson = read("../package.json");
+    const workerSmoke = read("../scripts/verify-project-worker.mjs");
+    expect(packageJson).toContain("worker/project-routes.test.ts");
+    expect(packageJson).toContain("npm run verify:project-worker");
+    expect(workerSmoke).toContain("/api/project-assets");
+    expect(workerSmoke).toContain('encodeURIComponent("smoke.bin")');
+    expect(workerSmoke).not.toContain("project-smoke-asset");
+  });
+
+  it("keeps creation in the shared Add menu and renders local drafts in either projection", () => {
+    const page = read("./pages/ProjectPage.tsx");
+    const reading = read("./components/project/ProjectReadingSurface.tsx");
+    const referencePanelStart = page.indexOf('id="project-reference-panel"');
+    const referenceSearchStart = page.indexOf("<ReferenceSearchSurface", referencePanelStart);
+    const permanentReferencePanelContent = page.slice(referencePanelStart, referenceSearchStart);
+    expect(page).toContain('{desktop ? <div className="project-desktop-workspace with-reference-sidebar"');
+    expect(page).toContain('desktopView === "map" ? <>');
+    expect(referencePanelStart).toBeGreaterThan(-1);
+    expect(referenceSearchStart).toBeGreaterThan(referencePanelStart);
+    expect(permanentReferencePanelContent).not.toContain("Add Project content");
+    expect(permanentReferencePanelContent).not.toContain("Add attachment");
+    expect(page).not.toContain("requestAttachmentAtCenter");
+    expect(page).toContain("onAttachmentRequest={requestAttachmentAt}");
+    expect(page).toContain("suggestionSeeds={referenceSuggestionSeeds}");
+    expect(reading).not.toContain("Add attachment");
+    expect(reading).toContain("markdownEditor?.isNew");
+    expect(reading).toContain('ariaLabel="New Markdown editor"');
+    expect(reading).toContain("Edit Markdown");
+    expect(reading).toContain("Edit attachment metadata");
+    expect(reading).toContain("Remove attachment");
+    expect(page).toContain("const removeAttachmentItem");
+    expect(page).toContain("onAttachmentDeleteRequest={removeAttachmentItem}");
+  });
+  it("reserves warning for uncertain editor outcomes and danger for determined failures", () => {
+    const feedback = read("./components/project/ProjectEditorFeedback.tsx");
+    const map = read("./components/project/ProjectMapSurface.tsx");
+    const markdown = read("./components/project/ProjectMarkdownEditor.tsx");
+    const reading = read("./components/project/ProjectReadingSurface.tsx");
+    const page = read("./pages/ProjectPage.tsx");
+    const richCss = read("./components/project/project-rich-content.css");
+    expect(feedback).toContain('status === "uncertain"');
+    expect(feedback).toContain('status === "error" || status === "conflict"');
+    expect(feedback).toContain('role={tone === "danger" ? "alert" : "status"}');
+    expect(map).toContain('lazy(() => import("./ProjectMarkdownEditor"))');
+    expect(map).toContain("<ProjectMarkdownEditor");
+    expect(markdown).toContain("<ProjectEditorFeedback");
+    expect(reading).toContain("<ProjectEditorFeedback");
+    expect(page).toContain("<ProjectEditorFeedback");
+    expect(richCss).toContain(".project-editor-feedback.warning");
+    expect(richCss).toContain("background: var(--warning-soft)");
+    expect(richCss).toContain(".project-editor-feedback.danger");
+    expect(richCss).toContain("background: var(--danger-soft)");
+    expect(map).not.toContain("project-markdown-editor-message");
+    expect(markdown).not.toContain('editor.message && <p className="error-banner"');
+    expect(reading).not.toContain('attachmentEditor.message && <p className="error-banner"');
+    expect(page).not.toContain('attachmentEditor.message && <p className="error-banner"');
+  });
+
+
+});

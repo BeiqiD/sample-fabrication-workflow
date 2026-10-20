@@ -1,0 +1,59 @@
+{
+  "stage": "one-fresh-final-QA-source-build",
+  "cwd": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source",
+  "argv": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "env": {
+    "TMPDIR": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1",
+    "SQLITE_TMPDIR": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1"
+  },
+  "startedAt": "2026-10-11T21:42:51.410036+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/build-runtime/one-fresh-final-QA-source-build.log",
+  "pid": 1566778,
+  "processGroup": 1566778,
+  "originalStartTicks": "16823218",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1567368,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1566778,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1567368,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1566778,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1567368,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1566778,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T21:42:57.965039+00:00",
+  "logSha256": "a3e736f0bd67e86ee43efaf6bca094d639c1a32260c90d7421d8cd5cf25afc86"
+}

@@ -1,0 +1,141 @@
+{
+  "status": "SOURCE_CLEAR_INDEPENDENT_C316_FIVE_ADDITIVE_NATIVE_QA_ONLY",
+  "createdAtUtc": "2026-10-11T22:54:52.662011+00:00",
+  "handoff": {
+    "path": "/tmp/phase5f-package-file-current2d07-three-native-five-qa-source-preparation-attempt2/source-handoff.json",
+    "sha256": "9b7741fa655b29f155f95cc4d31dfd88ac1950ee8c0d987c738751ed084594e0"
+  },
+  "head": "c316fe89ce79cd9d4d40627763bbe7ed029debbe",
+  "tree": "ba49c84bc748dd70469b9b1462029d8af30b770a",
+  "producerHead": "2d07b57c4e79403099261528ae8988c0072d28c6",
+  "sourceModel": "Git-only3186 union plus five separately byte-checked physical QA leaves; no full consumer or fresh producer materialized/qualified",
+  "verified": {
+    "all3186GitModeBlobRawSha256Exact": true,
+    "all3181ProducerEntriesProtectedExact": true,
+    "onlyFiveAdditions": true,
+    "allFiveCompleteHelperSourcesRead": true,
+    "wholeFiveBidirectionalDonorInversesExact": true,
+    "workingHeadIndexStatusUnchanged": true
+  },
+  "references": {
+    "freeze": {
+      "path": "/tmp/phase5f-package-file-current2d07-three-native-five-qa-source-preparation-attempt2/complete-current3186-five-native-qa-git-source-freeze.json",
+      "sha256": "1a49882b82fc71cea3283a7c861dc8c3d3acc52441be5645881f3200988eddc2",
+      "bytes": 910246
+    },
+    "patch": {
+      "path": "/tmp/phase5f-package-file-current2d07-three-native-five-qa-source-preparation-attempt2/candidate-five-additive-native-source.patch",
+      "sha256": "6476aa29002558920c7f18c82cf1ca153e2704b29fe0dccc4b540ad7bb7420c7",
+      "bytes": 141790
+    },
+    "inverse": {
+      "path": "/tmp/phase5f-package-file-current2d07-three-native-five-qa-source-preparation-attempt2/five-whole-source-header-selector-inverses.json",
+      "sha256": "ee78477c5ca6d3e3add8fa00c3a50b60c42ab3b5e651ac80a118ed387d839240",
+      "bytes": 5122
+    },
+    "productPeer": {
+      "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-source-preparation-attempt1/independent-root-four-leaf-combined-focus-substantive-source-peer.json",
+      "sha256": "edc21adb3be4e17341ccfee1a9a222e35c8e03a4dcad83f64b08d8aef565375e",
+      "bytes": 4764
+    }
+  },
+  "fiveWholeDonorChecks": [
+    {
+      "path": "scripts/qa/phase5f/browser-current-package-file-focus-package-status-refresh-keyboard.mjs",
+      "sha256": "fdc76a198b6d364fe4b63feaaa57e8b1fbf3b974f1225f31eb2d498bef13db51",
+      "mode": "100644",
+      "donorHead": "8c460eb229edc1983867a7778a625793d1b852f0",
+      "donorPath": "scripts/qa/phase5f/browser-current-coherent-package-status-refresh-keyboard.mjs",
+      "donorSha256": "0029bef6732d31ba84e2055e73cb29234738a135d4c6ac44d6e36d9769f80726",
+      "wholeBidirectionalInverseExact": true,
+      "literalCells": 5
+    },
+    {
+      "path": "scripts/qa/phase5f/browser-current-package-file-focus-file-start202-natural-focus-keyboard.mjs",
+      "sha256": "11f0e926242a36023418c28d499b289ec7f7c17b7c8404e340a98607331c065d",
+      "mode": "100644",
+      "donorHead": "8c460eb229edc1983867a7778a625793d1b852f0",
+      "donorPath": "scripts/qa/phase5f/browser-current-file-start202-natural-focus-keyboard.mjs",
+      "donorSha256": "00ee820b61be055b921d59500a47047c7d8b392c2df1ffb568cf6bd31651e41c",
+      "wholeBidirectionalInverseExact": true,
+      "literalCells": 4
+    },
+    {
+      "path": "scripts/qa/phase5f/browser-current-package-file-focus-package-start202-natural-focus-keyboard.mjs",
+      "sha256": "e5086d1524d47eee1643ee7108b385f9bb9b6e780d2525d90b8c056319bd3c3e",
+      "mode": "100644",
+      "donorHead": "8c460eb229edc1983867a7778a625793d1b852f0",
+      "donorPath": "scripts/qa/phase5f/browser-current-package-start202-natural-focus-keyboard.mjs",
+      "donorSha256": "344a5d9d7b0bf5b54830c5eadcb039349d0afbc04d501ce6613ead7cabd1ff2d",
+      "wholeBidirectionalInverseExact": true,
+      "literalCells": 4
+    },
+    {
+      "path": "scripts/qa/phase5f/check-current-package-file-focus-package-refresh-physical-state.py",
+      "sha256": "7e60fce30fa71eb67e58296222b39d7fd9456a9e083167345989ca965bf17d30",
+      "mode": "100755",
+      "donorHead": "8c460eb229edc1983867a7778a625793d1b852f0",
+      "donorPath": "scripts/qa/phase5f/check-current-coherent-storage-package-refresh-physical-state.py",
+      "donorSha256": "8d023a320716160997764a5f7bfa41638041704109f7ae8b32cb8006f3e41c3e",
+      "wholeBidirectionalInverseExact": true,
+      "literalCells": 2
+    },
+    {
+      "path": "scripts/qa/phase5f/check-current-package-file-focus-start202-natural-focus-physical-state.py",
+      "sha256": "45804fc8a3ef74906fc31a77a627b8fae5958eff709ac65c59355a722710ccb8",
+      "mode": "100755",
+      "donorHead": "8c460eb229edc1983867a7778a625793d1b852f0",
+      "donorPath": "scripts/qa/phase5f/check-current-start202-natural-focus-physical-state.py",
+      "donorSha256": "2d7897fd07d757b4ec1d4808632d1b23ea6e851e8b8f42a19489248d68b278e4",
+      "wholeBidirectionalInverseExact": true,
+      "literalCells": 3
+    }
+  ],
+  "substantiveReview": [
+    "All three consumers pin actual current producer3181 ordinary bytes, copied artifact inventory, isolation/fixture SQL and physical-before receipt, build-map witness and original Worker/config/artifact hashes. The3186 consumer only adds these five named QA leaves. Historical producer QA stays exact; no prior changed-frontend artifact is retagged current.",
+    "Refresh permits only genuine native GET jobs/executor responses and original five-second polling. Enter starts on actually focused Refresh; both original full bodies200 and exact connected/focus-visible/enabled Refresh within20s are required. Zero native writes/jobs/permits/executor steps; all schema/table/permit/source-object bytes and empty target remain exact.",
+    "File Start uses genuine administrator-authorized two-R2 setup, original Preview200/Start202 checked same file/target/request, exact backend body SHA matched to the original delivered browser body. The same accepted queued job is identified by actual id/actor/target/times; natural Pause focus is observed before any helper focus or control. No Pause/Resume/Cancel or executor action occurs.",
+    "Package Start uses real ordinary reader Sample201 with exact Sample/event actor and released permit, unchanged shadow epoch+2 and unique revision1 dependency, then Preview200/Start202. Actual reader-owned job/request/two captured records and original internal role policy are verified. No administrator resource grant or SQL authority seed is introduced; natural same-job Pause is observed before helper focus/control.",
+    "Hard native POST routes cap each Start at2 metadata requests. Setup maxima are6 Refresh,6 File,7 Package including the real Sample: independent-scenario totals6+8+9=23, native total4. Inherited Package maxTotalPOSTs12 remains untouched ceiling prose, not a claim12 performed; original hard route cap remains2 and this scenario maximum9.",
+    "File and Package generation0 is asserted from actual SQL rows while original API DTOs remain checked without fabricated generation. All old permits/holds, other tables, source bytes, target empty state and role defaults are compared. First failed focus/response retains its genuine already accepted queued lineage; no rollback/retry/control/cleanup mutation is attempted.",
+    "Original route.fetch has maxRetries0/maxRedirects0; route.fulfill forwards exact captured original backend status/headers/body. Original routes, full bodies, waits, cached context/browser closes and original preparation owner outcomes settle and preserve failure. Wrong/unfinished original bodies remain failure, never substituted fixed success.",
+    "Both physical readers select the exact new sibling browser filename/domain/permit and require original command PID/argv/hash/wait/reap/no signals, report-stop closure equality, refused Worker/JWKS ports and no open state handles. Diagnosis uses private SQLite/WAL/SHM copies with original byte stability/schema/current24 sentinels and physical R2 PNG hash. Physical PASS cannot waive a failed browser/native case or invent absent finally/normalACK.",
+    "Package Refresh retains unused Storage reader branch but proposes package only. Every original20s body/focus/readiness,120s TTY,20s progress and2px overflow budget, assertion/routing/SQL row/owner expression reproduces8c donor bytes after only named producer/count/temp/header/browser-selector literals. Four-leaf product peer edc21 is pinned, not re-reviewed."
+  ],
+  "concreteBlockers": [],
+  "tempsObserved": {
+    "/workspace/.pkrf3": "ABSENT_READ_ONLY_OBSERVATION_NOT_CREATED",
+    "/workspace/.sfst2": "ABSENT_READ_ONLY_OBSERVATION_NOT_CREATED",
+    "/workspace/.pkst2": "ABSENT_READ_ONLY_OBSERVATION_NOT_CREATED"
+  },
+  "qualification": {
+    "current2d07AppAndOriginal59": "UNRUN",
+    "oneCurrent2d07CfProducer": "UNRUN",
+    "threeNativeScenarios": "UNRUN",
+    "consumerPhysical": "NOT_CREATED",
+    "oldNativeOrArtifactCarry": 0,
+    "finiteRuntimeBinding": "NOT_YET_EXECUTABLE_QUALIFIED"
+  },
+  "remainingGates": [
+    "Current APP+original59 and one genuine current2d07 CF producer",
+    "Bind new actual build/map/artifact hashes to exact3186 private consumer/copy",
+    "Three independent original-ten finite scopes plus original firstwait/reap/physical/final pins and separate root GO"
+  ],
+  "reviewerEffects": {
+    "candidateImport": 0,
+    "helperInvocation": 0,
+    "compiler": 0,
+    "build": 0,
+    "Native": 0,
+    "SDK": 0,
+    "SQLite": 0,
+    "browser": 0,
+    "socket": 0,
+    "Docker": 0,
+    "consumerMaterialization": 0,
+    "sourceMutation": 0,
+    "clone": 0,
+    "worktree": 0
+  },
+  "reviewerDiagnosticPreserved": "Initial independent checker expected a freeze entries key; authoritative freeze uses rows. The read-only KeyError was preserved and the checker corrected to rows, with all mode/blob/raw pins independently checked. No candidate/runtime failure inferred."
+}

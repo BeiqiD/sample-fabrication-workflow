@@ -1,0 +1,11 @@
+# Genuine Recovery metadata controls: first setup failure retained
+
+The first finite13 attempt completed its one genuine f228 CF build (118 output files), fresh current24 local migrations, isolated copy (121 artifact files), and mature84 ordinary API setup. The original seed Worker was stopped through its retained stdin and disposed. These are original actual results, not reruns.
+
+Chromium launch then failed with `SingletonSocket` path too long under the inherited long private temporary root. The native process was observed exiting with SIGABRT before any returned Browser handle or case registration. Both planned browser cases remain UNRUN: 0 passed, 0 failed cases, 2 unrun. This is a setup failure, not a product finding.
+
+The original helper accepted one executor-enable and one executor-disable response (both200), drained their original bodies, verified zero accepted jobs/request rows, runtime disabled, all original63 write permits and all other application rows/catalogs unchanged, then awaited Worker/JWKS disposal and port refusal. No scheduled step, ZIP, provider or target operation occurred. Absence of a returned Browser handle does not claim Chromium never spawned or establish browser-close completion.
+
+Twelve original direct commands produced10 PASS and2 FAIL; finite13 includes the original seed-stop control, giving11 successful stages and2 failures. The final carrier failed with `KeyError: browserCloseAwaited` because launch failure correctly produced no browser-close field. That original failure remains immutable. A separate read-only final source/artifact inspection verified all2489 Git/working inputs,118 actual build artifacts and121 copied artifacts; it is not a passing rerun of the failed carrier.
+
+The mandatory postphysical inspection passed all four original SQLite files, quick/FK checks and PNG/object checks. All12 direct children were actually reaped; eight owned groups were empty and four retained kernel-exited Z children with inaccessible FD metadata. No owner cleanup signals were issued. These facts cover only the original finite owners. Raw receipts and their limits are retained below; future child-only temporary-directory source changes remain separate and unrun here.

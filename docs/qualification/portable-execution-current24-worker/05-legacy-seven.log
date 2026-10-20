@@ -1,0 +1,19 @@
+
+ RUN  v4.1.10 /tmp/portable-execution-current-v26-fixture-repair-source
+
+ ✓ worker/delete-run-route.test.ts (6 tests) 7792ms
+     ✓ hides and restores an active run without destroying its execution graph or files  1551ms
+     ✓ keeps a shared comment and file available for its remaining run target  1348ms
+     ✓ preserves successor links and verification identities while the run is hidden  1393ms
+     ✓ returns 409 instead of restoring a run whose predecessor already has a visible successor  1109ms
+     ✓ starts a replacement run after a deleted non-first run  1272ms
+     ✓ does not restore an older active process run after a newer visible process run exists  1116ms
+ ✓ worker/metrology-routes.test.ts (1 test) 1471ms
+     ✓ synchronizes sample status and accepts post-completion result edits  1468ms
+
+ Test Files  2 passed (2)
+      Tests  7 passed (7)
+   Start at  22:14:06
+   Duration  13.31s (transform 2.65s, setup 38ms, import 3.80s, tests 9.26s, environment 0ms)
+
+JSON report written to /tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/05-legacy-seven.json

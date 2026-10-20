@@ -1,0 +1,13 @@
+
+ RUN  v4.1.10 /workspace/portable-current591-neutral-file-definition-source-only-attempt1
+
+ ✓ worker/state-consumer-binding.test.ts > binds active state consumers and checks the exact File when splitting: available 1625ms
+ ✓ worker/state-consumer-binding.test.ts > binds active state consumers and checks the exact File when splitting: unavailable-existing 1368ms
+ ✓ worker/state-consumer-binding.test.ts > binds active state consumers and checks the exact File when splitting: unavailable-inherited 1425ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  03:58:06
+   Duration  7.47s (transform 2.38s, setup 37ms, import 2.90s, tests 4.42s, environment 0ms)
+
+JSON report written to /tmp/portable-current591-neutral-file-definition-nine-owned-actual-attempt1/original-state-consumer-and-definition-steps.json

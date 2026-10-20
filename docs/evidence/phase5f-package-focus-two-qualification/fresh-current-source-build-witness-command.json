@@ -1,0 +1,31 @@
+{
+  "stage": "fresh-current-source-build-witness",
+  "control": "Bind original actual samehead fresh ffff build command/118dist/directreap with new1879+121copy/24+84seed/normalseedstop; exact638 consumer other1878 inputs. First browser failure retained; mandatory original closure/pins/history. No old artifact carry.",
+  "cwd": "/tmp/phase5f-package-preview-focus-current1943-source-attempt3",
+  "argv": [
+    "python3",
+    "-B",
+    "/tmp/phase5f-package-preview-focus-fresh-build-finite-source-review-attempt5/verify-fresh-package-focus-producer-and-two-witness.py",
+    "--fresh-package-focus-producer-for-two",
+    "witness"
+  ],
+  "startedAt": "2026-10-11T04:12:55.844180+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-package-preview-focus-fresh-build-runtime-attempt3/fresh-current-source-build-witness.log",
+  "pid": 732663,
+  "processGroup": 732663,
+  "originalStartTicks": "10523661",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T04:12:56.180273+00:00",
+  "logSha256": "060b3f70610c419a7d8b9a071a14d532bbd1553d368c46b83006b04e809787b2"
+}

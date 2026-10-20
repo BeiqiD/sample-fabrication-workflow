@@ -1,0 +1,679 @@
+{
+  "version": 1,
+  "sourceHead": "ee1713393f5dea1f6bbd7a856c7586a8e517591c",
+  "sourceTree": "8f37485feb0328094738ada55da46a2a9c38aeaf",
+  "scope": "Bounded actual local built-Worker evidence; original failures and later heads remain distinct.",
+  "baseMatrix": {
+    "passed": 20,
+    "failed": 0,
+    "cases": [
+      {
+        "id": "start-720-light",
+        "width": 720,
+        "theme": "light",
+        "status": "passed"
+      },
+      {
+        "id": "plan-720-light",
+        "width": 720,
+        "theme": "light",
+        "status": "passed"
+      },
+      {
+        "id": "surfaces-720-light",
+        "width": 720,
+        "theme": "light",
+        "status": "passed"
+      },
+      {
+        "id": "start-720-dark",
+        "width": 720,
+        "theme": "dark",
+        "status": "passed"
+      },
+      {
+        "id": "plan-720-dark",
+        "width": 720,
+        "theme": "dark",
+        "status": "passed"
+      },
+      {
+        "id": "surfaces-720-dark",
+        "width": 720,
+        "theme": "dark",
+        "status": "passed"
+      },
+      {
+        "id": "start-721-light",
+        "width": 721,
+        "theme": "light",
+        "status": "passed"
+      },
+      {
+        "id": "plan-721-light",
+        "width": 721,
+        "theme": "light",
+        "status": "passed"
+      },
+      {
+        "id": "surfaces-721-light",
+        "width": 721,
+        "theme": "light",
+        "status": "passed"
+      },
+      {
+        "id": "start-721-dark",
+        "width": 721,
+        "theme": "dark",
+        "status": "passed"
+      },
+      {
+        "id": "plan-721-dark",
+        "width": 721,
+        "theme": "dark",
+        "status": "passed"
+      },
+      {
+        "id": "surfaces-721-dark",
+        "width": 721,
+        "theme": "dark",
+        "status": "passed"
+      },
+      {
+        "id": "start-1200-light",
+        "width": 1200,
+        "theme": "light",
+        "status": "passed"
+      },
+      {
+        "id": "plan-1200-light",
+        "width": 1200,
+        "theme": "light",
+        "status": "passed"
+      },
+      {
+        "id": "surfaces-1200-light",
+        "width": 1200,
+        "theme": "light",
+        "status": "passed"
+      },
+      {
+        "id": "start-1200-dark",
+        "width": 1200,
+        "theme": "dark",
+        "status": "passed"
+      },
+      {
+        "id": "plan-1200-dark",
+        "width": 1200,
+        "theme": "dark",
+        "status": "passed"
+      },
+      {
+        "id": "surfaces-1200-dark",
+        "width": 1200,
+        "theme": "dark",
+        "status": "passed"
+      },
+      {
+        "id": "chunk-404-explicit-reload",
+        "width": 1200,
+        "theme": "dark",
+        "status": "passed"
+      },
+      {
+        "id": "chunk-503-explicit-reload",
+        "width": 1200,
+        "theme": "dark",
+        "status": "passed"
+      }
+    ]
+  },
+  "processingCost": {
+    "status": "passed",
+    "servedProcessingChunk": {
+      "name": "ProcessingWorkspacePage-B7VNQU-3.js",
+      "sha256": "f714d675fb17b6203d17e0f57f3f68662e1a213f4fe167a6aff8519de2722325"
+    },
+    "phases": [
+      {
+        "id": "initial-eight-column-load",
+        "processingGets": 8,
+        "processingResponseBytes": 26104,
+        "writes": 0,
+        "elapsedMs": 716.1587610000001,
+        "ownerScope": null
+      },
+      {
+        "id": "selection-only-three-columns",
+        "processingGets": 0,
+        "processingResponseBytes": 0,
+        "writes": 0,
+        "elapsedMs": 347.43855699999995,
+        "ownerScope": null
+      },
+      {
+        "id": "individual-step-correction-refresh",
+        "processingGets": 1,
+        "processingResponseBytes": 3329,
+        "writes": 1,
+        "elapsedMs": 527.9888349999997,
+        "ownerScope": {
+          "affectedSampleIds": [
+            "098b1532-899b-4b05-9678-35d8f86c232f"
+          ],
+          "requestedSampleIds": [
+            "098b1532-899b-4b05-9678-35d8f86c232f"
+          ],
+          "unrelatedProcessingGets": 0
+        }
+      },
+      {
+        "id": "grouped-three-step-confirm-refresh",
+        "processingGets": 8,
+        "processingResponseBytes": 26174,
+        "writes": 1,
+        "elapsedMs": 328.30900399999973,
+        "ownerScope": {
+          "affectedSampleIds": [
+            "098b1532-899b-4b05-9678-35d8f86c232f",
+            "99e927b3-5866-4319-9ff9-b881deea9663",
+            "685f84be-8daa-48fe-8600-a2e74b05a795"
+          ],
+          "requestedSampleIds": [
+            "098b1532-899b-4b05-9678-35d8f86c232f",
+            "99e927b3-5866-4319-9ff9-b881deea9663",
+            "685f84be-8daa-48fe-8600-a2e74b05a795",
+            "ed1e15a8-0714-4367-97d8-94a74e832326",
+            "d26fd82d-2248-476d-a63e-a3afb25e534a",
+            "55ad359b-52bb-45e5-b750-6fc21312df8d",
+            "19ac4556-3328-45a7-89be-b371d9b3a397",
+            "21338a8b-8e17-45f2-b449-966ac69062a1"
+          ],
+          "unrelatedProcessingGets": 5,
+          "unrelatedDecodedResponseBytes": 16315
+        }
+      },
+      {
+        "id": "remove-eighth-visible-column",
+        "processingGets": 7,
+        "processingResponseBytes": 22911,
+        "writes": 0,
+        "elapsedMs": 198.54758300000003,
+        "ownerScope": null
+      },
+      {
+        "id": "add-eighth-visible-column",
+        "processingGets": 8,
+        "processingResponseBytes": 26174,
+        "writes": 0,
+        "elapsedMs": 483.71476699999994,
+        "ownerScope": null
+      }
+    ],
+    "browserApiResponses": 39,
+    "browserApiStatuses": [
+      200
+    ],
+    "processingGetCount": 32,
+    "acceptedBrowserWrites": [
+      {
+        "method": "PATCH",
+        "path": "/api/samples/098b1532-899b-4b05-9678-35d8f86c232f/runs/f619cb5d-dc41-400c-9c40-6c50265fabe8/steps/552ba8d0-2e7d-42de-8845-078ec7d50e0d",
+        "status": 200,
+        "request": {
+          "status": "in_progress",
+          "title": "5F solvent clean",
+          "toolName": "Synthetic cleaning tool",
+          "parametersText": "30 s · safe fixture metadata",
+          "commentsText": "Dedicated refresh measurement phase5f-b074dd93-2aa-PERF-18609132",
+          "deviationNote": "",
+          "notes": "",
+          "expectedUpdatedAt": "2026-10-10T14:07:16.219Z"
+        }
+      },
+      {
+        "method": "POST",
+        "path": "/api/run-steps/confirm",
+        "status": 200,
+        "request": {
+          "targets": [
+            {
+              "sampleId": "098b1532-899b-4b05-9678-35d8f86c232f",
+              "runId": "f619cb5d-dc41-400c-9c40-6c50265fabe8",
+              "stepId": "552ba8d0-2e7d-42de-8845-078ec7d50e0d",
+              "expectedUpdatedAt": "2026-10-10T14:07:24.974Z"
+            },
+            {
+              "sampleId": "99e927b3-5866-4319-9ff9-b881deea9663",
+              "runId": "a5afa5d1-578f-4b0b-ba5d-9f019a80daa4",
+              "stepId": "d60d7f3a-5558-4cce-a1e9-877a6124aa41",
+              "expectedUpdatedAt": "2026-10-10T14:07:16.455Z"
+            },
+            {
+              "sampleId": "685f84be-8daa-48fe-8600-a2e74b05a795",
+              "runId": "6fe74d58-57c2-40f5-883b-e7f62e18029c",
+              "stepId": "7386befe-3da0-4661-8eca-7277c5949d51",
+              "expectedUpdatedAt": "2026-10-10T14:07:16.515Z"
+            }
+          ]
+        }
+      }
+    ],
+    "pageErrors": [],
+    "forbiddenRequests": [],
+    "limits": "Single finite supported-UI run. JSON bytes are decoded response bodies, whole-phase times include UI and instrumentation, DOM observations are not React commits. No remote/retained root DB or fixed latency budget."
+  },
+  "projectSupplement": {
+    "all12ScenarioIdsQualifiedAcrossIndependentRuns": true,
+    "completeFiniteMatrix": false,
+    "singleAllGreenFullMatrixRun": false,
+    "coveredCases": [
+      {
+        "id": "adjacent-859-light",
+        "status": "passed",
+        "width": 859,
+        "theme": "light",
+        "receipt": "/tmp/phase5f-project-adjacent-ee17133-attempt2/project-browser-report.json",
+        "sourceHead": "ee1713393f5dea1f6bbd7a856c7586a8e517591c"
+      },
+      {
+        "id": "adjacent-859-dark",
+        "status": "passed",
+        "width": 859,
+        "theme": "dark",
+        "receipt": "/tmp/phase5f-project-adjacent-ee17133-attempt2/project-browser-report.json",
+        "sourceHead": "ee1713393f5dea1f6bbd7a856c7586a8e517591c"
+      },
+      {
+        "id": "adjacent-860-light",
+        "status": "passed",
+        "width": 860,
+        "theme": "light",
+        "receipt": "/tmp/phase5f-project-adjacent-ee17133-attempt2/project-browser-report.json",
+        "sourceHead": "ee1713393f5dea1f6bbd7a856c7586a8e517591c"
+      },
+      {
+        "id": "adjacent-860-dark",
+        "status": "passed",
+        "width": 860,
+        "theme": "dark",
+        "receipt": "/tmp/phase5f-project-adjacent-ee17133-attempt2/project-browser-report.json",
+        "sourceHead": "ee1713393f5dea1f6bbd7a856c7586a8e517591c"
+      },
+      {
+        "id": "adjacent-1201-light",
+        "status": "passed",
+        "width": 1201,
+        "theme": "light",
+        "receipt": "/tmp/phase5f-project-adjacent-ee17133-attempt2/project-browser-report.json",
+        "sourceHead": "ee1713393f5dea1f6bbd7a856c7586a8e517591c"
+      },
+      {
+        "id": "adjacent-1201-dark",
+        "status": "passed",
+        "width": 1201,
+        "theme": "dark",
+        "receipt": "/tmp/phase5f-project-adjacent-ee17133-attempt2/project-browser-report.json",
+        "sourceHead": "ee1713393f5dea1f6bbd7a856c7586a8e517591c"
+      },
+      {
+        "id": "panel-1180-dark",
+        "status": "passed",
+        "width": 1180,
+        "theme": "dark",
+        "receipt": "/tmp/phase5f-project-adjacent-ee17133-attempt2/project-browser-report.json",
+        "sourceHead": "ee1713393f5dea1f6bbd7a856c7586a8e517591c"
+      },
+      {
+        "id": "dirty-860-light",
+        "status": "passed",
+        "width": 860,
+        "theme": "light",
+        "receipt": "/tmp/phase5f-project-adjacent-ee17133-attempt2/project-browser-report.json",
+        "sourceHead": "ee1713393f5dea1f6bbd7a856c7586a8e517591c"
+      },
+      {
+        "id": "dirty-859-dark",
+        "status": "passed",
+        "width": 859,
+        "theme": "dark",
+        "receipt": "/tmp/phase5f-project-adjacent-ee17133-attempt2/project-browser-report.json",
+        "sourceHead": "ee1713393f5dea1f6bbd7a856c7586a8e517591c"
+      },
+      {
+        "id": "accepted-save-held-ack",
+        "status": "passed",
+        "width": 860,
+        "theme": "light",
+        "receipt": "/tmp/phase5f-project-adjacent-ee17133-attempt2/project-browser-report.json",
+        "sourceHead": "ee1713393f5dea1f6bbd7a856c7586a8e517591c"
+      },
+      {
+        "id": "lost-ack-exact-retry",
+        "status": "passed",
+        "width": 859,
+        "theme": "dark",
+        "receipt": "/tmp/phase5f-project-adjacent-ee17133-attempt2/project-browser-report.json",
+        "sourceHead": "ee1713393f5dea1f6bbd7a856c7586a8e517591c"
+      },
+      {
+        "id": "panel-1181-dark",
+        "status": "passed",
+        "width": 1181,
+        "theme": "dark",
+        "receipt": "/tmp/phase5f-project-adjacent-ee17133-attempt3-panel-only/project-browser-report.json",
+        "sourceHead": "ee1713393f5dea1f6bbd7a856c7586a8e517591c"
+      }
+    ],
+    "initialReadRetryBaseline": {
+      "status": "expected failed pre-fix diagnostic",
+      "passed": 0,
+      "failed": 1,
+      "missing": "Native error alert and explicit GET retry absent",
+      "acceptedUiWrites": 0,
+      "error": [
+        "locator.waitFor: Timeout 20000ms exceeded.",
+        "Call log:",
+        "\u001b[2m  - waiting for getByRole('alert').filter({ hasText: 'Controlled initial Project read failure' }) to be visible\u001b[22m",
+        ""
+      ]
+    },
+    "normalPassingCaseErrors": {
+      "unexpectedOrigins": 0,
+      "pageErrors": 0,
+      "blockedMutations": 0
+    }
+  },
+  "shutdown": {
+    "status": "stopped",
+    "control": "stdin:stop",
+    "disposalAwaited": true,
+    "exitCode": 0,
+    "pidAbsent": true,
+    "portRefused": true,
+    "sqliteFiles": 4,
+    "quickCheck": "ok",
+    "foreignKeyErrors": 0,
+    "originalStateBytesUnchanged": true,
+    "acceptedPngBytesMatched": true,
+    "globalDescriptorVisibilityQualified": false
+  },
+  "namedMetrology": {
+    "status": "passed",
+    "sourceHead": "c06cb71ec5933cfb4d1721a5c1ac314b09a96ed8",
+    "sourceTree": "2466e71894298e90acdc5bd4b183d29fdd88b24f",
+    "passedCount": 2,
+    "failedCount": 0,
+    "completeFiniteMatrix": true,
+    "startedAt": "2026-10-10T14:32:11.743Z",
+    "completedAt": "2026-10-10T14:32:18.653Z",
+    "viewport": {
+      "width": 1200,
+      "height": 900
+    },
+    "theme": "dark",
+    "searchTextboxAccessibleName": "Search templates",
+    "cases": [
+      {
+        "id": "create-add-refresh-pending",
+        "status": "passed",
+        "assertions": [
+          {
+            "searchTextboxAccessibleName": "Search templates",
+            "chromiumAccessibleTextboxCount": 1
+          },
+          {
+            "phase": "create",
+            "realEscapeBlocked": true,
+            "realDisabledCloseBlocked": true,
+            "realBackdropBlocked": true
+          },
+          {
+            "phase": "create",
+            "submittedDraftRetained": true,
+            "formFieldsDisabled": true,
+            "duplicateSubmitAndCancelDisabled": true,
+            "pickerSearchAndSelectionUnavailableInCreateForm": true
+          },
+          {
+            "phase": "add",
+            "realEscapeBlocked": true,
+            "realDisabledCloseBlocked": true,
+            "realBackdropBlocked": true
+          },
+          {
+            "phase": "add",
+            "submittedDraftRetained": true,
+            "formFieldsDisabled": true,
+            "duplicateSubmitAndCancelDisabled": true,
+            "pickerSearchAndSelectionUnavailableInCreateForm": true
+          },
+          {
+            "phase": "refresh",
+            "realEscapeBlocked": true,
+            "realDisabledCloseBlocked": true,
+            "realBackdropBlocked": true
+          },
+          {
+            "phase": "refresh",
+            "submittedDraftRetained": true,
+            "formFieldsDisabled": true,
+            "duplicateSubmitAndCancelDisabled": true,
+            "pickerSearchAndSelectionUnavailableInCreateForm": true
+          },
+          {
+            "finalActualReadback": true,
+            "exactAcceptedEntryId": "4c13c467-97bb-4c79-b6d8-2b20c310f17f",
+            "metrologyEntryCount": 1,
+            "originalSampleAndRunRetained": true,
+            "originalInsertionPointRetained": true,
+            "originalFabricationAndPlanRetained": true
+          }
+        ],
+        "heldResponses": [
+          {
+            "phase": "create",
+            "path": "/api/metrology-templates",
+            "method": "POST",
+            "status": 201,
+            "responseSha256": "3edb4095c4cfe99ea0cfcdd7b61cc1d392f0ea39caa8b2d2b610b8f13ad363f1",
+            "acceptedAt": "2026-10-10T14:32:15.562Z"
+          },
+          {
+            "phase": "add",
+            "path": "/api/samples/29cdf064-a9b2-485c-887e-bc9e88fcd75b/runs/f3fd9cbf-28c3-44a5-a3ad-4b18f017c82b/metrology",
+            "method": "POST",
+            "status": 201,
+            "responseSha256": "92a976e7caa608e3d19ef3a21f330b309d231a67ed5f4c0a51ef34631d31ce07",
+            "acceptedAt": "2026-10-10T14:32:15.967Z"
+          },
+          {
+            "phase": "refresh",
+            "path": "/api/samples/29cdf064-a9b2-485c-887e-bc9e88fcd75b?view=processing",
+            "method": "GET",
+            "status": 200,
+            "responseSha256": "ce794a9d54204263236e0467cedb631293ebfe932c758b2db232a1b570f85424",
+            "acceptedAt": "2026-10-10T14:32:16.196Z"
+          }
+        ],
+        "pageErrorCount": 0,
+        "unexpectedOriginCount": 0
+      },
+      {
+        "id": "direct-add-refresh-pending",
+        "status": "passed",
+        "assertions": [
+          {
+            "searchTextboxAccessibleName": "Search templates",
+            "chromiumAccessibleTextboxCount": 1
+          },
+          {
+            "phase": "add",
+            "realEscapeBlocked": true,
+            "realDisabledCloseBlocked": true,
+            "realBackdropBlocked": true
+          },
+          {
+            "phase": "add",
+            "pickerSearchDisabled": true,
+            "allTemplateChoicesDisabled": true,
+            "createActionDisabled": true
+          },
+          {
+            "phase": "refresh",
+            "realEscapeBlocked": true,
+            "realDisabledCloseBlocked": true,
+            "realBackdropBlocked": true
+          },
+          {
+            "phase": "refresh",
+            "pickerSearchDisabled": true,
+            "allTemplateChoicesDisabled": true,
+            "createActionDisabled": true
+          },
+          {
+            "finalActualReadback": true,
+            "exactAcceptedEntryId": "268ee22b-a10d-42aa-908e-a4a176544e0b",
+            "metrologyEntryCount": 1,
+            "originalSampleAndRunRetained": true,
+            "originalInsertionPointRetained": true,
+            "originalFabricationAndPlanRetained": true
+          }
+        ],
+        "heldResponses": [
+          {
+            "phase": "add",
+            "path": "/api/samples/62cb8017-3c55-4037-ab6d-3442c16b14c3/runs/d0477048-785d-4ff4-a8e9-aa33d5275ba0/metrology",
+            "method": "POST",
+            "status": 201,
+            "responseSha256": "44e1a92a049c8bc0facc51050b730d4763d6559dbef35eb216ac6b9b6de7706e",
+            "acceptedAt": "2026-10-10T14:32:17.802Z"
+          },
+          {
+            "phase": "refresh",
+            "path": "/api/samples/62cb8017-3c55-4037-ab6d-3442c16b14c3?view=processing",
+            "method": "GET",
+            "status": 200,
+            "responseSha256": "eed29cc35e1de48498120aec74cea5e1184c4ea461ad62a45df3c0187c9903aa",
+            "acceptedAt": "2026-10-10T14:32:18.077Z"
+          }
+        ],
+        "pageErrorCount": 0,
+        "unexpectedOriginCount": 0
+      }
+    ],
+    "previousPreflightFailure": {
+      "status": "pending_fresh_metadata_corrected_run",
+      "firstAttemptCases": 0,
+      "firstAttemptAcceptedOperations": 0
+    }
+  },
+  "rawLocalReceipts": [
+    {
+      "path": "/tmp/phase5f-ee17133-fixture/actual-api-browser-summary.json",
+      "sha256": "ac9b9d667f3078b684644863ee8baf7e1bba23639baff5df8a6d8564276b4d42"
+    },
+    {
+      "path": "/tmp/phase5f-ee17133-fixture/actual-api-fixture-receipt.json",
+      "sha256": "723624870cf4e5f928ea452080e767f4cc891af638b5983c317607ddbd8f9951"
+    },
+    {
+      "path": "/tmp/phase5f-ee17133-fixture/isolated-server-receipt.json",
+      "sha256": "213a8351ce085350f1614155aeec1ce481f9366541866a5039160cbcee1fc876"
+    },
+    {
+      "path": "/tmp/phase5f-ee17133-fixture/isolated-server-stop-receipt.json",
+      "sha256": "5b5e5431111bba20fa645c72be6814c441ebb9d760209ba4d224c29859f0d6e1"
+    },
+    {
+      "path": "/tmp/phase5f-ee17133-fixture/physical-sqlite-before-api.json",
+      "sha256": "dd69a7d9dc7b7a137ca5043e227aa10f336c667ce000dc56496c66a9644c95ea"
+    },
+    {
+      "path": "/tmp/phase5f-ee17133-fixture/physical-sqlite-after-shutdown.json",
+      "sha256": "a329124bbd8ef5102adbff683a6fbd50ac6db6247da80480806c85aa61f90f9c"
+    },
+    {
+      "path": "/tmp/phase5f-processing-cost-ee17133-attempt1/processing-browser-cost.json",
+      "sha256": "16d596530b4a7a420a678926f18257b60dc9e081f9237617d4634d84bf9c1416"
+    },
+    {
+      "path": "/tmp/phase5f-processing-cost-ee17133-attempt1/processing-cost-summary.json",
+      "sha256": "06ef4473acd7606d0a490494b2e803be650f2342870a88ce5edeadd59ef1a391"
+    },
+    {
+      "path": "/tmp/phase5f-project-adjacent-ee17133-qualification.json",
+      "sha256": "ad03393a0e00c91460db642cb17f04202a1c352f3f8a4ad5ecca335c84295368"
+    }
+  ],
+  "limits": [
+    "No authenticated remote serving/schema/provider acceptance.",
+    "No physical device, IME or other-engine qualification.",
+    "Project twelve scenarios passed across two attempts, not one full all-green session.",
+    "Whole UI phase timings are not latency budgets.",
+    "Full portable runtime and later roadmap remain unfinished."
+  ],
+  "latestCommittedPipeline": {
+    "sourceHead": "c06cb71ec5933cfb4d1721a5c1ac314b09a96ed8",
+    "sourceTree": "2466e71894298e90acdc5bd4b183d29fdd88b24f",
+    "copyRoot": "/tmp/phase5f-c06cb71-copy",
+    "fixtureRoot": "/tmp/phase5f-c06cb71-fixture",
+    "ordinaryMigrations": 22,
+    "seedApiRequests": 84,
+    "baseMatrix": {
+      "passedCount": 20,
+      "failedCount": 0,
+      "completeFiniteMatrix": true,
+      "durationSeconds": 77.751
+    },
+    "namedMetrology": {
+      "passedCount": 2,
+      "failedCount": 0,
+      "completeFiniteMatrix": true
+    },
+    "shutdown": {
+      "exitCode": 0,
+      "disposalAwaited": true,
+      "portClosed": true,
+      "physicalSqliteFiles": 4,
+      "quickCheck": "ok",
+      "foreignKeyErrors": 0,
+      "originalStateBytesUnchanged": true,
+      "acceptedPngBytesMatch": true
+    },
+    "workerSha256": "3422c1bf5551c54a6ed214102c4547a4395878412b7be8424ee2ea8f6fbd5ff0",
+    "processingChunk": "ProcessingWorkspacePage-B7VNQU-3.js",
+    "processingChunkSha256": "f714d675fb17b6203d17e0f57f3f68662e1a213f4fe167a6aff8519de2722325",
+    "receipts": [
+      {
+        "path": "/tmp/phase5f-c06cb71-fixture/actual-api-browser-summary.json",
+        "sha256": "7267e02c8890cb436eccbbb212de4dab8fbf25b29b976e01fb130e7505974ddf"
+      },
+      {
+        "path": "/tmp/phase5f-c06cb71-fixture/isolated-server-stop-receipt.json",
+        "sha256": "b826c04ccdad5bb2ffef0f7872397065a6c5fda6aa943dbf09beff0bb1bf1337"
+      },
+      {
+        "path": "/tmp/phase5f-c06cb71-fixture/physical-sqlite-after-shutdown.json",
+        "sha256": "c63cea173916de9d41bb5ef0d63e01880bba267c3a0d7e716efa3344f7b7ec66"
+      },
+      {
+        "path": "/tmp/phase5f-metrology-browser-c06cb71-attempt1/metrology-browser-summary.json",
+        "sha256": "bfe67042d5f412bbfa866d84490dc2b99454daf3e85c19e695d2027838bc50f5"
+      },
+      {
+        "path": "/tmp/phase5f-metrology-browser-c06cb71-attempt1/metrology-browser-report.json",
+        "sha256": "fc4560ec12761248e6295c7d2b03a22a8d14943f8ec5628de0e209249d94f2c0"
+      }
+    ]
+  },
+  "finalDocumentationUpdate": {
+    "exercisedSourceHead": "c06cb71ec5933cfb4d1721a5c1ac314b09a96ed8",
+    "exercisedSourceTree": "2466e71894298e90acdc5bd4b183d29fdd88b24f",
+    "nonDocumentationTrackedFilesByteIdentical": 1158,
+    "copiedArtifactFilesByteIdentical": 123,
+    "runtimeCodeAndQaExecutableChanges": false,
+    "scope": "The following commit records observed results only; all non-documentation tracked source and copied artifact bytes match the exercised c06cb71. Final exact-head remote gates remain required. Whole commit trees differ in documentation."
+  }
+}

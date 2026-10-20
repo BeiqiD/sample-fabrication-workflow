@@ -1,0 +1,60 @@
+{
+  "stage": "fresh-two-version-sentinel",
+  "cwd": "/workspace/portable-dev270-file-preview-focus-complete-native-helper-source-attempt2",
+  "argv": [
+    "node",
+    "/workspace/portable-dev270-file-preview-focus-complete-native-helper-source-attempt2/scripts/qa/phase5f/generate-process-fixture.mjs",
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/copy",
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5",
+    "SQLITE_TMPDIR": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5"
+  },
+  "startedAt": "2026-10-11T12:59:43.343471+00:00",
+  "status": "PASS",
+  "log": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/fresh-two-version-sentinel.log",
+  "pid": 1195396,
+  "processGroup": 1195396,
+  "originalStartTicks": "13684411",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1195407,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1195396,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1195407,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1195396,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1195407,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1195396,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T12:59:45.202336+00:00",
+  "logSha256": "f28e855f48fe2cfb521bf2ad267db59b53eb100979004048ab36bb30a35261fb"
+}

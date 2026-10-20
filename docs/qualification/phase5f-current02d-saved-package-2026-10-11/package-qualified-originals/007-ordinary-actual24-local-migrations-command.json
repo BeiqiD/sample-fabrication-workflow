@@ -1,0 +1,67 @@
+{
+  "stage": "ordinary-actual24-local-migrations",
+  "cwd": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/copy",
+  "argv": [
+    "node",
+    "node_modules/wrangler/bin/wrangler.js",
+    "d1",
+    "migrations",
+    "apply",
+    "DB",
+    "--local",
+    "--config",
+    ".wrangler/deploy.jsonc",
+    "--persist-to",
+    "/workspace/coherent-package-sample-shadow-native02-private-attempt2/copy/.wrangler/state"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2",
+    "SQLITE_TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2"
+  },
+  "startedAt": "2026-10-11T17:36:18.802401+00:00",
+  "status": "PASS",
+  "log": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/ordinary-actual24-local-migrations.log",
+  "pid": 1406731,
+  "processGroup": 1406731,
+  "originalStartTicks": "15343957",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1406747,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1406731,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1406747,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1406731,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1406747,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1406731,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T17:36:32.252835+00:00",
+  "logSha256": "f00a5c0bb0f2380d02b7eda20538d76901dbae0780aaefb84323803ce05ac14e"
+}

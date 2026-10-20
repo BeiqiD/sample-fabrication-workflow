@@ -1,0 +1,24 @@
+{
+  "status": "ROOT_CURRENT2D07_APP_AND_WHOLE59_PASS_ORIGINAL_OWNER_RELEASE",
+  "utc": "2026-10-11T22:56:52.043506+00:00",
+  "formal": {
+    "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/actual-current2d07-app-and-affected59-qualified-closed-release.json",
+    "sha256": "c6e30d88652cacb803398b6c90d46bf2f14543ac40970370b39610fe482e079c"
+  },
+  "allOriginalRawReferences": {
+    "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/frozen-approved-plan.json": "cb9a0fd0fa7ba3557b1d5ded0677a65919b434b5c87d57f3ec3f300ea7ef6d21",
+    "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/original-tool-responses.json": "d42ec09ac9d45548974f895d04db7d9fdd4354bb4b91dfd2179a227289e98e2e",
+    "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/affected-app-strict-command.json": "b0cdd46e14892d3e632b0104319c005dd4d9ed5cde7dc76a7f75feea9a3005f9",
+    "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/affected-app-strict.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/affected-package-file-mounted-files-command.json": "585bd5aa92cc078b7ceea3b5b7317d82de42eb1d3fdee542d052f157d0971c4b",
+    "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/affected-package-file-mounted-files.log": "022bc02aa26ac5d3cbafe481beff624febb5db86f1901ab27110e0766277baeb"
+  },
+  "all3181SourceAfterExact": true,
+  "originalTwoSameWaitReapedGroupsEmptyNoSignals": true,
+  "twoCompilerMountedCommandsPass": true,
+  "individualMounted": 59,
+  "originalDefault5Max1Bail1Budgets": true,
+  "freshCfBuild": "UNRUN",
+  "threeNative": "UNRUN",
+  "sourcePeer": "edc21adb3be4e17341ccfee1a9a222e35c8e03a4dcad83f64b08d8aef565375e"
+}

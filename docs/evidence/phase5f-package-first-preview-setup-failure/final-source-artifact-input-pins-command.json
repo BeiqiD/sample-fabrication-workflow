@@ -1,0 +1,31 @@
+{
+  "stage": "final-source-artifact-input-pins",
+  "control": "Actualf88 originalsource1792/output118/newcopy121 and QAconsumerf5031793clean exact; originalcatalog/allrows/exactunique sourcepermit admission preserved. OriginalWorker/browser/JWKS/route/body/directchildren normalawait/actualexit/reap only; kernelZ/FDPermission retained, no globalquiescence. No build/compiler rerun.",
+  "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+  "argv": [
+    "python3",
+    "-B",
+    "/tmp/phase5f-package-two-genuine-preview-finite-source-review-attempt1/verify-qualified-f88-producer-and-package-two-witness.py",
+    "--qualified-f88-producer-for-package-two",
+    "final-pins"
+  ],
+  "startedAt": "2026-10-11T03:42:08.894381+00:00",
+  "status": "FAILED",
+  "log": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/final-source-artifact-input-pins.log",
+  "pid": 689323,
+  "processGroup": 689323,
+  "originalStartTicks": "10338966",
+  "exitCode": 1,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 1,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T03:42:09.224807+00:00",
+  "logSha256": "f27b04cdabcd463d002326e3b1fd176d18a53fa1027bc872eb3c72decc9d5718"
+}

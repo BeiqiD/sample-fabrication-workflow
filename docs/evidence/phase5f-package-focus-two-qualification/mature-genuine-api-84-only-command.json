@@ -1,0 +1,30 @@
+{
+  "stage": "mature-genuine-api-84-only",
+  "cwd": "/tmp/phase5f-package-preview-focus-current1943-source-attempt3",
+  "argv": [
+    "node",
+    "/tmp/phase5f-package-preview-focus-current1943-source-attempt3/scripts/qa/phase5f/seed-actual-api.mjs",
+    "http://127.0.0.1:4219/",
+    "/tmp/phase5f-package-preview-focus-fresh-build-fixture-attempt3"
+  ],
+  "expectedRequests": 84,
+  "startedAt": "2026-10-11T04:12:45.895461+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-package-preview-focus-fresh-build-runtime-attempt3/mature-genuine-api-84-only.log",
+  "pid": 732607,
+  "processGroup": 732607,
+  "originalStartTicks": "10522666",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T04:12:48.664323+00:00",
+  "logSha256": "654addd9e9c91d26e64b9ace2bc52283cb40ccf89c65fda865ea118d18ab7c72"
+}

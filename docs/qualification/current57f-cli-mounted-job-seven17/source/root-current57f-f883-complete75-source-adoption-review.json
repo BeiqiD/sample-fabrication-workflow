@@ -1,0 +1,20 @@
+{
+  "status": "CURRENT_COMBINED_SOURCE_CLEAR_INDEPENDENT_COMPOSITION_PEER_AND_FINITE_RUNNER_PENDING",
+  "head": "f883e64086bee44b353f3840271fa3eaaafdcc7d",
+  "tree": "dda4d903cab9f410073ccb88d98e372f6f8d3fbd",
+  "base": "57f4344b387ce06a91b5260e10fc9f5ecedda68a",
+  "all2794WorkingModeHashesVerified": true,
+  "all75DonorGitBytesExact": true,
+  "all2719CurrentProtectedModeBlobsExact": true,
+  "Job251SourceClosureExactQualifiedB131": true,
+  "newCliReachableModules": 10,
+  "historicalArtifactsNotCurrent": true,
+  "rootOriginalJob8AndCli37SourcePeersRetained": true,
+  "currentCliType": {
+    "path": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/affected-cli-types-attempt1/receipt.json",
+    "sha256": "e53f48f198b4f07eee6d31af3d7570d74e4c1cf7370406412be68b50d70761fd"
+  },
+  "freshCurrentFourBundleAnd17": "UNRUN",
+  "refsRehashed": 7,
+  "reviewedAt": "2026-10-11T16:24:10.034598+00:00"
+}

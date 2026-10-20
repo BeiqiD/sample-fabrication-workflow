@@ -1,0 +1,24 @@
+{
+  "pid": 1218121,
+  "processGroup": 1218121,
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "local-file-enabled-composer-qualification.vitest.config.mts",
+    "--reporter=verbose",
+    "--reporter=json",
+    "--outputFile.json=/workspace/current-a5-qualified-writer-configured-eight-owned-actual-attempt1/actual-native.json"
+  ],
+  "status": "RUNNING",
+  "normalCompletionSnapshot": [],
+  "normalCompletionHadActiveChildren": false,
+  "closureInitialSnapshot": [],
+  "actualExitCode": 0,
+  "closureFinalSnapshot": [],
+  "ownedClosureProven": true,
+  "actualOriginalChildWaited": true,
+  "exitCode": 0,
+  "helperSha256": "b623484a36325020644d64479cc41939c20a984a07a1ba585e4be1a17e812889"
+}

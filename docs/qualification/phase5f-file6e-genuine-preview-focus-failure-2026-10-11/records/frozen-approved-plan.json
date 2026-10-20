@@ -1,0 +1,313 @@
+{
+  "version": 1,
+  "status": "SOURCE_ONLY_FILE6E531_ROUTE_RESULT_COMPLETEPEER_FRESH_NAMESPACE10_UNRUN_NO_GO",
+  "commands": [
+    {
+      "stage": "qualified-original-f228-build-producer-preflight",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-file-two-r2-route-result-final-finite-source-review-attempt6/carry-original-f228-genuine-two-r2-file-migration.py",
+        "--original-f228-producer-for-genuine-two-r2-file-preview",
+        "producer-preflight"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3",
+        "SQLITE_TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3"
+      }
+    },
+    {
+      "stage": "isolated-copy",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "python3",
+        "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source/scripts/qa/phase5f/prepare-isolated-copy.py",
+        "--source-root",
+        "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+        "--destination",
+        "/workspace/file-two-r2-route-result-f228-private-attempt3/copy",
+        "--dependency-root",
+        "/workspace/sample-fabrication-workflow/node_modules"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3",
+        "SQLITE_TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3"
+      }
+    },
+    {
+      "stage": "fresh-two-version-sentinel",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "node",
+        "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source/scripts/qa/phase5f/generate-process-fixture.mjs",
+        "/workspace/file-two-r2-route-result-f228-private-attempt3/copy",
+        "/workspace/file-two-r2-route-result-f228-private-attempt3/fixture"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3",
+        "SQLITE_TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3"
+      }
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "cwd": "/workspace/file-two-r2-route-result-f228-private-attempt3/copy",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "migrations",
+        "apply",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/workspace/file-two-r2-route-result-f228-private-attempt3/copy/.wrangler/state"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3",
+        "SQLITE_TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3",
+        "WRANGLER_SEND_METRICS": "false",
+        "WRANGLER_LOG_PATH": "/workspace/file-two-r2-route-result-f228-private-attempt3/fixture/wrangler-logs"
+      }
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "cwd": "/workspace/file-two-r2-route-result-f228-private-attempt3/copy",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "execute",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/workspace/file-two-r2-route-result-f228-private-attempt3/copy/.wrangler/state",
+        "--file",
+        "/workspace/file-two-r2-route-result-f228-private-attempt3/fixture/process-fixture.sql"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3",
+        "SQLITE_TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3",
+        "WRANGLER_SEND_METRICS": "false",
+        "WRANGLER_LOG_PATH": "/workspace/file-two-r2-route-result-f228-private-attempt3/fixture/wrangler-logs"
+      }
+    },
+    {
+      "stage": "physical-before",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source/scripts/qa/phase5f/check-isolated-state.py",
+        "--source-copy",
+        "/workspace/file-two-r2-route-result-f228-private-attempt3/copy",
+        "--fixture-directory",
+        "/workspace/file-two-r2-route-result-f228-private-attempt3/fixture",
+        "--stage",
+        "before-api"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3",
+        "SQLITE_TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3"
+      }
+    },
+    {
+      "stage": "historical-current-source-build-and-pure24-witness",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-file-two-r2-route-result-final-finite-source-review-attempt6/carry-original-f228-genuine-two-r2-file-migration.py",
+        "--original-f228-producer-for-genuine-two-r2-file-preview",
+        "witness"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3",
+        "SQLITE_TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3"
+      }
+    },
+    {
+      "stage": "original-two-local-r2-file-migration-previews",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "node",
+        "/workspace/phase5f-file-two-r2-original-result-contract-source-attempt8/scripts/qa/phase5f/browser-genuine-two-r2-file-migration-preview.mjs",
+        "/workspace/file-two-r2-route-result-f228-private-attempt3/copy",
+        "/workspace/file-two-r2-route-result-f228-private-attempt3/fixture",
+        "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+        "--exclusive-go-two-genuine-local-r2-file-migration-previews"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3",
+        "SQLITE_TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3",
+        "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+        "CHROMIUM_PATH": "/usr/bin/chromium",
+        "PHASE5F_FILE_MIGRATION_CHROMIUM_TEMP": "/workspace/.f2r2t3",
+        "PHASE5F_FILE_MIGRATION_RUNTIME_ROOT": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime"
+      },
+      "cases": [
+        "genuine-file-migration-preview-1280-light",
+        "genuine-file-migration-preview-390-dark"
+      ],
+      "toolInvocation": {
+        "tty": true,
+        "originalStdinControl": "Only explicit stop newline originalretainedTTY;120s supervision/noSIGTERM graceful claim"
+      },
+      "control": "Original setup six genuine accepted metadata writes/upload to real isolated localR2; two native Preview metadataPOSTs only. No migration acceptance/executor/transfer/GC/ZIP/provider/mainTarget. Surviving keyboard Previewfocus characterized with original assertion, not presumed productpass."
+    },
+    {
+      "stage": "physical-after",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-file-two-r2-original-result-contract-source-attempt8/scripts/qa/phase5f/check-genuine-two-r2-migration-state.py",
+        "--source-copy",
+        "/workspace/file-two-r2-route-result-f228-private-attempt3/copy",
+        "--fixture-directory",
+        "/workspace/file-two-r2-route-result-f228-private-attempt3/fixture",
+        "--runtime-directory",
+        "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3",
+        "SQLITE_TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3"
+      },
+      "control": "Mandatory after original nativechild/directwait/reap/context/route/body/controller/browser/Worker/JWKS settlement; private physicalcopies only, original state/hash/PNG/source/artifacts exact. Missing report preserves original nativefailure/unqualified scope."
+    },
+    {
+      "stage": "final-source-artifact-input-pins",
+      "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-file-two-r2-route-result-final-finite-source-review-attempt6/carry-original-f228-genuine-two-r2-file-migration.py",
+        "--original-f228-producer-for-genuine-two-r2-file-preview",
+        "final-pins"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3",
+        "SQLITE_TMPDIR": "/workspace/file-two-r2-route-result-f228-private-attempt3"
+      }
+    }
+  ],
+  "sourceHead": "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+  "sourceTree": "d16675a42725094e586f9f3bc78468aa5e46310d",
+  "sourceRoot": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+  "trackedFileCount": 2489,
+  "qaConsumerRoot": "/workspace/phase5f-file-two-r2-original-result-contract-source-attempt8",
+  "qaConsumerHead": "6e531cf0e08069544723958dc0c7500766fd7479",
+  "qaConsumerTree": "1590bfce82c726bcf2bd86104d91ff795600dc7b",
+  "qaConsumerTrackedCount": 2495,
+  "all2489ProducerInputsExactOnConsumer": true,
+  "ownedFiveQaLeaves": {
+    "docs/qa/phase5f-two-local-r2-migration-fixture-source-2026-10-11.json": "81d05a04d7ee63912c67d3e30086543f01b56acc09d83a9b17d0b7ca41a678d9",
+    "scripts/qa/phase5f/browser-genuine-two-r2-file-migration-preview.mjs": "b9793f596e34989fcfe13cc23cf26a7928697157b3f9b02146cabf4327fa9e53",
+    "scripts/qa/phase5f/check-genuine-two-r2-migration-state.py": "023680c42275a421b7169d38741be870db80ca3d02d4ebc2e282a0aecb408798",
+    "scripts/qa/phase5f/prepare-file-migration-historical-r2-profiles.mjs": "eb606cd3d2952e51346f508df4a1ea172080dd17d6403866fc006e5a3d22330f",
+    "scripts/qa/phase5f/prepare-genuine-two-r2-migration-runtime.mjs": "095033e8c67ec1273c9d7c4f6723d2086fa386b9fba54cc3e9f10f516e4aeb0a"
+  },
+  "installedDependencies": {
+    "root": "/workspace/sample-fabrication-workflow/node_modules",
+    "package": "5c8a504d14b7208edb3d77b8c5049c713d55e4e7821d8e43b7b54e6dbeebe8fc",
+    "dependencyParentPackage": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+    "lock": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a",
+    "hiddenLock": "95202718d08fd50cc286bcddf0af66b08503d63b494e992006c50d4246d69a98"
+  },
+  "runtimeRoot": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime",
+  "roots": {
+    "copy": "/workspace/file-two-r2-route-result-f228-private-attempt3/copy",
+    "fixture": "/workspace/file-two-r2-route-result-f228-private-attempt3/fixture",
+    "runtime": "/workspace/file-two-r2-route-result-f228-private-attempt3/runtime",
+    "parent": "/workspace/file-two-r2-route-result-f228-private-attempt3",
+    "shortChromiumChildTemp": "/workspace/.f2r2t3"
+  },
+  "expectedCosts": {
+    "rawLocalMigrations": 24,
+    "disabledOrdinarySeedRequests": 0,
+    "setupPOSTsMaximum": 6,
+    "setupAuxiliaryGETsExpected": 6,
+    "readerControlsGETs": 2,
+    "nativeInitialGETsExpected": 10,
+    "nativePlanPOSTsMaximum": 2,
+    "nativePostPlanStatusGETsExpected": 4,
+    "pollingMayAddOnlyOriginalStatusGETs": true,
+    "newCFBuilds": 0,
+    "newMigrationJobs": 0,
+    "newExecutorSteps": 0,
+    "transferGCZIPProviderTargetOperations": 0
+  },
+  "budgets": {
+    "nativeOperationBodyAndReadinessMs": 20000,
+    "originalTTYSupervisionMs": 120000,
+    "supervisionProgressEveryMs": 20000,
+    "bodyMaximumExclusiveBytes": 131072,
+    "overflowPx": 2
+  },
+  "sourcePeer": {
+    "path": "/workspace/file6e531-independent-complete-dual-r2-route-contract-source-peer.json",
+    "sha256": "bfe16ba97609e297b4b6e722fc92eef0dca37e9531695ad0ec1de884887221d5"
+  },
+  "physicalBefore": "Original pure current24 beforeAPI has2 SQLite groups/0R2; no old mature84/63permits or disabledSeedWorker evidence borrowed.",
+  "nativeHistory": "Real local install namespace/capabilities distinct from copied deployment. Fresh legacy-mode guarded historical2profile metadata only; original first shadowenable moves to overlap, original shadow enable/profile-enablement triggers/disable/authorityactivate/upload201 produce real publication+protectedPNG/sourceR2. Exact six released HTTP permits beforebrowser; each native planadds exactlyone originalaccepted released permit, oldrows/schema/sourcePNG/targetempty/0jobs preserved. No owner/admin/resource permission inference.",
+  "stopControl": "Originalnative TTY beforestartup; supervise progress every20s/max120s onlyexplicitoriginal stop, retain original normalClose promises/reports/directwait/reap/nativegroup/ports. Firstfailure stops laternormalstages, all required originalowners settle then mandatory distinct afterphysical/finalpins; no rollback/deletedacceptedhistory.",
+  "futureActualOwnership": "Historical f228 actual ONE CF Worker+frontend118 producer carry only; newcopy121/pure24 sentinel and genuine File setup/controller/browser2. Current source product2489 exact and five unreachable additive QA leaves plus one dated source-correction note only. No old Node/CF artifacts retagged or exchanged.",
+  "readiness": "Complete current6e531 two-QA-leaf route/actualR2result +26pins/17URLDTO audit independently SOURCE_CLEAR bfe16. Original c1 actualcap4045271 and historical8f/c1/source-temp blockers remain exact; next fresh namespace/temp3/currenthelper bindings10 allUNRUN. No compiler/helper/module/copy/build/runtime invocation; explicit rootGO required.",
+  "sourceCorrectionNote": {
+    "path": "docs/qa/phase5f-file-fresh-legacy-phase-source-2026-10-11.json",
+    "sha256": "ca4dc7cddf891209b30eda8a6de9e9a874820fd2214ac4cef3964f4d708d2a9d"
+  },
+  "sourceCorrectionSourceHandoff": {
+    "path": "/workspace/phase5f-file-two-r2-fresh-legacy-phase-source-review-attempt5/source-handoff.json",
+    "sha256": "e58cb16543352fa88d80d39c9b92c9408af6f940d5b5ba7889dd20c618de8ff1"
+  },
+  "sourceCorrectionPeer": {
+    "path": "/workspace/file-8f2-root-independent-fresh-legacy-and-fixed-phase-source-peer.json",
+    "sha256": "0fffa7e814371b9debf04e58a454a49157768586d677f69c158926423897be99"
+  },
+  "historicalOriginalSetupFailure": {
+    "aggregatePath": "/workspace/file-two-r2-f228-private-attempt1/runtime/actual-file-c540-first-setup-failure-closed-release.json",
+    "sha256": "a23ff3b6413d1c7bfa998ec5204d21fecd95e2dc65ac91f60f9d7e6333aa77c5",
+    "casesPassed": 0,
+    "casesFailed": 0,
+    "casesUnrun": 2,
+    "allHttpRequests": 0,
+    "exactInnerErrorLocationUnobserved": true,
+    "originalFixtureUntouched": true
+  },
+  "childTempCorrectionPeer": {
+    "path": "/workspace/file-c1cd-independent-single-child-temp-source-addendum.json",
+    "sha256": "a4147f96896de2da0cd88162a74f594ee2706aceb98ec3f1eb6fba75b0168b57"
+  },
+  "childTempCorrectionSourceProof": {
+    "path": "/workspace/phase5f-file-temp-cli-mismatch-source-preparation-attempt4/single-literal-closed-inverse-source-proof.json",
+    "sha256": "b7a226629678807c4495e5e58488e59af0946a9534c4e6f9a2109e2f5af66e14"
+  },
+  "historicalChildTempSourceFinding": {
+    "path": "/workspace/file-8f2-final-ten-fixed-child-temp-blocker-source-addendum.json",
+    "sha256": "dccd1c198c4ee4a7ce1535449a75e31dcc3b9dbd2f4c854d772bd4e8e65cd781",
+    "allOriginalCommandsAndCasesUnrun": true,
+    "originalExistingTempNotReused": true
+  },
+  "routeAndResultSourceAudit": {
+    "path": "/workspace/phase5f-file-capability-and-r2-contract-source-preparation-attempt6/complete-controller-browser-route-dto-source-audit.json",
+    "sha256": "92fd4abb693746ab3b428c1f0fc831b410d374572809b18091e65b6033f1db24"
+  },
+  "historicalC1Capability404Failure": {
+    "path": "/workspace/file-two-r2-fresh-legacy-f228-private-attempt2/runtime/actual-file-c1cd-genuine-capabilities404-setup-failure-closed-release.json",
+    "sha256": "5271e9c3b7b0862f611eec2adf04e336c57b4c2c7ade6a867dc72631c29f3e7c",
+    "counts": {
+      "passed": 0,
+      "failed": 0,
+      "unrun": 2
+    },
+    "actualSetupGet404": 1,
+    "setupPOSTs": 0,
+    "nativeBrowsers": 0,
+    "oldTempAndFixturePreserved": true
+  }
+}

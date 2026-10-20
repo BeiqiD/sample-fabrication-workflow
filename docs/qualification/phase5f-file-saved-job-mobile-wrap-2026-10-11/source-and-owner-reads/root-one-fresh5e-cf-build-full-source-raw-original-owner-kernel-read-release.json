@@ -1,0 +1,61 @@
+{
+  "status": "ROOT_ONE_FRESH5E_CF_BUILD_ALL_SOURCE_RAW_ACTUAL118_OWNER_KERNEL_READ_RELEASED",
+  "time": "2026-10-11T19:10:59.037690+00:00",
+  "formal": {
+    "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/actual-one-current5e-file-mobile-wrap-cf-build-qualified-closed-release.json",
+    "sha256": "c85c13e7ebb479b90e1e71e068c5ddb0a5481080438ee2782a58f673ff845727"
+  },
+  "allOriginalReferencesRehashed": true,
+  "all2726SourceCurrentPhysicalSHAAndGitHeadCleanExact": true,
+  "all118ActualOutputsAndCompleteManifestExact": true,
+  "wholeOriginalBuildLogRead": true,
+  "sameOriginalDirectChildWaitReapedExit0NoSignals": true,
+  "currentRetainedKernelExitedMembers": [
+    {
+      "pid": 1466856,
+      "state": "Z",
+      "ppid": 1,
+      "pgid": 1466771,
+      "fdScope": "not inspected; no observed zero FD claim"
+    }
+  ],
+  "originalKernelReceipt": {
+    "before": [
+      {
+        "pid": 1466856,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1466771,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1466856,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1466771,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1466856,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1466771,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "noPGEmptyOrZeroFdOrGlobalQuiescenceClaim": true,
+  "release": "RELEASED. Browser/native originalten requires separate new5e actual-artifact finite GO."
+}

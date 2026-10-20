@@ -6,7 +6,7 @@ to size themselves naturally.
 
 ## Viewport tiers
 
-The application has three viewport tiers and only two CSS breakpoints:
+The application has three global viewport tiers and two baseline breakpoints:
 
 | Tier | Viewport | Intended use |
 | --- | --- | --- |
@@ -14,8 +14,18 @@ The application has three viewport tiers and only two CSS breakpoints:
 | Medium | `721px–1200px` | Tablets and compact laptops |
 | Wide | `> 1200px` | Laptops and desktop displays |
 
-Base styles describe the wide layout. Responsive overrides use only
+Base styles describe the wide layout. General responsive overrides normally use
 `@media (max-width: 1200px)` and `@media (max-width: 720px)`.
+
+A component may retain an existing, explicitly documented local threshold when
+that threshold owns a real interaction-mode or component-geometry boundary rather
+than defining another application-wide viewport tier. The Project workspace is
+the current scoped exception: `ProjectPage` uses `min-width: 860px` to decide
+whether the editable desktop Map is available, while `project.css` uses the
+existing `1180px`, `860px`, and `560px` thresholds for Project workspace,
+directory, sidebar/Inspector, and save-banner layout. These values do not replace
+the global `1200px` / `720px` tiers. They must be preserved and tested until a
+separately measured Project-responsive change explicitly revises them.
 
 Content-driven behavior is not a viewport tier. In particular:
 
@@ -47,15 +57,41 @@ has a `692px` width floor so the workspace does not become narrower when the
 viewport crosses from `720px` to `721px`; it then returns naturally to `90vw`.
 The narrow layout retains its existing 14px page gutter.
 
-The `720px` boundary has functional meaning. JavaScript viewport checks must use
-the same boundary and are only allowed when interaction changes, not merely for
-styling.
+The global `720px` boundary has functional meaning. JavaScript viewport checks
+for global narrow-mode behavior must use the same boundary and are only allowed
+when interaction changes, not merely for styling. The Project workspace's
+separate `860px` JavaScript check is also functional: it gates the editable Map
+rather than adding a cosmetic CSS tier.
 
 Page-load autofocus is input-capability driven rather than width-driven.
 Standalone pages may autofocus a primary field only when the primary pointer is
 fine and supports hover. Touch-style primary input waits for an explicit tap, so
 navigation never opens the on-screen keyboard. Input dialogs opened by a user
 action may continue to autofocus their first useful field.
+
+## Project workspace
+
+Project currently has one functional interaction boundary and two additional
+local layout thresholds:
+
+| Boundary | Current behavior |
+| --- | --- |
+| `>= 860px` | Desktop Project workspace is available, including the editable Map and the Map/Reading mode control. Between `860px` and `1180px`, the sidebar and Inspector use their existing compact desktop columns. |
+| `<= 859px` | Desktop Map loading and editing are disabled; Project uses the Reading-first projection and the narrow Project directory/header/save-banner layout. |
+| `<= 560px` | Project directory rows and create-form actions use the existing single-column phone arrangement. |
+
+During any projection-locking save, edit, pending insertion/removal, paste,
+delete, or edge operation, crossing the `860px` boundary does not immediately
+replace the current projection. The current projection remains stable until the
+operation is resolved, after which the current viewport rule is re-applied.
+
+The `1180px` Project threshold is a local workspace-column adjustment, not the
+global Wide/Medium boundary. The `860px` threshold must remain synchronized
+between `ProjectPage` and `project.css` because it changes available interaction,
+not only presentation. Phase 5A must validate the current values before changing
+Project shell styling. Any proposal to alter one of them requires explicit
+before/after measurements, interaction-mode verification, and adjacent-boundary
+tests rather than being folded into a general visual cleanup.
 
 ## Samples directory
 
@@ -139,18 +175,29 @@ picker dialogs remain two-column in medium and become one-column only in narrow.
 
 ## Boundary checks
 
-Responsive changes must be checked at all four boundaries:
+Global responsive changes must be checked at both baseline boundary pairs:
 
 - `720px` and `721px`;
 - `1200px` and `1201px`.
 
-At each width:
+A change to a component with documented local thresholds must also check each
+adjacent pair owned by that component. Project shell or directory work therefore
+checks:
 
-- the page must not become narrower when crossing into a wider tier;
+- `559px`, `560px`, and `561px`;
+- `859px` and `860px`;
+- `1180px` and `1181px`.
+
+At each applicable width:
+
+- the page must not become narrower when crossing into a wider tier or local
+  layout mode;
 - content rows must not create unintended page-level horizontal overflow;
 - button text must not wrap inside buttons;
 - no isolated final button may fall onto a new row by accident;
 - narrow-only icon and comment behavior must change only at `720px`;
+- once any active projection lock is resolved, Project Map availability must
+  follow the synchronized `860px` interaction boundary;
 - wide Sample priority cards must not stretch internally when Notes grows;
 - medium and narrow Notes must show three entries by default without nested
   scrolling, while wide Notes continues to show every entry inside its fixed

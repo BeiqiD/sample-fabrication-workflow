@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /workspace/remaining-5f-ui-execution-currente108-source-integration
+
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  22:35:38
+   Duration  11.60s (transform 2.70s, setup 29ms, import 3.41s, tests 8.05s, environment 0ms)
+

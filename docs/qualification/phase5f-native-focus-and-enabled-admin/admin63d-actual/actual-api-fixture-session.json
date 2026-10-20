@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "sourceRoot": "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5",
+  "sourceCopyRoot": "/tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5",
+  "sourceHead": "63d720a807ab8b21a8f8c152cc3cb8314e615355",
+  "fixtureDirectory": "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5",
+  "isolationReceiptSha256": "071bdad9172a37ba4dd5a3d7a7d380d569af8e25e09fc1d777b53d678d54a2e9",
+  "fixtureManifestSha256": "aee9420c2206357956b68dd19af9e9402dac484945d033d60d13d10a0d42dff6",
+  "sessionId": "c3d5c2f0-120a-4529-b139-f9d5ed12585c",
+  "sessionPid": 400083,
+  "serverSessionId": "06216dce-47c4-49e8-9fd8-5a40b4b8601b",
+  "serverReceiptSha256": "a3a9b4e0c16e18d98982edff26e8170e2d83e17a5a77fb3b7e771683c6c7a62f",
+  "helperSha256": "675af3585e918c0b5ae4b4dcd682432dbe2c5f4ff2b43a8e3392e99413d74518",
+  "baseUrl": "http://127.0.0.1:4219",
+  "status": "reserved",
+  "startedAt": "2026-10-11T00:47:26.140Z"
+}

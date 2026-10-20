@@ -1,0 +1,83 @@
+{
+  "status": "PASS_ONE_FRESH_CURRENT02D_CF_BUILD_CLOSED_RELEASED",
+  "sourceRoot": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+  "sourceHead": "02d6dfbe5f2bd98847b3d6f509c219de5ad816ad",
+  "sourceTree": "40f4a540901e7c49d28184bb8b27a1f808b4f6b8",
+  "sourceTrackedInputs": 2726,
+  "sourceWorkingTrackedBytesExact": true,
+  "toolSession": 72503,
+  "toolTerminalExitCode": 0,
+  "originalChild": {
+    "pid": 1355896,
+    "processGroup": 1355896,
+    "originalStartTicks": "14882481",
+    "exitCode": 0,
+    "startedAt": "2026-10-11T16:19:24.044573+00:00",
+    "endedAt": "2026-10-11T16:19:30.742710+00:00"
+  },
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1356054,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1355896,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1356054,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1355896,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1356054,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1355896,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "actualNewArtifacts": 118,
+  "allActualArtifactHashesExact": true,
+  "raw": {
+    "one-fresh-final-QA-source-build-command.json": {
+      "path": "/workspace/phase5f-saved-file-package-coherent-one-cf-build-runtime-attempt1/one-fresh-final-QA-source-build-command.json",
+      "sha256": "ae558f4ec6af56dd6d4632f02da485eb0a51b8b613abc21ea7c88f4b02581c65",
+      "byteLength": 1798
+    },
+    "fresh-build-artifact-manifest.json": {
+      "path": "/workspace/phase5f-saved-file-package-coherent-one-cf-build-runtime-attempt1/fresh-build-artifact-manifest.json",
+      "sha256": "589f7e3463f10a066cf274257ff4234ba74ad24dc4664bedfb671c6f44063b22",
+      "byteLength": 14601
+    },
+    "one-fresh-final-QA-source-build.log": {
+      "path": "/workspace/phase5f-saved-file-package-coherent-one-cf-build-runtime-attempt1/one-fresh-final-QA-source-build.log",
+      "sha256": "00969b5ce2f703a4a293d4f854e0a391800e5dd15f50623d281e851e4cf75f89",
+      "byteLength": 12739
+    },
+    "finite-one-coherent-saved-package-cf-build-plan.json": {
+      "path": "/workspace/phase5f-saved-file-package-coherent-one-cf-build-source-preparation-attempt1/finite-one-coherent-saved-package-cf-build-plan.json",
+      "sha256": "5445c375672a8472a0aa238f76e10297ba7494e4afd83a706a59ce9ef196c914",
+      "byteLength": 3180
+    }
+  },
+  "warningScope": "Original full log retains Wrangler logpath write warning and exact attempted path. Original npm build exit0; warning is not a product build failure. No dependency installs or npm upgrade.",
+  "historicalScope": "This ONE build actually ran on coherent02d/current2726, distinct from historicala7/118. Node build/no provider/deployment/native qualification; new Saved and Package native cases remain UNRUN. Known1356054 kernelZ/PPID1/no active resources; FD PermissionError is not observed zeroFD. No PGEMPTY or global-quiescence claim.",
+  "curationLocatorDiagnostic": "Initial formal authoring looked for runtime/frozen-approved-plan.json, which original existing700 standalone build recorder does not create. Source plan original5445 is the genuine actual pinned input, retained at prep path; authoring stopped before any output. No runtime/command rerun.",
+  "recordedAt": "2026-10-11T16:22:15.553542+00:00"
+}

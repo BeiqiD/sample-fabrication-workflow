@@ -1,0 +1,119 @@
+{
+  "status": "SOURCE_REVIEWED_ORIGINAL_TEN_UNRUN_WAIT_ROOT_EXCLUSIVE_GO",
+  "plan": {
+    "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-final-peer-source-preparation-attempt4/finite-current-coherent-native-ten-plan.json",
+    "sha256": "902f6e1d7a0395bc882527b7f18b945170696e192fcb1f3051bd1948e1dd53d8"
+  },
+  "runner": {
+    "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-final-peer-source-preparation-attempt4/run-frozen-owned-stage.py",
+    "sha256": "f9a5f143fbf68999d159b412a3d112d5a95adb391628424f6f60982cb7c2a0ee"
+  },
+  "carrier": {
+    "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-final-peer-source-preparation-attempt4/carry-current-coherent-saved-job.py",
+    "sha256": "03c4196ddc401f215375930ee6e1f0b55b8c12dd41f247f0f5acb270e09770c4"
+  },
+  "source": {
+    "path": "/tmp/phase5f-file-saved-mobile-five-custody-source-preparation-attempt3/source-handoff.json",
+    "sha256": "d313e8fcd6f7c700155731d886610a556d696d73a585c8223ad071484bd1441d"
+  },
+  "producer": {
+    "root": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source",
+    "head": "5e65f4d0355f375ca7fe949b8de15082c043c19a",
+    "tree": "4df8f0e910ef1fa085c1a74bad3b402cd266f73d",
+    "count": 2726,
+    "actualBuild": {
+      "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/actual-one-current5e-file-mobile-wrap-cf-build-qualified-closed-release.json",
+      "sha256": "c85c13e7ebb479b90e1e71e068c5ddb0a5481080438ee2782a58f673ff845727"
+    },
+    "actualRootRelease": {
+      "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/root-one-fresh5e-cf-build-full-source-raw-original-owner-kernel-read-release.json",
+      "sha256": "9b026c2dd891990279ca6b6f716eff86fbb52f4ea87cc3dc1c357b671245fb03"
+    },
+    "manifest": {
+      "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/fresh-build-artifact-manifest.json",
+      "sha256": "09e3b5b80cea5e001a6c98323611f2b212325b931085f1f0d1af0d0ac992781d",
+      "actualFiles": 118
+    }
+  },
+  "consumer": {
+    "root": "/tmp/phase5f-file-saved-mobile-five-custody-qa-private-attempt3/source",
+    "head": "b3d227a0016ce68a4fc079b58157e9ad511ff111",
+    "tree": "12b173731d4d0d1ad593adce81b7f574d631e7d9",
+    "count": 2728,
+    "fiveSitesOnly": true,
+    "ownedTwo": {
+      "scripts/qa/phase5f/browser-current-coherent-local-r2-file-saved-job-keyboard-mobile.mjs": "731df98adc3d4b421976f016ec23be875c18f2fc62e4a31ccbf0b3b5c185dde5",
+      "scripts/qa/phase5f/check-current-coherent-saved-job-mobile-physical-state.py": "92772d9505d300a49cea7dbede3fee26adcf682dfc3d0321a2781a9793ed342c"
+    }
+  },
+  "originalBasis": {
+    "root": "/tmp/phase5f-file-saved-mobile-layout-wrap-native-finite-source-preparation-attempt2",
+    "handoffSha256": "b683c9c89388ae43428bd236ec6b6474f17053b278e5a0c5323e80ebb33592d3",
+    "blockedPeer": {
+      "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-native-finite-source-preparation-attempt2/independent-complete-original-ten-source-binding-and-custody-findings.json",
+      "sha256": "88bdde30cdd0edb9031bc286f9356c7456537679b797904c92e1b6294fab2a11"
+    }
+  },
+  "all11RunnerAnd3CarrierDefinitionsASTExact": true,
+  "wholeBindingSubstitutions": {
+    "/tmp/phase5f-file-saved-mobile-layout-wrap-native-finite-source-preparation-attempt2": "/tmp/phase5f-file-saved-mobile-five-custody-native-final-peer-source-preparation-attempt4",
+    "/tmp/phase5f-file-saved-mobile-layout-wrap-native-private-attempt2": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3",
+    "/tmp/phase5f-file-saved-mobile-layout-wrap-qa-private-attempt1/source": "/tmp/phase5f-file-saved-mobile-five-custody-qa-private-attempt3/source",
+    "9fc2ad8e9e07980b515fbb794b0f80a9f42dd2fd": "b3d227a0016ce68a4fc079b58157e9ad511ff111",
+    "36a0410e6d9f5935961111ae8138bf0f6c004608": "12b173731d4d0d1ad593adce81b7f574d631e7d9",
+    "--exclusive-go-exact-9fc2ad8-file-mobile-job-wrap-stage": "--exclusive-go-exact-b3d227a-file-mobile-custody-stage"
+  },
+  "allTenCommandsWholeBindingInverseExact": true,
+  "budgetsExact": {
+    "nativeOperationBodyAndReadinessMs": 20000,
+    "originalTTYSupervisionMs": 120000,
+    "supervisionProgressEveryMs": 20000,
+    "bodyMaximumExclusiveBytes": 131072,
+    "overflowPx": 2
+  },
+  "rootState": {
+    "parent": {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3",
+      "mode": "0700",
+      "uid": 1000,
+      "dev": "34",
+      "ino": "1977476"
+    },
+    "runtime": {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime",
+      "mode": "0700",
+      "uid": 1000,
+      "dev": "34",
+      "ino": "1977477"
+    },
+    "state": "Source-only existing0700 preparedruntime: original frozen-approved-plan.json0600 retained plus distinct frozen-approved-plan-final.json0600. No command logs/output/copy/fixture or .sfmj2; exact UID/dev/inode unchanged."
+  },
+  "shortTempUnchangedNeverCreated": "/workspace/.sfmj2",
+  "nativeTTY": true,
+  "startArgv": [
+    "python3",
+    "-B",
+    "/tmp/phase5f-file-saved-mobile-five-custody-native-final-peer-source-preparation-attempt4/run-frozen-owned-stage.py",
+    "--exclusive-go-exact-b3d227a-file-mobile-custody-stage",
+    "qualified-current02d-coherent-build-producer-preflight"
+  ],
+  "scope": "Final only two real independent peer fields/status/runtime truth, PLAN/carrier locator+hash bindings. All original ten commands/11+3 owners/budgets/source/helper/actual118 remain exact prepared5f41. No preflight/helper/module/compiler/build/native or SQLite invocation; explicit root GO pending.",
+  "independentFiveCustodySourcePeer": {
+    "path": "/tmp/phase5f-file-saved-mobile-five-custody-source-preparation-attempt3/independent-narrow-complete-mobile-five-custody-source-addendum.json",
+    "sha256": "54de6081bec02a0af9dca1d0902da5c8d13d0467b368d3d8b25e029ba9172f5e"
+  },
+  "independentPreparedFinitePeer": {
+    "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-finite-source-preparation-attempt3/independent-narrow-original-ten-five-custody-finite-binding-source-addendum.json",
+    "sha256": "5f4c9f18a05e4b850702258d4d2b18665d2b19940c42cdcd1b932fc7090fd5be"
+  },
+  "finalBindingInverse": {
+    "preparedHandoff": {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-finite-source-preparation-attempt3/source-handoff.json",
+      "sha256": "5f41ab32bce71a3aa2913095a1e9929cc62dd56dc3b1fe910d853d94effd08aa"
+    },
+    "twoActualPeerFieldsOnly": true,
+    "allTenCommandsAfterLocatorInverseExact": true,
+    "all11And3ASTExact": true,
+    "wholeRunnerCarrierInverseExact": true
+  }
+}

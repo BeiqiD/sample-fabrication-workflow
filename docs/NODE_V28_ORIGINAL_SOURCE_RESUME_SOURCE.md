@@ -1,0 +1,35 @@
+# Explicit original Node source resume — SOURCE checkpoint
+
+This bounded successor is based on `af1f265d43b21c44e78ee8697e6213aa37c099a8`. It is SOURCE only; types, distribution and genuine qualification remain Root-owned and unrun. Earlier startup failures remain attached to their actual attempts.
+
+The opt-in `v28-recovery` profile mounts `POST /api/system-recovery/source-resume` and `GET /api/system-recovery/source-resume/requests/:requestId`. The existing authenticated loopback transport, SystemAdmin/session and CSRF middleware protect the new action. The default profiles have no route; the borrowed full-workflow child explicitly refuses it. Maintenance release retains its existing behavior.
+
+The closed POST input is `{requestId, releaseRequestId, backupJobId, expectedGeneration}`. Each ID is 1–96 ASCII letters, digits, underscores or hyphens. The request requires an immutable release receipt belonging to this administrator, current maintenance OPEN at the released generation, and the completed original same-installation backup whose accepted window precedes that release. The original private artifact namespace must still match the backup. Recovery execution is explicitly stopped before resume, with no queued/running jobs, unresolved writers/ingress/attempts, unreleased File/recovery holds, pending candidates/checks or deleting GC. Expiry does not settle any owner.
+
+The Recovery-only host must retain its actual single request, with no other original invocation, body, artifact scope, dispatcher or archive/provider work. A private host scope binds the concrete request, actor, opening, authentication and reviewed admission; a structural callback cannot replace that owner. Stop-admission and the original Request abort are checked before each new operation. The original V28 core, Native connection, Linux physical lease, installed identity and session remain current.
+
+Validation captures the complete current reviewed typed image and requires the original backup checkpoint. Every source is a current canonical LOCAL publication with its original namespace/binding and a writable installation-owned profile. Its complete bytes and digest are read again through the original retained body/provider first-close machinery. Both current role defaults must select genuine ACTIVE_RW LOCAL authorities. Read-only or unbound restored targets remain denied. A private verification capability binds the actual core, Native, opening, admission, request, backup and checkpoint; it is issued only after every original validation scope closes, and its stored typed image cannot be changed through a caller reference.
+
+One actual native transaction rechecks the current installed SystemAdmin/session, released generation, completed backup, every frozen typed cell/rowid and both current physical profile admission tuples. It changes only the original File runtime's mutable enabled/actor/timestamp fields. Shadow and job execution remain disabled; paused jobs still require their existing explicit executor and per-job controls. No profile, role, binding, activation checkpoint, publication, business row or file ID is created or rewritten. Existing immutable domain history stays byte-identical; only the new code-owned resume receipt is appended.
+
+The frozen File trigger permits re-enabling the same original incarnation only when its disabled and enabled timestamps equal that incarnation's immutable activation checkpoint time. Maintenance enter records a later disabled timestamp. The resume transaction first restores that disabled activation marker, then enables the same original incarnation at that exact checkpoint time. It preserves the actual checkpoint/control lineage used by ordinary Node constructors; it does not drop or replace a trigger or create a fresh checkpoint. A separate durable action receipt records the real resume time.
+
+The exact result has schema `node-original-source-resume/1`, the four original input fields, `sourceInstallationId`, `incarnation`, `sourceCheckpoint`, `resumedAt`, and fixed flags `enabled:true`, `shadowEnabled:false`, `jobsEnabled:false`, `noBindingCutover:true`, `noJobReplay:true`. It is stored under an immutable `system_recovery_requests` digest using the reserved `node_source_resume:` request namespace and a code-owned `node-source-resume/` metadata document. The digest binds the complete input/result document. A duplicate returns that exact accepted result; it cannot enable a later maintenance window. Changed input is refused. Cleanup or missing/corrupt receipt data cannot manufacture a successful acknowledgment.
+
+All existing HTTP, kernel, cadence, case and hook limits remain unchanged. This source action does not qualify target activation, arbitrary provider parity, automatic resume or complete same-application recovery. Its genuine helper uses public release and this explicit POST before closing Recovery and starting the ordinary workflow; qualification performs no SQL flag seed.
+
+The actual post-backup authentication audit is bounded separately: an unchanged
+`local_auth_events` inventory or one contiguous `login` row for the exact current
+private session is admitted. Its principal and login time equal the live original
+session, the login follows completed backup, and every archived rowid/cell is
+preserved. All other protected identity, grants, configuration and business rows
+remain exact. Only that proved append is normalized for source-checkpoint
+comparison; the proof keeps the truthful freshly captured V5 image and the
+commit checks its complete current typed inventory inside the same BEGIN.
+
+The fourteen-field public result and original receipt document remain unchanged.
+A separate immutable reserved authentication receipt hashes the original/current
+audit inventory counts/digests, exact session identity/time/revision and allowed
+append sequence, with no bearer or token digest exported. This is provenance for
+the explicit original-source operation, and does not grant target activation.
+The earlier refused metadata checkpoint and diagnostic run remain failures.

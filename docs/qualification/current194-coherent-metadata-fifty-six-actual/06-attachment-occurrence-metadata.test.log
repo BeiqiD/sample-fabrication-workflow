@@ -1,0 +1,15 @@
+
+ RUN  v4.1.10 /workspace/portable-current194-coherent-metadata-source-only-attempt1
+
+ ↓ worker/attachment-occurrence-metadata.test.ts > attachment occurrence metadata > keeps Project presentation independent from one shared physical asset and preserves it on copy
+ ✓ worker/attachment-occurrence-metadata.test.ts > attachment occurrence metadata > stores contextual Run metadata through the real update route and rejects size mismatch 1660ms
+ ✓ worker/attachment-occurrence-metadata.test.ts > attachment occurrence metadata > rejects unsafe occurrence MIME before persistence and serves validated MIME without header failure 1362ms
+ ↓ worker/attachment-occurrence-metadata.test.ts > attachment occurrence metadata > keeps current clients responsible for freezing contextual Run metadata
+ ✓ worker/attachment-occurrence-metadata.test.ts > attachment occurrence metadata > keeps safe parameterized legacy MIME compatible while new Run JSON stays canonical 1727ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed | 2 skipped (5)
+   Start at  04:47:15
+   Duration  7.86s (transform 2.43s, setup 28ms, import 2.98s, tests 4.75s, environment 0ms)
+
+JSON report written to /tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/06-attachment-occurrence-metadata.test.json

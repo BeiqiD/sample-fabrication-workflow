@@ -1,0 +1,299 @@
+{
+  "kind": "current-dev-http306-exact-adoption-independent-complete-source-peer/1",
+  "status": "SOURCE_CLEAR_CURRENT889_ADOPTION_AND_CAUSAL_NATIVE30_ONLY",
+  "root": "/workspace/portable-dev5ca-qualified-http-drain-source-attempt1",
+  "head": "889ba4228a979ae5cb2fc13da3db8e7657d377c7",
+  "tree": "f4562c9c3a3f4fd68ef785223ab51502888d37f3",
+  "baseHead": "5ca6ada4448e36beaa1c46ceb4bbf1e9b0d2ecef",
+  "baseEntries": 2346,
+  "currentEntries": 2353,
+  "protectedBaseEntries": 2343,
+  "fullCurrentGitBlobsModesHashesAndWorkingExact": true,
+  "exactOwned10": [
+    "docs/NODE_HTTP_STREAM_LIFETIME_QUALIFICATION.md",
+    "docs/qa/NODE_HTTP_STREAM_LIFETIME_QUALIFICATION_20261011/original-native30-formal-closure.json",
+    "docs/qa/NODE_HTTP_STREAM_LIFETIME_QUALIFICATION_20261011/original-native30-independent-result-peer.json",
+    "docs/qa/NODE_HTTP_STREAM_LIFETIME_QUALIFICATION_20261011/original-native30-recorder-receipt.json",
+    "docs/qa/NODE_HTTP_STREAM_LIFETIME_QUALIFICATION_20261011/original-native30-source-qualification-addendum.json",
+    "docs/qa/NODE_HTTP_STREAM_LIFETIME_QUALIFICATION_20261011/original-native30.log",
+    "package.json",
+    "server/http-lifetime.test.mts",
+    "server/http.test.mts",
+    "server/http.ts"
+  ],
+  "exactThreeAdoptedLeaves": [
+    "server/http.ts",
+    "server/http.test.mts",
+    "server/http-lifetime.test.mts"
+  ],
+  "packageWholeByteInverseOnlyOneScript": true,
+  "finalDocOnlyInverseToInitialD86": true,
+  "initialAttributionFindingResolved": true,
+  "exactNativeRuntimeClosureFive": [
+    {
+      "path": "server/http.ts",
+      "mode": "100644",
+      "blob": "3c8565db36976804290a35949a6e9c5b5f008e1b",
+      "sha256": "bc400f27ce56051af6c263917674d5c92d798ff5e7c286e1fe22bbf6d53201d3",
+      "donorGitAndWorkingExact": true
+    },
+    {
+      "path": "server/http.test.mts",
+      "mode": "100644",
+      "blob": "43660c8185d65e977f8db4b577e9926683a26e1d",
+      "sha256": "c8387ce928be0c6e3c35b6e36700a53e758a28ee778136133118f6a55ebd4261",
+      "donorGitAndWorkingExact": true
+    },
+    {
+      "path": "server/http-lifetime.test.mts",
+      "mode": "100644",
+      "blob": "a3d17571b365db14306d234c9bf0135bec3d050e",
+      "sha256": "5cd8d386e734dbe95ff455037d987ae497ee5b2d8b21b241cc0fd739c7ba05e3",
+      "donorGitAndWorkingExact": true
+    },
+    {
+      "path": "server/static-assets.ts",
+      "mode": "100644",
+      "blob": "e11879605c0c89310f78ed280d1ed445f1c2da73",
+      "sha256": "b7333ac7d9373577d61757d7afb9f1102d3c5a45fa4df737322e0618fe88fd7c",
+      "donorGitAndWorkingExact": true
+    },
+    {
+      "path": "server/static-assets.test.mts",
+      "mode": "100644",
+      "blob": "5b18662053f721eee207e712c3c21a97f52b3bbe",
+      "sha256": "959dfa054ddbdc4cfb3093ada08698c3cabfa8a05bef244855e57195bf5ec5ca",
+      "donorGitAndWorkingExact": true
+    }
+  ],
+  "nativeImports": {
+    "server/http.ts": [
+      {
+        "specifier": "node:http",
+        "builtin": true
+      },
+      {
+        "specifier": "node:stream",
+        "builtin": true
+      }
+    ],
+    "server/http.test.mts": [
+      {
+        "specifier": "node:assert/strict",
+        "builtin": true
+      },
+      {
+        "specifier": "node:events",
+        "builtin": true
+      },
+      {
+        "specifier": "node:http",
+        "builtin": true
+      },
+      {
+        "specifier": "node:net",
+        "builtin": true
+      },
+      {
+        "specifier": "node:timers/promises",
+        "builtin": true
+      },
+      {
+        "specifier": "node:test",
+        "builtin": true
+      },
+      {
+        "specifier": "./http.ts",
+        "resolvedSource": "server/http.ts"
+      },
+      {
+        "specifier": "node:http",
+        "builtin": true
+      },
+      {
+        "specifier": "node:http",
+        "builtin": true
+      }
+    ],
+    "server/http-lifetime.test.mts": [
+      {
+        "specifier": "node:assert/strict",
+        "builtin": true
+      },
+      {
+        "specifier": "node:events",
+        "builtin": true
+      },
+      {
+        "specifier": "node:http",
+        "builtin": true
+      },
+      {
+        "specifier": "node:stream",
+        "builtin": true
+      },
+      {
+        "specifier": "node:timers/promises",
+        "builtin": true
+      },
+      {
+        "specifier": "node:test",
+        "builtin": true
+      },
+      {
+        "specifier": "./http.ts",
+        "resolvedSource": "server/http.ts"
+      }
+    ],
+    "server/static-assets.ts": [
+      {
+        "specifier": "node:fs",
+        "builtin": true
+      },
+      {
+        "specifier": "node:fs/promises",
+        "builtin": true
+      },
+      {
+        "specifier": "node:path",
+        "builtin": true
+      },
+      {
+        "specifier": "node:stream",
+        "builtin": true
+      },
+      {
+        "specifier": "./http.ts",
+        "resolvedSource": "server/http.ts"
+      }
+    ],
+    "server/static-assets.test.mts": [
+      {
+        "specifier": "node:assert/strict",
+        "builtin": true
+      },
+      {
+        "specifier": "node:events",
+        "builtin": true
+      },
+      {
+        "specifier": "node:fs/promises",
+        "builtin": true
+      },
+      {
+        "specifier": "node:os",
+        "builtin": true
+      },
+      {
+        "specifier": "node:path",
+        "builtin": true
+      },
+      {
+        "specifier": "node:test",
+        "builtin": true
+      },
+      {
+        "specifier": "./http.ts",
+        "resolvedSource": "server/http.ts"
+      },
+      {
+        "specifier": "./static-assets.ts",
+        "resolvedSource": "server/static-assets.ts"
+      }
+    ]
+  },
+  "nativeRuntimeBuiltinOnlyNoNpmOrTsconfigImports": true,
+  "currentNodeExecutable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+  "currentNodeExecutableSha256": "bc17c508ffeed0ec622934f9b7fa72f8e78da65350e63c3eceb56fa688aa5e12",
+  "exactQualifiedArgv": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "--experimental-transform-types",
+    "--test",
+    "--test-concurrency=1",
+    "server/http.test.mts",
+    "server/http-lifetime.test.mts",
+    "server/static-assets.test.mts"
+  ],
+  "packageModuleSemanticsUnchanged": true,
+  "counts": {
+    "HTTP": 18,
+    "lifetime": 10,
+    "static": 2,
+    "total": 30
+  },
+  "all30UniqueTitlesMatchActualSpec": true,
+  "allTenOriginalLifetimeCasesFullyRead": true,
+  "lifetimeMeaningfulControls": [
+    "late handler and delayed first disposal after408",
+    "real response disconnect first cancel",
+    "reported first cancel refusal strong quarantine",
+    "already admitted chunked ingress EOF before transport drain",
+    "normal EOF unread original Web queue cancel exactly once",
+    "foreign locked direct/late response strong custody",
+    "held keepalive response before idle expiry/client teardown",
+    "exact backpressured2MiB tail before idle-only sweep",
+    "reported postsettled sweep first rejection cached",
+    "reported initial sweep no retry, complete response and separate terminal Agent/nativeACK"
+  ],
+  "oldNativeOriginalRecorderFailurePreserved": true,
+  "historicalNative30ActualSourceHead": "306773095a551ddfea27d3d35ec2ea6b573be3b9",
+  "historicalWhole2493RetaggedAsCurrent2353": false,
+  "historicalPrivateTmpAndKernelQualificationScopedToDonor": true,
+  "causalRuntimeCarryScope": "Exact five original source leaves, Node executable/argv and package module semantics support carrying original native30 outcomes only. No fresh current-head/all2353/kernel/TMP/compiler/CI/runtime qualification; future environment/privateTMP and own remote CI remain separately required.",
+  "noWholeNodeFileGroupOverlay": true,
+  "currentCompilerStatus": "UNRUN_REQUIRED_SINGLE_AFFECTED_SERVER_COMPILER",
+  "currentCompilerIncludeServerCoversTsAndMts": true,
+  "priorC69CompilerIsHistoricalOnly": {
+    "path": "/workspace/portable-dev3104-pure-immutable-caches-source-review-attempt1/affected-server-and-fixture-types-attempt1/receipt.json",
+    "sha256": "373a8bafd6f7fa792bde8e05e017ec3d71f7f50e2bdfcd76adae25e8bc166a35"
+  },
+  "fixedRecords": [
+    {
+      "curated": "docs/qa/NODE_HTTP_STREAM_LIFETIME_QUALIFICATION_20261011/original-native30-recorder-receipt.json",
+      "original": "/workspace/node58-http30-original-owned-actual-attempt3/receipt.json",
+      "sha256": "8f811589cd463e8e2a916f48488afa5df1d35d3350539e340c175862dc0963ec"
+    },
+    {
+      "curated": "docs/qa/NODE_HTTP_STREAM_LIFETIME_QUALIFICATION_20261011/original-native30.log",
+      "original": "/workspace/node58-http30-original-owned-actual-attempt3/node58-http-original-thirty.log",
+      "sha256": "34c059ac3714db34cc02caf22dc5b8fe933ea95e41fa34dcb830fe6a09bd181b"
+    },
+    {
+      "curated": "docs/qa/NODE_HTTP_STREAM_LIFETIME_QUALIFICATION_20261011/original-native30-source-qualification-addendum.json",
+      "original": "/workspace/node58-http30-original-owned-actual-attempt3/original-thirty-root-accepted-spec-source-qualification-addendum.json",
+      "sha256": "e4959f70d4f3b0b2985bc22636646f0f43aebb659ba58a5fa91d3d80ee43ec0b"
+    },
+    {
+      "curated": "docs/qa/NODE_HTTP_STREAM_LIFETIME_QUALIFICATION_20261011/original-native30-formal-closure.json",
+      "original": "/workspace/node58-http30-original-owned-actual-attempt3/original-thirty-command-closed-and-released-with-format-failure-preserved.json",
+      "sha256": "c59c99bed080db339702cb7d4939285f28c283422860458ebd7b357a4de95cfa"
+    },
+    {
+      "curated": "docs/qa/NODE_HTTP_STREAM_LIFETIME_QUALIFICATION_20261011/original-native30-independent-result-peer.json",
+      "original": "/workspace/http306-original-spec30-root-independent-result-qualification-peer.json",
+      "sha256": "ee3da30a8d9494d2b0750073a3297487dc95c059d0d31e23de01f2d8e746d2c7"
+    }
+  ],
+  "freezePath": "/workspace/dev5ca-http-drain-source-review-attempt1/current-whole-source-after-attribution-doc-freeze.json",
+  "freezeSha256": "aec68923e43b578a1ff60e570245ac63c090385f2531a154752e3c3d2a9e58c6",
+  "peerPins": [
+    {
+      "path": "/workspace/node58-http306-root-independent-complete-two-stage-product-and-native-controls-source-peer.json",
+      "sha256": "2ec06d4d33a96833cd1f0491534a13d57370705d37486d79a81944386f601b9d"
+    },
+    {
+      "path": "/workspace/http306-original-spec30-root-independent-result-qualification-peer.json",
+      "sha256": "ee3da30a8d9494d2b0750073a3297487dc95c059d0d31e23de01f2d8e746d2c7"
+    }
+  ],
+  "effects": {
+    "candidateEdits": 0,
+    "compiler": 0,
+    "Native": 0,
+    "HTTP": 0,
+    "tests": 0,
+    "build": 0,
+    "runnerPreflight": 0
+  },
+  "findings": []
+}

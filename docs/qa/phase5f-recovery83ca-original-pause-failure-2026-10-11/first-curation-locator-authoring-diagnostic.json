@@ -1,0 +1,13 @@
+{
+  "sourceOnly": true,
+  "runtimeEffect": false,
+  "firstAttemptExit": 1,
+  "wrongParent": "fixture",
+  "resolvedParent": "runtime",
+  "receiptNames": [
+    "original-f228-build-new-physical-fixture-causal-carry.json",
+    "final-causal-f228-source-and-job-controls-short-temp-pins.json",
+    "chromium-child-temp-owner.json"
+  ],
+  "firstAttemptCopiedRawFiles": 0
+}

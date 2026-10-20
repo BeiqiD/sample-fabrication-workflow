@@ -36,26 +36,34 @@ class SqliteD1Statement {
   }
 
   execute() {
-    const result = this.statement().run(...this.bindings);
+    const statement = this.statement();
+    const before = Number(this.database.prepare("SELECT total_changes() AS count").get()?.count);
+    const results = statement.columns().length > 0
+      ? statement.all(...this.bindings)
+      : (statement.run(...this.bindings), []);
     return {
       success: true,
-      meta: { changes: Number(result.changes) },
-      results: [],
+      meta: { changes: Number(this.database.prepare("SELECT total_changes() AS count").get()?.count) - before },
+      results,
     };
   }
 }
 
 class SqliteD1Database {
-  constructor(readonly database: DatabaseSync) {}
+  lastBatch: ReturnType<SqliteD1Statement["execute"]>[] = [];
+
+  constructor(readonly database: DatabaseSync, private readonly beforeBatch?: () => void) {}
 
   prepare(query: string) {
     return new SqliteD1Statement(this.database, query);
   }
 
   async batch(statements: SqliteD1Statement[]) {
+    this.beforeBatch?.();
     this.database.exec("BEGIN");
     try {
       const results = statements.map((statement) => statement.execute());
+      this.lastBatch = results;
       this.database.exec("COMMIT");
       return results;
     } catch (error) {
@@ -165,6 +173,11 @@ describe("finish process run route", () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ ok: true, skippedStepCount: 2 });
+    // Native D1 includes shadow trigger writes in meta.changes. Only the two
+    // returned run_steps rows count towards the exact completion fence.
+    const batch = (env.DB as unknown as SqliteD1Database).lastBatch;
+    expect(batch[1].meta.changes).toBeGreaterThan(2);
+    expect(batch[1].results).toHaveLength(2);
     expect(database.prepare(
       "SELECT status, completed_at FROM runs WHERE id = 'run-1'",
     ).get()).toEqual({ status: "complete", completed_at: expect.any(String) });
@@ -203,5 +216,45 @@ describe("finish process run route", () => {
       skippedUnfinishedStepIds: ["step-pending", "step-blocked"],
     });
     database.close();
+  });
+
+  it("keeps the sample revision fence when another request wins before the batch", async () => {
+    const database = createDatabase();
+    const env = testEnv(database);
+    env.DB = new SqliteD1Database(database, () => {
+      database.prepare("UPDATE samples SET updated_at = ? WHERE id = 'sample-1'")
+        .run("2026-07-29T10:11:00.000Z");
+    }) as unknown as D1Database;
+    try {
+      const response = await finishRequest(env, {
+        expectedSampleUpdatedAt: "2026-07-29T10:10:00.000Z",
+        confirmSkipUnfinishedSteps: true,
+      });
+      expect(response.status).toBe(409);
+      expect(database.prepare("SELECT status FROM runs WHERE id = 'run-1'").get())
+        .toEqual({ status: "active" });
+      expect(database.prepare("SELECT id, status FROM run_steps WHERE id IN ('step-pending', 'step-blocked') ORDER BY id").all())
+        .toEqual([{ id: "step-blocked", status: "blocked" }, { id: "step-pending", status: "pending" }]);
+      expect(database.prepare("SELECT id FROM events WHERE kind = 'run'").all()).toEqual([]);
+    } finally { database.close(); }
+  });
+
+  it("finishes a run with no unfinished steps using an exact zero-row result", async () => {
+    const database = createDatabase();
+    database.exec(`
+      UPDATE run_steps SET status = 'done' WHERE entry_kind = 'fabrication';
+      UPDATE runs SET status = 'active' WHERE id = 'run-1';
+    `);
+    const env = testEnv(database);
+    try {
+      const response = await finishRequest(env, {
+        expectedSampleUpdatedAt: "2026-07-29T10:10:00.000Z",
+      });
+      expect(response.status, await response.clone().text()).toBe(200);
+      expect(await response.json()).toMatchObject({ ok: true, skippedStepCount: 0 });
+      expect((env.DB as unknown as SqliteD1Database).lastBatch[1].results).toEqual([]);
+      expect(database.prepare("SELECT status FROM runs WHERE id = 'run-1'").get())
+        .toEqual({ status: "complete" });
+    } finally { database.close(); }
   });
 });

@@ -1,0 +1,42 @@
+{
+  "stage": "affected-recovery-mounted-file",
+  "cwd": "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2",
+  "argv": [
+    "node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "vitest.mounted.config.ts",
+    "src/system-recovery.mount.test.tsx",
+    "--maxWorkers",
+    "1",
+    "--bail",
+    "1"
+  ],
+  "env": {
+    "TMPDIR": "/workspace",
+    "SQLITE_TMPDIR": "/workspace"
+  },
+  "cases": 22,
+  "originalTestTimeoutMs": 5000,
+  "scope": "Whole corrected affected22 under unchanged original config/default5s; original28e20P1labelF1U retained, strict actual28e PASS distinct.",
+  "startedAt": "2026-10-11T11:12:49.907945+00:00",
+  "status": "PASS",
+  "log": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt2/affected-recovery-mounted-file.log",
+  "pid": 1105461,
+  "processGroup": 1105461,
+  "originalStartTicks": "13043067",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T11:12:52.223818+00:00",
+  "logSha256": "65fddcb98e08d80f36e4851b72739a16cf5cfc46a186d4e53e02b835414d95dd"
+}

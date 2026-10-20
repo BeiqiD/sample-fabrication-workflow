@@ -1,0 +1,48 @@
+{
+  "status": "PASS-CLOSED-RELEASED",
+  "scope": "ONE new currenta7 CF Worker/frontend npm run build; no browser/Worker fixture/SQLite/mounted/type rerun or deployment. Currentc50 appstrict+File11 actual evidence is carried separately, not freshly rerun ona7. Copied121 is a future native fixture prerequisite, not created here.",
+  "sourceRoot": "/workspace/portable-dev270-file-preview-focus-complete-native-helper-source-attempt2",
+  "sourceHead": "a7d64919f28477adcd3923809a63d1c1f9cc0561",
+  "sourceTree": "5e3b9da99f834135f8ea011aa47f7a092e1a7ef5",
+  "sourceTrackedCount": 2438,
+  "allSourceModesBlobsWorkingBytesExact": true,
+  "sourceClean": true,
+  "sourceInventorySha256": "bfa3740af7dc34a03f63639d9edd517904eea7004d277d9c6778a46b7ad7f1c9",
+  "originalToolSession": 66574,
+  "commandReceipt": {
+    "path": "/workspace/phase5f-file-preview-current-a7-one-cf-build-runtime-attempt5/one-fresh-final-QA-source-build-command.json",
+    "sha256": "e7e80f8ad8854e47867c3dbfd5a1510813c8d755d96e594a932a511a9f173bb8"
+  },
+  "buildLog": {
+    "path": "/workspace/phase5f-file-preview-current-a7-one-cf-build-runtime-attempt5/one-fresh-final-QA-source-build.log",
+    "sha256": "abe13a26f960e3c91947930885d9e22f11c50091236cd3dc086665ee33a45e09"
+  },
+  "freshArtifacts": {
+    "path": "/workspace/phase5f-file-preview-current-a7-one-cf-build-runtime-attempt5/fresh-build-artifact-manifest.json",
+    "sha256": "da9bb6b79352b4f31f9ec14b225bc30887b7f8b5b1108f595b321d0c79791814",
+    "actualFiles": 118,
+    "allCurrentActualBytesExact": true
+  },
+  "originalPid": 1170038,
+  "processGroup": 1170038,
+  "startTicks": "13441153",
+  "directChildExitCode": 0,
+  "directChildReaped": true,
+  "signals": [],
+  "ownedGroupAfter": [
+    {
+      "pid": 1170135,
+      "state": "Z",
+      "ppid": 1,
+      "processGroup": 1170038,
+      "kernelResourcesExited": true,
+      "fdInspection": "PermissionError"
+    }
+  ],
+  "closureScope": "Direct child exited0 and original wait/reap completed. No active owned group member observed; one exited Z with inaccessible FD metadata is preserved. No observed zeroFD or global quiescence claim.",
+  "priorCurrentC50AppAndFile11": {
+    "path": "/workspace/phase5f-file-preview-current-c50-first-two-runtime-attempt4/actual-current-c50-file-preview-app-strict-whole11-qualified-closed-release.json",
+    "sha256": "2c8973edc003d2c47995348927789a2ad0efdb71ac6c0e8d0921b2b7f0128fe3"
+  },
+  "closedAt": "2026-10-11T12:20:05.635371+00:00"
+}

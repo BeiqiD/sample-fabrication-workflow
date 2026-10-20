@@ -1,0 +1,100 @@
+[
+  {
+    "path": "scripts/qa/phase5f/browser-current-package-file-focus-package-status-refresh-keyboard-mobile.mjs",
+    "donorPath": "scripts/qa/phase5f/browser-current-package-file-focus-package-status-refresh-keyboard.mjs",
+    "donorHead": "c316fe89ce79cd9d4d40627763bbe7ed029debbe",
+    "donorSha256": "fdc76a198b6d364fe4b63feaaa57e8b1fbf3b974f1225f31eb2d498bef13db51",
+    "newSha256": "be04e25c8e82e39f9f41d1737cd79eb86a2fdba8e39afccfc5e36cf899db3eb0",
+    "wholeInverseExact": true,
+    "splices": [
+      {
+        "old": "ids=['current-coherent-package-status-refresh-keyboard-1280-light']",
+        "new": "ids=['current-coherent-package-status-refresh-keyboard-390-dark']"
+      },
+      {
+        "old": "/workspace/.pkrf3",
+        "new": "/workspace/.pkrfm1"
+      },
+      {
+        "old": "await caseRun(ids[0],1280,1000,'light');",
+        "new": "await caseRun(ids[0],390,844,'dark');"
+      }
+    ]
+  },
+  {
+    "path": "scripts/qa/phase5f/browser-current-package-file-focus-file-start202-natural-focus-keyboard-mobile.mjs",
+    "donorPath": "scripts/qa/phase5f/browser-current-package-file-focus-file-start202-natural-focus-keyboard.mjs",
+    "donorHead": "c316fe89ce79cd9d4d40627763bbe7ed029debbe",
+    "donorSha256": "11f0e926242a36023418c28d499b289ec7f7c17b7c8404e340a98607331c065d",
+    "newSha256": "eceeb804409c169f5788e0a7255e254caf588e13fa7285a0b7b42fc8132c3e28",
+    "wholeInverseExact": true,
+    "splices": [
+      {
+        "old": "ids=['current-file-start202-natural-focus-1280-light']",
+        "new": "ids=['current-file-start202-natural-focus-390-dark']"
+      },
+      {
+        "old": "/workspace/.sfst2",
+        "new": "/workspace/.sfstm1"
+      },
+      {
+        "old": "await caseRun(ids[0],1280,1000,'light');",
+        "new": "await caseRun(ids[0],390,844,'dark');"
+      }
+    ]
+  },
+  {
+    "path": "scripts/qa/phase5f/browser-current-package-file-focus-package-start202-natural-focus-keyboard-mobile.mjs",
+    "donorPath": "scripts/qa/phase5f/browser-current-package-file-focus-package-start202-natural-focus-keyboard.mjs",
+    "donorHead": "c316fe89ce79cd9d4d40627763bbe7ed029debbe",
+    "donorSha256": "e5086d1524d47eee1643ee7108b385f9bb9b6e780d2525d90b8c056319bd3c3e",
+    "newSha256": "9a9dfe06f17336fd75f83e3e2e5d2c4bffaef92187d733d1242c0cafe781287f",
+    "wholeInverseExact": true,
+    "splices": [
+      {
+        "old": "ids=['current-package-start202-natural-focus-1280-light']",
+        "new": "ids=['current-package-start202-natural-focus-390-dark']"
+      },
+      {
+        "old": "/workspace/.pkst2",
+        "new": "/workspace/.pkstm1"
+      },
+      {
+        "old": "await caseRun(ids[0],1280,1000,'light');",
+        "new": "await caseRun(ids[0],390,844,'dark');"
+      }
+    ]
+  },
+  {
+    "path": "scripts/qa/phase5f/check-current-package-file-focus-package-refresh-mobile-physical-state.py",
+    "donorPath": "scripts/qa/phase5f/check-current-package-file-focus-package-refresh-physical-state.py",
+    "donorHead": "c316fe89ce79cd9d4d40627763bbe7ed029debbe",
+    "donorSha256": "7e60fce30fa71eb67e58296222b39d7fd9456a9e083167345989ca965bf17d30",
+    "newSha256": "7c0b76aabe0bb91f31a8c40bb71883bdb325eabee2e4af64622cc5a69137f8b9",
+    "wholeInverseExact": true,
+    "splices": [
+      {
+        "old": "browser-current-package-file-focus-package-status-refresh-keyboard.mjs",
+        "new": "browser-current-package-file-focus-package-status-refresh-keyboard-mobile.mjs"
+      }
+    ]
+  },
+  {
+    "path": "scripts/qa/phase5f/check-current-package-file-focus-start202-natural-focus-mobile-physical-state.py",
+    "donorPath": "scripts/qa/phase5f/check-current-package-file-focus-start202-natural-focus-physical-state.py",
+    "donorHead": "c316fe89ce79cd9d4d40627763bbe7ed029debbe",
+    "donorSha256": "45804fc8a3ef74906fc31a77a627b8fae5958eff709ac65c59355a722710ccb8",
+    "newSha256": "7c73e3f8cd85ae566004846d7b5365d8c5be638b37f6591d97ec4564bc521378",
+    "wholeInverseExact": true,
+    "splices": [
+      {
+        "old": "browser-current-package-file-focus-file-start202-natural-focus-keyboard.mjs",
+        "new": "browser-current-package-file-focus-file-start202-natural-focus-keyboard-mobile.mjs"
+      },
+      {
+        "old": "browser-current-package-file-focus-package-start202-natural-focus-keyboard.mjs",
+        "new": "browser-current-package-file-focus-package-start202-natural-focus-keyboard-mobile.mjs"
+      }
+    ]
+  }
+]

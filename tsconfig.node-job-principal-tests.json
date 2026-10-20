@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.server.json",
+  "files": [
+    "server/files/jobs/principal-authority.test.ts",
+    "server/files/jobs/repository.test.ts"
+  ],
+  "include": [],
+  "exclude": []
+}

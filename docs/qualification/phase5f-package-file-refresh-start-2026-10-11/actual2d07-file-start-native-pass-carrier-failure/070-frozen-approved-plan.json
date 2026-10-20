@@ -1,0 +1,379 @@
+{
+  "version": 1,
+  "installedDependencies": {
+    "root": "/workspace/sample-fabrication-workflow/node_modules",
+    "package": "5c8a504d14b7208edb3d77b8c5049c713d55e4e7821d8e43b7b54e6dbeebe8fc",
+    "dependencyParentPackage": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+    "lock": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a",
+    "hiddenLock": "95202718d08fd50cc286bcddf0af66b08503d63b494e992006c50d4246d69a98"
+  },
+  "budgets": {
+    "nativeOperationBodyAndReadinessMs": 20000,
+    "originalTTYSupervisionMs": 120000,
+    "supervisionProgressEveryMs": 20000,
+    "bodyMaximumExclusiveBytes": 131072,
+    "overflowPx": 2
+  },
+  "status": "SOURCE_ONLY_CURRENT2D07_THREE_SCOPED_NATIVE_TEN_UNRUN_ROOT_SEPARATE_GO_REQUIRED",
+  "domain": "file",
+  "sourceRoot": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+  "sourceHead": "2d07b57c4e79403099261528ae8988c0072d28c6",
+  "sourceTree": "bf96bbcadd4c4d8a0ada525f639cf768d2d4eb90",
+  "trackedFileCount": 3181,
+  "qaConsumerRoot": "/tmp/phase5f-package-file-current2d07-native-five-qa-private-attempt1/source",
+  "qaConsumerHead": "c316fe89ce79cd9d4d40627763bbe7ed029debbe",
+  "qaConsumerTree": "ba49c84bc748dd70469b9b1462029d8af30b770a",
+  "qaConsumerTrackedCount": 3186,
+  "runtimeRoot": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime",
+  "roots": {
+    "parent": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1",
+    "copy": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/copy",
+    "fixture": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/fixture",
+    "runtime": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime",
+    "shortChromiumChildTemp": "/workspace/.sfst2"
+  },
+  "ownedExtraQaLeaves": {
+    "scripts/qa/phase5f/browser-current-package-file-focus-package-status-refresh-keyboard.mjs": "fdc76a198b6d364fe4b63feaaa57e8b1fbf3b974f1225f31eb2d498bef13db51",
+    "scripts/qa/phase5f/browser-current-package-file-focus-file-start202-natural-focus-keyboard.mjs": "11f0e926242a36023418c28d499b289ec7f7c17b7c8404e340a98607331c065d",
+    "scripts/qa/phase5f/browser-current-package-file-focus-package-start202-natural-focus-keyboard.mjs": "e5086d1524d47eee1643ee7108b385f9bb9b6e780d2525d90b8c056319bd3c3e",
+    "scripts/qa/phase5f/check-current-package-file-focus-package-refresh-physical-state.py": "7e60fce30fa71eb67e58296222b39d7fd9456a9e083167345989ca965bf17d30",
+    "scripts/qa/phase5f/check-current-package-file-focus-start202-natural-focus-physical-state.py": "45804fc8a3ef74906fc31a77a627b8fae5958eff709ac65c59355a722710ccb8"
+  },
+  "copiedOrdinaryPrepareHelperSha256": "fba64e958ba1042a7ea406ef9d502ce12829c194c4ec3ea65ee447b3f3105292",
+  "nativeHelperPath": "/tmp/phase5f-package-file-current2d07-native-five-qa-private-attempt1/source/scripts/qa/phase5f/browser-current-package-file-focus-file-start202-natural-focus-keyboard.mjs",
+  "nativeStage": "original-one-current-file-start202-natural-focus",
+  "nativePermit": "--exclusive-go-one-current-file-start202-natural-focus",
+  "cases": [
+    "current-file-start202-natural-focus-1280-light"
+  ],
+  "expectedCosts": {
+    "setupPOSTMaximum": 6,
+    "readerGETs": 2,
+    "nativePOSTMaximum": 2,
+    "maximumTotalPOSTs": 8,
+    "genuinePackageFiveSecondPollingRetained": false,
+    "newAcceptedJobs": 1,
+    "newNativePermits": 2,
+    "newOrdinarySamplePermit": 0,
+    "newBuilds": 0,
+    "disabled84SeedRequests": 0,
+    "executorSteps": 0,
+    "subsequentJobControls": 0
+  },
+  "actualFreshCurrentBuild": {
+    "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/actual-one-current2d07-cf-build-qualified-closed-release.json",
+    "sha256": "c9547f20329863d3859f1c5e40a75debbf84717440d82459cc3a508672717ad5",
+    "bytes": 11789
+  },
+  "actualBuildManifest": {
+    "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/fresh-build-artifact-manifest.json",
+    "sha256": "597c4bc6edc4b4174abc45ece58d815f6d6e38e587710b01f267d084a7cfe7ae",
+    "bytes": 14601,
+    "actualFiles": 118
+  },
+  "nativeSourceHandoff": {
+    "path": "/tmp/phase5f-package-file-current2d07-three-native-five-qa-source-preparation-attempt2/source-handoff.json",
+    "sha256": "9b7741fa655b29f155f95cc4d31dfd88ac1950ee8c0d987c738751ed084594e0",
+    "bytes": 6981
+  },
+  "nativeSourceFreeze": {
+    "path": "/tmp/phase5f-package-file-current2d07-three-native-five-qa-source-preparation-attempt2/complete-current3186-five-native-qa-git-source-freeze.json",
+    "sha256": "1a49882b82fc71cea3283a7c861dc8c3d3acc52441be5645881f3200988eddc2",
+    "bytes": 910246
+  },
+  "runtimePreparation": {
+    "privateRuntime0700": true,
+    "oneFrozenPlan0600": "frozen-approved-plan.json",
+    "copyFixtureAndShortTempAbsent": true,
+    "dev": "34",
+    "ino": "2093517",
+    "uid": 1000,
+    "rootPreparedOnly": true
+  },
+  "stopControl": "Exact originalTTY, <=120s outer supervisor/progress20s; only explicitstop newline to samehandle, wait original body/route/context/browser/Worker/JWKS ACK/directchild/reap/group/ports. Firstfailure stopnormal, mandatoryphysicalafter+finalpins after originalsettlement evenfailednative; no rollback/history deletion.",
+  "scope": "ONE actual2d07 CF118/new3181 producer inputs all exact on3186 consumer plus five reviewed additive QA helpers. One original1280/light case in this fresh independent pure24/sentinel/twoR2 Access namespace. Six genuine setup POSTs and two reader GETs, then one original Preview200 and accept202, exact one queued generation0 Filejob/two released permits; no executor/control/replay. Original strict native Response/body/hash/focus/+2 and owner custody preserved. No old8be artifact/fixture reuse, no new build/84seed/provider/full5F claim.",
+  "independentNamespace": "Every one of the three plans has a separate fresh copy, fixture, runtime and short Chromiumchildtemp. Execute serial only under root per-scenario GO; all prior failed and accepted histories remain unopened.",
+  "commands": [
+    {
+      "stage": "qualified-current02d-coherent-build-producer-preflight",
+      "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+      "argv": [
+        "python3",
+        "-B",
+        "/tmp/phase5f-package-file-current2d07-three-native-finite-source-preparation-attempt1/file-start202/carry-current2d07-original-native.py",
+        "--current02d-coherent-saved-job",
+        "producer-preflight"
+      ],
+      "env": {
+        "TMPDIR": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1",
+        "SQLITE_TMPDIR": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1"
+      }
+    },
+    {
+      "stage": "isolated-copy",
+      "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+      "argv": [
+        "python3",
+        "-B",
+        "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source/scripts/qa/phase5f/prepare-isolated-copy.py",
+        "--source-root",
+        "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+        "--destination",
+        "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/copy",
+        "--dependency-root",
+        "/workspace/sample-fabrication-workflow/node_modules"
+      ],
+      "env": {
+        "TMPDIR": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1",
+        "SQLITE_TMPDIR": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1"
+      }
+    },
+    {
+      "stage": "fresh-two-version-sentinel",
+      "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+      "argv": [
+        "node",
+        "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source/scripts/qa/phase5f/generate-process-fixture.mjs",
+        "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/copy",
+        "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/fixture"
+      ],
+      "env": {
+        "TMPDIR": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1",
+        "SQLITE_TMPDIR": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1"
+      }
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "cwd": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/copy",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "migrations",
+        "apply",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/copy/.wrangler/state"
+      ],
+      "env": {
+        "TMPDIR": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1",
+        "SQLITE_TMPDIR": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1"
+      }
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "cwd": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/copy",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "execute",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/copy/.wrangler/state",
+        "--file",
+        "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/fixture/process-fixture.sql"
+      ],
+      "env": {
+        "TMPDIR": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1",
+        "SQLITE_TMPDIR": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1"
+      }
+    },
+    {
+      "stage": "physical-before",
+      "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+      "argv": [
+        "python3",
+        "-B",
+        "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source/scripts/qa/phase5f/check-isolated-state.py",
+        "--source-copy",
+        "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/copy",
+        "--fixture-directory",
+        "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/fixture",
+        "--stage",
+        "before-api"
+      ],
+      "env": {
+        "TMPDIR": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1",
+        "SQLITE_TMPDIR": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1"
+      }
+    },
+    {
+      "stage": "current-source-build-and-pure24-witness",
+      "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+      "argv": [
+        "python3",
+        "-B",
+        "/tmp/phase5f-package-file-current2d07-three-native-finite-source-preparation-attempt1/file-start202/carry-current2d07-original-native.py",
+        "--current02d-coherent-saved-job",
+        "witness"
+      ],
+      "env": {
+        "TMPDIR": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1",
+        "SQLITE_TMPDIR": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1"
+      }
+    },
+    {
+      "stage": "original-one-current-file-start202-natural-focus",
+      "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+      "argv": [
+        "node",
+        "/tmp/phase5f-package-file-current2d07-native-five-qa-private-attempt1/source/scripts/qa/phase5f/browser-current-package-file-focus-file-start202-natural-focus-keyboard.mjs",
+        "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/copy",
+        "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/fixture",
+        "2d07b57c4e79403099261528ae8988c0072d28c6",
+        "--exclusive-go-one-current-file-start202-natural-focus"
+      ],
+      "env": {
+        "TMPDIR": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1",
+        "SQLITE_TMPDIR": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1",
+        "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+        "CHROMIUM_PATH": "/usr/bin/chromium",
+        "PHASE5F_FILE_MIGRATION_CHROMIUM_TEMP": "/workspace/.sfst2",
+        "PHASE5F_FILE_MIGRATION_RUNTIME_ROOT": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime"
+      },
+      "cases": [
+        "current-file-start202-natural-focus-1280-light"
+      ],
+      "toolInvocation": {
+        "tty": true,
+        "originalStdinControl": "Only explicit stop newline originalretainedTTY;120s supervision/noSIGTERM graceful claim"
+      },
+      "control": "One original Preview200 then Startaccept202, record natural same accepted job Pause focus before any helper focus/control. Original Start removed, sameconnected enabled target wait within remaining original20s. No Pause/Resume/Cancel/executor/acceptedlineage replay."
+    },
+    {
+      "stage": "physical-after",
+      "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+      "argv": [
+        "python3",
+        "-B",
+        "/tmp/phase5f-package-file-current2d07-native-five-qa-private-attempt1/source/scripts/qa/phase5f/check-current-package-file-focus-start202-natural-focus-physical-state.py",
+        "--domain",
+        "file",
+        "--source-copy",
+        "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/copy",
+        "--fixture-directory",
+        "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/fixture",
+        "--runtime-directory",
+        "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime"
+      ],
+      "env": {
+        "TMPDIR": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1",
+        "SQLITE_TMPDIR": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1"
+      },
+      "control": "Mandatory after original native child/directwait/reap and context/route/body/controller/browser/Worker/JWKS settlement. New physical output alias; preserve any accepted job/item/hold/permit partial history. Failed native case stays failed."
+    },
+    {
+      "stage": "final-source-artifact-input-pins",
+      "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+      "argv": [
+        "python3",
+        "-B",
+        "/tmp/phase5f-package-file-current2d07-three-native-finite-source-preparation-attempt1/file-start202/carry-current2d07-original-native.py",
+        "--current02d-coherent-saved-job",
+        "final-pins"
+      ],
+      "env": {
+        "TMPDIR": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1",
+        "SQLITE_TMPDIR": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1"
+      }
+    }
+  ],
+  "actualCommandCount": 10,
+  "matureRecorderBasis": {
+    "runner": {
+      "path": "/tmp/phase5f-start202-current8be-two-native-finite-source-preparation-attempt2/file/run-frozen-owned-stage.py",
+      "sha256": "68112f39034ea4f4a80348b3c935cce7f17e3462abef4dd0fc1dc702af74000e",
+      "bytes": 11518
+    },
+    "carrier": {
+      "path": "/tmp/phase5f-start202-current8be-two-native-finite-source-preparation-attempt2/file/carry-current8be-start202-natural-focus.py",
+      "sha256": "1bad69f846906f3bc70b7039c635d74b2e1b3737b15c6a6b0b9a73768ccb581d",
+      "bytes": 17394
+    },
+    "plan": {
+      "path": "/tmp/phase5f-start202-current8be-two-native-finite-source-preparation-attempt2/file/finite-current8be-start202-natural-focus-ten-plan.json",
+      "sha256": "87e33e4936ee0db49461b9e60c601c18251cc1bf61d54e23f38ab055d91be5a5",
+      "bytes": 20473
+    },
+    "scope": "Original TEN IDs/argv/options/cases/body/focus/geometry/costs/budgets unchanged after declared source/head/count/helper/root substitutions. Ten original owner definitions ASTexact; verify_source sole3086-to3181 count. Three carrier definitions ASTexact; top-level bindings/extra-QA count6-to5 and truthful source metadata inverse separately recorded."
+  },
+  "carrierPath": "/tmp/phase5f-package-file-current2d07-three-native-finite-source-preparation-attempt1/file-start202/carry-current2d07-original-native.py",
+  "carrierSha256": "3fc22861ac2957a6d22cf9f834d9f0394c6068f918d8b2064b681e5de887a93a",
+  "originalBuildCommand": {
+    "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/one-fresh-final-QA-source-build-command.json",
+    "sha256": "ccf435b9bb164cc97815d7dacfc090d454f9cbce935bc096e3f8d4c8f838a978",
+    "bytes": 1698,
+    "scope": "Actual ONE2d07 changed-Package/File focus CF build/npm exit0 originalsamewait/reaped; kernelZ1601519/PPID1/FD PermissionError retained, no PGEMPTY/FD0 claim. No old8be output retag."
+  },
+  "priorOriginalFailure": {
+    "sameScenarioOriginal8beFocusFailure": {
+      "path": "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/actual-current8be-file-start202-original-ten-natural-focus-failure-closed-release.json",
+      "sha256": "bbea2bc4aaab95df371a89239794e5e6c813c5cc1514fa4cba86fb26d4200439",
+      "bytes": 43275
+    },
+    "sameScenarioOriginal8beRootRelease": {
+      "path": "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/root-current8be-file-start202-original-ten-natural-focus-failure-full-raw-source-owner-release.json",
+      "sha256": "dd40a814e5e4762af18a125285840c6e17fcfc9d96a5603ad9fd68f8495e2d73",
+      "bytes": 19746
+    },
+    "scope": "Exact prior failed native and accepted history remain immutable in their old independent namespace; no fields or runtime output are borrowed."
+  },
+  "newNamespaceNecessity": "This new original accept202 must use independent typed current24 namespace because it creates queued job lineage; old controlled/paused histories cannot represent a fresh acceptance.",
+  "mobileDesktopInverseFreeze": "Only original1280light Start202 case, no newmobile/theme matrix; complete source helper inverses inherit reviewed111de3 plus current8be metadata compatibility108102.",
+  "originalUninvokedMobileBasis": "Notselected; actual390Package andFile controls are historical independent scopes.",
+  "actualRootBuildRelease": {
+    "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/root-one-current2d07-cf-build-full-source-118-artifacts-original-owner-release.json",
+    "sha256": "b1cb83bb82248f03794703e3b1f516ca7a68343e3abab985e4668a4738f75e22",
+    "bytes": 16803
+  },
+  "sourceCustodyDelta": "No new custody algorithm. Exact donor original descriptor/error/disposal/context/browser custody and strict native bodies/routes/waits unchanged; only current source/artifact/head/count/helper/newnamespace bindings.",
+  "peerScope": "Root substantive product edc21 and independent five-QA650af SOURCE_CLEAR. This new actual597c118/mature TEN binding awaits root finite review and distinct runtime GO; no additional broad source peer requested.",
+  "affectedSourcePeer": {
+    "path": "/workspace/current2d07-c316-independent-five-native-qa-whole-inverse-source-peer.json",
+    "sha256": "650afcf015a010c6102cef50f5cec0af9727fc8a7135d2082ba1b73165b25095",
+    "bytes": 9867
+  },
+  "nativeSourceMaterialization": {
+    "path": "/tmp/phase5f-package-file-current2d07-three-native-finite-source-preparation-attempt1/current-five-qa-source-materialization.json",
+    "sha256": "401a768573f3198746d31a699c69437cc1853ad870a2b657f516d253fcd38a4e",
+    "bytes": 785
+  },
+  "historicalAffectedSourcePeer": {
+    "path": "/tmp/phase5f-refresh-current5e-readonly-physical-git-only-source-preparation-attempt7/independent-affected-current5e-refresh-two-header-and-seven-physical-selector-source-peer.json",
+    "sha256": "53f974d94516716c3bb0a7c25c5bfc0da72a7ac8145b9e86f84928c0e23feb13"
+  },
+  "historicalFiniteIndependentPeer": {
+    "path": "/tmp/phase5f-refresh-current5e-two-native-finite-source-preparation-attempt1/independent-complete-two-current5e-readonly-refresh-original-ten-finite-source-peer.json",
+    "sha256": "f9f6e50338d1b64fe1f43a4d30491bce44d9f811bec20d8d6f1dee456e45fe39"
+  },
+  "workspaceCapacityPrerequisite": {
+    "minimumFreeBytesBeforeNative": 536870912,
+    "enforcedBy": "Root actualGO assessment; inherited carrier shorttemp space guard remains >0 and does not assert512MiB."
+  },
+  "inheritedDonorLabelLimits": {
+    "physicalReceiptSuffix": "status-refresh-keyboard filename inherited, scenario alias snapshot is new start202; exact originalstage/helper/report verifies actualcase.",
+    "packageHelperMaxTotalPOSTs12": "Inherited donor reportlabel only; genuinecase strictlytwo native and setup7, this finitePASS asserts exacttotal9, cannot grant12 arbitrarywrites."
+  },
+  "currentProductSourcePeer": {
+    "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-source-preparation-attempt1/independent-root-four-leaf-combined-focus-substantive-source-peer.json",
+    "sha256": "edc21adb3be4e17341ccfee1a9a222e35c8e03a4dcad83f64b08d8aef565375e",
+    "bytes": 4764
+  },
+  "currentAffectedApp59Formal": {
+    "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/actual-current2d07-app-and-affected59-qualified-closed-release.json",
+    "sha256": "c6e30d88652cacb803398b6c90d46bf2f14543ac40970370b39610fe482e079c",
+    "bytes": 11700
+  },
+  "currentAffectedApp59RootRelease": {
+    "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/runtime/root-current2d07-app-and-whole59-full-source-raw-owner-release.json",
+    "sha256": "7729cc4cf30346cc4f674c67f3af52662aa32b8dedcddb6b2fa8b1cf69c44a06",
+    "bytes": 1917
+  }
+}

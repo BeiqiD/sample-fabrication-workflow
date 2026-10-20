@@ -1,0 +1,99 @@
+{
+  "status": "MATURE_FINITE_READY_ROOT_FINAL_PEER_AND_EXCLUSIVE_GO_REQUIRED",
+  "root": "/workspace/current-dev57f-qualified-cli-mounted-jobs-source-attempt1",
+  "head": "f883e64086bee44b353f3840271fa3eaaafdcc7d",
+  "tree": "dda4d903cab9f410073ccb88d98e372f6f8d3fbd",
+  "sourceCount": 2794,
+  "selected75": 75,
+  "protectedCurrentEntries": 2719,
+  "exactCommand": [
+    "python3",
+    "-B",
+    "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/finite-current-original-seven-stage-seventeen-peerbound-attempt1/current-seven-stage-mature-owned-runner.py",
+    "--run",
+    "--output",
+    "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1"
+  ],
+  "plan": {
+    "path": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/finite-current-original-seven-stage-seventeen-peerbound-attempt1/current-seven-stage-finite-plan.json",
+    "sha256": "ce43222f613aff7e2717ea8b445ba682b5c46e634426eddf30c6729c466cc0e6"
+  },
+  "inputs": {
+    "path": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/finite-current-original-seven-stage-seventeen-peerbound-attempt1/current-seven-stage-source-inputs.json",
+    "sha256": "29d33740fde7ef92ce6fc700955c1ed231431b32e0cb6a81d05d73b3a14c315d"
+  },
+  "runner": {
+    "path": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/finite-current-original-seven-stage-seventeen-peerbound-attempt1/current-seven-stage-mature-owned-runner.py",
+    "sha256": "1fabb243c1010c3143e5d1c1688b0cfb9dd1ea83eba7ac606ae72cfe6b00b728"
+  },
+  "wholeInverse": {
+    "path": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/finite-current-original-seven-stage-seventeen-peerbound-attempt1/whole-current-original-seven-stage-mature-binding-inverse.json",
+    "sha256": "05615bfe14b36ef48a74e3dbfc49b63dc9518d0b07c40026b956eaabc4d0a906"
+  },
+  "sourcePeer": {
+    "path": "/workspace/current-f883-independent-job-cli-composition-source-peer.json",
+    "sha256": "867cd24588fc7f8047c7cd318f5600f165cef93ed8c68b177724a0aec9d4bf58"
+  },
+  "rootSourcePeer": {
+    "path": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/root-current57f-f883-complete75-source-adoption-review.json",
+    "sha256": "7922f0304323229add451ff4747953ae84ed643874d20bbb8c17ea294b593c3b"
+  },
+  "affectedCurrentCliTypes": {
+    "path": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/affected-cli-types-attempt1/receipt.json",
+    "sha256": "e53f48f198b4f07eee6d31af3d7570d74e4c1cf7370406412be68b50d70761fd"
+  },
+  "originalCasesFresh": 17,
+  "caseCarry": 0,
+  "frontendArtifactCarry": 0,
+  "backendArtifactCarry": 0,
+  "bundleOwners": "mainESM+threeCJS",
+  "allSevenStagesAndOriginalBudgets": [
+    [
+      "current-node-client-build",
+      180,
+      0
+    ],
+    [
+      "current-node-client-map-verifier",
+      180,
+      0
+    ],
+    [
+      "closed-manifest-eight",
+      90,
+      8
+    ],
+    [
+      "closed-parser-six",
+      90,
+      6
+    ],
+    [
+      "current-fixed-four-bundle-build",
+      180,
+      0
+    ],
+    [
+      "current-v3-runtime-verifier",
+      30,
+      0
+    ],
+    [
+      "genuine-bundled-v5-cli-three",
+      180,
+      3
+    ]
+  ],
+  "scope": "Fresh current client/map, fixed4 build/verify, original manifest8/parser6/genuineV5CLI3. Historical Job8 qualified source stays b131; new combined source has no enabled Docker/120s cadence/GroupV28 grants. Actual backend input count must come from new build source-inputs.json and manifest, not lexical361 or old826.",
+  "firstCloseOwnership": "Original3355 main/all nested functions unchanged: signal-deferral at actualPopen capture, retained originalwait perstage/cacheclose/finally/groupinventory/sourcepins. Kernel containment after forced close never graceful Native ACK.",
+  "supervision": "Use original direct tool session/handle, poll at most30s. Original perstage budgets preserved; no new outer budget or helper framework. Observe live PID/startTicks only while actual handles are active; any missed immutable value stays UNKNOWN.",
+  "effects": {
+    "compiler": 0,
+    "Native": 0,
+    "socket": 0,
+    "provider": 0,
+    "build": 0,
+    "Docker": 0,
+    "remoteWrite": 0
+  }
+}

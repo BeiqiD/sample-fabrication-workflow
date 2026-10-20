@@ -1,14 +1,15 @@
 import { useRef } from "react";
-import type { RunStartPreview } from "../../shared/types";
+import type { FileAssetMediaRef, RunStartPreview } from "../../shared/types";
 import { useModalDialog } from "../lib/use-modal-dialog";
 import { DialogCloseIcon } from "./DialogCloseIcon";
 import { SubstrateStepDetails } from "./SubstrateStepDetails";
 
-function StructureImages({ keys, emptyLabel }: { keys: string[]; emptyLabel: string }) {
-  if (!keys.length) return <div className="run-start-structure-empty">{emptyLabel}</div>;
-  return <div className="run-start-structure-images">{keys.map((key, index) =>
-    <a href={`/api/assets/${key}`} target="_blank" rel="noreferrer" key={key}>
-      <img src={`/api/assets/${key}`} alt={`Substrate structure ${index + 1}`} />
+function StructureImages({ keys, images = [], emptyLabel }: { keys: string[]; images?: FileAssetMediaRef[]; emptyLabel: string }) {
+  const urls = [...keys.map(key => `/api/assets/${key}`), ...images.map(image => image.url)];
+  if (!urls.length) return <div className="run-start-structure-empty">{emptyLabel}</div>;
+  return <div className="run-start-structure-images">{urls.map((url, index) =>
+    <a href={url} target="_blank" rel="noreferrer" key={url}>
+      <img src={url} alt={`Substrate structure ${index + 1}`} />
     </a>)}</div>;
 }
 
@@ -46,11 +47,11 @@ export function StartProcessRunDialog({ preview, action, starting, error, onCanc
       <div className="run-start-structure-options">
         <section className="run-start-structure-option">
           <div className="run-start-structure-copy"><strong>{updating ? "Current recorded structure" : "Previous recorded structure"}</strong><small>{preview.sampleCurrentState.stepTitle ? `Last recorded after ${preview.sampleCurrentState.stepTitle}` : action !== "start" && preview.sampleCurrentState.hash ? "The latest structure recorded for this run" : preview.successor ? "From the latest completed process run" : preview.sampleCurrentState.hash ? "Inherited with this sample" : "No earlier substrate structure is recorded"}</small></div>
-          <StructureImages keys={preview.sampleCurrentState.imageKeys} emptyLabel="No previous structure diagram is available." />
+          <StructureImages keys={preview.sampleCurrentState.imageKeys} images={preview.sampleCurrentState.images} emptyLabel="No previous structure diagram is available." />
         </section>
         <section className={`run-start-structure-option${preview.canConfirm ? "" : " unavailable"}`}>
           <div className="run-start-structure-copy"><strong>{target?.kind === "matched_step" ? "Updated process · matched step" : "Incoming process · Step 0"}</strong><small>{preview.template.name} · v{preview.template.version} · {target?.stepTitle || preview.template.initialSubstrateStep?.name || "Comparison step not found"}</small></div>
-          <StructureImages keys={target?.imageKeys ?? []} emptyLabel={target?.kind === "matched_step" ? "The matched step has no structure diagram." : preview.template.initialSubstrateStep ? "Step 0 was imported without a diagram." : "This version has no Step 0 substrate structure."} />
+          <StructureImages keys={target?.imageKeys ?? []} images={target?.images} emptyLabel={target?.kind === "matched_step" ? "The matched step has no structure diagram." : preview.template.initialSubstrateStep ? "Step 0 was imported without a diagram." : "This version has no Step 0 substrate structure."} />
           {targetIsInitial && preview.template.initialSubstrateStep && <SubstrateStepDetails step={preview.template.initialSubstrateStep} className="run-start-substrate-details" />}
         </section>
       </div>

@@ -1,0 +1,79 @@
+{
+  "kind": "phase5f-real-grid-idle-escape-same-Step-focus-characterization-actual/1",
+  "sourceHead": "4f2daff7bf59adf70b47e0a06f6d6c8e6e8ec52a",
+  "base": "7ba51b3f83721596a6fa59a61c60f57426977bfb",
+  "sourceReceiptSha256": "e56a76e29060d76745d4541f848a266e5c3306355ead5f0dd4e6de770c6bb77a",
+  "completedAt": "2026-10-10T23:33:54.316675+00:00",
+  "commands": [
+    {
+      "stage": "one-real-grid-idle-escape-same-Step-focus",
+      "argv": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.mounted.config.ts",
+        "src/phase5f-metrology-pending.mount.test.tsx",
+        "--testNamePattern",
+        "returns idle Escape focus to the same Step Add control after its Metrology menu action unmounts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile=/tmp/phase5f-metrology-escape-focus7ba-characterization-review-attempt1/runtime/native-mounted-focus.vitest.json"
+      ],
+      "cwd": "/tmp/phase5f-metrology-escape-focus7ba-characterization-source-attempt1",
+      "startedAt": "2026-10-10T23:33:52.615113+00:00",
+      "status": "FAILED",
+      "log": "/tmp/phase5f-metrology-escape-focus7ba-characterization-review-attempt1/runtime/one-real-grid-idle-escape-same-Step-focus.log",
+      "pid": 330757,
+      "processGroup": 330757,
+      "exitCode": 1,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 1,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-10T23:33:54.283722+00:00",
+      "logSha256": "da8f8130be7bffa18c80aaaa9ddb342c3ded52814b3e9a59a0976313cf0d9fa0"
+    }
+  ],
+  "actual": {
+    "reportSha256": "8848bb3594b458851e8ff47d73d0f52727f5a27e3b84af94048a45fc9d1a6ced",
+    "totalListedAssertions": 28,
+    "executedCount": 1,
+    "actualExecuted": [
+      {
+        "ancestorTitles": [
+          "Metrology picker full-chain pending and original-session ownership"
+        ],
+        "fullName": "Metrology picker full-chain pending and original-session ownership returns idle Escape focus to the same Step Add control after its Metrology menu action unmounts",
+        "status": "failed",
+        "title": "returns idle Escape focus to the same Step Add control after its Metrology menu action unmounts",
+        "duration": 244.38537100000008,
+        "failureMessages": [
+          "AssertionError: expected <body style><div>\u2026(1)</div></body> to be <button type=\"button\" \u2026(4)></button> // Object.is equality\n    at /tmp/phase5f-metrology-escape-focus7ba-characterization-source-attempt1/src/phase5f-metrology-pending.mount.test.tsx:355:36\n    at file:///workspace/sample-fabrication-workflow/node_modules/@vitest/runner/dist/chunk-artifact.js:1903:20"
+        ],
+        "meta": {},
+        "tags": []
+      }
+    ],
+    "filteredUnrunCount": 27,
+    "exactOneOriginalMeaningfulCaseExecuted": true
+  },
+  "runnerError": null,
+  "sourcePostCheckError": null,
+  "allOwnedGroupsFinal": {
+    "330757": []
+  },
+  "allDirectChildrenActuallyReaped": true,
+  "noActiveOwnedProcessOrFd": true,
+  "runtimeScope": "Only one genuine grid/modal DOM-focus characterization, original mounted/default budgets; typed API stubs, no actual Worker/native/browser/auth/provider/listener. Other case names filteredUNRUN, not qualified.",
+  "status": "ACTUAL_CASE_FAILED"
+}

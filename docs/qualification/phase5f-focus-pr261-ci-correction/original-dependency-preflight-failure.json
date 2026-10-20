@@ -1,0 +1,9 @@
+{
+  "status": "FAIL_PREFLIGHT",
+  "sourceHead": "954c048",
+  "cause": "ignored dependency-directory pattern did not ignore owned node_modules symlink",
+  "actualCases": 0,
+  "nativeFixturesCreated": 0,
+  "ownedRuntimeStarted": false,
+  "sourceChanged": false
+}

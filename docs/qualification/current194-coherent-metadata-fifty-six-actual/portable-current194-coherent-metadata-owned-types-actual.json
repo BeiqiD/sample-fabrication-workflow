@@ -1,0 +1,18 @@
+{
+  "kind": "current194-coherent-metadata-ordinary-owned-source-types-actual/1",
+  "status": "PASS",
+  "root": "/workspace/portable-current194-coherent-metadata-source-only-attempt1",
+  "sourceHead": "07e35907e989464701eb40d801399c9e80f0b7b1",
+  "sourceTree": "e80272c2d0e5736281c0958d3866745303a62bc6",
+  "argv": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "node_modules/typescript/bin/tsc",
+    "-p",
+    "tsconfig.current194-coherent-metadata-owned-source.json"
+  ],
+  "exitCode": 0,
+  "observedToolWallSeconds": 0.7254604789923178,
+  "logPath": "/tmp/portable-current194-coherent-metadata-owned-types-actual.log",
+  "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "scope": "One combined actual current Worker composition/callers and complete Sample/timeline/Execution/Comment metadata source typecheck; no fixture/Vitest/SQLite/socket/build/provider effects or invented PID/group/FD evidence. Prior branch compilers are not claimed current."
+}

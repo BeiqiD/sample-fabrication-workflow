@@ -1,0 +1,38 @@
+{
+  "stage": "original-native-stream-migration-regressions",
+  "argv": [
+    "node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "vitest.config.ts",
+    "worker/files/jobs/native-migration.test.ts",
+    "--maxWorkers=1",
+    "--bail=1"
+  ],
+  "expectedStaticCases": 6,
+  "cwd": "/workspace/remaining-5f-ui-execution-currente108-source-integration",
+  "startedAt": "2026-10-10T22:35:38.331909+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-ui-execution-currente108-runtime-98d81a1-attempt1/original-native-stream-migration-regressions.log",
+  "pid": 297575,
+  "processGroup": 297575,
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-10T22:35:50.311143+00:00",
+  "logSha256": "773b07cc4c64f2990dfd9d06dc3730a5739fb64d62c5dce1970e94604eb18833",
+  "actualSummaryLines": [
+    "Test Files  1 passed (1)",
+    "Tests  6 passed (6)"
+  ],
+  "actualPassedCountMatchesFinitePlan": true
+}

@@ -1,0 +1,318 @@
+{
+  "status": "BYTE_EXACT_ORIGINAL_PACKAGE_MOBILE_CURATIONS_PUBLIC_SOURCE_ONLY",
+  "baseHead": "99b51d297e04c1b56310272ddcbfdb9a5190717e",
+  "baseTree": "913b1fd79f40971db930a35de7e1b1e4f99a678c",
+  "originals": [
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/actual-current5e-177eb-package-mobile-original-ten-qualified-closed-release.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/actual-current5e-177eb-package-mobile-original-ten-qualified-closed-release.json",
+      "sha256": "cda1b7915d5689a0470fe1fc778a286a2b440f9577738d621a15bcbbc58c8700",
+      "bytes": 20683,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/qualified-current02d-coherent-build-producer-preflight-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/001-qualified-current02d-coherent-build-producer-preflight-command.json",
+      "sha256": "604d6be0972ab0031ca4ba25a01b70388552d226d37783764aecddea3bc86303",
+      "bytes": 1283,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/qualified-current02d-coherent-build-producer-preflight.log",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/002-qualified-current02d-coherent-build-producer-preflight.log",
+      "sha256": "3cdc53eb58a874d63edb9b707f58cfa2f802fd75cc9892e72330fb84f24aef10",
+      "bytes": 120,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/isolated-copy-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/003-isolated-copy-command.json",
+      "sha256": "c05c8ceac82be56be42218e4192816d4943d06166fd0dbfe7ec3effa8c00b31c",
+      "bytes": 1419,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/isolated-copy.log",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/004-isolated-copy.log",
+      "sha256": "35bec801d8a7234cacb9b3f406ad1cf651f4e7d7ea5d11cf4e6ce9f9b5fdc23e",
+      "bytes": 207,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/fresh-two-version-sentinel-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/005-fresh-two-version-sentinel-command.json",
+      "sha256": "69ea000c5449a802f332ec7d3dd44c746793df064f61d9d2c00e19790199a773",
+      "bytes": 1906,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/fresh-two-version-sentinel.log",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/006-fresh-two-version-sentinel.log",
+      "sha256": "fb4c97fa8560af688a149b47206e4e23f182cca2ae28e6d2b4cc37181c61b33a",
+      "bytes": 240,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/ordinary-actual24-local-migrations-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/007-ordinary-actual24-local-migrations-command.json",
+      "sha256": "848138933e8e1f5b64c9f97d6a91d660f4ac7170fde6da0b6a62eb9dcfc66c9a",
+      "bytes": 1898,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/ordinary-actual24-local-migrations.log",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/008-ordinary-actual24-local-migrations.log",
+      "sha256": "950797d7333f08dbaf036c6a9e419c43a107c1459b7a5e5a3b038cccce4eacdc",
+      "bytes": 149092,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/synthetic-template-sentinels-only-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/009-synthetic-template-sentinels-only-command.json",
+      "sha256": "c052a4b407372a74398655dad1605175c1dc68a9650ccc6318ae82afe195fd24",
+      "bytes": 1993,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/synthetic-template-sentinels-only.log",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/010-synthetic-template-sentinels-only.log",
+      "sha256": "2fff3b72fd5945514b75aba1301c6c3103debdff629b1cb200b004f0b8360e1d",
+      "bytes": 2747,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/physical-before-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/011-physical-before-command.json",
+      "sha256": "0ebaa4608f88fa8006a0f2fd1065336d3e98bc2ba27589db76a3336ce3c4c9a7",
+      "bytes": 1373,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/physical-before.log",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/012-physical-before.log",
+      "sha256": "b641c283c2c1fd2d398b2c6ff6080c49174562b03d3b0b99b40c82d0bd5df56d",
+      "bytes": 172,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/current-source-build-and-pure24-witness-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/013-current-source-build-and-pure24-witness-command.json",
+      "sha256": "9eb04e5eeb708c9d8743ef79ac885fa6ce99a6180c9286b4436f67ecbe0be025",
+      "bytes": 1242,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/current-source-build-and-pure24-witness.log",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/014-current-source-build-and-pure24-witness.log",
+      "sha256": "210229f228200f1ddcab5fa1d261bfde63b44e491468e7a65e0fa0c2df15b23a",
+      "bytes": 225,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/original-one-current-package-saved-job-keyboard-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/015-original-one-current-package-saved-job-keyboard-command.json",
+      "sha256": "f196029ee3c9377782361d41833a8732f7eb598d5d0bea672348e243c27accc8",
+      "bytes": 2253,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/original-one-current-package-saved-job-keyboard.log",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/016-original-one-current-package-saved-job-keyboard.log",
+      "sha256": "4a80956cd185bf7d760c4bb3aaae214f1bc433dfa0dfc24c9ef8db948838abfc",
+      "bytes": 314,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/physical-after-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/017-physical-after-command.json",
+      "sha256": "c8ab4fbff37dadc29d214ad68c054b9ad3bdf06e707c367906b0cc91ff8af585",
+      "bytes": 1761,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/physical-after.log",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/018-physical-after.log",
+      "sha256": "52a1919113d1b6065952ebe76fc379c591fd25510b24c5a04e892e419f2d1ad7",
+      "bytes": 184,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/final-source-artifact-input-pins-command.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/019-final-source-artifact-input-pins-command.json",
+      "sha256": "23775807644c2b83aca6746868454d1fe5effd91f81f5a8032be4cc0fb56bcbf",
+      "bytes": 1231,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/final-source-artifact-input-pins.log",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/020-final-source-artifact-input-pins.log",
+      "sha256": "9a3ff905ad946f3dd345ef78e25282343cf1a7f51d336e016bc7babd75bedacf",
+      "bytes": 228,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/original-tool-responses.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/021-original-tool-responses.json",
+      "sha256": "7b7b776c0492095b2e1436aff665ec747d9c9d13eca028f81bcada416749d17b",
+      "bytes": 35948,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-final-peer-source-preparation-attempt4/finite-current-coherent-native-ten-plan.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/022-finite-current-coherent-native-ten-plan.json",
+      "sha256": "bd98357bf5fdf6a862754543fc3a5e9a8af67c092aa85b53821d468bdd15bc0b",
+      "bytes": 19884,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/fixture/process-fixture.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/023-process-fixture.json",
+      "sha256": "d89b9468a02bc01c5453750878bb71d243a59fbfaec9c002405d4be902d785b1",
+      "bytes": 1576,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/fixture/process-fixture.sql",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/024-process-fixture.sql",
+      "sha256": "8c3840543e6e47449633f9d7cb6e7f8d2a87b075c1be139db9ea5c2774fdd099",
+      "bytes": 5579,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/fixture/physical-sqlite-before-api.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/025-physical-sqlite-before-api.json",
+      "sha256": "4ab310af657e5c1bb1c698751fe236eb1d60e8b06882ce6834f0bf2d46edc52a",
+      "bytes": 67623,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/fixture/enabled-storage-draft-build-input-witness.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/026-enabled-storage-draft-build-input-witness.json",
+      "sha256": "c95e223caa0439266e95cb3d5ed926b0fe207f6bd79c54d43ca51f00e0c1b9c5",
+      "bytes": 1399,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/fixture/genuine-package-saved-job-keyboard-report.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/027-genuine-package-saved-job-keyboard-report.json",
+      "sha256": "516fd3a34a0532212f20915954af3bfaa0620a27f55b1d2abf43a00fa7ec758b",
+      "bytes": 91700,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/fixture/genuine-package-saved-job-keyboard-stop.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/028-genuine-package-saved-job-keyboard-stop.json",
+      "sha256": "cf548a56d5b3b5922cd2f06436d492ad5b6fa2763b6dee40bad2c03996372e50",
+      "bytes": 500,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/fixture/physical-sqlite-after-current-package-saved-job-keyboard.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/029-physical-sqlite-after-current-package-saved-job-keyboard.json",
+      "sha256": "71a1f24d82a43645960ded32d36142b07ad372f96afb29c570195aa009a44d9e",
+      "bytes": 74513,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/final-current02d-source-and-genuine-saved-job-pins.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/030-final-current02d-source-and-genuine-saved-job-pins.json",
+      "sha256": "683ce836cde4cbec7fa018f14c54dc1f20f33c6238b57c8b6ad31cf651aaa207",
+      "bytes": 2749,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/chromium-child-temp-owner.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/031-chromium-child-temp-owner.json",
+      "sha256": "e7f116bf6cb81eb2200634dc9adbca1ad9081b7ec388e39ebf85f545168ecf4a",
+      "bytes": 596,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/current02d-build-new-pure24-native-causal-carry.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/032-current02d-build-new-pure24-native-causal-carry.json",
+      "sha256": "1ed25269433152dd274b06e152bcfb41d7481ee22931eb8ae169620331246193",
+      "bytes": 1193,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/approved-plan-two-real-peer-binding.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/033-approved-plan-two-real-peer-binding.json",
+      "sha256": "bd98357bf5fdf6a862754543fc3a5e9a8af67c092aa85b53821d468bdd15bc0b",
+      "bytes": 19884,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/approved-plan-description-binding.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/034-approved-plan-description-binding.json",
+      "sha256": "d02d401bd71801d2152366fd349996881cc318aa0a86036d3974e082de5b5394",
+      "bytes": 19073,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/approved-plan-source-preparation.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/035-approved-plan-source-preparation.json",
+      "sha256": "242a9b4d49f6204ee92b2527840f0be9edfb02c065aa64e8124345a3fbe47b5e",
+      "bytes": 18588,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/fixture/genuine-package-saved-job-keyboard-artifacts/current-coherent-package-saved-job-keyboard-390-dark.geometry.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/actual-current5e-177eb-mobile/036-current-coherent-package-saved-job-keyboard-390-dark.geometry.json",
+      "sha256": "0309ff9f2ce2bdf06bee71d370a2b7b0cec9639964561c17af1d147530057f7a",
+      "bytes": 68,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/root-current177eb-original-ten-full-raw-source-artifact-owner-kernel-release.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/source-and-original-owner-reads/root-current177eb-original-ten-full-raw-source-artifact-owner-kernel-release.json",
+      "sha256": "603ccfd9de977383cdb77c1dd900f886822d9979dcdd9c46937eee4ee5aebd90",
+      "bytes": 14284,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-reviewed-custody-source-preparation-attempt2/independent-complete-package-mobile-six-custody-source-peer.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/source-and-original-owner-reads/independent-complete-package-mobile-six-custody-source-peer.json",
+      "sha256": "428f113858381d1f7b222bcbcd2974ddb0d1f8f0ac3d708351a093c6a57dde56",
+      "bytes": 8638,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-reviewed-custody-source-preparation-attempt2/package-mobile-whole-original-inverse.patch",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/source-and-original-owner-reads/package-mobile-whole-original-inverse.patch",
+      "sha256": "f90183f4ce8207ada3d7a62e2e83b7d004219690dd58ddd7f6e94b5a2f87ca0a",
+      "bytes": 12970,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-reviewed-custody-finite-source-preparation-attempt3/independent-complete-original-ten-six-custody-finite-binding-source-peer.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/source-and-original-owner-reads/independent-complete-original-ten-six-custody-finite-binding-source-peer.json",
+      "sha256": "cb768a7bd6732239c52449d83a7b152b51711e70ce57a576fe1fc36da82a7bb2",
+      "bytes": 16209,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-six-custody-native-final-peer-source-preparation-attempt4/independent-narrow-final-package-two-real-peer-seal-source-addendum.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/source-and-original-owner-reads/independent-narrow-final-package-two-real-peer-seal-source-addendum.json",
+      "sha256": "939a48415d3a83a3246e8895604a25534cbe894589d1754e98c088796de38296",
+      "bytes": 6001,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-pr275-own-complete-ci-readonly-attempt1/complete-original-logs-20261011T202616556038Z/receipt.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/previous275-own-ci/receipt.json",
+      "sha256": "697a26be3d5891254888315db7a8fbde0d5d10b725eaada9e61e6d2b19f06805",
+      "bytes": 13754,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-mobile-qualified-current275-public-source-preparation-attempt1/pr275-original-merge-api.json",
+      "repositoryPath": "docs/qualification/phase5f-package-saved-job-mobile-2026-10-11/previous275-own-ci/pr275-original-merge-api.json",
+      "sha256": "cd3da07b91b5ed08d06b47b5743805a3ed2937ced12117281f4cf2beddb47017",
+      "bytes": 18838,
+      "mode": "100644"
+    }
+  ],
+  "originalCount": 44,
+  "allLogBytesExplicitlyAdded": true,
+  "scope": "New genuine Package390/dark tenPASS/native1PASS original5e/177eb; #275 ownCI/merge separate. Earlier desktop/File/build original records preserved without duplicate curation. NewpublicCI unrun/Refresh and Start202 open."
+}

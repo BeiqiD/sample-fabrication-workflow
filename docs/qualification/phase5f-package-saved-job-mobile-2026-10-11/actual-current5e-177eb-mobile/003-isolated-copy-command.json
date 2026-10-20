@@ -1,0 +1,38 @@
+{
+  "stage": "isolated-copy",
+  "cwd": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source",
+  "argv": [
+    "python3",
+    "-B",
+    "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source/scripts/qa/phase5f/prepare-isolated-copy.py",
+    "--source-root",
+    "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source",
+    "--destination",
+    "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/copy",
+    "--dependency-root",
+    "/workspace/sample-fabrication-workflow/node_modules"
+  ],
+  "env": {
+    "TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2",
+    "SQLITE_TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2"
+  },
+  "startedAt": "2026-10-11T20:27:50.346464+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/isolated-copy.log",
+  "pid": 1519414,
+  "processGroup": 1519414,
+  "originalStartTicks": "16373111",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T20:27:51.757329+00:00",
+  "logSha256": "35bec801d8a7234cacb9b3f406ad1cf651f4e7d7ea5d11cf4e6ce9f9b5fdc23e"
+}

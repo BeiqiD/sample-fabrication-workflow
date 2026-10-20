@@ -1,0 +1,263 @@
+{
+  "version": 1,
+  "status": "passed",
+  "recordedAt": "2026-10-18T20:00:28.517903+00:00",
+  "scope": "Original complete local CI plan in a genuine private fixture environment, with unchanged production and fixture checks. Local native/runtime/build evidence.",
+  "command": "VERIFY_PUBLISH_STATUSES=0 npm run verify:ci",
+  "exitCode": 0,
+  "runtime": {
+    "nodeVersion": "24.19.0",
+    "platform": "linux",
+    "architecture": "x64"
+  },
+  "source": {
+    "baselineCommitAtCopy": "3965c90627af91d8e0c680c3aee7fd53e077310c",
+    "dirtySourceAtCopy": true,
+    "sourceCodeCommit": "4c855567c874de8e17dc18b1268fd96b1997a45d",
+    "sourceCodeTree": "8b8fc8ff93d3517610abba1c962333b9556e8b88",
+    "sourceCommitVerification": "Root independently read the GitHub Git Data commit object: this tree and sole parent 3965c90627af91d8e0c680c3aee7fd53e077310c. The validation agent independently compared the locally available tree to all non-documentation files.",
+    "sourceIdentityScope": "The snapshot came from the dirty 3965 baseline. The later immutable source commit identifies the tested code; it is not the original checkout HEAD.",
+    "snapshotCreatedAt": "2026-10-18T19:41:24.662443+00:00",
+    "filesCopied": 3918,
+    "snapshotProvenanceSha256": "335efe30275c3c6bd3c1126a8bec5f10e2437229804c81200ade7398a2c511ef",
+    "lateSourceUpdatesSha256": "7a72df512946e6d9f578e03e639ff4585f93f11656ab00ebcb75589fde5a3c2a",
+    "packageManifestSha256": "3bb2d1368f2d41dac4c4d54688d305f14fa4a175518f2505ffcce9c27f53ac50",
+    "packageLockSha256": "b2a1922654dc60757c012bcc310548393cbe67aa77f4bb3ed21644ff79037fb0",
+    "installedLockSha256": "d241bb879ea237aeff8f3271f366133f7d33d3cf43685cbea1219bf842444439",
+    "nonDocumentationFilesComparedWithCodeTree": 1993,
+    "allSourceBlobsAndExecutableModesMatchPrivateCopy": true,
+    "allSourceBlobsAndExecutableModesMatchSharedWorkingTree": true
+  },
+  "environment": {
+    "effectiveUid": 0,
+    "ancestry": [
+      {
+        "path": "/",
+        "mode": "0755",
+        "uid": 0,
+        "gid": 0,
+        "canonical": true
+      },
+      {
+        "path": "/workspace",
+        "mode": "0777",
+        "uid": 0,
+        "gid": 0,
+        "canonical": true
+      },
+      {
+        "path": "/workspace/scratch",
+        "mode": "0700",
+        "uid": 0,
+        "gid": 0,
+        "canonical": true
+      },
+      {
+        "path": "/workspace/scratch/96567b57746a",
+        "mode": "0755",
+        "uid": 0,
+        "gid": 0,
+        "canonical": true
+      },
+      {
+        "path": "/workspace/scratch/96567b57746a/sample-fabrication-workflow",
+        "mode": "0755",
+        "uid": 0,
+        "gid": 0,
+        "canonical": true
+      },
+      {
+        "path": "/root",
+        "mode": "0700",
+        "uid": 0,
+        "gid": 0,
+        "canonical": true
+      },
+      {
+        "path": "/root/pr315-private-validation-zv4wug1q",
+        "mode": "0700",
+        "uid": 0,
+        "gid": 0,
+        "canonical": true
+      }
+    ],
+    "originalFailureCause": "The original /workspace ancestor is mode 0777. Unchanged production configuration, keyring, writer-lease and principal fixture checks reject any group/other-writable ancestor, even below a private leaf. /tmp mode 1777 is also unsuitable.",
+    "resolution": "Independent source and node_modules copies in the new canonical task directory under the existing private /root parent.",
+    "independentSourceAndNodeModulesCopies": true,
+    "existingAncestorModesChanged": false,
+    "productionPermissionChecksChanged": false,
+    "fixturePermissionChecksChanged": false,
+    "sharedBuildOutputsUsed": false,
+    "githubStatusPublicationEnabled": false
+  },
+  "permissionRegressionPrecheck": {
+    "command": "npm run test:source -- server/files/jobs/dispatcher.test.ts server/files/jobs/host.test.ts server/files/jobs/principal-authority.test.ts server/files/jobs/repository.test.ts server/node-runtime-config-recovery-target-v28.test.ts server/node-runtime-config-recovery-v28.test.ts server/node-runtime-config-restored-v28.test.ts server/auth/storage-keyring-file.test.ts",
+    "exitCode": 0,
+    "filesPassed": 8,
+    "testsPassed": 50,
+    "logSha256": "acb572e35531007d6f145f6a791c4253a4fc50452978e92563835888438d6340"
+  },
+  "lateFixtureSynchronization": {
+    "synchronizedAt": "2026-10-18T19:45:14.061642+00:00",
+    "reason": "Frozen mounted fixtures now establish the actual identity protocol and independent session generation; production source unchanged",
+    "mountedLeafStartedAtSynchronization": false,
+    "pipelineStagesAlreadyStarted": [
+      "Running verification-scripts: npm run test:verification-scripts"
+    ],
+    "updates": [
+      {
+        "path": "src/file-authority.mount.test.tsx",
+        "previousSnapshotSha256": "bc5d5c67fea86ee532bec5a29b2fbf9d35f99a4074842df765ae97e63ee4d43a",
+        "finalSha256": "1885049d9fe3599512245c0dee827468412c251aa1fde0ca4684f833a97d66b4",
+        "bytes": 8459
+      },
+      {
+        "path": "src/storage-settings.mount.test.tsx",
+        "previousSnapshotSha256": "36e2bc5f66508a4bc30543943df6193f982e557c8b77d24beda334f88bab3c48",
+        "finalSha256": "ad2578cf22d88823b04d24911e73a25454af23d57a52d887aebbc0f4779a3d53",
+        "bytes": 13377
+      }
+    ]
+  },
+  "verificationLeaves": [
+    {
+      "id": "verification-scripts",
+      "npmScript": "test:verification-scripts",
+      "outcome": "success",
+      "durationMs": 179687,
+      "nativeTestCounts": {
+        "tests": 357,
+        "pass": 357,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    {
+      "id": "source",
+      "npmScript": "test:source",
+      "outcome": "success",
+      "durationMs": 457741,
+      "vitestCounts": {
+        "files": 435,
+        "tests": 4052,
+        "allPassed": true,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "id": "mounted",
+      "npmScript": "test:reference-mounted",
+      "outcome": "success",
+      "durationMs": 36417,
+      "vitestCounts": {
+        "files": 110,
+        "tests": 1166,
+        "allPassed": true,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "id": "rich-text",
+      "npmScript": "test:rich-text-bundle",
+      "outcome": "success",
+      "durationMs": 330
+    },
+    {
+      "id": "node-http",
+      "npmScript": "test:node-http",
+      "outcome": "success",
+      "durationMs": 1998,
+      "nativeTestCounts": {
+        "tests": 30,
+        "pass": 30,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    {
+      "id": "types",
+      "npmScript": "typecheck",
+      "outcome": "success",
+      "durationMs": 2015
+    },
+    {
+      "id": "server-types",
+      "npmScript": "typecheck:server",
+      "outcome": "success",
+      "durationMs": 2957
+    },
+    {
+      "id": "node-client",
+      "npmScript": "verify:node-client",
+      "outcome": "success",
+      "durationMs": 2873
+    },
+    {
+      "id": "export-contract",
+      "npmScript": "typecheck:export-contract",
+      "outcome": "success",
+      "durationMs": 673
+    },
+    {
+      "id": "file-jobs-node",
+      "npmScript": "typecheck:file-jobs-node",
+      "outcome": "success",
+      "durationMs": 879
+    },
+    {
+      "id": "migrations",
+      "npmScript": "verify:d1-migrations",
+      "outcome": "success",
+      "durationMs": 11371
+    },
+    {
+      "id": "reference-worker",
+      "npmScript": "verify:reference-worker",
+      "outcome": "success",
+      "durationMs": 22606
+    },
+    {
+      "id": "reference-search-worker",
+      "npmScript": "verify:reference-search-worker",
+      "outcome": "success",
+      "durationMs": 16679
+    },
+    {
+      "id": "build",
+      "npmScript": "build",
+      "outcome": "success",
+      "durationMs": 2302
+    },
+    {
+      "id": "map-bundle",
+      "npmScript": "test:project-map-bundle",
+      "outcome": "success",
+      "durationMs": 434
+    },
+    {
+      "id": "project-worker",
+      "npmScript": "verify:project-worker-artifact",
+      "outcome": "success",
+      "durationMs": 21434
+    }
+  ],
+  "leafSummary": {
+    "total": 16,
+    "success": 16,
+    "failure": 0,
+    "skipped": 0,
+    "sumReportedLeafDurationMs": 760396
+  },
+  "log": {
+    "path": "/tmp/pr315-final-verification-private.log",
+    "bytes": 222566,
+    "sha256": "7cc25c611942ee79f30397ab2096a780e2249969544dcc41220081dbed51c149"
+  },
+  "localEvidenceDirectory": "/root/pr315-private-validation-zv4wug1q"
+}

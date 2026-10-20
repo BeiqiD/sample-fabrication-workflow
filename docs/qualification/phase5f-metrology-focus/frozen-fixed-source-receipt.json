@@ -1,0 +1,58 @@
+{
+  "kind": "phase5f-metrology-idle-cancel-focus-fixed-source-freeze/1",
+  "at": "2026-10-10T23:09:11.877582+00:00",
+  "root": "/tmp/phase5f-metrology-focus-combined7ba-source-attempt1",
+  "head": "d191eac9aab2f5b89037a3630eb68e417e8046e2",
+  "tree": "7b858579d85008e7c6ba08b9e48105286ea7679a",
+  "base": "f02dd9ab80f98a3317b0842e4ec8a2f8cb899a43",
+  "baselineEntries": 1679,
+  "unchangedEntryCount": 1677,
+  "candidatePathHashes": {
+    "src/components/MultiSampleRunGrid.tsx": "f19c2f69c0eb255cbac529ee5cffecdf13bad942f10e1451cf5edab33428266d",
+    "src/phase5f-metrology-pending.mount.test.tsx": "5ab5b22b15e15bb3e309967f837313e76f907319f37a033937ba9d6fc9746084"
+  },
+  "allOtherModeBlobsWorkingBytesExact": true,
+  "onlyProductionScope": "Original qualified7ba explicit idle Cancel focus plus persistent same-Step Add ref carried only through original Metrology opening callback/state into unchanged common modal returnFocusRef. No global hook/query/read/session/operation/API/domain/grid/provider change.",
+  "originalAsyncMutationFunctionsAndAllOtherComponentsExact": true,
+  "testSourceExactlyCharacterized732": false,
+  "configurationPins": {
+    "vitest.mounted.config.ts": "fd051a71b0bdc63992c3e6e05f184159a2a1b96518c3db54a112ea44c1f5b991",
+    "tsconfig.app.json": "2a56d25a041e9e6d411c7e64a66d7c65880d6672f154458cdec33a5267c78bf5",
+    "package.json": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+    "package-lock.json": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a",
+    "src/lib/use-modal-dialog.ts": "4e68326ff0514af623a67f173e7da7aa96db17f3c556dfe1536825d5f1eaf31c",
+    "src/components/MetrologyTemplateForm.tsx": "0634cfb3c16f350ab85cf6ac5d6eee800395b095a5ba50f41776929da8cd4418",
+    "src/phase5f-metrology-picker-read.mount.test.tsx": "cb3adf578917a624e664d585be6b37461dda62e5c853fa975145171e71a5a094"
+  },
+  "dependencyProvenance": {
+    "root": "/workspace/sample-fabrication-workflow/node_modules",
+    "package": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+    "lock": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a",
+    "hiddenLock": "95202718d08fd50cc286bcddf0af66b08503d63b494e992006c50d4246d69a98"
+  },
+  "originalActualFailure": {
+    "path": "/tmp/phase5f-metrology-escape-focus7ba-characterization-review-attempt1/runtime/one-case-characterization-receipt.json",
+    "sha256": "263ece7a736aaa7c85ca71221f97d4f6dd7d6e862d450ea4739745941f9b8352",
+    "status": "Actual1caseFAIL bodyfocus vs exact surviving sameStepAdd;27filteredUNRUN/commandexit1/diagnosticwrapperexit0/groupEMPTY/reaped, immutable"
+  },
+  "runtimeStatus": "New combined appstrict/mounted41/freshbuild/browser2 ALLUNRUN; qualified7ba strict39/build carry remains earlier exactsource only.",
+  "protectedBoundaries": "No global modal/CSS/query/debounce/form/write/read/domain/grid/provider/auth/migration changes.",
+  "testCaseProvenance": "Original26 pending bodies+originalCancel732 case unchanged; exact actuallyfailed4f Escape case unchanged; one additional explicitidleClose sibling actualDOMfocus control.",
+  "otherPriorQualification": {
+    "cancelInitialFailure": {
+      "path": "/tmp/phase5f-metrology-cancel-focus-f02-source-review-attempt1/runtime/one-case-characterization-receipt.json",
+      "sha256": "988c8d66106288133f3fb9d97cd9712a3d89fec5e821cd029ad66f49f3bcb746",
+      "status": "One actual DOM-focus failed/26 filteredUNRUN; commandexit1 vs diagnosticwrapperexit0, originalgroupsEMPTY/reaped; immutable"
+    },
+    "fixed7baLocalPASS": {
+      "path": "/tmp/phase5f-metrology-cancel-focus-f02-source-review-attempt1/fixed-finite-runtime-attempt2/finite-affected-qualification-receipt.json",
+      "sha256": "c92652bddc56192b3240e3bba7d1d569e0369dd71fa4d67b04c09b5ff3f1a93c",
+      "scope": "Actual appstrict39/fresh118dist build on7ba, no browser; not a combinedsource rerun or reusable combinedartifact"
+    }
+  },
+  "ignoredLocalConfigurationPins": {
+    ".wrangler/deploy.jsonc": "ef4d1a158fd23b2265067e968fda698436e9448f80f18942f6325153e5230590",
+    ".wrangler/deploy/config.json": "6a394d5ba55463696363d1a540b964bb464bfaaff1e534940520e74708b1b337",
+    ".wrangler/local-installation.json": "bde45fd8d3b26cd8b125e58555211bfe291a54b1e386bdd2dd67eb7b713bc380"
+  }
+}

@@ -1,0 +1,455 @@
+{
+  "status": "ROOT_CURRENT8BE_FILE_START202_ORIGINAL_TEN_NATURAL_FOCUS_FAILURE_FULL_READ_CLOSED_RELEASED",
+  "utc": "2026-10-11T22:27:24.146505+00:00",
+  "formal": {
+    "path": "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/actual-current8be-file-start202-original-ten-natural-focus-failure-closed-release.json",
+    "sha256": "bbea2bc4aaab95df371a89239794e5e6c813c5cc1514fa4cba86fb26d4200439"
+  },
+  "all33OriginalRawReferences": {
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/qualified-current02d-coherent-build-producer-preflight-command.json": "33a35c9f8cfd395c77d1e9bf4854ee3e2b88d64f866418705b968dd0ab8935cc",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/qualified-current02d-coherent-build-producer-preflight.log": "c4160a0c49b75db63594624dca05981b158dcd67cebbe588ffb3e5bebed64e0f",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/isolated-copy-command.json": "d70bc9012e0a54b8d74411231f5d51cc46b083b0b4234b7962894e26403d55aa",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/isolated-copy.log": "9cd7d8ab87286762f46d5ea79b3a9b37b28c3bc28964b44838ecc39482fb3c77",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/fresh-two-version-sentinel-command.json": "879cc32a95779def2677659f8927ad585f6db0a27a71311845ef20a5ba02b6f3",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/fresh-two-version-sentinel.log": "71c160f46d87dffcd3082454b2d1340f78ebd77e262af4f1c58f2855d0207cc9",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/ordinary-actual24-local-migrations-command.json": "4266d63dcb367e21ab1fc6d7c4ed530185681de91cb5cb85025d4e4e5cb7ff48",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/ordinary-actual24-local-migrations.log": "616a736b05028164a01979fa64bf1a122a440852a57a9ffe300dd55249456d14",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/synthetic-template-sentinels-only-command.json": "9e80c9d5c98b8cb4d2b09786a2f70af6f7acde2381d8e16f9eb69d9acd554de7",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/synthetic-template-sentinels-only.log": "b742a32d51f9f12aa943332a556742888fdaa32cfe4329be5133175221b67f95",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/physical-before-command.json": "be400b4261015eab19d96d61f4b9f29852b5d31c0f5fa3271baa1482a829b68c",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/physical-before.log": "deeee6a507818579e38a92e312bed6a55799062a0fe7d1c32c508a4131c2d6b8",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/current-source-build-and-pure24-witness-command.json": "e5a0c9ce244c4dff7934f1045b02a0a3102e252e2f7a9893d0eaf133813e3e88",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/current-source-build-and-pure24-witness.log": "5a7cf5dcbba6093ab83b1b92c5412b0ae3135e94392315e1a2b9b40908aa9e34",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/original-one-current-file-start202-natural-focus-command.json": "4547bf5d7b9f1f3beed2f9f2ee61c9692255beb51acc57f71e712690034365ec",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/original-one-current-file-start202-natural-focus.log": "8f8670095d19554aaae39579f17806fdf743c768db4ccae5cb41bd2aaa1f24d5",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/physical-after-command.json": "54558f5949164eb6840b8e0b0f17facd7233dc860210cc37eca5f5f86154b413",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/physical-after.log": "b89487baa4c6c8db2502bbb46ab538678b3e53924c8c3a2354225bd43a0d694c",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/final-source-artifact-input-pins-command.json": "4e7a65196bb4f2918cb730559909cad45315038123c116b415d3a2ab5556963d",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/final-source-artifact-input-pins.log": "08d4d430150e0297f199f8571e75878d40d60503daf250f71aef2bc56a049812",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/fixture/genuine-file-start202-natural-focus-report.json": "5230721051a2d75b89ffad6db25464ab3bf536a480f4769e0706aeb601b424ce",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/fixture/genuine-file-start202-natural-focus-stop.json": "69e8fc0a5a41e0fbdc1bd195c8b059fd7760ec49578fd5948ce22c3876dc2128",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/fixture/physical-sqlite-before-api.json": "ff9468d8d74f02fa8c281ea8e32973baaab5977b61a1921ca2dc638759c1713c",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/fixture/physical-sqlite-after-current-file-status-refresh-keyboard.json": "8bc37be500eb81168ccf36785905e0b2fddc9b71feb19a8022674b3c75ba65ba",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/final-current8be-source-and-genuine-start202-pins.json": "518f6a40809a9b3e82dac9c0780e0f8ab96f23b7a54a96fe52645685e70f99ec",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/copy/isolation-receipt.json": "615406bbb8e9a0ff1e6c1508e5e435919ffb2a46213287c4e8157b4195d72b63",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/fixture/process-fixture.json": "ec42e0497b29092a45639def7901747dadc289dc2e73b542dbda0fac40589ad3",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/fixture/process-fixture.sql": "9d616056763e550a87c7a6e246ca0687fd27e631953e30dc1c5c6a359cece7e2",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/fixture/enabled-storage-draft-build-input-witness.json": "96bf35a7c641f5ea10ac41ec120d459a812cdc22a42902377dab78676b8c54a9",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/current02d-build-new-pure24-native-causal-carry.json": "c6b10d4c80f6f989322f96b244ca40327fca0c704e57e6fb27b8461a9efc14dc",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/chromium-child-temp-owner.json": "37361e97a18dac2a6d47c0033a1e5ab40952b5c8fd28a1c260b3fc0089b61400",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/frozen-approved-plan.json": "87e33e4936ee0db49461b9e60c601c18251cc1bf61d54e23f38ab055d91be5a5",
+    "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/runtime/original-tool-responses.json": "16a4a1ac9966a1157676e1766a9445d03b7a0c8ea012879e9bb2780a3325d1bd"
+  },
+  "all17OriginalToolResponses": true,
+  "fullProducerGitPhysicalModes": 3086,
+  "fullConsumerGitPhysicalModes": 3092,
+  "fullCopyTracked3086Artifacts121Original118": true,
+  "allOriginal10DirectWaitReapedNoSignals": true,
+  "actualCommandCounts": {
+    "passed": 9,
+    "failed": 1,
+    "unrun": 0
+  },
+  "actualNativeCounts": {
+    "passed": 0,
+    "failed": 1,
+    "unrun": 0
+  },
+  "case": {
+    "id": "current-file-start202-natural-focus-1280-light",
+    "width": 1280,
+    "height": 1000,
+    "theme": "light",
+    "status": "failed",
+    "requests": [
+      {
+        "path": "/api/storage/configuration/capability",
+        "method": "GET"
+      },
+      {
+        "path": "/api/settings/storage",
+        "method": "GET"
+      },
+      {
+        "path": "/api/files/migrations/files",
+        "method": "GET"
+      },
+      {
+        "path": "/api/files/migrations",
+        "method": "GET"
+      },
+      {
+        "path": "/api/files/migrations/executor",
+        "method": "GET"
+      },
+      {
+        "path": "/api/files/migrations/plans",
+        "method": "POST"
+      },
+      {
+        "path": "/api/files/migrations",
+        "method": "GET"
+      },
+      {
+        "path": "/api/files/migrations/executor",
+        "method": "GET"
+      },
+      {
+        "path": "/api/files/migrations",
+        "method": "POST"
+      },
+      {
+        "path": "/api/files/migrations",
+        "method": "GET"
+      },
+      {
+        "path": "/api/files/migrations/executor",
+        "method": "GET"
+      },
+      {
+        "path": "/api/files/migrations",
+        "method": "GET"
+      },
+      {
+        "path": "/api/files/migrations/executor",
+        "method": "GET"
+      },
+      {
+        "path": "/api/files/migrations",
+        "method": "GET"
+      },
+      {
+        "path": "/api/files/migrations/executor",
+        "method": "GET"
+      },
+      {
+        "path": "/api/files/migrations",
+        "method": "GET"
+      },
+      {
+        "path": "/api/files/migrations/executor",
+        "method": "GET"
+      },
+      {
+        "path": "/api/files/migrations",
+        "method": "GET"
+      },
+      {
+        "path": "/api/files/migrations/executor",
+        "method": "GET"
+      }
+    ],
+    "api": [
+      {
+        "path": "/api/storage/configuration/capability",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "635c1a510be4a89b46d9144f09780f1a1e794d1235555fd6f60b7d3761299e54"
+      },
+      {
+        "path": "/api/settings/storage",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "c598cd85d871eb6d6b3bc0c14a26217377053126180d263a694e5f060c5037c4"
+      },
+      {
+        "path": "/api/files/migrations/files",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "162b585a97b48f1efad0b751228a205bb2880d0292bd41496df9a1dad70af50e"
+      },
+      {
+        "path": "/api/files/migrations",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "0a5796e93f9b57ddf7c45f860485cbb7353fc0eda3dca753a444d0fd2a1573fe"
+      },
+      {
+        "path": "/api/files/migrations/executor",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "aa37418841248e015b99d3e5f6a33cbbfaaa2bac6f40b6d729c8a79bb3507ef2"
+      },
+      {
+        "path": "/api/files/migrations/plans",
+        "method": "POST",
+        "status": 200,
+        "body": "completed",
+        "sha256": "20054e546b359e566b85bebab63b8b5fd7da74999586675d52a40b51902906a7",
+        "exactOriginalBackendMatches": true
+      },
+      {
+        "path": "/api/files/migrations",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "0a5796e93f9b57ddf7c45f860485cbb7353fc0eda3dca753a444d0fd2a1573fe"
+      },
+      {
+        "path": "/api/files/migrations/executor",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "aa37418841248e015b99d3e5f6a33cbbfaaa2bac6f40b6d729c8a79bb3507ef2"
+      },
+      {
+        "path": "/api/files/migrations",
+        "method": "POST",
+        "status": 202,
+        "body": "completed",
+        "sha256": "76a975adb594ac9d650bc3e46f364a5db952a7a048f429f2b1ae0c4a6348e364",
+        "exactOriginalBackendMatches": true
+      },
+      {
+        "path": "/api/files/migrations",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "d2a1572b8a3ba41c63a80962de3f1d083fe2b447e79195b80925b6a4fc9ebe51"
+      },
+      {
+        "path": "/api/files/migrations/executor",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "aa37418841248e015b99d3e5f6a33cbbfaaa2bac6f40b6d729c8a79bb3507ef2"
+      },
+      {
+        "path": "/api/files/migrations",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "d2a1572b8a3ba41c63a80962de3f1d083fe2b447e79195b80925b6a4fc9ebe51"
+      },
+      {
+        "path": "/api/files/migrations/executor",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "aa37418841248e015b99d3e5f6a33cbbfaaa2bac6f40b6d729c8a79bb3507ef2"
+      },
+      {
+        "path": "/api/files/migrations",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "d2a1572b8a3ba41c63a80962de3f1d083fe2b447e79195b80925b6a4fc9ebe51"
+      },
+      {
+        "path": "/api/files/migrations/executor",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "aa37418841248e015b99d3e5f6a33cbbfaaa2bac6f40b6d729c8a79bb3507ef2"
+      },
+      {
+        "path": "/api/files/migrations",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "d2a1572b8a3ba41c63a80962de3f1d083fe2b447e79195b80925b6a4fc9ebe51"
+      },
+      {
+        "path": "/api/files/migrations/executor",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "aa37418841248e015b99d3e5f6a33cbbfaaa2bac6f40b6d729c8a79bb3507ef2"
+      },
+      {
+        "path": "/api/files/migrations",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "d2a1572b8a3ba41c63a80962de3f1d083fe2b447e79195b80925b6a4fc9ebe51"
+      },
+      {
+        "path": "/api/files/migrations/executor",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "aa37418841248e015b99d3e5f6a33cbbfaaa2bac6f40b6d729c8a79bb3507ef2"
+      }
+    ],
+    "backendResponses": [
+      {
+        "action": "preview",
+        "path": "/api/files/migrations/plans",
+        "method": "POST",
+        "startedAt": "2026-10-11T22:24:31.817Z",
+        "state": "accepted",
+        "status": 200,
+        "body": "completed",
+        "responseSha256": "20054e546b359e566b85bebab63b8b5fd7da74999586675d52a40b51902906a7",
+        "completedAt": "2026-10-11T22:24:31.842Z",
+        "exactOriginalReleasedPermit": {
+          "id": "28fa69c4-b560-4c31-8d9f-94a65e1a7d5c",
+          "sha256": "da330877122198540b7357ecc16fe478c8e5e93c524a5de29d0932dcc0c3d2c7",
+          "allEarlierRowsExact": true,
+          "requestWindowMatched": true
+        },
+        "nativeDelivery": "fulfilled"
+      },
+      {
+        "action": "accept",
+        "path": "/api/files/migrations",
+        "method": "POST",
+        "startedAt": "2026-10-11T22:24:31.906Z",
+        "state": "accepted",
+        "job": {
+          "id": "5f9484e1-5d9f-44ed-bd3b-92fd4188adb9",
+          "state": "queued",
+          "target": {
+            "profileId": "storage-profile:r2:qa-migration-target",
+            "configurationRevision": 1
+          },
+          "acceptedAt": "2026-10-11T22:24:31.926Z",
+          "updatedAt": "2026-10-11T22:24:31.926Z",
+          "reason": null,
+          "moved": 0,
+          "remaining": 1,
+          "failed": 0,
+          "cleanupPending": 0
+        },
+        "status": 202,
+        "body": "completed",
+        "responseSha256": "76a975adb594ac9d650bc3e46f364a5db952a7a048f429f2b1ae0c4a6348e364",
+        "completedAt": "2026-10-11T22:24:31.932Z",
+        "exactOriginalReleasedPermit": {
+          "id": "0a4b24f5-d62b-4416-bfc6-365a8812aefb",
+          "sha256": "d2880af6ac885f4d17ad519798222e522832dc5ca4b3367f7e1f81f2db87a39a",
+          "allEarlierRowsExact": true,
+          "requestWindowMatched": true
+        },
+        "nativeDelivery": "fulfilled"
+      }
+    ],
+    "assertions": [
+      {
+        "genuineOriginalPlan200": true,
+        "nativePreviewFocus": {
+          "active": true,
+          "focusVisible": true,
+          "disabled": false
+        }
+      },
+      {
+        "originalAccept202": true,
+        "acceptedJobId": "5f9484e1-5d9f-44ed-bd3b-92fd4188adb9",
+        "initialJobState": "queued",
+        "startRemoved": true,
+        "immediateNaturalFocus": {
+          "connected": true,
+          "active": false,
+          "body": true,
+          "tag": "BUTTON",
+          "focusVisible": false,
+          "disabled": false
+        }
+      }
+    ],
+    "pageErrors": [],
+    "externalRequests": [],
+    "startedAt": "2026-10-11T22:24:30.568Z",
+    "input": {
+      "requestId": "eaef5306-af0b-41c2-83a3-84c5324db5ec",
+      "fileIds": [
+        "7cb91f16-3e9d-457d-8a53-e4dad007aef5"
+      ],
+      "target": {
+        "profileId": "storage-profile:r2:qa-migration-target",
+        "configurationRevision": 1
+      }
+    },
+    "error": "{\"kind\":\"object\",\"name\":\"TimeoutError\",\"message\":\"page.waitForFunction: Timeout 19907ms exceeded.\"}",
+    "contextCloseAwaited": true,
+    "originalRoutesAwaited": {
+      "count": 39,
+      "rejected": 0
+    },
+    "originalBodiesAwaited": {
+      "count": 19,
+      "rejected": 0
+    },
+    "originalWaitsAwaited": {
+      "count": 7,
+      "rejected": 0
+    },
+    "originalCatalogAndSourceBytes": {
+      "stage": "settled-current-file-start202-natural-focus-1280-light",
+      "onlyExactOneJobOneItemOneHoldAndReleasedPermitsChanged": true,
+      "old6PermitsExact": true,
+      "oldHoldsExact": true,
+      "newReleasedPermits": 2,
+      "jobState": "queued",
+      "jobGeneration": 0,
+      "migrationAttempts": 0,
+      "executorDisabled": true,
+      "sourceBytesExact": true,
+      "targetEmpty": true,
+      "addedRowsSha256": "3a74f2333fa5f338ad546f69a64de86040e8df33f27af8f3db27dbc91c79ae41"
+    },
+    "completedAt": "2026-10-11T22:24:53.157Z"
+  },
+  "normalOriginalOwnerClosure": {
+    "status": "closed",
+    "browserCloseAwaited": true,
+    "originalPreparationOwnerClosure": {
+      "status": "closed",
+      "startedAt": "2026-10-11T22:24:54.374Z",
+      "originalRequestsAwaited": {
+        "count": 12,
+        "rejected": 0
+      },
+      "workerDisposeAwaited": true,
+      "workerPortRefused": true,
+      "originalOutboundWorkAwaited": {
+        "count": 1,
+        "rejected": 0
+      },
+      "jwksCloseAwaited": true,
+      "jwksPortRefused": true,
+      "completedAt": "2026-10-11T22:24:55.487Z"
+    }
+  },
+  "physical": {
+    "before": {
+      "path": "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/fixture/physical-sqlite-before-api.json",
+      "sha256": "ff9468d8d74f02fa8c281ea8e32973baaab5977b61a1921ca2dc638759c1713c",
+      "bytes": 68523
+    },
+    "after": {
+      "path": "/tmp/phase5f-file-current8be-start202-natural-focus-native-private-attempt2/fixture/physical-sqlite-after-current-file-status-refresh-keyboard.json",
+      "sha256": "8bc37be500eb81168ccf36785905e0b2fddc9b71feb19a8022674b3c75ba65ba",
+      "bytes": 75421
+    },
+    "beforeGroups": 2,
+    "afterGroups": 5,
+    "status": "passed",
+    "finalCatalog": {
+      "stage": "before-original-Worker-dispose",
+      "onlyExactOneJobOneItemOneHoldAndReleasedPermitsChanged": true,
+      "old6PermitsExact": true,
+      "oldHoldsExact": true,
+      "newReleasedPermits": 2,
+      "jobState": "queued",
+      "jobGeneration": 0,
+      "migrationAttempts": 0,
+      "executorDisabled": true,
+      "sourceBytesExact": true,
+      "targetEmpty": true,
+      "addedRowsSha256": "3a74f2333fa5f338ad546f69a64de86040e8df33f27af8f3db27dbc91c79ae41"
+    },
+    "nativeFailureRemainsFailed": true
+  },
+  "observedEmptyOwnedGroups": 7,
+  "retainedKernelZCount": 3,
+  "kernelLimit": "Only original ten owned groups. KernelZ/PPID1 and FDPermission remain recorded; no observed0FD or globalquiescence claim.",
+  "exclusiveReleased": true,
+  "nextAction": "Original File Start202 natural focus failure and accepted queued gen0 history retained; next characterize Package Start202 before combined focus repair and ONE necessary current build. No same-head File Start202 retry."
+}

@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.worker-v5-bound-local-r2-native-qualification.json",
+  "include": [
+    "scripts/qa/worker-v5-present-head-bound-local-r2-payload-native.qualification.ts"
+  ],
+  "exclude": []
+}

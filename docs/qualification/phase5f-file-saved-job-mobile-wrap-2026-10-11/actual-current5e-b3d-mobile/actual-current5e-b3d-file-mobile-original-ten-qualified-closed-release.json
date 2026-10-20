@@ -1,0 +1,523 @@
+{
+  "status": "ACTUAL_CURRENT5E_B3D_FILE_MOBILE_ORIGINAL_TEN_ALL_PASS_CLOSED_RELEASED",
+  "recordedAt": "2026-10-11T19:33:36.659693+00:00",
+  "counts": {
+    "commandsPASS": 10,
+    "commandsFAIL": 0,
+    "commandsUNRUN": 0,
+    "nativePASS": 1,
+    "nativeFAIL": 0,
+    "nativeUNRUN": 0
+  },
+  "producer": {
+    "root": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source",
+    "head": "5e65f4d0355f375ca7fe949b8de15082c043c19a",
+    "tree": "4df8f0e910ef1fa085c1a74bad3b402cd266f73d",
+    "count": 2726,
+    "actualSingleRequiredCSSBuild": {
+      "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/actual-one-current5e-file-mobile-wrap-cf-build-qualified-closed-release.json",
+      "sha256": "c85c13e7ebb479b90e1e71e068c5ddb0a5481080438ee2782a58f673ff845727"
+    },
+    "actual118Manifest": {
+      "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/fresh-build-artifact-manifest.json",
+      "sha256": "09e3b5b80cea5e001a6c98323611f2b212325b931085f1f0d1af0d0ac992781d",
+      "actualFiles": 118
+    },
+    "rootBuildRelease": {
+      "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/root-one-fresh5e-cf-build-full-source-raw-original-owner-kernel-read-release.json",
+      "sha256": "9b026c2dd891990279ca6b6f716eff86fbb52f4ea87cc3dc1c357b671245fb03"
+    }
+  },
+  "consumer": {
+    "root": "/tmp/phase5f-file-saved-mobile-five-custody-qa-private-attempt3/source",
+    "head": "b3d227a0016ce68a4fc079b58157e9ad511ff111",
+    "tree": "12b173731d4d0d1ad593adce81b7f574d631e7d9",
+    "count": 2728,
+    "all2726OrdinaryBytesExact": true,
+    "ownedTwoQa": {
+      "scripts/qa/phase5f/browser-current-coherent-local-r2-file-saved-job-keyboard-mobile.mjs": "731df98adc3d4b421976f016ec23be875c18f2fc62e4a31ccbf0b3b5c185dde5",
+      "scripts/qa/phase5f/check-current-coherent-saved-job-mobile-physical-state.py": "92772d9505d300a49cea7dbede3fee26adcf682dfc3d0321a2781a9793ed342c"
+    }
+  },
+  "native": {
+    "id": "current-coherent-file-saved-job-keyboard-390-dark",
+    "viewport": [
+      390,
+      844
+    ],
+    "theme": "dark",
+    "geometry": {
+      "width": 390,
+      "root": 390,
+      "body": 390,
+      "theme": "dark"
+    },
+    "actualCosts": {
+      "setupPOSTs": 6,
+      "readerGETs": 2,
+      "nativeGETs": 15,
+      "nativeMetadataPOSTs": 5,
+      "maxSetupPOSTs": 6,
+      "maxNativePOSTs": 5,
+      "observedAcceptedJobReceipts": 1,
+      "newExecutorSteps": 0
+    },
+    "originalPreview200Focus": {
+      "active": true,
+      "focusVisible": true,
+      "disabled": false
+    },
+    "genuinePauseResumeCancelFocus": [
+      {
+        "action": "pause",
+        "state": "paused",
+        "originalControl200": true,
+        "immediateFocusObservation": {
+          "connected": true,
+          "active": true,
+          "body": false,
+          "tag": "BUTTON",
+          "focusVisible": true
+        },
+        "settledNativeFocus": {
+          "connected": true,
+          "active": true,
+          "focusVisible": true
+        }
+      },
+      {
+        "action": "resume",
+        "state": "queued",
+        "originalControl200": true,
+        "immediateFocusObservation": {
+          "connected": true,
+          "active": true,
+          "body": false,
+          "tag": "BUTTON",
+          "focusVisible": true
+        },
+        "settledNativeFocus": {
+          "connected": true,
+          "active": true,
+          "focusVisible": true
+        }
+      },
+      {
+        "action": "cancel",
+        "state": "cancelled",
+        "originalControl200": true,
+        "immediateFocusObservation": {
+          "connected": true,
+          "active": true,
+          "body": false,
+          "tag": "P",
+          "focusVisible": true
+        },
+        "settledNativeFocus": {
+          "connected": true,
+          "active": true,
+          "focusVisible": true
+        }
+      }
+    ],
+    "fullOriginalNativeBodies": {
+      "count": 20,
+      "rejected": 0
+    },
+    "originalRoutes": {
+      "count": 40,
+      "rejected": 0
+    },
+    "originalWaits": {
+      "count": 10,
+      "rejected": 0
+    },
+    "contextCloseAwaited": true,
+    "finalCatalog": {
+      "stage": "before-original-Worker-dispose",
+      "onlyExactOneJobOneItemOneHoldAndReleasedPermitsChanged": true,
+      "old6PermitsExact": true,
+      "oldHoldsExact": true,
+      "newReleasedPermits": 5,
+      "jobState": "cancelled",
+      "jobGeneration": 3,
+      "migrationAttempts": 0,
+      "executorDisabled": true,
+      "sourceBytesExact": true,
+      "targetEmpty": true,
+      "addedRowsSha256": "4c0eb096cc0d4fb6d7514d6d0e6524a279df7dea70114cc440d3d7c18e3e617e"
+    },
+    "nativeOwnerClosure": {
+      "status": "closed",
+      "browserCloseAwaited": true,
+      "originalPreparationOwnerClosure": {
+        "status": "closed",
+        "startedAt": "2026-10-11T19:32:04.313Z",
+        "originalRequestsAwaited": {
+          "count": 12,
+          "rejected": 0
+        },
+        "workerDisposeAwaited": true,
+        "workerPortRefused": true,
+        "originalOutboundWorkAwaited": {
+          "count": 1,
+          "rejected": 0
+        },
+        "jwksCloseAwaited": true,
+        "jwksPortRefused": true,
+        "completedAt": "2026-10-11T19:32:05.437Z"
+      }
+    },
+    "Start202InitialFocus": "UNCHARACTERIZED: genuine accept202 is qualified, but the original helper explicitly focuses Pause before later controls; no disappearing Start\u2192job focus claim."
+  },
+  "commands": [
+    {
+      "stage": "qualified-current02d-coherent-build-producer-preflight",
+      "pid": 1485099,
+      "startTicks": "16029210",
+      "exitCode": 0,
+      "sameOriginalWaitReaped": true,
+      "kernelGroupsAfterWait": []
+    },
+    {
+      "stage": "isolated-copy",
+      "pid": 1485144,
+      "startTicks": "16030232",
+      "exitCode": 0,
+      "sameOriginalWaitReaped": true,
+      "kernelGroupsAfterWait": []
+    },
+    {
+      "stage": "fresh-two-version-sentinel",
+      "pid": 1485227,
+      "startTicks": "16031314",
+      "exitCode": 0,
+      "sameOriginalWaitReaped": true,
+      "kernelGroupsAfterWait": [
+        {
+          "pid": 1485238,
+          "state": "Z",
+          "ppid": 1,
+          "processGroup": 1485227,
+          "kernelResourcesExited": true,
+          "fdInspection": "PermissionError"
+        }
+      ]
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "pid": 1485271,
+      "startTicks": "16032224",
+      "exitCode": 0,
+      "sameOriginalWaitReaped": true,
+      "kernelGroupsAfterWait": [
+        {
+          "pid": 1485298,
+          "state": "Z",
+          "ppid": 1,
+          "processGroup": 1485271,
+          "kernelResourcesExited": true,
+          "fdInspection": "PermissionError"
+        }
+      ]
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "pid": 1485621,
+      "startTicks": "16034676",
+      "exitCode": 0,
+      "sameOriginalWaitReaped": true,
+      "kernelGroupsAfterWait": [
+        {
+          "pid": 1485637,
+          "state": "Z",
+          "ppid": 1,
+          "processGroup": 1485621,
+          "kernelResourcesExited": true,
+          "fdInspection": "PermissionError"
+        }
+      ]
+    },
+    {
+      "stage": "physical-before",
+      "pid": 1485682,
+      "startTicks": "16035519",
+      "exitCode": 0,
+      "sameOriginalWaitReaped": true,
+      "kernelGroupsAfterWait": []
+    },
+    {
+      "stage": "current-source-build-and-pure24-witness",
+      "pid": 1485708,
+      "startTicks": "16036050",
+      "exitCode": 0,
+      "sameOriginalWaitReaped": true,
+      "kernelGroupsAfterWait": []
+    },
+    {
+      "stage": "original-one-current-file-saved-job-keyboard",
+      "pid": 1485777,
+      "startTicks": "16037113",
+      "exitCode": 0,
+      "sameOriginalWaitReaped": true,
+      "kernelGroupsAfterWait": []
+    },
+    {
+      "stage": "physical-after",
+      "pid": 1485973,
+      "startTicks": "16039728",
+      "exitCode": 0,
+      "sameOriginalWaitReaped": true,
+      "kernelGroupsAfterWait": []
+    },
+    {
+      "stage": "final-source-artifact-input-pins",
+      "pid": 1485999,
+      "startTicks": "16040267",
+      "exitCode": 0,
+      "sameOriginalWaitReaped": true,
+      "kernelGroupsAfterWait": []
+    }
+  ],
+  "kernelScope": {
+    "sevenGroupsEMPTY": 7,
+    "threeRetainedExitedGroups": [
+      {
+        "stage": "fresh-two-version-sentinel",
+        "pid": 1485227,
+        "startTicks": "16031314",
+        "exitCode": 0,
+        "sameOriginalWaitReaped": true,
+        "kernelGroupsAfterWait": [
+          {
+            "pid": 1485238,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1485227,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      {
+        "stage": "ordinary-actual24-local-migrations",
+        "pid": 1485271,
+        "startTicks": "16032224",
+        "exitCode": 0,
+        "sameOriginalWaitReaped": true,
+        "kernelGroupsAfterWait": [
+          {
+            "pid": 1485298,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1485271,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      {
+        "stage": "synthetic-template-sentinels-only",
+        "pid": 1485621,
+        "startTicks": "16034676",
+        "exitCode": 0,
+        "sameOriginalWaitReaped": true,
+        "kernelGroupsAfterWait": [
+          {
+            "pid": 1485637,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1485621,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      }
+    ],
+    "FDPermissionUnknownPreserved": true,
+    "noSignals": true,
+    "noGlobalPGEmptyOrObservedZeroFdClaim": true
+  },
+  "physical": {
+    "beforeSQLitePASS": 2,
+    "afterSQLitePASS": 5,
+    "allQuickCheckFK": true,
+    "originalStateBytesUnchanged": true,
+    "originalPNGMatched": true,
+    "targetEmpty": true
+  },
+  "references": [
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/qualified-current02d-coherent-build-producer-preflight-command.json",
+      "sha256": "6d0a3ad86ea7f0a0bac82cba9c13e192d569cbb055bfc04769cc815cf2542ef5",
+      "bytes": 1306
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/qualified-current02d-coherent-build-producer-preflight.log",
+      "sha256": "c4160a0c49b75db63594624dca05981b158dcd67cebbe588ffb3e5bebed64e0f",
+      "bytes": 117
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/isolated-copy-command.json",
+      "sha256": "82ed153fec9b604edbbfa9daca08e5f1d57527de3420ef015d24d0a89f08e1db",
+      "bytes": 1435
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/isolated-copy.log",
+      "sha256": "179a1c29e600bcdc9f0d4fd6e73585e93206e55aaf91668332d5e3ab97b4d398",
+      "bytes": 211
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/fresh-two-version-sentinel-command.json",
+      "sha256": "7790a0a315c8ad8ed12cafc662459d4f1d628bd248c70e88b75985fcaac92421",
+      "bytes": 1926
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/fresh-two-version-sentinel.log",
+      "sha256": "4a04e6e565fcd46d738bc125d450537c3378b5cbeb10c20765816254a59934d5",
+      "bytes": 248
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/ordinary-actual24-local-migrations-command.json",
+      "sha256": "c1b1d703a36b3f61ade1a7e2d43f67934a36584e322ed9bef24d5a817f1a21b2",
+      "bytes": 1918
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/ordinary-actual24-local-migrations.log",
+      "sha256": "410827433f866e25ff2f08cab457e287f851b45b28a429105045d9c8665df793",
+      "bytes": 149092
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/synthetic-template-sentinels-only-command.json",
+      "sha256": "93cafc591eb1c9638b1df70734869f699b2cfdf7bd24ee411170ba05769a2752",
+      "bytes": 2017
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/synthetic-template-sentinels-only.log",
+      "sha256": "ef324d3b6c2f31140255aebbe4b0986e927e5d294f7d3fa2b76c350cd3cb7494",
+      "bytes": 2747
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/physical-before-command.json",
+      "sha256": "fa00bc38e7a1990d055f3b4de961010676e1378bfcfa3644289c44cabcb9eb96",
+      "bytes": 1393
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/physical-before.log",
+      "sha256": "e3fed2150f9a7917c9818f63d7e4bbbced918a68acb8402a48558d02f49d5220",
+      "bytes": 176
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/current-source-build-and-pure24-witness-command.json",
+      "sha256": "64378f22ae15f1e12795b27777d0d449e268c5fa48d02d0848e94e08d0776cee",
+      "bytes": 1265
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/current-source-build-and-pure24-witness.log",
+      "sha256": "878054f4b455868e817190f6e74694fb78780e0e893211a3520460308eeb4c35",
+      "bytes": 222
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/original-one-current-file-saved-job-keyboard-command.json",
+      "sha256": "fab6130ed85cb3343838a3aedf0a52d212e9569a4a97f38ea71087e217594577",
+      "bytes": 2276
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/original-one-current-file-saved-job-keyboard.log",
+      "sha256": "7651fb6d2c0d009988874dd042aba421c7881e7ef173ac0f8de5745e9d3795dd",
+      "bytes": 321
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/physical-after-command.json",
+      "sha256": "5a2617e4f86c31fe0bee1a75e738fa8c7b0ee0a31e1c9eb5840dd6f917203e39",
+      "bytes": 1781
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/physical-after.log",
+      "sha256": "862cfd8ead7a86e0ea6ff42ab2d6913492da4ac20851ed96a5aea2c91dfa6712",
+      "bytes": 185
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/final-source-artifact-input-pins-command.json",
+      "sha256": "70c1138169e491d0acd73414d04a5f357cffb6340918b2a59930839c5ded21a2",
+      "bytes": 1254
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/final-source-artifact-input-pins.log",
+      "sha256": "78294bb01f15dbfd6f061ea19498236896becd368638a8b4198941c441444f8d",
+      "bytes": 225
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/fixture/genuine-local-r2-file-saved-job-keyboard-report.json",
+      "sha256": "99fabfc0150eeff36e019cefaae2d56dac035a280f3e058ae7a519d2c0762e2c",
+      "bytes": 93789
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/fixture/genuine-local-r2-file-saved-job-keyboard-stop.json",
+      "sha256": "5f5000ef23ba980736a8f2572972091881ed00d2a2023a6fcbe3eda27c3fe33d",
+      "bytes": 500
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/fixture/genuine-local-r2-file-saved-job-keyboard-artifacts/current-coherent-file-saved-job-keyboard-390-dark.geometry.json",
+      "sha256": "0309ff9f2ce2bdf06bee71d370a2b7b0cec9639964561c17af1d147530057f7a",
+      "bytes": 68
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/fixture/physical-sqlite-before-api.json",
+      "sha256": "121a531f0a6c4d422868eab764196f076944696d7a47cc1653630ffdf7642711",
+      "bytes": 67365
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/fixture/physical-sqlite-after-current-file-saved-job-keyboard.json",
+      "sha256": "aa2f40997faf0ab8f01261b39c4e8a16d62a7a7ef379f53bcac42a709350aadf",
+      "bytes": 74258
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/fixture/enabled-storage-draft-build-input-witness.json",
+      "sha256": "847c19e49ce5d6a05ee9f2007dc201496d55bc38a267db833699a7a69110d1bb",
+      "bytes": 1363
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/fixture/process-fixture.json",
+      "sha256": "f6f314cad450cee726ee0309624dce8fff71b572cee620ae24932bf6decd1d3d",
+      "bytes": 1584
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/fixture/process-fixture.sql",
+      "sha256": "5c32ff5e2781c3c43ba0139985cafa49dd740c7d31b395170827984e568faf25",
+      "bytes": 5579
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/copy/isolation-receipt.json",
+      "sha256": "62d07b49fe1c8c90894529347c744e6ce3ac76a1f66e781a936193b2bcde25bd",
+      "bytes": 393023
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/chromium-child-temp-owner.json",
+      "sha256": "520e8582dc201ad8d26c75f381a6c6c1560b22f4b456b5200b8385b535646cd0",
+      "bytes": 604
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/original-tool-handles-and-terminal-chunks.json",
+      "sha256": "3f4e6c46fdb0b67f7af2d2899fd1b382813f937c7c43c0ee46dda8367b25d146",
+      "bytes": 31188
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/final-current02d-source-and-genuine-saved-job-pins.json",
+      "sha256": "229f91740e56b94f7340ddcc786e5cfcb86a1751cb3e2096e724aec0740945e2",
+      "bytes": 2681
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-final-peer-source-preparation-attempt4/source-handoff.json",
+      "sha256": "dee7c5ec9caec7af366e106f5b9b68c50f57eda5633ed8b45a23b93dcd05ad37",
+      "bytes": 6682
+    },
+    {
+      "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-final-peer-source-preparation-attempt4/root-current-b3d-original-ten-final-full-source-finite-peer-and-exclusive-go.json",
+      "sha256": "32d562f28cdce96567e1317d7614a2a6989c9348dba6118b7e5522884c9d0da1",
+      "bytes": 2206
+    }
+  ],
+  "historicalScope": "Oldc94 firstgeometryFAIL482/accepted cancelledgen3 remains immutable; new5e rule+actualONEbuild and b3d QA5custody actualone390 separate. Old02d desktopFile/Package and App34 prior source scopes not rerun/retag. Native oldfailedlineage not reopened/rolledback. Newbuilds/types/mounted in thisTEN=0.",
+  "closure": "All ten original directchildren observedPID/startticks, exit0/samewait/reaped, no signals/no active owned members. Original context/browser/Worker/JWKS normal ACK and portsrefused, mandatoryphysical+finalpins actualPASS. CLOSED/RELEASED for root next window; 3 kernelZ/FDPermission retain truthful limits."
+}

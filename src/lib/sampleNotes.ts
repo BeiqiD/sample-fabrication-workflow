@@ -1,5 +1,6 @@
 import { isSampleRecordEvent } from "../../shared/sample-records";
 import type { CommentAttachment, CommentImage, CommentSubmissionStatus, SampleDetail, SampleEvent } from "../../shared/types";
+import { sampleEventAssetUrl } from "./asset-media";
 
 export type SampleNoteKind = "sample_record" | "process_comment" | "execution_detail" | "execution_image" | "deviation" | "state_mismatch" | "blocked_step";
 
@@ -35,7 +36,7 @@ export function collectSampleNotes(sample: SampleDetail): SampleNote[] {
       id: `sample:${event.id}`,
       kind: "sample_record",
       label: "Sample note",
-      body: event.body?.trim() || (event.assetKey ? "Photo observation" : "Empty note"),
+      body: event.body?.trim() || (sampleEventAssetUrl(event) ? "Photo observation" : "Empty note"),
       assetKey: event.assetKey,
       thumbnailKey: eventThumbnailKey(event),
       actorEmail: event.actorEmail,
@@ -46,7 +47,7 @@ export function collectSampleNotes(sample: SampleDetail): SampleNote[] {
       sampleEvent: event,
       submissionId: null,
       status: "ready",
-      images: event.assetKey ? [{
+      images: sampleEventAssetUrl(event) ? [{
         id: `legacy:${event.id}`,
         filename: "Comment image",
         mimeType: "image/*",
@@ -55,6 +56,7 @@ export function collectSampleNotes(sample: SampleDetail): SampleNote[] {
         originalMimeType: "image/*",
         originalByteSize: 0,
         assetKey: event.assetKey,
+        ...(event.assetUrl ? { assetUrl: event.assetUrl, assetId: event.assetId, fileId: event.fileId } : {}),
         status: "ready",
         error: null,
         relatedAttachmentId: null,
@@ -100,7 +102,7 @@ export function collectSampleNotes(sample: SampleDetail): SampleNote[] {
           id: `comment:${comment.id}`,
           kind: "process_comment",
           label: comment.scope === "common" ? "Common process comment" : "Process comment",
-          body: comment.body.trim() || (comment.assetKey ? "Photo observation" : "Empty comment"),
+          body: comment.body.trim() || (comment.assetKey || comment.assetUrl ? "Photo observation" : "Empty comment"),
           assetKey: comment.assetKey,
           thumbnailKey: comment.assetKey,
           actorEmail: comment.actorEmail,
@@ -111,7 +113,7 @@ export function collectSampleNotes(sample: SampleDetail): SampleNote[] {
           sampleEvent: null,
           submissionId: comment.submissionId ?? null,
           status: comment.status ?? "ready",
-          images: comment.images ?? (comment.assetKey ? [{
+          images: comment.images ?? (comment.assetKey || comment.assetUrl ? [{
             id: `legacy:${comment.id}`,
             filename: "Comment image",
             mimeType: "image/*",
@@ -120,6 +122,7 @@ export function collectSampleNotes(sample: SampleDetail): SampleNote[] {
             originalMimeType: "image/*",
             originalByteSize: 0,
             assetKey: comment.assetKey,
+            ...(comment.assetUrl ? { assetUrl: comment.assetUrl } : {}),
             status: "ready",
             error: null,
             relatedAttachmentId: null,
@@ -128,7 +131,7 @@ export function collectSampleNotes(sample: SampleDetail): SampleNote[] {
         });
       }
 
-      if (step.planStatus === "superseded" && step.executionImageKeys.length) {
+      if (step.planStatus === "superseded" && (step.executionImageKeys.length || step.executionImages?.length)) {
         notes.push({
           id: `execution-images:${step.id}`,
           kind: "execution_image",
@@ -144,7 +147,7 @@ export function collectSampleNotes(sample: SampleDetail): SampleNote[] {
           sampleEvent: null,
           submissionId: null,
           status: "ready",
-          images: step.executionImageKeys.map((assetKey, index) => ({
+          images: [...step.executionImageKeys.map((assetKey, index): CommentImage => ({
             id: `execution:${step.id}:${index}`,
             filename: "Execution image",
             mimeType: "image/*",
@@ -156,7 +159,12 @@ export function collectSampleNotes(sample: SampleDetail): SampleNote[] {
             status: "ready",
             error: null,
             relatedAttachmentId: null,
-          })),
+          })), ...(step.executionImages ?? []).map((image): CommentImage => ({
+            id: `execution:${step.id}:${image.assetId}`, filename: "Execution image", mimeType: "image/*", byteSize: 0,
+            originalFilename: "Execution image", originalMimeType: "image/*", originalByteSize: 0,
+            assetKey: null, assetId: image.assetId, ...(image.fileId ? { fileId: image.fileId } : {}), assetUrl: image.url,
+            status: "ready", error: null, relatedAttachmentId: null,
+          }))],
           attachments: [],
         });
       }

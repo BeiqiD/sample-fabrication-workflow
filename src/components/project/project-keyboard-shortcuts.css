@@ -1,0 +1,94 @@
+.project-shortcuts-icon-button {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+}
+.project-shortcuts-icon-button:hover,
+.project-shortcuts-icon-button[aria-expanded="true"] {
+  color: var(--ink);
+  background: var(--surface-warm);
+}
+.project-shortcuts-icon-button:focus-visible,
+.project-shortcuts-body:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.project-shortcuts-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1080;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background: rgb(10 20 35 / 40%);
+}
+.project-shortcuts-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 560px);
+  min-width: 0;
+  max-height: 100%;
+  max-height: min(720px, calc(100dvh - max(16px, env(safe-area-inset-top)) - max(16px, env(safe-area-inset-bottom))));
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 16px 48px var(--shadow);
+}
+.project-shortcuts-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.project-shortcuts-header h2 { margin: 0; font-size: 18px; line-height: 1.35; }
+.project-shortcuts-header p { margin: 6px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.project-shortcuts-header .project-shortcuts-icon-button { margin: -6px -6px 0 0; }
+.project-shortcuts-body {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 18px 20px 20px;
+  outline-offset: -3px;
+}
+.project-shortcuts-group + .project-shortcuts-group { margin-top: 22px; }
+.project-shortcuts-group-heading { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 5px 10px; }
+.project-shortcuts-group h3 { margin: 0; font-size: 12px; font-weight: 750; }
+.project-shortcuts-view-note,
+.project-shortcuts-group-note { color: var(--muted); font-size: 11px; line-height: 1.5; }
+.project-shortcuts-group-note { margin: 4px 0 0; }
+.project-shortcuts-group dl { margin: 8px 0 0; }
+.project-shortcuts-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px 18px; padding: 10px 0; }
+.project-shortcuts-row + .project-shortcuts-row { border-top: 1px solid var(--line); }
+.project-shortcuts-row dt { min-width: 0; font-size: 13px; line-height: 1.5; }
+.project-shortcuts-row dd { margin: 0; }
+.project-shortcuts-row-note { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.project-shortcuts-keys { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 4px; color: var(--muted); font-size: 10px; }
+.project-shortcuts-keys kbd { display: inline-block; padding: 3px 5px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--ink); font-family: inherit; font-size: 11px; font-weight: 500; line-height: 1.35; white-space: nowrap; }
+.project-shortcuts-key-alternative { font-size: 10px; }
+.project-shortcuts-footnote { margin: 16px 0 0; padding: 12px; border-radius: 8px; color: var(--muted); background: var(--surface); font-size: 11px; line-height: 1.6; }
+@media (max-width: 480px) {
+  .project-shortcuts-header { padding: 16px; }
+  .project-shortcuts-body { padding: 16px; }
+  .project-shortcuts-row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .project-shortcuts-keys { justify-content: flex-start; }
+}
+@media (pointer: coarse) {
+  .project-shortcuts-icon-button { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
+}

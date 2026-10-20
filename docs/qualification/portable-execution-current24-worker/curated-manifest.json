@@ -1,0 +1,126 @@
+{
+  "kind": "portable-execution-current24-raw-curation/1",
+  "curatedAt": "2026-10-10T22:23:18.402313+00:00",
+  "actualQualifiedSourceHead": "4928ce953b37eb3fe5c7452d560fa0f41c0d6110",
+  "actualQualifiedSourceTree": "3fb2735159a27d0181de9e653d040ed5bca7436e",
+  "originalRawFileCount": 14,
+  "freshActualScope": "four strict compilers + legacy7 + current24 Worker12, 19 test cases passed/0 failed/0 pending",
+  "runtimeClosure": "final-closure.json confirms all eight owned groups empty and no active owned process/open owned FD; original unchanged afterEach awaited Worker disposal",
+  "files": [
+    {
+      "original": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/01-worker-strict.log",
+      "curated": "docs/qualification/portable-execution-current24-worker/01-worker-strict.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/02-server-strict.log",
+      "curated": "docs/qualification/portable-execution-current24-worker/02-server-strict.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/03-execution-fixtures-strict.log",
+      "curated": "docs/qualification/portable-execution-current24-worker/03-execution-fixtures-strict.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/04-legacy-fixtures-strict.log",
+      "curated": "docs/qualification/portable-execution-current24-worker/04-legacy-fixtures-strict.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "original": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/05-legacy-seven.json",
+      "curated": "docs/qualification/portable-execution-current24-worker/05-legacy-seven.json",
+      "bytes": 3284,
+      "sha256": "ac818c729976754d0b9fa67a20f19a887efe95479ee8212f83280c8dd44dacf2"
+    },
+    {
+      "original": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/05-legacy-seven.log",
+      "curated": "docs/qualification/portable-execution-current24-worker/05-legacy-seven.log",
+      "bytes": 1110,
+      "sha256": "9e6bb4ab019dafde3a8caebfb92bac580c572136b3e2371bac6860c67389cf82"
+    },
+    {
+      "original": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/06-run-trash-current24-four.json",
+      "curated": "docs/qualification/portable-execution-current24-worker/06-run-trash-current24-four.json",
+      "bytes": 2510,
+      "sha256": "5bb5ab7cc452a7691d58bbe04637a73536f479efea9b734f7915247d946a5ccc"
+    },
+    {
+      "original": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/06-run-trash-current24-four.log",
+      "curated": "docs/qualification/portable-execution-current24-worker/06-run-trash-current24-four.log",
+      "bytes": 5307,
+      "sha256": "6c97ddb8d51beaf6dbd8d1513cb9d2c5aeaee535bc9cbd1c11d81082b5be5f97"
+    },
+    {
+      "original": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/07-metrology-current24-four.json",
+      "curated": "docs/qualification/portable-execution-current24-worker/07-metrology-current24-four.json",
+      "bytes": 2607,
+      "sha256": "0879a3effaaadc6477b9b70cff35ee714e322483c29c5fe1b2708a54805d2eed"
+    },
+    {
+      "original": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/07-metrology-current24-four.log",
+      "curated": "docs/qualification/portable-execution-current24-worker/07-metrology-current24-four.log",
+      "bytes": 4618,
+      "sha256": "a3fa66024911633f91c64dbe553758516dbe4fd76c15e7a3b7d19752576d34ec"
+    },
+    {
+      "original": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/08-confirmation-current24-four.json",
+      "curated": "docs/qualification/portable-execution-current24-worker/08-confirmation-current24-four.json",
+      "bytes": 2814,
+      "sha256": "0f0cb0e71b4b03346e18769ec0eebd1693a96cbc2fa1e7f4899546225f774d9d"
+    },
+    {
+      "original": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/08-confirmation-current24-four.log",
+      "curated": "docs/qualification/portable-execution-current24-worker/08-confirmation-current24-four.log",
+      "bytes": 4176,
+      "sha256": "b6a8796379bb338b93ea1655242b64b616951179836d91b91f733d25bc7cb436"
+    },
+    {
+      "original": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/final-closure.json",
+      "curated": "docs/qualification/portable-execution-current24-worker/final-closure.json",
+      "bytes": 940,
+      "sha256": "fe2b7af92acf857308cbdc537c6124a284a55c49de1103c34b5e92a6a974be01"
+    },
+    {
+      "original": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/receipt.json",
+      "curated": "docs/qualification/portable-execution-current24-worker/receipt.json",
+      "bytes": 9457,
+      "sha256": "44dbc5a34edf75d6863bdcd93b5a0daa95d857d5d3993229e3fa6b34192c8635"
+    },
+    {
+      "original": "/workspace/remaining-5f-ui-execution-currente108-source-integration/docs/qualification/portable-execution-v26-current-fixture-repair/finite-runtime-plan.json",
+      "curated": "docs/qualification/portable-execution-current24-worker/frozen-finite-runtime-plan.json",
+      "bytes": 9989,
+      "sha256": "272e482019d9a483fe3182ff6500ddccf320ecb9ed70145d0b27c3f93b02151c"
+    },
+    {
+      "original": "/workspace/remaining-5f-ui-execution-currente108-source-integration/docs/qualification/portable-execution-v26-current-fixture-repair/source-receipt.json",
+      "curated": "docs/qualification/portable-execution-current24-worker/frozen-source-receipt.json",
+      "bytes": 10228,
+      "sha256": "9b5b019553ac94e29b97cfca4502a7373c9b599c6734530b51cddd1782746c5c"
+    },
+    {
+      "original": "/tmp/portable-execution-current4928-independent-source-peer.json",
+      "curated": "docs/qualification/portable-execution-current24-worker/independent-source-peer.json",
+      "bytes": 13111,
+      "sha256": "b13f8a1f810516bf992afc068fae2f81bae4c49577bd7f5ef03d482538d7b2b6"
+    },
+    {
+      "original": "git diff --binary e10849614afbb4807c86b3f0fc2fc357ba70ceda 4928ce953b37eb3fe5c7452d560fa0f41c0d6110",
+      "curated": "docs/qualification/portable-execution-current24-worker/frozen-4928-source-candidate.patch",
+      "bytes": 284710,
+      "sha256": "9a27707a01ef5f24e17ec061847ecd416e170a6230725786e6fd238894bda244"
+    }
+  ],
+  "combinedRuntimeStatus": "UNRUN; byte preservation/source reconciliation does not establish new combined runtime or complete CI",
+  "historicalNative18Worker12": "Retained original current23 scope; not rerun or counted as new current24 native18",
+  "scopeExclusions": [
+    "mounted Node authorization/physical writer/application composition",
+    "fresh combined browser controls",
+    "provider/production/device acceptance"
+  ]
+}

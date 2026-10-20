@@ -1,0 +1,58 @@
+{
+  "kind": "file6e531-final-ten-independent-binding-source-addendum/1",
+  "status": "SOURCE_CLEAR_TEN_STAGES_TWO_CASES_UNRUN_NO_GO",
+  "recordedAt": "2026-10-11T11:21:21.447333+00:00",
+  "handoff": {
+    "path": "/workspace/phase5f-file-two-r2-route-result-final-finite-source-review-attempt6/source-handoff.json",
+    "sha256": "1dac192a988e4f911030d650f06e89bfea88659fcce9f6b6faab46f8689b2f9b"
+  },
+  "wholeSourcePeer": {
+    "path": "/workspace/file6e531-independent-complete-dual-r2-route-contract-source-peer.json",
+    "sha256": "bfe16ba97609e297b4b6e722fc92eef0dca37e9531695ad0ec1de884887221d5"
+  },
+  "basis": {
+    "path": "/workspace/phase5f-file-two-r2-fresh-child-temp-final-finite-source-review-attempt5",
+    "priorIndependentPeer": "/workspace/file-c1cd-final-ten-independent-cross-file-mature-binding-source-addendum.json",
+    "priorIndependentPeerSha256": "baaef7120f483b7216310449a4d4a955d6675532db0fdf6767fe8454ec801711"
+  },
+  "sourceHead": "6e531cf0e08069544723958dc0c7500766fd7479",
+  "sourceTree": "1590bfce82c726bcf2bd86104d91ff795600dc7b",
+  "sourceCount": 2495,
+  "runnerElevenDefinitionsExact": true,
+  "carrierThreeDefinitionsExact": true,
+  "bothWholeSourceBindingInversesExact": true,
+  "tenStageIdsAndFullArgvEnvInverseExact": true,
+  "allOriginalCostsAndBudgetsExact": true,
+  "fourWayChildTemp": "/workspace/.f2r2t3",
+  "freshParentMode": "0700",
+  "copyFixtureRuntimeTempAbsent": true,
+  "historicalProducer": {
+    "head": "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+    "count": 2489,
+    "actualBuildCount": 118,
+    "newBuilds": 0,
+    "commandSha256": "1e2d98d3207f902a2426b8aaf1d9a15e0bfbf8fe19acb9679c8c7c622ac70a9f",
+    "logSha256": "a0a78af3dda4ee238573d7dc99f3d87759dcffa3668bf2d1cbb8697aa8a0e1e5",
+    "artifactsAllRehashed": true,
+    "scope": "Historical f228 actual build and closure remain at original source; consumer adds unreachable QA/docs only. No current runtime qualification."
+  },
+  "historicalFailure": {
+    "path": "/workspace/file-two-r2-fresh-legacy-f228-private-attempt2/runtime/actual-file-c1cd-genuine-capabilities404-setup-failure-closed-release.json",
+    "sha256": "5271e9c3b7b0862f611eec2adf04e336c57b4c2c7ade6a867dc72631c29f3e7c",
+    "counts": {
+      "passed": 0,
+      "failed": 0,
+      "unrun": 2
+    },
+    "actualSetupGet404": 1,
+    "setupPOSTs": 0,
+    "nativeBrowsers": 0,
+    "oldTempAndFixturePreserved": true
+  },
+  "limits": [
+    "No helper import, candidate preflight, compiler, SQLite, SDK, browser, copy or runtime invocation.",
+    "Whole source semantics are the separately pinned bfe16 peer; this addendum reviews final binding only.",
+    "Kernel Z and inaccessible FD diagnostics in historical build remain unchanged; no observed FD0 claim.",
+    "Explicit root exclusive GO is required; two native cases and all ten new stages remain unrun."
+  ]
+}

@@ -1,0 +1,8 @@
+file:///tmp/phase5f-package-two-preview-genuine-context-source-attempt2/scripts/qa/phase5f/browser-genuine-package-preview.mjs:171
+const compiled=typescript.transpileModule(contract,{compilerOptions:{target:typescript.ScriptTarget.ES2022,module:typescript.ModuleKind.ESNext},reportDiagnostics:true});
+                                                                                                    ^
+
+TypeError: Cannot read properties of undefined (reading 'ES2022')
+    at file:///tmp/phase5f-package-two-preview-genuine-context-source-attempt2/scripts/qa/phase5f/browser-genuine-package-preview.mjs:171:101
+
+Node.js v24.19.0

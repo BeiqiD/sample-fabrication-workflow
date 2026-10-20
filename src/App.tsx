@@ -1,36 +1,60 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { Navigate, NavLink, Route, Routes } from "react-router-dom";
+import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
+import { REFERENCE_ROUTE_PATTERN } from "../shared/reference-destinations";
 import { ActionIcon } from "./components/ActionIcon";
 import { NavigationIcon, type NavigationIconName } from "./components/NavigationIcon";
+import { LocalAuthenticationGate, LocalSessionAction } from "./components/LocalAuthenticationGate";
+import { RouteErrorBoundary } from "./components/RouteErrorBoundary";
+import "./reference-search.css";
 
 const SamplesPage = lazy(() => import("./pages/SamplesPage").then((module) => ({ default: module.SamplesPage })));
 const NewSamplePage = lazy(() => import("./pages/NewSamplePage").then((module) => ({ default: module.NewSamplePage })));
 const SamplePage = lazy(() => import("./pages/SamplePage").then((module) => ({ default: module.SamplePage })));
+// The standalone Search route remains a development/integration browser. Project
+// owns the primary navigation destination from Phase 3B onward.
+const SearchPage = lazy(() => import("./pages/SearchPage").then((module) => ({ default: module.SearchPage })));
+const ProjectsPage = lazy(() => import("./pages/ProjectsPage").then((module) => ({ default: module.ProjectsPage })));
+const ProjectPage = lazy(() => import("./pages/ProjectPage").then((module) => ({ default: module.ProjectPage })));
 const TemplatesPage = lazy(() => import("./pages/TemplatesPage").then((module) => ({ default: module.TemplatesPage })));
 const ExportPage = lazy(() => import("./pages/ExportPage").then((module) => ({ default: module.ExportPage })));
+const ResearchPackagesPage = lazy(() => import("./pages/ResearchPackagesPage").then((module) => ({ default: module.ResearchPackagesPage })));
+const SystemRecoveryPage = lazy(() => import("./pages/SystemRecoveryPage").then((module) => ({ default: module.SystemRecoveryPage })));
+const StorageConfigurationPage = lazy(() => import("./pages/StorageConfigurationPage").then((module) => ({ default: module.StorageConfigurationPage })));
+const StorageSettingsPage = lazy(() => import("./pages/StorageSettingsPage").then((module) => ({ default: module.StorageSettingsPage })));
+const FileMigrationsPage = lazy(() => import("./pages/FileMigrationsPage").then((module) => ({ default: module.FileMigrationsPage })));
+const FileShadowPilotPage = lazy(() => import("./pages/FileShadowPilotPage").then((module) => ({ default: module.FileShadowPilotPage })));
+const FileEvidencePage = lazy(() => import("./pages/FileEvidencePage").then((module) => ({ default: module.FileEvidencePage })));
+const FileAuthorityPage = lazy(() => import("./pages/FileAuthorityPage").then((module) => ({ default: module.FileAuthorityPage })));
 const TemplatePage = lazy(() => import("./pages/TemplatePage").then((module) => ({ default: module.TemplatePage })));
 const MetrologyTemplatePage = lazy(() => import("./pages/MetrologyTemplatePage").then((module) => ({ default: module.MetrologyTemplatePage })));
 const ProcessingPage = lazy(() => import("./pages/ProcessingPage").then((module) => ({ default: module.ProcessingPage })));
 const ProcessingWorkspacePage = lazy(() => import("./pages/ProcessingWorkspacePage").then((module) => ({ default: module.ProcessingWorkspacePage })));
 const SampleTimelinePage = lazy(() => import("./pages/SampleTimelinePage").then((module) => ({ default: module.SampleTimelinePage })));
+const ReferencePage = lazy(() => import("./pages/ReferencePage").then((module) => ({ default: module.ReferencePage })));
 
 const primaryNavigation: Array<{ to: string; label: string; icon: NavigationIconName }> = [
   { to: "/processing", label: "Processing", icon: "processing" },
   { to: "/samples", label: "Samples", icon: "samples" },
+  { to: "/projects", label: "Projects", icon: "projects" },
   { to: "/templates", label: "Templates", icon: "templates" },
   { to: "/export", label: "Export", icon: "export" },
+  { to: "/settings/storage", label: "Settings", icon: "settings" },
 ];
 
 export function App() {
+  const location = useLocation();
   const [theme, setTheme] = useState<"light" | "dark">(() => {
-    const saved = window.localStorage.getItem("sample-workflow-theme");
-    if (saved === "light" || saved === "dark") return saved;
+    try {
+      const saved = window.localStorage.getItem("sample-workflow-theme");
+      if (saved === "light" || saved === "dark") return saved;
+    } catch { /* A blocked preference store must not prevent sign-in or route recovery. */ }
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   });
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    window.localStorage.setItem("sample-workflow-theme", theme);
+    try { window.localStorage.setItem("sample-workflow-theme", theme); }
+    catch { /* Theme changes remain available for this mounted application. */ }
 
     const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
     const canvasColor = getComputedStyle(document.documentElement).getPropertyValue("--canvas").trim();
@@ -51,6 +75,7 @@ export function App() {
               <span className="nav-link-label">{label}</span>
             </NavLink>)}
           </nav>
+          <LocalSessionAction />
           <button
             type="button"
             className="theme-toggle"
@@ -64,22 +89,38 @@ export function App() {
         </div>
       </header>
       <main>
-        <Suspense fallback={<div className="page route-loading"><p className="muted">Loading…</p></div>}>
+        <LocalAuthenticationGate verifyRemoteIdentity>
+        <RouteErrorBoundary resetKey={location.pathname}>
+          <Suspense fallback={<div className="page route-loading"><p className="muted">Loading…</p></div>}>
           <Routes>
             <Route path="/" element={<Navigate to="/processing" replace />} />
+            <Route path={REFERENCE_ROUTE_PATTERN} element={<ReferencePage />} />
             <Route path="/processing" element={<ProcessingPage />} />
             <Route path="/processing/:sampleId" element={<ProcessingWorkspacePage />} />
             <Route path="/samples" element={<SamplesPage />} />
             <Route path="/samples/new" element={<NewSamplePage />} />
             <Route path="/samples/:sampleId/timeline" element={<SampleTimelinePage />} />
             <Route path="/samples/:sampleId" element={<SamplePage />} />
+            <Route path="/projects" element={<ProjectsPage />} />
+            <Route path="/projects/:projectId" element={<ProjectPage />} />
+            <Route path="/search" element={<SearchPage />} />
             <Route path="/templates" element={<TemplatesPage />} />
             <Route path="/templates/metrology/:templateId" element={<MetrologyTemplatePage />} />
             <Route path="/templates/:templateId" element={<TemplatePage />} />
             <Route path="/imports/fabublox" element={<Navigate to="/templates?import=1" replace />} />
             <Route path="/export" element={<ExportPage />} />
+            <Route path="/settings/data" element={<ResearchPackagesPage />} />
+            <Route path="/settings/data/system" element={<SystemRecoveryPage />} />
+            <Route path="/settings/storage" element={<StorageSettingsPage />} />
+            <Route path="/settings/storage/configuration" element={<StorageConfigurationPage />} />
+            <Route path="/settings/storage/migrations" element={<FileMigrationsPage />} />
+            <Route path="/maintenance/file-shadow" element={<FileShadowPilotPage />} />
+            <Route path="/maintenance/file-evidence" element={<FileEvidencePage />} />
+            <Route path="/maintenance/file-authority" element={<FileAuthorityPage />} />
           </Routes>
-        </Suspense>
+          </Suspense>
+        </RouteErrorBoundary>
+        </LocalAuthenticationGate>
       </main>
     </div>
   );

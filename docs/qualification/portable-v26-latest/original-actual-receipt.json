@@ -1,0 +1,370 @@
+{
+  "status": "actual finite strict and runtime commands passed",
+  "head": "d79d4f02574e4b4e270808cb5732165e8fd3f3a1",
+  "tree": "6e8fc3aafdf3f2b47326a27b6c7f1b24880360df",
+  "startedAt": "2026-10-10T20:22:29.582610+00:00",
+  "sourceHashes": {
+    "docs/PORTABLE_CHECKPOINT_V26_PRIVATE.md": "100beb9ebdd4adc900a2f6b98ced0b01897cf26e11a77b7de653360cdbaf8a75",
+    "docs/PORTABLE_LOCAL_VOLUME_V26_PRIVATE_SOURCE.md": "e22444d57e368040aa1fcd2846800c6126b7e1528249b0b85d1984207f8b6fe0",
+    "migrations/0024_rt3_local_volume_profiles.sql": "010414ba121247175e3bf6fe2eb88028ff8557035b123cfa12970c37e3985533",
+    "scripts/generate-portable-runtime-schema.mjs": "8a3547cab2df7bcb64d3a0670d62dd147726b114dcf20a0a007fa8d12a2e1b66",
+    "scripts/generate-portable-runtime-v26-schema.mjs": "c81ed19e81d1aa83c203bc8c9eb9371c2fdae350ef14c70d85df7e62ffe4bc12",
+    "scripts/lib/export-portable-runtime-v26.test.ts": "fc9ff7cbf2c888680db89ec06d188c1ac9fbd2da0cf65ca4b8440cf3d0b28ef0",
+    "scripts/lib/export-restore-v26.ts": "0e7b7ed7f55942d5f15a7c741be8b5fa3ac5f0f27c296f8972447fbc658acb8f",
+    "scripts/lib/export-restore.ts": "6a4ff38a0f400adbc06ae26e4f98bf5dc31723834cea368782c562d7c01dd4f3",
+    "scripts/lib/portable-v26-schema-policy.json": "18832d52f3728a44771c4402544acfb0530b919d0f9a492094d1539f907a56b3",
+    "scripts/lib/restore-system-backup.ts": "768398f56db6f95e2fc18ae5ed7eee4fb98050fb6794903feb03c146fcf86742",
+    "scripts/remote-d1-migration-observation.test.mjs": "c430056939b4a7f4f693e376c86c6ad3b51e6e4b6224158beaf33242cede70b7",
+    "server/installation-catalog-v26.ts": "55688ec4bbfea94423bdc00ae58a5097ed277e4d3169be3ba070b4f09a537aff",
+    "server/recovery/portable-v26-checkpoint.test.ts": "cf9a28935d18b9faf6f9197da4899a76c7800ff148e4fd62bb5e998d8dc3efb8",
+    "server/recovery/restore-v26.ts": "d94c994f584df4f35623854b32d66cd7191717c5f6817abc0017cdf712deddbd",
+    "server/recovery/snapshot-v26.ts": "2c3543b0020964f7121eadf5a4087e177c2e16b066e62bcd306811a20825cc92",
+    "server/storage/local-profile-registration-sql.ts": "db3d92870a7463271f08af22021c6d2a8061a0b0a3ce47b5308d4fd65336acf0",
+    "server/storage/local-profile-v26-installation.fixture.ts": "1522107528b5bdbdd5e70213aa43491fdc571083b4f55304aff53b8c529c32df",
+    "server/storage/local-profile-v26-schema.fixture.ts": "0bc8afe67ade8f4d0f5e816b93e493776c41f164753741944ed57b838726492f",
+    "server/storage/local-profile-v26.test.ts": "4fe24da9bac2ce4d9aaf50210610181964ac11e32973bd90f2855e3bf4314f20",
+    "shared/contracts/export-business-v26.ts": "48d554c78135889db48b2465153a5d7b946de510806209a60971e06a6ed8bef3",
+    "shared/contracts/export-file-native-shadow-v26.ts": "e75af6f10b12156cb810dcf2c14556b812bc744b6a5a785471b90254c4a93a96",
+    "shared/contracts/export-file-system-recovery-runtime-v26.ts": "4482c7618802c32025c063ac9613fb60b101bf3f865dab268520b3a5f47f0c98",
+    "shared/contracts/export-local-profiles-v26.ts": "3fbb610a0f9bef4158f5fbc7b6ca671b023b1800caf830c2fe37984ec5c856ba",
+    "shared/contracts/export-portable-runtime-v26.ts": "79aed8a993233463f19ca28ff0ee7479e4c475bfbda70e3d73d27faa0acb3e9f",
+    "shared/contracts/local-profile-registration.ts": "453bd5450dcbfc3d68d33230b95cebda41d671de436e18b3ddc7b140a42bbfe7",
+    "shared/contracts/local-volume-profile.test.ts": "a9e3fea3423698d8f1411e68bb538b0fd76cdf381fb61496c92fc1bebaa6ce74",
+    "shared/contracts/local-volume-profile.ts": "2537a631c0ea988382a8770d71f31d1bbb147a4559a3cc0ceec29bd781c6e968",
+    "shared/contracts/portable-runtime-v26-recovery-catalog.ts": "933d14153cda618ad7e19c3e147047e22bff7cd2838304ba90ac936275c86c85",
+    "shared/contracts/system-backup-v26-content.ts": "df2df7ef704758a2ce3673a850ec46cdcc6b84ff101bbbac5fa41cdcd30bac58",
+    "shared/contracts/system-backup-v3.ts": "325559ae3165981b7cc0d8fc8edd8408497431210e802f91841b66512fdf9df3",
+    "shared/contracts/system-backup-versioned-admission.ts": "30a5fcac44c64d1ff4d4160076737ac5ba977dceed874a16a4d56afa3e1ca3cf",
+    "src/lib/api-portable-export.test.ts": "2d062b1a8a856c82eb82f1c7a46e94d7635c04c1d605d7869325fd38a301f0e7",
+    "src/lib/api.ts": "7460e22bbf1267f8f3e8750aae8c408f5af76956d790928b1af8e3759aacffc1",
+    "src/lib/exportAll.ts": "ab29f3a64db20708bd124182ed8e445f3a4d7ed832fc76f1b9dac3f77a245af9",
+    "worker/export-portable-negotiation.test.ts": "bc219c9a469c3f0ca5b5629272ca3276ebaccef30dc6b937e4b349feffa279fb",
+    "worker/export-routes.ts": "a08849901052f8191b8735974d78dd59ca1330c0ebdcde3eeabef84d2dde1566",
+    "worker/export-v26-core.ts": "85f73069411f3434c561ed6fbe1e0864720ae16c268ad5fcf59aa7beb056b879",
+    "worker/export-v26-snapshot.ts": "c520d7bcd36e20caa00d7dbfd1db88c7aa7820299df66d282cc51f7d32ac6d48",
+    "worker/recovery/backup-archive.ts": "1eb52eff5dd7fd201984205d21b519f10da0485900ab62c4ab62f1c694ea5eda",
+    "worker/recovery/portable-backup-snapshot.ts": "515f75201346dd4a0c970bd04ac546039261e42e9da6a5380c50a7db3f615c4c",
+    "worker/recovery/portable-backup-v26-snapshot.ts": "50a5297a7ff7dad210fd5e80e7ec0d1a94bdc0e131d2deeaa66b8044e9103234",
+    "worker/recovery/portable-backup-v26-workerd.test.ts": "05f498915fe03b6616f1ed01302999ced198b99b085ece8e7af044d109f51042",
+    "worker/recovery/portable-runtime-v26-trusted-schema.ts": "4c89c3c1586aee88017e8a35fe713bc9041ab94e5c34081c8055a3438eb27aaa",
+    "worker/recovery/protected-settings.ts": "5d689c3f74c78f91481de1bcb09180af76020b259432c3fd65d6167356e4933a",
+    "worker/recovery/report.ts": "11a12d147ea32519be1272f32e2b6bad0df7289c217eca6574b9dfa3ae8b83b9",
+    "worker/recovery/service.ts": "dce5158d62a53b6d9247d69a369f1e3d9204950813e9ac0199acf99351e8b475",
+    "worker/recovery/target-import.ts": "3aa465bc11a77cc13dea7ec2810977055f3b3b63441088db09908b866ce95ca4",
+    "worker/recovery/v26-cloudflare-schema.ts": "dae983d7172684173d978f8c16b6a9ffb3bb3e8e96c1a18e1f81f01c0fd6a489",
+    "worker/recovery/verification.ts": "71d7ea49c9a5efe78a749c055dd9938d5fb1ae0ebfed870a1c8281255ed8665c",
+    "worker/recovery/versioned-catalog.ts": "bb1880dd80e2632c504f99e80782cf06a687989fd6b5ab12ae36865a9f1cb2f5",
+    "worker/storage/local-profile-registration.ts": "108b8090d34c8ad756441a508dbd8607d4fedfbf617e7e458b8e7c991cf32a73",
+    "tsconfig.server.json": "1b49e4d0ab2c9b8c5583ca5eedcb9a40c8cc9667a4f74d7f4f03d1c8f6da9880",
+    "tsconfig.runtime-tests.json": "6cb4ca106cacb07c0df398c9e894fdd77b98908f27340449fc2a61e208df2356",
+    "tsconfig.worker.json": "7f8a8beb3115c839a0c9008b4949336a0a18517e351ad14f05431b0e73c424fc",
+    "tsconfig.app.json": "2a56d25a041e9e6d411c7e64a66d7c65880d6672f154458cdec33a5267c78bf5",
+    "tsconfig.shared.json": "fc34636bf24a5ef630a494e5d58f336f3efd7fdcf6d5ca9b487116a912e2a5b8",
+    "tsconfig.file-jobs-node.json": "418d8825e653c5c780cc9eea9431e1ef3a90f5b539b504f1a50e7c8d7f1bff14",
+    ".tsconfig.v26-worker-tests.json": "5d0257f721c467a685277693c245110ccdb613910c516edc9f13e6871e8c0c50",
+    ".tsconfig.v26-node-script.json": "4d2cd2937bf83d7ad5bf98ed93a3720628a57efe9d9622d99ddb5c91838e713c",
+    ".tsconfig.v26-client-tests.json": "1e0ef22522c31d1b84462bd4ffb304207aa6e0cc6250d7ee7aee51b3692bf5b9",
+    ".tsconfig.v26-research-tests.json": "0d11987270d8256090f4f8521158c3bc06176aff26b87b0e8652cd97b084665e"
+  },
+  "planSha256": "a908e0dabe2616e7d6c7234e752b605922e5a9a06245b0f337186f64fccf367d",
+  "fixtureDirectoriesBefore": [],
+  "workerdPidsBefore": [
+    44327
+  ],
+  "stages": [
+    {
+      "name": "strict-01",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.server.json"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 1.02,
+      "logPath": "/tmp/portable-v26-d79d4f-latest-attempt1/strict-01.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "strict-02",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.runtime-tests.json"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 1.046,
+      "logPath": "/tmp/portable-v26-d79d4f-latest-attempt1/strict-02.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "strict-03",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.worker.json"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 0.88,
+      "logPath": "/tmp/portable-v26-d79d4f-latest-attempt1/strict-03.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "strict-04",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.app.json"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 1.688,
+      "logPath": "/tmp/portable-v26-d79d4f-latest-attempt1/strict-04.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "strict-05",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.shared.json"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 0.51,
+      "logPath": "/tmp/portable-v26-d79d4f-latest-attempt1/strict-05.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "strict-06",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.file-jobs-node.json"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 0.141,
+      "logPath": "/tmp/portable-v26-d79d4f-latest-attempt1/strict-06.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "strict-07",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        ".tsconfig.v26-worker-tests.json"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 0.966,
+      "logPath": "/tmp/portable-v26-d79d4f-latest-attempt1/strict-07.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "strict-08",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        ".tsconfig.v26-node-script.json"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 0.685,
+      "logPath": "/tmp/portable-v26-d79d4f-latest-attempt1/strict-08.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "strict-09",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        ".tsconfig.v26-client-tests.json"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 0.271,
+      "logPath": "/tmp/portable-v26-d79d4f-latest-attempt1/strict-09.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "strict-10",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        ".tsconfig.v26-research-tests.json"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 0.751,
+      "logPath": "/tmp/portable-v26-d79d4f-latest-attempt1/strict-10.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "runtime-01",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "server/recovery/portable-v26-checkpoint.test.ts"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 36.314,
+      "logPath": "/tmp/portable-v26-d79d4f-latest-attempt1/runtime-01.log",
+      "logSha256": "7cae2025cf6393c274811bbce4ce8ca4abe4e24b2e259c14d181a52724366771",
+      "expectedCases": 14,
+      "scope": "Actual file-backed Node capsule, protected identity/history, rollback and provenance."
+    },
+    {
+      "name": "runtime-02",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "scripts/lib/export-portable-runtime-v26.test.ts"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 6.193,
+      "logPath": "/tmp/portable-v26-d79d4f-latest-attempt1/runtime-02.log",
+      "logSha256": "9b6b2d28baff3c0b419aef62f4322160cc298e19092dfcf05f94f958f75859c8",
+      "expectedCases": 1,
+      "scope": "Actual public exportAll ZIP and isolated non-empty research restore."
+    },
+    {
+      "name": "runtime-03",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "worker/export-portable-negotiation.test.ts"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 11.236,
+      "logPath": "/tmp/portable-v26-d79d4f-latest-attempt1/runtime-03.log",
+      "logSha256": "06a5de3e71b966dec7db14e006f57b82441363fc8914219044b758db2c0f42b6",
+      "expectedCases": 5,
+      "scope": "Genuine signed Access factory routes on frozen V24, V25 and metadata-only V26."
+    },
+    {
+      "name": "runtime-04",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "src/lib/api-portable-export.test.ts"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 0.605,
+      "logPath": "/tmp/portable-v26-d79d4f-latest-attempt1/runtime-04.log",
+      "logSha256": "24dfb00b86b870e490e9dce6a4f00bcb3ad7b68f17ae82c7336e4e4683d8b93e",
+      "expectedCases": 2,
+      "scope": "Current client V26 negotiation and refusal preservation."
+    },
+    {
+      "name": "runtime-05",
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "worker/recovery/portable-backup-v26-workerd.test.ts"
+      ],
+      "exitCode": 0,
+      "wallSeconds": 54.861,
+      "logPath": "/tmp/portable-v26-d79d4f-latest-attempt1/runtime-05.log",
+      "logSha256": "c2fd530950d0800d7e40d1ea25235f2a133dfcb21b36635beb66cb2fea3379d0",
+      "expectedCases": 2,
+      "scope": "Genuine local Miniflare/workerd current source plus empty and current D1 target; original authored 180 s per case."
+    }
+  ],
+  "runtimeWindowReleased": true,
+  "provisionalMetadataOnly": true,
+  "elapsedSeconds": 117.175,
+  "finishedAt": "2026-10-10T20:24:26.755908+00:00",
+  "sourceHashesAfter": {
+    "docs/PORTABLE_CHECKPOINT_V26_PRIVATE.md": "100beb9ebdd4adc900a2f6b98ced0b01897cf26e11a77b7de653360cdbaf8a75",
+    "docs/PORTABLE_LOCAL_VOLUME_V26_PRIVATE_SOURCE.md": "e22444d57e368040aa1fcd2846800c6126b7e1528249b0b85d1984207f8b6fe0",
+    "migrations/0024_rt3_local_volume_profiles.sql": "010414ba121247175e3bf6fe2eb88028ff8557035b123cfa12970c37e3985533",
+    "scripts/generate-portable-runtime-schema.mjs": "8a3547cab2df7bcb64d3a0670d62dd147726b114dcf20a0a007fa8d12a2e1b66",
+    "scripts/generate-portable-runtime-v26-schema.mjs": "c81ed19e81d1aa83c203bc8c9eb9371c2fdae350ef14c70d85df7e62ffe4bc12",
+    "scripts/lib/export-portable-runtime-v26.test.ts": "fc9ff7cbf2c888680db89ec06d188c1ac9fbd2da0cf65ca4b8440cf3d0b28ef0",
+    "scripts/lib/export-restore-v26.ts": "0e7b7ed7f55942d5f15a7c741be8b5fa3ac5f0f27c296f8972447fbc658acb8f",
+    "scripts/lib/export-restore.ts": "6a4ff38a0f400adbc06ae26e4f98bf5dc31723834cea368782c562d7c01dd4f3",
+    "scripts/lib/portable-v26-schema-policy.json": "18832d52f3728a44771c4402544acfb0530b919d0f9a492094d1539f907a56b3",
+    "scripts/lib/restore-system-backup.ts": "768398f56db6f95e2fc18ae5ed7eee4fb98050fb6794903feb03c146fcf86742",
+    "scripts/remote-d1-migration-observation.test.mjs": "c430056939b4a7f4f693e376c86c6ad3b51e6e4b6224158beaf33242cede70b7",
+    "server/installation-catalog-v26.ts": "55688ec4bbfea94423bdc00ae58a5097ed277e4d3169be3ba070b4f09a537aff",
+    "server/recovery/portable-v26-checkpoint.test.ts": "cf9a28935d18b9faf6f9197da4899a76c7800ff148e4fd62bb5e998d8dc3efb8",
+    "server/recovery/restore-v26.ts": "d94c994f584df4f35623854b32d66cd7191717c5f6817abc0017cdf712deddbd",
+    "server/recovery/snapshot-v26.ts": "2c3543b0020964f7121eadf5a4087e177c2e16b066e62bcd306811a20825cc92",
+    "server/storage/local-profile-registration-sql.ts": "db3d92870a7463271f08af22021c6d2a8061a0b0a3ce47b5308d4fd65336acf0",
+    "server/storage/local-profile-v26-installation.fixture.ts": "1522107528b5bdbdd5e70213aa43491fdc571083b4f55304aff53b8c529c32df",
+    "server/storage/local-profile-v26-schema.fixture.ts": "0bc8afe67ade8f4d0f5e816b93e493776c41f164753741944ed57b838726492f",
+    "server/storage/local-profile-v26.test.ts": "4fe24da9bac2ce4d9aaf50210610181964ac11e32973bd90f2855e3bf4314f20",
+    "shared/contracts/export-business-v26.ts": "48d554c78135889db48b2465153a5d7b946de510806209a60971e06a6ed8bef3",
+    "shared/contracts/export-file-native-shadow-v26.ts": "e75af6f10b12156cb810dcf2c14556b812bc744b6a5a785471b90254c4a93a96",
+    "shared/contracts/export-file-system-recovery-runtime-v26.ts": "4482c7618802c32025c063ac9613fb60b101bf3f865dab268520b3a5f47f0c98",
+    "shared/contracts/export-local-profiles-v26.ts": "3fbb610a0f9bef4158f5fbc7b6ca671b023b1800caf830c2fe37984ec5c856ba",
+    "shared/contracts/export-portable-runtime-v26.ts": "79aed8a993233463f19ca28ff0ee7479e4c475bfbda70e3d73d27faa0acb3e9f",
+    "shared/contracts/local-profile-registration.ts": "453bd5450dcbfc3d68d33230b95cebda41d671de436e18b3ddc7b140a42bbfe7",
+    "shared/contracts/local-volume-profile.test.ts": "a9e3fea3423698d8f1411e68bb538b0fd76cdf381fb61496c92fc1bebaa6ce74",
+    "shared/contracts/local-volume-profile.ts": "2537a631c0ea988382a8770d71f31d1bbb147a4559a3cc0ceec29bd781c6e968",
+    "shared/contracts/portable-runtime-v26-recovery-catalog.ts": "933d14153cda618ad7e19c3e147047e22bff7cd2838304ba90ac936275c86c85",
+    "shared/contracts/system-backup-v26-content.ts": "df2df7ef704758a2ce3673a850ec46cdcc6b84ff101bbbac5fa41cdcd30bac58",
+    "shared/contracts/system-backup-v3.ts": "325559ae3165981b7cc0d8fc8edd8408497431210e802f91841b66512fdf9df3",
+    "shared/contracts/system-backup-versioned-admission.ts": "30a5fcac44c64d1ff4d4160076737ac5ba977dceed874a16a4d56afa3e1ca3cf",
+    "src/lib/api-portable-export.test.ts": "2d062b1a8a856c82eb82f1c7a46e94d7635c04c1d605d7869325fd38a301f0e7",
+    "src/lib/api.ts": "7460e22bbf1267f8f3e8750aae8c408f5af76956d790928b1af8e3759aacffc1",
+    "src/lib/exportAll.ts": "ab29f3a64db20708bd124182ed8e445f3a4d7ed832fc76f1b9dac3f77a245af9",
+    "worker/export-portable-negotiation.test.ts": "bc219c9a469c3f0ca5b5629272ca3276ebaccef30dc6b937e4b349feffa279fb",
+    "worker/export-routes.ts": "a08849901052f8191b8735974d78dd59ca1330c0ebdcde3eeabef84d2dde1566",
+    "worker/export-v26-core.ts": "85f73069411f3434c561ed6fbe1e0864720ae16c268ad5fcf59aa7beb056b879",
+    "worker/export-v26-snapshot.ts": "c520d7bcd36e20caa00d7dbfd1db88c7aa7820299df66d282cc51f7d32ac6d48",
+    "worker/recovery/backup-archive.ts": "1eb52eff5dd7fd201984205d21b519f10da0485900ab62c4ab62f1c694ea5eda",
+    "worker/recovery/portable-backup-snapshot.ts": "515f75201346dd4a0c970bd04ac546039261e42e9da6a5380c50a7db3f615c4c",
+    "worker/recovery/portable-backup-v26-snapshot.ts": "50a5297a7ff7dad210fd5e80e7ec0d1a94bdc0e131d2deeaa66b8044e9103234",
+    "worker/recovery/portable-backup-v26-workerd.test.ts": "05f498915fe03b6616f1ed01302999ced198b99b085ece8e7af044d109f51042",
+    "worker/recovery/portable-runtime-v26-trusted-schema.ts": "4c89c3c1586aee88017e8a35fe713bc9041ab94e5c34081c8055a3438eb27aaa",
+    "worker/recovery/protected-settings.ts": "5d689c3f74c78f91481de1bcb09180af76020b259432c3fd65d6167356e4933a",
+    "worker/recovery/report.ts": "11a12d147ea32519be1272f32e2b6bad0df7289c217eca6574b9dfa3ae8b83b9",
+    "worker/recovery/service.ts": "dce5158d62a53b6d9247d69a369f1e3d9204950813e9ac0199acf99351e8b475",
+    "worker/recovery/target-import.ts": "3aa465bc11a77cc13dea7ec2810977055f3b3b63441088db09908b866ce95ca4",
+    "worker/recovery/v26-cloudflare-schema.ts": "dae983d7172684173d978f8c16b6a9ffb3bb3e8e96c1a18e1f81f01c0fd6a489",
+    "worker/recovery/verification.ts": "71d7ea49c9a5efe78a749c055dd9938d5fb1ae0ebfed870a1c8281255ed8665c",
+    "worker/recovery/versioned-catalog.ts": "bb1880dd80e2632c504f99e80782cf06a687989fd6b5ab12ae36865a9f1cb2f5",
+    "worker/storage/local-profile-registration.ts": "108b8090d34c8ad756441a508dbd8607d4fedfbf617e7e458b8e7c991cf32a73",
+    "tsconfig.server.json": "1b49e4d0ab2c9b8c5583ca5eedcb9a40c8cc9667a4f74d7f4f03d1c8f6da9880",
+    "tsconfig.runtime-tests.json": "6cb4ca106cacb07c0df398c9e894fdd77b98908f27340449fc2a61e208df2356",
+    "tsconfig.worker.json": "7f8a8beb3115c839a0c9008b4949336a0a18517e351ad14f05431b0e73c424fc",
+    "tsconfig.app.json": "2a56d25a041e9e6d411c7e64a66d7c65880d6672f154458cdec33a5267c78bf5",
+    "tsconfig.shared.json": "fc34636bf24a5ef630a494e5d58f336f3efd7fdcf6d5ca9b487116a912e2a5b8",
+    "tsconfig.file-jobs-node.json": "418d8825e653c5c780cc9eea9431e1ef3a90f5b539b504f1a50e7c8d7f1bff14",
+    ".tsconfig.v26-worker-tests.json": "5d0257f721c467a685277693c245110ccdb613910c516edc9f13e6871e8c0c50",
+    ".tsconfig.v26-node-script.json": "4d2cd2937bf83d7ad5bf98ed93a3720628a57efe9d9622d99ddb5c91838e713c",
+    ".tsconfig.v26-client-tests.json": "1e0ef22522c31d1b84462bd4ffb304207aa6e0cc6250d7ee7aee51b3692bf5b9",
+    ".tsconfig.v26-research-tests.json": "0d11987270d8256090f4f8521158c3bc06176aff26b87b0e8652cd97b084665e"
+  },
+  "fixtureDirectoriesAfter": [],
+  "workerdPidsAfter": [
+    44327
+  ],
+  "sourceHashesUnchanged": true,
+  "newFixtureDirectoriesRemaining": [],
+  "newWorkerdPidsRemaining": []
+}

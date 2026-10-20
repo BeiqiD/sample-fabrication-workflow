@@ -1,0 +1,35 @@
+{
+  "stage": "current-actual-f228-carry-and-short-temp-beforephysical",
+  "cwd": "/workspace/phase5f-recovery-job-controls-chromium-child-temp-source-attempt2",
+  "argv": [
+    "python3",
+    "-B",
+    "/workspace/phase5f-recovery-job-controls-short-child-temp-finite-source-review-attempt2/carry-current-cf-and-short-child-temp.py",
+    "--coherent-cf-producer-for-genuine-job-controls-two",
+    "before-physical"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1",
+    "SQLITE_TMPDIR": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1"
+  },
+  "control": "Require exact original actual f228 build118/copy121/current24+mature84 state, 0jobs/requestrows/runtime-disabled and all original63 permits; retain old two shared POSTs. Fresh short Chromium-only directory with UID/mode/dev/inode/free-space witness. New aliased prephysical4; no build/seed/data copy.",
+  "startedAt": "2026-10-11T08:20:40.524776+00:00",
+  "status": "PASS",
+  "log": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/current-actual-f228-carry-and-short-temp-beforephysical.log",
+  "pid": 989896,
+  "processGroup": 989896,
+  "originalStartTicks": "12010129",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T08:20:41.547008+00:00",
+  "logSha256": "fa65f6539aa4a3585323f4e329bf7d72965a897730b6b34de0c1cd79f238387a"
+}

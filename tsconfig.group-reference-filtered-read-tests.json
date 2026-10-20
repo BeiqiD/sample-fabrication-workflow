@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.server.json",
+  "compilerOptions": {
+    "types": [
+      "node",
+      "vitest/globals"
+    ]
+  },
+  "files": [
+    "server/collaboration-reference-filtered-read-v28-fixture.qualification.ts",
+    "server/collaboration-reference-filtered-read-v28.qualification.ts",
+    "collaboration-reference-filtered-read-v28.vitest.config.mts"
+  ],
+  "include": [],
+  "exclude": []
+}

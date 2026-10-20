@@ -1,0 +1,16 @@
+{
+  "status": "SOURCE_ONLY_UNRUN_AWAITING_NEW_PEER_GO",
+  "originalRunnerPath": "/tmp/phase5f-ui-execution-currente108-source-reconciliation/run-exact-finite-plan.bb19-original.py",
+  "originalRunnerSha256": "bb19e3995d1086b6304d110004628a54eefa7e49add5622b246d08726de097d1",
+  "correctedRunnerPath": "/tmp/phase5f-ui-execution-currente108-source-reconciliation/run-exact-finite-plan.py",
+  "correctedRunnerSha256": "93dadd450bc17084015b86f6047ef9bfbddcf97cb6ddf6e34474f6fcfaa82efd",
+  "originalRunnerFinding": "wait/log exceptions or SIGTERM/KeyboardInterrupt could bypass group cleanup/final receipt",
+  "repair": "Active child try/finally closes only original owned group, waits/reaps direct child; handler records supported SIGTERM/SIGINT interruption as unqualified; bounded cleanup shields repeat signals; outer finally emits original partial commands, interruption/first failure, remaining UNRUN and final groups/FD/source receipt; supported launch signals are deferred until Popen ownership is captured without passing blocked/ignored signals to the child",
+  "sourceHeadUnchanged": "98d81a170394a140fb63e970b31d1985bd56f68d",
+  "planSha256Unchanged": "17c2984c99f3850074fc69cdcdaef1984c9ac6a4febdcd55e89d92d5c995ffd5",
+  "budgetsAndArgumentsUnchanged": true,
+  "runtimeExecuted": false,
+  "limitations": "No protection against uncatchable SIGKILL or inability to write the entire filesystem; no invented interruption runtime proof.",
+  "intermediateAc8SourcePreserved": "run-exact-finite-plan.ac8-intermediate.py",
+  "intermediateAc8SourceSha256": "ac8cce3b3c7904c4b229ad5c7cc21cf21032aae7e3e3219bc6dcb86247a92ccd"
+}

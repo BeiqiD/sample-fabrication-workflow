@@ -1,0 +1,1045 @@
+{
+  "kind": "current-post-pr272-qualified-cli37-and-mounted-job8-minimal-source-adoption/1",
+  "status": "SOURCE_ONLY_NEW_CURRENT_CANDIDATE_NOT_PUSHED",
+  "root": "/workspace/current-dev57f-qualified-cli-mounted-jobs-source-attempt1",
+  "baseHead": "57f4344b387ce06a91b5260e10fc9f5ecedda68a",
+  "baseTree": "8bd26468fbe61bdd12111abf720eb2121da30291",
+  "oldBaseHead": "a0d9cf550e53cfcfbfc71eec869c84a320bf8f64",
+  "allBaseModeBlobWorkingInputs": 2726,
+  "selected75": [
+    {
+      "path": "server/files/jobs/execution-admission.ts",
+      "group": "productionPaths",
+      "donorRoot": "/workspace/portable-current-node-mounted-local-jobs-typed-source-attempt2",
+      "donorHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+      "mode": "100644",
+      "donorGitBlob": "06d057f0687111d127c814c24d7805370dc3149f",
+      "sha256": "51230a8c71f60b27a138ea725e21a7f1ed3420234925b5044f8baed1130abd50",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "server/files/jobs/local-runtime.ts",
+      "group": "productionPaths",
+      "donorRoot": "/workspace/portable-current-node-mounted-local-jobs-typed-source-attempt2",
+      "donorHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+      "mode": "100644",
+      "donorGitBlob": "c4432790d5ddc06f92f9575eaab92082c13c2001",
+      "sha256": "c6534abadfd49fb8f81b02e26751e1f26fa6d3562297cf19c2a055bcd587dfc3",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "server/files/jobs/repository.ts",
+      "group": "productionPaths",
+      "donorRoot": "/workspace/portable-current-node-mounted-local-jobs-typed-source-attempt2",
+      "donorHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+      "mode": "100644",
+      "donorGitBlob": "d366d8c2590295be9de6770fa1033924c64b23e7",
+      "sha256": "f1292ebd36d773d4efbb9f4918aae3b48a4a970a4e4281410d1f96c09d29c2ac",
+      "action": "REPLACE",
+      "currentBase": {
+        "path": "server/files/jobs/repository.ts",
+        "mode": "100644",
+        "gitBlob": "17f3a334c049d5d5b8b1b79c74577d0a33dd3660",
+        "bytes": 10537,
+        "sha256": "80de7babc3c50135f51fd89ca31370076796bce23afe59f9f77870947c430ce5"
+      }
+    },
+    {
+      "path": "server/files/node-local-file-host.ts",
+      "group": "productionPaths",
+      "donorRoot": "/workspace/portable-current-node-mounted-local-jobs-typed-source-attempt2",
+      "donorHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+      "mode": "100644",
+      "donorGitBlob": "b3a0b7dc026060bad265e780aeebc6cdc3df85ca",
+      "sha256": "41149947b33b0034d10f18d720d304450b03b0d197f4c8f3626c0225e13cdde4",
+      "action": "REPLACE",
+      "currentBase": {
+        "path": "server/files/node-local-file-host.ts",
+        "mode": "100644",
+        "gitBlob": "11f13e6a4102480d792c5a58198d03d2f408731a",
+        "bytes": 16550,
+        "sha256": "7985cf11a4fc3b590d5b313a3c709b59d0a699fbf8fd8842d282232bad0419cb"
+      }
+    },
+    {
+      "path": "server/node-application.ts",
+      "group": "productionPaths",
+      "donorRoot": "/workspace/portable-current-node-mounted-local-jobs-typed-source-attempt2",
+      "donorHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+      "mode": "100644",
+      "donorGitBlob": "68e9c3eaf490f70b006c766485ec1c0c0d91ba90",
+      "sha256": "f9ef7cc23ef1cac1437e8fb2d7a82aa014b0545b62555850f91c5f3c84d32e04",
+      "action": "REPLACE",
+      "currentBase": {
+        "path": "server/node-application.ts",
+        "mode": "100644",
+        "gitBlob": "6ed15ba0c7d363c27dd87c816b0d0d45c89c685a",
+        "bytes": 52052,
+        "sha256": "1459c534e5a11d9aac2ad99eb7a55637b74e2e007e81e6bc400525c23b085da7"
+      }
+    },
+    {
+      "path": "server/node-runtime-config.ts",
+      "group": "productionPaths",
+      "donorRoot": "/workspace/portable-current-node-mounted-local-jobs-typed-source-attempt2",
+      "donorHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+      "mode": "100644",
+      "donorGitBlob": "5d1aa5d576126d190ac69c7bf6c8ee792bdb850e",
+      "sha256": "b9c61aacf3d22c89dfc53a69d140d891a4b38d67f385ffb7ebcdb403ca11da6f",
+      "action": "REPLACE",
+      "currentBase": {
+        "path": "server/node-runtime-config.ts",
+        "mode": "100644",
+        "gitBlob": "c5454219e2e832968ebd2eef3bf2c36a79aea45f",
+        "bytes": 12734,
+        "sha256": "d90a3f239a2b59044e48a8769501a524f430e4ddd2789e56384a8462801b3efe"
+      }
+    },
+    {
+      "path": "server/storage/local-volume-profile-opening.ts",
+      "group": "productionPaths",
+      "donorRoot": "/workspace/portable-current-node-mounted-local-jobs-typed-source-attempt2",
+      "donorHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+      "mode": "100644",
+      "donorGitBlob": "fb7e87900662f14d9f2a38ba4fdc7e2e0dd45111",
+      "sha256": "cb54795851ca5f593e84bfd193d5b290910a846b7dddbec1403daab361620701",
+      "action": "REPLACE",
+      "currentBase": {
+        "path": "server/storage/local-volume-profile-opening.ts",
+        "mode": "100644",
+        "gitBlob": "f7ed0c64df3941d1b7ba18a70ab5fe59d67f8291",
+        "bytes": 21512,
+        "sha256": "57fa09bf161a6045bb76d88799a432012afb2c1359d08fbd2e66dd87af7698b0"
+      }
+    },
+    {
+      "path": "worker/files/jobs/types.ts",
+      "group": "productionPaths",
+      "donorRoot": "/workspace/portable-current-node-mounted-local-jobs-typed-source-attempt2",
+      "donorHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+      "mode": "100644",
+      "donorGitBlob": "9798e596801e86855650d0f3a01a5ff2503bf882",
+      "sha256": "02dc275d2476582f17c481e3059190c83f2e9a3180854ded1152a45465a83782",
+      "action": "REPLACE",
+      "currentBase": {
+        "path": "worker/files/jobs/types.ts",
+        "mode": "100644",
+        "gitBlob": "12d056aeac70935c29975882f5e873058f0411c6",
+        "bytes": 5053,
+        "sha256": "90477246ec003636eaa74672f003be763dfabdb599dfa5a4d2db20feae79c903"
+      }
+    },
+    {
+      "path": "server/files/jobs/local-runtime.qualification.ts",
+      "group": "qaPaths",
+      "donorRoot": "/workspace/portable-current-node-mounted-local-jobs-typed-source-attempt2",
+      "donorHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+      "mode": "100644",
+      "donorGitBlob": "04168845d9aff632cff922289382c917e8489198",
+      "sha256": "94858960486e82bf7933ffd5cf78aff26983b4074f562f736517cbc6f79e6085",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "server/files/jobs/local-runtime.qualification-support.ts",
+      "group": "qaPaths",
+      "donorRoot": "/workspace/portable-current-node-mounted-local-jobs-typed-source-attempt2",
+      "donorHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+      "mode": "100644",
+      "donorGitBlob": "18d0435a4ed3d696d98b02657b9c7c39c8ec7f2a",
+      "sha256": "d507dc6a0327297fe6bfc791f84395ee53a81ce3931101a9ec831326b2652f3b",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "local-job-runtime-qualification.vitest.config.mts",
+      "group": "qaPaths",
+      "donorRoot": "/workspace/portable-current-node-mounted-local-jobs-typed-source-attempt2",
+      "donorHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+      "mode": "100644",
+      "donorGitBlob": "ed9def6c9aba709ef20be99cd0f5f552bd8f7b51",
+      "sha256": "d2e31de50c2d9ba0a17d8e82c845989802d8b866da6a9aea248679a0ed9452d6",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "tsconfig.local-job-runtime-owned-tests.json",
+      "group": "qaPaths",
+      "donorRoot": "/workspace/portable-current-node-mounted-local-jobs-typed-source-attempt2",
+      "donorHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+      "mode": "100644",
+      "donorGitBlob": "b9e72350bca9250043edb688492b815cea1e1b4e",
+      "sha256": "90ebf74f9d7640cb5f4caab7f8bf0614a07bba42e7002da0756e9f0496c2e058",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-runtime/first-node-static-type-failure/failure.json",
+      "group": "evidencePaths",
+      "donorRoot": "/workspace/portable-current-node-mounted-local-jobs-typed-source-attempt2",
+      "donorHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+      "mode": "100644",
+      "donorGitBlob": "7903a9eefd1564b3ebc73f5f185641cf12b86d72",
+      "sha256": "7f94d46ca8544be537a5143749797cee38ab8d332683ee2728e76581c828a8b3",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-runtime/first-node-static-type-failure/node-job-runtime-owned-tests.log",
+      "group": "evidencePaths",
+      "donorRoot": "/workspace/portable-current-node-mounted-local-jobs-typed-source-attempt2",
+      "donorHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+      "mode": "100644",
+      "donorGitBlob": "1391039b2999ea5f58745ad05baa0eca3e488919",
+      "sha256": "c1633a5fd4bc98158c98c3f1de92f8706ec09178d3213fed68d28999f661c023",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-runtime/first-node-static-type-failure/receipt.json",
+      "group": "evidencePaths",
+      "donorRoot": "/workspace/portable-current-node-mounted-local-jobs-typed-source-attempt2",
+      "donorHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+      "mode": "100644",
+      "donorGitBlob": "799a6688d1f0fa2725631dfc3584e912939cd7bb",
+      "sha256": "b0b912fa5faca8e3feb41e5527f03762d0750425781feeffdb02a78a18e8296c",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-runtime/source-scope.md",
+      "group": "evidencePaths",
+      "donorRoot": "/workspace/portable-current-node-mounted-local-jobs-typed-source-attempt2",
+      "donorHead": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+      "mode": "100644",
+      "donorGitBlob": "b84a56b4a38a75b9d5bf0ea8dc7be2c804489e5b",
+      "sha256": "8231292e007db52d4e19a9c265e299b905b9bac9ad2a295e2dfbbc7dd5803994",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-mounted-eight/README.md",
+      "group": "qualifiedPublicDocs",
+      "donorRoot": "/workspace/portable-same-app-local-job-eight-qualified-checkpoint-attempt1",
+      "donorHead": "bc733fd10c4cc57ee1f48d09d4990eb4eed76bb1",
+      "mode": "100644",
+      "donorGitBlob": "bbac9b78528bc54ffb398fa4df8ebed51a60e2a7",
+      "sha256": "92f9787b53c03191de12e9f6362eddfa030af0722fa6856d8874127d427ae874",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-mounted-eight/actual-attempt1/actual-native.json",
+      "group": "qualifiedPublicDocs",
+      "donorRoot": "/workspace/portable-same-app-local-job-eight-qualified-checkpoint-attempt1",
+      "donorHead": "bc733fd10c4cc57ee1f48d09d4990eb4eed76bb1",
+      "mode": "100644",
+      "donorGitBlob": "0a2ca6a475cb42c5cdb47087a798acbfffc5690f",
+      "sha256": "c1620a48fc809ee3fe1340fcde9340acc6a20902b3183200d1d90e5fe8d1472b",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-mounted-eight/actual-attempt1/exact-command.json",
+      "group": "qualifiedPublicDocs",
+      "donorRoot": "/workspace/portable-same-app-local-job-eight-qualified-checkpoint-attempt1",
+      "donorHead": "bc733fd10c4cc57ee1f48d09d4990eb4eed76bb1",
+      "mode": "100644",
+      "donorGitBlob": "0c9d31e7cac12613f3675d20aede284b205455c9",
+      "sha256": "43dd5b8cabea51795e1dc5e241b0cdcb32d7d7de9fa8e684c684f766d80fa214",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-mounted-eight/actual-attempt1/final-closure.json",
+      "group": "qualifiedPublicDocs",
+      "donorRoot": "/workspace/portable-same-app-local-job-eight-qualified-checkpoint-attempt1",
+      "donorHead": "bc733fd10c4cc57ee1f48d09d4990eb4eed76bb1",
+      "mode": "100644",
+      "donorGitBlob": "d4b4c101cec960a064ff5b1d6efcca30c7134b95",
+      "sha256": "62f87a0fd3cd46d25c02c89e46995793e12937b5aaa957cd86fd6c721ac3815e",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-mounted-eight/actual-attempt1/formal-closure-release.json",
+      "group": "qualifiedPublicDocs",
+      "donorRoot": "/workspace/portable-same-app-local-job-eight-qualified-checkpoint-attempt1",
+      "donorHead": "bc733fd10c4cc57ee1f48d09d4990eb4eed76bb1",
+      "mode": "100644",
+      "donorGitBlob": "55b78d8c9c37f620c3d598ad758d0987f0a139d4",
+      "sha256": "d675c0493f1df77184f36200381f31e2a8861737053e4d911f4efc8cdfa343c8",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-mounted-eight/actual-attempt1/original-active-direct-child-kernel-observation.json",
+      "group": "qualifiedPublicDocs",
+      "donorRoot": "/workspace/portable-same-app-local-job-eight-qualified-checkpoint-attempt1",
+      "donorHead": "bc733fd10c4cc57ee1f48d09d4990eb4eed76bb1",
+      "mode": "100644",
+      "donorGitBlob": "b495e467d1dddef21a503ad293dcc79fb966e224",
+      "sha256": "1e5fbd3644c5bda3e6344cca151a286866024204f19b662e2ea1e257dc0c642c",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-mounted-eight/actual-attempt1/original-active-supervisor-runner-kernel-observation.json",
+      "group": "qualifiedPublicDocs",
+      "donorRoot": "/workspace/portable-same-app-local-job-eight-qualified-checkpoint-attempt1",
+      "donorHead": "bc733fd10c4cc57ee1f48d09d4990eb4eed76bb1",
+      "mode": "100644",
+      "donorGitBlob": "d03c0590cc2649aff5b86be04e1ca93f99f2a685",
+      "sha256": "2b65abe20ef240a86e73322fb0d10cde6d7a3e329f6691c18fd67f1b662faf41",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-mounted-eight/actual-attempt1/original-native.log",
+      "group": "qualifiedPublicDocs",
+      "donorRoot": "/workspace/portable-same-app-local-job-eight-qualified-checkpoint-attempt1",
+      "donorHead": "bc733fd10c4cc57ee1f48d09d4990eb4eed76bb1",
+      "mode": "100644",
+      "donorGitBlob": "6014e5de4efe6a2226bc3e7dbd96d7b91925f9eb",
+      "sha256": "1de98c7c982930d0c4ba0fd8c68a4e7954608fbf228ae88388da3055bd8a1dd1",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-mounted-eight/actual-attempt1/original-owner.json",
+      "group": "qualifiedPublicDocs",
+      "donorRoot": "/workspace/portable-same-app-local-job-eight-qualified-checkpoint-attempt1",
+      "donorHead": "bc733fd10c4cc57ee1f48d09d4990eb4eed76bb1",
+      "mode": "100644",
+      "donorGitBlob": "b7397687ca904240e94579aeafddd36c1c2ab10e",
+      "sha256": "1edcea91e18c75eb25912bd424fb052375a689c45442a8c74da3b0cfe62850b4",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-mounted-eight/actual-attempt1/original-supervisor.json",
+      "group": "qualifiedPublicDocs",
+      "donorRoot": "/workspace/portable-same-app-local-job-eight-qualified-checkpoint-attempt1",
+      "donorHead": "bc733fd10c4cc57ee1f48d09d4990eb4eed76bb1",
+      "mode": "100644",
+      "donorGitBlob": "9ec70296ffcf3d3925779d231f1408da1b655692",
+      "sha256": "ac65347523106a93b3d1ef0e329ee2bda7fdea1b1129568c026883ea79bf44c5",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-mounted-eight/actual-attempt1/preflight.json",
+      "group": "qualifiedPublicDocs",
+      "donorRoot": "/workspace/portable-same-app-local-job-eight-qualified-checkpoint-attempt1",
+      "donorHead": "bc733fd10c4cc57ee1f48d09d4990eb4eed76bb1",
+      "mode": "100644",
+      "donorGitBlob": "45cac69bce3b3a0a5472d70dc18472d721cd94d7",
+      "sha256": "e2a4de864808c8c8d0c068c2d5450639147b170cd8df4daa16a366a16e110b70",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-mounted-eight/actual-attempt1/receipt.json",
+      "group": "qualifiedPublicDocs",
+      "donorRoot": "/workspace/portable-same-app-local-job-eight-qualified-checkpoint-attempt1",
+      "donorHead": "bc733fd10c4cc57ee1f48d09d4990eb4eed76bb1",
+      "mode": "100644",
+      "donorGitBlob": "270e35434c9e5bff951bea16555a1653fa5d4439",
+      "sha256": "775123487d0a8181a560bd558f997b6054d156456411cf22641e4ebafb5b8c07",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-mounted-eight/affected-static/node-job-runtime-owned-tests.log",
+      "group": "qualifiedPublicDocs",
+      "donorRoot": "/workspace/portable-same-app-local-job-eight-qualified-checkpoint-attempt1",
+      "donorHead": "bc733fd10c4cc57ee1f48d09d4990eb4eed76bb1",
+      "mode": "100644",
+      "donorGitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-mounted-eight/affected-static/receipt.json",
+      "group": "qualifiedPublicDocs",
+      "donorRoot": "/workspace/portable-same-app-local-job-eight-qualified-checkpoint-attempt1",
+      "donorHead": "bc733fd10c4cc57ee1f48d09d4990eb4eed76bb1",
+      "mode": "100644",
+      "donorGitBlob": "2577756e1d8c7d97ce4129dcde27754952fa87aa",
+      "sha256": "04efb5ce2f9e1189a0fa9df66eae318fada40660c4c5f0056cce353d46cdce1e",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-mounted-eight/affected-static/worker.log",
+      "group": "qualifiedPublicDocs",
+      "donorRoot": "/workspace/portable-same-app-local-job-eight-qualified-checkpoint-attempt1",
+      "donorHead": "bc733fd10c4cc57ee1f48d09d4990eb4eed76bb1",
+      "mode": "100644",
+      "donorGitBlob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-mounted-eight/manifest.json",
+      "group": "qualifiedPublicDocs",
+      "donorRoot": "/workspace/portable-same-app-local-job-eight-qualified-checkpoint-attempt1",
+      "donorHead": "bc733fd10c4cc57ee1f48d09d4990eb4eed76bb1",
+      "mode": "100644",
+      "donorGitBlob": "caeb02aa65601e53863778683648b66027118496",
+      "sha256": "e932ebd0052d3e4bef9d79e4dcef930c944d0d0d471179ddb8d721e0c163256a",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-mounted-eight/source/complete-source-and-two-static-handoff.json",
+      "group": "qualifiedPublicDocs",
+      "donorRoot": "/workspace/portable-same-app-local-job-eight-qualified-checkpoint-attempt1",
+      "donorHead": "bc733fd10c4cc57ee1f48d09d4990eb4eed76bb1",
+      "mode": "100644",
+      "donorGitBlob": "cf69f936726c96f91e3de68e3e93a6b482054819",
+      "sha256": "d4b7b00c73dd04c0c93b5cc56792447659cba6a152bd835f73470f72a9982bad",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-mounted-eight/source/independent-whole-peer.json",
+      "group": "qualifiedPublicDocs",
+      "donorRoot": "/workspace/portable-same-app-local-job-eight-qualified-checkpoint-attempt1",
+      "donorHead": "bc733fd10c4cc57ee1f48d09d4990eb4eed76bb1",
+      "mode": "100644",
+      "donorGitBlob": "7e3f7e8daf977b9cadf16c6b1dae3fead1148eab",
+      "sha256": "8d476499867c5a0b60051a1ff10a58b28413845e4028763ccc50d5d3b3a277f3",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-mounted-eight/source/root-final-finite-peer.json",
+      "group": "qualifiedPublicDocs",
+      "donorRoot": "/workspace/portable-same-app-local-job-eight-qualified-checkpoint-attempt1",
+      "donorHead": "bc733fd10c4cc57ee1f48d09d4990eb4eed76bb1",
+      "mode": "100644",
+      "donorGitBlob": "32328f1050ef7148ef2a8e79ac919b3ce90211dc",
+      "sha256": "591beb49d4b04faff7d95816eac9e727ca8360ca71424f33e2c54536f87ad90f",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/qualification/same-app-local-job-mounted-eight/source/root-whole-peer.json",
+      "group": "qualifiedPublicDocs",
+      "donorRoot": "/workspace/portable-same-app-local-job-eight-qualified-checkpoint-attempt1",
+      "donorHead": "bc733fd10c4cc57ee1f48d09d4990eb4eed76bb1",
+      "mode": "100644",
+      "donorGitBlob": "ea4ca5e04031c9b00c5720fdf5cf5a7e853e9920",
+      "sha256": "ef411ae40e9792ef7dd55d854f6f297f0368f9781f9fc62234d1f7d03a007663",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "distribution/container-entrypoint.sh",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "4c710aad87ec49e0a683b04dcdba137d7801f3f2",
+      "sha256": "b8f1656cc4ebf63699eed81931c3b78dfb74f67ee40973d3b5ebee086450474a",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "docs/NODE_V28_OFFLINE_RESTORE_PACKAGING_SOURCE.md",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "2d90a7aff1852783bfde2d7b94de0d3d287c8fbb",
+      "sha256": "5e9a6ac2bd1b85882b526856ea2a24b9f9ddae110211f5e2efd2b642a0cf851b",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "offline-v28-cli-qualification.vitest.config.mts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "5820bccef54a42464de6e01378b3ba2cc5416e90",
+      "sha256": "67c872da70fa6ef9a0087b564116e4098b815beb99317a712bdd5bfbcb6e7469",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "scripts/build-node.mjs",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "515c1bd0f070bca1977e5a50ab8448cdc75d6061",
+      "sha256": "d85f03991c87cf715ccb436ae3ebb36aeeb0368fefe55131f3b2ce4b1b778827",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "scripts/lib/node-distribution-manifest.mjs",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "66274a5561b9d64667feaa42f6f9b2610c08ef5d",
+      "sha256": "107a47ece8b180f6f062fabcf260a84c789eb8ff4bf80aef5ccd0bbb8ce9be69",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "scripts/lib/node-distribution-v28-manifest.d.mts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "3bc518943d67e31dd975830913545323b2c58742",
+      "sha256": "9d2d73e2dae432382ed9c7771da32364a656582510af12365142a50871c9a48e",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "scripts/lib/node-distribution-v28-manifest.mjs",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "fa154cec7b334606c7b042b2fc507ce9f89458d3",
+      "sha256": "c44a2a09e17f6e60fddcb4c1a8c8bde9de2165b99a0a6a31e29ade394e967e79",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "scripts/lib/restore-system-backup-v28-candidate.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "3ab39f6652551afa4236a2eb69a07964c5305f9f",
+      "sha256": "5160e50da45733da132b8cbb8972a0c6462e526935481726d1bd949e960780ed",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "scripts/node-distribution-v28.test.mjs",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "21fb11f5889a85766d1009077c0d1ed06e252c7d",
+      "sha256": "56a76e3448fd10dd1f401f2585a1a1b8ec8b5a3369f98c375d0c75a819609756",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "scripts/verify-node-distribution.mjs",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "6422abe14c716ef764bef61e136f1f51061fac77",
+      "sha256": "31d1c7d1e95322fd992247e31c2c73ae9aa5d887e0628fc1be270599a00a0618",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "server/installation-catalog-v27-candidate.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "5fa9c6a457f817b596464b2f13662037b1bc7796",
+      "sha256": "a4f6e6150ea64b1b45aad99ba65cf932bd0cab3c26132e13fecc62f61f805f55",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "server/installation-catalog-v28-candidate.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "7f6605bab9d9e310ff3914b00c1678f05219897e",
+      "sha256": "c56ca021886fa4036854fbb2f5b25e2638b2f8e75b9d8d782f1ebe7aa6103dd7",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "server/operations/restore-v28-cli.qualification.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "33b4945664ad3b113ae142934cdf0394ead0b541",
+      "sha256": "603357250f6fbbaf6c41f8b782e6bc6853eed47fbb75a15bf3420ad83ee6136c",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "server/operations/restore-v28-cli.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "ddc154661fcdef66c4079670ed21ebdad144af1e",
+      "sha256": "325dcf303483484051006ae80c83b95d192163f31ccd9ed7c07195a4985f4226",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "server/operations/restore-v28-operator.test.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "8f5a3b521f44352798670c8a98252b68d583d5a1",
+      "sha256": "013d5ff8e98238f77a13ad55ff75923f4b1f9c45d93cfa35616ad3b5c813a344",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "server/operations/restore-v28-operator.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "d645965c05160d9f686e6d712cea99851363de38",
+      "sha256": "a43949fa19c44b75031d7cf66bb5021d938ca03856c96bd86117aecfa393b95c",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "server/recovery/empty-target-v28-candidate.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "a137578109f617ebc363370999ac3417cacdaa67",
+      "sha256": "ceea8f9c104f75546c875b1df340fd32715e64a0a2094c2a51828e9aad102c54",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "server/recovery/local-volume-byte-destination-v28.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "788da07cfec5c978805a5fca35b4eae92757d26a",
+      "sha256": "be66e07e90727bedcea8cc3772bea9f2fa433e71f3fe1d5b2096da287a52b7fb",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "server/recovery/restore-v28-candidate.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "d925e79dd66f2912a938d59f3dbf6c52d1530ae3",
+      "sha256": "723693919899e96ace0168048bcc6ffa57a56cb4a93fd7368fa459e07b5cf517",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "shared/contracts/collaboration-schema-v27.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "db2d1afbdd10eedec37d6c64180d8f128bb78379",
+      "sha256": "7f7a2dd7fc2ad637c1d5f01919e8ea195bb0567b46cecb762bafd5dbd79668fc",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "shared/contracts/collaboration-schema-v28.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "02ee2574643ca901019f6f207eff180fcdd16ce5",
+      "sha256": "720489250e711aeaf2770559a13b7fe619eadca8cc51367f075d67ae248dc98d",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "shared/contracts/export-business-v28.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "ef14945e22af4d113c4bbd67c71789358e8fa1b5",
+      "sha256": "7116ae7bd220960b22cf590eed34b1e1617c159788f094346621e0a12418ef90",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "shared/contracts/export-file-native-candidates-v28.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "3c02aaacffda619bfdb71c2f0e9ece561bcf855d",
+      "sha256": "ea0016056ca87008d6f9ee9326572a8cfa72d518c5cd5b52e1890a54fe3a8ccb",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "shared/contracts/export-file-native-role-policy-v28.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "1eaa95adf9e1c80a7926ac2d83422ff1be8f324d",
+      "sha256": "4d86096fb5f16b093d558fc347ef3178611d17a8e57f7d119a04405256fcfffa",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "shared/contracts/export-file-upload-acceptance-v28.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "d1f4c2393b5047ff6686e7ea9b90a69bebf6ba5f",
+      "sha256": "88bd095e2f42e48a260f9263dddac314c6d9a099c0572681c6249be6cb1d5a49",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "shared/contracts/export-local-file-bytes-v28.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "b5775c3bfb26faec5afd849cc47e84820cc90305",
+      "sha256": "3b3de3aae5ed01b17716851a07b7f689da2aaea926c75c17e42662eb849160e1",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "shared/contracts/export-local-file-runtime-v28.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "1f7bbcc198e0f4c4ae61401015174eca5f0e12d2",
+      "sha256": "16236c91a8aeccc2e530ec6df09a9f3826b1dcf1af208cfd96665024e08ca344",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "shared/contracts/export-local-profiles-v28.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "b2d7271283ef3e8936db461ea45baaf6633dff18",
+      "sha256": "a67b2dcd622d8ae59a87d386da96c25e421ec95d2c49d214e4b3f9e745dc1627",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "shared/contracts/export-portable-runtime-v28.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "6479aa8f95ab61784dcbc01616d04473549c1eef",
+      "sha256": "3f2b7ac7a25bd11cc81b5c543fe51b610e44d28ab26ef5e493ecf5972925b20a",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "shared/contracts/portable-runtime-v27-recovery-catalog.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "394817331bfd7d4312532be6715a72d22cd28768",
+      "sha256": "24fdfc3e01b775758479cec1bdaa892589a19110f4c499a31c9f3b7693b9e997",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "shared/contracts/portable-runtime-v28-recovery-catalog.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "d355aa08852550ad71f5886008d148954046a201",
+      "sha256": "b3e522c6ef10e0d9c999e76db7f3aacb8d6327d34376f6898e8058b5f5d3ca73",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "shared/contracts/system-backup-v28-content.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "46a6830730b9e6ec1ef74326223ddc50d87ad78e",
+      "sha256": "6c6cabb184642a6b372cb80dd17c93b967f8ecb0747fd6f338b7ea4bc5efc747",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "shared/contracts/system-backup-v5-archive-admission.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "3ede36fcd5df3592db81b685ad1e43f5e7ded4eb",
+      "sha256": "c8cafb0a0eb740c6b057c5207a116e31fd3f914bab3bcf7d0e0eb3a0c9be2d81",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "shared/contracts/system-backup-v5.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "f9d50d96cd92c82dbfee1f8f7be4b89db2ed7e52",
+      "sha256": "30d17c2c0aa8b399e3c99b3270898913e65ea1eb4b10f8660d214e80a55b91db",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "tsconfig.offline-v28-cli.json",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "f905422c3c7c567bb47bfbeff661b8583b39b000",
+      "sha256": "dda333f4093706b84e61d7849b42efd51184cf1df7e16139ddc5e56b3b0dfbaa",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "worker/recovery/portable-runtime-v27-trusted-schema.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "92477ddcb274eaf23545b6068b179f2ed07423ab",
+      "sha256": "6e337635942cb5871671d2a2b973612f6f591740656b377df05669b277e3ed85",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": "worker/recovery/portable-runtime-v28-trusted-schema.ts",
+      "group": "cli37",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "fec38f687d82246e323b3cd46aaa639ca55867cd",
+      "sha256": "1116030f9cf61e1e6d808a76cc2a83c4944aedb83cafb3df07086166f162f219",
+      "action": "ADD",
+      "currentBase": null
+    },
+    {
+      "path": ".github/workflows/verify.yml",
+      "group": "cliExistingWorkflowOrScope",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "68f68484ffbb377554d465fdfe85d975ca7f787e",
+      "sha256": "bd9259654c8d53b0d8a7dfa1197f0b391969d35b312093d13c0eb6d1c12d33f2",
+      "action": "REPLACE",
+      "currentBase": {
+        "path": ".github/workflows/verify.yml",
+        "mode": "100644",
+        "gitBlob": "0c5d6cf978e841cc035193beedd6b02f4fd4d905",
+        "bytes": 2090,
+        "sha256": "0d0f0a93f71937d29b8e123f682f0fc6cbb131f56fcd37de47efb180b67b8984"
+      }
+    },
+    {
+      "path": "docs/qualification/current-cli37-dev-adoption/README.md",
+      "group": "cliExistingWorkflowOrScope",
+      "donorRoot": "/workspace/current-dev272-qualified-cli37-source-adoption-attempt1",
+      "donorHead": "ed13a15879d1d4fcf93875faf98a8001e52bc53b",
+      "mode": "100644",
+      "donorGitBlob": "3f846836a1015086f8d00c40010b3537b1f60275",
+      "sha256": "28ec9bbadc082ae65bed7152901f1471c738adb976d9d402233f04e2339bdc2c",
+      "action": "ADD",
+      "currentBase": null
+    }
+  ],
+  "selectedJob16AndQualifiedDocs20": 36,
+  "selectedCli37AndWorkflowScope2": 39,
+  "exactAdds": 68,
+  "exactReplacements": 7,
+  "protectedCurrentModeBlobWorkingInputs": 2719,
+  "criticalCurrentInputsPreserved": [
+    {
+      "path": "server/http.ts",
+      "mode": "100644",
+      "gitBlob": "3c8565db36976804290a35949a6e9c5b5f008e1b",
+      "bytes": 24705,
+      "sha256": "bc400f27ce56051af6c263917674d5c92d798ff5e7c286e1fe22bbf6d53201d3"
+    },
+    {
+      "path": "server/sqlite.ts",
+      "mode": "100644",
+      "gitBlob": "d76156a8a1864d19fab91c16276bae7470c303aa",
+      "bytes": 14696,
+      "sha256": "5aa2575cfd8a4e2c4a8eecd8e32beafaefeb1aca5776e279bd28d313c29b612f"
+    },
+    {
+      "path": "server/operations/writer-lease.ts",
+      "mode": "100644",
+      "gitBlob": "23d36c2c1723c16473bc3c08170dd487863eb99e",
+      "bytes": 14923,
+      "sha256": "0d46f19c5d7dd0c9ba389fef932e22332c5ce68874f55b9a727c644251d09b9a"
+    },
+    {
+      "path": "server/auth/identity.ts",
+      "mode": "100644",
+      "gitBlob": "c89249122e962c5b1bd9eaa880729765e94938aa",
+      "bytes": 22573,
+      "sha256": "85d8c8715ef0f61fdb0e46df7cf05c00352e7410fd16e5ba608775a954843bf1"
+    },
+    {
+      "path": "server/auth/local-auth-http.ts",
+      "mode": "100644",
+      "gitBlob": "8ae49e963a65a474eb57d362892cf60b1870d205",
+      "bytes": 11517,
+      "sha256": "df3a56f1a2f94196c99b0dbacc55e78d558d12096b9355e92b67ca0386728112"
+    },
+    {
+      "path": "server/auth/local-auth-transport.ts",
+      "mode": "100644",
+      "gitBlob": "474877f2967cef5ad4ec042c4091ff02971a7b79",
+      "bytes": 3448,
+      "sha256": "01879c200be84c623d31c325e86b31e6314be6d3bcaa858d9ae894f706a75d76"
+    },
+    {
+      "path": "server/auth/installed-identity-execution-owner.ts",
+      "mode": "100644",
+      "gitBlob": "ad19a0c5b7a3982a9fea5ca31995f7a97c9a902f",
+      "bytes": 5607,
+      "sha256": "ab9a1d728d414385147a94e58b33954dad301f6b7d5235138e07d4e620fcdbf9"
+    },
+    {
+      "path": "server/node-runtime.ts",
+      "mode": "100644",
+      "gitBlob": "adcaaa34b0443ec04570c2fe33ba1d70ff673243",
+      "bytes": 8168,
+      "sha256": "e7d82f4bf9b8c635e7d6612eb86b5b87b6db3235cb4ab86896654e5bb5cff068"
+    },
+    {
+      "path": "server/main.ts",
+      "mode": "100644",
+      "gitBlob": "fa900a9495a5c4171074ae7acf01a266f42f6e70",
+      "bytes": 3288,
+      "sha256": "8e2202ffe3f24abdea2a17f7cecee3b004f38ce7b9a0f008834f244baae5abad"
+    },
+    {
+      "path": "server/installation-catalog-v26.ts",
+      "mode": "100644",
+      "gitBlob": "70668db1c17e6165173e69a1a09625c7c13c725a",
+      "bytes": 4668555,
+      "sha256": "55688ec4bbfea94423bdc00ae58a5097ed277e4d3169be3ba070b4f09a537aff"
+    },
+    {
+      "path": "server/migrations.ts",
+      "mode": "100644",
+      "gitBlob": "75285d4540f6a43da5267efc24508b1103769c79",
+      "bytes": 20584,
+      "sha256": "fdd4e1e66e54b791c38b01558376a24ac8bf71b63a70646b0fcc4448bdebdb98"
+    },
+    {
+      "path": "server/files/jobs/request-http.ts",
+      "mode": "100644",
+      "gitBlob": "7e061d9da008c882f591f751ac3bfbea581953d7",
+      "bytes": 23319,
+      "sha256": "58990ae27861a52350d5b36cd2e0b0842de09157b7c8393fb9604b052bd28a25"
+    },
+    {
+      "path": "server/files/jobs/principal-authority.ts",
+      "mode": "100644",
+      "gitBlob": "6d2fefbdb8ad071b54b573e0c0c4e6aa1d7670a2",
+      "bytes": 5455,
+      "sha256": "23fa52821e76f5431cf267f843f62cd1201d1c3f549a59260f6486041ac1703b"
+    },
+    {
+      "path": "server/files/jobs/dispatcher.ts",
+      "mode": "100644",
+      "gitBlob": "5dbb16cbf5bf30ac6a0ed7960c8f0ac30d63500e",
+      "bytes": 7873,
+      "sha256": "2607eaa0f496b943221f660e4edefe9224e96f25afd4f2838a883a9eaed11074"
+    },
+    {
+      "path": "server/files/jobs/host.ts",
+      "mode": "100644",
+      "gitBlob": "3bf6b797d06e156f94a1ce8a7f6d0e0547241e45",
+      "bytes": 5739,
+      "sha256": "d157786cea1deab73c889b3e3ff415c324c04b0699e401c041a720fb947f2910"
+    },
+    {
+      "path": "worker/files/jobs/sql-repository.ts",
+      "mode": "100644",
+      "gitBlob": "7d9fad04722f85641b93d3c6caa3b0a2c259b854",
+      "bytes": 45788,
+      "sha256": "c9b9c9fb7164ab3af156b9f6c97e740c6a4d2d102b3d0a773d4315901e74302a"
+    },
+    {
+      "path": "worker/files/jobs/migration-kernel.ts",
+      "mode": "100644",
+      "gitBlob": "396881ada2f397baa7f656c6c14392efdb559120",
+      "bytes": 11036,
+      "sha256": "64081f6a7950525fcb6d2d08152942c472cc39b5cfd8858f360f43fd185c2ef7"
+    },
+    {
+      "path": "src/attachment-media.mount.test.tsx",
+      "mode": "100644",
+      "gitBlob": "05cad8294312f32cca633811bb57bd65c5595377",
+      "bytes": 23637,
+      "sha256": "623636f491a28ef473c4d90d46fbe775a0a007b14b10d2e46e59fa3d006f7a5b"
+    },
+    {
+      "path": "package.json",
+      "mode": "100644",
+      "gitBlob": "f0e3177f35c1fbbbf5be777e2307ff31c549222a",
+      "bytes": 14835,
+      "sha256": "5c8a504d14b7208edb3d77b8c5049c713d55e4e7821d8e43b7b54e6dbeebe8fc"
+    },
+    {
+      "path": "package-lock.json",
+      "mode": "100644",
+      "gitBlob": "4c9af86a8e9a834d802ffcc6136956ed4bc6519f",
+      "bytes": 147101,
+      "sha256": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a"
+    }
+  ],
+  "actualSourceHeadNotRetagged": {
+    "JobEight": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+    "originalCliSeventeen": "aea243fee4fc1a717f2c31e7c4d319674a0504c7"
+  },
+  "defaults": {
+    "LocalFile": false,
+    "LocalJobs": false,
+    "GroupV28Activation": false,
+    "runtimeV26CatalogUnchanged": true,
+    "noEagerJob": true
+  },
+  "effects": {
+    "compiler": 0,
+    "native": 0,
+    "provider": 0,
+    "socket": 0,
+    "build": 0,
+    "Docker": 0,
+    "remotePublication": 0
+  }
+}

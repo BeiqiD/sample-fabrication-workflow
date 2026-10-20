@@ -1,0 +1,1841 @@
+{
+  "version": 1,
+  "source": "/workspace/scratch/96567b57746a/sample-fabrication-workflow",
+  "output": "/tmp/pr315-final-browser.k43Q2F/genuine-migration-intent",
+  "startedAt": "2026-10-18T19:43:28.175Z",
+  "status": "passed",
+  "cases": [
+    {
+      "name": "actual-other-admin-409-1280-light",
+      "kind": "rejected-plan",
+      "width": 1280,
+      "theme": "light",
+      "output": "/tmp/pr315-final-browser.k43Q2F/genuine-migration-intent/actual-other-admin-409-1280-light",
+      "startedAt": "2026-10-18T19:43:28.553Z",
+      "status": "passed",
+      "build": {
+        "workerPath": "/workspace/scratch/96567b57746a/sample-fabrication-workflow/dist/sample_fabrication_workflow_local/index.js",
+        "workerSha256": "8280562bdf062272d77cdc41247327c0be3328e316d3224d4d6049678dbff751",
+        "clientDirectory": "/workspace/scratch/96567b57746a/sample-fabrication-workflow/dist/client"
+      },
+      "installationFixture": {
+        "helper": "prepare-file-migration-historical-r2-profiles.mjs",
+        "scope": "Exactly two historical R2 installation profile metadata rows plus original registration triggers; schema unchanged. All authority/profile enablement, File creation, migration acceptance and execution use actual public Worker APIs. No business File/job/result SQL fixture writes.",
+        "namespaces": {
+          "source": "{\"kind\":\"local-r2\",\"installationId\":\"41961a64-fba6-4b00-818f-dbcc774828da\",\"bucketName\":\"migration-source-ac043060-45bc-4378-9d28-421239da25a9\"}",
+          "target": "{\"kind\":\"local-r2\",\"installationId\":\"41961a64-fba6-4b00-818f-dbcc774828da\",\"bucketName\":\"migration-target-14613838-ee45-4020-9f88-d5631099edd6\"}"
+        },
+        "originalCatalogExact": true
+      },
+      "api": [
+        {
+          "method": "GET",
+          "path": "/api/storage/configuration/capability",
+          "identity": "admin",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/storage/configuration/capability",
+          "identity": "competitor",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/shadow/status",
+          "identity": "admin",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/files/shadow/enable",
+          "identity": "admin",
+          "status": 200,
+          "input": {
+            "requestId": "08b308f2-7662-4405-bb8a-4ed20341a0b0",
+            "expectedEpoch": 4,
+            "expectedIncarnation": null
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/files/shadow/profiles/enable",
+          "identity": "admin",
+          "status": 200,
+          "input": {
+            "profile": {
+              "profileId": "storage-profile:r2:bootstrap",
+              "configurationRevision": 1
+            },
+            "runtimeIncarnation": "08b308f2-7662-4405-bb8a-4ed20341a0b0",
+            "expectedEpoch": 4
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/files/shadow/profiles/enable",
+          "identity": "admin",
+          "status": 200,
+          "input": {
+            "profile": {
+              "profileId": "storage-profile:r2:qa-migration-target",
+              "configurationRevision": 1
+            },
+            "runtimeIncarnation": "08b308f2-7662-4405-bb8a-4ed20341a0b0",
+            "expectedEpoch": 5
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/files/shadow/disable",
+          "identity": "admin",
+          "status": 200,
+          "input": {
+            "runtimeIncarnation": "08b308f2-7662-4405-bb8a-4ed20341a0b0",
+            "expectedEpoch": 6
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/authority/status",
+          "identity": "admin",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/files/authority/activate",
+          "identity": "admin",
+          "status": 200,
+          "input": {
+            "requestId": "d0ed8991-449f-4f1b-85a1-29a18ae9741f",
+            "expectedEpoch": 6,
+            "expectedShadowIncarnation": "08b308f2-7662-4405-bb8a-4ed20341a0b0"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/project-assets",
+          "identity": "admin",
+          "status": 201
+        },
+        {
+          "method": "GET",
+          "path": "/api/assets/2026-10-18/e1a4f85e-e1a2-4c3e-8dbb-1786a6529e53-genuine-migration-intent.png",
+          "identity": "admin",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/files/migrations/executor",
+          "identity": "competitor",
+          "status": 200,
+          "input": {
+            "enabled": true
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/files/migrations",
+          "identity": "competitor",
+          "status": 202,
+          "input": {
+            "requestId": "da3d51ad-07ac-4d64-9045-ef006d9c5d85",
+            "fileIds": [
+              "8bc10127-8ee1-4d36-9ee1-0007b14b46a2"
+            ],
+            "target": {
+              "profileId": "storage-profile:r2:qa-migration-target",
+              "configurationRevision": 1
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/f3ed382e-34b0-48a2-a583-b707b3661faa",
+          "identity": "competitor",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/f3ed382e-34b0-48a2-a583-b707b3661faa",
+          "identity": "competitor",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/requests/8846a0a5-c434-4a1b-b471-5c71642829f1",
+          "identity": "admin",
+          "status": 404
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/requests/7fce8082-a3b4-4ae8-b802-713fc87ffe47",
+          "identity": "admin",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/e7d372ce-0886-40c5-8f43-69f4af88585a",
+          "identity": "admin",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/e7d372ce-0886-40c5-8f43-69f4af88585a",
+          "identity": "admin",
+          "status": 200
+        }
+      ],
+      "schedule": [
+        {
+          "jobId": "f3ed382e-34b0-48a2-a583-b707b3661faa",
+          "step": 0,
+          "state": "queued",
+          "outcome": "ok"
+        },
+        {
+          "jobId": "e7d372ce-0886-40c5-8f43-69f4af88585a",
+          "step": 0,
+          "state": "queued",
+          "outcome": "ok"
+        }
+      ],
+      "edge": {
+        "requests": [
+          {
+            "method": "GET",
+            "path": "/settings/storage/migrations",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/index-CbWJohKl.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/rolldown-runtime-aKtaBQYM.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/index-GPLEXs7v.css",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/mime-type-DOlD23vX.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/tiff-BvNwKutC.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/jsx-runtime-2Zwg-L3c.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/preload-helper-Czpn1I53.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/authentication-client-D-4lEczZ.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/identity",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/uuid-DrKv8t4f.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/comment-submissions-Bqj6LBog.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/FileMigrationsPage-BgDwPxE_.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/api-BqmoJCSK.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/r2-upload-client-GltvVbq7.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/file-jobs-C0tfVY4K.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/ReadStatus-CdkuGsJ5.css",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/storage-configuration-client-1vHeUqtA.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/storage-profile-admission-DzG82ysI.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/storage-settings-DSsGX-ac.css",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/ReadStatus-6Jv3QtjP.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/storage/configuration/capability",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations/files",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/settings/storage",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations/executor",
+            "status": 200
+          },
+          {
+            "method": "POST",
+            "path": "/api/files/migrations/plans",
+            "status": 200,
+            "input": {
+              "requestId": "9a07f8af-275d-4cf3-b709-bf72b76e17e8",
+              "fileIds": [
+                "8bc10127-8ee1-4d36-9ee1-0007b14b46a2"
+              ],
+              "target": {
+                "profileId": "storage-profile:r2:qa-migration-target",
+                "configurationRevision": 1
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations/executor",
+            "status": 200
+          },
+          {
+            "method": "POST",
+            "path": "/api/files/migrations",
+            "status": 409,
+            "input": {
+              "requestId": "8846a0a5-c434-4a1b-b471-5c71642829f1",
+              "fileIds": [
+                "8bc10127-8ee1-4d36-9ee1-0007b14b46a2"
+              ],
+              "target": {
+                "profileId": "storage-profile:r2:qa-migration-target",
+                "configurationRevision": 1
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations/requests/8846a0a5-c434-4a1b-b471-5c71642829f1",
+            "status": 404
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations/executor",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/identity",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations/files",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/settings/storage",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations/requests/8846a0a5-c434-4a1b-b471-5c71642829f1",
+            "status": 404
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations/executor",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/identity",
+            "status": 200
+          },
+          {
+            "method": "POST",
+            "path": "/api/files/migrations/plans",
+            "status": 200,
+            "input": {
+              "requestId": "36cde9a3-6b91-4082-b317-033d504c8827",
+              "fileIds": [
+                "8bc10127-8ee1-4d36-9ee1-0007b14b46a2"
+              ],
+              "target": {
+                "profileId": "storage-profile:r2:bootstrap",
+                "configurationRevision": 1
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations/executor",
+            "status": 200
+          },
+          {
+            "method": "POST",
+            "path": "/api/files/migrations",
+            "status": 202,
+            "input": {
+              "requestId": "7fce8082-a3b4-4ae8-b802-713fc87ffe47",
+              "fileIds": [
+                "8bc10127-8ee1-4d36-9ee1-0007b14b46a2"
+              ],
+              "target": {
+                "profileId": "storage-profile:r2:bootstrap",
+                "configurationRevision": 1
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations/executor",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/identity",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/settings/storage",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations/files",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations/executor",
+            "status": 200
+          }
+        ],
+        "errors": [],
+        "lostAcknowledgements": []
+      },
+      "migrations": [
+        "0001_v3_baseline.sql",
+        "0002_fp1_file_registry.sql",
+        "0003_fp1_import_acceptance.sql",
+        "0004_r2_upload_acceptance.sql",
+        "0005_metrology_reference_acceptance.sql",
+        "0006_comment_acceptance.sql",
+        "0007_fp1_file_authority_transition.sql",
+        "0008_fp1_shadow_runtime.sql",
+        "0009_fp1_shadow_withdrawals.sql",
+        "0010_fp1_shadow_adjudications.sql",
+        "0011_fp1_retire_legacy_test_projects.sql",
+        "0012_fp1_file_authority_runtime.sql",
+        "0013_fp1_r2_role_defaults.sql",
+        "0014_fp2_storage_configuration.sql",
+        "0015_fp2_storage_candidate_checks.sql",
+        "0016_fp2_credential_reenvelopes.sql",
+        "0017_fp2_native_storage_profiles.sql",
+        "0018_fp2_native_file_runtime.sql",
+        "0019_fp3_file_jobs.sql",
+        "0020_fp4_research_packages.sql",
+        "0021_fp5_system_recovery.sql",
+        "0022_fp5_recovery_evidence.sql",
+        "0023_portable_local_identity.sql",
+        "0024_rt3_local_volume_profiles.sql"
+      ],
+      "sourceFile": {
+        "file_id": "8bc10127-8ee1-4d36-9ee1-0007b14b46a2",
+        "active_location_id": "8925204c-4759-47c5-af37-7fcb5d549fe7",
+        "storage_profile_id": "storage-profile:r2:bootstrap",
+        "object_key": "2026-10-18/e1a4f85e-e1a2-4c3e-8dbb-1786a6529e53-genuine-migration-intent.png",
+        "verified_byte_size": 68,
+        "verified_sha256": "c2510d21015c1d76d437f7414653615b7f04d90ec357f03aedc8c89dd69bfab3",
+        "assetId": "e1a4f85e-e1a2-4c3e-8dbb-1786a6529e53",
+        "sourceProfileId": "storage-profile:r2:bootstrap",
+        "targetProfileId": "storage-profile:r2:qa-migration-target",
+        "byteSize": 68,
+        "sha256": "c2510d21015c1d76d437f7414653615b7f04d90ec357f03aedc8c89dd69bfab3",
+        "setup": "Genuine signed HTTP authority/profile activation and project PNG upload, original publication plus exact native source R2 readback."
+      },
+      "browserApi": [
+        {
+          "method": "GET",
+          "path": "/api/identity",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/storage/configuration/capability",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/files",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/settings/storage",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/executor",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/files/migrations/plans",
+          "status": 200,
+          "input": {
+            "requestId": "9a07f8af-275d-4cf3-b709-bf72b76e17e8",
+            "fileIds": [
+              "8bc10127-8ee1-4d36-9ee1-0007b14b46a2"
+            ],
+            "target": {
+              "profileId": "storage-profile:r2:qa-migration-target",
+              "configurationRevision": 1
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/executor",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/files/migrations",
+          "status": 409,
+          "input": {
+            "requestId": "8846a0a5-c434-4a1b-b471-5c71642829f1",
+            "fileIds": [
+              "8bc10127-8ee1-4d36-9ee1-0007b14b46a2"
+            ],
+            "target": {
+              "profileId": "storage-profile:r2:qa-migration-target",
+              "configurationRevision": 1
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/requests/8846a0a5-c434-4a1b-b471-5c71642829f1",
+          "status": 404
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/executor",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/identity",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/files",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/settings/storage",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/requests/8846a0a5-c434-4a1b-b471-5c71642829f1",
+          "status": 404
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/executor",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/identity",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/files/migrations/plans",
+          "status": 200,
+          "input": {
+            "requestId": "36cde9a3-6b91-4082-b317-033d504c8827",
+            "fileIds": [
+              "8bc10127-8ee1-4d36-9ee1-0007b14b46a2"
+            ],
+            "target": {
+              "profileId": "storage-profile:r2:bootstrap",
+              "configurationRevision": 1
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/executor",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/files/migrations",
+          "status": 202,
+          "input": {
+            "requestId": "7fce8082-a3b4-4ae8-b802-713fc87ffe47",
+            "fileIds": [
+              "8bc10127-8ee1-4d36-9ee1-0007b14b46a2"
+            ],
+            "target": {
+              "profileId": "storage-profile:r2:bootstrap",
+              "configurationRevision": 1
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/executor",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/identity",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/settings/storage",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/files",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/executor",
+          "status": 200
+        }
+      ],
+      "consoleErrors": [
+        {
+          "text": "Failed to load resource: the server responded with a status of 409 (Conflict)",
+          "path": "/api/files/migrations"
+        },
+        {
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "path": "/api/files/migrations/requests/8846a0a5-c434-4a1b-b471-5c71642829f1"
+        },
+        {
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "path": "/api/files/migrations/requests/8846a0a5-c434-4a1b-b471-5c71642829f1"
+        }
+      ],
+      "pageErrors": [],
+      "nativeReadbacks": [
+        {
+          "active": {
+            "file_id": "8bc10127-8ee1-4d36-9ee1-0007b14b46a2",
+            "active_location_id": "46b76994-e689-4c4e-b5c5-67f1a81f58b9",
+            "storage_profile_id": "storage-profile:r2:qa-migration-target",
+            "object_key": "file-migrations/f3ed382e-34b0-48a2-a583-b707b3661faa/be9e6a62-c70d-4a20-9a74-051f54abf468",
+            "verified_byte_size": 68,
+            "verified_sha256": "c2510d21015c1d76d437f7414653615b7f04d90ec357f03aedc8c89dd69bfab3"
+          },
+          "sourceOriginalRetained": true,
+          "activeBytesSha256": "c2510d21015c1d76d437f7414653615b7f04d90ec357f03aedc8c89dd69bfab3",
+          "foreignKeysValid": true,
+          "jobs": [
+            {
+              "id": "f3ed382e-34b0-48a2-a583-b707b3661faa",
+              "request_id": "da3d51ad-07ac-4d64-9045-ef006d9c5d85",
+              "actor": "migration-admin-b@browser-qualification.invalid",
+              "input_json": "{\"requestId\":\"da3d51ad-07ac-4d64-9045-ef006d9c5d85\",\"fileIds\":[\"8bc10127-8ee1-4d36-9ee1-0007b14b46a2\"],\"target\":{\"profileId\":\"storage-profile:r2:qa-migration-target\",\"configurationRevision\":1}}",
+              "state": "completed",
+              "accepted_at": "2026-10-18T19:43:54.668Z"
+            }
+          ]
+        },
+        {
+          "active": {
+            "file_id": "8bc10127-8ee1-4d36-9ee1-0007b14b46a2",
+            "active_location_id": "c6f86587-6aaa-4281-9e95-0e7127419fe4",
+            "storage_profile_id": "storage-profile:r2:bootstrap",
+            "object_key": "file-migrations/e7d372ce-0886-40c5-8f43-69f4af88585a/013505cf-7408-4c1c-9a5a-2a132228b40a",
+            "verified_byte_size": 68,
+            "verified_sha256": "c2510d21015c1d76d437f7414653615b7f04d90ec357f03aedc8c89dd69bfab3"
+          },
+          "sourceOriginalRetained": true,
+          "activeBytesSha256": "c2510d21015c1d76d437f7414653615b7f04d90ec357f03aedc8c89dd69bfab3",
+          "foreignKeysValid": true,
+          "jobs": [
+            {
+              "id": "f3ed382e-34b0-48a2-a583-b707b3661faa",
+              "request_id": "da3d51ad-07ac-4d64-9045-ef006d9c5d85",
+              "actor": "migration-admin-b@browser-qualification.invalid",
+              "input_json": "{\"requestId\":\"da3d51ad-07ac-4d64-9045-ef006d9c5d85\",\"fileIds\":[\"8bc10127-8ee1-4d36-9ee1-0007b14b46a2\"],\"target\":{\"profileId\":\"storage-profile:r2:qa-migration-target\",\"configurationRevision\":1}}",
+              "state": "completed",
+              "accepted_at": "2026-10-18T19:43:54.668Z"
+            },
+            {
+              "id": "e7d372ce-0886-40c5-8f43-69f4af88585a",
+              "request_id": "7fce8082-a3b4-4ae8-b802-713fc87ffe47",
+              "actor": "migration-admin-a@browser-qualification.invalid",
+              "input_json": "{\"requestId\":\"7fce8082-a3b4-4ae8-b802-713fc87ffe47\",\"fileIds\":[\"8bc10127-8ee1-4d36-9ee1-0007b14b46a2\"],\"target\":{\"profileId\":\"storage-profile:r2:bootstrap\",\"configurationRevision\":1}}",
+              "state": "completed",
+              "accepted_at": "2026-10-18T19:43:56.086Z"
+            }
+          ]
+        }
+      ],
+      "rejectedScreenshot": {
+        "geometry": {
+          "viewport": 1280,
+          "width": 1280,
+          "theme": "light"
+        },
+        "screenshot": "actual-409-awaiting-explicit-replan.png"
+      },
+      "result": {
+        "originalRejectedInput": {
+          "requestId": "8846a0a5-c434-4a1b-b471-5c71642829f1",
+          "fileIds": [
+            "8bc10127-8ee1-4d36-9ee1-0007b14b46a2"
+          ],
+          "target": {
+            "profileId": "storage-profile:r2:qa-migration-target",
+            "configurationRevision": 1
+          }
+        },
+        "otherAdministratorJobId": "f3ed382e-34b0-48a2-a583-b707b3661faa",
+        "rejectedRequestHasNoNativeJob": true,
+        "exactTypedAbsence": {
+          "schema": "file-migration-request-absent/1",
+          "requestId": "8846a0a5-c434-4a1b-b471-5c71642829f1"
+        },
+        "explicitReplanChecksOriginalAgain": true,
+        "rejectedCheckpointRetainedInHistory": true,
+        "newAcceptedReceipt": {
+          "requestId": "7fce8082-a3b4-4ae8-b802-713fc87ffe47",
+          "input": {
+            "requestId": "7fce8082-a3b4-4ae8-b802-713fc87ffe47",
+            "fileIds": [
+              "8bc10127-8ee1-4d36-9ee1-0007b14b46a2"
+            ],
+            "target": {
+              "profileId": "storage-profile:r2:bootstrap",
+              "configurationRevision": 1
+            }
+          },
+          "job": {
+            "id": "e7d372ce-0886-40c5-8f43-69f4af88585a",
+            "actor": "migration-admin-a@browser-qualification.invalid",
+            "state": "queued",
+            "target": {
+              "profileId": "storage-profile:r2:bootstrap",
+              "configurationRevision": 1
+            },
+            "acceptedAt": "2026-10-18T19:43:56.086Z",
+            "updatedAt": "2026-10-18T19:43:56.086Z",
+            "reason": null,
+            "moved": 0,
+            "remaining": 1,
+            "failed": 0,
+            "cleanupPending": 0
+          }
+        },
+        "staleSelectionAndDestinationCleared": true,
+        "keyboardFocusReturnedToDestinationThenAcceptedJobPause": true,
+        "actualForwardAndReverseMigrationCompleted": true,
+        "acceptancePosts": [
+          {
+            "method": "POST",
+            "path": "/api/files/migrations",
+            "status": 409,
+            "input": {
+              "requestId": "8846a0a5-c434-4a1b-b471-5c71642829f1",
+              "fileIds": [
+                "8bc10127-8ee1-4d36-9ee1-0007b14b46a2"
+              ],
+              "target": {
+                "profileId": "storage-profile:r2:qa-migration-target",
+                "configurationRevision": 1
+              }
+            }
+          },
+          {
+            "method": "POST",
+            "path": "/api/files/migrations",
+            "status": 202,
+            "input": {
+              "requestId": "7fce8082-a3b4-4ae8-b802-713fc87ffe47",
+              "fileIds": [
+                "8bc10127-8ee1-4d36-9ee1-0007b14b46a2"
+              ],
+              "target": {
+                "profileId": "storage-profile:r2:bootstrap",
+                "configurationRevision": 1
+              }
+            }
+          }
+        ]
+      },
+      "finalScreenshot": {
+        "geometry": {
+          "viewport": 1280,
+          "width": 1280,
+          "theme": "light"
+        },
+        "screenshot": "actual-original-request-reconciled.png"
+      },
+      "browserMutations": [
+        {
+          "method": "POST",
+          "path": "/api/files/migrations/plans",
+          "status": 200,
+          "input": {
+            "requestId": "9a07f8af-275d-4cf3-b709-bf72b76e17e8",
+            "fileIds": [
+              "8bc10127-8ee1-4d36-9ee1-0007b14b46a2"
+            ],
+            "target": {
+              "profileId": "storage-profile:r2:qa-migration-target",
+              "configurationRevision": 1
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/files/migrations",
+          "status": 409,
+          "input": {
+            "requestId": "8846a0a5-c434-4a1b-b471-5c71642829f1",
+            "fileIds": [
+              "8bc10127-8ee1-4d36-9ee1-0007b14b46a2"
+            ],
+            "target": {
+              "profileId": "storage-profile:r2:qa-migration-target",
+              "configurationRevision": 1
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/files/migrations/plans",
+          "status": 200,
+          "input": {
+            "requestId": "36cde9a3-6b91-4082-b317-033d504c8827",
+            "fileIds": [
+              "8bc10127-8ee1-4d36-9ee1-0007b14b46a2"
+            ],
+            "target": {
+              "profileId": "storage-profile:r2:bootstrap",
+              "configurationRevision": 1
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/files/migrations",
+          "status": 202,
+          "input": {
+            "requestId": "7fce8082-a3b4-4ae8-b802-713fc87ffe47",
+            "fileIds": [
+              "8bc10127-8ee1-4d36-9ee1-0007b14b46a2"
+            ],
+            "target": {
+              "profileId": "storage-profile:r2:bootstrap",
+              "configurationRevision": 1
+            }
+          }
+        }
+      ],
+      "expectedTransportConsole": [
+        {
+          "text": "Failed to load resource: the server responded with a status of 409 (Conflict)",
+          "path": "/api/files/migrations"
+        },
+        {
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "path": "/api/files/migrations/requests/8846a0a5-c434-4a1b-b471-5c71642829f1"
+        },
+        {
+          "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+          "path": "/api/files/migrations/requests/8846a0a5-c434-4a1b-b471-5c71642829f1"
+        }
+      ],
+      "runtimeClosed": true,
+      "finishedAt": "2026-10-18T19:43:56.799Z"
+    },
+    {
+      "name": "actual-lost-ack-390-dark",
+      "kind": "lost-ack",
+      "width": 390,
+      "theme": "dark",
+      "output": "/tmp/pr315-final-browser.k43Q2F/genuine-migration-intent/actual-lost-ack-390-dark",
+      "startedAt": "2026-10-18T19:43:56.800Z",
+      "status": "passed",
+      "build": {
+        "workerPath": "/workspace/scratch/96567b57746a/sample-fabrication-workflow/dist/sample_fabrication_workflow_local/index.js",
+        "workerSha256": "8280562bdf062272d77cdc41247327c0be3328e316d3224d4d6049678dbff751",
+        "clientDirectory": "/workspace/scratch/96567b57746a/sample-fabrication-workflow/dist/client"
+      },
+      "installationFixture": {
+        "helper": "prepare-file-migration-historical-r2-profiles.mjs",
+        "scope": "Exactly two historical R2 installation profile metadata rows plus original registration triggers; schema unchanged. All authority/profile enablement, File creation, migration acceptance and execution use actual public Worker APIs. No business File/job/result SQL fixture writes.",
+        "namespaces": {
+          "source": "{\"kind\":\"local-r2\",\"installationId\":\"98a80bf8-8499-4968-bd15-771104aaf2b4\",\"bucketName\":\"migration-source-f68e36ea-0185-499a-9301-2dc993365052\"}",
+          "target": "{\"kind\":\"local-r2\",\"installationId\":\"98a80bf8-8499-4968-bd15-771104aaf2b4\",\"bucketName\":\"migration-target-46c9f69b-d97d-4210-8eed-ede6b1ede5cf\"}"
+        },
+        "originalCatalogExact": true
+      },
+      "api": [
+        {
+          "method": "GET",
+          "path": "/api/storage/configuration/capability",
+          "identity": "admin",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/storage/configuration/capability",
+          "identity": "competitor",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/shadow/status",
+          "identity": "admin",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/files/shadow/enable",
+          "identity": "admin",
+          "status": 200,
+          "input": {
+            "requestId": "53a02661-4196-4d41-8e35-9bd521d7dfb5",
+            "expectedEpoch": 4,
+            "expectedIncarnation": null
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/files/shadow/profiles/enable",
+          "identity": "admin",
+          "status": 200,
+          "input": {
+            "profile": {
+              "profileId": "storage-profile:r2:bootstrap",
+              "configurationRevision": 1
+            },
+            "runtimeIncarnation": "53a02661-4196-4d41-8e35-9bd521d7dfb5",
+            "expectedEpoch": 4
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/files/shadow/profiles/enable",
+          "identity": "admin",
+          "status": 200,
+          "input": {
+            "profile": {
+              "profileId": "storage-profile:r2:qa-migration-target",
+              "configurationRevision": 1
+            },
+            "runtimeIncarnation": "53a02661-4196-4d41-8e35-9bd521d7dfb5",
+            "expectedEpoch": 5
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/files/shadow/disable",
+          "identity": "admin",
+          "status": 200,
+          "input": {
+            "runtimeIncarnation": "53a02661-4196-4d41-8e35-9bd521d7dfb5",
+            "expectedEpoch": 6
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/authority/status",
+          "identity": "admin",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/files/authority/activate",
+          "identity": "admin",
+          "status": 200,
+          "input": {
+            "requestId": "06058dd1-56d8-4c1d-ab8e-64b5982ff121",
+            "expectedEpoch": 6,
+            "expectedShadowIncarnation": "53a02661-4196-4d41-8e35-9bd521d7dfb5"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/project-assets",
+          "identity": "admin",
+          "status": 201
+        },
+        {
+          "method": "GET",
+          "path": "/api/assets/2026-10-18/cf1d6cb9-a320-40c1-9e97-24b8d8900aa2-genuine-migration-intent.png",
+          "identity": "admin",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/files/migrations/executor",
+          "identity": "admin",
+          "status": 200,
+          "input": {
+            "enabled": true
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/requests/283a9f8b-8a58-48f0-84e6-dd6a91639d48",
+          "identity": "admin",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/eb199983-daec-4a7c-8ba3-6dfb0ea0a73a",
+          "identity": "admin",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/eb199983-daec-4a7c-8ba3-6dfb0ea0a73a",
+          "identity": "admin",
+          "status": 200
+        }
+      ],
+      "schedule": [
+        {
+          "jobId": "eb199983-daec-4a7c-8ba3-6dfb0ea0a73a",
+          "step": 0,
+          "state": "queued",
+          "outcome": "ok"
+        }
+      ],
+      "edge": {
+        "requests": [
+          {
+            "method": "GET",
+            "path": "/settings/storage/migrations",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/index-CbWJohKl.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/rolldown-runtime-aKtaBQYM.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/index-GPLEXs7v.css",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/jsx-runtime-2Zwg-L3c.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/preload-helper-Czpn1I53.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/mime-type-DOlD23vX.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/authentication-client-D-4lEczZ.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/tiff-BvNwKutC.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/identity",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/FileMigrationsPage-BgDwPxE_.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/r2-upload-client-GltvVbq7.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/file-jobs-C0tfVY4K.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/api-BqmoJCSK.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/uuid-DrKv8t4f.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/comment-submissions-Bqj6LBog.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/ReadStatus-CdkuGsJ5.css",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/storage-configuration-client-1vHeUqtA.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/storage-profile-admission-DzG82ysI.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/storage-settings-DSsGX-ac.css",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/ReadStatus-6Jv3QtjP.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/storage/configuration/capability",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations/files",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/settings/storage",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations/executor",
+            "status": 200
+          },
+          {
+            "method": "POST",
+            "path": "/api/files/migrations/plans",
+            "status": 200,
+            "input": {
+              "requestId": "a84dbe4e-d126-42f4-9418-162515485cd5",
+              "fileIds": [
+                "91ba1ec6-1e1c-4cb9-bd64-bf2a23ed1473"
+              ],
+              "target": {
+                "profileId": "storage-profile:r2:qa-migration-target",
+                "configurationRevision": 1
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations/executor",
+            "status": 200
+          },
+          {
+            "method": "POST",
+            "path": "/api/files/migrations",
+            "status": 202,
+            "input": {
+              "requestId": "283a9f8b-8a58-48f0-84e6-dd6a91639d48",
+              "fileIds": [
+                "91ba1ec6-1e1c-4cb9-bd64-bf2a23ed1473"
+              ],
+              "target": {
+                "profileId": "storage-profile:r2:qa-migration-target",
+                "configurationRevision": 1
+              }
+            }
+          },
+          {
+            "method": "GET",
+            "path": "/api/identity",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/settings/storage/migrations",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/index-CbWJohKl.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/authentication-client-D-4lEczZ.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/index-GPLEXs7v.css",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/rolldown-runtime-aKtaBQYM.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/jsx-runtime-2Zwg-L3c.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/preload-helper-Czpn1I53.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/mime-type-DOlD23vX.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/tiff-BvNwKutC.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/identity",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/FileMigrationsPage-BgDwPxE_.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/api-BqmoJCSK.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/uuid-DrKv8t4f.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/comment-submissions-Bqj6LBog.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/file-jobs-C0tfVY4K.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/r2-upload-client-GltvVbq7.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/ReadStatus-CdkuGsJ5.css",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/storage-settings-DSsGX-ac.css",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/ReadStatus-6Jv3QtjP.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/storage-profile-admission-DzG82ysI.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/assets/storage-configuration-client-1vHeUqtA.js",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/storage/configuration/capability",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations/requests/283a9f8b-8a58-48f0-84e6-dd6a91639d48",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/settings/storage",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations/files",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations/executor",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/identity",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/identity",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations/files",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/settings/storage",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations",
+            "status": 200
+          },
+          {
+            "method": "GET",
+            "path": "/api/files/migrations/executor",
+            "status": 200
+          }
+        ],
+        "errors": [],
+        "lostAcknowledgements": [
+          {
+            "requestId": "283a9f8b-8a58-48f0-84e6-dd6a91639d48",
+            "jobId": "eb199983-daec-4a7c-8ba3-6dfb0ea0a73a",
+            "status": 202,
+            "actualAckSha256": "ad6c73c72edb4f0f5eb259d7bb6322dc6d946183113e2f02ac9eeb322fe0351b",
+            "fault": "Actual Worker committed202 ACK body deliberately truncated after response headers; no API response substitution or acceptance retry."
+          }
+        ]
+      },
+      "migrations": [
+        "0001_v3_baseline.sql",
+        "0002_fp1_file_registry.sql",
+        "0003_fp1_import_acceptance.sql",
+        "0004_r2_upload_acceptance.sql",
+        "0005_metrology_reference_acceptance.sql",
+        "0006_comment_acceptance.sql",
+        "0007_fp1_file_authority_transition.sql",
+        "0008_fp1_shadow_runtime.sql",
+        "0009_fp1_shadow_withdrawals.sql",
+        "0010_fp1_shadow_adjudications.sql",
+        "0011_fp1_retire_legacy_test_projects.sql",
+        "0012_fp1_file_authority_runtime.sql",
+        "0013_fp1_r2_role_defaults.sql",
+        "0014_fp2_storage_configuration.sql",
+        "0015_fp2_storage_candidate_checks.sql",
+        "0016_fp2_credential_reenvelopes.sql",
+        "0017_fp2_native_storage_profiles.sql",
+        "0018_fp2_native_file_runtime.sql",
+        "0019_fp3_file_jobs.sql",
+        "0020_fp4_research_packages.sql",
+        "0021_fp5_system_recovery.sql",
+        "0022_fp5_recovery_evidence.sql",
+        "0023_portable_local_identity.sql",
+        "0024_rt3_local_volume_profiles.sql"
+      ],
+      "sourceFile": {
+        "file_id": "91ba1ec6-1e1c-4cb9-bd64-bf2a23ed1473",
+        "active_location_id": "e8b4b19a-f184-4112-bebe-404bd5fc63a2",
+        "storage_profile_id": "storage-profile:r2:bootstrap",
+        "object_key": "2026-10-18/cf1d6cb9-a320-40c1-9e97-24b8d8900aa2-genuine-migration-intent.png",
+        "verified_byte_size": 68,
+        "verified_sha256": "c2510d21015c1d76d437f7414653615b7f04d90ec357f03aedc8c89dd69bfab3",
+        "assetId": "cf1d6cb9-a320-40c1-9e97-24b8d8900aa2",
+        "sourceProfileId": "storage-profile:r2:bootstrap",
+        "targetProfileId": "storage-profile:r2:qa-migration-target",
+        "byteSize": 68,
+        "sha256": "c2510d21015c1d76d437f7414653615b7f04d90ec357f03aedc8c89dd69bfab3",
+        "setup": "Genuine signed HTTP authority/profile activation and project PNG upload, original publication plus exact native source R2 readback."
+      },
+      "browserApi": [
+        {
+          "method": "GET",
+          "path": "/api/identity",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/storage/configuration/capability",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/files",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/settings/storage",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/executor",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/files/migrations/plans",
+          "status": 200,
+          "input": {
+            "requestId": "a84dbe4e-d126-42f4-9418-162515485cd5",
+            "fileIds": [
+              "91ba1ec6-1e1c-4cb9-bd64-bf2a23ed1473"
+            ],
+            "target": {
+              "profileId": "storage-profile:r2:qa-migration-target",
+              "configurationRevision": 1
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/executor",
+          "status": 200
+        },
+        {
+          "method": "POST",
+          "path": "/api/files/migrations",
+          "status": 202,
+          "input": {
+            "requestId": "283a9f8b-8a58-48f0-84e6-dd6a91639d48",
+            "fileIds": [
+              "91ba1ec6-1e1c-4cb9-bd64-bf2a23ed1473"
+            ],
+            "target": {
+              "profileId": "storage-profile:r2:qa-migration-target",
+              "configurationRevision": 1
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/identity",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/identity",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/storage/configuration/capability",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/requests/283a9f8b-8a58-48f0-84e6-dd6a91639d48",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/settings/storage",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/files",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/executor",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/identity",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/identity",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/files",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/settings/storage",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations",
+          "status": 200
+        },
+        {
+          "method": "GET",
+          "path": "/api/files/migrations/executor",
+          "status": 200
+        }
+      ],
+      "consoleErrors": [
+        {
+          "text": "Failed to load resource: net::ERR_CONTENT_LENGTH_MISMATCH",
+          "path": "/api/files/migrations"
+        }
+      ],
+      "pageErrors": [],
+      "pendingScreenshot": {
+        "geometry": {
+          "viewport": 390,
+          "width": 390,
+          "theme": "dark"
+        },
+        "screenshot": "actual-committed-ack-lost.png"
+      },
+      "nativeReadbacks": [
+        {
+          "active": {
+            "file_id": "91ba1ec6-1e1c-4cb9-bd64-bf2a23ed1473",
+            "active_location_id": "e4eecae5-88f5-40f0-b677-4dda16eff05a",
+            "storage_profile_id": "storage-profile:r2:qa-migration-target",
+            "object_key": "file-migrations/eb199983-daec-4a7c-8ba3-6dfb0ea0a73a/d0b88b94-4ebc-4ea0-b072-21f60c752948",
+            "verified_byte_size": 68,
+            "verified_sha256": "c2510d21015c1d76d437f7414653615b7f04d90ec357f03aedc8c89dd69bfab3"
+          },
+          "sourceOriginalRetained": true,
+          "activeBytesSha256": "c2510d21015c1d76d437f7414653615b7f04d90ec357f03aedc8c89dd69bfab3",
+          "foreignKeysValid": true,
+          "jobs": [
+            {
+              "id": "eb199983-daec-4a7c-8ba3-6dfb0ea0a73a",
+              "request_id": "283a9f8b-8a58-48f0-84e6-dd6a91639d48",
+              "actor": "migration-admin-a@browser-qualification.invalid",
+              "input_json": "{\"requestId\":\"283a9f8b-8a58-48f0-84e6-dd6a91639d48\",\"fileIds\":[\"91ba1ec6-1e1c-4cb9-bd64-bf2a23ed1473\"],\"target\":{\"profileId\":\"storage-profile:r2:qa-migration-target\",\"configurationRevision\":1}}",
+              "state": "completed",
+              "accepted_at": "2026-10-18T19:44:18.776Z"
+            }
+          ]
+        }
+      ],
+      "result": {
+        "originalInput": {
+          "requestId": "283a9f8b-8a58-48f0-84e6-dd6a91639d48",
+          "fileIds": [
+            "91ba1ec6-1e1c-4cb9-bd64-bf2a23ed1473"
+          ],
+          "target": {
+            "profileId": "storage-profile:r2:qa-migration-target",
+            "configurationRevision": 1
+          }
+        },
+        "originalReceipt": {
+          "requestId": "283a9f8b-8a58-48f0-84e6-dd6a91639d48",
+          "input": {
+            "requestId": "283a9f8b-8a58-48f0-84e6-dd6a91639d48",
+            "fileIds": [
+              "91ba1ec6-1e1c-4cb9-bd64-bf2a23ed1473"
+            ],
+            "target": {
+              "profileId": "storage-profile:r2:qa-migration-target",
+              "configurationRevision": 1
+            }
+          },
+          "job": {
+            "id": "eb199983-daec-4a7c-8ba3-6dfb0ea0a73a",
+            "actor": "migration-admin-a@browser-qualification.invalid",
+            "state": "queued",
+            "target": {
+              "profileId": "storage-profile:r2:qa-migration-target",
+              "configurationRevision": 1
+            },
+            "acceptedAt": "2026-10-18T19:44:18.776Z",
+            "updatedAt": "2026-10-18T19:44:18.776Z",
+            "reason": null,
+            "moved": 0,
+            "remaining": 1,
+            "failed": 0,
+            "cleanupPending": 0
+          }
+        },
+        "lostAckNativeCommitBeforeFault": true,
+        "pendingPreservedUntilExactReceipt": true,
+        "unknownAckNeverOfferedReplan": true,
+        "reloadOnlyReconcilesByGet": true,
+        "originalJobAndAcceptedAtUnchanged": true,
+        "originalCheckpointRetainedInHistory": true,
+        "acceptancePosts": [
+          {
+            "method": "POST",
+            "path": "/api/files/migrations",
+            "status": 202,
+            "input": {
+              "requestId": "283a9f8b-8a58-48f0-84e6-dd6a91639d48",
+              "fileIds": [
+                "91ba1ec6-1e1c-4cb9-bd64-bf2a23ed1473"
+              ],
+              "target": {
+                "profileId": "storage-profile:r2:qa-migration-target",
+                "configurationRevision": 1
+              }
+            }
+          }
+        ],
+        "actualMigrationCompleted": true
+      },
+      "finalScreenshot": {
+        "geometry": {
+          "viewport": 390,
+          "width": 390,
+          "theme": "dark"
+        },
+        "screenshot": "actual-original-request-reconciled.png"
+      },
+      "browserMutations": [
+        {
+          "method": "POST",
+          "path": "/api/files/migrations/plans",
+          "status": 200,
+          "input": {
+            "requestId": "a84dbe4e-d126-42f4-9418-162515485cd5",
+            "fileIds": [
+              "91ba1ec6-1e1c-4cb9-bd64-bf2a23ed1473"
+            ],
+            "target": {
+              "profileId": "storage-profile:r2:qa-migration-target",
+              "configurationRevision": 1
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/files/migrations",
+          "status": 202,
+          "input": {
+            "requestId": "283a9f8b-8a58-48f0-84e6-dd6a91639d48",
+            "fileIds": [
+              "91ba1ec6-1e1c-4cb9-bd64-bf2a23ed1473"
+            ],
+            "target": {
+              "profileId": "storage-profile:r2:qa-migration-target",
+              "configurationRevision": 1
+            }
+          }
+        }
+      ],
+      "expectedTransportConsole": [
+        {
+          "text": "Failed to load resource: net::ERR_CONTENT_LENGTH_MISMATCH",
+          "path": "/api/files/migrations"
+        }
+      ],
+      "runtimeClosed": true,
+      "finishedAt": "2026-10-18T19:44:20.687Z"
+    }
+  ],
+  "scope": "Two genuine local current24 Worker Chromium File migration intent cases: actual other-administrator completed migration causes409+exact404 then explicit replan; actual committed202 ACK lost by transport then exactGET recovery without a secondPOST. Two historical R2 installation-profile metadata fixtures, actual public File/authority/job creation and native D1/two-R2 bytes. Manually issued actual scheduled events; no elapsed cadence, provider, production, Node SPA or deployment qualification.",
+  "chromiumVersion": "143.0.7499.0",
+  "browserClosed": true,
+  "finishedAt": "2026-10-18T19:44:20.758Z"
+}

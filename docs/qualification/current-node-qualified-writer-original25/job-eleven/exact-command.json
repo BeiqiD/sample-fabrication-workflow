@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "node-job-http-request.vitest.config.mts",
+    "--reporter=verbose",
+    "--reporter=json",
+    "--outputFile.json=/workspace/current-a5-qualified-writer-job-eleven-owned-actual-attempt1/actual-native.json"
+  ],
+  "status": "RESERVED_BEFORE_EFFECTS"
+}

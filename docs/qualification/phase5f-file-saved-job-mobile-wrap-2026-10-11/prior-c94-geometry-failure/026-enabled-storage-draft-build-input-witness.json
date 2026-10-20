@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "command": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "actualExitCode": 0,
+  "directChildReaped": true,
+  "sourceHead": "02d6dfbe5f2bd98847b3d6f509c219de5ad816ad",
+  "sourceTree": "40f4a540901e7c49d28184bb8b27a1f808b4f6b8",
+  "sourceRoot": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+  "sourceCopyRoot": "/workspace/coherent-file-saved-mobile02-private-attempt1/copy",
+  "trackedInputInventorySha256": "62bea4513580d159caed2dd310b80e4ccbc142ec83af9f60717bf6b76b0ab6b9",
+  "workerSha256": "26d75209824e8f1e812248b5628354616e69aac604e65bcb357dcb286313eedd",
+  "activeBuildConfigSha256": "c65952f773651e929f201f531fef984b41f6ffc21ec371172d4078707f37a918",
+  "copiedArtifactInventorySha256": "458eea4e8d79c18b42de5e19adef52a37dca144f5dbb436235bd5ebb785d2c42",
+  "originalCommandReceiptSha256": "ae558f4ec6af56dd6d4632f02da485eb0a51b8b613abc21ea7c88f4b02581c65",
+  "originalBuildLogSha256": "00969b5ce2f703a4a293d4f854e0a391800e5dd15f50623d281e851e4cf75f89",
+  "freshDistFileCount": 118,
+  "copiedArtifactFileCount": 121,
+  "scope": "Actual current coherent02d ONECF118 source2726/QA2732 all2726 ordinary bytes exact plus6 owned desktop/mobileQA. Independent new pure24/sentinels beforeAPI; no historicala7 artifacts/pausedjobs borrowed, no additionalbuild/84seed/old63permits or seedWorker lifecycle."
+}

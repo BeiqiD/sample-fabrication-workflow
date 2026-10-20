@@ -1,0 +1,48 @@
+{
+  "status": "SOURCE_ONLY_EXACT_DECLARED_RETARGET_UNRUN",
+  "basis": {
+    "path": "/workspace/current-cli-four-and-seventeen-finite-source-preparation-attempt1/current-seven-stage-mature-owned-runner-attempt3.py",
+    "sha256": "3355d75dda9cf81e5ded43a8f7e8fe7d9240b220ce1bcbf9139725f8f33e5a1b"
+  },
+  "wholeRunnerInverseExact": true,
+  "allMainNestedOwnerFunctionsAstExact": true,
+  "runnerChanges": [
+    "one documentation source label",
+    "INPUTS path",
+    "INPUTS SHA256"
+  ],
+  "currentOriginalSourcePlanOutsideExecutableStatusAndTwoPeerRefsExact": true,
+  "sourceCount": 2794,
+  "actualCompiler331CurrentInputsRehashed": true,
+  "allSevenStageCountsAndBudgetsExact": true,
+  "firstFailureStopOriginalSignalDeferralCachedCloseWaitFinallyPreserved": true,
+  "fixtureSetupEffects": "Only three new private0700 empty directories under finite folder; no installation/Native/profile/provider or SQLite construction",
+  "observedAvailableBytes": 661815296,
+  "privateDirectories": [
+    {
+      "path": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/finite-current-original-seven-stage-seventeen-peerbound-attempt1/private-temp",
+      "dev": 27,
+      "ino": 1958080,
+      "uid": 1000,
+      "mode": 448
+    },
+    {
+      "path": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/finite-current-original-seven-stage-seventeen-peerbound-attempt1/private-fixtures",
+      "dev": 27,
+      "ino": 1958081,
+      "uid": 1000,
+      "mode": 448
+    },
+    {
+      "path": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/finite-current-original-seven-stage-seventeen-peerbound-attempt1/private-job-fixtures",
+      "dev": 27,
+      "ino": 1958082,
+      "uid": 1000,
+      "mode": 448
+    }
+  ],
+  "rootSlashUid": 65534,
+  "actualProcessUid": 1000,
+  "cases": "17_ALL_FRESH_UNRUN",
+  "oldArtifactRetag": false
+}

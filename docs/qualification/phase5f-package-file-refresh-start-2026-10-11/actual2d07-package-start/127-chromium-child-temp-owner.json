@@ -1,0 +1,14 @@
+{
+  "path": "/workspace/.pkst2",
+  "mode": "0700",
+  "uid": 1000,
+  "dev": "27",
+  "ino": "1874159",
+  "freshCreated": true,
+  "sourceHead": "2d07b57c4e79403099261528ae8988c0072d28c6",
+  "sourceCopyRoot": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/copy",
+  "fixtureDirectory": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/fixture",
+  "qaHelperSha256": "e5086d1524d47eee1643ee7108b385f9bb9b6e780d2525d90b8c056319bd3c3e",
+  "freeBytes": "619331584",
+  "scope": "Original Chromiumchildonly temporary leaf; parent TMPDIR/COPY/FIXTURE ownership unchanged."
+}

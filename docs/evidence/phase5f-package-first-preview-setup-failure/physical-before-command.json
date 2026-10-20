@@ -1,0 +1,33 @@
+{
+  "stage": "physical-before",
+  "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+  "argv": [
+    "python3",
+    "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10/scripts/qa/phase5f/check-isolated-state.py",
+    "--source-copy",
+    "/tmp/phase5f-package-two-genuine-preview-copy-attempt1",
+    "--fixture-directory",
+    "/tmp/phase5f-package-two-genuine-preview-fixture-attempt1",
+    "--stage",
+    "before-api"
+  ],
+  "startedAt": "2026-10-11T03:40:53.628459+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/physical-before.log",
+  "pid": 686895,
+  "processGroup": 686895,
+  "originalStartTicks": "10331439",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T03:40:54.208113+00:00",
+  "logSha256": "ffbba7660afd18f1f2347e741792b69f4218e3803cbab70b6969b1d0d7e25a20"
+}

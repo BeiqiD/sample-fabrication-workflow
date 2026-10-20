@@ -1,0 +1,278 @@
+{
+  "kind": "independent-file-mobile-original-ten-finite-source-review/1",
+  "status": "SOURCE_BLOCKED_INHERITED_FIVE_FIRST_ERROR_CUSTODY_SITES_BINDINGS_AND_WHOLE_INVERSES_CLEAR",
+  "reviewedAt": "2026-10-11T19:19:16.833897+00:00",
+  "handoff": {
+    "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-native-finite-source-preparation-attempt2/source-handoff.json",
+    "sha256": "b683c9c89388ae43428bd236ec6b6474f17053b278e5a0c5323e80ebb33592d3"
+  },
+  "finitePlan": {
+    "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-native-finite-source-preparation-attempt2/finite-current-coherent-native-ten-plan.json",
+    "sha256": "d9c4865b28626b88eb990b188480a7ed9ced0947764583a4042d9b447f2217a9"
+  },
+  "runner": {
+    "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-native-finite-source-preparation-attempt2/run-frozen-owned-stage.py",
+    "sha256": "a2de84b002d6f1fcab942d856d48255b2ef115fc4939b26de4babf35135df162"
+  },
+  "carrier": {
+    "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-native-finite-source-preparation-attempt2/carry-current-coherent-saved-job.py",
+    "sha256": "82eb74e5bd1625c3b0580395d541958961fef1c040a7f52232bcfb2869977fab"
+  },
+  "wholeOwnerInverses": {
+    "runner": {
+      "completeForwardBytesExact": true,
+      "completeInverseBytesExact": true,
+      "bindingSplices": 5,
+      "allOriginalDefinitionRawASTExact": [
+        "RunnerInterrupted",
+        "active_members",
+        "close_and_reap",
+        "close_owned_group",
+        "group_members",
+        "interrupt_handler",
+        "run_owned",
+        "sha",
+        "utc",
+        "verify_source",
+        "write"
+      ]
+    },
+    "carrier": {
+      "completeForwardBytesExact": true,
+      "completeInverseBytesExact": true,
+      "bindingSplices": 18,
+      "allOriginalDefinitionRawASTExact": [
+        "digest",
+        "saved",
+        "sha"
+      ]
+    }
+  },
+  "wholeTwoQaInverses": {
+    "scripts/qa/phase5f/browser-current-coherent-local-r2-file-saved-job-keyboard-mobile.mjs": {
+      "originalHead": "c94b07c390af5fe34c0f8a25750bfcf44be872b1",
+      "originalSha256": "167b2641fdaf422c9be92134124f1d6393d50d26a7b3e6bb63d46bdec4a490fd",
+      "currentSha256": "8c286dffd1611369b9d881bf34ad63efe826a082e759147c0e09dcb8cca3301a",
+      "onlyProducerAndFreshChildTempBindings": [
+        [
+          "02d6dfbe5f2bd98847b3d6f509c219de5ad816ad",
+          "5e65f4d0355f375ca7fe949b8de15082c043c19a"
+        ],
+        [
+          "/workspace/.sfmj1",
+          "/workspace/.sfmj2"
+        ]
+      ],
+      "completeForwardBytesExact": true,
+      "completeInverseBytesExact": true,
+      "completeOriginalOwnerBodyAndRequestsAssertionsBudgetsOtherwiseExact": true
+    },
+    "scripts/qa/phase5f/check-current-coherent-saved-job-mobile-physical-state.py": {
+      "originalHead": "c94b07c390af5fe34c0f8a25750bfcf44be872b1",
+      "originalSha256": "a8eef502d35b2b439f2d02767e6fca08b2158e0cf681ddbd7b1d8d06c290cab3",
+      "currentSha256": "92772d9505d300a49cea7dbede3fee26adcf682dfc3d0321a2781a9793ed342c",
+      "onlyProducerAndFreshChildTempBindings": [
+        [
+          "02d6dfbe5f2bd98847b3d6f509c219de5ad816ad",
+          "5e65f4d0355f375ca7fe949b8de15082c043c19a"
+        ]
+      ],
+      "completeForwardBytesExact": true,
+      "completeInverseBytesExact": true,
+      "completeOriginalOwnerBodyAndRequestsAssertionsBudgetsOtherwiseExact": true
+    }
+  },
+  "physicalSourceAndBuild": {
+    "producer": {
+      "root": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source",
+      "head": "5e65f4d0355f375ca7fe949b8de15082c043c19a",
+      "tree": "4df8f0e910ef1fa085c1a74bad3b402cd266f73d",
+      "count": 2726,
+      "actualManifest": {
+        "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/fresh-build-artifact-manifest.json",
+        "sha256": "09e3b5b80cea5e001a6c98323611f2b212325b931085f1f0d1af0d0ac992781d",
+        "actualFiles": 118
+      },
+      "actualFormal": {
+        "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/actual-one-current5e-file-mobile-wrap-cf-build-qualified-closed-release.json",
+        "sha256": "c85c13e7ebb479b90e1e71e068c5ddb0a5481080438ee2782a58f673ff845727"
+      }
+    },
+    "consumer": {
+      "root": "/tmp/phase5f-file-saved-mobile-layout-wrap-qa-private-attempt1/source",
+      "head": "9fc2ad8e9e07980b515fbb794b0f80a9f42dd2fd",
+      "tree": "36a0410e6d9f5935961111ae8138bf0f6c004608",
+      "count": 2728,
+      "ordinary2726Exact": true,
+      "twoQa": {
+        "scripts/qa/phase5f/browser-current-coherent-local-r2-file-saved-job-keyboard-mobile.mjs": "8c286dffd1611369b9d881bf34ad63efe826a082e759147c0e09dcb8cca3301a",
+        "scripts/qa/phase5f/check-current-coherent-saved-job-mobile-physical-state.py": "92772d9505d300a49cea7dbede3fee26adcf682dfc3d0321a2781a9793ed342c"
+      },
+      "handoff": {
+        "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-qa-source-preparation-attempt1/source-handoff.json",
+        "sha256": "a7983449da3af2aacebca1dd4c76755bb22a9205c970b00b7fe1df51279ad468"
+      }
+    },
+    "bothGitHeadTreeAndEveryPhysicalModeBlobSHAExact": true,
+    "all2726OrdinaryConsumerAndProducerBytesAndModesExact": true,
+    "onlyTwoAdditionalQaLeaves": {
+      "scripts/qa/phase5f/browser-current-coherent-local-r2-file-saved-job-keyboard-mobile.mjs": "8c286dffd1611369b9d881bf34ad63efe826a082e759147c0e09dcb8cca3301a",
+      "scripts/qa/phase5f/check-current-coherent-saved-job-mobile-physical-state.py": "92772d9505d300a49cea7dbede3fee26adcf682dfc3d0321a2781a9793ed342c"
+    },
+    "CSSonlyDeltaFrom02d": {
+      "path": "src/pages/storage-settings.css",
+      "onlyExactOneScopedWrappingRuleAdded": true,
+      "all2725OtherInputsExact": true
+    },
+    "actualBuildManifest118FullRehashed": true,
+    "actualBuildCommandExit0SameWaitReapedNoOwnedSignals": true,
+    "retainedKernelZFDPermissionHonestScope": true,
+    "rootFullBuildRelease": {
+      "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/root-one-fresh5e-cf-build-full-source-raw-original-owner-kernel-read-release.json",
+      "sha256": "9b026c2dd891990279ca6b6f716eff86fbb52f4ea87cc3dc1c357b671245fb03"
+    }
+  },
+  "originalTenUnchanged": {
+    "stageIds": [
+      "qualified-current02d-coherent-build-producer-preflight",
+      "isolated-copy",
+      "fresh-two-version-sentinel",
+      "ordinary-actual24-local-migrations",
+      "synthetic-template-sentinels-only",
+      "physical-before",
+      "current-source-build-and-pure24-witness",
+      "original-one-current-file-saved-job-keyboard",
+      "physical-after",
+      "final-source-artifact-input-pins"
+    ],
+    "expectedCommandCount": 10,
+    "cases": [
+      "current-coherent-file-saved-job-keyboard-390-dark"
+    ],
+    "budgets": {
+      "nativeOperationBodyAndReadinessMs": 20000,
+      "originalTTYSupervisionMs": 120000,
+      "supervisionProgressEveryMs": 20000,
+      "bodyMaximumExclusiveBytes": 131072,
+      "overflowPx": 2
+    },
+    "maxSetupPOSTs": 6,
+    "maxNativePOSTs": 5,
+    "maxTotalPOSTs": 11,
+    "readerGETs": 2,
+    "mutations": [
+      "Preview200",
+      "accept202",
+      "Pause200",
+      "Resume200",
+      "Cancel200"
+    ],
+    "freshGeneration3FinalCancelledOneJobOneItemOneHoldAndFiveReleasedPermits": true,
+    "zeroExecutorProviderCopyGcZipSampleWrites": true,
+    "allOriginalRouteBodyBackendDtoHashFocusAndOverflowAssertionsExact": true,
+    "cachedOriginalContextAndBrowserFirstCloseCallsNotRetried": true,
+    "mandatoryPhysicalAfterAndFinalPinsRemainEvenOnNativeFailure": true,
+    "historicalAcceptedRowsAndGeometryFailureNotReopened": true
+  },
+  "privateTmpAndPhysicalScope": {
+    "freshParentAndRuntimeSourcePreparationIdentities": [
+      {
+        "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-native-private-attempt2",
+        "mode": "0700",
+        "uid": 1000,
+        "dev": "34",
+        "ino": "1971331"
+      },
+      {
+        "path": "/tmp/phase5f-file-saved-mobile-layout-wrap-native-private-attempt2/runtime",
+        "mode": "0700",
+        "uid": 1000,
+        "dev": "34",
+        "ino": "1971332"
+      }
+    ],
+    "runtimeOnlyFrozenPlanNoActualCommands": true,
+    "copyFixtureShortChildTempAbsent": [
+      "/tmp/phase5f-file-saved-mobile-layout-wrap-native-private-attempt2/copy",
+      "/tmp/phase5f-file-saved-mobile-layout-wrap-native-private-attempt2/fixture",
+      "/workspace/.sfmj2"
+    ],
+    "allTenTMPDIRAndSQLITE_TMPDIRPointToFreshPrivateParent": true,
+    "nativeTTYRequiredBeforeOwners": true,
+    "chromiumOnlyWorkspaceShortTemp": "/workspace/.sfmj2",
+    "originalIsolatedCopyOnly2726TrackedAnd118ActualArtifactsPlus3OriginalBuildConfigLeaves": true,
+    "noExistingDatabaseStateCredentialsGitOrDependenciesCopied": true,
+    "singlePinnedExistingDependencyAliasOnly": true,
+    "physicalReaderUsesFreshPrivateSQLiteWalShmCopiesModeRoQueryOnlyAfterOriginalChildAndPortsAndDescriptors": true,
+    "inaccessibleFdObservationsRemainHonestNotGlobalAbsence": true
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "line": 134,
+      "site": "enabled original element handle wait and finally dispose",
+      "finding": "If original wait or settled-handle disposal rejects and original element disposal also rejects, finally replaces the first work error. The same once-owned handles and original wait must remain; retain ordered work/dispose outcomes without retry."
+    },
+    {
+      "id": "F2",
+      "line": 220,
+      "site": "original action focus handle wait/assertions and finally dispose",
+      "finding": "Original focus wait/assertion failure is replaced by simultaneous original target disposal rejection. Preserve the original 20 s remaining-action calculation and predicates while retaining both original errors."
+    },
+    {
+      "id": "F3",
+      "line": 83,
+      "site": "cached original contexts close then cached original Browser close",
+      "finding": "finally Browser rejection replaces the prior context-close rejection. This finite helper has at most one context, so no multi-context early-rejection claim is made. Keep cached original closes, await settlement, and report ordered context then Browser errors."
+    },
+    {
+      "id": "F4",
+      "line": 79,
+      "site": "failure formatter",
+      "finding": "Direct error.stack/error.message accesses can throw for null/undefined or accessors, replacing original reporting; Aggregate stack alone loses constituent work/close outcomes. Reuse the separately reviewed bounded nonthrowing redacted descriptor formatter without interpreting Proxy traps as side-effect-free."
+    },
+    {
+      "id": "F5",
+      "line": 255,
+      "site": "outer failure catch optional fixture report read",
+      "finding": "Even after a nonthrowing formatter correction, direct error.fixtureReport throws a replacement TypeError for null/undefined. Use guarded own-data-descriptor observation without accessor evaluation; catch descriptor trap failure, retain original failure status and continue original mandatory closure. Latest Refresh43dd retains the same inherited site; its prior narrow four-site/descriptor peers do not attest this catch."
+    }
+  ],
+  "scope": "Narrow new5e producer/9fc consumer/fresh namespace/budget bindings are clear. All five custody findings are inherited byte-identically; successful case bodies, actions, timing and historical results remain intact. They contradict the proposed blanket original-first-error-retention claim and need distinct QA-only correction source before this finite hand is execution-ready. No changes or invocation by reviewer.",
+  "limits": "SOURCE ONLY. No candidate import, JS/Python candidate execution, compiler, build, browser, SQL, migrations, fixture generation, signal, copy, dependency materialization or runtime start. Existing actual build evidence read and rehashed only. 10 are planned commands, not fresh actual commands. Source cannot prove future Native firstACK or owner quiescence.",
+  "effects": {
+    "candidateImport": 0,
+    "Native": 0,
+    "browser": 0,
+    "compiler": 0,
+    "build": 0,
+    "SQL": 0,
+    "copy": 0,
+    "signals": 0,
+    "materialization": 0
+  },
+  "verifiedIndependentReferencePins": {
+    "/tmp/phase5f-file-saved-mobile-layout-wrap-native-finite-source-preparation-attempt2/source-handoff.json": "b683c9c89388ae43428bd236ec6b6474f17053b278e5a0c5323e80ebb33592d3",
+    "/tmp/phase5f-file-saved-mobile-layout-wrap-native-finite-source-preparation-attempt2/finite-current-coherent-native-ten-plan.json": "d9c4865b28626b88eb990b188480a7ed9ced0947764583a4042d9b447f2217a9",
+    "/tmp/phase5f-file-saved-mobile-layout-wrap-native-finite-source-preparation-attempt2/run-frozen-owned-stage.py": "a2de84b002d6f1fcab942d856d48255b2ef115fc4939b26de4babf35135df162",
+    "/tmp/phase5f-file-saved-mobile-layout-wrap-native-finite-source-preparation-attempt2/carry-current-coherent-saved-job.py": "82eb74e5bd1625c3b0580395d541958961fef1c040a7f52232bcfb2869977fab",
+    "/workspace/phase5f-coherent-saved-package-mobile-native-finite-source-preparation-attempt1/file/finite-current-coherent-native-ten-plan.json": "ea7df2a96dcd51d4373358b8edaa8945eb5b0c7baf398df8b7ac1dd4f9e22fa8",
+    "/workspace/phase5f-coherent-saved-package-mobile-native-finite-source-preparation-attempt1/file/run-frozen-owned-stage.py": "f206a969535a4bfbc79bef5d205263e465a08c2cf4ebd5c4d0268e49a193aebe",
+    "/workspace/phase5f-coherent-saved-package-mobile-native-finite-source-preparation-attempt1/file/carry-current-coherent-saved-job.py": "6ec0d9f40b8dc13d530015f9aa71052e36ce43b76f6f1aaa161175602ed31538",
+    "/tmp/phase5f-file-saved-mobile-layout-wrap-qa-source-preparation-attempt1/source-handoff.json": "a7983449da3af2aacebca1dd4c76755bb22a9205c970b00b7fe1df51279ad468",
+    "/tmp/phase5f-file-saved-mobile-layout-wrap-qa-source-preparation-attempt1/two-qa-closed-producer-and-fresh-temp-binding.patch": "9690c348e627df24b919f21023aba3ac32a15fd668f229927fcd0250d9eb28d8",
+    "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/actual-one-current5e-file-mobile-wrap-cf-build-qualified-closed-release.json": "c85c13e7ebb479b90e1e71e068c5ddb0a5481080438ee2782a58f673ff845727",
+    "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/fresh-build-artifact-manifest.json": "09e3b5b80cea5e001a6c98323611f2b212325b931085f1f0d1af0d0ac992781d",
+    "/workspace/phase5f-saved-package-typed-role-name-first-two-runtime-attempt2/actual-current02d-app-strict-and-whole-package34-qualified-closed-release.json": "9100d8754ab1601919a2ad5b485ba9b4c9a98cf0df600810b11f4c5de9de1726",
+    "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/one-fresh-final-QA-source-build-command.json": "860a3f0c63ac38a7e162246f466ef4ef906e16d9aef0b56fc570fa9cd83d763e",
+    "/workspace/file-saved-job-keyboard-current-a7-private-attempt1/runtime-native-attempt2/actual-saved-job-native-three-failure-closed-release.json": "834a77b96deb44ebb149b0ba45c970176fe21dfda3bcec39cf22128e6abc9fc6",
+    "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/actual-current02d-c94b-file-mobile-original-ten-first-geometry-failure-closed-release.json": "cc42b1d03715fdc295478237bce7552ae96706f9ffd52045abc29caaafd37fb2",
+    "/tmp/phase5f-file-saved-mobile-layout-wrap-one-cf-build-source-preparation-attempt1/root-current5e-one-build-full-source-final-finite-peer-and-exclusive-go.json": "0d42e709be60727edf679dbea686d1c3045c52efb3c67f55f70bd07fcb0a7c50",
+    "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/one-fresh-final-QA-source-build.log": "dfa13775e1102eee774625102080578adbf93bc1122c3f0bd8feb8b468014cde",
+    "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/frozen-approved-plan.json": "9194e359c7ff4002c13378e1d69a561471b9e764d2576dcb1814befd11fccdd9",
+    "/tmp/phase5f-file-saved-mobile-layout-wrap-one-cf-build-source-preparation-attempt1/source-handoff.json": "d0a34e605fe9a28bccf89b42266482f158a2be892b5905574881b4bfb85abc56",
+    "/workspace/phase5f-file-saved-mobile-layout-wrap-source-preparation-attempt1/materialized-full-5e-linked-worktree-source-receipt.json": "6d7070e3f4d50d443fa397103fe23a113bf2740872c345cb533a4bad965b0330",
+    "/workspace/phase5f-file-saved-mobile-layout-wrap-source-preparation-attempt1/one-rule-virtual-source-handoff.json": "38a6a2c7e2f85203bbb4012d3ea3aa5250a09dfd3461737acae13aed15ce3601",
+    "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/root-one-fresh5e-cf-build-full-source-raw-original-owner-kernel-read-release.json": "9b026c2dd891990279ca6b6f716eff86fbb52f4ea87cc3dc1c357b671245fb03"
+  }
+}

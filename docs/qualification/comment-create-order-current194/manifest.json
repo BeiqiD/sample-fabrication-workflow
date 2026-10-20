@@ -1,0 +1,98 @@
+[
+  {
+    "path": "docs/qualification/comment-create-order-current194/qualification-receipt.json",
+    "originalPath": "/tmp/comment-create-order-baseline-and-fixed-actual-attempt1/qualification-receipt.json",
+    "sha256": "b257648a49d606ec06cb32464daa6b5fab7d7a576fa18956a3b6284e1c8f2fdc",
+    "actualEvidenceScope": "Original historical source/attempt; copied bytes not retagged as new docs head"
+  },
+  {
+    "path": "docs/qualification/comment-create-order-current194/fixed-complete-result.json",
+    "originalPath": "/tmp/comment-create-order-baseline-and-fixed-actual-attempt1/fixed-complete-result.json",
+    "sha256": "7c249c33713b5f21fff91b759eee7f3717c9e67dc5e5c72a6018f9bc6a31bc57",
+    "actualEvidenceScope": "Original historical source/attempt; copied bytes not retagged as new docs head"
+  },
+  {
+    "path": "docs/qualification/comment-create-order-current194/fixed-complete-raw.log",
+    "originalPath": "/tmp/comment-create-order-baseline-and-fixed-actual-attempt1/fixed-complete-raw.log",
+    "sha256": "83e859ff15bf5d4a434ac3080f1a3b4f07558033ab3dc70eddaad26bd5edaaff",
+    "actualEvidenceScope": "Original historical source/attempt; copied bytes not retagged as new docs head"
+  },
+  {
+    "path": "docs/qualification/comment-create-order-current194/fixed-original-child.json",
+    "originalPath": "/tmp/comment-create-order-baseline-and-fixed-actual-attempt1/fixed-original-child.json",
+    "sha256": "67486ea2cb00a4ad81d032bba0eb8ad43839aa83d9cde99a3d07005c216471fa",
+    "actualEvidenceScope": "Original historical source/attempt; copied bytes not retagged as new docs head"
+  },
+  {
+    "path": "docs/qualification/comment-create-order-current194/baseline-two-result.json",
+    "originalPath": "/tmp/comment-create-order-baseline-and-fixed-actual-attempt1/baseline-two-result.json",
+    "sha256": "e8f819936b2e5431dd6808d4d2cb0e0a861e7c579afa19e0945f382311dc66d3",
+    "actualEvidenceScope": "Original historical source/attempt; copied bytes not retagged as new docs head"
+  },
+  {
+    "path": "docs/qualification/comment-create-order-current194/baseline-two-raw.log",
+    "originalPath": "/tmp/comment-create-order-baseline-and-fixed-actual-attempt1/baseline-two-raw.log",
+    "sha256": "8050312a0353c6cf4143c2e92c9d38fc2b97bc02a5ce86a0ea35d167bf429630",
+    "actualEvidenceScope": "Original historical source/attempt; copied bytes not retagged as new docs head"
+  },
+  {
+    "path": "docs/qualification/comment-create-order-current194/baseline-original-child.json",
+    "originalPath": "/tmp/comment-create-order-baseline-and-fixed-actual-attempt1/baseline-original-child.json",
+    "sha256": "9bc2dcaee2d0534ed2295b8dde3dce4553229c22b77a1ac1e57651c5db7dcd53",
+    "actualEvidenceScope": "Original historical source/attempt; copied bytes not retagged as new docs head"
+  },
+  {
+    "path": "docs/qualification/comment-create-order-current194/comment-create-order-current194-compiler-source-receipt.json",
+    "originalPath": "/tmp/comment-create-order-current194-compiler-source-receipt.json",
+    "sha256": "2268e40d00cacfd5f49f81cd8534c80fa6b8c4239b13e571c3cc1c898060e656",
+    "actualEvidenceScope": "Original historical source/attempt; copied bytes not retagged as new docs head"
+  },
+  {
+    "path": "docs/qualification/comment-create-order-current194/comment-create-order-current194-nodejob-independent-source-peer.json",
+    "originalPath": "/tmp/comment-create-order-current194-nodejob-independent-source-peer.json",
+    "sha256": "a01b46bffd385f9ccf136f71705e66a5f64868d6574a95a8bbaf90ed1954e314",
+    "actualEvidenceScope": "Original historical source/attempt; copied bytes not retagged as new docs head"
+  },
+  {
+    "path": "docs/qualification/comment-create-order-current194/old-756-ci-receipt.json",
+    "originalPath": "/tmp/pr264-756-original-own-ci-one-failure-preserved-attempt1/receipt.json",
+    "sha256": "4f3abfb074e039506c1a00dfefcac189ff95816d6facf0b66202e648fa17bc5d",
+    "actualEvidenceScope": "Original historical source/attempt; copied bytes not retagged as new docs head"
+  },
+  {
+    "path": "docs/qualification/comment-create-order-current194/old-756-ci-raw-failure-annotations.json",
+    "originalPath": "/tmp/pr264-756-original-own-ci-one-failure-preserved-attempt1/raw-failure-annotations.json",
+    "sha256": "09c83156297fda5b1b858428a81f750ab09ce2478a2deb210f8ea38544877416",
+    "actualEvidenceScope": "Original historical source/attempt; copied bytes not retagged as new docs head"
+  },
+  {
+    "path": "docs/qualification/comment-create-order-current194/old-756-ci-raw-combined-status.json",
+    "originalPath": "/tmp/pr264-756-original-own-ci-one-failure-preserved-attempt1/raw-combined-status.json",
+    "sha256": "a397d48ef86f3e6f503ed77dcd3a3c4d42ce716881a03cedf6409d71d8e750c0",
+    "actualEvidenceScope": "Original historical source/attempt; copied bytes not retagged as new docs head"
+  },
+  {
+    "path": "docs/qualification/comment-create-order-current194/old-756-ci-38110780583-raw-run.json",
+    "originalPath": "/tmp/pr264-756-original-own-ci-one-failure-preserved-attempt1/38110780583-raw-run.json",
+    "sha256": "88eabcf225a664f51eec29d3cb95802346ad1862756dc43c9c153537b0580725",
+    "actualEvidenceScope": "Original historical source/attempt; copied bytes not retagged as new docs head"
+  },
+  {
+    "path": "docs/qualification/comment-create-order-current194/old-756-ci-38110759664-raw-run.json",
+    "originalPath": "/tmp/pr264-756-original-own-ci-one-failure-preserved-attempt1/38110759664-raw-run.json",
+    "sha256": "e85591cbfb8f40e6316a54b755c617dcf3182148d0293846555a620a7cd98791",
+    "actualEvidenceScope": "Original historical source/attempt; copied bytes not retagged as new docs head"
+  },
+  {
+    "path": "docs/qualification/comment-create-order-current194/old-756-ci-38110780625-raw-run.json",
+    "originalPath": "/tmp/pr264-756-original-own-ci-one-failure-preserved-attempt1/38110780625-raw-run.json",
+    "sha256": "3fef17364dbb4036badcce68989916514fcc1485398b03aee384126e298eaee7",
+    "actualEvidenceScope": "Original historical source/attempt; copied bytes not retagged as new docs head"
+  },
+  {
+    "path": "docs/qualification/comment-create-order-current194/old-756-ci-38110759710-raw-run.json",
+    "originalPath": "/tmp/pr264-756-original-own-ci-one-failure-preserved-attempt1/38110759710-raw-run.json",
+    "sha256": "91ecd466b982588b2f8c6e73f5681ddd79230beadd2e0f79e687b1db33184e6d",
+    "actualEvidenceScope": "Original historical source/attempt; copied bytes not retagged as new docs head"
+  }
+]

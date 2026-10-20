@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 import worker from "./index";
@@ -35,20 +35,9 @@ class SqliteD1Statement {
 
 function testDatabase() {
   const database = new DatabaseSync(":memory:");
-  for (let index = 1; index <= 9; index += 1) {
-    const prefix = String(index).padStart(4, "0");
-    const filename = [
-      "alpha_state_chain",
-      "run_initial_state",
-      "release_unreferenced_templates",
-      "sync_sample_run_status",
-      "comment_submissions",
-      "metrology_templates",
-      "directory_performance",
-      "sync_metrology_sample_status",
-      "sample_directory_filters",
-    ][index - 1];
-    database.exec(readFileSync(new URL(`../migrations/${prefix}_${filename}.sql`, import.meta.url), "utf8"));
+  const migrationDirectory = new URL("../migrations/", import.meta.url);
+  for (const filename of readdirSync(migrationDirectory).filter((name) => name.endsWith(".sql")).sort()) {
+    database.exec(readFileSync(new URL(filename, migrationDirectory), "utf8"));
   }
   return database;
 }
@@ -112,6 +101,21 @@ function seedDirectory(database: DatabaseSync) {
       insertStep.run(`${versionId}-step`, versionId, `${familyId}:step`);
     }
   }
+  database.exec(`
+    INSERT INTO recipe_families (id, name, template_type, created_at)
+    VALUES ('metrology-family-afm', 'AFM family', 'module', '2026-07-01T00:00:00.000Z');
+    INSERT INTO template_versions
+      (id, recipe_family_id, name, template_type, version, manifest_hash, content_json,
+       created_at, template_kind)
+    VALUES
+      ('metrology-template-afm', 'metrology-family-afm', 'AFM', 'module', 1,
+       'metrology-afm-manifest', '{}', '2026-07-01T00:00:00.000Z', 'metrology');
+    INSERT INTO template_steps
+      (id, template_version_id, logical_step_key, position, definition_hash, raw_json)
+    VALUES
+      ('metrology-template-afm-step', 'metrology-template-afm', 'metrology:afm', 0,
+       'directory-step', '{}');
+  `);
 
   const runFamily = "process-family-1";
   const runTemplate = `${runFamily}-v2`;

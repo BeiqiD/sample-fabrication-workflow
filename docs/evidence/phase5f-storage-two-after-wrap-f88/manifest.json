@@ -1,0 +1,309 @@
+{
+  "status": "ACTUAL_SCOPE_QUALIFIED_TWO_BROWSER_PASS_CLOSED",
+  "sourceHead": "f88fffea3ba0654b52ca90ee87efdafdb70cd48c",
+  "sourceTree": "df05a78afcdee28f7136a349001464c399531e9c",
+  "actualOriginalReceiptSha256": "3c4076f1d942261f8e2099520a825840db1ecc74e8bb54fd60b071b5799535cb",
+  "newQualifiedCheckpointChanges": "Only docs/evidence additions; all1823 prior730 entries and1792 product/QA source inputs exact.",
+  "records": [
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/closure-summary-field-locator-authoring-diagnostic.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/01-closure-summary-field-locator-authoring-diagnostic.json",
+      "sha256": "25758b1c42cdf47c0556f77275dda64b2eab0fbc3b10bc640637e8ca1d58736f",
+      "bytes": 475
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/final-qualified-f88-source-and-two-copy-pins.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/02-final-qualified-f88-source-and-two-copy-pins.json",
+      "sha256": "242e25b75dfcae738b606cfd63b6679f87bad638c1a448c10beb99db91c73452",
+      "bytes": 1002
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/final-source-artifact-input-pins-command.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/03-final-source-artifact-input-pins-command.json",
+      "sha256": "e4f86169c4aa4eb8c3c4778fce1d1ee8b195532eacf1954a99c478413703414e",
+      "bytes": 1439
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/final-source-artifact-input-pins.log",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/04-final-source-artifact-input-pins.log",
+      "sha256": "81f19a53672ea8819411180d89192969a087c236124be431c0fc5552aaae492a",
+      "bytes": 140
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/fresh-current-source-build-witness-command.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/05-fresh-current-source-build-witness-command.json",
+      "sha256": "98b27761b3bca2cef68a5abbf24e45bbd7a8a5a45d11c380b1a6a9deac9a620b",
+      "bytes": 1304
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/fresh-current-source-build-witness.log",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/06-fresh-current-source-build-witness.log",
+      "sha256": "1d0dfc4a5d8ca3a9a451c8e9b5e3fcb905afc814121055de2943b92287de54bf",
+      "bytes": 137
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/fresh-two-version-sentinel-command.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/07-fresh-two-version-sentinel-command.json",
+      "sha256": "e9d91f98531b675314607579657a08de8bbc12615d3d6807cd207cb102bcf161",
+      "bytes": 1675
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/fresh-two-version-sentinel.log",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/08-fresh-two-version-sentinel.log",
+      "sha256": "30e2167eed310d6c9f9516d3cb26f84101b093657aba0956c85ed42781159c23",
+      "bytes": 240
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/frozen-approved-plan.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/09-frozen-approved-plan.json",
+      "sha256": "7ca39110fe5ea4e81b2c3084a3b360b8e288fa9aa6ce323ead3e778a37a48d2e",
+      "bytes": 17955
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/genuine-enabled-Access-storage-draft-two-command.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/10-genuine-enabled-Access-storage-draft-two-command.json",
+      "sha256": "ebdd8e08c88d0aa5bcd9c499822d7c4be87d08cf30160fff6f0d7f6554e745da",
+      "bytes": 3377
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/genuine-enabled-Access-storage-draft-two.log",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/11-genuine-enabled-Access-storage-draft-two.log",
+      "sha256": "37f706be6563095bd8f8e074ff667cfccc5861a6694fcf0714535606e2bbca90",
+      "bytes": 216
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/isolated-copy-command.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/12-isolated-copy-command.json",
+      "sha256": "e4a3eab66f1ca4625190ad0ba8751556ad77c199e35d405229efd8211e944b68",
+      "bytes": 1169
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/isolated-copy.log",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/13-isolated-copy.log",
+      "sha256": "e490347ddedbecc9a65503958864a8f6b06acac3cc0eb4f1bb5a3b514178f6fd",
+      "bytes": 207
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/mature-genuine-api-84-only-command.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/14-mature-genuine-api-84-only-command.json",
+      "sha256": "641b3349960348d1abc6e2d03cf5942619831b46816476a57b1b2135536d04c1",
+      "bytes": 1052
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/mature-genuine-api-84-only.log",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/15-mature-genuine-api-84-only.log",
+      "sha256": "b7adccf0315c4bc12c2f805a37a8c12e061e74be1d95b284fd74ef8581bead32",
+      "bytes": 194
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/ordinary-actual24-local-migrations-command.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/16-ordinary-actual24-local-migrations-command.json",
+      "sha256": "20d583c68825c7d43a288fdf5b067604d9bf1fbf03ef898347c69d4f5270bd85",
+      "bytes": 1864
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/ordinary-actual24-local-migrations.log",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/17-ordinary-actual24-local-migrations.log",
+      "sha256": "a4c2ee4f147f8110883945240afdfc2a2814e352b98694a6814440398a2d4360",
+      "bytes": 147956
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/owned-built-worker-command.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/18-owned-built-worker-command.json",
+      "sha256": "6cc02901bbc5504c09458bc6a4f7f9a3621008206ca434b94853d2adb8387f1c",
+      "bytes": 1553
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/owned-built-worker.log",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/19-owned-built-worker.log",
+      "sha256": "e223f74e46f3c6e7e50fb2a79e309204408490ed3e185eee38a119858b3e158c",
+      "bytes": 523
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/physical-after-command.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/20-physical-after-command.json",
+      "sha256": "d3da9ff5d7ad3818ab7659366b1cedd6f888a5ae0366a1ea8fd9c960c15abe35",
+      "bytes": 1439
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/physical-after.log",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/21-physical-after.log",
+      "sha256": "971d67aa1ee2489436062aa34e579aee64334df9710ea6cb42f73ccd329cad6f",
+      "bytes": 176
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/physical-before-command.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/22-physical-before-command.json",
+      "sha256": "60ee60c9ed03b3fe84c6dbe27aaae7c5cbca70c3d8860820a7d281199bf10db8",
+      "bytes": 1138
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/physical-before.log",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/23-physical-before.log",
+      "sha256": "e2d5909ca682a5de86007b9d4d44be81b5c40f86b1216ba944e6147ab20a8493",
+      "bytes": 172
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/qualified-f88-producer-before-two.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/24-qualified-f88-producer-before-two.json",
+      "sha256": "8912e8edf5f54f08c32948395b0f4a31de2734f843ac47ef8e0aa121d497acf9",
+      "bytes": 513
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/qualified-f88-producer-preflight-command.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/25-qualified-f88-producer-preflight-command.json",
+      "sha256": "a9fac3957a4e0e5adb8181c195f51f1222903fc0cc1c1127d4eefb7f8f1790c1",
+      "bytes": 1245
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/qualified-f88-producer-preflight.log",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/26-qualified-f88-producer-preflight.log",
+      "sha256": "41f00eceeeddf13815ab4bebe25f555bdee7dfd60013d98f588e361f692356d0",
+      "bytes": 138
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/synthetic-template-sentinels-only-command.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/27-synthetic-template-sentinels-only-command.json",
+      "sha256": "755540ec44be26e76cdac1b157ed1c07c37c1a87ddb71d0f59b6b298a1b5eae5",
+      "bytes": 1959
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/synthetic-template-sentinels-only.log",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/28-synthetic-template-sentinels-only.log",
+      "sha256": "37580d9d40489fc259b2bf0379e7e7a262cacc30fff5b78a8de89be611155c87",
+      "bytes": 1611
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-two-write-copy-attempt11/isolation-receipt.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/29-isolation-receipt.json",
+      "sha256": "a75d88f98902bf45c79d9fcab08c6296e6421133c113d6bfb75dc9ef9dc133dd",
+      "bytes": 236166
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11/process-fixture.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/30-process-fixture.json",
+      "sha256": "9c2efad2eacc645582cd67a6c5e8e7525ec3b984343d4d2f692a63959c43eaa3",
+      "bytes": 1561
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11/process-fixture.sql",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/31-process-fixture.sql",
+      "sha256": "f9c074885126ea94cdd148b92d5c5388a29c4c85395d75843627dae9b5da6ae2",
+      "bytes": 5579
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11/physical-sqlite-before-api.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/32-physical-sqlite-before-api.json",
+      "sha256": "91614112cb1a749e364b0a096f7623ad7ad97742c00de9f3e6a94078a6ff9336",
+      "bytes": 48276
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11/physical-sqlite-after-shutdown.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/33-physical-sqlite-after-shutdown.json",
+      "sha256": "6f39665d2d0f0d1cbd257c1ff7fb70a4346851c9141773357eedcd9c98ca3b9b",
+      "bytes": 53084
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11/isolated-server-receipt.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/34-isolated-server-receipt.json",
+      "sha256": "20814534a81d8c8b00f192ee8e05d895dd47571a8099edc0db16497d7604e061",
+      "bytes": 3476
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11/isolated-server-stop-receipt.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/35-isolated-server-stop-receipt.json",
+      "sha256": "c35aed237a251087b4ce404418391c8801a9dc75e3185f809bc8a464f048fa17",
+      "bytes": 1043
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11/actual-api-fixture-receipt.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/36-actual-api-fixture-receipt.json",
+      "sha256": "17c032e741b01de8d12093748a97d88ebeeb9ee48a942d86c31ad60b70f6ad3a",
+      "bytes": 51633
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11/enabled-storage-draft-build-input-witness.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/37-enabled-storage-draft-build-input-witness.json",
+      "sha256": "0ceffee986ae85177a090cf6375fd68d34e35aa693cc8c8448cf1f6c3e63e3b6",
+      "bytes": 1369
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11/enabled-storage-draft-browser-report.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/38-enabled-storage-draft-browser-report.json",
+      "sha256": "69112f0ee61a1009450193523327c1b28a25a529a6afc95a37e4457e8d360a3d",
+      "bytes": 58955
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11/enabled-storage-draft-browser-artifacts/draft-create-lost-reply-1280-light.draft-create-lost-reply-reconciled.geometry.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/39-draft-create-lost-reply-1280-light.draft-create-lost-reply-reconciled.geometry.json",
+      "sha256": "9d9023ca7531ee2483f4a68aa50a58a525b91d4731f5f76ae90614839637ed42",
+      "bytes": 248
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11/enabled-storage-draft-browser-artifacts/draft-create-lost-reply-1280-light.png",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/40-draft-create-lost-reply-1280-light.png",
+      "sha256": "7e2e932f05a6703dd9c6b34b666d6b48cde9e585f299fedb28fd384bf938133f",
+      "bytes": 191564
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11/enabled-storage-draft-browser-artifacts/draft-revision-conflict-390-dark.draft-revision-conflict-reconciled.geometry.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/41-draft-revision-conflict-390-dark.draft-revision-conflict-reconciled.geometry.json",
+      "sha256": "3ce5a203487775730e973d0934d55a0df504f70367555390aaae1aaedf27bf0f",
+      "bytes": 243
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11/enabled-storage-draft-browser-artifacts/draft-revision-conflict-390-dark.png",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/42-draft-revision-conflict-390-dark.png",
+      "sha256": "453c07763020207b3820cd319a830d99a4c0cde4ec06bce5a8a2030a5e800579",
+      "bytes": 270063
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-source-review-attempt11/finite-original-storage-two-after-qualified-wrap-plan.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/43-finite-original-storage-two-after-qualified-wrap-plan.json",
+      "sha256": "7ca39110fe5ea4e81b2c3084a3b360b8e288fa9aa6ce323ead3e778a37a48d2e",
+      "bytes": 17955
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-source-review-attempt11/run-frozen-owned-stage.py",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/44-run-frozen-owned-stage.py",
+      "sha256": "923621eb966e3d36bf38f936c1259a94f27758f25b1f64dad14df69b7d470b65",
+      "bytes": 11450
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-source-review-attempt11/verify-qualified-producer-and-write-two-witness.py",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/45-verify-qualified-producer-and-write-two-witness.py",
+      "sha256": "e210024d96f0747afb8e3d66bfc2d287348185dd610d2c0db3a7007fedb0311b",
+      "bytes": 7729
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-source-review-attempt11/runner-only-retarget.patch",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/46-runner-only-retarget.patch",
+      "sha256": "5076ed0a7a7014f328d80762c26a7548347303235ba7bbe590be2c69fd25986a",
+      "bytes": 2046
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-source-review-attempt11/source-handoff.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/47-source-handoff.json",
+      "sha256": "8fc893fc656af4cb6578da85402d21ec2b832075229719e7681ad32141ba65a6",
+      "bytes": 3788
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-f88-independent-qualified-carry-source-peer.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/48-phase5f-storage-original-two-f88-independent-qualified-carry-source-peer.json",
+      "sha256": "0c7ebf140553eec102ff97022473681f6319e4bf40dd2bc22433e7b2f9d2d4fc",
+      "bytes": 2755
+    },
+    {
+      "originalPath": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/actual-original-storage-two-after-wrap-pass-closed-and-released.json",
+      "curatedPath": "docs/evidence/phase5f-storage-two-after-wrap-f88/49-actual-original-storage-two-after-wrap-pass-closed-and-released.json",
+      "sha256": "3c4076f1d942261f8e2099520a825840db1ecc74e8bb54fd60b071b5799535cb",
+      "bytes": 23873
+    }
+  ],
+  "runtimeScope": "13 stages/12commands+originalstopcontrol; genuine24/84, twoenabledStorage browsercases; actualnormal originalclosure/postphysical/pins. Priorf88 strict/mounted24/build118 carried unchanged, notrerun.",
+  "notClaimed": [
+    "Package2 qualification",
+    "provider/test/activation",
+    "whole5F/deployment/device acceptance"
+  ]
+}

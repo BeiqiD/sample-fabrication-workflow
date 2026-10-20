@@ -1,13 +1,53 @@
-import type { ApplyPlanUpdateInput, ConfirmRunStepsInput, CreateCommentSubmissionInput, CreateMetrologyRunEntryInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, DeleteRunInput, DeleteSampleInput, FabubloxImportPreview, FinishProcessRunInput, FullExportManifest, ManagedStorageStatus, PaginationMeta, PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleDeletionImpact, SampleDetail, SampleDirectoryFilterOptions, SampleDirectorySort, SampleListResponse, SampleStatus, SplitSampleInput, StartMetrologyRunInput, StartProcessRunInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
-import { compressLayerStackImage } from "./images";
+import { applicationFetch } from "./authentication-client";
+import { FULL_EXPORT_METADATA_MAX_BYTES, readBoundedExportResponse } from "./full-export-safety";
+import { checkedStorageSettingsStatus } from "../../shared/contracts/storage-settings";
+import { checkedCurrentStorageSettings } from "../../shared/contracts/current-storage-settings";
+import { checkedNativeStorageActivationInput, checkedNativeStorageActivationReceipt, checkedStorageRolePolicyInput, checkedStorageRolePolicyReceipt,
+  type NativeStorageActivationInput, type StorageRolePolicyInput } from "../../shared/contracts/storage-policy";
+import type { FullExportManifestV26 } from "../../shared/contracts/export-portable-runtime-v26";
+import type {
+  TemplateRecord,
+  ProcessTemplateVersionSummary,
+  ProcessTemplateFamilySummary,
+  ProcessTemplateFamilyOption,
+  MetrologyTemplateSummary,
+  TemplateDetail,
+  TemplateStepInput,
+  MetrologyTemplateInput,
+} from "../../shared/contracts/template";
+import type { ApplyPlanUpdateInput, ConfirmRunStepsInput, CreateMetrologyRunEntryInput, CreateRecordInput, CreateRunStepCommentsInput, CreateRunStepInput, CreateSampleInput, CreateStateVerificationInput, DeleteRunInput, DeleteSampleInput, FinishProcessRunInput, ManagedStorageStatus, PaginationMeta, PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleDeletionImpact, SampleDetail, SampleDirectoryFilterOptions, SampleDirectorySort, SampleListResponse, SampleStatus, SplitSampleInput, StartMetrologyRunInput, StartProcessRunInput, StateVerification, UpdateRunStepInput, UpdateSampleInput } from "../../shared/types";
+import { createDurableCommentSubmission, uploadDurableCommentItem, finalizeDurableCommentSubmission, cancelDurableCommentSubmission, removeDurableCommentItem, getCommentAcceptance } from "./comment-submission-client";
+import { uploadR2Asset, type R2UploadOptions } from "./r2-upload-client";
+import { uploadMetrologyReference } from "./metrology-reference-upload-client";
+import { submitFabubloxImport } from "./fabublox-import-client";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api${path}`, init);
+  const response = await applicationFetch(`/api${path}`, init);
   if (!response.ok) {
     const payload = await response.json().catch(() => ({ error: response.statusText })) as { error?: string };
     throw new Error(payload.error || `Request failed (${response.status})`);
   }
   return response.json() as Promise<T>;
+}
+
+async function requestFullExport(signal?: AbortSignal): Promise<FullExportManifestV26> {
+  const response = await applicationFetch("/api/exports/all?archiveSchema=26&archiveWriter=1", signal ? { signal } : undefined);
+  const bytes = await readBoundedExportResponse(response, FULL_EXPORT_METADATA_MAX_BYTES, signal, undefined, "metadata");
+  const text = new TextDecoder().decode(bytes);
+  if (!response.ok) {
+    let message = response.statusText;
+    try { message = (JSON.parse(text) as { error?: string }).error || message; } catch { /* Keep the HTTP refusal. */ }
+    throw new Error(message || `Request failed (${response.status})`);
+  }
+  return JSON.parse(text) as FullExportManifestV26;
+}
+export class StoragePolicyRequestError extends Error {
+  constructor(readonly status: number) { super("Storage policy request failed."); }
+}
+async function storagePolicyRequest(path: string, init: RequestInit): Promise<unknown> {
+  const response = await applicationFetch(`/api${path}`, { cache: "no-store", credentials: "same-origin", redirect: "error", ...init });
+  if (!response.ok) throw new StoragePolicyRequestError(response.status);
+  return response.json();
 }
 
 export interface SampleListOptions {
@@ -64,6 +104,39 @@ function paginatedPath(path: string, options: { query?: string; page?: number; p
 }
 
 export const api = {
+  getStorageSettings: async (signal?: AbortSignal) => checkedStorageSettingsStatus(await request<unknown>("/settings/storage", {
+    method: "GET", cache: "no-store", credentials: "same-origin", redirect: "error", signal,
+  })),
+  getCurrentStorageSettings: async (signal?: AbortSignal) => checkedCurrentStorageSettings(await storagePolicyRequest("/settings/storage?version=3", { method: "GET", signal })),
+  activateStorageProfile: async (input: NativeStorageActivationInput, signal?: AbortSignal) => {
+    const checked = checkedNativeStorageActivationInput(input);
+    const value = checkedNativeStorageActivationReceipt(await storagePolicyRequest("/storage/configuration/activations", {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(checked), signal,
+    }));
+    if (value.operationId !== checked.operationId || value.nativeProfileId !== checked.nativeProfileId || value.candidateProfileId !== checked.candidateProfileId
+      || value.candidateRevision !== checked.expectedCandidateRevision || value.envelopeRevision !== checked.expectedEnvelopeRevision
+      || value.checkId !== checked.checkId || checked.expectedBindingRevision !== null && value.bindingRevision !== checked.expectedBindingRevision + 1) throw new Error("Invalid storage activation response.");
+    return value;
+  },
+  readStorageActivation: async (operationId: string, signal?: AbortSignal) => {
+    const value = checkedNativeStorageActivationReceipt(await storagePolicyRequest(`/storage/configuration/activations/${encodeURIComponent(operationId)}`, { method: "GET", signal }));
+    if (value.operationId !== operationId) throw new Error("Invalid storage activation response.");
+    return value;
+  },
+  setStorageRoleDefaults: async (input: StorageRolePolicyInput, signal?: AbortSignal) => {
+    const checked = checkedStorageRolePolicyInput(input);
+    const value = checkedStorageRolePolicyReceipt(await storagePolicyRequest("/settings/storage/defaults", {
+      method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(checked), signal,
+    }));
+    if (value.operationId !== checked.operationId || value.internalProfileId !== checked.internalProfileId || value.originalsProfileId !== checked.originalsProfileId
+      || value.policyRevision !== Math.max(3, (checked.expectedPolicyRevision ?? 2) + 1)) throw new Error("Invalid storage policy response.");
+    return value;
+  },
+  readStorageRolePolicy: async (operationId: string, signal?: AbortSignal) => {
+    const value = checkedStorageRolePolicyReceipt(await storagePolicyRequest(`/settings/storage/defaults/${encodeURIComponent(operationId)}`, { method: "GET", signal }));
+    if (value.operationId !== operationId) throw new Error("Invalid storage policy response.");
+    return value;
+  },
   listSamples: (options: SampleListOptions | string = {}) => {
     const signal = typeof options === "string" ? undefined : options.signal;
     return request<SampleListResponse>(sampleListPath(options), signal ? { signal } : undefined);
@@ -123,6 +196,11 @@ export const api = {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(input),
   }),
+  restoreRun: (sampleId: string, runId: string, input: DeleteRunInput) => request<{ ok: true; updatedAt: string }>(`/samples/${sampleId}/runs/${runId}/restore`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(input),
+  }),
   previewPlanUpdate: (sampleId: string, runId: string, templateVersionId: string) => request<PlanUpdatePreview & { familyMismatch?: boolean }>(`/samples/${sampleId}/runs/${runId}/plan-update/preview`, {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ templateVersionId }),
   }),
@@ -160,8 +238,8 @@ export const api = {
   deleteRunStepCommentAsset: (commentId: string) => request<{ ok: true; updatedAt: string }>(`/run-step-comments/${commentId}/asset`, {
     method: "DELETE",
   }),
-  deleteRunStepAsset: (sampleId: string, runId: string, stepId: string, assetKey: string) => request<{ ok: true; updatedAt: string }>(`/samples/${sampleId}/runs/${runId}/steps/${stepId}/assets`, {
-    method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ assetKey }),
+  deleteRunStepAsset: (sampleId: string, runId: string, stepId: string, assetKey: string | { assetId: string }) => request<{ ok: true; updatedAt: string }>(`/samples/${sampleId}/runs/${runId}/steps/${stepId}/assets`, {
+    method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify(typeof assetKey === "string" ? { assetKey } : assetKey),
   }),
   confirmRunSteps: (input: ConfirmRunStepsInput) => request<{ ok: true; confirmed: number }>("/run-steps/confirm", {
     method: "POST",
@@ -171,54 +249,14 @@ export const api = {
   verifyState: (sampleId: string, runId: string, stepId: string, input: CreateStateVerificationInput) => request<{ verification: StateVerification }>(`/samples/${sampleId}/runs/${runId}/steps/${stepId}/verify-state`, {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
   }),
-  uploadAsset: async (file: Blob, filename: string) => request<{ id: string; key: string; deduplicated: boolean }>("/assets", {
-    method: "POST",
-    headers: { "content-type": file.type || "application/octet-stream", "x-filename": filename },
-    body: file,
+  uploadAsset: (file: Blob, filename: string, options?: R2UploadOptions) => uploadR2Asset(file, filename, "ordinary_image", options),
+  // Retained API name; status follows the current original-file destination.
+  getManagedStorageStatus: () => request<ManagedStorageStatus>("/storage/status", {
+    method: "GET", cache: "no-store", credentials: "same-origin", redirect: "error",
   }),
-  getManagedStorageStatus: () => request<ManagedStorageStatus>("/storage/status"),
-  createCommentSubmission: (input: CreateCommentSubmissionInput) => request<{ id: string; deduplicated: boolean }>("/comment-submissions", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(input),
-  }),
-  uploadCommentSubmissionItem: (
-    submissionId: string,
-    itemId: string,
-    file: File,
-    sha256: string | null,
-    onProgress: (progress: number) => void,
-    signal?: AbortSignal,
-  ) => new Promise<{ ok: true; deduplicated: boolean }>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("PUT", `/api/comment-submissions/${encodeURIComponent(submissionId)}/items/${encodeURIComponent(itemId)}/content`);
-    xhr.setRequestHeader("content-type", file.type || "application/octet-stream");
-    xhr.setRequestHeader("x-upload-size", String(file.size));
-    if (sha256) xhr.setRequestHeader("x-content-sha256", sha256);
-    xhr.upload.addEventListener("progress", (event) => {
-      if (event.lengthComputable) onProgress(Math.max(0, Math.min(100, Math.round((event.loaded / event.total) * 100))));
-    });
-    xhr.addEventListener("load", () => {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        onProgress(100);
-        try { resolve(JSON.parse(xhr.responseText) as { ok: true; deduplicated: boolean }); }
-        catch { reject(new Error("The upload completed but returned an invalid response")); }
-        return;
-      }
-      try {
-        const payload = JSON.parse(xhr.responseText) as { error?: string };
-        reject(new Error(payload.error || `Upload failed (${xhr.status})`));
-      } catch { reject(new Error(`Upload failed (${xhr.status})`)); }
-    });
-    xhr.addEventListener("error", () => reject(new Error("Network error")));
-    xhr.addEventListener("abort", () => reject(new DOMException("Upload cancelled", "AbortError")));
-    if (signal) {
-      if (signal.aborted) xhr.abort();
-      else signal.addEventListener("abort", () => xhr.abort(), { once: true });
-    }
-    xhr.send(file);
-    onProgress(0);
-  }),
+  createCommentSubmission: createDurableCommentSubmission,
+  getCommentSubmissionAcceptance: getCommentAcceptance,
+  uploadCommentSubmissionItem: uploadDurableCommentItem,
   markCommentSubmissionItemFailed: (submissionId: string, itemId: string, error: string) => request<{ ok: true }>(
     `/comment-submissions/${encodeURIComponent(submissionId)}/items/${encodeURIComponent(itemId)}/fail`,
     {
@@ -227,18 +265,15 @@ export const api = {
       body: JSON.stringify({ error }),
     },
   ),
-  removeCommentSubmissionItem: (submissionId: string, itemId: string) => request<{ ok: true }>(
+  removeCommentSubmissionItem: removeDurableCommentItem,
+  // Completed attachment lifecycle is distinct from pending durable uploads.
+  // Reconcile uncertain outcomes with an owner refresh before another attempt.
+  removeReadyCommentSubmissionItem: (submissionId: string, itemId: string) => request<{ ok: true }>(
     `/comment-submissions/${encodeURIComponent(submissionId)}/items/${encodeURIComponent(itemId)}`,
     { method: "DELETE" },
   ),
-  finalizeCommentSubmission: (submissionId: string) => request<{ ok: true; status: "ready" }>(
-    `/comment-submissions/${encodeURIComponent(submissionId)}/finalize`,
-    { method: "POST" },
-  ),
-  cancelCommentSubmission: (submissionId: string) => request<{ ok: true }>(
-    `/comment-submissions/${encodeURIComponent(submissionId)}/cancel`,
-    { method: "POST" },
-  ),
+  finalizeCommentSubmission: finalizeDurableCommentSubmission,
+  cancelCommentSubmission: cancelDurableCommentSubmission,
   deleteCommentSubmission: (submissionId: string) => request<{ ok: true }>(
     `/comment-submissions/${encodeURIComponent(submissionId)}`,
     { method: "DELETE" },
@@ -274,11 +309,7 @@ export const api = {
   updateMetrologyTemplateNotes: (id: string, notes: string) => request<{ ok: true }>(`/metrology-templates/${id}/notes`, {
     method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ notes }),
   }),
-  uploadMetrologyTemplateReference: (id: string, file: File) => request<{ reference: MetrologyTemplateReference }>(`/metrology-templates/${id}/references`, {
-    method: "POST",
-    headers: { "content-type": file.type || "application/octet-stream", "x-filename": file.name },
-    body: file,
-  }),
+  uploadMetrologyTemplateReference: (id: string, file: File) => uploadMetrologyReference(id, file),
   deleteMetrologyTemplateReference: (id: string, referenceId: string) => request<{ ok: true }>(`/metrology-templates/${id}/references/${referenceId}`, {
     method: "DELETE",
   }),
@@ -295,124 +326,19 @@ export const api = {
     method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(input),
   }),
   deleteTemplateStep: (templateId: string, stepId: string) => request<{ ok: true }>(`/templates/${templateId}/steps/${stepId}`, { method: "DELETE" }),
-  getFullExport: () => request<FullExportManifest>("/exports/all"),
-  importFabublox: async (file: File, preview: FabubloxImportPreview, recipeFamilyId?: string) => {
-    const form = new FormData();
-    form.append("workbook", file, file.name);
-    const manifest = { ...preview, images: preview.images.map(({ data: _data, ...image }) => image), recipeFamilyId: recipeFamilyId || null };
-    form.append("manifest", new Blob([JSON.stringify(manifest)], { type: "application/json" }), "manifest.json");
-    for (const image of preview.images) {
-      const sourceName = image.sourcePart.split("/").pop() || `${image.localId}.png`;
-      const source = new File([new Uint8Array(image.data)], sourceName, { type: image.mimeType });
-      const compressed = await compressLayerStackImage(source);
-      form.append(`image:${image.localId}`, compressed, compressed.name);
-    }
-    return request<{ id: string; templateVersionId: string; version: number }>("/imports/fabublox", { method: "POST", body: form });
-  },
+  getFullExport: requestFullExport,
+  importFabublox: submitFabubloxImport,
 };
 
-export interface TemplateRecord {
-  id: string;
-  recipeFamilyId: string;
-  name: string;
-  templateType: "process" | "module" | "recipe";
-  templateKind: "process" | "metrology";
-  version: number;
-  manifestHash: string;
-  sourceFilename: string | null;
-  stepCount: number;
-  toolName: string | null;
-  parametersText: string | null;
-  commentsText: string | null;
-  initialStateHash: string | null;
-  initialStateImageKeys: string[];
-  initialSubstrateStep: FabubloxImportPreview["initialSubstrateStep"];
-  locked: boolean;
-  lockedAt: string | null;
-  createdAt: string;
-}
-
-export interface ProcessTemplateVersionSummary {
-  id: string;
-  recipeFamilyId: string;
-  name: string;
-  templateType: "process" | "module" | "recipe";
-  version: number;
-  sourceFilename: string | null;
-  stepCount: number;
-  initialStateHash: string | null;
-  hasInitialSubstrateStep: boolean;
-  initialStateImageCount: number;
-  locked: boolean;
-  createdAt: string;
-}
-
-export interface ProcessTemplateFamilySummary {
-  recipeFamilyId: string;
-  name: string;
-  templateType: ProcessTemplateVersionSummary["templateType"];
-  latestVersion: number;
-  versionCount: number;
-  latest: ProcessTemplateVersionSummary;
-}
-
-export interface ProcessTemplateFamilyOption {
-  recipeFamilyId: string;
-  name: string;
-  latestVersion: number;
-}
-
-export interface MetrologyTemplateSummary {
-  id: string;
-  name: string;
-  toolName: string | null;
-  hasDefaultContent: boolean;
-  createdAt: string;
-}
-
-export interface TemplateStepRecord {
-  id: string;
-  logicalStepKey: string;
-  definitionHash: string;
-  expectedStateHash: string | null;
-  position: number;
-  sourceRow: number | null;
-  stepNumber: string | null;
-  sectionName: string | null;
-  name: string;
-  toolName: string | null;
-  parametersText: string | null;
-  commentsText: string | null;
-  imageKeys: string[];
-}
-
-export interface TemplateDetail extends Omit<TemplateRecord, "stepCount"> {
-  archived: boolean;
-  metrologyNotes: string | null;
-  referenceAttachments: MetrologyTemplateReference[];
-  steps: TemplateStepRecord[];
-}
-
-export interface MetrologyTemplateReference {
-  id: string;
-  filename: string;
-  mimeType: string;
-  byteSize: number;
-  assetKey: string;
-  createdAt: string;
-}
-
-export interface TemplateStepInput {
-  name: string;
-  toolName: string;
-  parametersText: string;
-  commentsText: string;
-  assetKey?: string;
-}
-
-export interface MetrologyTemplateInput {
-  name: string;
-  toolName: string;
-  parametersText: string;
-  commentsText: string;
-}
+export type {
+  TemplateRecord,
+  ProcessTemplateVersionSummary,
+  ProcessTemplateFamilySummary,
+  ProcessTemplateFamilyOption,
+  MetrologyTemplateSummary,
+  TemplateStepRecord,
+  TemplateDetail,
+  MetrologyTemplateReference,
+  TemplateStepInput,
+  MetrologyTemplateInput,
+} from "../../shared/contracts/template";

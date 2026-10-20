@@ -1,0 +1,464 @@
+# Long-term application roadmap
+
+**Current local development checkpoint — 2026-10-13 UTC.** Supported local Phase5F candidate qualification and the [role/coverage baseline map](PHASE5F_LOCAL_BASELINE_COVERAGE_MAP.md) are complete. Fresh092 push/PR native20 and fresh71 whole24, including its separate nonempty case, passed at their original heads; each candidate's four own Verify/Map workflows and all15 contexts were successful at 05:03:40 UTC. [#298](https://github.com/BeiqiD/sample-fabrication-workflow/pull/298) merged at `f65001da`, preserving qualified tree `a2b645`; [#299](https://github.com/BeiqiD/sample-fabrication-workflow/pull/299) merged at `ab0339bce591abd2fed61690916c2d098de2a43d`, preserving tree `1a04056ef5cc1a6a11ea31b51648c3eeb3f50902`. These measured scopes retain the previously merged eight-Sample, exact Compare focus and250/400 functional evidence; historical SOURCE/UNRUN and failure records keep their original status.
+
+At the 05:05:34 UTC observation, ab033 [Workers Build115138845853](https://github.com/BeiqiD/sample-fabrication-workflow/runs/115138845853) had succeeded at 05:05:30; ordinary post-merge [Map38349545551](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38349545551) passed, while [Verify38349544226](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38349544226) and all15 completion remain **PENDING** (2success/13pending). The separate merged #296 Docker17 and #297 two-File/six-case fixture passes are recorded in the baseline map. Remaining accepted local work is genuine nonempty R2→Node RT5 transfer and RT4/RT5 Node Package HTTP, independent execution and nonempty copy. Adapter a98's actual full server types failed on transitive Cloudflare dependencies; neutral extraction is in progress and remains unqualified.
+
+Formal physical device/touch/IME, other supported engines, measured real-data performance and authenticated serving/schema/old-document handover remain independent acceptance. Restored V28 capabilities remain inert under their existing explicit admission. Whole5F, selected6A6/6B and release acceptance remain open. The dated checkpoints below are historical; their sources, failures, counts and limits are unchanged.
+
+Dated development progress — 2026-10-13 (UTC): Cloudflare build optimization #283 is merged; the default deployment path performs configuration, one Vite bundle and upload. Complex verification stays local or in GitHub CI. Subsequent Workers builds at #284 and #285 succeeded.
+
+FabuBlox local import #284 is merged at `784aeb5c`; its complete own/post-merge CI passed. Node V3 producer repair #285 is merged at `8d832ba7` after its four own Verify/Map workflows and all 15 checks passed. Its actual post-merge [Verify 38323940091](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38323940091), [Map 38323940004](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38323940004), all 15 contexts and Cloudflare build succeeded. Its full package build, eight distribution tests, embedded verifier and four CLI help checks retain their actual source scopes.
+
+Explicit V28 profile [PR #286](https://github.com/BeiqiD/sample-fabrication-workflow/pull/286) merged at `356`, preserving qualified `4ef7a9d` tree `1e454`; its four own Verify/Map workflows and all 15 contexts passed. Its fresh package, three parser cases and four genuine programmatic runtime-startup cases passed in [run 38323352244](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38323352244). Actual post-merge [Verify 38326376427](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38326376427), [Map 38326376350](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38326376350) and all 15 contexts succeeded; the default entry remains V26.
+
+**Merged roadmap status checkpoint:** [PR #287](https://github.com/BeiqiD/sample-fabrication-workflow/pull/287) merged at `493` after its own four Verify/Map workflows and all 15 contexts succeeded. Its actual post-merge Verify38327815284/Map38327815430 and all 15 contexts succeeded; the documentation merge does not complete the separate runtime, browser or release scopes.
+
+**Merged restored Node operators — bounded dedicated pass:** [PR #289](https://github.com/BeiqiD/sample-fabrication-workflow/pull/289) at `ebc1` passed its dedicated [run 38327393720](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38327393720): actual full server type checking, three parser cases, a fresh 123-file/930-source-input Node package, embedded verification and four bundled CLI help checks. Genuine complete zero-File V5 capture and one actual bundled restore-CLI case passed across distinct source/destination installations; two reset-secret administrator/Group operator cases and the credential-revision `+2` check passed. Parent `f34` [run 38326839944](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38326839944) retains its own earlier zero-File capture/restore/operator scope. The candidate's four own Verify/Map workflows and all 15 contexts succeeded, and PR #289 merged at `86a8972588f60326aad850c63f1e0ebb08813578` with the exact `ebc1` tree. Its actual Cloudflare build115077834314 succeeded. The merge's new ordinary post-CI remains pending. Maintenance remains fenced; nonempty FileBackup, restored business activation, serving and public capture remain UNRUN. These bounded results do not establish whole Node recovery.
+
+**Large Project browser work — original native200 pass, combined-head scope pending:** [Draft PR #288](https://github.com/BeiqiD/sample-fabrication-workflow/pull/288) source `32` passed dedicated [run 38328093696](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38328093696): two physical SQLite checks before startup, 477 real API seed requests, one genuine native200 browser case, original normal stop and four physical SQLite checks afterwards. `completeFiniteMatrix` remains `false`. Its first attempt's Python SQLite parser failure before API startup still retains API/browser UNRUN. New source `028c0ff7bf8ef4d1ab1b127b8e3a0899cd63e245` exactly combines the `32` browser source with `ebc1`; its dedicated [run 38329403623](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38329403623) separately passed the same original native200 and before/after physical checks. Its whole CI remains pending. The `32` result is not retagged onto this combined source. Historical 250/400 browser cases retain their original sources and scopes; whole5F acceptance remains open.
+
+**RT6 — original bounded failure retained:** The original `8d` Docker attempt built its image and passed two cases before its constructor-path failure. Corrected `ce880` dedicated [run 38327278329](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38327278329) built one image, passed its first eight actual cases, then failed case 9, `genuine-native-upload-replay-and-bytes`, on `POST /api/assets` with observed HTTP 503; the remaining eight cases were UNRUN. Actual CLI/container closure was confirmed, while the original `originalBodiesClosureUnproven` marker remains preserved. The 503 root cause is undetermined. The fixed-enum diagnostic `b3e7463` ran the same 17-case matrix in [run 38329481740](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38329481740), retaining 8PASS/1FAIL/8UNRUN and identifying the original response as `node_503_file_unavailable`. This generic File error still requires a specific server-side cause; it does not establish a full pass. The original 17-case matrix and budgets remain unchanged, and RT6 is not complete.
+
+**Maintenance control — source and narrow checks pending completion:** New six-leaf maintenance source `087` has actual Root full server type checking and three parser cases passed. Its three genuine maintenance cases remain UNRUN. Maintenance remains fenced; no serving activation or whole maintenance-lane pass is claimed.
+
+Whole File/Job/Backup/recovery, complete 5F and conditional 6A6/6B acceptance remain open. Historical records below retain their original dates, sources, failures, counts and limits.
+
+Status: long-horizon direction. The [Product roadmap](./PRODUCT_ROADMAP.md#near-term-order-and-first-integrated-release)
+owns current sequence and release scope.
+
+The owner requests autonomous continuation on 2026-10-10 under the
+[development goal](ROADMAP_AUTONOMOUS_DEVELOPMENT_GOAL.md). Scheduled portability
+and membership remain concrete later milestones; optional exploratory ideas
+retain their evidence-triggered scope.
+
+Last reviewed: 2026-10-11 after merged #262/currentV26, successful #261 post-merge checks, bounded LocalFile host qualification and separate f88 Storage layout/draft qualification. The following retains the earlier [PR #251](https://github.com/BeiqiD/sample-fabrication-workflow/pull/251)
+merge at `aa497d9a1a304751ea7533548573a256799ef734` (13:30:26 UTC).
+Its tree `087749d12a3e3ad19473f1f4e63d29e1ecf1c269` equals qualified source
+`af8f374cfbbade3282f2e686cc9f35d3c40adf4a`; all 12 local default leaves,
+four remote Verify/Map runs and all 15 final status contexts passed. The #251
+post-merge Verify/Map and all 15 contexts also passed; Workers Build
+`114224522096` succeeded.
+
+FP1 File authority/R2 defaults are historically deployed. **FP2, FP3, FP4 and
+FP5 are implemented, CI-qualified and integrated** into development,
+with V21–V24 paired recovery and migrations `0018`–`0022`.
+Bounded local C4, 5D and 5E have likewise completed. **5F is in progress** with
+bounded implementation and follow-up research/job-control ownership repairs
+merged through #251. The [integrated browser matrix](PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md)
+passed 20 cases plus two real Metrology pending-flow cases.
+The immediate work continues from merged #262 at `591bee9`, retaining its exact
+qualified currentV26 tree and separate native-focus/authenticated-read evidence.
+Its own four CI runs and post-merge Verify/Map/all15 contexts passed.
+#261 post-merge Verify/Map/all15 also passed. #252 owner refresh/search-label and #254 initial
+Project GET Retry/three-owner refresh/reduced-motion repairs are integrated;
+their original [browser/cost receipts](PHASE_5F_RETRY_GROUP_MOTION_ACCEPTANCE.md)
+remain distinct historical scopes. Merged #259 retains six actual directory/
+lost-reply cases and the new [four genuine Templates default-page cases](PHASE_5F_TEMPLATE_PAGINATION_QUALIFICATION.md).
+Its later complete CI passed shared ownership but failed one fixture timestamp
+constraint. Corrected combined source98d completed bounded shared ownership,
+one strict check, original6/mounted37/source38 and a separate fresh build; the
+first wrapper owner-check failure remains recorded. #259 final own/post-merge
+complete gates passed. Merged #258 separately passed post-merge Verify/Map/all15 contexts
+(source409/3843, mounted103/985), without a deployed serving/schema claim.
+The combined #259 candidate also retains Step-confirmation, Run trash/restore
+and Metrology metadata mutation services from separately qualified source4928.
+Its fresh current24 four strict checks, legacy7 and Worker12 with owned closure
+remain distinct from historical current23 native18/Worker12 and the UI browser
+scopes. #260 is closed as superseded and was not independently merged.
+The [role/focus ledger](PHASE_5F_ROLE_FOCUS_REVIEW_LEDGER.md) documents the bounded
+cross-surface review. Anonymous Access302 still does not qualify serving code/
+schema or enabled administration. Real-provider/device/deployed acceptance stays open.
+The separate [f88 candidate wrapping qualification](PHASE5F_STORAGE_CANDIDATE_WRAP_QUALIFICATION.md)
+passed a fresh strict check, affected24 mounted cases, one118-output build with121
+copied artifacts and one390 read-only layout case. The [original two draft cases](PHASE5F_STORAGE_TWO_AFTER_WRAP_QUALIFICATION.md)
+then passed against a new isolated24/84 fixture on that same build, preserving
+three accepted revisions, four real released permits and103 ordinary API
+requests with normal owned closure and physical checks. Prior01ad/558 failures
+remain unchanged. Package/recovery presentation, full5F and whole
+Node/File/jobs/Group/runtime acceptance remain unfinished.
+See the single [current status matrix](./PRODUCT_ROADMAP.md#current-checkpoint).
+Detailed FP milestones below are durable design commitments, **not** an assertion
+that FP3–FP5 remain unimplemented.
+
+## Product scale and engineering stance
+
+The intended deployment serves an individual researcher or a small research
+lab/group, rather than a large enterprise. A single server with SQLite and local
+storage, or Cloudflare with D1 and R2 defaults, is the initial deployment target.
+Database performance changes should follow measured limits. PostgreSQL, Redis,
+Kubernetes, distributed workers and horizontal scaling are not prerequisites.
+
+Keep domain identity, file location, authorization and runtime concerns separate.
+Favor verified, resumable operations and explicit recovery over provider-specific
+shortcuts. Preserve strong integrity/concurrency guarantees while replacing
+provisional file persistence where the new model requires it. Avoid speculative
+replication, workspaces, ACL tables or per-user infrastructure.
+
+## Intended order and compatibility
+
+| Order | Capability | Boundary |
+| --- | --- | --- |
+| Complete development integration | FP2–FP5, C4/5D/5E and bounded 5F | Development integration is merged through #262/currentV26. Preserve historical `af8f374`/`aa497d9` and later exact-head scopes; do not infer live provider qualification from local/default CI. |
+| Now / in progress | Remaining 5F and finite performance/maintenance | Continue from merged #262/currentV26. Preserve qualified f88 Storage layout/draft checks and their historical failures; next qualify supported genuine package/recovery presentation and final coherent-head checks. Separate browser/Execution/Node scopes remain distinct. #260 is closed as superseded. Continue demonstrated gaps, finite input checks and measured costs. |
+| First integrated release | 6A6 and scoped 6B | Accept only the actually qualified **enabled FP2–FP5** subset, with explicit provider and operational gates. Unqualified installed code remains restricted. |
+| Later portability | Node/Docker + SQLite + persistent local defaults | Complete deployable app/runtime, volumes and real cross-deployment recovery, not merely the already delivered Node File-job runner. |
+| Later shared-data | Small-group membership and resource authorization | End-to-end Sample/Project/Template/media/export/job permissions, not per-user storage infrastructure. |
+| Independently justified | Appearance, search/derivatives, LLM/insight | Optional, evidence-driven, not a release-blocking rewrite. |
+
+Keep exact instance/purpose-bound file locations. Changing a default routes
+new acceptances, while explicit FP3 migration moves qualified existing Files.
+FP4 copy imports allocate new identities; FP5 backup recovery preserves source
+identities into a fresh isolated target. These distinction rules remain current.
+
+## Advanced now — universal file management and data portability
+
+This is a dedicated capability track, separate from behavior-preserving Phase 6A.
+The durable [file architecture](./FILE_STORAGE_ARCHITECTURE.md) and
+[export/import design](./DATA_EXPORT_IMPORT_DESIGN.md) define the detailed
+contracts; the following are their long-term commitments.
+
+### File purpose and storage roles
+
+Every managed persistent file is portable, including ordinary images, originals,
+previews, source workbooks, import provenance materials and persistent task
+outputs. Purpose comes from the business operation, not MIME type or byte size.
+Transient scratch/cache objects have explicit retention semantics and are not
+silently promoted to durable records or treated as backup content.
+
+Keep business references, immutable logical files, derivation/provenance,
+physical locations, configured profiles and write policies separate. The same
+provider type may have multiple independent profiles; changing an account,
+bucket or root cannot reinterpret historical object addresses. Replacement bytes
+create a new logical file. Purpose, derivation and retention are independent:
+a small uploaded image is durable unless an explicit lifecycle action says
+otherwise, and generating a preview does not authorize deleting its source.
+
+Initial Settings exposes two write-policy roles, `internal` (ordinary/internal
+files) and `originals`, with richer internal purpose metadata feeding them:
+
+| Configuration | Ordinary/internal files | Originals |
+| --- | --- | --- |
+| Cloudflare default after FP1 | Existing R2 profile | Existing R2 profile |
+| Later server/Docker default | Persistent local profile | Persistent local profile |
+| User-selected example | Amazon S3 | R2 |
+| User-selected example after local runtime exists | Local | SWITCHdrive |
+
+Switching defaults affects new writes; historical reads use registered locations.
+It does not migrate existing files, repair unavailable providers or silently
+redirect a failed upload. Deduplication must respect purpose and destination
+policy so it cannot defeat a user's storage choice.
+
+The universal location model supports source and candidate copies during a
+verified migration. Copy, verify destination bytes, conditionally switch active
+location, retain the source and explicitly clean up under GC safeguards. Migration
+is required for both roles, rather than an optional future feature restricted to
+originals. This model leaves future replication possible without promising it.
+
+### Essential Settings before personalization
+
+Essential Settings is part of FP, not a distant appearance project. It provides
+profile/default management, status and capability checks, connection testing,
+validated activation, migration progress and data-control entry points. FP1 uses deployment-provided R2 and can expose authenticated status without
+configuration writes. FP2 adds web-managed external credentials and encrypted
+secret storage. Any default/configuration mutation, even if brought into FP1,
+requires the minimal server-side administrator check before its endpoint ships.
+
+Separate minimum bootstrap configuration (runtime/database/default binding or
+local mount and root-key provision), application settings and encrypted secrets.
+A web UI cannot supply the infrastructure needed to boot that same UI. Cloudflare
+bindings and later container volumes remain deployment responsibilities. Each
+supported installation provisions working defaults before optional external
+configuration. Protect root-key backup/recovery and rotation; a database copy
+without the key is insufficient to recover encrypted credentials. Ordinary
+exports never include usable external credentials.
+
+Design configuration scope and identity seams now, initially at system scope.
+Do not create speculative workspace ACLs solely to implement a system Settings
+page. Credentials belong to the deployment/profile, not an uploading individual.
+Configuration, jobs and secrets are services consumed by Settings rather than
+state machines hidden inside UI components.
+
+### Export and import as usable product features
+
+Provide three explicit goals sharing one snapshot/file/package/job foundation:
+
+| Goal | Result and identity rule |
+| --- | --- |
+| Report | Human-readable presentation for sharing/reading; it is not the authoritative import representation. |
+| Native Sample/Project data package | Readable HTML/Markdown/CSV alongside versioned structured records, manifest and bytes; website import creates fresh business IDs, reconstructs references and records source identity. |
+| System backup/restore | Complete privileged recovery including history/lifecycle state; identity-preserving restore has an isolated preparation and controlled cutover boundary. |
+
+Native package export and matching website import ship and are accepted together
+in FP4. A Project package preserves graph/occurrence geometry and authorized source
+dependencies, rather than converting references to editable local text or merely
+preserving dead source-site URLs. Package import uses destination role policies;
+provider credentials/addresses are not authoritative logical file identity.
+Report projections can be edited outside the application without silently
+changing the structured records that a package importer consumes.
+
+FP5 adds a privileged web recovery flow; retain existing exporter/offline-recovery
+coverage in every earlier schema slice. Clearly report incomplete/missing bytes
+and do not call a partial package a complete backup. Large data operations need
+bounded streaming, progress, retries and interruption recovery outside a single
+browser request. The persisted task contract is shared with migration.
+
+## Later project — Docker / self-hosted portability
+
+### Goal and default installation
+
+Run the same product on Node with SQLite and a persistent local file store, using
+a documented container volume for database, files and recoverable configuration.
+Both initial storage roles use local storage. S3, R2 and WebDAV/SWITCHdrive profiles
+are optional extensions. Docker is packaging for the same application, not a
+parallel domain model or a different native package format.
+
+The milestone must implement and verify:
+
+- database transactions, migrations, indexes and concurrency on ordinary SQLite;
+- safe local paths, durable writes, streaming/ranges and volume persistence;
+- the shared profile/role/secret configuration services;
+- request authentication and the system-administrator boundary;
+- bounded background scheduling, persisted progress, crash recovery and cleanup;
+- startup/setup, upgrades, diagnostics, backup and operational recovery;
+- actual non-empty Cloudflare ↔ Docker native import and system recovery with
+  destination storage remapping and preserved expected identity semantics.
+
+FP's adapter and package design is preparation; it is not evidence that the local
+adapter, Docker runtime or cross-deployment acceptance already exists. R2 native
+bindings are specific to Cloudflare; other runtimes must access compatible object
+services through a supported adapter and credentials. Database copy mechanics
+also remain runtime-specific even when recovery semantics are shared.
+
+### Relationship to multi-user
+
+Both hosted and self-hosted deployments need authentication, secret management,
+configuration and jobs before complete shared-data permissions. Establishing
+those deployment boundaries makes later authorization concrete. The minimum
+privileged Settings boundary therefore ships earlier; full membership and
+resource sharing remain a separately reviewed project.
+
+## Later project — appearance and personal preferences
+
+Add light/dark/system themes, coherent palette token sets, density and useful
+view preferences after evidence justifies them. Keep workflow semantic colors
+(Done, Active, Warning, Mismatch and destructive actions) stable across palettes.
+Start with non-destructive local preferences; account sync requires an actual
+identity/use case. These controls extend the existing Settings area without
+becoming prerequisites for storage setup, data export or recovery.
+
+## Later project — small-group multi-user authorization
+
+Complete multi-user support remains a later capability. FP requires a minimal
+server-side system-administrator boundary for privileged Settings, credentials,
+migration and restore now; this does not imply implementing membership or
+resource-sharing schemas. Preserve actor attribution, stable identities,
+optimistic concurrency and clean resource boundaries without speculative ACLs.
+
+### Shared infrastructure is a requirement
+
+Multi-user does **not** mean one database or storage stack per user.
+
+The intended model is:
+
+```text
+one deployment
+one shared database
+one shared application/object-storage infrastructure
+shared external storage profiles where configured
+        ↓
+multiple authenticated users
+        ↓
+logical visibility and capability controls
+```
+
+Users share the same physical data infrastructure. Isolation is enforced by authorization over logical resources.
+
+### Samples are collaborative resources
+
+A Sample must not become a private silo tied permanently to its creator. Different users may legitimately process the same physical Sample.
+
+The model should distinguish creator/steward metadata from capabilities. A future Sample permission root may expose a small capability set such as:
+
+- `read` — inspect the Sample and its experimental record;
+- `operate` — perform routine fabrication/metrology actions, add records/comments/files, and advance workflow state;
+- `edit` — modify higher-level Sample metadata or plans where permitted;
+- `manage` — administer lifecycle and collaboration permissions.
+
+Example:
+
+```text
+Sample S
+├─ Alice: manage + edit + operate + read
+├─ Bob: operate + read
+├─ Carol: edit + operate + read
+└─ David: read
+```
+
+This allows Alice and Bob to process the same Sample while preventing unrelated users from silently modifying it.
+
+### Permission roots and inheritance
+
+Do not attach independent ACLs to every Step, Comment, image, attachment, and metrology row by default.
+
+Prefer a small number of domain permission roots:
+
+- **Sample** → Runs, Steps, Comments, experimental attachments, metrology, timeline records;
+- **Project** → Project-owned Markdown, attachments, items, placements, and edges;
+- **Recipe/Template** → revisions and related authoring operations;
+- **application/workspace administration** → storage configuration, membership, backup/restore, and other privileged settings.
+
+Descendants inherit the parent resource permission unless a later proven requirement justifies a narrower override.
+
+### Workspace / membership direction
+
+If multi-user is implemented, a shared Workspace/Lab abstraction is likely preferable to user-owned infrastructure:
+
+```text
+User
+  ↓ membership
+Workspace / Lab
+  ├─ Samples
+  ├─ Recipes
+  ├─ Projects
+  ├─ storage profiles
+  └─ members / roles
+```
+
+A storage connection should belong logically to the workspace/application environment, not to the person who happened to upload a file. A user leaving the lab must not make shared experimental files inaccessible.
+
+Workspace roles and object capabilities should remain separate concepts. An administrative role may control membership, storage, and restore operations without automatically implying unrestricted mutation of every experimental object unless that override is an explicit product policy.
+
+### Authorization is the main engineering cost
+
+The difficult part of multi-user is not adding a `users` table. The difficult part is ensuring that **every read and write boundary** applies the same authorization policy.
+
+Server-side authorization must cover at least:
+
+- direct Sample/Run/Step/Project/Recipe routes;
+- attachment/media reads;
+- mutation endpoints;
+- Search candidate selection;
+- Reference resolution and canonical destinations;
+- export scopes;
+- backup/restore and storage administration;
+- any future background or migration operations that act on user-visible resources.
+
+Private or restricted resources must be filtered before results are returned. The frontend must never receive globally searched data and merely hide unauthorized rows client-side.
+
+### Centralized capability checks
+
+Routes should consume shared authorization helpers/policies rather than independently reimplementing ownership checks. Conceptually:
+
+```text
+requireSampleCapability(user, sampleId, "operate")
+requireProjectCapability(user, projectId, "edit")
+```
+
+The exact implementation may use SQL joins, precomputed membership data, or another bounded policy layer, but the semantics should remain centralized and testable.
+
+### Concurrency and attribution
+
+Initial multi-user support does not require real-time collaborative editing, CRDT, or live presence.
+
+The existing direction of:
+
+- stable IDs;
+- actor attribution;
+- optimistic revisions / expected timestamps;
+- operation IDs and exact retries;
+- explicit conflict responses;
+
+is sufficient for a first shared-operation model. If two users act on the same Sample concurrently, the authoritative revision/conflict protocol should prevent silent last-write-wins corruption.
+
+Every operation must record the actual actor who performed it even when the resource is managed by another user.
+
+### Storage remains orthogonal
+
+Logical permission follows the domain resource that references a logical file. It does not follow the physical blob location or uploader.
+
+For example:
+
+```text
+Sample B
+  ↓ attachment
+logical file
+  ↓
+SWITCHdrive location
+```
+
+If User A cannot read Sample B, A cannot fetch that attachment even though A and B share the same SWITCHdrive storage profile. Moving the object to R2 or another provider must not change that authorization result.
+
+### Export and administration
+
+Multi-user builds on the FP distinction between:
+
+- readable report/native package export of data the actor may access;
+- native package import with domain create permissions and fresh business IDs;
+- privileged full-workspace/system backup and identity-preserving restore.
+
+Reference dependencies, file reads, package snapshots and background execution
+must enforce that scope as well as foreground routes. A Project permission does
+not independently grant access to every source resource it references.
+
+Full restore and storage migration are administrative operations and require stronger authorization than ordinary research editing.
+
+---
+
+## What must remain compatible throughout
+
+Current FP work preserves:
+
+- source, reference-target, Project occurrence and Map placement identity layers;
+- actor attribution, optimistic revisions, idempotent operation identity and
+  authoritative conflict responses;
+- attachment ownership, recoverable deletion, quarantine, GC reachability and
+  final physical-delete checks across every file location;
+- complete export/recovery schema coverage during transitions, with explicit
+  version handling rather than assumptions about prior disposable test data;
+- public file/reference navigation that resolves authorized logical files instead
+  of exposing provider addresses as stable identity;
+- runtime-neutral domain logic and explicit database, storage, auth and job
+  adapters;
+- existing user-visible media/Comment/Project behavior while backend records evolve.
+
+6A6 serving/schema/device and scoped 6B/provider exits remain open after the
+qualified development integration; bounded C4 implementation is integrated. FP design
+cannot convert a zero-blob recovery exercise into a non-empty upload/download
+pass, infer successful SWITCHdrive authentication, repeat a database reset or
+resume held operational controls. Detailed transition and stage checks are in
+the implementation plan and activation checkpoint.
+
+Later multi-user extensions must preserve all of the above while narrowing data
+visibility server-side. File placement never changes domain ownership; workspace
+membership must not depend on the uploader's continuing personal account access.
+
+## Optional later capabilities
+
+Add a rebuildable search index only when representative latency/data volume
+requires it. Preserve deterministic eligibility, ranking and lifecycle semantics.
+Trusted server-side derivative production remains separately justified; the file
+model records source/recipe/trust without pretending every preview is regenerable.
+Read-only insight over explicitly selected Project content may follow a stable
+deterministic workflow. Replication, automatic tiering/failover, real-time editing
+and large-organization features require separate evidence and design.
+
+## Non-goals for the near term
+
+The proposed FP track does not require:
+
+- user/workspace tables solely for future-proofing or per-resource ACLs before
+  shared-data work begins;
+- per-user databases or per-user physical storage stacks;
+- live presence, CRDT/OT or automatic multi-location failover;
+- PostgreSQL, Redis, Kubernetes or distributed worker coordination;
+- silent provider fallback or destructive migration without byte verification;
+- Docker-specific duplicated domain logic or early claims of deployment parity;
+- account-level preference sync or appearance expansion before functional needs.
+
+Universal file portability, explicit migration and paired native export/import
+are locally implemented and qualified on the synchronized FP2–FP5 development
+branch. Real-provider, deployed and integrated release exits remain open; these
+capabilities are not items on this deferred list. The
+[Product roadmap](./PRODUCT_ROADMAP.md#current-checkpoint) owns their current
+implementation, integration and acceptance status.

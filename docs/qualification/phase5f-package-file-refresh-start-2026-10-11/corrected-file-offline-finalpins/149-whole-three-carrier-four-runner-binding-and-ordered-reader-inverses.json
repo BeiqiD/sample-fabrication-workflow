@@ -1,0 +1,59 @@
+{
+  "oldCarrier": {
+    "path": "/tmp/phase5f-package-file-current2d07-three-native-finite-source-preparation-attempt1/file-start202/carry-current2d07-original-native.py",
+    "sha256": "3fc22861ac2957a6d22cf9f834d9f0394c6068f918d8b2064b681e5de887a93a",
+    "bytes": 17414
+  },
+  "carrierChanges": [
+    {
+      "before": "PLAN=pathlib.Path('/tmp/phase5f-package-file-current2d07-three-native-finite-source-preparation-attempt1/file-start202/finite-current2d07-original-ten-plan.json')",
+      "after": "PLAN=pathlib.Path('/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-source-preparation-attempt1/finite-one-original-closed-file-ordered-reader-finalpins-plan.json')"
+    },
+    {
+      "before": "assert len(report['readerRequests'])==2 and all(item['method']=='GET' and item['status']==200 and item['body']=='completed' and re.fullmatch(r'[a-f0-9]{64}',item['sha256']) for item in report['readerRequests'])",
+      "after": "assert len(report['readerRequests'])==2 and [(item['path'],item['method'],item['status']) for item in report['readerRequests']]==[('/api/storage/configuration/capability','GET',200),('/api/files/migrations','GET',403)] and all(item['body']=='completed' and re.fullmatch(r'[a-f0-9]{64}',item['sha256']) for item in report['readerRequests'])"
+    },
+    {
+      "before": "saved(CURRENT_RUNTIME/'final-current2d07-source-and-genuine-start202-pins.json'",
+      "after": "saved(pathlib.Path('/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-private-attempt1/runtime/final-current2d07-file-start202-ordered-reader-source-pins.json')"
+    }
+  ],
+  "oldRunner": {
+    "path": "/tmp/phase5f-package-file-current2d07-three-native-finite-source-preparation-attempt1/file-start202/run-frozen-owned-stage.py",
+    "sha256": "b980166948e0b70939d18ea3f904f2d1f4752256c1548d8d29d8f4c3039155f6",
+    "bytes": 11525
+  },
+  "runnerChanges": [
+    {
+      "before": "RUNTIME=Path('/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime')",
+      "after": "RUNTIME=Path('/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-private-attempt1/runtime')"
+    },
+    {
+      "before": "PLAN=Path('/tmp/phase5f-package-file-current2d07-three-native-finite-source-preparation-attempt1/file-start202/finite-current2d07-original-ten-plan.json')",
+      "after": "PLAN=Path('/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-source-preparation-attempt1/finite-one-original-closed-file-ordered-reader-finalpins-plan.json')"
+    },
+    {
+      "before": "PLAN_SHA='3fbd169fc353cdbcb8722c37d761871983990b2d503ed3064c274b47e3f92b74'",
+      "after": "PLAN_SHA='532836f3422b4f38b5a322bb9558e501838761d8f9bd44bfa0d51a63ab1b0b7d'"
+    },
+    {
+      "before": "--exclusive-go-exact-c316fe8-current2d07-file-start202-stage",
+      "after": "--exclusive-go-exact-c316fe8-original-closed-file-ordered-reader-finalpins-stage"
+    }
+  ],
+  "threeCarrierDefinitionsASTExact": true,
+  "allElevenRunnerDefinitionsASTExact": true,
+  "wholeCarrierRunnerByteInverseExact": true,
+  "originalReaderHelper": {
+    "path": "/tmp/phase5f-package-file-current2d07-native-five-qa-private-attempt1/source/scripts/qa/phase5f/browser-current-package-file-focus-file-start202-natural-focus-keyboard.mjs",
+    "sha256": "11f0e926242a36023418c28d499b289ec7f7c17b7c8404e340a98607331c065d",
+    "bytes": 39872
+  },
+  "readerSSOTExact": true,
+  "wholePlanMetadataAndSelectedCommandOriginal": {
+    "path": "/tmp/phase5f-package-file-current2d07-three-native-finite-source-preparation-attempt1/file-start202/finite-current2d07-original-ten-plan.json",
+    "sha256": "3fbd169fc353cdbcb8722c37d761871983990b2d503ed3064c274b47e3f92b74",
+    "bytes": 21909
+  },
+  "originalTenPlanPreserved": true
+}

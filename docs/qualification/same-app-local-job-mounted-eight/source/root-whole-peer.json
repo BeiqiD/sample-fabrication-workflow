@@ -1,0 +1,26 @@
+{
+  "status": "PRODUCT_AND_GENUINE_EIGHT_SOURCE_CLEAR_PENDING_FINITE_GO",
+  "time": "2026-10-11T15:09:31.788381+00:00",
+  "head": "b13129a048a223cfe707c8868a4b11400fccc7f7",
+  "tree": "2a5c10a8190f6807f59d8a2282411b82f46c78e5",
+  "sourceInputs": 2585,
+  "protectedBasisInputs": 2569,
+  "currentHandoff": {
+    "path": "/workspace/same-app-local-job-mounted-typed-source-handoffs/complete-source-and-two-affected-static-check-handoff.json",
+    "sha256": "d4b7b00c73dd04c0c93b5cc56792447659cba6a152bd835f73470f72a9982bad"
+  },
+  "independentWholeSourcePeer": {
+    "path": "/workspace/same-app-local-job-b131-independent-complete-product-genuine-eight-source-peer.json",
+    "sha256": "8d476499867c5a0b60051a1ff10a58b28413845e4028763ccc50d5d3b3a277f3"
+  },
+  "rootRead": "Full two new execution/runner owners, eight product changes, all original eight controls and fixture construction/Response/drain/secondary/native/physical ownership; helper complete donor source transformation verified independently.",
+  "scope": "One existing app opening/core/lease, explicit enableLocalJobs false default, same-BEGIN installed/admin/incarnation/profile/recovery source checks; original120s timer not elapsed qualification",
+  "actualEight": 0,
+  "freshCompiler": 0,
+  "noRuntimeEffects": true,
+  "twoCurrentTypeReceipt": {
+    "path": "/workspace/same-app-local-job-mounted-typed-source-handoffs/affected-node-worker-types-attempt1/receipt.json",
+    "sha256": "04efb5ce2f9e1189a0fa9df66eae318fada40660c4c5f0056cce353d46cdce1e"
+  },
+  "originalTypeFailureRetained": true
+}

@@ -1,0 +1,90 @@
+Authentication rejected Error: Missing Cloudflare Access JWT
+    at authenticateRequest (file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:55231:20)
+    at file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:55270:27
+    at dispatch (file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:17:17)
+    at file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:17:40
+    at file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:57571:9
+    at dispatch (file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:17:17)
+    at file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:5:10
+    at file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:1234:27
+    at #dispatch (file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:1240:5)
+    at _Hono.fetch (file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:1254:24)
+Authentication rejected JWSSignatureVerificationFailed: signature verification failed
+    at flattenedVerify (file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:54816:52)
+    at async compactVerify (file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:54837:19)
+    at async jwtVerify (file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:54968:19)
+    at async authenticateRequest (file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:55238:22)
+    at async file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:55270:21
+    at async dispatch (file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:17:11)
+    at async file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:57571:3
+    at async dispatch (file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:17:11)
+    at async file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:1234:21 {
+  code: 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED'
+}
+Authentication rejected JWTExpired: "exp" claim timestamp check failed
+    at validateClaimsSet (file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:54955:45)
+    at jwtVerify (file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:54971:12)
+    at async authenticateRequest (file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:55238:22)
+    at async file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:55270:21
+    at async dispatch (file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:17:11)
+    at async file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:57571:3
+    at async dispatch (file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:17:11)
+    at async file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:1234:21 {
+  code: 'ERR_JWT_EXPIRED',
+  claim: 'exp',
+  reason: 'check_failed',
+  payload: {
+    email: 'administrator@enabled-admin.invalid',
+    iss: 'http://127.0.0.1:34953',
+    aud: 'enabled-admin-c2653644-653b-4a70-a3ee-35732362ba99',
+    sub: 'fixture:administrator@enabled-admin.invalid',
+    iat: 1791679717,
+    exp: 1791679657
+  },
+  [cause]: {
+    claim: 'exp',
+    reason: 'check_failed',
+    payload: {
+      email: 'administrator@enabled-admin.invalid',
+      iss: 'http://127.0.0.1:34953',
+      aud: 'enabled-admin-c2653644-653b-4a70-a3ee-35732362ba99',
+      sub: 'fixture:administrator@enabled-admin.invalid',
+      iat: 1791679717,
+      exp: 1791679657
+    }
+  }
+}
+Authentication rejected JWTClaimValidationFailed: unexpected "aud" claim value
+    at validateClaimsSet (file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:54932:115)
+    at jwtVerify (file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:54971:12)
+    at async authenticateRequest (file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:55238:22)
+    at async file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:55270:21
+    at async dispatch (file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:17:11)
+    at async file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:57571:3
+    at async dispatch (file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:17:11)
+    at async file:///tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/dist/sample_fabrication_workflow_local/index.js:1234:21 {
+  code: 'ERR_JWT_CLAIM_VALIDATION_FAILED',
+  claim: 'aud',
+  reason: 'check_failed',
+  payload: {
+    email: 'administrator@enabled-admin.invalid',
+    iss: 'http://127.0.0.1:34953',
+    aud: 'wrong-c7d1b4d2-1ceb-4be0-8eb0-d44f1208e8cc',
+    sub: 'fixture:administrator@enabled-admin.invalid',
+    iat: 1791679717,
+    exp: 1791680017
+  },
+  [cause]: {
+    claim: 'aud',
+    reason: 'check_failed',
+    payload: {
+      email: 'administrator@enabled-admin.invalid',
+      iss: 'http://127.0.0.1:34953',
+      aud: 'wrong-c7d1b4d2-1ceb-4be0-8eb0-d44f1208e8cc',
+      sub: 'fixture:administrator@enabled-admin.invalid',
+      iat: 1791679717,
+      exp: 1791680017
+    }
+  }
+}
+{"status":"passed","reportPath":"/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5/enabled-admin-browser-report.json","actualCases":4,"passed":4,"failed":0,"unrun":0,"closure":"closed"}

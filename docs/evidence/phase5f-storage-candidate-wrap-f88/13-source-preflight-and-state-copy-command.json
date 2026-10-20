@@ -1,0 +1,31 @@
+{
+  "stage": "source-preflight-and-state-copy",
+  "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+  "argv": [
+    "python",
+    "-B",
+    "/tmp/phase5f-storage-candidate-section-wrap-source-review-attempt10/copy-and-postcheck-original-closed-storage-layout.py",
+    "--exclusive-go-read-only-retained-storage-layout-files",
+    "copy"
+  ],
+  "scope": "Verify originalclosed receipt/directPIDs/source1792/artifacts121 and QAconsumer1792/all1791otherbytes; copy only originalnormalclosed state regular main/WAL/R2blobs into0700newroot. OriginalSHM statonly, no originalSQLite reader.",
+  "startedAt": "2026-10-11T02:50:34.887976+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/source-preflight-and-state-copy.log",
+  "pid": 619250,
+  "processGroup": 619250,
+  "originalStartTicks": "10029565",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T02:50:35.271400+00:00",
+  "logSha256": "5ba4ac44d02d9165d92d1d1c0cbaa669ba704df1c0b499518ffacc703bcf473f"
+}

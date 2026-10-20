@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /workspace/portable-dev270-file-preview-focus-coherent-source-attempt1
+
+
+ Test Files  1 passed (1)
+      Tests  11 passed (11)
+   Start at  12:06:29
+   Duration  1.31s (transform 264ms, setup 0ms, import 401ms, tests 487ms, environment 294ms)
+

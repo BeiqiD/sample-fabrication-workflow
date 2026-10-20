@@ -1,0 +1,22 @@
+{
+  "kind": "current-node-configured-eight-supervision/1",
+  "status": "PASS",
+  "startedAt": "2026-10-11T13:25:23.501898+00:00",
+  "argv": [
+    "python3",
+    "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/configured-eight/original-owned-runner.py"
+  ],
+  "runnerSha256": "8611da94d2d2e3ebff66a4455e536e3c4b8a52705d534a8cbff99ec61e4a7d50",
+  "planSha256": "c15c3499043056ff541dd08454eaf8f304b25b5566ce530cbc65728aaf0c44f7",
+  "outerBudgetSeconds": 180,
+  "scope": "Current development joined Node source eaef0b5d1346faaa5cdf0fc8db0d9439919f1c42; original configured-eight wholly fresh, zero Native case carry. Same original Native/core/physical lease and current Request/session/role/incarnation/recovery fences, qualified active original writer continuation; source-specific donor results remain historical. No Group/V28/CLI/research/metrology grant or runtime default broadening.",
+  "originalHandleWaitRequired": true,
+  "pid": 1218112,
+  "processGroup": 1218112,
+  "exitCode": 0,
+  "originalRunnerWaitedReaped": true,
+  "endedAt": "2026-10-11T13:25:53.222954+00:00",
+  "seconds": 29.721,
+  "actualReceiptPath": "/workspace/current-a5-qualified-writer-configured-eight-owned-actual-attempt1/receipt.json",
+  "actualReceiptSha256": "bfa2688721276870a3905b70ddeb9305d0d89d6cf2726883ca53a73eac83c7bb"
+}

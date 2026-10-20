@@ -1,0 +1,47 @@
+(node:1060263) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ 408 and socket close retain the original handler and its one delayed late-body disposer (110.130527ms)
+✔ real response disconnect waits the first original reader cancellation rather than a second closed-stream cancel (29.863408ms)
+✔ failed original response cancellation quarantines the issued HTTP owner without retries or forged drain admission (4.219303ms)
+✔ stop admission still waits actual chunked ingress EOF and response completion for an already admitted request (24.294025ms)
+{"kind":"original-eof-regression-http-drain","productionCancellationCalls":1,"failedTeardownCancellation":false,"originalHttpDrain":"settled"}
+✔ complete ignored Content-Length body cancels its original unread Web queue after native normal EOF before ACK and drain (3.976436ms)
+ℹ {"kind":"normal-eof-unread-original-reader","nativeDestroyed":true,"nativeReadableEnded":true,"nativeErrored":false,"fetchBodyUsed":false,"originalReaderClosedPending":true}
+✔ direct and late prelocked responses retain exact foreign body custody and reject drain without unlocking or cancelling it (47.162577ms)
+✔ held keepalive ingress drains its complete response without waiting for idle expiry or client teardown (24.754841ms)
+✔ idle cleanup after stop preserves a held original response and every backpressured tail byte (28.730581ms)
+✔ a reported idle sweep failure retains its original rejecting drain after the complete response (4.704566ms)
+✔ a reported initial idle failure never retries cleanup or abandons the held response (23.192095ms)
+ℹ {"kind":"reported-initial-idle-failure-terminal-cleanup","originalHttpDrain":"rejected-retained","originalNativeListenerCallback":"acknowledged","clientAgentDestroyedForTerminalCleanup":true,"gracefulHttpDrain":false}
+(node:1060271) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ actual HTTP keeps configured origin, strips proxy and hop fields, preserves cookies and query (22.061793ms)
+✔ streamed upload reaches Fetch before completion and missing Content-Length remains bounded (22.360915ms)
+✔ ignored streaming bodies still reject actual overflow before successful ACK (5.545035ms)
+✔ declared oversize and forbidden HEAD body fail before dispatch, including Expect continue (2.226664ms)
+✔ dishonest larger Content-Length aborts the Fetch owner without successful ACK (2.51538ms)
+✔ HTTP parser rejects a shorter dishonest length and Content-Length/TE ambiguity (31.909308ms)
+✔ application endpoint-specific body rejection stays stricter than the transport ceiling (13.807966ms)
+✔ caller-cancelled chunked body preserves an endpoint 413 without aborting its Fetch signal (5.030177ms)
+✔ caller-cancelled bounded body drains before success and does not hide an unrelated handler error (31.762816ms)
+✔ caller-cancelled body still counts later bytes and cannot ACK before upload completion (24.353845ms)
+✔ caller-cancelled incomplete body retains the deadline and actual disconnect abort (106.174309ms)
+✔ native HTTP upload deadline returns 408 when it expires before the Fetch owner deadline (28.029308ms)
+✔ bounded header bytes/count and encoded target guards reject before application dispatch (5.699269ms)
+✔ whole-request timeout aborts handler, and incomplete upload timeout returns 408 (84.962293ms)
+✔ incomplete headers close within the configured idle bound without dispatch (43.677648ms)
+✔ multiple Set-Cookie values survive and HEAD cancels rather than streams a body (3.157339ms)
+✔ a handler's late response after timeout has its stream cancelled (92.351012ms)
+✔ slow real client bounds response pulls and disconnect cancels stream/Fetch signal (170.224338ms)
+(node:1060306) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ real disk static/SPA routing preserves API rejection, assets, HEAD and safe paths (97.852961ms)
+✔ missing SPA index stays an actual 404 and noncanonical/symlink build roots reject (2.673217ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1524.763796

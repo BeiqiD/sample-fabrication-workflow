@@ -1,0 +1,42 @@
+{
+  "stage": "affected-file-mounted-file",
+  "cwd": "/workspace/portable-dev270-file-preview-focus-coherent-source-attempt1",
+  "argv": [
+    "node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "vitest.mounted.config.ts",
+    "src/file-migrations.mount.test.tsx",
+    "--maxWorkers",
+    "1",
+    "--bail",
+    "1"
+  ],
+  "env": {
+    "TMPDIR": "/workspace",
+    "SQLITE_TMPDIR": "/workspace"
+  },
+  "cases": 11,
+  "originalTestTimeoutMs": 5000,
+  "scope": "Original whole9 plus2 delayed native DOM focus/no-other-control-steal cases; no native Worker/SQLite/browser in these two stages.",
+  "startedAt": "2026-10-11T12:06:28.871029+00:00",
+  "status": "PASS",
+  "log": "/workspace/phase5f-file-preview-current-c50-first-two-runtime-attempt4/affected-file-mounted-file.log",
+  "pid": 1163408,
+  "processGroup": 1163408,
+  "originalStartTicks": "13364964",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T12:06:30.534290+00:00",
+  "logSha256": "383065da1e39fffb87460faee828fdf2b580ff6fe11c6760bf5b9c80d13811b9"
+}

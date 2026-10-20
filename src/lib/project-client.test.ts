@@ -1,0 +1,226 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { R2_UPLOAD_REQUEST_HEADER } from "../../shared/contracts/r2-upload";
+import { ProjectApiError, createProjectApiId, projectApi } from "./project-client";
+
+beforeEach(() => {
+  const values = new Map<string, string>();
+  vi.stubGlobal("sessionStorage", {
+    get length() { return values.size; },
+    key: (index: number) => [...values.keys()][index] ?? null,
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => { values.set(key, value); },
+    removeItem: (key: string) => { values.delete(key); },
+    clear: () => { values.clear(); },
+  });
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+describe("Project client", () => {
+  it("creates API-safe client identities", () => {
+    const id = createProjectApiId("operation");
+    expect(id).toMatch(/^operation-[A-Za-z0-9-]+$/);
+    expect(id.length).toBeLessThanOrEqual(256);
+  });
+
+  it("preserves the native UUID path and caller prefix when available", () => {
+    const uuid = "00112233-4455-4677-8899-aabbccddeeff";
+    const randomUUID = vi.fn(() => uuid);
+    const getRandomValues = vi.fn();
+    vi.stubGlobal("crypto", { randomUUID, getRandomValues });
+
+    expect(createProjectApiId("operation")).toBe(`operation-${uuid}`);
+    expect(randomUUID).toHaveBeenCalledOnce();
+    expect(getRandomValues).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { entropy: 0x00, uuid: "00000000-0000-4000-8000-000000000000" },
+    { entropy: 0xff, uuid: "ffffffff-ffff-4fff-bfff-ffffffffffff" },
+  ])("creates a UUIDv4 from cryptographic entropy $entropy without randomUUID", ({ entropy, uuid }) => {
+    const getRandomValues = vi.fn((bytes: Uint8Array) => {
+      bytes.fill(entropy);
+      return bytes;
+    });
+    vi.stubGlobal("crypto", { getRandomValues });
+
+    expect(createProjectApiId("item")).toBe(`item-${uuid}`);
+    expect(getRandomValues).toHaveBeenCalledOnce();
+    expect(getRandomValues.mock.calls[0][0]).toBeInstanceOf(Uint8Array);
+    expect(getRandomValues.mock.calls[0][0]).toHaveLength(16);
+  });
+
+  it("preserves all non-version and non-variant entropy bytes in the fallback", () => {
+    vi.stubGlobal("crypto", { getRandomValues: (bytes: Uint8Array) => {
+      bytes.set([0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
+        0xc8, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff]);
+      return bytes;
+    } });
+
+    expect(createProjectApiId("placement")).toBe("placement-00112233-4455-4677-8899-aabbccddeeff");
+  });
+
+  it("preserves HTTP conflict status and sends one compact placement mutation", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(
+      JSON.stringify({ error: "Placement revision conflict" }),
+      { status: 409, headers: { "content-type": "application/json" } },
+    ));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const input = {
+      geometry: { x: 1, y: 2, width: 200, height: 120, zIndex: 0 },
+      expectedRevision: 4,
+      operationId: "operation-a",
+    };
+    await expect(projectApi.updatePlacement("project-a", "placement-a", input))
+      .rejects.toMatchObject<ProjectApiError>({ status: 409, message: "Placement revision conflict" });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/projects/project-a/placements/placement-a");
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      method: "PATCH",
+      body: JSON.stringify(input),
+    });
+  });
+
+  it("uses the authoritative Project collection for list and create", async () => {
+    const fetchMock = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ projects: [] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        project: { id: "project-a", title: "Project A" },
+        replayed: false,
+      }), {
+        status: 201,
+        headers: { "content-type": "application/json" },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await projectApi.list();
+    await projectApi.create({
+      id: "project-a",
+      title: "Project A",
+      operationId: "operation-a",
+    });
+
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/projects");
+    expect(fetchMock.mock.calls[1]).toEqual([
+      "/api/projects",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          id: "project-a",
+          title: "Project A",
+          operationId: "operation-a",
+        }),
+      }),
+    ]);
+  });
+
+  it("uses the authoritative Project lifecycle route to move a Project to trash", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({
+      project: { id: "project-a", title: "Project A", deletedAt: "2026-08-14T08:00:00.000Z" },
+      replayed: false,
+    }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const input = { expectedRevision: 4, operationId: "operation-delete-project" };
+    await projectApi.deleteProject("project-a", input);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/projects/project-a",
+      expect.objectContaining({ method: "DELETE", body: JSON.stringify(input) }),
+    );
+  });
+
+  it("uses Project-owned reference insertion and item-lifecycle routes", async () => {
+    const responseBody = JSON.stringify({ replayed: false });
+    const fetchMock = vi.fn<typeof fetch>().mockImplementation(() => Promise.resolve(new Response(responseBody, {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    })));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const createInput = {
+      itemId: "item-a",
+      placementId: "placement-a",
+      target: { type: "sample" as const, id: "sample-a" },
+      geometry: { x: 10, y: 20, width: 300, height: 180, zIndex: 0 },
+      expectedProjectRevision: 3,
+      operationId: "operation-create",
+    };
+    await projectApi.createReferenceItem("project-a", createInput);
+    await projectApi.removeItem("project-a", "item-a", {
+      expectedItemRevision: 1,
+      operationId: "operation-remove",
+    });
+
+    expect(fetchMock.mock.calls[0]).toEqual([
+      "/api/projects/project-a/items/reference",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify(createInput),
+      }),
+    ]);
+    expect(fetchMock.mock.calls[1]).toEqual([
+      "/api/projects/project-a/items/item-a",
+      expect.objectContaining({
+        method: "DELETE",
+        body: JSON.stringify({
+          expectedItemRevision: 1,
+          operationId: "operation-remove",
+        }),
+      }),
+    ]);
+  });
+
+  it("uses the generic Project asset route with an ASCII-safe Unicode filename header", async () => {
+    const file = new File(["pdf"], "实验结果.pdf", { type: "application/pdf" });
+    const fetchMock = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        id: "asset-uploaded",
+        key: "2026-08-13/asset.pdf",
+        deduplicated: false,
+      }), {
+        status: 201,
+        headers: { "content-type": "application/json" },
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ replayed: false }), {
+        status: 201,
+        headers: { "content-type": "application/json" },
+      }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const asset = await projectApi.uploadAttachmentAsset(file);
+    const createInput = {
+      contentId: "content-a",
+      itemId: "item-a",
+      placementId: "placement-a",
+      locator: { assetId: asset.id },
+      caption: null,
+      sourceUrl: null,
+      geometry: { x: 10, y: 20, width: 340, height: 170, zIndex: 1 },
+      expectedProjectRevision: 3,
+      operationId: "operation-attachment",
+    };
+    await projectApi.createAttachmentItem("project-a", createInput);
+
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/project-assets");
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      method: "POST",
+      headers: {
+        "content-type": "application/pdf",
+        "x-project-filename-uri": encodeURIComponent(file.name),
+        [R2_UPLOAD_REQUEST_HEADER]: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/),
+      },
+      body: file,
+    });
+    expect(JSON.parse(String(fetchMock.mock.calls[1][1]?.body))).toEqual(createInput);
+  });
+});

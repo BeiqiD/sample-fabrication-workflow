@@ -1,0 +1,35 @@
+{
+  "stage": "qualified-original-f228-build-producer-preflight",
+  "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+  "argv": [
+    "python3",
+    "-B",
+    "/workspace/phase5f-recovery-job-controls-native-byte-proof-final-finite-source-review-attempt7/carry-original-f228-new-fixture-native-byte-proof.py",
+    "--coherent-cf-producer-for-genuine-job-controls-two",
+    "producer-preflight"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/recovery-native-proof-f228-private-attempt5",
+    "SQLITE_TMPDIR": "/workspace/recovery-native-proof-f228-private-attempt5"
+  },
+  "control": "Causal original actual f228 build118 source2489 verification only. No freshbuild; require new COPY/FIXTURE and short child temp absent, preserve old paused history.",
+  "startedAt": "2026-10-11T09:54:23.772319+00:00",
+  "status": "PASS",
+  "log": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/qualified-original-f228-build-producer-preflight.log",
+  "pid": 1041740,
+  "processGroup": 1041740,
+  "originalStartTicks": "12572454",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T09:54:24.132769+00:00",
+  "logSha256": "1526840294dc311b819362a317d612b4942985bbdf52dc2dcc06a534e4a8af3f"
+}

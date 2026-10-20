@@ -1,0 +1,43 @@
+{
+  "stage": "genuine-enabled-Access-package-preview-two",
+  "cwd": "/tmp/phase5f-package-two-preview-genuine-context-source-attempt2",
+  "argv": [
+    "node",
+    "/tmp/phase5f-package-two-preview-genuine-context-source-attempt2/scripts/qa/phase5f/browser-genuine-package-preview.mjs",
+    "/tmp/phase5f-package-two-genuine-preview-copy-attempt1",
+    "/tmp/phase5f-package-two-genuine-preview-fixture-attempt1",
+    "--exclusive-go-two-genuine-package-previews"
+  ],
+  "env": {
+    "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+    "CHROMIUM_PATH": "/usr/bin/chromium"
+  },
+  "cases": [
+    "data-package-real-scope-1280-light",
+    "offline-report-real-scope-390-dark"
+  ],
+  "control": "Exactlyone nativegenuine POST /api/packages/plans percase from ordinaryallowed signedAccess reader with no systemadmin grant; actual sourcechecked DTO selectedSample+Project roots andaggregatecounts, true includedsample/run/runStep dependencies/warnings/disabledreasons/nativefocus/+2geometry. Retainoriginal strict consumed200 bodies/hash/routework/context/browser/Worker/JWKS closure,20s/120s budgets. No jobs/ZIP/provider/import/recovery/test/activation mutation. Genuinepreview sourceSQL admission createsone exactreleasedhttp permit perPOST; everyoldrow/table/catalog exact, no blanket lease exemption. Stopfirstfailure andremainingcase UNRUN; mandatory physical/pins.",
+  "toolInvocation": {
+    "tty": true,
+    "originalControl": "Only explicitstop newline originalretainedTTY; awaitoriginalclosure/report/childexit120s guard, no SIGTERM-as-finally assumption."
+  },
+  "startedAt": "2026-10-11T03:41:34.863972+00:00",
+  "status": "FAILED",
+  "log": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/genuine-enabled-Access-package-preview-two.log",
+  "pid": 689145,
+  "processGroup": 689145,
+  "originalStartTicks": "10335563",
+  "exitCode": 1,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 1,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T03:41:36.268161+00:00",
+  "logSha256": "1c8e82ef6703debf5ce3f1a5b0520f3c124bcefd7f55f0e214335b30b19a8536"
+}

@@ -1,0 +1,1133 @@
+{
+  "actualCasesPassed": 6,
+  "cases": [
+    {
+      "id": "image-artifact-nonroot-and-daemon-bind",
+      "status": "PASS"
+    },
+    {
+      "id": "explicit-fresh-bootstrap-and-stopped-inspection",
+      "status": "PASS"
+    },
+    {
+      "id": "genuine-internal-loopback-auth-and-supported-metadata",
+      "status": "PASS"
+    },
+    {
+      "id": "live-writer-exclusion-and-original-graceful-stop",
+      "status": "PASS"
+    },
+    {
+      "id": "same-image-restart-and-recreate-persistence",
+      "status": "PASS"
+    },
+    {
+      "id": "wrong-installation-private-bind-and-keyring-availability-denials",
+      "status": "PASS"
+    }
+  ],
+  "cliGroupsInactive": true,
+  "commands": [
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "0-base-cache",
+      "ownedClosureProven": true,
+      "pid": 2616,
+      "processGroup": 2616,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "1-default-image-build",
+      "ownedClosureProven": true,
+      "pid": 2624,
+      "processGroup": 2624,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "2-image-inspect",
+      "ownedClosureProven": true,
+      "pid": 3108,
+      "processGroup": 3108,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "3-create-artifact",
+      "ownedClosureProven": true,
+      "pid": 3116,
+      "processGroup": 3116,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "4-attach-artifact",
+      "ownedClosureProven": true,
+      "pid": 3124,
+      "processGroup": 3124,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "5-inspect",
+      "ownedClosureProven": true,
+      "pid": 3208,
+      "processGroup": 3208,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "6-create-daemon-bind",
+      "ownedClosureProven": true,
+      "pid": 3216,
+      "processGroup": 3216,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "7-attach-daemon-bind",
+      "ownedClosureProven": true,
+      "pid": 3224,
+      "processGroup": 3224,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "8-inspect",
+      "ownedClosureProven": true,
+      "pid": 3305,
+      "processGroup": 3305,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "9-create-bootstrap",
+      "ownedClosureProven": true,
+      "pid": 3313,
+      "processGroup": 3313,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "10-attach-bootstrap",
+      "ownedClosureProven": true,
+      "pid": 3322,
+      "processGroup": 3322,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "11-inspect",
+      "ownedClosureProven": true,
+      "pid": 3406,
+      "processGroup": 3406,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "12-create-initial-inspect",
+      "ownedClosureProven": true,
+      "pid": 3414,
+      "processGroup": 3414,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "13-attach-initial-inspect",
+      "ownedClosureProven": true,
+      "pid": 3422,
+      "processGroup": 3422,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "14-inspect",
+      "ownedClosureProven": true,
+      "pid": 3502,
+      "processGroup": 3502,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "15-create-main-a",
+      "ownedClosureProven": true,
+      "pid": 3510,
+      "processGroup": 3510,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "16-start-main-a",
+      "ownedClosureProven": true,
+      "pid": 3518,
+      "processGroup": 3518,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "17-api-main-a-exercise",
+      "ownedClosureProven": true,
+      "pid": 3582,
+      "processGroup": 3582,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "18-create-busy-inspect",
+      "ownedClosureProven": true,
+      "pid": 3629,
+      "processGroup": 3629,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 1,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "19-attach-busy-inspect",
+      "ownedClosureProven": true,
+      "pid": 3637,
+      "processGroup": 3637,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "20-inspect",
+      "ownedClosureProven": true,
+      "pid": 3719,
+      "processGroup": 3719,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "21-create-busy-main",
+      "ownedClosureProven": true,
+      "pid": 3728,
+      "processGroup": 3728,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "22-start-busy-main",
+      "ownedClosureProven": true,
+      "pid": 3737,
+      "processGroup": 3737,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "23-wait-busy-main",
+      "ownedClosureProven": true,
+      "pid": 3801,
+      "processGroup": 3801,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "24-inspect",
+      "ownedClosureProven": true,
+      "pid": 3837,
+      "processGroup": 3837,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "25-api-main-a-verify",
+      "ownedClosureProven": true,
+      "pid": 3845,
+      "processGroup": 3845,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "26-inspect",
+      "ownedClosureProven": true,
+      "pid": 3879,
+      "processGroup": 3879,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "27-term-main-a",
+      "ownedClosureProven": true,
+      "pid": 3887,
+      "processGroup": 3887,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "28-wait-main-a",
+      "ownedClosureProven": true,
+      "pid": 3902,
+      "processGroup": 3902,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "29-inspect",
+      "ownedClosureProven": true,
+      "pid": 3930,
+      "processGroup": 3930,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "30-create-after-stop-inspect",
+      "ownedClosureProven": true,
+      "pid": 3938,
+      "processGroup": 3938,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "31-attach-after-stop-inspect",
+      "ownedClosureProven": true,
+      "pid": 3946,
+      "processGroup": 3946,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "32-inspect",
+      "ownedClosureProven": true,
+      "pid": 4026,
+      "processGroup": 4026,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "33-inspect",
+      "ownedClosureProven": true,
+      "pid": 4034,
+      "processGroup": 4034,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "34-restart-same-container",
+      "ownedClosureProven": true,
+      "pid": 4042,
+      "processGroup": 4042,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "35-api-main-a-verify",
+      "ownedClosureProven": true,
+      "pid": 4105,
+      "processGroup": 4105,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "36-inspect",
+      "ownedClosureProven": true,
+      "pid": 4152,
+      "processGroup": 4152,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "37-term-main-a",
+      "ownedClosureProven": true,
+      "pid": 4160,
+      "processGroup": 4160,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "38-wait-main-a",
+      "ownedClosureProven": true,
+      "pid": 4176,
+      "processGroup": 4176,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "39-inspect",
+      "ownedClosureProven": true,
+      "pid": 4204,
+      "processGroup": 4204,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "40-create-main-b",
+      "ownedClosureProven": true,
+      "pid": 4212,
+      "processGroup": 4212,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "41-start-main-b",
+      "ownedClosureProven": true,
+      "pid": 4220,
+      "processGroup": 4220,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "42-api-main-b-verify",
+      "ownedClosureProven": true,
+      "pid": 4284,
+      "processGroup": 4284,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "43-inspect",
+      "ownedClosureProven": true,
+      "pid": 4330,
+      "processGroup": 4330,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "44-term-main-b",
+      "ownedClosureProven": true,
+      "pid": 4339,
+      "processGroup": 4339,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "45-wait-main-b",
+      "ownedClosureProven": true,
+      "pid": 4354,
+      "processGroup": 4354,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "46-inspect",
+      "ownedClosureProven": true,
+      "pid": 4381,
+      "processGroup": 4381,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "47-create-after-recreate-inspect",
+      "ownedClosureProven": true,
+      "pid": 4389,
+      "processGroup": 4389,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "48-attach-after-recreate-inspect",
+      "ownedClosureProven": true,
+      "pid": 4398,
+      "processGroup": 4398,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "49-inspect",
+      "ownedClosureProven": true,
+      "pid": 4479,
+      "processGroup": 4479,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "50-create-wrong-installation",
+      "ownedClosureProven": true,
+      "pid": 4487,
+      "processGroup": 4487,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "51-start-wrong-installation",
+      "ownedClosureProven": true,
+      "pid": 4495,
+      "processGroup": 4495,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "52-wait-wrong-installation",
+      "ownedClosureProven": true,
+      "pid": 4560,
+      "processGroup": 4560,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "53-inspect",
+      "ownedClosureProven": true,
+      "pid": 4595,
+      "processGroup": 4595,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "54-create-bad-keyring",
+      "ownedClosureProven": true,
+      "pid": 4603,
+      "processGroup": 4603,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "55-start-bad-keyring",
+      "ownedClosureProven": true,
+      "pid": 4611,
+      "processGroup": 4611,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "56-api-bad-keyring-unavailable-keyring",
+      "ownedClosureProven": true,
+      "pid": 4676,
+      "processGroup": 4676,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "57-inspect",
+      "ownedClosureProven": true,
+      "pid": 4723,
+      "processGroup": 4723,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "58-term-bad-keyring",
+      "ownedClosureProven": true,
+      "pid": 4731,
+      "processGroup": 4731,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "59-wait-bad-keyring",
+      "ownedClosureProven": true,
+      "pid": 4746,
+      "processGroup": 4746,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "60-inspect",
+      "ownedClosureProven": true,
+      "pid": 4773,
+      "processGroup": 4773,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "61-create-after-negative",
+      "ownedClosureProven": true,
+      "pid": 4794,
+      "processGroup": 4794,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "62-start-after-negative",
+      "ownedClosureProven": true,
+      "pid": 4803,
+      "processGroup": 4803,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "63-api-after-negative-verify",
+      "ownedClosureProven": true,
+      "pid": 4868,
+      "processGroup": 4868,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "64-inspect",
+      "ownedClosureProven": true,
+      "pid": 4916,
+      "processGroup": 4916,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "65-term-after-negative",
+      "ownedClosureProven": true,
+      "pid": 4924,
+      "processGroup": 4924,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "66-wait-after-negative",
+      "ownedClosureProven": true,
+      "pid": 4939,
+      "processGroup": 4939,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "67-inspect",
+      "ownedClosureProven": true,
+      "pid": 4966,
+      "processGroup": 4966,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "68-create-final-inspect",
+      "ownedClosureProven": true,
+      "pid": 4974,
+      "processGroup": 4974,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "69-attach-final-inspect",
+      "ownedClosureProven": true,
+      "pid": 4983,
+      "processGroup": 4983,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "70-inspect",
+      "ownedClosureProven": true,
+      "pid": 5065,
+      "processGroup": 5065,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 1,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "71-missing-bind",
+      "ownedClosureProven": true,
+      "pid": 5073,
+      "processGroup": 5073,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "72-missing-bind-absence",
+      "ownedClosureProven": true,
+      "pid": 5082,
+      "processGroup": 5082,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "73-inspect",
+      "ownedClosureProven": true,
+      "pid": 5090,
+      "processGroup": 5090,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "74-inspect",
+      "ownedClosureProven": true,
+      "pid": 5098,
+      "processGroup": 5098,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "75-inspect",
+      "ownedClosureProven": true,
+      "pid": 5106,
+      "processGroup": 5106,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "76-inspect",
+      "ownedClosureProven": true,
+      "pid": 5114,
+      "processGroup": 5114,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "77-inspect",
+      "ownedClosureProven": true,
+      "pid": 5122,
+      "processGroup": 5122,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "78-inspect",
+      "ownedClosureProven": true,
+      "pid": 5130,
+      "processGroup": 5130,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "79-inspect",
+      "ownedClosureProven": true,
+      "pid": 5139,
+      "processGroup": 5139,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "80-inspect",
+      "ownedClosureProven": true,
+      "pid": 5148,
+      "processGroup": 5148,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "81-inspect",
+      "ownedClosureProven": true,
+      "pid": 5156,
+      "processGroup": 5156,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "82-inspect",
+      "ownedClosureProven": true,
+      "pid": 5164,
+      "processGroup": 5164,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "83-inspect",
+      "ownedClosureProven": true,
+      "pid": 5172,
+      "processGroup": 5172,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "84-inspect",
+      "ownedClosureProven": true,
+      "pid": 5180,
+      "processGroup": 5180,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "85-inspect",
+      "ownedClosureProven": true,
+      "pid": 5188,
+      "processGroup": 5188,
+      "status": "PASS"
+    },
+    {
+      "directChildReaped": true,
+      "exitCode": 0,
+      "forcedTerminationForOwnedCleanup": false,
+      "id": "86-inspect",
+      "ownedClosureProven": true,
+      "pid": 5196,
+      "processGroup": 5196,
+      "status": "PASS"
+    }
+  ],
+  "containerClosureUnproven": [],
+  "containers": [
+    {
+      "closeAttempted": false,
+      "id": "b93b32ace998034f0074aa7c931306b8ea91c9c7e8f06fc55232428d7f6ef609",
+      "kind": "artifact",
+      "lastState": {
+        "Dead": false,
+        "ExitCode": 0,
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 0,
+        "Restarting": false,
+        "Running": false
+      },
+      "originalExitObserved": true
+    },
+    {
+      "closeAttempted": false,
+      "id": "00e4fdfc343f081dddc4b77fbb56848487fe314ceff51e2af99557822d383135",
+      "kind": "daemon-bind",
+      "lastState": {
+        "Dead": false,
+        "ExitCode": 0,
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 0,
+        "Restarting": false,
+        "Running": false
+      },
+      "originalExitObserved": true
+    },
+    {
+      "closeAttempted": false,
+      "id": "ac43dd0967b8324a44e4d25d6dec733a7944243945182b384bf4237cd3c0d1ec",
+      "kind": "bootstrap",
+      "lastState": {
+        "Dead": false,
+        "ExitCode": 0,
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 0,
+        "Restarting": false,
+        "Running": false
+      },
+      "originalExitObserved": true
+    },
+    {
+      "closeAttempted": false,
+      "id": "3c67be90f4a2606de045ae5033dc52d97acfab54aad1d54b3fdf1449f3c7c9e6",
+      "kind": "initial-inspect",
+      "lastState": {
+        "Dead": false,
+        "ExitCode": 0,
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 0,
+        "Restarting": false,
+        "Running": false
+      },
+      "originalExitObserved": true
+    },
+    {
+      "closeAttempted": true,
+      "generation": 2,
+      "id": "14141625256af1cacf8c318b3fe46857c9921d49def28c63d3667294fc2ad273",
+      "kind": "main-a",
+      "lastState": {
+        "Dead": false,
+        "ExitCode": 0,
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 0,
+        "Restarting": false,
+        "Running": false
+      },
+      "originalExitObserved": true
+    },
+    {
+      "closeAttempted": false,
+      "id": "e819f3ce467a3d69415dd38a9ebc65c9bf64d3ed9cddea9f49e73bebd6df82f0",
+      "kind": "busy-inspect",
+      "lastState": {
+        "Dead": false,
+        "ExitCode": 1,
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 0,
+        "Restarting": false,
+        "Running": false
+      },
+      "originalExitObserved": true
+    },
+    {
+      "closeAttempted": false,
+      "id": "6d5a6d77d851899488b6b9d54664b16b4e8bb3d577e5e8be8e9cada85783955f",
+      "kind": "busy-main",
+      "lastState": {
+        "Dead": false,
+        "ExitCode": 1,
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 0,
+        "Restarting": false,
+        "Running": false
+      }
+    },
+    {
+      "closeAttempted": false,
+      "id": "fd1869b40086e78c70c50d1414485ad7a9ed03986924287b288b0804c9159359",
+      "kind": "after-stop-inspect",
+      "lastState": {
+        "Dead": false,
+        "ExitCode": 0,
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 0,
+        "Restarting": false,
+        "Running": false
+      },
+      "originalExitObserved": true
+    },
+    {
+      "closeAttempted": true,
+      "id": "a35df1b2d6b336401852a33db5b4d95124b763056248bc8494a6be9a42d1abfe",
+      "kind": "main-b",
+      "lastState": {
+        "Dead": false,
+        "ExitCode": 0,
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 0,
+        "Restarting": false,
+        "Running": false
+      },
+      "originalExitObserved": true
+    },
+    {
+      "closeAttempted": false,
+      "id": "de94d5c394213a333234c0995935a8652650266b9a979c88d3d0097f488257c2",
+      "kind": "after-recreate-inspect",
+      "lastState": {
+        "Dead": false,
+        "ExitCode": 0,
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 0,
+        "Restarting": false,
+        "Running": false
+      },
+      "originalExitObserved": true
+    },
+    {
+      "closeAttempted": false,
+      "id": "6b12d458f7fe47b9bb9770bc77d1cc649194f3534288befedf75e32ec871dbc1",
+      "kind": "wrong-installation",
+      "lastState": {
+        "Dead": false,
+        "ExitCode": 1,
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 0,
+        "Restarting": false,
+        "Running": false
+      }
+    },
+    {
+      "closeAttempted": true,
+      "id": "69a3ea48cc5c7a081bceccb4485daccebe11a5e4b6ef11f6f32d2cd1ca79c67d",
+      "kind": "bad-keyring",
+      "lastState": {
+        "Dead": false,
+        "ExitCode": 0,
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 0,
+        "Restarting": false,
+        "Running": false
+      },
+      "originalExitObserved": true
+    },
+    {
+      "closeAttempted": true,
+      "id": "2af0acb7efe0264ffb6ae40ee9b8ff18c6ea441686d9a3fc269cdfe70399ba30",
+      "kind": "after-negative",
+      "lastState": {
+        "Dead": false,
+        "ExitCode": 0,
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 0,
+        "Restarting": false,
+        "Running": false
+      },
+      "originalExitObserved": true
+    },
+    {
+      "closeAttempted": false,
+      "id": "c85bd3c7b474de4f3da82d687f9b0af3d7eae6acb2acd336a8394e3debb3ae0d",
+      "kind": "final-inspect",
+      "lastState": {
+        "Dead": false,
+        "ExitCode": 0,
+        "OOMKilled": false,
+        "Paused": false,
+        "Pid": 0,
+        "Restarting": false,
+        "Running": false
+      },
+      "originalExitObserved": true
+    },
+    {
+      "closeAttempted": false,
+      "constructionAbsenceObserved": true,
+      "expectedAbsent": true,
+      "kind": "missing-bind"
+    }
+  ],
+  "diagnosticStatus": "EXACT_EXPORTED_ORIGINAL_FACTS_ONLY",
+  "exportManifestSha256": "2089795f7f87dcadb2ffa4e8e0fa757c59bf4fd7a222f2b59dd432e39fca8c3e",
+  "finalPrivateConfigAndKeyringPinsExact": true,
+  "finalSourceAndContextPinsExact": true,
+  "imageBuildCompletionUnproven": false,
+  "imageBuilds": 1,
+  "noDockerSIGKILLOrRemoval": true,
+  "originalImageBuildCompletionAcknowledged": true,
+  "originalImageId": "sha256:533e62c8f1180859a372d09fdbb59eaeaf23eeec8fa8da55ddadd2c3c5877ac2",
+  "originalReceiptBytes": 93770,
+  "originalReceiptSha256": "fbcb17d5424537bb20827a0d5649e32e4dcc77ec2f4aa832fa17eee0b50a71b5",
+  "originalReceiptStatus": "PASS",
+  "sourceHead": "f883e64086bee44b353f3840271fa3eaaafdcc7d"
+}

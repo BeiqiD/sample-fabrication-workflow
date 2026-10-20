@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "sourceRoot": "/tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3",
+  "sourceCopyRoot": "/tmp/phase5f-idle-focus-enabled-admin-copy-attempt3",
+  "fixtureDirectory": "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3",
+  "sourceHead": "36e28cb2db6500ce26ca6e3048eb4b6fe44d0c5e",
+  "isolationReceiptSha256": "e0eb7479a704c443575e239627f6d0a391df98b47ef87bb79ddb765c17260c83",
+  "fixtureManifestSha256": "1101c8dc9f78404f13778357cf6a7aa58d4161973d4bd2017197ddcae688c816",
+  "browserSessionId": "dc484b46-8069-47a6-bd48-a45c3b5224a2",
+  "sessionPid": 368176,
+  "serverSessionId": "65758902-5754-4d63-b3b0-5ce8e8491487",
+  "startedAt": "2026-10-11T00:11:19.119Z"
+}

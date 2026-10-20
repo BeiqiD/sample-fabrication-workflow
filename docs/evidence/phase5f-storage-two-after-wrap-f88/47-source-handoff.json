@@ -1,0 +1,61 @@
+{
+  "status": "SOURCE_ONLY_FROZEN_ALL_THIRTEEN_NEW_STAGES_UNRUN",
+  "sourceRoot": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+  "sourceHead": "f88fffea3ba0654b52ca90ee87efdafdb70cd48c",
+  "sourceTree": "df05a78afcdee28f7136a349001464c399531e9c",
+  "tracked1792WorkingBlobsExact": true,
+  "actualQualifiedProducerClosed": {
+    "path": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/actual-storage-candidate-section-f88-eight-pass-closed-and-released.json",
+    "sha256": "51bac259cf336bf9c4e04b26ed88566a884e39e257c1d5e1d6082a09d9ae7727",
+    "priorActualEightStages": "PASS/CLOSED only; freshappstrict/mounted24/build118/one390readonly. New originalwrite2 unrun.",
+    "all28OriginalRawRecordsHashesExact": 28,
+    "all118ActualProducerOutputsExact": true
+  },
+  "files": {
+    "finite-original-storage-two-after-qualified-wrap-plan.json": {
+      "path": "/tmp/phase5f-storage-original-two-after-wrap-source-review-attempt11/finite-original-storage-two-after-qualified-wrap-plan.json",
+      "sha256": "7ca39110fe5ea4e81b2c3084a3b360b8e288fa9aa6ce323ead3e778a37a48d2e"
+    },
+    "run-frozen-owned-stage.py": {
+      "path": "/tmp/phase5f-storage-original-two-after-wrap-source-review-attempt11/run-frozen-owned-stage.py",
+      "sha256": "923621eb966e3d36bf38f936c1259a94f27758f25b1f64dad14df69b7d470b65"
+    },
+    "verify-qualified-producer-and-write-two-witness.py": {
+      "path": "/tmp/phase5f-storage-original-two-after-wrap-source-review-attempt11/verify-qualified-producer-and-write-two-witness.py",
+      "sha256": "e210024d96f0747afb8e3d66bfc2d287348185dd610d2c0db3a7007fedb0311b"
+    },
+    "runner-only-retarget.patch": {
+      "path": "/tmp/phase5f-storage-original-two-after-wrap-source-review-attempt11/runner-only-retarget.patch",
+      "sha256": "5076ed0a7a7014f328d80762c26a7548347303235ba7bbe590be2c69fd25986a"
+    }
+  },
+  "runner": {
+    "old": "/tmp/phase5f-storage-candidate-section-wrap-source-review-attempt10/run-frozen-owned-stage.py",
+    "oldSha256": "628f629fc16281fca25a345a32bdc9076ccf2bff7b19affe24838ff5759ade8a",
+    "all11FunctionsClassesASTExact": true,
+    "topLevelOnlyDelta": "Runtime/plan/hash/GO token and firststage guard producerpreflight+existingdist. No changed ownedlaunch/cleanup/group/childreap/TTY handler.",
+    "command": "python -B /tmp/phase5f-storage-original-two-after-wrap-source-review-attempt11/run-frozen-owned-stage.py --exclusive-go-exact-f88fffe-original-storage-two-stage STAGE",
+    "allStageCommandsPinnedByPlan": true
+  },
+  "carrier": "Read-only Git/source/receipt/artifact checks plus private exclusive witness/receipt writes. No compiler/build/SQLite/server/browser; verifies actual prior producer and new genuine24/84/originalWorker normalstop. Newfixtures absent preflight.",
+  "newCases": [
+    "draft-create-lost-reply-1280-light",
+    "draft-revision-conflict-390-dark"
+  ],
+  "expectedNewApiCosts": {
+    "setup": 84,
+    "browser": 15,
+    "auxiliary": 4,
+    "total": 103,
+    "scope": "Expected source-derived; actual recorded, JWKS/health/assets separate."
+  },
+  "stageCount": 13,
+  "argvStageCount": 12,
+  "scope": "One unchanged source f88 newisolated fixture; no product/helper mutations, strict/mounted/build rerun, provider/test/activation or rollback. Original20s/120s and nativefocus/+2 tolerances unchanged. Firstfailure stopslaternormal stages; originalsettlement/ownednormalclosure/physical/pins mandatory. No globalquiescence claim.",
+  "grammarOnlyASTParse": {
+    "runner": "PASS",
+    "carrier": "PASS",
+    "runtimeStarted": false
+  },
+  "sourceAuthoringCorrection": "Before freeze removed nonexistent allOtherRowsExact field; matches genuine report.originalRowsExact and originalCatalogUnrelatedRowsAndAcceptedHistoryVerified. No carrier executed."
+}

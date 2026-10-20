@@ -1,0 +1,209 @@
+name: Genuine Worker recovery browser
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - codex/genuine-worker-browser-recovery
+      - codex/migration-rejected-intent-recovery
+      - codex/main-readiness-request-recovery
+      - codex/performance-readiness-fixes
+      - codex/storage-onboarding-seed
+      - v2/backend-foundation
+    paths:
+      - .github/workflows/recovery-browser.yml
+      - .github/workflows/main-readiness.yml
+      - scripts/qa/phase5f/**
+      - src/**
+      - worker/**
+      - shared/**
+      - migrations/**
+      - public/**
+      - index.html
+      - package.json
+      - package-lock.json
+      - vite.config.ts
+      - wrangler.jsonc
+      - scripts/production-worker-artifact.mjs
+      - scripts/generate-wrangler-config.mjs
+      - scripts/lib/cloudflare-bootstrap.mjs
+      - scripts/temml-bundler-compat.mjs
+      - scripts/qa/phase5f/browser-genuine-worker-recovery.mjs
+      - scripts/qa/phase5f/browser-owned-checkpoints.mjs
+      - scripts/qa/phase5f/genuine-worker-recovery-browser.mjs
+      - scripts/qa/phase5f/genuine-worker-recovery-runtime.mjs
+      - scripts/qa/phase5f/browser-genuine-migration-intent.mjs
+      - scripts/qa/phase5f/genuine-migration-intent-runtime.mjs
+      - scripts/qa/phase5f/genuine-migration-intent-browser.mjs
+      - scripts/qa/phase5f/prepare-file-migration-historical-r2-profiles.mjs
+      - scripts/qa/phase5f/browser-genuine-worker-packages.mjs
+      - scripts/qa/phase5f/browser-full-content-export.mjs
+      - scripts/lib/export-portable-runtime-v26.test.ts
+      - scripts/verify-project-worker.mjs
+      - scripts/qa/phase5f/genuine-worker-package-runtime.mjs
+      - scripts/qa/phase5f/genuine-worker-package-browser.mjs
+      - scripts/qa/phase5f/genuine-storage-onboarding*.mjs
+  pull_request:
+    branches:
+      - v2/backend-foundation
+      - main
+    paths:
+      - .github/workflows/recovery-browser.yml
+      - .github/workflows/main-readiness.yml
+      - scripts/qa/phase5f/**
+      - src/**
+      - worker/**
+      - shared/**
+      - migrations/**
+      - public/**
+      - index.html
+      - package.json
+      - package-lock.json
+      - vite.config.ts
+      - wrangler.jsonc
+      - scripts/production-worker-artifact.mjs
+      - scripts/generate-wrangler-config.mjs
+      - scripts/lib/cloudflare-bootstrap.mjs
+      - scripts/temml-bundler-compat.mjs
+      - scripts/qa/phase5f/browser-genuine-worker-recovery.mjs
+      - scripts/qa/phase5f/browser-owned-checkpoints.mjs
+      - scripts/qa/phase5f/genuine-worker-recovery-browser.mjs
+      - scripts/qa/phase5f/genuine-worker-recovery-runtime.mjs
+      - scripts/qa/phase5f/browser-genuine-migration-intent.mjs
+      - scripts/qa/phase5f/genuine-migration-intent-runtime.mjs
+      - scripts/qa/phase5f/genuine-migration-intent-browser.mjs
+      - scripts/qa/phase5f/prepare-file-migration-historical-r2-profiles.mjs
+      - scripts/qa/phase5f/browser-genuine-worker-packages.mjs
+      - scripts/qa/phase5f/browser-full-content-export.mjs
+      - scripts/lib/export-portable-runtime-v26.test.ts
+      - scripts/verify-project-worker.mjs
+      - scripts/qa/phase5f/genuine-worker-package-runtime.mjs
+      - scripts/qa/phase5f/genuine-worker-package-browser.mjs
+      - scripts/qa/phase5f/genuine-storage-onboarding*.mjs
+
+permissions:
+  contents: read
+
+jobs:
+  genuine-worker-recovery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      WRANGLER_SEND_METRICS: 'false'
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+    steps:
+      - name: Prepare evidence directory
+        shell: bash
+        run: |
+          printf 'RECOVERY_BROWSER_OUTPUT=%s/recovery-browser-%s-%s\n' "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+          printf 'MIGRATION_BROWSER_OUTPUT=%s/migration-browser-%s-%s\n' "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+          printf 'PACKAGE_BROWSER_OUTPUT=%s/package-browser-%s-%s\n' "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+          printf 'CONTENT_EXPORT_OUTPUT=%s/content-export-%s-%s\n' "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+          printf 'STORAGE_ONBOARDING_OUTPUT=%s/storage-onboarding-%s-%s\n' "$RUNNER_TEMP" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+
+      - name: Check out candidate
+        uses: actions/checkout@v4
+        with:
+          # Exercise the proposed base/head combination on pull requests.
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+          cache: npm
+
+      - name: Install committed dependencies
+        run: npm ci
+
+      - name: Build Worker and client
+        run: npm run build
+
+      - name: Use installed Chrome and pinned browser client
+        shell: bash
+        run: |
+          chrome_path="$(command -v google-chrome || command -v google-chrome-stable)"
+          "$chrome_path" --version
+          browser_tools="$RUNNER_TEMP/recovery-browser-tools"
+          npm install --prefix "$browser_tools" --no-save --no-package-lock --ignore-scripts --no-audit --no-fund playwright-core@1.57.0
+          printf 'CHROMIUM_PATH=%s\n' "$chrome_path" >> "$GITHUB_ENV"
+          printf 'PLAYWRIGHT_MODULE_PATH=%s\n' "$browser_tools/node_modules/playwright-core" >> "$GITHUB_ENV"
+
+      - name: Qualify genuine desktop and mobile recovery
+        # The helper retains its original three-minute QA step deadline and
+        # production kernel limits; scheduled events are issued manually.
+        run: node scripts/qa/phase5f/browser-genuine-worker-recovery.mjs --output "$RECOVERY_BROWSER_OUTPUT" --browser
+
+      - name: Qualify genuine migration request recovery
+        run: node scripts/qa/phase5f/browser-genuine-migration-intent.mjs --output "$MIGRATION_BROWSER_OUTPUT"
+
+      - name: Qualify genuine Package copy and original-request recovery
+        run: node scripts/qa/phase5f/browser-genuine-worker-packages.mjs --output "$PACKAGE_BROWSER_OUTPUT"
+
+      - name: Qualify built content-export Worker cancellation and retry
+        timeout-minutes: 5
+        run: node --experimental-transform-types scripts/qa/phase5f/browser-full-content-export.mjs --output "$CONTENT_EXPORT_OUTPUT"
+
+      - name: Qualify conditional S3 onboarding and original-root recovery
+        timeout-minutes: 5
+        run: node scripts/qa/phase5f/genuine-storage-onboarding.mjs --output "$STORAGE_ONBOARDING_OUTPUT" --browser
+
+      - name: Retain reports and screenshots only
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: genuine-worker-recovery-browser-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          path: |
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/report.json
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/seed-first-s3-1280-light/migrations.log
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/seed-first-s3-1280-light/first-s3-before-generate.png
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/seed-first-s3-1280-light/candidate-saved-before-provider-test.png
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/seed-first-s3-1280-light/tested-registered-activated.png
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/seed-first-s3-1280-light/explicit-upload-destinations.png
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/seed-first-s3-390-dark/migrations.log
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/seed-first-s3-390-dark/first-s3-before-generate.png
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/seed-first-s3-390-dark/candidate-saved-before-provider-test.png
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/seed-first-s3-390-dark/tested-registered-activated.png
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/seed-first-s3-390-dark/explicit-upload-destinations.png
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/legacy-keyring-1280-light/migrations.log
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/legacy-keyring-1280-light/candidate-saved-before-provider-test.png
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/legacy-keyring-1280-light/tested-registered-activated.png
+            ${{ env.STORAGE_ONBOARDING_OUTPUT }}/legacy-keyring-1280-light/explicit-upload-destinations.png
+            ${{ env.CONTENT_EXPORT_OUTPUT }}/report.json
+            ${{ env.CONTENT_EXPORT_OUTPUT }}/migrations.log
+            ${{ env.CONTENT_EXPORT_OUTPUT }}/desktop-compression-cancel/cancelled.png
+            ${{ env.CONTENT_EXPORT_OUTPUT }}/desktop-compression-cancel/archive-ready.png
+            ${{ env.CONTENT_EXPORT_OUTPUT }}/mobile-unmount-cancel/cancelled.png
+            ${{ env.CONTENT_EXPORT_OUTPUT }}/mobile-unmount-cancel/archive-ready.png
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/report.json
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-1280-light/actual-downloaded-recovery-report.json
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-1280-light/actual-explicit-mapping.png
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-1280-light/actual-explicit-mapping.full.png
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-1280-light/actual-verified-recovery-report.png
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-1280-light/actual-verified-recovery-report.full.png
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-1280-light/browser-failure.png
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-390-dark/actual-downloaded-recovery-report.json
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-390-dark/actual-explicit-mapping.png
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-390-dark/actual-explicit-mapping.full.png
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-390-dark/actual-verified-recovery-report.png
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-390-dark/actual-verified-recovery-report.full.png
+            ${{ env.RECOVERY_BROWSER_OUTPUT }}/genuine-worker-recovery-390-dark/browser-failure.png
+            ${{ env.MIGRATION_BROWSER_OUTPUT }}/report.json
+            ${{ env.MIGRATION_BROWSER_OUTPUT }}/actual-other-admin-409-1280-light/actual-409-awaiting-explicit-replan.png
+            ${{ env.MIGRATION_BROWSER_OUTPUT }}/actual-other-admin-409-1280-light/actual-original-request-reconciled.png
+            ${{ env.MIGRATION_BROWSER_OUTPUT }}/actual-other-admin-409-1280-light/browser-failure.png
+            ${{ env.MIGRATION_BROWSER_OUTPUT }}/actual-lost-ack-390-dark/actual-committed-ack-lost.png
+            ${{ env.MIGRATION_BROWSER_OUTPUT }}/actual-lost-ack-390-dark/actual-original-request-reconciled.png
+            ${{ env.MIGRATION_BROWSER_OUTPUT }}/actual-lost-ack-390-dark/browser-failure.png
+            ${{ env.PACKAGE_BROWSER_OUTPUT }}/report.json
+            ${{ env.PACKAGE_BROWSER_OUTPUT }}/actual-package-copy-reuse-1280-light/migrations.log
+            ${{ env.PACKAGE_BROWSER_OUTPUT }}/actual-package-copy-reuse-1280-light/actual-package-copy-preview.png
+            ${{ env.PACKAGE_BROWSER_OUTPUT }}/actual-package-copy-reuse-1280-light/actual-published-package-copy.png
+            ${{ env.PACKAGE_BROWSER_OUTPUT }}/actual-package-copy-reuse-1280-light/browser-failure.png
+            ${{ env.PACKAGE_BROWSER_OUTPUT }}/actual-package-import-lost-ack-390-dark/migrations.log
+            ${{ env.PACKAGE_BROWSER_OUTPUT }}/actual-package-import-lost-ack-390-dark/actual-package-copy-preview.png
+            ${{ env.PACKAGE_BROWSER_OUTPUT }}/actual-package-import-lost-ack-390-dark/actual-published-package-copy.png
+            ${{ env.PACKAGE_BROWSER_OUTPUT }}/actual-package-import-lost-ack-390-dark/actual-committed-import-ack-lost.png
+            ${{ env.PACKAGE_BROWSER_OUTPUT }}/actual-package-import-lost-ack-390-dark/browser-failure.png

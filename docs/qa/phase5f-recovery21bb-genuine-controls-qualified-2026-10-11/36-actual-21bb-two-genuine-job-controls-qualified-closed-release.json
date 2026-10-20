@@ -1,0 +1,610 @@
+{
+  "version": 1,
+  "status": "CLOSED_RELEASED_QUALIFIED_TWO_GENUINE_RECOVERY_JOB_CONTROLS",
+  "completedAt": "2026-10-11T09:57:55.575429+00:00",
+  "sourceHead": "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+  "qaConsumerHead": "21bb149da250ef249d2bef7ddb365feb63532503",
+  "actualCommands": {
+    "count": 12,
+    "passed": 12,
+    "failed": 0
+  },
+  "logicalStages": {
+    "count": 13,
+    "passed": 13,
+    "failed": 0,
+    "originalExplicitSeedWorkerStdinStop": "PASS originalTTY13741/PID1042325/stop newline/exit0/disposal/directreap/PGEMPTY"
+  },
+  "nativeOriginalTool": {
+    "tty": 77859,
+    "pid": 1042602,
+    "startTicks": "12584113",
+    "actualExitCode": 0,
+    "directChildReaped": true,
+    "groupEmpty": true
+  },
+  "cases": {
+    "passed": 2,
+    "failed": 0,
+    "unrun": 0,
+    "summary": [
+      {
+        "id": "historical-backup-controls-1280-light",
+        "status": "passed",
+        "width": 1280,
+        "theme": "light",
+        "primaryEOFProofs": 6,
+        "CDPCompleted": 6,
+        "CDPFailed": 0,
+        "strictDTOAndStatusAndAvailableCDPHashMatch": true,
+        "assertions": [
+          {
+            "nativePreviewReturnFocus": {
+              "active": true,
+              "focusVisible": true,
+              "disabled": false
+            }
+          },
+          {
+            "action": "pause",
+            "genuineControl200": true,
+            "state": "paused",
+            "nativeFocus": {
+              "originalTriggerConnected": false,
+              "originalTriggerDisabled": true,
+              "originalTriggerFocused": false,
+              "bodyFocused": true,
+              "activeTag": "body"
+            }
+          },
+          {
+            "surface": "job-pause",
+            "geometry": {
+              "width": 1280,
+              "viewport": {
+                "width": 1280,
+                "height": 900
+              },
+              "root": 1280,
+              "body": 1280,
+              "theme": "light",
+              "inspectedElements": 114,
+              "totalElements": 114,
+              "offendingElements": [],
+              "remainingOffenderCount": 0
+            }
+          },
+          {
+            "action": "resume",
+            "genuineControl200": true,
+            "state": "queued",
+            "nativeFocus": {
+              "originalTriggerConnected": false,
+              "originalTriggerDisabled": true,
+              "originalTriggerFocused": false,
+              "bodyFocused": true,
+              "activeTag": "body"
+            }
+          },
+          {
+            "surface": "job-resume",
+            "geometry": {
+              "width": 1280,
+              "viewport": {
+                "width": 1280,
+                "height": 900
+              },
+              "root": 1280,
+              "body": 1280,
+              "theme": "light",
+              "inspectedElements": 112,
+              "totalElements": 112,
+              "offendingElements": [],
+              "remainingOffenderCount": 0
+            }
+          },
+          {
+            "action": "cancel",
+            "genuineControl200": true,
+            "state": "cancelled",
+            "nativeFocus": {
+              "originalTriggerConnected": false,
+              "originalTriggerDisabled": true,
+              "originalTriggerFocused": false,
+              "bodyFocused": true,
+              "activeTag": "body"
+            }
+          },
+          {
+            "surface": "job-cancel",
+            "geometry": {
+              "width": 1280,
+              "viewport": {
+                "width": 1280,
+                "height": 900
+              },
+              "root": 1280,
+              "body": 1280,
+              "theme": "light",
+              "inspectedElements": 111,
+              "totalElements": 111,
+              "offendingElements": [],
+              "remainingOffenderCount": 0
+            }
+          },
+          {
+            "originalPreview200": true,
+            "originalBackup202": true,
+            "pauseResumeCancel200": true,
+            "acceptedRequestAndJobIdRetained": true,
+            "actualMutations": 4,
+            "generation": 3,
+            "state": "cancelled",
+            "noRichReportOrInventedCounts": true,
+            "noExecutionStepOrArtifactOrTargetWork": true
+          }
+        ],
+        "normalCaseClosure": {
+          "contextClosed": true,
+          "originalRouteWorkAwaited": {
+            "count": 23,
+            "rejected": 0
+          },
+          "originalBodiesAwaited": {
+            "count": 14,
+            "rejected": 0
+          },
+          "originalResponseWaitsAwaited": {
+            "count": 8,
+            "rejected": 0
+          },
+          "originalAcceptedHistoryVerified": true
+        }
+      },
+      {
+        "id": "historical-backup-controls-390-dark",
+        "status": "passed",
+        "width": 390,
+        "theme": "dark",
+        "primaryEOFProofs": 6,
+        "CDPCompleted": 4,
+        "CDPFailed": 2,
+        "strictDTOAndStatusAndAvailableCDPHashMatch": true,
+        "assertions": [
+          {
+            "nativePreviewReturnFocus": {
+              "active": true,
+              "focusVisible": true,
+              "disabled": false
+            }
+          },
+          {
+            "action": "pause",
+            "genuineControl200": true,
+            "state": "paused",
+            "nativeFocus": {
+              "originalTriggerConnected": false,
+              "originalTriggerDisabled": true,
+              "originalTriggerFocused": false,
+              "bodyFocused": true,
+              "activeTag": "body"
+            }
+          },
+          {
+            "surface": "job-pause",
+            "geometry": {
+              "width": 390,
+              "viewport": {
+                "width": 390,
+                "height": 900
+              },
+              "root": 390,
+              "body": 390,
+              "theme": "dark",
+              "inspectedElements": 124,
+              "totalElements": 124,
+              "offendingElements": [],
+              "remainingOffenderCount": 0
+            }
+          },
+          {
+            "action": "resume",
+            "genuineControl200": true,
+            "state": "queued",
+            "nativeFocus": {
+              "originalTriggerConnected": false,
+              "originalTriggerDisabled": true,
+              "originalTriggerFocused": false,
+              "bodyFocused": true,
+              "activeTag": "body"
+            }
+          },
+          {
+            "surface": "job-resume",
+            "geometry": {
+              "width": 390,
+              "viewport": {
+                "width": 390,
+                "height": 900
+              },
+              "root": 390,
+              "body": 390,
+              "theme": "dark",
+              "inspectedElements": 122,
+              "totalElements": 122,
+              "offendingElements": [],
+              "remainingOffenderCount": 0
+            }
+          },
+          {
+            "action": "cancel",
+            "genuineControl200": true,
+            "state": "cancelled",
+            "nativeFocus": {
+              "originalTriggerConnected": false,
+              "originalTriggerDisabled": true,
+              "originalTriggerFocused": false,
+              "bodyFocused": true,
+              "activeTag": "body"
+            }
+          },
+          {
+            "surface": "job-cancel",
+            "geometry": {
+              "width": 390,
+              "viewport": {
+                "width": 390,
+                "height": 900
+              },
+              "root": 390,
+              "body": 390,
+              "theme": "dark",
+              "inspectedElements": 121,
+              "totalElements": 121,
+              "offendingElements": [],
+              "remainingOffenderCount": 0
+            }
+          },
+          {
+            "originalPreview200": true,
+            "originalBackup202": true,
+            "pauseResumeCancel200": true,
+            "acceptedRequestAndJobIdRetained": true,
+            "actualMutations": 4,
+            "generation": 3,
+            "state": "cancelled",
+            "noRichReportOrInventedCounts": true,
+            "noExecutionStepOrArtifactOrTargetWork": true
+          }
+        ],
+        "normalCaseClosure": {
+          "contextClosed": true,
+          "originalRouteWorkAwaited": {
+            "count": 23,
+            "rejected": 0
+          },
+          "originalBodiesAwaited": {
+            "count": 14,
+            "rejected": 0
+          },
+          "originalResponseWaitsAwaited": {
+            "count": 8,
+            "rejected": 0
+          },
+          "originalAcceptedHistoryVerified": true
+        }
+      }
+    ]
+  },
+  "actualApiCosts": {
+    "auxiliaryGets": 2,
+    "browserGets": 8,
+    "browserMutationIntents": 8,
+    "originalServerMutationRequestsIssued": 10,
+    "sharedMutationRequests": 2,
+    "originalMutationRequestsMaximum": 10,
+    "acceptedMetadataMutationResponses": 10,
+    "productionPollingMayAddReadOnlyGets": true,
+    "originalRouteFetchForwardsOneNativeIntentOnce": true,
+    "scheduledOrStepInvocationsByHelper": 0,
+    "zipOrProviderOrTargetOperationsByHelper": 0
+  },
+  "historicalBuildCausalCarry": "original f228 ONE118/copied121/current2489 inputs; this run newbuild0, new isolated24 and mature84 once; no Node/old5a retag",
+  "historyFinal": {
+    "stage": "after-original-shared-disable",
+    "schemaExact": true,
+    "onlyThreeExplicitMetadataTablesMayDiffer": true,
+    "allOtherApplicationTablesExact": true,
+    "original63WritePermitsExact": true,
+    "addedPermits": 0,
+    "acceptedJobs": 2,
+    "requestRows": 2,
+    "runtimeEnabled": 0,
+    "runtimeIncarnationSha256": "bd9dce036070e72d8d8e5e75171d5c7c9cb9f617cde1bbab74afe9d344b73494",
+    "runtimeRowSha256": "420397768e36ebb506f166617fff9fef93c4cfbec1a74fc74c6891b66eb460d3",
+    "lineages": [
+      {
+        "jobId": "09121f62-54c1-496b-b3ce-b96b41a13ad6",
+        "requestId": "651933c7-97bd-4fcd-8fb0-dbb7f3b663e8",
+        "actorMatchesCurrentSignedSubject": true,
+        "actorSha256": "5e685ebf41964f639f7cfd400fdfe7af27235920b84afae43456490d57625260",
+        "inputSha256": "ff84ca30241a0279d630d35d75b363d38e740ac46346cd2e3b721eb53b0aeaf9",
+        "checkpointSha256": "944281dab220b6b58386d470c482560520fef6a8df927785d35d9c12e18936cf",
+        "state": "cancelled",
+        "generation": 3,
+        "reason": null,
+        "jobSha256": "e700a24376a7130b18c41e3a458b4659a08c98b967f93b7d8950a72607083e10",
+        "requestSha256": "844450519a57e77ff1a66c50b51ca4e2506fe5c2ed94cf471009de1a83879d70",
+        "noExecutionOrTargetOrArtifactWork": true
+      },
+      {
+        "jobId": "2df45459-f097-4efb-b32c-94ef245241f9",
+        "requestId": "da3c8ac7-6444-4c68-8b8c-f991cbc9226d",
+        "actorMatchesCurrentSignedSubject": true,
+        "actorSha256": "5e685ebf41964f639f7cfd400fdfe7af27235920b84afae43456490d57625260",
+        "inputSha256": "3eebebd05a3c7c307f43c8d99699606bf9cdfa4aa67ea7d0545a19ad93e15727",
+        "checkpointSha256": "944281dab220b6b58386d470c482560520fef6a8df927785d35d9c12e18936cf",
+        "state": "cancelled",
+        "generation": 3,
+        "reason": null,
+        "jobSha256": "0cfb3f4cfb26ff78a6e1a486c7d4300eb2a13d8c92f7eaeb12ad49abed37e2df",
+        "requestSha256": "2de1e426502e777f2882c9d15bd3496aedb488e886b3533e98fbf344a731eba5",
+        "noExecutionOrTargetOrArtifactWork": true
+      }
+    ]
+  },
+  "normalOwnedClosure": {
+    "sessionId": "dae0466d-96e0-40b0-907f-5c409876d1a2",
+    "startedAt": "2026-10-11T09:56:32.989Z",
+    "status": "closed",
+    "browserCloseAwaited": true,
+    "originalSharedWorkBeforeDisableAwaited": 1,
+    "originalDisableAwaited": true,
+    "originalSharedWorkAwaited": {
+      "count": 2,
+      "rejected": 0
+    },
+    "originalApplicationCatalogRowsPermitsAndAcceptedHistoryVerified": true,
+    "executorDisabledReadBack": true,
+    "workerDisposeAwaited": true,
+    "workerPortRefused": true,
+    "jwksCloseAwaited": true,
+    "jwksPortRefused": true,
+    "completedAt": "2026-10-11T09:56:35.196Z"
+  },
+  "all12DirectChildrenReaped": true,
+  "currentOriginalGroups": {
+    "1042562": [],
+    "1042883": [],
+    "1042851": [],
+    "1042602": [],
+    "1042443": [],
+    "1041740": [],
+    "1042285": [],
+    "1042227": [
+      {
+        "pid": 1042243,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1042227,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "1041780": [],
+    "1041909": [
+      {
+        "pid": 1041925,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1041909,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "1042325": [],
+    "1041821": [
+      {
+        "pid": 1041832,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1041821,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "ownerGroupsSummary": {
+    "empty": 9,
+    "onlyKernelExitedWithFDPermission": 3,
+    "cleanupSignals": [],
+    "noObservedZeroFDOrGlobalQuiescenceClaim": true
+  },
+  "physicalAfter": "PASS4 actualSQLite groups/current24/quick/FK/PNG/source-state checks",
+  "finalPins": "PASS2489/2488protected/source118/copy121",
+  "strictNativePrimaryByteProofScope": "six exact originalapplicationResponse/reader/readPromises percase, fullEOF/boundedbytes/DTO/backendhash; originalCDPattempt separatelyalwaysretained, allavailableCDPbyteshashmatched; no fallback/clone/newread/request",
+  "externalScopeNotExercised": [
+    "ZIP",
+    "executeStep",
+    "scheduled execution",
+    "provider acceptance",
+    "recovery target",
+    "physical devices",
+    "other engines",
+    "deployed production"
+  ],
+  "originals": [
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/chromium-child-temp-owner.json",
+      "sha256": "a4738d9003e088a4ef10a71fad6374bee80d5179987e400bd540e00c6b8e7c81",
+      "bytes": 618
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/final-causal-f228-source-and-job-controls-short-temp-pins.json",
+      "sha256": "e2aa562710bbb1321a3caeafbb0a94d480c32d8aa01a2d43aaad5555a15ea68f",
+      "bytes": 3854
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/final-source-artifact-input-pins-command.json",
+      "sha256": "9629a0f5b2692ab98d307094945537c0af4381bba77dc12996877898b43a019f",
+      "bytes": 1476
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/final-source-artifact-input-pins.log",
+      "sha256": "bb5068e0b4ba469129191f9913a41b5eaead9722aef61ccd7cab99faac21974a",
+      "bytes": 201
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/fresh-current-source-build-witness-command.json",
+      "sha256": "402451f3616520e1ef1154dadff1b37ab9677c1b1c1763a02f92de423bccf72a",
+      "bytes": 1477
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/fresh-current-source-build-witness.log",
+      "sha256": "87a79b9d62aab84a4ab851c12f5bab4e3a1fc8bcb2a5f4df95849a163b6f7f92",
+      "bytes": 198
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/fresh-two-version-sentinel-command.json",
+      "sha256": "c51660bd9cef2349ac90a61c92569623e4a37bed28e135788e2fc6833ba6ba51",
+      "bytes": 1885
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/fresh-two-version-sentinel.log",
+      "sha256": "be608fdacc98745e9c989b61c6354aecae8d2f3c120fddc1b8143569e042f02f",
+      "bytes": 222
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/frozen-approved-plan.json",
+      "sha256": "131fb0980737c7b5bf321f58ad71c245ce53c5c1c55756146319b93fd34e9ef1",
+      "bytes": 22015
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/genuine-signed-admin-recovery-job-controls-two-command.json",
+      "sha256": "697012a7e127cb078b63c8d5afb857bc03078660af3f29d1d008b85d2e5a3481",
+      "bytes": 2479
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/genuine-signed-admin-recovery-job-controls-two.log",
+      "sha256": "17624ab2d6c3eab6e3d041b0aa01dbe501a9f46ee87dbf53a48b4d7ab0b3645a",
+      "bytes": 251
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/isolated-copy-command.json",
+      "sha256": "e52bf956291b05a08612ac7097b9d2d6748d9192ff709ad413814110c15da356",
+      "bytes": 1409
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/isolated-copy.log",
+      "sha256": "2b1e3105881a42d2a9aa7b09c8ab320e6d2dd48d81b91a75e1ad6f4d07424591",
+      "bytes": 198
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/mature-genuine-api-84-only-command.json",
+      "sha256": "6ed99d159ff0ff3e737aabe3b77368c94fca6b9d587294c29ab234269fd932c5",
+      "bytes": 1265
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/mature-genuine-api-84-only.log",
+      "sha256": "88df4f84c32616222c53d7b71567a8e01b33addc7dc3dd00b28c80b9a71dfaee",
+      "bytes": 185
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/ordinary-actual24-local-migrations-command.json",
+      "sha256": "a1eb79f77efcc2405e23e5c2dec6424ec60f9913f3ef2a684805e69746246082",
+      "bytes": 1996
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/ordinary-actual24-local-migrations.log",
+      "sha256": "a4c2ee4f147f8110883945240afdfc2a2814e352b98694a6814440398a2d4360",
+      "bytes": 147956
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/original-f228-build-new-physical-fixture-causal-carry.json",
+      "sha256": "babca3d21751c9a7f627c3eb247c816663f44982136562edd9e7c1cb89f59aba",
+      "bytes": 1151
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/owned-built-worker-command.json",
+      "sha256": "fa3f3eca47c95b2d73858312ec1f4a1b189eb4ec40ef79c66e4d000050303100",
+      "bytes": 1721
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/owned-built-worker.log",
+      "sha256": "6871441cd61aca6c54e60dd7b1ccc8949f1c067b47cfba3df102269133613ce7",
+      "bytes": 505
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/physical-after-command.json",
+      "sha256": "508457f862e85f41575030d218e986d0c483c70437abeb853c9cdd814cb94cc0",
+      "bytes": 1658
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/physical-after.log",
+      "sha256": "a0fa4e7dbe8929d2bdeeef21cfd7309384051b764670b50ea6cfddc4cefca208",
+      "bytes": 167
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/physical-before-command.json",
+      "sha256": "fe092dcdddd432ed2829286e9a0b5863b9f2520192379b3e6487e4fff1c0ef03",
+      "bytes": 1342
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/physical-before.log",
+      "sha256": "62459b71e43a1026f14d546facca27bc5acf37fe25893fb7033b032fd2fdfdf9",
+      "bytes": 163
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/qualified-original-f228-build-producer-preflight-command.json",
+      "sha256": "336389bdb36ec67df576561375fb6b5f6d3583e71a3146e4ed1cc72158f8ee5b",
+      "bytes": 1483
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/qualified-original-f228-build-producer-preflight.log",
+      "sha256": "1526840294dc311b819362a317d612b4942985bbdf52dc2dcc06a534e4a8af3f",
+      "bytes": 104
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/synthetic-template-sentinels-only-command.json",
+      "sha256": "d28cefe62d4168edf0fb4713383503341af9ac2ee75bb23cbdfcbf5e578de303",
+      "bytes": 2082
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/synthetic-template-sentinels-only.log",
+      "sha256": "388aa0a4b2be0299b9a16521bf64f9003c29ed7b6cf5532be72e7ee83581e4b4",
+      "bytes": 1611
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/fixture/genuine-recovery-job-controls-browser-report-original-native-byte-proof-attempt5.json",
+      "sha256": "8c2105f77e587fd3b9bce24e666b6421e9e5109a50f2e1ef2307f7668e8fabfb",
+      "bytes": 103654
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/fixture/genuine-recovery-job-controls-runtime-stop-original-native-byte-proof-attempt5.json",
+      "sha256": "40997ebcb42e64807273e69614c056bfd0093c39e2450dbba1e27bdad0ca8e9a",
+      "bytes": 579
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/fixture/physical-sqlite-before-api.json",
+      "sha256": "938e0796723f9eb733ee367acc65f3effc5e6607dd94016ac676645acca37776",
+      "bytes": 59148
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/fixture/physical-sqlite-after-shutdown.json",
+      "sha256": "1f89ab96f9d4a1f6ca1d705be2da065aa90e3b66d3dc881b28388d4fc8ec6f90",
+      "bytes": 63963
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/fixture/actual-api-fixture-receipt.json",
+      "sha256": "575dfd08ac33cb4875abe557cf86729112de30a073695e55246b10f4fc582e6d",
+      "bytes": 51642
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/fixture/isolated-server-receipt.json",
+      "sha256": "2faa3e5b40c3670778cb63ce740f6b1c1658d9d94840936ce7c11e6044836d22",
+      "bytes": 3450
+    },
+    {
+      "path": "/workspace/recovery-native-proof-f228-private-attempt5/fixture/isolated-server-stop-receipt.json",
+      "sha256": "1512aa815fc44965baffffc7cf5fd84b31110bd4cdb7b4b8d2a5e2c0ce7929be",
+      "bytes": 1053
+    }
+  ]
+}

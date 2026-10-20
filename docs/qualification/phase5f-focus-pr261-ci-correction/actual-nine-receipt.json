@@ -1,0 +1,87 @@
+{
+  "sourceHead": "954c048351f330d15f91cb1a185892f03eb75918",
+  "plannedTests": 9,
+  "argv": [
+    "node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "src/grid-modal-behavior.test.ts",
+    "worker/step-confirmation.qualification.test.ts",
+    "--maxWorkers=1",
+    "--no-file-parallelism",
+    "--bail=1"
+  ],
+  "status": "PASS",
+  "defaultBudgetsUnchanged": true,
+  "step": {
+    "pid": 371899,
+    "processGroup": 371899,
+    "exitCode": 0,
+    "completionGroupSnapshot": [
+      {
+        "pid": 371932,
+        "state": "Z",
+        "openFileDescriptors": null,
+        "fdInspectionError": "PermissionError",
+        "kernelResourceOwnerExited": true,
+        "activeOrOwnershipUnproven": false
+      },
+      {
+        "pid": 371941,
+        "state": "Z",
+        "openFileDescriptors": null,
+        "fdInspectionError": "PermissionError",
+        "kernelResourceOwnerExited": true,
+        "activeOrOwnershipUnproven": false
+      }
+    ],
+    "normalCompletionHadActiveChildren": false,
+    "closureInitialSnapshot": [
+      {
+        "pid": 371932,
+        "state": "Z",
+        "openFileDescriptors": null,
+        "fdInspectionError": "PermissionError",
+        "kernelResourceOwnerExited": true,
+        "activeOrOwnershipUnproven": false
+      },
+      {
+        "pid": 371941,
+        "state": "Z",
+        "openFileDescriptors": null,
+        "fdInspectionError": "PermissionError",
+        "kernelResourceOwnerExited": true,
+        "activeOrOwnershipUnproven": false
+      }
+    ],
+    "actualExitCode": 0,
+    "closureFinalSnapshot": [
+      {
+        "pid": 371932,
+        "state": "Z",
+        "openFileDescriptors": null,
+        "fdInspectionError": "PermissionError",
+        "kernelResourceOwnerExited": true,
+        "activeOrOwnershipUnproven": false
+      },
+      {
+        "pid": 371941,
+        "state": "Z",
+        "openFileDescriptors": null,
+        "fdInspectionError": "PermissionError",
+        "kernelResourceOwnerExited": true,
+        "activeOrOwnershipUnproven": false
+      }
+    ],
+    "ownedClosureProven": true
+  },
+  "noFixtureForceRemoval": true,
+  "rawLogSha256": "af973266512ec9c8a9f537782c72fe7b1a447aee678e1b5a142b2d127c97d385",
+  "testSummary": [
+    "Test Files  2 passed (2)",
+    "Tests  9 passed (9)"
+  ],
+  "seconds": 46.748,
+  "headAfter": "954c048351f330d15f91cb1a185892f03eb75918",
+  "trackedSourceStillClean": true
+}

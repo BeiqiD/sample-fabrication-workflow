@@ -1,0 +1,38 @@
+{
+  "kind": "current-d399-original-native-FabuBlox-template-finalizer-source-scope/1",
+  "status": "PRIVATE_DRAFT_SOURCE_ONLY_TYPES_NATIVE_PROVIDER_HTTP_PROCESS_UNRUN",
+  "baseHead": "d399c138f5189d05f3cdf6be26e40823fa08a68c",
+  "newGitObjectsRefs": false,
+  "ownedMOD": [
+    "server/files/local-upload-execution.ts",
+    "server/imports/local-fabublox-permission-v28-candidate.ts",
+    "server/imports/local-fabublox-authority-v28-candidate.ts"
+  ],
+  "ownedADD": [
+    "worker/imports/fabublox-template-publication-core.ts",
+    "server/imports/local-fabublox-template-publication-v28-candidate.ts",
+    "docs/qualification/current-fabublox-native-template-finalizer/README.md",
+    "docs/qualification/current-fabublox-native-template-finalizer/source-scope.json"
+  ],
+  "implemented": [
+    "whole original neutral template derivation",
+    "original image descriptor and same Native view retention",
+    "whole hidden metadata and45/90 boundaries",
+    "one actual native File/template/import/state final transaction",
+    "closed actual finalized receipt witness",
+    "exact own physical finalization readback without redispatch",
+    "original active five recovery and1000-character controller mapping"
+  ],
+  "unqualified": [
+    "new full configured compiler source and declarations",
+    "Native/provider/HTTP finalization and lost-ACK fixtures",
+    "original multipart first-close integrated into actual host",
+    "opt-in50MiB import Request/state routes and CSRF transport",
+    "active File-aware preview/RunStart and genuine locking Process baseline",
+    "stopped operational active recovery and unreviewed legacy1195",
+    "Project publication coupling and default route capability"
+  ],
+  "noDefaultActivation": true,
+  "current851427Qualification": "UNCHANGED_SEPARATE_TARGET_NO_CARRY",
+  "actualCases": {"pass": 0, "fail": 0, "status": "UNRUN"}
+}

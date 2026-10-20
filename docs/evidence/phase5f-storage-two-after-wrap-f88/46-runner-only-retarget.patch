@@ -1,0 +1,30 @@
+--- /tmp/phase5f-storage-candidate-section-wrap-source-review-attempt10/run-frozen-owned-stage.py
++++ /tmp/phase5f-storage-original-two-after-wrap-source-review-attempt11/run-frozen-owned-stage.py
+@@ -1,13 +1,13 @@
+-"""Run only one pinned finite15 stage; reuse accepted original owner cleanup/reap.
++"""Run one pinned finite13 stage; reuse qualified f88 output without rebuilding.
+ Worker stdin ownership is retained by this recorder until an explicit stop.
+ """
+ import datetime,hashlib,json,os,signal,subprocess,sys,time
+ from pathlib import Path
+ SOURCE_ROOT=Path('/tmp/phase5f-storage-candidate-section-wrap-source-attempt10')
+-RUNTIME=Path('/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10')
+-PLAN=Path('/tmp/phase5f-storage-candidate-section-wrap-source-review-attempt10/finite-fresh-storage390-layout-repair-plan.json')
+-PLAN_SHA='20d549143ab4730142119cc7f5aab513c64b990ba6069ea4e1dc7bb319e1e19d'
+-assert sys.argv[1:2]==['--exclusive-go-exact-f88fffe-fresh-storage390-stage'] and len(sys.argv)==3
++RUNTIME=Path('/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11')
++PLAN=Path('/tmp/phase5f-storage-original-two-after-wrap-source-review-attempt11/finite-original-storage-two-after-qualified-wrap-plan.json')
++PLAN_SHA='7ca39110fe5ea4e81b2c3084a3b360b8e288fa9aa6ce323ead3e778a37a48d2e'
++assert sys.argv[1:2]==['--exclusive-go-exact-f88fffe-original-storage-two-stage'] and len(sys.argv)==3
+ assert hashlib.sha256(PLAN.read_bytes()).hexdigest()==PLAN_SHA
+ plan=json.loads(PLAN.read_bytes());stage=sys.argv[2]
+ step=next(x for x in plan['commands'] if x['stage']==stage)
+@@ -158,7 +158,7 @@
+     assert str((SOURCE_ROOT/'node_modules').resolve())==plan['installedDependencies']['root']
+ verify_source()
+ if not RUNTIME.exists():
+-    assert stage=='affected-app-strict' and not (SOURCE_ROOT/'dist').exists()
++    assert stage=='qualified-f88-producer-preflight' and (SOURCE_ROOT/'dist').is_dir()
+     RUNTIME.mkdir(mode=0o700)
+     write('frozen-approved-plan.json',plan)
+ assert (RUNTIME.stat().st_mode&0o777)==0o700

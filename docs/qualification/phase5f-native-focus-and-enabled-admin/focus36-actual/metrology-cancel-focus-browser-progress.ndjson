@@ -1,0 +1,5 @@
+{"at":"2026-10-11T00:11:19.617Z","cases":[{"id":"metrology-cancel-focus-390-dark","status":"running"}]}
+{"at":"2026-10-11T00:11:21.564Z","cases":[{"id":"metrology-cancel-focus-390-dark","status":"passed"}]}
+{"at":"2026-10-11T00:11:21.566Z","cases":[{"id":"metrology-cancel-focus-390-dark","status":"passed"},{"id":"metrology-cancel-focus-1280-light","status":"running"}]}
+{"at":"2026-10-11T00:11:23.570Z","cases":[{"id":"metrology-cancel-focus-390-dark","status":"passed"},{"id":"metrology-cancel-focus-1280-light","status":"passed"}]}
+{"at":"2026-10-11T00:11:23.640Z","cases":[{"id":"metrology-cancel-focus-390-dark","status":"passed"},{"id":"metrology-cancel-focus-1280-light","status":"passed"}]}

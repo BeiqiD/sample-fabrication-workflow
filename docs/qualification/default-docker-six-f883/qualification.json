@@ -1,0 +1,201 @@
+{
+  "format": "qualified-historical-default-docker-six/1",
+  "status": "ORIGINAL_REMOTE_SIX_PASS_HISTORICAL_TARGET_SOURCE",
+  "date": "2026-10-11",
+  "runId": 38169765719,
+  "runUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38169765719",
+  "event": "push",
+  "workflowSourceHead": "52eeb92b2cebbfb6811e4eebd539007a7949ade4",
+  "targetSourceHead": "f883e64086bee44b353f3840271fa3eaaafdcc7d",
+  "targetSourceTree": "dda4d903cab9f410073ccb88d98e372f6f8d3fbd",
+  "curationParentHead": "dbd003e2b2c18efe6a7a57857de59d6f58632568",
+  "actualCases": [
+    {
+      "id": "image-artifact-nonroot-and-daemon-bind",
+      "status": "PASS"
+    },
+    {
+      "id": "explicit-fresh-bootstrap-and-stopped-inspection",
+      "status": "PASS"
+    },
+    {
+      "id": "genuine-internal-loopback-auth-and-supported-metadata",
+      "status": "PASS"
+    },
+    {
+      "id": "live-writer-exclusion-and-original-graceful-stop",
+      "status": "PASS"
+    },
+    {
+      "id": "same-image-restart-and-recreate-persistence",
+      "status": "PASS"
+    },
+    {
+      "id": "wrong-installation-private-bind-and-keyring-availability-denials",
+      "status": "PASS"
+    }
+  ],
+  "imageId": "sha256:533e62c8f1180859a372d09fdbb59eaeaf23eeec8fa8da55ddadd2c3c5877ac2",
+  "imageBuildCount": 1,
+  "imageBuildCompletionAcknowledged": true,
+  "originalReceiptSha256": "fbcb17d5424537bb20827a0d5649e32e4dcc77ec2f4aa832fa17eee0b50a71b5",
+  "exportManifestSha256": "2089795f7f87dcadb2ffa4e8e0fa757c59bf4fd7a222f2b59dd432e39fca8c3e",
+  "originalCliCommands": 87,
+  "allOriginalCliChildrenWaitedReaped": true,
+  "all14ActualContainersFinalStoppedPid0": true,
+  "missingBindExpectedAbsentEntryCount": 1,
+  "containersWithoutOriginalExitObserved": [
+    "busy-main",
+    "wrong-installation"
+  ],
+  "noAdditionalNativeGracefulACKInferred": true,
+  "noDockerSIGKILLOrRemoval": true,
+  "sourceContextAndPrivateKeyringPinsExact": true,
+  "localArtifactDownloadCount": 0,
+  "evidence": [
+    {
+      "path": "docs/qualification/default-docker-six-f883/original-run-metadata.json",
+      "sha256": "ad0e1b7b3c019a1297c5dd271a94b1f2b556fe89ff936c389c7a26770e436838",
+      "bytes": 1763
+    },
+    {
+      "path": "docs/qualification/default-docker-six-f883/original-whole-job.log",
+      "sha256": "7938d96439ec4cce80468d7bb7777f860f7cc2c5fb730dd42830aa9479f3519e",
+      "bytes": 68783
+    },
+    {
+      "path": "docs/qualification/default-docker-six-f883/original-whitelisted-receipt-facts.json",
+      "sha256": "389efb28df1e5f5ece22bb6fde01208ee6bfe0efbbdbdcf0f7c7a9040a9126e6",
+      "bytes": 28987
+    },
+    {
+      "path": "docs/qualification/default-docker-six-f883/original-owner-boundaries.json",
+      "sha256": "deeb307000dbedf828f8866b721d9ddf53d510298fbfbaf136752492e401b513",
+      "bytes": 7850
+    }
+  ],
+  "olderFailuresPreserved": [
+    {
+      "runId": 38168535385,
+      "sourceHead": "f1006a1621af5a1331ac86930f645e00f45f93b2",
+      "counts": {
+        "PASS": 5,
+        "FAIL": 1
+      },
+      "originalObservedFailure": {
+        "action": "POST /api/auth/login",
+        "status": 401
+      },
+      "boundaryReceiptSha256": "deaafe8afe3959886c67c276d19fa3b5572c7eebe03205345bf60ae10e5ed7d7",
+      "runUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38168535385"
+    },
+    {
+      "runId": 38169501228,
+      "sourceHead": "0514ffef52816de7895409b29afae3a8cc09c99d",
+      "counts": {
+        "PASS": 0,
+        "FAIL": 0,
+        "UNRUN": 6
+      },
+      "originalObservedFailure": "prepare-ci-source inventory SHA assertion before driver invocation",
+      "boundaryReceiptSha256": "4ad53c78ba94e972e246102f4db296d95a49996185d70bc97b1116d5285ff7bd",
+      "runUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38169501228"
+    }
+  ],
+  "qaCorrection": "Original product login limit remains five attempts per60s. QA waits61s after the original fifth client stop ACK and before the sixth client, which still logs in once. The asset inventory binds that exact driver. No denied-login retry or throttle mutation.",
+  "scope": "Default V26 / Filefalse / Jobfalse main, fixed four-bundle packaging including offlineV5. Enabled File/Jobs, Group public application and restored V28 target runtime are outside these six cases.",
+  "currentBaseCompatibility": {
+    "status": "STATIC_SOURCE_COMPATIBILITY_ONLY_NO_CURRENT_IMAGE_RETAGS",
+    "currentPublicBaseHead": "dbd003e2b2c18efe6a7a57857de59d6f58632568",
+    "currentPublicBaseTree": "913b1fd79f40971db930a35de7e1b1e4f99a678c",
+    "currentTrackedFiles": 3019,
+    "historicalRuntimeTargetHead": "f883e64086bee44b353f3840271fa3eaaafdcc7d",
+    "historicalTrackedFiles": 2794,
+    "sameHistoricalPaths": 2787,
+    "changedHistoricalPaths": [
+      "docs/PHASE_5F_ROLE_FOCUS_REVIEW_LEDGER.md",
+      "docs/PRODUCT_ROADMAP.md",
+      "src/file-migrations.mount.test.tsx",
+      "src/pages/FileMigrationsPage.tsx",
+      "src/pages/ResearchPackagesPage.tsx",
+      "src/pages/storage-settings.css",
+      "src/research-packages.mount.test.tsx"
+    ],
+    "allCurrentAdditional225PathsAreDocsQaOrGithub": true,
+    "currentDefaultMainCoreLeaseHTTPTwoCachesAndFourBundleBuilderExact": [
+      "server/main.ts",
+      "server/operations/identity-cli.ts",
+      "server/operations/installation-cli.ts",
+      "server/operations/restore-v28-cli.ts",
+      "server/node-runtime.ts",
+      "server/node-application.ts",
+      "server/sqlite.ts",
+      "server/migrations.ts",
+      "server/operations/writer-lease.ts",
+      "scripts/build-node.mjs",
+      "scripts/lib/node-distribution-v28-manifest.mjs",
+      "distribution/container-entrypoint.sh",
+      "package.json",
+      "package-lock.json",
+      "vite.node.config.ts"
+    ],
+    "exactClosedNodeCliModuleCount": 361,
+    "exactClosedLiteralEdges": 1339,
+    "closureProof": {
+      "path": "/workspace/current-dev57f-qualified-cli-mounted-job-source-handoffs/complete-relative-cli-job-source-closure.json",
+      "sha256": "dabe03c3688b3506379c5e780231303d604ae8ae7670349a6147e2cfff189d8a",
+      "bytes": 319045
+    },
+    "historicalContextEntries": 1522,
+    "trackedSelectedContextEntries": 1520,
+    "externalReviewedRecipeEntries": [
+      ".dockerignore",
+      "Dockerfile"
+    ],
+    "currentSelectedContextEqualTracked": 1515,
+    "currentSelectedContextChangedTracked": [
+      "src/file-migrations.mount.test.tsx",
+      "src/pages/FileMigrationsPage.tsx",
+      "src/pages/ResearchPackagesPage.tsx",
+      "src/pages/storage-settings.css",
+      "src/research-packages.mount.test.tsx"
+    ],
+    "originalBackendProducerMap": {
+      "path": "/workspace/current-dev57f-qualified-cli-mounted-jobs-source-attempt1/dist-node/distribution/source-inputs.json",
+      "sha256": "c8e8560a967180b537d58bf291897521704bc4c6b6d3e0c7042c2c4021864be0",
+      "bytes": 144505
+    },
+    "historicalBackendProducerInputs": 837,
+    "trackedBackendProducerInputs": 810,
+    "sameTrackedBackendProducerInputs": 805,
+    "changedTrackedBackendProducerInputs": [
+      "src/file-migrations.mount.test.tsx",
+      "src/pages/FileMigrationsPage.tsx",
+      "src/pages/ResearchPackagesPage.tsx",
+      "src/pages/storage-settings.css",
+      "src/research-packages.mount.test.tsx"
+    ],
+    "historicalInstalledDependencyInputs": 27,
+    "dependencyScope": "The historical Hono bytes were original producer inputs. Current package and lock Git bytes are equal; a new install/image is not claimed.",
+    "originalFrontendProducerPair": {
+      "path": "/workspace/current-dev-cli-mounted-job-four-and-seventeen-owned-actual-attempt1/current-client-build-map-pair.json",
+      "sha256": "aa4191da34765335d1c0c0f1f4e266e06a9031110d661c8115c1f1e75f3b6ac0",
+      "bytes": 124311
+    },
+    "historicalFrontendInputs": 591,
+    "sameFrontendInputs": 586,
+    "changedFrontendInputs": [
+      "src/file-migrations.mount.test.tsx",
+      "src/pages/FileMigrationsPage.tsx",
+      "src/pages/ResearchPackagesPage.tsx",
+      "src/pages/storage-settings.css",
+      "src/research-packages.mount.test.tsx"
+    ],
+    "currentFrontendAndDockerImageAreNotHistoricalArtifacts": true,
+    "currentImageRuntimeQualification": "UNRUN",
+    "currentEnabledRuntimeGroupAndV28RestoredTarget": "OUTSIDE_ORIGINAL_DEFAULT_SIX"
+  },
+  "actualResultNotRetaggedToCurationHead": true,
+  "currentImageFrontendInputsChanged": true,
+  "furtherCurrentImageBuildOrRuntime": "UNRUN"
+}

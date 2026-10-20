@@ -1,0 +1,120 @@
+{
+  "status": "passed",
+  "source": "/workspace/scratch/96567b57746a/sample-fabrication-workflow",
+  "sourceA": "/workspace/scratch/96567b57746a/premerge-handover-version-a",
+  "nodeVersion": "v24.19.0",
+  "buildLog": "/tmp/pr315-browser-production-build.log",
+  "totalCases": 8,
+  "wrappers": [
+    {
+      "name": "two-version-handover",
+      "status": "passed",
+      "reportPath": "two-version-handover-report.json",
+      "reportSha256": "cdb65fe6b34ac6a9475b8606fb076413e3bb6179f11da252b82f0f20e639bf3c",
+      "chromiumVersion": "143.0.7499.0",
+      "durationSeconds": 44.658,
+      "browserClosed": true,
+      "scope": "Two actual built Worker/client versions, stable local signed Access edge and sequential original runtimes over unchanged local D1/R2. Real retired lazy-route asset failure, explicit keyboard reload, preserved unowned legacy checkpoint and original accepted-job discovery through the authenticated account list without replay. No production, physical device, arbitrary dirty draft, provider, Package execution, elapsed cadence or full release qualification.",
+      "cases": [
+        {
+          "name": "two-version-handover-1280-light",
+          "status": "passed",
+          "closure": {
+            "originalRuntimeVersionsClosed": [
+              "A",
+              "B"
+            ],
+            "ownedEdgeAndJwksPortsRefused": true,
+            "ownedRuntimePortsRefused": true
+          }
+        },
+        {
+          "name": "two-version-handover-390-dark",
+          "status": "passed",
+          "closure": {
+            "originalRuntimeVersionsClosed": [
+              "A",
+              "B"
+            ],
+            "ownedEdgeAndJwksPortsRefused": true,
+            "ownedRuntimePortsRefused": true
+          }
+        }
+      ],
+      "originalReportPath": "/tmp/pr315-final-browser.k43Q2F/two-version-handover/report.json"
+    },
+    {
+      "name": "genuine-worker-recovery",
+      "status": "passed",
+      "reportPath": "genuine-worker-recovery-report.json",
+      "reportSha256": "b1680cbd075673018312dd43f657fa841b92c71f6f9743b2d566219fad1085a2",
+      "chromiumVersion": "143.0.7499.0",
+      "durationSeconds": 73.386,
+      "browserClosed": true,
+      "scope": "Two genuine local current24 Worker V3 Chromium backup/download/upload/preview/mapping/inert-recovery/report cases with signed Access JWT, native D1/R2 and ordinary HTTP-created nonempty source. Manual actual scheduled events; no elapsed cadence, V5, Node SPA, production/provider or deployment qualification.",
+      "cases": [
+        {
+          "name": "genuine-worker-recovery-1280-light",
+          "status": "passed",
+          "runtimeClosed": true
+        },
+        {
+          "name": "genuine-worker-recovery-390-dark",
+          "status": "passed",
+          "runtimeClosed": true
+        }
+      ],
+      "originalReportPath": "/tmp/pr315-final-browser.k43Q2F/genuine-worker-recovery/report.json"
+    },
+    {
+      "name": "genuine-migration-intent",
+      "status": "passed",
+      "reportPath": "genuine-migration-intent-report.json",
+      "reportSha256": "9e4f93cf16a21dc1e2839d0e582f992612343ac11fabfa8dc31ccc9ebefd9a73",
+      "chromiumVersion": "143.0.7499.0",
+      "durationSeconds": 52.583,
+      "browserClosed": true,
+      "scope": "Two genuine local current24 Worker Chromium File migration intent cases: actual other-administrator completed migration causes409+exact404 then explicit replan; actual committed202 ACK lost by transport then exactGET recovery without a secondPOST. Two historical R2 installation-profile metadata fixtures, actual public File/authority/job creation and native D1/two-R2 bytes. Manually issued actual scheduled events; no elapsed cadence, provider, production, Node SPA or deployment qualification.",
+      "cases": [
+        {
+          "name": "actual-other-admin-409-1280-light",
+          "status": "passed",
+          "runtimeClosed": true
+        },
+        {
+          "name": "actual-lost-ack-390-dark",
+          "status": "passed",
+          "runtimeClosed": true
+        }
+      ],
+      "originalReportPath": "/tmp/pr315-final-browser.k43Q2F/genuine-migration-intent/report.json"
+    },
+    {
+      "name": "genuine-worker-packages",
+      "status": "passed",
+      "reportPath": "genuine-worker-packages-report.json",
+      "reportSha256": "eb3d559eba6614ebae6cb531791b44efbfb69651051dc10501c10b7bd600222f",
+      "chromiumVersion": "143.0.7499.0",
+      "durationSeconds": 65.708,
+      "browserClosed": true,
+      "scope": "Two genuine current24 local Worker Chromium Package cases: public Sample+Project/Markdown/remapped Sample reference/one PNG exported through UI to actual STORE ZIP, uploaded/validated and copied to fresh business/File identities; desktop ordinary existing-import reuse without new graph and mobile actual committed import202 ACK transport loss with reload originalGET/no duplicatePOST. All-public separate unexported bootstrap graph retained; no business/profile/job/result SQL fixtures. Actual manual scheduled handlers only; no elapsed cadence, remote provider, Node SPA, production/deployment, full catalog or release qualification.",
+      "cases": [
+        {
+          "name": "actual-package-copy-reuse-1280-light",
+          "status": "passed",
+          "runtimeClosed": true
+        },
+        {
+          "name": "actual-package-import-lost-ack-390-dark",
+          "status": "passed",
+          "runtimeClosed": true
+        }
+      ],
+      "originalReportPath": "/tmp/pr315-final-browser.k43Q2F/genuine-worker-packages/report.json"
+    }
+  ],
+  "sourceCommit": "4c855567c874de8e17dc18b1268fd96b1997a45d",
+  "sourceTree": "8b8fc8ff93d3517610abba1c962333b9556e8b88",
+  "provenanceNote": "Original reports retain their dirty working-tree/baseline metadata. Production and browser harness source were frozen for the final build and all four wrappers; only three non-production test fixtures changed after the earlier broad verification. The final source-only tree includes those fixture corrections. No old-version source or original browser assertions were changed during these runs.",
+  "playwrightCoreVersion": "1.57.0"
+}

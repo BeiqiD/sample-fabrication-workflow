@@ -1,0 +1,350 @@
+docker-six	Set up job	﻿2026-10-11T19:51:24.0805881Z Current runner version: '2.337.0'
+docker-six	Set up job	2026-10-11T19:51:24.0837800Z ##[group]Runner Image Provisioner
+docker-six	Set up job	2026-10-11T19:51:24.0839103Z Hosted Compute Agent
+docker-six	Set up job	2026-10-11T19:51:24.0840104Z Version: 20261002.596
+docker-six	Set up job	2026-10-11T19:51:24.0840861Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+docker-six	Set up job	2026-10-11T19:51:24.0841967Z Build Date: 2026-10-02T22:28:27Z
+docker-six	Set up job	2026-10-11T19:51:24.0842843Z Worker ID: {01846d3f-e4b9-42fc-a10b-27c31e24e2ac}
+docker-six	Set up job	2026-10-11T19:51:24.0844349Z Region: eastus
+docker-six	Set up job	2026-10-11T19:51:24.0845058Z Cloud: Azure
+docker-six	Set up job	2026-10-11T19:51:24.0845712Z ##[endgroup]
+docker-six	Set up job	2026-10-11T19:51:24.0847545Z ##[group]Operating System
+docker-six	Set up job	2026-10-11T19:51:24.0848339Z Ubuntu
+docker-six	Set up job	2026-10-11T19:51:24.0849278Z 24.04.5
+docker-six	Set up job	2026-10-11T19:51:24.0849930Z LTS
+docker-six	Set up job	2026-10-11T19:51:24.0850542Z ##[endgroup]
+docker-six	Set up job	2026-10-11T19:51:24.0851400Z ##[group]Runner Image
+docker-six	Set up job	2026-10-11T19:51:24.0852191Z Image: ubuntu-24.04
+docker-six	Set up job	2026-10-11T19:51:24.0853006Z Version: 20261004.327.1
+docker-six	Set up job	2026-10-11T19:51:24.0854368Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261004.327/images/ubuntu/Ubuntu2404-Readme.md
+docker-six	Set up job	2026-10-11T19:51:24.0856681Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261004.327
+docker-six	Set up job	2026-10-11T19:51:24.0857974Z ##[endgroup]
+docker-six	Set up job	2026-10-11T19:51:24.0859641Z ##[group]GITHUB_TOKEN Permissions
+docker-six	Set up job	2026-10-11T19:51:24.0862180Z Contents: read
+docker-six	Set up job	2026-10-11T19:51:24.0863015Z Metadata: read
+docker-six	Set up job	2026-10-11T19:51:24.0863760Z ##[endgroup]
+docker-six	Set up job	2026-10-11T19:51:24.0866484Z Secret source: Actions
+docker-six	Set up job	2026-10-11T19:51:24.0867627Z Cache mode: write
+docker-six	Set up job	2026-10-11T19:51:24.0869140Z Prepare workflow directory
+docker-six	Set up job	2026-10-11T19:51:24.1242620Z Prepare all required actions
+docker-six	Set up job	2026-10-11T19:51:24.1301784Z Getting action download info
+docker-six	Set up job	2026-10-11T19:51:24.3027085Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+docker-six	Set up job	2026-10-11T19:51:24.3918128Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+docker-six	Set up job	2026-10-11T19:51:24.6802612Z Complete job name: docker-six
+docker-six	Check out reviewed acceptance code	﻿2026-10-11T19:51:24.7513076Z ##[group]Run actions/checkout@v4
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.7513941Z with:
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.7514370Z   path: qa-runner
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.7514824Z   persist-credentials: false
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.7515375Z   repository: BeiqiD/sample-fabrication-workflow
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.7519429Z   token: ***
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.7519850Z   ssh-strict: true
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.7520276Z   ssh-user: git
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.7520681Z   clean: true
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.7521121Z   sparse-checkout-cone-mode: true
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.7521638Z   fetch-depth: 1
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.7522084Z   fetch-tags: false
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.7522530Z   show-progress: true
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.7522997Z   lfs: false
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.7523418Z   submodules: false
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.7523852Z   set-safe-directory: true
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.7524331Z   allow-unsafe-pr-checkout: false
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.7525021Z ##[endgroup]
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8424148Z Syncing repository: BeiqiD/sample-fabrication-workflow
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8426709Z ##[group]Getting Git version info
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8428432Z Working directory is '/home/runner/work/sample-fabrication-workflow/sample-fabrication-workflow/qa-runner'
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8430577Z [command]/usr/bin/git version
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8489115Z git version 2.55.0
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8506197Z ##[endgroup]
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8518831Z Temporarily overriding HOME='/home/runner/work/_temp/979d42bc-49b0-4121-b3f6-ebe37ff72f22' before making global git config changes
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8520939Z Adding repository directory to the temporary git global config as a safe directory
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8524187Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/sample-fabrication-workflow/sample-fabrication-workflow/qa-runner
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8577151Z ##[group]Initializing the repository
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8587022Z [command]/usr/bin/git init /home/runner/work/sample-fabrication-workflow/sample-fabrication-workflow/qa-runner
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8653997Z hint: Using 'master' as the name for the initial branch. This default branch name
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8655955Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8656855Z hint: to use in all of your new repositories, which will suppress this warning,
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8657619Z hint: call:
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8657999Z hint:
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8658492Z hint: 	git config --global init.defaultBranch <name>
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8659215Z hint:
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8659733Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8660563Z hint: 'development'. The just-created branch can be renamed via this command:
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8661210Z hint:
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8661587Z hint: 	git branch -m <name>
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8662031Z hint:
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8662591Z hint: Disable this message with "git config set advice.defaultBranchName false"
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8668070Z Initialized empty Git repository in /home/runner/work/sample-fabrication-workflow/sample-fabrication-workflow/qa-runner/.git/
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8678143Z [command]/usr/bin/git remote add origin https://github.com/BeiqiD/sample-fabrication-workflow
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8719854Z ##[endgroup]
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8721036Z ##[group]Disabling automatic garbage collection
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8723528Z [command]/usr/bin/git config --local gc.auto 0
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8753663Z ##[endgroup]
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8755017Z ##[group]Setting up auth
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8759298Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.8799996Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.9125749Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.9165223Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.9379150Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.9416048Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.9666897Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.9714204Z ##[endgroup]
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.9715755Z ##[group]Fetching the repository
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:24.9726043Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +52eeb92b2cebbfb6811e4eebd539007a7949ade4:refs/remotes/origin/codex/default-docker-six-capacity-f883-one
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.0470825Z From https://github.com/BeiqiD/sample-fabrication-workflow
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.0473779Z  * [new ref]         52eeb92b2cebbfb6811e4eebd539007a7949ade4 -> origin/codex/default-docker-six-capacity-f883-one
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.0480734Z ##[endgroup]
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.0481925Z ##[group]Determining the checkout info
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.0483688Z ##[endgroup]
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.0484518Z [command]/usr/bin/git sparse-checkout disable
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.0535775Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.0571283Z ##[group]Checking out the ref
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.0576845Z [command]/usr/bin/git checkout --progress --force -B codex/default-docker-six-capacity-f883-one refs/remotes/origin/codex/default-docker-six-capacity-f883-one
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.2687524Z Switched to a new branch 'codex/default-docker-six-capacity-f883-one'
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.2706055Z branch 'codex/default-docker-six-capacity-f883-one' set up to track 'origin/codex/default-docker-six-capacity-f883-one'.
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.2709211Z ##[endgroup]
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.2758609Z [command]/usr/bin/git log -1 --format=%H
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.2792953Z 52eeb92b2cebbfb6811e4eebd539007a7949ade4
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.2803352Z ##[group]Removing auth
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.2806823Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.2844689Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.3066351Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.3092386Z http.https://github.com/.extraheader
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.3098561Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.3132332Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.3329039Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.3357435Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+docker-six	Check out reviewed acceptance code	2026-10-11T19:51:26.3543090Z ##[endgroup]
+docker-six	Check out exact published target source	﻿2026-10-11T19:51:26.3840260Z ##[group]Run actions/checkout@v4
+docker-six	Check out exact published target source	2026-10-11T19:51:26.3840601Z with:
+docker-six	Check out exact published target source	2026-10-11T19:51:26.3840856Z   ref: f883e64086bee44b353f3840271fa3eaaafdcc7d
+docker-six	Check out exact published target source	2026-10-11T19:51:26.3841153Z   path: target-source
+docker-six	Check out exact published target source	2026-10-11T19:51:26.3841415Z   persist-credentials: false
+docker-six	Check out exact published target source	2026-10-11T19:51:26.3841738Z   repository: BeiqiD/sample-fabrication-workflow
+docker-six	Check out exact published target source	2026-10-11T19:51:26.3844043Z   token: ***
+docker-six	Check out exact published target source	2026-10-11T19:51:26.3844273Z   ssh-strict: true
+docker-six	Check out exact published target source	2026-10-11T19:51:26.3844506Z   ssh-user: git
+docker-six	Check out exact published target source	2026-10-11T19:51:26.3844731Z   clean: true
+docker-six	Check out exact published target source	2026-10-11T19:51:26.3844970Z   sparse-checkout-cone-mode: true
+docker-six	Check out exact published target source	2026-10-11T19:51:26.3845243Z   fetch-depth: 1
+docker-six	Check out exact published target source	2026-10-11T19:51:26.3845466Z   fetch-tags: false
+docker-six	Check out exact published target source	2026-10-11T19:51:26.3845698Z   show-progress: true
+docker-six	Check out exact published target source	2026-10-11T19:51:26.3845945Z   lfs: false
+docker-six	Check out exact published target source	2026-10-11T19:51:26.3846162Z   submodules: false
+docker-six	Check out exact published target source	2026-10-11T19:51:26.3846394Z   set-safe-directory: true
+docker-six	Check out exact published target source	2026-10-11T19:51:26.3846691Z   allow-unsafe-pr-checkout: false
+docker-six	Check out exact published target source	2026-10-11T19:51:26.3846977Z ##[endgroup]
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4579183Z Syncing repository: BeiqiD/sample-fabrication-workflow
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4581744Z ##[group]Getting Git version info
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4582585Z Working directory is '/home/runner/work/sample-fabrication-workflow/sample-fabrication-workflow/target-source'
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4614839Z [command]/usr/bin/git version
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4655636Z git version 2.55.0
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4676175Z ##[endgroup]
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4690310Z Temporarily overriding HOME='/home/runner/work/_temp/61db37a0-7e72-4634-9170-8ca7ec38bc85' before making global git config changes
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4691314Z Adding repository directory to the temporary git global config as a safe directory
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4695557Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/sample-fabrication-workflow/sample-fabrication-workflow/target-source
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4730429Z ##[group]Initializing the repository
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4735577Z [command]/usr/bin/git init /home/runner/work/sample-fabrication-workflow/sample-fabrication-workflow/target-source
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4779821Z hint: Using 'master' as the name for the initial branch. This default branch name
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4781075Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4781943Z hint: to use in all of your new repositories, which will suppress this warning,
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4782506Z hint: call:
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4782920Z hint:
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4783383Z hint: 	git config --global init.defaultBranch <name>
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4783938Z hint:
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4784472Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4785334Z hint: 'development'. The just-created branch can be renamed via this command:
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4786107Z hint:
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4786375Z hint: 	git branch -m <name>
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4786673Z hint:
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4787077Z hint: Disable this message with "git config set advice.defaultBranchName false"
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4787870Z Initialized empty Git repository in /home/runner/work/sample-fabrication-workflow/sample-fabrication-workflow/target-source/.git/
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4807969Z [command]/usr/bin/git remote add origin https://github.com/BeiqiD/sample-fabrication-workflow
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4838227Z ##[endgroup]
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4839515Z ##[group]Disabling automatic garbage collection
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4843060Z [command]/usr/bin/git config --local gc.auto 0
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4878554Z ##[endgroup]
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4879846Z ##[group]Setting up auth
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4885723Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+docker-six	Check out exact published target source	2026-10-11T19:51:26.4920325Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+docker-six	Check out exact published target source	2026-10-11T19:51:26.5198170Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+docker-six	Check out exact published target source	2026-10-11T19:51:26.5241227Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+docker-six	Check out exact published target source	2026-10-11T19:51:26.5491241Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+docker-six	Check out exact published target source	2026-10-11T19:51:26.5530730Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+docker-six	Check out exact published target source	2026-10-11T19:51:26.5768501Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+docker-six	Check out exact published target source	2026-10-11T19:51:26.5811476Z ##[endgroup]
+docker-six	Check out exact published target source	2026-10-11T19:51:26.5812165Z ##[group]Fetching the repository
+docker-six	Check out exact published target source	2026-10-11T19:51:26.5821312Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin f883e64086bee44b353f3840271fa3eaaafdcc7d
+docker-six	Check out exact published target source	2026-10-11T19:51:27.5283935Z From https://github.com/BeiqiD/sample-fabrication-workflow
+docker-six	Check out exact published target source	2026-10-11T19:51:27.5284703Z  * branch            f883e64086bee44b353f3840271fa3eaaafdcc7d -> FETCH_HEAD
+docker-six	Check out exact published target source	2026-10-11T19:51:27.5288296Z ##[endgroup]
+docker-six	Check out exact published target source	2026-10-11T19:51:27.5288984Z ##[group]Determining the checkout info
+docker-six	Check out exact published target source	2026-10-11T19:51:27.5291536Z ##[endgroup]
+docker-six	Check out exact published target source	2026-10-11T19:51:27.5297437Z [command]/usr/bin/git sparse-checkout disable
+docker-six	Check out exact published target source	2026-10-11T19:51:27.5340829Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+docker-six	Check out exact published target source	2026-10-11T19:51:27.5369655Z ##[group]Checking out the ref
+docker-six	Check out exact published target source	2026-10-11T19:51:27.5381776Z [command]/usr/bin/git checkout --progress --force f883e64086bee44b353f3840271fa3eaaafdcc7d
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7452349Z Note: switching to 'f883e64086bee44b353f3840271fa3eaaafdcc7d'.
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7452735Z 
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7452984Z You are in 'detached HEAD' state. You can look around, make experimental
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7453654Z changes and commit them, and you can discard any commits you make in this
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7454143Z state without impacting any branches by switching back to a branch.
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7454449Z 
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7454842Z If you want to create a new branch to retain commits you create, you may
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7455437Z do so (now or later) by using -c with the switch command. Example:
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7455777Z 
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7455915Z   git switch -c <new-branch-name>
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7456148Z 
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7456274Z Or undo this operation with:
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7456504Z 
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7456634Z   git switch -
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7456836Z 
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7457520Z Turn off this advice by setting config variable advice.detachedHead to false
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7457983Z 
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7458338Z HEAD is now at f883e64 Add fixed offline restore CLI and qualified same-app Local Job runtime
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7472128Z ##[endgroup]
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7522004Z [command]/usr/bin/git log -1 --format=%H
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7550456Z f883e64086bee44b353f3840271fa3eaaafdcc7d
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7560328Z ##[group]Removing auth
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7563295Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7595742Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7822698Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7848637Z http.https://github.com/.extraheader
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7855239Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+docker-six	Check out exact published target source	2026-10-11T19:51:27.7891701Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+docker-six	Check out exact published target source	2026-10-11T19:51:27.8103871Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+docker-six	Check out exact published target source	2026-10-11T19:51:27.8134250Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+docker-six	Check out exact published target source	2026-10-11T19:51:27.8336962Z ##[endgroup]
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	﻿2026-10-11T19:51:27.8472330Z ##[group]Run set -euo pipefail
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8472696Z [36;1mset -euo pipefail[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8472952Z [36;1mtest "$(uname -m)" = x86_64[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8473287Z [36;1mqa_user="$(getent passwd 1000 | cut -d: -f1 || true)"[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8473719Z [36;1mif ! getent group 1000 >/dev/null; then sudo groupadd --gid 1000 node_docker_qa; fi[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8474102Z [36;1mif [ -z "$qa_user" ]; then[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8474486Z [36;1m  sudo useradd --uid 1000 --gid 1000 --no-create-home --shell /usr/sbin/nologin node_docker_qa[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8474903Z [36;1m  qa_user=node_docker_qa[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8475128Z [36;1mfi[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8475317Z [36;1mtest -S /var/run/docker.sock[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8475606Z [36;1mdocker_gid="$(stat -c %g /var/run/docker.sock)"[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8475887Z [36;1mtest "$docker_gid" -gt 0[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8476193Z [36;1mdocker_group="$(getent group "$docker_gid" | cut -d: -f1)"[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8476574Z [36;1mtest -n "$docker_group"[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8476856Z [36;1msudo usermod -aG "$docker_group" "$qa_user"[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8477158Z [36;1mtest "$(realpath /tmp)" = /tmp[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8477513Z [36;1mstage_root="/tmp/node-docker-six-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8477999Z [36;1mevidence_root="/tmp/node-docker-six-evidence-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8478436Z [36;1mtest ! -e "$stage_root" && test ! -L "$stage_root"[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8479063Z [36;1mtest ! -e "$evidence_root" && test ! -L "$evidence_root"[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8479540Z [36;1msudo install -d -m 0700 -o 1000 -g 1000 "$stage_root"[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8479920Z [36;1msudo cp -a "$GITHUB_WORKSPACE/qa-runner" "$stage_root/qa-runner"[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8480345Z [36;1msudo cp -a "$GITHUB_WORKSPACE/target-source" "$stage_root/target-source"[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8480794Z [36;1msudo chown -R 1000:1000 "$stage_root/qa-runner" "$stage_root/target-source"[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8481241Z [36;1msudo chmod 0700 "$stage_root/qa-runner" "$stage_root/target-source"[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8481588Z [36;1mrun_root="$stage_root/runtime"[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8481877Z [36;1msudo install -d -m 0700 -o 1000 -g 1000 "$run_root"[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8482230Z [36;1msudo install -d -m 0755 -o 1000 -g 1000 "$evidence_root"[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8482977Z [36;1mprintf 'NODE_DOCKER_SIX_ROOT=%s\nNODE_DOCKER_SIX_QA=%s\nNODE_DOCKER_SIX_SOURCE=%s\nNODE_DOCKER_SIX_EVIDENCE=%s\n' "$run_root" "$stage_root/qa-runner" "$stage_root/target-source" "$evidence_root" >> "$GITHUB_ENV"[0m
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8715885Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+docker-six	Prepare dedicated ephemeral UID 1000 ownership	2026-10-11T19:51:27.8716243Z ##[endgroup]
+docker-six	Verify exact source and run original finite acceptance	﻿2026-10-11T19:51:28.2986317Z ##[group]Run set -euo pipefail
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:51:28.2986593Z [36;1mset -euo pipefail[0m
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:51:28.2986859Z [36;1mqa="$NODE_DOCKER_SIX_QA/scripts/qa/node-docker-capacity"[0m
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:51:28.2987150Z [36;1msource="$NODE_DOCKER_SIX_SOURCE"[0m
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:51:28.2987641Z [36;1msudo -u '#1000' -g '#1000' python3 -B "$qa/prepare-ci-source.py" --root "$NODE_DOCKER_SIX_ROOT" --source "$source" --invocation-head "$GITHUB_SHA"[0m
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:51:28.2988563Z [36;1msudo -u '#1000' -g '#1000' env NODE_DOCKER_SIX_ROOT="$NODE_DOCKER_SIX_ROOT" NODE_DOCKER_SIX_SOURCE="$source" python3 -B "$NODE_DOCKER_SIX_ROOT/prepared/run-ci-network-prerequisite.py" --exclusive-go-ci-network-prerequisite[0m
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:51:28.2989912Z [36;1msudo -u '#1000' -g '#1000' env NODE_DOCKER_SIX_ROOT="$NODE_DOCKER_SIX_ROOT" NODE_DOCKER_SIX_SOURCE="$source" python3 -B "$NODE_DOCKER_SIX_ROOT/prepared/run-default-docker-six.py" --exclusive-go-default-docker-six[0m
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:51:28.3050300Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:51:28.3050626Z env:
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:51:28.3050870Z   NODE_DOCKER_SIX_ROOT: /tmp/node-docker-six-38169765719-1/runtime
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:51:28.3051215Z   NODE_DOCKER_SIX_QA: /tmp/node-docker-six-38169765719-1/qa-runner
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:51:28.3051561Z   NODE_DOCKER_SIX_SOURCE: /tmp/node-docker-six-38169765719-1/target-source
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:51:28.3051932Z   NODE_DOCKER_SIX_EVIDENCE: /tmp/node-docker-six-evidence-38169765719-1
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:51:28.3052213Z ##[endgroup]
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:51:28.9943766Z {"status": "SOURCE_PREPARED", "sourceHead": "f883e64086bee44b353f3840271fa3eaaafdcc7d", "invocationHead": "52eeb92b2cebbfb6811e4eebd539007a7949ade4"}
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:51:51.0633477Z START image-artifact-nonroot-and-daemon-bind
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:51:51.6587788Z END image-artifact-nonroot-and-daemon-bind PASS
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:51:51.6592215Z START explicit-fresh-bootstrap-and-stopped-inspection
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:51:54.7687641Z END explicit-fresh-bootstrap-and-stopped-inspection PASS
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:51:54.7692409Z START genuine-internal-loopback-auth-and-supported-metadata
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:51:56.5539338Z END genuine-internal-loopback-auth-and-supported-metadata PASS
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:51:56.5544013Z START live-writer-exclusion-and-original-graceful-stop
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:51:58.5763271Z END live-writer-exclusion-and-original-graceful-stop PASS
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:51:58.5770672Z START same-image-restart-and-recreate-persistence
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:52:02.6183453Z END same-image-restart-and-recreate-persistence PASS
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:52:02.6194518Z START wrong-installation-private-bind-and-keyring-availability-denials
+docker-six	Verify exact source and run original finite acceptance	2026-10-11T19:53:08.1940340Z END wrong-installation-private-bind-and-keyring-availability-denials PASS
+docker-six	Export bounded original evidence	﻿2026-10-11T19:53:08.9183308Z ##[group]Run set -euo pipefail
+docker-six	Export bounded original evidence	2026-10-11T19:53:08.9183653Z [36;1mset -euo pipefail[0m
+docker-six	Export bounded original evidence	2026-10-11T19:53:08.9184397Z [36;1msudo -u '#1000' -g '#1000' python3 -B "$NODE_DOCKER_SIX_QA/scripts/qa/node-docker-capacity/export-bounded-artifacts.py" --root "$NODE_DOCKER_SIX_ROOT" --destination "$NODE_DOCKER_SIX_EVIDENCE/evidence"[0m
+docker-six	Export bounded original evidence	2026-10-11T19:53:08.9251543Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+docker-six	Export bounded original evidence	2026-10-11T19:53:08.9251887Z env:
+docker-six	Export bounded original evidence	2026-10-11T19:53:08.9252169Z   NODE_DOCKER_SIX_ROOT: /tmp/node-docker-six-38169765719-1/runtime
+docker-six	Export bounded original evidence	2026-10-11T19:53:08.9252564Z   NODE_DOCKER_SIX_QA: /tmp/node-docker-six-38169765719-1/qa-runner
+docker-six	Export bounded original evidence	2026-10-11T19:53:08.9252964Z   NODE_DOCKER_SIX_SOURCE: /tmp/node-docker-six-38169765719-1/target-source
+docker-six	Export bounded original evidence	2026-10-11T19:53:08.9253405Z   NODE_DOCKER_SIX_EVIDENCE: /tmp/node-docker-six-evidence-38169765719-1
+docker-six	Export bounded original evidence	2026-10-11T19:53:08.9253741Z ##[endgroup]
+docker-six	Retain bounded original evidence	﻿2026-10-11T19:53:09.0008489Z ##[group]Run actions/upload-artifact@v4
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.0009014Z with:
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.0009250Z   name: default-docker-six-38169765719-1
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.0009589Z   path: /tmp/node-docker-six-evidence-38169765719-1/evidence/
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.0010127Z   if-no-files-found: warn
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.0010354Z   retention-days: 14
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.0010570Z   compression-level: 6
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.0010777Z   overwrite: false
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.0010983Z   include-hidden-files: false
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.0011213Z env:
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.0011471Z   NODE_DOCKER_SIX_ROOT: /tmp/node-docker-six-38169765719-1/runtime
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.0011854Z   NODE_DOCKER_SIX_QA: /tmp/node-docker-six-38169765719-1/qa-runner
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.0012272Z   NODE_DOCKER_SIX_SOURCE: /tmp/node-docker-six-38169765719-1/target-source
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.0012710Z   NODE_DOCKER_SIX_EVIDENCE: /tmp/node-docker-six-evidence-38169765719-1
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.0013052Z ##[endgroup]
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.1630016Z (node:5210) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.1631209Z (Use `node --trace-deprecation ...` to show where the warning was created)
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.1871798Z With the provided path, there will be 101 files uploaded
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.1872534Z Artifact name is valid!
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.1872870Z Root directory input is valid!
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.3898169Z Beginning upload of artifact content to blob storage
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.5197294Z (node:5210) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.5945510Z Uploaded bytes 502098
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.6104783Z Finished uploading artifact content to blob storage!
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.6105438Z SHA256 digest of uploaded artifact zip is c5b4e0bfe8d7cc3df302aa854fb6e2bfcd786baa79cd24f32c0196a26ff0f7c3
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.6107438Z Finalizing artifact upload
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.8306814Z Artifact default-docker-six-38169765719-1.zip successfully finalized. Artifact ID 11714060793
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.8307759Z Artifact default-docker-six-38169765719-1 has been successfully uploaded! Final size is 502098 bytes. Artifact ID is 11714060793
+docker-six	Retain bounded original evidence	2026-10-11T19:53:09.8313814Z Artifact download URL: https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38169765719/artifacts/11714060793
+docker-six	Publish whitelisted original receipt facts	﻿2026-10-11T19:53:09.8438941Z ##[group]Run set -euo pipefail
+docker-six	Publish whitelisted original receipt facts	2026-10-11T19:53:09.8439218Z [36;1mset -euo pipefail[0m
+docker-six	Publish whitelisted original receipt facts	2026-10-11T19:53:09.8439782Z [36;1msudo -u '#1000' -g '#1000' python3 -B "$NODE_DOCKER_SIX_QA/scripts/qa/node-docker-capacity/view-original-receipt-facts.py" --evidence "$NODE_DOCKER_SIX_EVIDENCE/evidence"[0m
+docker-six	Publish whitelisted original receipt facts	2026-10-11T19:53:09.8497580Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+docker-six	Publish whitelisted original receipt facts	2026-10-11T19:53:09.8497868Z env:
+docker-six	Publish whitelisted original receipt facts	2026-10-11T19:53:09.8498118Z   NODE_DOCKER_SIX_ROOT: /tmp/node-docker-six-38169765719-1/runtime
+docker-six	Publish whitelisted original receipt facts	2026-10-11T19:53:09.8498463Z   NODE_DOCKER_SIX_QA: /tmp/node-docker-six-38169765719-1/qa-runner
+docker-six	Publish whitelisted original receipt facts	2026-10-11T19:53:09.8498967Z   NODE_DOCKER_SIX_SOURCE: /tmp/node-docker-six-38169765719-1/target-source
+docker-six	Publish whitelisted original receipt facts	2026-10-11T19:53:09.8499366Z   NODE_DOCKER_SIX_EVIDENCE: /tmp/node-docker-six-evidence-38169765719-1
+docker-six	Publish whitelisted original receipt facts	2026-10-11T19:53:09.8499666Z ##[endgroup]
+docker-six	Publish whitelisted original receipt facts	2026-10-11T19:53:09.8992654Z {"actualCasesPassed":6,"cases":[{"id":"image-artifact-nonroot-and-daemon-bind","status":"PASS"},{"id":"explicit-fresh-bootstrap-and-stopped-inspection","status":"PASS"},{"id":"genuine-internal-loopback-auth-and-supported-metadata","status":"PASS"},{"id":"live-writer-exclusion-and-original-graceful-stop","status":"PASS"},{"id":"same-image-restart-and-recreate-persistence","status":"PASS"},{"id":"wrong-installation-private-bind-and-keyring-availability-denials","status":"PASS"}],"cliGroupsInactive":true,"commands":[{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"0-base-cache","ownedClosureProven":true,"pid":2616,"processGroup":2616,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"1-default-image-build","ownedClosureProven":true,"pid":2624,"processGroup":2624,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"2-image-inspect","ownedClosureProven":true,"pid":3108,"processGroup":3108,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"3-create-artifact","ownedClosureProven":true,"pid":3116,"processGroup":3116,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"4-attach-artifact","ownedClosureProven":true,"pid":3124,"processGroup":3124,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"5-inspect","ownedClosureProven":true,"pid":3208,"processGroup":3208,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"6-create-daemon-bind","ownedClosureProven":true,"pid":3216,"processGroup":3216,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"7-attach-daemon-bind","ownedClosureProven":true,"pid":3224,"processGroup":3224,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"8-inspect","ownedClosureProven":true,"pid":3305,"processGroup":3305,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"9-create-bootstrap","ownedClosureProven":true,"pid":3313,"processGroup":3313,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"10-attach-bootstrap","ownedClosureProven":true,"pid":3322,"processGroup":3322,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"11-inspect","ownedClosureProven":true,"pid":3406,"processGroup":3406,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"12-create-initial-inspect","ownedClosureProven":true,"pid":3414,"processGroup":3414,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"13-attach-initial-inspect","ownedClosureProven":true,"pid":3422,"processGroup":3422,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"14-inspect","ownedClosureProven":true,"pid":3502,"processGroup":3502,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"15-create-main-a","ownedClosureProven":true,"pid":3510,"processGroup":3510,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"16-start-main-a","ownedClosureProven":true,"pid":3518,"processGroup":3518,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"17-api-main-a-exercise","ownedClosureProven":true,"pid":3582,"processGroup":3582,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"18-create-busy-inspect","ownedClosureProven":true,"pid":3629,"processGroup":3629,"status":"PASS"},{"directChildReaped":true,"exitCode":1,"forcedTerminationForOwnedCleanup":false,"id":"19-attach-busy-inspect","ownedClosureProven":true,"pid":3637,"processGroup":3637,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"20-inspect","ownedClosureProven":true,"pid":3719,"processGroup":3719,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"21-create-busy-main","ownedClosureProven":true,"pid":3728,"processGroup":3728,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"22-start-busy-main","ownedClosureProven":true,"pid":3737,"processGroup":3737,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"23-wait-busy-main","ownedClosureProven":true,"pid":3801,"processGroup":3801,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"24-inspect","ownedClosureProven":true,"pid":3837,"processGroup":3837,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"25-api-main-a-verify","ownedClosureProven":true,"pid":3845,"processGroup":3845,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"26-inspect","ownedClosureProven":true,"pid":3879,"processGroup":3879,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"27-term-main-a","ownedClosureProven":true,"pid":3887,"processGroup":3887,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"28-wait-main-a","ownedClosureProven":true,"pid":3902,"processGroup":3902,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"29-inspect","ownedClosureProven":true,"pid":3930,"processGroup":3930,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"30-create-after-stop-inspect","ownedClosureProven":true,"pid":3938,"processGroup":3938,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"31-attach-after-stop-inspect","ownedClosureProven":true,"pid":3946,"processGroup":3946,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"32-inspect","ownedClosureProven":true,"pid":4026,"processGroup":4026,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"33-inspect","ownedClosureProven":true,"pid":4034,"processGroup":4034,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"34-restart-same-container","ownedClosureProven":true,"pid":4042,"processGroup":4042,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"35-api-main-a-verify","ownedClosureProven":true,"pid":4105,"processGroup":4105,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"36-inspect","ownedClosureProven":true,"pid":4152,"processGroup":4152,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"37-term-main-a","ownedClosureProven":true,"pid":4160,"processGroup":4160,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"38-wait-main-a","ownedClosureProven":true,"pid":4176,"processGroup":4176,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"39-inspect","ownedClosureProven":true,"pid":4204,"processGroup":4204,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"40-create-main-b","ownedClosureProven":true,"pid":4212,"processGroup":4212,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"41-start-main-b","ownedClosureProven":true,"pid":4220,"processGroup":4220,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"42-api-main-b-verify","ownedClosureProven":true,"pid":4284,"processGroup":4284,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"43-inspect","ownedClosureProven":true,"pid":4330,"processGroup":4330,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"44-term-main-b","ownedClosureProven":true,"pid":4339,"processGroup":4339,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"45-wait-main-b","ownedClosureProven":true,"pid":4354,"processGroup":4354,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"46-inspect","ownedClosureProven":true,"pid":4381,"processGroup":4381,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"47-create-after-recreate-inspect","ownedClosureProven":true,"pid":4389,"processGroup":4389,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"48-attach-after-recreate-inspect","ownedClosureProven":true,"pid":4398,"processGroup":4398,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"49-inspect","ownedClosureProven":true,"pid":4479,"processGroup":4479,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"50-create-wrong-installation","ownedClosureProven":true,"pid":4487,"processGroup":4487,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"51-start-wrong-installation","ownedClosureProven":true,"pid":4495,"processGroup":4495,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"52-wait-wrong-installation","ownedClosureProven":true,"pid":4560,"processGroup":4560,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"53-inspect","ownedClosureProven":true,"pid":4595,"processGroup":4595,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"54-create-bad-keyring","ownedClosureProven":true,"pid":4603,"processGroup":4603,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"55-start-bad-keyring","ownedClosureProven":true,"pid":4611,"processGroup":4611,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"56-api-bad-keyring-unavailable-keyring","ownedClosureProven":true,"pid":4676,"processGroup":4676,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"57-inspect","ownedClosureProven":true,"pid":4723,"processGroup":4723,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"58-term-bad-keyring","ownedClosureProven":true,"pid":4731,"processGroup":4731,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"59-wait-bad-keyring","ownedClosureProven":true,"pid":4746,"processGroup":4746,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"60-inspect","ownedClosureProven":true,"pid":4773,"processGroup":4773,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"61-create-after-negative","ownedClosureProven":true,"pid":4794,"processGroup":4794,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"62-start-after-negative","ownedClosureProven":true,"pid":4803,"processGroup":4803,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"63-api-after-negative-verify","ownedClosureProven":true,"pid":4868,"processGroup":4868,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"64-inspect","ownedClosureProven":true,"pid":4916,"processGroup":4916,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"65-term-after-negative","ownedClosureProven":true,"pid":4924,"processGroup":4924,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"66-wait-after-negative","ownedClosureProven":true,"pid":4939,"processGroup":4939,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"67-inspect","ownedClosureProven":true,"pid":4966,"processGroup":4966,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"68-create-final-inspect","ownedClosureProven":true,"pid":4974,"processGroup":4974,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"69-attach-final-inspect","ownedClosureProven":true,"pid":4983,"processGroup":4983,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"70-inspect","ownedClosureProven":true,"pid":5065,"processGroup":5065,"status":"PASS"},{"directChildReaped":true,"exitCode":1,"forcedTerminationForOwnedCleanup":false,"id":"71-missing-bind","ownedClosureProven":true,"pid":5073,"processGroup":5073,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"72-missing-bind-absence","ownedClosureProven":true,"pid":5082,"processGroup":5082,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"73-inspect","ownedClosureProven":true,"pid":5090,"processGroup":5090,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"74-inspect","ownedClosureProven":true,"pid":5098,"processGroup":5098,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"75-inspect","ownedClosureProven":true,"pid":5106,"processGroup":5106,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"76-inspect","ownedClosureProven":true,"pid":5114,"processGroup":5114,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"77-inspect","ownedClosureProven":true,"pid":5122,"processGroup":5122,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"78-inspect","ownedClosureProven":true,"pid":5130,"processGroup":5130,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"79-inspect","ownedClosureProven":true,"pid":5139,"processGroup":5139,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"80-inspect","ownedClosureProven":true,"pid":5148,"processGroup":5148,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"81-inspect","ownedClosureProven":true,"pid":5156,"processGroup":5156,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"82-inspect","ownedClosureProven":true,"pid":5164,"processGroup":5164,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"83-inspect","ownedClosureProven":true,"pid":5172,"processGroup":5172,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"84-inspect","ownedClosureProven":true,"pid":5180,"processGroup":5180,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"85-inspect","ownedClosureProven":true,"pid":5188,"processGroup":5188,"status":"PASS"},{"directChildReaped":true,"exitCode":0,"forcedTerminationForOwnedCleanup":false,"id":"86-inspect","ownedClosureProven":true,"pid":5196,"processGroup":5196,"status":"PASS"}],"containerClosureUnproven":[],"containers":[{"closeAttempted":false,"id":"b93b32ace998034f0074aa7c931306b8ea91c9c7e8f06fc55232428d7f6ef609","kind":"artifact","lastState":{"Dead":false,"ExitCode":0,"OOMKilled":false,"Paused":false,"Pid":0,"Restarting":false,"Running":false},"originalExitObserved":true},{"closeAttempted":false,"id":"00e4fdfc343f081dddc4b77fbb56848487fe314ceff51e2af99557822d383135","kind":"daemon-bind","lastState":{"Dead":false,"ExitCode":0,"OOMKilled":false,"Paused":false,"Pid":0,"Restarting":false,"Running":false},"originalExitObserved":true},{"closeAttempted":false,"id":"ac43dd0967b8324a44e4d25d6dec733a7944243945182b384bf4237cd3c0d1ec","kind":"bootstrap","lastState":{"Dead":false,"ExitCode":0,"OOMKilled":false,"Paused":false,"Pid":0,"Restarting":false,"Running":false},"originalExitObserved":true},{"closeAttempted":false,"id":"3c67be90f4a2606de045ae5033dc52d97acfab54aad1d54b3fdf1449f3c7c9e6","kind":"initial-inspect","lastState":{"Dead":false,"ExitCode":0,"OOMKilled":false,"Paused":false,"Pid":0,"Restarting":false,"Running":false},"originalExitObserved":true},{"closeAttempted":true,"generation":2,"id":"14141625256af1cacf8c318b3fe46857c9921d49def28c63d3667294fc2ad273","kind":"main-a","lastState":{"Dead":false,"ExitCode":0,"OOMKilled":false,"Paused":false,"Pid":0,"Restarting":false,"Running":false},"originalExitObserved":true},{"closeAttempted":false,"id":"e819f3ce467a3d69415dd38a9ebc65c9bf64d3ed9cddea9f49e73bebd6df82f0","kind":"busy-inspect","lastState":{"Dead":false,"ExitCode":1,"OOMKilled":false,"Paused":false,"Pid":0,"Restarting":false,"Running":false},"originalExitObserved":true},{"closeAttempted":false,"id":"6d5a6d77d851899488b6b9d54664b16b4e8bb3d577e5e8be8e9cada85783955f","kind":"busy-main","lastState":{"Dead":false,"ExitCode":1,"OOMKilled":false,"Paused":false,"Pid":0,"Restarting":false,"Running":false}},{"closeAttempted":false,"id":"fd1869b40086e78c70c50d1414485ad7a9ed03986924287b288b0804c9159359","kind":"after-stop-inspect","lastState":{"Dead":false,"ExitCode":0,"OOMKilled":false,"Paused":false,"Pid":0,"Restarting":false,"Running":false},"originalExitObserved":true},{"closeAttempted":true,"id":"a35df1b2d6b336401852a33db5b4d95124b763056248bc8494a6be9a42d1abfe","kind":"main-b","lastState":{"Dead":false,"ExitCode":0,"OOMKilled":false,"Paused":false,"Pid":0,"Restarting":false,"Running":false},"originalExitObserved":true},{"closeAttempted":false,"id":"de94d5c394213a333234c0995935a8652650266b9a979c88d3d0097f488257c2","kind":"after-recreate-inspect","lastState":{"Dead":false,"ExitCode":0,"OOMKilled":false,"Paused":false,"Pid":0,"Restarting":false,"Running":false},"originalExitObserved":true},{"closeAttempted":false,"id":"6b12d458f7fe47b9bb9770bc77d1cc649194f3534288befedf75e32ec871dbc1","kind":"wrong-installation","lastState":{"Dead":false,"ExitCode":1,"OOMKilled":false,"Paused":false,"Pid":0,"Restarting":false,"Running":false}},{"closeAttempted":true,"id":"69a3ea48cc5c7a081bceccb4485daccebe11a5e4b6ef11f6f32d2cd1ca79c67d","kind":"bad-keyring","lastState":{"Dead":false,"ExitCode":0,"OOMKilled":false,"Paused":false,"Pid":0,"Restarting":false,"Running":false},"originalExitObserved":true},{"closeAttempted":true,"id":"2af0acb7efe0264ffb6ae40ee9b8ff18c6ea441686d9a3fc269cdfe70399ba30","kind":"after-negative","lastState":{"Dead":false,"ExitCode":0,"OOMKilled":false,"Paused":false,"Pid":0,"Restarting":false,"Running":false},"originalExitObserved":true},{"closeAttempted":false,"id":"c85bd3c7b474de4f3da82d687f9b0af3d7eae6acb2acd336a8394e3debb3ae0d","kind":"final-inspect","lastState":{"Dead":false,"ExitCode":0,"OOMKilled":false,"Paused":false,"Pid":0,"Restarting":false,"Running":false},"originalExitObserved":true},{"closeAttempted":false,"constructionAbsenceObserved":true,"expectedAbsent":true,"kind":"missing-bind"}],"diagnosticStatus":"EXACT_EXPORTED_ORIGINAL_FACTS_ONLY","exportManifestSha256":"2089795f7f87dcadb2ffa4e8e0fa757c59bf4fd7a222f2b59dd432e39fca8c3e","finalPrivateConfigAndKeyringPinsExact":true,"finalSourceAndContextPinsExact":true,"imageBuildCompletionUnproven":false,"imageBuilds":1,"noDockerSIGKILLOrRemoval":true,"originalImageBuildCompletionAcknowledged":true,"originalImageId":"sha256:533e62c8f1180859a372d09fdbb59eaeaf23eeec8fa8da55ddadd2c3c5877ac2","originalReceiptBytes":93770,"originalReceiptSha256":"fbcb17d5424537bb20827a0d5649e32e4dcc77ec2f4aa832fa17eee0b50a71b5","originalReceiptStatus":"PASS","sourceHead":"f883e64086bee44b353f3840271fa3eaaafdcc7d"}
+docker-six	Post Check out exact published target source	﻿2026-10-11T19:53:09.9125123Z Post job cleanup.
+docker-six	Post Check out exact published target source	2026-10-11T19:53:09.9835940Z [command]/usr/bin/git version
+docker-six	Post Check out exact published target source	2026-10-11T19:53:09.9874111Z git version 2.55.0
+docker-six	Post Check out exact published target source	2026-10-11T19:53:09.9903329Z Temporarily overriding HOME='/home/runner/work/_temp/f8b2b730-7c78-413b-bce6-ea788bf15c7c' before making global git config changes
+docker-six	Post Check out exact published target source	2026-10-11T19:53:09.9904664Z Adding repository directory to the temporary git global config as a safe directory
+docker-six	Post Check out exact published target source	2026-10-11T19:53:09.9907968Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/sample-fabrication-workflow/sample-fabrication-workflow/target-source
+docker-six	Post Check out exact published target source	2026-10-11T19:53:09.9941652Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+docker-six	Post Check out exact published target source	2026-10-11T19:53:09.9972360Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+docker-six	Post Check out exact published target source	2026-10-11T19:53:10.0193838Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+docker-six	Post Check out exact published target source	2026-10-11T19:53:10.0224997Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+docker-six	Post Check out exact published target source	2026-10-11T19:53:10.0468466Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+docker-six	Post Check out exact published target source	2026-10-11T19:53:10.0509588Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+docker-six	Post Check out reviewed acceptance code	﻿2026-10-11T19:53:10.0915467Z Post job cleanup.
+docker-six	Post Check out reviewed acceptance code	2026-10-11T19:53:10.1782140Z [command]/usr/bin/git version
+docker-six	Post Check out reviewed acceptance code	2026-10-11T19:53:10.1817412Z git version 2.55.0
+docker-six	Post Check out reviewed acceptance code	2026-10-11T19:53:10.1847577Z Temporarily overriding HOME='/home/runner/work/_temp/490454a7-257d-496f-8790-29a9d677b537' before making global git config changes
+docker-six	Post Check out reviewed acceptance code	2026-10-11T19:53:10.1848838Z Adding repository directory to the temporary git global config as a safe directory
+docker-six	Post Check out reviewed acceptance code	2026-10-11T19:53:10.1852636Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/sample-fabrication-workflow/sample-fabrication-workflow/qa-runner
+docker-six	Post Check out reviewed acceptance code	2026-10-11T19:53:10.1883878Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+docker-six	Post Check out reviewed acceptance code	2026-10-11T19:53:10.1913827Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+docker-six	Post Check out reviewed acceptance code	2026-10-11T19:53:10.2135568Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+docker-six	Post Check out reviewed acceptance code	2026-10-11T19:53:10.2168236Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+docker-six	Post Check out reviewed acceptance code	2026-10-11T19:53:10.2408190Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+docker-six	Post Check out reviewed acceptance code	2026-10-11T19:53:10.2447619Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+docker-six	Complete job	﻿2026-10-11T19:53:10.2859326Z Cleaning up orphan processes
+docker-six	Complete job	2026-10-11T19:53:10.3143418Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

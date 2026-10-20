@@ -1,0 +1,69 @@
+{
+  "stage": "ordinary-actual24-local-migrations",
+  "cwd": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/copy",
+  "argv": [
+    "node",
+    "node_modules/wrangler/bin/wrangler.js",
+    "d1",
+    "migrations",
+    "apply",
+    "DB",
+    "--local",
+    "--config",
+    ".wrangler/deploy.jsonc",
+    "--persist-to",
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/copy/.wrangler/state"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5",
+    "SQLITE_TMPDIR": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5",
+    "WRANGLER_SEND_METRICS": "false",
+    "WRANGLER_LOG_PATH": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture/wrangler-logs"
+  },
+  "startedAt": "2026-10-11T12:59:53.424142+00:00",
+  "status": "PASS",
+  "log": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/ordinary-actual24-local-migrations.log",
+  "pid": 1195453,
+  "processGroup": 1195453,
+  "originalStartTicks": "13685419",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1195469,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1195453,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1195469,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1195453,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1195469,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1195453,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T13:00:07.280850+00:00",
+  "logSha256": "a4c2ee4f147f8110883945240afdfc2a2814e352b98694a6814440398a2d4360"
+}

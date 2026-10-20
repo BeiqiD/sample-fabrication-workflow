@@ -1,0 +1,41 @@
+{
+  "stage": "physical-after",
+  "cwd": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source",
+  "argv": [
+    "python3",
+    "-B",
+    "/tmp/phase5f-refresh-current5e-three-qa-private-attempt1/source/scripts/qa/phase5f/check-current-coherent-storage-package-refresh-physical-state.py",
+    "--domain",
+    "storage",
+    "--source-copy",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/copy",
+    "--fixture-directory",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/fixture",
+    "--runtime-directory",
+    "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime"
+  ],
+  "env": {
+    "TMPDIR": "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1",
+    "SQLITE_TMPDIR": "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1"
+  },
+  "control": "Mandatory after original native child/directwait/reap and context/route/body/controller/browser/Worker/JWKS settlement. New physical output alias; preserve any accepted job/item/hold/permit partial history. Failed native case stays failed.",
+  "startedAt": "2026-10-11T21:24:33.317660+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-storage-current5e-status-refresh-native-private-attempt1/runtime/physical-after.log",
+  "pid": 1542872,
+  "processGroup": 1542872,
+  "originalStartTicks": "16713408",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T21:24:34.086437+00:00",
+  "logSha256": "f2fc19fc36a4915a2c801d7d05c1a5b56cdf31859ca87b73c29c9547e6f56544"
+}

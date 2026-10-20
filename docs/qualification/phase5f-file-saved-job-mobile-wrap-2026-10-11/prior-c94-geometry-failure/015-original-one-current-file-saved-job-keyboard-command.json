@@ -1,0 +1,47 @@
+{
+  "stage": "original-one-current-file-saved-job-keyboard",
+  "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+  "argv": [
+    "node",
+    "/workspace/phase5f-coherent-saved-package-mobile-qa-source-attempt1/scripts/qa/phase5f/browser-current-coherent-local-r2-file-saved-job-keyboard-mobile.mjs",
+    "/workspace/coherent-file-saved-mobile02-private-attempt1/copy",
+    "/workspace/coherent-file-saved-mobile02-private-attempt1/fixture",
+    "02d6dfbe5f2bd98847b3d6f509c219de5ad816ad",
+    "--exclusive-go-one-current-coherent-local-r2-file-saved-job-keyboard-mobile"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/coherent-file-saved-mobile02-private-attempt1",
+    "SQLITE_TMPDIR": "/workspace/coherent-file-saved-mobile02-private-attempt1",
+    "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+    "CHROMIUM_PATH": "/usr/bin/chromium",
+    "PHASE5F_FILE_MIGRATION_CHROMIUM_TEMP": "/workspace/.sfmj1",
+    "PHASE5F_FILE_MIGRATION_RUNTIME_ROOT": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime"
+  },
+  "cases": [
+    "current-coherent-file-saved-job-keyboard-390-dark"
+  ],
+  "toolInvocation": {
+    "tty": true,
+    "originalStdinControl": "Only explicit stop newline originalretainedTTY;120s supervision/noSIGTERM graceful claim"
+  },
+  "control": "ONE genuine mobile390/dark current file originalPreview200/accept202/Pause200/Resume200/Cancel200 once; firstfailure/acceptedhistory and originalnativebody/focus/+2 preserved.",
+  "startedAt": "2026-10-11T18:32:45.235850+00:00",
+  "status": "FAILED",
+  "log": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/original-one-current-file-saved-job-keyboard.log",
+  "pid": 1460129,
+  "processGroup": 1460129,
+  "originalStartTicks": "15682600",
+  "exitCode": 1,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 1,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T18:33:00.709867+00:00",
+  "logSha256": "8313eb0f7e5e1495c196c9eec68640fb394449a652c5e7e8bf73eab2b79feef0"
+}

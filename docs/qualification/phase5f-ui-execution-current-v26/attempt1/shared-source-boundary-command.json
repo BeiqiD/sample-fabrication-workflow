@@ -1,0 +1,26 @@
+{
+  "stage": "shared-source-boundary",
+  "argv": [
+    "node",
+    "scripts/verify-shared-boundary.mjs"
+  ],
+  "cwd": "/workspace/remaining-5f-ui-execution-currente108-source-integration",
+  "startedAt": "2026-10-10T22:35:37.670500+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-ui-execution-currente108-runtime-98d81a1-attempt1/shared-source-boundary.log",
+  "pid": 297541,
+  "processGroup": 297541,
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-10T22:35:38.016025+00:00",
+  "logSha256": "21a428b7b54bea7d7e889fc732a12e2a0477651d44738485a4f44116959f8b03"
+}

@@ -1,0 +1,41 @@
+{
+  "kind": "recovery2a-independent-complete-current-native-helper-source-peer/1",
+  "status": "BLOCKED_ONE_NEW_FOCUS_ORACLE_READINESS_SITE",
+  "root": "/workspace/phase5f-recovery-job-control-focus-current5ca-browser-temp-source-attempt4",
+  "head": "2a1071202781ec05fdd2addb002b8b55fb352402",
+  "tree": "b446617a3217b73f177fbf6b2dd171a3fa953dd2",
+  "fullSourceInputs": 2346,
+  "protectedCurrent85Inputs": 2345,
+  "helperLinesRead": 876,
+  "pinAndCompleteInverseChecks": {
+    "path": "/workspace/recovery2a-independent-current-helper-source-pin-and-whole-inverse-checks.json",
+    "sha256": "221782609b131e0e7366305ee94e550c313d8fc0a31da21b5e1845a2c7f12b40"
+  },
+  "clearedScopes": [
+    "Whole2a\u21922f5 short-temp inverse and2f5\u219285 focus-only inverse reconstruct complete original helper; all2345 current85 nonhelper Git/mode/working bytes exact. Product/test/source Worker/frontend/HTTP/config/migrations untouched.",
+    "Fresh build witness requires actual current producer HEAD/tree/source/script/config/artifact/input inventory and original direct exit/reap; no historical f228118 retag. Current85 mounted22 and current85 build are separately recorded actual prerequisites, not effects or qualification from this review.",
+    "Closed admin Access/JWKS issuer and distinct allowed reader200/403 remain original. One genuine shared enable/disable, two historical jobs, each preview200/backup202/Pause200/Resume200/Cancel200, maximum10POST; original actual24/mature84 baseline63 permits and three-table lineage/generation/actor/input/checkpoint/unchanged rows/schema remain intact.",
+    "Original native route forwards each real intent once with maxRetries0, retains exact backend fullbody/status/headers, fulfills unmodified original bytes. Same native Request/Response/body/reader and original fetch/read/cancel Promise/args/this/return identities retained. Six complete EOF/no-cancel/one-release/hash proofs remain strict and matched to same backend/request bytes. CDP attempts are separate; real yielded CDP bytes must match and cannot be waived. No extra read/clone/fallback/GET/replay/execution/provider work.",
+    "Bounded caller signal and already-yielded-byte observation keeps synchronous frozen metadata/byte cuts, original observation work retained, failure-only snapshots and request terminals remain diagnostics. No secret body dumps. Geometry stays bounded numeric +2.",
+    "Complete original Response-wait/body/backend callback/context/browser/sharedwork/disable/history/Worker/JWKS order retained. Every original context-close/APIstop Promise cached, pending work awaited after context-close, failure remains failure. noBrowserCreated means no returned JS handle only; native child exit must still be witnessed separately by mature outer owner. Esbuild stop is API request acknowledgment only, not native child exit proof.",
+    "Fresh /workspace/.rcf6tmp validation checks captured UID0700/dev/inode/no-symlink/freebytes and binds current producer/copy/fixture/helper witness. Chromium launch child env alone overrides TMPDIR/SQLITE_TMPDIR; parent tmpdir/privateRoot/copycontract/Playwright profile owner remain original. No old short-temp reuse/delete or source effect.",
+    "New same-job selectors identify Resume afterPause, Pause afterResume, and always-present same-job cancelled status paragraph; never artifact-cleanup focus. Original native connected/active/tag/role and surviving-trigger focus assertions preserved."
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "path": "scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs",
+      "line": 718,
+      "sourceScope": "New sameJobReturnFocus targetFocus active observation in control loop",
+      "finding": "After visible/enabled readiness, targetFocus performs a single read/assert of document.activeElement. Current85 Job returns focus in passive useEffect([busy,currentSignal,value.state]); committed enabled DOM does not explicitly witness completion of that focus effect. This can observe the correct current product before its asynchronous focus settlement. No actual race or product defect was reproduced or inferred.",
+      "minimalCorrection": "Retain exact same focusTarget native node, await connected && document.activeElement===thatNode within remaining original20s from control start, then retain unchanged targetFocus connected/active/tag/role assertions on that same handle. No focus movement, new request/read/replay/waiver or budget increase.",
+      "authorAcknowledged": true,
+      "originalFrozenSourceAndPlanPreserved": true
+    }
+  ],
+  "reviewerCompilerCommands": 0,
+  "reviewerNativeBrowserSQLiteSocketModuleHelperRunnerPreflightCommands": 0,
+  "currentNativeCases": "UNRUN; original2a/267 plan preserved pending distinct narrow successor",
+  "sourceProductDefectClaim": false,
+  "actualRaceClaim": false
+}

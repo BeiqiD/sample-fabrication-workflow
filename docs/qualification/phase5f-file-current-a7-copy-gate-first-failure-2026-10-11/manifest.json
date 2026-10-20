@@ -1,0 +1,74 @@
+{
+  "status": "RETAINED_ORIGINAL_SETUP_FAILURE_AND_CLOSURE",
+  "sourceHead": "a7d64919f28477adcd3923809a63d1c1f9cc0561",
+  "qaHead": "e92c954c716ae33b9f945e8e523730c990a7a664",
+  "originalAggregateSha256": "738c885e5f2c3f983584723d509c2d0205857b485b276a718c26fafe163563ed",
+  "records": [
+    {
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt4/runtime/actual-current-a7-copy-package-gate-setup-failure-closed-release.json",
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/original-records/actual-current-a7-copy-package-gate-setup-failure-closed-release.json",
+      "bytes": 4670,
+      "sha256": "738c885e5f2c3f983584723d509c2d0205857b485b276a718c26fafe163563ed"
+    },
+    {
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt4/runtime/current-a7-build-new-pure24-file-fixture-causal-carry.json",
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/original-records/current-a7-build-new-pure24-file-fixture-causal-carry.json",
+      "bytes": 1419,
+      "sha256": "7e7f58994ed541c92e8861173320c86f2139c1d3335de30d22c5277398bc226b"
+    },
+    {
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt4/runtime/final-source-artifact-input-pins-command.json",
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/original-records/final-source-artifact-input-pins-command.json",
+      "bytes": 1295,
+      "sha256": "1a9efbece987d1cd6911008820137732c5de99ce18d5b86b864deb0f5e21a4a1"
+    },
+    {
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt4/runtime/final-source-artifact-input-pins.log",
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/original-records/final-source-artifact-input-pins.log",
+      "bytes": 950,
+      "sha256": "a442140bf251c273dc8a95bee62ea0d990ee9a88a984638b7490575dc65351f8"
+    },
+    {
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt4/runtime/frozen-approved-plan.json",
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/original-records/frozen-approved-plan.json",
+      "bytes": 17348,
+      "sha256": "49eed0c9d3babfd4d7278baada7103ed6a284263d11a4b5476e24377f974caab"
+    },
+    {
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt4/runtime/isolated-copy-command.json",
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/original-records/isolated-copy-command.json",
+      "bytes": 1446,
+      "sha256": "1e79caf5a93b62b81576692368506225bfe5f469750c29091569112198fb5952"
+    },
+    {
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt4/runtime/isolated-copy.log",
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/original-records/isolated-copy.log",
+      "bytes": 84,
+      "sha256": "05d2d8ac720ab3f3b11048ccd0ac6b7ec621eb89f027f3a26279dd0236e9dff7"
+    },
+    {
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt4/runtime/physical-after-command.json",
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/original-records/physical-after-command.json",
+      "bytes": 1760,
+      "sha256": "9185f9ade5e6de7fa3faa44c10dc5442efcbedf5173845c9f284034081250f3c"
+    },
+    {
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt4/runtime/physical-after.log",
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/original-records/physical-after.log",
+      "bytes": 1149,
+      "sha256": "97aac1d7a2666f87e2ec4355ec3d9bc0910a7190fac0379c9e72c54630c40630"
+    },
+    {
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt4/runtime/qualified-current-a7-build-producer-preflight-command.json",
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/original-records/qualified-current-a7-build-producer-preflight-command.json",
+      "bytes": 1327,
+      "sha256": "8f21866594917279dead3d61c14ab0c6bbc9ba4c0e32006e5b305e28ab3c77a2"
+    },
+    {
+      "originalPath": "/workspace/file-preview-current-a7-two-r2-native-private-attempt4/runtime/qualified-current-a7-build-producer-preflight.log",
+      "path": "docs/qualification/phase5f-file-current-a7-copy-gate-first-failure-2026-10-11/original-records/qualified-current-a7-build-producer-preflight.log",
+      "bytes": 99,
+      "sha256": "44ebaa303713644672cafc49cfee64773c540ef7c1a048848ffbc026de299230"
+    }
+  ]
+}

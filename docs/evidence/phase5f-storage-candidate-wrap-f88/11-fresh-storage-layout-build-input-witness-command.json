@@ -1,0 +1,29 @@
+{
+  "stage": "fresh-storage-layout-build-input-witness",
+  "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+  "argv": [
+    "python",
+    "-B",
+    "/tmp/phase5f-storage-candidate-section-wrap-source-review-attempt10/write-fresh-layout-build-witness.py"
+  ],
+  "scope": "After actual buildPASS/directreaped+freshcopy; bind original npm build receipt/log/dist manifest+all1792/copiedartifact hashes. No SQLite/socket/browser.",
+  "startedAt": "2026-10-11T02:50:31.884418+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/fresh-storage-layout-build-input-witness.log",
+  "pid": 619215,
+  "processGroup": 619215,
+  "originalStartTicks": "10029265",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T02:50:32.055643+00:00",
+  "logSha256": "af53b8639d268a3a8b9932a84f37b5c18c60204910d15985e958c605058f8299"
+}

@@ -1,7 +1,14 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { captureApplicationOwner } from "../lib/authentication-client";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { FabubloxImportPreview, ParsedFabubloxImage } from "../../shared/types";
 import { api, type ProcessTemplateFamilyOption } from "../lib/api";
 import { parseFabuBloxWorkbook } from "../lib/fabublox";
+import type { FabubloxImportRequestState, FabubloxImportResult } from "../../shared/contracts/fabublox-import";
+import {
+  clearSavedFabubloxImport, FabubloxImportRequestError, getFabubloxImportRequest,
+  loadSavedFabubloxImport, prepareFabubloxImport, saveFabubloxImport,
+  type PreparedFabubloxImport, type SavedFabubloxImport,
+} from "../lib/fabublox-import-client";
 import { sectionHeaderAtGroupStart } from "../lib/template-sections";
 import { FileDropzone } from "./FileDropzone";
 import { SubstrateStepDetails } from "./SubstrateStepDetails";
@@ -26,43 +33,197 @@ interface FabubloxImporterProps {
   onImported: (result: { templateVersionId: string; version: number; name: string }) => Promise<void>;
 }
 
+type ImportOperation = SavedFabubloxImport & (
+  | { status: "ready"; result: FabubloxImportResult }
+  | { status: "unknown" | "not_found" | "reselect" | "pending" | "failed" }
+);
+
+function observedOperation(saved: SavedFabubloxImport, state: FabubloxImportRequestState | null): ImportOperation {
+  const identity = { requestId: saved.requestId, title: saved.title };
+  if (state?.status === "ready") return { ...identity, status: "ready", result: state.result };
+  return { ...identity, status: state?.status ?? "not_found" };
+}
+
 export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
+  const [owner] = useState(captureApplicationOwner);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<FabubloxImportPreview | null>(null);
   const [recipeFamilyId, setRecipeFamilyId] = useState("");
   const [families, setFamilies] = useState<ProcessTemplateFamilyOption[]>([]);
-  const [busy, setBusy] = useState(false);
+  const [saved] = useState(loadSavedFabubloxImport);
+  const [operation, setOperation] = useState<ImportOperation | null>(saved ? { ...saved, status: "unknown" } : null);
+  const operationRef = useRef(operation);
+  const preparedRef = useRef<PreparedFabubloxImport | null>(null);
+  const actionInFlight = useRef(Boolean(saved));
+  const parseGeneration = useRef(0);
+  const mounted = useRef(true);
+  const isCurrentSession = () => owner.isCurrent() && mounted.current;
+  const [busy, setBusy] = useState(Boolean(saved));
   const [error, setError] = useState("");
   const [familyError, setFamilyError] = useState("");
   const images = useMemo(() => new Map(preview?.images.map((image) => [image.localId, image]) ?? []), [preview]);
 
   useEffect(() => {
     const controller = new AbortController();
+    if (!isCurrentSession()) return;
     api.listTemplateFamilyOptions(controller.signal).then(({ families }) => {
+      if (!isCurrentSession() || controller.signal.aborted) return;
       setFamilies(families);
       setFamilyError("");
     }).catch((error: Error) => {
-      if (error.name !== "AbortError") setFamilyError(`Existing process templates could not be loaded: ${error.message}`);
+      if (isCurrentSession() && error.name !== "AbortError") setFamilyError(`Existing process templates could not be loaded: ${error.message}`);
     });
     return () => controller.abort();
   }, []);
 
+  function updateOperation(next: ImportOperation | null) {
+    operationRef.current = next;
+    setOperation(next);
+  }
+
+  useEffect(() => {
+    mounted.current = true;
+    const controller = new AbortController();
+    if (saved && isCurrentSession()) {
+      getFabubloxImportRequest(saved.requestId, controller.signal).then((state) => {
+        if (isCurrentSession() && !controller.signal.aborted) updateOperation(observedOperation(saved, state));
+      }).catch((error: Error) => {
+        if (isCurrentSession() && !controller.signal.aborted) setError(error.message);
+      }).finally(() => {
+        if (isCurrentSession() && !controller.signal.aborted) { actionInFlight.current = false; setBusy(false); }
+      });
+    }
+    return () => { mounted.current = false; parseGeneration.current += 1; controller.abort(); };
+  }, [saved]);
+
   async function choose(nextFile: File | null) {
-    if (!nextFile) { setFile(null); setPreview(null); setError(""); return; }
+    if (!isCurrentSession()) return;
+    if ((operationRef.current && operationRef.current.status !== "reselect") || actionInFlight.current) return;
+    const generation = ++parseGeneration.current;
+    if (!nextFile) { setFile(null); setPreview(null); setBusy(false); setError(""); return; }
     setFile(nextFile); setPreview(null); setBusy(true); setError("");
-    try { setPreview(await parseFabuBloxWorkbook(nextFile)); }
-    catch (error) { setError(`Could not read FabuBlox workbook: ${(error as Error).message}`); }
-    finally { setBusy(false); }
+    try {
+      const parsed = await parseFabuBloxWorkbook(nextFile);
+      if (isCurrentSession() && parseGeneration.current === generation) setPreview(parsed);
+    } catch (error) {
+      if (isCurrentSession() && parseGeneration.current === generation) setError(`Could not read FabuBlox workbook: ${(error as Error).message}`);
+    } finally {
+      if (isCurrentSession() && parseGeneration.current === generation) setBusy(false);
+    }
+  }
+
+  async function openResult(result: FabubloxImportResult, title: string) {
+    if (!isCurrentSession()) return;
+    try {
+      await onImported({ templateVersionId: result.templateVersionId, version: result.version, name: title });
+    } catch (error) {
+      if (isCurrentSession()) setError(`The import completed, but its process template could not be opened: ${(error as Error).message}`);
+    }
+  }
+
+  async function submitPrepared(prepared: PreparedFabubloxImport) {
+    if (!isCurrentSession()) return;
+    updateOperation({ requestId: prepared.requestId, title: prepared.title, status: "unknown" });
+    try {
+      const result = await api.importFabublox(prepared);
+      if (!isCurrentSession()) return;
+      updateOperation({ requestId: prepared.requestId, title: prepared.title, status: "ready", result });
+      await openResult(result, prepared.title);
+    } catch (error) {
+      if (!isCurrentSession()) return;
+      if (error instanceof FabubloxImportRequestError && error.request) {
+        updateOperation(observedOperation(prepared, error.request));
+      }
+      setError((error as Error).message);
+    }
   }
 
   async function confirm() {
-    if (!file || !preview) return;
+    if (!isCurrentSession()) return;
+    if (!file || !preview || (operationRef.current && operationRef.current.status !== "reselect") || actionInFlight.current) return;
+    actionInFlight.current = true;
     setBusy(true); setError("");
     try {
-      const result = await api.importFabublox(file, preview, recipeFamilyId || undefined);
-      await onImported({ templateVersionId: result.templateVersionId, version: result.version, name: preview.title.trim() });
-    } catch (error) { setError((error as Error).message); setBusy(false); }
+      const prepared = await prepareFabubloxImport(file, preview, recipeFamilyId || undefined, operationRef.current?.requestId);
+      if (!isCurrentSession()) return;
+      // Save the identity before any request can be accepted by the server.
+      saveFabubloxImport(prepared);
+      preparedRef.current = prepared;
+      await submitPrepared(prepared);
+    } catch (error) {
+      if (isCurrentSession()) setError((error as Error).message);
+    } finally {
+      actionInFlight.current = false;
+      if (isCurrentSession()) setBusy(false);
+    }
   }
+
+  async function checkStatus() {
+    if (!isCurrentSession()) return;
+    const current = operationRef.current;
+    if (!current || actionInFlight.current) return;
+    actionInFlight.current = true;
+    setBusy(true); setError("");
+    try {
+      const state = await getFabubloxImportRequest(current.requestId);
+      if (isCurrentSession()) updateOperation(observedOperation(current, state));
+    } catch (error) {
+      if (isCurrentSession()) setError((error as Error).message);
+    } finally {
+      actionInFlight.current = false;
+      if (isCurrentSession()) setBusy(false);
+    }
+  }
+
+  async function retryOriginal() {
+    if (!isCurrentSession()) return;
+    const prepared = preparedRef.current;
+    if (operationRef.current?.status !== "not_found" || !prepared || actionInFlight.current) return;
+    actionInFlight.current = true;
+    setBusy(true); setError("");
+    try {
+      saveFabubloxImport(prepared);
+      await submitPrepared(prepared);
+    } catch (error) {
+      if (isCurrentSession()) setError((error as Error).message);
+    } finally {
+      actionInFlight.current = false;
+      if (isCurrentSession()) setBusy(false);
+    }
+  }
+
+  async function openCompleted() {
+    if (!isCurrentSession()) return;
+    const current = operationRef.current;
+    if (current?.status !== "ready" || actionInFlight.current) return;
+    actionInFlight.current = true;
+    setBusy(true); setError("");
+    try { await openResult(current.result, current.title); }
+    finally { actionInFlight.current = false; if (isCurrentSession()) setBusy(false); }
+  }
+
+  function reselectWorkbook() {
+    if (!isCurrentSession()) return;
+    const current = operationRef.current;
+    if (actionInFlight.current || current?.status !== "not_found" || preparedRef.current) return;
+    // A 404 can precede acceptance of an older POST. Preserve its identity even
+    // when a refresh discarded the byte body and it must be prepared again.
+    updateOperation({ requestId: current.requestId, title: current.title, status: "reselect" });
+    setFile(null); setPreview(null); setError("");
+  }
+
+  function startNewImport() {
+    if (!isCurrentSession()) return;
+    if (actionInFlight.current || !["failed", "ready"].includes(operationRef.current?.status ?? "")) return;
+    try { clearSavedFabubloxImport(); }
+    catch { setError("The saved import request could not be cleared. Enable session storage before starting another import."); return; }
+    preparedRef.current = null;
+    parseGeneration.current += 1;
+    updateOperation(null);
+    setFile(null); setPreview(null); setRecipeFamilyId(""); setError("");
+  }
+
+  const inputsLocked = busy || Boolean(operation && operation.status !== "reselect");
 
   return <section className="template-import-section">
     <div className="section-heading import-section-heading">
@@ -71,9 +232,25 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
         <p className="muted">Create a new process template or import the workbook directly as the next version of an existing one. Nothing is uploaded before confirmation.</p>
       </div>
     </div>
-    <FileDropzone accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" file={file} onFile={(nextFile) => void choose(nextFile)} label={busy && !preview ? "Inspecting workbook…" : "Drop a FabuBlox .xlsx workbook"} hint="Cell values, drawing relationships, anchor rows, and embedded layer-stack diagrams are inspected in the browser." />
-    {familyError && <p className="error-banner">{familyError}</p>}
-    {error && <p className="error-banner">{error}</p>}
+    <FileDropzone disabled={inputsLocked} accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" file={file} onFile={(nextFile) => void choose(nextFile)} label={busy && !preview && !operation ? "Inspecting workbook…" : "Drop a FabuBlox .xlsx workbook"} hint="Cell values, drawing relationships, anchor rows, and embedded layer-stack diagrams are inspected in the browser." />
+    {familyError && <p className="error-banner" role="alert">{familyError}</p>}
+    {error && <p className="error-banner" role="alert">{error}</p>}
+    {operation && <section className="card" aria-label="Import request">
+      <p role="status">{busy ? "Checking or completing the import…" : operation.status === "ready"
+        ? `Import completed: ${operation.title || "Process template"}, version ${operation.result.version}.`
+        : operation.status === "pending" ? "The import is still in progress. Check its status again shortly."
+          : operation.status === "failed" ? "This import failed. Start a new import to try again."
+            : operation.status === "not_found" ? preparedRef.current
+              ? "This request is not currently visible. It may still be starting. Retry only the original import, or check its status again."
+              : "This request is not currently visible. It may still be starting. Reselect the workbook to continue the same request."
+              : operation.status === "reselect" ? "Select the original workbook and import options to continue this request. Its original identity will be retained."
+                : "The import result is not yet known. Check its status before taking another action."}</p>
+      {!["ready", "failed"].includes(operation.status) && <button className="button" disabled={busy} onClick={() => void checkStatus()}>Check import status</button>}
+      {operation.status === "not_found" && preparedRef.current && <button className="button primary" disabled={busy} onClick={() => void retryOriginal()}>Retry original import</button>}
+      {operation.status === "not_found" && !preparedRef.current && <button className="button" disabled={busy} onClick={reselectWorkbook}>Reselect workbook for this request</button>}
+      {operation.status === "ready" && <button className="button primary" disabled={busy} onClick={() => void openCompleted()}>Open completed process template</button>}
+      {["ready", "failed"].includes(operation.status) && <button className="button" disabled={busy} onClick={startNewImport}>Start a new import</button>}
+    </section>}
     {preview && <div className="import-preview">
       <div className="card preview-summary">
         <div><small>Sheet</small><strong>{preview.source.sheetName}</strong></div>
@@ -83,8 +260,8 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
         <div><small>Unassigned</small><strong>{preview.unassignedImageIds.length}</strong></div>
       </div>
       <div className="card form-grid">
-        <label>Process template title<input value={preview.title} disabled={Boolean(recipeFamilyId)} onChange={(event) => setPreview({ ...preview, title: event.target.value })} /></label>
-        <label>Version relationship<select value={recipeFamilyId} onChange={(event) => { const id = event.target.value; setRecipeFamilyId(id); const family = families.find((candidate) => candidate.recipeFamilyId === id); if (family) setPreview({ ...preview, title: family.name }); }}><option value="">New process template</option>{families.map((family) => <option key={family.recipeFamilyId} value={family.recipeFamilyId}>New version of {family.name}</option>)}</select><small>{recipeFamilyId ? "The imported workbook becomes the next immutable version immediately." : "Creates a distinct process-template family."}</small></label>
+        <label>Process template title<input value={preview.title} disabled={inputsLocked || Boolean(recipeFamilyId)} onChange={(event) => setPreview({ ...preview, title: event.target.value })} /></label>
+        <label>Version relationship<select disabled={inputsLocked} value={recipeFamilyId} onChange={(event) => { const id = event.target.value; setRecipeFamilyId(id); const family = families.find((candidate) => candidate.recipeFamilyId === id); if (family) setPreview({ ...preview, title: family.name }); }}><option value="">New process template</option>{families.map((family) => <option key={family.recipeFamilyId} value={family.recipeFamilyId}>New version of {family.name}</option>)}</select><small>{recipeFamilyId ? "The imported workbook becomes the next immutable version immediately." : "Creates a distinct process-template family."}</small></label>
       </div>
       <section className={`card initial-state-preview${preview.initialSubstrateStep ? "" : " missing-initial-state"}`}>
         <div className="card-copy">
@@ -112,7 +289,7 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
           </Fragment>;
         })}
       </section>
-      <button className="button primary wide" disabled={busy || !preview.title.trim() || !preview.steps.length} onClick={() => void confirm()}>{busy ? "Importing…" : "Confirm process-template import"}</button>
+      {(!operation || operation.status === "reselect") && <button className="button primary wide" disabled={busy || !preview.title.trim() || !preview.steps.length} onClick={() => void confirm()}>{busy ? "Preparing import…" : "Confirm process-template import"}</button>}
     </div>}
   </section>;
 }

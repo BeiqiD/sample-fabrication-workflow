@@ -1,0 +1,136 @@
+{
+  "kind": "execution-legacy-fixture-followup-source/1",
+  "status": "SOURCE_ONLY_ALL_FOLLOWUP_STRICT_AND_RUNTIME_UNRUN",
+  "root": "/tmp/rt1-execution-legacy-fixture-repair-8a30cc5",
+  "baseHead": "8a30cc589c9e55d5ea70a2811a79487a4c3411ef",
+  "baseTree": "ad6db00792e40cf62cfb276a4d147f411c11e4c3",
+  "ordinaryClone": true,
+  "worktree": false,
+  "actualOriginalOwnCIFailures": {
+    "38088321649": {
+      "path": "/tmp/portable-current-258-259-260-ci-closure-attempt1/38088321649-complete.log",
+      "sha256": "d80e9c1c72248d9b2809d554d277e31e869b93facc3d454be8e1242c79769513",
+      "originalCauseExcerpts": [
+        "verify\tRun shared verification checks\t2026-10-10T21:43:07.1620420Z stderr | worker/delete-run-route.test.ts > run trash and restore routes > hides and restores an active run without destroying its execution graph or files",
+        "verify\tRun shared verification checks\t2026-10-10T21:43:07.1635412Z TypeError: Invalid SQL integer: D1 direct changes",
+        "verify\tRun shared verification checks\t2026-10-10T21:43:07.1645528Z     at configurationSqlInteger (/home/runner/work/sample-fabrication-workflow/sample-fabrication-workflow/worker/runtime/configuration-sql.ts:26:69)",
+        "verify\tRun shared verification checks\t2026-10-10T21:43:07.1646800Z     at /home/runner/work/sample-fabrication-workflow/sample-fabrication-workflow/worker/storage/configuration-d1.ts:41:26",
+        "verify\tRun shared verification checks\t2026-10-10T21:43:07.1647511Z     at Array.map (<anonymous>)",
+        "verify\tRun shared verification checks\t2026-10-10T21:43:07.1648447Z     at Object.batch (/home/runner/work/sample-fabrication-workflow/sample-fabrication-workflow/worker/storage/configuration-d1.ts:40:22)",
+        "verify\tRun shared verification checks\t2026-10-10T21:43:07.1649485Z     at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "verify\tRun shared verification checks\t2026-10-10T21:54:03.0400525Z stderr | worker/metrology-routes.test.ts > metrology lifecycle routes > synchronizes sample status and accepts post-completion result edits",
+        "verify\tRun shared verification checks\t2026-10-10T21:54:03.0401913Z TypeError: Invalid SQL integer: D1 direct changes",
+        "verify\tRun shared verification checks\t2026-10-10T21:54:03.0425550Z     at configurationSqlInteger (/home/runner/work/sample-fabrication-workflow/sample-fabrication-workflow/worker/runtime/configuration-sql.ts:26:69)",
+        "verify\tRun shared verification checks\t2026-10-10T21:54:03.0426878Z     at /home/runner/work/sample-fabrication-workflow/sample-fabrication-workflow/worker/storage/configuration-d1.ts:41:26",
+        "verify\tRun shared verification checks\t2026-10-10T21:54:03.0427913Z     at Array.map (<anonymous>)",
+        "verify\tRun shared verification checks\t2026-10-10T21:54:03.0428790Z     at Object.batch (/home/runner/work/sample-fabrication-workflow/sample-fabrication-workflow/worker/storage/configuration-d1.ts:40:22)",
+        "verify\tRun shared verification checks\t2026-10-10T21:54:03.0429923Z     at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+      ],
+      "failureScope": {
+        "deleteRun": 3,
+        "metrology": 1,
+        "total": 4,
+        "completeSourceCases": 3814,
+        "passed": 3810,
+        "failed": 4
+      }
+    },
+    "38088324404": {
+      "path": "/tmp/portable-current-258-259-260-ci-closure-attempt1/38088324404-complete.log",
+      "sha256": "aca52d852362c4f5266150fcd338f543c34aef9e3d6b887aa0c570f87095f15d",
+      "originalCauseExcerpts": [
+        "verify\tRun shared verification checks\t2026-10-10T21:44:40.2149506Z stderr | worker/delete-run-route.test.ts > run trash and restore routes > hides and restores an active run without destroying its execution graph or files",
+        "verify\tRun shared verification checks\t2026-10-10T21:44:40.2180209Z TypeError: Invalid SQL integer: D1 direct changes",
+        "verify\tRun shared verification checks\t2026-10-10T21:44:40.2181956Z     at configurationSqlInteger (/home/runner/work/sample-fabrication-workflow/sample-fabrication-workflow/worker/runtime/configuration-sql.ts:26:69)",
+        "verify\tRun shared verification checks\t2026-10-10T21:44:40.2184309Z     at /home/runner/work/sample-fabrication-workflow/sample-fabrication-workflow/worker/storage/configuration-d1.ts:41:26",
+        "verify\tRun shared verification checks\t2026-10-10T21:44:40.2185438Z     at Array.map (<anonymous>)",
+        "verify\tRun shared verification checks\t2026-10-10T21:44:40.2186803Z     at Object.batch (/home/runner/work/sample-fabrication-workflow/sample-fabrication-workflow/worker/storage/configuration-d1.ts:40:22)",
+        "verify\tRun shared verification checks\t2026-10-10T21:44:40.2188321Z     at processTicksAndRejections (node:internal/process/task_queues:104:5)",
+        "verify\tRun shared verification checks\t2026-10-10T21:59:04.1386985Z stderr | worker/metrology-routes.test.ts > metrology lifecycle routes > synchronizes sample status and accepts post-completion result edits",
+        "verify\tRun shared verification checks\t2026-10-10T21:59:04.1389566Z TypeError: Invalid SQL integer: D1 direct changes",
+        "verify\tRun shared verification checks\t2026-10-10T21:59:04.1391272Z     at configurationSqlInteger (/home/runner/work/sample-fabrication-workflow/sample-fabrication-workflow/worker/runtime/configuration-sql.ts:26:69)",
+        "verify\tRun shared verification checks\t2026-10-10T21:59:04.1393194Z     at /home/runner/work/sample-fabrication-workflow/sample-fabrication-workflow/worker/storage/configuration-d1.ts:41:26",
+        "verify\tRun shared verification checks\t2026-10-10T21:59:04.1394245Z     at Array.map (<anonymous>)",
+        "verify\tRun shared verification checks\t2026-10-10T21:59:04.1395649Z     at Object.batch (/home/runner/work/sample-fabrication-workflow/sample-fabrication-workflow/worker/storage/configuration-d1.ts:40:22)",
+        "verify\tRun shared verification checks\t2026-10-10T21:59:04.1397254Z     at processTicksAndRejections (node:internal/process/task_queues:104:5)"
+      ],
+      "failureScope": {
+        "deleteRun": 3,
+        "metrology": 1,
+        "total": 4,
+        "completeSourceCases": 3814,
+        "passed": 3810,
+        "failed": 4
+      }
+    }
+  },
+  "diagnosis": {
+    "cause": "Both fixture-local D1.batch shims discard SELECT result rows, so the genuine configuration-D1 adapter reads undefined direct_changes and correctly throws. Metrology runId undefined is the secondary error after the denied201 response.",
+    "productionBoundary": "worker/storage/configuration-d1.ts batches each owned mutation followed by SELECT changes() AS direct_changes in the same genuine D1 transaction; named exact integer decoder must remain failclosed. Do not fall back to trigger-inclusive meta.changes or invented counts.",
+    "fixtureRepair": "Reuse the unchanged shared native SQLite D1-shaped test helper: native columns().length selects all() for SELECT/RETURNING, and native BEGIN/COMMIT/ROLLBACK preserves mixed-batch order and rollback. No test-local duplicate driver or app Env added.",
+    "scopeLimit": "These are existing direct Worker/native SQLite harnesses with test Env casts. They are not actual workerd D1 or mounted Node/current-auth/physical-lease proofs; previously executed real workerd12 remains historical separate."
+  },
+  "exactOwnedFixtureChanges": {
+    "worker/delete-run-route.test.ts": {
+      "beforeSha256": "cda8830071393a491f8b77db6b23946a6ed44c445dcf60e198deda2998f33c40",
+      "afterSha256": "94da737637f0617a9c418d2ca5dd4b84e0378b15c53db37d454ff80399994b1c",
+      "allTestBodiesByteEqual": true,
+      "seedFunctionByteEqual": true,
+      "cases": 6,
+      "assertions": 47
+    },
+    "worker/metrology-routes.test.ts": {
+      "beforeSha256": "1ed614c6353b7f6587a4f16d8d2e22d888892b53569aa03b061855296e819574",
+      "afterSha256": "e6297c0204ad314357729bcf790bf7c3b482015021c460de81c521fe265a9fa4",
+      "allTestBodiesByteEqual": true,
+      "seedFunctionByteEqual": true,
+      "cases": 1,
+      "assertions": 6
+    }
+  },
+  "basePreservation": {
+    "baseTrackedFiles": 1506,
+    "allOtherBaseFilesUnchanged": 1504,
+    "allProductionFilesAndMigrationsUnchanged": true,
+    "onlyModifiedExistingPaths": [
+      "worker/delete-run-route.test.ts",
+      "worker/metrology-routes.test.ts"
+    ],
+    "sharedHelperUnchanged": {
+      "path": "worker/reference-test-support.ts",
+      "sha256": "53333d2ba02005dfe363a24b92216ad4a5a9684e005e3b98d4bd370a7293f1c4"
+    },
+    "adapterUnchanged": {
+      "path": "worker/storage/configuration-d1.ts",
+      "sha256": "a85ee48baec40ef67f641f9abe8b2ef0baa30fcb9e544a7725740d699fdcafe7"
+    },
+    "integerDecoderUnchanged": {
+      "path": "worker/runtime/configuration-sql.ts",
+      "sha256": "1ef2a9857222e527633858026e1e82f990104ed19f52787eca67d544145de0fd"
+    }
+  },
+  "newFocusedConfigPins": {
+    "execution-legacy-fixture-ci-followup.tsconfig.json": "132e828de1738356500e164cd5fe0fac158e63bb64759ba511278e2e13b21cd8",
+    "execution-legacy-fixture-ci-followup.vitest.config.mts": "efa7c5480608ad7ef6010a2fee72b5432411dbb6f18b20d5a329a0b6201b3875"
+  },
+  "fixtureSchemaScope": {
+    "deleteRun": "Existing raw current23 migrations unchanged",
+    "metrology": "Existing referenceTestDatabase frozen through0022 and reference graph unchanged",
+    "V26OrNewMigration": "NONE"
+  },
+  "historicalQualification": {
+    "testedSourceHead": "43a502f392836e74101934c43ef0d2c16f077268",
+    "receipt": "docs/qualification/portable-execution-current-business/actual-qualification-attempt1.json",
+    "sha256": "c2bfc8b559843bc739859a9196852bc23451ad6f62b9ce0ca7b5987ef5e403cf",
+    "native18PlusWorker12DistinctPassed": 30,
+    "newFollowupRuntimeQualified": false,
+    "noBorrowedNewThirtyClaim": true
+  },
+  "effects": "No tsc/test/SQL/listener/build/dependency changes/provider action or push during preparation",
+  "limits": [
+    "Every original test body/expectation/seed/deadline stays exact; the fixture transport result shape/transaction now matches existing shared helper.",
+    "Production direct-change decoder and actual guards are unchanged. No production relaxation.",
+    "Parent owns remote PR260/full-own-CI reconciliation after this source is independently reviewed and given explicit focused runtime GO.",
+    "Actual development ancestry913/merged258 may differ; apply two fixture changes only onto reviewed current base, then preserve source proof and own-head gates."
+  ]
+}

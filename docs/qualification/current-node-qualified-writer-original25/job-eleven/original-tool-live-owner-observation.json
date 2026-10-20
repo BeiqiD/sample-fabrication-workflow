@@ -1,0 +1,49 @@
+{
+  "kind": "original-job-eleven-live-tool-handle-observation/1",
+  "toolSessionId": 16447,
+  "recordedBeforeWaitAtEpoch": 1791725284.994053,
+  "originalObservedOwners": [
+    {
+      "pid": 1222765,
+      "state": "S",
+      "parentPid": 1222764,
+      "processGroup": 1222764,
+      "startTicks": 13853345,
+      "exactOriginalArgv": [
+        "python3",
+        "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/job-eleven/original-supervisor.py"
+      ]
+    },
+    {
+      "pid": 1222768,
+      "state": "S",
+      "parentPid": 1222765,
+      "processGroup": 1222768,
+      "startTicks": 13853349,
+      "exactOriginalArgv": [
+        "python3",
+        "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/job-eleven/original-owned-runner.py"
+      ]
+    }
+  ],
+  "noSignalSent": true,
+  "sourceRoot": "/workspace/portable-current-a5-qualified-writer-continuation-source-attempt1",
+  "scope": "Original live metadata only; no missing owner reconstructed",
+  "actualChildOwner": {
+    "pid": 1222777,
+    "processGroup": 1222777,
+    "command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "--config",
+      "node-job-http-request.vitest.config.mts",
+      "--reporter=verbose",
+      "--reporter=json",
+      "--outputFile.json=/workspace/current-a5-qualified-writer-job-eleven-owned-actual-attempt1/actual-native.json"
+    ],
+    "status": "RUNNING",
+    "stateAtObservation": "S",
+    "startTicks": 13853376
+  }
+}

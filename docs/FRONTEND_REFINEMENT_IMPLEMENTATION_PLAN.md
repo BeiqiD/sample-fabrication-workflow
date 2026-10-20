@@ -1,0 +1,1339 @@
+# Phase 5 frontend refinement implementation plan
+
+**Current local development checkpoint — 2026-10-13 UTC.** Supported local Phase5F candidate qualification and the [role/coverage baseline map](PHASE5F_LOCAL_BASELINE_COVERAGE_MAP.md) are complete. Fresh092 push/PR native20 and fresh71 whole24, including its separate nonempty case, passed at their original heads; each candidate's four own Verify/Map workflows and all15 contexts were successful at 05:03:40 UTC. [#298](https://github.com/BeiqiD/sample-fabrication-workflow/pull/298) merged at `f65001da`, preserving qualified tree `a2b645`; [#299](https://github.com/BeiqiD/sample-fabrication-workflow/pull/299) merged at `ab0339bce591abd2fed61690916c2d098de2a43d`, preserving tree `1a04056ef5cc1a6a11ea31b51648c3eeb3f50902`. These measured scopes retain the previously merged eight-Sample, exact Compare focus and250/400 functional evidence; historical SOURCE/UNRUN and failure records keep their original status.
+
+At the 05:05:34 UTC observation, ab033 [Workers Build115138845853](https://github.com/BeiqiD/sample-fabrication-workflow/runs/115138845853) had succeeded at 05:05:30; ordinary post-merge [Map38349545551](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38349545551) passed, while [Verify38349544226](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38349544226) and all15 completion remain **PENDING** (2success/13pending). The separate merged #296 Docker17 and #297 two-File/six-case fixture passes are recorded in the baseline map. Remaining accepted local work is genuine nonempty R2→Node RT5 transfer and RT4/RT5 Node Package HTTP, independent execution and nonempty copy. Adapter a98's actual full server types failed on transitive Cloudflare dependencies; neutral extraction is in progress and remains unqualified.
+
+Formal physical device/touch/IME, other supported engines, measured real-data performance and authenticated serving/schema/old-document handover remain independent acceptance. Restored V28 capabilities remain inert under their existing explicit admission. Whole5F, selected6A6/6B and release acceptance remain open. The dated checkpoints below are historical; their sources, failures, counts and limits are unchanged.
+
+**Historical integration/candidate checkpoint (2026-10-10/11; superseded as current status):**
+
+Status: historical Phase 5A–5C slices through PR #185 merged/deployed.
+**C4, 5D and 5E and bounded 5F repairs are integrated** through
+[PR #251](https://github.com/BeiqiD/sample-fabrication-workflow/pull/251) at
+`aa497d9a1a304751ea7533548573a256799ef734` on 2026-10-10 (13:30:26 UTC).
+Its tree `087749d12a3e3ad19473f1f4e63d29e1ecf1c269` equals qualified source
+`af8f374cfbbade3282f2e686cc9f35d3c40adf4a`: all 12 local default leaves,
+four remote Verify/Map runs and all 15 final status contexts passed.
+**5F remains in progress**; formal device/OS-input, deployed-provider and
+whole-product acceptance remain open.
+
+The 2026-10-10 continuation adds bounded Metrology create/add/refresh ownership,
+picker reads and standalone navigation, plus equivalent shared Map/Reading
+descriptors and explicit route-load recovery. Their focused/full local evidence remains versioned in the linked
+[current Product checkpoint](PRODUCT_ROADMAP.md#current-checkpoint). The
+[autonomous goal](ROADMAP_AUTONOMOUS_DEVELOPMENT_GOAL.md) now authorizes continued
+development and reviewed integration. The
+[historical integrated browser matrix](PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md)
+passed 20 cases plus two Metrology pending-flow cases at its recorded source.
+Historical [PR #252](https://github.com/BeiqiD/sample-fabrication-workflow/pull/252)
+subsequently merged owner-scoped Processing refresh and the search label; its applied UI
+source passed 100 mounted files / 966 tests and build. The
+[current checkpoint](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md) records `ee171339`:
+20 adopted matrix cases, 84 actual API seed requests, six cost cases and 12
+additional Project scenario IDs, with dirty/held/lost-ACK exact retry and
+unchanged original Projects. Awaited service disposal and four physical
+SQLite/FK checks plus PNG/original-byte proof passed. The fresh `c06cb71` / tree `2466e718` checkpoint passed the 20-case matrix
+and both named Metrology cases, awaited stop and physical DB/FK/PNG/original-byte
+proof. #252 and later #254 final-head gates passed and both merged. The latter
+qualified initial Project GET Retry, three-owner refresh and reduced motion;
+their actual [follow-up scopes](PHASE_5F_RETRY_GROUP_MOTION_ACCEPTANCE.md) remain
+separate receipts. Current development is #258/currentV26 at `e108496`.
+Candidate #259 retains the prior six directory/creation cases and the new four
+true default-page Templates cases. Its one-source-case clock fixture failure
+and13 skipped downstream leaves remain historical. Corrected combined98d
+completed local boundary/owned strict/original6/mounted37/source38 and a separate
+fresh build, retaining the first wrapper owner-check failure and genuine
+exited-kernel/FD-permission reconciliation. Final complete gates remain open;
+no historical browser scope is relabelled as a fresh combined-head run. The
+combined candidate also retains separately qualified current24 Execution
+metadata mutation services; its final complete gates must cover the actual
+combined head. Close #260 as superseded only after successful combined merge.
+Merged #258 post-merge Verify/Map and all15 contexts also passed (source409/3843,
+mounted103/985); conditional failure-cleanup skipped, no verification leaf
+skipped, and no deployed serving/schema claim.
+Post-merge #251 Verify/Map and all 15 contexts and Workers Build
+`114224522096` succeeded; three anonymous routes still returned Access 302.
+Authenticated serving/schema and whole-phase device gates stay open.
+
+**Current development status — 2026-10-13 (UTC).**
+
+**Earlier merged development checkpoint:** [PR #282](https://github.com/BeiqiD/sample-fabrication-workflow/pull/282) merged at `e6a4dbe8098d3557510831531bd2fc534fe9e26b`. Its own-head four Verify/Map runs and all 15 contexts, then the e6 post-merge two runs and all 15 contexts, succeeded; its actual Workers Build also succeeded. Those results retain their exact source scope.
+
+**Build optimization now in the development baseline:** [PR #283](https://github.com/BeiqiD/sample-fabrication-workflow/pull/283) merged at `879145ec1e74c853d079ba49503bcad199a3b768`, with its own-head and post-merge CI and actual [Workers Build 114914679495](https://github.com/BeiqiD/sample-fabrication-workflow/runs/114914679495) successful. Default `npm run build` uses `npm run config:local && vite build`; TypeScript checking remains the separate `npm run typecheck` prerequisite in `verify`. The fast build result does not replace serving, schema or provider acceptance.
+
+**Merged FabuBlox development checkpoint:** [PR #284](https://github.com/BeiqiD/sample-fabrication-workflow/pull/284) is merged at `784aeb5c14cb2e2c776a27f6f9a5ef9a6ba4dfcd`, whose tree equals qualified candidate `762616906a0cc569567cc4d73242163642310c70`. Its actual post-merge [Verify 38320273223](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38320273223), [Map 38320273213](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38320273213), all 15 contexts and Cloudflare build succeeded. The candidate's four genuine Process/body tests, full server typecheck, fresh build and four fixed local Chromium shell/accessibility cases retain their original local scopes; earlier failures and browser receipts remain recorded separately.
+
+**Merged Node producer:** [PR #285](https://github.com/BeiqiD/sample-fabrication-workflow/pull/285) merged at `8d832ba7af5f1554d61f34fe726ffd8b9de46336`, with the exact tree of `cbe0fd3`. Both own Verify runs, both Map runs and all 15 contexts passed. Its actual post-merge [Verify 38323940091](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38323940091), [Map 38323940004](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38323940004), all 15 contexts and Cloudflare build succeeded. The full Node V3 package, eight distribution tests, embedded verifier and four bundled CLI help checks passed at cbe0; its package has 123 files and 858 source inputs. Those results retain their exact scopes; Docker/image/17-case and whole restored-target acceptance remain open.
+
+**Merged explicit V28 profile checkpoint:** [PR #286](https://github.com/BeiqiD/sample-fabrication-workflow/pull/286) merged at `356`, preserving the exact qualified `4ef7a9d` tree `1e454`. Its four own Verify/Map workflows and all 15 contexts succeeded. Full server type checking, three parser cases, a fresh Node client/distribution build, embedded verification, four compiled CLI help checks and four genuine programmatic runtime-startup cases passed in the dedicated [run 38323352244](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38323352244). This package has 123 files and 928 source inputs. Its actual post-merge [Verify 38326376427](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38326376427), [Map 38326376350](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38326376350) and all 15 contexts succeeded. The original workflow logs and stage PASS reports were read; the separate artifact download returned 403 and its detailed receipt files were not read back. Compiled-server startup, restored-target startup and cross-runtime recovery are not established by those four programmatic startup cases; the default entry remains V26.
+
+**Merged roadmap status checkpoint:** [PR #287](https://github.com/BeiqiD/sample-fabrication-workflow/pull/287) merged at `493` after its own four Verify/Map workflows and all 15 contexts succeeded. Its actual post-merge Verify38327815284/Map38327815430 and all 15 contexts succeeded; the documentation merge does not complete the separate runtime, browser or release scopes.
+
+**Merged restored Node operators — bounded dedicated pass:** [PR #289](https://github.com/BeiqiD/sample-fabrication-workflow/pull/289) at `ebc1` passed its dedicated [run 38327393720](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38327393720): actual full server type checking, three parser cases, a fresh 123-file/930-source-input Node package, embedded verification and four bundled CLI help checks. Genuine complete zero-File V5 capture and one actual bundled restore-CLI case passed across distinct source/destination installations; two reset-secret administrator/Group operator cases and the credential-revision `+2` check passed. Parent `f34` [run 38326839944](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38326839944) retains its own earlier zero-File capture/restore/operator scope. The candidate's four own Verify/Map workflows and all 15 contexts succeeded, and PR #289 merged at `86a8972588f60326aad850c63f1e0ebb08813578` with the exact `ebc1` tree. Its actual Cloudflare build115077834314 succeeded. The merge's new ordinary post-CI remains pending. Maintenance remains fenced; nonempty FileBackup, restored business activation, serving and public capture remain UNRUN. These bounded results do not establish whole Node recovery.
+
+**Large Project browser work — original native200 pass, combined-head scope pending:** [Draft PR #288](https://github.com/BeiqiD/sample-fabrication-workflow/pull/288) source `32` passed dedicated [run 38328093696](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38328093696): two physical SQLite checks before startup, 477 real API seed requests, one genuine native200 browser case, original normal stop and four physical SQLite checks afterwards. `completeFiniteMatrix` remains `false`. Its first attempt's Python SQLite parser failure before API startup still retains API/browser UNRUN. New source `028c0ff7bf8ef4d1ab1b127b8e3a0899cd63e245` exactly combines the `32` browser source with `ebc1`; its dedicated [run 38329403623](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38329403623) separately passed the same original native200 and before/after physical checks. Its whole CI remains pending. The `32` result is not retagged onto this combined source. Historical 250/400 browser cases retain their original sources and scopes; whole5F acceptance remains open.
+
+**RT6 — original bounded failure retained:** The original `8d` Docker attempt built its image and passed two cases before its constructor-path failure. Corrected `ce880` dedicated [run 38327278329](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38327278329) built one image, passed its first eight actual cases, then failed case 9, `genuine-native-upload-replay-and-bytes`, on `POST /api/assets` with observed HTTP 503; the remaining eight cases were UNRUN. Actual CLI/container closure was confirmed, while the original `originalBodiesClosureUnproven` marker remains preserved. The 503 root cause is undetermined. The fixed-enum diagnostic `b3e7463` ran the same 17-case matrix in [run 38329481740](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38329481740), retaining 8PASS/1FAIL/8UNRUN and identifying the original response as `node_503_file_unavailable`. This generic File error still requires a specific server-side cause; it does not establish a full pass. The original 17-case matrix and budgets remain unchanged, and RT6 is not complete.
+
+**Maintenance control — source and narrow checks pending completion:** New six-leaf maintenance source `087` has actual Root full server type checking and three parser cases passed. Its three genuine maintenance cases remain UNRUN. Maintenance remains fenced; no serving activation or whole maintenance-lane pass is claimed.
+
+The four named local shell/accessibility cases passed for the #284 qualified candidate before its merge; that original receipt retains its scope. Whole5F final disposition, applicable physical IME/touch/other-engine evidence, actual old-document/new-serving-version handover, and selected fresh/populated and enabled-provider/operational 6A6/6B exits remain open. Retain the existing server admission restrictions and versioned failures/counts.
+
+The historical 2026-09-13 Project/Worker checkpoint below remains evidence,
+not today's phase queue. C4's [local completion](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/PROJECT_C4_ACCEPTANCE.md),
+[5D completion](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/PHASE_5D_ACCEPTANCE.md) and
+[5E completion](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/PHASE_5E_ACCEPTANCE.md) describe bounded work and
+explicit unqualified cases. The latter passed 400 core browser cases plus
+supplemental checks under a bounded local source configuration. The historical
+`2060c745` default-five-second CI failure remains recorded; the later `4479295`
+Verify run was cancelled at the 20-minute whole-job budget. The `20176fc5`
+source context passed, but mounted checks failed. Follow-up repairs are pushed
+at the historical `3c1baf5`; its complete default remote gate passed. The later
+combined `af8f374` tree has its own complete local/remote qualification.
+Whole-5F acceptance remains open. See the
+[current checkpoint](./PRODUCT_ROADMAP.md#current-checkpoint).
+
+[Product roadmap](./PRODUCT_ROADMAP.md#near-term-order-and-first-integrated-release)
+now records completed implementation review/integration and schedules remaining
+5F and a finite performance lane before 6A6/6B. FP2–FP5 is integrated, not a reason to defer
+5F again. Preserve Comfortable/Compact/Dense presentation roles, current
+Project keyboard/editor/panel behavior, 5D attachment trust/lifecycle,
+5E read-state ownership and the distinct copy-import vs system-recovery
+operations. No new backend schema, broad stylesheet replacement or unsolicited
+provider activation is part of Phase 5F.
+
+Historical C2b execution base: `v2/backend-foundation` at
+`5191d9bd64bfc3fa2ed0d24aaef7e8f7330a7cf7`; PR #166 is merged
+
+This document turns the whole-product Phase 5 goal in
+[Product goal and roadmap](./PRODUCT_ROADMAP.md) into bounded, independently
+reviewable frontend slices. Phase 5C explicitly authorizes a Project-scoped
+layout and control rewrite; it does not authorize a whole-product visual rewrite.
+The user-authorized Project UX repair revision dated 2026-09-11 below is an explicit
+functional exception to the original presentation-only scope. Completed slice
+records retain their historical scope and acceptance statements; the active
+revision governs the newly authorized behavior. Integrated test and desktop
+browser results, plus remaining acceptance boundaries, are recorded in
+`PROJECT_UX_REPAIR_ACCEPTANCE.md`, `PROJECT_C3_ACCEPTANCE.md`, and
+`PROJECT_CARD_GESTURE_ACCEPTANCE.md`. The current integrated review and remaining
+acceptance limits are recorded in `PROJECT_C4_ACCEPTANCE.md`.
+
+The governing principle remains the one frozen in
+[Frontend interface guidelines](./FRONTEND_GUIDELINES.md):
+
+> **Consistency by role, not uniformity by selector.**
+
+A whole-product refinement pass means that the complete product is reviewed
+against one visual, interaction, responsive, and accessibility system over a
+sequence of focused PRs. It does not mean that all pages, stylesheets, or
+component families should change in one PR.
+
+## Why a dedicated execution plan is required
+
+The product now has a stable functional shape across source records, Project
+Map, Reading, Inspector, References, Markdown/TeX, media, attachments, and the
+selected Canvas productivity operations. Those capabilities were implemented in
+separate phases with different correctness and performance constraints.
+
+The existing frontend baseline deliberately rejects speculative normalization:
+visual differences are not automatically defects, Dense workspaces must not be
+expanded into Comfortable forms, and mature geometry must not be changed without
+a concrete problem and representative verification.
+
+Phase 5 therefore starts by freezing its review and sequencing rules before any
+systematic visual work begins. Each implementation PR must identify a real
+hierarchy, state, responsive, accessibility, wording, or maintainability problem
+and must preserve unrelated mature geometry.
+
+## Normative source order
+
+Phase 5 work follows these documents in order:
+
+1. [Product goal and roadmap](./PRODUCT_ROADMAP.md) for product scope and phase
+   boundaries;
+2. [Frontend interface guidelines](./FRONTEND_GUIDELINES.md) for normative
+   density, typography, controls, responsive, overlay, ownership, and validation
+   rules;
+3. [Frontend implementation baseline](./FRONTEND_AUDIT.md) for measured current
+   geometry and protected component-family behavior;
+4. [Color system](./COLOR_SYSTEM.md) for grayscale hierarchy, interaction
+   accent, semantic colors, and contrast;
+5. [Responsive layout](./RESPONSIVE_LAYOUT.md) for established global tiers,
+   Project-specific functional boundaries, and page/mobile transformations;
+6. focused Project, Canvas, rich-content, attachment, and blob-lifecycle
+   contracts for domain-specific invariants.
+
+When a local visual preference conflicts with a focused functional contract, the
+functional contract wins. A Phase 5 PR may clarify a stale document, but it must
+not silently weaken an identity, lifecycle, save, retry, conflict, retention, or
+performance guarantee.
+
+## Hard boundaries
+
+Phase 5 preserves the following boundaries except for a separately authorized
+correctness fix or an explicit exception in the current user-authorized UX
+revision. A changed interaction is not permission to relax data-safety guarantees.
+
+### Product and backend boundary
+
+- no new source-record or Project content type;
+- no schema migration, export-version change, persistence rewrite, or new domain
+  mutation API merely for visual refinement; the authorized endpoint-reconnection
+  migration 0036 is the explicit functional exception, preserving stable identity
+  and revision/lifecycle guards;
+- no change to Project occurrence, content, placement, edge, or Reading-order
+  identity;
+- no groups/frames, custom Reading order, automatic layout, semantic search,
+  permanent delete, live collaboration, LLM feature, or live webpage iframe;
+- no trusted derivative producer, PDF renderer, or upload-transport convergence
+  bundled into a visual PR;
+- no attempt to turn Comment or Project into a general rich-text/page-layout
+  editor.
+
+Correctness defects discovered during Phase 5 may be fixed, but backend and
+frontend changes with different failure modes should remain separate whenever
+practical.
+
+### Visual-system boundary
+
+- preserve the Comfortable, Compact, and Dense density profiles;
+- do not introduce one universal button height, card padding, label style, or
+  thumbnail size;
+- preserve the grayscale-first interface and slate-blue interaction-only accent;
+- preserve workflow semantic colors and Process-grid state meaning;
+- do not add a new hard-coded interface palette or component-local color system;
+- do not create a late override stylesheet whose main purpose is to cancel an
+  earlier selector;
+- Phase 5C may replace Project-local layout and control selectors when ownership
+  is explicit and superseded rules are removed in the same slice; it does not
+  authorize whole-product selector consolidation.
+
+### Geometry and performance boundary
+
+- preserve the global `1200px` / `720px` viewport-tier baseline for ordinary
+  application surfaces;
+- treat the Project workspace's current `min-width: 860px` functional
+  desktop-Map/Reading boundary and local `1180px` / `560px` thresholds as the
+  measured starting baseline rather than the Phase 5C target;
+- Phase 5C may replace Project-local layout thresholds only through an explicit,
+  measured responsive slice with adjacent-boundary verification; global
+  `1200px` / `720px` tiers remain unchanged;
+- preserve Project placement coordinates, node dimensions, edge endpoints,
+  z-order, save boundaries, and React Flow/database separation;
+- preserve the representative Project Map target and envelope and its permanent
+  performance gate;
+- preserve Process-grid sample-count width logic, horizontal overflow, control
+  ladder, status scanning, and Jump-to-current behavior;
+- preserve task-specific dialog/drawer widths and specialized image-lightbox
+  interaction unless that surface is explicitly targeted;
+- preserve natural read-only layout and established View/Edit geometry on mature
+  forms.
+
+## Required PR contract
+
+Every Phase 5 implementation PR must state all of the following before merge:
+
+1. **Concrete problem** — the reproducible hierarchy, interaction-state,
+   accessibility, responsive, wording, or maintainability issue being solved.
+2. **Affected role and density** — the surface role and whether it is
+   Comfortable, Compact, or Dense.
+3. **Protected geometry** — the dimensions, layout behavior, performance
+   boundary, and neighboring surfaces that remain unchanged.
+4. **Before/after evidence** — only measurements or observations relevant to the
+   problem; pixel equality without product meaning is not a goal.
+5. **Verification matrix** — viewport, content, state, theme, and input cases
+   exercised.
+6. **Ownership** — the component or focused stylesheet that owns the final rule;
+   no anonymous compatibility override.
+7. **Exact-head validation** — full Verify success and every additional
+   permanent gate affected by the changed surface.
+
+A PR should remain Draft until its exact head has been independently reviewed.
+Large cross-surface observations may be recorded together, but implementation
+must be split when the surfaces have different geometry, behavior, or regression
+risk.
+
+## Shared verification matrix
+
+Each PR uses the relevant subset of this matrix and records omissions explicitly.
+
+### Viewports
+
+- `1440px` ordinary desktop;
+- `1024px` intermediate reflow;
+- `390px` common mobile;
+- `360px` narrow mobile;
+- `320px` minimum-width stress case where the surface is intended to support it;
+- `1600–1920px` only for wide Processing and representative large-Project checks;
+- the adjacent widths around every documented global or component-local threshold
+  touched by the PR. Global responsive work uses `720px` / `721px` and `1200px`
+  / `1201px`; Phase 5C must verify the current `560px`, `860px`, and `1180px`
+  boundaries and every proposed replacement threshold on both adjacent widths.
+
+### Content
+
+- empty and first-use state;
+- ordinary representative content;
+- long names, labels, metadata, and wrapped body text;
+- missing optional metadata;
+- multiple attachments or images where the surface supports them;
+- representative large Project and multi-sample Processing data when those
+  surfaces are touched.
+
+### Interaction and asynchronous state
+
+- default, hover, pressed/open, selected/current, and focus-visible;
+- keyboard navigation and focus restoration;
+- disabled and permission/lifecycle-limited state;
+- loading, empty, retryable error, and terminal error;
+- the complete save state owned by the surface: Project uses `saved`, `unsaved`,
+  `saving`, `error`, and `conflict`;
+- operation/navigation blocking separately from save state;
+- outcome-uncertain and reconciling states where the current operation exposes
+  them;
+- light and dark themes;
+- mouse, keyboard, and touch-relevant behavior without requiring pixel identity
+  between input modes.
+
+### Automated verification
+
+- focused source/model/component tests for the changed contract;
+- mounted tests for behavior that depends on real component state, focus, or
+  Project integration;
+- no brittle screenshot or markup snapshot that merely freezes incidental CSS;
+- `npm test` and `npm run build` through the repository Verify workflow;
+- the existing Project Map performance gate for changes that can affect Map
+  projection, rendering, node identity, visibility, or bundle behavior.
+
+## Bounded implementation sequence
+
+The sequence below is ordered by structural leverage and regression isolation.
+A slice may use more than one PR. Completing a slice does not require changing a
+mature component that already satisfies its role.
+
+A numbered sub-slice does not automatically complete its parent slice. Phase 5A
+satisfied this gate after the independent exact-head review of PR #157 found no
+remaining concrete shell defect that justified A2. Phase 5B1/B2/B3 are complete
+in PRs #158/#159/#160; no additional B4 content-language defect is currently
+justified. The larger Project composition gap is intentionally tracked as the
+separate Phase 5C layout and control rebuild. Its C0 contract is complete in PR
+#161, its C1 viewport-frame implementation is complete in PR #162, and its C2a
+floating-panel/context-command implementation is complete in PR #163. C2b merged
+through PRs #166/#168 and C3 merged in PR #169; PR #170 supplies the subsequent
+gesture and mathematical-reference repairs. C4 integration acceptance is active.
+
+### Phase 5A — Project workspace shell and state hierarchy
+
+Status: complete in PR #157 after A1; no A2 is currently required.
+
+Goal: make Project entry and workspace chrome establish one clear hierarchy
+before refining the content rendered inside Map, Reading, and Inspector.
+
+Candidate scope:
+
+- Project directory/list, create/open entry, and first-use state;
+- workspace title, primary/secondary actions, and Map/Reading mode control;
+- Reference sidebar and Inspector panel composition;
+- complete Project save-state placement and wording for saved, unsaved, saving,
+  error, and conflict;
+- separate operation/navigation blocked, outcome-uncertain, and reconciling
+  feedback where the current shell or pending-operation surfaces expose it;
+- panel empty, loading, and error states;
+- hover, current, selected, disabled, and focus-visible treatment for shell
+  controls;
+- desktop/mobile shell consistency without making mobile an editable Map.
+
+Protected boundary:
+
+- no node, edge, placement, Reference insertion, Reading-order, or persistence
+  change;
+- no change to React Flow viewport behavior or Project Map performance;
+- preserve the synchronized `860px` Map/Reading interaction boundary and the
+  current `1180px` / `560px` Project layout thresholds unless a separate measured
+  responsive PR explicitly changes them;
+- no new navigation destination or Project feature;
+- no global button or panel selector rewrite.
+
+Exit: Project entry, mode selection, sidebar, Inspector, save state, and separate
+operation feedback communicate one coherent hierarchy while all authoritative
+behavior remains unchanged.
+
+### Phase 5B — Project Map, Reading, and Inspector content language
+
+Status: complete after Phase 5B3 in PR #160; Phase 5B1/B2 are complete in PRs
+#158/#159 and no B4 is currently required.
+
+Goal: make the same Project occurrence read consistently across spatial,
+linear, and detailed projections while preserving the different information
+density of each projection.
+
+Candidate scope:
+
+- Map node surface hierarchy at overview, compact, and full detail bands;
+- selected/focused/editing/pending/blocked presentation without changing stored
+  geometry;
+- edge label, marker, selection, and focus treatment within the frozen edge
+  model;
+- Reading card hierarchy, long-form rhythm, metadata, and local actions;
+- Inspector section hierarchy, source/Project identity distinction, provenance,
+  relationships, and navigation actions;
+- Markdown/TeX overflow, code/table/media containment, and edit/read parity;
+- consistent empty, unavailable, deleted-source, and conflict presentation.
+
+Protected boundary:
+
+- no new detail band, node type, edge type, or Inspector capability;
+- no manual Reading reorder or text-first content model;
+- no stored frontend Canvas document;
+- contextual zoom thresholds and performance contracts change only for a measured
+  defect and require focused performance requalification.
+
+Exit: one occurrence is recognizable across Map, Reading, and Inspector without
+forcing those projections into identical layouts.
+
+### Phase 5C — Project workspace layout and control architecture
+
+Status: Phase 5C0 is complete in PR #161; Phase 5C1 is complete in PR #162,
+and Phase 5C2a is complete in PR #163. Phase 5C2b and C3 merged through
+PRs #166/#168/#169, with the gesture/reference follow-up in PR #170. C4 integration
+acceptance is in progress in `PROJECT_C4_ACCEPTANCE.md`.
+
+Goal: rebuild Project as a workspace-first interface whose Map, Reading,
+References, Inspector, and controls use deliberate composition rather than a
+centered document page containing a framed three-column card, while preserving
+authoritative Project identity, ownership, retry, and concurrency guarantees.
+
+The detailed anatomy, panel modality, scroll ownership, and slice boundaries are
+frozen in the
+[Project workspace layout and control contract](./PROJECT_WORKSPACE_LAYOUT_CONTRACT.md).
+
+Historical evidence motivating C0–C3:
+
+- the shell is constrained to a centered `1600px` page, uses a large document
+  heading, and places the desktop workspace inside a second framed surface;
+- the Map competes with fixed `250–300px` and `270px` side columns instead of
+  owning the remaining workspace viewport;
+- the Project page, Map, and Reading source currently contain 83 `button` sites
+  (73 / 3 / 7 respectively) and 70 `compact-button` class usages. These are
+  source-level audit counts, not the number mounted simultaneously, but they
+  demonstrate that Project controls need explicit architecture rather than more
+  ad hoc compact variants.
+
+Target anatomy:
+
+- a compact Project top bar owns navigation, project identity, mode, save state,
+  and the highest-priority workspace actions;
+- Map owns the remaining desktop viewport instead of being nested in a
+  page-within-a-card composition;
+- References and Inspector become explicit, independently collapsible floating
+  workspace panels over a full-area Canvas at every editable desktop Map width;
+  they never resize, inert, or block the visible Canvas outside their own bounds;
+- Reading uses its own centered document shell and reading rhythm rather than
+  inheriting Map geometry;
+- mobile remains Reading-first, with operations and detail exposed through modal,
+  accessible drawers or sheets instead of a compressed desktop Map.
+
+Control architecture:
+
+- define Project-local roles for mode controls, workspace toolbar actions, panel
+  actions, content actions, destructive actions, and overflow actions;
+- give each role deliberate height, density, label/icon rule, grouping, priority,
+  disabled/loading treatment, tooltip or accessible name, and focus-visible state;
+- preserve text where it carries decision meaning; collapse lower-priority actions
+  to icon-only or overflow only at measured widths and never without an accessible
+  name;
+- keep semantic danger separate from primary interaction accent and avoid turning
+  every visible action into a filled primary button;
+- replace generic Project `compact-button` accumulation incrementally with
+  Project-owned primitives or explicit role classes; do not globally rewrite
+  unrelated product controls.
+
+Bounded sequence:
+
+- **C0 — layout and control contract:** freeze the current audit, target anatomy,
+  control taxonomy, protected behavior, responsive matrix, and PR sequence;
+- **C1 — viewport workspace frame:** introduce the compact top bar and
+  full-viewport desktop Map frame without changing Map data or interaction;
+- **C2 — panels and control hierarchy:** C2a owns floating desktop panel state,
+  non-modal behavior, exact Canvas interaction, and the complete context-aware
+  right-click command surface; C2b first resolves Reference discovery and
+  Inspector information hierarchy, then completes the remaining Project
+  button-family and quick-toolbar migration without creating a second command
+  implementation;
+- **C3 — Reading and responsive composition:** establish the document shell,
+  measure desktop floating-panel sizing and the mobile transition, and own mobile
+  Reading-first modal transformations without redefining C2 panel behavior;
+- **C4 — Project integration review:** reconcile the Project directory and
+  workspace entry, close only evidenced cross-slice gaps, and record the measured
+  final baseline.
+
+Protected boundary:
+
+- no backend, API, schema, migration, export-version, dependency, or domain-model
+  change except the explicitly authorized guarded reconnection update and migration
+  0036 described in the current UX revision;
+- no change to Project occurrence, content, placement, source, revision, save,
+  retry, conflict, reconciliation, attachment-trust, or Reading-order semantics;
+- no change to Map node/edge stored geometry, endpoints, direction, selection,
+  copy/paste, z-order, contextual-zoom bands, or performance policy without a
+  separately measured and authorized defect;
+- no new workspace mode, Inspector capability, automatic layout, mobile editable
+  Map, or source-record feature;
+- no site-wide button rewrite: new control primitives stay Project-scoped until a
+  separate cross-product audit proves broader reuse;
+- layout slices may replace Project-local thresholds, but must preserve the
+  desktop-only Map editing boundary unless a separate functional proposal is
+  approved.
+
+Required acceptance:
+
+- `1440px`, `1024px`, `390px`, and `360px`, plus both adjacent widths for
+  every threshold added, removed, or changed;
+- `1366×768`, `1024×768`, and a `1024×600` short-height desktop case for vertical
+  viewport and scroll ownership;
+- empty, ordinary mixed-content, long-title, and representative large Projects;
+- Map and Reading; References and Inspector open/closed; light and dark themes;
+- desktop Map overlays preserve exact Reference drag-to-Canvas and live Inspector
+  selection without a backdrop, `inert`, focus trap, or document scroll lock;
+- saved, unsaved, saving, uncertain, reconciling, error, conflict, and
+  operation-blocked states where exposed;
+- normal, hover, pressed/current, disabled, loading, danger, focus-visible, and
+  keyboard focus-restoration behavior for changed controls;
+- full Verify, affected mounted/accessibility gates, production build, and Project
+  Map performance qualification on every implementation head.
+
+Exit: Project reads as one purpose-built workspace at desktop, intermediate, and
+mobile widths; controls communicate role and priority before color or proximity;
+and every existing mutation, navigation, accessibility, and performance contract
+remains authoritative.
+
+### Phase 5C4 — integrated acceptance status
+
+Status: original #185 desktop integration acceptance was partial at
+`c4bf698e3753a0474e7d75d400af6685ff874a6a`. A later **bounded local
+C4 development checkpoint passed on 2026-10-07** on the synchronized branch;
+physical-device, OS-input and deployed-runtime cases remain open.
+
+Completed implementation and deployed desktop follow-ups include shortcut help
+and command ownership (#175/#176/#183), editing resize (#180), Markdown draft
+composition (#181), the leave dialog and Inspector disclosures (#182), shared
+panel behavior and combined Markdown activation (#184), and panel/source-note
+layout (#185). Their current evidence is in
+[historical deployed C4 acceptance](./PROJECT_C4_ACCEPTANCE.md#current-integration-check--2026-09-13).
+The current local evidence is in the
+[2026-10-07 C4 checkpoint](./PROJECT_C4_ACCEPTANCE.md#local-integration-checkpoint--2026-10-07).
+Do not reopen these implemented slices solely because an older acceptance entry
+describes a pre-deployment state. In particular, keyboard shortcuts are already
+part of the verified implementation.
+
+Record the served version, real-backend workflow checks, directory/workspace
+transitions, cross-mode commands and focus, representative content and viewport
+coverage in `PROJECT_C4_ACCEPTANCE.md`. Repair only demonstrated integration gaps
+and keep untested device or workflow boundaries explicit. The #185 merged-slice evidence alone did not finish C4; later local
+C4 and 5D checkpoints are complete, but not a deployed/device release signoff.
+
+### Phase 5D — attachment and media surfaces
+
+Status: **bounded local development complete on 2026-10-08**, after C4, on
+the synchronized branch; [5D acceptance](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/PHASE_5D_ACCEPTANCE.md).
+Deployed/device and combined-product acceptance remain open.
+
+Goal: expose the stable shared attachment semantics through one clear visual and
+wording system while preserving separate Project, Comment, and Run ownership.
+
+Candidate scope:
+
+- consistent generic file cards and image-preview affordances by density role;
+- filename, contextual title/caption, MIME/size metadata, and source-link
+  hierarchy;
+- progress, cancellation, retry, failed, unavailable, and empty states;
+- clear distinction among `Remove attachment`, `Move Comment to trash`,
+  `Move Project to trash`, and `Delete run attachment`;
+- accurate 24-hour and 30-day recovery wording where the product exposes it;
+- keyboard, focus, mobile, confirmation, and lightbox transitions;
+- generic-card fallback when no trusted browser preview exists.
+
+Protected boundary:
+
+- client-uploaded Comment previews remain untrusted occurrence assets;
+- no server-side derivative generator, PDF renderer, source parser, or new upload
+  protocol;
+- no owner deletion from an attachment-child action;
+- no universal thumbnail geometry across Comfortable, Compact, and Dense
+  contexts.
+
+Exit: attachment actions and states are understandable across domains without
+misrepresenting lifecycle or preview trust.
+
+### Phase 5E — source-record and directory coherence
+
+Status: **bounded local development complete on 2026-10-08**, after 5D,
+with GET ownership, stale-result protection, current pending/error/empty
+states, explicit read retries, focused form guards and documented accessibility/
+responsive repairs. [5E acceptance](https://github.com/BeiqiD/sample-fabrication-workflow/blob/2060c745376862a379e8c952ee87c05d49982e02/docs/PHASE_5E_ACCEPTANCE.md)
+retains finite local verification and the unqualified default-CI/device/deployed
+boundaries. This is **not** a new request-controller implementation task.
+
+Goal: complete evidence-driven refinement of Samples, Templates, Processing,
+Comments, Timeline, and Settings/Export after the Project visual language is
+stable.
+
+Candidate scope:
+
+- directory title/filter/row/action hierarchy;
+- Comfortable Sample and Template read/edit surfaces;
+- Timeline and Comment metadata/action hierarchy;
+- Settings/Export sections and operational warnings;
+- shared wording for loading, empty, error, retry, Trash, and restore states;
+- local accessibility and responsive issues found with representative data.
+
+Protected boundary:
+
+- Process grid remains Dense and keeps its sample-count geometry, status colors,
+  and action ladder;
+- Sample and Template View/Edit field order and natural geometry remain stable;
+- Comment body rendering remains separate from attachment controls;
+- no broad legacy stylesheet rewrite merely to reduce file count.
+
+Exit: mature source-record surfaces use the same role definitions while retaining
+their intentional density and workflow differences.
+
+### Phase 5F — cross-product integration review
+
+**Historical integration/candidate checkpoint (superseded as current status):**
+
+Status: **bounded development in progress** after qualified #251 integration.
+Read-state, preview ownership, modal focus, narrow-grid, research control,
+Metrology session/read, projection and explicit route-recovery repairs are
+merged. The [integrated browser evidence](PHASE_5F_INTEGRATED_BROWSER_ACCEPTANCE.md)
+records real start/plan confirmations, mixed light/dark responsive surfaces and
+explicit keyboard chunk-error recovery. Merged #252/#254 retain owner refresh,
+search-label, initial Project GET Retry, three-owner refresh and reduced-motion
+repairs with their dated actual scopes. The new [four Templates cases](PHASE_5F_TEMPLATE_PAGINATION_QUALIFICATION.md)
+close true20+1/25+1 pagination, independent navigation, native Search/focus and
+read-only Retry gaps at their actual3c source. The prior six directory/creation
+cases retain their actual2f source. Candidate #259's corrected combined98d
+local gates passed across the firstfive actual command passes and a separate
+fresh build; the original wrapperFAIL remains recorded. Exact final-head
+complete gates remain open on the #258/currentV26 integration.
+The [role/focus ledger](PHASE_5F_ROLE_FOCUS_REVIEW_LEDGER.md) records the bounded
+cross-page action/overlay review and preserves historical scope limits.
+Whole-phase physical-input/authenticated/provider qualification remains open. See
+[the initial 5F goal](https://github.com/BeiqiD/sample-fabrication-workflow/blob/20176fc51d77301c58706d8ae0ff7d87ca6a8422/docs/PHASE_5F_DEVELOPMENT_GOAL.md)
+and the [Product checkpoint](./PRODUCT_ROADMAP.md#current-checkpoint) for bounded
+historical local results and exact `af8f374` complete local/default remote
+qualification; do not replace live/provider/device evidence with those receipts.
+The latest merged profile checkpoint is 356/#286, preserving qualified4ef/tree1e454; its own four CI workflows, post-merge Verify38326376427/Map38326376350 and all15 contexts passed. Roadmap status #287 merged at493 after its own four Verify/Map workflows and15 contexts passed; its post-merge Verify38327815284/Map38327815430 and all15 contexts succeeded. #285's ordinary post-merge Verify/Map, all15 contexts and Cloudflare build retain their successful scope. #289/ebc1 passed its distinct-secret dedicated zero-File capture/restore/operator scope and own complete CI, then merged at86a with the exact candidate tree; new post-CI remains pending. #288's native200 pass belongs to original32; combined028c0ff7 dedicated native200 passed independently while its whole CI remains pending. Corrected ce880/RT6 retains8PASS, case9 upload503FAIL and8UNRUN; maintenance087 has types/parser3PASS with genuine3UNRUN. The #258/#259 pending-gate statements retain their historical scope; whole5F and physical-input/serving/provider boundaries remain open.
+
+Divide the work into 5F-1 (cross-page semantics and action ownership),
+5F-2 (navigation, focus, fresh/old GETs, uncertain writes, permissions and
+recovery identity), and 5F-3 (representative mixed-domain browser,
+theme, responsive, accessibility and physical input qualification).
+Include enabled Storage/Migrations, native research packages and system recovery;
+do not redesign or reimplement their already delivered engines.
+
+Goal: prove that the completed slices form one product and close only concrete
+cross-surface gaps.
+
+Scope:
+
+- cross-page typography, icon, button-role, status, and microcopy audit;
+- complete keyboard/focus route and overlay review;
+- desktop/mobile and light/dark review with realistic content;
+- reduced-motion and restrained-transition review where transitions exist;
+- final hard-coded color, accidental accent, stale compatibility override, and
+  ownership audit;
+- final representative large-Project and multi-sample Processing regression;
+- documentation update to the measured post-Phase-5 baseline.
+
+Exit: every remaining difference is either role-appropriate, documented, or
+backed by a concrete follow-up defect rather than accidental coexistence of old
+and new conventions.
+
+## Authorized implementation slices
+
+### Phase 5A1 — Project workspace shell and state hierarchy
+
+Status: complete in PR #157.
+
+A1 was deliberately narrower than all of Phase 5A.
+
+#### Concrete problem to verify
+
+Project directory, workspace header, Map/Reading control, Reference sidebar,
+Inspector shell, and save/conflict feedback were introduced across several
+functional phases. They must be reviewed together to confirm that primary
+location, mode, operation state, and selection context are understandable before
+Map nodes or source-record pages are visually changed.
+
+The implementation may change only problems demonstrated by that review; it
+must not assume that every difference needs normalization.
+
+#### In scope
+
+- Project directory first-use/loading/error and open/create hierarchy;
+- workspace header and Map/Reading mode affordance;
+- Reference sidebar and Inspector container headings, boundaries, and empty
+  states;
+- save-state grouping and concise microcopy for Saved, Unsaved, Saving, Error,
+  and Conflict;
+- operation/navigation blocked feedback separately from save state, plus existing
+  uncertain/reconciling feedback where a shared shell or banner hierarchy is
+  touched;
+- shell-control hover, current, disabled, and focus-visible states;
+- responsive shell behavior at the established global and Project-specific
+  boundaries;
+- focused tests and a short measured before/after record in the PR description.
+
+#### Out of scope
+
+- Map node and edge restyling;
+- attachment card or preview changes;
+- Markdown renderer changes;
+- source-page restyling;
+- Project API, persistence, operation, retry, or conflict semantics;
+- changing or adding global or Project-specific viewport thresholds;
+- new design tokens unless an existing role cannot express a demonstrated need;
+- new workspace modes, panels, or actions.
+
+#### Required acceptance cases
+
+- Project with no items and Project with representative mixed content;
+- long Project name and narrow available header width;
+- Reference sidebar present/absent according to the existing Map/Reading
+  projection, and Inspector empty/selected states;
+- Map and Reading current-mode indication;
+- save states: saved, unsaved, saving, error, and conflict;
+- separate operation/navigation blocked state;
+- at least one existing outcome-uncertain and reconciling flow when shared
+  feedback or banner hierarchy is changed;
+- representative widths `1440px`, `1024px`, `390px`, and `360px`;
+- Project boundary widths `559px` / `560px` / `561px`, `859px` / `860px`, and
+  `1180px` / `1181px`;
+- global `720px` / `721px` and `1200px` / `1201px` when shared global responsive
+  rules are touched;
+- light and dark themes;
+- keyboard focus order, focus-visible treatment, and focus restoration for any
+  changed overlay.
+
+#### Exit
+
+The workspace shell now establishes location, mode, complete save state, separate
+operation state, and selection context clearly, with no change to Project data
+or Map geometry. Independent exact-head review of PR #157 found no remaining
+concrete Phase 5A defect that justified A2. Phase 5A is complete; a later shell
+correctness bug remains maintenance unless the roadmap explicitly reopens the
+slice.
+
+### Phase 5B1 — occurrence identity language and semantic-color boundary
+
+Status: complete in PR #158.
+
+#### Concrete problem
+
+Map and Reading expose raw lowercase `markdown`, `attachment`, and `reference`
+implementation kinds while Inspector uses product-facing labels. Map also uses the
+interaction accent and the info/warning semantic colors as permanent content-type
+rails. This makes an ordinary Reference look cautionary and uses the selection
+accent to describe ordinary Markdown, contrary to the frozen color contract.
+
+#### In scope
+
+- define one canonical visible vocabulary: `Project Markdown`, `Project
+  attachment`, and `Reference`;
+- reuse that vocabulary in Dense Map nodes, document-mode Reading cards, and the
+  Compact Inspector;
+- replace default kind-colored Map rails with one neutral structural rail;
+- retain accent for selected/focused interaction and danger for actual
+  error/conflict states;
+- add focused model, mounted, and source-contract coverage.
+
+#### Protected boundary
+
+- no node or edge geometry, placement, z-order, detail-band, contextual-zoom, or
+  performance-policy change;
+- no selection, focus, editing, insertion, deletion, copy/paste, edge, or
+  Reading-order behavior change;
+- no new content type, Inspector capability, design token, breakpoint, backend
+  route, persistence field, or attachment-preview behavior;
+- no attempt to make Map, Reading, and Inspector use identical density.
+
+#### Required acceptance cases
+
+- all three occurrence kinds use the canonical label in every changed projection;
+- ordinary nodes use no accent/info/warning classification color;
+- selected and focus-visible nodes still expose interaction accent;
+- pending error/conflict nodes still expose danger treatment;
+- light and dark themes continue to consume existing tokens;
+- the existing Project Map, Reading, Inspector, owned-content, build, and Map
+  performance gates remain green;
+- canonical labels and transient status metadata remain legible at the existing
+  180px minimum node width through bounded header wrapping; node geometry,
+  breakpoints, media queries, and projection rules remain unchanged.
+
+#### Exit
+
+Occurrence kinds read consistently across Map, Reading, and Inspector, and color
+communicates interaction or real state rather than ordinary content category.
+Phase 5B remains open for separately evidenced node, edge, Reading, Inspector, and
+rich-content problems.
+
+
+### Phase 5B2 — Project edge theme and mutation-state language
+
+Status: complete in PR #159.
+
+#### Concrete problem
+
+Project Map nodes and surfaces already consume application theme tokens, but
+React Flow still owns ordinary/selected edge strokes, connection lines, and edge
+label colors through its light-mode defaults. The Map does not pass a React Flow
+dark color mode, so those defaults do not follow the application theme. Pending
+edges also expose `error` and `conflict` classes without danger treatment on
+their paths or arrow markers.
+
+#### In scope
+
+- make the Dense Project Map own React Flow edge, selected-edge, connection-line,
+  and edge-label colors through existing application tokens;
+- keep ordinary paths and arrow markers structurally neutral;
+- use accent for selected paths/markers and the active connection line;
+- use danger for pending `error` and `conflict` paths/markers;
+- qualify the actual mounted closed-arrow SVG markers as well as the stylesheet
+  ownership contract.
+
+#### Protected boundary
+
+- no edge identity, endpoint, handle, direction, marker type, label value,
+  Bezier-routing, persistence, retry, conflict, deletion, restore, or undo/redo
+  change;
+- no label-visibility, selection, keyboard, focus, creation, or connection
+  behavior change;
+- no node projection, placement, geometry, z-order, detail-band,
+  contextual-zoom, viewport, or Map-performance-policy change;
+- no design-token definition, breakpoint, Reading, Inspector, backend, schema,
+  migration, or export change.
+
+#### Required acceptance cases
+
+- ordinary persisted edge path and arrow marker remain neutral in both themes;
+- selected persisted edge path and arrow marker consume accent;
+- focus-visible edge paths and the active connection line consume accent through
+  the same Project-owned React Flow variables;
+- edge-label background/text consume `--paper` and `--ink`, not library
+  light-mode constants;
+- pending `error` and `conflict` paths and arrow markers consume danger,
+  while non-failure pending edges remain neutral and saving animation is
+  unchanged;
+- existing edge direction accessibility labels, keyboard selection, full Verify,
+  Project edge, build, bundle, and Map performance gates remain green.
+
+#### Exit
+
+Project edges participate in the same light/dark, interaction-accent, and
+semantic-failure language as the rest of the Map without changing the frozen
+edge model or interaction behavior. Phase 5B remains open for separately
+evidenced node, Reading, Inspector, and rich-content problems.
+
+
+### Phase 5B3 — Project-owned editor outcome feedback
+
+Status: complete in PR #160.
+
+#### Concrete problem
+
+The Project mutation model distinguishes an outcome-uncertain save from a
+deterministic error or conflict: uncertain writes preserve exact mutation identity
+and expose an exact retry. The existing editor feedback does not preserve that
+distinction. Dense Map Markdown messages always use danger, while Reading Markdown
+and Reading/Inspector attachment metadata render uncertain server detail through
+the danger-only `error-banner`. Reading Markdown can therefore show the same
+operation as warning and determined failure at once.
+
+#### In scope
+
+- project one shared visible/accessibility tone from the existing owned-content
+  mutation status;
+- use warning and a polite status live region for `uncertain`;
+- use danger and an alert live region for `error` and `conflict`;
+- keep Markdown summary and server detail in one coherent live region;
+- reuse the projection in Dense Map Markdown, document-mode Reading Markdown,
+  Reading attachment metadata, and Compact Inspector attachment metadata;
+- add focused component, mounted, and source-contract coverage.
+
+#### Protected boundary
+
+- no request payload, expected revision, operation ID, retry identity,
+  reconciliation, conflict, cancellation, or navigation-blocking change;
+- no editor button, input-enabled state, creation, update, or removal behavior
+  change;
+- no node geometry, placement, z-order, detail band, contextual zoom, viewport,
+  Reading order, or Inspector capability change;
+- no attachment byte, preview trust, media, lifecycle, backend, schema, migration,
+  export, breakpoint, token-definition, or Map-performance-policy change.
+
+#### Required acceptance cases
+
+- uncertain Markdown detail is warning, not danger, in Map and Reading;
+- uncertain attachment metadata detail is warning in Reading and Inspector;
+- error and conflict detail remain danger;
+- uncertain feedback uses `role="status"`, while error/conflict use
+  `role="alert"`;
+- Markdown summary and server detail occupy one live region rather than competing
+  warning/error announcements;
+- existing exact retry, deterministic cancel/reopen, full Verify, owned-content,
+  Reading, build, bundle, and Map performance gates remain green.
+
+#### Exit
+
+Project-owned editor feedback communicates whether an operation is unresolved or
+determined to have failed without changing the authoritative mutation protocol.
+The independent exact-head review found no further B4 content-language defect;
+Phase 5B is complete, while the separately evidenced layout gap proceeds in
+Phase 5C.
+
+### Phase 5C0 — Project layout and control contract
+
+Status: complete in PR #161.
+
+#### Concrete problem
+
+The current Project workspace is structurally a centered page with a large title
+and a second framed three-column surface. Its Map does not own the viewport, side
+panels reduce the central canvas continuously, and control priority is encoded
+mainly through repeated generic `button`, `primary`, `wide`, and
+`compact-button` combinations. This composition is materially different from
+the intended Project experience and cannot be resolved through isolated spacing
+or color adjustments.
+
+#### In scope
+
+- close Phase 5B after merged PR #160 and record that no B4 is currently required;
+- authorize the Project-scoped layout and control rewrite as Phase 5C;
+- record the workspace anatomy, desktop non-modal/mobile modal panel contract,
+  vertical viewport and scroll ownership, Project control taxonomy, responsive
+  strategy, protected behavior, acceptance matrix, and C1–C4 sequence;
+- shift the unstarted attachment/media, source-record, and integration phases to
+  Phase 5D, Phase 5E, and Phase 5F without changing their scope;
+- keep this planning slice documentation-only.
+
+#### Protected boundary
+
+- no production component, stylesheet, test, dependency, backend, schema,
+  migration, export, or runtime behavior change in C0;
+- C0 does not pre-authorize a single giant implementation PR;
+- Project actions, save/retry/conflict semantics, focus behavior, Map geometry,
+  Reading order, and responsive behavior remain unchanged until the relevant
+  implementation slice is independently reviewed;
+- no global button or stylesheet rewrite.
+
+#### Required acceptance cases
+
+- Product roadmap and this execution plan agree that Phase 5B is complete and
+  Phase 5C is active;
+- C1–C4 each have distinct layout/behavior ownership and can be reviewed
+  independently; C2 owns desktop floating panel state/presentation, while C3 owns
+  only measured panel sizing, the mobile transition, and Reading/mobile composition;
+- desktop Map overlays are explicitly non-modal and preserve Canvas drag,
+  selection, Escape, close, and focus-restoration behavior;
+- vertical viewport and scroll ownership is explicit for Map, panels, Reading,
+  mobile, status content, and short-height desktops;
+- the button-heavy control migration is explicit scope, not an incidental CSS
+  side effect;
+- all shifted future phase labels and immediate-order references remain coherent;
+- the planning PR is exact-head reviewed before it becomes Ready.
+
+#### Exit
+
+The repository has one unambiguous authorization for the Project layout rebuild,
+including substantial Project button changes, and Phase 5C1 can begin without
+reopening functional product scope.
+
+### Phase 5C1 — viewport workspace frame
+
+Status: complete in PR #162.
+
+#### Concrete problem
+
+The desktop Map is still nested in a centered document page and a rounded
+fixed-height card. Its `100vh - fixed constant` route formula and the Map
+surface's separate `560px` minimum prevent the workspace from shrinking inside
+the viewport on short desktop screens.
+
+#### In scope
+
+- replace the desktop Map route's height subtraction with an explicit shrinking
+  height chain below global application navigation;
+- introduce the compact single-row Project top bar, truncated accessible Project
+  identity, unchanged Map/Reading mode control, save/history group, and a thin
+  Project-actions overflow adapter;
+- move Project lifecycle deletion out of permanent red chrome while preserving the
+  existing guarded confirmation and mutation flow;
+- bound explanatory route status below the top bar and give Map, References, and
+  Inspector independent scroll ownership;
+- remove the second rounded outer workspace card and the Map surface's fixed
+  minimum height;
+- return Reading and mobile to ordinary document scrolling without changing their
+  content or mutation behavior.
+
+#### Protected boundary
+
+- no panel state, rail, dock/overlay presentation, Reference drag, Inspector,
+  selection-toolbar, or responsive-threshold redesign owned by C2/C3;
+- no Project mutation, save, retry, conflict, reconciliation, geometry, selection,
+  edge, Reading-order, backend, schema, migration, dependency, or performance
+  policy change;
+- no site-wide shell or button rewrite; the root viewport class is active only for
+  a mounted desktop Project in Map mode and is removed for Reading, mobile, and
+  unmount.
+
+#### Required acceptance cases
+
+- mounted desktop Map applies the viewport-owned root class, projects the compact
+  title bar, and removes that class on Reading switch and unmount;
+- Project lifecycle deletion is absent from permanent chrome, remains reachable
+  through Project actions, and the new overflow closes on Escape with focus
+  restored;
+- ordinary Project top-bar controls retain a `36px` minimum target and the
+  Map/Reading mode controls retain `34px`; the compact frame does not reuse
+  Dense Process action sizing;
+- source contracts prohibit a Project `100vh - fixed constant` workspace and a
+  fixed Map minimum height while retaining `min-height: 0`, bounded status
+  overflow, and panel-owned scrolling;
+- existing `560px`, `860px`, and `1180px` Project thresholds remain unchanged,
+  so C1 adds no unmeasured horizontal breakpoint;
+- `1366×768`, `1024×768`, and `1024×600` share the same intrinsic top-bar /
+  status / remaining-workspace height chain;
+- focused Project Map, Reading, lifecycle, full test/build, and Map performance
+  gates pass on the exact head before Ready.
+
+#### Exit
+
+Desktop Map owns the viewport below global navigation without page scrolling or
+fixed height subtraction; Project chrome is compact enough for C2 to add panel and
+button hierarchy without rebuilding the route frame.
+
+### Phase 5C2a — floating panels and context-aware Canvas commands
+
+Status: complete in merged PR #163.
+
+#### Concrete problem
+
+The C1 frame still projects References, Map, and Inspector through historical grid
+columns, so closing a panel changes available Canvas area and open panels read as
+page borders rather than workspace tools. The existing pointer context menu exposes
+only one blank-Canvas attachment action and leaves occurrence, selection, edge,
+navigation, and creation commands scattered across unrelated button sites.
+
+#### In scope
+
+- keep the Map surface mounted as the full workspace background with no outer
+  Canvas border and project both desktop side regions as floating, independently
+  scrollable, non-modal panels;
+- add top-bar panel triggers, Reference open/closed state, and Inspector
+  closed/temporary/pinned state without persisting UI preference;
+- keep the attachment file input mounted when the Reference panel is closed and
+  move React Flow navigation controls clear of an open left panel without changing
+  viewport coordinates;
+- replace the single-purpose context menu with target-aware blank Canvas,
+  occurrence, multi-selection, and edge command sets;
+- share the existing selection, copy/paste, alignment, z-order, edit, removal, edge,
+  and panel commands between keyboard/top-bar/Inspector/context projections;
+- provide menu focus entry, Arrow/Home/End navigation, Escape close, outside-click
+  close, viewport clamping, disabled states, focus restoration, and isolation from
+  document-level Canvas shortcuts while menu focus is active.
+
+#### Protected boundary
+
+- no backdrop, Canvas `inert`, modal focus trap, document scroll lock, or panel
+  action that changes persisted geometry merely to reveal a panel;
+- no backend, API, schema, migration, dependency, mutation identity, retry,
+  conflict, reconciliation, attachment trust, edge model, selection model,
+  Reading order, responsive threshold, or performance-policy change;
+- no mobile drawer/Reading composition and no final C2b Project-wide button-family
+  or quick-toolbar rewrite in this bounded slice.
+
+#### Required acceptance cases
+
+- both floating panels can be open at once while the full-size Canvas, visible
+  selection, edge interaction, Reference drag target, and Canvas navigation remain
+  operable;
+- selecting a node/edge opens temporary Inspector context, clearing selection
+  closes it when unpinned, explicit pin survives selection changes, and close/Escape
+  restores a surviving trigger;
+- the hidden attachment input and exact-position creation paths remain available
+  with the Reference panel closed;
+- mounted menus cover blank Canvas, single occurrence, multi-selection, and edge,
+  including keyboard traversal, Escape focus return, and Ctrl/Cmd Canvas-shortcut
+  isolation while a menu item owns focus;
+- attachment commands keep the stored file and optional source URL as separate,
+  safely projected destinations with labels that match the navigation target;
+- the menu is a workspace-level overlay above floating panels; ordinary command
+  activation restores Canvas focus when no editor/panel destination claims it;
+- panel commands focus the opened panel, and automatic temporary-Inspector closure
+  restores a surviving trigger when the prior focus would otherwise be removed;
+- creation, selection, alignment, and z-order items project per-command
+  availability from the route adapter rather than a coarse geometry flag;
+- edge target selection returns an acceptance result; rejected selection does not
+  open an edge menu or stale Inspector, while Edit/Delete consume the controller's
+  interaction capability including pending Reference insertion/removal;
+- selection/copy counts move to Canvas-local transient status, and the existing
+  `860–1180px` desktop range uses shorter visible control labels with unchanged
+  accessible names and the frozen `36px` targets; long titles, both panels,
+  selected/copied state, and save outcomes keep every top-bar action reachable at
+  `860px`, `861px`, and `1024px`;
+- source contracts prohibit grid-owned Canvas columns, modal desktop panel
+  semantics, and a second mutation/controller implementation;
+- focused Map, Canvas productivity, Reference placement, owned-content, edge,
+  lifecycle, full test/build, bundle, and Map performance gates pass on the exact
+  head before Ready.
+
+#### Exit
+
+Desktop Map remains the sole full-area workspace background while optional side
+surfaces float above it; every right-click target exposes the relevant existing
+commands through one route-owned command adapter. C2b can now concentrate on the
+remaining button-family and quick-toolbar visual hierarchy.
+
+### Phase 5C2b.1 — Reference discovery and Inspector hierarchy
+
+Status: complete in merged PR #166, including browser acceptance and placement
+hydration / local development compatibility fixes.
+
+#### Concrete problem
+
+The floating Reference panel still begins as a search form followed by a large
+internal-type checkbox list, while Project-owned Markdown/attachment creation
+competes for the same narrow surface. Useful records appear only after a query and
+the result/placement hierarchy is too large for a `300–320px` panel. Inspector
+similarly renders primary actions after identity, occurrence, provenance, geometry,
+and relationship detail, making frequent work visually subordinate to diagnostic
+metadata.
+
+#### In scope
+
+- make the query-empty Reference panel a deterministic Suggested surface using a
+  bounded selected/current-Project seed set and the existing direct-child endpoint;
+- label each suggestion by its selected/Project origin, deduplicate target identity,
+  retain repeat-placement visibility, and show active `On Map` occurrence count;
+- replace the placement panel's full internal-type checklist with compact semantic
+  scopes, keeping exact Sample/date fields behind query-context `More filters`;
+- give Suggested and searched records one compact placement-card hierarchy with
+  drag, `Place`, Open, and Details paths;
+- remove persistent Markdown instructions and `Add attachment` from References,
+  retaining exact Canvas gestures/context commands, the hidden file input, and any
+  pending attachment lifecycle feedback;
+- reorder occurrence and edge Inspector content around title, primary action,
+  summary/relationships/related records, collapsed source and Project details,
+  low-frequency utilities, then destructive actions.
+
+#### Protected boundary
+
+- no semantic/LLM recommendation, ranking persistence, new Reference endpoint,
+  source mutation, backend, API, schema, migration, dependency, or export change;
+- no change to exact drag/drop or Map-center coordinate conversion, repeated
+  occurrence identity, Project insertion/removal, retry, conflict, reconciliation,
+  navigation blocking, or attachment trust/lifecycle behavior;
+- no loss of Inspector source identity, provenance, context, occurrence, geometry,
+  revision, relationship, media, child discovery, editing, or deletion capability;
+- no completion claim for the remaining C2b Add/overflow, node/edge/multi-selection
+  quick-toolbar, button-family, or visible Map sequence-number work.
+
+#### Required acceptance cases
+
+- a query is not required to see useful Reference candidates when an eligible
+  selection or Project reference exists; selected context wins, fallback seeds are
+  bounded/deterministic, duplicate suggestions collapse, and stale requests abort;
+- clearing search returns to Suggested without leaving hidden advanced constraints;
+- a newly placed reference becomes eligible for Suggested after its authoritative
+  details load, without a page reload; concurrent placements hydrate independently;
+- detail-read failures offer a read-only retry without replaying insertion, and
+  late detail responses cannot restore removed references, cross Project sessions,
+  overwrite an authoritative reload, or replace unsaved Map geometry;
+- semantic scope changes filter already-loaded suggestions without refetching, while
+  explicit search continues to use the existing search request contract;
+- suggestion/search cards retain exact safe drag payload and Map-center placement;
+  an already placed target remains placeable and reports its active occurrence count;
+- empty/no-child, partial failure, total failure, retry, loading, and operation-disabled
+  states stay inside the panel without horizontal overflow;
+- Markdown/attachment Canvas creation and pending/error/exact-retry paths remain
+  available with the Reference panel open or closed;
+- Inspector primary actions precede diagnostic fields; source hierarchy, provenance,
+  Project detail, Arrange, utility, editor, and danger paths remain reachable with
+  correct semantics;
+- focused suggestion, Reference placement, Inspector, Reading, Canvas productivity,
+  owned-content, edge, Map, full mounted, production-build, bundle, and Map-performance
+  gates pass on the exact head.
+
+#### Historical C2b.1 exit and subsequent work
+
+Reference discovery works before search and Inspector reads in action-first priority
+without changing authoritative behavior. At the C2b.1 exit, the separately bounded
+Add/overflow, quick-toolbar, button-family, and Map sequence-display slice remained
+open; that subsequent work merged through PR #168.
+
+### Phase 5C2b.2 — Add entry and workspace control roles
+
+Status: merged through PR #168, including the authorized C2b.3 follow-up below.
+
+The desktop Map needs an explicit creation entry after Project-owned content moved
+out of References. Add exposes Note / Markdown, Attachment, and Reference from
+research record. It reads the live Map viewport center when an action is selected
+and reuses existing creation, upload, placement, retry, and conflict paths.
+
+- content actions reuse the Canvas create capability; Reference discovery retains
+  its independent panel capability, including while an editor blocks new content;
+- Add and Project actions are mutually exclusive; Escape closes the current menu
+  first, preserves Canvas selection and other panels, and restores its trigger;
+- Reference and Markdown actions retain destination focus; Attachment opens the
+  existing file input synchronously and remains available with References closed;
+- unavailable viewport state produces visible feedback without creating a draft
+  or starting an upload; pointer/context creation retains its original coordinates;
+- top-bar creation, view, panels, history/save, and overflow have local control
+  roles; ordinary Map cards omit creation sequence while drafts retain their badge;
+- the original Add slice was desktop-Map-only; the 2026-09-11 authorized follow-up
+  adds Reading/mobile entry points through the same mutation controller and
+  deterministic placement defaults, preserving sequence, order, and identity.
+
+Acceptance includes live-center placement, cancellation and exact retry, operation
+availability, menu priority/focus, desktop/Reading transitions, and the relevant
+1440/1024/860/859, 1181/1180, short-height and theme matrix. Run owned-content,
+workspace/mobile, Map surface, Reading and performance gates on the proposed head.
+
+The visual follow-up in PR #167 applies familiar editor patterns to this slice:
+
+- one outlined SVG system, icon-and-label view controls, and named/icon-only
+  Undo, Redo, panel, and overflow controls with tooltips at compact widths;
+- an emphasized Add trigger and three icon-led entries with short descriptions;
+- readable placement cards with full-title tooltips, a separate Place/Open/Details
+  action row, and consistent three-column type scopes;
+- compact search/clear/filter controls, bordered floating panels, explicit Pin
+  state, focus outlines, and a horizontal zoom/fit group;
+- changes stay inside Project/placement presentation and reuse existing handlers,
+  drag payloads, navigation targets, save gates, and authoritative data paths.
+
+Pattern references: [Miro toolbars](https://help.miro.com/hc/en-us/articles/360017730553-Toolbars),
+[FigJam workspace](https://help.figma.com/hc/en-us/articles/15300412458647-Explore-FigJam-files),
+and [tldraw actions](https://tldraw.dev/sdk-features/actions). These inform grouping
+and discoverability; no unsupported editor tools are introduced.
+
+The 2026-09-11 authorized follow-up below now includes the previously separate
+C2b.3 quick-toolbar work and directly related Reading/mobile interaction repairs.
+Its placement, focus, recovery, and performance acceptance remains required.
+PRs #168/#169 merged those implementations without erasing the earlier slice
+boundaries; C4 owns their integrated acceptance.
+
+### User-authorized Project UX repair revision — 2026-09-11
+
+Status: merged in PR #168; independent review, automated and cross-size Chrome browser
+acceptance recorded in `PROJECT_UX_REPAIR_ACCEPTANCE.md`. The follow-up fixes
+unknown-result create/Trash settlement and phone-header overlap. The documented
+native-device/export/import acceptance boundaries remain in effect.
+The subsequent C3 slice merged in PR #169, adding contextual Reading details and
+modal mobile panels while reusing the Reading shell, Add and editor. PR #170
+merged the gesture and mathematical-reference follow-up; its interaction contract
+supersedes the historical body/title double-click distinction below. See
+`PROJECT_C3_ACCEPTANCE.md` and `PROJECT_CARD_GESTURE_ACCEPTANCE.md`.
+C4 integration review is in progress in `PROJECT_C4_ACCEPTANCE.md`.
+
+The user requested a complete review of entry, edit, reference, connection,
+modification, removal, mouse gestures, and secondary-information density, then
+explicitly authorized fixing those findings beyond the original PR scope. This
+revision supersedes conflicting current presentation-only exclusions while leaving
+completed PR records, source ownership, storage trust, and exact-replay protections
+intact.
+
+In scope:
+
+- select without opening Inspector; update it when already open, open Details
+  explicitly, and change Pin only through the Pin control;
+- References closed by default, opened by the reference task; narrower editable
+  desktop widths prefer one panel while respecting an explicit Inspector pin;
+- local single/edge/multi-selection toolbars and More; group alignment/layer
+  commands and keep body double-click for word selection, title double-click for Edit;
+- a complete but height-bounded Inspector Markdown preview, optional expansion,
+  one technical Details group, clickable graph relationships, and one References
+  browser reached from related-record entry;
+- shared expanded Markdown drafts, active-editor Save/Ctrl-S, accurate unsaved
+  status, Save and leave, and correctable metadata rejection without losing input;
+- Reading/mobile Add using the same mutation controller and deterministic default
+  placement, header Edit/Open, and More for low-frequency export/removal; no mobile Canvas;
+- recoverable single/bulk item removal, dedicated Trash restore and deletion-group
+  Undo priority; independent per-item acknowledgements, uncertain exact retry,
+  safe cascaded-edge restoration, and reconciliation before unlocking;
+- reconnect an edge through the existing update route with endpoint/item revision
+  checks and migration `0036_project_edge_reconnection.sql`; preserve edge identity,
+  label, markers, no-self-loop, same-Project, and duplicate protections;
+- Paste here at the right-click Canvas position with a frozen retry anchor, while
+  keyboard paste retains its established offset and bounded grouped geometry;
+- deterministic new-card placement avoiding overlap near the viewport center,
+  scope filtering before the suggestion presentation cap, and honest feedback
+  for bounded/truncated or partially failed recommendation reads.
+
+Required acceptance before readiness or merge:
+
+- meaningful source/mounted coverage of changed entry, editor, error, panel, focus,
+  source navigation, copy/paste, reconnection, deletion, and restoration paths;
+- endpoint-mutation route/schema tests and migration 0036 applied to the local
+  browser-test database before exercising reconnection;
+- browser task sequences for long Markdown/formulas, invalid URL correction,
+  shared expanded edits, Save and leave, keyboard Save, reference placement/filtering,
+  right-click Paste here, endpoint reconnection, multi-delete and restore;
+- partial/uncertain mutation recovery without discarding identities, drafts, or
+  independent deleted edges; global Undo must not be advertised as universal
+  content/creation history;
+- desktop 1440/1024, short-height, adjacent functional thresholds, Reading/mobile
+  390/360, and light/dark checks for the changed controls and panels;
+- full Verify, build/bundled-math checks, and the permanent Map performance gate on
+  the final integrated head, with actual results recorded separately from this plan.
+
+The historical repair scope above does not establish C4 completion or a release
+acceptance claim.
+
+## Documentation and review discipline
+
+Phase 5 documentation should remain compact:
+
+- this file owns the sequence and acceptance boundaries;
+- `PRODUCT_ROADMAP.md` owns high-level phase status and immediate order;
+- `FRONTEND_GUIDELINES.md`, `FRONTEND_AUDIT.md`, and `COLOR_SYSTEM.md` change
+  only when a durable rule or measured baseline changes;
+- component-specific implementation details belong in the PR and focused tests,
+  not in a new plan file for every visual adjustment.
+
+At the completion of each major slice, update this plan and the product roadmap
+in the same reviewed PR or in a bounded documentation follow-up. Do not leave a
+Draft PR or old execution base presented as the current repository state.
+
+## Phase 5 exit criteria
+
+Phase 5 is complete only when:
+
+- the frozen v1 surfaces use one role-based typography, spacing, surface, control,
+  state, and microcopy system;
+- Project Map, Reading, Inspector, source records, attachments, directories, and
+  overlays remain recognizably different only where their roles require it;
+- keyboard/focus behavior and state feedback are complete for the changed
+  surfaces;
+- desktop/mobile and light/dark behavior pass the representative matrices;
+- Process-grid density and Project Map performance remain qualified;
+- no accidental second palette, default-state interaction accent, or misleading
+  lifecycle action remains;
+- all exact-head CI and affected permanent gates are green;
+- the measured frontend baseline and product roadmap are updated for Phase 6.
+
+Historical Phase 6A ownership/S2 work proceeded ahead of the remaining frontend
+refinement without reopening completed Phase 5 visual or interaction scope;
+6A6 remains open, and its bounded plan is in
+[V3 architecture stabilization plan](./V3_ARCHITECTURE_STABILIZATION_PLAN.md).
+Bounded local C4, 5D and 5E development is complete; their remaining formal
+acceptance retains its scope. The frontend implementation track continues with
+5F in progress; bounded implementation and follow-up repairs do not close final
+integrated acceptance.
+Phase 6B release validation and operational
+rehearsal requires both the final frontend baseline
+and the completed backend stabilization gate. Optional
+trusted derivative generation, transport convergence, Docker distribution,
+semantic/LLM features, real-time collaboration, and other deferred capabilities
+remain independent projects.

@@ -1,0 +1,89 @@
+{
+  "status": "PASS",
+  "domain": "package",
+  "producerHead": "2d07b57c4e79403099261528ae8988c0072d28c6",
+  "qaConsumerHead": "c316fe89ce79cd9d4d40627763bbe7ed029debbe",
+  "all3181ProducerAndCopiedInputsExact": true,
+  "all3181OrdinaryQaInputsExact": true,
+  "fiveOwnedCurrentPackageFileFocusQaInputs": {
+    "scripts/qa/phase5f/browser-current-package-file-focus-package-status-refresh-keyboard.mjs": "fdc76a198b6d364fe4b63feaaa57e8b1fbf3b974f1225f31eb2d498bef13db51",
+    "scripts/qa/phase5f/browser-current-package-file-focus-file-start202-natural-focus-keyboard.mjs": "11f0e926242a36023418c28d499b289ec7f7c17b7c8404e340a98607331c065d",
+    "scripts/qa/phase5f/browser-current-package-file-focus-package-start202-natural-focus-keyboard.mjs": "e5086d1524d47eee1643ee7108b385f9bb9b6e780d2525d90b8c056319bd3c3e",
+    "scripts/qa/phase5f/check-current-package-file-focus-package-refresh-physical-state.py": "7e60fce30fa71eb67e58296222b39d7fd9456a9e083167345989ca965bf17d30",
+    "scripts/qa/phase5f/check-current-package-file-focus-start202-natural-focus-physical-state.py": "45804fc8a3ef74906fc31a77a627b8fae5958eff709ac65c59355a722710ccb8"
+  },
+  "all3186QaInputsBytePinned": true,
+  "actualOriginalArtifacts": 118,
+  "copiedArtifacts": 121,
+  "newBuilds": 0,
+  "disabledSeedRequests": 0,
+  "nativeQualification": {
+    "status": "passed",
+    "reportSha256": "c41a4008b75db2d63ca101f87b1ab6e5cc0553400155e5f7804306d95f1ae6cc",
+    "ownedClosure": {
+      "status": "closed",
+      "browserCloseAwaited": true,
+      "originalPreparationOwnerClosure": {
+        "status": "closed",
+        "startedAt": "2026-10-11T23:32:27.878Z",
+        "originalRequestsAwaited": {
+          "count": 12,
+          "rejected": 0
+        },
+        "workerDisposeAwaited": true,
+        "workerPortRefused": true,
+        "originalOutboundWorkAwaited": {
+          "count": 1,
+          "rejected": 0
+        },
+        "jwksCloseAwaited": true,
+        "jwksPortRefused": true,
+        "completedAt": "2026-10-11T23:32:28.939Z"
+      }
+    },
+    "actualCosts": {
+      "setupPOSTs": 7,
+      "readerGETs": 2,
+      "nativeGETs": 4,
+      "nativeMetadataPOSTs": 2,
+      "ordinaryResearchPreparationPOSTs": 1,
+      "maxSetupPOSTs": 7,
+      "maxNativePOSTs": 2,
+      "maxTotalPOSTs": 12,
+      "observedAcceptedJobReceipts": 1,
+      "newExecutorSteps": 0
+    },
+    "unrunCases": [],
+    "genuinePreparationStatus": "prepared",
+    "originalPreparationOwnerClosure": {
+      "status": "closed",
+      "startedAt": "2026-10-11T23:32:27.878Z",
+      "originalRequestsAwaited": {
+        "count": 12,
+        "rejected": 0
+      },
+      "workerDisposeAwaited": true,
+      "workerPortRefused": true,
+      "originalOutboundWorkAwaited": {
+        "count": 1,
+        "rejected": 0
+      },
+      "jwksCloseAwaited": true,
+      "jwksPortRefused": true,
+      "completedAt": "2026-10-11T23:32:28.939Z"
+    }
+  },
+  "originalChildWaitReapAndGroup": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "physicalStatus": "passed",
+  "physicalActualSQLiteGroups": 5,
+  "oldAcceptedNamespacesSeparateAndUntouched": true
+}

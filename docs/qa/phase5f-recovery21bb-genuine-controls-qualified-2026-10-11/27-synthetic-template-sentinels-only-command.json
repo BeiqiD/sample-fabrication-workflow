@@ -1,0 +1,70 @@
+{
+  "stage": "synthetic-template-sentinels-only",
+  "cwd": "/workspace/recovery-native-proof-f228-private-attempt5/copy",
+  "argv": [
+    "node",
+    "node_modules/wrangler/bin/wrangler.js",
+    "d1",
+    "execute",
+    "DB",
+    "--local",
+    "--config",
+    ".wrangler/deploy.jsonc",
+    "--persist-to",
+    "/workspace/recovery-native-proof-f228-private-attempt5/copy/.wrangler/state",
+    "--file",
+    "/workspace/recovery-native-proof-f228-private-attempt5/fixture/process-fixture.sql"
+  ],
+  "env": {
+    "WRANGLER_SEND_METRICS": "false",
+    "WRANGLER_LOG_PATH": "/workspace/recovery-native-proof-f228-private-attempt5/fixture/wrangler-logs",
+    "TMPDIR": "/workspace/recovery-native-proof-f228-private-attempt5",
+    "SQLITE_TMPDIR": "/workspace/recovery-native-proof-f228-private-attempt5"
+  },
+  "startedAt": "2026-10-11T09:55:12.102398+00:00",
+  "status": "PASS",
+  "log": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/synthetic-template-sentinels-only.log",
+  "pid": 1042227,
+  "processGroup": 1042227,
+  "originalStartTicks": "12577287",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1042243,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1042227,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1042243,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1042227,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1042243,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1042227,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T09:55:13.348281+00:00",
+  "logSha256": "388aa0a4b2be0299b9a16521bf64f9003c29ed7b6cf5532be72e7ee83581e4b4"
+}

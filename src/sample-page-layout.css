@@ -68,7 +68,23 @@
   min-height: 40px;
 }
 
+@media (min-width: 1201px) {
+  /* Keep record identity readable when the complete action group needs a row. */
+  .sample-overview-page .sample-header { flex-wrap: wrap; }
+  .sample-overview-page .sample-header-copy { flex-basis: 20rem; }
+  .sample-overview-page .sample-header > .sample-header-actions { flex-grow: 1; }
+}
+
 @media (max-width: 720px) {
+  /* Package/report actions may exceed the compact icon group's available width. */
+  .sample-header > .sample-header-actions { flex-wrap: wrap; }
+  .sample-header .sample-header-action-buttons {
+    min-width: 0;
+    max-width: 100%;
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+  }
+
   .sample-note-content {
     grid-template-columns: minmax(0, 1fr);
     gap: 10px;

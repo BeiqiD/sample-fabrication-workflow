@@ -1,0 +1,16 @@
+# Same application Local Job runtime source
+
+Source only. `enableLocalJobs` defaults to false and requires explicit `enableLocalFile`. Opt-in mounts the existing ten administrator HTTP methods on the existing application authentication, Native/core, physical writer lease and Local File opening. It neither enables the persisted executor nor resumes paused accepted history. The independently owned runner starts its unchanged 120-second cadence only after the actual server is listening; HTTP responses do not own execution. One trusted scheduler slot is exposed for original finite application controls.
+
+Each actual slot acquires one genuine scheduled recovery source. Original repository commands append installation, original recovery-owner/generation, captured File and Job incarnation, and captured native Local profile checks in their same BEGIN. Current administrator and maintenance publication policies remain distinct. Exact original settlement bookkeeping may finish after administrator or executor revocation; it cannot publish. Source release follows the original kernel's provider/byte first disposer ACKs. The existing single application closes its Native/core and physical lease only after HTTP, File and Job drains succeed. A rejected/unknown constructor, provider or drain closes admission and strongly retains that owner; no close retry, second Native/host, expiry release, SQL policy inference or authority cache is introduced.
+
+The original migration/cleanup algorithms, SQL/binds/results, one-file/60-second step bounds, administrator request limits, immutable accepted history and Worker provider defaults are unchanged. Local Job storage adds an explicit Local adapter to the original capability union. Existing fenced File GC remains the owner of eventual physical cleanup after release-to-GC; this slice does not mount new GC, Group/V28, canonical Comment or CLI authority.
+
+Eight genuine application controls cover disabled omission, opted-in but disabled persisted executor, ordinary-account denial, real mounted upload/acceptance and verified Local cutover, disable/enable plus restart preserving paused history and explicit resume, recovery draining, live administrator revocation, and original scheduled-byte work retained through application drain/restart. All eight are UNRUN. Their case timeout is 5 seconds and hook timeout 10 seconds; original schema/KDF beforeAll alone is explicitly 20 seconds. Whole setup/case ALS, exact client Response consumption, primary/secondary constructor ownership, cached first Native close and child-before-parent physical ACK are copied from the qualified application support with declared relative-import/configuration changes.
+
+Meaningful static scopes, before any actual application/provider execution:
+
+- Node: `node node_modules/typescript/bin/tsc --project tsconfig.local-job-runtime-owned-tests.json --noEmit --incremental false`
+- Worker: `node node_modules/typescript/bin/tsc --project tsconfig.worker.json --noEmit --incremental false`
+
+No native cases, sockets, providers, frontend producer, build, package install or CI have run on this new composition. It needs independent whole-source review and an explicitly granted finite actual window.
