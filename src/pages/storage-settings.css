@@ -1,4 +1,5 @@
 .storage-settings-page { max-width: 1040px; }
+.storage-settings-page code { overflow-wrap: anywhere; white-space: normal; }
 .storage-settings-page .page-heading { align-items: center; }
 .storage-settings-page .page-heading .lead { margin-bottom: 0; }
 .storage-settings-page .page-heading > .button { flex: 0 0 auto; }
