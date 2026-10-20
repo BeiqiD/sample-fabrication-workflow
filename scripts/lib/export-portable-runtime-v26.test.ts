@@ -3,6 +3,8 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import { Worker as NodeWorker } from "node:worker_threads";
+import { build } from "esbuild";
 import JSZip from "jszip";
 import { afterEach, expect, it, vi } from "vitest";
 afterEach(() => vi.unstubAllGlobals());
@@ -16,6 +18,7 @@ import { restoreExportToIsolatedDirectory } from "./export-restore";
 it("V26 public dispatcher: packages and restores actual non-empty V26 research bytes/rowids while excluding protected accounts and all installation authority", async () => {
   const directory = await mkdtemp(join(tmpdir(), "portable-v26-research-"));
   const database = new DatabaseSync(join(directory, "source.sqlite")), core = createSqliteCapability(database);
+  const workers: Array<{ native: NodeWorker; stopped: Promise<number>; terminated: boolean }> = [];
   try {
     installReviewedSqliteCatalog(database, V26_NODE_INSTALLATION_CATALOG);
     const at = "2026-10-10T12:00:00.000Z", payload = Uint8Array.of(0, 1, 255, 7);
@@ -36,7 +39,61 @@ it("V26 public dispatcher: packages and restores actual non-empty V26 research b
       return new Response(payload.slice().buffer);
     });
     vi.stubGlobal("fetch", fetchMock);
+    // exportAll is the browser entry point and now requires an interruptible
+    // dedicated worker. Run that exact bundled worker in a real host thread;
+    // only its browser fetch transport crosses to this existing route fixture.
+    const bundled = await build({ entryPoints: [new URL("../../src/workers/full-export.worker.ts", import.meta.url).pathname],
+      bundle: true, format: "iife", platform: "browser", write: false, logLevel: "silent" });
+    class BrowserWorker {
+      onmessage: ((event: MessageEvent) => void) | null = null;
+      onerror: (() => void) | null = null;
+      onmessageerror: (() => void) | null = null;
+      readonly native: NodeWorker;
+      readonly stopped: Promise<number>;
+      terminated = false;
+      constructor(url: URL, options: WorkerOptions) {
+        expect(url.pathname).toMatch(/\/src\/workers\/full-export\.worker\.ts$/);
+        expect(options).toMatchObject({ type: "module", name: "full-content-export" });
+        this.native = new NodeWorker(`const { parentPort } = require('node:worker_threads');
+          let sequence=0;const pending=new Map();
+          globalThis.postMessage=value=>parentPort.postMessage(value);
+          globalThis.fetch=(input,init)=>new Promise((resolve,reject)=>{
+            const id=++sequence;pending.set(id,{resolve,reject});
+            parentPort.postMessage({type:'fixture-fetch',id,address:String(input),credentials:init?.credentials});
+          });
+          parentPort.on('message',data=>{
+            if(data.type==='fixture-response'){
+              const request=pending.get(data.id);if(!request)return;pending.delete(data.id);
+              if(data.error)request.reject(new Error(data.error));
+              else request.resolve(new Response(data.bytes,{status:data.status,headers:data.headers}));
+            }else globalThis.onmessage?.({data});
+          });
+          ${bundled.outputFiles[0].text}`, { eval: true });
+        this.stopped = new Promise(resolve => { this.native.once("exit", resolve); });
+        this.native.on("message", (data: { type: string; id?: number; address?: string; credentials?: RequestCredentials }) => {
+          if (data.type !== "fixture-fetch") { this.onmessage?.({ data } as MessageEvent); return; }
+          void (async () => {
+            try {
+              const response = await fetch(data.address!, { credentials: data.credentials });
+              const bytes = await response.arrayBuffer();
+              if (!this.terminated) this.native.postMessage({ type: "fixture-response", id: data.id,
+                status: response.status, headers: [...response.headers], bytes }, [bytes]);
+            } catch (error) {
+              if (!this.terminated) this.native.postMessage({ type: "fixture-response", id: data.id,
+                error: error instanceof Error ? error.message : "Fixture route failed" });
+            }
+          })();
+        });
+        this.native.on("error", () => this.onerror?.());
+        this.native.on("messageerror", () => this.onmessageerror?.());
+        workers.push(this);
+      }
+      postMessage(value: unknown) { this.native.postMessage(value); }
+      terminate() { this.terminated = true; void this.native.terminate(); }
+    }
+    vi.stubGlobal("Worker", BrowserWorker);
     const built = await exportAll();
+    expect(workers).toHaveLength(1); expect(workers[0].terminated).toBe(true);
     expect(fetched[0]).toBe("/api/exports/all?archiveSchema=26&archiveWriter=1");
     expect(built.warnings).toEqual([]); expect(fetched).toHaveLength(2);
     const bytes = Buffer.from(await built.archive.arrayBuffer()), zip = await JSZip.loadAsync(bytes);
@@ -71,5 +128,8 @@ it("V26 public dispatcher: packages and restores actual non-empty V26 research b
     const blobPath = providers.find((blob: { outcome: string }) => blob.outcome === "packaged").path;
     expect(await readFile(join(result.restoredDirectory, blobPath))).toEqual(Buffer.from(payload));
     expect(await readFile(archivePath)).toEqual(bytes);
-  } finally { core.close(); await rm(directory, { recursive: true, force: true }); }
+  } finally {
+    for (const worker of workers) { void worker.native.terminate(); await worker.stopped; }
+    core.close(); await rm(directory, { recursive: true, force: true });
+  }
 }, 30_000);

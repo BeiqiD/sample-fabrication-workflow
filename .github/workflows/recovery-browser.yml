@@ -35,6 +35,7 @@ on:
       - scripts/qa/phase5f/prepare-file-migration-historical-r2-profiles.mjs
       - scripts/qa/phase5f/browser-genuine-worker-packages.mjs
       - scripts/qa/phase5f/browser-full-content-export.mjs
+      - scripts/lib/export-portable-runtime-v26.test.ts
       - scripts/qa/phase5f/genuine-worker-package-runtime.mjs
       - scripts/qa/phase5f/genuine-worker-package-browser.mjs
   pull_request:
@@ -67,6 +68,7 @@ on:
       - scripts/qa/phase5f/prepare-file-migration-historical-r2-profiles.mjs
       - scripts/qa/phase5f/browser-genuine-worker-packages.mjs
       - scripts/qa/phase5f/browser-full-content-export.mjs
+      - scripts/lib/export-portable-runtime-v26.test.ts
       - scripts/qa/phase5f/genuine-worker-package-runtime.mjs
       - scripts/qa/phase5f/genuine-worker-package-browser.mjs
 
