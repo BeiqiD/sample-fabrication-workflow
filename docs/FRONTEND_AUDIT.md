@@ -14,7 +14,9 @@ tasks. This is a development candidate, not deployed or main-release acceptance.
 The new overview follows the **Comfortable** profile: 14px body, existing semantic
 colors and card/control primitives. `src/settings.css` is the permanent owner of
 the Settings shell and overview only. Desktop navigation links are at least
-40px high; the mobile disclosure is at least 56px. Existing topbar geometry,
+40px high; the mobile disclosure is at least 56px. Short desktop windows constrain
+the sticky rail to the available height and allow it to scroll independently,
+including keyboard focus to its final destination. Existing topbar geometry,
 Process-grid density, Project Map/Reading geometry and business form logic are
 outside this change.
 
