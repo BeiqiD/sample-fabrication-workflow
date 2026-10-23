@@ -29,6 +29,25 @@ content archives still cancel/release downloads on leaving their page; saved
 server jobs and unconfirmed request checkpoints retain their existing lifecycle.
 The overview and archive page explain that difference before an export starts.
 
+Real Chromium acceptance of the built `f4a67af` product recorded 398 observations
+and 179 screenshots: administrator/reader, light/dark, and widths 1440, 1024,
+390 and 360px; additional checks cover 720/721 and 1200/1201px boundaries and
+1440/390px windows at 540px height. The mobile summary measures 61px. The short
+desktop rail measures 428px and its final link is reachable by keyboard. No
+horizontal overflow, page/console/proxy errors, external provider requests or
+browser mutations occurred. All four active-export leave/return cases passed,
+and all owned browser/runtime resources closed. Geometry checks allow 1px for
+browser subpixel rounding; existing page introductions are measured rather than
+forced to one heading position.
+
+The client manifest SHA-256 is
+`ad20993bfcbd3e8cb7e8f59517db75914c7396f1f511375723eb0b4aa96a51e6`.
+The following QA-only update teaches the existing full-content export browser
+qualification to enter through Settings, including mobile disclosure and retry.
+Its two real native-Worker cancellation/retry cases passed, retaining independent
+ZIP inventory, hash and CRC checks. These later QA/documentation changes do not
+change the qualified product artifact or establish deployed-site acceptance.
+
 Further refinement should now work page by page: present actionable status,
 the next task and saved work before technical details. The existing Data
 executor card is a specific follow-up from the browser baseline, especially on

@@ -17,7 +17,7 @@ assert(process.env.PLAYWRIGHT_MODULE_PATH && process.env.CHROMIUM_PATH, 'Use exi
 const output = resolve(args[1]); await mkdir(output, { mode: 0o700 });
 const report = { version: 1, source, output, startedAt: new Date().toISOString(), status: 'running', cases: [],
   helperSha256: sha256(await readFile(fileURLToPath(import.meta.url))),
-  scope: 'Local built Worker/SPA with 25 real migrations and all-public Sample/Project/PNG setup. Desktop cancels at the actual compression worker message; mobile navigates through the real Samples NavLink at an actual attachment-reading message. Both use the original native module Worker URL and retry to an independently verified V26 ZIP. No response/manifest/provider substitution, production access, natural scheduling, remote provider or peak-memory qualification. Native temporary downloads are removed when the browser context closes; no ZIP is copied into the output artifacts. Reports/screenshots contain no database, signing keys or private archives.' };
+  scope: 'Local built Worker/SPA with 25 real migrations and all-public Sample/Project/PNG setup. Desktop cancels at the actual compression worker message; mobile enters Content archive through the real Settings overview and nested navigation, then navigates through the real Samples NavLink at an actual attachment-reading message. Both use the original native module Worker URL and retry to an independently verified V26 ZIP. No response/manifest/provider substitution, production access, natural scheduling, remote provider or peak-memory qualification. Native temporary downloads are removed when the browser context closes; no ZIP is copied into the output artifacts. Reports/screenshots contain no database, signing keys or private archives.' };
 let owner, browser;
 
 function observeWorkers(mode) {
@@ -94,6 +94,21 @@ with zipfile.ZipFile(io.BytesIO(raw)) as z:
   });
 }
 
+async function openContentArchive(page) {
+  await page.getByRole('navigation', { name: 'Primary navigation', exact: true })
+    .getByRole('link', { name: 'Settings', exact: true }).click();
+  await page.getByRole('heading', { name: 'Settings', exact: true, level: 1 }).waitFor();
+  const navigation = page.getByRole('navigation', { name: 'Settings navigation', exact: true });
+  const disclosure = navigation.getByRole('button', { name: /^Settings navigation/ });
+  if (await disclosure.isVisible() && await disclosure.getAttribute('aria-expanded') !== 'true') {
+    await disclosure.click();
+    assert.equal(await disclosure.getAttribute('aria-expanded'), 'true');
+  }
+  await navigation.getByRole('link', { name: 'Content archive', exact: true }).click();
+  await page.waitForURL('**/export');
+  await page.getByRole('heading', { name: 'Export content', exact: true, level: 1 }).waitFor();
+}
+
 async function qualify(context, value) {
   await context.addInitScript(theme => localStorage.setItem('sample-workflow-theme', theme), value.theme);
   await context.addInitScript(observeWorkers, value.mode);
@@ -115,7 +130,7 @@ async function qualify(context, value) {
     await page.goto(`${owner.browserOrigin}${value.mode === 'unmount' ? '/samples' : '/export'}`);
     if (value.mode === 'unmount') {
       await page.getByRole('heading', { name: 'Samples', exact: true, level: 1 }).waitFor();
-      await page.getByRole('navigation', { name: 'Primary navigation' }).getByRole('link', { name: 'Export', exact: true }).click();
+      await openContentArchive(page);
     }
     await page.getByRole('heading', { name: 'Export content', exact: true }).waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), value.theme);
@@ -133,8 +148,7 @@ async function qualify(context, value) {
     await Promise.race([nativeClosures[0], new Promise((_, reject) => { setTimeout(() => reject(new Error('Original native worker did not close')), 25000).unref(); })]);
     assert.equal(nativeWorkers[0].url, first.workers[0].url); assert.equal(nativeWorkers[0].closed, true);
     if (value.mode === 'unmount') {
-      await page.getByRole('navigation', { name: 'Primary navigation' }).getByRole('link', { name: 'Export', exact: true }).click();
-      await page.getByRole('heading', { name: 'Export content', exact: true }).waitFor();
+      await openContentArchive(page);
     }
     assert.equal(await page.getByRole('link', { name: 'Download prepared ZIP', exact: true }).count(), 0);
     await page.screenshot({ path: resolve(value.output, 'cancelled.png'), fullPage: true });
