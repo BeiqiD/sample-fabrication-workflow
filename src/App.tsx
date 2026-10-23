@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
+import { Link, Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { REFERENCE_ROUTE_PATTERN } from "../shared/reference-destinations";
 import { ActionIcon } from "./components/ActionIcon";
 import { NavigationIcon, type NavigationIconName } from "./components/NavigationIcon";
@@ -16,6 +16,8 @@ const SearchPage = lazy(() => import("./pages/SearchPage").then((module) => ({ d
 const ProjectsPage = lazy(() => import("./pages/ProjectsPage").then((module) => ({ default: module.ProjectsPage })));
 const ProjectPage = lazy(() => import("./pages/ProjectPage").then((module) => ({ default: module.ProjectPage })));
 const TemplatesPage = lazy(() => import("./pages/TemplatesPage").then((module) => ({ default: module.TemplatesPage })));
+const SettingsLayout = lazy(() => import("./components/SettingsLayout").then((module) => ({ default: module.SettingsLayout })));
+const SettingsPage = lazy(() => import("./pages/SettingsPage").then((module) => ({ default: module.SettingsPage })));
 const ExportPage = lazy(() => import("./pages/ExportPage").then((module) => ({ default: module.ExportPage })));
 const ResearchPackagesPage = lazy(() => import("./pages/ResearchPackagesPage").then((module) => ({ default: module.ResearchPackagesPage })));
 const SystemRecoveryPage = lazy(() => import("./pages/SystemRecoveryPage").then((module) => ({ default: module.SystemRecoveryPage })));
@@ -37,12 +39,14 @@ const primaryNavigation: Array<{ to: string; label: string; icon: NavigationIcon
   { to: "/samples", label: "Samples", icon: "samples" },
   { to: "/projects", label: "Projects", icon: "projects" },
   { to: "/templates", label: "Templates", icon: "templates" },
-  { to: "/export", label: "Export", icon: "export" },
-  { to: "/settings/storage", label: "Settings", icon: "settings" },
+  { to: "/settings", label: "Settings", icon: "settings" },
 ];
 
 export function App() {
   const location = useLocation();
+  const navigationPath = location.pathname.replace(/\/+$/, "").toLowerCase();
+  const settingsActive = navigationPath === "/settings" || navigationPath.startsWith("/settings/")
+    || navigationPath === "/export" || navigationPath.startsWith("/maintenance/");
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     try {
       const saved = window.localStorage.getItem("sample-workflow-theme");
@@ -70,10 +74,14 @@ export function App() {
         </NavLink>
         <div className="topbar-actions">
           <nav aria-label="Primary navigation">
-            {primaryNavigation.map(({ to, label, icon }) => <NavLink key={to} to={to} aria-label={label} title={label}>
-              <NavigationIcon name={icon} />
-              <span className="nav-link-label">{label}</span>
-            </NavLink>)}
+            {primaryNavigation.map(({ to, label, icon }) => to === "/settings"
+              ? <Link key={to} to={to} aria-label={label} title={label} className={settingsActive ? "active" : undefined}
+                aria-current={settingsActive ? "page" : undefined}>
+                <NavigationIcon name={icon} /><span className="nav-link-label">{label}</span>
+              </Link>
+              : <NavLink key={to} to={to} aria-label={label} title={label}>
+                <NavigationIcon name={icon} /><span className="nav-link-label">{label}</span>
+              </NavLink>)}
           </nav>
           <LocalSessionAction />
           <button
@@ -108,6 +116,8 @@ export function App() {
             <Route path="/templates/metrology/:templateId" element={<MetrologyTemplatePage />} />
             <Route path="/templates/:templateId" element={<TemplatePage />} />
             <Route path="/imports/fabublox" element={<Navigate to="/templates?import=1" replace />} />
+            <Route element={<SettingsLayout />}>
+            <Route path="/settings" element={<SettingsPage />} />
             <Route path="/export" element={<ExportPage />} />
             <Route path="/settings/data" element={<ResearchPackagesPage />} />
             <Route path="/settings/data/system" element={<SystemRecoveryPage />} />
@@ -117,6 +127,7 @@ export function App() {
             <Route path="/maintenance/file-shadow" element={<FileShadowPilotPage />} />
             <Route path="/maintenance/file-evidence" element={<FileEvidencePage />} />
             <Route path="/maintenance/file-authority" element={<FileAuthorityPage />} />
+            </Route>
           </Routes>
           </Suspense>
         </RouteErrorBoundary>

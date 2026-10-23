@@ -676,8 +676,8 @@ export function SystemRecoveryPage() {
     <div className="page-heading"><div><p className="eyebrow">Settings</p><h1>System backup and recovery</h1>
       <p className="lead">Preserve installation identities and history, then verify recovery in an isolated target before an administrator prepares a deployment handoff.</p></div>
       <button className="button" disabled={busy || denied} onClick={() => void act(signal => refresh(signal, true), true)}>Refresh recovery status</button></div>
-    <nav className="system-recovery-navigation" aria-label="Data settings"><Link to="/settings/data">Research packages and reports</Link>
-      <Link to="/settings/storage">Storage settings</Link><Link to="/export">Legacy content archive</Link></nav>
+    <nav className="system-recovery-navigation" aria-label="Related recovery tools"><Link to="/settings/data">Research packages and reports</Link>
+      <Link to="/settings/storage">Storage settings</Link><Link to="/export">Content archive</Link></nav>
     {message && (denied || !messageError) && <p ref={messageTarget} role={denied ? "alert" : "status"} tabIndex={-1}>{message}</p>}
     <ReadStatus loading={readPhase === "loading" && !denied} loadingMessage="Reading administrator recovery access…"
       error={!denied ? readError : null} errorTitle="Recovery status unavailable"

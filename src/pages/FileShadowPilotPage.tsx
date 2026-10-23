@@ -164,7 +164,7 @@ export function FileShadowPilotPage() {
   const terminal = isTerminalReceipt(receipt);
 
   return <div className="page file-shadow-pilot-page">
-    <a className="back-link" href="/export">← Export</a>
+    <a className="back-link" href="/settings">← Settings</a>
     <p className="muted"><a href="/maintenance/file-evidence">Review historical file evidence</a> · Identify missing purpose and original storage records.</p>
     <div className="page-heading">
       <div><p className="eyebrow">Maintenance</p><h1>File shadow pilot</h1>

@@ -573,7 +573,7 @@ export function ResearchPackagesPage() {
       <button ref={refreshButton} className="button" disabled={busy || denied} onClick={event => {
         const origin = event.currentTarget; void act(async signal => { beginPageFocus("refresh", origin, signal); await refresh(signal, true); }, true);
       }}>Refresh status</button></div>
-    <nav className="research-package-navigation" aria-label="Data settings"><Link to="/settings/storage">Storage settings</Link><Link to="/export">Full content backup</Link>
+    <nav className="research-package-navigation" aria-label="Related data tools"><Link to="/settings/storage">Storage settings</Link><Link to="/export">Content archive</Link>
       <Link to="/settings/data/system">System backup and recovery</Link>
       <Link to="/imports/fabublox">FabuBlox workbook import</Link></nav>
     {message && (denied || !messageError) && <p role={denied ? "alert" : "status"}>{message}</p>}
