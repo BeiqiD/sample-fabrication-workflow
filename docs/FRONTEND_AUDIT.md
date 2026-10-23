@@ -1,3 +1,40 @@
+## 2026-10-23 — Settings information architecture
+
+The Settings navigation candidate starts at `47b5f8f`. It addresses the requested
+separation between everyday research work and occasional data/administration
+tasks. This is a development candidate, not deployed or main-release acceptance.
+
+| Observed baseline | Candidate behavior |
+| --- | --- |
+| Primary navigation has six entries, including Export; Settings opens Storage directly. | Five entries: Processing, Samples, Projects, Templates and Settings. Settings opens a real overview. |
+| `/settings` renders an empty main area. Data/System lose Settings highlighting. | An overview and one Settings navigation cover data/export, storage, and system/maintenance. Each supported destination has one precise current link. |
+| The same archive is named Full content backup, Legacy content archive and Export; maintenance links sit below the archive. | Related links call it Content archive. Maintenance has its own Settings group. Old `/export` and `/maintenance/*` URLs remain valid. |
+| Navigation across these pages has no stable secondary structure. | A 224px desktop rail becomes three groups above the content at 1200px and a collapsed current-page disclosure at 720px. |
+
+The new overview follows the **Comfortable** profile: 14px body, existing semantic
+colors and card/control primitives. `src/settings.css` is the permanent owner of
+the Settings shell and overview only. Desktop navigation links are at least
+40px high; the mobile disclosure is at least 56px. Existing topbar geometry,
+Process-grid density, Project Map/Reading geometry and business form logic are
+outside this change.
+
+The overview does not query administrator capabilities, infer one permission
+from another, or start operations. Existing pages continue to check Storage
+management, system administration and File operator access independently.
+Research-object package/report links retain their query parameters; connection
+form hashes and supported trailing-slash URL spelling are preserved. Browser
+content archives still cancel/release downloads on leaving their page; saved
+server jobs and unconfirmed request checkpoints retain their existing lifecycle.
+The overview and archive page explain that difference before an export starts.
+
+Further refinement should now work page by page: present actionable status,
+the next task and saved work before technical details. The existing Data
+executor card is a specific follow-up from the browser baseline, especially on
+mobile. Any later simplification must leave paused execution, maintenance
+blocks, unknown operation results and retry/reconciliation controls visible.
+Personal settings should expose only supported capabilities, starting with the
+existing theme and session controls.
+
 ## 2026-09-13 — Current Project refinement evidence
 
 Project refinements through merged PR #185 are deployed on the isolated v3

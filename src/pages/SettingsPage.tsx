@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
+import { usesLocalAuthentication } from "../lib/authentication-client";
 
 export function SettingsPage() {
+  const localSession = usesLocalAuthentication();
   return <div className="page settings-overview-page">
     <div className="page-heading"><div><p className="eyebrow">Workspace</p><h1>Settings</h1>
       <p className="lead">Manage research exports, storage and system maintenance.</p></div></div>
@@ -52,8 +54,9 @@ export function SettingsPage() {
     </div>
 
     <section className="settings-personal-note" aria-labelledby="settings-personal-title">
-      <h2 id="settings-personal-title">Appearance and session</h2>
-      <p>Use the theme and session controls in the top bar to change this browser’s appearance or manage sign-in.</p>
+      <h2 id="settings-personal-title">{localSession ? "Appearance and session" : "Appearance"}</h2>
+      <p>Use the theme control in the top bar to change this browser’s appearance.
+        {localSession && " The Sign out control ends your current session."}</p>
     </section>
   </div>;
 }
