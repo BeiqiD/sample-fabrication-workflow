@@ -43,11 +43,11 @@ const refresh = () => screen.getByRole("button", { name: "Refresh" });
 async function clickRefresh() { await act(async () => { fireEvent.click(refresh()); }); }
 
 describe("read-only storage Settings", () => {
-  it("opens through the primary Settings destination and describes real upload routes without claiming connection health", async () => {
+  it("keeps Storage under Settings and describes real upload routes without claiming connection health", async () => {
     render(<MemoryRouter initialEntries={["/settings/storage"]}><App /></MemoryRouter>);
     expect(await screen.findByRole("heading", { name: "Storage", level: 1 })).toBeTruthy();
     const nav = within(screen.getByRole("navigation", { name: "Primary navigation" }));
-    expect(nav.getByRole("link", { name: "Settings" }).getAttribute("href")).toBe("/settings/storage");
+    expect(nav.getByRole("link", { name: "Settings" }).getAttribute("href")).toBe("/settings");
     expect(nav.getByRole("link", { name: "Settings" }).getAttribute("aria-current")).toBe("page");
     await screen.findByText("Connection not checked");
     const uploads = within(screen.getByRole("region", { name: "Current uploads" }));
@@ -63,8 +63,8 @@ describe("read-only storage Settings", () => {
     expect(network.mock.calls.map(([path]) => path)).toEqual(["/api/identity", "/api/settings/storage?version=3"]);
     expect(network).toHaveBeenLastCalledWith("/api/settings/storage?version=3", expect.objectContaining({ method: "GET", cache: "no-store", credentials: "same-origin", redirect: "error" }));
     expect(new Headers(network.mock.calls.at(-1)![1]?.headers).get("x-sfw-expected-subject")).toBe(identitySubject);
-    const buttons = screen.getAllByRole("button").map((button) => button.textContent);
-    expect(buttons).toEqual(["Night", "Refresh"]);
+    const page = screen.getByRole("heading", { name: "Storage", level: 1 }).closest<HTMLElement>(".page")!;
+    expect(within(page).getAllByRole("button").map(button => button.textContent)).toEqual(["Refresh"]);
   });
 
   it("clears previous status on failed refresh, hides raw errors, and allows a fresh retry", async () => {

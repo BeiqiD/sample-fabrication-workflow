@@ -66,7 +66,7 @@ export function FileEvidencePage() {
 
   const records = page?.records.filter(({ key }) => key.consumerKind === "project_content_attachment" && key.fileSlot === "primary") ?? [];
   return <div className="page file-evidence-page">
-    <nav className="evidence-links" aria-label="File maintenance"><a className="back-link" href="/export">← Export</a><a href="/maintenance/file-shadow">File shadow pilot</a></nav>
+    <nav className="evidence-links" aria-label="File maintenance"><a className="back-link" href="/settings">← Settings</a><a href="/maintenance/file-shadow">File shadow pilot</a></nav>
     <div className="page-heading"><div><p className="eyebrow">Maintenance · Evidence review</p><h1>Historical file evidence</h1>
       <p className="lead">Review the recorded identity of a Project attachment and identify the information needed to resolve its history.</p></div></div>
     <p className="muted evidence-intro">Inspect recorded metadata and review each reference afresh. Reading evidence does not verify stored bytes or record a classification. Operators can record a separate decision below.</p>

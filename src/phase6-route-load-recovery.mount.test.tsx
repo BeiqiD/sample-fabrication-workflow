@@ -10,11 +10,14 @@ const failedImports = vi.hoisted(() => {
     const promise = new Promise<never>((_resolve, fail) => { reject = fail; });
     return { promise, reject };
   }
-  return { pending: deferred(), reload: deferred(), navigation: deferred() };
+  return { pending: deferred(), reload: deferred(), navigation: deferred(), navigationRequested: false };
 });
 vi.mock("./pages/ProjectsPage", async () => await failedImports.pending.promise);
 vi.mock("./pages/ProjectPage", async () => await failedImports.reload.promise);
-vi.mock("./pages/ExportPage", async () => await failedImports.navigation.promise);
+vi.mock("./pages/ExportPage", async () => {
+  failedImports.navigationRequested = true;
+  return await failedImports.navigation.promise;
+});
 vi.mock("./pages/SamplesPage", () => ({ SamplesPage: function HealthyPage() {
   const [draft, setDraft] = useState("");
   return <><h1>Healthy Samples</h1><label>Sample draft<input value={draft} onChange={event => setDraft(event.target.value)} /></label>
@@ -118,6 +121,9 @@ describe("explicit recovery of a rejected actual App lazy route", () => {
 
   it("lets the retained topbar navigate to a healthy lazy route and switch theme", async () => {
     mount("/export");
+    // The Settings shell is independently lazy; reject the child only after its
+    // actual import starts so this observes the App boundary, not an orphaned promise.
+    await waitFor(() => expect(failedImports.navigationRequested).toBe(true));
     await act(async () => { failedImports.navigation.reject(new Error("Failed to fetch dynamically imported module: private-navigation-chunk.js")); });
     await screen.findByRole("button", { name: "Reload page" });
     fireEvent.click(screen.getByRole("button", { name: "Switch to night mode" }));
