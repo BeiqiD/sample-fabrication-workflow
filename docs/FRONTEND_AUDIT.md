@@ -1,3 +1,63 @@
+## 2026-10-27 — Core workflow selection and report continuity
+
+A real-browser walk through Sample creation, process start, execution and report
+preparation exposed three concrete gaps. An explicitly missing run ID silently
+selected another editable run. The Processing directory could offer a new
+process or an old next step based on missing/stale step text rather than run
+status. After the last Done automatically completed a run, reporting required
+returning to Sample; Data then lost the source view's navigation context.
+
+Explicit run requests now require an exact match. An unresolved request shows no
+execution grid or enabled run mutations; loading, failed reading and confirmed
+absence are distinct states. The original URL remains available for refresh, or
+the user explicitly chooses an available run. Implicit selection, metrology
+editability and deliberate post-deletion selection retain their existing rules.
+Directory instructions follow run status before considering next-step text.
+
+The workspace has a single offline-report link with a visible primary-sample
+scope label. It prepares a report across that sample's recorded runs, while
+retaining selected-run and additional-column navigation context. Data displays
+the source label, canonical links back to the source/archive and Processing, and
+an explicit notice if the user edits the export scope or changes link context.
+The actual preview still determines scope and requires deliberate acceptance;
+source labels and return metadata grant no authority and start no work.
+The standalone report action also owns its disabled appearance, so unresolved
+run selection cannot leave a visually enabled report action without a link.
+
+Return routes use enumerated local paths and encoded identifiers. A free-form
+return URL is never used. Same-page query changes retain drafts, selected files,
+owner checkpoints and pending operations. The workspace's Dense execution table
+and Project Map geometry are unchanged. New controls and source context belong
+to the Comfortable page chrome; the directory retains its Compact row geometry.
+
+The baseline's old controller assumptions about manual Finish and a historical
+package endpoint were recorded as harness failures, not product failures. The
+actual last Done automatically completed the native run. Its missing-run,
+completed-workspace and source-context observations were recorded before all
+owned local runtime resources were closed.
+
+Final real Chromium acceptance used product `4583699`: two complete workflows
+at 1440px light and 390px dark, from browser-created Sample through native
+template comparison, execution, automatic completion, report preparation,
+receipt/job progress, actual ZIP download and source navigation. The downloads
+were read independently: HTML/Markdown retained the Sample title and executed
+step, and each manifest named only its primary Sample. The mobile view retained
+an additional real Sample column on return without adding it to report scope.
+
+Missing and foreign run links exposed no editable fallback. Deliberate selection
+restored the correct run. The disabled report action measured opacity 0.5,
+versus 1 when enabled. Reader 390px/360px supplements covered source navigation,
+long-label wrapping, edited-scope feedback and an ignored external return URL
+without writes. There were 37 safe screenshots, no page overflow or unexpected
+console/page/proxy/provider/external errors, and all owned resources closed.
+
+The final 121-file client manifest SHA-256 is
+`37a527f1e359e875051e4fa9ba9f4d33e9266cd9bae5fea6b7daa887ee564393`.
+Native scheduled events were explicitly driven only in the owned fixture to
+finish the two report jobs; this does not qualify natural scheduling cadence or
+a deployed provider. Pending-read races, rare directory status combinations and
+opaque URL identifiers additionally have targeted mounted/unit regressions.
+
 ## 2026-10-27 — Data and recovery task flow
 
 This follow-up keeps the Settings shell and organizes the two long operation

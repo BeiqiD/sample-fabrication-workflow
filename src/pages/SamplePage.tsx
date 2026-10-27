@@ -296,7 +296,7 @@ export function SamplePage() {
             <ActionIcon name="export" />
             <span className="responsive-action-label">{exporting ? "Exporting…" : "Export ZIP"}</span>
           </button>
-          <ResearchPackageExport root={{ type: "sample", id: sample.id }} disabled={exporting} compact />
+          <ResearchPackageExport root={{ type: "sample", id: sample.id, label: `${sample.code} · ${sample.title}` }} disabled={exporting} compact />
         </div>
       </div>
     </div>
