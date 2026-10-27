@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { ActionIcon, type ActionIconName } from "./ActionIcon";
+import { ActionIcon, type ActionIconName } from "./components/ActionIcon";
 
 const names: ActionIconName[] = ["actions", "delete", "export", "metrology", "moon", "plan-update", "process", "split", "start", "sun", "plus", "chevron-down", "arrow-left", "undo", "redo", "more", "attachment", "pin", "save", "grip", "open", "inspector", "note", "link", "edit", "package", "report", "upload", "refresh", "history", "check", "pause", "play", "stop", "warning", "preview", "info"];
 
