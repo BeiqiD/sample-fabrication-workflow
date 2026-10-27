@@ -36,6 +36,28 @@ actual last Done automatically completed the native run. Its missing-run,
 completed-workspace and source-context observations were recorded before all
 owned local runtime resources were closed.
 
+Final real Chromium acceptance used product `4583699`: two complete workflows
+at 1440px light and 390px dark, from browser-created Sample through native
+template comparison, execution, automatic completion, report preparation,
+receipt/job progress, actual ZIP download and source navigation. The downloads
+were read independently: HTML/Markdown retained the Sample title and executed
+step, and each manifest named only its primary Sample. The mobile view retained
+an additional real Sample column on return without adding it to report scope.
+
+Missing and foreign run links exposed no editable fallback. Deliberate selection
+restored the correct run. The disabled report action measured opacity 0.5,
+versus 1 when enabled. Reader 390px/360px supplements covered source navigation,
+long-label wrapping, edited-scope feedback and an ignored external return URL
+without writes. There were 37 safe screenshots, no page overflow or unexpected
+console/page/proxy/provider/external errors, and all owned resources closed.
+
+The final 121-file client manifest SHA-256 is
+`37a527f1e359e875051e4fa9ba9f4d33e9266cd9bae5fea6b7daa887ee564393`.
+Native scheduled events were explicitly driven only in the owned fixture to
+finish the two report jobs; this does not qualify natural scheduling cadence or
+a deployed provider. Pending-read races, rare directory status combinations and
+opaque URL identifiers additionally have targeted mounted/unit regressions.
+
 ## 2026-10-27 — Data and recovery task flow
 
 This follow-up keeps the Settings shell and organizes the two long operation
