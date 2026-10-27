@@ -1,3 +1,31 @@
+## 2026-10-27 — Data and recovery task flow
+
+This follow-up keeps the Settings shell and organizes the two long operation
+pages by task. The real-browser baseline placed Preview export at document
+y=889px on desktop and y=1287px on a 390px phone. Preview system backup was at
+y=1282px and y=1985px respectively. Runtime explanations and maintenance controls
+preceded the main forms, while earlier receipts and saved jobs were separated.
+
+Data now groups Export, Import and Saved work. Recovery groups Backup, Validate
+archive, Saved work, Maintenance and Executor. Native page-fragment links target
+focusable sections with a sticky-header scroll margin. Every form, selected file,
+acknowledgement and job stays mounted; navigation does not fetch or submit work.
+Earlier receipts remain accessible alongside their page's saved work.
+
+The first status area keeps execution availability, maintenance and unknown
+operation results visible. Static archive limits, heartbeats and deployment
+explanations move into technical details. Maintenance and executor actions remain
+expanded in their own sections. Paused execution still permits accepted queued
+work. Ordinary backups still follow the runtime's existing fence policy and do
+not require a recovery target. Original request reconciliation, owner checkpoints
+and source-resume generation checks retain their existing behavior.
+
+These are **Comfortable** Settings surfaces. The shared task links and technical
+disclosures have a minimum 40px target, using existing color tokens. Styles are
+owned by `settings-tasks.css` and the two route stylesheets. Process/Project
+geometry, the primary Settings navigation, backend contracts and job admission
+rules are outside this change.
+
 ## 2026-10-23 — Settings information architecture
 
 The Settings navigation candidate starts at `47b5f8f`. It addresses the requested

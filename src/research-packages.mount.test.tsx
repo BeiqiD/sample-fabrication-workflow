@@ -122,6 +122,73 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); sessionStorage.clear(); });
 
 describe("native research package browser workflow", () => {
+  it("jumps between data tasks without replacing drafts, selected files or the original object-export query", async () => {
+    const originalUrl = window.location.pathname + window.location.search + window.location.hash;
+    const query = "?rootType=project&rootId=project%3A1&kind=report";
+    window.history.replaceState(null, "", `/settings/data${query}`);
+    try {
+      await mount(query);
+      const roots = screen.getByLabelText("Sample and Project roots") as HTMLTextAreaElement;
+      const format = screen.getByLabelText("Export format") as HTMLSelectElement;
+      const uploadInput = screen.getByLabelText("Native package ZIP") as HTMLInputElement;
+      expect(roots.value).toBe("project:project:1"); expect(format.value).toBe("report");
+      fireEvent.change(roots, { target: { value: "project:unsaved-draft" } });
+      const selected = new File(["archive data"], "draft.zip", { type: "application/zip" });
+      fireEvent.change(uploadInput, { target: { files: [selected] } });
+      const readCount = network.mock.calls.length;
+      const navigation = within(screen.getByRole("navigation", { name: "Data tasks" }));
+      for (const [label, id] of [["Import", "research-package-import"], ["Saved work", "research-package-work"], ["Export", "research-package-export"]]) {
+        fireEvent.click(navigation.getByRole("link", { name: label }));
+        await waitFor(() => expect(window.location.hash).toBe(`#${id}`));
+        expect(window.location.search).toBe(query);
+        expect(screen.getByLabelText("Sample and Project roots")).toBe(roots);
+        expect(screen.getByLabelText("Native package ZIP")).toBe(uploadInput);
+        expect(roots.value).toBe("project:unsaved-draft"); expect(format.value).toBe("report");
+        expect(uploadInput.files?.[0]).toBe(selected);
+      }
+      expect(screen.getByRole("region", { name: "Export selected research" })).toBeTruthy();
+      expect(screen.getByRole("region", { name: "Import a native data package" })).toBeTruthy();
+      expect(screen.getByRole("region", { name: "Saved package work" })).toBeTruthy();
+      expect(network).toHaveBeenCalledTimes(readCount); expect(savedMutations()).toHaveLength(0);
+    } finally { window.history.replaceState(null, "", originalUrl); }
+  });
+
+  it("keeps paused execution and original-request reconciliation visible outside collapsed technical details", async () => {
+    const original = { action: "export", input: { requestId: "uncertain:report", kind: "report", roots: [{ kind: "sample", id: "sample:1" }] } };
+    sessionStorage.setItem(intentKey, JSON.stringify(original));
+    executor.enabled = false; executor.reason = "disabled";
+    await mount("?rootType=sample&rootId=sample%3A1&kind=report");
+    const details = screen.getByText("Package limits and execution details").closest("details")!;
+    expect(details.open).toBe(false);
+    expect(within(screen.getByRole("region", { name: "Independent executor" })).getByText("Execution is paused.")).toBeTruthy();
+    expect(screen.getByText(/Refreshing or polling this page does not execute it/).closest("details")).toBeNull();
+    expect(screen.getByRole("heading", { name: "Unconfirmed operation" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Check original package request" }).closest("details")).toBeNull();
+    expect(screen.getByRole("button", { name: "Preview export" }).matches(":disabled")).toBe(true);
+    expect(JSON.parse(sessionStorage.getItem(intentKey)!)).toEqual(original);
+    expect(savedMutations()).toHaveLength(0);
+  });
+
+  it("groups earlier receipts with saved work after the main tasks and checks them without starting new work", async () => {
+    const original = { action: "export", input: { requestId: "earlier:report", kind: "report", roots: [{ kind: "sample", id: "sample:1" }] } };
+    sessionStorage.setItem("research-package-earlier-requests", JSON.stringify([{ intent: original, receipt: null }]));
+    const accepted = { ...job("report", "completed", "history:job"), requestId: original.input.requestId };
+    receipts.set(original.input.requestId, { requestId: original.input.requestId, job: accepted, reused: false });
+    await mount("?rootType=sample&rootId=sample%3A1&kind=report");
+    const savedWork = screen.getByRole("region", { name: "Saved package work" });
+    const earlier = within(savedWork).getByRole("heading", { name: "Earlier package requests" });
+    expect(screen.getByRole("region", { name: "Export selected research" }).compareDocumentPosition(earlier) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const roots = screen.getByLabelText("Sample and Project roots") as HTMLTextAreaElement;
+    fireEvent.change(roots, { target: { value: "sample:keep-my-draft" } });
+    const requestPath = `/requests/${encodeURIComponent(original.input.requestId)}`;
+    expect(callsTo(requestPath, "GET")).toHaveLength(0);
+    fireEvent.click(within(savedWork).getByRole("button", { name: `Check earlier package request ${original.input.requestId}` }));
+    await screen.findByText(accepted.id);
+    expect(callsTo(requestPath, "GET")).toHaveLength(1);
+    expect(screen.getByLabelText("Sample and Project roots")).toBe(roots); expect(roots.value).toBe("sample:keep-my-draft");
+    expect(savedMutations()).toHaveLength(0);
+  });
+
   it.each(["data_package", "report", "import"] as const)("labels %s result roots according to their source or imported identity", async kind => {
     jobs = [{ ...job(kind, "completed"), result: { roots: [{ kind: "sample", id: "sample:original" }, { kind: "project", id: "project:original" }], reused: false } }];
     await mount();

@@ -16,4 +16,13 @@
 .system-recovery-job { margin-top: 24px; padding-top: 22px; border-top: 1px solid var(--line); }
 .system-recovery-job p { margin: 10px 0; }
 .system-recovery-handoff { padding: 16px; border: 1px solid var(--line); border-radius: 8px; }
+.system-recovery-status > p { margin: 10px 0; }
+.system-recovery-status-facts { display: flex; flex-wrap: wrap; gap: 16px 32px; margin: 16px 0; }
+.system-recovery-status-facts > div { display: grid; gap: 5px; min-width: 0; max-width: 100%; }
+.system-recovery-status-facts dt { color: var(--muted); font-size: var(--font-meta); }
+.system-recovery-status-facts dd { margin: 0; font-size: var(--font-body); overflow-wrap: anywhere; }
+.system-recovery-earlier-requests { margin: 20px 0; padding: 18px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.system-recovery-runtime-details { margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--line); }
+.system-recovery-runtime-details summary { min-height: 40px; padding: 10px 0; cursor: pointer; color: var(--muted); font-size: var(--font-body); }
+.system-recovery-runtime-details summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 @media (max-width: 640px) { .system-recovery-table th, .system-recovery-table td { padding: 8px; } }

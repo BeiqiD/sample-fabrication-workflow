@@ -13,6 +13,7 @@ import { hashResearchFile } from "../../shared/domain/research-sha256";
 import { sourceFromBlob, validateStoreArchive } from "../../shared/domain/research-archive";
 import { researchPackagesClient, ResearchPackageRequestError, ResearchPackageRequestMissingError, researchPackageErrorMessage } from "../lib/research-package-client";
 import { ReadStatus } from "../components/ReadStatus";
+import { SettingsTaskNavigation } from "../components/SettingsTaskNavigation";
 import "./storage-settings.css";
 import "./research-packages.css";
 
@@ -583,13 +584,13 @@ export function ResearchPackagesPage() {
     <ReadStatus loading={false} loadingMessage="" error={!denied && messageError ? message : null} errorTitle="Data operation unavailable"
       onRetry={() => void act(signal => refresh(signal, true), true)} retryLabel="Read current package status" />
     {denied ? <p>Sign in with an account allowed to use the application before continuing. Saved operation identifiers are retained for reconciliation.</p> : <>
-      <section className="card storage-settings-section"><h2 className="card-title">Independent executor</h2>
-        {executor && <><p>{!executor.supported ? "Package jobs are unavailable on this runtime." : !executor.enabled ? "Execution is paused." : executor.stale ? "Execution is enabled, but no recent heartbeat was recorded." : "Execution is enabled."}</p>
-          {executor.reason && <p className="muted">{reasonText(executor.reason)}.</p>}
+      <section className="card storage-settings-section research-package-execution" aria-labelledby="research-package-execution-title">
+        <div className="research-package-execution-heading"><h2 className="card-title" id="research-package-execution-title">Independent executor</h2>
+          {executor && <p>{!executor.supported ? "Package jobs are unavailable on this runtime." : !executor.enabled ? "Execution is paused." : executor.stale ? "Execution is enabled, but no recent heartbeat was recorded." : "Execution is enabled."}</p>}</div>
+        {executor && <>
+          {executor.reason && (executor.enabled || executor.reason !== "disabled") && <p className="muted">{reasonText(executor.reason)}.</p>}
           {(!executor.enabled || executor.stale) && <p className="muted">Accepted work remains queued or paused until the independently invoked runner is available. Refreshing or polling this page does not execute it.</p>}
-          {executor.canManage && <p><Link to="/settings/storage/migrations">Administrator executor controls</Link></p>}
-          {executor.lastHeartbeatAt && <p className="muted">Last heartbeat: <time dateTime={executor.lastHeartbeatAt}>{executor.lastHeartbeatAt}</time>.</p>}</>}
-        <p className="muted">Supported native ZIP: STORE entries, up to 100 MiB total, 100 files, 96 MiB of file content, 1,200 records and 4 MiB of metadata. Individual ceilings do not guarantee that their combined ZIP fits.</p>
+          {executor.canManage && <p><Link to="/settings/storage/migrations">Administrator executor controls</Link></p>}</>}
       </section>
       {earlier === null && <p role="alert">Saved package request history could not be read. Restore its browser checkpoints before starting new work.</p>}
       {pending && <section className="card storage-settings-section"><h2 className="card-title">Unconfirmed operation</h2>
@@ -614,14 +615,12 @@ export function ResearchPackagesPage() {
             });
           }}>Review a new request</button>}
         </div></section>}
-      {earlier?.length ? <section className="card storage-settings-section research-package-history"><h2 className="card-title">Earlier package requests</h2>
-        <p className="muted">Original requests remain available after acceptance or explicit fresh review. Checking a saved receipt does not start another operation.</p>
-        <ul className="storage-profile-list">{earlier.map(row => <li key={row.intent.input.requestId}><code>{row.intent.input.requestId}</code>
-          {row.receipt && <p>{jobNames[row.receipt.job.kind]} receipt retained.</p>}
-          <button className="button" aria-label={`Check earlier package request ${row.intent.input.requestId}`} disabled={busy}
-            onClick={() => void act(signal => checkEarlier(row, signal))}>Check saved receipt</button></li>)}</ul>
-      </section> : null}
-      <section className="card storage-settings-section"><h2 className="card-title">Export selected research</h2>
+      <SettingsTaskNavigation label="Data tasks" items={[
+        { id: "research-package-export", label: "Export" },
+        { id: "research-package-import", label: "Import" },
+        { id: "research-package-work", label: "Saved work" },
+      ]} />
+      <section id="research-package-export" className="card storage-settings-section settings-task-section" aria-labelledby="research-package-export-title" tabIndex={-1}><h2 className="card-title" id="research-package-export-title">Export selected research</h2>
         <p className="muted">Choose Data package or Offline report from a <Link to="/samples">Sample</Link> or <Link to="/projects">Project</Link>, or enter up to 20 roots below.</p>
         <form onSubmit={event => { event.preventDefault(); void act(async signal => {
           const button = exportPreviewButton.current;
@@ -644,8 +643,9 @@ export function ResearchPackagesPage() {
               if (intent && returnPageFocus.current === intent && receipt) intent.receipt = receipt;
             }); }}>Start {kind === "report" ? "report" : "data package"} export</button></>}
       </section>
-      <section className="card storage-settings-section"><h2 className="card-title">Import a native data package</h2>
+      <section id="research-package-import" className="card storage-settings-section settings-task-section" aria-labelledby="research-package-import-title" tabIndex={-1}><h2 className="card-title" id="research-package-import-title">Import a native data package</h2>
         <p className="muted">Native research packages create fresh business identities and retain source provenance. Existing readable ZIPs, FabuBlox workbooks and whole-installation backups are separate formats.</p>
+        <p className="muted">Select a native ZIP up to 100 MiB. Full format and size limits are in Package limits and execution details below.</p>
         <label>Native package ZIP<input ref={packageFileInput} type="file" accept=".zip,application/zip" disabled={blocked || executor?.supported === false || !!upload && currentUpload?.state !== "awaiting_upload"}
           onChange={event => setFile(event.target.files?.[0] || null)} /></label>
         {upload && currentUpload?.state === "awaiting_upload" && <p className="muted">The accepted upload is waiting for bytes. After reload or interruption, reselect the original {size(upload.input.byteSize)} ZIP; its streaming hash must match.</p>}
@@ -673,7 +673,7 @@ export function ResearchPackagesPage() {
           onClick={() => { try { saveUpload(null); setImportPreview(null); setFile(null); } catch (error) { reportFailure(error); } }}>Select another package</button>
           <small className="muted"> Changing this selection does not cancel saved jobs.</small></p>}
       </section>
-      <section className="card storage-settings-section"><h2 className="card-title">Saved package work</h2>
+      <section id="research-package-work" className="card storage-settings-section settings-task-section" aria-labelledby="research-package-work-title" tabIndex={-1}><h2 className="card-title" id="research-package-work-title">Saved package work</h2>
         <p className="muted">Work persists when the browser closes. Pause and cancel take effect at a safe boundary; cancellation retains committed copies. Cleanup is separate and does not remove published research.</p>
         {!jobsLoaded && readPhase === "error" && <p className="muted">Saved package work has not been read. Refresh status to check it.</p>}
         {jobsLoaded && readPhase !== "ready" && jobs.length > 0 && <p className="muted">{readPhase === "error"
@@ -706,7 +706,19 @@ export function ResearchPackagesPage() {
             refreshSequence.current++; updateJob(value); onReceipt(value); setMessage("Saved job state updated. Check status to follow its independent progress.");
           }
         })} />)}
+        {earlier?.length ? <section className="research-package-history" aria-labelledby="research-package-earlier-title"><h3 id="research-package-earlier-title">Earlier package requests</h3>
+          <p className="muted">Original requests remain available after acceptance or explicit fresh review. Checking a saved receipt does not start another operation.</p>
+          <ul className="storage-profile-list">{earlier.map(row => <li key={row.intent.input.requestId}><code>{row.intent.input.requestId}</code>
+            {row.receipt && <p>{jobNames[row.receipt.job.kind]} receipt retained.</p>}
+            <button className="button" aria-label={`Check earlier package request ${row.intent.input.requestId}`} disabled={busy}
+              onClick={() => void act(signal => checkEarlier(row, signal))}>Check saved receipt</button></li>)}</ul>
+        </section> : null}
       </section>
+      <details className="research-package-technical-details">
+        <summary>Package limits and execution details</summary>
+        <p className="muted">Supported native ZIP: STORE entries, up to 100 MiB total, 100 files, 96 MiB of file content, 1,200 records and 4 MiB of metadata. Individual ceilings do not guarantee that their combined ZIP fits.</p>
+        {executor?.lastHeartbeatAt && <p className="muted">Last heartbeat: <time dateTime={executor.lastHeartbeatAt}>{executor.lastHeartbeatAt}</time>.</p>}
+      </details>
     </>}
   </div>;
 }
