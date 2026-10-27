@@ -85,13 +85,14 @@ export function ExportPage() {
           : progress ? `Assets processed: ${progress.completed} / ${progress.total}. Building archive…` : "Building archive…";
 
   return <div className="page export-page">
-    <p className="eyebrow">Backup</p><h1>Export content</h1>
+    <p className="eyebrow">Settings · Data and export</p><h1>Export content</h1>
     <p className="lead">Download a versioned ZIP of samples, Projects, process records and available files. System storage configuration and credentials are excluded. Missing or unavailable files are recorded as warnings without discarding the content backup.</p>
     <p><a href="/settings/data/system">System backup and recovery</a> provides administrator-managed, durable backup jobs and isolated installation recovery.</p>
     <section className="card export-card">
       <h2 className="card-title">Content archive</h2>
       <p className="muted">Includes samples, timeline history, process runs, template versions, FabuBlox manifests and source workbooks, layer images, comment files, final blob outcomes, and export warnings.</p>
       <p className="muted">Browser export limits: 50 MB of asset bytes, 8 MB of metadata and a 64 MB ZIP. Exceeding a limit stops the export. For larger backups, use a configured system backup workflow.</p>
+      <p className="muted">Keep this page open while building the archive. Leaving cancels the export and releases any prepared download.</p>
       <button className="button primary" disabled={exporting} onClick={() => void startExport()}>{exporting ? "Building archive…" : "Download full ZIP"}</button>
       {exporting && <button className="button" onClick={cancelExport}>Cancel export</button>}
       {exporting && <p className="muted" role="status">{phaseText}</p>}
@@ -106,7 +107,5 @@ export function ExportPage() {
       </div>}
       {error && <p className="error-banner" role="alert">{error}</p>}
     </section>
-    <p className="muted"><a href="/maintenance/file-shadow">File shadow maintenance</a> · Inspect references and run a reviewed conversion pilot.</p>
-    <p className="muted"><a href="/maintenance/file-evidence">Historical file evidence</a> · Review Project attachment history and missing evidence.</p>
   </div>;
 }
