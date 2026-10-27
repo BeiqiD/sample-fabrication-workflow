@@ -8,6 +8,7 @@ import { MultiSampleRunGrid } from "../components/MultiSampleRunGrid";
 import { ProcessingActionIcon } from "../components/ProcessingActionIcon";
 import { ProcessingReferenceSourceFocus } from "../components/ReferenceSourceFocus";
 import { ReadStatus } from "../components/ReadStatus";
+import { ResearchReportLink } from "../components/ResearchPackageExport";
 import { RunActionMenu, type RunActionMenuItem } from "../components/RunActionMenu";
 import { StandaloneMetrologyDialog } from "../components/StandaloneMetrologyDialog";
 import { StartProcessRunDialog } from "../components/StartProcessRunDialog";
@@ -40,6 +41,7 @@ export function ProcessingWorkspacePage() {
   const { sampleId = "" } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const additionalKey = searchParams.get("with") || "";
+  const hasRequestedRun = searchParams.has("run");
   const requestedRunId = searchParams.get("run") || "";
   const requestedStepId = searchParams.get("step") || "";
   const requestedFocus = searchParams.get("focus");
@@ -165,7 +167,11 @@ export function ProcessingWorkspacePage() {
     return () => { readLifetime.current = false; readGeneration.current += 1; };
   }, [load]);
   const activeRun = sample?.runs.find((run) => run.runKind === "process" && run.status === "active") ?? null;
-  const selectedRun = sample?.runs.find((run) => run.id === requestedRunId) ?? activeRun ?? sample?.runs[0] ?? null;
+  const selectedRun = hasRequestedRun
+    ? sample?.runs.find((run) => run.id === requestedRunId) ?? null
+    : activeRun ?? sample?.runs[0] ?? null;
+  const requestedRunUnresolved = Boolean(sample && hasRequestedRun && !selectedRun);
+  const requestedRunConfirmedMissing = requestedRunUnresolved && !loading && !assigning && !error;
   const samplePickerKey = JSON.stringify([selectedRun?.id, selectedRun?.recipeFamilyId, selectedRun?.runKind, selectedRun?.status, sampleQuery]);
   const samplePickerLoading = samplePickerState.key !== samplePickerKey || samplePickerState.loading;
   const samplePickerError = samplePickerState.key === samplePickerKey ? samplePickerState.error : "";
@@ -219,7 +225,7 @@ export function ProcessingWorkspacePage() {
     initialFocusRef: returnToIncomingCompare.current ? transitionCompareRef
       : transitionMode === "start" ? processFamilySearchRef : transitionCancelRef,
     returnFocusRef: transitionReturnFocusRef,
-    enabled: Boolean(sample && transitionMode && !runStartPreview),
+    enabled: Boolean(sample && !requestedRunUnresolved && transitionMode && !runStartPreview),
     blocked: transitionBusy,
     onClose: closeTransition,
   });
@@ -232,6 +238,13 @@ export function ProcessingWorkspacePage() {
   // The source identity, rather than a refresh of its data, closes the session.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sampleId]);
+  useEffect(() => {
+    if (!requestedRunUnresolved) return;
+    closeTransition();
+    setMetrologyPicker(null);
+  // An unavailable explicit run must not retain an earlier operation dialog.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestedRunUnresolved]);
   useEffect(() => {
     const target = transitionReturnFocusRef.current;
     if (!transitionMode && !transitionBusy && returnTransitionFocus.current && target?.isConnected && !target.matches(":disabled")) {
@@ -264,12 +277,12 @@ export function ProcessingWorkspacePage() {
   }, [readKey]);
 
   useEffect(() => {
-    if (!sample || requestedAction !== "start" || activeRun || transitionMode) return;
+    if (!sample || requestedRunUnresolved || requestedAction !== "start" || activeRun || transitionMode) return;
     openTransition("start");
     const next = new URLSearchParams(searchParams);
     next.delete("action");
     setSearchParams(next, { replace: true });
-  }, [sample, requestedAction, activeRun, transitionMode, searchParams, setSearchParams]);
+  }, [sample, requestedRunUnresolved, requestedAction, activeRun, transitionMode, searchParams, setSearchParams]);
 
   useEffect(() => {
     setPlanPreview(null);
@@ -401,6 +414,7 @@ export function ProcessingWorkspacePage() {
     }
     if (updates.run !== undefined) {
       if (updates.run) next.set("run", updates.run); else next.delete("run");
+      next.delete("action");
       next.delete("step");
       next.delete("focus");
     }
@@ -420,7 +434,7 @@ export function ProcessingWorkspacePage() {
 
   async function beginProcessRun() {
     const owner = previewOwner;
-    if (!templateVersionId || !owner || assigning || startPreviewInFlight.current?.owner === owner) return;
+    if (requestedRunUnresolved || !templateVersionId || !owner || assigning || startPreviewInFlight.current?.owner === owner) return;
     const request = { owner, generation: ++startPreviewGeneration.current };
     startPreviewInFlight.current = request;
     setStartPreviewRequest(request); setError("");
@@ -437,7 +451,7 @@ export function ProcessingWorkspacePage() {
   }
 
   async function confirmProcessTransition() {
-    if (!previewOwner || currentPreviewOwner.current !== previewOwner || !templateVersionId || !runStartPreview || !runStartPreview.canConfirm || !transitionMode
+    if (requestedRunUnresolved || !previewOwner || currentPreviewOwner.current !== previewOwner || !templateVersionId || !runStartPreview || !runStartPreview.canConfirm || !transitionMode
       || (transitionMode !== "start" && !planPreview?.compatible)) return;
     setAssigning(true); setRunStartError("");
     try {
@@ -472,7 +486,7 @@ export function ProcessingWorkspacePage() {
   }
 
   async function finishActiveRun() {
-    if (!sample || !activeRun) return;
+    if (!sample || !activeRun || requestedRunUnresolved || selectedRun?.id !== activeRun.id) return;
     setAssigning(true); setFinishRunError(""); setError("");
     try {
       await api.finishProcessRun(sample.id, activeRun.id, {
@@ -502,6 +516,7 @@ export function ProcessingWorkspacePage() {
   }
 
   function openTransition(mode: TransitionMode) {
+    if (requestedRunUnresolved) return;
     returnToIncomingCompare.current = false;
     transitionReturnFocusRef.current = workspaceRef.current?.querySelector<HTMLElement>(mode === "start"
       ? 'button[aria-label="Start run"]' : 'button[aria-label="Run actions"]') ?? null;
@@ -546,10 +561,11 @@ export function ProcessingWorkspacePage() {
   const processStartLabel = processRuns.length ? "Start new process" : "Start first process";
   const selectedRunLabel = selectedRun
     ? `${selectedRun.runKind === "metrology" ? "Metrology" : "Process"} ${selectedRun.sequenceNo} · ${selectedRun.templateName}${selectedRun.runKind === "process" ? ` v${selectedRun.templateVersion}` : ""}`
-    : "No run yet";
+    : requestedRunUnresolved ? "Choose an available run" : "No run yet";
   const selectedRunState = selectedRun
     ? `${processRunStatus(selectedRun.status)}${selectedIsActive ? "" : selectedRunIsEditable ? " · results editable" : " · read-only"}`
-    : "Not started";
+    : requestedRunUnresolved ? loading || assigning ? "Loading requested run" : requestedRunConfirmedMissing ? "Run unavailable" : "Run not loaded" : "Not started";
+  const runControlsUnavailable = transitionBusy || requestedRunUnresolved;
   const unfinishedCurrentSteps = activeRun?.steps.filter((step) =>
     step.entryKind === "fabrication" && step.planStatus === "current"
       && step.status !== "done" && step.status !== "skipped") ?? [];
@@ -563,7 +579,7 @@ export function ProcessingWorkspacePage() {
       id: action,
       label: "Update future plan",
       icon: <ActionIcon name="plan-update" />,
-      disabled: transitionBusy,
+      disabled: runControlsUnavailable,
       onSelect: () => openTransition("update"),
     };
     if (action === "finish_run") return {
@@ -574,7 +590,7 @@ export function ProcessingWorkspacePage() {
         : "Complete this active run",
       icon: <ProcessingActionIcon name="done" />,
       danger: unfinishedCurrentSteps.length > 0,
-      disabled: transitionBusy,
+      disabled: runControlsUnavailable,
       onSelect: () => {
         setFinishRunError("");
         setConfirmingRunFinish(true);
@@ -584,7 +600,7 @@ export function ProcessingWorkspacePage() {
       id: action,
       label: "Reopen with updated template",
       icon: <ActionIcon name="plan-update" />,
-      disabled: transitionBusy,
+      disabled: runControlsUnavailable,
       onSelect: () => openTransition("reopen"),
     };
     if (action === "delete_run") return {
@@ -593,7 +609,7 @@ export function ProcessingWorkspacePage() {
       description: "Permanently remove this run",
       icon: <ActionIcon name="delete" />,
       danger: true,
-      disabled: transitionBusy,
+      disabled: runControlsUnavailable,
       onSelect: () => {
         setDeleteRunError("");
         setConfirmingRunDelete(true);
@@ -603,7 +619,7 @@ export function ProcessingWorkspacePage() {
       id: action,
       label: "View active process",
       icon: <ActionIcon name="process" />,
-      disabled: transitionBusy,
+      disabled: runControlsUnavailable,
       onSelect: () => activeRun && updateSearchParams({ run: activeRun.id }),
     };
   });
@@ -612,14 +628,14 @@ export function ProcessingWorkspacePage() {
       id: action,
       label: processStartLabel,
       icon: <ActionIcon name="process" />,
-      disabled: transitionBusy,
+      disabled: runControlsUnavailable,
       onSelect: () => openTransition("start"),
     }
     : {
       id: action,
       label: "Start metrology",
       icon: <ActionIcon name="metrology" />,
-      disabled: transitionBusy,
+      disabled: runControlsUnavailable,
       onSelect: () => setMetrologyPicker(current => current?.source === readKey ? current : { source: readKey }),
     });
 
@@ -627,9 +643,23 @@ export function ProcessingWorkspacePage() {
     <Link className="back-link" to="/processing">← Processing</Link>
     <div className="sample-header">
       <div className="sample-header-copy"><p className="eyebrow">Processing · {sample.code}</p><h1>{sample.title}</h1><p className="lead">Execute the selected run; sample metadata and the permanent timeline stay in the sample archive.</p></div>
-      <div className="header-actions"><StatusPill status={sample.status} /><Link className="button" to={`/samples/${sample.id}`}>Open sample</Link></div>
+      <div className="header-actions"><StatusPill status={sample.status} /><Link className="button" to={`/samples/${sample.id}`}>Open sample</Link>
+        <span className="processing-report-action">
+          <ResearchReportLink root={{ type: "sample", id: sample.id, label: `${sample.code} · ${sample.title}` }}
+            origin={{ type: "processing", sampleId: sample.id, runId: selectedRun?.id, additionalSampleIds: additionalIds }}
+            disabled={transitionBusy || requestedRunUnresolved} />
+          <small className="muted">All recorded runs for {sample.code} only.</small>
+        </span>
+      </div>
     </div>
     <ReadStatus loading={loading} error={error} loadingMessage="Loading processing workspace…" errorTitle="Could not load processing workspace" onRetry={() => void load()} />
+    {requestedRunUnresolved && <section className="card padded" role={requestedRunConfirmedMissing ? "alert" : "status"} aria-labelledby="requested-run-unavailable-title">
+      <h2 className="card-title" id="requested-run-unavailable-title">{loading || assigning ? "Loading requested run" : requestedRunConfirmedMissing ? "Requested run unavailable" : "Requested run could not be loaded"}</h2>
+      <p>{loading || assigning ? "Reading the requested run. No other run has been selected."
+        : error ? "The requested run could not be checked. No other run has been selected. Retry reading the available runs, or open the sample to review its history."
+          : "The requested run is not available in this sample view. No other run has been selected. Choose an available run below, or open the sample to review its history."}</p>
+      <button type="button" className="button" disabled={loading} onClick={() => void load()}>Refresh available runs</button>
+    </section>}
 
     <section className="execution-workspace">
       <div className="execution-heading">
@@ -651,13 +681,15 @@ export function ProcessingWorkspacePage() {
           <span className={`run-status run-controls-status${selectedRun ? ` run-status-${selectedRun.status}` : ""}`}>{selectedRunState}</span>
         </div>
         <div className="run-controls-picker">
-          {sample.runs.length > 1
-            ? <select aria-label="Viewing run" value={selectedRun?.id || ""} onChange={(event) => updateSearchParams({ run: event.target.value })}>{sample.runs.map((run) => <option key={run.id} value={run.id}>{run.runKind === "metrology" ? "Metrology" : "Process"} {run.sequenceNo} · {run.templateName}{run.runKind === "process" ? ` v${run.templateVersion}` : ""} · {processRunStatus(run.status)}</option>)}</select>
+          {sample.runs.length > 1 || requestedRunUnresolved && sample.runs.length > 0
+            ? <select aria-label="Viewing run" value={selectedRun?.id || ""} onChange={(event) => updateSearchParams({ run: event.target.value })}>
+              {requestedRunUnresolved && <option value="" disabled>Choose an available run</option>}
+              {sample.runs.map((run) => <option key={run.id} value={run.id}>{run.runKind === "metrology" ? "Metrology" : "Process"} {run.sequenceNo} · {run.templateName}{run.runKind === "process" ? ` v${run.templateVersion}` : ""} · {processRunStatus(run.status)}</option>)}</select>
             : <strong title={selectedRunLabel}>{selectedRunLabel}</strong>}
         </div>
         <div className="run-control-menus">
-          <RunActionMenu label="Run actions" icon={<ActionIcon name="actions" />} items={runActionItems} disabled={transitionBusy} />
-          <RunActionMenu label="Start run" icon={<ActionIcon name="start" />} items={startActionItems} disabled={transitionBusy} primary />
+          <RunActionMenu label="Run actions" icon={<ActionIcon name="actions" />} items={runActionItems} disabled={runControlsUnavailable} />
+          <RunActionMenu label="Start run" icon={<ActionIcon name="start" />} items={startActionItems} disabled={runControlsUnavailable} primary />
         </div>
       </div>
 
@@ -669,8 +701,8 @@ export function ProcessingWorkspacePage() {
           stepId={requestedStepId}
           columns={gridColumns}
         />
-      </section> : <div className="card empty-run-message"><h3 className="card-title">No run yet</h3><p>Start a process or an independent metrology run to create an execution record.</p></div>}
-      {showMetrologyPicker && <StandaloneMetrologyDialog
+      </section> : !requestedRunUnresolved && <div className="card empty-run-message"><h3 className="card-title">No run yet</h3><p>Start a process or an independent metrology run to create an execution record.</p></div>}
+      {showMetrologyPicker && !requestedRunUnresolved && <StandaloneMetrologyDialog
         key={readKey}
         sampleId={sampleId}
         onClose={() => { if (currentMetrologyPicker.current === metrologyPicker) setMetrologyPicker(null); }}
@@ -681,7 +713,7 @@ export function ProcessingWorkspacePage() {
           await load();
         }}
       />}
-      {confirmingRunFinish && <ConfirmDeleteDialog
+      {confirmingRunFinish && !requestedRunUnresolved && <ConfirmDeleteDialog
         eyebrow="Finish process run"
         title={unfinishedCurrentSteps.length
           ? `Skip ${unfinishedCurrentSteps.length} unfinished step${unfinishedCurrentSteps.length === 1 ? "" : "s"}?`
@@ -719,7 +751,7 @@ export function ProcessingWorkspacePage() {
         }}
         onConfirm={() => void deleteSelectedRun()}
       />}
-      {transitionMode && <div className="run-start-dialog-backdrop" role="presentation"
+      {transitionMode && !requestedRunUnresolved && <div className="run-start-dialog-backdrop" role="presentation"
         hidden={Boolean(runStartPreview)} style={runStartPreview ? { display: "none" } : undefined} onMouseDown={(event) => { if (event.target === event.currentTarget && !transitionBusy) closeTransition(); }}>
         <section ref={transitionDialogRef} className="run-start-dialog transition-template-dialog" role="dialog" aria-modal="true" aria-labelledby="transition-template-title">
           <div className="run-start-dialog-heading"><div><p className="dialog-kicker">{transitionMode === "start" ? processRuns.length ? "Start new process" : "Start first process" : transitionMode === "reopen" ? "Reopen process run" : "Update future plan"}</p><h2 id="transition-template-title">Choose the incoming process template</h2></div><button type="button" className="drawer-close" disabled={transitionBusy} onClick={closeTransition} aria-label="Close"><DialogCloseIcon /></button></div>
@@ -761,7 +793,7 @@ export function ProcessingWorkspacePage() {
           <div className="form-actions"><button ref={transitionCancelRef} type="button" className="button" disabled={transitionBusy} onClick={closeTransition}>Cancel</button><button ref={transitionCompareRef} type="button" className="button primary" disabled={!templateVersionId || transitionBusy || Boolean(transitionMode !== "start" && !planPreview?.compatible)} onClick={() => void (transitionMode === "start" ? beginProcessRun() : planPreview && previewOwner && setRunStartPreview({ owner: previewOwner, value: planPreview.substrateTransition }))}>{transitionBusy ? "Loading…" : "Compare structures"}</button></div>
         </section>
       </div>}
-      {runStartPreview && transitionMode && <StartProcessRunDialog preview={runStartPreview} action={transitionMode} starting={transitionBusy} error={runStartError} onCancel={() => { returnToIncomingCompare.current = true; setRunStartPreview(null); setRunStartError(""); }} onConfirm={() => void confirmProcessTransition()} />}
+      {runStartPreview && transitionMode && !requestedRunUnresolved && <StartProcessRunDialog preview={runStartPreview} action={transitionMode} starting={transitionBusy} error={runStartError} onCancel={() => { returnToIncomingCompare.current = true; setRunStartPreview(null); setRunStartError(""); }} onConfirm={() => void confirmProcessTransition()} />}
     </section>
   </div>;
 }

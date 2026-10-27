@@ -205,7 +205,7 @@ export function ProjectReadingSurface({
           disabled={!nodes.length || interactionDisabled || editorBusy || exportState.status === "exporting"}
           onClick={exportReading}
         >{exportState.status === "exporting" ? "Exporting…" : "Export readable ZIP"}</button>
-        {projectId && <ResearchPackageExport root={{ type: "project", id: projectId }} compact
+        {projectId && <ResearchPackageExport root={{ type: "project", id: projectId, label: projectTitle }} compact
           disabled={!!interactionDisabled || editorBusy || exportState.status === "exporting"} />}
       </ReadingMore>
       {exportState.message && <p className={`project-reading-export-message ${exportState.status === "error" ? "error" : exportState.message.includes("warning") ? "warning" : ""}`} role="status">

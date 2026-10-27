@@ -14,6 +14,7 @@ import { sourceFromBlob, validateStoreArchive } from "../../shared/domain/resear
 import { researchPackagesClient, ResearchPackageRequestError, ResearchPackageRequestMissingError, researchPackageErrorMessage } from "../lib/research-package-client";
 import { ReadStatus } from "../components/ReadStatus";
 import { SettingsTaskNavigation } from "../components/SettingsTaskNavigation";
+import { readResearchExportContext, researchExportContextKey, researchExportScopeMatches } from "../lib/research-export-context";
 import "./storage-settings.css";
 import "./research-packages.css";
 
@@ -223,8 +224,8 @@ export function ResearchPackagesPage() {
   const [owner] = useState(captureApplicationOwner);
   const [storage] = useState(() => checkpointStorage(owner));
   const [query] = useSearchParams();
-  const [rootText, setRootText] = useState(() => ["sample", "project"].includes(query.get("rootType") || "") && query.get("rootId")
-    ? `${query.get("rootType")}:${query.get("rootId")}` : "");
+  const [sourceContext] = useState(() => readResearchExportContext(query));
+  const [rootText, setRootText] = useState(() => sourceContext ? `${sourceContext.root.type}:${sourceContext.root.id}` : "");
   const [kind, setKind] = useState<ResearchExportKind>(() => query.get("kind") === "report" ? "report" : "data_package");
   const [exportPreview, setExportPreview] = useState<ResearchPackagePreview | null>(null);
   const [pending, setPending] = useState<Intent | null>(() => savedIntent(storage)), pendingRef = useRef(pending);
@@ -568,6 +569,7 @@ export function ResearchPackagesPage() {
   const exportCapability = exportPreview && (kind === "report" ? exportPreview.capabilities.report : exportPreview.capabilities.dataPackage);
   const mayImport = importPreview?.kind === "data_package" && importPreview.rolePolicyRevision !== null && importPreview.complete && importPreview.capabilities.dataPackage.available;
   const blocked = busy || earlier === null || !!pending || denied;
+  const sourceQueryChanged = researchExportContextKey(readResearchExportContext(query)) !== researchExportContextKey(sourceContext);
   return <div className="page storage-settings-page research-packages-page">
     <div className="page-heading"><div><p className="eyebrow">Settings</p><h1>Data</h1>
       <p className="lead">Export research packages and offline reports, or import a native package as a new research copy.</p></div>
@@ -618,7 +620,22 @@ export function ResearchPackagesPage() {
         { id: "research-package-work", label: "Saved work" },
       ]} />
       <section id="research-package-export" className="card storage-settings-section settings-task-section" aria-labelledby="research-package-export-title" tabIndex={-1}><h2 className="card-title" id="research-package-export-title">Export selected research</h2>
-        <p className="muted">Choose Data package or Offline report from a <Link to="/samples">Sample</Link> or <Link to="/projects">Project</Link>, or enter up to 20 roots below.</p>
+        {sourceContext && <div className="research-export-source" role="region" aria-label="Export source context">
+          <p><strong>Opened from {sourceContext.root.type === "sample" ? "Sample" : "Project"}</strong>
+            {" "}{sourceContext.root.label || sourceContext.root.id}</p>
+          <div className="research-export-source-actions">
+            {sourceContext.processingPath && <Link to={sourceContext.processingPath}>Back to processing</Link>}
+            <Link to={sourceContext.sourcePath} aria-label={sourceContext.processingPath ? "Open source sample" : undefined}>
+              {sourceContext.processingPath ? "Sample archive" : `Back to source ${sourceContext.root.type}`}</Link>
+          </div>
+          {sourceQueryChanged && <p className="research-export-context-notice" role="status">The link context changed. Your existing export draft has been kept; review the roots below.</p>}
+          <p className="muted">{researchExportScopeMatches(sourceContext, rootText)
+            ? sourceContext.processingPath ? "Primary sample only, across all recorded runs. Review the scope preview before starting."
+              : "Review the scope preview before starting an export."
+            : "Export scope edited. The roots below determine the current scope; preview them before starting work."}</p>
+        </div>}
+        {!sourceContext && sourceQueryChanged && <p className="research-export-context-notice" role="status">The link context changed. Your existing export draft has been kept; review the roots below.</p>}
+        {!sourceContext && <p className="muted">Choose Data package or Offline report from a <Link to="/samples">Sample</Link> or <Link to="/projects">Project</Link>, or enter up to 20 roots below.</p>}
         <form onSubmit={event => { event.preventDefault(); void act(async signal => {
           const button = exportPreviewButton.current;
           returnExportPreviewFocus.current = button && document.activeElement === button ? { button, signal } : null;

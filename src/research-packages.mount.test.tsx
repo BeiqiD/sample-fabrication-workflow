@@ -1,5 +1,5 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { Link, MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ResearchExecutorStatus, ResearchExportPlanInput, ResearchJobStatus, ResearchPackagePreview,
   ResearchRequestReceipt, ResearchUploadInput } from "../shared/contracts/research-package-api";
@@ -122,6 +122,84 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); sessionStorage.clear(); });
 
 describe("native research package browser workflow", () => {
+  it("shows a named local source and keeps preview and acceptance explicit", async () => {
+    await mount("?rootType=project&rootId=project%3A1&kind=report&sourceLabel=Lab+notebook&returnTo=https%3A%2F%2Fevil.test");
+    const context = within(screen.getByRole("region", { name: "Export source context" }));
+    expect(context.getByText("Lab notebook", { exact: false })).toBeTruthy();
+    expect(context.getByRole("link", { name: "Back to source project" }).getAttribute("href")).toBe("/projects/project%3A1");
+    expect((screen.getByLabelText("Sample and Project roots") as HTMLTextAreaElement).value).toBe("project:project:1");
+    expect((screen.getByLabelText("Export format") as HTMLSelectElement).value).toBe("report");
+    expect(callsTo("/plans", "POST")).toHaveLength(0); expect(savedMutations()).toHaveLength(0);
+  });
+
+  it("retains source provenance and drafts when the URL context or edited scope changes", async () => {
+    render(<MemoryRouter initialEntries={["/settings/data?rootType=sample&rootId=sample%3A1&kind=report&sourceLabel=Original+sample"]}>
+      <Link to="/settings/data?rootType=project&rootId=project%3A2&kind=data_package&sourceLabel=Another+source">Change linked source</Link>
+      <ResearchPackagesPage />
+    </MemoryRouter>);
+    await waitFor(() => expect(screen.queryByText("Reading saved package work…")).toBeNull());
+    const roots = screen.getByLabelText("Sample and Project roots") as HTMLTextAreaElement;
+    const input = screen.getByLabelText("Native package ZIP") as HTMLInputElement;
+    const selected = new File(["kept"], "draft.zip", { type: "application/zip" });
+    fireEvent.change(input, { target: { files: [selected] } });
+    fireEvent.change(roots, { target: { value: "sample:sample:1\nproject:extra" } });
+    expect(screen.getByText(/Export scope edited/)).toBeTruthy();
+    const reads = network.mock.calls.length;
+    fireEvent.click(screen.getByRole("link", { name: "Change linked source" }));
+    await screen.findByText(/The link context changed/);
+    const context = within(screen.getByRole("region", { name: "Export source context" }));
+    expect(context.getByText("Original sample", { exact: false })).toBeTruthy();
+    expect(context.getByRole("link", { name: "Back to source sample" }).getAttribute("href")).toBe("/samples/sample%3A1");
+    expect(screen.getByLabelText("Sample and Project roots")).toBe(roots);
+    expect(roots.value).toBe("sample:sample:1\nproject:extra");
+    expect(screen.getByLabelText("Native package ZIP")).toBe(input); expect(input.files?.[0]).toBe(selected);
+    expect((screen.getByLabelText("Export format") as HTMLSelectElement).value).toBe("report");
+    expect(network.mock.calls).toHaveLength(reads);
+    fireEvent.click(await enabled("Preview export"));
+    await enabled("Start report export");
+    expect(JSON.parse(String(callsTo("/plans", "POST")[0][1]?.body))).toEqual({ kind: "report", roots: [
+      { kind: "sample", id: "sample:1" }, { kind: "project", id: "extra" },
+    ] });
+    expect(savedMutations()).toHaveLength(0);
+  });
+
+  it("returns to the original Processing view while describing a primary-sample report", async () => {
+    await mount("?rootType=sample&rootId=sample%3A1&kind=report&sourceLabel=S-1&from=processing&runId=restored+run%3A1&sourceWith=sample%3A2&sourceWith=sample%3A3");
+    const context = within(screen.getByRole("region", { name: "Export source context" }));
+    expect(context.getByRole("link", { name: "Back to processing" }).getAttribute("href"))
+      .toBe("/processing/sample%3A1?run=restored+run%3A1&with=sample%3A2%2Csample%3A3");
+    expect(context.getByRole("link", { name: "Open source sample" }).getAttribute("href")).toBe("/samples/sample%3A1");
+    expect(context.getByText(/Primary sample only, across all recorded runs/)).toBeTruthy();
+    expect((screen.getByLabelText("Sample and Project roots") as HTMLTextAreaElement).value).toBe("sample:sample:1");
+    expect(callsTo("/plans", "POST")).toHaveLength(0); expect(savedMutations()).toHaveLength(0);
+  });
+
+  it("keeps an existing manual draft when a source link arrives later on the same Data page", async () => {
+    render(<MemoryRouter initialEntries={["/settings/data"]}>
+      <Link to="/settings/data?rootType=sample&rootId=linked&kind=report&sourceLabel=Linked+sample">Open linked context</Link>
+      <ResearchPackagesPage />
+    </MemoryRouter>);
+    await waitFor(() => expect(screen.queryByText("Reading saved package work…")).toBeNull());
+    const roots = screen.getByLabelText("Sample and Project roots") as HTMLTextAreaElement;
+    fireEvent.change(roots, { target: { value: "project:manual-draft" } });
+    const reads = network.mock.calls.length;
+    fireEvent.click(screen.getByRole("link", { name: "Open linked context" }));
+    await screen.findByText(/The link context changed/);
+    expect(screen.queryByRole("region", { name: "Export source context" })).toBeNull();
+    expect(screen.getByLabelText("Sample and Project roots")).toBe(roots);
+    expect(roots.value).toBe("project:manual-draft");
+    expect((screen.getByLabelText("Export format") as HTMLSelectElement).value).toBe("data_package");
+    expect(network.mock.calls).toHaveLength(reads); expect(savedMutations()).toHaveLength(0);
+  });
+
+  it("does not prefill or offer a return link from an invalid source identity", async () => {
+    await mount("?rootType=sample&rootId=..&kind=report&sourceLabel=Misleading+label&returnTo=//evil.test");
+    expect(screen.queryByRole("region", { name: "Export source context" })).toBeNull();
+    expect((screen.getByLabelText("Sample and Project roots") as HTMLTextAreaElement).value).toBe("");
+    expect((screen.getByLabelText("Export format") as HTMLSelectElement).value).toBe("report");
+    expect(callsTo("/plans", "POST")).toHaveLength(0); expect(savedMutations()).toHaveLength(0);
+  });
+
   it("jumps between data tasks without replacing drafts, selected files or the original object-export query", async () => {
     const originalUrl = window.location.pathname + window.location.search + window.location.hash;
     const query = "?rootType=project&rootId=project%3A1&kind=report";

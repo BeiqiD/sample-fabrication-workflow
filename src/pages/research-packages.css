@@ -12,6 +12,14 @@
 .research-package-technical-details p { max-width: 780px; line-height: 1.6; }
 .research-packages-page fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 .research-packages-page textarea { width: 100%; resize: vertical; }
+.research-export-source { margin: 16px 0; padding: 14px 16px; border-left: 3px solid var(--accent); background: var(--surface); border-radius: 6px; font-size: var(--font-body); overflow-wrap: anywhere; }
+.research-export-source p { margin: 8px 0; }
+.research-export-source p:first-child { margin-top: 0; }
+.research-export-source p:last-child { margin-bottom: 0; }
+.research-export-source-actions { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.research-export-source-actions a { display: inline-flex; align-items: center; min-height: 40px; color: var(--accent); text-underline-offset: 3px; }
+.research-export-source-actions a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.research-export-context-notice { color: var(--warning-text); }
 .research-package-preview { margin: 24px 0; }
 .research-package-preview h3 { margin: 20px 0 10px; }
 .research-package-preview code, .research-package-job code, .research-package-history code { overflow-wrap: anywhere; }

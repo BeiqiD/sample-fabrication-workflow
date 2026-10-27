@@ -177,6 +177,11 @@ describe("Phase 5F mocked Processing confirmation contracts", () => {
     await waitFor(() => expect(api.getProcessingSample).toHaveBeenCalledTimes(2));
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.getByRole("button", { name: triggerName(mode) }).matches(":disabled")).toBe(true);
+    if (mode === "start") {
+      expect(screen.getByRole("heading", { name: "Loading requested run" })).toBeTruthy();
+      expect(screen.queryByRole("heading", { name: "Requested run unavailable" })).toBeNull();
+      expect(screen.queryByLabelText("Processing snapshot")).toBeNull();
+    }
     expect(vi.mocked(api.getProcessingSample).mock.calls).toEqual([["sample-a"], ["sample-a"]]);
     await act(async () => refresh.resolve(snapshot(mode, true)));
     const runId = mode === "start" ? "run-new" : "run-a";

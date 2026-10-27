@@ -32,6 +32,13 @@ function runStatusLabel(status: SampleRun["status"] | null) {
   return "Active";
 }
 
+function nextActionLabel(sample: Pick<SampleSummary, "latestRunStatus" | "currentStepTitle">) {
+  if (!sample.latestRunStatus) return "Open to start the first process";
+  if (sample.latestRunStatus === "complete") return "View completed results";
+  if (sample.latestRunStatus === "cancelled" || sample.latestRunStatus === "superseded") return "Review history or choose a new process";
+  return sample.currentStepTitle ? `Next · ${sample.currentStepTitle}` : "Review active process";
+}
+
 export function ProcessingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedFilter = searchParams.get("status");
@@ -121,7 +128,7 @@ export function ProcessingPage() {
       {samples.map((sample) => <Link to={`/processing/${sample.id}`} className="processing-row" key={sample.id}>
         <SampleStateThumbnail sample={sample} />
         <div className="processing-sample"><strong className="sample-code">{sample.code}</strong><span>{sample.title}</span><small>{sample.location || "No location"}</small></div>
-        <div className="processing-workflow"><small>Process template</small><strong>{sample.latestWorkflowName ? `${sample.latestWorkflowName}${sample.latestWorkflowVersion != null ? ` · v${sample.latestWorkflowVersion}` : ""}` : "No process run yet"}</strong><span>{sample.currentStepTitle ? `Next · ${sample.currentStepTitle}` : sample.latestRunStatus === "complete" ? "Process run completed" : "Open to start a process run"}</span></div>
+        <div className="processing-workflow"><small>Process template</small><strong>{sample.latestWorkflowName ? `${sample.latestWorkflowName}${sample.latestWorkflowVersion != null ? ` · v${sample.latestWorkflowVersion}` : ""}` : "No process run yet"}</strong><span>{nextActionLabel(sample)}</span></div>
         <div className="processing-row-side"><span className={`run-status run-status-${sample.latestRunStatus || "ready"}`}>{runStatusLabel(sample.latestRunStatus)}</span><time dateTime={sample.updatedAt}>{new Date(sample.updatedAt).toLocaleDateString()}</time></div>
       </Link>)}
     </div> : <EmptyState title={requestedQuery ? "No matching process runs" : filter === "active" ? "No active processing" : filter === "all" ? "No process runs" : `No ${filter === "complete" ? "completed" : filter} process runs`}>
