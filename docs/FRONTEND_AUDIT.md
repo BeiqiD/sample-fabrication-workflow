@@ -10,7 +10,9 @@ Data now groups Export, Import and Saved work. Recovery groups Backup, Validate
 archive, Saved work, Maintenance and Executor. Native page-fragment links target
 focusable sections with a sticky-header scroll margin. Every form, selected file,
 acknowledgement and job stays mounted; navigation does not fetch or submit work.
-Earlier receipts remain accessible alongside their page's saved work.
+Earlier receipts remain accessible alongside their page's saved work. Cross-page
+related tools follow the task sections, so they remain available without taking
+the place of the primary task links near the top of the page.
 
 The first status area keeps execution availability, maintenance and unknown
 operation results visible. Static archive limits, heartbeats and deployment

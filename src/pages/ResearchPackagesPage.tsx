@@ -574,9 +574,6 @@ export function ResearchPackagesPage() {
       <button ref={refreshButton} className="button" disabled={busy || denied} onClick={event => {
         const origin = event.currentTarget; void act(async signal => { beginPageFocus("refresh", origin, signal); await refresh(signal, true); }, true);
       }}>Refresh status</button></div>
-    <nav className="research-package-navigation" aria-label="Related data tools"><Link to="/settings/storage">Storage settings</Link><Link to="/export">Content archive</Link>
-      <Link to="/settings/data/system">System backup and recovery</Link>
-      <Link to="/imports/fabublox">FabuBlox workbook import</Link></nav>
     {message && (denied || !messageError) && <p role={denied ? "alert" : "status"}>{message}</p>}
     <ReadStatus loading={readPhase === "loading" && !denied} loadingMessage="Reading saved package work…"
       error={!denied ? readError : null} errorTitle="Package status unavailable"
@@ -720,5 +717,10 @@ export function ResearchPackagesPage() {
         {executor?.lastHeartbeatAt && <p className="muted">Last heartbeat: <time dateTime={executor.lastHeartbeatAt}>{executor.lastHeartbeatAt}</time>.</p>}
       </details>
     </>}
+    <div className="settings-related-tools"><p>Related tools</p>
+      <nav className="research-package-navigation" aria-label="Related data tools"><Link to="/settings/storage">Storage settings</Link><Link to="/export">Content archive</Link>
+        <Link to="/settings/data/system">System backup and recovery</Link>
+        <Link to="/imports/fabublox">FabuBlox workbook import</Link></nav>
+    </div>
   </div>;
 }
