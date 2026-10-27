@@ -70,7 +70,10 @@ describe("explicit Processing run ownership", () => {
     expect(screen.queryByRole("heading", { name: "No run yet" })).toBeNull();
     expect(screen.getByRole("button", { name: "Run actions" }).matches(":disabled")).toBe(true);
     expect(screen.getByRole("button", { name: "Start run" }).matches(":disabled")).toBe(true);
-    expect(screen.queryByRole("link", { name: "Offline report" })).toBeNull();
+    const report = screen.getByRole("link", { name: "Offline report" });
+    expect(report.getAttribute("aria-disabled")).toBe("true");
+    expect(report.hasAttribute("href")).toBe(false);
+    fireEvent.click(report);
     expect(screen.getByRole("button", { name: "+ Add sample" }).matches(":disabled")).toBe(true);
     expect(screen.getByLabelText("Current execution URL").textContent).toBe(`/processing/sample-a${query}`);
     if (count) {

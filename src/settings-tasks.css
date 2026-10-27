@@ -11,6 +11,7 @@
 .settings-task-navigation a {
   display: inline-flex;
   align-items: center;
+  gap: 8px;
   min-height: 40px;
   padding: 8px 12px;
   border: 1px solid var(--line);
@@ -20,6 +21,7 @@
   text-decoration: none;
 }
 .settings-task-navigation a:hover { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
+.settings-task-navigation a[aria-current="location"] { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
 .settings-task-navigation a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .settings-task-section { scroll-margin-top: 88px; }
 .settings-task-section:focus { outline: 2px solid var(--accent); outline-offset: 4px; }
@@ -33,4 +35,6 @@
   .settings-task-navigation > span { flex-basis: 100%; }
   .settings-task-navigation ul { gap: 6px; }
   .settings-task-section { scroll-margin-top: 76px; }
+  .settings-task-navigation--mobile-icons a { width: 44px; height: 44px; min-height: 44px; justify-content: center; padding: 10px; }
+  .settings-task-navigation--mobile-icons .settings-task-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 }

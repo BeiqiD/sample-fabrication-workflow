@@ -122,6 +122,52 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); sessionStorage.clear(); });
 
 describe("native research package browser workflow", () => {
+  it("keeps icon actions named and preserves one request per explicit refresh, preview and start", async () => {
+    await mount("?rootType=sample&rootId=sample%3A1");
+    const refresh = await enabled("Refresh status");
+    expect(refresh.getAttribute("title")).toBe("Refresh status");
+    expect(refresh.querySelector('svg[aria-hidden="true"]')).toBeTruthy();
+    const reads = callsTo("/jobs", "GET").length;
+    fireEvent.click(refresh);
+    await waitFor(() => expect(refresh.matches(":disabled")).toBe(false));
+    expect(callsTo("/jobs", "GET")).toHaveLength(reads + 1);
+    const preview = await enabled("Preview export");
+    expect(preview.querySelector('svg[aria-hidden="true"]')).toBeTruthy();
+    fireEvent.click(preview);
+    const start = await enabled("Start data package export");
+    expect(callsTo("/plans", "POST")).toHaveLength(1);
+    expect(savedMutations()).toHaveLength(0);
+    fireEvent.click(start);
+    await enabled("Pause");
+    expect(callsTo("/jobs", "POST")).toHaveLength(1);
+    const navigation = within(screen.getByRole("navigation", { name: "Data tasks" }));
+    for (const name of ["Export", "Import", "Saved work"]) {
+      expect(navigation.getByRole("link", { name }).querySelector('svg[aria-hidden="true"]')).toBeTruthy();
+    }
+  });
+
+  it("keeps a pending icon control disabled until its original request settles", async () => {
+    jobs = [job()];
+    let finish!: (response: Response) => void;
+    network.mockImplementation(async (path, options) => String(path) === `${base}/jobs/export%3Ajob/control` && options?.method === "POST"
+      ? new Promise<Response>(resolve => { finish = resolve; }) : fallback(path, options));
+    await mount();
+    const pause = await enabled("Pause");
+    expect(pause.getAttribute("title")).toBe("Pause");
+    expect(pause.querySelector('svg[aria-hidden="true"]')).toBeTruthy();
+    fireEvent.click(pause);
+    await waitFor(() => expect(pause.matches(":disabled")).toBe(true));
+    fireEvent.click(pause);
+    expect(callsTo("/jobs/export%3Ajob/control", "POST")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Upload and validate package" }).matches(":disabled")).toBe(true);
+    jobs = [{ ...job("data_package", "paused"), reason: "actor_paused" }];
+    await act(async () => finish(json(jobs[0])));
+    const resume = await enabled("Resume");
+    expect(resume.getAttribute("title")).toBe("Resume");
+    expect(screen.getByText("paused", { exact: true })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Retry failed work" })).toBeNull();
+  });
+
   it("shows a named local source and keeps preview and acceptance explicit", async () => {
     await mount("?rootType=project&rootId=project%3A1&kind=report&sourceLabel=Lab+notebook&returnTo=https%3A%2F%2Fevil.test");
     const context = within(screen.getByRole("region", { name: "Export source context" }));

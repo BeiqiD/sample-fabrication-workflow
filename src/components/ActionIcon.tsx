@@ -1,7 +1,20 @@
 export type ActionIconName = "actions" | "delete" | "export" | "metrology" | "moon" | "plan-update" | "process" | "split" | "start" | "sun"
-  | "plus" | "chevron-down" | "arrow-left" | "undo" | "redo" | "more" | "attachment" | "pin" | "save" | "grip" | "open" | "inspector" | "note" | "link" | "edit";
+  | "plus" | "chevron-down" | "arrow-left" | "undo" | "redo" | "more" | "attachment" | "pin" | "save" | "grip" | "open" | "inspector" | "note" | "link" | "edit"
+  | "package" | "report" | "upload" | "refresh" | "history" | "check" | "pause" | "play" | "stop" | "warning" | "preview" | "info";
 
 const iconPaths: Record<ActionIconName, React.ReactNode> = {
+  package: <path d="m12 3 9 5-9 5-9-5zM3 8v9l9 5 9-5V8M12 13v9M7.5 5.5l9 5" />,
+  report: <><path d="M6 3h8l4 4v14H6zM14 3v4h4" /><path d="M9 17v-3M12 17v-6M15 17v-4" /></>,
+  upload: <path d="M12 15V3.5M8 7.5l4-4 4 4M5 17v3h14v-3" />,
+  refresh: <path d="M20 11A8 8 0 0 0 6.5 5L4 7M4 3v4h4M4 13a8 8 0 0 0 13.5 6L20 17M20 21v-4h-4" />,
+  history: <><path d="M3 4v5h5M3 9a9 9 0 1 1 1 10" /><path d="M12 7v5l3 2" /></>,
+  check: <path d="m5 12 4 4L19 6" />,
+  pause: <path d="M8 5v14M16 5v14" />,
+  play: <path d="m8 4 12 8-12 8z" />,
+  stop: <rect x="6" y="6" width="12" height="12" rx="2" />,
+  warning: <><path d="m12 3 10 18H2L12 3ZM12 9v5" /><circle cx="12" cy="17.5" r=".5" /></>,
+  preview: <><path d="M2 12S5.5 5 12 5s10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></>,
+  info: <><circle cx="12" cy="12" r="9" /><path d="M12 11v6" /><circle cx="12" cy="7.5" r=".5" /></>,
   edit: <><path d="m15 4 5 5-10 10-6 1 1-6zM13 6l5 5" /><path d="m15 4 1.5-1.5a2 2 0 0 1 2.8 0l2.2 2.2a2 2 0 0 1 0 2.8L20 9" /></>,
   plus: <path d="M12 5v14M5 12h14" />,
   "chevron-down": <path d="m6 9 6 6 6-6" />,
