@@ -1,3 +1,65 @@
+## 2026-10-27 — Sample and Data visual calibration
+
+The user requested a concrete visual refinement, calibrated in a real browser,
+with more icon actions on phones. This pass targets Comfortable Sample/Data
+page chrome: mixed mobile action sizes and extra action rows, equally prominent
+Data cards, and a 320px import button extending beyond its card. Dense execution
+controls and Project Map are outside this change.
+
+Sample uses a local 44/34px title, a readable description measure, quieter
+secondary surfaces, and one row of six 44px mobile action targets. Data uses
+40/34px titles, a quieter executor panel, distinct export/import cards and
+individual saved-job cards. Navigation, source returns and secondary operations
+use the existing decorative SVG system. Mobile icon-only controls retain their
+accessible names and titles; primary acceptance actions, source/scope notices,
+unknown-receipt recovery and state/reason text remain written out. Completed
+jobs use the existing blue information palette, while pending/paused states
+remain neutral. Explicit mobile-icon props keep Project/Processing text labels.
+
+Real Chromium baseline/candidate captures used the same native public-API
+fixture definition. The first candidate exposed extra desktop whitespace from
+a three-line description and a separate status row. After restoring a wider
+desktop description and placing status/actions together, measurements were:
+
+| Fixture measurement | Before | Final candidate |
+| --- | ---: | ---: |
+| Sample details top, 1440px light | 437.28px | 423.61px |
+| Sample details top, 390px dark | 520.34px | 452.78px |
+| Sample details natural height, both cases | 589.95px | 589.95px |
+| Data export card top, 1440px light | 527.97px | 487.95px |
+| Data export card top, 390px dark | 713.17px | 652.55px |
+| Mobile Sample package/report target | 34px high | 44 × 44px |
+
+The frozen candidate is product `19daf9b`; client index SHA-256 is
+`f07957e75310fdde3e40d337503a505d0642061b55a0805fae41d46e0ddd8f52`.
+The Worker artifact is unchanged from the baseline. The primary 16-capture
+matrix covers 1440/390px in both themes, 360px dark, 320px light, and a
+non-system-admin identity. Two captures include real accepted jobs, observed as
+user-paused and recovered-paused after the executor is disabled. They cover
+saved-job presentation separately from the empty-work baseline comparison.
+This identity checks administrator-only executor visibility, not a read-only
+Sample ACL.
+
+All six Sample View/Edit/Cancel checks retain exactly equal details, notes,
+structure and secondary-section bounds. Native fragment navigation updates
+the hash and current-location marker. Keyboard targets retain visible focus.
+The successful matrix has no document/card-action overflow, console/page
+errors, browser mutations, external requests or provider calls. Its owned
+runtime was closed normally. An exploratory run with a stale label selector
+and an overlapping rebuild is recorded as a harness failure and excluded.
+
+Four additional captures at 1180px light and 768px dark use the identical frozen
+artifact. Their Sample View/Edit/Cancel and Data fragment-navigation checks
+also pass without overflow or browser errors, and the second runtime is closed.
+The existing expanded Settings menu at these middle widths still consumes
+substantial vertical space; changing that shell is a separate design decision.
+
+Source review confirms Data request, ACK, polling, checkpoint and permission
+logic is unchanged, as are all Sample event/disabled/link expressions and the
+View/Edit sizing rules. The existing SVG contract test now lives under the
+mounted configuration's discovered filename, so the added icons are checked
+by the ordinary test command.
+
 ## 2026-10-27 — Core workflow selection and report continuity
 
 A real-browser walk through Sample creation, process start, execution and report

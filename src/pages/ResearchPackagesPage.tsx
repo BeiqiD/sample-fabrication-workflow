@@ -13,6 +13,8 @@ import { hashResearchFile } from "../../shared/domain/research-sha256";
 import { sourceFromBlob, validateStoreArchive } from "../../shared/domain/research-archive";
 import { researchPackagesClient, ResearchPackageRequestError, ResearchPackageRequestMissingError, researchPackageErrorMessage } from "../lib/research-package-client";
 import { ReadStatus } from "../components/ReadStatus";
+import { ActionIcon, type ActionIconName } from "../components/ActionIcon";
+import { ResearchJobStateBadge } from "../components/ResearchJobStateBadge";
 import { SettingsTaskNavigation } from "../components/SettingsTaskNavigation";
 import { readResearchExportContext, researchExportContextKey, researchExportScopeMatches } from "../lib/research-export-context";
 import "./storage-settings.css";
@@ -175,7 +177,8 @@ function Job({ job, busy, allowed, currentSignal, reused, onControl, onSelectUpl
     if (next?.isConnected && (!(next instanceof HTMLButtonElement) || !next.disabled)) next.focus();
   }, [busy, allowed, currentSignal, job]);
   function controlButton(action: ResearchJobControl, label: string) {
-    return <button key={action} className="button" disabled={busy}
+    const icon: ActionIconName = action === "pause" ? "pause" : action === "resume" ? "play" : action === "retry" ? "refresh" : action === "cancel" ? "stop" : "delete";
+    return <button key={action} className="button research-action research-action--mobile-icon" aria-label={label} title={label} disabled={busy}
       ref={button => { if (button) buttons.current.set(action, button); else buttons.current.delete(action);
         if (action === "pause") onPauseTarget(job, button); }}
       onClick={event => {
@@ -190,24 +193,24 @@ function Job({ job, busy, allowed, currentSignal, reused, onControl, onSelectUpl
           returnFocus.current = admitted.current;
           document.addEventListener("focusin", moved, true); window.addEventListener("blur", blurred);
         }, receipt => { if (admitted.current && returnFocus.current === admitted.current) admitted.current.receipt = receipt; });
-      }}>{label}</button>;
+      }}><ActionIcon name={icon} /><span className="research-action-label">{label}</span></button>;
   }
   const active = ["awaiting_upload", "queued", "running", "paused", "preview"].includes(job.state);
   return <article className="research-package-job">
-    <div className="storage-profile-heading"><h3>{jobNames[job.kind]}</h3><span>{job.state.replaceAll("_", " ")}</span></div>
+    <div className="storage-profile-heading"><h3>{jobNames[job.kind]}</h3><ResearchJobStateBadge state={job.state} /></div>
     <p><code>{job.id}</code></p><p ref={element => { status.current = element; onStatusTarget(job, element); }} role="status" tabIndex={-1}>{job.phase.replaceAll("_", " ")} · {job.progress.completedFiles} / {job.progress.totalFiles} files verified · {size(job.progress.bytesDone)} / {size(job.progress.bytesTotal)}.</p>
     {job.reason && <p role="status">{reasonText(job.reason)}.</p>}
     {job.state === "cancel_requested" && <p className="muted">Cancellation is awaiting a safe boundary. Written candidates remain protected until reconciliation; committed results are retained.</p>}
     <div className="storage-candidate-actions">
-      {job.kind === "import" && <button className="button" disabled={busy} onClick={() => onViewScope(job.id)}>View accepted scope</button>}
-      {job.kind === "upload" && job.state !== "cancelled" && job.state !== "cancel_requested" && <button className="button" disabled={busy}
-        onClick={() => onSelectUpload(job.id)}>{job.state === "awaiting_upload" ? "Continue this upload" : "Review uploaded package"}</button>}
+      {job.kind === "import" && <button className="button research-action research-action--mobile-icon" aria-label="View accepted scope" title="View accepted scope" disabled={busy} onClick={() => onViewScope(job.id)}><ActionIcon name="preview" /><span className="research-action-label">View accepted scope</span></button>}
+      {job.kind === "upload" && job.state !== "cancelled" && job.state !== "cancel_requested" && <button className="button research-action research-action--mobile-icon" aria-label={job.state === "awaiting_upload" ? "Continue this upload" : "Review uploaded package"} title={job.state === "awaiting_upload" ? "Continue this upload" : "Review uploaded package"} disabled={busy}
+        onClick={() => onSelectUpload(job.id)}><ActionIcon name={job.state === "awaiting_upload" ? "upload" : "preview"} /><span className="research-action-label">{job.state === "awaiting_upload" ? "Continue this upload" : "Review uploaded package"}</span></button>}
       {["queued", "running"].includes(job.state) && controlButton("pause", "Pause")}
       {job.state === "paused" && <>{controlButton("resume", "Resume")}
         {job.reason && job.reason !== "actor_paused" && job.reason !== "operator_paused" && controlButton("retry", "Retry failed work")}</>}
       {active && controlButton("cancel", "Cancel")}
       {["completed", "cancelled"].includes(job.state) && controlButton("cleanup", "Clean temporary job data")}
-      {job.output?.available && job.state === "completed" && <a className="button primary" href={researchPackagesClient.downloadUrl(job.id)}>Download {job.kind === "report" ? "offline report" : "data package"}</a>}
+      {job.output?.available && job.state === "completed" && <a className="button primary research-action" href={researchPackagesClient.downloadUrl(job.id)}><ActionIcon name="export" /><span>Download {job.kind === "report" ? "offline report" : "data package"}</span></a>}
     </div>
     {job.output && <p className="muted">Output: {size(job.output.byteSize)}. {job.output.available ? "Expires" : "No longer available; expiry"} <time dateTime={job.output.expiresAt}>{job.output.expiresAt}</time>.</p>}
     {job.kind === "import" && reused && !job.result && <p role="status">An earlier accepted copy was returned; this request did not create another copy.
@@ -573,9 +576,9 @@ export function ResearchPackagesPage() {
   return <div className="page storage-settings-page research-packages-page">
     <div className="page-heading"><div><p className="eyebrow">Settings</p><h1>Data</h1>
       <p className="lead">Export research packages and offline reports, or import a native package as a new research copy.</p></div>
-      <button ref={refreshButton} className="button" disabled={busy || denied} onClick={event => {
+      <button ref={refreshButton} className="button research-action research-action--mobile-icon" aria-label="Refresh status" title="Refresh status" disabled={busy || denied} onClick={event => {
         const origin = event.currentTarget; void act(async signal => { beginPageFocus("refresh", origin, signal); await refresh(signal, true); }, true);
-      }}>Refresh status</button></div>
+      }}><ActionIcon name="refresh" /><span className="research-action-label">Refresh status</span></button></div>
     {message && (denied || !messageError) && <p role={denied ? "alert" : "status"}>{message}</p>}
     <ReadStatus loading={readPhase === "loading" && !denied} loadingMessage="Reading saved package work…"
       error={!denied ? readError : null} errorTitle="Package status unavailable"
@@ -584,7 +587,7 @@ export function ResearchPackagesPage() {
       onRetry={() => void act(signal => refresh(signal, true), true)} retryLabel="Read current package status" />
     {denied ? <p>Sign in with an account allowed to use the application before continuing. Saved operation identifiers are retained for reconciliation.</p> : <>
       <section className="card storage-settings-section research-package-execution" aria-labelledby="research-package-execution-title">
-        <div className="research-package-execution-heading"><h2 className="card-title" id="research-package-execution-title">Independent executor</h2>
+        <div className="research-package-execution-heading"><h2 className="card-title" id="research-package-execution-title"><ActionIcon name="process" />Independent executor</h2>
           {executor && <p>{!executor.supported ? "Package jobs are unavailable on this runtime." : !executor.enabled ? "Execution is paused." : executor.stale ? "Execution is enabled, but no recent heartbeat was recorded." : "Execution is enabled."}</p>}</div>
         {executor && <>
           {executor.reason && (executor.enabled || executor.reason !== "disabled") && <p className="muted">{reasonText(executor.reason)}.</p>}
@@ -592,41 +595,41 @@ export function ResearchPackagesPage() {
           {executor.canManage && <p><Link to="/settings/storage/migrations">Administrator executor controls</Link></p>}</>}
       </section>
       {earlier === null && <p role="alert">Saved package request history could not be read. Restore its browser checkpoints before starting new work.</p>}
-      {pending && <section className="card storage-settings-section"><h2 className="card-title">Unconfirmed operation</h2>
+      {pending && <section className="card storage-settings-section research-package-pending"><h2 className="card-title"><ActionIcon name="warning" />Unconfirmed operation</h2>
         <p>The {pending.action} request <code>{pending.input.requestId}</code> is retained. Check its receipt before starting another operation.</p>
         <div className="storage-candidate-actions">
-          <button ref={checkButton} className="button" aria-label="Check original package request" disabled={busy} onClick={event => {
+          <button ref={checkButton} className="button research-action" aria-label="Check original package request" title="Check original package request" disabled={busy} onClick={event => {
             const origin = event.currentTarget; void act(async signal => {
               const intent = beginPageFocus("check", origin, signal), receipt = await reconcile(signal);
               if (intent && returnPageFocus.current === intent && receipt) intent.receipt = receipt;
             });
-          }}>Check original request</button>
-          {receiptMissing && <button ref={retryButton} className="button" aria-label="Retry original package request" disabled={busy} onClick={event => {
+          }}><ActionIcon name="check" /><span>Check original request</span></button>
+          {receiptMissing && <button ref={retryButton} className="button research-action" aria-label="Retry original package request" title="Retry original package request" disabled={busy} onClick={event => {
             const origin = event.currentTarget; void act(async signal => {
               const intent = beginPageFocus("retry", origin, signal), receipt = await reconcile(signal, true);
               if (intent && returnPageFocus.current === intent && receipt) intent.receipt = receipt;
             });
-          }}>Retry original request</button>}
-          {receiptMissing && rejected && sameIntent(rejected, pending) && <button ref={reviewButton} className="button" aria-label="Review a new package request" disabled={busy} onClick={event => {
+          }}><ActionIcon name="refresh" /><span>Retry original request</span></button>}
+          {receiptMissing && rejected && sameIntent(rejected, pending) && <button ref={reviewButton} className="button research-action" aria-label="Review a new package request" title="Review a new package request" disabled={busy} onClick={event => {
             const origin = event.currentTarget; void act(async signal => {
               const intent = beginPageFocus("review", origin, signal), receipt = await reviewOriginal(signal);
               if (intent && returnPageFocus.current === intent && receipt) intent.receipt = receipt;
             });
-          }}>Review a new request</button>}
+          }}><ActionIcon name="preview" /><span>Review a new request</span></button>}
         </div></section>}
-      <SettingsTaskNavigation label="Data tasks" items={[
-        { id: "research-package-export", label: "Export" },
-        { id: "research-package-import", label: "Import" },
-        { id: "research-package-work", label: "Saved work" },
+      <SettingsTaskNavigation label="Data tasks" mobileIconOnly items={[
+        { id: "research-package-export", label: "Export", icon: "export" },
+        { id: "research-package-import", label: "Import", icon: "upload" },
+        { id: "research-package-work", label: "Saved work", icon: "history" },
       ]} />
-      <section id="research-package-export" className="card storage-settings-section settings-task-section" aria-labelledby="research-package-export-title" tabIndex={-1}><h2 className="card-title" id="research-package-export-title">Export selected research</h2>
+      <section id="research-package-export" className="card storage-settings-section settings-task-section research-package-task" aria-labelledby="research-package-export-title" tabIndex={-1}><h2 className="card-title" id="research-package-export-title"><ActionIcon name="export" />Export selected research</h2>
         {sourceContext && <div className="research-export-source" role="region" aria-label="Export source context">
           <p><strong>Opened from {sourceContext.root.type === "sample" ? "Sample" : "Project"}</strong>
             {" "}{sourceContext.root.label || sourceContext.root.id}</p>
           <div className="research-export-source-actions">
-            {sourceContext.processingPath && <Link to={sourceContext.processingPath}>Back to processing</Link>}
-            <Link to={sourceContext.sourcePath} aria-label={sourceContext.processingPath ? "Open source sample" : undefined}>
-              {sourceContext.processingPath ? "Sample archive" : `Back to source ${sourceContext.root.type}`}</Link>
+            {sourceContext.processingPath && <Link to={sourceContext.processingPath} aria-label="Back to processing" title="Back to processing"><ActionIcon name="arrow-left" /><span className="research-source-action-label">Back to processing</span></Link>}
+            <Link to={sourceContext.sourcePath} aria-label={sourceContext.processingPath ? "Open source sample" : `Back to source ${sourceContext.root.type}`} title={sourceContext.processingPath ? "Sample archive" : `Back to source ${sourceContext.root.type}`}>
+              <ActionIcon name={sourceContext.processingPath ? "open" : "arrow-left"} /><span className="research-source-action-label">{sourceContext.processingPath ? "Sample archive" : `Back to source ${sourceContext.root.type}`}</span></Link>
           </div>
           {sourceQueryChanged && <p className="research-export-context-notice" role="status">The link context changed. Your existing export draft has been kept; review the roots below.</p>}
           <p className="muted">{researchExportScopeMatches(sourceContext, rootText)
@@ -646,32 +649,32 @@ export function ResearchPackagesPage() {
               <option value="data_package">Native data package</option><option value="report">Offline HTML and Markdown report</option></select></label>
             <label>Sample and Project roots<textarea rows={3} value={rootText} placeholder="sample:record-id or project:record-id, one per line"
               onChange={event => { setRootText(event.target.value); setExportPreview(null); }} required /></label>
-          </div><button ref={exportPreviewButton} className="button" type="submit">Preview export</button></fieldset>
+          </div><button ref={exportPreviewButton} className={`button research-action${exportPreview ? "" : " primary"}`} type="submit"><ActionIcon name="preview" /><span>Preview export</span></button></fieldset>
         </form>
         {exportPreview && <><Preview value={exportPreview} />
           {!exportCapability?.available && <ul>{exportCapability?.reasons.map(code => <li key={code}>{reasonText(code)}</li>)}</ul>}
           {kind === "data_package" && !exportPreview.complete && <p className="warning-card">This scope cannot produce a complete native package. Export an available report or resolve the missing dependencies.</p>}
-          <button ref={startButton} className="button primary" disabled={blocked || !exportCapability?.available || kind === "data_package" && !exportPreview.complete}
+          <button ref={startButton} className="button primary research-action" disabled={blocked || !exportCapability?.available || kind === "data_package" && !exportPreview.complete}
             onClick={event => { const origin = event.currentTarget; void act(async signal => {
               const intent = beginPageFocus("start", origin, signal), receipt = await startExport(signal);
               if (intent && returnPageFocus.current === intent && receipt) intent.receipt = receipt;
-            }); }}>Start {kind === "report" ? "report" : "data package"} export</button></>}
+            }); }}><ActionIcon name="play" /><span>Start {kind === "report" ? "report" : "data package"} export</span></button></>}
       </section>
-      <section id="research-package-import" className="card storage-settings-section settings-task-section" aria-labelledby="research-package-import-title" tabIndex={-1}><h2 className="card-title" id="research-package-import-title">Import a native data package</h2>
+      <section id="research-package-import" className="card storage-settings-section settings-task-section research-package-task" aria-labelledby="research-package-import-title" tabIndex={-1}><h2 className="card-title" id="research-package-import-title"><ActionIcon name="upload" />Import a native data package</h2>
         <p className="muted">Native research packages create fresh business identities and retain source provenance. Existing readable ZIPs, FabuBlox workbooks and whole-installation backups are separate formats.</p>
         <p className="muted">Select a native ZIP up to 100 MiB. Full format and size limits are in Package limits and execution details below.</p>
         <label>Native package ZIP<input ref={packageFileInput} type="file" accept=".zip,application/zip" disabled={blocked || executor?.supported === false || !!upload && currentUpload?.state !== "awaiting_upload"}
           onChange={event => setFile(event.target.files?.[0] || null)} /></label>
         {upload && currentUpload?.state === "awaiting_upload" && <p className="muted">The accepted upload is waiting for bytes. After reload or interruption, reselect the original {size(upload.input.byteSize)} ZIP; its streaming hash must match.</p>}
-        <div className="storage-candidate-actions"><button className="button" disabled={blocked || !file || executor?.supported === false}
-          onClick={() => void act(prepareUpload)}>{upload ? "Resume original upload" : "Upload and validate package"}</button>
-          {upload && <button className="button" disabled={busy} onClick={() => void act(signal => refresh(signal, true), true)}>Check uploaded package</button>}</div>
+        <div className="storage-candidate-actions"><button className={`button research-action${importPreview ? "" : " primary"}`} disabled={blocked || !file || executor?.supported === false}
+          onClick={() => void act(prepareUpload)}><ActionIcon name="upload" /><span>{upload ? "Resume original upload" : "Upload and validate package"}</span></button>
+          {upload && <button className="button research-action research-action--mobile-icon" aria-label="Check uploaded package" title="Check uploaded package" disabled={busy} onClick={() => void act(signal => refresh(signal, true), true)}><ActionIcon name="check" /><span className="research-action-label">Check uploaded package</span></button>}</div>
         {upload && <p className="muted">Validation job: <code>{upload.jobId}</code>. Upload interruption does not authorize a new copy or discard accepted work.</p>}
         {upload && currentUpload?.state === "preview" && <><label>Imported name suffix<input maxLength={32} value={suffix} disabled={blocked}
           onChange={event => { setSuffix(event.target.value); setImportPreview(null); }} /></label>
-          <button ref={importReviewButton} className="button" disabled={blocked} onClick={() => void act(async signal => {
+          <button ref={importReviewButton} className="button research-action research-action--mobile-icon" aria-label="Refresh import preview" title="Refresh import preview" disabled={blocked} onClick={() => void act(async signal => {
             const value = await researchPackagesClient.preview(upload.jobId, suffix, signal); if (currentOperation(signal)) setImportPreview(value);
-          })}>Refresh import preview</button></>}
+          })}><ActionIcon name="refresh" /><span className="research-action-label">Refresh import preview</span></button></>}
         {importPreview && <>
           <Preview value={importPreview} />
           {!mayImport && <><p className="warning-card">Import is blocked. Missing mandatory files, unresolved references and unsupported partial states are not silently published.</p>
@@ -679,15 +682,15 @@ export function ResearchPackagesPage() {
             <ul>{importPreview.capabilities.dataPackage.reasons.map(code => <li key={code}>{reasonText(code)}</li>)}</ul></>}
           {importPreview.existingImportJobId && <p className="muted">This validated package has an earlier accepted copy: <code>{importPreview.existingImportJobId}</code>.
             {" "}The ordinary action returns its saved state, including cancellation. Use Import another copy for fresh work.</p>}
-          <div className="storage-candidate-actions"><button className="button primary" disabled={blocked || !mayImport} onClick={() => void act(signal => startImport(signal, false))}>
-            {importPreview.existingImportJobId ? "Open existing import" : "Import research copy"}</button>
-            {importPreview.existingImportJobId && <button className="button" disabled={blocked || !mayImport} onClick={() => void act(signal => startImport(signal, true))}>Import another copy</button>}</div>
+          <div className="storage-candidate-actions"><button className="button primary research-action" disabled={blocked || !mayImport} onClick={() => void act(signal => startImport(signal, false))}>
+            <ActionIcon name={importPreview.existingImportJobId ? "open" : "upload"} /><span>{importPreview.existingImportJobId ? "Open existing import" : "Import research copy"}</span></button>
+            {importPreview.existingImportJobId && <button className="button research-action" disabled={blocked || !mayImport} onClick={() => void act(signal => startImport(signal, true))}><ActionIcon name="plus" /><span>Import another copy</span></button>}</div>
         </>}
         {upload && <p><button className="text-button" disabled={blocked}
           onClick={() => { try { saveUpload(null); setImportPreview(null); setFile(null); } catch (error) { reportFailure(error); } }}>Select another package</button>
           <small className="muted"> Changing this selection does not cancel saved jobs.</small></p>}
       </section>
-      <section id="research-package-work" className="card storage-settings-section settings-task-section" aria-labelledby="research-package-work-title" tabIndex={-1}><h2 className="card-title" id="research-package-work-title">Saved package work</h2>
+      <section id="research-package-work" className="storage-settings-section settings-task-section research-package-work" aria-labelledby="research-package-work-title" tabIndex={-1}><h2 className="card-title" id="research-package-work-title"><ActionIcon name="history" />Saved package work</h2>
         <p className="muted">Work persists when the browser closes. Pause and cancel take effect at a safe boundary; cancellation retains committed copies. Cleanup is separate and does not remove published research.</p>
         {!jobsLoaded && readPhase === "error" && <p className="muted">Saved package work has not been read. Refresh status to check it.</p>}
         {jobsLoaded && readPhase !== "ready" && jobs.length > 0 && <p className="muted">{readPhase === "error"
@@ -724,8 +727,8 @@ export function ResearchPackagesPage() {
           <p className="muted">Original requests remain available after acceptance or explicit fresh review. Checking a saved receipt does not start another operation.</p>
           <ul className="storage-profile-list">{earlier.map(row => <li key={row.intent.input.requestId}><code>{row.intent.input.requestId}</code>
             {row.receipt && <p>{jobNames[row.receipt.job.kind]} receipt retained.</p>}
-            <button className="button" aria-label={`Check earlier package request ${row.intent.input.requestId}`} disabled={busy}
-              onClick={() => void act(signal => checkEarlier(row, signal))}>Check saved receipt</button></li>)}</ul>
+            <button className="button research-action" aria-label={`Check earlier package request ${row.intent.input.requestId}`} disabled={busy}
+              onClick={() => void act(signal => checkEarlier(row, signal))}><ActionIcon name="check" /><span>Check saved receipt</span></button></li>)}</ul>
         </section> : null}
       </section>
       <details className="research-package-technical-details">
