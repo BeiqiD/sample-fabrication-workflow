@@ -1,3 +1,67 @@
+## 2026-10-27 — Data and recovery task flow
+
+This follow-up keeps the Settings shell and organizes the two long operation
+pages by task. The real-browser baseline placed Preview export at document
+y=889px on desktop and y=1287px on a 390px phone. Preview system backup was at
+y=1282px and y=1985px respectively. Runtime explanations and maintenance controls
+preceded the main forms, while earlier receipts and saved jobs were separated.
+
+Data now groups Export, Import and Saved work. Recovery groups Backup, Validate
+archive, Saved work, Maintenance and Executor. Native page-fragment links target
+focusable sections with a sticky-header scroll margin. Every form, selected file,
+acknowledgement and job stays mounted; navigation does not fetch or submit work.
+Earlier receipts remain accessible alongside their page's saved work. Cross-page
+related tools follow the task sections, so they remain available without taking
+the place of the primary task links near the top of the page.
+
+The first status area keeps execution availability, maintenance and unknown
+operation results visible. Static archive limits, heartbeats and deployment
+explanations move into technical details. Maintenance and executor actions remain
+expanded in their own sections. Paused execution still permits accepted queued
+work. Ordinary backups still follow the runtime's existing fence policy and do
+not require a recovery target. Original request reconciliation, owner checkpoints
+and source-resume generation checks retain their existing behavior.
+
+These are **Comfortable** Settings surfaces. The shared task links and technical
+disclosures have a minimum 40px target, using existing color tokens. Styles are
+owned by `settings-tasks.css` and the two route stylesheets. Process/Project
+geometry, the primary Settings navigation, backend contracts and job admission
+rules are outside this change.
+
+Real Chromium acceptance of product source `c518b5e` passed 12 page observations,
+10 native task/draft/file interactions, 12 footer checks with 11 actual keyboard
+cross-page activations, and two native acceptance/transport-loss/reconciliation
+cases. Administrator and reader were compared at 1440px light and 390px dark;
+administrator cases additionally cover 1024px light and 360px dark. All owned
+resources closed. The final 120-file client manifest SHA-256 is
+`eb01aa4b09776f40e23afe9210fc4da5cb4b6eb0dcfbc6af8dddb07f2825a931`.
+
+| Administrator primary preview | Before | Final |
+| --- | ---: | ---: |
+| Data, 1440px | 889px | 735px |
+| System, 1440px | 1282px | 797px |
+| Data, 390px | 1287px | 1049px |
+| System, 390px | 1985px | 1103px |
+
+Both desktop previews fit fully in the 900px viewport. Mobile previews still
+require scrolling; the task links are in the first viewport at y=653px for Data
+and y=723/769px for Recovery. Tab/Enter reaches the native targets clear of the
+sticky header. Draft/File retention is promised for same-page task jumps;
+cross-page related links retain their normal page-unmount behavior.
+
+The two unknown-result cases accepted real small queued jobs before transport
+was interrupted, then used the original GET receipt to recover the same job,
+actor, input and accepted timestamp without another acceptance POST. No scheduler
+ran. Two expected network-failure diagnostics were isolated; there were no
+unexpected console/page/proxy errors, provider calls or browser writes. These
+are local owned-runtime checks, not deployed-provider or scheduled-execution
+acceptance.
+
+Mounted regressions also protect maintenance summaries after an explicit status
+GET: the summary follows the same saved maintenance state as its controls while
+the original unknown request remains unresolved. Open maintenance with active
+writers is described accurately and retains ordinary-backup admission behavior.
+
 ## 2026-10-23 — Settings information architecture
 
 The Settings navigation candidate starts at `47b5f8f`. It addresses the requested

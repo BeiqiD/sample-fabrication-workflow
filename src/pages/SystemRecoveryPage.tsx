@@ -19,6 +19,7 @@ import {
 import { hashResearchFile } from "../../shared/domain/research-sha256";
 import { systemRecoveryClient, systemRecoveryErrorMessage, SystemRecoveryRequestError, SystemRecoveryRequestMissingError } from "../lib/system-recovery-client";
 import { ReadStatus } from "../components/ReadStatus";
+import { SettingsTaskNavigation } from "../components/SettingsTaskNavigation";
 import "./storage-settings.css";
 import "./system-recovery.css";
 
@@ -676,8 +677,6 @@ export function SystemRecoveryPage() {
     <div className="page-heading"><div><p className="eyebrow">Settings</p><h1>System backup and recovery</h1>
       <p className="lead">Preserve installation identities and history, then verify recovery in an isolated target before an administrator prepares a deployment handoff.</p></div>
       <button className="button" disabled={busy || denied} onClick={() => void act(signal => refresh(signal, true), true)}>Refresh recovery status</button></div>
-    <nav className="system-recovery-navigation" aria-label="Related recovery tools"><Link to="/settings/data">Research packages and reports</Link>
-      <Link to="/settings/storage">Storage settings</Link><Link to="/export">Content archive</Link></nav>
     {message && (denied || !messageError) && <p ref={messageTarget} role={denied ? "alert" : "status"} tabIndex={-1}>{message}</p>}
     <ReadStatus loading={readPhase === "loading" && !denied} loadingMessage="Reading administrator recovery access…"
       error={!denied ? readError : null} errorTitle="Recovery status unavailable"
@@ -687,52 +686,22 @@ export function SystemRecoveryPage() {
     {denied ? <section className="card storage-settings-section"><h2 className="card-title">Administrator access required</h2>
       <p>Sign in with a verified system administrator account to create backups or recover an installation. Saved operation identifiers remain available for reconciliation after access is restored.</p></section>
       : capability?.canManage && <>
-      <section className="card storage-settings-section"><h2 className="card-title">Recovery runtime</h2>
+      <section className="card storage-settings-section system-recovery-status" aria-labelledby="system-recovery-status-title">
+        <h2 className="card-title" id="system-recovery-status-title">Recovery status</h2>
         <p>{!capability.supported ? "System recovery is unavailable on this runtime." : !capability.enabled ? "Independent execution is paused." : capability.stale ? "Execution is enabled, but no recent heartbeat was recorded." : "Independent execution is enabled."}</p>
-        {capability.reason && <p className="muted">{reasonText(capability.reason)}.</p>}
-        <p className="muted">Saved work persists after the browser closes. Refreshing and polling only read status. Supported ZIP limits: 100 MiB total, 96 MiB file content, 100 physical files and 4 MiB metadata; each execution step is bounded to 60 seconds.</p>
-        <p>Isolated target: {capability.target.configured ? <code>{capability.target.id}</code> : "Not configured"}. Source maintenance: {reasonText(capability.maintenance.state)}.</p>
-        <p className="muted">Target provisioning, authentication, encryption roots and database binding activation are deployment responsibilities. {preserveProfiles
-          ? "Recovered files are staged in the isolated target's inert local volume; source profile evidence is retained."
-          : "Storage mappings allocate isolated recovery keys and never overwrite source objects."}</p>
-        <p><Link to="/settings/storage/migrations">Administrator executor controls</Link></p>
-        <div className="storage-candidate-actions"><button className="button" disabled={blocked || !capability.supported || executorUncertain} onClick={() => void act(async signal => {
-          try {
-            const value = await systemRecoveryClient.configureExecutor(!capability.enabled, signal);
-            if (currentOperation(signal)) { invalidateReads(); setCapability(value); capabilityRef.current = value; setMessage("Executor configuration saved. Paused jobs require explicit resume; this action did not replay old work."); }
-          } catch (error) { if (currentOperation(signal)) setExecutorUncertain(true); throw error; }
-        })}>{capability.enabled ? "Disable system recovery executor" : "Enable system recovery executor"}</button></div>
-        {executorUncertain && <p className="warning-card">Executor configuration is unconfirmed. Refresh its saved state before changing it again.</p>}
-      </section>
-      <section className="card storage-settings-section"><h2 className="card-title">Source maintenance window</h2>
-        <p className="muted">{capability.policy.backupMaintenance === "always"
-          ? "This runtime requires a fenced and drained source for every system backup, including historical backups. A recovery target is optional for creating a backup."
-          : "Ordinary historical backups do not require a maintenance window. Planned migration requires a fenced and drained source before the final snapshot."} Stop new source writes, drain accepted work, then confirm the fence. Reads remain available where safe.</p>
-        {maintenance && <><p>State: {reasonText(maintenance.state)}. Active accepted writers: {maintenance.activeWriters}. Generation: {maintenance.generation}.</p>
-          {maintenance.checkpoint && <p className="muted">Frozen source checkpoint: <code>{maintenance.checkpoint}</code>.</p>}
-          <div className="storage-candidate-actions"><button className="button" disabled={blocked || !capability.target.configured && !capability.policy.maintenanceWithoutTarget || maintenance.state !== "open"} onClick={() => void act(signal => beginMaintenance("enter", signal))}>Stop new source writes</button>
-            <button className="button" disabled={blocked || maintenance.state !== "draining" || maintenance.activeWriters !== 0} onClick={() => void act(signal => beginMaintenance("finalize", signal))}>Confirm drained source fence</button>
-            <button className="button" disabled={blocked || maintenance.state === "open"} onClick={() => void act(signal => beginMaintenance("release", signal))}>Release source maintenance window</button></div>
-          <p className="muted">Unknown provider writes must settle positively. Expired leases never force a writer to be considered drained.</p></>}
-        {capability.policy.sourceResume && <div className="system-recovery-handoff">
-          <h3>Resume the original source</h3>
-          <p>Releasing maintenance does not enable source writes on this runtime. After a completed backup and its accepted release, pause the recovery executor and let accepted work settle before explicitly resuming the unchanged original source. Shadow conversion and file jobs stay paused.</p>
-          {sourceRelease && <p>Released window: <code>{sourceRelease.release.requestId}</code>. Backup: <code>{sourceRelease.backupJobId}</code>.</p>}
-          <button className="button" disabled={blocked || !mayResumeSource} onClick={() => void act(async signal => {
-            if (!sourceRelease || !mayResumeSource) return;
-            const input = checkedSystemRecoverySourceResumeInput({ requestId: crypto.randomUUID(), releaseRequestId: sourceRelease.release.requestId,
-              backupJobId: sourceRelease.backupJobId, expectedGeneration: sourceRelease.release.status.generation });
-            rememberSourceResume(input); await submitSourceResume(input, signal, true);
-          }, false, true)}>Resume source writes after backup</button>
-          {!sourceRelease && <p className="muted">Create a backup in this maintenance window, then release the window to retain its source resume identifiers.</p>}
-        </div>}
-        {pendingSourceResume && <><p className="warning-card">Source resume request <code>{pendingSourceResume.requestId}</code> is unconfirmed. Its original release, backup and generation are retained.</p>
-          <button className="button" disabled={busy} onClick={() => void act(signal => reconcileSourceResume(signal, true), false, true)}>Check or retry original source resume request</button></>}
-        {pendingMaintenance && <><p className="warning-card">The {pendingMaintenance.action} maintenance request <code>{pendingMaintenance.requestId}</code> is unconfirmed. Review current state before retrying its original identifier.</p>
-          <button className="button" disabled={busy} onClick={() => void act(async signal => {
-            const value = await systemRecoveryClient.maintenance(signal); if (currentOperation(signal)) setMaintenance(value);
-          })}>Read source maintenance state</button>
-          <button className="button" disabled={busy} onClick={() => void act(signal => reconcileMaintenance(signal, true))}>Check or retry original maintenance request</button></>}
+        {capability.reason && !(capability.supported && !capability.enabled && capability.reason === "executor_disabled")
+          && !(!capability.supported && capability.reason === "runtime_unsupported") && <p className="muted">{reasonText(capability.reason)}.</p>}
+        <dl className="system-recovery-status-facts">
+          <div><dt>Isolated target</dt><dd>{capability.target.configured ? <code>{capability.target.id}</code> : "Not configured"}</dd></div>
+          <div><dt>Source maintenance</dt><dd>{reasonText(maintenance?.state ?? capability.maintenance.state)}</dd></div>
+        </dl>
+        {maintenance && (maintenance.state !== "open" || maintenance.activeWriters > 0) && <p className="warning-card">
+          Source maintenance is {reasonText(maintenance.state)}. Accepted writers still active: {maintenance.activeWriters}. <a href="#system-recovery-maintenance">Review source maintenance</a>.
+        </p>}
+        {capability.policy.backupMaintenance === "always" && <p className="muted">This runtime requires a drained source fence before every system backup. <a href="#system-recovery-maintenance">Review maintenance before starting</a>.</p>}
+        {sourceRelease && <p className="muted">A source-release record is retained. <a href="#system-recovery-maintenance">Review its backup and maintenance generation</a> before resuming source writes.</p>}
+        <p className="muted">Saved work persists after the browser closes. Refreshing and polling only read status.</p>
+        {executorUncertain && <p className="warning-card">Recovery executor settings need confirmation. Refresh recovery status before changing execution or resuming source writes. <a href="#system-recovery-executor">Review executor configuration</a>.</p>}
       </section>
       {pending && <section className="card storage-settings-section"><h2 className="card-title">Unconfirmed operation</h2>
         <p>The {pending.action} request <code>{pending.input.requestId}</code> is retained. Check its saved receipt before starting another operation.</p>
@@ -740,13 +709,25 @@ export function SystemRecoveryPage() {
         {receiptMissing && <button className="button" disabled={busy} onClick={event => requestAction(event.currentTarget, signal => reconcile(signal, true))}>Retry original recovery request</button>}
         {receiptMissing && rejected && sameIntent(rejected, pending) && <button className="button" disabled={busy} onClick={event => requestAction(event.currentTarget, reviewNewOperation, true)}>Review new recovery work</button>}
       </section>}
+      {(pendingMaintenance || pendingSourceResume) && <section className="card storage-settings-section" aria-labelledby="system-recovery-source-attention-title">
+        <h2 className="card-title" id="system-recovery-source-attention-title">Unconfirmed source operation</h2>
+        {pendingSourceResume && <><p className="warning-card">Source resume request <code>{pendingSourceResume.requestId}</code> is unconfirmed. Its original release, backup and generation are retained.</p>
+          <button className="button" disabled={busy} onClick={() => void act(signal => reconcileSourceResume(signal, true), false, true)}>Check or retry original source resume request</button></>}
+        {pendingMaintenance && <><p className="warning-card">The {pendingMaintenance.action} maintenance request <code>{pendingMaintenance.requestId}</code> is unconfirmed. Review current state before retrying its original identifier.</p>
+          <button className="button" disabled={busy} onClick={() => void act(async signal => {
+            const value = await systemRecoveryClient.maintenance(signal); if (currentOperation(signal)) setMaintenance(value);
+          })}>Read source maintenance state</button>
+          <button className="button" disabled={busy} onClick={() => void act(signal => reconcileMaintenance(signal, true))}>Check or retry original maintenance request</button></>}
+      </section>}
       {earlier === null && <p role="alert">Saved recovery request history could not be read. Restore its browser checkpoints before starting new work.</p>}
-      {!!earlier?.length && <section className="card storage-settings-section"><h2 className="card-title">Earlier recovery requests</h2>
-        <p>Complete earlier operation inputs remain in this browser session. Status checks only read their saved receipts; absence does not cancel work in another tab.</p>
-        <ul>{earlier.map(row => <li key={row.intent.input.requestId}><code>{row.intent.input.requestId}</code> · {row.intent.action}{row.jobId && <> · <code>{row.jobId}</code></>}
-          <button className="button" disabled={busy} onClick={event => requestAction(event.currentTarget, signal => checkEarlier(row, signal))}>Check earlier recovery request {row.intent.input.requestId}</button>
-        </li>)}</ul></section>}
-      <section className="card storage-settings-section"><h2 className="card-title">Create a system backup</h2>
+      <SettingsTaskNavigation label="Recovery tasks" items={[
+        { id: "system-backup-create", label: "Backup" },
+        { id: "system-recovery-prepare", label: "Validate archive" },
+        { id: "system-recovery-work", label: "Saved work" },
+        { id: "system-recovery-maintenance", label: "Maintenance" },
+        { id: "system-recovery-executor", label: "Executor" },
+      ]} />
+      <section className="card storage-settings-section settings-task-section" id="system-backup-create" aria-labelledby="system-backup-create-title" tabIndex={-1}><h2 className="card-title" id="system-backup-create-title">Create a system backup</h2>
         <p className="muted">Includes canonical identities, history, recoverable deletion states, promised files and eligible protected settings. Encrypted external credentials require a separately provisioned recovery key. Protect the downloaded archive accordingly.</p>
         <label>System backup mode<select value={backupMode} disabled={blocked} onChange={event => { setBackupMode(event.target.value as "historical" | "planned"); setBackupPreview(null); }}>
           <option value="historical">Ordinary historical backup</option><option value="planned">Final planned migration snapshot</option></select></label>
@@ -767,7 +748,7 @@ export function SystemRecoveryPage() {
             remember(intent); await submit(intent, signal, true);
           })}>Start durable system backup</button></>}
       </section>
-      <section className="card storage-settings-section"><h2 className="card-title">Validate a recovery archive</h2>
+      <section className="card storage-settings-section settings-task-section" id="system-recovery-prepare" aria-labelledby="system-recovery-prepare-title" tabIndex={-1}><h2 className="card-title" id="system-recovery-prepare-title">Validate a recovery archive</h2>
         <p className="muted">System backup and supported historical content ZIPs preserve identities. Research-copy packages and reports use their separate import flow. Validation does not replace the live database.</p>
         <label>System recovery ZIP<input type="file" accept=".zip,application/zip" disabled={blocked || !capability.supported || !!upload && currentUpload?.state !== "awaiting_upload"}
           onChange={event => setFile(event.target.files?.[0] || null)} /></label>
@@ -813,9 +794,14 @@ export function SystemRecoveryPage() {
             <button className="button primary" disabled={blocked || !cutoverAcknowledged || !cutoverJob.result.ready || !preview?.canCutover || reportJobId !== cutoverJob.id}
               onClick={() => void act(prepareCutover)}>Prepare reviewed cutover handoff</button></>}</div>
       </section>}
-      <section className="card storage-settings-section"><h2 className="card-title">Saved system work</h2>
+      <section className="card storage-settings-section settings-task-section" id="system-recovery-work" aria-labelledby="system-recovery-work-title" tabIndex={-1}><h2 className="card-title" id="system-recovery-work-title">Saved system work</h2>
         <p className="muted">Pause, retry and cancellation act at safe boundaries. Cleanup removes only this job's eligible artifacts; it does not delete source files or published recovery data.
           {!capability.policy.recoveryCleanup && " Recovery targets and their verification ledger are retained; cleanup is available only for backup and upload jobs."}</p>
+      {!!earlier?.length && <section className="system-recovery-earlier-requests"><h3 className="card-title">Earlier recovery requests</h3>
+        <p>Complete earlier operation inputs remain in this browser session. Status checks only read their saved receipts; absence does not cancel work in another tab.</p>
+        <ul>{earlier.map(row => <li key={row.intent.input.requestId}><code>{row.intent.input.requestId}</code> · {row.intent.action}{row.jobId && <> · <code>{row.jobId}</code></>}
+          <button className="button" disabled={busy} onClick={event => requestAction(event.currentTarget, signal => checkEarlier(row, signal))}>Check earlier recovery request {row.intent.input.requestId}</button>
+        </li>)}</ul></section>}
         {!jobsLoaded && readPhase === "error" && <p className="muted">Saved system work has not been read. Refresh recovery status to check it.</p>}
         {jobsLoaded && readPhase !== "ready" && jobs.length > 0 && <p className="muted">{readPhase === "error"
           ? "Showing previously read system work. Its current status could not be refreshed."
@@ -838,6 +824,52 @@ export function SystemRecoveryPage() {
           setCutoverAcknowledged(false); setCutoverJob(job); await loadReport(job.id, signal);
         })} />)}
       </section>
+      <section className="card storage-settings-section settings-task-section" id="system-recovery-maintenance" aria-labelledby="system-recovery-maintenance-title" tabIndex={-1}><h2 className="card-title" id="system-recovery-maintenance-title">Source maintenance window</h2>
+        <p className="muted">{capability.policy.backupMaintenance === "always"
+          ? "This runtime requires a fenced and drained source for every system backup, including historical backups. A recovery target is optional for creating a backup."
+          : "Ordinary historical backups do not require a maintenance window. Planned migration requires a fenced and drained source before the final snapshot."} Stop new source writes, drain accepted work, then confirm the fence. Reads remain available where safe.</p>
+        {maintenance && <><p>State: {reasonText(maintenance.state)}. Active accepted writers: {maintenance.activeWriters}. Generation: {maintenance.generation}.</p>
+          {maintenance.checkpoint && <p className="muted">Frozen source checkpoint: <code>{maintenance.checkpoint}</code>.</p>}
+          <div className="storage-candidate-actions"><button className="button" disabled={blocked || !capability.target.configured && !capability.policy.maintenanceWithoutTarget || maintenance.state !== "open"} onClick={() => void act(signal => beginMaintenance("enter", signal))}>Stop new source writes</button>
+            <button className="button" disabled={blocked || maintenance.state !== "draining" || maintenance.activeWriters !== 0} onClick={() => void act(signal => beginMaintenance("finalize", signal))}>Confirm drained source fence</button>
+            <button className="button" disabled={blocked || maintenance.state === "open"} onClick={() => void act(signal => beginMaintenance("release", signal))}>Release source maintenance window</button></div>
+          <p className="muted">Unknown provider writes must settle positively. Expired leases never force a writer to be considered drained.</p></>}
+        {capability.policy.sourceResume && <div className="system-recovery-handoff">
+          <h3>Resume the original source</h3>
+          <p>Releasing maintenance does not enable source writes on this runtime. After a completed backup and its accepted release, pause the recovery executor and let accepted work settle before explicitly resuming the unchanged original source. Shadow conversion and file jobs stay paused.</p>
+          {sourceRelease && <p>Released window: <code>{sourceRelease.release.requestId}</code>. Backup: <code>{sourceRelease.backupJobId}</code>.</p>}
+          <button className="button" disabled={blocked || !mayResumeSource} onClick={() => void act(async signal => {
+            if (!sourceRelease || !mayResumeSource) return;
+            const input = checkedSystemRecoverySourceResumeInput({ requestId: crypto.randomUUID(), releaseRequestId: sourceRelease.release.requestId,
+              backupJobId: sourceRelease.backupJobId, expectedGeneration: sourceRelease.release.status.generation });
+            rememberSourceResume(input); await submitSourceResume(input, signal, true);
+          }, false, true)}>Resume source writes after backup</button>
+          {!sourceRelease && <p className="muted">Create a backup in this maintenance window, then release the window to retain its source resume identifiers.</p>}
+        </div>}
+      </section>
+      <section className="card storage-settings-section settings-task-section" id="system-recovery-executor" aria-labelledby="system-recovery-executor-title" tabIndex={-1}>
+        <h2 className="card-title" id="system-recovery-executor-title">Executor configuration</h2>
+        <p className="muted">Manage independent recovery execution. Paused jobs require an explicit resume; changing the executor does not replay old work.</p>
+        <p><Link to="/settings/storage/migrations">Administrator executor controls</Link></p>
+        <div className="storage-candidate-actions"><button className="button" disabled={blocked || !capability.supported || executorUncertain} onClick={() => void act(async signal => {
+          try {
+            const value = await systemRecoveryClient.configureExecutor(!capability.enabled, signal);
+            if (currentOperation(signal)) { invalidateReads(); setCapability(value); capabilityRef.current = value; setMessage("Executor configuration saved. Paused jobs require explicit resume; this action did not replay old work."); }
+          } catch (error) { if (currentOperation(signal)) setExecutorUncertain(true); throw error; }
+        })}>{capability.enabled ? "Disable system recovery executor" : "Enable system recovery executor"}</button></div>
+        {executorUncertain && <p className="warning-card">Executor configuration is unconfirmed. Refresh its saved state before changing it again.</p>}
+        <details className="system-recovery-runtime-details"><summary>Runtime details and archive limits</summary>
+          <p className="muted">Supported ZIP limits: 100 MiB total, 96 MiB file content, 100 physical files and 4 MiB metadata; each execution step is bounded to 60 seconds.</p>
+          <p className="muted">Target provisioning, authentication, encryption roots and database binding activation are deployment responsibilities. {preserveProfiles
+            ? "Recovered files are staged in the isolated target's inert local volume; source profile evidence is retained."
+            : "Storage mappings allocate isolated recovery keys and never overwrite source objects."}</p>
+          {capability.lastHeartbeatAt && <p className="muted">Last heartbeat: <time dateTime={capability.lastHeartbeatAt}>{capability.lastHeartbeatAt}</time>.</p>}
+        </details>
+      </section>
     </>}
+    <div className="settings-related-tools"><p>Related tools</p>
+      <nav className="system-recovery-navigation" aria-label="Related recovery tools"><Link to="/settings/data">Research packages and reports</Link>
+        <Link to="/settings/storage">Storage settings</Link><Link to="/export">Content archive</Link></nav>
+    </div>
   </div>;
 }

@@ -156,6 +156,80 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); sessionStorage.clear(); });
 
 describe("privileged website system backup and recovery workflow", () => {
+  it("keeps a selected archive and backup mode while navigating between recovery tasks without starting work", async () => {
+    capability = { ...capability, enabled: false, reason: "executor_disabled" };
+    await mount();
+    const status = screen.getByRole("region", { name: "Recovery status" });
+    expect(within(status).getAllByText("Independent execution is paused.")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Preview system backup" }).matches(":disabled")).toBe(false);
+    const archive = new File([new Uint8Array(32)], "selected-backup.zip", { type: "application/zip" });
+    const fileInput = screen.getByLabelText("System recovery ZIP") as HTMLInputElement;
+    const modeInput = screen.getByLabelText("System backup mode") as HTMLSelectElement;
+    fireEvent.change(fileInput, { target: { files: [archive] } });
+    fireEvent.change(modeInput, { target: { value: "planned" } });
+    const navigation = within(screen.getByRole("navigation", { name: "Recovery tasks" }));
+    const originalUrl = window.location.pathname + window.location.search + window.location.hash;
+    const reads = network.mock.calls.length;
+    try {
+      fireEvent.click(navigation.getByRole("link", { name: "Saved work" }));
+      await waitFor(() => expect(window.location.hash).toBe("#system-recovery-work"));
+      fireEvent.click(navigation.getByRole("link", { name: "Backup" }));
+      await waitFor(() => expect(window.location.hash).toBe("#system-backup-create"));
+      expect(screen.getByLabelText("System recovery ZIP")).toBe(fileInput);
+      expect(fileInput.files?.[0]).toBe(archive);
+      expect(screen.getByLabelText("System backup mode")).toBe(modeInput);
+      expect(modeInput.value).toBe("planned");
+      expect(network.mock.calls).toHaveLength(reads);
+      expect(mutations()).toHaveLength(0);
+      expect(hashResearchFile).not.toHaveBeenCalled();
+    } finally { window.history.replaceState(null, "", originalUrl); }
+  });
+
+  it("keeps unconfirmed maintenance and unread work visible above new tasks while technical details are closed", async () => {
+    const input = { requestId: "maintenance-unconfirmed", action: "enter", expectedGeneration: 0 };
+    sessionStorage.setItem(maintenanceKey, JSON.stringify(input));
+    network.mockImplementation(async (path, options) => String(path) === `${base}/jobs` && options?.method === "GET"
+      ? json({}, 503) : fallback(path, options));
+    await mount();
+    await screen.findByText("Recovery status unavailable");
+    const attention = screen.getByRole("region", { name: "Unconfirmed source operation" });
+    const backup = screen.getByRole("region", { name: "Create a system backup" });
+    expect(attention.compareDocumentPosition(backup) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(attention).getByRole("button", { name: "Check or retry original maintenance request" })).toBeTruthy();
+    expect(attention.closest("details")).toBeNull();
+    expect(document.querySelector<HTMLDetailsElement>(".system-recovery-runtime-details")?.open).toBe(false);
+    expect(screen.getByText("Saved system work has not been read. Refresh recovery status to check it.")).toBeTruthy();
+    expect(screen.queryByText("No system backup or recovery jobs are recorded.")).toBeNull();
+    expect(screen.getByRole("button", { name: "Preview system backup" }).matches(":disabled")).toBe(true);
+    expect(JSON.parse(sessionStorage.getItem(maintenanceKey)!)).toEqual(input);
+    expect(mutations()).toHaveLength(0);
+  });
+
+  it("keeps recovery mappings and historical acknowledgement when jumping to executor configuration and back", async () => {
+    savedUpload(); await mount(); await screen.findByText("Complete backup");
+    const destination = screen.getByLabelText("Destination for source:r2") as HTMLInputElement;
+    const revision = screen.getByLabelText("Revision for source:r2") as HTMLInputElement;
+    const acknowledgement = screen.getByLabelText(/I understand that this recovers/) as HTMLInputElement;
+    fireEvent.change(destination, { target: { value: "target:s3" } });
+    fireEvent.change(revision, { target: { value: "3" } });
+    fireEvent.click(acknowledgement);
+    const navigation = within(screen.getByRole("navigation", { name: "Recovery tasks" }));
+    const originalUrl = window.location.pathname + window.location.search + window.location.hash;
+    const reads = network.mock.calls.length;
+    try {
+      fireEvent.click(navigation.getByRole("link", { name: "Executor" }));
+      await waitFor(() => expect(window.location.hash).toBe("#system-recovery-executor"));
+      fireEvent.click(navigation.getByRole("link", { name: "Validate archive" }));
+      await waitFor(() => expect(window.location.hash).toBe("#system-recovery-prepare"));
+      expect(screen.getByLabelText("Destination for source:r2")).toBe(destination);
+      expect(destination.value).toBe("target:s3"); expect(revision.value).toBe("3");
+      expect(screen.getByLabelText(/I understand that this recovers/)).toBe(acknowledgement);
+      expect(acknowledgement.checked).toBe(true);
+      expect(screen.getByRole("button", { name: "Stage isolated recovery" }).matches(":disabled")).toBe(false);
+      expect(network.mock.calls).toHaveLength(reads); expect(mutations()).toHaveLength(0);
+    } finally { window.history.replaceState(null, "", originalUrl); }
+  });
+
   it("keeps a resumed upload ACK when an older poll returns denial before its queued fresh read", async () => {
     vi.useFakeTimers(); savedUpload("awaiting_upload");
     let resolveList!: (value: Response) => void, resolveUpload!: (value: Response) => void, reads = 0;
@@ -292,9 +366,13 @@ describe("privileged website system backup and recovery workflow", () => {
     expect(JSON.parse(String(calls("/jobs", "POST")[0][1]?.body))).toEqual({ requestId: expect.any(String), kind: "backup", mode: "historical" });
     expect(calls("/recoveries", "POST")).toHaveLength(0);
   });
-  it("keeps Worker maintenance target admission while allowing ordinary backups without a target", async () => {
+  it("keeps Worker maintenance target admission while allowing ordinary backups with open source writers and no target", async () => {
     capability = { ...capability, target: { configured: false, id: null, mode: "fresh" } };
+    maintenance = { ...maintenance, activeWriters: 2 };
     await mount();
+    const status = screen.getByRole("region", { name: "Recovery status" });
+    expect(within(status).getByText(/Source maintenance is open\. Accepted writers still active: 2\./)).toBeTruthy();
+    expect(status.textContent).not.toMatch(/\bsettling\b|\bfenced\b/);
     expect(screen.getByRole("button", { name: "Stop new source writes" }).matches(":disabled")).toBe(true);
     fireEvent.click(await enabled("Preview system backup")); fireEvent.click(await enabled("Start durable system backup"));
     await screen.findByText(/Operation saved/); expect(calls("/maintenance", "POST")).toHaveLength(0);
@@ -334,6 +412,30 @@ describe("privileged website system backup and recovery workflow", () => {
     sessionStorage.setItem(maintenanceKey, JSON.stringify(input)); maintenance = { ...maintenance, state: "draining", generation: 1, token: "another-admin-enter" };
     await mount(); expect(sessionStorage.getItem(maintenanceKey)).not.toBeNull();
     expect(screen.getByText(/is unconfirmed\. Review current state/)).toBeTruthy(); expect(calls("/maintenance", "POST")).toHaveLength(0);
+  });
+  it("updates the maintenance summary from an explicit source read without inventing an acknowledgement from an older capability snapshot", async () => {
+    const input = { requestId: "unconfirmed-source-read", action: "enter", expectedGeneration: 0 };
+    sessionStorage.setItem(maintenanceKey, JSON.stringify(input));
+    const olderCapability = { ...capability, maintenance: { state: "open", checkpoint: null } };
+    network.mockImplementation(async (path, options) => String(path) === `${base}/capabilities` && options?.method === "GET"
+      ? json(olderCapability) : fallback(path, options));
+    await mount();
+    const status = screen.getByRole("region", { name: "Recovery status" });
+    const summaryState = within(status).getByText("Source maintenance", { selector: "dt" }).nextElementSibling;
+    expect(summaryState?.textContent).toBe("open");
+    const reads = calls("/maintenance", "GET").length;
+    maintenance = { ...maintenance, state: "fenced", generation: 2, token: "another-admin-enter", checkpoint: digest };
+    fireEvent.click(await enabled("Read source maintenance state"));
+    await waitFor(() => expect(summaryState?.textContent).toBe("fenced"));
+    expect(within(status).getByText(/Source maintenance is fenced\./)).toBeTruthy();
+    const controls = within(screen.getByRole("region", { name: "Source maintenance window" }));
+    expect(controls.getByText(/State: fenced\. Active accepted writers: 0\. Generation: 2\./)).toBeTruthy();
+    expect(controls.getByRole("button", { name: "Confirm drained source fence" }).matches(":disabled")).toBe(true);
+    expect(controls.getByRole("button", { name: "Release source maintenance window" }).matches(":disabled")).toBe(true);
+    expect(calls("/maintenance", "GET")).toHaveLength(reads + 1);
+    expect(JSON.parse(sessionStorage.getItem(maintenanceKey)!)).toEqual(input);
+    expect(screen.getByRole("button", { name: "Preview system backup" }).matches(":disabled")).toBe(true);
+    expect(mutations()).toHaveLength(0);
   });
   it.each([
     { route: "/maintenance", key: maintenanceKey, start: "Stop new source writes", retry: "Check or retry original maintenance request" },

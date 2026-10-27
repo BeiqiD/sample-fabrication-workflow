@@ -1,5 +1,15 @@
 .research-package-navigation, .research-package-context-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
 .research-package-navigation { margin: 20px 0; }
+.research-package-execution { padding: 16px 20px; }
+.research-package-execution-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 20px; }
+.research-package-execution-heading p { margin: 0; font-size: var(--font-body); }
+.research-package-execution > p, .research-package-execution > .muted { margin: 8px 0 0; font-size: var(--font-body); line-height: 1.5; }
+.research-package-history { margin-top: 26px; padding-top: 22px; border-top: 1px solid var(--line); }
+.research-package-history h3 { margin: 0 0 12px; font-size: var(--font-body); }
+.research-package-technical-details { margin-top: 26px; font-size: var(--font-body); }
+.research-package-technical-details summary { min-height: 40px; padding: 10px 0; cursor: pointer; color: var(--muted); width: fit-content; }
+.research-package-technical-details summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.research-package-technical-details p { max-width: 780px; line-height: 1.6; }
 .research-packages-page fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 .research-packages-page textarea { width: 100%; resize: vertical; }
 .research-package-preview { margin: 24px 0; }
