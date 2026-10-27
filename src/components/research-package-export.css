@@ -1,4 +1,5 @@
 .research-package-context-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .research-package-context-actions [aria-disabled=true] { opacity: .5; }
+.research-report-link[aria-disabled=true] { opacity: .5; }
 .processing-workspace-page .processing-report-action { display: grid; gap: 4px; justify-items: start; max-width: min(260px, 100%); }
 .processing-workspace-page .processing-report-action small { font-size: var(--font-meta); line-height: 1.4; overflow-wrap: anywhere; }

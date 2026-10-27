@@ -21,6 +21,8 @@ the source label, canonical links back to the source/archive and Processing, and
 an explicit notice if the user edits the export scope or changes link context.
 The actual preview still determines scope and requires deliberate acceptance;
 source labels and return metadata grant no authority and start no work.
+The standalone report action also owns its disabled appearance, so unresolved
+run selection cannot leave a visually enabled report action without a link.
 
 Return routes use enumerated local paths and encoded identifiers. A free-form
 return URL is never used. Same-page query changes retain drafts, selected files,

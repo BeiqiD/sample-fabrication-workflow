@@ -8,7 +8,7 @@ export function ResearchReportLink({ root, origin, disabled = false, compact = f
   root: ResearchPackageRoot; origin?: ProcessingExportOrigin; disabled?: boolean; compact?: boolean;
 }) {
   const href = researchExportHref(root, "report", origin);
-  const className = `button${compact ? " compact-button" : ""}`;
+  const className = `button research-report-link${compact ? " compact-button" : ""}`;
   return disabled || !href ? <span className={className} aria-disabled="true">Offline report</span>
     : <Link className={className} to={href} title={origin?.type === "processing"
       ? "Review a report of the primary sample's recorded history across its runs"
