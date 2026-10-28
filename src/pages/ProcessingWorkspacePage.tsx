@@ -657,7 +657,7 @@ export function ProcessingWorkspacePage() {
     <section className="execution-workspace">
       <div className="execution-heading">
         <div><h2>Samples in this view</h2><p>Use checked columns for common confirmation and comments. Every correction remains sample-specific.</p></div>
-        <button className="button primary" aria-expanded={showSamplePicker} aria-controls="sample-picker-popover" disabled={samples.length >= MAX_VISIBLE_SAMPLES || !selectedRunIsEditable} onClick={() => setShowSamplePicker((value) => !value)}>+ Add sample</button>
+        <button className="button primary core-toolbar-action core-toolbar-icon" aria-label="+ Add sample" title="Add sample to this view" aria-expanded={showSamplePicker} aria-controls="sample-picker-popover" disabled={samples.length >= MAX_VISIBLE_SAMPLES || !selectedRunIsEditable} onClick={() => setShowSamplePicker((value) => !value)}><ActionIcon name="plus" /><span className="core-action-label">Add sample</span></button>
       </div>
       <div className="visible-samples">
         {samples.map((item, index) => <div className="visible-sample" key={item.id}><strong>{item.title}</strong><small>{item.code}</small>{index > 0 && <button type="button" aria-label={`Remove ${item.title} (${item.code}) from view`} onClick={() => removeVisibleSample(item.id)}>×</button>}</div>)}
