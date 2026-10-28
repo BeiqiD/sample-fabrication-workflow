@@ -25,8 +25,19 @@ describe("template destructive confirmations", () => {
   });
 
   it("does not change established destructive button variants", () => {
-    expect(templatePage).toContain('className="button danger"');
-    expect(metrologyPage).toContain('className="button danger"');
-    expect(metrologyPage).toContain('className="text-button danger-text"');
+    for (const [page, openDialog, busy, label] of [
+      [templatePage, "setConfirmingRemoval(true)", "saving", /removalIsArchive\s*\?\s*"Archive"\s*:\s*"Delete"/],
+      [metrologyPage, "setConfirmingTemplateDeletion(true)", "deleting", /deleting\s*\?\s*"Deleting…"\s*:\s*"Delete"/],
+    ] as const) {
+      const trigger = [...page.matchAll(/<button\b[\s\S]*?<\/button>/g)]
+        .map(([button]) => button).find(button => button.includes(openDialog));
+      expect(trigger).toBeDefined();
+      const classes = trigger!.match(/className="([^"]+)"/)?.[1].split(/\s+/);
+      expect(classes).toEqual(expect.arrayContaining(["button", "danger"]));
+      expect(trigger).toContain(`disabled={${busy}}`);
+      expect(trigger).toMatch(label);
+    }
+    const metrologyClasses = [...metrologyPage.matchAll(/className="([^"]+)"/g)].map(([, classes]) => classes.split(/\s+/));
+    expect(metrologyClasses.some(classes => classes.includes("text-button") && classes.includes("danger-text"))).toBe(true);
   });
 });
