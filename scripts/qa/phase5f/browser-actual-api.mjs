@@ -169,7 +169,7 @@ if (compareEscape) {
 }
 if (selectedCase) assert(expectedCaseIds.includes(selectedCase), 'Unknown explicit case ID.');
 const report = { version: 1, scope: seed.project.large?.nodeCount === 250
-  ? 'One native current 250-node/400-relation mixed Project case, at 1200/light; original response bytes, controls, reference Details/navigation and readable ZIP. Zero browser domain mutations; no whole matrix, frame-rate, envelope or whole-5F claim.'
+  ? 'One native current 250-node/400-relation mixed Project case, at 1200/light; original response bytes, controls, reference Details/navigation, in-page Markdown draft cancellation and original attachment bytes. Zero browser domain mutations; no whole matrix, frame-rate, envelope or whole-5F claim.'
   : compareEscape
   ? 'One native Process Compare/Escape focus-return case, at 1200/light. Preview POSTs permitted; zero domain mutations. No full 20-case matrix or whole-5F completion claim.'
   : eightSamples
@@ -704,44 +704,49 @@ try {
           await page.waitForFunction(element => element.isConnected && document.activeElement === element, originalTrigger);
           referenceDetails.push({ itemId, sourceType: type, sourceId, originalDetailsTriggerRestored: true });
         }
-        const options = reading.locator('summary[aria-label="Reading options"]');
-        await options.focus(); await page.keyboard.press('Enter');
-        const exportButton = reading.getByRole('button', { name: 'Export readable ZIP', exact: true }); await enabled(exportButton);
-        const originalDownload = page.waitForEvent('download', { timeout: 20000 });
-        await exportButton.focus(); await page.keyboard.press('Enter');
-        const download = await originalDownload; assert.equal(await download.failure(), null);
-        assert(download.suggestedFilename().endsWith('.zip'));
-        const archivePath = resolve(output, `${representativeProjectCaseId}-reading.zip`);
-        await download.saveAs(archivePath);
-        const archiveBytes = await readFile(archivePath); assert(archiveBytes.length > 0 && archiveBytes.length < 2097152);
-        const zip = await bounded(runtimeRequire('jszip').loadAsync(archiveBytes, { checkCRC32: true }), 20000, 'Original browser readable ZIP decode');
-        assert(zip.file('manifest.json') && zip.file('reading.md'));
-        const manifest = JSON.parse(await bounded(zip.file('manifest.json').async('string'), BODY_OBSERVATION_TIMEOUT_MS, 'Original ZIP manifest'));
-        assert.equal(manifest.format, 'sample-fabrication-project-reading'); assert.equal(manifest.version, 1);
-        assert.equal(manifest.projectTitle, before.project.title); assert.equal(manifest.ordering, 'created_sequence');
-        assert.deepEqual(manifest.warnings, []); assert.equal(manifest.items.length, 250);
+        // Transfers now belong to Settings. This work-surface case deliberately
+        // verifies editing/cancellation and retained content instead of opening
+        // the retired Reading ZIP command. Archive encoding remains covered by
+        // src/lib/project-readable-export.test.ts; actual Settings downloads and
+        // byte/manifest readback live in genuine-worker-package-browser.mjs and
+        // browser-full-content-export.mjs, both run by recovery-browser.yml.
+        assert.equal(await reading.locator('summary[aria-label="Reading options"]').count(), 0);
+        assert.equal(await reading.getByRole('button', { name: /export|report|package/i, includeHidden: true }).count(), 0);
+        assert.equal(await reading.getByRole('link', { name: /data package|offline report/i, includeHidden: true }).count(), 0);
         const orderedItems = [...before.items].sort((a, b) => a.createdSequence - b.createdSequence || a.id.localeCompare(b.id));
-        assert.deepEqual(manifest.items.map(item => item.itemId), orderedItems.map(item => item.id));
+        const readingItems = reading.locator('[data-project-item-id]');
+        assert.deepEqual(await readingItems.evaluateAll(elements => elements.map(element => element.dataset.projectItemId)), orderedItems.map(item => item.id));
         const expectedKinds = orderedItems.map(item => {
-          if (item.itemType === 'reference') return 'reference';
+          if (item.itemType === 'reference') return 'Reference';
           const content = before.contents.find(content => content.id === item.projectContentId); assert(content);
-          return content.contentType;
+          return content.contentType === 'markdown' ? 'Project Markdown' : 'Project attachment';
         });
-        assert.deepEqual(manifest.items.map(item => item.kind), expectedKinds);
-        const attachment = manifest.items.find(item => item.kind === 'attachment');
-        assert(attachment && attachment.contentId === seed.project.attachmentContentId && attachment.relativeAttachmentPath);
-        const attachmentBytes = await bounded(zip.file(attachment.relativeAttachmentPath).async('nodebuffer'), BODY_OBSERVATION_TIMEOUT_MS, 'Original ZIP PNG bytes');
+        assert.deepEqual(await readingItems.locator(':scope > header > .meta-badge').allTextContents(), expectedKinds);
+        const originalNote = orderedItems.find(item => item.id === pins.originalMixedItemIds[0]); assert(originalNote);
+        const originalContent = before.contents.find(content => content.id === originalNote.projectContentId); assert(originalContent?.markdownSource);
+        const note = reading.locator(`[data-project-item-id="${originalNote.id}"]`);
+        const editNote = note.getByRole('button', { name: 'Edit Markdown', exact: true });
+        await editNote.scrollIntoViewIfNeeded(); await editNote.focus(); await page.keyboard.press('Enter');
+        const editor = note.getByRole('textbox', { name: 'Reading Markdown editor', exact: true }); await visible(editor);
+        assert.equal(await editor.inputValue(), originalContent.markdownSource);
+        await editor.fill(`${originalContent.markdownSource}\n\nLocal unsaved browser draft.`);
+        const cancelDraft = note.getByRole('button', { name: 'Cancel', exact: true });
+        await cancelDraft.focus(); await page.keyboard.press('Enter'); await absent(editor); await enabled(editNote);
+        assert(!(await note.innerText()).includes('Local unsaved browser draft.'));
+        const readingText = await reading.innerText();
+        assert(readingText.includes('5F mixed domain record') && readingText.includes('5F large note 250'));
+        const attachmentResponse = await fetch(new URL(`/api/projects/${seed.project.projectId}/contents/${seed.project.attachmentContentId}/file`, base),
+          { redirect: 'error', signal: AbortSignal.timeout(BODY_OBSERVATION_TIMEOUT_MS) });
+        assert.equal(attachmentResponse.status, 200);
+        const attachmentBytes = Buffer.from(await bounded(attachmentResponse.arrayBuffer(), BODY_OBSERVATION_TIMEOUT_MS, 'Original Project attachment bytes'));
         assert.equal(attachmentBytes.length, seed.project.attachmentByteSize); assert.equal(sha(attachmentBytes), seed.project.attachmentSha256);
-        for (const itemId of pins.originalMixedItemIds.slice(1, 3)) {
-          const item = before.items.find(item => item.id === itemId), reference = before.references.find(reference => reference.registryId === item.referenceTargetId);
-          assert(reference); assert.equal(manifest.items.find(item => item.itemId === itemId).referenceUrl, reference.resolution.destination.referenceUrl);
-        }
-        const readingMarkdown = await bounded(zip.file('reading.md').async('string'), BODY_OBSERVATION_TIMEOUT_MS, 'Original ZIP reading Markdown');
-        assert(readingMarkdown.includes('5F mixed domain record') && readingMarkdown.includes('5F large note 250'));
-        assert(readingMarkdown.includes('Open reference') && readingMarkdown.includes('attachments/'));
-        await visible(reading.getByRole('status').filter({ hasText: 'Readable ZIP exported.' }));
-        record.assertions.push({ actualReferenceDetails: referenceDetails, originalReadableZip: { byteSize: archiveBytes.length,
-          sha256: sha(archiveBytes), manifestItemCount: 250, pngSha256: sha(attachmentBytes), nativeDownload: true } });
+        record.assertions.push({ actualReferenceDetails: referenceDetails, focusedReading: { itemCount: 250,
+          nativeCreationOrderAndKindsPreserved: true, originalMarkdownReadInEditor: true, unsavedDraftCancelled: true,
+          duplicateTransferControlsAbsent: true, originalAttachmentSha256: sha(attachmentBytes) },
+          separateExportCoverage: { library: 'src/lib/project-readable-export.test.ts',
+            nativeSettingsPackage: 'scripts/qa/phase5f/genuine-worker-package-browser.mjs',
+            nativeSettingsContentArchive: 'scripts/qa/phase5f/browser-full-content-export.mjs',
+            retiredReadingZipBrowserEntry: true, executedByThisCase: false } });
       }
       const image = reading.locator(`img[src*="/contents/${seed.project.attachmentContentId}/file"]`);
       await image.scrollIntoViewIfNeeded(); await visible(image);
@@ -774,7 +779,7 @@ try {
         nativeSelectedItemId: visibleNode.id, mapInspectorNaturalFocus: true, mapEscapeReturnedToOriginalInspector: true,
         nativeZoomOutAndKeyboardFitView: true, readingControlFocusRetained: true, readingDetailsNaturalFocusAndOriginalReturn: true, actualPngDecoded: true,
         nativeSourceHrefs: hrefs, keyboardSourceNavigationAndBrowserBack: true, projectSnapshotUnchanged: true, nativeProjectWrites: 0,
-        scope: pins.nodeCount === 250 ? '250-node/400-relation native functional controls, original GET bytes, Reference Details/source navigation and readable ZIP; no frame-rate, 500/800 envelope, device or whole-5F claim.'
+        scope: pins.nodeCount === 250 ? '250-node/400-relation native functional controls, original GET bytes, Reference Details/source navigation, in-page draft cancellation and original attachment bytes; no frame-rate, 500/800 envelope, device or whole-5F claim.'
           : '200-node native functional controls; no frame-rate, 500-node envelope, physical-device or whole-5F completion claim.' });
     } finally {
       page.off('response', captureProjectBody);

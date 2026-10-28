@@ -87,7 +87,11 @@ describe("sample header actions", () => {
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.sample-header-action-buttons\s*\{[^}]*flex-wrap:\s*nowrap/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.responsive-icon-button\s*\{[^}]*width:\s*42px/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.responsive-icon-button \.responsive-action-label\s*\{[^}]*position:\s*absolute/);
-    expect(samplePage.match(/sample-header-secondary-action/g)).toHaveLength(2);
+    const secondaryActions = [...samplePage.matchAll(/<button\b[\s\S]*?<\/button>/g)]
+      .map(([button]) => button).filter(button => button.includes("sample-header-secondary-action"));
+    expect(secondaryActions).toHaveLength(1);
+    expect(secondaryActions[0]).toContain('aria-label="Split sample"');
+    expect(secondaryActions[0]).toContain('title="Split sample"');
     expect(samplePage).not.toMatch(/primary responsive-icon-button sample-header-secondary-action/);
   });
 });

@@ -8,7 +8,6 @@ import { MultiSampleRunGrid } from "../components/MultiSampleRunGrid";
 import { ProcessingActionIcon } from "../components/ProcessingActionIcon";
 import { ProcessingReferenceSourceFocus } from "../components/ReferenceSourceFocus";
 import { ReadStatus } from "../components/ReadStatus";
-import { ResearchReportLink } from "../components/ResearchPackageExport";
 import { RunActionMenu, type RunActionMenuItem } from "../components/RunActionMenu";
 import { StandaloneMetrologyDialog } from "../components/StandaloneMetrologyDialog";
 import { StartProcessRunDialog } from "../components/StartProcessRunDialog";
@@ -643,13 +642,7 @@ export function ProcessingWorkspacePage() {
     <Link className="back-link" to="/processing">← Processing</Link>
     <div className="sample-header">
       <div className="sample-header-copy"><p className="eyebrow">Processing · {sample.code}</p><h1>{sample.title}</h1><p className="lead">Execute the selected run; sample metadata and the permanent timeline stay in the sample archive.</p></div>
-      <div className="header-actions"><StatusPill status={sample.status} /><Link className="button" to={`/samples/${sample.id}`}>Open sample</Link>
-        <span className="processing-report-action">
-          <ResearchReportLink root={{ type: "sample", id: sample.id, label: `${sample.code} · ${sample.title}` }}
-            origin={{ type: "processing", sampleId: sample.id, runId: selectedRun?.id, additionalSampleIds: additionalIds }}
-            disabled={transitionBusy || requestedRunUnresolved} />
-          <small className="muted">All recorded runs for {sample.code} only.</small>
-        </span>
+      <div className="header-actions"><StatusPill status={sample.status} /><Link className="button responsive-icon-button" to={`/samples/${sample.id}`} aria-label="Open sample" title="Open sample"><ActionIcon name="open" /><span className="responsive-action-label">Open sample</span></Link>
       </div>
     </div>
     <ReadStatus loading={loading} error={error} loadingMessage="Loading processing workspace…" errorTitle="Could not load processing workspace" onRetry={() => void load()} />
@@ -664,7 +657,7 @@ export function ProcessingWorkspacePage() {
     <section className="execution-workspace">
       <div className="execution-heading">
         <div><h2>Samples in this view</h2><p>Use checked columns for common confirmation and comments. Every correction remains sample-specific.</p></div>
-        <button className="button primary" aria-expanded={showSamplePicker} aria-controls="sample-picker-popover" disabled={samples.length >= MAX_VISIBLE_SAMPLES || !selectedRunIsEditable} onClick={() => setShowSamplePicker((value) => !value)}>+ Add sample</button>
+        <button className="button primary core-toolbar-action core-toolbar-icon" aria-label="+ Add sample" title="Add sample to this view" aria-expanded={showSamplePicker} aria-controls="sample-picker-popover" disabled={samples.length >= MAX_VISIBLE_SAMPLES || !selectedRunIsEditable} onClick={() => setShowSamplePicker((value) => !value)}><ActionIcon name="plus" /><span className="core-action-label">Add sample</span></button>
       </div>
       <div className="visible-samples">
         {samples.map((item, index) => <div className="visible-sample" key={item.id}><strong>{item.title}</strong><small>{item.code}</small>{index > 0 && <button type="button" aria-label={`Remove ${item.title} (${item.code}) from view`} onClick={() => removeVisibleSample(item.id)}>×</button>}</div>)}

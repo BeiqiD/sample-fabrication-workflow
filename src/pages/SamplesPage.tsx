@@ -10,6 +10,7 @@ import {
   type SampleSummary,
 } from "../../shared/types";
 import { EmptyState } from "../components/EmptyState";
+import { ActionIcon } from "../components/ActionIcon";
 import { PaginationControls } from "../components/PaginationControls";
 import { ReadStatus } from "../components/ReadStatus";
 import { StatusPill } from "../components/StatusPill";
@@ -183,7 +184,7 @@ export function SamplesPage() {
   return <div className="page samples-page">
     <div className="page-heading">
       <div><p className="eyebrow">Permanent archive</p><h1>Samples</h1><p className="lead">Browse sample identity, location, processing state, and complete history.</p></div>
-      <div className="header-actions"><Link className="button primary" to="/samples/new">New sample</Link></div>
+      <div className="header-actions"><Link className="button primary core-toolbar-action core-toolbar-icon" to="/samples/new" aria-label="New sample" title="New sample"><ActionIcon name="plus" /><span className="core-action-label">New sample</span></Link></div>
     </div>
     <label className="search-box sample-directory-search">
       <span>Search</span>

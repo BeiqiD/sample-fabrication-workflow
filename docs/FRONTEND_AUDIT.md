@@ -1,3 +1,52 @@
+## 2026-10-28 — Focused daily workspaces
+
+The user requested smaller icons/buttons and daily Processing, Samples,
+Projects and Templates pages without duplicated Settings transfer tools.
+This explicitly revises the preceding 44px Sample toolbar experiment: core
+page chrome now uses Compact controls, while forms and execution cells retain
+their established roles.
+
+Sample has three header actions: processing, metrology and splitting. Its
+legacy ZIP, package and report buttons are removed. Processing has its run
+controls and a link to the Sample record; it no longer presents offline
+reporting. Project Reading retains online document/attachment editing and
+attachment access; its export toolbar/menu and download-only state are
+removed. Settings continues to own research packages, reports and full content
+archives. The older per-record ZIP UI is retired rather than reproduced in
+another toolbar; its library tests remain separate from Settings workflows.
+Existing typed report/package bookmarks still resolve through Data.
+
+Workbook import has one canonical page, `/settings/import-workbook`, in the
+Settings navigation and overview. `/templates?import=1` and
+`/imports/fabublox` replace-navigate there, retaining only directory search and
+pagination parameters. The original importer still owns identity, pending
+receipts and recovery. Acceptance opens the encoded Template route, where
+users can review/clone/edit versions and continue processing in the web app.
+The Templates directory no longer mounts an importer or offers a duplicate
+import button. Its introduction describes review, editing and reuse.
+
+Core header commands use 16px icons with approximately 32px desktop and 36px
+mobile buttons, with accessible names and visible keyboard focus. The Project
+Add caret remains 12px. Page titles are locally 32/28px; this does not rescale
+Settings or the Dense execution grid. The mobile Processing Add sample command
+sits beside its section heading rather than occupying a full extra row.
+Primary edit/save/destructive decisions retain explicit text. Sample details
+View/Edit sizing, operation admission, selected-run resolution and Project
+save reconciliation remain unchanged.
+
+Browser calibration uses owned native D1/R2 and signed Access, with matching
+fixture definitions before and after: eight core views at 1440px light,
+390px dark and 320px light, plus Settings routes and legacy redirects.
+Separate interaction fixtures verify in-page Markdown saving and a real Done
+transition through automatic run completion. No transfer is required for
+those workflows. Final screenshots and measurements are retained in the
+workspace review artifact with their source/build fingerprints.
+
+The active large-Project Reading browser harness follows the focused online
+workflow; actual archive/package download acceptance remains in the dedicated
+Settings browser harnesses. Historical frozen reports are not reinterpreted
+as evidence for this new interface.
+
 ## 2026-10-27 — Sample and Data visual calibration
 
 The user requested a concrete visual refinement, calibrated in a real browser,

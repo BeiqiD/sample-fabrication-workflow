@@ -236,8 +236,15 @@ describe("interface palette", () => {
   });
 
   it("uses the same emphasized New sample action on every page-level entry", () => {
-    expect(samplesPage).toContain('className="button primary" to="/samples/new">New sample</Link>');
-    expect(processingPage).toContain('className="button primary" to="/samples/new">New sample</Link>');
+    for (const page of [samplesPage, processingPage]) {
+      const actions = [...page.matchAll(/<Link\b[^>]*\bto="\/samples\/new"[^>]*>[\s\S]*?<\/Link>/g)];
+      expect(actions).toHaveLength(1);
+      const action = actions[0][0];
+      const classes = action.match(/className="([^"]+)"/)?.[1].split(/\s+/);
+      expect(classes).toEqual(expect.arrayContaining(["button", "primary"]));
+      expect(classes).not.toContain("danger");
+      expect(action).toContain('aria-label="New sample"');
+    }
   });
 
   it("updates non-component and hard-coded surfaces that carried the old palette", () => {

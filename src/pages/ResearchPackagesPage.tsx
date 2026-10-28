@@ -638,7 +638,7 @@ export function ResearchPackagesPage() {
             : "Export scope edited. The roots below determine the current scope; preview them before starting work."}</p>
         </div>}
         {!sourceContext && sourceQueryChanged && <p className="research-export-context-notice" role="status">The link context changed. Your existing export draft has been kept; review the roots below.</p>}
-        {!sourceContext && <p className="muted">Choose Data package or Offline report from a <Link to="/samples">Sample</Link> or <Link to="/projects">Project</Link>, or enter up to 20 roots below.</p>}
+        {!sourceContext && <p className="muted">Choose an export format and enter up to 20 Sample or Project roots below. Review the scope with Preview export before starting.</p>}
         <form onSubmit={event => { event.preventDefault(); void act(async signal => {
           const button = exportPreviewButton.current;
           returnExportPreviewFocus.current = button && document.activeElement === button ? { button, signal } : null;
@@ -740,7 +740,7 @@ export function ResearchPackagesPage() {
     <div className="settings-related-tools"><p>Related tools</p>
       <nav className="research-package-navigation" aria-label="Related data tools"><Link to="/settings/storage">Storage settings</Link><Link to="/export">Content archive</Link>
         <Link to="/settings/data/system">System backup and recovery</Link>
-        <Link to="/imports/fabublox">FabuBlox workbook import</Link></nav>
+        <Link to="/settings/import-workbook">FabuBlox workbook import</Link></nav>
     </div>
   </div>;
 }

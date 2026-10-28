@@ -5,8 +5,6 @@ import { EmptyState } from "../EmptyState";
 import { ReferenceExcerpt } from "../ReferenceExcerpt";
 import { projectNodeKindLabel, type ProjectNodeDescriptor } from "../../lib/project-map-model";
 import type { ProjectMapMarkdownEditorState } from "../../lib/project-owned-content";
-import { buildProjectReadableArchive } from "../../lib/project-readable-export";
-import { ResearchPackageExport } from "../ResearchPackageExport";
 import { ProjectAttachmentPresentation } from "./ProjectAttachmentPresentation";
 import { ProjectEditorFeedback } from "./ProjectEditorFeedback";
 import { projectKeyboardEventIsPlainEscape } from "../../lib/project-canvas-productivity";
@@ -28,8 +26,6 @@ export type ProjectReadingAttachmentEditorState = {
 export interface ProjectReadingSurfaceProps {
   nodes: ProjectNodeDescriptor[];
   mobile?: boolean;
-  projectTitle?: string;
-  projectId?: string;
   focusedItemId?: string | null;
   focusRequestSequence?: number;
   inspectedItemId?: string | null;
@@ -47,42 +43,6 @@ export interface ProjectReadingSurfaceProps {
   onAttachmentChange?: (field: "caption" | "sourceUrl", value: string) => void;
   onAttachmentSave?: () => void;
   onAttachmentCancel?: () => void;
-}
-
-type ExportState = {
-  status: "idle" | "exporting" | "complete" | "error";
-  message: string | null;
-};
-
-function archiveBlobBuffer(archive: Uint8Array): ArrayBuffer {
-  if (archive.buffer instanceof ArrayBuffer
-    && archive.byteOffset === 0
-    && archive.byteLength === archive.buffer.byteLength) {
-    return archive.buffer;
-  }
-  const copy = new Uint8Array(archive.byteLength);
-  copy.set(archive);
-  return copy.buffer;
-}
-
-function downloadArchive(archive: Uint8Array, filename: string) {
-  const url = URL.createObjectURL(new Blob([archiveBlobBuffer(archive)], { type: "application/zip" }));
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.append(anchor);
-  anchor.click();
-  anchor.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
-}
-
-function exportFilename(projectTitle: string) {
-  const slug = projectTitle.normalize("NFKC")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 60) || "project";
-  return `${slug}-reading-${new Date().toISOString().slice(0, 10)}.zip`;
 }
 
 function ReadingMore({ label, children }: { label: string; children: ReactNode }) {
@@ -124,8 +84,6 @@ function ReadingReferenceLink({ node }: { node: ProjectNodeDescriptor }) {
 export function ProjectReadingSurface({
   nodes,
   mobile = false,
-  projectTitle = "Project Reading",
-  projectId,
   focusedItemId = null,
   focusRequestSequence = 0,
   inspectedItemId = null,
@@ -145,7 +103,6 @@ export function ProjectReadingSurface({
   onAttachmentCancel,
 }: ProjectReadingSurfaceProps) {
   const editorBusy = markdownEditor !== null || attachmentEditor !== null;
-  const [exportState, setExportState] = useState<ExportState>({ status: "idle", message: null });
   const itemElementsRef = useRef(new Map<string, HTMLElement>());
   const lastFocusedItemIdRef = useRef<string | null>(null);
   const lastFocusRequestSequenceRef = useRef(focusRequestSequence);
@@ -174,43 +131,11 @@ export function ProjectReadingSurface({
     }
   }, [focusedItemId, focusRequestSequence, nodes]);
 
-  const exportReading = async () => {
-    setExportState({ status: "exporting", message: null });
-    try {
-      const result = await buildProjectReadableArchive(nodes, { projectTitle });
-      downloadArchive(result.archive, exportFilename(projectTitle));
-      setExportState({
-        status: "complete",
-        message: result.manifest.warnings.length
-          ? `Exported with ${result.manifest.warnings.length} attachment warning${result.manifest.warnings.length === 1 ? "" : "s"}. See WARNINGS.md in the archive.`
-          : "Readable ZIP exported.",
-      });
-    } catch (error) {
-      setExportState({
-        status: "error",
-        message: error instanceof Error ? error.message : "Readable export failed.",
-      });
-    }
-  };
-
   return <section className={`project-reading-surface${mobile ? " mobile" : " desktop"}`} aria-label="Project Reading">
     <div className="project-reading-heading">
       <div>
         <p className="card-label">Reading</p>
       </div>
-      <ReadingMore label="Reading options">
-        <button
-          type="button"
-          className="button compact-button"
-          disabled={!nodes.length || interactionDisabled || editorBusy || exportState.status === "exporting"}
-          onClick={exportReading}
-        >{exportState.status === "exporting" ? "Exporting…" : "Export readable ZIP"}</button>
-        {projectId && <ResearchPackageExport root={{ type: "project", id: projectId, label: projectTitle }} compact
-          disabled={!!interactionDisabled || editorBusy || exportState.status === "exporting"} />}
-      </ReadingMore>
-      {exportState.message && <p className={`project-reading-export-message ${exportState.status === "error" ? "error" : exportState.message.includes("warning") ? "warning" : ""}`} role="status">
-        {exportState.message}
-      </p>}
     </div>
     {markdownEditor?.isNew && <article className="card project-reading-item project-reading-new-note">
       <header><span className="meta-badge">New note</span></header>

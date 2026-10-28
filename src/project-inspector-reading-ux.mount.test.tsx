@@ -64,7 +64,7 @@ describe("compact Inspector and Reading interactions", () => {
     expect(screen.queryByRole("list")).toBeNull();
   });
 
-  it("keeps Reading edit actions above long content and trash/export behind More", () => {
+  it("keeps Reading edit actions above long content and trash behind More without export controls", () => {
     const snapshot = projectTestSnapshotWithAttachment();
     const onMarkdownDeleteRequest = vi.fn();
     const onMarkdownEditRequest = vi.fn();
@@ -79,12 +79,15 @@ describe("compact Inspector and Reading interactions", () => {
     fireEvent.click(screen.getByLabelText("More actions for Design note"));
     fireEvent.click(screen.getByRole("button", { name: "Move Markdown to trash" }));
     expect(onMarkdownDeleteRequest).toHaveBeenCalledWith("item-note");
-    const options = screen.getByLabelText("Reading options");
-    fireEvent.click(options);
-    expect(screen.getByRole("button", { name: "Export readable ZIP" })).toBeTruthy();
-    fireEvent.keyDown(options, { key: "Escape" });
-    expect(screen.queryByRole("button", { name: "Export readable ZIP" })).toBeNull();
-    expect(document.activeElement).toBe(options);
+    const more = screen.getByLabelText("More actions for Design note");
+    fireEvent.click(more);
+    expect(screen.getByRole("button", { name: "Move Markdown to trash" })).toBeTruthy();
+    fireEvent.keyDown(more, { key: "Escape" });
+    expect(screen.queryByRole("button", { name: "Move Markdown to trash" })).toBeNull();
+    expect(document.activeElement).toBe(more);
+    expect(screen.queryByLabelText("Reading options")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Export readable ZIP", hidden: true })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Data package|Offline report/, hidden: true })).toBeNull();
   });
 
   it("opens reference sources directly and falls back to the reference record when needed", () => {

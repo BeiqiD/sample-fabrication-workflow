@@ -1,5 +1,5 @@
 .sample-overview-page .sample-header-copy h1 {
-  font-size: 44px;
+  font-size: 32px;
   line-height: 1.08;
 }
 
@@ -12,7 +12,7 @@
 .sample-overview-page .sample-description {
   max-width: 80ch;
   margin-top: 12px;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.55;
 }
 
@@ -20,18 +20,19 @@
   min-width: 0;
   flex-direction: row;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
-.sample-overview-page .sample-header-action-buttons > .button,
-.sample-overview-page .sample-header-action-buttons .research-export-action {
-  min-height: 42px;
+.sample-overview-page .sample-header-action-buttons > .button {
+  min-height: 32px;
+  padding: 5px 9px;
   font-size: 12px;
 }
 
-.sample-overview-page .sample-header-action-buttons .research-export-action > .action-icon {
-  width: 20px;
-  height: 20px;
+.sample-overview-page .sample-header-action-buttons .action-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
 }
 
 .sample-overview-page .sample-current-structure,
@@ -116,7 +117,7 @@
 }
 
 @media (min-width: 1201px) {
-  /* Keep record identity readable when the complete action group needs a row. */
+  /* Keep record identity readable when work actions need a separate row. */
   .sample-overview-page .sample-header { flex-wrap: wrap; }
   .sample-overview-page .sample-header-copy { flex-basis: 20rem; }
   .sample-overview-page .sample-header > .sample-header-actions { flex-grow: 1; }
@@ -125,36 +126,33 @@
 @media (max-width: 1200px) {
   .sample-overview-page .sample-header > .sample-header-actions { align-items: flex-start; }
   .sample-overview-page .sample-header-action-buttons { justify-content: flex-start; }
+  .sample-overview-page .sample-header-action-buttons .sample-header-secondary-action { width: 32px; min-width: 32px; padding: 0; }
 }
 
 @media (max-width: 720px) {
   .sample-overview-page .sample-header { gap: 18px; margin-bottom: 28px; }
-  .sample-overview-page .sample-header-copy h1 { font-size: 34px; }
+  .sample-overview-page .sample-header-copy h1 { font-size: 28px; }
   .sample-overview-page .sample-description { margin-bottom: 0; }
-  .sample-overview-page .sample-header > .sample-header-actions { flex-direction: column; flex-wrap: nowrap; }
+  .sample-overview-page .sample-header > .sample-header-actions { flex-direction: row; align-items: center; flex-wrap: nowrap; }
 
-  /* All six actions retain their names while sharing one comfortable touch row. */
+  /* Core work actions stay compact and named; transfers live in Settings. */
   .sample-overview-page .sample-header-action-buttons {
-    display: grid;
-    grid-template-columns: repeat(6, 44px);
-    gap: 4px;
+    display: flex;
+    gap: 6px;
     min-width: 0;
     max-width: 100%;
-    margin-left: 0;
+    margin-left: auto;
     flex: 0 1 auto;
     justify-content: start;
   }
 
-  .sample-overview-page .sample-header-action-buttons > .button,
-  .sample-overview-page .sample-header-action-buttons .research-export-action {
-    width: 44px;
-    min-width: 44px;
-    height: 44px;
-    min-height: 44px;
+  .sample-overview-page .sample-header-action-buttons > .button {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
     padding: 0;
   }
-
-  .sample-overview-page .sample-header-action-buttons .research-package-mobile-icons { display: contents; }
 
   .sample-note-content {
     grid-template-columns: minmax(0, 1fr);

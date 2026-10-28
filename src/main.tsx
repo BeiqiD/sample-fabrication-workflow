@@ -9,6 +9,7 @@ import "./palette.css";
 import "./comment-layout.css";
 import "./sample-page-layout.css";
 import "./processing-form-roles.css";
+import "./core-workspace-chrome.css";
 
 installCommentFileRouting();
 installProcessPlanCommentDraftGuard();

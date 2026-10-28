@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Link, Navigate, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { REFERENCE_ROUTE_PATTERN } from "../shared/reference-destinations";
+import { workbookImportPath } from "./lib/templateRoutes";
 import { ActionIcon } from "./components/ActionIcon";
 import { NavigationIcon, type NavigationIconName } from "./components/NavigationIcon";
 import { LocalAuthenticationGate, LocalSessionAction } from "./components/LocalAuthenticationGate";
@@ -18,6 +19,7 @@ const ProjectPage = lazy(() => import("./pages/ProjectPage").then((module) => ({
 const TemplatesPage = lazy(() => import("./pages/TemplatesPage").then((module) => ({ default: module.TemplatesPage })));
 const SettingsLayout = lazy(() => import("./components/SettingsLayout").then((module) => ({ default: module.SettingsLayout })));
 const SettingsPage = lazy(() => import("./pages/SettingsPage").then((module) => ({ default: module.SettingsPage })));
+const WorkbookImportPage = lazy(() => import("./pages/WorkbookImportPage").then((module) => ({ default: module.WorkbookImportPage })));
 const ExportPage = lazy(() => import("./pages/ExportPage").then((module) => ({ default: module.ExportPage })));
 const ResearchPackagesPage = lazy(() => import("./pages/ResearchPackagesPage").then((module) => ({ default: module.ResearchPackagesPage })));
 const SystemRecoveryPage = lazy(() => import("./pages/SystemRecoveryPage").then((module) => ({ default: module.SystemRecoveryPage })));
@@ -41,6 +43,11 @@ const primaryNavigation: Array<{ to: string; label: string; icon: NavigationIcon
   { to: "/templates", label: "Templates", icon: "templates" },
   { to: "/settings", label: "Settings", icon: "settings" },
 ];
+
+function LegacyWorkbookImportRedirect() {
+  const { search } = useLocation();
+  return <Navigate to={workbookImportPath(new URLSearchParams(search))} replace />;
+}
 
 export function App() {
   const location = useLocation();
@@ -115,9 +122,10 @@ export function App() {
             <Route path="/templates" element={<TemplatesPage />} />
             <Route path="/templates/metrology/:templateId" element={<MetrologyTemplatePage />} />
             <Route path="/templates/:templateId" element={<TemplatePage />} />
-            <Route path="/imports/fabublox" element={<Navigate to="/templates?import=1" replace />} />
+            <Route path="/imports/fabublox" element={<LegacyWorkbookImportRedirect />} />
             <Route element={<SettingsLayout />}>
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/settings/import-workbook" element={<WorkbookImportPage />} />
             <Route path="/export" element={<ExportPage />} />
             <Route path="/settings/data" element={<ResearchPackagesPage />} />
             <Route path="/settings/data/system" element={<SystemRecoveryPage />} />

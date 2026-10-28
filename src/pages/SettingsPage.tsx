@@ -20,6 +20,10 @@ export function SettingsPage() {
             <h3><Link to="/export">Content archive <span aria-hidden="true">→</span></Link></h3>
             <p>Build a ZIP in this browser. Leaving its page cancels an active export and releases any prepared download.</p>
           </div>
+          <div className="settings-destination">
+            <h3><Link to="/settings/import-workbook">Workbook import <span aria-hidden="true">→</span></Link></h3>
+            <p>Bring an existing FabuBlox process into Templates, then work with its steps and runs in the web workspace.</p>
+          </div>
         </div>
         <p className="settings-task-note">Accepted package and system recovery jobs are saved on the server. Return to their pages to check progress or resume work that needs attention.</p>
       </section>
