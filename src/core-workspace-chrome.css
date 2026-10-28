@@ -26,15 +26,15 @@
 }
 .core-toolbar-action > .action-icon,
 .processing-workspace-page > .sample-header .action-icon,
-.processing-workspace-page .run-action-menu-trigger :is(.action-icon, .processing-action-icon) { width: 16px; height: 16px; }
+.processing-workspace-page .run-action-menu-trigger :is(.action-icon, .processing-action-icon) { width: 16px; height: 16px; flex: 0 0 16px; }
 .processing-workspace-page > .sample-header { margin-bottom: 20px; gap: 16px; }
 .processing-workspace-page .execution-heading { gap: 12px; margin-bottom: 10px; }
 .processing-workspace-page .execution-heading h2 { font-size: 18px; }
 .processing-workspace-page .execution-heading p { font-size: 13px; }
 .processing-workspace-page .run-controls-picker :is(select, strong) { height: 34px; padding-block: 5px; }
 .project-page.desktop .project-workspace-header .compact-button { min-height: 32px; }
-.project-page .project-workspace-header .action-icon { width: 16px; height: 16px; }
-.project-page .project-workspace-header .project-add-trigger > .action-icon:last-child { width: 12px; height: 12px; }
+.project-page .project-workspace-header .action-icon { width: 16px; height: 16px; flex: 0 0 16px; }
+.project-page .project-workspace-header .project-add-trigger > .action-icon:last-child { width: 12px; height: 12px; flex-basis: 12px; }
 
 @media (max-width: 720px) {
   :is(.processing-page, .samples-page, .projects-page) > .page-heading { flex-direction: row; align-items: flex-start; gap: 10px; }
