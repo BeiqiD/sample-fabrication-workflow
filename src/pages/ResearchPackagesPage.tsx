@@ -740,7 +740,7 @@ export function ResearchPackagesPage() {
     <div className="settings-related-tools"><p>Related tools</p>
       <nav className="research-package-navigation" aria-label="Related data tools"><Link to="/settings/storage">Storage settings</Link><Link to="/export">Content archive</Link>
         <Link to="/settings/data/system">System backup and recovery</Link>
-        <Link to="/imports/fabublox">FabuBlox workbook import</Link></nav>
+        <Link to="/settings/import-workbook">FabuBlox workbook import</Link></nav>
     </div>
   </div>;
 }

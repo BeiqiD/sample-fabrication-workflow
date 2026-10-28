@@ -1,3 +1,4 @@
+import { ActionIcon } from "../components/ActionIcon";
 import { captureApplicationOwner } from "../lib/authentication-client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -192,7 +193,7 @@ function MetrologyTemplateSession({ templateId }: { templateId: string }) {
     <Link className="back-link" to="/templates">← Templates</Link>
     <div className="page-heading">
       <div><p className="eyebrow">Metrology template</p><h1>{template.name}</h1><p className="lead">A flat reusable record. Runs keep their own snapshot when this template is used.</p></div>
-      <button type="button" className="button danger" disabled={deleting} onClick={() => { setTemplateDeleteError(""); setConfirmingTemplateDeletion(true); }}>{deleting ? "Deleting…" : "Delete"}</button>
+      <button type="button" className="button danger core-toolbar-action" disabled={deleting} onClick={() => { setTemplateDeleteError(""); setConfirmingTemplateDeletion(true); }}><ActionIcon name="delete" /><span>{deleting ? "Deleting…" : "Delete"}</span></button>
     </div>
     {error && <p className="error-banner">{error}</p>}
     {notice && <p className="success-banner">{notice}</p>}
@@ -217,7 +218,7 @@ function MetrologyTemplateSession({ templateId }: { templateId: string }) {
       </div>
       <label>Reference notes<textarea rows={7} value={referenceNotes} onChange={(event) => setReferenceNotes(event.target.value)} placeholder="Operating notes, instrument-specific reminders, contacts, or method guidance…" /></label>
       <div className="form-actions reference-note-actions">
-        <button type="button" className="button primary" disabled={savingReference} onClick={() => void saveReferenceNotes()}>{savingReference ? "Saving…" : "Save reference notes"}</button>
+        <button type="button" className="button primary core-toolbar-action" disabled={savingReference} onClick={() => void saveReferenceNotes()}><ActionIcon name="save" /><span>{savingReference ? "Saving…" : "Save reference notes"}</span></button>
       </div>
       <div className="metrology-reference-upload">
         <FileDropzone accept="*/*" file={referenceFile} disabled={savingReference} onFile={setReferenceFile} label="Attach an equipment manual or reference file" hint="PDF, image, spreadsheet, document, or other reference file · up to 25 MB" />

@@ -3502,8 +3502,6 @@ export function ProjectPage() {
   const readingSurface = <Suspense fallback={<div className="card"><p className="muted">Loading Reading…</p></div>}>
     <ProjectReadingSurface
       nodes={readingNodes}
-      projectTitle={snapshot.project.title}
-      projectId={snapshot.project.id}
       focusedItemId={navigationFocusItemId}
       focusRequestSequence={readingFocusSequence}
       mobile={!desktop}

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import type { PaginationMeta, SampleListFacets, SampleRun, SampleSummary } from "../../shared/types";
 import { EmptyState } from "../components/EmptyState";
+import { ActionIcon } from "../components/ActionIcon";
 import { PaginationControls } from "../components/PaginationControls";
 import { ReadStatus } from "../components/ReadStatus";
 import { SampleStateThumbnail } from "../components/SampleStateThumbnail";
@@ -115,7 +116,7 @@ export function ProcessingPage() {
   return <div className="page processing-page">
     <div className="page-heading">
       <div><p className="eyebrow">Cleanroom workspace</p><h1>Processing</h1><p className="lead">Continue active process runs, or open a completed run for reference.</p></div>
-      <div className="header-actions"><Link className="button primary" to="/samples/new">New sample</Link><Link className="button" to="/samples">All samples</Link></div>
+      <div className="header-actions"><Link className="button primary core-toolbar-action core-toolbar-icon" to="/samples/new" aria-label="New sample" title="New sample"><ActionIcon name="plus" /><span className="core-action-label">New sample</span></Link><Link className="button core-toolbar-action core-toolbar-icon" to="/samples" aria-label="All samples" title="All samples"><ActionIcon name="open" /><span className="core-action-label">All samples</span></Link></div>
     </div>
     <div className="processing-controls">
       <div className="segmented-control" aria-label="Filter processing runs">

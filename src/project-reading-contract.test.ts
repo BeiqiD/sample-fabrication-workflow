@@ -58,10 +58,12 @@ describe("Phase 3C/3D Reading contract", () => {
     expect(editor).not.toContain("projectApi");
   });
 
-  it("builds human-readable export from the current Reading descriptors without a server export model", () => {
+  it("keeps archive construction separate from the interactive Reading surface", () => {
     const reading = read("src/components/project/ProjectReadingSurface.tsx");
     const exportModule = read("src/lib/project-readable-export.ts");
-    expect(reading).toContain("buildProjectReadableArchive(nodes");
+    expect(reading).not.toContain("buildProjectReadableArchive");
+    expect(reading).not.toContain("ResearchPackageExport");
+    expect(reading).not.toContain("downloadArchive");
     expect(exportModule).toContain('zip.file("reading.md"');
     expect(exportModule).toContain('zip.file("manifest.json"');
     expect(exportModule).toContain("relativeAttachmentPath");

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { ActionIcon } from "../components/ActionIcon";
 import { isCreateProjectInput, type CreateProjectInput, type ProjectRecord } from "../../shared/project-api";
 import { createProjectApiId, ProjectApiError, projectApi, projectDirectorySubject } from "../lib/project-client";
 import { authenticationSnapshot, subscribeAuthentication, usesLocalAuthentication } from "../lib/authentication-client";
@@ -151,15 +152,17 @@ export function ProjectsPage() {
         <p className="lead">Arrange experimental records, Project notes, and files in one spatial research workspace.</p>
       </div>
       <div className="header-actions">
-        <button type="button" className="button" disabled={creating || directoryState === "loading"} onClick={() => void loadProjects()}>Refresh Projects</button>
+        <button type="button" className="button core-toolbar-action core-toolbar-icon" aria-label="Refresh Projects" title="Refresh Projects" disabled={creating || directoryState === "loading"} onClick={() => void loadProjects()}><ActionIcon name="refresh" /><span className="core-action-label">Refresh Projects</span></button>
         <button
           type="button"
-          className={createOpen ? "button" : "button primary"}
+          className={`button core-toolbar-action core-toolbar-icon${createOpen ? "" : " primary"}`}
+          aria-label={createOpen ? "Close new Project form" : "New Project"}
+          title={createOpen ? "Close new Project form" : "New Project"}
           aria-controls="project-create-form"
           aria-expanded={createOpen}
           disabled={creating || !creationSubject || !!pendingCreation && !createOpen}
           onClick={createOpen ? closeCreateForm : openCreateForm}
-        >{createOpen ? "Close new Project form" : "New Project"}</button>
+        ><ActionIcon name={createOpen ? "chevron-down" : "plus"} /><span className="core-action-label">{createOpen ? "Close new Project form" : "New Project"}</span></button>
       </div>
     </div>
 

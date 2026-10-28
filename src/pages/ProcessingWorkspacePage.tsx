@@ -8,7 +8,6 @@ import { MultiSampleRunGrid } from "../components/MultiSampleRunGrid";
 import { ProcessingActionIcon } from "../components/ProcessingActionIcon";
 import { ProcessingReferenceSourceFocus } from "../components/ReferenceSourceFocus";
 import { ReadStatus } from "../components/ReadStatus";
-import { ResearchReportLink } from "../components/ResearchPackageExport";
 import { RunActionMenu, type RunActionMenuItem } from "../components/RunActionMenu";
 import { StandaloneMetrologyDialog } from "../components/StandaloneMetrologyDialog";
 import { StartProcessRunDialog } from "../components/StartProcessRunDialog";
@@ -643,13 +642,7 @@ export function ProcessingWorkspacePage() {
     <Link className="back-link" to="/processing">← Processing</Link>
     <div className="sample-header">
       <div className="sample-header-copy"><p className="eyebrow">Processing · {sample.code}</p><h1>{sample.title}</h1><p className="lead">Execute the selected run; sample metadata and the permanent timeline stay in the sample archive.</p></div>
-      <div className="header-actions"><StatusPill status={sample.status} /><Link className="button" to={`/samples/${sample.id}`}>Open sample</Link>
-        <span className="processing-report-action">
-          <ResearchReportLink root={{ type: "sample", id: sample.id, label: `${sample.code} · ${sample.title}` }}
-            origin={{ type: "processing", sampleId: sample.id, runId: selectedRun?.id, additionalSampleIds: additionalIds }}
-            disabled={transitionBusy || requestedRunUnresolved} />
-          <small className="muted">All recorded runs for {sample.code} only.</small>
-        </span>
+      <div className="header-actions"><StatusPill status={sample.status} /><Link className="button responsive-icon-button" to={`/samples/${sample.id}`} aria-label="Open sample" title="Open sample"><ActionIcon name="open" /><span className="responsive-action-label">Open sample</span></Link>
       </div>
     </div>
     <ReadStatus loading={loading} error={error} loadingMessage="Loading processing workspace…" errorTitle="Could not load processing workspace" onRetry={() => void load()} />

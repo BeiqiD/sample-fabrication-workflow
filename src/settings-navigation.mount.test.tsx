@@ -4,6 +4,7 @@ import { Link, MemoryRouter, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 import { exportAll } from "./lib/exportAll";
+import { api } from "./lib/api";
 
 vi.mock("./lib/exportAll", () => ({ exportAll: vi.fn() }));
 vi.mock("./pages/ResearchPackagesPage", () => ({ ResearchPackagesPage: function DataFixture() {
@@ -38,6 +39,8 @@ function expectCurrent(path: string) {
 }
 beforeEach(() => {
   window.localStorage.clear();
+  window.sessionStorage.clear();
+  vi.spyOn(api, "listTemplateFamilyOptions").mockResolvedValue({ families: [] });
   vi.mocked(exportAll).mockReset();
   vi.stubGlobal("URL", class extends URL {
     static createObjectURL = vi.fn();
@@ -61,6 +64,8 @@ describe("Settings organization in the actual App router", () => {
     expect(within(primary).getByRole("link", { name: "Settings" }).getAttribute("href")).toBe("/settings");
     expect(within(primary).getByRole("link", { name: "Templates" })).toBeTruthy();
     expect(within(primary).queryByRole("link", { name: /export|archive/i })).toBeNull();
+    expect(within(settingsNavigation()).getByRole("link", { name: "Workbook import" }).getAttribute("href")).toBe("/settings/import-workbook");
+    expect(screen.getByRole("heading", { name: "Workbook import" }).querySelector("a")?.getAttribute("href")).toBe("/settings/import-workbook");
     expect(vi.mocked(fetch).mock.calls.map(([path]) => path)).toEqual(["/api/identity"]);
     expect(exportAll).not.toHaveBeenCalled();
   });
@@ -68,6 +73,7 @@ describe("Settings organization in the actual App router", () => {
   it.each([
     ["/export", "Export content"],
     ["/settings/data", "Research data fixture"],
+    ["/settings/import-workbook", "Workbook import"],
     ["/settings/data/system", "Recovery fixture"],
     ["/settings/storage", "Storage fixture"],
     ["/settings/storage/configuration", "Connections fixture"],

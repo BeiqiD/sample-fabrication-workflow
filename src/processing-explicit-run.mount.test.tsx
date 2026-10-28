@@ -70,10 +70,7 @@ describe("explicit Processing run ownership", () => {
     expect(screen.queryByRole("heading", { name: "No run yet" })).toBeNull();
     expect(screen.getByRole("button", { name: "Run actions" }).matches(":disabled")).toBe(true);
     expect(screen.getByRole("button", { name: "Start run" }).matches(":disabled")).toBe(true);
-    const report = screen.getByRole("link", { name: "Offline report" });
-    expect(report.getAttribute("aria-disabled")).toBe("true");
-    expect(report.hasAttribute("href")).toBe(false);
-    fireEvent.click(report);
+    expect(screen.queryByRole("link", { name: "Offline report" })).toBeNull();
     expect(screen.getByRole("button", { name: "+ Add sample" }).matches(":disabled")).toBe(true);
     expect(screen.getByLabelText("Current execution URL").textContent).toBe(`/processing/sample-a${query}`);
     if (count) {
@@ -155,18 +152,14 @@ describe("explicit Processing run ownership", () => {
     expect(screen.queryByRole("heading", { name: "Requested run unavailable" })).toBeNull(); noWrites();
   });
 
-  it("offers a report of only the primary sample while retaining its selected run and additional-view context", async () => {
+  it("keeps processing focused on the selected run and sample archive without transfer actions", async () => {
     mount("?run=active-run&with=sample-b&keep=retained");
     await screen.findByLabelText("Selected execution");
-    const report = screen.getByRole("link", { name: "Offline report" });
-    const href = new URL(report.getAttribute("href")!, "http://localhost");
-    expect(href.pathname).toBe("/settings/data");
-    expect(href.searchParams.get("rootType")).toBe("sample");
-    expect(href.searchParams.get("rootId")).toBe("sample-a");
-    expect(href.searchParams.get("kind")).toBe("report");
-    expect(href.searchParams.get("runId")).toBe("active-run");
-    expect(href.searchParams.getAll("sourceWith")).toEqual(["sample-b"]);
-    expect(screen.getByText("All recorded runs for SAMPLE-A only.")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Open sample" }).getAttribute("href")).toBe("/samples/sample-a");
+    expect(execution()?.textContent).toBe("active-run|editable");
+    expect(screen.getByLabelText("Current execution URL").textContent).toBe("/processing/sample-a?run=active-run&with=sample-b&keep=retained");
+    expect(screen.queryByRole("link", { name: /report|export|package/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /report|export|package/i })).toBeNull();
     noWrites();
   });
 

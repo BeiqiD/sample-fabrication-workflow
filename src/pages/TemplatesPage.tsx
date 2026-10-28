@@ -1,5 +1,5 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import type { PaginationMeta } from "../../shared/types";
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { MetrologyTemplateForm } from "../components/MetrologyTemplateForm";
@@ -15,8 +15,8 @@ import {
 import { pageFromSearchParam, setPageParam } from "../lib/pagination";
 import { preferredScrollBehavior } from "../lib/preferred-scroll-behavior";
 
-const FabubloxImporter = lazy(() => import("../components/FabubloxImporter")
-  .then((module) => ({ default: module.FabubloxImporter })));
+import { workbookImportPath } from "../lib/templateRoutes";
+import { ActionIcon } from "../components/ActionIcon";
 const EMPTY_PROCESS_PAGINATION: PaginationMeta = { page: 1, pageSize: 20, total: 0, totalPages: 1 };
 const EMPTY_METROLOGY_PAGINATION: PaginationMeta = { page: 1, pageSize: 25, total: 0, totalPages: 1 };
 
@@ -32,11 +32,17 @@ function initialSubstrateLabel(template: ProcessTemplateVersionSummary) {
 }
 
 export function TemplatesPage() {
+  const [searchParams] = useSearchParams();
+  return searchParams.get("import") === "1"
+    ? <Navigate to={workbookImportPath(searchParams)} replace />
+    : <TemplatesDirectoryPage />;
+}
+
+function TemplatesDirectoryPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedQuery = searchParams.get("q") ?? "";
   const processPage = pageFromSearchParam(searchParams.get("processPage"));
   const metrologyPage = pageFromSearchParam(searchParams.get("metrologyPage"));
-  const importing = searchParams.get("import") === "1";
   const [query, setQuery] = useState(requestedQuery);
   const [families, setFamilies] = useState<ProcessTemplateFamilySummary[]>([]);
   const [metrologyTemplates, setMetrologyTemplates] = useState<MetrologyTemplateSummary[]>([]);
@@ -52,7 +58,6 @@ export function TemplatesPage() {
   const [removalError, setRemovalError] = useState("");
   const [creatingMetrology, setCreatingMetrology] = useState(false);
   const [creatingMetrologySaving, setCreatingMetrologySaving] = useState(false);
-  const [imported, setImported] = useState<{ id: string; name: string; version: number } | null>(null);
   const [expandedFamilies, setExpandedFamilies] = useState<Set<string>>(() => new Set());
   const [familyVersions, setFamilyVersions] = useState<Record<string, ProcessTemplateVersionSummary[]>>({});
   const [loadingFamilies, setLoadingFamilies] = useState<Set<string>>(() => new Set());
@@ -148,17 +153,6 @@ export function TemplatesPage() {
     const next = new URLSearchParams(searchParams);
     mutator(next);
     setSearchParams(next, { replace });
-  }
-
-  async function importCompleted(result: { templateVersionId: string; version: number; name: string }) {
-    setImported({ id: result.templateVersionId, name: result.name, version: result.version });
-    updateSearchParams((next) => {
-      next.delete("import");
-      next.delete("processPage");
-    }, true);
-    setExpandedFamilies(new Set());
-    setFamilyVersions({});
-    setProcessRefresh((value) => value + 1);
   }
 
   async function createMetrology(input: MetrologyTemplateInput) {
@@ -264,7 +258,6 @@ export function TemplatesPage() {
       <div><p className="eyebrow">Reusable workflow content</p><h1>Templates</h1><p className="lead">Keep fabrication plans and repeatable metrology records in one consistent workspace.</p></div>
     </div>
     {notice && <p className="success-banner" role="status">{notice}</p>}
-    {imported && <p className="success-banner" role="status">Imported <strong>{imported.name} v{imported.version}</strong>. <Link to={`/templates/${imported.id}`}>Open the new version →</Link></p>}
     <label className="search-box">
       <span>Search templates</span>
       <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search process and metrology templates…" />
@@ -272,14 +265,8 @@ export function TemplatesPage() {
 
     <section className="templates-section process-templates-section" id="process-templates">
       <div className="section-heading templates-section-heading">
-        <div><h2>Process templates</h2><p>Versioned fabrication plans imported from FabuBlox workbooks. Older versions load only when a family is expanded.</p></div>
-        <button type="button" className={importing ? "button" : "button primary"} onClick={() => updateSearchParams((next) => {
-          if (importing) next.delete("import"); else next.set("import", "1");
-        })}>{importing ? "Close import" : "Import workbook"}</button>
+        <div><h2>Process templates</h2><p>Review fabrication plans, edit available versions and reuse them in processing runs.</p></div>
       </div>
-      {importing && <Suspense fallback={<div className="card"><p className="muted padded" role="status">Loading workbook importer…</p></div>}>
-        <FabubloxImporter onImported={importCompleted} />
-      </Suspense>}
       <ReadStatus loading={processLoading} error={processError} loadingMessage="Loading process templates…" errorTitle="Process templates could not be loaded" retryLabel="Retry process templates" onRetry={() => setProcessRefresh((value) => value + 1)} density="compact" />
       {!processLoading && !processError && (families.length ? <div className="template-family-list">
         {families.map((family) => {
@@ -323,7 +310,7 @@ export function TemplatesPage() {
     <section className="templates-section metrology-templates-section" id="metrology-templates">
       <div className="section-heading templates-section-heading">
         <div><h2>Metrology templates</h2><p>Flat, reusable records for results, comments, and attachments. They do not change the sample structure.</p></div>
-        <button type="button" className="button primary" aria-expanded={creatingMetrology} disabled={creatingMetrologySaving} onClick={() => setCreatingMetrology((open) => !open)}>{creatingMetrology ? "Close" : "New metrology template"}</button>
+        <button type="button" className="button primary core-toolbar-action" aria-expanded={creatingMetrology} disabled={creatingMetrologySaving} onClick={() => setCreatingMetrology((open) => !open)}><ActionIcon name={creatingMetrology ? "chevron-down" : "plus"} /><span>{creatingMetrology ? "Close" : "New metrology template"}</span></button>
       </div>
       {creatingMetrology && <MetrologyTemplateForm title="New metrology template" submitLabel="Save template" onCancel={() => setCreatingMetrology(false)} onSubmit={createMetrology} />}
       <ReadStatus loading={metrologyLoading} error={metrologyError} loadingMessage="Loading metrology templates…" errorTitle="Metrology templates could not be loaded" retryLabel="Retry metrology templates" onRetry={() => setMetrologyRefresh((value) => value + 1)} density="compact" />

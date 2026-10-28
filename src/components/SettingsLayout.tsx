@@ -6,6 +6,7 @@ const settingsGroups = [
   { id: "data", label: "Data and export", destinations: [
     { to: "/settings/data", label: "Research packages" },
     { to: "/export", label: "Content archive" },
+    { to: "/settings/import-workbook", label: "Workbook import" },
   ] },
   { id: "storage", label: "Storage", destinations: [
     { to: "/settings/storage", label: "Storage overview" },

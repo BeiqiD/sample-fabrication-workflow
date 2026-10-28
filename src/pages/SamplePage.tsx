@@ -15,8 +15,6 @@ import { StandaloneMetrologyDialog } from "../components/StandaloneMetrologyDial
 import { StatusPill } from "../components/StatusPill";
 import { api } from "../lib/api";
 import { currentStructurePresentation } from "../lib/currentStructure";
-import { exportSample } from "../lib/exportSample";
-import { ResearchPackageExport } from "../components/ResearchPackageExport";
 import { ReadStatus } from "../components/ReadStatus";
 import { SAMPLE_HISTORY_PREVIEW_COUNT } from "../lib/sampleHistory";
 import { collectSampleNotes } from "../lib/sampleNotes";
@@ -71,7 +69,6 @@ export function SamplePage() {
   const [error, setError] = useState("");
   const [readError, setReadError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [exporting, setExporting] = useState(false);
   const [editingDetails, setEditingDetails] = useState(false);
   const [updatingDetails, setUpdatingDetails] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState<SampleEvent | null>(null);
@@ -281,22 +278,6 @@ export function SamplePage() {
             <ActionIcon name="split" />
             <span className="responsive-action-label">Split sample</span>
           </button>
-          <button
-            type="button"
-            className="button responsive-icon-button sample-header-secondary-action"
-            disabled={exporting}
-            aria-label={exporting ? "Exporting sample ZIP" : "Export sample ZIP"}
-            aria-busy={exporting}
-            title={exporting ? "Exporting sample ZIP" : "Export sample ZIP"}
-            onClick={() => {
-              setExporting(true);
-              void exportSample(sample).catch((error: Error) => setError(error.message)).finally(() => setExporting(false));
-            }}
-          >
-            <ActionIcon name="export" />
-            <span className="responsive-action-label">{exporting ? "Exporting…" : "Export ZIP"}</span>
-          </button>
-          <ResearchPackageExport root={{ type: "sample", id: sample.id, label: `${sample.code} · ${sample.title}` }} disabled={exporting} compact mobileIconOnly />
         </div>
       </div>
     </div>
