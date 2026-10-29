@@ -1,5 +1,5 @@
 import { nativeAssetUrl } from "../../shared/contracts/r2-upload";
-import { Fragment, type FormEvent, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, type FormEvent, type RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { FileAssetMediaRef, CommentSubmission, CreateCommentSubmissionInput, RunStep, RunStepAssetPresentationInput, RunStepComment, SampleRun, StepStatus } from "../../shared/types";
 import { api, type MetrologyTemplateInput, type MetrologyTemplateSummary } from "../lib/api";
@@ -29,6 +29,7 @@ import { FileDropzone } from "./FileDropzone";
 import { MetrologyTemplateForm } from "./MetrologyTemplateForm";
 import { ProcessPlanCommentButton } from "./ProcessPlanCommentButton";
 import { ProcessingActionIcon } from "./ProcessingActionIcon";
+import { ActionIcon } from "./ActionIcon";
 import { StateMismatchDialog } from "./StateMismatchDialog";
 import { StepStatusIcon } from "./StepStatusIcon";
 
@@ -297,7 +298,7 @@ export function DiagramGallery({ keys, images = [], urls = [], thumbnailUrls = {
       return <div className="grid-diagram-item" key={`${key}:${index}`} role="listitem"><button type="button" onClick={() => setActiveIndex(index)} aria-label={`Open ${label} ${index + 1} of ${entries.length}`}>
         {failedUrls.has(thumbnailSrc) ? <span className="image-preview-unavailable">Preview unavailable</span>
           : kind === "diagram" ? <DiagramThumbnail src={thumbnailSrc} alt={label} onError={() => failed(thumbnailSrc)} /> : <img key={previewAttempt} src={thumbnailSrc} alt={label} loading="lazy" onError={() => failed(thumbnailSrc)} />}
-      </button>{(entry.native ? onDeleteNative : onDelete) && <button type="button" className="diagram-delete-button" title="Delete run attachment" onClick={() => entry.native ? onDeleteNative?.(key) : onDelete?.(key)} aria-label={`Delete ${label} ${index + 1}`}>×</button>}</div>;
+      </button>{(entry.native ? onDeleteNative : onDelete) && <button type="button" className="diagram-delete-button" title="Delete run attachment" onClick={() => entry.native ? onDeleteNative?.(key) : onDelete?.(key)} aria-label={`Delete ${label} ${index + 1}`}><ActionIcon name="delete" /></button>}</div>;
     })}</div>
     {lightbox}
   </>;
@@ -774,6 +775,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, onAttachmentC
   const fullHeader = useRef<HTMLDivElement>(null);
   const stickySampleTrack = useRef<HTMLDivElement>(null);
   const jumpButtonAnchor = useRef<HTMLDivElement>(null);
+  const restoreJumpFocus = useRef(false);
   const rowAnchors = useRef(new Map<string, HTMLElement>());
   const stepCellAnchors = useRef(new Map<string, HTMLElement>());
   const jumpBaseEligible = useRef(false);
@@ -985,6 +987,9 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, onAttachmentC
       const headerBottom = headerNode.getBoundingClientRect().bottom;
       const cardBottom = cardNode.getBoundingClientRect().bottom;
       const next = headerBottom <= stickyTop + 36 && cardBottom > stickyTop + 36;
+      const jumpAnchor = jumpButtonAnchor.current;
+      if (jumpAnchor?.classList.contains("mobile-docked") && jumpAnchor.contains(document.activeElement)
+        && Boolean(jumpAnchor.closest(".run-grid-sticky-names")) !== next) restoreJumpFocus.current = true;
       setShowStickyNames((current) => current === next ? current : next);
       cardNode.style.setProperty("--run-grid-sticky-top", `${stickyTop}px`);
     }
@@ -1246,10 +1251,20 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, onAttachmentC
   const layoutClass = `sample-count-${Math.min(columns.length, 4)}`;
   const jumpButtonVisible = Boolean(currentRow && jumpButtonGeometry.baseEligible
     && (!jumpButtonGeometry.overlapsGrid || jumpDirectionAllowed));
-  const jumpButton = typeof document === "undefined" || !currentRow ? null : createPortal(
+  useLayoutEffect(() => {
+    if (!restoreJumpFocus.current) return;
+    if (!currentRow || (document.activeElement !== document.body && !jumpButtonAnchor.current?.contains(document.activeElement))) {
+      restoreJumpFocus.current = false;
+      return;
+    }
+    if (!jumpButtonVisible) return;
+    restoreJumpFocus.current = false;
+    jumpButtonAnchor.current?.querySelector("button")?.focus({ preventScroll: true });
+  }, [mobileRunGrid, showStickyNames, jumpButtonVisible, currentRow]);
+  const jumpButton = !currentRow ? null : (
     <div
       ref={jumpButtonAnchor}
-      className={`jump-to-current-anchor${jumpButtonVisible ? " is-visible" : ""}`}
+      className={`jump-to-current-anchor${mobileRunGrid ? " mobile-docked" : ""}${jumpButtonVisible ? " is-visible" : ""}`}
       aria-hidden={!jumpButtonVisible}
     >
       <button
@@ -1264,24 +1279,27 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, onAttachmentC
       >
         <JumpToCurrentIcon />
       </button>
-    </div>,
-    document.body,
+    </div>
   );
   return <>
   <article className={`run-grid-card ${layoutClass}`} ref={card}>
     <div className="run-grid-toolbar">
       <div className="run-grid-identity"><h3 className="card-title">{primaryRun.templateName}{primaryRun.runKind === "process" ? ` v${primaryRun.templateVersion}` : ""}</h3><p className="run-grid-run-meta">{primaryRun.runKind === "metrology" ? "Metrology" : `${primaryRun.templateType} · plan r${primaryRun.planRevisionNumber}`} · run {primaryRun.sequenceNo}</p></div>
       <div className="grid-scroll-buttons" aria-label="Sample columns">{scrollState.overflow && <button type="button" disabled={!scrollState.left} onClick={() => scrollColumns(-1)} aria-label="Scroll sample columns left">←</button>}<span>{columns.length} sample{columns.length === 1 ? "" : "s"}</span>{scrollState.overflow && <button type="button" disabled={!scrollState.right} onClick={() => scrollColumns(1)} aria-label="Scroll sample columns right">→</button>}</div>
-      <details className="processing-grid-guidance"><summary>{primaryRun.runKind === "metrology" ? "Record and batch help" : "Plan and batch help"}</summary><div><p>{primaryRun.runKind === "metrology" ? "A standalone result record; it does not change the sample structure." : primaryRun.status === "active" ? "Plan on the left; actual execution stays in each sample column." : `${primaryRun.status} run · preserved in the sample chain`}</p><p>Common actions use checked samples</p></div></details>
+      <div className="run-grid-navigation-row">
+        <details className="processing-grid-guidance"><summary>{primaryRun.runKind === "metrology" ? "Record and batch help" : "Plan and batch help"}</summary><div><p>{primaryRun.runKind === "metrology" ? "A standalone result record; it does not change the sample structure." : primaryRun.status === "active" ? "Plan on the left; actual execution stays in each sample column." : `${primaryRun.status} run · preserved in the sample chain`}</p><p>Common actions use checked samples</p></div></details>
+        <div className="mobile-jump-dock">{mobileRunGrid && !showStickyNames ? jumpButton : null}</div>
+      </div>
     </div>
     {error && <p className="error-banner grid-error" role="alert">{error}</p>}
-    <div className={`run-grid-sticky-names${showStickyNames ? " visible" : ""}`} aria-hidden="true">
-      <div className="sticky-recipe-name">{primaryRun.runKind === "metrology" ? "Metrology" : "Process plan"}</div>
-      <div className="sticky-sample-viewport">
+    <div className={`run-grid-sticky-names${showStickyNames ? " visible" : ""}`}>
+      <div className="sticky-recipe-name" aria-hidden="true">{primaryRun.runKind === "metrology" ? "Metrology" : "Process plan"}</div>
+      <div className="sticky-sample-viewport" aria-hidden="true">
         <div className="sticky-sample-track" ref={stickySampleTrack}>
           {columns.map((column) => <div className="sticky-sample-name" key={`sticky:${column.sample.id}`} title={`${column.sample.title} · ${column.sample.code}`}>{column.sample.title}</div>)}
         </div>
       </div>
+      <div className="mobile-jump-dock">{mobileRunGrid && showStickyNames ? jumpButton : null}</div>
     </div>
     <div className="run-grid-scroll" ref={scroller}>
       <div className="run-grid" style={{ "--sample-columns": columns.length } as React.CSSProperties}>
@@ -1463,7 +1481,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, onAttachmentC
       onConfirm={() => void confirmDelete()}
     />}
   </article>
-  {jumpButton}
+  {typeof document !== "undefined" && !mobileRunGrid && jumpButton ? createPortal(jumpButton, document.body) : null}
   </>;
 }
 

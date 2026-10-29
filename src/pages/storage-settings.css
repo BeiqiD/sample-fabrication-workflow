@@ -48,6 +48,7 @@
 .storage-candidate-checkbox input { width: auto; }
 .storage-candidate-credentials { border-top: 1px solid var(--line); margin-top: 24px; padding-top: 24px; }
 .storage-candidate-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.storage-settings-section[aria-labelledby="storage-default-policy-title"] .storage-candidate-fields + .button { margin-top: 12px; }
 @media (max-width: 720px) { .storage-candidate-fields { grid-template-columns: minmax(0, 1fr); } }
 
 .storage-candidate-checks { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); }

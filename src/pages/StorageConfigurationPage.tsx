@@ -9,6 +9,7 @@ import { storageConfigurationClient, StorageConfigurationRequestError, type Stor
 import { StorageCandidateReadiness, type StorageCandidateSetupProgress } from "./StorageCandidateReadiness";
 import { StorageCredentialEncryption } from "./StorageCredentialEncryption";
 import { StorageCredentialSetup } from "./StorageCredentialSetup";
+import { ActionIcon } from "../components/ActionIcon";
 import "./storage-settings.css";
 
 type Provider = "s3" | "webdav" | "switchdrive";
@@ -211,10 +212,10 @@ export function StorageConfigurationPage() {
   return <div className="page storage-settings-page">
     <div className="page-heading"><div><h1>Storage configuration</h1><p className="page-context">Settings</p>
       <p className="lead">Save storage candidates, test S3 connections and maintain credential encryption.</p></div>
-      <button ref={refreshButton} className="button" type="button" disabled={loading || saving} onClick={() => {
+      <button ref={refreshButton} className="button core-toolbar-action core-toolbar-icon" type="button" aria-label={loading ? "Refreshing…" : "Refresh"} title="Refresh" disabled={loading || saving} onClick={() => {
         returnRefreshFocus.current = document.activeElement === refreshButton.current;
         void refresh();
-      }}>{loading ? "Refreshing…" : "Refresh"}</button></div>
+      }}><ActionIcon name="refresh" /><span className="core-action-label">{loading ? "Refreshing…" : "Refresh"}</span></button></div>
     <p><a href="/settings/storage">Current storage settings</a></p>
     {loading && <p role="status">Reading configuration access…</p>}
     {error && <div className="error-banner" role="alert"><p>{error}</p></div>}
@@ -253,10 +254,12 @@ export function StorageConfigurationPage() {
             <div className="storage-profile-heading"><h3>{candidate.label}</h3><span>{nativeCandidate(candidate) ? "AWS S3" : candidate.namespace.kind === "s3" ? "S3 compatible — candidate only" : names[candidate.namespace.kind]} · Draft · Revision {candidate.revision}</span></div>
             <dl><div><dt>Storage address</dt><dd>{candidate.namespace.endpoint}{candidate.namespace.kind === "s3" ? ` / ${candidate.namespace.bucket}` : ""}</dd></div>
               <div><dt>Root folder</dt><dd>{candidate.namespace.root || "/"}</dd></div><div><dt>Credentials</dt><dd>{candidate.credentials.status === "configured" ? "Configured" : "Unavailable"}</dd></div></dl>
-            {externalEditing && <button className="button" type="button" disabled={saving || uncertainSave} onClick={() => edit(candidate)}>Edit {candidate.label}</button>}
-            {externalEditing && nativeCandidate(candidate) && <button className="button" type="button"
-              disabled={saving || uncertainSave || selected?.profileId === candidate.profileId && selected.revision === candidate.revision}
-              onClick={() => selectCandidate(candidate)}>Continue setup for {candidate.label}</button>}
+            {externalEditing && <div className="button-row">
+              <button className="button" type="button" disabled={saving || uncertainSave} onClick={() => edit(candidate)}>Edit {candidate.label}</button>
+              {nativeCandidate(candidate) && <button className="button" type="button"
+                disabled={saving || uncertainSave || selected?.profileId === candidate.profileId && selected.revision === candidate.revision}
+                onClick={() => selectCandidate(candidate)}>Continue setup for {candidate.label}</button>}
+            </div>}
             <CandidateChecks candidate={candidate} canTest={!!externalEditing && candidate.credentials.status === "configured" && !saving && !uncertainSave}
               canCleanup={!saving && !uncertainSave}
               onProgress={selected?.profileId === candidate.profileId && selected.revision === candidate.revision

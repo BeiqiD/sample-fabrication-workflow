@@ -5,6 +5,7 @@ import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { ReadStatus } from "../components/ReadStatus";
 import { SampleTimeline } from "../components/SampleTimeline";
 import { StatusPill } from "../components/StatusPill";
+import { ActionIcon } from "../components/ActionIcon";
 import { api } from "../lib/api";
 import { filterSampleHistory, sampleEventCategory, type SampleHistoryFilter } from "../lib/sampleHistory";
 
@@ -98,7 +99,7 @@ export function SampleTimelinePage() {
         <p className="page-context">Timeline · {sample.code}</p>
         <p className="lead">The complete audit history for this sample, including normal processing, confirmations, notes, and changes.</p>
       </div>
-      <div className="header-actions"><StatusPill status={sample.status} /><Link className="button" to={`/samples/${sample.id}`}>Open sample</Link></div>
+      <div className="header-actions"><StatusPill status={sample.status} /><Link className="button core-toolbar-action core-toolbar-icon" to={`/samples/${sample.id}`} aria-label="Open sample" title="Open sample"><ActionIcon name="open" /><span className="core-action-label">Open sample</span></Link></div>
     </div>
     <ReadStatus loading={loading} error={error} loadingMessage="Loading timeline…" errorTitle="Could not load timeline" onRetry={() => void load()} />
 

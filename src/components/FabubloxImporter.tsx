@@ -331,11 +331,13 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
               : "This request is not currently visible. It may still be starting. Reselect the workbook to continue the same request."
               : operation.status === "reselect" ? "Select the original workbook and import options to continue this request. Its original identity will be retained."
                 : "The import result is not yet known. Check its status before taking another action."}</p>
-      {!["ready", "failed"].includes(operation.status) && <button className="button" disabled={busy} onClick={() => void checkStatus()}>Check import status</button>}
-      {operation.status === "not_found" && preparedRef.current && <button className="button primary" disabled={busy} onClick={() => void retryOriginal()}>Retry original import</button>}
-      {operation.status === "not_found" && !preparedRef.current && <button className="button" disabled={busy} onClick={reselectWorkbook}>Reselect workbook for this request</button>}
-      {operation.status === "ready" && <button className="button primary" disabled={busy} onClick={() => void openCompleted()}>Open completed process template</button>}
-      {["ready", "failed"].includes(operation.status) && <button className="button" disabled={busy} onClick={startNewImport}>Start a new import</button>}
+      <div className="button-row">
+        {!["ready", "failed"].includes(operation.status) && <button className="button" disabled={busy} onClick={() => void checkStatus()}>Check import status</button>}
+        {operation.status === "not_found" && preparedRef.current && <button className="button primary" disabled={busy} onClick={() => void retryOriginal()}>Retry original import</button>}
+        {operation.status === "not_found" && !preparedRef.current && <button className="button" disabled={busy} onClick={reselectWorkbook}>Reselect workbook for this request</button>}
+        {operation.status === "ready" && <button className="button primary" disabled={busy} onClick={() => void openCompleted()}>Open completed process template</button>}
+        {["ready", "failed"].includes(operation.status) && <button className="button" disabled={busy} onClick={startNewImport}>Start a new import</button>}
+      </div>
     </section>}
     {preview && <div className="import-preview">
       <div className="card preview-summary">

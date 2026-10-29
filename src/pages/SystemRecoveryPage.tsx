@@ -21,6 +21,7 @@ import { systemRecoveryClient, systemRecoveryErrorMessage, SystemRecoveryRequest
 import { ReadStatus } from "../components/ReadStatus";
 import { SettingsTaskNavigation } from "../components/SettingsTaskNavigation";
 import { settingsDestinations } from "../lib/settingsDestinations";
+import { ActionIcon } from "../components/ActionIcon";
 import "./storage-settings.css";
 import "./system-recovery.css";
 
@@ -677,7 +678,7 @@ export function SystemRecoveryPage() {
   return <div className="page storage-settings-page system-recovery-page">
     <div className="page-heading"><div><h1>System backup and recovery</h1>
       <p className="lead">Preserve installation identities and history, then verify recovery in an isolated target before an administrator prepares a deployment handoff.</p></div>
-      <button className="button" disabled={busy || denied} onClick={() => void act(signal => refresh(signal, true), true)}>Refresh recovery status</button></div>
+      <button className="button core-toolbar-action core-toolbar-icon" aria-label="Refresh recovery status" title="Refresh recovery status" disabled={busy || denied} onClick={() => void act(signal => refresh(signal, true), true)}><ActionIcon name="refresh" /><span className="core-action-label">Refresh recovery status</span></button></div>
     {message && (denied || !messageError) && <p ref={messageTarget} role={denied ? "alert" : "status"} tabIndex={-1}>{message}</p>}
     <ReadStatus loading={readPhase === "loading" && !denied} loadingMessage="Reading administrator recovery access…"
       error={!denied ? readError : null} errorTitle="Recovery status unavailable"
@@ -706,19 +707,23 @@ export function SystemRecoveryPage() {
       </section>
       {pending && <section className="card storage-settings-section"><h2 className="card-title">Unconfirmed operation</h2>
         <p>The {pending.action} request <code>{pending.input.requestId}</code> is retained. Check its saved receipt before starting another operation.</p>
-        <button className="button" disabled={busy} onClick={event => requestAction(event.currentTarget, signal => reconcile(signal))}>Check original recovery request</button>
-        {receiptMissing && <button className="button" disabled={busy} onClick={event => requestAction(event.currentTarget, signal => reconcile(signal, true))}>Retry original recovery request</button>}
-        {receiptMissing && rejected && sameIntent(rejected, pending) && <button className="button" disabled={busy} onClick={event => requestAction(event.currentTarget, reviewNewOperation, true)}>Review new recovery work</button>}
+        <div className="button-row">
+          <button className="button" disabled={busy} onClick={event => requestAction(event.currentTarget, signal => reconcile(signal))}>Check original recovery request</button>
+          {receiptMissing && <button className="button" disabled={busy} onClick={event => requestAction(event.currentTarget, signal => reconcile(signal, true))}>Retry original recovery request</button>}
+          {receiptMissing && rejected && sameIntent(rejected, pending) && <button className="button" disabled={busy} onClick={event => requestAction(event.currentTarget, reviewNewOperation, true)}>Review new recovery work</button>}
+        </div>
       </section>}
       {(pendingMaintenance || pendingSourceResume) && <section className="card storage-settings-section" aria-labelledby="system-recovery-source-attention-title">
         <h2 className="card-title" id="system-recovery-source-attention-title">Unconfirmed source operation</h2>
         {pendingSourceResume && <><p className="warning-card">Source resume request <code>{pendingSourceResume.requestId}</code> is unconfirmed. Its original release, backup and generation are retained.</p>
           <button className="button" disabled={busy} onClick={() => void act(signal => reconcileSourceResume(signal, true), false, true)}>Check or retry original source resume request</button></>}
         {pendingMaintenance && <><p className="warning-card">The {pendingMaintenance.action} maintenance request <code>{pendingMaintenance.requestId}</code> is unconfirmed. Review current state before retrying its original identifier.</p>
-          <button className="button" disabled={busy} onClick={() => void act(async signal => {
-            const value = await systemRecoveryClient.maintenance(signal); if (currentOperation(signal)) setMaintenance(value);
-          })}>Read source maintenance state</button>
-          <button className="button" disabled={busy} onClick={() => void act(signal => reconcileMaintenance(signal, true))}>Check or retry original maintenance request</button></>}
+          <div className="button-row">
+            <button className="button" disabled={busy} onClick={() => void act(async signal => {
+              const value = await systemRecoveryClient.maintenance(signal); if (currentOperation(signal)) setMaintenance(value);
+            })}>Read source maintenance state</button>
+            <button className="button" disabled={busy} onClick={() => void act(signal => reconcileMaintenance(signal, true))}>Check or retry original maintenance request</button>
+          </div></>}
       </section>}
       {earlier === null && <p role="alert">Saved recovery request history could not be read. Restore its browser checkpoints before starting new work.</p>}
       <SettingsTaskNavigation label="Recovery tasks" items={[

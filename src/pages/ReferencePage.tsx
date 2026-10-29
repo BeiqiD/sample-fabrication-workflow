@@ -8,6 +8,7 @@ import {
 } from "../../shared/reference-types";
 import { resolveReference } from "../lib/reference-api";
 import { ReferenceExcerpt } from "../components/ReferenceExcerpt";
+import { ActionIcon } from "../components/ActionIcon";
 import "../reference-page.css";
 
 const REFERENCE_TYPE_LABELS = {
@@ -159,9 +160,11 @@ export function ReferencePage() {
       <div className="reference-page-actions">
         <span className={`reference-state-badge ${state.tone}`}>{state.label}</span>
         {resolution.destination.openSourceUrl && <Link
-          className="button primary"
+          className="button primary core-toolbar-action core-toolbar-icon"
           to={resolution.destination.openSourceUrl}
-        >Open source</Link>}
+          aria-label="Open source"
+          title="Open source"
+        ><ActionIcon name="open" /><span className="core-action-label">Open source</span></Link>}
       </div>
     </header>
 

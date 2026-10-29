@@ -1,4 +1,5 @@
 .file-shadow-pilot-page { max-width: 1180px; }
+.file-authority-page .button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
 .file-shadow-pilot-page > .back-link { display: inline-block; margin-bottom: 22px; }
 .file-shadow-pilot-page .page-heading { margin-bottom: 12px; }
 .file-shadow-pilot-page .lead { max-width: 800px; }

@@ -50,8 +50,9 @@
 .project-attachment-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .project-image-preview-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 24px; background: rgba(0, 0, 0, .72); }
 .project-image-preview-dialog { width: min(1200px, 100%); height: min(900px, 100%); display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--paper); box-shadow: 0 20px 70px rgba(0, 0, 0, .35); }
-.project-image-preview-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 11px 13px; border-bottom: 1px solid var(--line); }
-.project-image-preview-toolbar p { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-image-preview-toolbar { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 11px 13px; border-bottom: 1px solid var(--line); }
+.project-image-preview-toolbar p { flex: 1 1 auto; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-image-preview-toolbar > .button { flex: 0 0 auto; }
 .project-image-preview-dialog > img { width: 100%; height: 100%; min-height: 0; object-fit: contain; background: var(--surface-warm); }
 
 @media (max-width: 859px) {

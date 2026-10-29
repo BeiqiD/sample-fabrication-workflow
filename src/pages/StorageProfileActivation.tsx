@@ -124,11 +124,13 @@ export function StorageProfileActivation({ candidate, nativeProfileId, evidence,
     {profile?.bindingRevision !== null && profile?.bindingRevision !== undefined && <p className="muted">Current activation revision: {profile.bindingRevision}.</p>}
     {!loading && !forbidden && (blocked || status && (status.authority.mode !== "active" || status.authority.fileAccess !== "enabled")) && <p className="muted">Activation is unavailable while file access or configuration work is paused.</p>}
     {!loading && enabled && !eligible && <p className="muted">Refresh matching successful test evidence before activating this profile.</p>}
-    {!pending && <button className="button" type="button" disabled={!eligible || loading || busy} onClick={() => void activate()}>
-      {busy ? "Activating…" : profile?.bindingRevision ? "Update profile activation" : "Activate profile"}</button>}
     {pending && <p className="muted">Activation for <code>{pending.nativeProfileId}</code> from candidate revision {pending.expectedCandidateRevision} is awaiting confirmation.</p>}
-    {pending && <button className="button" type="button" disabled={busy || blocked || forbidden} onClick={() => void retry()}>{busy ? "Checking activation…" : "Check or retry activation"}</button>}
-    <button className="button" type="button" disabled={busy || loading} onClick={() => void load()}>Refresh activation status</button>
+    <div className="button-row">
+      {!pending && <button className="button" type="button" disabled={!eligible || loading || busy} onClick={() => void activate()}>
+        {busy ? "Activating…" : profile?.bindingRevision ? "Update profile activation" : "Activate profile"}</button>}
+      {pending && <button className="button" type="button" disabled={busy || blocked || forbidden} onClick={() => void retry()}>{busy ? "Checking activation…" : "Check or retry activation"}</button>}
+      <button className="button" type="button" disabled={busy || loading} onClick={() => void load()}>Refresh activation status</button>
+    </div>
     {readError && <p className="error-banner" role="alert">{readError}</p>}
     {message && <p role="status">{message}</p>}
     <p><a href="/settings/storage">Choose upload destinations</a></p>

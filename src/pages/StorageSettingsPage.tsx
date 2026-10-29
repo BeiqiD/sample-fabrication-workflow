@@ -3,6 +3,7 @@ import type { CurrentStorageSettings, CurrentStorageSettingsStatus } from "../..
 import { api } from "../lib/api";
 import { storageConfigurationClient, StorageConfigurationRequestError } from "../lib/storage-configuration-client";
 import { StorageRoleDefaultsForm } from "./StorageRoleDefaultsForm";
+import { ActionIcon } from "../components/ActionIcon";
 import "./storage-settings.css";
 
 const providerName = { r2: "Cloudflare R2", switchdrive: "SWITCHdrive", s3: "S3" };
@@ -49,7 +50,7 @@ export function StorageSettingsPage() {
   return <div className="page storage-settings-page">
     <div className="page-heading"><div><h1>Storage</h1><p className="page-context">Settings</p>
       <p className="lead">View current upload destinations and registered storage profiles.</p></div>
-      <button ref={refreshButton} className="button" type="button" disabled={loading} onClick={() => void refresh(true)}>{loading ? "Refreshing…" : "Refresh"}</button></div>
+      <button ref={refreshButton} className="button core-toolbar-action core-toolbar-icon" type="button" aria-label={loading ? "Refreshing…" : "Refresh"} title="Refresh" disabled={loading} onClick={() => void refresh(true)}><ActionIcon name="refresh" /><span className="core-action-label">{loading ? "Refreshing…" : "Refresh"}</span></button></div>
     <p><a href="/settings/data">Data packages, reports and import</a></p>
     {loading && <p role="status">Reading storage configuration…</p>}
     {error && <div className="error-banner" role="alert"><p>Storage information is unavailable. Refresh to try again.</p></div>}

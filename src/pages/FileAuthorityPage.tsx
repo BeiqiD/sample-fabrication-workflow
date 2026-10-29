@@ -107,7 +107,7 @@ export function FileAuthorityPage() {
   }
 
   const blockers = status && status.mode !== "active" ? activationBlockers(status) : [];
-  return <div className="page file-shadow-pilot-page">
+  return <div className="page file-shadow-pilot-page file-authority-page">
     <a className="back-link" href="/settings/storage">← Storage settings</a>
     <div className="page-heading"><div><h1>File authority</h1><p className="page-context">Maintenance</p>
       <p className="lead">Activate the File system after conversion, or enable execution on a recovered installation.</p></div></div>
