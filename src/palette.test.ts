@@ -238,6 +238,29 @@ describe("interface palette", () => {
     expect(styles).toMatch(/\.button:disabled\s*\{[^}]*cursor:\s*not-allowed/s);
   });
 
+  it("keeps destructive menu descriptions readable after opacity is composited", () => {
+    const itemRule = styles.match(/\.run-action-menu-item\.danger\s*\{([^}]*)\}/)?.[1];
+    const descriptionRule = styles.match(/\.run-action-menu-item\.danger small\s*\{([^}]*)\}/)?.[1];
+    expect(itemRule).toMatch(/color:\s*var\(--danger\)[^}]*background:\s*var\(--paper\)/);
+    expect(descriptionRule).toMatch(/color:\s*currentColor/);
+    const opacityValue = descriptionRule?.match(/(?:^|;)\s*opacity:\s*([^;]+)/)?.[1].trim() ?? "1";
+    const opacity = Number.parseFloat(opacityValue) / (opacityValue.endsWith("%") ? 100 : 1);
+    expect(opacity).toBeGreaterThanOrEqual(0);
+    expect(opacity).toBeLessThanOrEqual(1);
+
+    for (const theme of ["light", "dark"] as const) {
+      const tokens = { ...themeTokens(styles, theme), ...themeTokens(palette, theme) };
+      for (const token of ["danger", "paper"]) expect(tokens[token]).toMatch(/^#[\da-f]{6}$/i);
+      const compositedForeground = `#${[1, 3, 5].map(offset => {
+        const foreground = Number.parseInt(tokens.danger.slice(offset, offset + 2), 16);
+        const background = Number.parseInt(tokens.paper.slice(offset, offset + 2), 16);
+        return Math.round(foreground * opacity + background * (1 - opacity)).toString(16).padStart(2, "0");
+      }).join("")}`;
+      expect(contrastRatio(compositedForeground, tokens.paper), `${theme} danger description at opacity ${opacity}`)
+        .toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
   it("uses the interaction accent for persistent states and gives dropdown triggers hover feedback", () => {
     expect(styles).toMatch(/\.segmented-control button\.selected\s*\{[^}]*color:\s*var\(--accent\)[^}]*background:\s*var\(--accent-soft\)/s);
     expect(styles).toMatch(/\.template-picker-list > button\.selected\s*\{[^}]*border-color:\s*var\(--accent\)[^}]*background:\s*var\(--accent-soft\)/s);
