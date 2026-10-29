@@ -53,27 +53,43 @@
 }
 .settings-navigation-group ul { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
 .settings-navigation-group li { min-width: 0; }
+.settings-advanced-navigation { margin-top: 12px; }
+.settings-advanced-navigation summary {
+  padding: 9px 12px;
+  color: var(--muted);
+  line-height: 1.45;
+  cursor: pointer;
+}
+.settings-advanced-navigation summary:hover { color: var(--accent); }
+.settings-advanced-navigation summary:focus-visible,
+.settings-advanced-tools summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.settings-advanced-navigation details[open] > summary { margin-bottom: 4px; }
 .settings-content { min-width: 0; }
 .settings-content > .page { width: 100%; }
 
 .settings-overview-page { max-width: 1080px; font-size: var(--font-body); }
 .settings-overview-page .page-heading { margin-bottom: 28px; }
 .settings-overview-page .lead { margin-bottom: 0; }
-.settings-task-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
-.settings-task-card { min-width: 0; padding: 24px; }
-.settings-task-card > p { margin: 10px 0 20px; color: var(--muted); }
+.settings-task-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
+.settings-task-card { min-width: 0; }
+.settings-task-card > .card-title { font-size: 18px; }
+.settings-task-card > p { margin: 8px 0 18px; color: var(--muted); }
 .settings-data-card { grid-column: 1 / -1; }
-.settings-data-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
-.settings-destination { min-width: 0; padding-top: 18px; border-top: 1px solid var(--line); }
+.settings-data-actions { display: grid; }
+.settings-destination { min-width: 0; display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.6fr); gap: 20px; align-items: baseline; padding: 14px 0; border-top: 1px solid var(--line); }
 .settings-destination h3 { margin: 0; font-size: var(--font-body); font-weight: 650; line-height: 1.5; }
 .settings-overview-page a { color: var(--accent); text-underline-offset: 3px; overflow-wrap: anywhere; }
 .settings-overview-page a:hover { text-decoration-thickness: 2px; }
 .settings-destination p,
 .settings-destination-list p { margin: 7px 0 0; color: var(--muted); line-height: 1.6; }
+.settings-destination p { margin: 0; }
 .settings-destination-list { margin: 0; padding: 0; list-style: none; }
 .settings-destination-list > li { padding: 16px 0; border-top: 1px solid var(--line); }
 .settings-destination-list > li > a { font-weight: 650; line-height: 1.5; }
 .settings-related-links { display: flex; align-items: baseline; flex-wrap: wrap; gap: 12px 20px; }
+.settings-advanced-tools { border-top: 1px solid var(--line); }
+.settings-advanced-tools > summary { padding: 14px 0; color: var(--accent); cursor: pointer; font-weight: 650; }
+.settings-advanced-tools .settings-destination-list > li { padding: 12px 0; }
 .settings-task-card > .settings-task-note { margin: 20px 0 0; font-size: var(--font-meta); line-height: 1.6; }
 .settings-personal-note { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--line); }
 .settings-personal-note h2 { margin: 0; font-size: var(--font-body); font-weight: 650; }
@@ -107,17 +123,19 @@
   .settings-navigation-toggle > span:first-child { display: grid; min-width: 0; gap: 3px; overflow-wrap: anywhere; }
   .settings-navigation-toggle > span:first-child > span { color: var(--muted); font-size: var(--font-meta); }
   .settings-navigation-toggle strong { font-size: var(--font-body); font-weight: 650; }
-  .settings-navigation-toggle > span:last-child { color: var(--muted); font-size: 20px; }
+  .settings-navigation-toggle > .action-icon { flex: 0 0 auto; width: 16px; height: 16px; color: var(--muted); }
+  .settings-navigation-toggle[aria-expanded="true"] > .action-icon { transform: rotate(180deg); }
   .settings-navigation-toggle:hover { border-color: var(--accent); }
   .settings-navigation-panel { padding-top: 14px; }
   .settings-navigation-panel[data-expanded="false"] { display: none; }
   .settings-navigation .settings-overview-link { margin-bottom: 14px; }
   .settings-navigation-groups { grid-template-columns: minmax(0, 1fr); gap: 14px; }
   .settings-navigation-group h2 { margin: 0 0 4px; }
+  .settings-advanced-navigation summary { padding: 9px; }
   .settings-navigation-group ul { display: flex; flex-wrap: wrap; gap: 2px 6px; }
   .settings-navigation a { min-height: 36px; padding: 7px 9px; }
   .settings-content > .page { padding-top: 32px; }
-  .settings-task-grid, .settings-data-actions { grid-template-columns: minmax(0, 1fr); gap: 18px; }
-  .settings-task-card { padding: 20px; }
+  .settings-task-grid { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  .settings-destination { grid-template-columns: minmax(0, 1fr); gap: 5px; }
   .settings-task-card > p { margin-bottom: 18px; }
 }

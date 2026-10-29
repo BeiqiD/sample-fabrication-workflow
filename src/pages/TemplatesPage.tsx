@@ -17,6 +17,7 @@ import { preferredScrollBehavior } from "../lib/preferred-scroll-behavior";
 
 import { workbookImportPath } from "../lib/templateRoutes";
 import { ActionIcon } from "../components/ActionIcon";
+import { SearchField } from "../components/SearchField";
 const EMPTY_PROCESS_PAGINATION: PaginationMeta = { page: 1, pageSize: 20, total: 0, totalPages: 1 };
 const EMPTY_METROLOGY_PAGINATION: PaginationMeta = { page: 1, pageSize: 25, total: 0, totalPages: 1 };
 
@@ -255,15 +256,16 @@ function TemplatesDirectoryPage() {
 
   return <div className="page templates-page">
     <div className="page-heading">
-      <div><p className="eyebrow">Reusable workflow content</p><h1>Templates</h1><p className="lead">Keep fabrication plans and repeatable metrology records in one consistent workspace.</p></div>
+      <div><h1>Templates</h1><p className="lead">Keep fabrication plans and repeatable metrology records in one consistent workspace.</p></div>
     </div>
     {notice && <p className="success-banner" role="status">{notice}</p>}
-    <label className="search-box">
-      <span>Search templates</span>
-      <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search process and metrology templates…" />
-    </label>
+    <SearchField label="Search templates" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search process and metrology templates…" />
+    <nav className="templates-quick-nav" aria-label="Template sections">
+      <a href="#process-templates">Process</a>
+      <a href="#metrology-templates">Metrology</a>
+    </nav>
 
-    <section className="templates-section process-templates-section" id="process-templates">
+    <section className="templates-section process-templates-section" id="process-templates" tabIndex={-1}>
       <div className="section-heading templates-section-heading">
         <div><h2>Process templates</h2><p>Review fabrication plans, edit available versions and reuse them in processing runs.</p></div>
       </div>
@@ -276,20 +278,13 @@ function TemplatesDirectoryPage() {
           const versionsId = `template-family-versions-${encodeURIComponent(family.recipeFamilyId)}`;
           const familyLoading = loadingFamilies.has(family.recipeFamilyId);
           return <section className="card template-family-card" key={family.recipeFamilyId}>
-            <header className="template-family-heading">
-              <div className="card-copy"><p className="card-label">{family.templateType} template</p><h3 className="card-title">{family.name}</h3><p className="card-meta">Latest version v{family.latestVersion}</p></div>
-              <div className="template-family-actions">
-                <span className="meta-badge">{family.versionCount} version{family.versionCount === 1 ? "" : "s"}</span>
-                {family.versionCount > 1 && <button type="button" className="text-button" disabled={familyLoading} aria-expanded={expanded} aria-controls={versionsId} onClick={() => void toggleFamily(family)}>
-                  {familyLoading ? "Loading…" : expanded ? "Show latest only" : "Show all versions"}
-                </button>}
-              </div>
-            </header>
             {expanded && <ReadStatus loading={familyLoading} error={familyErrors[family.recipeFamilyId]} loadingMessage="Loading older versions…" errorTitle="Older versions could not be loaded" retryLabel="Retry versions" onRetry={() => void loadFamilyVersions(family)} density="compact" />}
-            <div className="template-version-list" id={versionsId}>{visibleVersions.map((template) => <article className="template-version-row" key={template.id}>
+            <div className="template-version-list" id={versionsId}>{visibleVersions.map((template) => <article className={`template-version-row${template.version === family.latestVersion ? " template-family-latest" : ""}`} key={template.id}>
               <Link className="template-version-link" to={`/templates/${template.id}`} aria-label={`Open ${template.name} version ${template.version}`}>
                 <div className="template-version-identity">
-                  <div className="card-title-line"><strong>v{template.version}</strong>{template.version === family.latestVersion && <span className="meta-badge">Latest</span>}</div>
+                  {template.version === family.latestVersion
+                    ? <><h3 className="card-title">{family.name}</h3><span className="template-version-meta">{family.templateType} · Latest version v{template.version}</span></>
+                    : <strong>v{template.version}</strong>}
                   <small>{template.sourceFilename || "Manually created version"}</small>
                 </div>
                 <div className="template-version-fact"><small>Initial substrate</small><span>{initialSubstrateLabel(template)}</span></div>
@@ -297,17 +292,23 @@ function TemplatesDirectoryPage() {
                 <div className="template-version-fact"><small>Steps</small><span>{template.stepCount}</span></div>
               </Link>
               <div className="template-row-actions">
+                {template.version === family.latestVersion && <div className="template-family-actions">
+                  <span className="meta-badge">{family.versionCount} version{family.versionCount === 1 ? "" : "s"}</span>
+                  {family.versionCount > 1 && <button type="button" className="text-button" disabled={familyLoading} aria-expanded={expanded} aria-controls={versionsId} onClick={() => void toggleFamily(family)}>
+                    {familyLoading ? "Loading…" : expanded ? "Show latest only" : "Show all versions"}
+                  </button>}
+                </div>}
                 <Link className="text-button template-row-edit" to={`/templates/${template.id}`}>{template.locked ? "View" : "Edit"} →</Link>
                 {!template.locked && <button type="button" className="text-button danger-text" disabled={removingId === template.id} onClick={() => { setRemovalError(""); setPendingRemoval({ kind: "process", template }); }}>{removingId === template.id ? "Deleting…" : "Delete"}</button>}
               </div>
             </article>)}</div>
           </section>;
         })}
-      </div> : <div className="card"><p className="muted padded">{hasQuery ? "No matching process templates." : "No active process templates yet."}</p></div>)}
+      </div> : <div className="card template-empty-state"><p className="muted padded">{hasQuery ? "No matching process templates." : "No active process templates yet."}</p>{!hasQuery && <p className="muted">Add fabrication plans in <Link to={workbookImportPath(searchParams)}>Settings → Workbook import</Link>, then return here to review and edit them.</p>}</div>)}
       {!processLoading && !processError && <PaginationControls pagination={processPagination} label="Process template pages" disabled={processLoading} onPageChange={(page) => changePage("processPage", page, "process-templates")} />}
     </section>
 
-    <section className="templates-section metrology-templates-section" id="metrology-templates">
+    <section className="templates-section metrology-templates-section" id="metrology-templates" tabIndex={-1}>
       <div className="section-heading templates-section-heading">
         <div><h2>Metrology templates</h2><p>Flat, reusable records for results, comments, and attachments. They do not change the sample structure.</p></div>
         <button type="button" className="button primary core-toolbar-action" aria-expanded={creatingMetrology} disabled={creatingMetrologySaving} onClick={() => setCreatingMetrology((open) => !open)}><ActionIcon name={creatingMetrology ? "chevron-down" : "plus"} /><span>{creatingMetrology ? "Close" : "New metrology template"}</span></button>
@@ -317,7 +318,7 @@ function TemplatesDirectoryPage() {
       {!metrologyLoading && !metrologyError && (metrologyTemplates.length ? <div className="metrology-template-list">
         {metrologyTemplates.map((template) => <article className="card metrology-template-row" id={`metrology-template-${template.id}`} key={template.id}>
           <Link className="metrology-template-link" to={`/templates/metrology/${template.id}`} aria-label={`Open ${template.name} metrology template`}>
-            <div className="metrology-template-identity"><p className="card-label">Metrology</p><h3 className="card-title">{template.name}</h3></div>
+            <div className="metrology-template-identity"><h3 className="card-title">{template.name}</h3></div>
             <div className="metrology-template-summary">
               <span><small>Tool</small><strong>{template.toolName || "Optional"}</strong></span>
               <span><small>Default content</small><strong>{template.hasDefaultContent ? "Defined" : "Empty"}</strong></span>

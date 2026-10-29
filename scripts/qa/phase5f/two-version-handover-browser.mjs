@@ -94,8 +94,8 @@ export async function qualifyTwoVersionBrowser(owner, context, value, a, b, queu
       automaticDocumentRequestsBeforeReload: 0, actualCurrentRecoveryPolicy: capabilities.policy, zeroBoundaryMutation: true };
     if (queuedCase) {
       const beforePosts = value.edge.requests.filter(row => row.method === 'POST' && row.path === '/api/packages/jobs').length;
-      await page.locator('.system-recovery-navigation').getByRole('link', { name: 'Research packages and reports', exact: true }).click();
-      await page.getByRole('heading', { name: 'Data', exact: true, level: 1 }).waitFor();
+      await page.locator('.system-recovery-navigation').getByRole('link', { name: 'Research packages & reports', exact: true }).click();
+      await page.getByRole('heading', { name: 'Research packages & reports', exact: true, level: 1 }).waitFor();
       await page.getByRole('status').filter({ hasText: 'Earlier browser recovery records have no verified account owner' }).waitFor();
       await page.locator('.research-package-job').filter({ has: page.getByText(queued.jobId, { exact: true }) }).waitFor();
       assert.deepEqual(await page.evaluate(() => JSON.parse(sessionStorage.getItem('research-package-operation'))), value.originalQueuedCheckpoint,

@@ -601,6 +601,7 @@ describe("FabuBlox storage winner recovery", () => {
     database.close();
   });
 
+  // Includes fresh schema migrations and the full publication/failure fixture.
   it("does not publish a pending import asset before a later metadata failure", async () => {
     const database = referenceTestDatabase();
     const workbookBytes = Uint8Array.from([80, 75, 3, 4, 91, 92, 93, 94]);
@@ -750,7 +751,7 @@ describe("FabuBlox storage winner recovery", () => {
     ), env, executionContext);
     expect(liveAfterFailure.status).toBe(404);
     database.close();
-  });
+  }, 15_000);
 
   it("keeps staged revisions private and rebuilds image relationships after finalization failure and retry", async () => {
     const database = referenceTestDatabase();
@@ -1203,6 +1204,7 @@ describe("FabuBlox verified byte publication", () => {
     database.close();
   });
 
+  // Each failure variant includes fresh schema migrations and complete byte checks.
   it.each(["size", "missing", "lost_put"] as const)(
     "keeps %s destination failures unpublished and queues owned candidates without deleting or replaying bytes",
     async (failure) => {
@@ -1239,6 +1241,7 @@ describe("FabuBlox verified byte publication", () => {
       expect(fixture.remove).not.toHaveBeenCalled();
       database.close();
     },
+    15_000,
   );
 
   it.each(["hash", "read", "stream"] as const)(

@@ -30,6 +30,13 @@
 .settings-related-tools > nav { margin: 0; gap: 8px 16px; }
 .settings-related-tools a { display: inline-flex; align-items: center; min-height: 40px; }
 .settings-related-tools a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.settings-task-details { margin-top: 16px; font-size: var(--font-body); line-height: 1.6; }
+.settings-task-details > summary { width: fit-content; color: var(--accent); cursor: pointer; font-weight: 600; }
+.settings-task-details > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.settings-task-details > p { margin: 8px 0 0; }
+.research-executor-details { margin-top: 8px; }
+.research-package-execution + .research-package-pending { margin-top: 18px; }
+.export-archive-details { padding-top: 16px; border-top: 1px solid var(--line); }
 @media (max-width: 720px) {
   .settings-task-navigation { gap: 6px; }
   .settings-task-navigation > span { flex-basis: 100%; }

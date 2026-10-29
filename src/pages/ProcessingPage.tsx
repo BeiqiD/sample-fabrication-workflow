@@ -3,6 +3,8 @@ import { Link, useSearchParams } from "react-router-dom";
 import type { PaginationMeta, SampleListFacets, SampleRun, SampleSummary } from "../../shared/types";
 import { EmptyState } from "../components/EmptyState";
 import { ActionIcon } from "../components/ActionIcon";
+import { PageHeading } from "../components/PageHeading";
+import { SearchField } from "../components/SearchField";
 import { PaginationControls } from "../components/PaginationControls";
 import { ReadStatus } from "../components/ReadStatus";
 import { SampleStateThumbnail } from "../components/SampleStateThumbnail";
@@ -114,15 +116,14 @@ export function ProcessingPage() {
   }
 
   return <div className="page processing-page">
-    <div className="page-heading">
-      <div><p className="eyebrow">Cleanroom workspace</p><h1>Processing</h1><p className="lead">Continue active process runs, or open a completed run for reference.</p></div>
-      <div className="header-actions"><Link className="button primary core-toolbar-action core-toolbar-icon" to="/samples/new" aria-label="New sample" title="New sample"><ActionIcon name="plus" /><span className="core-action-label">New sample</span></Link><Link className="button core-toolbar-action core-toolbar-icon" to="/samples" aria-label="All samples" title="All samples"><ActionIcon name="open" /><span className="core-action-label">All samples</span></Link></div>
-    </div>
+    <PageHeading title="Processing" description="Continue active process runs, or open a completed run for reference." actions={<>
+      <Link className="button primary core-toolbar-action core-toolbar-icon" to="/samples/new" aria-label="New sample" title="New sample"><ActionIcon name="plus" /><span className="core-action-label">New sample</span></Link><Link className="button core-toolbar-action core-toolbar-icon" to="/samples" aria-label="All samples" title="All samples"><ActionIcon name="open" /><span className="core-action-label">All samples</span></Link>
+    </>} />
     <div className="processing-controls">
       <div className="segmented-control" aria-label="Filter processing runs">
         {filters.map(({ value, label }) => <button type="button" className={filter === value ? "selected" : ""} aria-pressed={filter === value} key={value} onClick={() => selectFilter(value)}>{label}<span>{hasResults ? counts[value] : "—"}</span></button>)}
       </div>
-      <label className="search-box compact-search"><span>Search</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search processing…" /></label>
+      <SearchField className="compact-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search processing…" />
     </div>
     <ReadStatus loading={loading} error={error} loadingMessage="Loading processing…" errorTitle="Could not load processing" onRetry={() => setRetry((value) => value + 1)} />
     {hasResults && (samples.length ? <div className="processing-list">

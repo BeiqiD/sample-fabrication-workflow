@@ -131,7 +131,7 @@ export async function qualifyGenuinePackageBrowser(owner, context, value) {
     if (path.startsWith('/api/')) value.browserApi.push({ method: request.method(), path, status: response.status() }); });
   await page.route('**/*', async route => { assert.equal(new URL(route.request().url()).origin, owner.browserOrigin); await route.continue(); });
   try {
-    await page.goto(`${owner.browserOrigin}/settings/data`); await page.getByRole('heading', { name: 'Data', exact: true, level: 1 }).waitFor();
+    await page.goto(`${owner.browserOrigin}/settings/data`); await page.getByRole('heading', { name: 'Research packages & reports', exact: true, level: 1 }).waitFor();
     await page.getByLabel('Sample and Project roots', { exact: true }).fill(value.sourceFixture.roots.map(root => `${root.kind}:${root.id}`).join('\n'));
     const preview = button(page, 'Preview export'); await responseAfter(page, `${packageBase}/plans`, 'POST', () => keyboard(page, preview));
     await enabled(button(page, 'Start data package export')); assert(await preview.evaluate(element => element === document.activeElement));

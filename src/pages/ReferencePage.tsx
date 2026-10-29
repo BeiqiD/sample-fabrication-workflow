@@ -136,8 +136,8 @@ export function ReferencePage() {
     return <div className="page reference-page">
       <Link className="back-link" to="/">← Home</Link>
       <section className="card reference-empty-state">
-        <p className="eyebrow">Reference destination</p>
         <h1>Reference unavailable</h1>
+        <p className="page-context">Reference destination</p>
         <p className="error-banner">{error || "The reference could not be resolved."}</p>
       </section>
     </div>;
@@ -152,8 +152,8 @@ export function ReferencePage() {
     <Link className="back-link" to="/">← Home</Link>
     <header className="reference-page-heading">
       <div className="reference-page-title">
-        <p className="eyebrow">Reference · {typeLabel}</p>
         <h1>{title}</h1>
+        <p className="page-context">Reference · {typeLabel}</p>
         {source?.subtitle && <p className="lead">{source.subtitle}</p>}
       </div>
       <div className="reference-page-actions">

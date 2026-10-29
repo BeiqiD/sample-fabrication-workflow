@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { isProjectAttachmentSourceUrl } from "../../../shared/project-api";
+import { ActionIcon } from "../ActionIcon";
 import { EmptyState } from "../EmptyState";
 import { ReferenceExcerpt } from "../ReferenceExcerpt";
 import { projectNodeKindLabel, type ProjectNodeDescriptor } from "../../lib/project-map-model";
@@ -64,10 +65,10 @@ function ReadingMore({ label, children }: { label: string; children: ReactNode }
       if (event.target instanceof Element && event.target.closest("button, a")) setOpen(false);
     }}
   >
-    <summary aria-label={label} aria-expanded={open} onClick={(event) => {
+    <summary aria-label={label} title={label} aria-expanded={open} onClick={(event) => {
       event.preventDefault();
       setOpen((current) => !current);
-    }}>More</summary>
+    }}><ActionIcon name="more" /><span className="reading-secondary-label">More</span></summary>
     <div className="project-reading-more-actions" hidden={!open}>{children}</div>
   </details>;
 }
@@ -186,8 +187,9 @@ export function ProjectReadingSurface({
             {node.kind === "reference" && <ReadingReferenceLink node={node} />}
             {onDetailsRequest && <button
               type="button"
-              className="button compact-button"
+              className="button compact-button reading-details-button"
               aria-label={`Details for ${node.title}`}
+              title={`Details for ${node.title}`}
               aria-expanded={inspectedItemId === node.itemId}
               aria-controls="project-inspector-panel"
               data-project-details-trigger={node.itemId}
@@ -196,7 +198,7 @@ export function ProjectReadingSurface({
                 event.currentTarget.focus();
                 onDetailsRequest(node.itemId);
               }}
-            >Details</button>}
+            ><ActionIcon name="inspector" /><span className="reading-secondary-label">Details</span></button>}
             {node.kind === "markdown" && !editingMarkdown && onMarkdownDeleteRequest && <ReadingMore label={`More actions for ${node.title}`}>
               <button
                 type="button"

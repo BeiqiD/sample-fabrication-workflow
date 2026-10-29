@@ -7,6 +7,7 @@ const pageSource = readFileSync(new URL("./pages/ProjectPage.tsx", import.meta.u
 const projectsPageSource = readFileSync(new URL("./pages/ProjectsPage.tsx", import.meta.url), "utf8");
 const projectStyles = readFileSync(new URL("./project.css", import.meta.url), "utf8");
 const globalStyles = readFileSync(new URL("./styles.css", import.meta.url), "utf8");
+const workspaceChrome = readFileSync(new URL("./core-workspace-chrome.css", import.meta.url), "utf8");
 const surfaceStyles = readFileSync(new URL("./components/project/project-map-surface.css", import.meta.url), "utf8");
 const surfaceSource = readFileSync(new URL("./components/project/ProjectMapSurface.tsx", import.meta.url), "utf8");
 const performanceSource = readFileSync(new URL("./lib/project-map-performance.ts", import.meta.url), "utf8");
@@ -97,8 +98,9 @@ describe("Project Map kernel boundaries", () => {
     expect(projectStyles).toMatch(/\.project-workspace-header\s*\{[^}]*min-height:\s*50px;[^}]*grid-template-areas:\s*"identity actions";/s);
     expect(projectStyles).toMatch(/\.project-page\.desktop \.project-workspace-header\s*\{[^}]*grid-template-areas:\s*"identity view actions";/s);
     expect(projectStyles).toMatch(/\.project-workspace-header \.compact-button\s*\{[^}]*min-height:\s*36px;/s);
+    expect(workspaceChrome).toMatch(/\.project-page\.desktop \.project-workspace-header \.compact-button\s*\{[^}]*min-height:\s*var\(--control-toolbar\)/s);
+    expect(workspaceChrome).toMatch(/\.project-page \.project-workspace-header \.action-icon\s*\{[^}]*width:\s*var\(--icon-action\)[^}]*height:\s*var\(--icon-action\)/s);
     expect(projectStyles).toMatch(/\.project-view-toggle \.button\s*\{[^}]*min-height:\s*34px;/s);
-    expect(projectStyles).not.toMatch(/\.project-workspace-header \.compact-button\s*\{[^}]*min-height:\s*(?:2[0-9]|3[0-3])px;/s);
     expect(projectStyles).toMatch(/\.project-workspace-header h1\s*\{[^}]*text-overflow:\s*ellipsis;[^}]*white-space:\s*nowrap;/s);
     expect(projectStyles).toMatch(/\.project-page\.desktop\.map \.project-workspace-status-region\s*\{[^}]*max-height:\s*min\(34dvh, 240px\);[^}]*overflow-y:\s*auto;/s);
     expect(projectStyles).toMatch(/\.project-page\.desktop\.map \.project-desktop-workspace\s*\{[^}]*flex:\s*1 1 auto;/s);

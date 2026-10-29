@@ -122,6 +122,7 @@ describe("immutable managed environment profile", () => {
     expect(rows(sql)).toHaveLength(1);
   });
 
+  // Both variants build and migrate their own isolated SQL database.
   it("rejects changed physical roots/accounts without adopting or rewriting the old profile", async () => {
     for (const changed of [{ ...ENV, SWITCHDRIVE_ROOT: "another-root" },
       { ...ENV, SWITCHDRIVE_WEBDAV_URL: "https://drive.switch.ch/remote.php/dav/files/another-account" }]) {
@@ -132,7 +133,7 @@ describe("immutable managed environment profile", () => {
       await expect(assertManagedBootstrapProfile(db, changed, "captured", 1)).rejects.toBeInstanceOf(ManagedBootstrapUnavailableError);
       expect(rows(sql)).toEqual(before);
     }
-  });
+  }, 15_000);
 
   it("reconciles an INSERT whose acknowledgement was lost using primary readback", async () => {
     const f = fixture();
@@ -158,6 +159,7 @@ describe("immutable managed environment profile", () => {
     expect(rows(sql)[0].created_at).toBe(NOW);
   });
 
+  // Both race variants include fresh schema migrations and complete winner checks.
   it("reads the winning ID for same-namespace races and rejects a different namespace race", async () => {
     for (const namespace of [NAMESPACE, OTHER]) {
       const f = fixture();
@@ -167,7 +169,7 @@ describe("immutable managed environment profile", () => {
       expect(rows(f.sql)).toHaveLength(1);
       expect(rows(f.sql)[0].namespace_identity).toBe(namespace);
     }
-  });
+  }, 15_000);
 
   it("requires the captured exact profile and revision and validates timestamps before writes", async () => {
     const { sql, db } = fixture();

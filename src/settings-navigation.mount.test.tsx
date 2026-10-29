@@ -66,12 +66,16 @@ describe("Settings organization in the actual App router", () => {
     expect(within(primary).queryByRole("link", { name: /export|archive/i })).toBeNull();
     expect(within(settingsNavigation()).getByRole("link", { name: "Workbook import" }).getAttribute("href")).toBe("/settings/import-workbook");
     expect(screen.getByRole("heading", { name: "Workbook import" }).querySelector("a")?.getAttribute("href")).toBe("/settings/import-workbook");
+    expect(within(settingsNavigation()).getByRole("link", { name: "Research packages & reports" }).getAttribute("href")).toBe("/settings/data");
+    expect(screen.getByRole("heading", { name: "Research packages & reports" }).querySelector("a")?.getAttribute("href")).toBe("/settings/data");
+    expect(settingsNavigation().querySelector<HTMLDetailsElement>(".settings-advanced-navigation details")?.open).toBe(false);
+    expect(screen.getByText("Inspect recorded attachment history and unresolved evidence.").closest("details")?.open).toBe(false);
     expect(vi.mocked(fetch).mock.calls.map(([path]) => path)).toEqual(["/api/identity"]);
     expect(exportAll).not.toHaveBeenCalled();
   });
 
   it.each([
-    ["/export", "Export content"],
+    ["/export", "Content archive"],
     ["/settings/data", "Research data fixture"],
     ["/settings/import-workbook", "Workbook import"],
     ["/settings/data/system", "Recovery fixture"],
@@ -87,6 +91,19 @@ describe("Settings organization in the actual App router", () => {
     expectCurrent(path);
     expect(screen.getByTestId("location").textContent).toBe(path);
     expect(exportAll).not.toHaveBeenCalled();
+  });
+
+  it("keeps an active advanced destination visible when its maintenance group is collapsed", async () => {
+    mount("/maintenance/file-evidence");
+    await screen.findByRole("heading", { name: "Evidence fixture" });
+    const navigation = settingsNavigation();
+    const details = navigation.querySelector<HTMLDetailsElement>(".settings-advanced-navigation details")!;
+    expect(details.open).toBe(true);
+    fireEvent.click(details.querySelector("summary")!);
+    await waitFor(() => expect(details.open).toBe(false));
+    expect(within(navigation).getByRole("link", { name: "File evidence" }).getAttribute("aria-current")).toBe("page");
+    expectCurrent("/maintenance/file-evidence");
+    expect(vi.mocked(fetch).mock.calls.map(([path]) => path)).toEqual(["/api/identity"]);
   });
 
   it("retains object-export parameters and the same research draft on query/hash navigation", async () => {
@@ -147,7 +164,7 @@ describe("Settings organization in the actual App router", () => {
     await screen.findByRole("link", { name: "Download prepared ZIP" });
     fireEvent.click(within(screen.getByRole("navigation", { name: "Primary navigation" })).getByRole("link", { name: "Samples" }));
     await screen.findByRole("heading", { name: "Samples fixture" });
-    expect(revoke).toHaveBeenCalledWith("blob:settings-archive");
+    await waitFor(() => expect(revoke).toHaveBeenCalledWith("blob:settings-archive"));
     expect(screen.queryByRole("navigation", { name: "Settings navigation" })).toBeNull();
     expect(within(screen.getByRole("navigation", { name: "Primary navigation" })).getByRole("link", { name: "Settings" })
       .getAttribute("aria-current")).toBeNull();

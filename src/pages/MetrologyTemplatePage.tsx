@@ -182,7 +182,7 @@ function MetrologyTemplateSession({ templateId }: { templateId: string }) {
   }
 
   if (!template) return <div className="page metrology-template-page">
-    <div className="page-heading"><div><p className="eyebrow">Templates</p><h1>Metrology template</h1></div></div>
+    <div className="page-heading"><div><h1>Metrology template</h1><p className="page-context">Templates</p></div></div>
     <p><Link to="/templates">Back to templates</Link></p>
     <ReadStatus loading={reading} error={readError} loadingMessage="Loading metrology template…"
       errorTitle="Metrology template is unavailable" retryLabel="Retry metrology template" onRetry={() => void readInitialTemplate()} />
@@ -192,7 +192,7 @@ function MetrologyTemplateSession({ templateId }: { templateId: string }) {
   return <div className="page metrology-template-page">
     <Link className="back-link" to="/templates">← Templates</Link>
     <div className="page-heading">
-      <div><p className="eyebrow">Metrology template</p><h1>{template.name}</h1><p className="lead">A flat reusable record. Runs keep their own snapshot when this template is used.</p></div>
+      <div><h1>{template.name}</h1><p className="page-context">Metrology template</p><p className="lead">A flat reusable record. Runs keep their own snapshot when this template is used.</p></div>
       <button type="button" className="button danger core-toolbar-action" disabled={deleting} onClick={() => { setTemplateDeleteError(""); setConfirmingTemplateDeletion(true); }}><ActionIcon name="delete" /><span>{deleting ? "Deleting…" : "Delete"}</span></button>
     </div>
     {error && <p className="error-banner">{error}</p>}

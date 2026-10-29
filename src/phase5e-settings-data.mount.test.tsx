@@ -85,6 +85,23 @@ function savedWorkRead(path: RequestInfo | URL, unavailable: boolean, value: unk
 }
 
 describe("Phase 5E truthful Settings and Data read states", () => {
+  it("puts Data tasks before a visible paused executor state and retains its details and controls", async () => {
+    network.mockImplementation(async path => String(path).endsWith("/executor") ? json({ ...executor, canManage: true }) : json({ jobs: [] }));
+    mountData();
+    const paused = await screen.findByText("Execution is paused.");
+    const navigation = screen.getByRole("navigation", { name: "Data tasks" });
+    expect(navigation.compareDocumentPosition(paused) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const details = screen.getByText("Executor details").closest("details")!;
+    expect(details.open).toBe(false);
+    expect(paused.closest("details")).toBeNull();
+    expect(screen.getByRole("heading", { name: "Research packages & reports" })).toBeTruthy();
+    fireEvent.click(screen.getByText("Executor details"));
+    expect(details.open).toBe(true);
+    expect(screen.getByText("Accepted work remains queued or paused until the independently invoked runner is available. Refreshing or polling this page does not execute it.")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Administrator executor controls" }).getAttribute("href")).toBe("/settings/storage/migrations");
+    expect(mutations()).toHaveLength(0);
+  });
+
   it("keeps an unresolved storage access check distinct from a confirmed read-only actor", async () => {
     const access = deferred<Response>();
     network.mockImplementation(async path => String(path) === settingsPath ? json(storage()) : access.promise);

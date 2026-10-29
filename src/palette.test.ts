@@ -70,7 +70,7 @@ const lockedSemanticValues = [
   "--danger-soft: #fbe7e5;",
   "--info: #246f9a;",
   "--info-soft: #e8f3fa;",
-  "--neutral: #68736d;",
+  "--neutral: #5f6a64;", // Text on neutral-soft meets AA at small badge sizes.
   "--neutral-soft: #edf0ee;",
   "--success: #5fc59a;",
   "--success-soft: #1b382c;",
@@ -99,52 +99,70 @@ function contrastRatio(first: string, second: string) {
   return (lighter + .05) / (darker + .05);
 }
 
+function themeTokens(css: string, theme: "light" | "dark") {
+  const selector = theme === "light" ? /:root\s*\{([^}]*)\}/ : /:root\[data-theme="dark"\]\s*\{([^}]*)\}/;
+  const declarations = css.match(selector)?.[1];
+  if (!declarations) throw new Error(`Missing ${theme} theme declarations`);
+  return Object.fromEntries([...declarations.matchAll(/--([\w-]+)\s*:\s*([^;]+);/g)]
+    .map(([, name, value]) => [name, value.trim()]));
+}
+
+function expectTokenContrast(tokens: Record<string, string>, foreground: string, background: string, minimum = 4.5) {
+  for (const name of [foreground, background]) {
+    expect(tokens[name], `Color token --${name} must resolve to a color`).toMatch(/^#[\da-f]{6}$/i);
+  }
+  expect(contrastRatio(tokens[foreground], tokens[background]), `--${foreground} on --${background}`)
+    .toBeGreaterThanOrEqual(minimum);
+}
+
 describe("interface palette", () => {
   it("loads after the component stylesheet so every token use receives one palette", () => {
     expect(main.indexOf('import "./styles.css"')).toBeGreaterThan(-1);
     expect(main.indexOf('import "./palette.css"')).toBeGreaterThan(main.indexOf('import "./styles.css"'));
   });
 
-  it("defines every interface token for both light and dark themes", () => {
+  it("owns every interface token once per theme without duplicate definitions in component styles", () => {
     for (const token of interfaceTokens) {
       expect(Array.from(palette.matchAll(new RegExp(`--${token}\\s*:`, "g")))).toHaveLength(2);
+      expect(styles).not.toMatch(new RegExp(`--${token}\\s*:`));
     }
 
-    expect(palette).toContain("--accent: #526e89;");
-    expect(Array.from(palette.matchAll(/--accent-fill: #849eb8;/g))).toHaveLength(2);
-    expect(palette).toContain("--accent-contrast: #1b1f21;");
-    expect(palette).toContain("--accent-soft: #e8eef3;");
-    expect(palette).toContain("--canvas: #f4f5f4;");
-    expect(palette).toContain("--paper: #fafbfa;");
-    expect(palette).toContain("--surface-warm: #f7f8f7;");
-    expect(palette).toContain("--control-strong: #3e4541;");
-    expect(palette).toContain("--control-strong-contrast: #f7f8f6;");
-    expect(palette).toContain("--accent: #849eb8;");
-    expect(palette).toContain("--accent-soft: #26333f;");
-    expect(palette).toContain("--control-strong: #bfc6c2;");
-    expect(palette).toContain("--control-strong-contrast: #1b1f21;");
-    expect(palette).toContain("--status-contrast: #f7f8f6;");
-    expect(palette).toContain("--status-contrast: #0c1611;");
+    expect(themeTokens(palette, "light")).toMatchObject({
+      canvas: "#f5f6f7", paper: "#ffffff", ink: "#20262d",
+      muted: "#56616d", line: "#d8dde3", accent: "#3f668e",
+    });
+    expect(themeTokens(palette, "dark")).toMatchObject({
+      canvas: "#15181c", paper: "#1d2228", ink: "#e2e6eb",
+      muted: "#a5afba", line: "#36404b", accent: "#96b7d8",
+    });
   });
 
-  it("keeps interface text and accent contrast above the WCAG AA text threshold", () => {
+  it("checks the actual theme tokens for readable text, controls, and focus rings", () => {
     const pairs = [
-      ["#303633", "#f4f5f4"],
-      ["#303633", "#fafbfa"],
-      ["#68716c", "#f4f5f4"],
-      ["#526e89", "#fafbfa"],
-      ["#526e89", "#e8eef3"],
-      ["#f7f8f6", "#526e89"],
-      ["#1b1f21", "#849eb8"],
-      ["#3e4541", "#f7f8f6"],
-      ["#c9cfcc", "#141719"],
-      ["#969f9a", "#141719"],
-      ["#849eb8", "#141719"],
-      ["#849eb8", "#26333f"],
-      ["#bfc6c2", "#1b1f21"],
+      ["ink", "canvas"], ["ink", "paper"], ["ink", "surface"],
+      ["muted", "canvas"], ["muted", "paper"],
+      ["muted", "input"],
+      ["accent", "paper"], ["accent", "accent-soft"],
+      ["control-strong-contrast", "control-strong"],
+      ["control-strong-contrast", "accent"], ["accent-contrast", "accent-fill"],
     ];
-    for (const [foreground, background] of pairs) {
-      expect(contrastRatio(foreground, background)).toBeGreaterThanOrEqual(4.5);
+    for (const theme of ["light", "dark"] as const) {
+      const tokens = themeTokens(palette, theme);
+      for (const [foreground, background] of pairs) expectTokenContrast(tokens, foreground, background);
+      for (const background of ["canvas", "paper", "surface"]) {
+        expectTokenContrast(tokens, "accent", background, 3);
+      }
+    }
+  });
+
+  it("keeps Processing filter counts readable in the actual count surface", () => {
+    const countRule = styles.match(/\.segmented-control button span\s*\{([^}]*)\}/)?.[1];
+    const foreground = countRule?.match(/(?:^|;)\s*color:\s*var\(--([\w-]+)\)/)?.[1];
+    const background = countRule?.match(/(?:^|;)\s*background:\s*var\(--([\w-]+)\)/)?.[1];
+    expect(foreground).toBeDefined();
+    expect(background).toBeDefined();
+    for (const theme of ["light", "dark"] as const) {
+      expectTokenContrast(themeTokens(palette, theme), foreground!, background!);
     }
   });
 
@@ -153,20 +171,12 @@ describe("interface palette", () => {
       expect(Array.from(styles.matchAll(new RegExp(`--${token}\\s*:`, "g")))).toHaveLength(2);
     }
 
-    const pairs = [
-      ["#52665c", "#e3f3eb"],
-      ["#706149", "#fff3d9"],
-      ["#755d5b", "#fbe7e5"],
-      ["#566875", "#e8f3fa"],
-      ["#5f6a64", "#edf0ee"],
-      ["#a7b9b0", "#1b382c"],
-      ["#c2b49e", "#3a2c16"],
-      ["#c0aaa8", "#3b2221"],
-      ["#a7b6c0", "#1d3340"],
-      ["#a4afa8", "#252d28"],
-    ];
-    for (const [foreground, background] of pairs) {
-      expect(contrastRatio(foreground, background)).toBeGreaterThanOrEqual(4.5);
+    for (const theme of ["light", "dark"] as const) {
+      const tokens = themeTokens(styles, theme);
+      for (const state of ["success", "warning", "danger", "info", "neutral"]) {
+        expectTokenContrast(tokens, `status-${state}-ink`, `${state}-soft`);
+      }
+      expectTokenContrast(tokens, "neutral", "neutral-soft");
     }
 
     expect(styles).toMatch(/\.status\s*\{[^}]*border:\s*0[^}]*var\(--status-neutral-ink\)/s);
@@ -191,6 +201,12 @@ describe("interface palette", () => {
 
   it("keeps status icon contrast independent from the interface accent", () => {
     expect(palette).toMatch(/\.done-mark,\s*\.state-symbol\s*\{[^}]*color:\s*var\(--status-contrast\)/s);
+    for (const theme of ["light", "dark"] as const) {
+      const tokens = { ...themeTokens(styles, theme), ...themeTokens(palette, theme) };
+      expectTokenContrast(tokens, "status-contrast", "success");
+      expectTokenContrast(tokens, "danger", "danger-soft");
+      expectTokenContrast(tokens, "status-contrast", "danger");
+    }
   });
 
   it("maps only actions with a clear visible result to semantic colors", () => {
@@ -213,6 +229,36 @@ describe("interface palette", () => {
     expect(styles).toMatch(/\.eyebrow\s*\{[^}]*color:\s*var\(--muted\)/s);
     expect(styles).toMatch(/\.sample-code\s*\{[^}]*color:\s*var\(--ink\)/s);
     expect(palette).not.toMatch(/(?:^|\n)\.button\.primary\s*\{/);
+  });
+
+  it("preserves visible keyboard focus and deliberate destructive button states", () => {
+    expect(styles).toMatch(/\.button:focus-visible,[^{]*\.theme-toggle:focus-visible\s*\{[^}]*outline:\s*2px solid var\(--accent\)[^}]*outline-offset:\s*2px/s);
+    expect(styles).toMatch(/\.button\.danger\s*\{[^}]*border-color:\s*var\(--danger\)[^}]*color:\s*var\(--danger\)[^}]*background:\s*var\(--danger-soft\)/s);
+    expect(styles).toMatch(/\.button\.danger:hover:not\(:disabled\)\s*\{[^}]*color:\s*var\(--status-contrast\)[^}]*background:\s*var\(--danger\)/s);
+    expect(styles).toMatch(/\.button:disabled\s*\{[^}]*cursor:\s*not-allowed/s);
+  });
+
+  it("keeps destructive menu descriptions readable after opacity is composited", () => {
+    const itemRule = styles.match(/\.run-action-menu-item\.danger\s*\{([^}]*)\}/)?.[1];
+    const descriptionRule = styles.match(/\.run-action-menu-item\.danger small\s*\{([^}]*)\}/)?.[1];
+    expect(itemRule).toMatch(/color:\s*var\(--danger\)[^}]*background:\s*var\(--paper\)/);
+    expect(descriptionRule).toMatch(/color:\s*currentColor/);
+    const opacityValue = descriptionRule?.match(/(?:^|;)\s*opacity:\s*([^;]+)/)?.[1].trim() ?? "1";
+    const opacity = Number.parseFloat(opacityValue) / (opacityValue.endsWith("%") ? 100 : 1);
+    expect(opacity).toBeGreaterThanOrEqual(0);
+    expect(opacity).toBeLessThanOrEqual(1);
+
+    for (const theme of ["light", "dark"] as const) {
+      const tokens = { ...themeTokens(styles, theme), ...themeTokens(palette, theme) };
+      for (const token of ["danger", "paper"]) expect(tokens[token]).toMatch(/^#[\da-f]{6}$/i);
+      const compositedForeground = `#${[1, 3, 5].map(offset => {
+        const foreground = Number.parseInt(tokens.danger.slice(offset, offset + 2), 16);
+        const background = Number.parseInt(tokens.paper.slice(offset, offset + 2), 16);
+        return Math.round(foreground * opacity + background * (1 - opacity)).toString(16).padStart(2, "0");
+      }).join("")}`;
+      expect(contrastRatio(compositedForeground, tokens.paper), `${theme} danger description at opacity ${opacity}`)
+        .toBeGreaterThanOrEqual(4.5);
+    }
   });
 
   it("uses the interaction accent for persistent states and gives dropdown triggers hover feedback", () => {
@@ -248,9 +294,10 @@ describe("interface palette", () => {
   });
 
   it("updates non-component and hard-coded surfaces that carried the old palette", () => {
-    expect(favicon).toContain('fill="#3e4541"');
+    const lightTokens = themeTokens(palette, "light");
+    expect(favicon).toContain(`fill="${lightTokens["control-strong"]}"`);
     expect(favicon).not.toContain("#1d2521");
-    expect(indexHtml).toContain('name="theme-color" content="#f4f5f4"');
+    expect(indexHtml).toContain(`name="theme-color" content="${lightTokens.canvas}"`);
     expect(app).toMatch(/getPropertyValue\("--canvas"\)/);
     expect(palette).toMatch(/\.photo-lightbox \.image-lightbox-panel\s*\{[^}]*var\(--media-panel\)/s);
     expect(palette).toMatch(/\.image-lightbox-toolbar\s*\{[^}]*var\(--media-toolbar\)/s);

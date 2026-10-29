@@ -47,7 +47,7 @@ export function StorageSettingsPage() {
   }, []);
 
   return <div className="page storage-settings-page">
-    <div className="page-heading"><div><p className="eyebrow">Settings</p><h1>Storage</h1>
+    <div className="page-heading"><div><h1>Storage</h1><p className="page-context">Settings</p>
       <p className="lead">View current upload destinations and registered storage profiles.</p></div>
       <button ref={refreshButton} className="button" type="button" disabled={loading} onClick={() => void refresh(true)}>{loading ? "Refreshing…" : "Refresh"}</button></div>
     <p><a href="/settings/data">Data packages, reports and import</a></p>

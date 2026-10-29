@@ -106,7 +106,7 @@ async function openContentArchive(page) {
   }
   await navigation.getByRole('link', { name: 'Content archive', exact: true }).click();
   await page.waitForURL('**/export');
-  await page.getByRole('heading', { name: 'Export content', exact: true, level: 1 }).waitFor();
+  await page.getByRole('heading', { name: 'Content archive', exact: true, level: 1 }).waitFor();
 }
 
 async function qualify(context, value) {
@@ -132,7 +132,7 @@ async function qualify(context, value) {
       await page.getByRole('heading', { name: 'Samples', exact: true, level: 1 }).waitFor();
       await openContentArchive(page);
     }
-    await page.getByRole('heading', { name: 'Export content', exact: true }).waitFor();
+    await page.getByRole('heading', { name: 'Content archive', exact: true }).waitFor();
     assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), value.theme);
     const graphBefore = await owner.graphFingerprint();
     await page.getByRole('button', { name: 'Download full ZIP', exact: true }).click();

@@ -31,7 +31,7 @@ export function NewSamplePage() {
   }
 
   return <div className="page form-page">
-    <p className="eyebrow">Samples</p><h1>New sample</h1>
+    <h1>New sample</h1><p className="page-context">Samples</p>
     <form className="card form-grid sample-identity-form" onSubmit={submit} aria-busy={saving}>
       <label>Sample code<input name="code" required disabled={saving} placeholder="e.g. SOD-2026-014" /></label>
       <label>Sample name<input name="title" required disabled={saving} placeholder="What is this sample?" /></label>

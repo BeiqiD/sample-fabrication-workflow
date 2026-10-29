@@ -314,8 +314,8 @@ try {
     await keyboardClick(page.getByRole('button', { name: 'Retry loading Projects', exact: true }));
     await visible(page.getByRole('list', { name: 'Active Projects', exact: true })); await clearProjectFault();
     await noDocumentOverflow(page, record.assertions, 'projects-read-retry', matrix.theme);
-    for (const [path, heading] of [['/settings/storage', 'Storage'], ['/settings/data', 'Data'],
-      ['/settings/data/system', 'System backup and recovery'], ['/export', 'Export content']]) {
+    for (const [path, heading] of [['/settings/storage', 'Storage'], ['/settings/data', 'Research packages & reports'],
+      ['/settings/data/system', 'System backup and recovery'], ['/export', 'Content archive']]) {
       await page.goto(new URL(path, base).href); await visible(page.getByRole('heading', { name: heading, exact: true }));
       if (path === '/settings/storage') await enabled(page.getByRole('button', { name: 'Refresh', exact: true }));
       if (path === '/settings/data') {

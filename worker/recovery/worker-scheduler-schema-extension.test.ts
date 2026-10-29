@@ -60,6 +60,7 @@ afterEach(async () => {
 });
 
 describe("closed Worker current25 scheduler source extension", () => {
+  // Includes all migrations, optional statement splitting, snapshotting and V26 validation.
   it.each([false, true])("preserves exact observed DDL and the new tuple after whole/split25 upgrade (split=%s)", async split => {
     const native = database(split); populate(native);
     expect(createHash("sha256").update(readFileSync(join(migrationDirectory, WORKER_SCHEDULER_MIGRATION_NAME))).digest("hex"))
@@ -75,7 +76,7 @@ describe("closed Worker current25 scheduler source extension", () => {
     expect(Object.hasOwn(content.tables, "file_job_runtime_guard")).toBe(false);
     await expect(validateFullExportV26(content)).resolves.toMatchObject({ schemaVersion: 26 });
     expect(content.tables.samples[0].id).toBe("scheduler-kept");
-  });
+  }, 15_000);
 
   it("keeps original24 source pins, catalog receipts and observed source scope intact", async () => {
     const native = database(false, false);

@@ -74,6 +74,7 @@ export function App() {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">Skip to main content</a>
       <header className="topbar">
         <NavLink to="/processing" className="brand" aria-label="Sample Fabrication Workflow" title="Sample Fabrication Workflow">
           <span className="brand-mark"><NavigationIcon name="brand" /></span>
@@ -103,7 +104,7 @@ export function App() {
           </button>
         </div>
       </header>
-      <main>
+      <main id="main-content" tabIndex={-1}>
         <LocalAuthenticationGate verifyRemoteIdentity>
         <RouteErrorBoundary resetKey={location.pathname}>
           <Suspense fallback={<div className="page route-loading"><p className="muted">Loading…</p></div>}>

@@ -293,6 +293,21 @@ describe("native research package browser workflow", () => {
     expect(savedMutations()).toHaveLength(0);
   });
 
+  it.each([
+    { reason: "paused", headline: "Execution is paused.", explanation: "Package execution is paused by runtime controls." },
+    { reason: "unavailable", headline: "Execution is unavailable.", explanation: "The package executor runtime could not be checked." },
+  ])("keeps the genuine $reason runtime block visible with an enabled guard and current heartbeat", async ({ reason, headline, explanation }) => {
+    executor = { ...executor, enabled: true, stale: false, reason, canManage: true };
+    await mount();
+    const execution = screen.getByRole("region", { name: "Independent executor" });
+    expect(execution.textContent).toContain(headline);
+    expect(within(execution).queryByText("Execution is enabled.")).toBeNull();
+    expect(within(execution).getByText(explanation).closest("details")).toBeNull();
+    expect(within(execution).getByText(/Refreshing or polling this page does not execute it/).closest("details")).toBeNull();
+    expect(within(execution).getByText("Executor details").closest("details")!.open).toBe(false);
+    expect(savedMutations()).toHaveLength(0);
+  });
+
   it("groups earlier receipts with saved work after the main tasks and checks them without starting new work", async () => {
     const original = { action: "export", input: { requestId: "earlier:report", kind: "report", roots: [{ kind: "sample", id: "sample:1" }] } };
     sessionStorage.setItem("research-package-earlier-requests", JSON.stringify([{ intent: original, receipt: null }]));

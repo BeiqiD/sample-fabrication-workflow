@@ -61,3 +61,37 @@
 .project-reading-more-actions[hidden] { display: none; }
 
 .project-reading-more-actions > .button { justify-content: flex-start; text-align: start; }
+
+.reading-details-button > .action-icon,
+.project-reading-more > summary > .action-icon { display: none; }
+
+/* Reading's existing mobile projection owns this compact action scale. The
+   header can still wrap when enlarged text needs more room. */
+.project-reading-surface.mobile .project-reading-item > header { align-items: center; gap: 8px; }
+.project-reading-surface.mobile .project-reading-item-actions { flex-wrap: nowrap; gap: 4px; }
+.project-reading-surface.mobile .reading-details-button,
+.project-reading-surface.mobile .project-reading-more > summary {
+  width: 36px;
+  min-width: 36px;
+  height: 36px;
+  min-height: 36px;
+  padding: 0;
+}
+.project-reading-surface.mobile .reading-details-button > .action-icon,
+.project-reading-surface.mobile .project-reading-more > summary > .action-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+.project-reading-surface.mobile .reading-secondary-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

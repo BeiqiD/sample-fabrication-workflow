@@ -51,8 +51,8 @@ export function ConfirmDeleteDialog({ title, description, summary, deleting, err
 
   return <div className="confirm-dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !deleting && !cancelDisabled) onCancel(); }}>
     <section ref={dialogRef} className="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-delete-title" aria-describedby="confirm-delete-description">
-      <p className="eyebrow">{eyebrow}</p>
       <h2 id="confirm-delete-title">{title}</h2>
+      <p className="page-context">{eyebrow}</p>
       <p id="confirm-delete-description">{description}{appendIrreversibleWarning ? " This cannot be undone." : ""}</p>
       <blockquote>{summary.length > 180 ? `${summary.slice(0, 180)}…` : summary}</blockquote>
       {confirmation && <label className="confirm-dialog-confirmation">{confirmation.label}

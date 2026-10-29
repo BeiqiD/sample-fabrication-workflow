@@ -104,7 +104,7 @@ async function crosspageContinuity(page, owner, value, recoveryId, archiveSha256
   await page.getByRole('link', { name: 'Storage settings', exact: true }).click();
   await page.getByRole('heading', { name: 'Storage', exact: true, level: 1 }).waitFor();
   await page.getByRole('link', { name: 'Data packages, reports and import', exact: true }).click();
-  await page.getByRole('heading', { name: 'Data', exact: true, level: 1 }).waitFor();
+  await page.getByRole('heading', { name: 'Research packages & reports', exact: true, level: 1 }).waitFor();
   await page.getByText('Execution is paused.', { exact: true }).waitFor();
   await page.getByText('No package jobs are recorded for your account.', { exact: true }).waitFor();
   await page.getByRole('link', { name: 'System backup and recovery', exact: true }).click();

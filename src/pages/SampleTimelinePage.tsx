@@ -85,7 +85,7 @@ export function SampleTimelinePage() {
 
   if (!sample) return <div className="page sample-timeline-page">
     <Link className="back-link" to={`/samples/${sampleId}`}>← Sample</Link>
-    <div className="page-heading"><div><p className="eyebrow">Sample history</p><h1>Timeline</h1></div></div>
+    <div className="page-heading"><div><h1>Timeline</h1><p className="page-context">Sample history</p></div></div>
     <ReadStatus loading={loading} error={error} loadingMessage="Loading timeline…" errorTitle="Could not load timeline" onRetry={() => void load()} />
   </div>;
   const visibleEvents = filterSampleHistory(sample.events, filter);
@@ -94,8 +94,8 @@ export function SampleTimelinePage() {
     <Link className="back-link" to={`/samples/${sample.id}`}>← {sample.code}</Link>
     <div className="sample-header">
       <div className="sample-header-copy">
-        <p className="eyebrow">Timeline · {sample.code}</p>
         <h1>{sample.title}</h1>
+        <p className="page-context">Timeline · {sample.code}</p>
         <p className="lead">The complete audit history for this sample, including normal processing, confirmations, notes, and changes.</p>
       </div>
       <div className="header-actions"><StatusPill status={sample.status} /><Link className="button" to={`/samples/${sample.id}`}>Open sample</Link></div>

@@ -209,7 +209,7 @@ export function StorageConfigurationPage() {
   const standardAwsEndpoint = form.provider === "s3" && supportsExpectedS3BucketOwner(form.endpoint, form.region)
     && !/^(?:cn-|us-gov-)|(?:^|-)iso[a-z]*-/.test(form.region);
   return <div className="page storage-settings-page">
-    <div className="page-heading"><div><p className="eyebrow">Settings</p><h1>Storage configuration</h1>
+    <div className="page-heading"><div><h1>Storage configuration</h1><p className="page-context">Settings</p>
       <p className="lead">Save storage candidates, test S3 connections and maintain credential encryption.</p></div>
       <button ref={refreshButton} className="button" type="button" disabled={loading || saving} onClick={() => {
         returnRefreshFocus.current = document.activeElement === refreshButton.current;

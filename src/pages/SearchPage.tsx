@@ -23,8 +23,8 @@ export function SearchPage() {
   return <div className="page reference-search-page">
     <div className="page-heading">
       <div>
-        <p className="eyebrow">Research index</p>
         <h1>Search</h1>
+        <p className="page-context">Research index</p>
         <p className="lead">Find stable references across samples, process history, comments, files, and exact recipe revisions.</p>
       </div>
     </div>

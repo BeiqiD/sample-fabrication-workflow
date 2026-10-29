@@ -177,6 +177,7 @@ function insertAttachmentMetadata(
 }
 
 describe("Project integer schema contract", () => {
+  // Includes fresh schema migrations and every persisted-counter guard check.
   it("rejects fractional, infinite, and unsafe values for every persisted counter", () => {
     const database = referenceTestDatabase();
     const invalidValues = [
@@ -298,7 +299,7 @@ describe("Project integer schema contract", () => {
       FROM project_content_attachments WHERE project_content_id = 'attachment-max'
     `).get()).toEqual({ byte_size_type: "integer" });
     database.close();
-  });
+  }, 15_000);
 
   it("rejects fractional and infinite revisions on all five revisioned tables", () => {
     const database = referenceTestDatabase();

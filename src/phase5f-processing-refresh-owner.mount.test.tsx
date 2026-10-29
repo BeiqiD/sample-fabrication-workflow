@@ -73,6 +73,41 @@ function fillExecution(dialog: HTMLElement) {
 }
 
 describe("Processing refresh scope from actual grid owner actions", () => {
+  it("keeps mobile plan details and actual correction focus accessible after opening batch help", async () => {
+    vi.stubGlobal("matchMedia", vi.fn((query: string) => ({ matches: true, media: query, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
+    const a = ownerFixture("a"), b = ownerFixture("b");
+    const plannedTitle = "Long planned etching step with a complete procedure title";
+    Object.assign(a.run.steps[0], { plannedTitle, plannedToolName: "Planned etcher", plannedParametersText: "Full planned parameters, including the exact duration.", plannedCommentsText: "Keep this complete plan note available." });
+    const view = render(<MultiSampleRunGrid primaryRun={a.run} columns={[a, b]} onSaved={async () => {}} />);
+    const help = screen.getByText("Plan and batch help").closest("details")!;
+    expect(help.open).toBe(false);
+    fireEvent.click(within(help).getByText("Plan and batch help"));
+    expect(help.open).toBe(true);
+    expect(within(help).getByText("Plan on the left; actual execution stays in each sample column.")).toBeTruthy();
+    expect(within(help).getByText("Common actions use checked samples")).toBeTruthy();
+    expect(screen.getByRole("checkbox", { name: "Owner a S-001" })).toBeTruthy();
+    expect(screen.getByRole("checkbox", { name: "Owner b S-002" })).toBeTruthy();
+    const planButton = screen.getByRole("button", { name: `View process-step details for ${plannedTitle}` });
+    planButton.focus(); fireEvent.click(planButton);
+    const plan = screen.getByRole("dialog", { name: plannedTitle });
+    expect(within(plan).getByText("Planned etcher")).toBeTruthy();
+    expect(within(plan).getByText("Full planned parameters, including the exact duration.")).toBeTruthy();
+    expect(within(plan).getByText("Keep this complete plan note available.")).toBeTruthy();
+    await waitFor(() => expect(document.activeElement).toBe(within(plan).getByRole("button", { name: "Close process-step details" })));
+    fireEvent.keyDown(document, { key: "Escape" });
+    await waitFor(() => expect(document.activeElement).toBe(planButton));
+    expect(screen.queryByRole("dialog", { name: plannedTitle })).toBeNull();
+    const correction = within(ownerCell(view.container, 0)).getByRole("button", { name: "Correct" });
+    correction.focus(); fireEvent.click(correction);
+    const actual = screen.getByRole("dialog", { name: "Correct execution" });
+    await waitFor(() => expect(document.activeElement).toBe(within(actual).getByRole("combobox", { name: "Status" })));
+    expect(within(actual).getByRole("textbox", { name: "Actual tool" })).toBeTruthy();
+    fireEvent.click(within(actual).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(document.activeElement).toBe(correction));
+    expect(api.updateRunStep).not.toHaveBeenCalled();
+    expect(api.confirmRunSteps).not.toHaveBeenCalled();
+  });
+
   it.each([false, true])("refreshes exactly the edited fabrication owner after an accepted correction (adHoc=%s)", async adHoc => {
     const owner = renderOwners(undefined, { adHoc });
     fireEvent.click(within(ownerCell(owner.container, 1)).getByRole("button", { name: "Correct" }));

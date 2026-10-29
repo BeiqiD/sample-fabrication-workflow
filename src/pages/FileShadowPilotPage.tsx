@@ -167,7 +167,7 @@ export function FileShadowPilotPage() {
     <a className="back-link" href="/settings">← Settings</a>
     <p className="muted"><a href="/maintenance/file-evidence">Review historical file evidence</a> · Identify missing purpose and original storage records.</p>
     <div className="page-heading">
-      <div><p className="eyebrow">Maintenance</p><h1>File shadow pilot</h1>
+      <div><h1>File shadow pilot</h1><p className="page-context">Maintenance</p>
         <p className="lead">{authorityActive ? "File authority is active. Shadow conversion is complete." : "Inspect current file references and convert one reviewed reference at a time. Existing file access continues during overlap."}</p></div>
     </div>
     {commandError && <p className="error-banner" role="alert">{commandError}</p>}

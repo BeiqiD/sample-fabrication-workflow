@@ -24,7 +24,7 @@ describe("sample page layout refinements", () => {
     expect(layout).toMatch(/\.sample-details-description-field textarea\s*\{[^}]*height:\s*100%[^}]*min-height:\s*0[^}]*resize:\s*none/s);
   });
 
-  it("keeps the complete read-only details and Delete area as the stable geometry source", () => {
+  it("keeps complete metadata as the stable geometry source and separates deletion below history", () => {
     const viewStart = page.indexOf('className={`sample-details-view');
     const formStart = page.indexOf('className="detail-form sample-identity-form sample-details-edit-form"', viewStart);
     expect(viewStart).toBeGreaterThanOrEqual(0);
@@ -33,7 +33,9 @@ describe("sample page layout refinements", () => {
     expect(view).toContain("<dt>Parent</dt>");
     expect(view).toContain("<dt>Children</dt>");
     expect(view).toContain("<dt>Created</dt>");
-    expect(view).toContain('className="sample-danger-zone"');
+    expect(view).toContain("<dt>Description</dt>");
+    expect(view).not.toContain("sample-danger-zone");
+    expect(page.indexOf('className="sample-danger-zone sample-delete-section"')).toBeGreaterThan(page.indexOf('className="sample-secondary-grid"'));
     expect(page).toContain('disabled={updatingDetails} onClick={() => setEditingDetails((value) => !value)}');
   });
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import type { PlanUpdatePreview, ProcessingSampleDetail, RunStartPreview, SampleSummary } from "../../shared/types";
 import { ActionIcon } from "../components/ActionIcon";
+import { shouldAutoFocusPageField } from "../lib/page-load-autofocus";
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { DialogCloseIcon } from "../components/DialogCloseIcon";
 import { MultiSampleRunGrid } from "../components/MultiSampleRunGrid";
@@ -24,6 +25,7 @@ import {
 } from "../lib/process-template-picker";
 import { sampleRunControlActionIds, sampleRunControlTitle } from "../lib/sample-run-selection";
 import { useModalDialog } from "../lib/use-modal-dialog";
+import "../processing-workspace-layout.css";
 
 const MAX_VISIBLE_SAMPLES = 8;
 type TransitionMode = "start" | "update" | "reopen";
@@ -548,7 +550,7 @@ export function ProcessingWorkspacePage() {
 
   if (!sample) return <div ref={workspaceRef} className="page processing-workspace-page sample-page">
     <Link className="back-link" to="/processing">← Processing</Link>
-    <div className="page-heading"><div><p className="eyebrow">Cleanroom workspace</p><h1>Processing workspace</h1></div></div>
+    <div className="page-heading"><div><h1>Processing workspace</h1><p className="processing-workspace-code">Cleanroom workspace</p></div></div>
     <ReadStatus loading={loading} error={error} loadingMessage="Loading processing workspace…" errorTitle="Could not load processing workspace" onRetry={() => void load()} />
   </div>;
   const includedIds = new Set(samples.map((item) => item.id));
@@ -640,9 +642,9 @@ export function ProcessingWorkspacePage() {
 
   return <div ref={workspaceRef} className="page processing-workspace-page sample-page">
     <Link className="back-link" to="/processing">← Processing</Link>
-    <div className="sample-header">
-      <div className="sample-header-copy"><p className="eyebrow">Processing · {sample.code}</p><h1>{sample.title}</h1><p className="lead">Execute the selected run; sample metadata and the permanent timeline stay in the sample archive.</p></div>
-      <div className="header-actions"><StatusPill status={sample.status} /><Link className="button responsive-icon-button" to={`/samples/${sample.id}`} aria-label="Open sample" title="Open sample"><ActionIcon name="open" /><span className="responsive-action-label">Open sample</span></Link>
+    <div className="sample-header processing-workspace-header">
+      <div className="sample-header-copy"><h1>{sample.title}</h1><div className="processing-workspace-identity"><span className="processing-workspace-code">{sample.code}</span><span className="processing-workspace-sample-status"><span>Sample status</span><StatusPill status={sample.status} /></span></div></div>
+      <div className="header-actions"><Link className="button responsive-icon-button" to={`/samples/${sample.id}`} aria-label="Open sample" title="Open sample"><ActionIcon name="open" /><span className="responsive-action-label">Open sample</span></Link>
       </div>
     </div>
     <ReadStatus loading={loading} error={error} loadingMessage="Loading processing workspace…" errorTitle="Could not load processing workspace" onRetry={() => void load()} />
@@ -655,22 +657,10 @@ export function ProcessingWorkspacePage() {
     </section>}
 
     <section className="execution-workspace">
-      <div className="execution-heading">
-        <div><h2>Samples in this view</h2><p>Use checked columns for common confirmation and comments. Every correction remains sample-specific.</p></div>
-        <button className="button primary core-toolbar-action core-toolbar-icon" aria-label="+ Add sample" title="Add sample to this view" aria-expanded={showSamplePicker} aria-controls="sample-picker-popover" disabled={samples.length >= MAX_VISIBLE_SAMPLES || !selectedRunIsEditable} onClick={() => setShowSamplePicker((value) => !value)}><ActionIcon name="plus" /><span className="core-action-label">Add sample</span></button>
-      </div>
-      <div className="visible-samples">
-        {samples.map((item, index) => <div className="visible-sample" key={item.id}><strong>{item.title}</strong><small>{item.code}</small>{index > 0 && <button type="button" aria-label={`Remove ${item.title} (${item.code}) from view`} onClick={() => removeVisibleSample(item.id)}>×</button>}</div>)}
-      </div>
-      {showSamplePicker && <div className="card sample-picker-popover" id="sample-picker-popover">
-        <label>{selectedRun?.runKind === "metrology" ? "Find a sample with matching metrology" : "Find a sample assigned to this process"}<input autoFocus value={sampleQuery} onChange={(event) => setSampleQuery(event.target.value)} placeholder="Search matching samples…" /></label>
-        <ReadStatus loading={samplePickerLoading} error={samplePickerError} loadingMessage="Loading matching samples…" errorTitle="Could not load matching samples" density="compact" onRetry={() => setSamplePickerRetry((value) => value + 1)} />
-        {!samplePickerLoading && !samplePickerError && <div>{availableResults.length ? availableResults.map((result) => <button type="button" key={result.id} onClick={() => addVisibleSample(result.id)}><strong>{result.code}</strong><span>{result.title}</span><small>{result.location || "No location"}</small></button>) : <p className="muted">No matching samples to add.</p>}</div>}
-      </div>}
-
-      <div className="run-controls card">
+      <div className="processing-workspace-context">
+      <div className="run-controls">
         <div className="run-controls-heading">
-          <h3 className="card-title run-controls-title">{sampleRunControlTitle(selectedRun?.runKind)}</h3>
+          <h2 className="card-title run-controls-title">{sampleRunControlTitle(selectedRun?.runKind)}</h2>
           <span className={`run-status run-controls-status${selectedRun ? ` run-status-${selectedRun.status}` : ""}`}>{selectedRunState}</span>
         </div>
         <div className="run-controls-picker">
@@ -684,6 +674,25 @@ export function ProcessingWorkspacePage() {
           <RunActionMenu label="Run actions" icon={<ActionIcon name="actions" />} items={runActionItems} disabled={runControlsUnavailable} />
           <RunActionMenu label="Start run" icon={<ActionIcon name="start" />} items={startActionItems} disabled={runControlsUnavailable} primary />
         </div>
+      </div>
+      <div className="processing-workspace-samples">
+        <div className="execution-heading">
+          <h2>Samples in this view</h2>
+          <button className="button primary core-toolbar-action core-toolbar-icon" aria-label="+ Add sample" title="Add sample to this view" aria-expanded={showSamplePicker} aria-controls="sample-picker-popover" disabled={samples.length >= MAX_VISIBLE_SAMPLES || !selectedRunIsEditable} onClick={() => setShowSamplePicker((value) => !value)}><ActionIcon name="plus" /><span className="core-action-label">Add sample</span></button>
+        </div>
+        <div className="visible-samples">
+          {samples.map((item, index) => <div className="visible-sample" key={item.id} title={`${item.title} · ${item.code}`}><strong>{item.title}</strong><small>{item.code}</small>{index > 0 && <button type="button" aria-label={`Remove ${item.title} (${item.code}) from view`} onClick={() => removeVisibleSample(item.id)}>×</button>}</div>)}
+        </div>
+      </div>
+      {showSamplePicker && <div className="card sample-picker-popover" id="sample-picker-popover">
+        <label>{selectedRun?.runKind === "metrology" ? "Find a sample with matching metrology" : "Find a sample assigned to this process"}<input autoFocus={shouldAutoFocusPageField()} name="sample-query" autoComplete="off" value={sampleQuery} onChange={(event) => setSampleQuery(event.target.value)} placeholder="Search matching samples…" /></label>
+        <ReadStatus loading={samplePickerLoading} error={samplePickerError} loadingMessage="Loading matching samples…" errorTitle="Could not load matching samples" density="compact" onRetry={() => setSamplePickerRetry((value) => value + 1)} />
+        {!samplePickerLoading && !samplePickerError && <div>{availableResults.length ? availableResults.map((result) => <button type="button" key={result.id} onClick={() => addVisibleSample(result.id)}><strong>{result.code}</strong><span>{result.title}</span><small>{result.location || "No location"}</small></button>) : <p className="muted">No matching samples to add.</p>}</div>}
+      </div>}
+      <details className="processing-workspace-guidance">
+        <summary>Workspace guidance</summary>
+        <div><p>Execute the selected run; sample metadata and the permanent timeline stay in the sample archive.</p><p>Use checked columns for common confirmation and comments. Every correction remains sample-specific.</p></div>
+      </details>
       </div>
 
       {selectedRun ? <section className="runs-section">
@@ -779,7 +788,7 @@ export function ProcessingWorkspacePage() {
               </div>
             </section>
           </div>
-          {!processFamiliesLoading && !processFamilies.length && !selectedProcessFamilyId && !processFamilyQuery.trim() && transitionMode === "start" && <p className="warning-card compact-warning">No process templates are available.</p>}
+          {!processFamiliesLoading && !processFamilies.length && !selectedProcessFamilyId && !processFamilyQuery.trim() && transitionMode === "start" && <p className="warning-card compact-warning">No process templates are available. <Link to="/settings/import-workbook">Import a workbook in Settings</Link> to prepare a process template.</p>}
           {!processVersionsLoading && !processVersions.length && transitionMode !== "start" && <p className="warning-card compact-warning">Import a newer version of this process template before updating or reopening the run.</p>}
           {(transitionMode === "update" || transitionMode === "reopen") && planPreview && <div className={`transition-plan-summary ${planPreview.compatible ? "" : "has-conflict"}`}><strong>{planPreview.compatible ? `${planPreview.preservedCount} linked · ${planPreview.additionCount} new · ${planPreview.supersededCount} replaced` : "This version cannot be applied"}</strong><small>{planPreview.blockingReason || `${planPreview.skippedAdditionCount ? `${planPreview.skippedAdditionCount} inserted before the execution boundary will be skipped · ` : ""}${planPreview.historicalDifferences.length} historical difference${planPreview.historicalDifferences.length === 1 ? "" : "s"} retained`}</small></div>}
           {runStartError && <p className="error-banner">{runStartError}</p>}

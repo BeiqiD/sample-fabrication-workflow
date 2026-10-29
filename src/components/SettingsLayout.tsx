@@ -1,25 +1,8 @@
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
+import { advancedSettingsDestinations, settingsDestinations, settingsGroups } from "../lib/settingsDestinations";
+import { ActionIcon } from "./ActionIcon";
 import "../settings.css";
-
-const settingsGroups = [
-  { id: "data", label: "Data and export", destinations: [
-    { to: "/settings/data", label: "Research packages" },
-    { to: "/export", label: "Content archive" },
-    { to: "/settings/import-workbook", label: "Workbook import" },
-  ] },
-  { id: "storage", label: "Storage", destinations: [
-    { to: "/settings/storage", label: "Storage overview" },
-    { to: "/settings/storage/configuration", label: "Connections" },
-    { to: "/settings/storage/migrations", label: "File migrations" },
-  ] },
-  { id: "system", label: "System and maintenance", destinations: [
-    { to: "/settings/data/system", label: "Backup and recovery" },
-    { to: "/maintenance/file-shadow", label: "File shadow pilot" },
-    { to: "/maintenance/file-evidence", label: "File evidence" },
-    { to: "/maintenance/file-authority", label: "File authority" },
-  ] },
-];
 
 export function SettingsLayout() {
   const { pathname } = useLocation();
@@ -27,16 +10,19 @@ export function SettingsLayout() {
   const toggle = useRef<HTMLButtonElement>(null);
   const restoreNavigationFocus = useRef(false);
   const path = pathname.replace(/\/+$/, "").toLowerCase();
+  const activeAdvanced = advancedSettingsDestinations.find(destination => destination.to === path);
+  const [advancedExpanded, setAdvancedExpanded] = useState(Boolean(activeAdvanced));
   const currentLabel = path === "/settings" ? "Overview"
-    : settingsGroups.flatMap(group => group.destinations).find(destination => destination.to === path)?.label ?? "Settings";
+    : Object.values(settingsDestinations).find(destination => destination.to === path)?.label ?? "Settings";
 
   useEffect(() => {
     setExpanded(false);
+    if (activeAdvanced) setAdvancedExpanded(true);
     if (restoreNavigationFocus.current) {
       toggle.current?.focus();
       restoreNavigationFocus.current = false;
     }
-  }, [pathname]);
+  }, [pathname, activeAdvanced]);
 
   function closeAfterNavigation(event: MouseEvent<HTMLAnchorElement>) {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -52,7 +38,7 @@ export function SettingsLayout() {
         <button ref={toggle} type="button" className="settings-navigation-toggle" aria-expanded={expanded}
           aria-controls="settings-navigation-links" onClick={() => setExpanded(value => !value)}>
           <span><span>Settings navigation</span><strong>{currentLabel}</strong></span>
-          <span aria-hidden="true">{expanded ? "−" : "+"}</span>
+          <ActionIcon name="chevron-down" />
         </button>
         <div id="settings-navigation-links" className="settings-navigation-panel" data-expanded={expanded}>
         <Link className="settings-overview-link" to="/settings" aria-current={path === "/settings" ? "page" : undefined}
@@ -65,6 +51,16 @@ export function SettingsLayout() {
               <Link to={destination.to} aria-current={path === destination.to ? "page" : undefined}
                 onClick={closeAfterNavigation}>{destination.label}</Link>
             </li>)}</ul>
+          {group.id === "system" && <div className="settings-advanced-navigation">
+            <details open={advancedExpanded} onToggle={event => setAdvancedExpanded(event.currentTarget.open)}>
+              <summary>Advanced maintenance</summary>
+              <ul>{advancedSettingsDestinations.filter(destination => advancedExpanded || destination.to !== path).map(destination => <li key={destination.to}>
+                <Link to={destination.to} aria-current={advancedExpanded && path === destination.to ? "page" : undefined}
+                  onClick={closeAfterNavigation}>{destination.label}</Link>
+              </li>)}</ul>
+            </details>
+            {!advancedExpanded && activeAdvanced && <Link to={activeAdvanced.to} aria-current="page" onClick={closeAfterNavigation}>{activeAdvanced.label}</Link>}
+          </div>}
           </section>)}
         </div>
         </div>
