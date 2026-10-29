@@ -47,7 +47,8 @@ async function fixture() {
       }};
       try {
         let value;
-        if(input.action==='save')value=await saveStorageCandidate(serviceEnv,input.command,actor);
+        if(input.action==='migrate')value=await env.DB.batch(input.statements.map(statement=>env.DB.prepare(statement)));
+        else if(input.action==='save')value=await saveStorageCandidate(serviceEnv,input.command,actor);
         else if(input.action==='list')value=await listStorageCredentialEnvelopes(serviceEnv,input.profileId,actor);
         else if(input.action==='reenvelope')value=await reenvelopeStoredStorageCredential(serviceEnv,input.command,actor);
         else if(input.action==='receipt')value=await readStorageCredentialReenvelope(serviceEnv,input.id,actor);
@@ -105,12 +106,15 @@ async function fixture() {
   };
   try {
     const db = await native.getD1Database("DB"), directory = new URL("../../migrations/", import.meta.url);
-    for (const filename of readdirSync(directory).filter(filename => filename.endsWith(".sql")).sort())
-      await db.batch(splitSql(readFileSync(new URL(filename, directory), "utf8")).map(statement => db.prepare(statement)));
     const call = async (value: unknown) => {
       const response = await native.dispatchFetch("https://fixture.test", { method: "POST", body: JSON.stringify(value) });
       return { status: response.status, body: await response.json() };
     };
+    // Prepare migrations inside workerd, avoiding Miniflare's synchronous host proxy bridge.
+    for (const filename of readdirSync(directory).filter(filename => filename.endsWith(".sql")).sort()) {
+      const migrated = await call({ action: "migrate", statements: splitSql(readFileSync(new URL(filename, directory), "utf8")) });
+      expect(migrated.status, `Migration ${filename}: ${JSON.stringify(migrated.body)}`).toBe(200);
+    }
     const save = async (command: unknown = candidate) => {
       const saved = await call({ action: "save", command }); expect(saved.status).toBe(200);
       return saved.body as StorageCandidate;
