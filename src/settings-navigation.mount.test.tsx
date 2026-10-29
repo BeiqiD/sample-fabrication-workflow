@@ -164,7 +164,7 @@ describe("Settings organization in the actual App router", () => {
     await screen.findByRole("link", { name: "Download prepared ZIP" });
     fireEvent.click(within(screen.getByRole("navigation", { name: "Primary navigation" })).getByRole("link", { name: "Samples" }));
     await screen.findByRole("heading", { name: "Samples fixture" });
-    expect(revoke).toHaveBeenCalledWith("blob:settings-archive");
+    await waitFor(() => expect(revoke).toHaveBeenCalledWith("blob:settings-archive"));
     expect(screen.queryByRole("navigation", { name: "Settings navigation" })).toBeNull();
     expect(within(screen.getByRole("navigation", { name: "Primary navigation" })).getByRole("link", { name: "Settings" })
       .getAttribute("aria-current")).toBeNull();
