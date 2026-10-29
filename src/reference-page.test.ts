@@ -76,7 +76,9 @@ describe("reference destination route", () => {
     expect(page).toContain('label: "Archived"');
     expect(page).toContain('label: "Read-only context"');
     expect(page).toContain("resolution.destination.contextOpenSourceUrls[contextIndex]");
-    expect(page).toContain(">Open source</Link>");
+    const sourceLink = page.match(/<Link\b[^>]*to=\{resolution\.destination\.openSourceUrl\}[^>]*>[\s\S]*?<\/Link>/)?.[0];
+    expect(sourceLink).toBeDefined();
+    expect(sourceLink).toContain('aria-label="Open source"');
     expect(page).toContain("resolution.contexts.length > 1 && contextUrl");
     expect(page).toContain(">Open context</Link>");
   });
