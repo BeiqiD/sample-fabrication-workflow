@@ -92,8 +92,10 @@ export function ExportPage() {
     <section className="card export-card">
       <h2 className="card-title">Build a browser archive</h2>
       <p className="muted">Keep this page open while building the archive. Leaving cancels the export and releases any prepared download.</p>
-      <button className="button primary" disabled={exporting} onClick={() => void startExport()}>{exporting ? "Building archive…" : "Download full ZIP"}</button>
-      {exporting && <button className="button" onClick={cancelExport}>Cancel export</button>}
+      <div className="button-row">
+        <button className="button primary" disabled={exporting} onClick={() => void startExport()}>{exporting ? "Building archive…" : "Download full ZIP"}</button>
+        {exporting && <button className="button" onClick={cancelExport}>Cancel export</button>}
+      </div>
       {exporting && <p className="muted" role="status">{phaseText}</p>}
       {message && <p className="muted" role="status">{message}</p>}
       {prepared && <div>

@@ -8,6 +8,7 @@ import { ReadStatus } from "../components/ReadStatus";
 import { api, StoragePolicyRequestError } from "../lib/api";
 import { fileJobsClient, FileMigrationRequestError, FileMigrationRequestMissingError, fileMigrationErrorMessage, type MigrationInventory } from "../lib/file-jobs-client";
 import { storageConfigurationClient, StorageConfigurationRequestError } from "../lib/storage-configuration-client";
+import { ActionIcon } from "../components/ActionIcon";
 import "./storage-settings.css";
 
 const intentKey = "file-migration-acceptance";
@@ -439,9 +440,9 @@ export function FileMigrationsPage() {
   return <div className="page storage-settings-page">
     <div className="page-heading"><div><h1>File migrations</h1><p className="page-context">Settings</p>
       <p className="lead">Copy selected files, verify their contents, then switch their recorded location.</p></div>
-      {authorized && <button className="button" type="button" disabled={busy} onClick={() => void act(async signal => {
+      {authorized && <button className="button core-toolbar-action core-toolbar-icon" type="button" aria-label="Refresh" title="Refresh" disabled={busy} onClick={() => void act(async signal => {
         await readMetadata(signal); if (owner.isCurrent() && !signal.aborted) setPlan(null);
-      }, true)}>Refresh</button>}</div>
+      }, true)}><ActionIcon name="refresh" /><span className="core-action-label">Refresh</span></button>}</div>
     <p><a href="/settings/storage">Storage settings</a></p>
     {authorized !== false && (authorized === null || accessLoading || accessError) && <ReadStatus loading={accessLoading} error={accessError} loadingMessage="Reading administrator access…"
       errorTitle="Administrator access is unavailable" retryLabel="Retry administrator access" onRetry={() => retryInitialRead.current()} />}

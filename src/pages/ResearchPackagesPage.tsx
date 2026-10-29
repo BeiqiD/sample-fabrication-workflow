@@ -584,9 +584,9 @@ export function ResearchPackagesPage() {
   return <div className="page storage-settings-page research-packages-page">
     <div className="page-heading"><div><h1>{settingsDestinations.research.label}</h1>
       <p className="lead">Export research packages and offline reports, or import a native package as a new research copy.</p></div>
-      <button ref={refreshButton} className="button research-action research-action--mobile-icon" aria-label="Refresh status" title="Refresh status" disabled={busy || denied} onClick={event => {
+      <button ref={refreshButton} className="button core-toolbar-action core-toolbar-icon" aria-label="Refresh status" title="Refresh status" disabled={busy || denied} onClick={event => {
         const origin = event.currentTarget; void act(async signal => { beginPageFocus("refresh", origin, signal); await refresh(signal, true); }, true);
-      }}><ActionIcon name="refresh" /><span className="research-action-label">Refresh status</span></button></div>
+      }}><ActionIcon name="refresh" /><span className="core-action-label">Refresh status</span></button></div>
     {message && (denied || !messageError) && <p role={denied ? "alert" : "status"}>{message}</p>}
     <ReadStatus loading={readPhase === "loading" && !denied} loadingMessage="Reading saved package work…"
       error={!denied ? readError : null} errorTitle="Package status unavailable"
