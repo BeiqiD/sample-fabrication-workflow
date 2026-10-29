@@ -37,6 +37,18 @@ async function classicFixture() {
   return new File([new Uint8Array(await zip.generateAsync({ type: "uint8array" }))], "synthetic-classic.xlsx", { type: source.type });
 }
 
+async function classicParameterExtensions(options: { process?: string; tool?: string; canonical?: string; notes?: string; comment?: string }) {
+  const source = await classicFixture();
+  const zip = await JSZip.loadAsync(await source.arrayBuffer());
+  let sheet = await zip.file("xl/worksheets/sheet1.xml")!.async("text");
+  const textCell = (reference: string, value: string) => `<c r="${reference}" t="inlineStr"><is><t>${value}</t></is></c>`;
+  sheet = sheet.replace('</t></is></c></row>\n    <row r="2">', `</t></is></c>${textCell("H1", "Process Parameters")}${textCell("I1", "Tool Parameters")}${textCell("J1", "Notes")}${textCell("K1", "Comment")}</row>\n    <row r="2">`);
+  sheet = sheet.replace('<c r="D4" t="inlineStr"><is><t>4000 rpm &amp; 30 s</t></is></c>', textCell("D4", options.canonical ?? "Pressure: 1 Pa"));
+  sheet = sheet.replace('<c r="G4"><v>7</v></c>', `<c r="G4"><v>7</v></c>${options.process ? textCell("H4", options.process) : ""}${options.tool ? textCell("I4", options.tool) : ""}${options.notes ? textCell("J4", options.notes) : ""}${options.comment ? textCell("K4", options.comment) : ""}`);
+  zip.file("xl/worksheets/sheet1.xml", sheet);
+  return new File([new Uint8Array(await zip.generateAsync({ type: "uint8array" }))], source.name, { type: source.type });
+}
+
 describe("FabuBlox Excel layout conversion", () => {
   it("round trips capability → classic → capability with substrate, split parameters, metrology rows and unknown columns", async () => {
     const source = await capabilityWorkbookFixture();
@@ -94,6 +106,67 @@ describe("FabuBlox Excel layout conversion", () => {
     expect(parsed.steps[0].parametersText).toBe(preview.steps[0].parametersText);
     expect(parsed.steps[0].rawCells["Process Parameters"]).toBeUndefined();
     expect(parsed.steps[0].rawCells["Tool Parameters"]).toBe("Speed: 4000 rpm\nTime: 30 s");
+  });
+
+  it.each([
+    { process: "Legacy process annotation" },
+    { tool: "Independent tool annotation" },
+    { process: "Legacy process annotation", tool: "Independent tool annotation" },
+  ])("keeps independent classic parameter extensions separate from canonical Parameters: %j", async extensions => {
+    const source = await classicParameterExtensions(extensions);
+    const original = await parseFabuBloxWorkbook(source);
+    expect(original.detected.formatId).toBe("classic-layer-stack");
+    expect(original.steps[0].parametersText).toBe("Pressure: 1 Pa");
+    const capability = await convertFabuBloxWorkbook(source, "capability-flow");
+    const parsed = await parseFabuBloxWorkbook(capability.file);
+    expect(parsed.detected.formatId).toBe("capability-flow");
+    expect(semantic(parsed)).toEqual(semantic(original));
+    expect(parsed.steps[0].parametersText).toBe("Pressure: 1 Pa");
+    expect(parsed.steps[0].rawCells["Tool Parameters"]).toBeUndefined();
+    if (extensions.process) expect(parsed.steps[0].rawCells["Source column: Process Parameters"]).toBe(extensions.process);
+    if (extensions.tool) expect(parsed.steps[0].rawCells["Source column: Tool Parameters"]).toBe(extensions.tool);
+    const back = await convertFabuBloxWorkbook(capability.file, "classic-layer-stack");
+    const reparsed = await parseFabuBloxWorkbook(back.file);
+    expect(semantic(reparsed)).toEqual(semantic(original));
+    if (extensions.process) expect(reparsed.steps[0].rawCells["Source column: Process Parameters"]).toBe(extensions.process);
+    if (extensions.tool) expect(reparsed.steps[0].rawCells["Source column: Tool Parameters"]).toBe(extensions.tool);
+  });
+
+  it("splits a matched canonical tool suffix while preserving a conflicting classic Process Parameters extension", async () => {
+    const canonical = "Pressure: 1 Pa\n\nTool parameters:\nSpeed: 2000 rpm";
+    const source = await classicParameterExtensions({ canonical, process: "Independent process annotation", tool: "Speed: 2000 rpm" });
+    const original = await parseFabuBloxWorkbook(source);
+    const converted = await convertFabuBloxWorkbook(source, "capability-flow");
+    const parsed = await parseFabuBloxWorkbook(converted.file);
+    expect(parsed.steps[0].parametersText).toBe(canonical);
+    expect(parsed.steps[0].rawCells).toMatchObject({
+      "Process Parameters": "Pressure: 1 Pa", "Tool Parameters": "Speed: 2000 rpm",
+      "Source column: Process Parameters": "Independent process annotation",
+    });
+    expect(semantic(parsed)).toEqual(semantic(original));
+    const back = await convertFabuBloxWorkbook(converted.file, "classic-layer-stack");
+    expect(semantic(await parseFabuBloxWorkbook(back.file))).toEqual(semantic(original));
+  });
+
+  it("preserves independent classic Notes and Comment aliases without changing canonical comments or target format detection", async () => {
+    const source = await classicParameterExtensions({
+      process: "Independent process annotation", tool: "Independent tool annotation",
+      notes: "Independent Notes annotation", comment: "Independent Comment annotation",
+    });
+    const original = await parseFabuBloxWorkbook(source);
+    expect(original.steps[0].commentsText).toBe("=keep literal <5 nm");
+    const capability = await convertFabuBloxWorkbook(source, "capability-flow");
+    const parsed = await parseFabuBloxWorkbook(capability.file);
+    expect(parsed.detected.formatId).toBe("capability-flow");
+    expect(parsed.steps[0].rawCells).toMatchObject({
+      Notes: "=keep literal <5 nm", "Source column: Notes": "Independent Notes annotation",
+      "Source column: Comment": "Independent Comment annotation",
+      "Source column: Process Parameters": "Independent process annotation",
+      "Source column: Tool Parameters": "Independent tool annotation",
+    });
+    expect(semantic(parsed)).toEqual(semantic(original));
+    const back = await convertFabuBloxWorkbook(capability.file, "classic-layer-stack");
+    expect(semantic(await parseFabuBloxWorkbook(back.file))).toEqual(semantic(original));
   });
 
   it("retains multiple diagrams on one process row with exact media bytes and independent relationships", async () => {

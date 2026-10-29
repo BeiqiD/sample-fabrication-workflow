@@ -257,20 +257,18 @@ function parseRows(rows: unknown[][], headerRow: number, columns: ColumnMap, for
     row.forEach((value, columnIndex) => { if (value !== null && value !== undefined && value !== "") rawCells[headerLabels[columnIndex] || `Column ${columnIndex + 1}`] = value; });
     const processParameters = columns.parameters === undefined ? null : text(row[columns.parameters]);
     const toolParameters = columns.toolParameters === undefined ? null : text(row[columns.toolParameters]);
-    const sourceName = stepName;
-    const capability = columns.capabilityType === undefined ? null : text(row[columns.capabilityType]);
-    const name = format.placeholderNameFromCapability && /^[-–—]+$/.test(sourceName) && capability ? capability : sourceName;
-    if (name !== sourceName) {
-      rawCells["Source step name"] = sourceName;
-      warnings.push({ code: "step_name_from_capability", message: `Row ${rowIndex + 1} uses its capability as the step name because its source name is a placeholder. The original cells are retained.`, sourceRow: rowIndex + 1 });
-    }
+    // Names participate in persistent workflow step matching. A capability is
+    // source metadata, not an automatic rename of an existing recipe step.
+    if (/^[-–—]+$/.test(stepName)) warnings.push({
+      code: "placeholder_step_name", message: `Row ${rowIndex + 1} has a placeholder step name. Its original name and capability fields are retained so existing workflow step identities do not change.`, sourceRow: rowIndex + 1,
+    });
     steps.push({
       localId: `step-${steps.length + 1}`,
       sourceRow: rowIndex + 1,
       position: steps.length,
       stepNumber,
       sectionName: currentSection,
-      name,
+      name: stepName,
       toolName: columns.toolName === undefined ? null : text(row[columns.toolName]),
       parametersText: format.separateToolParameters && toolParameters
         ? [processParameters, `Tool parameters:\n${toolParameters}`].filter(Boolean).join("\n\n")

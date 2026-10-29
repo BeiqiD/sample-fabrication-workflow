@@ -50,16 +50,18 @@ function cell(reference: string, value: unknown) {
   return `<c r="${reference}" t="inlineStr"><is><t xml:space="preserve">${escaped(value)}</t></is></c>`;
 }
 
-function processParameters(step: FabubloxStep) {
-  const explicit = fabubloxCell(step.rawCells, "Process Parameters");
-  if (explicit !== null) return explicit;
+function parameterParts(step: FabubloxStep) {
+  // Canonical Parameters is authoritative. A classic workbook may legitimately
+  // have independent extensions called Process Parameters or Tool Parameters;
+  // those must not replace or add to the actual imported process parameters.
   const tool = fabubloxCell(step.rawCells, "Tool Parameters");
-  if (!tool) return step.parametersText;
+  if (!tool) return { process: step.parametersText, tool: null };
   const suffix = `Tool parameters:\n${tool}`;
-  if (step.parametersText === suffix) return null;
+  if (step.parametersText === suffix) return { process: null, tool };
   const separator = `\n\n${suffix}`;
   return step.parametersText?.endsWith(separator)
-    ? step.parametersText.slice(0, -separator.length) || null : step.parametersText;
+    ? { process: step.parametersText.slice(0, -separator.length) || null, tool }
+    : { process: step.parametersText, tool: null };
 }
 
 function diagramText(step: FabubloxStep) {
@@ -85,8 +87,8 @@ const TARGET_CELL_WRITERS: Record<FabubloxWorkbookFormatId, (step: FabubloxStep,
     "Step Name": initial ? fabubloxCell(step.rawCells, "Source substrate name") ?? step.name : step.name,
     "Tool Name": step.toolName,
     "Recipe Name": fabubloxCell(step.rawCells, "Recipe Name"),
-    "Process Parameters": processParameters(step),
-    "Tool Parameters": fabubloxCell(step.rawCells, "Tool Parameters"),
+    "Process Parameters": parameterParts(step).process,
+    "Tool Parameters": parameterParts(step).tool,
     Notes: step.commentsText,
   }),
 };
@@ -117,11 +119,11 @@ function extensionColumns(
       return String(step.rawCells[label] ?? "") === String(value ?? "");
     });
     if (represented) continue;
-    // A literal Layer Stacks extension would select the classic input adapter
-    // on the capability layout. Prefix it, and also protect changed base-cell
-    // values and case-distinct source columns without overwriting either.
+    // Source-only header conflicts come from the same registry as input
+    // detection. Prefix them, and also protect changed base-cell values and
+    // case-distinct source columns without overwriting either.
     const needsPrefix = (target.headers as readonly string[]).includes(label)
-      || ["layer stacks", "layer stack"].includes(normalized);
+      || (target.sourceHeaderConflicts as readonly string[]).includes(normalized);
     let output = label;
     if (needsPrefix) {
       const stem = `Source column: ${label}`;

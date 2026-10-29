@@ -8,7 +8,7 @@ producer metadata; neither identifies a FabuBlox layout.
 | Internal layout ID | Identifying content | Initial substrate | Diagram column |
 | --- | --- | --- | --- |
 | `classic-layer-stack` | Existing Step # / Step Name table with Parameters, Comments and Layer Stacks | Exactly one Step 0 named Substrate Stack | Explicit Layer Stacks header |
-| `capability-flow` | Capability Type and Process Parameters columns, with separate Tool Parameters and Notes | Exactly one explicit Substrate capability with blank or zero number | Explicit diagram header, or the supported blank A column before Step # in B |
+| `capability-flow` | Capability Type plus the newer parameter/Notes or leading-image layout, without classic Parameters/Comments/Layer Stacks headers | Exactly one explicit Substrate capability with blank or zero number | Explicit diagram header, or the supported blank A column before Step # in B |
 
 Both input adapters produce the existing import manifest version 2. The initial
 substrate retains the canonical Step 0 / Substrate Stack role expected by the
@@ -22,6 +22,29 @@ columns are retained. Tool parameters are displayed with an explicit label,
 separate from the process parameter text. M-numbered rows remain in the imported
 plan; this compatibility adapter does not create independent Metrology template
 entities or change process-run semantics.
+
+## Updating an existing workflow across layouts
+
+Layout compatibility primarily means importing a later recipe revision into the
+same process-template family and updating an existing run with its existing
+plan-update operation. The workbook does not have to be converted first.
+
+Both adapters preserve step names. Excel row positions, step numbers, diagram
+columns and export-layout IDs do not become step identities. The existing
+alignment matches normalized names, unchanged definitions and repeated-name
+occurrences, so a layout change alone must not replace executed run steps or
+erase their actual parameters, comments, image records and status. Placeholder
+names such as `-` remain unchanged rather than being silently renamed from a
+capability field. Source capability/recipe metadata stays available in the
+original manifest.
+
+The imported template's substrate is a separate canonical initial snapshot,
+never an extra executable row. A run's recorded initial snapshot remains
+immutable when its future plan is updated. New template versions and plan
+updates remain separate explicit operations; existing workflows are not
+automatically rewritten by importing a file. Actual step renames or ambiguous
+repeated definitions remain a plan-alignment review concern, independent of
+Excel layout compatibility.
 
 ## Converting a workbook
 

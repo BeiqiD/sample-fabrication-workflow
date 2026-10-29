@@ -37,10 +37,13 @@ interface WorkbookFormat {
   imageColumn(headers: unknown[], columns: FabubloxColumnMap): number | null;
   separateToolParameters: boolean;
   normalizeInitialRole: boolean;
-  placeholderNameFromCapability: boolean;
   missingSubstrateMessage: string;
   substrateSheetNames: readonly string[];
+  /** Source extension names that would make this output look like another layout. */
+  sourceHeaderConflicts: readonly string[];
 }
+
+const CAPABILITY_HEADER_CONFLICTS = ["parameters", "parameter", "comments", "comment", "layer stacks", "layer stack"];
 
 export const FABUBLOX_WORKBOOK_FORMATS = [
   {
@@ -49,15 +52,17 @@ export const FABUBLOX_WORKBOOK_FORMATS = [
     headers: ["", "Step #", "Capability Type", "Step Name", "Tool Name", "Recipe Name", "Process Parameters", "Tool Parameters", "Notes"],
     diagramColumn: 0,
     matches: (headers, columns) => columns.capabilityType !== undefined
-      && !headers.some(value => ["layer stacks", "layer stack"].includes(normalizeFabuBloxLabel(value))),
+      && !headers.some(value => CAPABILITY_HEADER_CONFLICTS.includes(normalizeFabuBloxLabel(value)))
+      && (columns.parameters !== undefined || columns.toolParameters !== undefined || columns.comments !== undefined
+        || columns.stepNumber === 1 && !normalizeFabuBloxLabel(headers[0])),
     initialSubstrate: step => (step.stepNumber === null || step.stepNumber === "0")
       && normalizeFabuBloxLabel(fabubloxCell(step.rawCells, "Capability Type")) === "substrate",
     imageColumn: (headers, columns) => columns.layerStacks ?? (columns.stepNumber === 1 && !normalizeFabuBloxLabel(headers[0]) ? 0 : null),
     separateToolParameters: true,
     normalizeInitialRole: true,
-    placeholderNameFromCapability: true,
     missingSubstrateMessage: "A Substrate row with a blank or zero Step # was not found; no initial substrate will be defined.",
     substrateSheetNames: ["substrate"],
+    sourceHeaderConflicts: CAPABILITY_HEADER_CONFLICTS,
   },
   {
     id: "classic-layer-stack",
@@ -70,9 +75,9 @@ export const FABUBLOX_WORKBOOK_FORMATS = [
     imageColumn: (_headers, columns) => columns.layerStacks ?? null,
     separateToolParameters: false,
     normalizeInitialRole: false,
-    placeholderNameFromCapability: false,
     missingSubstrateMessage: "Step 0 named Substrate Stack was not found; no initial substrate will be defined.",
     substrateSheetNames: [],
+    sourceHeaderConflicts: [],
   },
 ] as const satisfies readonly WorkbookFormat[];
 

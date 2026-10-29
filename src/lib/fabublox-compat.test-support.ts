@@ -107,3 +107,19 @@ export async function capabilityWorkbookFixture(options: CapabilityWorkbookOptio
   }
   return new File([new Uint8Array(await zip.generateAsync({ type: "uint8array" }))], "synthetic-capability-flow.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
+
+export async function classicWorkbookWithoutDiagramFixture(initialCapability?: string) {
+  const zip = new JSZip();
+  const hasCapabilityExtension = initialCapability !== undefined;
+  const rows = [
+    `<row r="1">${cell("A1", "Step #")}${cell("B1", "Step Name")}${cell("C1", "Parameters")}${cell("D1", "Comments")}${hasCapabilityExtension ? cell("E1", "Capability Type") : ""}</row>`,
+    `<row r="2">${cell("A2", "0")}${cell("B2", "Substrate Stack")}${cell("C2", "Test base / 250 µm")}${cell("D2", "Use recorded start")}${hasCapabilityExtension ? cell("E2", initialCapability) : ""}</row>`,
+    `<row r="3">${cell("A3", "1")}${cell("B3", "Prepare film")}${cell("C3", "350 K")}${cell("D3", "Keep timing")}${hasCapabilityExtension ? cell("E3", "Cleaning") : ""}</row>`,
+  ];
+  zip.file("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`);
+  zip.file("_rels/.rels", `<Relationships xmlns="${packageNamespace}"><Relationship Id="rWorkbook" Type="${relationshipNamespace}/officeDocument" Target="xl/workbook.xml"/></Relationships>`);
+  zip.file("xl/workbook.xml", `<workbook xmlns="${spreadsheetNamespace}" xmlns:r="${relationshipNamespace}"><sheets><sheet name="Classic without diagrams" sheetId="1" r:id="rFlow"/></sheets></workbook>`);
+  zip.file("xl/_rels/workbook.xml.rels", `<Relationships xmlns="${packageNamespace}"><Relationship Id="rFlow" Type="${relationshipNamespace}/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`);
+  zip.file("xl/worksheets/sheet1.xml", worksheet(rows.join("")));
+  return new File([new Uint8Array(await zip.generateAsync({ type: "uint8array" }))], "synthetic-classic-without-diagrams.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+}

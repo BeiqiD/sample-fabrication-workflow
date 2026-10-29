@@ -1,10 +1,29 @@
 import { DOMParser } from "@xmldom/xmldom";
 import { beforeAll, describe, expect, it } from "vitest";
 import { parseFabuBloxWorkbook } from "./fabublox";
-import { capabilityInitialPng, capabilityProcessPng, capabilityWorkbookFixture } from "./fabublox-compat.test-support";
+import { capabilityInitialPng, capabilityProcessPng, capabilityWorkbookFixture, classicWorkbookWithoutDiagramFixture } from "./fabublox-compat.test-support";
 
 beforeAll(() => {
   Object.defineProperty(globalThis, "DOMParser", { value: DOMParser, configurable: true });
+});
+
+describe("classic FabuBlox layouts without diagrams", () => {
+  it.each([
+    { label: "no capability extension", capability: undefined },
+    { label: "a blank substrate capability extension", capability: "" },
+    { label: "an independent Process capability extension", capability: "Process" },
+  ])("preserves explicit Step 0 when there is no Layer Stacks column and $label", async ({ capability }) => {
+    const preview = await parseFabuBloxWorkbook(await classicWorkbookWithoutDiagramFixture(capability));
+    expect(preview.detected).toMatchObject({ formatId: "classic-layer-stack", layerStackColumn: null });
+    expect(preview.initialSubstrateStep).toMatchObject({ name: "Substrate Stack", stepNumber: "0", sourceRow: 2, parametersText: "Test base / 250 µm", commentsText: "Use recorded start", imageIds: [] });
+    expect(preview.steps).toHaveLength(1);
+    expect(preview.steps[0]).toMatchObject({ stepNumber: "1", name: "Prepare film", parametersText: "350 K", commentsText: "Keep timing" });
+    if (capability) expect(preview.initialSubstrateStep?.rawCells["Capability Type"]).toBe(capability);
+    expect(preview.images).toEqual([]);
+    expect(preview.initialStateImageIds).toEqual([]);
+    expect(preview.warnings).toContainEqual(expect.objectContaining({ code: "initial_substrate_missing_diagram", sourceRow: 2 }));
+    expect(preview.warnings.some(warning => warning.code === "missing_initial_substrate_step" || warning.code === "ambiguous_initial_substrate_step")).toBe(false);
+  });
 });
 
 describe("FabuBlox capability-flow compatibility", () => {
@@ -57,12 +76,12 @@ describe("FabuBlox capability-flow compatibility", () => {
     expect(layers.indexOf("Layer 1")).toBeLessThan(layers.indexOf("Layer 2"));
   });
 
-  it("uses a declared capability for a placeholder step name while retaining the original cell", async () => {
+  it("retains a placeholder step name so capability labels do not change existing step identity", async () => {
     const preview = await parseFabuBloxWorkbook(await capabilityWorkbookFixture({ process: { name: "-", capability: "Plasma Etch" } }));
-    expect(preview.steps[0]).toMatchObject({ stepNumber: "1", name: "Plasma Etch", rawCells: { "Step Name": "-", "Capability Type": "Plasma Etch" } });
+    expect(preview.steps[0]).toMatchObject({ stepNumber: "1", name: "-", rawCells: { "Step Name": "-", "Capability Type": "Plasma Etch" } });
     expect(preview.steps[0].parametersText).toContain("Film thickness: 25 nm");
     expect(preview.steps[0].imageIds).toEqual(["image-2"]);
-    expect(preview.warnings).toContainEqual(expect.objectContaining({ code: "step_name_from_capability", sourceRow: 4 }));
+    expect(preview.warnings).toContainEqual(expect.objectContaining({ code: "placeholder_step_name", sourceRow: 4 }));
   });
 
   it("warns without merging metadata from an auxiliary sheet that names another substrate", async () => {
