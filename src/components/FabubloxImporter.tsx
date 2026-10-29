@@ -1,6 +1,6 @@
 import { captureApplicationOwner } from "../lib/authentication-client";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import type { FabubloxImportPreview, ParsedFabubloxImage } from "../../shared/types";
+import type { FabubloxImportPreview, ImportWarning, ParsedFabubloxImage } from "../../shared/types";
 import { api, type ProcessTemplateFamilyOption } from "../lib/api";
 import { parseFabuBloxWorkbook } from "../lib/fabublox";
 import type { FabubloxImportRequestState, FabubloxImportResult } from "../../shared/contracts/fabublox-import";
@@ -10,6 +10,8 @@ import {
   type PreparedFabubloxImport, type SavedFabubloxImport,
 } from "../lib/fabublox-import-client";
 import { sectionHeaderAtGroupStart } from "../lib/template-sections";
+import { FABUBLOX_WORKBOOK_FORMATS } from "../lib/fabublox-formats";
+import { ActionIcon } from "./ActionIcon";
 import { FileDropzone } from "./FileDropzone";
 import { SubstrateStepDetails } from "./SubstrateStepDetails";
 
@@ -26,8 +28,10 @@ function LayerThumbnail({ image, alt }: { image?: ParsedFabubloxImage; alt: stri
 
 function substrateStatus(preview: FabubloxImportPreview) {
   if (!preview.initialSubstrateStep) return "Step 0 missing";
-  return preview.initialStateImageIds.length ? "Substrate Stack detected" : "Detected · no diagram";
+  return preview.initialStateImageIds.length ? "Detected · with diagram" : "Detected · no diagram";
 }
+
+type WorkbookFormatId = (typeof FABUBLOX_WORKBOOK_FORMATS)[number]["id"];
 
 interface FabubloxImporterProps {
   onImported: (result: { templateVersionId: string; version: number; name: string }) => Promise<void>;
@@ -61,7 +65,20 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
   const [busy, setBusy] = useState(Boolean(saved));
   const [error, setError] = useState("");
   const [familyError, setFamilyError] = useState("");
+  const [conversionFormatId, setConversionFormatId] = useState<WorkbookFormatId>("classic-layer-stack");
+  const [converting, setConverting] = useState(false);
+  const [conversionError, setConversionError] = useState("");
+  const [conversionWarnings, setConversionWarnings] = useState<ImportWarning[]>([]);
+  const [converted, setConverted] = useState<{ url: string; filename: string } | null>(null);
+  const conversionGeneration = useRef(0);
+  const conversionJob = useRef<number | null>(null);
+  const conversionUrl = useRef<string | null>(null);
   const images = useMemo(() => new Map(preview?.images.map((image) => [image.localId, image]) ?? []), [preview]);
+  const importNotes = preview?.warnings.filter(warning => ["placeholder_step_name", "metrology_rows_retained"].includes(warning.code)) ?? [];
+  const importWarnings = preview?.warnings.filter(warning => !["placeholder_step_name", "metrology_rows_retained"].includes(warning.code)) ?? [];
+  const sourceSubstrateName = preview?.initialSubstrateStep?.rawCells["Source substrate name"];
+  const initialSubstrateName = typeof sourceSubstrateName === "string" && sourceSubstrateName.trim()
+    ? sourceSubstrateName : "Substrate Stack";
 
   useEffect(() => {
     const controller = new AbortController();
@@ -81,6 +98,18 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
     setOperation(next);
   }
 
+  function releaseConversionDownload() {
+    if (conversionUrl.current) URL.revokeObjectURL(conversionUrl.current);
+    conversionUrl.current = null;
+  }
+
+  function resetConversion() {
+    conversionGeneration.current += 1;
+    conversionJob.current = null;
+    releaseConversionDownload();
+    setConverting(false); setConverted(null); setConversionError(""); setConversionWarnings([]);
+  }
+
   useEffect(() => {
     mounted.current = true;
     const controller = new AbortController();
@@ -93,18 +122,25 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
         if (isCurrentSession() && !controller.signal.aborted) { actionInFlight.current = false; setBusy(false); }
       });
     }
-    return () => { mounted.current = false; parseGeneration.current += 1; controller.abort(); };
+    return () => {
+      mounted.current = false; parseGeneration.current += 1; controller.abort();
+      conversionGeneration.current += 1; conversionJob.current = null; releaseConversionDownload();
+    };
   }, [saved]);
 
   async function choose(nextFile: File | null) {
     if (!isCurrentSession()) return;
     if ((operationRef.current && operationRef.current.status !== "reselect") || actionInFlight.current) return;
+    resetConversion();
     const generation = ++parseGeneration.current;
     if (!nextFile) { setFile(null); setPreview(null); setBusy(false); setError(""); return; }
     setFile(nextFile); setPreview(null); setBusy(true); setError("");
     try {
       const parsed = await parseFabuBloxWorkbook(nextFile);
-      if (isCurrentSession() && parseGeneration.current === generation) setPreview(parsed);
+      if (isCurrentSession() && parseGeneration.current === generation) {
+        setPreview(parsed);
+        setConversionFormatId(parsed.detected.formatId === "classic-layer-stack" ? "capability-flow" : "classic-layer-stack");
+      }
     } catch (error) {
       if (isCurrentSession() && parseGeneration.current === generation) setError(`Could not read FabuBlox workbook: ${(error as Error).message}`);
     } finally {
@@ -112,12 +148,59 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
     }
   }
 
-  async function openResult(result: FabubloxImportResult, title: string) {
+  async function downloadConvertedWorkbook() {
+    if (!isCurrentSession() || !file || !preview || busy || actionInFlight.current || conversionJob.current !== null
+      || operationRef.current && operationRef.current.status !== "reselect") return;
+    const job = ++conversionGeneration.current;
+    conversionJob.current = job;
+    const selectedGeneration = parseGeneration.current;
+    const source = file, target = conversionFormatId;
+    const current = () => isCurrentSession() && conversionGeneration.current === job
+      && parseGeneration.current === selectedGeneration && !actionInFlight.current
+      && (!operationRef.current || operationRef.current.status === "reselect");
+    releaseConversionDownload();
+    setConverting(true); setConverted(null); setConversionError(""); setConversionWarnings([]);
+    try {
+      const { convertFabuBloxWorkbook } = await import("../lib/fabublox-convert");
+      if (!current()) return;
+      const result = await convertFabuBloxWorkbook(source, target);
+      if (!current()) return;
+      const url = URL.createObjectURL(result.file);
+      conversionUrl.current = url;
+      setConverted({ url, filename: result.file.name });
+      setConversionWarnings(result.warnings);
+      const anchor = document.createElement("a");
+      anchor.href = url; anchor.download = result.file.name;
+      document.body.append(anchor);
+      try { anchor.click(); }
+      catch { setConversionError("The automatic download could not start. Use the prepared workbook link below."); }
+      finally { anchor.remove(); }
+    } catch (error) {
+      if (current()) setConversionError(`Could not convert workbook: ${(error as Error).message}`);
+    } finally {
+      if (conversionGeneration.current === job) {
+        conversionJob.current = null;
+        if (isCurrentSession()) setConverting(false);
+      }
+    }
+  }
+
+  async function openResult(result: FabubloxImportResult, title: string, requestId: string) {
     if (!isCurrentSession()) return;
     try {
       await onImported({ templateVersionId: result.templateVersionId, version: result.version, name: title });
     } catch (error) {
       if (isCurrentSession()) setError(`The import completed, but its process template could not be opened: ${(error as Error).message}`);
+      return;
+    }
+    // Opening the result acknowledges this completed import. Navigation may
+    // already have unmounted the importer; retire only this owner's checkpoint
+    // so returning to Settings does not restore an old success notice.
+    if (owner.isCurrent() && loadSavedFabubloxImport()?.requestId === requestId) {
+      try { clearSavedFabubloxImport(); }
+      catch {
+        if (isCurrentSession()) setError("The process template opened, but this browser could not dismiss the completed import notice. Enable session storage before starting another import.");
+      }
     }
   }
 
@@ -128,7 +211,7 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
       const result = await api.importFabublox(prepared);
       if (!isCurrentSession()) return;
       updateOperation({ requestId: prepared.requestId, title: prepared.title, status: "ready", result });
-      await openResult(result, prepared.title);
+      await openResult(result, prepared.title, prepared.requestId);
     } catch (error) {
       if (!isCurrentSession()) return;
       if (error instanceof FabubloxImportRequestError && error.request) {
@@ -141,6 +224,7 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
   async function confirm() {
     if (!isCurrentSession()) return;
     if (!file || !preview || (operationRef.current && operationRef.current.status !== "reselect") || actionInFlight.current) return;
+    resetConversion();
     actionInFlight.current = true;
     setBusy(true); setError("");
     try {
@@ -198,7 +282,7 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
     if (current?.status !== "ready" || actionInFlight.current) return;
     actionInFlight.current = true;
     setBusy(true); setError("");
-    try { await openResult(current.result, current.title); }
+    try { await openResult(current.result, current.title, current.requestId); }
     finally { actionInFlight.current = false; if (isCurrentSession()) setBusy(false); }
   }
 
@@ -209,6 +293,7 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
     // A 404 can precede acceptance of an older POST. Preserve its identity even
     // when a refresh discarded the byte body and it must be prepared again.
     updateOperation({ requestId: current.requestId, title: current.title, status: "reselect" });
+    resetConversion();
     setFile(null); setPreview(null); setError("");
   }
 
@@ -218,6 +303,7 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
     try { clearSavedFabubloxImport(); }
     catch { setError("The saved import request could not be cleared. Enable session storage before starting another import."); return; }
     preparedRef.current = null;
+    resetConversion();
     parseGeneration.current += 1;
     updateOperation(null);
     setFile(null); setPreview(null); setRecipeFamilyId(""); setError("");
@@ -256,26 +342,47 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
         <div><small>Sheet</small><strong>{preview.source.sheetName}</strong></div>
         <div><small>Steps</small><strong>{preview.steps.length}</strong></div>
         <div><small>Images</small><strong>{preview.images.length}</strong></div>
-        <div><small>Initial substrate</small><strong>{substrateStatus(preview)}</strong></div>
         <div><small>Unassigned</small><strong>{preview.unassignedImageIds.length}</strong></div>
       </div>
       <div className="card form-grid">
         <label>Process template title<input value={preview.title} disabled={inputsLocked || Boolean(recipeFamilyId)} onChange={(event) => setPreview({ ...preview, title: event.target.value })} /></label>
         <label>Version relationship<select disabled={inputsLocked} value={recipeFamilyId} onChange={(event) => { const id = event.target.value; setRecipeFamilyId(id); const family = families.find((candidate) => candidate.recipeFamilyId === id); if (family) setPreview({ ...preview, title: family.name }); }}><option value="">New process template</option>{families.map((family) => <option key={family.recipeFamilyId} value={family.recipeFamilyId}>New version of {family.name}</option>)}</select><small>{recipeFamilyId ? "The imported workbook becomes the next immutable version immediately." : "Creates a distinct process-template family."}</small></label>
       </div>
-      <section className={`card initial-state-preview${preview.initialSubstrateStep ? "" : " missing-initial-state"}`}>
+      <details className="card settings-task-details">
+        <summary>Convert workbook layout</summary>
+        <p className="muted">Download a content-compatible copy of the selected workbook. This does not import it or change your original workbook or import options. Original formatting, formulas and other sheets, including Overview graphics, are not reproduced; keep the original workbook.</p>
+        <div className="form-grid">
+          <label>Converted workbook layout<select value={conversionFormatId} disabled={inputsLocked || converting}
+            onChange={event => { resetConversion(); setConversionFormatId(event.target.value as WorkbookFormatId); }}>
+            {FABUBLOX_WORKBOOK_FORMATS.map(format => <option key={format.id} value={format.id}>{format.label}</option>)}
+          </select></label>
+          <div className="button-row"><button type="button" className="button" disabled={inputsLocked || converting}
+            onClick={() => void downloadConvertedWorkbook()}><ActionIcon name="export" />{converting ? "Converting workbook…" : "Download converted workbook"}</button></div>
+        </div>
+        {converted && <p role="status">Converted workbook ready. <a href={converted.url} download={converted.filename}>Download prepared workbook</a></p>}
+        {conversionWarnings.length > 0 && <section className="warning-card" aria-label="Conversion notes"><strong>Conversion notes</strong>
+          <ul>{conversionWarnings.map((warning, index) => <li key={`${warning.code}-${index}`}>{warning.message}</li>)}</ul></section>}
+        {conversionError && <p className="error-banner" role="alert">{conversionError}</p>}
+      </details>
+      <details className={`card workbook-substrate-details${preview.initialSubstrateStep ? "" : " missing-initial-state"}`}>
+        <summary>Initial substrate · {preview.initialSubstrateStep ? initialSubstrateName : "Not detected"}<span className="card-meta"> · {substrateStatus(preview)}</span></summary>
+        <div className={`initial-state-preview${preview.initialSubstrateStep ? "" : " missing-initial-state"}`}>
         <div className="card-copy">
           <div className="card-title-line"><h3 className="card-title">Initial substrate</h3><span className="meta-badge">Step 0</span></div>
-          <p className="card-value">{preview.initialSubstrateStep ? "Substrate Stack" : "Substrate Stack was not found"}</p>
+          <p className="card-value">{preview.initialSubstrateStep ? initialSubstrateName : "Substrate Stack was not found"}</p>
           {preview.initialSubstrateStep ? <SubstrateStepDetails step={preview.initialSubstrateStep} /> : <p className="card-meta">The importer will not borrow a diagram from Step 1. This template cannot start a run, or update one before any process step has produced a recorded structure, until it is re-imported with Step 0.</p>}
         </div>
         <div className="initial-state-preview-images">
           {preview.initialStateImageIds.length
-            ? preview.initialStateImageIds.map((id) => <LayerThumbnail key={id} image={images.get(id)} alt="Step 0 Substrate Stack" />)
+            ? preview.initialStateImageIds.map((id) => <LayerThumbnail key={id} image={images.get(id)} alt={`Step 0 ${initialSubstrateName}`} />)
             : <div className="layer-placeholder">{preview.initialSubstrateStep ? "Step 0 has no diagram" : "No Step 0 structure"}</div>}
         </div>
-      </section>
-      {preview.warnings.length > 0 && <section className="warning-card"><strong>Import warnings</strong><ul>{preview.warnings.map((warning, index) => <li key={`${warning.code}-${index}`}>{warning.message}</li>)}</ul></section>}
+        </div>
+      </details>
+      {importWarnings.length > 0 && <section className="warning-card"><strong>Import warnings</strong><ul>{importWarnings.map((warning, index) => <li key={`${warning.code}-${index}`}>{warning.message}</li>)}</ul></section>}
+      {importNotes.length > 0 && <details className="settings-task-details"><summary>Import notes ({importNotes.length})</summary>
+        <ul>{importNotes.map((warning, index) => <li key={`${warning.code}-${index}`}>{warning.message}</li>)}</ul>
+      </details>}
       <section className="step-preview-list">
         {preview.steps.map((step, index) => {
           const sectionLabel = sectionHeaderAtGroupStart(preview.steps, index);

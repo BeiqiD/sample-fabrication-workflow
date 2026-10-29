@@ -4,12 +4,15 @@ import type { FabubloxImportPreview } from "../shared/types";
 import { FabubloxImporter } from "./components/FabubloxImporter";
 import { api } from "./lib/api";
 import { parseFabuBloxWorkbook } from "./lib/fabublox";
+import { convertFabuBloxWorkbook } from "./lib/fabublox-convert";
 import { compressLayerStackImage } from "./lib/images";
 import { FABUBLOX_IMPORT_SESSION_KEY } from "./lib/fabublox-import-client";
 import { FABUBLOX_IMPORT_REQUEST_HEADER } from "../shared/contracts/fabublox-import";
+import * as authenticationClient from "./lib/authentication-client";
 
 // Exercise import request ownership, not workbook/ZIP parsing or image encoding.
 vi.mock("./lib/fabublox", () => ({ parseFabuBloxWorkbook: vi.fn() }));
+vi.mock("./lib/fabublox-convert", () => ({ convertFabuBloxWorkbook: vi.fn() }));
 vi.mock("./lib/images", () => ({ compressLayerStackImage: vi.fn(async (file: File) => file) }));
 
 const result = { id: "import-one", templateVersionId: "template-one", version: 2 };
@@ -66,10 +69,70 @@ describe("durable FabuBlox import interaction", () => {
     expect(parseFabuBloxWorkbook).toHaveBeenCalledTimes(1);
     await act(async () => { sent.resolve(response(result, 201)); });
     await screen.findByText(/import completed, but its process template could not be opened/);
+    expect(saved().title).toBe("Imported process");
     fireEvent.click(screen.getByRole("button", { name: "Open completed process template" }));
     await waitFor(() => expect(onImported).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(sessionStorage.getItem(FABUBLOX_IMPORT_SESSION_KEY)).toBeNull());
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(compressLayerStackImage).toHaveBeenCalledTimes(1);
+  });
+
+  it("retires the completed notice after navigation unmounts the importer and does not restore it on return", async () => {
+    const opened = deferred<void>();
+    const fetchMock = vi.fn().mockResolvedValue(response(result, 201));
+    vi.stubGlobal("fetch", fetchMock);
+    const onImported = vi.fn(() => opened.promise);
+    const initial = render(<FabubloxImporter onImported={onImported} />);
+    fireEvent.click(await choose(initial.container));
+    await waitFor(() => expect(onImported).toHaveBeenCalledTimes(1));
+    expect(saved().title).toBe("Imported process");
+    initial.unmount();
+    await act(async () => { opened.resolve(); });
+    expect(sessionStorage.getItem(FABUBLOX_IMPORT_SESSION_KEY)).toBeNull();
+
+    render(<FabubloxImporter onImported={vi.fn()} />);
+    await waitFor(() => expect(api.listTemplateFamilyOptions).toHaveBeenCalledTimes(2));
+    expect(screen.queryByText(/Import completed:/)).toBeNull();
+    expect(screen.queryByRole("region", { name: "Import request" })).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps an unresolved import when leaving and recovers its accepted result without a second POST", async () => {
+    const responseDelivery = deferred<Response>();
+    const fetchMock = vi.fn().mockReturnValueOnce(responseDelivery.promise)
+      .mockImplementationOnce(async () => response({ ...saved(), importId: "import-one", status: "ready", result }));
+    vi.stubGlobal("fetch", fetchMock);
+    const onImported = vi.fn();
+    const initial = render(<FabubloxImporter onImported={onImported} />);
+    fireEvent.click(await choose(initial.container));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const original = saved();
+    initial.unmount();
+    await act(async () => { responseDelivery.resolve(response(result, 201)); });
+    expect(saved()).toEqual(original);
+    expect(onImported).not.toHaveBeenCalled();
+
+    const recovered = vi.fn().mockResolvedValue(undefined);
+    render(<FabubloxImporter onImported={recovered} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Open completed process template" }));
+    await waitFor(() => expect(recovered).toHaveBeenCalledWith(expect.objectContaining({ templateVersionId: result.templateVersionId })));
+    await waitFor(() => expect(sessionStorage.getItem(FABUBLOX_IMPORT_SESSION_KEY)).toBeNull());
+    expect(fetchMock.mock.calls.filter((call) => call[1]?.method === "POST")).toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not discard another request saved while completed-template navigation is pending", async () => {
+    const opened = deferred<void>();
+    const fetchMock = vi.fn().mockResolvedValue(response(result, 201));
+    vi.stubGlobal("fetch", fetchMock);
+    const onImported = vi.fn(() => opened.promise);
+    const { container } = render(<FabubloxImporter onImported={onImported} />);
+    fireEvent.click(await choose(container));
+    await waitFor(() => expect(onImported).toHaveBeenCalledTimes(1));
+    const next = { requestId: "c822fd4b-cb7f-4e9e-922b-243ac71d5ad4", title: "Another import" };
+    sessionStorage.setItem(FABUBLOX_IMPORT_SESSION_KEY, JSON.stringify(next));
+    await act(async () => { opened.resolve(); });
+    expect(saved()).toEqual(next);
   });
 
   it("checks an unknown outcome through pending to ready without replaying a POST", async () => {
@@ -148,7 +211,8 @@ describe("durable FabuBlox import interaction", () => {
     expect(sessionStorage.getItem(FABUBLOX_IMPORT_SESSION_KEY)).toBeNull();
     fireEvent.click(await choose(container));
     await screen.findByText(/Import completed: Imported process/);
-    expect(saved().requestId).not.toBe(originalId);
+    expect(fetchMock.mock.calls[1][1].headers[FABUBLOX_IMPORT_REQUEST_HEADER]).not.toBe(originalId);
+    await waitFor(() => expect(sessionStorage.getItem(FABUBLOX_IMPORT_SESSION_KEY)).toBeNull());
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
@@ -247,5 +311,146 @@ describe("durable FabuBlox import interaction", () => {
     await act(async () => { parsing.resolve(preview); });
     expect(screen.queryByRole("button", { name: "Confirm process-template import" })).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("local workbook layout conversion", () => {
+  async function openConversion(container: HTMLElement) {
+    await choose(container);
+    fireEvent.click(screen.getByText("Convert workbook layout"));
+    return screen.getByRole("button", { name: "Download converted workbook" });
+  }
+
+  function conversionDownload() {
+    const converted = new File(["converted fixture"], "input-classic.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const createUrl = vi.spyOn(URL, "createObjectURL").mockImplementation(blob => blob === converted ? "blob:converted-workbook" : "blob:diagram");
+    const revokeUrl = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    return { converted, createUrl, revokeUrl, click };
+  }
+
+  it("keeps initial substrate and source details collapsed while retaining the actual name and canonical Step 0", async () => {
+    const source = structuredClone(preview);
+    source.detected.formatId = "capability-flow";
+    source.initialSubstrateStep = { ...source.steps[0], localId: "initial", stepNumber: "0", name: "Substrate Stack",
+      rawCells: { "Source substrate name": "InP layer wafer" } };
+    vi.mocked(parseFabuBloxWorkbook).mockResolvedValueOnce(source);
+    const { container } = render(<FabubloxImporter onImported={vi.fn()} />);
+    await choose(container);
+    expect(screen.queryByText("Capability flow", { selector: "span" })).toBeNull();
+    const summary = screen.getByText(/^Initial substrate · InP layer wafer/, { selector: "summary" });
+    const substrateDetails = summary.closest("details")!;
+    expect(substrateDetails.open).toBe(false);
+    fireEvent.click(summary);
+    expect(substrateDetails.open).toBe(true);
+    expect(screen.getByText("InP layer wafer", { selector: "p.card-value" })).toBeTruthy();
+    expect(screen.getByText("Step 0")).toBeTruthy();
+    expect(screen.getByText("Source details").closest("details")!.open).toBe(false);
+    fireEvent.click(screen.getByText("Convert workbook layout"));
+    expect((screen.getByRole("combobox", { name: "Converted workbook layout" }) as HTMLSelectElement).value).toBe("classic-layer-stack");
+  });
+
+  it.each(["missing_initial_substrate_step", "ambiguous_initial_substrate_step"])("keeps %s visible while routine import notes stay collapsed", async code => {
+    const source = structuredClone(preview);
+    source.warnings = [
+      { code, message: "The initial substrate needs review." },
+      { code: "image_outside_layer_column", message: "A drawing is outside the diagram column." },
+      { code: "placeholder_step_name", message: "A placeholder name uses its capability label." },
+      { code: "metrology_rows_retained", message: "Metrology rows remain in the process plan." },
+    ];
+    vi.mocked(parseFabuBloxWorkbook).mockResolvedValueOnce(source);
+    const { container } = render(<FabubloxImporter onImported={vi.fn()} />);
+    await choose(container);
+    for (const message of ["The initial substrate needs review.", "A drawing is outside the diagram column."]) {
+      expect(screen.getByText(message).closest("details")).toBeNull();
+      expect(screen.getByText(message).closest(".warning-card")).toBeTruthy();
+    }
+    const notes = screen.getByText("Import notes (2)").closest("details")!;
+    expect(notes.open).toBe(false);
+    expect(screen.getByText("A placeholder name uses its capability label.").closest("details")).toBe(notes);
+    fireEvent.click(screen.getByText("Import notes (2)"));
+    expect(notes.open).toBe(true);
+    expect(screen.getByText("Metrology rows remain in the process plan.")).toBeTruthy();
+  });
+
+  it("downloads the selected layout locally, presents conversion notes and releases the prepared URL on leaving", async () => {
+    const download = conversionDownload();
+    vi.mocked(convertFabuBloxWorkbook).mockResolvedValueOnce({ file: download.converted,
+      warnings: [{ code: "CONTENT_ONLY", message: "Workbook styling and formulas are not preserved." }] });
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const { container, unmount } = render(<FabubloxImporter onImported={vi.fn()} />);
+    const button = await openConversion(container);
+    fireEvent.change(screen.getByRole("combobox", { name: "Converted workbook layout" }), { target: { value: "capability-flow" } });
+    fireEvent.click(button);
+    const prepared = await screen.findByRole("link", { name: "Download prepared workbook" });
+    expect(prepared.getAttribute("href")).toBe("blob:converted-workbook");
+    expect(prepared.getAttribute("download")).toBe("input-classic.xlsx");
+    expect(convertFabuBloxWorkbook).toHaveBeenCalledWith(expect.objectContaining({ name: "input.xlsx" }), "capability-flow");
+    expect(screen.getByText("Workbook styling and formulas are not preserved.")).toBeTruthy();
+    expect(download.click).toHaveBeenCalledTimes(1);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem(FABUBLOX_IMPORT_SESSION_KEY)).toBeNull();
+    expect((screen.getByRole("button", { name: "Confirm process-template import" }) as HTMLButtonElement).disabled).toBe(false);
+    unmount();
+    expect(download.revokeUrl).toHaveBeenCalledWith("blob:converted-workbook");
+  });
+
+  it("reports a conversion refusal while keeping the original workbook available for import", async () => {
+    const download = conversionDownload();
+    vi.mocked(convertFabuBloxWorkbook).mockRejectedValueOnce(new Error("The initial substrate is ambiguous."));
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const { container } = render(<FabubloxImporter onImported={vi.fn()} />);
+    fireEvent.click(await openConversion(container));
+    await screen.findByRole("alert");
+    expect(screen.getByText("Could not convert workbook: The initial substrate is ambiguous.")).toBeTruthy();
+    expect(download.click).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect((screen.getByRole("button", { name: "Confirm process-template import" }) as HTMLButtonElement).disabled).toBe(false);
+    expect((container.querySelector('input[type="file"]') as HTMLInputElement).disabled).toBe(false);
+  });
+
+  it("does not start a download when the application owner changes during conversion", async () => {
+    const download = conversionDownload();
+    const converted = deferred<{ file: File; warnings: [] }>();
+    vi.mocked(convertFabuBloxWorkbook).mockReturnValueOnce(converted.promise);
+    let sameOwner = true;
+    const owner = authenticationClient.captureApplicationOwner();
+    vi.spyOn(authenticationClient, "captureApplicationOwner").mockReturnValue({ ...owner, isCurrent: () => sameOwner });
+    const { container } = render(<FabubloxImporter onImported={vi.fn()} />);
+    fireEvent.click(await openConversion(container));
+    await waitFor(() => expect(convertFabuBloxWorkbook).toHaveBeenCalledTimes(1));
+    sameOwner = false;
+    await act(async () => { converted.resolve({ file: download.converted, warnings: [] }); });
+    expect(download.createUrl).not.toHaveBeenCalledWith(download.converted);
+    expect(download.click).not.toHaveBeenCalled();
+  });
+
+  it.each(["replacement", "leaving", "confirming import"])("does not download a stale conversion after %s", async reason => {
+    const download = conversionDownload();
+    const converted = deferred<{ file: File; warnings: [] }>();
+    vi.mocked(convertFabuBloxWorkbook).mockReturnValueOnce(converted.promise);
+    const importDelivery = deferred<Response>();
+    const fetchMock = vi.fn(() => importDelivery.promise);
+    vi.stubGlobal("fetch", fetchMock);
+    const { container, unmount } = render(<FabubloxImporter onImported={vi.fn()} />);
+    fireEvent.click(await openConversion(container));
+    await waitFor(() => expect(convertFabuBloxWorkbook).toHaveBeenCalledTimes(1));
+    expect((screen.getByRole("button", { name: "Confirm process-template import" }) as HTMLButtonElement).disabled).toBe(false);
+    if (reason === "replacement") {
+      fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [new File(["replacement"], "other.xlsx")] } });
+      await screen.findByRole("button", { name: "Confirm process-template import" });
+    } else if (reason === "leaving") unmount();
+    else {
+      fireEvent.click(screen.getByRole("button", { name: "Confirm process-template import" }));
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+      expect((screen.getByRole("button", { name: "Download converted workbook" }) as HTMLButtonElement).disabled).toBe(true);
+    }
+    await act(async () => { converted.resolve({ file: download.converted, warnings: [] }); });
+    expect(download.createUrl).not.toHaveBeenCalledWith(download.converted);
+    expect(download.click).not.toHaveBeenCalled();
+    if (reason === "confirming import") await act(async () => { importDelivery.resolve(response(result, 201)); });
+    else expect(fetchMock).not.toHaveBeenCalled();
   });
 });

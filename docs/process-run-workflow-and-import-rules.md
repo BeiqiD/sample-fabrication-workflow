@@ -218,7 +218,7 @@ A new process run can use this structure, or explicitly continue from the sample
 
 This is based on an incorrect assumption that an initial substrate diagram must exist before the imported process steps.
 
-In the FabuBlox template, the first item is already:
+In the classic FabuBlox export layout, the first item is already:
 
 ```text
 Step 0 — Substrate Stack
@@ -226,11 +226,22 @@ Step 0 — Substrate Stack
 
 Its content defines the process template's starting substrate structure and must be read directly.
 
+Capability-flow exports instead declare an unnumbered row whose `Capability Type`
+is `Substrate`, use the actual substrate name, and place the diagram in the leading
+image column. A matching `Substrate` sheet may add description and ordered layer
+metadata. Both layouts map to the existing canonical `Step 0 — Substrate Stack`
+snapshot; the capability layout preserves its original name, role and source
+fields. The workbook's Overview content revision and Excel producer version are
+not export-layout identifiers. See [supported layouts and conversion](FABUBLOX_WORKBOOK_FORMATS.md).
+
 ### Required import rule
 
 For every newly imported Process template version:
 
-1. Locate Step 0 named `Substrate Stack`.
+1. Use the detected layout's explicit initial-substrate rule: classic Step 0 named
+   `Substrate Stack`, or a capability-flow `Substrate` row with a blank or zero
+   step number. Multiple candidates remain ambiguous; another process row or an
+   auxiliary sheet cannot supply a guessed initial state.
 2. Parse its layer-stack content and diagram using the same attachment and image-import pipeline used for other process diagrams.
 3. Save this content as the Process template version's immutable **initial substrate snapshot**.
 4. Do not import `Substrate Stack` as a normal executable Process step.
