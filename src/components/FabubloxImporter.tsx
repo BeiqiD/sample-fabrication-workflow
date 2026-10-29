@@ -74,7 +74,8 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
   const conversionJob = useRef<number | null>(null);
   const conversionUrl = useRef<string | null>(null);
   const images = useMemo(() => new Map(preview?.images.map((image) => [image.localId, image]) ?? []), [preview]);
-  const formatLabel = FABUBLOX_WORKBOOK_FORMATS.find(format => format.id === preview?.detected.formatId)?.label;
+  const importNotes = preview?.warnings.filter(warning => ["placeholder_step_name", "metrology_rows_retained"].includes(warning.code)) ?? [];
+  const importWarnings = preview?.warnings.filter(warning => !["placeholder_step_name", "metrology_rows_retained"].includes(warning.code)) ?? [];
   const sourceSubstrateName = preview?.initialSubstrateStep?.rawCells["Source substrate name"];
   const initialSubstrateName = typeof sourceSubstrateName === "string" && sourceSubstrateName.trim()
     ? sourceSubstrateName : "Substrate Stack";
@@ -338,10 +339,9 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
     </section>}
     {preview && <div className="import-preview">
       <div className="card preview-summary">
-        <div><small>Sheet</small><strong>{preview.source.sheetName}</strong>{formatLabel && <span className="card-meta">{formatLabel}</span>}</div>
+        <div><small>Sheet</small><strong>{preview.source.sheetName}</strong></div>
         <div><small>Steps</small><strong>{preview.steps.length}</strong></div>
         <div><small>Images</small><strong>{preview.images.length}</strong></div>
-        <div><small>Initial substrate</small><strong>{substrateStatus(preview)}</strong></div>
         <div><small>Unassigned</small><strong>{preview.unassignedImageIds.length}</strong></div>
       </div>
       <div className="card form-grid">
@@ -364,7 +364,9 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
           <ul>{conversionWarnings.map((warning, index) => <li key={`${warning.code}-${index}`}>{warning.message}</li>)}</ul></section>}
         {conversionError && <p className="error-banner" role="alert">{conversionError}</p>}
       </details>
-      <section className={`card initial-state-preview${preview.initialSubstrateStep ? "" : " missing-initial-state"}`}>
+      <details className={`card workbook-substrate-details${preview.initialSubstrateStep ? "" : " missing-initial-state"}`}>
+        <summary>Initial substrate · {preview.initialSubstrateStep ? initialSubstrateName : "Not detected"}<span className="card-meta"> · {substrateStatus(preview)}</span></summary>
+        <div className={`initial-state-preview${preview.initialSubstrateStep ? "" : " missing-initial-state"}`}>
         <div className="card-copy">
           <div className="card-title-line"><h3 className="card-title">Initial substrate</h3><span className="meta-badge">Step 0</span></div>
           <p className="card-value">{preview.initialSubstrateStep ? initialSubstrateName : "Substrate Stack was not found"}</p>
@@ -375,8 +377,12 @@ export function FabubloxImporter({ onImported }: FabubloxImporterProps) {
             ? preview.initialStateImageIds.map((id) => <LayerThumbnail key={id} image={images.get(id)} alt={`Step 0 ${initialSubstrateName}`} />)
             : <div className="layer-placeholder">{preview.initialSubstrateStep ? "Step 0 has no diagram" : "No Step 0 structure"}</div>}
         </div>
-      </section>
-      {preview.warnings.length > 0 && <section className="warning-card"><strong>Import warnings</strong><ul>{preview.warnings.map((warning, index) => <li key={`${warning.code}-${index}`}>{warning.message}</li>)}</ul></section>}
+        </div>
+      </details>
+      {importWarnings.length > 0 && <section className="warning-card"><strong>Import warnings</strong><ul>{importWarnings.map((warning, index) => <li key={`${warning.code}-${index}`}>{warning.message}</li>)}</ul></section>}
+      {importNotes.length > 0 && <details className="settings-task-details"><summary>Import notes ({importNotes.length})</summary>
+        <ul>{importNotes.map((warning, index) => <li key={`${warning.code}-${index}`}>{warning.message}</li>)}</ul>
+      </details>}
       <section className="step-preview-list">
         {preview.steps.map((step, index) => {
           const sectionLabel = sectionHeaderAtGroupStart(preview.steps, index);

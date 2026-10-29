@@ -28,13 +28,17 @@ export function SubstrateStepDetails({ step, className = "initial-substrate-deta
     if (normalized === "notes" && step.commentsText?.trim() === String(value).trim()) return false;
     return true;
   });
-  return <dl className={className}>
+  return <><dl className={className}>
     <dt>Tool</dt><dd>{step.toolName || "—"}</dd>
     <dt>Parameters</dt><dd>{step.parametersText || "—"}</dd>
     <dt>Comments</dt><dd>{step.commentsText || "—"}</dd>
-    {additional.flatMap(([label, value]) => [
+  </dl>
+    {additional.length > 0 && <details className="substrate-source-details">
+      <summary>Source details</summary>
+      <dl className={className}>{additional.flatMap(([label, value]) => [
       <dt key={`${label}:label`}>{label}</dt>,
       <dd key={`${label}:value`}>{String(value)}</dd>,
-    ])}
-  </dl>;
+      ])}</dl>
+    </details>}
+  </>;
 }

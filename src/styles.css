@@ -801,6 +801,10 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .initial-state-preview > div:first-child { min-width: 0; }
 .initial-state-preview-images { flex: 0 0 min(240px, 42%); margin-top: 0; }
 .initial-state-preview .layer-thumbnail { display: block; width: 100%; max-height: 190px; object-fit: contain; }
+.workbook-substrate-details > summary { min-height: 40px; padding: 10px 16px; color: var(--muted); font-size: var(--font-body); line-height: 1.4; cursor: pointer; overflow-wrap: anywhere; }
+.substrate-source-details > summary { min-height: 28px; padding: 4px 0; color: var(--muted); font-size: var(--font-meta); line-height: 1.5; cursor: pointer; overflow-wrap: anywhere; }
+.workbook-substrate-details > summary:focus-visible, .substrate-source-details > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.workbook-substrate-details.missing-initial-state { border-color: color-mix(in srgb, var(--danger) 32%, var(--line)); }
 .template-initial-state { padding: 20px; }
 .template-initial-state.has-diagrams { display: grid; grid-template-columns: minmax(0, 1fr) minmax(200px, 30%); align-items: start; gap: 20px; }
 .template-initial-state .template-diagram-gallery { align-self: center; justify-self: center; justify-content: center; margin-top: 0; }

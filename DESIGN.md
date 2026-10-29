@@ -34,6 +34,9 @@ clear, editing-safe disclosures.
 - Templates expose Process/Metrology navigation, latest versions first and
   expandable history. Settings names agree with destinations; advanced tools
   disclose progressively, while paused/error states remain visible.
+- Initial-substrate and source-provenance details stay secondary and default
+  collapsed in import review. Routine import notes stay collapsed; missing or
+  ambiguous data and required structure-handoff confirmations remain visible.
 - Native links/buttons, complete icon names, keyboard focus, main-content bypass,
   reduced-motion feedback and sufficient contrast are required. Decorative
   eyebrow labels do not precede headings; meaningful record/version context stays

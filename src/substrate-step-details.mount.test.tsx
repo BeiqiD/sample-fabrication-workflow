@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { InitialSubstrateStep } from "../shared/types";
 import { SubstrateStepDetails } from "./components/SubstrateStepDetails";
@@ -22,6 +22,12 @@ describe("substrate source fields", () => {
     expect(screen.queryByText("Process Parameters")).toBeNull();
     expect(screen.queryByText("Tool Parameters")).toBeNull();
     expect(screen.queryByText("Notes")).toBeNull();
+    expect(screen.getByText("Keep surface clean").closest("details")).toBeNull();
+    const sourceDetails = screen.getByText("Source details").closest("details")!;
+    expect(sourceDetails.open).toBe(false);
+    expect(screen.getByText("Research stack").closest("details")).toBe(sourceDetails);
+    fireEvent.click(screen.getByText("Source details"));
+    expect(sourceDetails.open).toBe(true);
     expect(screen.getByText("Research stack")).toBeTruthy();
     expect(screen.getByText("Layer 1 | oxide | 25 nm")).toBeTruthy();
   });
@@ -31,6 +37,11 @@ describe("substrate source fields", () => {
       "Process Parameters": "Independent layer specification", "Tool Parameters": "Independent tool limits",
       Notes: "Independent source note", "Custom source field": "Retain this value",
     }, "Original canonical parameters")} />);
+    const sourceDetails = screen.getByText("Source details").closest("details")!;
+    expect(sourceDetails.open).toBe(false);
+    expect(screen.getByText("Original canonical parameters").closest("details")).toBeNull();
+    fireEvent.click(screen.getByText("Source details"));
+    expect(sourceDetails.open).toBe(true);
     for (const value of ["Independent layer specification", "Independent tool limits", "Independent source note", "Retain this value"]) {
       expect(screen.getByText(value)).toBeTruthy();
     }

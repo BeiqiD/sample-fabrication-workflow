@@ -329,7 +329,7 @@ describe("local workbook layout conversion", () => {
     return { converted, createUrl, revokeUrl, click };
   }
 
-  it("shows the detected layout and original substrate name without changing canonical Step 0", async () => {
+  it("keeps initial substrate and source details collapsed while retaining the actual name and canonical Step 0", async () => {
     const source = structuredClone(preview);
     source.detected.formatId = "capability-flow";
     source.initialSubstrateStep = { ...source.steps[0], localId: "initial", stepNumber: "0", name: "Substrate Stack",
@@ -337,11 +337,40 @@ describe("local workbook layout conversion", () => {
     vi.mocked(parseFabuBloxWorkbook).mockResolvedValueOnce(source);
     const { container } = render(<FabubloxImporter onImported={vi.fn()} />);
     await choose(container);
-    expect(screen.getByText("Capability flow", { selector: "span" })).toBeTruthy();
+    expect(screen.queryByText("Capability flow", { selector: "span" })).toBeNull();
+    const summary = screen.getByText(/^Initial substrate · InP layer wafer/, { selector: "summary" });
+    const substrateDetails = summary.closest("details")!;
+    expect(substrateDetails.open).toBe(false);
+    fireEvent.click(summary);
+    expect(substrateDetails.open).toBe(true);
     expect(screen.getByText("InP layer wafer", { selector: "p.card-value" })).toBeTruthy();
     expect(screen.getByText("Step 0")).toBeTruthy();
+    expect(screen.getByText("Source details").closest("details")!.open).toBe(false);
     fireEvent.click(screen.getByText("Convert workbook layout"));
     expect((screen.getByRole("combobox", { name: "Converted workbook layout" }) as HTMLSelectElement).value).toBe("classic-layer-stack");
+  });
+
+  it.each(["missing_initial_substrate_step", "ambiguous_initial_substrate_step"])("keeps %s visible while routine import notes stay collapsed", async code => {
+    const source = structuredClone(preview);
+    source.warnings = [
+      { code, message: "The initial substrate needs review." },
+      { code: "image_outside_layer_column", message: "A drawing is outside the diagram column." },
+      { code: "placeholder_step_name", message: "A placeholder name uses its capability label." },
+      { code: "metrology_rows_retained", message: "Metrology rows remain in the process plan." },
+    ];
+    vi.mocked(parseFabuBloxWorkbook).mockResolvedValueOnce(source);
+    const { container } = render(<FabubloxImporter onImported={vi.fn()} />);
+    await choose(container);
+    for (const message of ["The initial substrate needs review.", "A drawing is outside the diagram column."]) {
+      expect(screen.getByText(message).closest("details")).toBeNull();
+      expect(screen.getByText(message).closest(".warning-card")).toBeTruthy();
+    }
+    const notes = screen.getByText("Import notes (2)").closest("details")!;
+    expect(notes.open).toBe(false);
+    expect(screen.getByText("A placeholder name uses its capability label.").closest("details")).toBe(notes);
+    fireEvent.click(screen.getByText("Import notes (2)"));
+    expect(notes.open).toBe(true);
+    expect(screen.getByText("Metrology rows remain in the process plan.")).toBeTruthy();
   });
 
   it("downloads the selected layout locally, presents conversion notes and releases the prepared URL on leaving", async () => {
