@@ -1,0 +1,58 @@
+/* Processing context owns compact page chrome; Dense grid geometry stays in
+   styles.css, including its 88px / 270px mobile column contract. */
+.processing-workspace-page > .processing-workspace-header {
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.processing-workspace-page > .processing-workspace-header h1 { margin: 0 0 8px; }
+.processing-workspace-identity { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px; }
+.processing-workspace-code { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.processing-workspace-sample-status { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; }
+.processing-workspace-context { display: grid; gap: 10px; margin-bottom: 16px; padding-block: 12px; border-block: 1px solid var(--line); }
+.processing-workspace-context > .run-controls {
+  grid-template-columns: auto minmax(180px, 1fr) auto auto;
+  grid-template-areas: "title picker status actions";
+  gap: 8px 12px;
+  padding: 0;
+  margin: 0;
+}
+.processing-workspace-context .run-controls-title { font-size: 14px; }
+.processing-workspace-context .run-controls-status { font-size: 12px; }
+.processing-workspace-samples { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 8px 16px; }
+.processing-workspace-samples > .execution-heading { display: flex; align-items: center; gap: 10px; margin: 0; }
+.processing-workspace-samples > .execution-heading h2 { margin: 0; font-size: 12px; line-height: 1.4; }
+.processing-workspace-samples > .execution-heading > .button { flex: 0 0 auto; width: 32px; min-width: 32px; padding-inline: 0; }
+.processing-workspace-samples .core-action-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.processing-workspace-samples > .visible-samples { align-self: center; gap: 6px; margin: 0; }
+.processing-workspace-samples .visible-sample { width: auto; max-width: 300px; display: flex; gap: 7px; padding: 5px 8px; border-radius: 6px; }
+.processing-workspace-samples .visible-sample strong { font-size: 12px; }
+.processing-workspace-samples .visible-sample small { flex: 0 1 auto; font-size: 11px; font-weight: 500; }
+.processing-workspace-samples .visible-sample button { flex: 0 0 24px; min-width: 24px; min-height: 24px; padding: 0; line-height: 1; }
+.processing-workspace-context > .sample-picker-popover { margin: 0; }
+.processing-workspace-guidance, .processing-grid-guidance { min-width: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.processing-workspace-guidance > summary, .processing-grid-guidance > summary { width: fit-content; min-height: 24px; padding-block: 3px; color: var(--accent); cursor: pointer; }
+.processing-workspace-guidance > summary:hover, .processing-grid-guidance > summary:hover { text-decoration: underline; text-underline-offset: 3px; }
+.processing-workspace-guidance > summary:focus-visible, .processing-grid-guidance > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.processing-workspace-guidance > div, .processing-grid-guidance > div { display: grid; gap: 6px; max-width: 75ch; padding: 6px 0 4px; }
+.processing-workspace-guidance p, .processing-grid-guidance p { margin: 0; overflow-wrap: anywhere; }
+.processing-workspace-page .run-grid-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 6px 12px; padding: 12px 16px; }
+.processing-workspace-page .run-grid-toolbar .card-title { margin: 0 0 4px; font-size: 16px; }
+.processing-workspace-page .run-grid-run-meta { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.4; }
+.processing-workspace-page .processing-grid-guidance { grid-column: 1 / -1; }
+
+@media (max-width: 720px) {
+  .processing-workspace-page > .processing-workspace-header { flex-direction: row; gap: 10px; margin-bottom: 12px; }
+  .processing-workspace-page > .processing-workspace-header > .header-actions { width: auto; }
+  .processing-workspace-context { gap: 10px; padding-block: 10px; margin-bottom: 12px; }
+  .processing-workspace-context > .run-controls { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "heading heading" "picker actions"; gap: 7px 8px; }
+  .processing-workspace-context .run-controls-heading { gap: 6px 12px; }
+  .processing-workspace-samples { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .processing-workspace-samples > .execution-heading { justify-content: space-between; }
+  .processing-workspace-samples > .execution-heading > .button { width: 36px; min-width: 36px; }
+  .processing-workspace-samples .visible-sample { max-width: 100%; }
+  .processing-workspace-page .run-grid-toolbar { padding: 10px 12px; }
+  .processing-workspace-page .run-grid-toolbar .grid-scroll-buttons { gap: 6px; }
+  .processing-workspace-page .run-grid-header.recipe-column > strong { font-size: 12px; line-height: 1.4; }
+  .processing-workspace-page .recipe-details-trigger > strong { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; }
+}

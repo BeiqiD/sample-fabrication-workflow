@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ActionIcon } from "../components/ActionIcon";
+import { PageHeading } from "../components/PageHeading";
 import { isCreateProjectInput, type CreateProjectInput, type ProjectRecord } from "../../shared/project-api";
 import { createProjectApiId, ProjectApiError, projectApi, projectDirectorySubject } from "../lib/project-client";
 import { authenticationSnapshot, subscribeAuthentication, usesLocalAuthentication } from "../lib/authentication-client";
+import { shouldAutoFocusPageField } from "../lib/page-load-autofocus";
 import "../project.css";
 
 type ProjectDirectoryState = "loading" | "ready" | "error";
@@ -145,14 +147,8 @@ export function ProjectsPage() {
   }
 
   return <div className="page projects-page">
-    <div className="page-heading">
-      <div>
-        <p className="eyebrow">Research workspace</p>
-        <h1>Projects</h1>
-        <p className="lead">Arrange experimental records, Project notes, and files in one spatial research workspace.</p>
-      </div>
-      <div className="header-actions">
-        <button type="button" className="button core-toolbar-action core-toolbar-icon" aria-label="Refresh Projects" title="Refresh Projects" disabled={creating || directoryState === "loading"} onClick={() => void loadProjects()}><ActionIcon name="refresh" /><span className="core-action-label">Refresh Projects</span></button>
+    <PageHeading title="Projects" description="Arrange experimental records, Project notes, and files in one spatial research workspace." actions={<>
+      <button type="button" className="button core-toolbar-action core-toolbar-icon" aria-label="Refresh Projects" title="Refresh Projects" disabled={creating || directoryState === "loading"} onClick={() => void loadProjects()}><ActionIcon name="refresh" /><span className="core-action-label">Refresh Projects</span></button>
         <button
           type="button"
           className={`button core-toolbar-action core-toolbar-icon${createOpen ? "" : " primary"}`}
@@ -163,8 +159,7 @@ export function ProjectsPage() {
           disabled={creating || !creationSubject || !!pendingCreation && !createOpen}
           onClick={createOpen ? closeCreateForm : openCreateForm}
         ><ActionIcon name={createOpen ? "chevron-down" : "plus"} /><span className="core-action-label">{createOpen ? "Close new Project form" : "New Project"}</span></button>
-      </div>
-    </div>
+    </>} />
 
     {directoryState === "ready" && !creationSubject && <p role="status">Refresh Projects to check your sign-in before creating a workspace.</p>}
 
@@ -181,7 +176,6 @@ export function ProjectsPage() {
     >
       <div className="project-create-form-heading">
         <div>
-          <p className="card-label">New research workspace</p>
           <h2 id="project-create-title">Create Project</h2>
         </div>
         <p className="card-meta">Give the workspace a durable research-question or campaign title. Content is added after opening its Map.</p>
@@ -189,7 +183,9 @@ export function ProjectsPage() {
       <label>
         <span>Project title</span>
         <input
-          autoFocus
+          autoFocus={shouldAutoFocusPageField()}
+          name="project-title"
+          autoComplete="off"
           value={title}
           maxLength={200}
           disabled={creating}
@@ -210,7 +206,6 @@ export function ProjectsPage() {
     <section className="project-directory-section" aria-labelledby="project-directory-title">
       <div className="project-directory-section-heading">
         <div>
-          <p className="card-label">Active workspaces</p>
           <h2 id="project-directory-title">Your Projects</h2>
         </div>
         {directoryState === "ready" && projects.length > 0 && <span className="meta-badge">

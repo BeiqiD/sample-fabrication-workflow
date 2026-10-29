@@ -163,6 +163,40 @@ describe("explicit Processing run ownership", () => {
     noWrites();
   });
 
+  it("keeps sample identity and status distinct from the viewed run while disclosing workspace help", async () => {
+    value.status = "stored";
+    const view = mount("?run=active-run");
+    await screen.findByLabelText("Selected execution");
+    const header = view.container.querySelector<HTMLElement>(".processing-workspace-header")!;
+    expect(within(header).getByRole("heading", { name: "Sample sample-a", level: 1 })).toBeTruthy();
+    expect(within(header).getByText("SAMPLE-A")).toBeTruthy();
+    expect(within(header).getByText("Sample status").parentElement?.textContent).toBe("Sample statusstored");
+    expect(view.container.querySelector(".run-controls-status")?.textContent).toBe("Active");
+    const help = screen.getByText("Workspace guidance").closest("details")!;
+    expect(help.open).toBe(false);
+    fireEvent.click(within(help).getByText("Workspace guidance"));
+    expect(help.open).toBe(true);
+    expect(within(help).getByText("Execute the selected run; sample metadata and the permanent timeline stay in the sample archive.")).toBeTruthy();
+    expect(within(help).getByText("Use checked columns for common confirmation and comments. Every correction remains sample-specific.")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "+ Add sample" }).getAttribute("aria-expanded")).toBe("false");
+    noWrites();
+  });
+
+  it("links an empty process-template picker to workbook import in Settings", async () => {
+    value.runs = [];
+    vi.mocked(api.listTemplateFamilies).mockResolvedValue({ families: [], pagination: { page: 1, pageSize: 50, total: 0, totalPages: 0 } });
+    mount("");
+    await screen.findByRole("heading", { name: "No run yet" });
+    fireEvent.click(screen.getByRole("button", { name: "Start run" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Start first process" }));
+    const picker = screen.getByRole("dialog", { name: "Choose the incoming process template" });
+    const link = await within(picker).findByRole("link", { name: "Import a workbook in Settings" });
+    expect(link.getAttribute("href")).toBe("/settings/import-workbook");
+    expect(picker.textContent).toContain("No process templates are available.");
+    expect(screen.queryByRole("link", { name: /export|report/i })).toBeNull();
+    noWrites();
+  });
+
   it("keeps an implicit no-run sample on its ordinary first-run path", async () => {
     value.runs = []; mount("");
     await screen.findByRole("heading", { name: "No run yet" });

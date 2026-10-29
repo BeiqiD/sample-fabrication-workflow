@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { exportAll } from "../lib/exportAll";
 import type { FullExportProgress } from "../lib/full-export-safety";
+import { settingsDestinations } from "../lib/settingsDestinations";
+import "../settings-tasks.css";
 
 type PreparedArchive = {
   url: string;
@@ -85,13 +87,10 @@ export function ExportPage() {
           : progress ? `Assets processed: ${progress.completed} / ${progress.total}. Building archive…` : "Building archive…";
 
   return <div className="page export-page">
-    <p className="eyebrow">Settings · Data and export</p><h1>Export content</h1>
-    <p className="lead">Download a versioned ZIP of samples, Projects, process records and available files. System storage configuration and credentials are excluded. Missing or unavailable files are recorded as warnings without discarding the content backup.</p>
-    <p><a href="/settings/data/system">System backup and recovery</a> provides administrator-managed, durable backup jobs and isolated installation recovery.</p>
+    <div className="page-heading"><div><h1>{settingsDestinations.archive.label}</h1>
+      <p className="lead">Download a versioned ZIP of samples, Projects, process records and available files.</p></div></div>
     <section className="card export-card">
-      <h2 className="card-title">Content archive</h2>
-      <p className="muted">Includes samples, timeline history, process runs, template versions, FabuBlox manifests and source workbooks, layer images, comment files, final blob outcomes, and export warnings.</p>
-      <p className="muted">Browser export limits: 50 MB of asset bytes, 8 MB of metadata and a 64 MB ZIP. Exceeding a limit stops the export. For larger backups, use a configured system backup workflow.</p>
+      <h2 className="card-title">Build a browser archive</h2>
       <p className="muted">Keep this page open while building the archive. Leaving cancels the export and releases any prepared download.</p>
       <button className="button primary" disabled={exporting} onClick={() => void startExport()}>{exporting ? "Building archive…" : "Download full ZIP"}</button>
       {exporting && <button className="button" onClick={cancelExport}>Cancel export</button>}
@@ -106,6 +105,12 @@ export function ExportPage() {
         <p className="muted">If the automatic download did not start, use this link to download the same archive. It remains available until you build another archive or leave this page.</p>
       </div>}
       {error && <p className="error-banner" role="alert">{error}</p>}
+      <details className="settings-task-details export-archive-details"><summary>Archive contents and limits</summary>
+        <p className="muted">System storage configuration and credentials are excluded. Missing or unavailable files are recorded as warnings without discarding the content backup.</p>
+        <p className="muted">Includes samples, timeline history, process runs, template versions, FabuBlox manifests and source workbooks, layer images, comment files, final blob outcomes, and export warnings.</p>
+        <p className="muted">Browser export limits: 50 MB of asset bytes, 8 MB of metadata and a 64 MB ZIP. Exceeding a limit stops the export. For larger backups, use a configured system backup workflow.</p>
+        <p><a href={settingsDestinations.recovery.to}>System backup and recovery</a> provides administrator-managed, durable backup jobs and isolated installation recovery.</p>
+      </details>
     </section>
   </div>;
 }

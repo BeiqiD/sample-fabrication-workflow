@@ -17,6 +17,7 @@ import { ActionIcon, type ActionIconName } from "../components/ActionIcon";
 import { ResearchJobStateBadge } from "../components/ResearchJobStateBadge";
 import { SettingsTaskNavigation } from "../components/SettingsTaskNavigation";
 import { readResearchExportContext, researchExportContextKey, researchExportScopeMatches } from "../lib/research-export-context";
+import { settingsDestinations } from "../lib/settingsDestinations";
 import "./storage-settings.css";
 import "./research-packages.css";
 
@@ -573,8 +574,15 @@ export function ResearchPackagesPage() {
   const mayImport = importPreview?.kind === "data_package" && importPreview.rolePolicyRevision !== null && importPreview.complete && importPreview.capabilities.dataPackage.available;
   const blocked = busy || earlier === null || !!pending || denied;
   const sourceQueryChanged = researchExportContextKey(readResearchExportContext(query)) !== researchExportContextKey(sourceContext);
+  const executorHeadline = !executor ? "" : !executor.supported ? "Package jobs are unavailable on this runtime."
+    : executor.reason === "unavailable" ? "Execution is unavailable."
+      : !executor.enabled || executor.reason === "paused" || executor.reason === "disabled" ? "Execution is paused."
+        : executor.reason ? "Execution is unavailable."
+          : executor.stale ? "Execution is enabled, but no recent heartbeat was recorded." : "Execution is enabled.";
+  const executorBlockReason = executor?.reason === "paused" ? "Package execution is paused by runtime controls."
+    : executor?.reason === "unavailable" ? "The package executor runtime could not be checked." : "";
   return <div className="page storage-settings-page research-packages-page">
-    <div className="page-heading"><div><p className="eyebrow">Settings</p><h1>Data</h1>
+    <div className="page-heading"><div><h1>{settingsDestinations.research.label}</h1>
       <p className="lead">Export research packages and offline reports, or import a native package as a new research copy.</p></div>
       <button ref={refreshButton} className="button research-action research-action--mobile-icon" aria-label="Refresh status" title="Refresh status" disabled={busy || denied} onClick={event => {
         const origin = event.currentTarget; void act(async signal => { beginPageFocus("refresh", origin, signal); await refresh(signal, true); }, true);
@@ -586,13 +594,19 @@ export function ResearchPackagesPage() {
     <ReadStatus loading={false} loadingMessage="" error={!denied && messageError ? message : null} errorTitle="Data operation unavailable"
       onRetry={() => void act(signal => refresh(signal, true), true)} retryLabel="Read current package status" />
     {denied ? <p>Sign in with an account allowed to use the application before continuing. Saved operation identifiers are retained for reconciliation.</p> : <>
+      <SettingsTaskNavigation label="Data tasks" mobileIconOnly items={[
+        { id: "research-package-export", label: "Export", icon: "export" },
+        { id: "research-package-import", label: "Import", icon: "upload" },
+        { id: "research-package-work", label: "Saved work", icon: "history" },
+      ]} />
       <section className="card storage-settings-section research-package-execution" aria-labelledby="research-package-execution-title">
         <div className="research-package-execution-heading"><h2 className="card-title" id="research-package-execution-title"><ActionIcon name="process" />Independent executor</h2>
-          {executor && <p>{!executor.supported ? "Package jobs are unavailable on this runtime." : !executor.enabled ? "Execution is paused." : executor.stale ? "Execution is enabled, but no recent heartbeat was recorded." : "Execution is enabled."}</p>}</div>
-        {executor && <>
-          {executor.reason && (executor.enabled || executor.reason !== "disabled") && <p className="muted">{reasonText(executor.reason)}.</p>}
-          {(!executor.enabled || executor.stale) && <p className="muted">Accepted work remains queued or paused until the independently invoked runner is available. Refreshing or polling this page does not execute it.</p>}
-          {executor.canManage && <p><Link to="/settings/storage/migrations">Administrator executor controls</Link></p>}</>}
+          {executor && <p>{executorHeadline}</p>}</div>
+        {executorBlockReason && <p className="muted">{executorBlockReason}</p>}
+        {executor && (!executor.supported || !executor.enabled || executor.stale || executor.reason !== null) && <p className="muted">Accepted work remains queued or paused until the independently invoked runner is available. Refreshing or polling this page does not execute it.</p>}
+        {executor && (executor.canManage || !executorBlockReason && executor.reason && (executor.enabled || executor.reason !== "disabled")) && <details className="settings-task-details research-executor-details"><summary>Executor details</summary>
+          {!executorBlockReason && executor.reason && (executor.enabled || executor.reason !== "disabled") && <p className="muted">{reasonText(executor.reason)}.</p>}
+          {executor.canManage && <p><Link to="/settings/storage/migrations">Administrator executor controls</Link></p>}</details>}
       </section>
       {earlier === null && <p role="alert">Saved package request history could not be read. Restore its browser checkpoints before starting new work.</p>}
       {pending && <section className="card storage-settings-section research-package-pending"><h2 className="card-title"><ActionIcon name="warning" />Unconfirmed operation</h2>
@@ -617,11 +631,6 @@ export function ResearchPackagesPage() {
             });
           }}><ActionIcon name="preview" /><span>Review a new request</span></button>}
         </div></section>}
-      <SettingsTaskNavigation label="Data tasks" mobileIconOnly items={[
-        { id: "research-package-export", label: "Export", icon: "export" },
-        { id: "research-package-import", label: "Import", icon: "upload" },
-        { id: "research-package-work", label: "Saved work", icon: "history" },
-      ]} />
       <section id="research-package-export" className="card storage-settings-section settings-task-section research-package-task" aria-labelledby="research-package-export-title" tabIndex={-1}><h2 className="card-title" id="research-package-export-title"><ActionIcon name="export" />Export selected research</h2>
         {sourceContext && <div className="research-export-source" role="region" aria-label="Export source context">
           <p><strong>Opened from {sourceContext.root.type === "sample" ? "Sample" : "Project"}</strong>

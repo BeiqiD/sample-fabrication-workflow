@@ -7,6 +7,40 @@ const templatePage = readFileSync(new URL("./pages/TemplatePage.tsx", import.met
 const templatesPage = readFileSync(new URL("./pages/TemplatesPage.tsx", import.meta.url), "utf8");
 const commentComposer = readFileSync(new URL("./components/CommentComposer.tsx", import.meta.url), "utf8");
 const multiSampleRunGrid = readFileSync(new URL("./components/MultiSampleRunGrid.tsx", import.meta.url), "utf8");
+const chrome = readFileSync(new URL("./core-workspace-chrome.css", import.meta.url), "utf8");
+const sampleLayout = readFileSync(new URL("./sample-page-layout.css", import.meta.url), "utf8");
+const processingLayout = readFileSync(new URL("./processing-workspace-layout.css", import.meta.url), "utf8");
+const projectStyles = readFileSync(new URL("./project.css", import.meta.url), "utf8");
+
+describe("shared typography and control roles", () => {
+  it("uses supplied system fonts and separates ordinary editable values from field labels", () => {
+    expect(styles).toMatch(/font-family:\s*ui-sans-serif,\s*system-ui/);
+    expect(styles).not.toMatch(/font-family:\s*Inter\b/);
+    expect(styles).toMatch(/--font-body:\s*14px/);
+    expect(styles).toMatch(/h1\s*\{[^}]*font-size:\s*var\(--font-page-title\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?h1\s*\{[^}]*font-size:\s*var\(--font-page-title-mobile\)/);
+    expect(styles).toMatch(/--control-form:\s*40px/);
+    expect(projectStyles).toMatch(/\.project-create-form input\s*\{[^}]*font-size:\s*var\(--font-body\)[^}]*font-weight:\s*400/);
+    expect(styles).toMatch(/\.search-box input\s*\{[^}]*height:\s*var\(--control-form\)[^}]*font-size:\s*var\(--font-body\)/);
+  });
+
+  it("shares compact toolbar dimensions while keeping the Dense Process action scale", () => {
+    expect(styles).toMatch(/--control-toolbar:\s*32px/);
+    expect(styles).toMatch(/--control-toolbar-mobile:\s*36px/);
+    expect(styles).toMatch(/--icon-action:\s*16px/);
+    expect(chrome).toMatch(/\.core-toolbar-action,[^{]*\{[^}]*min-height:\s*var\(--control-toolbar\)/);
+    expect(chrome).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.core-toolbar-action,[^{]*\{[^}]*min-height:\s*var\(--control-toolbar-mobile\)/);
+    expect(chrome).toMatch(/\.core-toolbar-action > \.action-icon,[^{]*\{[^}]*width:\s*var\(--icon-action\)[^}]*height:\s*var\(--icon-action\)/);
+    expect(styles).toMatch(/\.cell-actions button\s*\{[^}]*min-height:\s*28px/);
+  });
+
+  it("makes selection, placeholders, the caret, and keyboard entry use the interface palette", () => {
+    expect(styles).toMatch(/::selection\s*\{[^}]*color:\s*var\(--ink\)[^}]*background:\s*var\(--accent-soft\)/);
+    expect(styles).toMatch(/input, textarea\s*\{[^}]*caret-color:\s*var\(--accent\)/);
+    expect(styles).toMatch(/input::placeholder, textarea::placeholder\s*\{[^}]*color:\s*var\(--muted\)[^}]*opacity:\s*1/);
+    expect(styles).toMatch(/\.skip-link:focus\s*\{[^}]*transform:\s*translateY\(0\)[^}]*outline:\s*2px solid var\(--accent\)/);
+  });
+});
 
 describe("responsive layout tiers", () => {
   it("uses only the documented medium and narrow breakpoints", () => {
@@ -14,7 +48,7 @@ describe("responsive layout tiers", () => {
       styles.matchAll(/@media \(max-width:\s*(\d+)px\)/g),
       (match) => Number(match[1]),
     );
-    expect(maxWidthQueries).toEqual([1200, 720]);
+    expect([...new Set(maxWidthQueries)].sort((first, second) => first - second)).toEqual([720, 1200]);
   });
 
   it("keeps page gutters continuous and button labels on one line", () => {
@@ -82,10 +116,10 @@ describe("process template picker", () => {
 describe("sample header actions", () => {
   it("keeps primary labels in medium, collapses secondary actions there, and collapses every action on mobile", () => {
     expect(styles).toMatch(/\.sample-header-action-buttons\s*\{[^}]*display:\s*flex[^}]*flex-wrap:\s*wrap/);
-    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-header-secondary-action\s*\{[^}]*width:\s*42px/);
+    expect(sampleLayout).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-overview-page \.sample-header-action-buttons \.sample-header-secondary-action\s*\{[^}]*width:\s*32px/);
     expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-header-secondary-action \.responsive-action-label\s*\{[^}]*position:\s*absolute/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.sample-header-action-buttons\s*\{[^}]*flex-wrap:\s*nowrap/);
-    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.responsive-icon-button\s*\{[^}]*width:\s*42px/);
+    expect(sampleLayout).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.sample-overview-page \.sample-header-action-buttons > \.button\s*\{[^}]*width:\s*36px[^}]*height:\s*36px/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.responsive-icon-button \.responsive-action-label\s*\{[^}]*position:\s*absolute/);
     const secondaryActions = [...samplePage.matchAll(/<button\b[\s\S]*?<\/button>/g)]
       .map(([button]) => button).filter(button => button.includes("sample-header-secondary-action"));
@@ -97,8 +131,9 @@ describe("sample header actions", () => {
 });
 
 describe("sample overview notes", () => {
-  it("uses the left priority column to set the wide Notes height", () => {
+  it("uses the structure and complete details column to set the wide Notes height", () => {
     expect(samplePage).toMatch(/className="sample-notes-slot"[\s\S]*?className="card sample-notes-card"/);
+    expect(sampleLayout).toMatch(/\.sample-overview-page \.sample-priority-grid\s*\{[^}]*grid-template-areas:\s*"structure notes" "details notes"/);
     expect(styles).toMatch(/\.sample-notes-slot\s*\{[^}]*position:\s*relative/);
     expect(styles).toMatch(/\.sample-notes-card\s*\{[^}]*position:\s*absolute[^}]*inset:\s*0[^}]*overflow:\s*hidden/);
     expect(styles).toMatch(/\.sample-notes-heading\s*\{[^}]*flex:\s*0 0 auto/);
@@ -125,21 +160,19 @@ describe("sample overview notes", () => {
 });
 
 describe("run workflow actions", () => {
-  it("keeps wide and medium controls on one row, with compact medium menu triggers", () => {
-    expect(styles).toMatch(/\.run-controls\s*\{[^}]*grid-template-columns:\s*120px minmax\(260px,\s*420px\) 210px minmax\(0,\s*1fr\)/);
-    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.run-controls\s*\{[^}]*grid-template-columns:\s*120px minmax\(180px,\s*420px\) minmax\(0,\s*1fr\) auto[^}]*grid-template-areas:\s*"title picker status actions"/);
-    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.run-control-menus \.run-action-menu-trigger\s*\{[^}]*width:\s*46px/);
+  it("keeps context controls on one desktop row with readable compact run pickers", () => {
+    expect(processingLayout).toMatch(/\.processing-workspace-context > \.run-controls\s*\{[^}]*grid-template-columns:\s*auto minmax\(180px,\s*1fr\) auto auto[^}]*grid-template-areas:\s*"title picker status actions"/);
     expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.run-control-menus \.run-action-menu-label\s*\{[^}]*position:\s*absolute/);
-    expect(styles).toMatch(/\.run-controls-picker select\s*\{[^}]*height:\s*42px/);
-    expect(styles).toMatch(/\.run-controls-picker strong\s*\{[^}]*height:\s*42px/);
+    expect(chrome).toMatch(/\.processing-workspace-page \.run-controls-picker :is\(select, strong\)\s*\{[^}]*height:\s*34px/);
+    expect(chrome).toMatch(/\.processing-workspace-page \.run-action-menu-trigger\s*\{[^}]*min-height:\s*var\(--control-toolbar\)/);
   });
 
   it("keeps the mobile picker and both icon menus on one row", () => {
-    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-controls\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto/);
-    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?grid-template-areas:[^}]*"picker actions"/);
+    expect(processingLayout).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.processing-workspace-context > \.run-controls\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto[^}]*grid-template-areas:\s*"heading heading" "picker actions"/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-controls-heading\s*\{[^}]*display:\s*flex[^}]*flex-wrap:\s*wrap/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-controls-heading \.run-controls-status\s*\{[^}]*margin-left:\s*auto/);
-    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-action-menu-trigger\s*\{[^}]*width:\s*46px[^}]*height:\s*40px/);
+    expect(chrome).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.processing-workspace-page \.run-action-menu-trigger\s*\{[^}]*width:\s*var\(--control-toolbar-mobile\)[^}]*height:\s*var\(--control-toolbar-mobile\)/);
+    expect(chrome).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.processing-workspace-page \.run-controls-picker :is\(select, strong\)\s*\{[^}]*height:\s*var\(--control-toolbar-mobile\)/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-action-menu-label\s*\{[^}]*position:\s*absolute/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-control-menus\s*\{[^}]*position:\s*relative/);
     expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.run-control-menus \.run-action-menu\s*\{[^}]*position:\s*static/);
@@ -224,15 +257,18 @@ describe("medium content layouts", () => {
 
   it("stacks Sample priority and secondary regions and makes run summaries explicit two-row grids", () => {
     expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-priority-grid\s*\{[^}]*flex-direction:\s*column/);
+    expect(sampleLayout).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-overview-page \.sample-current-structure\s*\{[^}]*order:\s*1/);
+    expect(sampleLayout).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-overview-page \.sample-notes-slot\s*\{[^}]*order:\s*2/);
+    expect(sampleLayout).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-overview-page \.sample-details-card\s*\{[^}]*order:\s*3/);
     expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-secondary-grid\s*\{[^}]*grid-template-columns:\s*1fr/);
     expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.sample-run-card \.sample-run-summary\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto 18px/);
   });
 
   it("uses an explicit second information row and one aligned action group for templates", () => {
-    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.template-version-link\s*\{[^}]*grid-template-columns:\s*minmax\(160px,\s*1\.4fr\)\s*minmax\(110px,\s*\.8fr\)\s*minmax\(70px,\s*\.5fr\)/);
+    expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.template-version-link\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1\.4fr\)\s*minmax\(0,\s*\.9fr\)\s*minmax\(0,\s*\.5fr\)/);
     expect(styles).toMatch(/@media \(max-width:\s*1200px\)[\s\S]*?\.template-version-identity\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/);
-    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.template-version-fact\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/);
-    expect(styles).toMatch(/\.template-row-actions\s*\{[^}]*align-items:\s*baseline[^}]*gap:\s*16px/);
+    expect(styles).toMatch(/@media \(max-width:\s*720px\)[\s\S]*?\.template-version-row, \.metrology-template-row\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+    expect(styles).toMatch(/\.template-row-actions\s*\{[^}]*flex-wrap:\s*wrap[^}]*align-items:\s*center/);
     expect(templatesPage.match(/className="text-button template-row-edit"/g)).toHaveLength(2);
     expect(templatesPage).not.toMatch(/template-row-open/);
     expect(styles).toMatch(/\.template-step-actions\s*\{[^}]*flex:\s*0\s+0\s+auto[^}]*align-items:\s*baseline[^}]*flex-wrap:\s*nowrap/);

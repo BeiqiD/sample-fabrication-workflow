@@ -315,7 +315,7 @@ describe("privileged website system backup and recovery workflow", () => {
     await mount();
     const preview = await enabled("Preview system backup");
     preview.focus(); fireEvent.click(preview); expect(preview.matches(":disabled")).toBe(true);
-    const other = screen.getByRole("link", { name: "Research packages and reports" }); other.focus();
+    const other = screen.getByRole("link", { name: "Research packages & reports" }); other.focus();
     expect(document.activeElement).toBe(other);
     await act(async () => finishPreview(originalPreview));
     await screen.findByRole("button", { name: "Start durable system backup" });
@@ -774,7 +774,7 @@ describe("privileged website system backup and recovery workflow", () => {
       ? new Promise<Response>(accept => { resolve = accept; }) : fallback(path, options));
     const pause = await enabled("Pause"); pause.focus(); fireEvent.click(pause);
     await waitFor(() => expect(calls("/jobs/backup%3Ajob/control", "POST")).toHaveLength(1));
-    const other = screen.getByRole("link", { name: "Research packages and reports" }); other.focus();
+    const other = screen.getByRole("link", { name: "Research packages & reports" }); other.focus();
     expect(document.activeElement).toBe(other);
     await act(async () => resolve(fallback(...calls("/jobs/backup%3Ajob/control", "POST")[0])));
     await enabled("Resume"); expect(pause.isConnected).toBe(false); expect(document.activeElement).toBe(other);
@@ -940,7 +940,7 @@ describe("recovery operation request reconciliation", () => {
     const name = operation === "check" ? "Check original recovery request" : "Review new recovery work";
     const button = await enabled(name); button.focus(); fireEvent.click(button);
     await waitFor(() => expect(requestReads(intent.input.requestId)).toHaveLength(2));
-    const link = screen.getByRole("link", { name: "Research packages and reports" }); link.focus();
+    const link = screen.getByRole("link", { name: "Research packages & reports" }); link.focus();
     const receipt = receiptFor(intent); remember(receipt.job);
     await act(async () => finish(json(receipt))); await enabled("Pause"); expect(document.activeElement).toBe(link);
     expect(mutations()).toHaveLength(0);

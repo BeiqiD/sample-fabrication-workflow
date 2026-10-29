@@ -7,6 +7,15 @@ Color source of truth: [`COLOR_SYSTEM.md`](./COLOR_SYSTEM.md)
 
 This document defines the layout, typography, density, interaction, responsive, and validation rules for Sample Fabrication Workflow.
 
+**2026-10-29 approved redesign amendment:** daily work uses a shared 32px desktop /
+28px mobile page title, 14px body and ordinary field values, and 12px labels and
+metadata. Daily toolbar actions use 32px desktop / 36px mobile controls with 16px
+icons; ordinary forms and Dense execution cells retain independent sizes. Sample
+details use an editing-safe disclosure on mobile, with current structure and notes
+ahead of metadata. The approved scope permits this information reorder while
+preserving the expanded View/Edit baseline, source focus, business state and APIs.
+See [the approved design contract](../DESIGN.md).
+
 The 2026-08 normalization pass is complete. These guidelines now describe the established interface rather than a plan for broad cleanup. Future changes should solve a concrete problem and preserve mature geometry outside the task's scope.
 
 The governing principle is:
@@ -225,11 +234,12 @@ Do not apply Comfortable form selectors globally to:
 
 | Role | Baseline |
 | --- | ---: |
-| Standard page action | ~42 px high |
+| Daily page/toolbar action | ~32 px desktop / 36 px mobile |
+| Ordinary form action | ~40–42 px high |
 | Shell/navigation | ~36–40 px |
 | Compact toolbar/filter/pagination | ~34–40 px |
 | Dense Process action | ~28–32 px |
-| Mobile Sample-header action | ~42 px square |
+| Mobile Sample-header action | ~36 px square, 16 px icon |
 
 There is no universal button height.
 
@@ -388,11 +398,18 @@ Do not force it into the ordinary modal hook unless all specialized behavior and
 
 Current global load order:
 
-1. `styles.css` — tokens, shared primitives, legacy route layout, Process workspace/grid, responsive rules;
-2. `palette.css` — color-role and semantic-color behavior;
+1. `styles.css` — typography/density and workflow-state tokens, shared primitives, route layout, Process workspace/grid, responsive rules;
+2. `palette.css` — the sole interface-color token owner and action/state color mappings;
 3. `comment-layout.css` — focused comment geometry and compatibility rules;
 4. `sample-page-layout.css` — Sample-page View/Edit and Notes media layout;
-5. `processing-form-roles.css` — explicit Processing form typography roles.
+5. `processing-form-roles.css` — explicit Processing form typography roles;
+6. `core-workspace-chrome.css` — daily toolbar/control roles and compact responsive actions.
+
+`PageHeading` and `SearchField` share directory chrome without owning data fetching,
+query state, pagination or business actions. Settings destination metadata shares
+names and URLs between navigation and overview. Route-local
+`processing-workspace-layout.css` owns compact workspace context and guidance;
+it does not own grid widths, actual-cell controls or execution state transitions.
 
 `rich-text.css` is loaded with the shared `RichText` component rather than as an application-shell layer. It owns document/comment typography and MathML overflow; host layouts continue to own width, grid placement, truncation, and attachment geometry.
 

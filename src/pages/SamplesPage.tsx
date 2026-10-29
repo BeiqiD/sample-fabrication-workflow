@@ -11,6 +11,8 @@ import {
 } from "../../shared/types";
 import { EmptyState } from "../components/EmptyState";
 import { ActionIcon } from "../components/ActionIcon";
+import { PageHeading } from "../components/PageHeading";
+import { SearchField } from "../components/SearchField";
 import { PaginationControls } from "../components/PaginationControls";
 import { ReadStatus } from "../components/ReadStatus";
 import { StatusPill } from "../components/StatusPill";
@@ -182,14 +184,10 @@ export function SamplesPage() {
   if (explicitSort) activeChips.push({ key: "sort", label: sortLabel(settings.sort) });
 
   return <div className="page samples-page">
-    <div className="page-heading">
-      <div><p className="eyebrow">Permanent archive</p><h1>Samples</h1><p className="lead">Browse sample identity, location, processing state, and complete history.</p></div>
-      <div className="header-actions"><Link className="button primary core-toolbar-action core-toolbar-icon" to="/samples/new" aria-label="New sample" title="New sample"><ActionIcon name="plus" /><span className="core-action-label">New sample</span></Link></div>
-    </div>
-    <label className="search-box sample-directory-search">
-      <span>Search</span>
-      <input autoFocus={shouldAutoFocusPageField()} type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search samples…" />
-    </label>
+    <PageHeading title="Samples" description="Browse sample identity, location, processing state, and complete history." actions={<>
+      <Link className="button primary core-toolbar-action core-toolbar-icon" to="/samples/new" aria-label="New sample" title="New sample"><ActionIcon name="plus" /><span className="core-action-label">New sample</span></Link>
+    </>} />
+    <SearchField className="sample-directory-search" autoFocus={shouldAutoFocusPageField()} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search samples…" />
     <div className="sample-directory-toolbar">
       <p>{loading ? "Samples" : error ? "Results unavailable" : <><strong>{pagination.total}</strong> {pagination.total === 1 ? "sample" : "samples"}</>}</p>
       <button

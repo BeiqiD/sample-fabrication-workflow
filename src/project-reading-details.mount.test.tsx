@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ProjectReadingSurface } from "./components/project/ProjectReadingSurface";
@@ -12,6 +12,40 @@ afterEach(() => {
 });
 
 describe("Reading details and explicit occurrence focus", () => {
+  it("keeps mobile secondary actions named and preserves More keyboard and selection behavior", () => {
+    const nodes = projectReadingNodes(projectTestSnapshotWithAttachment());
+    const onDetailsRequest = vi.fn(), onMarkdownEditRequest = vi.fn(), onMarkdownDeleteRequest = vi.fn(), onAttachmentDeleteRequest = vi.fn();
+    const view = render(<MemoryRouter><ProjectReadingSurface mobile nodes={nodes} onDetailsRequest={onDetailsRequest} onMarkdownEditRequest={onMarkdownEditRequest} onMarkdownDeleteRequest={onMarkdownDeleteRequest} onAttachmentDeleteRequest={onAttachmentDeleteRequest} /></MemoryRouter>);
+    const note = view.container.querySelector<HTMLElement>('[data-project-item-id="item-note"]')!;
+    const details = within(note).getByRole("button", { name: "Details for Design note" });
+    expect(details.title).toBe("Details for Design note");
+    expect(details.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+    fireEvent.click(details);
+    expect(onDetailsRequest).toHaveBeenCalledExactlyOnceWith("item-note");
+    expect(document.activeElement).toBe(details);
+    const edit = within(note).getByRole("button", { name: "Edit Markdown" });
+    expect(edit.textContent).toBe("Edit");
+    fireEvent.click(edit);
+    expect(onMarkdownEditRequest).toHaveBeenCalledExactlyOnceWith("item-note");
+    const more = within(note).getByLabelText("More actions for Design note");
+    expect(more.title).toBe("More actions for Design note");
+    expect(more.querySelector('svg[aria-hidden="true"]')).not.toBeNull();
+    more.focus(); fireEvent.click(more);
+    expect(more.getAttribute("aria-expanded")).toBe("true");
+    expect(within(note).getByRole("button", { name: "Move Markdown to trash" })).toBeTruthy();
+    fireEvent.keyDown(more, { key: "Escape" });
+    expect(more.getAttribute("aria-expanded")).toBe("false");
+    expect(document.activeElement).toBe(more);
+    fireEvent.click(more);
+    fireEvent.click(within(note).getByRole("button", { name: "Move Markdown to trash" }));
+    expect(onMarkdownDeleteRequest).toHaveBeenCalledExactlyOnceWith("item-note");
+    expect(more.getAttribute("aria-expanded")).toBe("false");
+    fireEvent.click(screen.getByLabelText(`More actions for ${nodes.find(node => node.kind === "attachment")!.title}`));
+    fireEvent.click(screen.getByRole("button", { name: "Remove attachment" }));
+    expect(onAttachmentDeleteRequest).toHaveBeenCalledExactlyOnceWith("item-attachment");
+    expect(screen.getByRole("link", { name: "Open source" }).getAttribute("href")).toBe("/samples/sample-a");
+  });
+
   it("opens details only from its explicit header action for every occurrence kind", () => {
     const nodes = projectReadingNodes(projectTestSnapshotWithAttachment());
     const onDetailsRequest = vi.fn();

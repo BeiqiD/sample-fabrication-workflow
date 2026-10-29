@@ -20,6 +20,7 @@ import { hashResearchFile } from "../../shared/domain/research-sha256";
 import { systemRecoveryClient, systemRecoveryErrorMessage, SystemRecoveryRequestError, SystemRecoveryRequestMissingError } from "../lib/system-recovery-client";
 import { ReadStatus } from "../components/ReadStatus";
 import { SettingsTaskNavigation } from "../components/SettingsTaskNavigation";
+import { settingsDestinations } from "../lib/settingsDestinations";
 import "./storage-settings.css";
 import "./system-recovery.css";
 
@@ -674,7 +675,7 @@ export function SystemRecoveryPage() {
   }
 
   return <div className="page storage-settings-page system-recovery-page">
-    <div className="page-heading"><div><p className="eyebrow">Settings</p><h1>System backup and recovery</h1>
+    <div className="page-heading"><div><h1>System backup and recovery</h1>
       <p className="lead">Preserve installation identities and history, then verify recovery in an isolated target before an administrator prepares a deployment handoff.</p></div>
       <button className="button" disabled={busy || denied} onClick={() => void act(signal => refresh(signal, true), true)}>Refresh recovery status</button></div>
     {message && (denied || !messageError) && <p ref={messageTarget} role={denied ? "alert" : "status"} tabIndex={-1}>{message}</p>}
@@ -868,7 +869,7 @@ export function SystemRecoveryPage() {
       </section>
     </>}
     <div className="settings-related-tools"><p>Related tools</p>
-      <nav className="system-recovery-navigation" aria-label="Related recovery tools"><Link to="/settings/data">Research packages and reports</Link>
+      <nav className="system-recovery-navigation" aria-label="Related recovery tools"><Link to={settingsDestinations.research.to}>{settingsDestinations.research.label}</Link>
         <Link to="/settings/storage">Storage settings</Link><Link to="/export">Content archive</Link></nav>
     </div>
   </div>;

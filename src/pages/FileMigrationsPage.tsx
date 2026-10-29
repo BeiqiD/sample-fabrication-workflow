@@ -437,7 +437,7 @@ export function FileMigrationsPage() {
     }
   }
   return <div className="page storage-settings-page">
-    <div className="page-heading"><div><p className="eyebrow">Settings</p><h1>File migrations</h1>
+    <div className="page-heading"><div><h1>File migrations</h1><p className="page-context">Settings</p>
       <p className="lead">Copy selected files, verify their contents, then switch their recorded location.</p></div>
       {authorized && <button className="button" type="button" disabled={busy} onClick={() => void act(async signal => {
         await readMetadata(signal); if (owner.isCurrent() && !signal.aborted) setPlan(null);

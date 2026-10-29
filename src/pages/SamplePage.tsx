@@ -69,6 +69,9 @@ export function SamplePage() {
   const [error, setError] = useState("");
   const [readError, setReadError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [detailsExpanded, setDetailsExpanded] = useState(() => (
+    typeof window === "undefined" || !window.matchMedia?.("(max-width: 720px)").matches
+  ));
   const [editingDetails, setEditingDetails] = useState(false);
   const [updatingDetails, setUpdatingDetails] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState<SampleEvent | null>(null);
@@ -119,6 +122,17 @@ export function SamplePage() {
     void load().catch(() => undefined);
     return () => { loadSequence.current += 1; };
   }, [load]);
+
+  useEffect(() => {
+    const mobile = window.matchMedia?.("(max-width: 720px)");
+    if (!mobile) return;
+    const revealDesktopDetails = () => {
+      if (!mobile.matches) setDetailsExpanded(true);
+    };
+    revealDesktopDetails();
+    mobile.addEventListener?.("change", revealDesktopDetails);
+    return () => mobile.removeEventListener?.("change", revealDesktopDetails);
+  }, []);
 
   useLayoutEffect(() => {
     const previousTop = pendingNotesViewportTopRef.current;
@@ -235,7 +249,13 @@ export function SamplePage() {
   return <div className="page sample-overview-page">
     <Link className="back-link" to="/samples">← Samples</Link>
     <div className="sample-header">
-      <div className="sample-header-copy"><p className="eyebrow">{sample.code}</p><h1>{sample.title}</h1><p className="lead sample-description">{sample.description || "No description"}</p></div>
+      <div className="sample-header-copy">
+        <h1>{sample.title}</h1>
+        <dl className="sample-identity-summary">
+          <div><dt>Sample code</dt><dd>{sample.code}</dd></div>
+          <div><dt>Location</dt><dd>{sample.location || "—"}</dd></div>
+        </dl>
+      </div>
       <div className="header-actions sample-header-actions">
         <StatusPill status={sample.status} />
         <div className="sample-header-action-buttons">
@@ -285,27 +305,7 @@ export function SamplePage() {
     <ReadStatus loading={loading} error={readError} loadingMessage="Refreshing sample…" errorTitle="Sample could not be refreshed" retryLabel="Retry sample" onRetry={() => void load().catch(() => undefined)} />
     {error && <p className="error-banner" role="alert">{error}</p>}
     <section className="sample-priority-grid">
-      <div className="sample-priority-sidebar">
-        <aside className={`card facts sample-details-card${editingDetails ? " is-editing" : ""}`}>
-          <div className="card-title-row"><h2 className="card-title">Sample details</h2><button type="button" className="text-button" disabled={updatingDetails} onClick={() => setEditingDetails((value) => !value)}>{editingDetails ? "Cancel" : "Edit"}</button></div>
-          <div className="sample-details-mode-stack">
-            <div className={`sample-details-view${editingDetails ? " is-hidden" : ""}`} aria-hidden={editingDetails}>
-              <dl><dt>Location</dt><dd className="sample-location-value">{sample.location || "—"}</dd><dt>Sample code</dt><dd>{sample.code}</dd><dt>Sample name</dt><dd>{sample.title}</dd><dt>Status</dt><dd>{SAMPLE_STATUS_LABELS[sample.status]}</dd><dt>Pinned</dt><dd>{sample.pinned ? "Yes" : "No"}</dd><dt>Parent</dt><dd>{sample.parent ? <Link to={`/samples/${sample.parent.id}`}>{sample.parent.code}</Link> : "—"}</dd><dt>Children</dt><dd>{sample.children.length ? sample.children.map((child) => <Link key={child.id} to={`/samples/${child.id}`}>{child.code}</Link>) : "—"}</dd><dt>Created</dt><dd>{new Date(sample.createdAt).toLocaleString()}</dd></dl>
-              <div className="sample-danger-zone"><div><strong>Delete sample</strong><small>Remove this sample and its processing history.</small></div><button type="button" className="button danger" onClick={() => { setSampleDeleteConfirmation(""); setSampleDeleteError(""); setConfirmingSampleDeletion(true); }}>Delete</button></div>
-            </div>
-            {editingDetails && <form className="detail-form sample-identity-form sample-details-edit-form" onSubmit={updateDetails} aria-busy={updatingDetails}>
-              <label>Sample code<input value={sample.code} readOnly aria-readonly="true" title="Sample code is a permanent identifier" /></label>
-              <label>Sample name<input name="title" defaultValue={sample.title} required maxLength={200} disabled={updatingDetails} /></label>
-              <label>Status<select name="status" defaultValue={sample.status} disabled={updatingDetails}>{SAMPLE_STATUSES.map((status) => <option value={status} key={status}>{SAMPLE_STATUS_LABELS[status]}</option>)}</select></label>
-              <label>Location<input name="location" defaultValue={sample.location || ""} disabled={updatingDetails} placeholder="Box, lab, or tool" /></label>
-              <label className="sample-details-description-field">Description<textarea name="description" defaultValue={sample.description || ""} maxLength={10_000} rows={4} disabled={updatingDetails} placeholder="Purpose, structure, or other sample context" /></label>
-              <label className="checkbox-label"><input name="pinned" type="checkbox" defaultChecked={sample.pinned} disabled={updatingDetails} />Pinned</label>
-              <button className="button primary wide" disabled={updatingDetails}>{updatingDetails ? "Saving…" : "Save changes"}</button>
-            </form>}
-          </div>
-        </aside>
-
-        <article className="card sample-current-structure">
+      <article className="card sample-current-structure">
           <div className="card-copy">
             <h2 className="card-title">Current structure</h2>
             <p className="card-value">{currentStructure.title}</p>
@@ -313,8 +313,7 @@ export function SamplePage() {
             {latestProcessRun && <Link className="text-button structure-source-link" to={`/processing/${sample.id}?run=${encodeURIComponent(latestProcessRun.id)}`}>Open source run</Link>}
           </div>
           <SampleStateThumbnail sample={sample} />
-        </article>
-      </div>
+      </article>
 
       <div className="sample-notes-slot">
       <section className="card sample-notes-card" id="sample-notes">
@@ -387,6 +386,48 @@ export function SamplePage() {
         <SampleReferenceSourceFocus focusValue={requestedFocus} sample={sample} />
       </section>
       </div>
+
+      <aside className={`card facts sample-details-card${editingDetails ? " is-editing" : ""}`} aria-labelledby="sample-details-title">
+        <button
+          type="button"
+          className="sample-details-toggle"
+          aria-expanded={detailsExpanded}
+          aria-controls="sample-details-panel"
+          disabled={editingDetails || updatingDetails}
+          title={editingDetails ? "Finish editing before hiding sample details" : undefined}
+          onClick={() => setDetailsExpanded((value) => !value)}
+        >
+          <span>{detailsExpanded ? "Hide full sample details" : "Show full sample details"}</span>
+          <ActionIcon name="chevron-down" />
+        </button>
+        <div id="sample-details-panel" hidden={!detailsExpanded}>
+          <div className="card-title-row"><h2 className="card-title" id="sample-details-title">Sample details</h2><button type="button" className="text-button" disabled={updatingDetails} onClick={() => setEditingDetails((value) => !value)}>{editingDetails ? "Cancel" : "Edit"}</button></div>
+          <div className="sample-details-mode-stack">
+            <div className={`sample-details-view${editingDetails ? " is-hidden" : ""}`} aria-hidden={editingDetails}>
+              <dl>
+                <dt>Sample code</dt><dd>{sample.code}</dd>
+                <dt>Sample name</dt><dd>{sample.title}</dd>
+                <dt>Status</dt><dd>{SAMPLE_STATUS_LABELS[sample.status]}</dd>
+                <dt>Location</dt><dd className="sample-location-value">{sample.location || "—"}</dd>
+                <dt>Description</dt><dd className="sample-description-value">{sample.description || "No description"}</dd>
+                <dt>Pinned</dt><dd>{sample.pinned ? "Yes" : "No"}</dd>
+                <dt>Parent</dt><dd>{sample.parent ? <Link to={`/samples/${sample.parent.id}`}>{sample.parent.code}</Link> : "—"}</dd>
+                <dt>Children</dt><dd>{sample.children.length ? sample.children.map((child) => <Link key={child.id} to={`/samples/${child.id}`}>{child.code}</Link>) : "—"}</dd>
+                <dt>Created</dt><dd>{new Date(sample.createdAt).toLocaleString()}</dd>
+              </dl>
+            </div>
+            {editingDetails && <form className="detail-form sample-identity-form sample-details-edit-form" onSubmit={updateDetails} aria-busy={updatingDetails}>
+              <label>Sample code<input value={sample.code} readOnly aria-readonly="true" title="Sample code is a permanent identifier" /></label>
+              <label>Sample name<input name="title" defaultValue={sample.title} required maxLength={200} disabled={updatingDetails} /></label>
+              <label>Status<select name="status" defaultValue={sample.status} disabled={updatingDetails}>{SAMPLE_STATUSES.map((status) => <option value={status} key={status}>{SAMPLE_STATUS_LABELS[status]}</option>)}</select></label>
+              <label>Location<input name="location" defaultValue={sample.location || ""} disabled={updatingDetails} placeholder="Box, lab, or tool" /></label>
+              <label className="sample-details-description-field">Description<textarea name="description" defaultValue={sample.description || ""} maxLength={10_000} rows={4} disabled={updatingDetails} placeholder="Purpose, structure, or other sample context" /></label>
+              <label className="checkbox-label"><input name="pinned" type="checkbox" defaultChecked={sample.pinned} disabled={updatingDetails} />Pinned</label>
+              <button className="button primary wide" disabled={updatingDetails}>{updatingDetails ? "Saving…" : "Save changes"}</button>
+            </form>}
+          </div>
+        </div>
+      </aside>
     </section>
 
     <section className="sample-secondary-grid">
@@ -425,6 +466,10 @@ export function SamplePage() {
           <Link className="button wide" to={`/samples/${sample.id}/timeline`}>View full timeline</Link>
         </div>
       </section>
+    </section>
+    <section className="sample-danger-zone sample-delete-section" aria-labelledby="sample-delete-title">
+      <div><h2 id="sample-delete-title">Delete sample</h2><small>Remove this sample and its processing history.</small></div>
+      <button type="button" className="button danger" onClick={() => { setSampleDeleteConfirmation(""); setSampleDeleteError(""); setConfirmingSampleDeletion(true); }}>Delete sample</button>
     </section>
     {recordToDelete && <ConfirmDeleteDialog title="Delete this sample note?" description="The note will disappear from Notes & observations, while the Timeline will retain a deletion audit entry." summary={recordToDelete.body?.trim() || (sampleEventAssetUrl(recordToDelete) ? "Photo observation" : "Empty note")} deleting={deletingRecord} error={recordDeleteError} eyebrow="Delete note" confirmLabel="Delete note" onCancel={() => { setRecordToDelete(null); setRecordDeleteError(""); }} onConfirm={() => void deleteRecord()} />}
     {assetToDelete && <ConfirmDeleteDialog title="Delete this image attachment?" description="The image will be detached from the record. The Timeline will retain a text-only audit entry showing that an image was removed." summary={assetToDelete.body?.trim() || "Image attachment"} deleting={deletingAsset} error={assetDeleteError} eyebrow="Delete image" confirmLabel="Delete image" onCancel={() => { setAssetToDelete(null); setAssetDeleteError(""); }} onConfirm={() => void deleteAsset()} />}
