@@ -7,27 +7,13 @@ import type {
   ParsedFabubloxImage,
 } from "../../shared/types";
 import { normalizeSectionName } from "./template-sections";
+import {
+  detectFabuBloxFormat, FABUBLOX_HEADER_ALIASES as HEADER_ALIASES,
+  fabubloxCell, normalizeFabuBloxLabel as normalizeHeader,
+  type FabubloxColumnKey as ColumnKey, type FabubloxColumnMap as ColumnMap,
+} from "./fabublox-formats";
 
 const REL_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
-const HEADER_ALIASES = {
-  stepNumber: ["step #", "step number", "step no", "step"],
-  stepName: ["step name", "name"],
-  toolName: ["tool name", "tool"],
-  parameters: ["parameters", "parameter"],
-  comments: ["comments", "comment"],
-  layerStacks: ["layer stacks", "layer stack"],
-} as const;
-
-type ColumnKey = keyof typeof HEADER_ALIASES;
-type ColumnMap = Partial<Record<ColumnKey, number>>;
-
-function normalizeHeader(value: unknown) {
-  return String(value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
-}
-
-function normalizedStepLabel(value: string | null) {
-  return normalizeHeader(value).replace(/[-_]+/g, " ");
-}
 
 function findHeader(rows: unknown[][]) {
   let best = { row: -1, columns: {} as ColumnMap, score: 0 };
@@ -238,7 +224,7 @@ async function extractDrawings(zip: JSZip, worksheetPart: string): Promise<Parse
   return results;
 }
 
-function parseRows(rows: unknown[][], headerRow: number, columns: ColumnMap) {
+function parseRows(rows: unknown[][], headerRow: number, columns: ColumnMap, format: ReturnType<typeof detectFabuBloxFormat>) {
   const sections: FabubloxSection[] = [];
   const steps: FabubloxStep[] = [];
   const warnings: ImportWarning[] = [];
@@ -269,21 +255,61 @@ function parseRows(rows: unknown[][], headerRow: number, columns: ColumnMap) {
     if (stepNumber) seenStepNumbers.add(stepNumber);
     const rawCells: Record<string, unknown> = {};
     row.forEach((value, columnIndex) => { if (value !== null && value !== undefined && value !== "") rawCells[headerLabels[columnIndex] || `Column ${columnIndex + 1}`] = value; });
+    const processParameters = columns.parameters === undefined ? null : text(row[columns.parameters]);
+    const toolParameters = columns.toolParameters === undefined ? null : text(row[columns.toolParameters]);
+    const sourceName = stepName;
+    const capability = columns.capabilityType === undefined ? null : text(row[columns.capabilityType]);
+    const name = format.placeholderNameFromCapability && /^[-–—]+$/.test(sourceName) && capability ? capability : sourceName;
+    if (name !== sourceName) {
+      rawCells["Source step name"] = sourceName;
+      warnings.push({ code: "step_name_from_capability", message: `Row ${rowIndex + 1} uses its capability as the step name because its source name is a placeholder. The original cells are retained.`, sourceRow: rowIndex + 1 });
+    }
     steps.push({
       localId: `step-${steps.length + 1}`,
       sourceRow: rowIndex + 1,
       position: steps.length,
       stepNumber,
       sectionName: currentSection,
-      name: stepName,
+      name,
       toolName: columns.toolName === undefined ? null : text(row[columns.toolName]),
-      parametersText: columns.parameters === undefined ? null : text(row[columns.parameters]),
+      parametersText: format.separateToolParameters && toolParameters
+        ? [processParameters, `Tool parameters:\n${toolParameters}`].filter(Boolean).join("\n\n")
+        : processParameters,
       commentsText: columns.comments === undefined ? null : text(row[columns.comments]),
       imageIds: [],
       rawCells,
     });
   }
   return { sections, steps, warnings };
+}
+
+function substrateSheetMetadata(rows: unknown[][], sourceName: string): Record<string, unknown> | null {
+  // The auxiliary sheet enriches an explicitly identified substrate; it never
+  // supplies or guesses the initial role on its own.
+  const title = text(rows[0]?.[0]);
+  if (normalizeHeader(title) !== normalizeHeader(sourceName)) return null;
+  const result: Record<string, unknown> = {};
+  const layerHeader = rows.findIndex(row => {
+    const labels = (row ?? []).map(normalizeHeader);
+    return labels.includes("layer") && labels.includes("material") && labels.includes("thickness");
+  });
+  rows.slice(1, layerHeader < 0 ? rows.length : layerHeader).forEach(row => {
+    if (!row) return;
+    const label = text(row[0]);
+    const value = row.slice(1).map(text).filter(Boolean).join(" · ");
+    if (label && value) result[`Substrate ${normalizeHeader(label) === "description" ? "description" : label}`] = value;
+  });
+  if (layerHeader >= 0) {
+    const layers = rows.slice(layerHeader + 1).flatMap(row => {
+      const values = (row ?? []).map(text);
+      return values.some(Boolean) ? [values.map(value => value ?? "").join(" | ")] : [];
+    });
+    if (layers.length) {
+      result["Substrate layer columns"] = rows[layerHeader].map(text).map(value => value ?? "").join(" | ");
+      result["Substrate layers"] = layers.join("\n");
+    }
+  }
+  return result;
 }
 
 export async function parseFabuBloxWorkbook(file: File): Promise<FabubloxImportPreview> {
@@ -302,11 +328,12 @@ export async function parseFabuBloxWorkbook(file: File): Promise<FabubloxImportP
 
   const warnings: ImportWarning[] = [];
   for (const required of ["stepNumber", "stepName"] as ColumnKey[]) if (selected.header.columns[required] === undefined) warnings.push({ code: "missing_header", message: `Missing header: ${HEADER_ALIASES[required][0]}` });
-  const parsedRows = parseRows(selected.rows, selected.header.row, selected.header.columns);
+  const format = detectFabuBloxFormat(selected.rows[selected.header.row], selected.header.columns);
+  const parsedRows = parseRows(selected.rows, selected.header.row, selected.header.columns, format);
   warnings.push(...parsedRows.warnings);
 
   const images = await extractDrawings(zip, selected.worksheetPart);
-  const layerColumn = selected.header.columns.layerStacks ?? null;
+  const layerColumn = format.imageColumn(selected.rows[selected.header.row], selected.header.columns);
   for (const image of images) {
     const step = parsedRows.steps.find((candidate) => candidate.sourceRow === image.anchor.row + 1);
     if (step) {
@@ -314,28 +341,51 @@ export async function parseFabuBloxWorkbook(file: File): Promise<FabubloxImportP
       step.imageIds.push(image.localId);
     }
   }
-  const substrateCandidates = parsedRows.steps.filter((step) =>
-    step.stepNumber === "0" && normalizedStepLabel(step.name) === "substrate stack");
+  const substrateCandidates = parsedRows.steps.filter(step => format.initialSubstrate(step));
   const initialSubstrateSource = substrateCandidates.length === 1 ? substrateCandidates[0] : null;
   const initialStateImageIds = initialSubstrateSource?.imageIds.filter((id) => {
     const image = images.find((candidate) => candidate.localId === id);
     return image && layerColumn !== null && image.anchor.col === layerColumn;
   }) ?? [];
-  const initialSubstrateStep = initialSubstrateSource
+  let initialSubstrateStep = initialSubstrateSource
     ? { ...initialSubstrateSource, imageIds: initialStateImageIds }
     : null;
+  if (initialSubstrateStep && format.normalizeInitialRole) {
+    initialSubstrateStep = {
+      ...initialSubstrateStep,
+      stepNumber: "0",
+      name: "Substrate Stack",
+      rawCells: {
+        ...initialSubstrateStep.rawCells,
+        "Source substrate name": initialSubstrateSource!.name,
+        "Source step number": initialSubstrateSource!.stepNumber,
+      },
+    };
+    const substrateSheets = candidates.filter(candidate => candidate !== selected
+      && format.substrateSheetNames.includes(normalizeHeader(candidate.sheetName)));
+    if (substrateSheets.length === 1) {
+      const metadata = substrateSheetMetadata(substrateSheets[0].rows, initialSubstrateSource!.name);
+      if (metadata) initialSubstrateStep.rawCells = {
+        ...metadata, "Source substrate sheet": substrateSheets[0].sheetName,
+        // Flow values (including preserved extension columns on conversion)
+        // remain authoritative when the same property already exists.
+        ...initialSubstrateStep.rawCells,
+      };
+      else warnings.push({ code: "substrate_metadata_mismatch", message: "The Substrate sheet names a different substrate. Its metadata was not merged into the initial state." });
+    }
+  }
   if (!initialSubstrateSource) {
     warnings.push({
       code: substrateCandidates.length > 1 ? "ambiguous_initial_substrate_step" : "missing_initial_substrate_step",
       message: substrateCandidates.length > 1
-        ? "More than one Step 0 named Substrate Stack was found; the initial substrate was not inferred."
-        : "Step 0 named Substrate Stack was not found; no initial substrate will be defined.",
+        ? "More than one initial substrate definition was found; the initial substrate was not inferred."
+        : format.missingSubstrateMessage,
     });
   } else {
     if (parsedRows.steps[0]?.localId !== initialSubstrateSource.localId) {
       warnings.push({
         code: "misplaced_initial_substrate_step",
-        message: "Step 0: Substrate Stack is not the first process row; it was imported as the initial substrate and removed from executable steps.",
+        message: "The initial substrate is not the first process row; it was imported as the initial substrate and removed from executable steps.",
         sourceRow: initialSubstrateSource.sourceRow,
       });
     }
@@ -350,19 +400,24 @@ export async function parseFabuBloxWorkbook(file: File): Promise<FabubloxImportP
   const executableSteps = parsedRows.steps
     .filter((step) => step.localId !== initialSubstrateSource?.localId)
     .map((step, position) => ({ ...step, position }));
+  const metrologyRows = executableSteps.filter(step => normalizeHeader(fabubloxCell(step.rawCells, "Capability Type")) === "metrology");
+  if (metrologyRows.length) warnings.push({
+    code: "metrology_rows_retained",
+    message: `${metrologyRows.length} metrology-labelled row(s) are retained in the ordered process plan with their original capability fields. This workbook import does not create separate Metrology templates or records.`,
+  });
   const initialStateImageSet = new Set(initialStateImageIds);
   const unassignedImageIds = images
     .filter((image) => !image.assignedStepLocalId && !initialStateImageSet.has(image.localId))
     .map((image) => image.localId);
   if (unassignedImageIds.length) warnings.push({ code: "unassigned_images", message: `${unassignedImageIds.length} image(s) could not be assigned by anchor row` });
   for (const step of parsedRows.steps) if (step.imageIds.length > 1) warnings.push({ code: "multiple_images", message: `Step ${step.stepNumber ?? step.position} has multiple images`, sourceRow: step.sourceRow });
-  for (const image of images) if (layerColumn !== null && image.anchor.col !== layerColumn) warnings.push({ code: "image_outside_layer_column", message: `${image.localId} is anchored outside the Layer Stacks column`, sourceRow: image.anchor.row + 1 });
+  for (const image of images) if (layerColumn !== null && image.anchor.col !== layerColumn) warnings.push({ code: "image_outside_layer_column", message: `${image.localId} is anchored outside the detected diagram column`, sourceRow: image.anchor.row + 1 });
 
   return {
     schemaVersion: 2,
     title: selected.sheetName,
     source: { fileName: file.name, fileSha256: await sha256(buffer), sheetName: selected.sheetName },
-    detected: { headerRow: selected.header.row + 1, layerStackColumn: layerColumn },
+    detected: { headerRow: selected.header.row + 1, layerStackColumn: layerColumn, formatId: format.id },
     sections: parsedRows.sections,
     initialSubstrateStep,
     steps: executableSteps,

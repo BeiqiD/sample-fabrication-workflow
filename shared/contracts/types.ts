@@ -626,6 +626,8 @@ export interface FabubloxImportPreview {
   detected: {
     headerRow: number;
     layerStackColumn: number | null;
+    /** Internal export-layout adapter identity, independent of manifest schema. */
+    formatId?: string;
   };
   sections: FabubloxSection[];
   initialSubstrateStep: InitialSubstrateStep | null;

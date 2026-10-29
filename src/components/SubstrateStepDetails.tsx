@@ -1,21 +1,15 @@
 import type { InitialSubstrateStep } from "../../shared/types";
+import { FABUBLOX_HEADER_ALIASES } from "../lib/fabublox-formats";
 
-const STANDARD_FIELDS = new Set([
-  "step #",
-  "step number",
-  "step no",
-  "step",
-  "step name",
-  "name",
-  "tool name",
-  "tool",
-  "parameters",
-  "parameter",
-  "comments",
-  "comment",
-  "layer stacks",
-  "layer stack",
-]);
+const PARAMETER_FIELDS = new Set<string>(["process parameters", ...FABUBLOX_HEADER_ALIASES.toolParameters]);
+const STANDARD_FIELDS = new Set<string>([
+  ...FABUBLOX_HEADER_ALIASES.stepNumber,
+  ...FABUBLOX_HEADER_ALIASES.stepName,
+  ...FABUBLOX_HEADER_ALIASES.toolName,
+  ...FABUBLOX_HEADER_ALIASES.parameters,
+  ...FABUBLOX_HEADER_ALIASES.comments,
+  ...FABUBLOX_HEADER_ALIASES.layerStacks,
+].filter(label => !PARAMETER_FIELDS.has(label) && label !== "notes"));
 
 function normalizedField(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, " ");
@@ -25,11 +19,15 @@ export function SubstrateStepDetails({ step, className = "initial-substrate-deta
   step: InitialSubstrateStep;
   className?: string;
 }) {
-  const additional = Object.entries(step.rawCells).filter(([label, value]) =>
-    !STANDARD_FIELDS.has(normalizedField(label))
-    && value !== null
-    && value !== undefined
-    && String(value).trim() !== "");
+  const additional = Object.entries(step.rawCells).filter(([label, value]) => {
+    const normalized = normalizedField(label);
+    if (STANDARD_FIELDS.has(normalized) || value === null || value === undefined || !String(value).trim()) return false;
+    // New aliases need no duplicate row when already visible in the canonical
+    // value, but an older template's independent extension must stay visible.
+    if (PARAMETER_FIELDS.has(normalized) && step.parametersText?.includes(String(value).trim())) return false;
+    if (normalized === "notes" && step.commentsText?.trim() === String(value).trim()) return false;
+    return true;
+  });
   return <dl className={className}>
     <dt>Tool</dt><dd>{step.toolName || "—"}</dd>
     <dt>Parameters</dt><dd>{step.parametersText || "—"}</dd>
