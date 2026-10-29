@@ -955,8 +955,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .file-drop-copy strong { overflow-wrap: anywhere; }
 .file-drop-copy small { overflow-wrap: anywhere; color: var(--muted); font-weight: 400; }
 .file-dropzone .text-button { margin-left: auto; }
-.import-preview { display: grid; gap: 18px; margin-top: 24px; }
-.template-import-section { display: grid; gap: 18px; padding: 22px; margin: -8px 0 28px; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--paper) 62%, transparent); }
+.import-preview { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; margin-top: 24px; }
+.template-import-section { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 22px; margin: -8px 0 28px; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--paper) 62%, transparent); }
 .template-import-section > div > p:last-child { max-width: 720px; margin: 0; }
 .import-section-heading { margin: 0; }
 .success-banner a { color: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
@@ -1243,6 +1243,7 @@ th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spa
   .step-field-row { grid-template-columns: 1fr; }
   .preview-summary { grid-template-columns: 1fr; }
   .imported-step { grid-template-columns: 34px minmax(0, 1fr); }
+  .template-import-section .button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
   .layer-thumbnail, .layer-placeholder { grid-column: 2; }
   .template-step-card { grid-template-columns: 28px minmax(0, 1fr); gap: 10px; padding: 14px 12px; }
   .template-step-number { width: 28px; height: 28px; font-size: 11px; }
