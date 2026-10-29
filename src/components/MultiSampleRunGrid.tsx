@@ -1274,7 +1274,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, onAttachmentC
       <div className="grid-scroll-buttons" aria-label="Sample columns">{scrollState.overflow && <button type="button" disabled={!scrollState.left} onClick={() => scrollColumns(-1)} aria-label="Scroll sample columns left">←</button>}<span>{columns.length} sample{columns.length === 1 ? "" : "s"}</span>{scrollState.overflow && <button type="button" disabled={!scrollState.right} onClick={() => scrollColumns(1)} aria-label="Scroll sample columns right">→</button>}</div>
       <details className="processing-grid-guidance"><summary>{primaryRun.runKind === "metrology" ? "Record and batch help" : "Plan and batch help"}</summary><div><p>{primaryRun.runKind === "metrology" ? "A standalone result record; it does not change the sample structure." : primaryRun.status === "active" ? "Plan on the left; actual execution stays in each sample column." : `${primaryRun.status} run · preserved in the sample chain`}</p><p>Common actions use checked samples</p></div></details>
     </div>
-    {error && <p className="error-banner grid-error">{error}</p>}
+    {error && <p className="error-banner grid-error" role="alert">{error}</p>}
     <div className={`run-grid-sticky-names${showStickyNames ? " visible" : ""}`} aria-hidden="true">
       <div className="sticky-recipe-name">{primaryRun.runKind === "metrology" ? "Metrology" : "Process plan"}</div>
       <div className="sticky-sample-viewport">

@@ -149,6 +149,49 @@ describe("Sample details disclosure", () => {
     expect(details.getByRole("button", { name: "Edit" })).toBeTruthy();
   });
 
+  it("blocks sample deletion while editing and throughout a deferred save and refresh, then restores it", async () => {
+    let resolveSave!: (result: { ok: true; updatedAt: string }) => void;
+    let resolveRefresh!: (result: SampleDetail) => void;
+    vi.mocked(api.updateSample).mockReturnValue(new Promise((resolve) => { resolveSave = resolve; }));
+    vi.mocked(api.getSample).mockResolvedValueOnce(sample).mockReturnValueOnce(new Promise((resolve) => { resolveRefresh = resolve; }));
+    await mountSample();
+    const details = openDetails();
+    const deleteButton = screen.getByRole("button", { name: "Delete sample" }) as HTMLButtonElement;
+    expect(deleteButton.disabled).toBe(false);
+
+    fireEvent.click(details.getByRole("button", { name: "Edit" }));
+    expect(deleteButton.disabled).toBe(true);
+    fireEvent.click(deleteButton);
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    fireEvent.click(details.getByRole("button", { name: "Cancel" }));
+    expect(deleteButton.disabled).toBe(false);
+
+    fireEvent.click(details.getByRole("button", { name: "Edit" }));
+    fireEvent.submit(detailsPanel().querySelector("form")!);
+    await waitFor(() => expect(api.updateSample).toHaveBeenCalledTimes(1));
+    expect(deleteButton.disabled).toBe(true);
+    fireEvent.click(deleteButton);
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(api.deleteSample).not.toHaveBeenCalled();
+
+    await act(async () => { resolveSave({ ok: true, updatedAt: sample.updatedAt }); });
+    expect(details.getByRole("button", { name: "Edit" })).toBeTruthy();
+    expect(detailsPanel().querySelector("form")).toBeNull();
+    expect(deleteButton.disabled).toBe(true);
+    fireEvent.click(deleteButton);
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(api.deleteSample).not.toHaveBeenCalled();
+
+    await act(async () => { resolveRefresh(sample); });
+    await waitFor(() => expect(deleteButton.disabled).toBe(false));
+    fireEvent.click(deleteButton);
+    const dialog = await screen.findByRole("alertdialog", { name: `Delete ${sample.code}?` });
+    expect(within(dialog).getByRole("textbox", { name: `Type ${sample.code} to confirm` })).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+    expect(api.deleteSample).not.toHaveBeenCalled();
+  });
+
   it("shows details immediately on desktop and reveals a collapsed mobile panel on resize", async () => {
     mobileMedia.matches = false;
     const mounted = await mountSample();

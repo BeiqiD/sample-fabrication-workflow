@@ -211,7 +211,7 @@ export function SamplePage() {
   }
 
   async function deleteSample() {
-    if (!sample || sampleDeleteConfirmation !== sample.code) return;
+    if (!sample || editingDetails || updatingDetails || deletingSample || sampleDeleteConfirmation !== sample.code) return;
     setDeletingSample(true); setSampleDeleteError("");
     try {
       await api.deleteSample(sample.id, {
@@ -469,7 +469,7 @@ export function SamplePage() {
     </section>
     <section className="sample-danger-zone sample-delete-section" aria-labelledby="sample-delete-title">
       <div><h2 id="sample-delete-title">Delete sample</h2><small>Remove this sample and its processing history.</small></div>
-      <button type="button" className="button danger" onClick={() => { setSampleDeleteConfirmation(""); setSampleDeleteError(""); setConfirmingSampleDeletion(true); }}>Delete sample</button>
+      <button type="button" className="button danger" disabled={editingDetails || updatingDetails || deletingSample} onClick={() => { setSampleDeleteConfirmation(""); setSampleDeleteError(""); setConfirmingSampleDeletion(true); }}>Delete sample</button>
     </section>
     {recordToDelete && <ConfirmDeleteDialog title="Delete this sample note?" description="The note will disappear from Notes & observations, while the Timeline will retain a deletion audit entry." summary={recordToDelete.body?.trim() || (sampleEventAssetUrl(recordToDelete) ? "Photo observation" : "Empty note")} deleting={deletingRecord} error={recordDeleteError} eyebrow="Delete note" confirmLabel="Delete note" onCancel={() => { setRecordToDelete(null); setRecordDeleteError(""); }} onConfirm={() => void deleteRecord()} />}
     {assetToDelete && <ConfirmDeleteDialog title="Delete this image attachment?" description="The image will be detached from the record. The Timeline will retain a text-only audit entry showing that an image was removed." summary={assetToDelete.body?.trim() || "Image attachment"} deleting={deletingAsset} error={assetDeleteError} eyebrow="Delete image" confirmLabel="Delete image" onCancel={() => { setAssetToDelete(null); setAssetDeleteError(""); }} onConfirm={() => void deleteAsset()} />}

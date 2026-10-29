@@ -17,6 +17,7 @@ import { preferredScrollBehavior } from "../lib/preferred-scroll-behavior";
 
 import { workbookImportPath } from "../lib/templateRoutes";
 import { ActionIcon } from "../components/ActionIcon";
+import { SearchField } from "../components/SearchField";
 const EMPTY_PROCESS_PAGINATION: PaginationMeta = { page: 1, pageSize: 20, total: 0, totalPages: 1 };
 const EMPTY_METROLOGY_PAGINATION: PaginationMeta = { page: 1, pageSize: 25, total: 0, totalPages: 1 };
 
@@ -258,10 +259,7 @@ function TemplatesDirectoryPage() {
       <div><h1>Templates</h1><p className="lead">Keep fabrication plans and repeatable metrology records in one consistent workspace.</p></div>
     </div>
     {notice && <p className="success-banner" role="status">{notice}</p>}
-    <label className="search-box">
-      <span>Search templates</span>
-      <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search process and metrology templates…" />
-    </label>
+    <SearchField label="Search templates" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search process and metrology templates…" />
     <nav className="templates-quick-nav" aria-label="Template sections">
       <a href="#process-templates">Process</a>
       <a href="#metrology-templates">Metrology</a>

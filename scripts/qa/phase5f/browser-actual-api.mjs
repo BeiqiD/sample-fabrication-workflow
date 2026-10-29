@@ -893,7 +893,7 @@ try {
       await visible(page.getByRole('heading', { name: 'Storage', exact: true }));
       await noDocumentOverflow(page, record.assertions, 'settings-storage', record.theme);
       await page.goto(new URL('/settings/data', base).href);
-      await visible(page.getByRole('heading', { name: 'Data', exact: true }));
+      await visible(page.getByRole('heading', { name: 'Research packages & reports', exact: true }));
       await noDocumentOverflow(page, record.assertions, 'settings-data', record.theme);
       await page.goto(new URL('/settings/data/system', base).href);
       await visible(page.getByRole('heading', { name: 'System backup and recovery', exact: true }));
