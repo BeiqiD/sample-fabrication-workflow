@@ -796,7 +796,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); box-sha
 .run-action-menu-item-copy strong, .run-action-menu-item-copy small { min-width: 0; overflow-wrap: anywhere; }
 .run-action-menu-item-copy strong { font-size: 12px; line-height: 1.35; }
 .run-action-menu-item-copy small { color: var(--muted); font-size: 10px; line-height: 1.35; }
-.run-action-menu-item.danger small { color: currentColor; opacity: .82; }
+.run-action-menu-item.danger small { color: currentColor; }
 .initial-state-preview { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 20px; }
 .initial-state-preview > div:first-child { min-width: 0; }
 .initial-state-preview-images { flex: 0 0 min(240px, 42%); margin-top: 0; }
