@@ -70,7 +70,7 @@ const lockedSemanticValues = [
   "--danger-soft: #fbe7e5;",
   "--info: #246f9a;",
   "--info-soft: #e8f3fa;",
-  "--neutral: #68736d;",
+  "--neutral: #5f6a64;", // Text on neutral-soft meets AA at small badge sizes.
   "--neutral-soft: #edf0ee;",
   "--success: #5fc59a;",
   "--success-soft: #1b382c;",
@@ -176,6 +176,7 @@ describe("interface palette", () => {
       for (const state of ["success", "warning", "danger", "info", "neutral"]) {
         expectTokenContrast(tokens, `status-${state}-ink`, `${state}-soft`);
       }
+      expectTokenContrast(tokens, "neutral", "neutral-soft");
     }
 
     expect(styles).toMatch(/\.status\s*\{[^}]*border:\s*0[^}]*var\(--status-neutral-ink\)/s);
