@@ -28,7 +28,7 @@ async function importForm() {
 }
 
 function fixture(loseAck = false, interruption: "before-finalization" | "after-finalization" | null = null,
-  initialMode: "active" | "overlap" = "active") {
+  initialMode: "active" | "overlap" = "active", throughMigration = "0017_fp2_native_storage_profiles.sql") {
   const now = new Date().toISOString();
   const prepareOverlap = (db: ReturnType<typeof referenceTestDatabase>) => {
     db.prepare("INSERT INTO storage_profiles VALUES('import-profile','r2',?,'bootstrap',NULL,1,'historical',?)").run(namespace, now);
@@ -36,7 +36,7 @@ function fixture(loseAck = false, interruption: "before-finalization" | "after-f
   };
   // This file qualifies frozen FP1 single-target receipts. FP2 per-file native
   // receipts are qualified against 0018 in native-file-ingress.test.ts.
-  const historical = { throughMigration: "0017_fp2_native_storage_profiles.sql" };
+  const historical = { throughMigration };
   const sql = initialMode === "active" ? futureActiveRuntimeDatabase(prepareOverlap, historical) : referenceTestDatabase(historical);
   if (initialMode === "overlap") {
     sql.prepare("INSERT INTO file_shadow_enablements SELECT 1,epoch,'future-runtime-test',? FROM file_shadow_control").run(now);
@@ -105,8 +105,8 @@ function fixture(loseAck = false, interruption: "before-finalization" | "after-f
   const env = { AUTH_MODE: "disabled", DB: db, R2_BOOTSTRAP_NAMESPACE: namespace,
     ASSETS: { get, head: get, put, delete: vi.fn() } as unknown as R2Bucket } satisfies Env;
   const requestId = crypto.randomUUID();
-  const upload = async () => worker.fetch(new Request("https://app.test/api/imports/fabublox", {
-    method: "POST", headers: { "X-Import-Request-Id": requestId }, body: await importForm(),
+  const upload = async (identity = requestId) => worker.fetch(new Request("https://app.test/api/imports/fabublox", {
+    method: "POST", headers: { "X-Import-Request-Id": identity }, body: await importForm(),
   }), env, context);
   return { sql, put, get, stored, upload, env, reconnect() { databaseUnavailable = false; },
     rejectFreshModeRead() { rejectModeRead = true; },
@@ -117,6 +117,59 @@ function fixture(loseAck = false, interruption: "before-finalization" | "after-f
 }
 
 describe("active accepted import File publication", () => {
+  it.each(["0017_fp2_native_storage_profiles.sql", "0025_scheduler_fair_turn.sql"])(
+    "imports an unchanged workbook as the next version without replacing typed diagram bindings on %s", async (throughMigration) => {
+      const f = fixture(false, null, "active", throughMigration);
+      const first = await f.upload();
+      const original = await first.json() as { id: string; templateVersionId: string; version: number };
+      expect(first.status, JSON.stringify(original)).toBe(201);
+      const bindings = f.sql.prepare("SELECT rowid,state_hash,asset_id,position,file_id FROM state_representation_assets ORDER BY state_hash,asset_id").all();
+      expect(bindings).toHaveLength(1);
+      expect(bindings[0].file_id).toBeTruthy();
+      const originalSteps = f.sql.prepare("SELECT id,logical_step_key,definition_hash,expected_state_hash FROM template_steps WHERE template_version_id=? ORDER BY position")
+        .all(original.templateVersionId);
+      const nextRequestId = crypto.randomUUID();
+      const imported = await f.upload(nextRequestId);
+      const next = await imported.json() as typeof original;
+      expect(imported.status, JSON.stringify(next)).toBe(201);
+      expect(next).toMatchObject({ version: original.version + 1 });
+      expect(next.id).not.toBe(original.id);
+      expect(next.templateVersionId).not.toBe(original.templateVersionId);
+      expect(f.sql.prepare("SELECT recipe_family_id,source_file_id FROM template_versions WHERE id=?").get(next.templateVersionId))
+        .toEqual(f.sql.prepare("SELECT recipe_family_id,source_file_id FROM template_versions WHERE id=?").get(original.templateVersionId));
+      expect(f.sql.prepare("SELECT rowid,state_hash,asset_id,position,file_id FROM state_representation_assets ORDER BY state_hash,asset_id").all()).toEqual(bindings);
+      expect(f.sql.prepare("SELECT id,logical_step_key,definition_hash,expected_state_hash FROM template_steps WHERE template_version_id=? ORDER BY position")
+        .all(original.templateVersionId)).toEqual(originalSteps);
+      expect(f.sql.prepare("SELECT logical_step_key,definition_hash,expected_state_hash FROM template_steps WHERE template_version_id=? ORDER BY position")
+        .all(next.templateVersionId)).toEqual(originalSteps.map(({ id: _id, ...step }) => step));
+      expect(f.sql.prepare("SELECT count(*) n FROM imports WHERE status='ready'").get()!.n).toBe(2);
+      expect(f.sql.prepare("SELECT count(*) n FROM file_publications WHERE purpose='embedded_content'").get()!.n).toBe(1);
+      const writes = f.put.mock.calls.length, reads = f.get.mock.calls.length;
+      expect(writes).toBe(6);
+      for (const [requestId, expected] of [[undefined, original], [nextRequestId, next]] as const) {
+        const replay = await f.upload(requestId);
+        expect(replay.status).toBe(200);
+        expect(await replay.json()).toEqual(expected);
+      }
+      expect(f.put).toHaveBeenCalledTimes(writes);
+      expect(f.get).toHaveBeenCalledTimes(reads);
+      expect(f.sql.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    },
+  );
+
+  it("does not publish an import if a diagram binding was not inserted", async () => {
+    const f = fixture();
+    f.sql.exec("CREATE TRIGGER omit_diagram BEFORE INSERT ON state_representation_assets BEGIN SELECT RAISE(IGNORE); END;");
+    const response = await f.upload();
+    expect(response.status).toBe(500);
+    expect(f.sql.prepare("SELECT status FROM imports").get()!.status).toBe("failed");
+    expect(f.sql.prepare("SELECT count(*) n FROM state_representation_assets").get()!.n).toBe(0);
+    expect(f.sql.prepare("SELECT count(*) n FROM file_publications").get()!.n).toBe(0);
+    expect(f.sql.prepare("SELECT count(*) n FROM template_versions WHERE source_file_id IS NOT NULL").get()!.n).toBe(0);
+    expect(f.put).toHaveBeenCalledTimes(3);
+    expect(f.env.ASSETS.delete).not.toHaveBeenCalled();
+  });
+
   it("publishes every typed file atomically, separates equal bytes by purpose, and reconciles lost ACK without another PUT", async () => {
     const f = fixture(true);
     const response = await f.upload(), result = await response.json() as { templateVersionId: string };

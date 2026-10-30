@@ -541,6 +541,9 @@ routes.post("/imports/fabublox", async (c) => {
         templateVersionId,
         completedAt,
       ),
+      // Typed bindings are immutable. SQLite runs their BEFORE INSERT guard
+      // before ON CONFLICT, so reuse existing rows without inserting them.
+      // The final assertion below still requires their exact selected File.
       finalizationDb.prepare(`
         INSERT INTO state_representation_assets (state_hash, asset_id, position${active ? ', file_id' : ''})
         SELECT CAST(json_extract(entry.value, '$[0]') AS TEXT),
@@ -554,6 +557,11 @@ routes.post("/imports/fabublox", async (c) => {
             AND owning_import.finalization_id = ?
             AND owning_import.template_version_id = ?
         )
+        ${active ? `AND NOT EXISTS (
+          SELECT 1 FROM state_representation_assets existing
+          WHERE existing.state_hash = CAST(json_extract(entry.value, '$[0]') AS TEXT)
+            AND existing.asset_id = CAST(json_extract(entry.value, '$[1]') AS TEXT)
+        )` : ""}
         ON CONFLICT(state_hash, asset_id) DO UPDATE SET
           position = excluded.position
       `).bind(
@@ -566,9 +574,17 @@ routes.post("/imports/fabublox", async (c) => {
       ...(active ? [finalizationDb.prepare(`SELECT CASE WHEN EXISTS (
         SELECT 1 FROM imports WHERE id=? AND operation_id=? AND finalization_id=?
           AND template_version_id=? AND status='ready' AND workbook_file_id=? AND manifest_file_id=?
+      ) AND NOT EXISTS (
+        SELECT 1 FROM json_each(?) entry WHERE NOT EXISTS (
+          SELECT 1 FROM state_representation_assets published
+          WHERE published.state_hash=CAST(json_extract(entry.value,'$[0]') AS TEXT)
+            AND published.asset_id=CAST(json_extract(entry.value,'$[1]') AS TEXT)
+            AND published.file_id=CAST(json_extract(entry.value,'$[3]') AS TEXT)
+            AND published.position=CAST(json_extract(entry.value,'$[2]') AS INTEGER)
+        )
       ) THEN 1 ELSE json('Import File publication did not complete') END`)
         .bind(importId, importOperationId, finalizationId, templateVersionId,
-          workbookAsset.fileId!, manifestAsset.fileId!)] : []),
+          workbookAsset.fileId!, manifestAsset.fileId!, finalizationAssetRows)] : []),
     ]);
     const finalizationResult = finalizationResults[beforeFinalization.length];
     if (!finalizationResult.meta.changes) {
