@@ -1,0 +1,74 @@
+{
+  "stage": "subject-and-mature-project-source-regressions",
+  "argv": [
+    "node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "vitest.config.ts",
+    "worker/project-creation-subject.test.ts",
+    "server/project-read.test.ts",
+    "src/reference-page.test.ts",
+    "worker/project-persistence-service.test.ts",
+    "worker/project-read.qualification.test.ts",
+    "worker/project-routes.test.ts",
+    "src/lib/project-client.test.ts",
+    "--maxWorkers=1",
+    "--bail=1"
+  ],
+  "expectedStaticCases": 38,
+  "cwd": "/workspace/remaining-5f-ui-execution-currente108-source-integration",
+  "startedAt": "2026-10-10T22:35:54.627553+00:00",
+  "status": "FAILED",
+  "log": "/tmp/phase5f-ui-execution-currente108-runtime-98d81a1-attempt1/subject-and-mature-project-source-regressions.log",
+  "pid": 297775,
+  "processGroup": 297775,
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 297808,
+        "state": "UNREADABLE_OWNED_MEMBER"
+      },
+      {
+        "pid": 297817,
+        "state": "UNREADABLE_OWNED_MEMBER"
+      }
+    ],
+    "after": [
+      {
+        "pid": 297808,
+        "state": "UNREADABLE_OWNED_MEMBER"
+      },
+      {
+        "pid": 297817,
+        "state": "UNREADABLE_OWNED_MEMBER"
+      }
+    ],
+    "ownedCleanupSignals": [
+      "SIGTERM",
+      "SIGKILL"
+    ],
+    "noActiveOwnedProcessOrFd": false,
+    "unexpectedLingeringOwner": true,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 297808,
+        "state": "UNREADABLE_OWNED_MEMBER"
+      },
+      {
+        "pid": 297817,
+        "state": "UNREADABLE_OWNED_MEMBER"
+      }
+    ]
+  },
+  "endedAt": "2026-10-10T22:36:34.281360+00:00",
+  "logSha256": "0b8cc1f5fe288e918a9126a78705386270bb5575c090dfefb57d3c54d941b9ea",
+  "actualSummaryLines": [
+    "Test Files  7 passed (7)",
+    "Tests  38 passed (38)"
+  ],
+  "actualPassedCountMatchesFinitePlan": true
+}

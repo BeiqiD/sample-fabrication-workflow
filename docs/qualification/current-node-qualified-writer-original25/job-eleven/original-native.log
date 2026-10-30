@@ -1,0 +1,102 @@
+
+ RUN  v4.1.10 /workspace/portable-current-a5-qualified-writer-continuation-source-attempt1
+
+stdout | server/files/jobs/request-http.qualification.ts
+Retained actual Job HTTP template: /workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-template-9itiky
+
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > reads original job history without opening a provider
+Retained actual Job HTTP fixture: /workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-case-zsCQ9Q
+
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > reads original bounded File inventory without opening a provider
+Retained actual Job HTTP fixture: /workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-case-0Qbr5p
+
+ ✓ server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > reads original job history without opening a provider 1142ms
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > reads original bounded executor metadata without opening a provider
+Retained actual Job HTTP fixture: /workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-case-BDNFl1
+
+ ✓ server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > reads original bounded File inventory without opening a provider 1098ms
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > retains original plan cost, accepted identity, exact retry and items without byte verification
+Retained actual Job HTTP fixture: /workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-case-MIYiq0
+
+ ✓ server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > reads original bounded executor metadata without opening a provider 1040ms
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > retains original plan cost, accepted identity, exact retry and items without byte verification
+Job original plan phase timing: {"phases":[{"phase":"case.started","elapsedMs":0.021633000000292668},{"phase":"fixture.ready","elapsedMs":548.7103879999995},{"phase":"login.ready","elapsedMs":873.703363999999},{"phase":"preview.response","elapsedMs":1119.8925959999997},{"phase":"preview.body","elapsedMs":1120.1471099999999},{"phase":"accept.response","elapsedMs":1851.8453950000003},{"phase":"accept.body","elapsedMs":1852.1554230000002},{"phase":"retry.response","elapsedMs":2211.217251},{"phase":"retry.body","elapsedMs":2211.5395179999996},{"phase":"status.response","elapsedMs":2332.019548},{"phase":"status.body","elapsedMs":2332.4679859999997},{"phase":"items.response","elapsedMs":2534.3889660000004},{"phase":"items.body","elapsedMs":2534.7983449999992},{"phase":"assertions.finished","elapsedMs":2534.9027929999993},{"phase":"original.settled","elapsedMs":2534.9036739999992}],"originalRejected":false}
+
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > preserves original pause, resume, retry, cancel and separately accepted cleanup metadata
+Retained actual Job HTTP fixture: /workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-case-4GVYzN
+
+ ✓ server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > retains original plan cost, accepted identity, exact retry and items without byte verification 2557ms
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > explicitly reconfigures metadata and pauses queued history without starting any scheduler
+Retained actual Job HTTP fixture: /workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-case-RrP22S
+
+ ✓ server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > preserves original pause, resume, retry, cancel and separately accepted cleanup metadata 3948ms
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > keeps original input bounds and unavailable destination control without partial acceptance
+Retained actual Job HTTP fixture: /workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-case-Grfdc4
+
+ ✓ server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > explicitly reconfigures metadata and pauses queued history without starting any scheduler 2521ms
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > rejects copied owners, unadmitted Request and currently removed administrator grant
+Retained actual Job HTTP fixture: /workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-case-Ntun2w
+
+ ✓ server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > keeps original input bounds and unavailable destination control without partial acceptance 1370ms
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > rechecks a real persisted session immediately before native BEGIN and rejects every write
+Retained actual Job HTTP fixture: /workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-case-wWMzI8
+
+ ✓ server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > rejects copied owners, unadmitted Request and currently removed administrator grant 915ms
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > keeps committed acceptance after late session revocation and reconciles the exact retry once
+Retained actual Job HTTP fixture: /workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-case-p3t8sY
+
+ ✓ server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > rechecks a real persisted session immediately before native BEGIN and rejects every write 1120ms
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > retains the original held request through maintenance continuation and host drain before native close
+Job original held phase timing: {"phase":"case.started","elapsedMs":0.035855000001902226}
+
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > retains the original held request through maintenance continuation and host drain before native close
+Retained actual Job HTTP fixture: /workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-case-u8aZTp
+
+ ✓ server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > keeps committed acceptance after late session revocation and reconciles the exact retry once 2457ms
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > retains the original held request through maintenance continuation and host drain before native close
+Job original held phase timing: {"phase":"fixture.ready","elapsedMs":618.095953}
+
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > retains the original held request through maintenance continuation and host drain before native close
+Job original held phase timing: {"phase":"login.ready","elapsedMs":929.6185299999997}
+Job original held phase timing: {"phase":"request.started","elapsedMs":931.3005200000007}
+Job original held phase timing: {"phase":"request.prefix-written","elapsedMs":931.4960950000022}
+
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > retains the original held request through maintenance continuation and host drain before native close
+Job original held phase timing: {"phase":"lease.commit-observed","elapsedMs":983.7528170000005}
+
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > retains the original held request through maintenance continuation and host drain before native close
+Job original held phase timing: {"phase":"lease.acquired","elapsedMs":983.9691340000027}
+
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > retains the original held request through maintenance continuation and host drain before native close
+Job original held phase timing: {"phase":"executor.denied","elapsedMs":1135.0469909999993}
+Job original held phase timing: {"phase":"close.begun","elapsedMs":1135.193883}
+
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > retains the original held request through maintenance continuation and host drain before native close
+Job original held phase timing: {"phase":"request.remainder-ended","elapsedMs":1135.7760820000003}
+
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > retains the original held request through maintenance continuation and host drain before native close
+Job original held phase timing: {"phase":"close.fulfilled","elapsedMs":1799.9494400000003}
+
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > retains the original held request through maintenance continuation and host drain before native close
+Job original held phase timing: {"phase":"response.complete","elapsedMs":1801.874828}
+
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > retains the original held request through maintenance continuation and host drain before native close
+Job original held phase timing: {"phase":"close.complete","elapsedMs":1801.956731000002}
+Job original held phase timing: {"phase":"assertions.finished","elapsedMs":1802.0504130000008}
+Job original held phase timing: {"phase":"finally.started","elapsedMs":1802.0590860000011}
+
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > retains the original held request through maintenance continuation and host drain before native close
+Job original held phase timing: {"phase":"finally.response-settled","elapsedMs":1802.1279900000009}
+
+stdout | server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > retains the original held request through maintenance continuation and host drain before native close
+Job original held phase timing: {"phase":"finally.close-settled","elapsedMs":1802.1798479999998}
+Job original held phase timing: {"phase":"finally.finished","elapsedMs":1802.187850000002}
+
+ ✓ server/files/jobs/request-http.qualification.ts > unmounted original Node File job HTTP component with actual installed administrator Request > retains the original held request through maintenance continuation and host drain before native close 1804ms
+
+ Test Files  1 passed (1)
+      Tests  11 passed (11)
+   Start at  13:27:53
+   Duration  25.21s (transform 1.71s, setup 32ms, import 2.15s, tests 22.92s, environment 0ms)
+
+JSON report written to /workspace/current-a5-qualified-writer-job-eleven-owned-actual-attempt1/actual-native.json

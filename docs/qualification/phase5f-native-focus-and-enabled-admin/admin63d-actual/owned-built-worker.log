@@ -1,0 +1,2 @@
+{"status":"ready","baseUrl":"http://127.0.0.1:4219/","receiptPath":"/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5/isolated-server-receipt.json","sourceHead":"63d720a807ab8b21a8f8c152cc3cb8314e615355","sessionId":"06216dce-47c4-49e8-9fd8-5a40b4b8601b","control":"Send stop on stdin and await exit."}
+{"status":"stopped","stopReceiptPath":"/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5/isolated-server-stop-receipt.json","sessionId":"06216dce-47c4-49e8-9fd8-5a40b4b8601b"}

@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "status": "APP_STRICT_ROOT_GO_ONLY_MOUNTED_WAIT_EXCLUSIVE_GO",
+  "sourceRoot": "/workspace/phase5f-recovery-job-control-focus-current5ca-source-attempt1",
+  "sourceHead": "28e5f6e7f401dd95938153fd477a6d37af6ea38e",
+  "sourceTree": "762a02599be545fa9eaff9db56c12f7d53654f4a",
+  "trackedFileCount": 2346,
+  "runtimeRoot": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt1",
+  "installedDependencies": {
+    "root": "/workspace/sample-fabrication-workflow/node_modules",
+    "package": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+    "lock": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a",
+    "hiddenLock": "95202718d08fd50cc286bcddf0af66b08503d63b494e992006c50d4246d69a98",
+    "parentPackage": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233"
+  },
+  "commands": [
+    {
+      "stage": "affected-app-strict",
+      "cwd": "/workspace/phase5f-recovery-job-control-focus-current5ca-source-attempt1",
+      "argv": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.app.json"
+      ],
+      "env": {
+        "TMPDIR": "/workspace",
+        "SQLITE_TMPDIR": "/workspace"
+      }
+    },
+    {
+      "stage": "affected-recovery-mounted-file",
+      "cwd": "/workspace/phase5f-recovery-job-control-focus-current5ca-source-attempt1",
+      "argv": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.mounted.config.ts",
+        "src/system-recovery.mount.test.tsx",
+        "--maxWorkers",
+        "1",
+        "--bail",
+        "1"
+      ],
+      "env": {
+        "TMPDIR": "/workspace",
+        "SQLITE_TMPDIR": "/workspace"
+      },
+      "cases": 22,
+      "originalTestTimeoutMs": 5000,
+      "scope": "Whole qualified Preview20 exact plus two meaningful control-focus tests; mounted run held until parent exclusive GO."
+    }
+  ],
+  "rootSourcePeer": {
+    "path": "/workspace/recovery28e5-root-independent-two-leaf-current-focus-source-peer.json",
+    "sha256": "de6ed4c46be385e0551571d607ea9abbcc8d612b39b62ac4d68c1fec4b67b124"
+  }
+}

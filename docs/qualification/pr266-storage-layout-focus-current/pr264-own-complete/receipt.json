@@ -1,0 +1,45 @@
+{
+  "kind": "pr264-c5b-own-complete-ci-before-ordinary-merge/1",
+  "atUtc": "2026-10-11T05:42:09.376579+00:00",
+  "head": "c5b59dec5208ec9a57ffdaf301c1d7918dbd2fd4",
+  "tree": "bcc2796847af6d4b159e871eb3827710616b5fc4",
+  "base": "dd1aa12711860faecf7f2c67a92935535c080c8f",
+  "worktreeClean": true,
+  "allFourOwnRunsSuccess": true,
+  "all15StatusesSuccess": true,
+  "sourcePeerSha256": "9e91467fad63426aea1970945cc54b59a64940dca0bf02269b510fd0d7c24ffa",
+  "raw": [
+    {
+      "path": "/workspace/pr264-c5b-own-complete-ci-before-ordinary-merge-attempt1/original-pr.json",
+      "sha256": "bb5299cfd0107c87964b9a2a05cbd5cf0d268561b3c81b4ab248385694d1633f",
+      "bytes": 154
+    },
+    {
+      "path": "/workspace/pr264-c5b-own-complete-ci-before-ordinary-merge-attempt1/run-38113759190.json",
+      "sha256": "99ebeba702b111258bef5e48016d8b62c2407b3392331616832a89313c9a6892",
+      "bytes": 14090
+    },
+    {
+      "path": "/workspace/pr264-c5b-own-complete-ci-before-ordinary-merge-attempt1/run-38113762215.json",
+      "sha256": "a141676691a537187407d6f44466b02b2e474d7f36c7cc42f410ea2f5bb3d60d",
+      "bytes": 14092
+    },
+    {
+      "path": "/workspace/pr264-c5b-own-complete-ci-before-ordinary-merge-attempt1/run-38113759192.json",
+      "sha256": "2031d0a20e0e7ebcda892206e505513cdb2a29bd1a2fb1bb71f64e8c123136b5",
+      "bytes": 14124
+    },
+    {
+      "path": "/workspace/pr264-c5b-own-complete-ci-before-ordinary-merge-attempt1/run-38113762211.json",
+      "sha256": "a8decd111106e043ea0f72530e13a905b54cc5b2594e582c75b2818abb4fc08b",
+      "bytes": 14126
+    },
+    {
+      "path": "/workspace/pr264-c5b-own-complete-ci-before-ordinary-merge-attempt1/original-statuses.json",
+      "sha256": "aa61338c7f3c564952d4349b3ebc002d65d550438e89fb27a15b61ce863825e1",
+      "bytes": 12937
+    }
+  ],
+  "mergePerformed": false,
+  "scope": "Development/test branch only; no serving or production evidence."
+}

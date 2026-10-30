@@ -1,0 +1,23 @@
+{
+  "at": "2026-10-11T00:22:09.701303+00:00",
+  "status": "FAILED_CATALOG_RESTORE_NOT_OBSERVED_OR_ACHIEVED",
+  "observations": [
+    {
+      "databaseRelative": ".wrangler/state/v3/d1/miniflare-D1DatabaseObject/faaf2b0445ab934c3aac48ddf0cdfade8f9bac050be98993748742cdd2cb05fb.sqlite",
+      "beforeTableRows": 0,
+      "afterTablePresent": false,
+      "beforeSchemaSha256": "196509db4fd84924211c6e9a309899e890f3f5990382b7c9b185c0b364787b43",
+      "afterSchemaSha256": "19f0325b7b0b4c849eeb79c09c296113a9cabf4ed8a242ba8d21b6877f28158c",
+      "quickCheck": [
+        [
+          "ok"
+        ]
+      ],
+      "foreignKeys": [],
+      "catalogRestored": false
+    }
+  ],
+  "physicalIntegrityVsCatalogScope": "Mature checker PASS is quick/FK/PNG/originalpostshutdownstate inputbytes only; it doesnotprove originalprefaultfulltypedcatalog. Missingemptytable retainedtruthful.",
+  "beforeReceiptSha256": "d235491cfdcea35492b6b735544ebaae6aa8199d58b6b35a6b9d6057c6b33ec6",
+  "afterReceiptSha256": "dda801ec832ad6d27486d4825bf275737aa3e11823f5cc1e2ed25ac7ad844aec"
+}

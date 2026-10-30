@@ -1,0 +1,86 @@
+{
+  "status": "PASS",
+  "domain": "package",
+  "producerHead": "5e65f4d0355f375ca7fe949b8de15082c043c19a",
+  "qaConsumerHead": "177eb79fe583f201cdf8b38eef7085b4028b970a",
+  "all2726ProducerAndCopiedInputsExact": true,
+  "all2726OrdinaryQaInputsExact": true,
+  "twoOwnedMobileQaInputs": {
+    "scripts/qa/phase5f/browser-current-coherent-package-saved-job-keyboard-mobile.mjs": "482d47b7472358442a43877cc33962896c498ff01f921628b336f73bc7399f1b",
+    "scripts/qa/phase5f/check-current-coherent-saved-job-mobile-physical-state.py": "92772d9505d300a49cea7dbede3fee26adcf682dfc3d0321a2781a9793ed342c"
+  },
+  "all2728QaInputsBytePinned": true,
+  "actualOriginalArtifacts": 118,
+  "copiedArtifacts": 121,
+  "newBuilds": 0,
+  "disabledSeedRequests": 0,
+  "nativeQualification": {
+    "status": "passed",
+    "reportSha256": "516fd3a34a0532212f20915954af3bfaa0620a27f55b1d2abf43a00fa7ec758b",
+    "ownedClosure": {
+      "status": "closed",
+      "browserCloseAwaited": true,
+      "originalPreparationOwnerClosure": {
+        "status": "closed",
+        "startedAt": "2026-10-11T20:29:10.237Z",
+        "originalRequestsAwaited": {
+          "count": 12,
+          "rejected": 0
+        },
+        "workerDisposeAwaited": true,
+        "workerPortRefused": true,
+        "originalOutboundWorkAwaited": {
+          "count": 1,
+          "rejected": 0
+        },
+        "jwksCloseAwaited": true,
+        "jwksPortRefused": true,
+        "completedAt": "2026-10-11T20:29:11.439Z"
+      }
+    },
+    "actualCosts": {
+      "setupPOSTs": 7,
+      "readerGETs": 2,
+      "nativeGETs": 4,
+      "nativeMetadataPOSTs": 5,
+      "ordinaryResearchPreparationPOSTs": 1,
+      "maxSetupPOSTs": 7,
+      "maxNativePOSTs": 5,
+      "maxTotalPOSTs": 12,
+      "observedAcceptedJobReceipts": 1,
+      "newExecutorSteps": 0
+    },
+    "unrunCases": [],
+    "genuinePreparationStatus": "prepared",
+    "originalPreparationOwnerClosure": {
+      "status": "closed",
+      "startedAt": "2026-10-11T20:29:10.237Z",
+      "originalRequestsAwaited": {
+        "count": 12,
+        "rejected": 0
+      },
+      "workerDisposeAwaited": true,
+      "workerPortRefused": true,
+      "originalOutboundWorkAwaited": {
+        "count": 1,
+        "rejected": 0
+      },
+      "jwksCloseAwaited": true,
+      "jwksPortRefused": true,
+      "completedAt": "2026-10-11T20:29:11.439Z"
+    }
+  },
+  "originalChildWaitReapAndGroup": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "physicalStatus": "passed",
+  "physicalActualSQLiteGroups": 5,
+  "oldPausedNamespacesSeparateAndUntouched": true
+}

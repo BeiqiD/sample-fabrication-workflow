@@ -1,0 +1,29 @@
+{
+  "stage": "original95-actual-build-artifact-causal-carry",
+  "control": "No npm build. Verify exact original95 producer380049 exit0/reaped and original63343498 command receipt/118 manifest, current single-helper QA delta/all1706 other mode/blob/workingbytes, same original3 generated configs/121copy artifacts. Transfer only those original121 regular bytes into consumerignored artifact/config locations, no copied state/dependencies. Record producer95 head/tree/root unchanged and distinct consumer 63d head/tree/root. Preserve original attempt4 failedfixture/closedfe8300 and raw receipts.",
+  "cwd": "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5",
+  "argv": [
+    "python3",
+    "/tmp/phase5f-admin-explicit-refresh-original-request-source-review-attempt5/carry-exact-original95-build-artifacts.py",
+    "--exclusive-go-causal-95-to-63d-artifacts"
+  ],
+  "startedAt": "2026-10-11T00:45:51.891752+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/original95-actual-build-artifact-causal-carry.log",
+  "pid": 397404,
+  "processGroup": 397404,
+  "originalStartTicks": "9281266",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T00:45:52.120471+00:00",
+  "logSha256": "92b9c71791ff212dd337d2949f9205dc5ff352e8d50745a42fdc580c0d259186"
+}

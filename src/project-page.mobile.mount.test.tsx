@@ -1,0 +1,157 @@
+// @vitest-environment jsdom
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ProjectPage } from "./pages/ProjectPage";
+import { projectTestSnapshot } from "./project-test-fixture";
+
+function matchMedia(matches: boolean) {
+  return vi.fn(() => ({
+    matches,
+    media: "(min-width: 860px)",
+    onchange: null,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
+}
+
+function renderProjectPage() {
+  const router = createMemoryRouter([{
+    path: "/projects/:projectId",
+    element: <ProjectPage />,
+  }], { initialEntries: ["/projects/project-a"] });
+  return render(<RouterProvider router={router} />);
+}
+
+describe("mounted mobile Project occurrence projection", () => {
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    vi.stubGlobal("matchMedia", matchMedia(false));
+    fetchMock.mockResolvedValue(new Response(JSON.stringify(projectTestSnapshot()), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    cleanup();
+    fetchMock.mockReset();
+    vi.unstubAllGlobals();
+  });
+
+  it("defaults to the deterministic Reading projection without initializing the Map", async () => {
+    renderProjectPage();
+
+    expect(await screen.findByRole("heading", { name: "Topological laser" })).toBeTruthy();
+    expect(await screen.findByText("Reading")).toBeTruthy();
+    expect(screen.queryByTestId("project-flow-canvas")).toBeNull();
+    expect(screen.getByRole("heading", { level: 1, name: "Design note" })).toBeTruthy();
+    expect(screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent))
+      .toEqual(["Sample A"]);
+    expect(document.querySelector(".project-reading-markdown-source")?.textContent)
+      .toContain("Preserve the occurrence identity.");
+    expect(document.querySelector(".project-reading-markdown-source")?.textContent)
+      .not.toContain("# Design note");
+    expect(screen.getByRole("button", { name: "Edit Markdown" })).toBeTruthy();
+    expect(screen.queryByText("Add references")).toBeNull();
+    expect(screen.queryByText("Add attachment")).toBeNull();
+    expect(screen.getByRole("button", { name: "Add" })).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/projects/project-a");
+  });
+
+  it("opens a local note draft from mobile Add without loading the Map or writing until Save", async () => {
+    renderProjectPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Add" }));
+    fireEvent.click(screen.getByRole("button", { name: "Note / Markdown" }));
+    const draft = await screen.findByLabelText("New Markdown editor");
+    fireEvent.change(draft, { target: { value: "Mobile note $x^2$" } });
+    expect(screen.queryByTestId("project-flow-canvas")).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByLabelText("New Markdown editor")).toBeNull();
+    expect(screen.getByRole("heading", { name: "Design note" })).toBeTruthy();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps source navigation explicit on a reference occurrence", async () => {
+    renderProjectPage();
+
+    const link = await screen.findByRole("link", { name: "Open source" });
+    expect(link.getAttribute("href")).toBe("/samples/sample-a");
+  });
+
+  it("moves existing Markdown to trash from mobile Reading with both revision guards", async () => {
+    const snapshot = projectTestSnapshot();
+    const content = snapshot.contents.find((candidate) => candidate.contentType === "markdown")!;
+    const item = snapshot.items.find((candidate) => candidate.projectContentId === content.id)!;
+    const placement = snapshot.placements.find((candidate) => candidate.projectItemId === item.id)!;
+    const deletedAt = "2026-08-14T19:00:00.000Z";
+    fetchMock.mockImplementation((path, init) => {
+      if (String(path) === "/api/projects/project-a" && !init?.method) {
+        return Promise.resolve(new Response(JSON.stringify(snapshot), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }));
+      }
+      if (String(path) === `/api/projects/project-a/items/${item.id}` && init?.method === "DELETE") {
+        return Promise.resolve(new Response(JSON.stringify({
+          project: {
+            ...snapshot.project,
+            revision: snapshot.project.revision + 1,
+            updatedAt: deletedAt,
+          },
+          item: {
+            ...item,
+            revision: item.revision + 1,
+            deletedAt,
+            deletedBy: "user@example.com",
+            updatedAt: deletedAt,
+          },
+          content: {
+            ...content,
+            revision: content.revision + 1,
+            deletedAt,
+            deletedBy: "user@example.com",
+            updatedAt: deletedAt,
+          },
+          attachment: null,
+          placement,
+          replayed: false,
+        }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }));
+      }
+      return Promise.resolve(new Response(JSON.stringify({ error: "Unexpected request" }), {
+        status: 500,
+        headers: { "content-type": "application/json" },
+      }));
+    });
+
+    renderProjectPage();
+    fireEvent.click(await screen.findByLabelText("More actions for Design note"));
+    fireEvent.click(screen.getByRole("button", { name: "Move Markdown to trash" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    const request = fetchMock.mock.calls[1];
+    expect(request[0]).toBe(`/api/projects/project-a/items/${item.id}`);
+    expect(request[1]?.method).toBe("DELETE");
+    const body = JSON.parse(String(request[1]?.body));
+    expect(body).toMatchObject({
+      expectedItemRevision: item.revision,
+      expectedContentRevision: content.revision,
+    });
+    expect(body.operationId).toEqual(expect.any(String));
+    await waitFor(() => {
+      expect(document.querySelector(".project-reading-markdown-source")).toBeNull();
+      expect(screen.queryByRole("button", { name: "Move Markdown to trash" })).toBeNull();
+    });
+  });
+
+});

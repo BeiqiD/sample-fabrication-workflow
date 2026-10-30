@@ -1,0 +1,37 @@
+{
+  "status": "ROOT_FULL_READ_NATIVE_PACKAGE_ORIGINAL_TEN_RELEASED",
+  "scope": "Freshproducer02d/QAa787/1280light Package1 only, original118causalcarry, no publicretag or mobile/whole5F",
+  "formal": {
+    "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/actual-current02d-a787-package-original-ten-qualified-closed-release.json",
+    "sha256": "9a38e5a6540c2bc30024bd518156f9b8674684e413f5449dad46797e2b6176d5"
+  },
+  "all27RawReferencesRehashed": true,
+  "all10OriginalWait0ReapedNoActiveOrSignals": true,
+  "sevenEmptyAndThreeKnownZombieFdPermissionPreserved": true,
+  "nativePassed": 1,
+  "failed": 0,
+  "unrun": 0,
+  "setupPosts": 7,
+  "nativePosts": 5,
+  "original9ApiBodiesAnd5ActualBackendBodiesRead": true,
+  "originalNormalContextBrowserWorkerJwksAckPassed": true,
+  "physical5QuickCheckFkAndOriginal15BytesExact": true,
+  "all2729Qa2726ProducerCopyAnd118ArtifactsRehashed": true,
+  "acceptedHistoryRetained": {
+    "stage": "before-original-Worker-dispose",
+    "onlyExactPackageJobRequestTwoCapturedRecordsAndReleasedPermitsChanged": true,
+    "old6PermitsExact": true,
+    "oldHoldsExact": true,
+    "newReleasedPermits": 6,
+    "jobState": "cancel_requested",
+    "jobGeneration": 3,
+    "packageFiles": 0,
+    "packageAttempts": 0,
+    "executorDisabled": true,
+    "sourceBytesExact": true,
+    "targetEmpty": true,
+    "addedRowsSha256": "657a9f040f62f20594aa3dc71b03dd82c6961e5ae3d33fe2a0cd1e6ef63507be"
+  },
+  "oldFailureBd528Retained": true,
+  "at": "2026-10-11T17:41:14.593192+00:00"
+}

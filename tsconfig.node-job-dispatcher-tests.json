@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.server.json",
+  "files": [
+    "server/files/jobs/dispatcher.test.ts"
+  ],
+  "include": [],
+  "exclude": []
+}

@@ -1,0 +1,67 @@
+{
+  "stage": "ordinary-actual24-local-migrations",
+  "cwd": "/tmp/phase5f-storage-candidate-section-wrap-two-write-copy-attempt11",
+  "argv": [
+    "node",
+    "node_modules/wrangler/bin/wrangler.js",
+    "d1",
+    "migrations",
+    "apply",
+    "DB",
+    "--local",
+    "--config",
+    ".wrangler/deploy.jsonc",
+    "--persist-to",
+    "/tmp/phase5f-storage-candidate-section-wrap-two-write-copy-attempt11/.wrangler/state"
+  ],
+  "env": {
+    "WRANGLER_SEND_METRICS": "false",
+    "WRANGLER_LOG_PATH": "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11/wrangler-logs"
+  },
+  "startedAt": "2026-10-11T03:07:01.179401+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-storage-original-two-after-wrap-runtime-attempt11/ordinary-actual24-local-migrations.log",
+  "pid": 643031,
+  "processGroup": 643031,
+  "originalStartTicks": "10128194",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 643451,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 643031,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 643451,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 643031,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 643451,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 643031,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T03:07:13.936290+00:00",
+  "logSha256": "a4c2ee4f147f8110883945240afdfc2a2814e352b98694a6814440398a2d4360"
+}

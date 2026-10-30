@@ -1,0 +1,44 @@
+{
+  "status": "ROOT_ONE_CORRECTED_FILE_OFFLINE_FINALPINS_PASS_ORIGINAL_NATIVE_PASS_QUALIFIED_CLOSED_RELEASED",
+  "formal": {
+    "path": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-private-attempt1/runtime/actual-one-original-closed-file-ordered-reader-finalpins-qualified-closed-release.json",
+    "sha256": "dd87dc145122851e93e583e69ff756a115d43a95d847af6c724e1f8b7f89ae9c",
+    "bytes": 4349
+  },
+  "allFiveNewAndAll32OriginalRawBytesReadExact": true,
+  "correctedNativePinWitness": {
+    "path": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-private-attempt1/runtime/final-current2d07-file-start202-ordered-reader-source-pins.json",
+    "sha256": "033550b3d4196f7677014edeb15e78ceb582b6125acd140b3a0a0af6f7e7bd27",
+    "bytes": 3222
+  },
+  "originalSameWaitReapNoSignals": {
+    "pid": 1611894,
+    "processGroup": 1611894,
+    "originalStartTicks": "17455506",
+    "startedAt": "2026-10-11T23:28:14.293309+00:00",
+    "endedAt": "2026-10-11T23:28:14.778199+00:00",
+    "exitCode": 0,
+    "ownedClosure": {
+      "before": [],
+      "after": [],
+      "ownedCleanupSignals": [],
+      "noActiveOwnedProcessOrFd": true,
+      "unexpectedLingeringOwner": false,
+      "directChildExitCode": 0,
+      "directChildReaped": true,
+      "afterDirectChildReap": []
+    }
+  },
+  "originalFailureCountsImmutable": {
+    "passed": 9,
+    "failed": 1,
+    "unrun": 0
+  },
+  "originalNativeCountsImmutable": {
+    "passed": 1,
+    "failed": 0,
+    "unrun": 0
+  },
+  "newHTTPBrowserSQLiteJobBuild": 0,
+  "exclusiveReleased": true
+}

@@ -1,0 +1,14 @@
+{
+  "path": "/workspace/.f2r2t5",
+  "mode": "0700",
+  "uid": 1000,
+  "dev": "27",
+  "ino": "108802",
+  "freshCreated": true,
+  "sourceHead": "a7d64919f28477adcd3923809a63d1c1f9cc0561",
+  "sourceCopyRoot": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/copy",
+  "fixtureDirectory": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture",
+  "qaHelperSha256": "4edf99da354eab0b5c05afc0a60e6ff086fa8f2cfb52a2a1f40d7966394104fd",
+  "freeBytes": "3763691520",
+  "scope": "Original Chromiumchildonly temporary leaf; parent TMPDIR/COPY/FIXTURE ownership unchanged."
+}

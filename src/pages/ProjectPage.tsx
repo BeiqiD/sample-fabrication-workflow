@@ -1,0 +1,3940 @@
+import { captureApplicationOwner } from "../lib/authentication-client";
+import { discardR2Upload, R2UploadRequestError } from "../lib/r2-upload-client";
+import { findAvailableProjectPlacementPoint } from "../lib/project-placement-position";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { flushSync } from "react-dom";
+import {
+  Link,
+  useBeforeUnload,
+  useBlocker,
+  useLocation,
+  useNavigate,
+  useParams,
+  type BlockerFunction,
+} from "react-router-dom";
+import type { ReferenceSearchResult } from "../../shared/reference-search";
+import type { ReferenceResolution } from "../../shared/reference-types";
+import { isProjectAttachmentSourceUrl } from "../../shared/project-api";
+import type {
+  CreateAttachmentProjectItemInput,
+  CreateMarkdownProjectItemInput,
+  CreateReferenceProjectItemInput,
+  ProjectItemLifecycleInput,
+  ProjectItemMutationResponse,
+  ProjectLifecycleInput,
+  ProjectPlacementRecord,
+  ProjectSnapshot,
+  UpdateProjectAttachmentInput,
+  UpdateProjectMarkdownInput,
+  UpdateProjectPlacementInput,
+} from "../../shared/project-api";
+import { isProjectMapGeometry } from "../../shared/project-types";
+import type {
+  ProjectMapGeometry,
+} from "../../shared/project-types";
+import { ActionIcon } from "../components/ActionIcon";
+import { ReadStatus } from "../components/ReadStatus";
+import { NavigationIcon } from "../components/NavigationIcon";
+import { DialogCloseIcon } from "../components/DialogCloseIcon";
+import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
+import { ReferenceSearchSurface } from "../components/ReferenceSearchSurface";
+import { ProjectInspectorChildren } from "../components/project/ProjectInspectorChildren";
+import { ProjectEditorFeedback } from "../components/project/ProjectEditorFeedback";
+import { ProjectPanelSurface } from "../components/project/ProjectPanelSurface";
+import { ProjectNavigationDialog } from "../components/project/ProjectNavigationDialog";
+import { ProjectInspectorDetails } from "../components/project/ProjectInspectorDetails";
+import { ProjectInspectorDisclosure } from "../components/project/ProjectInspectorDisclosure";
+import { useProjectInspectorPreferences } from "../lib/use-project-inspector-preferences";
+import { useProjectWorkspacePanels } from "../lib/use-project-workspace-panels";
+import { ProjectKeyboardShortcuts } from "../components/project/ProjectKeyboardShortcuts";
+import { ProjectTrashPanel, ProjectTrashStatus } from "../components/project/ProjectTrashPanel";
+import { useProjectItemTrash, type ProjectItemTrashController } from "../lib/use-project-item-trash";
+import type {
+  ProjectMapContextCommands,
+  ProjectMapSurfaceHandle,
+} from "../components/project/ProjectMapSurface";
+import {
+  ProjectApiError,
+  createProjectApiId,
+  projectApi,
+} from "../lib/project-client";
+import {
+  applyProjectGeometryCommands,
+  normalizeProjectGeometryCommands,
+  projectDirtyPlacements,
+  projectGeometryEquals,
+  projectMapNodes,
+  orderProjectReadingNodes,
+  projectPlacementIndex,
+  type ProjectGeometryCommand,
+} from "../lib/project-map-model";
+import {
+  normalizeProjectItemSelection,
+  projectCanvasAlignmentCommands,
+  projectCanvasKeyboardShortcutFromEvent,
+  projectCanvasKeyboardTargetIsEditable,
+  projectCanvasKeyboardTargetIsPanel,
+  projectCanvasKeyboardTargetIsReading,
+  projectKeyboardEventIsPlainEscape,
+  projectCanvasZOrderCommands,
+  type ProjectCanvasAlignment,
+  type ProjectCanvasZOrderAction,
+  type ProjectItemSelection,
+} from "../lib/project-canvas-productivity";
+import { useProjectCanvasCopyPaste } from "../lib/use-project-canvas-copy-paste";
+import {
+  projectReferenceDragPayloadFromResolution,
+  projectReferenceDragPayloadFromResult,
+  projectReferenceGeometryAtPoint,
+  findAvailableProjectReferencePoint,
+  projectReferenceRecordFromPreview,
+  type ProjectPendingReferencePlacement,
+  type ProjectReferenceDragPayload,
+} from "../lib/project-reference-placement";
+import {
+  projectReferenceOccurrenceCounts,
+  projectReferenceSuggestionSeeds,
+} from "../lib/project-reference-suggestions";
+import { useProjectReferenceHydration } from "../lib/use-project-reference-hydration";
+import { projectEdgeDirection } from "../lib/project-edges";
+import { ProjectEdgeDirectionControl } from "../components/project/ProjectEdgeDirectionControl";
+import {
+  projectSessionHistoryTouchesItem,
+  type ProjectEdgeHistoryCommand,
+  type ProjectSessionHistoryCommand,
+} from "../lib/project-edge-history";
+import { useProjectEdgeController } from "../lib/use-project-edge-controller";
+import { projectReferenceRemovalNeedsReconciliation } from "../lib/project-reference-removal";
+import { projectItemLifecycleRevisionHasAdvanced } from "../lib/project-item-lifecycle";
+import {
+  projectAttachmentGeometryAtPoint,
+  projectMarkdownGeometryAtPoint,
+  projectOwnedContentFailureStatus,
+  type ProjectMapMarkdownEditorState,
+  type ProjectPendingAttachmentPlacement,
+} from "../lib/project-owned-content";
+import {
+  defaultReferenceSearchUiState,
+} from "../lib/reference-search-ui";
+import {
+  projectItemFocusAbsoluteUrl,
+  projectItemFocusRequest,
+} from "../lib/project-item-navigation";
+import "../project.css";
+
+const DesktopProjectMap = lazy(() => import("../components/project/ProjectMapSurface")
+  .then((module) => ({ default: module.ProjectMapSurface })));
+const ProjectReadingSurface = lazy(() => import("../components/project/ProjectReadingSurface")
+  .then((module) => ({ default: module.ProjectReadingSurface })));
+const ProjectMarkdownEditor = lazy(() => import("../components/project/ProjectMarkdownEditor"));
+
+type SaveState = "saved" | "unsaved" | "saving" | "error" | "conflict";
+type PendingPlacementMutation = {
+  input: UpdateProjectPlacementInput;
+  outcomeUncertain: boolean;
+};
+type ReferenceRemovalStatus = "removing" | "uncertain" | "reconciling" | "conflict";
+
+type PendingReferenceRemoval = {
+  itemId: string;
+  input: ProjectItemLifecycleInput;
+  status: ReferenceRemovalStatus;
+  message: string | null;
+};
+
+type PendingReferenceCancellationRemoval = {
+  itemId: string;
+  expectedItemRevision: number;
+  leave: boolean;
+};
+
+
+type MarkdownEditorState = ProjectMapMarkdownEditorState & {
+  host?: "surface" | "inspector";
+  contentId: string;
+  placementId: string | null;
+};
+
+type AttachmentEditorState = {
+  host?: "surface" | "inspector";
+  itemId: string;
+  contentId: string;
+  caption: string;
+  sourceUrl: string;
+  status: "editing" | "saving" | "error" | "conflict" | "uncertain";
+  message: string | null;
+};
+
+type ProjectWorkspaceView = "map" | "reading";
+
+type ProjectDeletionRequest = {
+  projectId: string;
+  input: ProjectLifecycleInput;
+};
+
+function useDesktopProjectMap(
+  projectionLocked: boolean,
+  projectionLockedNow: () => boolean,
+) {
+  const query = "(min-width: 860px)";
+  const lockCheckRef = useRef(projectionLockedNow);
+  lockCheckRef.current = projectionLockedNow;
+  const [desktop, setDesktop] = useState(() => window.matchMedia(query).matches);
+
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    const update = () => {
+      if (lockCheckRef.current()) return;
+      setDesktop(media.matches);
+    };
+    update();
+    media.addEventListener?.("change", update);
+    return () => media.removeEventListener?.("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (projectionLocked) return;
+    setDesktop(window.matchMedia(query).matches);
+  }, [projectionLocked]);
+
+  return desktop;
+}
+
+function geometryIndex(snapshot: ProjectSnapshot) {
+  return Object.fromEntries(snapshot.placements.map((placement) => [placement.id, {
+    x: placement.x,
+    y: placement.y,
+    width: placement.width,
+    height: placement.height,
+    zIndex: placement.zIndex,
+  }]));
+}
+
+function workingMaximumProjectZIndex(
+  geometry: Readonly<Record<string, ProjectMapGeometry>>,
+) {
+  return Object.values(geometry).reduce(
+    (maximum, placement) => Math.max(maximum, placement.zIndex),
+    0,
+  );
+}
+
+function snapshotWithPlacementProjection(
+  snapshot: ProjectSnapshot,
+  geometry: Readonly<Record<string, ProjectMapGeometry>>,
+): ProjectSnapshot {
+  let changed = false;
+  const placements = snapshot.placements.map((placement) => {
+    const projected = geometry[placement.id];
+    if (!projected || projectGeometryEquals(placement, projected)) return placement;
+    changed = true;
+    return { ...placement, ...projected };
+  });
+  return changed ? { ...snapshot, placements } : snapshot;
+}
+
+function snapshotWithSavedPlacement(
+  snapshot: ProjectSnapshot,
+  placement: ProjectPlacementRecord,
+): ProjectSnapshot {
+  let found = false;
+  const placements = snapshot.placements.map((current) => {
+    if (current.id !== placement.id) return current;
+    found = true;
+    return placement;
+  });
+  return found ? { ...snapshot, placements } : snapshot;
+}
+
+function saveLabel(state: SaveState) {
+  if (state === "saving") return "Saving";
+  if (state === "unsaved") return "Unsaved";
+  if (state === "conflict") return "Conflict";
+  if (state === "error") return "Error";
+  return "Saved";
+}
+
+function referenceInsertionFailureStatus(caught: unknown): "uncertain" | "error" | "conflict" {
+  if (caught instanceof ProjectApiError) {
+    if (caught.status === 409) return "conflict";
+    if (caught.status >= 400 && caught.status < 500 && caught.status !== 408 && caught.status !== 429) {
+      return "error";
+    }
+  }
+  return "uncertain";
+}
+
+function projectCreateReplayIsAuthoritativelySettled(caught: unknown) {
+  return caught instanceof ProjectApiError
+    && caught.mutationDisposition === "authoritative-rejection";
+}
+
+function projectDeletionOutcomeIsUncertain(caught: unknown) {
+  if (!(caught instanceof ProjectApiError)) return true;
+  return caught.status === 408 || caught.status === 429 || caught.status >= 500;
+}
+
+export function ProjectPage() {
+  const [owner] = useState(captureApplicationOwner);
+  const { projectId = "" } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const focusRequest = useMemo(() => projectItemFocusRequest(location.search), [location.search]);
+  const focusedItemId = focusRequest.status === "valid" ? focusRequest.itemId : null;
+  const projectIdRef = useRef(projectId);
+  projectIdRef.current = projectId;
+  const [snapshot, setSnapshot] = useState<ProjectSnapshot | null>(null);
+  const trashControllerRef = useRef<ProjectItemTrashController | null>(null);
+  const trashCallbacksRef = useRef<{
+    remove: (result: ProjectItemMutationResponse) => void;
+    install: (next: ProjectSnapshot) => void;
+  }>({ remove: () => undefined, install: () => undefined });
+  const { hydrate: hydrateReference, failures: referenceHydrationFailures } = useProjectReferenceHydration(
+    projectId, snapshot, setSnapshot,
+  );
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+  const selectedItemId = selectedItemIds.at(-1) ?? null;
+  const [navigationFocusItemId, setNavigationFocusItemId] = useState<string | null>(null);
+  const [readingFocusSequence, setReadingFocusSequence] = useState(0);
+  const [stableLinkCopyState, setStableLinkCopyState] = useState<{
+    projectId: string;
+    itemId: string;
+    status: "copied" | "error";
+  } | null>(null);
+  const [geometry, setGeometry] = useState<Record<string, ProjectMapGeometry>>({});
+  const [undoStack, setUndoStack] = useState<ProjectSessionHistoryCommand[]>([]);
+  const [redoStack, setRedoStack] = useState<ProjectSessionHistoryCommand[]>([]);
+  const [saveState, setSaveState] = useState<SaveState>("saved");
+  const [saveError, setSaveError] = useState("");
+  const [placementSaveUncertain, setPlacementSaveUncertain] = useState(false);
+  const [pendingReference, setPendingReferenceState] = useState<ProjectPendingReferencePlacement | null>(null);
+  const [pendingReferenceRemoval, setPendingReferenceRemovalState] = useState<PendingReferenceRemoval | null>(null);
+  const [referenceActionError, setReferenceActionError] = useState("");
+  const [markdownEditor, setMarkdownEditorState] = useState<MarkdownEditorState | null>(null);
+  const [markdownResizeActive, setMarkdownResizeActive] = useState(false);
+  const [pendingAttachment, setPendingAttachmentState] = useState<ProjectPendingAttachmentPlacement | null>(null);
+  const [attachmentEditor, setAttachmentEditorState] = useState<AttachmentEditorState | null>(null);
+  const [ownedContentActionError, setOwnedContentActionError] = useState("");
+  const [ownedContentReloadPending, setOwnedContentReloadPending] = useState(false);
+  const [desktopView, setDesktopView] = useState<ProjectWorkspaceView>("map");
+  const { preferences: inspectorPreferences, setPreference: setInspectorPreference } = useProjectInspectorPreferences(projectId);
+  const [projectActionsOpen, setProjectActionsOpen] = useState(false);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [confirmingProjectDeletion, setConfirmingProjectDeletion] = useState(false);
+  const [projectDeleteConfirmation, setProjectDeleteConfirmation] = useState("");
+  const [projectDeleteError, setProjectDeleteError] = useState("");
+  const [projectDeleteUncertain, setProjectDeleteUncertain] = useState(false);
+  const [deletingProject, setDeletingProject] = useState(false);
+
+  // Route reuse keeps the previous snapshot until the new read finishes. Commands
+  // must never combine that snapshot/history with the destination Project ID.
+  const projectReadyRef = useRef(false);
+  projectReadyRef.current = !loading && !loadError && snapshot?.project.id === projectId;
+  const loadGenerationRef = useRef(0);
+
+  const baselineRef = useRef<Record<string, ProjectPlacementRecord>>({});
+  const geometryRef = useRef<Record<string, ProjectMapGeometry>>({});
+  const pendingMutationRef = useRef<Record<string, PendingPlacementMutation>>({});
+  const saveStateRef = useRef<SaveState>("saved");
+  const autosaveTimerRef = useRef<number | null>(null);
+  const savingRef = useRef(false);
+  const saveAgainRef = useRef(false);
+  const flushSaveRef = useRef<() => Promise<void>>(async () => undefined);
+  const navigationSaveRequestedRef = useRef(false);
+  const referenceNavigationRequestedRef = useRef(false);
+  const pageActiveRef = useRef(true);
+  const saveSessionGenerationRef = useRef(0);
+  const pendingReferenceRef = useRef<ProjectPendingReferencePlacement | null>(null);
+  const pendingReferenceInputRef = useRef<CreateReferenceProjectItemInput | null>(null);
+  const pendingReferencePayloadRef = useRef<ProjectReferenceDragPayload | null>(null);
+  const referenceInsertionGenerationRef = useRef(0);
+  const pendingReferenceRemovalRef = useRef<PendingReferenceRemoval | null>(null);
+  const pendingReferenceCancellationRemovalRef = useRef<PendingReferenceCancellationRemoval | null>(null);
+  const referenceRemovalGenerationRef = useRef(0);
+  const markdownEditorRef = useRef<MarkdownEditorState | null>(null);
+  const markdownResizeActiveRef = useRef(false);
+  const markdownCreateInputRef = useRef<CreateMarkdownProjectItemInput | null>(null);
+  const markdownUpdateInputRef = useRef<UpdateProjectMarkdownInput | null>(null);
+  const pendingAttachmentRef = useRef<ProjectPendingAttachmentPlacement | null>(null);
+  const pendingAttachmentInputRef = useRef<CreateAttachmentProjectItemInput | null>(null);
+  const pendingAttachmentFileRef = useRef<File | null>(null);
+  const attachmentRequestPointRef = useRef<{ x: number; y: number; avoidOverlap?: boolean } | null>(null);
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
+  const attachmentEditorRef = useRef<AttachmentEditorState | null>(null);
+  const attachmentUpdateInputRef = useRef<UpdateProjectAttachmentInput | null>(null);
+  const ownedContentGenerationRef = useRef(0);
+  const projectDeleteRequestRef = useRef<ProjectDeletionRequest | null>(null);
+  const projectDeletionNavigationRequestedRef = useRef(false);
+  const mapSurfaceRef = useRef<ProjectMapSurfaceHandle | null>(null);
+  const referencePanelRef = useRef<HTMLElement | null>(null);
+  const inspectorPanelRef = useRef<HTMLElement | null>(null);
+  const cancelActiveEditorRef = useRef<(() => void) | null>(null);
+  const editorReturnFocusRef = useRef<HTMLElement | null>(null);
+  const inspectorWasEditingRef = useRef(false);
+  const canvasEditorHandoffRef = useRef(false);
+  const panelFocusRequestRef = useRef(0);
+  const referencePanelTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const inspectorPanelTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const readingDetailsTriggerRef = useRef<HTMLElement | null>(null);
+  const projectActionsRef = useRef<HTMLDivElement | null>(null);
+  const projectActionsTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const addMenuRef = useRef<HTMLDivElement | null>(null);
+  const addMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const appliedFocusRef = useRef<string | null>(null);
+  const stableLinkCopyGenerationRef = useRef(0);
+  const installPasteSnapshotRef = useRef<(
+    snapshot: ProjectSnapshot,
+    destinationItemIds: readonly string[],
+  ) => number>(() => 0);
+
+  const updatePendingReference = useCallback((next: ProjectPendingReferencePlacement | null) => {
+    pendingReferenceRef.current = next;
+    setPendingReferenceState(next);
+  }, []);
+
+  const updatePendingReferenceRemoval = useCallback((next: PendingReferenceRemoval | null) => {
+    pendingReferenceRemovalRef.current = next;
+    setPendingReferenceRemovalState(next);
+  }, []);
+
+  const updateMarkdownResizeActive = useCallback((active: boolean) => {
+    markdownResizeActiveRef.current = active;
+    setMarkdownResizeActive(active);
+  }, []);
+
+  const updateMarkdownEditor = useCallback((next: MarkdownEditorState | null) => {
+    if (next?.itemId !== markdownEditorRef.current?.itemId) updateMarkdownResizeActive(false);
+    markdownEditorRef.current = next;
+    setMarkdownEditorState(next);
+  }, [updateMarkdownResizeActive]);
+
+  const updatePendingAttachment = useCallback((next: ProjectPendingAttachmentPlacement | null) => {
+    pendingAttachmentRef.current = next;
+    setPendingAttachmentState(next);
+  }, []);
+
+  const updateAttachmentEditor = useCallback((next: AttachmentEditorState | null) => {
+    attachmentEditorRef.current = next;
+    setAttachmentEditorState(next);
+  }, []);
+
+  const ownedContentMutationIsActive = useCallback((generation: number) => (
+    owner.isCurrent() && pageActiveRef.current && ownedContentGenerationRef.current === generation
+  ), [owner]);
+
+  const clearOwnedContentState = useCallback(() => {
+    setOwnedContentReloadPending(false);
+    ownedContentGenerationRef.current += 1;
+    markdownCreateInputRef.current = null;
+    markdownUpdateInputRef.current = null;
+    pendingAttachmentInputRef.current = null;
+    pendingAttachmentFileRef.current = null;
+    attachmentRequestPointRef.current = null;
+    attachmentUpdateInputRef.current = null;
+    updateMarkdownEditor(null);
+    updatePendingAttachment(null);
+    updateAttachmentEditor(null);
+    setOwnedContentActionError("");
+  }, [updateAttachmentEditor, updateMarkdownEditor, updatePendingAttachment]);
+
+  const saveSessionIsActive = useCallback((generation: number) => (
+    owner.isCurrent() && pageActiveRef.current && saveSessionGenerationRef.current === generation
+  ), [owner]);
+
+  const referenceInsertionIsActive = useCallback((generation: number) => (
+    owner.isCurrent() && pageActiveRef.current && referenceInsertionGenerationRef.current === generation
+  ), [owner]);
+
+  const referenceRemovalIsActive = useCallback((generation: number) => (
+    owner.isCurrent() && pageActiveRef.current && referenceRemovalGenerationRef.current === generation
+  ), [owner]);
+
+  const updateSaveState = useCallback((next: SaveState) => {
+    if (!owner.isCurrent() || !pageActiveRef.current) return;
+    saveStateRef.current = next;
+    setSaveState(next);
+  }, []);
+
+  const recordEdgeHistory = useCallback((command: ProjectEdgeHistoryCommand) => {
+    trashControllerRef.current?.invalidateUndoPriority();
+    setUndoStack((current) => [...current, command].slice(-100));
+    setRedoStack([]);
+  }, []);
+
+  const mergePasteItemAcknowledgement = useCallback((result: ProjectItemMutationResponse) => {
+    baselineRef.current = {
+      ...baselineRef.current,
+      [result.placement.id]: result.placement,
+    };
+    const nextGeometry = {
+      ...geometryRef.current,
+      [result.placement.id]: {
+        x: result.placement.x,
+        y: result.placement.y,
+        width: result.placement.width,
+        height: result.placement.height,
+        zIndex: result.placement.zIndex,
+      },
+    };
+    geometryRef.current = nextGeometry;
+    setGeometry(nextGeometry);
+    setSnapshot((current) => current ? {
+      ...current,
+      project: result.project,
+      contents: result.content
+        ? [...current.contents.filter((content) => content.id !== result.content?.id), result.content]
+        : current.contents,
+      attachments: result.attachment
+        ? [...current.attachments.filter((attachment) => (
+          attachment.projectContentId !== result.attachment?.projectContentId
+        )), result.attachment]
+        : current.attachments,
+      items: [...current.items.filter((item) => item.id !== result.item.id), result.item],
+      placements: [
+        ...current.placements.filter((placement) => placement.id !== result.placement.id),
+        result.placement,
+      ],
+    } : current);
+    setSelectedItemIds((current) => (
+      current.includes(result.item.id) ? current : [...current, result.item.id]
+    ));
+  }, []);
+
+  const mergePasteEdgeAcknowledgement = useCallback((
+    result: Awaited<ReturnType<typeof projectApi.createEdge>>,
+  ) => {
+    setSnapshot((current) => current ? {
+      ...current,
+      edges: [...current.edges.filter((edge) => edge.id !== result.value.id), result.value],
+    } : current);
+  }, []);
+
+  const handlePasteAuthoritativeSnapshot = useCallback((
+    next: ProjectSnapshot,
+    destinationItemIds: readonly string[],
+  ) => installPasteSnapshotRef.current(next, destinationItemIds), []);
+
+  const copyPaste = useProjectCanvasCopyPaste({
+    projectId,
+    onItemAcknowledged: mergePasteItemAcknowledgement,
+    onEdgeAcknowledged: mergePasteEdgeAcknowledgement,
+    onAuthoritativeSnapshot: handlePasteAuthoritativeSnapshot,
+  });
+
+  const edgeController = useProjectEdgeController({
+    projectId,
+    snapshot,
+    setSnapshot,
+    // Placement geometry is an immediate local working copy with independent
+    // asynchronous persistence. Dirty/saving placement state must not serialize
+    // edge operations, which are revisioned against Project item identities.
+    externalBusy: ownedContentReloadPending || pendingReference !== null
+      || pendingReferenceRemoval !== null
+      || markdownEditor !== null
+      || pendingAttachment !== null
+      || attachmentEditor !== null
+      || Boolean(trashControllerRef.current?.unsafeRef.current)
+      || copyPaste.unsafe,
+    onHistory: recordEdgeHistory,
+  });
+
+  useEffect(() => {
+    // Successful edge mutations also select their result. Keep that selection
+    // exclusive so clicking a previously selected card can select it again.
+    if (edgeController.selectedEdgeId !== null) {
+      setSelectedItemIds([]);
+      setNavigationFocusItemId(null);
+    }
+  }, [edgeController.selectedEdgeId]);
+
+  const trash = useProjectItemTrash({
+    projectId,
+    snapshot,
+    externalBusy: ownedContentReloadPending || saveState !== "saved" || pendingReference !== null
+      || pendingReferenceRemoval !== null || markdownEditor !== null
+      || pendingAttachment !== null || attachmentEditor !== null
+      || copyPaste.unsafe || edgeController.unsafe
+      || deletingProject || projectDeleteUncertain,
+    onItemRemoved: (result) => trashCallbacksRef.current.remove(result),
+    onItemRestored: mergePasteItemAcknowledgement,
+    onEdgeRestored: (edge) => mergePasteEdgeAcknowledgement({ value: edge, replayed: false }),
+    onAuthoritativeSnapshot: (next) => trashCallbacksRef.current.install(next),
+  });
+  trashControllerRef.current = trash;
+
+  const projectionSwitchLocked = ownedContentReloadPending || saveState !== "saved"
+    || trash.pending !== null
+    || pendingReference !== null
+    || pendingReferenceRemoval !== null
+    || markdownEditor !== null
+    || pendingAttachment !== null
+    || attachmentEditor !== null
+    || copyPaste.unsafe
+    || deletingProject
+    || projectDeleteUncertain
+    || edgeController.unsafe;
+  const desktop = useDesktopProjectMap(projectionSwitchLocked, () => (
+    saveStateRef.current !== "saved"
+      || pendingReferenceRef.current !== null
+      || pendingReferenceRemovalRef.current !== null
+      || markdownEditorRef.current !== null
+      || pendingAttachmentRef.current !== null
+      || attachmentEditorRef.current !== null
+      || projectDeleteRequestRef.current !== null
+      || copyPaste.unsafeRef.current !== null
+      || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)
+  ));
+  const readingActive = !desktop || desktopView === "reading";
+  const mapViewportActive = desktop && desktopView === "map" && snapshot !== null;
+  const {
+    referenceOpen: referencePanelOpen, inspectorOpen: inspectorPanelOpen,
+    referencePinned, inspectorPinned,
+    referenceSearch, referenceSearchDraft, setReferenceSearch, setReferenceSearchDraft,
+    open: openWorkspacePanel, close: closeWorkspacePanel, hide: hideWorkspacePanel,
+    setPinned: setWorkspacePanelPinned,
+  } = useProjectWorkspacePanels(projectId, {
+    hasSelection: selectedItemIds.length > 0 || edgeController.selectedEdgeId !== null,
+    reading: readingActive,
+    readingInspectorAvailable: selectedItemIds.length === 1 && !edgeController.selectedEdgeId,
+    ready: projectReadyRef.current,
+    trashOpen: trash.isOpen,
+    forcedPanel: pendingReference ? "reference"
+      : attachmentEditor?.host === "inspector" || markdownEditor?.host === "inspector" || edgeController.editor
+        ? "inspector" : null,
+  });
+  const setReferencePanelOpen = useCallback((open: boolean) => {
+    if (open) openWorkspacePanel("reference");
+    else closeWorkspacePanel("reference");
+  }, [openWorkspacePanel, closeWorkspacePanel]);
+  const setReferencePanelVisible = useCallback((open: boolean) => {
+    if (open) openWorkspacePanel("reference");
+    else hideWorkspacePanel("reference");
+  }, [openWorkspacePanel, hideWorkspacePanel]);
+  const setInspectorPanelOpen = useCallback((open: boolean) => {
+    if (open) openWorkspacePanel("inspector");
+    else closeWorkspacePanel("inspector");
+  }, [openWorkspacePanel, closeWorkspacePanel]);
+  const setInspectorPanelVisible = useCallback((open: boolean) => {
+    if (open) openWorkspacePanel("inspector");
+    else hideWorkspacePanel("inspector");
+  }, [openWorkspacePanel, hideWorkspacePanel]);
+
+  const restoreInspectorFocus = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      const trigger = readingActive ? readingDetailsTriggerRef.current : inspectorPanelTriggerRef.current;
+      if (trigger?.isConnected && !trigger.matches(":disabled") && !trigger.closest("[hidden], [inert]")) trigger.focus();
+      if (document.activeElement !== trigger) addMenuTriggerRef.current?.focus();
+    });
+  }, [readingActive]);
+
+  const closeInspectorPanel = useCallback(() => {
+    if (markdownEditorRef.current?.host === "inspector" || attachmentEditorRef.current?.host === "inspector"
+      || edgeController.editor) {
+      cancelActiveEditorRef.current?.();
+      return;
+    }
+    setInspectorPanelOpen(false);
+    restoreInspectorFocus();
+  }, [edgeController.editor, restoreInspectorFocus, setInspectorPanelOpen]);
+
+  const closeReferencePanel = useCallback(() => {
+    if (pendingReferenceRef.current) return;
+    setReferencePanelOpen(false);
+    window.requestAnimationFrame(() => (referencePanelTriggerRef.current ?? addMenuTriggerRef.current)?.focus());
+  }, [setReferencePanelOpen]);
+
+  useLayoutEffect(() => {
+    if (readingActive && trash.isOpen && !pendingReference) {
+      setReferencePanelVisible(false);
+      setInspectorPanelVisible(false);
+    }
+  }, [readingActive, trash.isOpen, pendingReference, setReferencePanelVisible, setInspectorPanelVisible]);
+
+  useEffect(() => {
+    const className = "project-map-viewport";
+    if (mapViewportActive) document.documentElement.classList.add(className);
+    else document.documentElement.classList.remove(className);
+    return () => document.documentElement.classList.remove(className);
+  }, [mapViewportActive]);
+
+  const previousPanelVisibilityRef = useRef({ reference: false, inspector: false });
+  useLayoutEffect(() => {
+    const previous = previousPanelVisibilityRef.current;
+    previousPanelVisibilityRef.current = { reference: referencePanelOpen, inspector: inspectorPanelOpen };
+    const activeElement = document.activeElement;
+    if (activeElement && activeElement !== document.body && document.contains(activeElement)) return;
+    if (previous.inspector && !inspectorPanelOpen && !referencePanelOpen) restoreInspectorFocus();
+    else if (previous.reference && !referencePanelOpen && !inspectorPanelOpen) {
+      window.requestAnimationFrame(() => (referencePanelTriggerRef.current ?? addMenuTriggerRef.current)?.focus());
+    }
+  }, [referencePanelOpen, inspectorPanelOpen, restoreInspectorFocus]);
+
+  useEffect(() => {
+    const closePanelOnEscape = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || !projectKeyboardEventIsPlainEscape(event) || addMenuOpen || projectActionsOpen) return;
+      // The current editor owns Escape before the surrounding panel.
+      if (markdownEditor || attachmentEditor || edgeController.editor) return;
+      const target = event.target as Node;
+      if (!attachmentEditor && inspectorPanelOpen && inspectorPanelRef.current?.contains(target)) {
+        event.preventDefault();
+        event.stopPropagation();
+        closeInspectorPanel();
+        return;
+      }
+      if (!pendingReference && referencePanelOpen && referencePanelRef.current?.contains(target)) {
+        event.preventDefault();
+        event.stopPropagation();
+        closeReferencePanel();
+      }
+    };
+    document.addEventListener("keydown", closePanelOnEscape, true);
+    return () => document.removeEventListener("keydown", closePanelOnEscape, true);
+  }, [
+    addMenuOpen,
+    closeInspectorPanel,
+    closeReferencePanel,
+    attachmentEditor,
+    markdownEditor,
+    edgeController.editor,
+    desktop,
+    desktopView,
+    inspectorPanelOpen,
+    pendingReference,
+    projectActionsOpen,
+    projectionSwitchLocked,
+    referencePanelOpen,
+  ]);
+
+  useEffect(() => {
+    setAddMenuOpen(false);
+    setProjectActionsOpen(false);
+  }, [projectId, desktop, desktopView]);
+
+  useEffect(() => {
+    if (addMenuOpen) {
+      addMenuRef.current?.querySelector<HTMLButtonElement>(".project-add-panel button:not(:disabled)")?.focus();
+    }
+  }, [addMenuOpen]);
+
+  useEffect(() => {
+    if (!projectActionsOpen && !addMenuOpen) return;
+    const menuRef = addMenuOpen ? addMenuRef : projectActionsRef;
+    const triggerRef = addMenuOpen ? addMenuTriggerRef : projectActionsTriggerRef;
+    const close = () => {
+      setAddMenuOpen(false);
+      setProjectActionsOpen(false);
+    };
+
+    const closeOnPointerDown = (event: PointerEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) close();
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || !projectKeyboardEventIsPlainEscape(event)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      close();
+      triggerRef.current?.focus();
+    };
+
+    document.addEventListener("pointerdown", closeOnPointerDown);
+    document.addEventListener("keydown", closeOnEscape, true);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnPointerDown);
+      document.removeEventListener("keydown", closeOnEscape, true);
+    };
+  }, [addMenuOpen, projectActionsOpen]);
+
+  const shouldBlockNavigation = useCallback<BlockerFunction>(({ currentLocation, nextLocation }) => (
+    !projectDeletionNavigationRequestedRef.current
+    && (saveState !== "saved"
+      || pendingReference !== null
+      || pendingReferenceRemoval !== null
+      || markdownEditor !== null
+      || pendingAttachment !== null
+      || attachmentEditor !== null
+      || copyPaste.unsafe
+      || deletingProject
+      || projectDeleteUncertain
+      || edgeController.unsafe || trash.pending !== null)
+    && (
+      currentLocation.pathname !== nextLocation.pathname
+      || currentLocation.search !== nextLocation.search
+      || currentLocation.hash !== nextLocation.hash
+    )
+  ), [trash.pending, attachmentEditor, copyPaste.unsafe, deletingProject, edgeController.unsafe, markdownEditor, pendingAttachment, pendingReference, pendingReferenceRemoval, projectDeleteUncertain, saveState]);
+  const blocker = useBlocker(shouldBlockNavigation);
+
+  useBeforeUnload(useCallback((event) => {
+    if (saveStateRef.current === "saved"
+      && pendingReferenceRef.current === null
+      && pendingReferenceRemovalRef.current === null
+      && markdownEditorRef.current === null
+      && pendingAttachmentRef.current === null
+      && attachmentEditorRef.current === null
+      && projectDeleteRequestRef.current === null
+      && copyPaste.unsafeRef.current === null
+      && !edgeController.unsafeRef.current && !trashControllerRef.current?.unsafeRef.current) return;
+    event.preventDefault();
+    event.returnValue = "";
+  }, []), { capture: true });
+
+  const clearReferenceInsertion = useCallback(() => {
+    referenceInsertionGenerationRef.current += 1;
+    pendingReferenceInputRef.current = null;
+    pendingReferencePayloadRef.current = null;
+    pendingReferenceCancellationRemovalRef.current = null;
+    updatePendingReference(null);
+  }, [updatePendingReference]);
+
+  const clearReferenceRemoval = useCallback(() => {
+    referenceRemovalGenerationRef.current += 1;
+    updatePendingReferenceRemoval(null);
+  }, [updatePendingReferenceRemoval]);
+
+  const installSnapshot = useCallback((next: ProjectSnapshot) => {
+    const baseline = projectPlacementIndex(next);
+    const nextGeometry = geometryIndex(next);
+    baselineRef.current = baseline;
+    geometryRef.current = nextGeometry;
+    pendingMutationRef.current = {};
+    setPlacementSaveUncertain(false);
+    appliedFocusRef.current = null;
+    clearReferenceInsertion();
+    clearReferenceRemoval();
+    clearOwnedContentState();
+    edgeController.resetForAuthoritativeReload();
+    setSnapshot(next);
+    setGeometry(nextGeometry);
+    setSelectedItemIds([]);
+    setNavigationFocusItemId(null);
+    setUndoStack([]);
+    setRedoStack([]);
+    setSaveError("");
+    setReferenceActionError("");
+    updateSaveState("saved");
+  }, [clearOwnedContentState, clearReferenceInsertion, clearReferenceRemoval, edgeController.resetForAuthoritativeReload, updateSaveState]);
+
+  installPasteSnapshotRef.current = (next, destinationItemIds) => {
+    installSnapshot(next);
+    const available = new Set(next.items
+      .filter((item) => item.deletedAt === null)
+      .map((item) => item.id));
+    const selected = destinationItemIds.filter((itemId) => available.has(itemId));
+    setSelectedItemIds(selected);
+    return selected.length;
+  };
+
+  trashCallbacksRef.current.install = (next) => {
+    // Recovery starts only after layouts are saved. Keep unrelated session
+    // history when the authoritative reload agrees with those acknowledgements.
+    const nextPlacements = projectPlacementIndex(next);
+    const historyStillCurrent = Object.values(baselineRef.current).every((placement) => (
+      nextPlacements[placement.id]?.revision === placement.revision
+    )) && (snapshot?.edges ?? []).every((edge) => (
+      next.edges.some((candidate) => candidate.id === edge.id && candidate.revision === edge.revision)
+    ));
+    if (!historyStillCurrent) {
+      installSnapshot(next);
+      return;
+    }
+    baselineRef.current = nextPlacements;
+    geometryRef.current = geometryIndex(next);
+    setGeometry(geometryRef.current);
+    setSnapshot(next);
+    setSelectedItemIds((current) => current.filter((id) => next.items.some((item) => item.id === id)));
+  };
+
+  const loadProject = useCallback(async (signal?: AbortSignal) => {
+    if (!owner.isCurrent() || !projectId) return;
+    const generation = ++loadGenerationRef.current;
+    const requestIsCurrent = () => owner.isCurrent() && pageActiveRef.current && !signal?.aborted
+      && projectIdRef.current === projectId && loadGenerationRef.current === generation;
+    projectReadyRef.current = false;
+    saveSessionGenerationRef.current += 1;
+    savingRef.current = false;
+    saveAgainRef.current = false;
+    if (autosaveTimerRef.current !== null) {
+      window.clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    setLoading(true);
+    try {
+      const next = await projectApi.read(projectId, signal);
+      if (!requestIsCurrent()) return;
+      if (next.project.id !== projectId) throw new Error("The requested Project could not be verified");
+      installSnapshot(next);
+      setLoadError("");
+    } catch (caught) {
+      if (!requestIsCurrent()) return;
+      if (caught instanceof DOMException && caught.name === "AbortError") return;
+      if (caught instanceof Error && caught.name === "AbortError") return;
+      setLoadError(caught instanceof Error ? caught.message : "The Project could not be opened");
+    } finally {
+      if (requestIsCurrent()) setLoading(false);
+    }
+  }, [installSnapshot, owner, projectId]);
+
+  useEffect(() => {
+    // Discarding a conflicted draft must refresh its revision before reopening.
+    // Preserve dirty/uncertain geometry: its existing Save path must finish first.
+    if (ownedContentReloadPending && saveState === "saved") void loadProject();
+  }, [loadProject, ownedContentReloadPending, saveState]);
+
+  useEffect(() => {
+    projectDeleteRequestRef.current = null;
+    projectDeletionNavigationRequestedRef.current = false;
+    setConfirmingProjectDeletion(false);
+    setProjectDeleteConfirmation("");
+    setProjectDeleteError("");
+    setProjectDeleteUncertain(false);
+    setDeletingProject(false);
+  }, [projectId]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadProject(controller.signal);
+    return () => controller.abort();
+  }, [loadProject]);
+
+  const performProjectDeletion = useCallback(async (request: ProjectDeletionRequest) => {
+    const requestIsCurrent = () => (
+      owner.isCurrent() && pageActiveRef.current
+      && projectIdRef.current === request.projectId
+      && projectDeleteRequestRef.current === request
+    );
+    if (!request.projectId || !requestIsCurrent()) return;
+    setDeletingProject(true);
+    setProjectDeleteError("");
+    try {
+      await projectApi.deleteProject(request.projectId, request.input);
+      if (!requestIsCurrent()) return;
+      projectDeleteRequestRef.current = null;
+      projectDeletionNavigationRequestedRef.current = true;
+      setProjectDeleteUncertain(false);
+      setDeletingProject(false);
+      navigate("/projects", { replace: true });
+    } catch (caught) {
+      if (!requestIsCurrent()) return;
+      if (caught instanceof ProjectApiError && caught.status === 404) {
+        projectDeleteRequestRef.current = null;
+        projectDeletionNavigationRequestedRef.current = true;
+        setProjectDeleteUncertain(false);
+        setDeletingProject(false);
+        navigate("/projects", { replace: true });
+        return;
+      }
+      if (caught instanceof ProjectApiError && caught.status === 409) {
+        projectDeleteRequestRef.current = null;
+        projectDeletionNavigationRequestedRef.current = false;
+        setProjectDeleteUncertain(false);
+        setProjectDeleteConfirmation("");
+        setProjectDeleteError("The Project changed before it could be moved to trash. The latest authoritative state has been reloaded; review it and confirm again.");
+        await loadProject();
+        return;
+      }
+      const uncertain = projectDeletionOutcomeIsUncertain(caught);
+      setProjectDeleteUncertain(uncertain);
+      setProjectDeleteError(caught instanceof Error
+        ? caught.message
+        : "The Project could not be moved to trash");
+    } finally {
+      if (owner.isCurrent() && pageActiveRef.current && projectIdRef.current === request.projectId) setDeletingProject(false);
+    }
+  }, [loadProject, navigate]);
+
+  const openProjectDeletion = useCallback(() => {
+    if (!snapshot || !projectId || snapshot.project.id !== projectId
+      || saveStateRef.current !== "saved"
+      || pendingReferenceRef.current
+      || pendingReferenceRemovalRef.current
+      || markdownEditorRef.current
+      || pendingAttachmentRef.current
+      || attachmentEditorRef.current
+      || copyPaste.unsafeRef.current
+      || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return;
+    projectDeleteRequestRef.current = null;
+    projectDeletionNavigationRequestedRef.current = false;
+    setProjectDeleteConfirmation("");
+    setProjectDeleteError("");
+    setProjectDeleteUncertain(false);
+    setConfirmingProjectDeletion(true);
+  }, [edgeController.unsafeRef, projectId, snapshot]);
+
+  const cancelProjectDeletion = useCallback(() => {
+    if (deletingProject || projectDeleteUncertain) return;
+    projectDeleteRequestRef.current = null;
+    projectDeletionNavigationRequestedRef.current = false;
+    setProjectDeleteConfirmation("");
+    setProjectDeleteError("");
+    setConfirmingProjectDeletion(false);
+  }, [deletingProject, projectDeleteUncertain]);
+
+  const moveProjectToTrash = useCallback(() => {
+    if (!projectId || !snapshot || snapshot.project.id !== projectId
+      || deletingProject || projectDeleteConfirmation !== snapshot.project.title) return;
+    let request = projectDeleteRequestRef.current;
+    if (request && request.projectId !== projectId) {
+      projectDeleteRequestRef.current = null;
+      projectDeletionNavigationRequestedRef.current = false;
+      setProjectDeleteUncertain(false);
+      setProjectDeleteError("");
+      return;
+    }
+    if (!request) {
+      if (saveStateRef.current !== "saved"
+        || pendingReferenceRef.current
+        || pendingReferenceRemovalRef.current
+        || markdownEditorRef.current
+        || pendingAttachmentRef.current
+        || attachmentEditorRef.current
+        || copyPaste.unsafeRef.current
+        || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return;
+      request = {
+        projectId,
+        input: {
+          expectedRevision: snapshot.project.revision,
+          operationId: createProjectApiId("operation"),
+        },
+      };
+      projectDeleteRequestRef.current = request;
+    }
+    void performProjectDeletion(request);
+  }, [deletingProject, edgeController.unsafeRef, performProjectDeletion, projectDeleteConfirmation, projectId, snapshot]);
+
+  useEffect(() => {
+    pageActiveRef.current = true;
+    return () => {
+      pageActiveRef.current = false;
+      saveSessionGenerationRef.current += 1;
+      referenceInsertionGenerationRef.current += 1;
+      referenceRemovalGenerationRef.current += 1;
+      ownedContentGenerationRef.current += 1;
+      stableLinkCopyGenerationRef.current += 1;
+      navigationSaveRequestedRef.current = false;
+      referenceNavigationRequestedRef.current = false;
+      saveAgainRef.current = false;
+      savingRef.current = false;
+      pendingReferenceInputRef.current = null;
+      pendingReferencePayloadRef.current = null;
+      pendingReferenceRef.current = null;
+      pendingReferenceRemovalRef.current = null;
+      pendingReferenceCancellationRemovalRef.current = null;
+      markdownEditorRef.current = null;
+      markdownResizeActiveRef.current = false;
+      markdownCreateInputRef.current = null;
+      markdownUpdateInputRef.current = null;
+      pendingAttachmentRef.current = null;
+      pendingAttachmentInputRef.current = null;
+      pendingAttachmentFileRef.current = null;
+      attachmentRequestPointRef.current = null;
+      attachmentEditorRef.current = null;
+      attachmentUpdateInputRef.current = null;
+      projectDeleteRequestRef.current = null;
+      projectDeletionNavigationRequestedRef.current = false;
+      if (autosaveTimerRef.current !== null) {
+        window.clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const scheduleAutosave = useCallback(() => {
+    if (!owner.isCurrent() || !pageActiveRef.current || saveStateRef.current === "conflict") return;
+    const generation = saveSessionGenerationRef.current;
+    if (autosaveTimerRef.current !== null) window.clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = window.setTimeout(() => {
+      autosaveTimerRef.current = null;
+      if (!saveSessionIsActive(generation)) return;
+      void flushSaveRef.current();
+    }, 1_600);
+  }, [saveSessionIsActive]);
+
+  const flushSave = useCallback(async () => {
+    const generation = saveSessionGenerationRef.current;
+    if (!projectReadyRef.current || !saveSessionIsActive(generation) || !projectId || saveStateRef.current === "conflict") return;
+    if (savingRef.current) {
+      saveAgainRef.current = true;
+      return;
+    }
+    const dirty = projectDirtyPlacements(baselineRef.current, geometryRef.current);
+    const placementIds = new Set([
+      ...Object.keys(pendingMutationRef.current),
+      ...dirty.map(([placementId]) => placementId),
+    ]);
+    if (!placementIds.size) {
+      if (!saveSessionIsActive(generation)) return;
+      updateSaveState("saved");
+      setSaveError("");
+      return;
+    }
+
+    savingRef.current = true;
+    saveAgainRef.current = false;
+    updateSaveState("saving");
+    setSaveError("");
+    let succeeded = false;
+    let attemptedMutation: PendingPlacementMutation | null = null;
+    try {
+      for (const placementId of placementIds) {
+        if (!saveSessionIsActive(generation)) return;
+        const baseline = baselineRef.current[placementId];
+        const attemptedGeometry = geometryRef.current[placementId];
+        if (!baseline || !attemptedGeometry) continue;
+        let mutation = pendingMutationRef.current[placementId];
+        if (!mutation) {
+          if (projectGeometryEquals(baseline, attemptedGeometry)) continue;
+          mutation = {
+            input: {
+              geometry: attemptedGeometry,
+              expectedRevision: baseline.revision,
+              operationId: createProjectApiId("operation"),
+            },
+            outcomeUncertain: false,
+          };
+          pendingMutationRef.current[placementId] = mutation;
+        }
+        attemptedMutation = mutation;
+        const result = await projectApi.updatePlacement(projectId, placementId, mutation.input);
+        if (!saveSessionIsActive(generation)) return;
+        baselineRef.current = { ...baselineRef.current, [placementId]: result.value };
+        setSnapshot((current) => current
+          ? snapshotWithSavedPlacement(current, result.value)
+          : current);
+        delete pendingMutationRef.current[placementId];
+        setPlacementSaveUncertain(false);
+        attemptedMutation = null;
+      }
+      succeeded = true;
+    } catch (caught) {
+      if (!saveSessionIsActive(generation)) return;
+      const message = caught instanceof Error ? caught.message : "Project placements could not be saved";
+      navigationSaveRequestedRef.current = false;
+      setSaveError(message);
+      // A later rejected retry does not settle an earlier request with a lost
+      // response. Only the backend's immutable revision proof can do that.
+      const settled = caught instanceof ProjectApiError && caught.status === 409
+        && projectCreateReplayIsAuthoritativelySettled(caught);
+      const uncertain = attemptedMutation?.outcomeUncertain
+        ? !settled
+        : projectDeletionOutcomeIsUncertain(caught);
+      if (attemptedMutation) attemptedMutation.outcomeUncertain = uncertain;
+      setPlacementSaveUncertain(uncertain);
+      updateSaveState(!uncertain && caught instanceof ProjectApiError && caught.status === 409 ? "conflict" : "error");
+    } finally {
+      if (saveSessionIsActive(generation)) savingRef.current = false;
+    }
+
+    if (!saveSessionIsActive(generation) || !succeeded) return;
+    const remainsDirty = Object.keys(pendingMutationRef.current).length > 0
+      || projectDirtyPlacements(baselineRef.current, geometryRef.current).length > 0;
+    if (remainsDirty) {
+      updateSaveState("unsaved");
+      if (navigationSaveRequestedRef.current || saveAgainRef.current) {
+        if (autosaveTimerRef.current !== null) {
+          window.clearTimeout(autosaveTimerRef.current);
+          autosaveTimerRef.current = null;
+        }
+        void flushSaveRef.current();
+      } else {
+        scheduleAutosave();
+      }
+    } else {
+      updateSaveState("saved");
+    }
+  }, [projectId, saveSessionIsActive, scheduleAutosave, updateSaveState]);
+
+  useEffect(() => {
+    flushSaveRef.current = flushSave;
+  }, [flushSave]);
+
+  useEffect(() => {
+    if (blocker.state !== "blocked") {
+      navigationSaveRequestedRef.current = false;
+      referenceNavigationRequestedRef.current = false;
+      return;
+    }
+    if (pendingReferenceRef.current || pendingReferenceRemovalRef.current
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || copyPaste.unsafeRef.current
+      || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) {
+      referenceNavigationRequestedRef.current = true;
+    }
+    const state = saveStateRef.current;
+    if (state !== "unsaved" && state !== "saving") return;
+    navigationSaveRequestedRef.current = true;
+    if (autosaveTimerRef.current !== null) {
+      window.clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    if (state === "unsaved") void flushSaveRef.current();
+  }, [blocker.state]);
+
+  useEffect(() => {
+    if (blocker.state !== "blocked"
+      || pendingReference !== null
+      || pendingReferenceRemoval !== null
+      || markdownEditor !== null
+      || pendingAttachment !== null
+      || attachmentEditor !== null
+      || copyPaste.unsafe
+      || edgeController.unsafe || trash.pending !== null) return;
+    if (saveState === "error" || saveState === "conflict") return;
+    if (saveState !== "saved") return;
+    if (navigationSaveRequestedRef.current || referenceNavigationRequestedRef.current) {
+      navigationSaveRequestedRef.current = false;
+      referenceNavigationRequestedRef.current = false;
+      blocker.proceed();
+    } else {
+      blocker.reset();
+    }
+  }, [trash.pending, attachmentEditor, blocker, copyPaste.unsafe, edgeController.unsafe, markdownEditor, pendingAttachment, pendingReference, pendingReferenceRemoval, saveState]);
+
+  const canResizeMarkdown = useCallback(() => {
+    const editor = markdownEditorRef.current;
+    return Boolean(projectReadyRef.current && editor
+      && (editor.status === "editing" || editor.status === "error")
+      && !ownedContentReloadPending && !pendingReferenceRef.current && !pendingReferenceRemovalRef.current
+      && !pendingAttachmentRef.current && !attachmentEditorRef.current
+      && !copyPaste.unsafeRef.current && !edgeController.unsafeRef.current && !trashControllerRef.current?.unsafeRef.current
+      && !confirmingProjectDeletion && !deletingProject && !projectDeleteUncertain
+      && blocker.state !== "blocked" && saveStateRef.current !== "conflict" && saveStateRef.current !== "error");
+  }, [blocker.state, confirmingProjectDeletion, copyPaste.unsafeRef, deletingProject,
+    edgeController.unsafeRef, ownedContentReloadPending, projectDeleteUncertain]);
+
+  const commitGeometryBatch = useCallback((commands: readonly ProjectGeometryCommand[], editorResize = false) => {
+    if (!projectReadyRef.current || ownedContentReloadPending || pendingReferenceRemovalRef.current
+      || pendingReferenceRef.current?.status === "reconciling"
+      || (markdownEditorRef.current && !editorResize)
+      || pendingAttachmentRef.current
+      || attachmentEditorRef.current
+      || copyPaste.unsafeRef.current
+      || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return;
+    const normalized = normalizeProjectGeometryCommands(commands);
+    if (normalized.length === 0) return;
+    if (editorResize) {
+      const editor = markdownEditorRef.current;
+      const command = normalized[0];
+      const placement = snapshot?.placements.find((entry) => entry.projectItemId === editor?.itemId);
+      if (!canResizeMarkdown() || editor?.isNew || normalized.length !== 1 || !placement
+        || placement.id !== command.placementId || !isProjectMapGeometry(command.after)
+        || !projectGeometryEquals(geometryRef.current[placement.id], command.before)
+        || command.before.x !== command.after.x || command.before.y !== command.after.y
+        || command.before.zIndex !== command.after.zIndex) return;
+    }
+    const next = { ...geometryRef.current };
+    for (const command of normalized) next[command.placementId] = command.after;
+    geometryRef.current = next;
+    setGeometry(next);
+    setUndoStack((current) => [...current, {
+      kind: "geometry" as const,
+      commands: normalized,
+    }].slice(-100));
+    trashControllerRef.current?.invalidateUndoPriority();
+    setRedoStack([]);
+    if (saveStateRef.current !== "conflict") {
+      setSaveError("");
+      updateSaveState("unsaved");
+      scheduleAutosave();
+    }
+  }, [canResizeMarkdown, ownedContentReloadPending, scheduleAutosave, snapshot, updateSaveState]);
+
+  const commitGeometry = useCallback((command: ProjectGeometryCommand) => {
+    commitGeometryBatch([command]);
+  }, [commitGeometryBatch]);
+
+  const commitMarkdownResize = useCallback((command: ProjectGeometryCommand) => {
+    const editor = markdownEditorRef.current;
+    if (!canResizeMarkdown() || !editor || !isProjectMapGeometry(command.after)
+      || command.before.x !== command.after.x || command.before.y !== command.after.y
+      || command.before.zIndex !== command.after.zIndex) return;
+    if (!editor.isNew) {
+      commitGeometryBatch([command], true);
+      return;
+    }
+    // A new note has no persisted placement and creates no Canvas history until saved.
+    if (!editor.geometry || command.placementId !== editor.itemId
+      || !projectGeometryEquals(editor.geometry, command.before)) return;
+    updateMarkdownEditor({ ...editor, geometry: command.after });
+  }, [canResizeMarkdown, commitGeometryBatch, updateMarkdownEditor]);
+
+  const canApplyHistory = useCallback((direction: "undo" | "redo") => {
+    if (!projectReadyRef.current || ownedContentReloadPending || pendingReferenceRemovalRef.current
+      || pendingReferenceRef.current?.status === "reconciling"
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || projectDeleteRequestRef.current
+      || copyPaste.unsafeRef.current
+      || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return false;
+    const currentTrash = trashControllerRef.current;
+    if (direction === "undo" && currentTrash?.undoPriority && currentTrash.canUndo) {
+      return saveStateRef.current === "saved" && pendingReferenceRef.current === null;
+    }
+    const command = (direction === "undo" ? undoStack : redoStack).at(-1);
+    if (!command) return false;
+    return command.kind === "geometry"
+      ? saveStateRef.current !== "saving"
+      : !edgeController.interactionDisabled;
+  }, [edgeController.interactionDisabled, edgeController.unsafeRef, ownedContentReloadPending, redoStack, undoStack]);
+
+  const undo = useCallback(() => {
+    if (!canApplyHistory("undo")) return;
+    if (trashControllerRef.current?.undoPriority && trashControllerRef.current.canUndo) {
+      trashControllerRef.current.undoRemoval();
+      return;
+    }
+    const command = undoStack.at(-1);
+    if (!command) return;
+    if (command.kind === "geometry") {
+      const next = applyProjectGeometryCommands(geometryRef.current, command.commands, "undo");
+      geometryRef.current = next;
+      setGeometry(next);
+      setUndoStack((current) => current.slice(0, -1));
+      setRedoStack((current) => [...current, command].slice(-100));
+      if (saveStateRef.current !== "conflict") {
+        setSaveError("");
+        updateSaveState("unsaved");
+        scheduleAutosave();
+      }
+      return;
+    }
+    if (edgeController.interactionDisabled) return;
+    edgeController.applyHistory(command, "undo", () => {
+      setUndoStack((current) => current.slice(0, -1));
+      setRedoStack((current) => [...current, command].slice(-100));
+    });
+  }, [canApplyHistory, edgeController, scheduleAutosave, undoStack, updateSaveState]);
+
+  const redo = useCallback(() => {
+    if (!canApplyHistory("redo")) return;
+    const command = redoStack.at(-1);
+    if (!command) return;
+    if (command.kind === "geometry") {
+      const next = applyProjectGeometryCommands(geometryRef.current, command.commands, "redo");
+      geometryRef.current = next;
+      setGeometry(next);
+      setRedoStack((current) => current.slice(0, -1));
+      setUndoStack((current) => [...current, command].slice(-100));
+      if (saveStateRef.current !== "conflict") {
+        setSaveError("");
+        updateSaveState("unsaved");
+        scheduleAutosave();
+      }
+      return;
+    }
+    if (edgeController.interactionDisabled) return;
+    edgeController.applyHistory(command, "redo", () => {
+      setRedoStack((current) => current.slice(0, -1));
+      setUndoStack((current) => [...current, command].slice(-100));
+    });
+  }, [canApplyHistory, edgeController, redoStack, scheduleAutosave, updateSaveState]);
+
+  const mergeReferenceInsertion = useCallback((
+    result: ProjectItemMutationResponse,
+    payload: ProjectReferenceDragPayload,
+  ) => {
+    const registryId = result.item.referenceTargetId;
+    if (!registryId) throw new Error("Inserted reference has no registry identity");
+    const preview = projectReferenceRecordFromPreview(registryId, payload);
+    baselineRef.current = {
+      ...baselineRef.current,
+      [result.placement.id]: result.placement,
+    };
+    const nextGeometry = {
+      ...geometryRef.current,
+      [result.placement.id]: {
+        x: result.placement.x,
+        y: result.placement.y,
+        width: result.placement.width,
+        height: result.placement.height,
+        zIndex: result.placement.zIndex,
+      },
+    };
+    geometryRef.current = nextGeometry;
+    setGeometry(nextGeometry);
+    setSnapshot((current) => {
+      if (!current) return current;
+      const references = current.references.some((reference) => reference.registryId === registryId)
+        ? current.references
+        : [...current.references, preview];
+      return {
+        ...current,
+        project: result.project,
+        items: [...current.items.filter((item) => item.id !== result.item.id), result.item],
+        placements: [
+          ...current.placements.filter((placement) => placement.id !== result.placement.id),
+          result.placement,
+        ],
+        references,
+      };
+    });
+    setSelectedItemIds([result.item.id]);
+    return snapshot?.references.some((reference) => reference.registryId === registryId)
+      ? null : preview;
+  }, [snapshot]);
+
+  const performReferenceInsertion = useCallback(async (
+    generation: number,
+    input: CreateReferenceProjectItemInput,
+    payload: ProjectReferenceDragPayload,
+  ) => {
+    if (!projectId || !referenceInsertionIsActive(generation)) return;
+    const retryingUncertain = pendingReferenceRef.current?.status === "uncertain";
+    updatePendingReference({
+      localId: `pending-${input.itemId}`,
+      target: payload.target,
+      preview: payload.preview,
+      geometry: input.geometry,
+      status: "placing",
+      message: null,
+    });
+    setReferenceActionError("");
+    try {
+      const result = await projectApi.createReferenceItem(projectId, input);
+      if (!referenceInsertionIsActive(generation)) return;
+      const preview = mergeReferenceInsertion(result, payload);
+      pendingReferenceInputRef.current = null;
+      pendingReferencePayloadRef.current = null;
+      updatePendingReference(null);
+      if (preview) hydrateReference(preview);
+    } catch (caught) {
+      if (!referenceInsertionIsActive(generation)) return;
+      const failureStatus = referenceInsertionFailureStatus(caught);
+      // Reversible source/blob conflicts cannot settle an older in-flight create.
+      const status = retryingUncertain && !projectCreateReplayIsAuthoritativelySettled(caught)
+        ? "uncertain" : failureStatus;
+      const message = caught instanceof Error ? caught.message : "The reference could not be placed";
+      updatePendingReference({
+        localId: `pending-${input.itemId}`,
+        target: payload.target,
+        preview: payload.preview,
+        geometry: input.geometry,
+        status,
+        message,
+      });
+      setReferenceActionError(message);
+    }
+  }, [hydrateReference, mergeReferenceInsertion, projectId, referenceInsertionIsActive, updatePendingReference]);
+
+  const startReferencePlacement = useCallback((
+    payload: ProjectReferenceDragPayload,
+    point: { x: number; y: number },
+  ) => {
+    if (!snapshot || pendingReferenceRef.current || pendingReferenceRemovalRef.current
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return;
+    const maxZ = workingMaximumProjectZIndex(geometryRef.current);
+    const geometry = projectReferenceGeometryAtPoint(point, Math.min(1_000_000, maxZ + 1));
+    if (!geometry) {
+      setReferenceActionError("The requested Map coordinate is outside the supported Project geometry range");
+      return;
+    }
+    const input: CreateReferenceProjectItemInput = {
+      itemId: createProjectApiId("item"),
+      placementId: createProjectApiId("placement"),
+      target: payload.target,
+      geometry,
+      expectedProjectRevision: snapshot.project.revision,
+      operationId: createProjectApiId("operation"),
+    };
+    const generation = referenceInsertionGenerationRef.current + 1;
+    referenceInsertionGenerationRef.current = generation;
+    pendingReferenceInputRef.current = input;
+    pendingReferencePayloadRef.current = payload;
+    void performReferenceInsertion(generation, input, payload);
+  }, [performReferenceInsertion, snapshot]);
+
+  const placeReferencePayloadAtCenter = useCallback((payload: ProjectReferenceDragPayload) => {
+    const point = desktop && desktopView === "map"
+      ? mapSurfaceRef.current?.getViewportCenter()
+      : { x: 240, y: 160 };
+    if (!point) {
+      setReferenceActionError("The Map viewport is not ready for placement yet");
+      return;
+    }
+    const availablePoint = findAvailableProjectReferencePoint(point, Object.values(geometryRef.current));
+    if (!availablePoint) {
+      setReferenceActionError("No available space near the Map center. Drag the reference to choose a position.");
+      return;
+    }
+    const placementGeometry = projectReferenceGeometryAtPoint(availablePoint);
+    if (placementGeometry) mapSurfaceRef.current?.ensureGeometryVisible?.(placementGeometry);
+    startReferencePlacement(payload, availablePoint);
+  }, [desktop, desktopView, startReferencePlacement]);
+
+  const placeReferenceAtCenter = useCallback((result: ReferenceSearchResult) => {
+    placeReferencePayloadAtCenter(projectReferenceDragPayloadFromResult(result));
+  }, [placeReferencePayloadAtCenter]);
+
+  const placeReferenceResolutionAtCenter = useCallback((resolution: ReferenceResolution) => {
+    placeReferencePayloadAtCenter(projectReferenceDragPayloadFromResolution(resolution));
+  }, [placeReferencePayloadAtCenter]);
+
+  const retryReferencePlacement = useCallback(() => {
+    const input = pendingReferenceInputRef.current;
+    const payload = pendingReferencePayloadRef.current;
+    const status = pendingReferenceRef.current?.status;
+    if (!input || !payload || (status !== "error" && status !== "uncertain")) return;
+    void performReferenceInsertion(referenceInsertionGenerationRef.current, input, payload);
+  }, [performReferenceInsertion]);
+
+  const continueReferenceNavigation = useCallback((leave: boolean) => {
+    if (blocker.state !== "blocked") return;
+    if (!leave) {
+      referenceNavigationRequestedRef.current = false;
+      blocker.reset();
+      return;
+    }
+    referenceNavigationRequestedRef.current = true;
+    const state = saveStateRef.current;
+    if (state !== "unsaved" && state !== "saving") return;
+    navigationSaveRequestedRef.current = true;
+    if (autosaveTimerRef.current !== null) {
+      window.clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    if (state === "unsaved") void flushSaveRef.current();
+  }, [blocker]);
+
+  const cancelReferencePlacement = useCallback((leave = false) => {
+    const status = pendingReferenceRef.current?.status;
+    if (status !== "error" && status !== "conflict") return;
+    clearReferenceInsertion();
+    setReferenceActionError("");
+    continueReferenceNavigation(leave);
+  }, [clearReferenceInsertion, continueReferenceNavigation]);
+
+  const finalizeReferenceRemoval = useCallback((
+    result: ProjectItemMutationResponse,
+    itemId: string,
+  ) => {
+    trashControllerRef.current?.onRemoved(result, pendingReferenceRemovalRef.current?.input.operationId);
+    const removed = new Set<string>([result.placement.id]);
+    for (const [placementId, placement] of Object.entries(baselineRef.current)) {
+      if (placement.projectItemId === itemId) removed.add(placementId);
+    }
+    baselineRef.current = Object.fromEntries(
+      Object.entries(baselineRef.current).filter(([placementId]) => !removed.has(placementId)),
+    );
+    geometryRef.current = Object.fromEntries(
+      Object.entries(geometryRef.current).filter(([placementId]) => !removed.has(placementId)),
+    );
+    for (const placementId of removed) delete pendingMutationRef.current[placementId];
+    setGeometry(geometryRef.current);
+    const removeHistoryForItem = (current: ProjectSessionHistoryCommand[]) => current.reduce<
+      ProjectSessionHistoryCommand[]
+    >((next, command) => {
+      if (command.kind !== "geometry") {
+        if (!projectSessionHistoryTouchesItem(command, itemId)) next.push(command);
+        return next;
+      }
+      const commands = command.commands.filter((geometryCommand) => (
+        !removed.has(geometryCommand.placementId)
+      ));
+      if (commands.length > 0) next.push({ ...command, commands });
+      return next;
+    }, []);
+    setUndoStack(removeHistoryForItem);
+    setRedoStack(removeHistoryForItem);
+    setSnapshot((current) => {
+      if (!current) return current;
+      const removedContentId = result.content?.id
+        ?? current.items.find((item) => item.id === itemId)?.projectContentId
+        ?? null;
+      return {
+        ...current,
+        project: result.project,
+        contents: removedContentId
+          ? current.contents.filter((content) => content.id !== removedContentId)
+          : current.contents,
+        attachments: removedContentId
+          ? current.attachments.filter((attachment) => attachment.projectContentId !== removedContentId)
+          : current.attachments,
+        items: current.items.filter((item) => item.id !== itemId),
+        placements: current.placements.filter((placement) => placement.projectItemId !== itemId),
+        edges: current.edges.filter((edge) => edge.sourceItemId !== itemId && edge.targetItemId !== itemId),
+      };
+    });
+    setSelectedItemIds((current) => normalizeProjectItemSelection(
+      current.filter((candidate) => candidate !== itemId),
+    ).itemIds);
+    setNavigationFocusItemId((current) => current === itemId ? null : current);
+    setSaveError("");
+    setReferenceActionError("");
+    setOwnedContentActionError("");
+    clearReferenceRemoval();
+
+    const remainsDirty = Object.keys(pendingMutationRef.current).length > 0
+      || projectDirtyPlacements(baselineRef.current, geometryRef.current).length > 0;
+    if (remainsDirty) {
+      updateSaveState("unsaved");
+      scheduleAutosave();
+    } else {
+      if (autosaveTimerRef.current !== null) {
+        window.clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
+      updateSaveState("saved");
+    }
+  }, [clearReferenceRemoval, scheduleAutosave, updateSaveState]);
+
+  trashCallbacksRef.current.remove = (result) => finalizeReferenceRemoval(result, result.item.id);
+
+  const reconcileReferenceRemoval = useCallback(async (
+    generation: number,
+    itemId: string,
+    input: ProjectItemLifecycleInput,
+    failureMessage: string,
+  ) => {
+    if (!projectId || !referenceRemovalIsActive(generation)) return;
+    updatePendingReferenceRemoval({
+      itemId,
+      input,
+      status: "reconciling",
+      message: "Reloading authoritative Project state after the removal conflict…",
+    });
+    setReferenceActionError("");
+    try {
+      const authoritative = await projectApi.read(projectId);
+      if (!referenceRemovalIsActive(generation)) return;
+      const authoritativeItem = authoritative.items.find((item) => item.id === itemId) ?? null;
+      installSnapshot(authoritative);
+      if (authoritativeItem) {
+        referenceNavigationRequestedRef.current = false;
+        setReferenceActionError(
+          "The occurrence changed elsewhere. The latest Project state was loaded; review it before starting a new removal.",
+        );
+      }
+    } catch (caught) {
+      if (!referenceRemovalIsActive(generation)) return;
+      if (caught instanceof ProjectApiError && caught.status === 404) {
+        referenceNavigationRequestedRef.current = false;
+        clearReferenceRemoval();
+        setReferenceActionError("");
+        setLoadError("Project is no longer available");
+        return;
+      }
+      const detail = caught instanceof Error ? caught.message : "The authoritative Project could not be loaded";
+      const message = `${failureMessage}. Authoritative reconciliation failed: ${detail}`;
+      updatePendingReferenceRemoval({ itemId, input, status: "conflict", message });
+      setReferenceActionError(message);
+    }
+  }, [
+    clearReferenceRemoval,
+    installSnapshot,
+    projectId,
+    referenceRemovalIsActive,
+    updatePendingReferenceRemoval,
+  ]);
+
+  const performReferenceRemoval = useCallback(async (
+    generation: number,
+    itemId: string,
+    input: ProjectItemLifecycleInput,
+  ) => {
+    if (!projectId || !referenceRemovalIsActive(generation)) return;
+    const previous = pendingReferenceRemovalRef.current;
+    const wasUncertain = previous?.status === "uncertain"
+      && previous.itemId === itemId && previous.input === input;
+    updatePendingReferenceRemoval({ itemId, input, status: "removing", message: null });
+    setReferenceActionError("");
+    try {
+      const result = await projectApi.removeItem(projectId, itemId, input);
+      if (!referenceRemovalIsActive(generation)) return;
+      finalizeReferenceRemoval(result, itemId);
+    } catch (caught) {
+      if (!referenceRemovalIsActive(generation)) return;
+      const message = caught instanceof Error ? caught.message : "The Project occurrence could not be removed";
+      // A later rejection describes this retry, not the earlier unacknowledged
+      // write. Keep its exact request until an acknowledgement or revision fence.
+      let rejectionSettled = !wasUncertain;
+      if (wasUncertain && caught instanceof ProjectApiError && caught.status === 409) {
+        try {
+          const fresh = await projectApi.readTrash(projectId);
+          if (!referenceRemovalIsActive(generation)) return;
+          rejectionSettled = projectItemLifecycleRevisionHasAdvanced(fresh, itemId, input, "remove");
+        } catch {
+          if (!referenceRemovalIsActive(generation)) return;
+        }
+      }
+      if (projectReferenceRemovalNeedsReconciliation(caught) && rejectionSettled) {
+        await reconcileReferenceRemoval(generation, itemId, input, message);
+        return;
+      }
+      updatePendingReferenceRemoval({ itemId, input, status: "uncertain", message });
+      setReferenceActionError(message);
+    }
+  }, [
+    finalizeReferenceRemoval,
+    projectId,
+    reconcileReferenceRemoval,
+    referenceRemovalIsActive,
+    updatePendingReferenceRemoval,
+  ]);
+
+  const startReferenceRemoval = useCallback((
+    itemId: string,
+    expectedItemRevision: number,
+    expectedContentRevision?: number,
+  ) => {
+    if (pendingReferenceRemovalRef.current) return;
+    const input: ProjectItemLifecycleInput = {
+      expectedItemRevision,
+      ...(expectedContentRevision === undefined ? {} : { expectedContentRevision }),
+      operationId: createProjectApiId("operation"),
+    };
+    const generation = referenceRemovalGenerationRef.current + 1;
+    referenceRemovalGenerationRef.current = generation;
+    void performReferenceRemoval(generation, itemId, input);
+  }, [performReferenceRemoval]);
+
+  const beginQueuedReferenceCancellationRemoval = useCallback(() => {
+    const pending = pendingReferenceCancellationRemovalRef.current;
+    if (!pending || saveStateRef.current !== "saved" || pendingReferenceRemovalRef.current) return;
+    pendingReferenceCancellationRemovalRef.current = null;
+    clearReferenceInsertion();
+    startReferenceRemoval(pending.itemId, pending.expectedItemRevision);
+  }, [clearReferenceInsertion, startReferenceRemoval]);
+
+  const queueReferenceCancellationRemoval = useCallback((
+    itemId: string,
+    expectedItemRevision: number,
+    leave: boolean,
+  ) => {
+    pendingReferenceCancellationRemovalRef.current = { itemId, expectedItemRevision, leave };
+    if (leave && blocker.state === "blocked") referenceNavigationRequestedRef.current = true;
+
+    const current = pendingReferenceRef.current;
+    if (current) {
+      const state = saveStateRef.current;
+      updatePendingReference({
+        ...current,
+        status: "reconciling",
+        message: state === "saved"
+          ? "Starting the confirmed Project-local cancellation removal…"
+          : state === "error" || state === "conflict"
+            ? "Resolve the existing placement save state before the confirmed occurrence can be cancelled."
+            : "Saving existing placement changes before the confirmed occurrence is cancelled…",
+      });
+    }
+
+    const state = saveStateRef.current;
+    if (state === "saved") {
+      beginQueuedReferenceCancellationRemoval();
+      return;
+    }
+    if (autosaveTimerRef.current !== null) {
+      window.clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    if (state === "unsaved") {
+      void flushSaveRef.current();
+    } else if (state === "saving") {
+      saveAgainRef.current = true;
+    }
+  }, [blocker.state, beginQueuedReferenceCancellationRemoval, updatePendingReference]);
+
+  useEffect(() => {
+    if (saveState === "saved") beginQueuedReferenceCancellationRemoval();
+  }, [beginQueuedReferenceCancellationRemoval, saveState]);
+
+  const retryReferenceRemoval = useCallback(() => {
+    const pending = pendingReferenceRemovalRef.current;
+    if (!pending || pending.status !== "uncertain") return;
+    void performReferenceRemoval(referenceRemovalGenerationRef.current, pending.itemId, pending.input);
+  }, [performReferenceRemoval]);
+
+  const retryReferenceRemovalReconciliation = useCallback(() => {
+    const pending = pendingReferenceRemovalRef.current;
+    if (!pending || pending.status !== "conflict") return;
+    void reconcileReferenceRemoval(
+      referenceRemovalGenerationRef.current,
+      pending.itemId,
+      pending.input,
+      pending.message || "The Project occurrence removal conflicted",
+    );
+  }, [reconcileReferenceRemoval]);
+
+  const reconcileAndCancelUncertainReference = useCallback(async (leave = false) => {
+    const input = pendingReferenceInputRef.current;
+    const payload = pendingReferencePayloadRef.current;
+    const current = pendingReferenceRef.current;
+    const generation = referenceInsertionGenerationRef.current;
+    if (!projectId || !input || !payload || current?.status !== "uncertain"
+      || !referenceInsertionIsActive(generation) || pendingReferenceRemovalRef.current) return;
+
+    if (leave && blocker.state === "blocked") referenceNavigationRequestedRef.current = true;
+    updatePendingReference({
+      ...current,
+      status: "reconciling",
+      message: "Reconciling the original insertion before cancelling it…",
+    });
+    setReferenceActionError("");
+
+    try {
+      try {
+        const result = await projectApi.createReferenceItem(projectId, input);
+        if (!referenceInsertionIsActive(generation)) return;
+        setSnapshot((local) => local ? { ...local, project: result.project } : local);
+        queueReferenceCancellationRemoval(result.item.id, result.item.revision, leave);
+        return;
+      } catch (caught) {
+        if (!referenceInsertionIsActive(generation)) return;
+        if (!(caught instanceof ProjectApiError) || caught.status !== 409
+          || !projectCreateReplayIsAuthoritativelySettled(caught)) throw caught;
+      }
+
+      const authoritative = await projectApi.read(projectId);
+      if (!referenceInsertionIsActive(generation)) return;
+      const item = authoritative.items.find((candidate) => candidate.id === input.itemId) ?? null;
+      setSnapshot((local) => local ? { ...local, project: authoritative.project } : local);
+      if (!item) {
+        clearReferenceInsertion();
+        setReferenceActionError("");
+        continueReferenceNavigation(leave);
+        return;
+      }
+      const placement = authoritative.placements.find((candidate) => candidate.projectItemId === item.id) ?? null;
+      const reference = item.referenceTargetId
+        ? authoritative.references.find((candidate) => candidate.registryId === item.referenceTargetId) ?? null
+        : null;
+      const target = reference?.resolution.target;
+      const exactOccurrence = item.itemType === "reference"
+        && placement?.id === input.placementId
+        && target?.type === input.target.type
+        && target.id === input.target.id;
+      if (!exactOccurrence) {
+        const message = "The original insertion could not be reconciled to the same Project occurrence. Reload authoritative Project state before continuing.";
+        updatePendingReference({ ...current, status: "conflict", message });
+        setReferenceActionError(message);
+        return;
+      }
+      queueReferenceCancellationRemoval(item.id, item.revision, leave);
+    } catch (caught) {
+      if (!referenceInsertionIsActive(generation)) return;
+      const message = caught instanceof Error ? caught.message : "The insertion outcome could not be reconciled";
+      updatePendingReference({ ...current, status: "uncertain", message });
+      setReferenceActionError(message);
+    }
+  }, [
+    blocker.state,
+    clearReferenceInsertion,
+    continueReferenceNavigation,
+    projectId,
+    queueReferenceCancellationRemoval,
+    referenceInsertionIsActive,
+    updatePendingReference,
+  ]);
+
+  const mergeOwnedContentInsertion = useCallback((result: ProjectItemMutationResponse) => {
+    const insertedContent = result.content;
+    const insertedAttachment = result.attachment;
+    if (!insertedContent) throw new Error("Inserted Project-owned content has no content record");
+    baselineRef.current = {
+      ...baselineRef.current,
+      [result.placement.id]: result.placement,
+    };
+    const nextGeometry = {
+      ...geometryRef.current,
+      [result.placement.id]: {
+        x: result.placement.x,
+        y: result.placement.y,
+        width: result.placement.width,
+        height: result.placement.height,
+        zIndex: result.placement.zIndex,
+      },
+    };
+    geometryRef.current = nextGeometry;
+    setGeometry(nextGeometry);
+    setSnapshot((current) => current ? {
+      ...current,
+      project: result.project,
+      contents: [...current.contents.filter((content) => content.id !== insertedContent.id), insertedContent],
+      attachments: insertedAttachment
+        ? [...current.attachments.filter((attachment) => attachment.projectContentId !== insertedAttachment.projectContentId), insertedAttachment]
+        : current.attachments,
+      items: [...current.items.filter((item) => item.id !== result.item.id), result.item],
+      placements: [...current.placements.filter((placement) => placement.id !== result.placement.id), result.placement],
+    } : current);
+    setSelectedItemIds([result.item.id]);
+  }, []);
+
+  const startMarkdownCreate = useCallback((point: { x: number; y: number }) => {
+    if (ownedContentReloadPending || !snapshot || saveStateRef.current === "conflict"
+      || pendingReferenceRef.current || pendingReferenceRemovalRef.current
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return;
+    const maxZ = workingMaximumProjectZIndex(geometryRef.current);
+    const draftGeometry = projectMarkdownGeometryAtPoint(point, Math.min(1_000_000, maxZ + 1));
+    if (!draftGeometry) {
+      setOwnedContentActionError("The requested Map coordinate is outside the supported Project geometry range");
+      return;
+    }
+    ownedContentGenerationRef.current += 1;
+    markdownCreateInputRef.current = null;
+    markdownUpdateInputRef.current = null;
+    setOwnedContentActionError("");
+    const itemId = createProjectApiId("item");
+    updateMarkdownEditor({
+      itemId,
+      contentId: createProjectApiId("content"),
+      placementId: createProjectApiId("placement"),
+      value: "",
+      isNew: true,
+      geometry: draftGeometry,
+      status: "editing",
+      message: null,
+    });
+    setSelectedItemIds([itemId]);
+  }, [ownedContentReloadPending, snapshot, updateMarkdownEditor]);
+
+  const startMarkdownEdit = useCallback((itemId: string, host: "surface" | "inspector" = "surface") => {
+    if (ownedContentReloadPending || !snapshot || saveStateRef.current === "conflict"
+      || pendingReferenceRef.current || pendingReferenceRemovalRef.current
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return false;
+    const item = snapshot.items.find((candidate) => candidate.id === itemId);
+    const content = item?.projectContentId
+      ? snapshot.contents.find((candidate) => candidate.id === item.projectContentId)
+      : null;
+    if (!item || !content || content.contentType !== "markdown") return false;
+    editorReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    ownedContentGenerationRef.current += 1;
+    markdownCreateInputRef.current = null;
+    markdownUpdateInputRef.current = null;
+    setOwnedContentActionError("");
+    updateMarkdownEditor({
+      itemId,
+      host,
+      contentId: content.id,
+      placementId: null,
+      value: content.markdownSource ?? "",
+      isNew: false,
+      geometry: null,
+      status: "editing",
+      message: null,
+    });
+    setSelectedItemIds([itemId]);
+    return true;
+  }, [ownedContentReloadPending, snapshot, updateMarkdownEditor]);
+
+  const changeMarkdown = useCallback((value: string) => {
+    const current = markdownEditorRef.current;
+    if (!current || (current.status !== "editing" && current.status !== "error")) return;
+    updateMarkdownEditor({ ...current, value, status: "editing", message: null });
+  }, [updateMarkdownEditor]);
+
+  const cancelMarkdown = useCallback((leave = false) => {
+    const current = markdownEditorRef.current;
+    if (!current || markdownResizeActiveRef.current || current.status === "saving" || current.status === "uncertain") return;
+    markdownCreateInputRef.current = null;
+    markdownUpdateInputRef.current = null;
+    ownedContentGenerationRef.current += 1;
+    updateMarkdownEditor(null);
+    if (current.isNew) setSelectedItemIds([]);
+    setOwnedContentActionError("");
+    continueReferenceNavigation(leave);
+    if (current.status === "conflict" && !leave) setOwnedContentReloadPending(true);
+  }, [continueReferenceNavigation, updateMarkdownEditor]);
+
+  const saveMarkdown = useCallback(async () => {
+    const current = markdownEditorRef.current;
+    if (!projectId || !snapshot || !current || markdownResizeActiveRef.current || (current.status !== "editing" && current.status !== "error" && current.status !== "uncertain") || !current.value.trim()) return;
+    const generation = ownedContentGenerationRef.current;
+    updateMarkdownEditor({ ...current, status: "saving", message: null });
+    setOwnedContentActionError("");
+    try {
+      if (current.isNew) {
+        let input = markdownCreateInputRef.current;
+        if (!input) {
+          if (!current.geometry || !current.placementId) throw new Error("The local Markdown draft has no placement");
+          input = {
+            contentId: current.contentId,
+            itemId: current.itemId,
+            placementId: current.placementId,
+            markdownSource: current.value,
+            geometry: current.geometry,
+            expectedProjectRevision: snapshot.project.revision,
+            operationId: createProjectApiId("operation"),
+          };
+          markdownCreateInputRef.current = input;
+        }
+        const result = await projectApi.createMarkdownItem(projectId, input);
+        if (!ownedContentMutationIsActive(generation)) return;
+        mergeOwnedContentInsertion(result);
+      } else {
+        const content = snapshot.contents.find((candidate) => candidate.id === current.contentId);
+        if (!content || content.contentType !== "markdown") throw new Error("Project Markdown content is no longer available");
+        let input = markdownUpdateInputRef.current;
+        if (!input) {
+          input = {
+            markdownSource: current.value,
+            expectedRevision: content.revision,
+            operationId: createProjectApiId("operation"),
+          };
+          markdownUpdateInputRef.current = input;
+        }
+        const result = await projectApi.updateMarkdown(projectId, current.contentId, input);
+        if (!ownedContentMutationIsActive(generation)) return;
+        setSnapshot((local) => local ? {
+          ...local,
+          contents: [...local.contents.filter((candidate) => candidate.id !== result.value.id), result.value],
+        } : local);
+      }
+      markdownCreateInputRef.current = null;
+      markdownUpdateInputRef.current = null;
+      updateMarkdownEditor(null);
+    } catch (caught) {
+      if (!ownedContentMutationIsActive(generation)) return;
+      const failureStatus = projectOwnedContentFailureStatus(caught);
+      // A later permission/validation rejection cannot prove that an earlier
+      // request with a lost response was not already committed.
+      const status = current.status === "uncertain" && (current.isNew
+        ? !projectCreateReplayIsAuthoritativelySettled(caught)
+        : failureStatus === "error")
+        ? "uncertain" : failureStatus;
+      // Only a determined rejection permits a changed payload/new operation ID.
+      // Uncertain saves retain the exact frozen request until acknowledged.
+      if (status === "error") {
+        markdownCreateInputRef.current = null;
+        markdownUpdateInputRef.current = null;
+      }
+      const message = caught instanceof Error ? caught.message : "Project Markdown could not be saved";
+      updateMarkdownEditor({ ...current, status, message });
+      setOwnedContentActionError(message);
+    }
+  }, [mergeOwnedContentInsertion, ownedContentMutationIsActive, projectId, snapshot, updateMarkdownEditor]);
+
+  const retryMarkdownSave = useCallback(() => {
+    const current = markdownEditorRef.current;
+    if (!current || current.status !== "uncertain") return;
+    void saveMarkdown();
+  }, [saveMarkdown]);
+
+  const requestAttachmentAt = useCallback((point: { x: number; y: number }, avoidOverlap = false) => {
+    if (ownedContentReloadPending || !snapshot || saveStateRef.current === "conflict"
+      || pendingReferenceRef.current || pendingReferenceRemovalRef.current
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return;
+    attachmentRequestPointRef.current = { ...point, avoidOverlap };
+    attachmentInputRef.current?.click();
+  }, [ownedContentReloadPending, snapshot]);
+
+  const performAttachmentProjectCreate = useCallback(async (
+    generation: number,
+    input: CreateAttachmentProjectItemInput,
+    file: File,
+  ) => {
+    if (!projectId || !ownedContentMutationIsActive(generation)) return;
+    const retryingUncertain = pendingAttachmentRef.current?.status === "uncertain";
+    updatePendingAttachment({
+      localId: `pending-${input.itemId}`,
+      filename: file.name,
+      mimeType: file.type || "application/octet-stream",
+      geometry: input.geometry,
+      status: "saving",
+      message: null,
+    });
+    try {
+      const result = await projectApi.createAttachmentItem(projectId, input);
+      if (!ownedContentMutationIsActive(generation)) return;
+      mergeOwnedContentInsertion(result);
+      pendingAttachmentInputRef.current = null;
+      pendingAttachmentFileRef.current = null;
+      updatePendingAttachment(null);
+      setOwnedContentActionError("");
+    } catch (caught) {
+      if (!ownedContentMutationIsActive(generation)) return;
+      const failureStatus = projectOwnedContentFailureStatus(caught);
+      // Reversible source/blob conflicts cannot settle an older in-flight create.
+      const status = retryingUncertain && !projectCreateReplayIsAuthoritativelySettled(caught)
+        ? "uncertain" : failureStatus;
+      const message = caught instanceof Error ? caught.message : "The attachment occurrence could not be created";
+      updatePendingAttachment({
+        localId: `pending-${input.itemId}`,
+        filename: file.name,
+        mimeType: file.type || "application/octet-stream",
+        geometry: input.geometry,
+        status,
+        message,
+      });
+      setOwnedContentActionError(message);
+    }
+  }, [mergeOwnedContentInsertion, ownedContentMutationIsActive, projectId, updatePendingAttachment]);
+
+  const uploadAndCreateAttachment = useCallback(async (file: File, point: { x: number; y: number }) => {
+    if (!owner.isCurrent() || !snapshot || pendingAttachmentRef.current) return;
+    const maxZ = workingMaximumProjectZIndex(geometryRef.current);
+    const attachmentGeometry = projectAttachmentGeometryAtPoint(
+      point,
+      Math.min(1_000_000, maxZ + 1),
+      file.type || "application/octet-stream",
+    );
+    if (!attachmentGeometry) {
+      setOwnedContentActionError("The requested Map coordinate is outside the supported Project geometry range");
+      return;
+    }
+    const generation = ownedContentGenerationRef.current + 1;
+    ownedContentGenerationRef.current = generation;
+    pendingAttachmentInputRef.current = null;
+    pendingAttachmentFileRef.current = file;
+    setOwnedContentActionError("");
+    const itemId = createProjectApiId("item");
+    updatePendingAttachment({
+      localId: `pending-${itemId}`,
+      filename: file.name,
+      mimeType: file.type || "application/octet-stream",
+      geometry: attachmentGeometry,
+      status: "uploading",
+      message: null,
+    });
+    try {
+      const asset = await projectApi.uploadAttachmentAsset(file, { context: `project:${projectId}` });
+      if (!ownedContentMutationIsActive(generation)) return;
+      const input: CreateAttachmentProjectItemInput = {
+        contentId: createProjectApiId("content"),
+        itemId,
+        placementId: createProjectApiId("placement"),
+        locator: { assetId: asset.id },
+        presentation: {
+          originalName: file.name,
+          mimeType: file.type || "application/octet-stream",
+          byteSize: file.size,
+        },
+        caption: null,
+        sourceUrl: null,
+        geometry: attachmentGeometry,
+        expectedProjectRevision: snapshot.project.revision,
+        operationId: createProjectApiId("operation"),
+      };
+      pendingAttachmentInputRef.current = input;
+      await performAttachmentProjectCreate(generation, input, file);
+    } catch (caught) {
+      if (!ownedContentMutationIsActive(generation)) return;
+      const message = caught instanceof Error ? caught.message : "The attachment file could not be uploaded";
+      updatePendingAttachment({
+        localId: `pending-${itemId}`,
+        filename: file.name,
+        mimeType: file.type || "application/octet-stream",
+        geometry: attachmentGeometry,
+        status: caught instanceof R2UploadRequestError && caught.terminal ? "error" : projectOwnedContentFailureStatus(caught),
+        message,
+      });
+      setOwnedContentActionError(message);
+    }
+  }, [ownedContentMutationIsActive, performAttachmentProjectCreate, projectId, snapshot, updatePendingAttachment]);
+
+  const handleAttachmentFile = useCallback((file: File | null) => {
+    const point = attachmentRequestPointRef.current;
+    attachmentRequestPointRef.current = null;
+    if (!file || !point) return;
+    // File type determines the actual attachment card size. Resolve placement
+    // after selection, without changing explicit drop/right-click coordinates.
+    const geometryAtPoint = (candidate: { x: number; y: number }) => projectAttachmentGeometryAtPoint(
+      candidate, 0, file.type || "application/octet-stream",
+    );
+    const availablePoint = point.avoidOverlap
+      ? findAvailableProjectPlacementPoint(point, Object.values(geometryRef.current), geometryAtPoint)
+      : point;
+    if (!availablePoint) {
+      setOwnedContentActionError("No available space near the Map center. Choose a position on the Map.");
+      return;
+    }
+    if (point.avoidOverlap) {
+      const placementGeometry = geometryAtPoint(availablePoint);
+      if (placementGeometry) mapSurfaceRef.current?.ensureGeometryVisible?.(placementGeometry);
+    }
+    void uploadAndCreateAttachment(file, availablePoint);
+  }, [uploadAndCreateAttachment]);
+
+  const retryAttachment = useCallback(() => {
+    const file = pendingAttachmentFileRef.current;
+    const input = pendingAttachmentInputRef.current;
+    const current = pendingAttachmentRef.current;
+    if (!file || !current || current.status !== "uncertain") return;
+    if (input) {
+      void performAttachmentProjectCreate(ownedContentGenerationRef.current, input, file);
+      return;
+    }
+    const point = {
+      x: current.geometry.x + current.geometry.width / 2,
+      y: current.geometry.y + Math.min(72, current.geometry.height / 3),
+    };
+    updatePendingAttachment(null);
+    void uploadAndCreateAttachment(file, point);
+  }, [performAttachmentProjectCreate, updatePendingAttachment, uploadAndCreateAttachment]);
+
+  const cancelAttachment = useCallback((leave = false) => {
+    const current = pendingAttachmentRef.current;
+    if (!current || current.status === "uploading" || current.status === "saving"
+      || (current.status === "uncertain" && pendingAttachmentInputRef.current)) return;
+    if (!pendingAttachmentInputRef.current) {
+      try { discardR2Upload("project_attachment", `project:${projectId}`); }
+      catch (caught) { setOwnedContentActionError((caught as Error).message); return; }
+    }
+    ownedContentGenerationRef.current += 1;
+    pendingAttachmentInputRef.current = null;
+    pendingAttachmentFileRef.current = null;
+    updatePendingAttachment(null);
+    setOwnedContentActionError("");
+    continueReferenceNavigation(leave);
+  }, [continueReferenceNavigation, projectId, updatePendingAttachment]);
+
+  const startAttachmentEdit = useCallback((itemId: string, requestedHost: "surface" | "inspector" = "surface") => {
+    if (ownedContentReloadPending || !snapshot || pendingReferenceRef.current || pendingReferenceRemovalRef.current
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return;
+    const item = snapshot.items.find((candidate) => candidate.id === itemId);
+    const content = item?.projectContentId
+      ? snapshot.contents.find((candidate) => candidate.id === item.projectContentId)
+      : null;
+    if (!item || !content || content.contentType !== "attachment") return;
+    editorReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    ownedContentGenerationRef.current += 1;
+    attachmentUpdateInputRef.current = null;
+    const caption = content.attachmentCaption ?? "";
+    const sourceUrl = content.attachmentSourceUrl ?? "";
+    updateAttachmentEditor({
+      itemId,
+      host: readingActive ? requestedHost : "inspector",
+      contentId: content.id,
+      caption,
+      sourceUrl,
+      status: "editing",
+      message: null,
+    });
+    setSelectedItemIds([itemId]);
+    setOwnedContentActionError("");
+  }, [ownedContentReloadPending, readingActive, snapshot, updateAttachmentEditor]);
+
+  const updateAttachmentDraft = useCallback((field: "caption" | "sourceUrl", value: string) => {
+    const current = attachmentEditorRef.current;
+    if (!current || (current.status !== "editing" && current.status !== "error")) return;
+    updateAttachmentEditor({ ...current, [field]: value, status: "editing", message: null });
+  }, [updateAttachmentEditor]);
+
+  const cancelAttachmentEdit = useCallback((leave = false) => {
+    const current = attachmentEditorRef.current;
+    if (!current || current.status === "saving" || current.status === "uncertain") return;
+    attachmentUpdateInputRef.current = null;
+    ownedContentGenerationRef.current += 1;
+    updateAttachmentEditor(null);
+    setOwnedContentActionError("");
+    continueReferenceNavigation(leave);
+    if (current.status === "conflict" && !leave) setOwnedContentReloadPending(true);
+  }, [continueReferenceNavigation, updateAttachmentEditor]);
+
+  const saveAttachmentMetadata = useCallback(async () => {
+    const current = attachmentEditorRef.current;
+    if (!projectId || !snapshot || !current || (current.status !== "editing" && current.status !== "error" && current.status !== "uncertain")) return;
+    // Validate before creating a request. Never alter an uncertain frozen save.
+    if (current.status !== "uncertain" && !isProjectAttachmentSourceUrl(current.sourceUrl.trim() || null)) {
+      updateAttachmentEditor({ ...current, status: "error", message: "Enter a complete http:// or https:// source URL, or leave it empty." });
+      return;
+    }
+    const content = snapshot.contents.find((candidate) => candidate.id === current.contentId);
+    if (!content || content.contentType !== "attachment") return;
+    const generation = ownedContentGenerationRef.current;
+    updateAttachmentEditor({ ...current, status: "saving", message: null });
+    setOwnedContentActionError("");
+    try {
+      let input = attachmentUpdateInputRef.current;
+      if (!input) {
+        input = {
+          caption: current.caption === "" ? null : current.caption,
+          sourceUrl: current.sourceUrl.trim() === "" ? null : current.sourceUrl.trim(),
+          expectedRevision: content.revision,
+          operationId: createProjectApiId("operation"),
+        };
+        attachmentUpdateInputRef.current = input;
+      }
+      const result = await projectApi.updateAttachment(projectId, current.contentId, input);
+      if (!ownedContentMutationIsActive(generation)) return;
+      setSnapshot((local) => local ? {
+        ...local,
+        contents: [...local.contents.filter((candidate) => candidate.id !== result.value.id), result.value],
+      } : local);
+      attachmentUpdateInputRef.current = null;
+      updateAttachmentEditor(null);
+    } catch (caught) {
+      if (!ownedContentMutationIsActive(generation)) return;
+      const failureStatus = projectOwnedContentFailureStatus(caught);
+      // A later permission/validation rejection cannot prove that an earlier
+      // request with a lost response was not already committed.
+      const status = current.status === "uncertain" && failureStatus === "error"
+        ? "uncertain" : failureStatus;
+      if (status === "error") attachmentUpdateInputRef.current = null;
+      const message = caught instanceof Error ? caught.message : "Attachment metadata could not be saved";
+      updateAttachmentEditor({ ...current, status, message });
+      setOwnedContentActionError(message);
+    }
+  }, [ownedContentMutationIsActive, projectId, snapshot, updateAttachmentEditor]);
+
+  const retryAttachmentMetadata = useCallback(() => {
+    const current = attachmentEditorRef.current;
+    if (!current || current.status !== "uncertain") return;
+    void saveAttachmentMetadata();
+  }, [saveAttachmentMetadata]);
+
+  const reloadAfterEdgeConflict = useCallback(() => {
+    // Edge writes can overlap independent placement saves. Their conflict must
+    // not discard a placement request that can still commit after this reload.
+    if (saveStateRef.current !== "saved" && saveStateRef.current !== "conflict") return;
+    edgeController.resetForAuthoritativeReload();
+    referenceNavigationRequestedRef.current = false;
+    if (blocker.state === "blocked") blocker.reset();
+    void loadProject();
+  }, [blocker, edgeController.resetForAuthoritativeReload, loadProject]);
+
+  const reloadAfterReferenceConflict = useCallback(() => {
+    if (saveStateRef.current !== "saved" || pendingReferenceRemovalRef.current) return;
+    clearReferenceInsertion();
+    setReferenceActionError("");
+    referenceNavigationRequestedRef.current = false;
+    if (blocker.state === "blocked") blocker.reset();
+    void loadProject();
+  }, [blocker, clearReferenceInsertion, loadProject]);
+
+  const stayOnProject = useCallback(() => {
+    navigationSaveRequestedRef.current = false;
+    referenceNavigationRequestedRef.current = false;
+    if (blocker.state === "blocked") blocker.reset();
+  }, [blocker]);
+
+  const leaveWithoutSaving = useCallback(() => {
+    if (blocker.state !== "blocked" || pendingReferenceRef.current || pendingReferenceRemovalRef.current
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return;
+    if (Object.values(pendingMutationRef.current).some((mutation) => mutation.outcomeUncertain)) return;
+    const state = saveStateRef.current;
+    if (state !== "error" && state !== "conflict") return;
+    navigationSaveRequestedRef.current = false;
+    saveAgainRef.current = false;
+    saveSessionGenerationRef.current += 1;
+    if (autosaveTimerRef.current !== null) {
+      window.clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    blocker.proceed();
+  }, [blocker]);
+
+  const retrySaveAndLeave = useCallback(() => {
+    if (blocker.state !== "blocked") return;
+    navigationSaveRequestedRef.current = true;
+    if (autosaveTimerRef.current !== null) {
+      window.clearTimeout(autosaveTimerRef.current);
+      autosaveTimerRef.current = null;
+    }
+    void flushSave();
+  }, [blocker.state, flushSave]);
+
+  const selectProjectItems = useCallback((selection: ProjectItemSelection) => {
+    const normalized = normalizeProjectItemSelection(
+      selection.itemIds,
+      selection.primaryItemId,
+    );
+    const lockedItemId = markdownEditorRef.current?.itemId
+      ?? attachmentEditorRef.current?.itemId
+      ?? null;
+    if (lockedItemId && (
+      normalized.itemIds.length !== 1
+      || normalized.primaryItemId !== lockedItemId
+    )) return false;
+    if ((edgeController.unsafeRef.current || copyPaste.unsafeRef.current) && normalized.itemIds.length > 0) return false;
+    if (normalized.itemIds.length > 0) edgeController.selectEdge(null);
+    setSelectedItemIds(normalized.itemIds);
+    setNavigationFocusItemId((current) => (
+      normalized.itemIds.length === 1
+      && normalized.primaryItemId === current
+        ? current
+        : null
+    ));
+    return true;
+  }, [edgeController.selectEdge, edgeController.unsafeRef]);
+
+  const selectProjectItem = useCallback((itemId: string | null) => {
+    return selectProjectItems({
+      itemIds: itemId ? [itemId] : [],
+      primaryItemId: itemId,
+    });
+  }, [selectProjectItems]);
+
+  const selectProjectEdge = useCallback((edgeId: string | null) => {
+    if (markdownEditorRef.current || attachmentEditorRef.current) return false;
+    if (edgeController.selectEdge(edgeId) === false) return false;
+    if (edgeId !== null) {
+      setSelectedItemIds([]);
+      setNavigationFocusItemId(null);
+    }
+    return true;
+  }, [edgeController.selectEdge]);
+
+  // Source content is independent of working geometry; both views share its projection.
+  const canonicalDescriptors = useMemo(() => snapshot ? projectMapNodes(snapshot) : [], [snapshot]);
+  const descriptors = useMemo(() => canonicalDescriptors.map((node) => ({
+    ...node,
+    geometry: geometry[node.placementId] ?? node.geometry,
+  })), [canonicalDescriptors, geometry]);
+  const readingNodes = useMemo(() => orderProjectReadingNodes(descriptors), [descriptors]);
+  const selectedDescriptors = selectedItemIds.flatMap((itemId) => {
+    const descriptor = descriptors.find((node) => node.itemId === itemId);
+    return descriptor ? [descriptor] : [];
+  });
+  const selected = selectedDescriptors.length === 1 ? selectedDescriptors[0] : null;
+  const selectedItem = selected
+    ? snapshot?.items.find((item) => item.id === selected.itemId) ?? null
+    : null;
+  const selectedReferenceTarget = selectedItem?.referenceTargetId
+    ? snapshot?.references.find((reference) => (
+      reference.registryId === selectedItem.referenceTargetId
+    ))?.resolution.target ?? null
+    : null;
+  const referenceSuggestionSeeds = useMemo(() => snapshot
+    ? projectReferenceSuggestionSeeds(snapshot, selectedReferenceTarget)
+    : [], [snapshot, selectedReferenceTarget]);
+  const referenceOccurrenceCounts = useMemo(() => snapshot
+    ? projectReferenceOccurrenceCounts(snapshot)
+    : {}, [snapshot]);
+  const selectedEdgeSource = edgeController.selectedEdge
+    ? descriptors.find((node) => node.itemId === edgeController.selectedEdge?.sourceItemId) ?? null
+    : null;
+  const selectedEdgeTarget = edgeController.selectedEdge
+    ? descriptors.find((node) => node.itemId === edgeController.selectedEdge?.targetItemId) ?? null
+    : null;
+  const focusedItem = focusedItemId
+    ? descriptors.find((node) => node.itemId === focusedItemId) ?? null
+    : null;
+
+  const alignSelectedItems = useCallback((alignment: ProjectCanvasAlignment) => {
+    commitGeometryBatch(projectCanvasAlignmentCommands(
+      descriptors,
+      selectedItemIds,
+      alignment,
+    ));
+  }, [commitGeometryBatch, descriptors, selectedItemIds]);
+
+  const changeSelectedZOrder = useCallback((action: ProjectCanvasZOrderAction) => {
+    commitGeometryBatch(projectCanvasZOrderCommands(
+      descriptors,
+      selectedItemIds,
+      action,
+    ));
+  }, [commitGeometryBatch, descriptors, selectedItemIds]);
+
+  useEffect(() => {
+    if (!snapshot || focusRequest.status !== "valid") {
+      appliedFocusRef.current = null;
+      setNavigationFocusItemId(null);
+      return;
+    }
+    const focusKey = `${projectId}\u0000${location.search}`;
+    if (appliedFocusRef.current === focusKey) return;
+    appliedFocusRef.current = focusKey;
+    const target = descriptors.find((node) => node.itemId === focusRequest.itemId) ?? null;
+    if (!target) {
+      setNavigationFocusItemId(null);
+      return;
+    }
+    selectProjectItem(target.itemId);
+    setNavigationFocusItemId(target.itemId);
+  }, [descriptors, focusRequest, location.search, projectId, selectProjectItem, snapshot]);
+
+  useLayoutEffect(() => {
+    stableLinkCopyGenerationRef.current += 1;
+    setStableLinkCopyState(null);
+  }, [projectId, selectedItemId]);
+
+  const copyProjectItemLink = useCallback(async (itemId: string) => {
+    if (!descriptors.some((descriptor) => descriptor.itemId === itemId)) return;
+    const requestProjectId = projectId;
+    const generation = stableLinkCopyGenerationRef.current + 1;
+    stableLinkCopyGenerationRef.current = generation;
+    setStableLinkCopyState(null);
+    const requestIsCurrent = () => (
+      owner.isCurrent() && pageActiveRef.current
+      && stableLinkCopyGenerationRef.current === generation
+      && projectIdRef.current === requestProjectId
+    );
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard API unavailable");
+      await navigator.clipboard.writeText(projectItemFocusAbsoluteUrl(
+        window.location.origin,
+        location.pathname,
+        itemId,
+      ));
+      if (!requestIsCurrent()) return;
+      setStableLinkCopyState({ projectId: requestProjectId, itemId, status: "copied" });
+    } catch {
+      if (!requestIsCurrent()) return;
+      setStableLinkCopyState({ projectId: requestProjectId, itemId, status: "error" });
+    }
+  }, [descriptors, location.pathname, projectId]);
+
+  const copySelectedItemLink = useCallback(() => {
+    if (!selected) return;
+    return copyProjectItemLink(selected.itemId);
+  }, [copyProjectItemLink, selected]);
+
+  const selectedStableLinkCopyStatus = stableLinkCopyState?.projectId === projectId
+    && stableLinkCopyState.itemId === selectedItemId
+    ? stableLinkCopyState.status
+    : "idle";
+
+  const removeReferenceItem = useCallback((itemId: string) => {
+    if (!snapshot || saveStateRef.current !== "saved"
+      || pendingReferenceRef.current || pendingReferenceRemovalRef.current
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return;
+    const item = snapshot.items.find((candidate) => candidate.id === itemId);
+    if (!item || item.itemType !== "reference") return;
+    setSelectedItemIds([item.id]);
+    startReferenceRemoval(item.id, item.revision);
+  }, [snapshot, startReferenceRemoval]);
+
+  const removeSelectedReference = useCallback(() => {
+    if (!selectedItem) return;
+    removeReferenceItem(selectedItem.id);
+  }, [removeReferenceItem, selectedItem]);
+
+  const removeMarkdownItem = useCallback((itemId: string) => {
+    if (!snapshot || saveStateRef.current !== "saved"
+      || pendingReferenceRef.current || pendingReferenceRemovalRef.current
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return;
+    const item = snapshot.items.find((candidate) => candidate.id === itemId);
+    const content = item?.projectContentId
+      ? snapshot.contents.find((candidate) => candidate.id === item.projectContentId)
+      : null;
+    if (!item || item.itemType !== "content" || !content || content.contentType !== "markdown") return;
+    setSelectedItemIds([item.id]);
+    startReferenceRemoval(item.id, item.revision, content.revision);
+  }, [snapshot, startReferenceRemoval]);
+
+  const removeAttachmentItem = useCallback((itemId: string) => {
+    if (!snapshot || saveStateRef.current !== "saved"
+      || pendingReferenceRef.current || pendingReferenceRemovalRef.current
+      || markdownEditorRef.current || pendingAttachmentRef.current || attachmentEditorRef.current
+      || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return;
+    const item = snapshot.items.find((candidate) => candidate.id === itemId);
+    const content = item?.projectContentId
+      ? snapshot.contents.find((candidate) => candidate.id === item.projectContentId)
+      : null;
+    if (!item || item.itemType !== "content" || !content || content.contentType !== "attachment") return;
+    setSelectedItemIds([item.id]);
+    startReferenceRemoval(item.id, item.revision, content.revision);
+  }, [snapshot, startReferenceRemoval]);
+
+  const canvasCommandOperationBlocked = useCallback(() => Boolean(
+    !projectReadyRef.current || ownedContentReloadPending
+    || pendingReferenceRef.current
+    || pendingReferenceRemovalRef.current
+    || markdownEditorRef.current
+    || pendingAttachmentRef.current
+    || attachmentEditorRef.current
+    || projectDeleteRequestRef.current
+    || copyPaste.unsafeRef.current
+    || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)
+  ), [copyPaste.unsafeRef, edgeController.unsafeRef, ownedContentReloadPending]);
+
+  const copyCanvasSelection = useCallback(() => {
+    if (canvasCommandOperationBlocked() || saveStateRef.current !== "saved"
+      || !snapshot || selectedItemIds.length === 0) return false;
+    copyPaste.copySelection(
+      snapshotWithPlacementProjection(snapshot, geometryRef.current),
+      selectedItemIds,
+    );
+    return true;
+  }, [
+    canvasCommandOperationBlocked,
+    copyPaste.copySelection,
+    selectedItemIds,
+    snapshot,
+  ]);
+
+  const pasteCanvasSelection = useCallback((point?: { x: number; y: number }) => {
+    if (canvasCommandOperationBlocked() || saveStateRef.current !== "saved" || !snapshot) return false;
+    if (!copyPaste.pasteClipboard(
+      snapshotWithPlacementProjection(snapshot, geometryRef.current),
+      point,
+    )) return false;
+    setSelectedItemIds([]);
+    setNavigationFocusItemId(null);
+    edgeController.selectEdge(null);
+    return true;
+  }, [
+    canvasCommandOperationBlocked,
+    copyPaste.pasteClipboard,
+    edgeController.selectEdge,
+    snapshot,
+  ]);
+
+  const selectAllCanvasItems = useCallback(() => {
+    if (canvasCommandOperationBlocked() || descriptors.length === 0) return false;
+    const primaryItemId = selectedItemId
+      && descriptors.some((descriptor) => descriptor.itemId === selectedItemId)
+      ? selectedItemId
+      : descriptors.at(-1)?.itemId ?? null;
+    return selectProjectItems({
+      itemIds: descriptors.map((descriptor) => descriptor.itemId),
+      primaryItemId,
+    }) !== false;
+  }, [
+    canvasCommandOperationBlocked,
+    descriptors,
+    selectProjectItems,
+    selectedItemId,
+  ]);
+
+  const clearCanvasSelection = useCallback(() => {
+    if (canvasCommandOperationBlocked()
+      || (selectedItemIds.length === 0 && !edgeController.selectedEdgeId)) return false;
+    selectProjectItems({ itemIds: [], primaryItemId: null });
+    edgeController.selectEdge(null);
+    return true;
+  }, [
+    canvasCommandOperationBlocked,
+    edgeController.selectEdge,
+    edgeController.selectedEdgeId,
+    selectProjectItems,
+    selectedItemIds.length,
+  ]);
+
+  const focusReferencePanel = useCallback(() => {
+    const request = ++panelFocusRequestRef.current;
+    window.requestAnimationFrame(() => {
+      if (request === panelFocusRequestRef.current) referencePanelRef.current?.focus();
+    });
+  }, []);
+
+  const focusInspectorPanel = useCallback(() => {
+    const request = ++panelFocusRequestRef.current;
+    window.requestAnimationFrame(() => {
+      if (request !== panelFocusRequestRef.current) return;
+      const panel = inspectorPanelRef.current;
+      const field = panel?.matches(".editing") ? panel.querySelector<HTMLElement>("textarea:not(:disabled), input:not(:disabled)") : null;
+      (field ?? panel)?.focus({ preventScroll: true });
+    });
+  }, []);
+
+  const inspectContextItem = useCallback((itemId: string) => {
+    if (selectProjectItem(itemId) === false) return;
+    setInspectorPanelOpen(true);
+    focusInspectorPanel();
+  }, [focusInspectorPanel, selectProjectItem, setInspectorPanelOpen]);
+
+  const editContextItem = useCallback((itemId: string) => {
+    const descriptor = descriptors.find((candidate) => candidate.itemId === itemId);
+    if (!descriptor) return;
+    if (descriptor.kind === "markdown") startMarkdownEdit(itemId);
+    else if (descriptor.kind === "attachment") {
+      setInspectorPanelOpen(true);
+      startAttachmentEdit(itemId);
+      focusInspectorPanel();
+    }
+  }, [descriptors, focusInspectorPanel, startAttachmentEdit, startMarkdownEdit, setInspectorPanelOpen]);
+
+  const editAndInspectMarkdown = useCallback((itemId: string) => {
+    if (selectProjectItem(itemId) === false || !startMarkdownEdit(itemId)) return;
+    // The card editor owns focus. Cancel any earlier panel focus request
+    // rather than moving the caret into the Inspector as it opens alongside it.
+    panelFocusRequestRef.current += 1;
+    setInspectorPanelOpen(true);
+  }, [selectProjectItem, setInspectorPanelOpen, startMarkdownEdit]);
+
+  const removeContextItem = useCallback((itemId: string) => {
+    const descriptor = descriptors.find((candidate) => candidate.itemId === itemId);
+    if (!descriptor) return;
+    if (descriptor.kind === "reference") removeReferenceItem(itemId);
+    else if (descriptor.kind === "markdown") removeMarkdownItem(itemId);
+    else removeAttachmentItem(itemId);
+  }, [
+    descriptors,
+    removeAttachmentItem,
+    removeMarkdownItem,
+    removeReferenceItem,
+  ]);
+
+  const inspectContextEdge = useCallback((edgeId: string) => {
+    if (selectProjectEdge(edgeId) === false) return;
+    setInspectorPanelOpen(true);
+    focusInspectorPanel();
+  }, [focusInspectorPanel, selectProjectEdge, setInspectorPanelOpen]);
+
+  const openReferencePanel = useCallback(() => {
+    if (markdownEditorRef.current?.host === "inspector" || attachmentEditorRef.current?.host === "inspector"
+      || edgeController.editor) return;
+    if (readingActive) trash.close();
+    setReferencePanelOpen(true);
+    focusReferencePanel();
+  }, [edgeController.editor, focusReferencePanel, readingActive, trash.close, setReferencePanelOpen]);
+
+  const inspectReadingItem = useCallback((itemId: string) => {
+    if (selectProjectItem(itemId) === false) return;
+    trash.close();
+    readingDetailsTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setReferencePanelVisible(false);
+    setInspectorPanelOpen(true);
+    focusInspectorPanel();
+  }, [focusInspectorPanel, selectProjectItem, trash.close, setInspectorPanelOpen, setReferencePanelVisible]);
+
+  const focusReadingItem = useCallback((itemId: string) => {
+    if (selectProjectItem(itemId) === false) return;
+    setInspectorPanelVisible(false);
+    setNavigationFocusItemId(itemId);
+    setReadingFocusSequence((value) => value + 1);
+  }, [selectProjectItem, setInspectorPanelVisible]);
+
+  const openInspectorPanel = useCallback(() => {
+    setInspectorPanelOpen(true);
+    focusInspectorPanel();
+  }, [focusInspectorPanel, setInspectorPanelOpen]);
+
+  const saveCurrentChanges = useCallback(() => {
+    if (!projectReadyRef.current || confirmingProjectDeletion) return;
+    if (markdownEditorRef.current) {
+      void saveMarkdown();
+      return;
+    }
+    if (attachmentEditorRef.current) {
+      void saveAttachmentMetadata();
+      return;
+    }
+    if (edgeController.editor) {
+      if (edgeController.editor.status === "uncertain") edgeController.retryExact();
+      else edgeController.saveEdit();
+      return;
+    }
+    // Reference placement can be reconciled only after unrelated layout changes
+    // are saved. Freeze layout during reconciliation itself, matching the Map.
+    if (pendingReferenceRef.current?.status === "reconciling" || pendingReferenceRemovalRef.current
+      || pendingAttachmentRef.current || copyPaste.unsafeRef.current
+      || edgeController.unsafeRef.current || Boolean(trashControllerRef.current?.unsafeRef.current)) return;
+    const state = saveStateRef.current;
+    if (state !== "unsaved" && state !== "error") return;
+    if (autosaveTimerRef.current !== null) window.clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = null;
+    void flushSaveRef.current();
+  }, [confirmingProjectDeletion, edgeController.editor, edgeController.retryExact, edgeController.saveEdit, saveAttachmentMetadata, saveMarkdown]);
+
+  // Save belongs to the active editor in either projection, including inputs.
+  // Keep this separate from Canvas-only shortcuts that respect native text editing.
+  useEffect(() => {
+    const onSaveShortcut = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || projectCanvasKeyboardShortcutFromEvent(event) !== "save"
+        || (event.target instanceof Element && event.target.closest('[data-project-shortcut-scope="help"]'))) return;
+      event.preventDefault();
+      saveCurrentChanges();
+    };
+    document.addEventListener("keydown", onSaveShortcut);
+    return () => document.removeEventListener("keydown", onSaveShortcut);
+  }, [saveCurrentChanges]);
+
+  const cancelActiveEditor = useCallback(() => {
+    const editor = markdownEditorRef.current ?? attachmentEditorRef.current ?? edgeController.editor;
+    if (!editor || (editor.status !== "editing" && editor.status !== "error")) return;
+    if (markdownEditorRef.current) cancelMarkdown();
+    else if (attachmentEditorRef.current) cancelAttachmentEdit();
+    else edgeController.cancelEdit();
+  }, [cancelMarkdown, cancelAttachmentEdit, edgeController.editor, edgeController.cancelEdit]);
+  cancelActiveEditorRef.current = cancelActiveEditor;
+
+  useEffect(() => {
+    const onEditorEscape = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || !projectKeyboardEventIsPlainEscape(event)) return;
+      if (!markdownEditor && !attachmentEditor && !edgeController.editor) return;
+      // Menus and expanded/modal editors resolve their own top layer first.
+      if (event.target instanceof Element && event.target.closest('[role="menu"], [aria-modal="true"]')) return;
+      event.preventDefault();
+      event.stopPropagation();
+      cancelActiveEditor();
+    };
+    document.addEventListener("keydown", onEditorEscape);
+    return () => document.removeEventListener("keydown", onEditorEscape);
+  }, [attachmentEditor, cancelActiveEditor, edgeController.editor, markdownEditor]);
+
+  const inspectorEditing = markdownEditor?.host === "inspector" || attachmentEditor?.host === "inspector"
+    || (inspectorPanelOpen && edgeController.editor !== null);
+
+  const prepareCanvasInteraction = useCallback((target: EventTarget | null) => {
+    if (!(target instanceof Element) || !projectReadyRef.current || !snapshot || markdownResizeActiveRef.current
+      || ownedContentReloadPending || confirmingProjectDeletion || deletingProject || projectDeleteUncertain
+      || blocker.state === "blocked" || pendingReferenceRef.current || pendingReferenceRemovalRef.current
+      || pendingAttachmentRef.current || copyPaste.unsafeRef.current || trashControllerRef.current?.unsafeRef.current
+      || edgeController.pending) return;
+    const canvas = target.closest<HTMLElement>(".project-flow-canvas");
+    if (!canvas || target.closest([
+      ".project-markdown-editor", ".project-markdown-editor-shell", ".project-edge-toolbar", ".project-node-resize-handle",
+      "input", "textarea", "select", "button", "a", "[contenteditable=true]",
+      "[role=menu]", "[role=dialog]", "[inert]",
+    ].join(","))) return;
+
+    const note = markdownEditorRef.current;
+    const attachment = attachmentEditorRef.current;
+    const edge = edgeController.editor;
+    if (note) {
+      const content = snapshot.contents.find((entry) => entry.id === note.contentId);
+      if (note.isNew || note.status !== "editing" || content?.contentType !== "markdown"
+        || note.value !== (content.markdownSource ?? "")) return;
+    } else if (attachment) {
+      const content = snapshot.contents.find((entry) => entry.id === attachment.contentId);
+      if (attachment.status !== "editing" || content?.contentType !== "attachment"
+        || attachment.caption !== (content.attachmentCaption ?? "")
+        || attachment.sourceUrl !== (content.attachmentSourceUrl ?? "")) return;
+    } else if (edge) {
+      const saved = snapshot.edges.find((entry) => entry.id === edge.edgeId);
+      if (edge.status !== "editing" || !saved || edge.label !== (saved.label ?? "")
+        || edge.direction !== projectEdgeDirection(saved.markerStart, saved.markerEnd)) return;
+    } else return;
+
+    // Commit the clean exit before XYDrag's native mousedown/touchstart so the
+    // original gesture sees unlocked nodes, refs and geometry commit guards.
+    // Focus stays with the new canvas action, not the removed editor's trigger.
+    canvasEditorHandoffRef.current = inspectorEditing;
+    panelFocusRequestRef.current += 1;
+    canvas.focus({ preventScroll: true });
+    flushSync(cancelActiveEditor);
+  }, [
+    blocker.state, cancelActiveEditor, confirmingProjectDeletion, copyPaste.unsafeRef,
+    deletingProject, edgeController.editor, edgeController.pending, inspectorEditing,
+    ownedContentReloadPending, projectDeleteUncertain, snapshot,
+  ]);
+
+  useEffect(() => {
+    const wasEditing = inspectorWasEditingRef.current;
+    inspectorWasEditingRef.current = inspectorEditing;
+    if (!wasEditing || inspectorEditing) return;
+    const handedToCanvas = canvasEditorHandoffRef.current;
+    canvasEditorHandoffRef.current = false;
+    if (handedToCanvas || !inspectorPanelOpen) return;
+    const frame = window.requestAnimationFrame(() => {
+      const original = editorReturnFocusRef.current;
+      const fallback = inspectorPanelRef.current?.querySelector<HTMLElement>('[data-project-edit-trigger]');
+      const target = original?.isConnected && original !== document.body
+        && !original.matches(":disabled") && !original.closest("[hidden], [inert]") ? original : fallback;
+      target?.focus({ preventScroll: true });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [inspectorEditing, inspectorPanelOpen]);
+
+  // Keyboard shortcuts and context menus share these route commands, so
+  // selection, paste, and history never gain a second mutation path.
+  useLayoutEffect(() => {
+    if (!desktop || desktopView !== "map") return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      // Modal controls own keyboard input even when they are not text fields.
+      if (event.defaultPrevented || projectCanvasKeyboardTargetIsEditable(event.target)
+        || projectCanvasKeyboardTargetIsPanel(event.target)) return;
+      const shortcut = projectCanvasKeyboardShortcutFromEvent(event);
+      if (!shortcut || shortcut === "save") return;
+      // Text selection/copy and native reading shortcuts must not mutate the Map.
+      if (projectCanvasKeyboardTargetIsReading(event.target)
+        && shortcut !== "clear-selection") return;
+
+      if (shortcut === "copy") {
+        if (copyCanvasSelection()) event.preventDefault();
+        return;
+      }
+      if (shortcut === "paste") {
+        if (pasteCanvasSelection()) event.preventDefault();
+        return;
+      }
+      // History uses the same availability as the toolbar and execution guard.
+      // Edge history can proceed while independent placement writes are saving.
+      if (shortcut === "undo" || shortcut === "redo") {
+        if (!canApplyHistory(shortcut)) return;
+        event.preventDefault();
+        if (shortcut === "undo") undo();
+        else redo();
+        return;
+      }
+
+      const operationBlocked = canvasCommandOperationBlocked();
+      if (operationBlocked) return;
+      if (shortcut === "select-all") {
+        if (selectAllCanvasItems()) event.preventDefault();
+        return;
+      }
+      if (shortcut === "clear-selection") {
+        if (clearCanvasSelection()) event.preventDefault();
+        return;
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [
+    canApplyHistory,
+    canvasCommandOperationBlocked,
+    clearCanvasSelection,
+    copyCanvasSelection,
+    desktop,
+    desktopView,
+    pasteCanvasSelection,
+    redo,
+    selectAllCanvasItems,
+    undo,
+  ]);
+
+  if (loading) return <div className="page project-page"><p className="muted">Loading Project…</p></div>;
+  if (loadError || !snapshot) return <div className="page project-page">
+    <Link className="back-link" to="/projects">← Projects</Link>
+    {!snapshot ? <ReadStatus
+      loading={false}
+      error={loadError || "Project not found"}
+      loadingMessage="Loading Project…"
+      errorTitle="Project could not be loaded"
+      retryLabel="Retry loading Project"
+      onRetry={() => { if (!snapshot) void loadProject(); }}
+    /> : <p className="error-banner" role="alert">{loadError}</p>}
+  </div>;
+
+  const ownedContentBusy = Boolean(markdownEditor || pendingAttachment || attachmentEditor);
+  const workspaceOperationBusy = ownedContentBusy || edgeController.unsafe || copyPaste.unsafe || trash.pending !== null;
+  const edgeConflict = edgeController.pending?.status === "conflict" || edgeController.editor?.status === "conflict";
+  const edgeConflictReloadDisabled = saveState !== "saved" && saveState !== "conflict";
+  const placementRetryDisabled = pendingReferenceRemoval !== null || ownedContentBusy
+    || copyPaste.unsafe || trash.pending !== null || (edgeController.unsafe && !edgeConflict);
+  const referencePlacementDisabled = Boolean(ownedContentReloadPending || pendingReference || pendingReferenceRemoval || workspaceOperationBusy || saveState === "conflict");
+  const referenceConflictReloadDisabled = saveState !== "saved" || pendingReferenceRemoval !== null || workspaceOperationBusy;
+  const geometryInteractionDisabled = pendingReferenceRemoval !== null
+    || pendingReference?.status === "reconciling"
+    || workspaceOperationBusy;
+  const undoDisabled = !canApplyHistory("undo");
+  const redoDisabled = !canApplyHistory("redo");
+  const activeEditor = markdownEditor ?? attachmentEditor ?? edgeController.editor;
+  const activeEditorName = markdownEditor ? "Markdown" : attachmentEditor ? "metadata" : "edge";
+  const activeEditorChanged = markdownEditor
+    ? markdownEditor.isNew || markdownEditor.value !== (snapshot.contents.find((content) => content.id === markdownEditor.contentId)?.markdownSource ?? "")
+    : attachmentEditor
+      ? (() => {
+        const content = snapshot.contents.find((candidate) => candidate.id === attachmentEditor.contentId);
+        return attachmentEditor.caption !== (content?.attachmentCaption ?? "") || attachmentEditor.sourceUrl !== (content?.attachmentSourceUrl ?? "");
+      })()
+      : edgeController.editor && edgeController.selectedEdge
+        ? edgeController.editor.label !== (edgeController.selectedEdge.label ?? "")
+          || edgeController.editor.direction !== projectEdgeDirection(edgeController.selectedEdge.markerStart, edgeController.selectedEdge.markerEnd)
+        : false;
+  const activeEditorCanSave = Boolean(activeEditor && !markdownResizeActive
+    && (activeEditor.status === "editing" || activeEditor.status === "error" || activeEditor.status === "uncertain")
+    && (!markdownEditor || markdownEditor.value.trim()));
+  const displayedSaveState = activeEditor
+    ? activeEditor.status === "saving" ? "saving"
+      : activeEditor.status === "conflict" ? "conflict"
+      : activeEditor.status === "error" ? "error" : "unsaved"
+    : workspaceOperationBusy || pendingReference || pendingReferenceRemoval ? "saving" : saveState;
+  const displayedSaveLabel = ownedContentReloadPending ? "Reloading current version" : activeEditor
+    ? activeEditor.status === "saving" ? `Saving ${activeEditorName}`
+      : activeEditor.status === "uncertain" ? `Confirm ${activeEditorName} save`
+      : activeEditor.status === "conflict" ? `${activeEditorName} conflict`
+      : activeEditor.status === "error" ? `${activeEditorName} save failed`
+      : `${activeEditorChanged ? "Unsaved" : "Editing"} ${activeEditorName}`
+    : workspaceOperationBusy || pendingReference || pendingReferenceRemoval ? "Operation in progress" : saveLabel(saveState);
+  const currentSaveDisabled = activeEditor ? !activeEditorCanSave
+    : saveState === "saved" || saveState === "saving" || saveState === "conflict" || geometryInteractionDisabled;
+  const viewSwitchDisabled = projectionSwitchLocked;
+  const readingInteractionDisabled = trash.pending !== null || ownedContentReloadPending || saveState !== "saved"
+    || markdownEditor?.host === "inspector" || attachmentEditor?.host === "inspector"
+    || pendingReference !== null
+    || pendingReferenceRemoval !== null
+    || pendingAttachment !== null
+    || copyPaste.unsafe
+    || edgeController.unsafe;
+  const alignmentActionDisabled = (alignment: ProjectCanvasAlignment) => (
+    geometryInteractionDisabled
+    || selectedDescriptors.length < 2
+    || projectCanvasAlignmentCommands(descriptors, selectedItemIds, alignment).length === 0
+  );
+  const zOrderActionDisabled = (action: ProjectCanvasZOrderAction) => (
+    geometryInteractionDisabled
+    || projectCanvasZOrderCommands(descriptors, selectedItemIds, action).length === 0
+  );
+  const canvasCommandsBlocked = canvasCommandOperationBlocked();
+  const createCommandDisabled = ownedContentReloadPending || geometryInteractionDisabled
+    || pendingReference !== null
+    || saveState === "conflict";
+  const edgeInspectDisabled = markdownEditor !== null
+    || attachmentEditor !== null
+    || edgeController.unsafe;
+  const edgeMutationCommandsDisabled = edgeController.interactionDisabled
+    || saveState !== "saved";
+  const contextCommands: ProjectMapContextCommands = {
+    createDisabled: createCommandDisabled,
+    selectAllDisabled: canvasCommandsBlocked || descriptors.length === 0,
+    clearSelectionDisabled: canvasCommandsBlocked
+      || (selectedItemIds.length === 0 && edgeController.selectedEdgeId === null),
+    copyDisabled: workspaceOperationBusy
+      || pendingReference !== null
+      || pendingReferenceRemoval !== null
+      || saveState !== "saved"
+      || selectedItemIds.length === 0,
+    pasteDisabled: workspaceOperationBusy
+      || pendingReference !== null
+      || pendingReferenceRemoval !== null
+      || saveState !== "saved"
+      || copyPaste.clipboard?.status !== "ready",
+    editDisabled: workspaceOperationBusy
+      || pendingReference !== null
+      || pendingReferenceRemoval !== null
+      || saveState === "conflict",
+    removeDisabled: workspaceOperationBusy
+      || pendingReference !== null
+      || pendingReferenceRemoval !== null
+      || saveState !== "saved",
+    edgeInspectDisabled,
+    edgeEditDisabled: edgeMutationCommandsDisabled,
+    edgeDeleteDisabled: edgeMutationCommandsDisabled,
+    panelCommandsDisabled: false,
+    alignmentDisabled: alignmentActionDisabled,
+    zOrderDisabled: zOrderActionDisabled,
+    inspectItem: inspectContextItem,
+    editItem: editContextItem,
+    editAndInspectMarkdown,
+    copyItemLink: copyProjectItemLink,
+    copySelection: copyCanvasSelection,
+    pasteSelection: pasteCanvasSelection,
+    selectAll: selectAllCanvasItems,
+    clearSelection: clearCanvasSelection,
+    alignSelection: alignSelectedItems,
+    changeZOrder: changeSelectedZOrder,
+    removeItem: removeContextItem,
+    removeSelectionDisabled: canvasCommandsBlocked || saveState !== "saved" || selectedItemIds.length === 0,
+    removeSelection: () => trash.removeItems(selectedItemIds),
+    inspectEdge: inspectContextEdge,
+    editEdge: () => {
+      edgeController.startEdit();
+    },
+    deleteEdge: () => {
+      edgeController.deleteSelected();
+    },
+    openReferences: openReferencePanel,
+    openInspector: openInspectorPanel,
+  };
+  const addOwnedContentAtCenter = (kind: "markdown" | "attachment") => {
+    if (contextCommands.createDisabled) return;
+    setAddMenuOpen(false);
+    const point = desktop && desktopView === "map"
+      ? mapSurfaceRef.current?.getViewportCenter()
+      : { x: 240, y: 160 };
+    if (!point) {
+      setOwnedContentActionError("The Map is still loading. Try adding content again in a moment.");
+      addMenuTriggerRef.current?.focus();
+      return;
+    }
+    if (kind === "markdown") {
+      const availablePoint = findAvailableProjectPlacementPoint(
+        point, Object.values(geometryRef.current),
+        (candidate) => projectMarkdownGeometryAtPoint(candidate, 0),
+      );
+      if (!availablePoint) {
+        setOwnedContentActionError("No available space near the Map center. Choose a position on the Map.");
+        return;
+      }
+      const placementGeometry = projectMarkdownGeometryAtPoint(availablePoint, 0);
+      if (placementGeometry) mapSurfaceRef.current?.ensureGeometryVisible?.(placementGeometry);
+      startMarkdownCreate(availablePoint);
+    } else {
+      // Keep the file chooser in the original click's user gesture.
+      addMenuTriggerRef.current?.focus();
+      requestAttachmentAt(point, true);
+    }
+  };
+  const alignmentControls = <div className="project-canvas-command-group">
+    <p className="card-label">Align selection</p>
+    <div className="project-canvas-command-grid align" role="group" aria-label="Align selected items">
+      <button type="button" className="button compact-button" aria-label="Align left" disabled={alignmentActionDisabled("left")} onClick={() => alignSelectedItems("left")}>Left</button>
+      <button type="button" className="button compact-button" aria-label="Align horizontal centers" disabled={alignmentActionDisabled("center-x")} onClick={() => alignSelectedItems("center-x")}>Center X</button>
+      <button type="button" className="button compact-button" aria-label="Align right" disabled={alignmentActionDisabled("right")} onClick={() => alignSelectedItems("right")}>Right</button>
+      <button type="button" className="button compact-button" aria-label="Align top" disabled={alignmentActionDisabled("top")} onClick={() => alignSelectedItems("top")}>Top</button>
+      <button type="button" className="button compact-button" aria-label="Align vertical centers" disabled={alignmentActionDisabled("center-y")} onClick={() => alignSelectedItems("center-y")}>Center Y</button>
+      <button type="button" className="button compact-button" aria-label="Align bottom" disabled={alignmentActionDisabled("bottom")} onClick={() => alignSelectedItems("bottom")}>Bottom</button>
+    </div>
+  </div>;
+  const zOrderControls = <div className="project-canvas-command-group">
+    <p className="card-label">Layer order</p>
+    <div className="project-canvas-command-grid order" role="group" aria-label="Change selected item layer order">
+      <button type="button" className="button compact-button" aria-label="Send to back" disabled={zOrderActionDisabled("send-to-back")} onClick={() => changeSelectedZOrder("send-to-back")}>Back</button>
+      <button type="button" className="button compact-button" aria-label="Send backward" disabled={zOrderActionDisabled("send-backward")} onClick={() => changeSelectedZOrder("send-backward")}>Backward</button>
+      <button type="button" className="button compact-button" aria-label="Bring forward" disabled={zOrderActionDisabled("bring-forward")} onClick={() => changeSelectedZOrder("bring-forward")}>Forward</button>
+      <button type="button" className="button compact-button" aria-label="Bring to front" disabled={zOrderActionDisabled("bring-to-front")} onClick={() => changeSelectedZOrder("bring-to-front")}>Front</button>
+    </div>
+  </div>;
+
+  const navigationBlockMessage = trash.pending
+    ? "Finish or retry the card recovery operation before leaving. Completed changes are preserved."
+    : projectDeleteUncertain
+    ? "The Project trash operation outcome is uncertain. Retry the exact move before leaving this Project."
+    : deletingProject
+      ? "Finishing the Project trash operation before leaving this Project…"
+      : copyPaste.paste
+        ? copyPaste.paste.status === "pasting"
+          ? "Finishing the authoritative Project paste before leaving…"
+          : copyPaste.paste.status === "paused"
+            ? `The Project paste is paused after ${copyPaste.acknowledgedWrites}/${copyPaste.totalWrites} acknowledged writes. Retry the exact paste or reload authoritative state and abandon the remaining steps before leaving.`
+            : copyPaste.paste.status === "reconcile-error"
+              ? "All paste writes were acknowledged, but authoritative reload still needs to succeed before leaving."
+              : "Reconciling the Project paste against authoritative state before leaving…"
+      : edgeController.pending
+    ? edgeController.pending.status === "saving"
+      ? "Finishing the Project edge operation before leaving…"
+      : edgeController.pending.status === "uncertain"
+        ? "The Project edge outcome is uncertain. Retry the exact operation before leaving."
+        : edgeController.pending.status === "conflict"
+          ? "The Project edge conflicted with authoritative state. Reload the Project before continuing."
+          : "The Project edge operation failed deterministically. Dismiss it before leaving."
+    : edgeController.editor
+      ? edgeController.editor.status === "saving"
+        ? "Finishing the Project edge metadata save before leaving…"
+        : edgeController.editor.status === "uncertain"
+          ? "The Project edge metadata outcome is uncertain. Retry the exact save before leaving."
+          : edgeController.editor.status === "conflict"
+            ? "The Project edge edit conflicted with authoritative state. Reload the Project before continuing."
+            : "Save or discard the open Project edge edit before leaving."
+      : pendingReferenceRemoval
+    ? pendingReferenceRemoval.status === "removing"
+      ? "Finishing the Project occurrence removal before leaving this Project…"
+      : pendingReferenceRemoval.status === "reconciling"
+        ? "Reconciling the Project occurrence against authoritative state before leaving…"
+        : pendingReferenceRemoval.status === "uncertain"
+          ? "The Project occurrence removal outcome is uncertain. Retry the exact removal before leaving."
+          : "The Project occurrence removal conflict needs authoritative reconciliation before leaving."
+    : pendingReference
+      ? pendingReference.status === "placing" || pendingReference.status === "reconciling"
+        ? "Finishing the reference placement reconciliation before leaving this Project…"
+        : pendingReference.status === "uncertain"
+          ? "The reference insertion outcome is uncertain. Retry the exact insertion or reconcile it before cancelling and leaving."
+          : "The pending reference placement must be retried, reloaded, or explicitly cancelled before leaving."
+      : pendingAttachment
+        ? pendingAttachment.status === "uploading" || pendingAttachment.status === "saving"
+          ? "Finishing the Project attachment operation before leaving this Project…"
+          : pendingAttachment.status === "uncertain" && pendingAttachmentInputRef.current
+            ? "The Project attachment creation outcome is uncertain. Retry the exact creation before leaving."
+            : pendingAttachment.status === "uncertain"
+              ? "The file upload outcome is uncertain. Retry to check the saved request, or explicitly cancel this upload before leaving."
+              : "The attachment operation failed deterministically. Cancel it before leaving, then start a new attachment operation if needed."
+        : markdownEditor
+          ? markdownEditor.status === "saving"
+            ? "Finishing the Project Markdown save before leaving…"
+            : markdownEditor.status === "uncertain"
+              ? "The Project Markdown save outcome is uncertain. Retry the exact save before leaving."
+              : markdownEditor.status === "error"
+                ? "The Markdown save was rejected. Stay to correct the draft, retry saving, or discard it before leaving."
+                : markdownEditor.status === "conflict"
+                  ? "This Markdown changed elsewhere. Stay to review the draft, or discard your local changes and leave."
+                  : "Your Markdown changes haven’t been saved. Save them before leaving, or discard this draft."
+          : attachmentEditor
+            ? attachmentEditor.status === "saving"
+              ? "Finishing the attachment metadata save before leaving…"
+              : attachmentEditor.status === "uncertain"
+                ? "The attachment metadata save outcome is uncertain. Retry the exact save before leaving."
+                : "Save or discard these metadata edits before leaving. Rejected values can be corrected in the editor."
+            : saveState === "conflict"
+              ? "This Project has a save conflict. Resolve it or explicitly leave without the local placement changes."
+              : placementSaveUncertain
+                ? "The placement save outcome is uncertain. Retry the exact save before leaving."
+              : saveState === "error"
+                ? "The placement changes could not be saved. Retry before leaving, stay on the Project, or explicitly discard them."
+                : "Saving placement changes before leaving this Project…";
+
+  const panelPinControl = (panel: "reference" | "inspector", pinned: boolean) => !readingActive && <button
+    type="button"
+    className="button compact-button project-panel-icon-button"
+    aria-label={pinned ? "Unpin" : "Pin"}
+    title={pinned ? `Unpin ${panel === "reference" ? "References" : "Inspector"}` : `Keep ${panel === "reference" ? "References" : "Inspector"} open`}
+    aria-pressed={pinned}
+    disabled={viewSwitchDisabled}
+    onClick={() => {
+      setWorkspacePanelPinned(panel, !pinned);
+      if (pinned && selectedItemIds.length === 0 && !edgeController.selectedEdgeId) {
+        window.requestAnimationFrame(() => (panel === "reference" ? referencePanelTriggerRef.current : inspectorPanelTriggerRef.current)?.focus());
+      }
+    }}
+  ><ActionIcon name="pin" /></button>;
+
+  const referencePanel = <aside
+        ref={referencePanelRef}
+        id="project-reference-panel"
+        className="project-reference-sidebar"
+        aria-label="Reference search and placement"
+        tabIndex={-1}
+        data-panel-presentation={desktop ? "floating" : "modal"}
+        onKeyDown={(event) => {
+          // Keep native panel activation and scrolling ahead of XYFlow's
+          // window-level Space-to-pan listener, without cancelling the key.
+          if (event.code === "Space" || event.key === " ") event.stopPropagation();
+        }}
+      >
+        <div className="project-workspace-panel-toolbar">
+          <p className="card-label"><NavigationIcon name="search" />References</p>
+          <div className="project-workspace-panel-actions">
+          {panelPinControl("reference", referencePinned)}
+          <button
+            type="button"
+            className="button compact-button project-panel-icon-button"
+            title="Close References (Esc)"
+            aria-label="Close References"
+            aria-keyshortcuts="Escape"
+            disabled={pendingReference !== null}
+            onClick={closeReferencePanel}
+          ><DialogCloseIcon /></button>
+          </div>
+        </div>
+        {pendingReference && <div className={`project-reference-pending ${pendingReference.status}`}>
+          <strong>{pendingReference.preview.title}</strong>
+          <span>{pendingReference.status === "placing"
+            ? "Placing reference…"
+            : pendingReference.status === "reconciling"
+              ? pendingReference.message || "Reconciling the original insertion…"
+              : pendingReference.message}</span>
+          {(pendingReference.status === "error" || pendingReference.status === "uncertain") && <div className="project-reference-pending-actions">
+            <button type="button" className="button primary compact-button" onClick={retryReferencePlacement}>Retry</button>
+            {pendingReference.status === "error" && <button type="button" className="button compact-button" onClick={() => cancelReferencePlacement(false)}>Cancel</button>}
+            {pendingReference.status === "uncertain" && <button type="button" className="button compact-button" onClick={() => void reconcileAndCancelUncertainReference(false)}>Reconcile and cancel</button>}
+          </div>}
+          {pendingReference.status === "uncertain" && <small className="muted">The server may already have committed this occurrence. Cancellation first replays the original operation and removes any confirmed occurrence.</small>}
+          {pendingReference.status === "conflict" && <div className="project-reference-pending-actions">
+            <button type="button" className="button primary compact-button" disabled={referenceConflictReloadDisabled} onClick={reloadAfterReferenceConflict}>Reload Project</button>
+            <button type="button" className="button compact-button" onClick={() => cancelReferencePlacement(false)}>Cancel</button>
+          </div>}
+          {pendingReference.status === "conflict" && referenceConflictReloadDisabled && <small className="muted">Resolve existing placement changes before reloading the Project.</small>}
+        </div>}
+        {referenceHydrationFailures.map((preview) => <div
+          key={preview.registryId}
+          className="project-reference-pending error"
+          role="status"
+        >
+          <span>{preview.resolution.source?.title || preview.resolution.target.id} was placed, but its details could not be loaded.</span>
+          <button type="button" className="button compact-button" onClick={() => hydrateReference(preview)}>
+            Retry details
+          </button>
+        </div>)}
+        <ReferenceSearchSurface
+          mode="place"
+          value={referenceSearch}
+          onChange={setReferenceSearch}
+          draftState={{ value: referenceSearchDraft, onChange: setReferenceSearchDraft }}
+          placementDisabled={referencePlacementDisabled}
+          onPlaceAtCenter={placeReferenceAtCenter}
+          suggestionSeeds={referenceSuggestionSeeds}
+          placedTargetCounts={referenceOccurrenceCounts}
+          onPlaceResolutionAtCenter={placeReferenceResolutionAtCenter}
+        />
+      </aside>;
+
+  const inspectorPanel = <aside
+        ref={inspectorPanelRef}
+        id="project-inspector-panel"
+        className={`project-inspector${inspectorEditing ? " editing" : ""}`}
+        aria-label="Project Inspector"
+        tabIndex={-1}
+        data-panel-presentation={desktop ? "floating" : "modal"}
+        onKeyDown={(event) => {
+          if (event.code === "Space" || event.key === " ") event.stopPropagation();
+        }}
+      >
+        <div className="project-workspace-panel-toolbar">
+          <p className="card-label"><ActionIcon name="inspector" />Inspector</p>
+          <div className="project-workspace-panel-actions">
+            {panelPinControl("inspector", inspectorPinned)}
+            <button
+              type="button"
+              className="button compact-button project-panel-icon-button"
+              title={inspectorEditing ? "Cancel editing (Esc)" : "Close Inspector (Esc)"}
+              aria-label={inspectorEditing ? "Cancel editing" : "Close Inspector"}
+              aria-keyshortcuts="Escape"
+              disabled={markdownResizeActive || (inspectorEditing && activeEditor?.status !== "editing" && activeEditor?.status !== "error")}
+              onClick={closeInspectorPanel}
+            ><DialogCloseIcon /></button>
+          </div>
+        </div>
+        {inspectorEditing && !readingActive && activeEditor?.status === "editing" && <p className="project-editor-interaction-hint">
+          {activeEditorChanged
+            ? "Save or cancel before moving cards or switching selection."
+            : "Click or drag the canvas to leave this unchanged edit."}
+        </p>}
+        {markdownEditor?.host === "inspector" ? <section className="project-inspector-content project-inspector-editor" aria-label="Edit Markdown">
+          <h2>Edit Markdown</h2>
+          <Suspense fallback={<p role="status">Opening editor…</p>}><ProjectMarkdownEditor
+            editor={markdownEditor}
+            interactionDisabled={markdownResizeActive}
+            ariaLabel="Inspector Markdown editor"
+            onChange={changeMarkdown}
+            onSave={() => void saveMarkdown()}
+            onCancel={() => cancelMarkdown(false)}
+          /></Suspense>
+        </section> : !readingActive && edgeController.selectedEdge ? <div className={`project-inspector-content${edgeController.editor ? " project-inspector-editor" : ""}`}>
+          <header className="project-inspector-summary">
+            <div className="project-inspector-summary-row">
+              <span className="meta-badge">Relationship</span>
+              {!edgeController.editor && <button type="button" className="button compact-button project-inspector-header-action" aria-label="Edit edge" title="Edit relationship" data-project-edit-trigger disabled={workspaceOperationBusy || saveState !== "saved"} onClick={(event) => {
+                editorReturnFocusRef.current = event.currentTarget;
+                edgeController.startEdit();
+              }}><ActionIcon name="edit" />Edit</button>}
+            </div>
+            <h2>{edgeController.selectedEdge.label || "Unlabelled relationship"}</h2>
+          </header>
+          {edgeController.editor?.edgeId === edgeController.selectedEdge.id ? <div className="project-attachment-meta-form">
+            <div className="project-inspector-direction"><span>Direction</span>
+              <ProjectEdgeDirectionControl
+                value={edgeController.editor.direction}
+                disabled={edgeController.editor.status === "saving" || edgeController.editor.status === "uncertain" || edgeController.editor.status === "conflict"}
+                onChange={(direction) => edgeController.changeEdit("direction", direction)}
+              />
+            </div>
+            <label>Label
+              <input
+                type="text"
+                autoFocus
+                value={edgeController.editor.label}
+                disabled={edgeController.editor.status === "saving" || edgeController.editor.status === "uncertain" || edgeController.editor.status === "conflict"}
+                onChange={(event) => edgeController.changeEdit("label", event.currentTarget.value)}
+              />
+            </label>
+            {edgeController.editor.message && <p className="error-banner">{edgeController.editor.message}</p>}
+            <div className="project-owned-content-pending-actions">
+              {(edgeController.editor.status === "editing" || edgeController.editor.status === "error") && <button type="button" className="button primary compact-button" onClick={edgeController.saveEdit}>Save edge</button>}
+              {edgeController.editor.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={edgeController.retryExact}>Retry exact save</button>}
+              {(edgeController.editor.status === "editing" || edgeController.editor.status === "error") && <button type="button" className="button compact-button" aria-keyshortcuts="Escape" onClick={edgeController.cancelEdit}>Cancel</button>}
+              {edgeController.editor.status === "conflict" && <button type="button" className="button compact-button" disabled={edgeConflictReloadDisabled} onClick={reloadAfterEdgeConflict}>Reload Project</button>}
+            </div>
+          </div> : null}
+          {!edgeController.editor && <><section className="project-inspector-section" aria-label="Edge connection">
+            <h3>Connection</h3>
+            <dl>
+              <dt>Source</dt><dd>{selectedEdgeSource?.title || edgeController.selectedEdge.sourceItemId}</dd>
+              <dt>Target</dt><dd>{selectedEdgeTarget?.title || edgeController.selectedEdge.targetItemId}</dd>
+              <dt>Direction</dt><dd>{{ undirected: "No arrow", forward: "Source → target", reverse: "Target → source", bidirectional: "Both directions" }[projectEdgeDirection(edgeController.selectedEdge.markerStart, edgeController.selectedEdge.markerEnd)]}</dd>
+            </dl>
+          </section>
+          <ProjectInspectorDisclosure
+            className="project-inspector-disclosure" title="Technical details"
+            open={inspectorPreferences.detailsOpen}
+            onOpenChange={(open) => setInspectorPreference("detailsOpen", open)}
+          >
+            <dl>
+              <dt>Handles</dt><dd>{edgeController.selectedEdge.sourceHandle} → {edgeController.selectedEdge.targetHandle}</dd>
+              <dt>Edge ID</dt><dd>{edgeController.selectedEdge.id}</dd>
+              <dt>Revision</dt><dd>{edgeController.selectedEdge.revision}</dd>
+            </dl>
+          </ProjectInspectorDisclosure>
+          </>}
+          {edgeController.editor?.edgeId !== edgeController.selectedEdge.id && <ProjectInspectorDisclosure
+            className="project-inspector-item-more" title="More actions"
+            open={inspectorPreferences.moreActionsOpen}
+            onOpenChange={(open) => setInspectorPreference("moreActionsOpen", open)}
+          >
+            <div className="project-inspector-danger-zone">
+              <button type="button" className="button danger compact-button" disabled={workspaceOperationBusy || saveState !== "saved"} onClick={edgeController.deleteSelected}>Delete edge</button>
+            </div>
+          </ProjectInspectorDisclosure>}
+        </div> : !readingActive && selectedDescriptors.length > 1 ? <div className="project-inspector-content project-multi-selection-inspector">
+          <span className="meta-badge">multi-selection</span>
+          <h2>{selectedDescriptors.length} items selected</h2>
+          <p className="muted">Drag any selected node or use the arrow keys to move the selection as one local history command. Use More to copy, arrange, or remove the selected cards.</p>
+          <dl>
+            <dt>References</dt><dd>{selectedDescriptors.filter((descriptor) => descriptor.kind === "reference").length}</dd>
+            <dt>Markdown</dt><dd>{selectedDescriptors.filter((descriptor) => descriptor.kind === "markdown").length}</dd>
+            <dt>Attachments</dt><dd>{selectedDescriptors.filter((descriptor) => descriptor.kind === "attachment").length}</dd>
+            <dt>Primary</dt><dd>{selectedDescriptors.find((descriptor) => descriptor.itemId === selectedItemId)?.title ?? "None"}</dd>
+          </dl>
+          {alignmentControls}
+          {zOrderControls}
+          <button type="button" className="button wide" onClick={() => selectProjectItems({ itemIds: [], primaryItemId: null })}>Clear selection</button>
+        </div> : selected ? <div className="project-inspector-content">
+          <ProjectInspectorDetails
+            snapshot={snapshot}
+            descriptor={selected}
+            detailsOpen={inspectorPreferences.detailsOpen}
+            onDetailsOpenChange={(open) => setInspectorPreference("detailsOpen", open)}
+            previewExpanded={inspectorPreferences.previewExpanded}
+            onPreviewExpandedChange={(expanded) => setInspectorPreference("previewExpanded", expanded)}
+            editing={attachmentEditor?.host === "inspector" && attachmentEditor.itemId === selected.itemId}
+            onFocusItem={(itemId) => {
+              if (readingActive) focusReadingItem(itemId);
+              else if (selectProjectItem(itemId) !== false) setNavigationFocusItemId(itemId);
+            }}
+            headerAction={selected.kind === "markdown" ? <button
+              type="button"
+              className="button compact-button project-inspector-header-action"
+              aria-label="Edit Markdown"
+              title="Edit Markdown"
+              data-project-edit-trigger
+              disabled={workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
+              onClick={() => {
+                startMarkdownEdit(selected.itemId, "inspector");
+              }}
+            ><ActionIcon name="edit" />Edit</button> : selected.kind === "attachment" && attachmentEditor?.itemId !== selected.itemId ? <button
+              type="button"
+              className="button compact-button project-inspector-header-action"
+              aria-label="Edit metadata"
+              title="Edit attachment details"
+              data-project-edit-trigger
+              disabled={workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
+              onClick={() => startAttachmentEdit(selected.itemId, "inspector")}
+            ><ActionIcon name="edit" />Edit</button> : null}
+            primaryContent={selected.kind === "attachment" ? <>
+              {attachmentEditor?.host === "inspector" && attachmentEditor.itemId === selected.itemId && <div className="project-attachment-meta-form project-inspector-editor">
+                <label>Caption
+                  <textarea
+                    autoFocus
+                    value={attachmentEditor.caption}
+                    disabled={attachmentEditor.status !== "editing" && attachmentEditor.status !== "error"}
+                    onChange={(event) => updateAttachmentDraft("caption", event.currentTarget.value)}
+                  />
+                </label>
+                <label>Source URL
+                  <input
+                    type="url"
+                    placeholder="https://…"
+                    value={attachmentEditor.sourceUrl}
+                    aria-invalid={attachmentEditor.status === "error" && !isProjectAttachmentSourceUrl(attachmentEditor.sourceUrl.trim() || null)}
+                    disabled={attachmentEditor.status !== "editing" && attachmentEditor.status !== "error"}
+                    onChange={(event) => updateAttachmentDraft("sourceUrl", event.currentTarget.value)}
+                  />
+                </label>
+                {attachmentEditor.message && <ProjectEditorFeedback
+                  status={attachmentEditor.status}
+                  message={attachmentEditor.message}
+                />}
+                <div className="project-owned-content-pending-actions">
+                  {(attachmentEditor.status === "editing" || attachmentEditor.status === "error" || attachmentEditor.status === "saving" || attachmentEditor.status === "uncertain") && <button type="button" className="button primary compact-button" disabled={attachmentEditor.status === "saving"} onClick={() => void saveAttachmentMetadata()}>
+                    {attachmentEditor.status === "saving" ? "Saving…" : attachmentEditor.status === "uncertain" ? "Retry exact save" : "Save metadata"}
+                  </button>}
+                  {attachmentEditor.status !== "saving" && attachmentEditor.status !== "uncertain" && <button type="button" className="button compact-button" aria-keyshortcuts={attachmentEditor.status === "conflict" ? undefined : "Escape"} onClick={() => cancelAttachmentEdit(false)}>{attachmentEditor.status === "conflict" ? "Discard draft and reload" : "Cancel"}</button>}
+                </div>
+              </div>}
+            </> : null}
+            relatedContent={selectedReferenceTarget ? <ProjectInspectorChildren
+              key={`${selectedReferenceTarget.type}\u0000${selectedReferenceTarget.id}`}
+              parent={selectedReferenceTarget}
+              disabled={referencePlacementDisabled}
+              onBrowseRelated={() => {
+                setReferenceSearch(defaultReferenceSearchUiState());
+                setReferenceSearchDraft(defaultReferenceSearchUiState());
+                openReferencePanel();
+              }}
+            /> : null}
+          />
+          {!inspectorEditing && <ProjectInspectorDisclosure
+            className="project-inspector-item-more" title="More actions"
+            open={inspectorPreferences.moreActionsOpen}
+            onOpenChange={(open) => setInspectorPreference("moreActionsOpen", open)}
+          >
+          {!readingActive && <ProjectInspectorDisclosure
+            className="project-inspector-toolbox" title="Arrange on Map"
+            open={inspectorPreferences.arrangeOpen}
+            onOpenChange={(open) => setInspectorPreference("arrangeOpen", open)}
+          >
+            {zOrderControls}
+          </ProjectInspectorDisclosure>}
+          <div className="project-inspector-utility-actions">
+            <button type="button" className="button compact-button" onClick={() => void copySelectedItemLink()}>
+              {selectedStableLinkCopyStatus === "copied" ? "Stable link copied" : "Copy stable link"}
+            </button>
+            {selectedStableLinkCopyStatus === "error" && <small className="error">Clipboard access was unavailable; the link was not copied.</small>}
+          </div>
+          {!(selected.kind === "attachment" && attachmentEditor?.itemId === selected.itemId) && <div className="project-inspector-danger-zone">
+            {selected.kind === "markdown" && <button
+              type="button"
+              className="button danger wide"
+              disabled={saveState !== "saved" || workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
+              onClick={() => {
+                if (readingActive) closeInspectorPanel();
+                removeMarkdownItem(selected.itemId);
+              }}
+            >{pendingReferenceRemoval?.itemId === selected.itemId
+              ? pendingReferenceRemoval.status === "removing"
+                ? "Moving Markdown…"
+                : pendingReferenceRemoval.status === "reconciling"
+                  ? "Reconciling removal…"
+                  : pendingReferenceRemoval.status === "uncertain"
+                    ? "Removal needs exact retry"
+                    : "Removal needs reconciliation"
+              : "Move Markdown to trash"}</button>}
+            {selected.kind === "attachment" && attachmentEditor?.itemId !== selected.itemId && <button
+              type="button"
+              className="button danger wide"
+              disabled={saveState !== "saved" || workspaceOperationBusy || Boolean(pendingReference) || Boolean(pendingReferenceRemoval)}
+              onClick={() => {
+                if (readingActive) closeInspectorPanel();
+                removeAttachmentItem(selected.itemId);
+              }}
+            >{pendingReferenceRemoval?.itemId === selected.itemId
+              ? pendingReferenceRemoval.status === "removing"
+                ? "Moving attachment…"
+                : pendingReferenceRemoval.status === "reconciling"
+                  ? "Reconciling removal…"
+                  : pendingReferenceRemoval.status === "uncertain"
+                    ? "Removal needs exact retry"
+                    : "Removal needs reconciliation"
+              : "Remove attachment"}</button>}
+            {selected.kind === "attachment" && <small className="muted">Removed attachments remain recoverable in Project trash for 30 days.</small>}
+            {selected.kind === "reference" && <button
+              type="button"
+              className="button danger wide"
+              disabled={saveState !== "saved" || Boolean(pendingReference) || Boolean(pendingReferenceRemoval) || workspaceOperationBusy}
+              onClick={() => {
+                if (readingActive) closeInspectorPanel();
+                removeSelectedReference();
+              }}
+            >{pendingReferenceRemoval?.itemId === selected.itemId
+              ? pendingReferenceRemoval.status === "removing"
+                ? "Removing…"
+                : pendingReferenceRemoval.status === "reconciling"
+                  ? "Reconciling removal…"
+                  : pendingReferenceRemoval.status === "uncertain"
+                    ? "Removal needs exact retry"
+                    : "Removal needs reconciliation"
+              : "Remove from Project"}</button>}
+            {selected.kind === "reference" && saveState !== "saved" && <small className="muted">Save placement changes before removing this occurrence.</small>}
+          </div>}
+          </ProjectInspectorDisclosure>}
+        </div> : <p className="muted">Select a card or connection, then choose Details.</p>}
+      </aside>;
+
+  const readingSurface = <Suspense fallback={<div className="card"><p className="muted">Loading Reading…</p></div>}>
+    <ProjectReadingSurface
+      nodes={readingNodes}
+      focusedItemId={navigationFocusItemId}
+      focusRequestSequence={readingFocusSequence}
+      mobile={!desktop}
+      inspectedItemId={inspectorPanelOpen ? selectedItemId : null}
+      onDetailsRequest={inspectReadingItem}
+      markdownEditor={markdownEditor?.host === "inspector" ? null : markdownEditor}
+      attachmentEditor={attachmentEditor?.host === "inspector" ? null : attachmentEditor}
+      interactionDisabled={readingInteractionDisabled}
+      onMarkdownEditRequest={startMarkdownEdit}
+      onMarkdownDeleteRequest={removeMarkdownItem}
+      onMarkdownChange={changeMarkdown}
+      onMarkdownSave={() => void saveMarkdown()}
+      onMarkdownCancel={() => cancelMarkdown(false)}
+      onAttachmentEditRequest={startAttachmentEdit}
+      onAttachmentDeleteRequest={removeAttachmentItem}
+      onAttachmentChange={updateAttachmentDraft}
+      onAttachmentSave={() => void saveAttachmentMetadata()}
+      onAttachmentCancel={() => cancelAttachmentEdit(false)}
+    />
+  </Suspense>;
+
+  return <div
+    className={`project-page ${desktop ? `desktop ${desktopView}` : "mobile reading"}`}
+    data-project-view={desktop ? desktopView : "reading"}
+    data-reading-panel-open={readingActive && (referencePanelOpen || inspectorPanelOpen)}
+  >
+    <header className="project-workspace-header" aria-label="Project workspace controls">
+      <div className="project-workspace-identity">
+        <Link className="back-link project-workspace-back" to="/projects"><ActionIcon name="arrow-left" />Projects</Link>
+        <h1 title={snapshot.project.title}>{snapshot.project.title}</h1>
+      </div>
+      {desktop && <div className="project-view-toggle" role="group" aria-label="Project view">
+        <button type="button" className={`button compact-button project-mode-control${desktopView === "map" ? " active" : ""}`} aria-pressed={desktopView === "map"} disabled={viewSwitchDisabled} onClick={() => setDesktopView("map")}><NavigationIcon name="projects" />Map</button>
+        <button type="button" className={`button compact-button project-mode-control${desktopView === "reading" ? " active" : ""}`} aria-pressed={desktopView === "reading"} disabled={viewSwitchDisabled} onClick={() => setDesktopView("reading")}><ActionIcon name="note" />Reading</button>
+      </div>}
+      <div className="project-workspace-header-actions">
+        <div ref={addMenuRef} className="project-overflow project-add">
+          <button
+            ref={addMenuTriggerRef}
+            type="button"
+            className="button primary compact-button project-add-trigger"
+            aria-expanded={addMenuOpen}
+            aria-controls="project-add-panel"
+            onClick={() => {
+              setProjectActionsOpen(false);
+              setAddMenuOpen((open) => !open);
+            }}
+          ><ActionIcon name="plus" /><span>Add</span><ActionIcon name="chevron-down" /></button>
+          {addMenuOpen && <div
+            id="project-add-panel"
+            className="project-overflow-panel project-add-panel"
+            role="group"
+            aria-label="Add to Project"
+          >
+            <p className="card-label">Add to Project</p>
+            <button type="button" className="button compact-button project-menu-action" aria-label="Note / Markdown" disabled={contextCommands.createDisabled} onClick={() => addOwnedContentAtCenter("markdown")}>
+              <span className="project-menu-icon"><ActionIcon name="note" /></span>
+              <span className="project-menu-copy"><strong>Note / Markdown</strong><small>Notes, equations and ideas</small></span>
+            </button>
+            <button type="button" className="button compact-button project-menu-action" aria-label="Attachment" disabled={contextCommands.createDisabled} onClick={() => addOwnedContentAtCenter("attachment")}>
+              <span className="project-menu-icon"><ActionIcon name="attachment" /></span>
+              <span className="project-menu-copy"><strong>Attachment</strong><small>Images, documents and data</small></span>
+            </button>
+            <button type="button" className="button compact-button project-menu-action" aria-label="Reference from research record" disabled={contextCommands.panelCommandsDisabled} onClick={() => {
+              setAddMenuOpen(false);
+              contextCommands.openReferences();
+            }}>
+              <span className="project-menu-icon"><ActionIcon name="link" /></span>
+              <span className="project-menu-copy"><strong>Reference</strong><small>From existing research records</small></span>
+            </button>
+          </div>}
+        </div>
+        {desktop && desktopView === "map" && <div
+          className="project-panel-toggle-group"
+          role="group"
+          aria-label="Workspace panels"
+        >
+          <button
+            ref={referencePanelTriggerRef}
+            type="button"
+            className="button compact-button project-panel-control"
+            aria-controls="project-reference-panel"
+            aria-pressed={referencePanelOpen}
+            aria-label="References"
+            title={inspectorEditing ? "Finish editing before opening References" : "References"}
+            disabled={(pendingReference !== null && referencePanelOpen) || inspectorEditing || edgeController.editor !== null}
+            onClick={() => referencePanelOpen ? closeReferencePanel() : openReferencePanel()}
+          >
+            <NavigationIcon name="search" />
+            <span className="project-control-label-full">References</span>
+
+          </button>
+          <button
+            ref={inspectorPanelTriggerRef}
+            type="button"
+            className="button compact-button project-panel-control"
+            aria-controls="project-inspector-panel"
+            aria-pressed={inspectorPanelOpen}
+            aria-label="Inspector"
+            title={inspectorEditing ? "Cancel editing (Esc)" : "Inspector"}
+            disabled={markdownResizeActive || (inspectorEditing && activeEditor?.status !== "editing" && activeEditor?.status !== "error")}
+            onClick={() => {
+              if (inspectorPanelOpen) {
+                closeInspectorPanel();
+              } else {
+                openInspectorPanel();
+              }
+            }}
+          >
+            <ActionIcon name="inspector" />
+            <span className="project-control-label-full">Inspector</span>
+
+          </button>
+        </div>}
+        <div className="project-save-toolbar">
+          <span className={`project-save-state ${displayedSaveState}`} role="status" aria-label="Project save status">{displayedSaveLabel}</span>
+          {desktop && desktopView === "map" && <><button type="button" className="button compact-button project-history-control" aria-label="Undo" title="Undo (Ctrl / ⌘ Z)" aria-keyshortcuts="Control+Z Meta+Z" disabled={undoDisabled} onClick={undo}>
+            <ActionIcon name="undo" />
+          </button>
+          <button type="button" className="button compact-button project-history-control" aria-label="Redo" title="Redo (Ctrl / ⌘ Shift Z)" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y" disabled={redoDisabled} onClick={redo}>
+            <ActionIcon name="redo" />
+          </button></>}
+          <button
+            type="button"
+            className="button compact-button project-save-control"
+            aria-label="Save"
+            title="Save (Ctrl / ⌘ S)"
+            aria-keyshortcuts="Control+S Meta+S"
+            disabled={currentSaveDisabled}
+            onClick={saveCurrentChanges}
+          ><ActionIcon name="save" /><span className="project-control-label-full">Save</span></button>
+          <ProjectKeyboardShortcuts mapActive={desktop && desktopView === "map"} onOpen={() => {
+            setAddMenuOpen(false);
+            setProjectActionsOpen(false);
+          }} />
+        </div>
+        <div ref={projectActionsRef} className="project-overflow">
+          <button
+            ref={projectActionsTriggerRef}
+            type="button"
+            className="button compact-button project-overflow-trigger"
+            aria-label="Project actions"
+            title="Project actions"
+            aria-expanded={projectActionsOpen}
+            aria-controls="project-overflow-panel"
+            onClick={() => {
+              setAddMenuOpen(false);
+              setProjectActionsOpen((open) => !open);
+            }}
+          >
+            <ActionIcon name="more" />
+          </button>
+          {projectActionsOpen && <div
+            id="project-overflow-panel"
+            className="project-overflow-panel"
+            role="group"
+            aria-label="Project actions"
+          >
+            <p className="card-label">Project</p>
+            <button type="button" className="button compact-button" onClick={() => {
+              setProjectActionsOpen(false);
+              trash.open();
+            }}><ActionIcon name="delete" />Project trash</button>
+            <button
+              type="button"
+              className="button danger compact-button"
+              disabled={viewSwitchDisabled || deletingProject}
+              onClick={() => {
+                setProjectActionsOpen(false);
+                openProjectDeletion();
+              }}
+            ><ActionIcon name="delete" />Move to trash</button>
+          </div>}
+        </div>
+      </div>
+    </header>
+    <input
+        ref={attachmentInputRef}
+        className="project-hidden-file-input"
+        type="file"
+        aria-label="Choose Project attachment"
+        onChange={(event) => {
+          const file = event.currentTarget.files?.[0] ?? null;
+          event.currentTarget.value = "";
+          handleAttachmentFile(file);
+        }}
+      />
+    <div className="project-workspace-status-region">
+      <ProjectTrashStatus controller={trash} disabled={saveState !== "saved" || ownedContentBusy || edgeController.unsafe || copyPaste.unsafe || pendingReference !== null || pendingReferenceRemoval !== null} />
+        {pendingAttachment && <div className={`project-owned-content-pending ${pendingAttachment.status}`}
+          role="status" aria-live="polite" aria-label="Attachment upload status"
+          aria-busy={pendingAttachment.status === "uploading" || pendingAttachment.status === "saving"}>
+          <strong>{pendingAttachment.filename}</strong>
+          <span>{pendingAttachment.status === "uploading"
+            ? "Uploading file…"
+            : pendingAttachment.status === "saving"
+              ? "Creating Project attachment…"
+              : pendingAttachment.message}</span>
+          {(pendingAttachment.status === "error" || pendingAttachment.status === "conflict" || pendingAttachment.status === "uncertain") && <div className="project-owned-content-pending-actions">
+            {pendingAttachment.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryAttachment}>Retry exact attachment</button>}
+            {(pendingAttachment.status !== "uncertain" || !pendingAttachmentInputRef.current) && <button type="button" className="button compact-button" onClick={() => cancelAttachment(false)}>Cancel</button>}
+          </div>}
+          {pendingAttachment.status === "uncertain" && !pendingAttachmentInputRef.current && <small className="muted">Retry checks the same upload. Cancel discards its saved request; the previous upload may still finish.</small>}
+          {pendingAttachment.status === "uncertain" && pendingAttachmentInputRef.current && <small className="muted">The Project occurrence may already be committed. Retry replays the exact original creation request.</small>}
+        </div>}
+
+
+    {focusRequest.status === "invalid" && <div className="project-save-banner warning" role="status">
+      <p>The Project occurrence focus link is malformed and was not applied.</p>
+      <Link className="button compact-button" to={location.pathname}>Open Project overview</Link>
+    </div>}
+
+    {focusRequest.status === "valid" && !focusedItem && <div className="project-save-banner warning" role="status">
+      <p>The linked Project occurrence is no longer available in this active Project.</p>
+      <Link className="button compact-button" to={location.pathname}>Open Project overview</Link>
+    </div>}
+
+    {saveError && <div className={`project-save-banner ${saveState}`}>
+      <p>{saveError}</p>
+      {placementSaveUncertain && <p>The placement save may still complete. Retry preserves the original request; wait for confirmation before leaving.</p>}
+      {saveState === "conflict" && <button
+        type="button"
+        className="button compact-button"
+        disabled={pendingReferenceRemoval !== null || workspaceOperationBusy}
+        onClick={() => void loadProject()}
+      >
+        Reload authoritative Project
+      </button>}
+      {saveState === "error" && <button
+        type="button"
+        className="button compact-button"
+        disabled={placementRetryDisabled}
+        onClick={() => void flushSave()}
+      >
+        Retry save
+      </button>}
+    </div>}
+
+    {pendingReferenceRemoval?.status === "uncertain" && <div className="project-save-banner error">
+      <p>{pendingReferenceRemoval.message || "The Project occurrence removal outcome is uncertain."}</p>
+      <button type="button" className="button primary compact-button" onClick={retryReferenceRemoval}>Retry exact removal</button>
+    </div>}
+
+    {pendingReferenceRemoval?.status === "conflict" && <div className="project-save-banner error">
+      <p>{pendingReferenceRemoval.message || "The Project occurrence removal conflict needs authoritative reconciliation."}</p>
+      <button type="button" className="button primary compact-button" onClick={retryReferenceRemovalReconciliation}>Retry reconciliation</button>
+    </div>}
+
+    {referenceActionError && !pendingReference && !pendingReferenceRemoval && <div className="project-save-banner error">
+      <p>{referenceActionError}</p>
+    </div>}
+
+    {ownedContentReloadPending && saveState !== "saved" && <div className="project-save-banner warning" role="status">
+      <p>The conflicted draft was discarded. Finish saving or resolving the layout changes to reload the current Project version.</p>
+    </div>}
+    {ownedContentActionError && !markdownEditor && !pendingAttachment && !attachmentEditor && <div className="project-save-banner error">
+      <p>{ownedContentActionError}</p>
+    </div>}
+
+    {copyPaste.clipboard?.status === "error" && <div className="project-save-banner error">
+      <p>{copyPaste.clipboard.message}</p>
+    </div>}
+
+    {copyPaste.notice && !copyPaste.paste && <div className="project-save-banner warning" role="status">
+      <p>{copyPaste.notice}</p>
+      <button type="button" className="button compact-button" aria-label="Dismiss paste notification" onClick={copyPaste.clearNotice}>×</button>
+    </div>}
+
+    {copyPaste.paste && <div className={`project-save-banner ${copyPaste.paste.status === "paused" || copyPaste.paste.status === "reconcile-error" ? "error" : "warning"}`} role="status">
+      <p>{copyPaste.paste.status === "pasting"
+        ? "Pasting the copied Project selection through authoritative item and edge writes…"
+        : copyPaste.paste.status === "paused"
+          ? `Paste paused after ${copyPaste.acknowledgedWrites}/${copyPaste.totalWrites} acknowledged writes. ${copyPaste.paste.message || "Retry the exact frozen journal or reconcile authoritative state."}`
+          : copyPaste.paste.message || "Reconciling the Project paste against authoritative state…"}</p>
+      {copyPaste.paste.status === "paused" && <div className="project-navigation-actions">
+        <button type="button" className="button primary compact-button" onClick={copyPaste.retryExact}>Retry exact paste</button>
+        <button type="button" className="button compact-button" onClick={copyPaste.reloadAndAbandon}>Reload and abandon remaining paste</button>
+      </div>}
+      {copyPaste.paste.status === "reconcile-error" && <div className="project-navigation-actions">
+        <button type="button" className="button primary compact-button" onClick={copyPaste.retryAuthoritativeReload}>Retry authoritative reload</button>
+      </div>}
+    </div>}
+
+    {edgeController.actionError && <div className="project-save-banner error">
+      <p>{edgeController.actionError}</p>
+      <div className="project-navigation-actions">
+        {edgeController.pending?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={edgeController.retryExact}>Retry exact edge operation</button>}
+        {edgeController.pending?.status === "error" && !edgeController.editor && <button type="button" className="button compact-button" onClick={edgeController.dismissDeterministic}>Dismiss failed edge operation</button>}
+        {edgeConflict && <button type="button" className="button compact-button" disabled={edgeConflictReloadDisabled} onClick={reloadAfterEdgeConflict}>Reload authoritative Project</button>}
+      </div>
+    </div>}
+
+    {blocker.state === "blocked" && <ProjectNavigationDialog
+      message={navigationBlockMessage}
+      onStay={stayOnProject}
+      returnFocusRef={addMenuTriggerRef}
+      secondaryActions={<>
+        {copyPaste.paste?.status === "paused" && <button type="button" className="button compact-button" onClick={copyPaste.reloadAndAbandon}>Reload and abandon remaining paste</button>}
+        {edgeController.pending?.status === "error" && !edgeController.editor && <button type="button" className="button compact-button" onClick={edgeController.dismissDeterministic}>Dismiss edge operation and leave</button>}
+        {(edgeController.editor?.status === "editing" || edgeController.editor?.status === "error") && <button type="button" className="button compact-button" onClick={edgeController.cancelEdit}>Discard edge edit and leave</button>}
+        {pendingReference?.status === "uncertain" && <button type="button" className="button compact-button" onClick={() => void reconcileAndCancelUncertainReference(true)}>Reconcile, cancel and leave</button>}
+        {(pendingReference?.status === "error" || pendingReference?.status === "conflict") && <button type="button" className="button compact-button" onClick={() => cancelReferencePlacement(true)}>Cancel placement and leave</button>}
+        {(pendingAttachment?.status === "error" || pendingAttachment?.status === "conflict" || (pendingAttachment?.status === "uncertain" && !pendingAttachmentInputRef.current)) && <button type="button" className="button compact-button" onClick={() => cancelAttachment(true)}>Cancel attachment and leave</button>}
+        {markdownEditor && markdownEditor.status !== "saving" && markdownEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={() => cancelMarkdown(true)}>Discard Markdown and leave</button>}
+        {attachmentEditor && attachmentEditor.status !== "saving" && attachmentEditor.status !== "uncertain" && <button type="button" className="button compact-button" onClick={() => cancelAttachmentEdit(true)}>Discard metadata edits and leave</button>}
+        {!pendingReference && !pendingReferenceRemoval && !workspaceOperationBusy && !placementSaveUncertain && (saveState === "error" || saveState === "conflict") && <button type="button" className="button compact-button" onClick={leaveWithoutSaving}>Leave without saving</button>}
+      </>}
+      primaryActions={<>
+        {copyPaste.paste?.status === "paused" && <button type="button" className="button primary compact-button" onClick={copyPaste.retryExact}>Retry exact paste</button>}
+        {copyPaste.paste?.status === "reconcile-error" && <button type="button" className="button primary compact-button" onClick={copyPaste.retryAuthoritativeReload}>Retry authoritative reload</button>}
+        {edgeController.pending?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={edgeController.retryExact}>Retry exact edge operation</button>}
+        {edgeConflict && <button type="button" className="button primary compact-button" disabled={edgeConflictReloadDisabled} onClick={reloadAfterEdgeConflict}>Reload Project</button>}
+        {edgeController.editor && (edgeController.editor.status === "editing" || edgeController.editor.status === "error") && <button type="button" className="button primary compact-button" onClick={edgeController.saveEdit}>Save edge and leave</button>}
+        {edgeController.editor?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={edgeController.retryExact}>Retry exact edge save</button>}
+        {pendingReferenceRemoval?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryReferenceRemoval}>Retry exact removal</button>}
+        {pendingReferenceRemoval?.status === "conflict" && <button type="button" className="button primary compact-button" onClick={retryReferenceRemovalReconciliation}>Retry reconciliation</button>}
+        {(pendingReference?.status === "error" || pendingReference?.status === "uncertain") && <button type="button" className="button primary compact-button" onClick={retryReferencePlacement}>Retry placement</button>}
+        {pendingReference?.status === "conflict" && <button type="button" className="button primary compact-button" disabled={referenceConflictReloadDisabled} onClick={reloadAfterReferenceConflict}>Reload Project</button>}
+        {pendingAttachment?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryAttachment}>Retry exact attachment</button>}
+        {markdownEditor && (markdownEditor.status === "editing" || markdownEditor.status === "error") && <button type="button" className="button primary compact-button" disabled={markdownResizeActive || !markdownEditor.value.trim()} onClick={() => void saveMarkdown()}>Save Markdown and leave</button>}
+        {markdownEditor?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryMarkdownSave}>Retry exact Markdown save</button>}
+        {attachmentEditor && (attachmentEditor.status === "editing" || attachmentEditor.status === "error") && <button type="button" className="button primary compact-button" onClick={() => void saveAttachmentMetadata()}>Save metadata and leave</button>}
+        {attachmentEditor?.status === "uncertain" && <button type="button" className="button primary compact-button" onClick={retryAttachmentMetadata}>Retry exact metadata save</button>}
+        {!pendingReference && !placementRetryDisabled && saveState === "error" && <button type="button" className="button primary compact-button" onClick={retrySaveAndLeave}>Retry save and leave</button>}
+      </>}
+    />}
+
+    </div>
+
+    <ProjectTrashPanel key={projectId} controller={trash} modal={!desktop} returnFocusRef={projectActionsTriggerRef} disabled={saveState !== "saved" || ownedContentBusy || edgeController.unsafe || copyPaste.unsafe || pendingReference !== null || pendingReferenceRemoval !== null} />
+    {referencePanelOpen && readingActive && !trash.isOpen && <ProjectPanelSurface
+      modal={!desktop} label="References" onClose={closeReferencePanel}
+      blocked={pendingReference !== null} returnFocusRef={addMenuTriggerRef} initialFocusRef={referencePanelRef}
+      className="project-reading-panel project-reference-sheet"
+    >{referencePanel}</ProjectPanelSurface>}
+    {inspectorPanelOpen && readingActive && selected && !referencePanelOpen && !trash.isOpen && <ProjectPanelSurface
+      modal={!desktop} label="Project Inspector" onClose={closeInspectorPanel}
+      returnFocusRef={addMenuTriggerRef} initialFocusRef={inspectorPanelRef}
+      className="project-reading-panel project-inspector-sheet"
+    >{inspectorPanel}</ProjectPanelSurface>}
+    {desktop ? <div className="project-desktop-workspace with-reference-sidebar"
+      data-reference-open={desktopView === "map" && referencePanelOpen}
+      data-inspector-open={desktopView === "map" && inspectorPanelOpen}
+    >
+      {desktopView === "map" ? <>
+      {(selectedItemIds.length > 1 || copyPaste.clipboard?.status === "ready") && <div
+        className="project-canvas-transient-status"
+        role="status"
+        aria-label="Canvas selection and clipboard status"
+      >
+        {selectedItemIds.length > 1 && <span className="project-selection-count">
+          {selectedItemIds.length} selected
+        </span>}
+        {copyPaste.clipboard?.status === "ready" && <span className="project-selection-count">
+          {copyPaste.clipboard.itemCount} copied
+        </span>}
+      </div>}
+      {referencePanelOpen && referencePanel}
+      <section className="project-map-panel" aria-label="Project Map"
+        onPointerDownCapture={(event) => {
+          if (event.button === 0 && event.isPrimary) prepareCanvasInteraction(event.target);
+        }}
+        onMouseDownCapture={(event) => {
+          if (event.button === 0) prepareCanvasInteraction(event.target);
+        }}
+        onTouchStartCapture={(event) => {
+          if (event.touches.length === 1) prepareCanvasInteraction(event.target);
+        }}
+      >
+        <Suspense fallback={<div className="project-map-loading"><p className="muted">Loading Map editor…</p></div>}>
+          <DesktopProjectMap
+            ref={mapSurfaceRef}
+            nodes={descriptors}
+            edges={snapshot.edges}
+            pendingEdge={edgeController.pendingEdge}
+            pendingReference={pendingReference}
+            pendingAttachment={pendingAttachment}
+            markdownEditor={markdownEditor?.host === "inspector" ? null : markdownEditor}
+            selectedItemId={selectedItemId}
+            selectedItemIds={selectedItemIds}
+            focusedItemId={navigationFocusItemId}
+            selectedEdgeId={edgeController.selectedEdgeId}
+            geometryInteractionDisabled={geometryInteractionDisabled}
+            markdownResizeItemId={canResizeMarkdown() ? markdownEditor?.itemId : null}
+            markdownResizeActive={markdownResizeActive}
+            onMarkdownResizeActiveChange={updateMarkdownResizeActive}
+            onMarkdownResizeCommit={commitMarkdownResize}
+            edgeInteractionDisabled={edgeController.interactionDisabled}
+            contextCommands={contextCommands}
+            onSelect={selectProjectItem}
+            onSelectionChange={selectProjectItems}
+            onEdgeSelect={selectProjectEdge}
+            onEdgeConnect={edgeController.connect}
+            onEdgeReconnect={edgeController.reconnect}
+            edgeEditor={inspectorPanelOpen ? null : edgeController.editor}
+            onEdgeEditChange={edgeController.changeEdit}
+            onEdgeEditSave={() => edgeController.editor?.status === "uncertain" ? edgeController.retryExact() : edgeController.saveEdit()}
+            onEdgeEditCancel={edgeController.cancelEdit}
+            onGeometryCommit={commitGeometry}
+            onGeometryBatchCommit={commitGeometryBatch}
+            onReferenceDrop={startReferencePlacement}
+            onMarkdownCreateRequest={startMarkdownCreate}
+            onMarkdownEditRequest={startMarkdownEdit}
+            onMarkdownChange={changeMarkdown}
+            onMarkdownSave={() => void saveMarkdown()}
+            onMarkdownCancel={() => cancelMarkdown(false)}
+            onAttachmentRequest={requestAttachmentAt}
+          />
+        </Suspense>
+      </section>
+      {inspectorPanelOpen && inspectorPanel}
+      </> : readingSurface}
+    </div> : readingSurface}
+
+    {confirmingProjectDeletion && <ConfirmDeleteDialog
+      eyebrow="Project lifecycle"
+      title="Move Project to trash"
+      description="Move this Project out of the active workspace. Its normalized Project data is soft-deleted and can be restored later."
+      summary={snapshot.project.title}
+      deleting={deletingProject}
+      error={projectDeleteError}
+      confirmLabel={projectDeleteUncertain ? "Retry exact move" : "Move to trash"}
+      busyLabel="Moving…"
+      appendIrreversibleWarning={false}
+      cancelDisabled={projectDeleteUncertain}
+      confirmation={{
+        label: "Type the Project title to confirm",
+        target: snapshot.project.title,
+        value: projectDeleteConfirmation,
+        onChange: setProjectDeleteConfirmation,
+      }}
+      onCancel={cancelProjectDeletion}
+      onConfirm={moveProjectToTrash}
+    />}
+  </div>;
+}

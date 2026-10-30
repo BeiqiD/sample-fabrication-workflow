@@ -1,0 +1,33 @@
+{
+  "stage": "affected-app-strict",
+  "cwd": "/workspace/phase5f-recovery-job-control-focus-current5ca-source-attempt1",
+  "argv": [
+    "node",
+    "node_modules/typescript/bin/tsc",
+    "-p",
+    "tsconfig.app.json"
+  ],
+  "env": {
+    "TMPDIR": "/workspace",
+    "SQLITE_TMPDIR": "/workspace"
+  },
+  "startedAt": "2026-10-11T10:58:25.109572+00:00",
+  "status": "PASS",
+  "log": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt1/affected-app-strict.log",
+  "pid": 1090688,
+  "processGroup": 1090688,
+  "originalStartTicks": "12956587",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T10:58:26.738700+00:00",
+  "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

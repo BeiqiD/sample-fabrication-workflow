@@ -1,0 +1,24 @@
+{
+  "status": "passed",
+  "command": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "actualExitCode": 0,
+  "directChildReaped": true,
+  "sourceHead": "f88fffea3ba0654b52ca90ee87efdafdb70cd48c",
+  "sourceTree": "df05a78afcdee28f7136a349001464c399531e9c",
+  "sourceRoot": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+  "sourceCopyRoot": "/tmp/phase5f-storage-candidate-section-wrap-two-write-copy-attempt11",
+  "trackedInputInventorySha256": "d54fb8bff9e3c8b1a6137dda38461adc2b366a1e74ecf2db58466482d0c8edc7",
+  "workerSha256": "44fa8cc93fc762fa06a31dbd7fbe22eaaf32801734cc221aa65b113af373e3a9",
+  "activeBuildConfigSha256": "5dc16cf88005e7270f6d5bc37f193f8273f228684c90907889eb76a89931fbac",
+  "copiedArtifactInventorySha256": "cf2c15c210849831290145e61c28414b4f41ed092e39ffad50f317fc8f854ebe",
+  "originalCommandReceiptSha256": "c6f7403a033b154a8b46b9f53b89b315474808afc99f4493d7abcc87eb01be28",
+  "originalBuildLogSha256": "a3fd280b617a6174c06592006f101df0a0a3dacfe33ca9aacf32fe377b586f7c",
+  "actualProducerClosedReceiptSha256": "51bac259cf336bf9c4e04b26ed88566a884e39e257c1d5e1d6082a09d9ae7727",
+  "freshDistFileCount": 118,
+  "copiedArtifactFileCount": 121,
+  "scope": "Reuse ONLY actual qualified freshf88 build; new isolated24/84 fixture has its own generated namespace/config hashes. No redundant build or original01/95 product artifact carry."
+}

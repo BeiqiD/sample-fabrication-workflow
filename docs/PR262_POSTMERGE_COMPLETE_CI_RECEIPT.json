@@ -1,0 +1,180 @@
+{
+  "status": "POSTMERGE_VERIFY_MAP_AND_ALL15_SUCCESS",
+  "sourceHead": "591bee968e2fc06a3666f8ed4774fd698bbf3c4b",
+  "observedBefore": "2026-10-11T02:10:38.245614+00:00",
+  "observedAfter": "2026-10-11T02:10:38.700938+00:00",
+  "runs": [
+    {
+      "id": 38102602822,
+      "name": "Verify",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "591bee968e2fc06a3666f8ed4774fd698bbf3c4b",
+      "created_at": "2026-10-11T01:40:12Z",
+      "updated_at": "2026-10-11T02:10:26Z",
+      "html_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38102602822"
+    },
+    {
+      "id": 38102602889,
+      "name": "Project Map performance",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "591bee968e2fc06a3666f8ed4774fd698bbf3c4b",
+      "created_at": "2026-10-11T01:40:12Z",
+      "updated_at": "2026-10-11T01:40:49Z",
+      "html_url": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38102602889"
+    }
+  ],
+  "requiredContexts": [
+    {
+      "context": "pre-pr/install",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-map-performance",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-foundation",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/tests",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/blob-lifecycle",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/reference-foundation",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/file-jobs",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/build",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-map",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-reference-placement",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-owned-content",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-canvas-productivity",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-reading",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-persistence",
+      "state": "success"
+    },
+    {
+      "context": "pre-pr/project-edges",
+      "state": "success"
+    }
+  ],
+  "otherObservedChecks": [
+    {
+      "name": "Workers Builds: sample-workflow-v3",
+      "status": "in_progress",
+      "conclusion": null,
+      "detailsUrl": "https://dash.cloudflare.com/26171bb455a3f1da991acb2ab8d843f3/workers/services/view/sample-workflow-v3/production/builds/8723afa9-058b-4817-aa27-19aa22a6755c"
+    },
+    {
+      "name": "verify",
+      "status": "completed",
+      "conclusion": "success",
+      "detailsUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38102602889/job/114361461190"
+    },
+    {
+      "name": "verify",
+      "status": "completed",
+      "conclusion": "success",
+      "detailsUrl": "https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38102602822/job/114361460917"
+    }
+  ],
+  "actualVerifyCounts": {
+    "native": 357,
+    "sourceFiles": 416,
+    "sourceCases": 3877,
+    "mountedFiles": 105,
+    "mountedCases": 1002,
+    "nodeHttp": 20
+  },
+  "actualOriginalSummaryLines": [
+    "verify\tRun shared verification checks\t2026-10-11T01:46:25.3144878Z \u2139 tests 357",
+    "verify\tRun shared verification checks\t2026-10-11T01:46:25.3145329Z \u2139 pass 357",
+    "verify\tRun shared verification checks\t2026-10-11T02:07:19.2400267Z  Test Files  416 passed (416)",
+    "verify\tRun shared verification checks\t2026-10-11T02:07:19.2420887Z       Tests  3877 passed (3877)",
+    "verify\tRun shared verification checks\t2026-10-11T02:08:43.9259863Z  Test Files  105 passed (105)",
+    "verify\tRun shared verification checks\t2026-10-11T02:08:43.9260539Z       Tests  1002 passed (1002)",
+    "verify\tRun shared verification checks\t2026-10-11T02:08:45.3777006Z \u2139 tests 20",
+    "verify\tRun shared verification checks\t2026-10-11T02:08:45.3777711Z \u2139 pass 20"
+  ],
+  "originalVerifyLogSha256": "5e9917c6ff5514dc740af3c313dc1878d07666521fa0b6a118342184a408939d",
+  "jobs": {
+    "38102602822": {
+      "rawSha256": "d77ff45c294b3e8a2282e62dc8d60e9b92931f1df5f4ee50e5400021ca5178e5",
+      "jobs": [
+        {
+          "id": 114361460917,
+          "name": "verify",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    "38102602889": {
+      "rawSha256": "48b9e0577698855eee9b59c5a42c4ddf8fb60d8501f5f747e56861c46d18faa8",
+      "jobs": [
+        {
+          "id": 114361461190,
+          "name": "verify",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    }
+  },
+  "skippedConditionalSteps": {
+    "38102602822": [
+      {
+        "name": "Close verification statuses when the gate did not run",
+        "status": "completed",
+        "conclusion": "skipped"
+      }
+    ],
+    "38102602889": [
+      {
+        "name": "Close verification statuses when the gate did not run",
+        "status": "completed",
+        "conclusion": "skipped"
+      }
+    ]
+  },
+  "rawObservationReceiptSha256": "3c05976166fcc85b44c8ef12449580f4c4fe364c332b05168641e7abd2aab956",
+  "rawCountsAndJobsReceiptSha256": "0fc33bb6e2787aa1190974737dbf4029196b5d2886350ca8d27122d968b4bb73",
+  "rawApiResponsesSha256": {
+    "verify-run.json": "14914fa97ed4dcfd70daaad531beec52ab50bb52238b47891d5fe5190eff5b87",
+    "map-run.json": "74f51f89daf73e812ca8049eacc0b39344c7de44e28e27a4d11f28b0b2bfc754",
+    "status.json": "31ae4e570c0a2f2872bc360df14592228baf38c739993a7a7b40ce77bbafdb56",
+    "check-runs.json": "51ce28c17892a8854ee12126009c181125cf587aa8551393725e031ebc4cfd9e"
+  },
+  "scope": "Exact merged development source complete CI passed. Workers Build was in progress at this recorded observation; no serving/schema/provider/production qualification inferred."
+}

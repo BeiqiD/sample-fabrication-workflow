@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "producerHead": "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+  "producerTree": "d16675a42725094e586f9f3bc78468aa5e46310d",
+  "qaConsumerHead": "bfea74fb975f46fa70eb203c5f5844b46d115215",
+  "qaConsumerTree": "0a7fa7198fa972e1e79e29abdefb17b5281e20b0",
+  "originalBuildCommandReceiptSha256": "1e2d98d3207f902a2426b8aaf1d9a15e0bfbf8fe19acb9679c8c7c622ac70a9f",
+  "originalBuildLogSha256": "a0a78af3dda4ee238573d7dc99f3d87759dcffa3668bf2d1cbb8697aa8a0e1e5",
+  "originalProducerCount": 2489,
+  "nonHelperConsumerExactCount": 2488,
+  "helperSha256": "120568dc7243d62457dc42ec7bb0eb070b987390d659d9385ce504e7d08fce7c",
+  "actualOriginalArtifacts": 118,
+  "newBuilds": 0,
+  "freshPhysicalFixtureRequired": true,
+  "oldPausedHistoryNotOpenedOrChanged": true,
+  "newSeedExpected": 84,
+  "maxOriginalJobControlPOSTs": 10,
+  "priorFailureCorrectionSha256": "0b641ffb208fe43e39554eb1667a3ef63ff14394faca01fc38619f7c571820ae"
+}

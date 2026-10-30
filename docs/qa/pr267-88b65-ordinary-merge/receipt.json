@@ -1,0 +1,18 @@
+{
+  "status": "ORDINARY_SQUASH_MERGED_QUALIFIED_TREE_EXACT_POSTMERGE_CI_PENDING",
+  "createdAt": "2026-10-11T10:21:46.415917+00:00",
+  "pr": 267,
+  "mergeHead": "88b65b17305ee094c25349fbfb6d1e08e5182188",
+  "qualifiedTree": "db28547598df7b10b07000dbd101edf4241d17ca",
+  "ownHead": "c69ccebfd97bbf123d8b063f6c808a1b21e57701",
+  "premergeFourAndAll15Receipt": "1511f24c5714f117e11f1b2e78dc9dc3dc49dd5b54f411535690448819593b71",
+  "ordinaryNoAdmin": true,
+  "raw": {
+    "pr-merged.json": "77d90a0a259d355fa3e4d9c8729bf1490d90083f971a0e295fe2e5b7d462bf91",
+    "merge-commit.json": "c3fb3754f792138e46db2ad588831cf44b043c4fc87a4ba831c1b08cd436f7cc",
+    "dev-ref.json": "c4715f40a9018aa72d4e3eb06cf5bf3ab083ee8ec7db8e27321767322c169744",
+    "postmerge-runs-initial.json": "9dac01b3459136107b87fa935f6ea9fe8600235c7e897e122354db74d9fd0bb5"
+  },
+  "postmergeCI": "PENDING",
+  "mainProductionMutation": false
+}

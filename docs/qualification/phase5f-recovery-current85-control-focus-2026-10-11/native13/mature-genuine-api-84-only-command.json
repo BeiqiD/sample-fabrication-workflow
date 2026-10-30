@@ -1,0 +1,34 @@
+{
+  "stage": "mature-genuine-api-84-only",
+  "cwd": "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2",
+  "argv": [
+    "node",
+    "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2/scripts/qa/phase5f/seed-actual-api.mjs",
+    "http://127.0.0.1:4219/",
+    "/workspace/recovery-current-focus-native-private-attempt7/fixture"
+  ],
+  "expectedRequests": 84,
+  "env": {
+    "TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7",
+    "SQLITE_TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7"
+  },
+  "startedAt": "2026-10-11T11:35:20.779114+00:00",
+  "status": "PASS",
+  "log": "/workspace/recovery-current-focus-native-private-attempt7/runtime/mature-genuine-api-84-only.log",
+  "pid": 1131790,
+  "processGroup": 1131790,
+  "originalStartTicks": "13178154",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T11:35:24.182334+00:00",
+  "logSha256": "42d02090747ff2ddfafacf2e169c9454d720679ebb639a46a7f640e64b8fb2f6"
+}

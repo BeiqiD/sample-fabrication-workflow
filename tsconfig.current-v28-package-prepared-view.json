@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.server.json",
+  "files": ["server/packages/current-v28-package-prepared-view.qualification.ts"],
+  "include": [],
+  "exclude": []
+}

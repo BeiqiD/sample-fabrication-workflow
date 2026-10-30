@@ -1,0 +1,67 @@
+{
+  "stage": "ordinary-actual24-local-migrations",
+  "cwd": "/tmp/phase5f-package-two-esbuild-contract-copy-attempt2",
+  "argv": [
+    "node",
+    "node_modules/wrangler/bin/wrangler.js",
+    "d1",
+    "migrations",
+    "apply",
+    "DB",
+    "--local",
+    "--config",
+    ".wrangler/deploy.jsonc",
+    "--persist-to",
+    "/tmp/phase5f-package-two-esbuild-contract-copy-attempt2/.wrangler/state"
+  ],
+  "env": {
+    "WRANGLER_SEND_METRICS": "false",
+    "WRANGLER_LOG_PATH": "/tmp/phase5f-package-two-esbuild-contract-fixture-attempt2/wrangler-logs"
+  },
+  "startedAt": "2026-10-11T03:53:14.068408+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/ordinary-actual24-local-migrations.log",
+  "pid": 697294,
+  "processGroup": 697294,
+  "originalStartTicks": "10405483",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 697310,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 697294,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 697310,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 697294,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 697310,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 697294,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T03:53:27.533348+00:00",
+  "logSha256": "a4c2ee4f147f8110883945240afdfc2a2814e352b98694a6814440398a2d4360"
+}

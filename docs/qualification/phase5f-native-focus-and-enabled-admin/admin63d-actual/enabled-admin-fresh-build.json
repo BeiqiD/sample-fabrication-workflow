@@ -1,0 +1,29 @@
+{
+  "status": "passed",
+  "command": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "actualExitCode": 0,
+  "sourceRoot": "/tmp/phase5f-enabled-admin-original-body-barrier-source-attempt4",
+  "sourceHead": "95ad6b88d833c16d6f9e62f4787101c7919b31c5",
+  "sourceTree": "b2b18885a5b91c05b1272384897e24c8bf58476a",
+  "workerSha256": "44fa8cc93fc762fa06a31dbd7fbe22eaaf32801734cc221aa65b113af373e3a9",
+  "activeBuildConfigSha256": "a84abe6b0dda061e0be9b6e47c927c8e75440af11721a8085c4e742225201111",
+  "copiedArtifactInventorySha256": "e2cd3d44d0e9971554e500aea68b928b7c97ead812eecc63911da540c7b04ef4",
+  "originalCommandReceiptSha256": "6334349862c338c34370ac2a4ec83354d30dae17f13e798d1151e4b5eb074d0e",
+  "consumerSourceRoot": "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5",
+  "consumerSourceHead": "63d720a807ab8b21a8f8c152cc3cb8314e615355",
+  "consumerSourceTree": "bd0aac2ca2f0de8b7fddbbad4e5865b9e89dd0d8",
+  "inputScope": {
+    "purpose": "original95-actual-producer-single-QA-observer-equivalence-v1",
+    "excludedQaPaths": [
+      "scripts/qa/phase5f/browser-enabled-admin-actual-api.mjs"
+    ],
+    "preservedTrackedFileCount": 1706,
+    "preservedTrackedFileInventorySha256": "46ccb104c44bfbaa6af7c4c9665d0ce5646093f8f7f23738d237023c22019057",
+    "sourceEquivalenceReceiptSha256": "a0b13f008f1d27a2ebeaf7bda50b9260670f8b3a5df85dd8d0404c03b4ab4886"
+  },
+  "scope": "Observed original95 producer380049 npm build exit0/reaped; exact118outputs+3config carry to distinct63d singleQAobserver consumer. No fresh63dbuild."
+}

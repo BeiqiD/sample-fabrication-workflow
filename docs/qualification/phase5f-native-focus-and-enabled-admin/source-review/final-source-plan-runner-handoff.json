@@ -1,0 +1,59 @@
+{
+  "status": "FROZEN_SOURCE_ONLY_RUNTIME_UNRUN",
+  "consumerHead": "63d720a807ab8b21a8f8c152cc3cb8314e615355",
+  "consumerTree": "bd0aac2ca2f0de8b7fddbbad4e5865b9e89dd0d8",
+  "producerHead": "95ad6b88d833c16d6f9e62f4787101c7919b31c5",
+  "sourceReceipt": {
+    "path": "/tmp/phase5f-admin-explicit-refresh-original-request-source-review-attempt5/frozen-single-QA-native-terminal-source.json",
+    "sha256": "a0b13f008f1d27a2ebeaf7bda50b9260670f8b3a5df85dd8d0404c03b4ab4886"
+  },
+  "sourcePeer": {
+    "path": "/tmp/phase5f-ui63d-native-terminal-and-original-stdin-v26-independent-source-peer.json",
+    "sha256": "495c0d0a1aa208b38d207a64ad9ffab60a85bf35e33376198b4f5f0647930d55"
+  },
+  "plan": {
+    "path": "/tmp/phase5f-admin-explicit-refresh-original-request-source-review-attempt5/finite-admin-native-terminal-plan.json",
+    "sha256": "f2ffdca07a6a02253e77a7c12462068974ec6446d3c3aff77b545ef7fdfbbdf6",
+    "stages": 13,
+    "newBuildCommands": 0
+  },
+  "runner": {
+    "path": "/tmp/phase5f-admin-explicit-refresh-original-request-source-review-attempt5/run-frozen-owned-stage.py",
+    "sha256": "a5f19f40ed751f8406cf7cc4905fd4c95a2211de1ea687bf4d8f5983fb7e1e4c",
+    "inheritedAstExactFunctionsClasses": 10,
+    "soleChangedFunction": "run_owned: one immediate ownership metadata print, all wait/closure/mutation/budget lines unchanged; global locators/plan pins/firststage initialization only"
+  },
+  "carryHelper": {
+    "path": "/tmp/phase5f-admin-explicit-refresh-original-request-source-review-attempt5/carry-exact-original95-build-artifacts.py",
+    "sha256": "338123cfd66d6fbe8b6d53eadb31d6b5961dc97d18ac69b9c0ab971665f5169f",
+    "scope": "Finite121 originalactualproducer artifacts/config transfer only; no state/dependencies/build"
+  },
+  "commandPrefix": [
+    "python",
+    "/tmp/phase5f-admin-explicit-refresh-original-request-source-review-attempt5/run-frozen-owned-stage.py",
+    "--exclusive-go-exact-63d720a-admin13-original-native-terminal-stage"
+  ],
+  "stageIds": [
+    "original95-actual-build-artifact-causal-carry",
+    "isolated-copy",
+    "fresh-two-version-sentinel",
+    "ordinary-actual24-local-migrations",
+    "synthetic-template-sentinels-only",
+    "physical-before",
+    "owned-built-worker",
+    "mature-genuine-api-84-only",
+    "original-disabled-seed-Worker-stop",
+    "original95-producer-distinct-consumer-input-scope-witness",
+    "genuine-enabled-Access-admin-four",
+    "physical-after",
+    "final-source-artifact-input-pins"
+  ],
+  "firstCommand": [
+    "python",
+    "/tmp/phase5f-admin-explicit-refresh-original-request-source-review-attempt5/run-frozen-owned-stage.py",
+    "--exclusive-go-exact-63d720a-admin13-original-native-terminal-stage",
+    "original95-actual-build-artifact-causal-carry"
+  ],
+  "browserCommandLauncherRequiresTty": true,
+  "noRuntimeRun": true
+}

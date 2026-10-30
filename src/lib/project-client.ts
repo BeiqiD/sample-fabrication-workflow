@@ -1,0 +1,211 @@
+import { applicationFetch } from "./authentication-client";
+import { uploadR2Asset, type R2UploadOptions } from "./r2-upload-client";
+import { createUuid } from "./uuid";
+import { PROJECT_CREATION_SUBJECT_HEADER, PROJECT_CREATION_SUBJECT_RESULT_HEADER, isProjectCreationSubject } from "../../shared/project-creation-subject";
+import type {
+  CreateAttachmentProjectItemInput,
+  CreateMarkdownProjectItemInput,
+  CreateProjectEdgeInput,
+  CreateProjectInput,
+  CreateReferenceProjectItemInput,
+  ProjectContentRecord,
+  ProjectEdgeLifecycleInput,
+  ProjectEdgeRecord,
+  ProjectItemLifecycleInput,
+  ProjectItemMutationResponse,
+  ProjectLifecycleInput,
+  ProjectListResponse,
+  ProjectMutationResponse,
+  ProjectPlacementRecord,
+  ProjectRowMutationResponse,
+  ProjectSnapshot,
+  UpdateProjectAttachmentInput,
+  UpdateProjectEdgeInput,
+  UpdateProjectMarkdownInput,
+  UpdateProjectPlacementInput,
+} from "../../shared/project-api";
+import type { CopyAttachmentProjectItemInput } from "../../shared/project-copy-paste-api";
+
+export type ProjectMutationDisposition = "authoritative-rejection";
+const directorySubjects = new WeakMap<object, string>();
+export const projectDirectorySubject = (response: ProjectListResponse): string | null => directorySubjects.get(response) ?? null;
+
+export class ProjectApiError extends Error {
+  readonly status: number;
+  readonly mutationDisposition: ProjectMutationDisposition | null;
+
+  constructor(
+    message: string,
+    status: number,
+    mutationDisposition: ProjectMutationDisposition | null = null,
+    readonly creationSubjectChanged = false,
+  ) {
+    super(message);
+    this.name = "ProjectApiError";
+    this.status = status;
+    this.mutationDisposition = mutationDisposition;
+  }
+}
+
+async function projectRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await applicationFetch(`/api${path}`, init);
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({ error: response.statusText })) as {
+      error?: string;
+    };
+    const mutationDisposition = response.headers.get("x-project-mutation-disposition")
+      === "authoritative-rejection"
+      ? "authoritative-rejection"
+      : null;
+    throw new ProjectApiError(
+      payload.error || `Project request failed (${response.status})`,
+      response.status,
+      mutationDisposition,
+      path === "/projects" && init?.method === "POST" && response.headers.get(PROJECT_CREATION_SUBJECT_RESULT_HEADER) === "mismatch",
+    );
+  }
+  const value = await response.json() as T;
+  if (path === "/projects" && !init?.method && value && typeof value === "object") {
+    const subject = response.headers.get(PROJECT_CREATION_SUBJECT_HEADER);
+    if (isProjectCreationSubject(subject)) directorySubjects.set(value, subject);
+  }
+  return value;
+}
+
+function jsonRequest(method: string, body: unknown): RequestInit {
+  return {
+    method,
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  };
+}
+
+export function createProjectApiId(prefix: string) {
+  return `${prefix}-${createUuid()}`;
+}
+
+export const projectApi = {
+  list: (signal?: AbortSignal) => projectRequest<ProjectListResponse>(
+    "/projects",
+    signal ? { signal } : undefined,
+  ),
+  create: (input: CreateProjectInput, subject?: string) => projectRequest<ProjectMutationResponse>(
+    "/projects",
+    { ...jsonRequest("POST", input), ...(subject ? { headers: { "content-type": "application/json", [PROJECT_CREATION_SUBJECT_HEADER]: subject } } : {}) },
+  ),
+  read: (projectId: string, signal?: AbortSignal) => projectRequest<ProjectSnapshot>(
+    `/projects/${encodeURIComponent(projectId)}`,
+    signal ? { signal } : undefined,
+  ),
+  readTrash: (projectId: string, signal?: AbortSignal) => projectRequest<ProjectSnapshot>(
+    `/projects/${encodeURIComponent(projectId)}?includeDeleted=1`,
+    signal ? { signal } : undefined,
+  ),
+  deleteProject: (
+    projectId: string,
+    input: ProjectLifecycleInput,
+  ) => projectRequest<ProjectMutationResponse>(
+    `/projects/${encodeURIComponent(projectId)}`,
+    jsonRequest("DELETE", input),
+  ),
+  createMarkdownItem: (
+    projectId: string,
+    input: CreateMarkdownProjectItemInput,
+  ) => projectRequest<ProjectItemMutationResponse>(
+    `/projects/${encodeURIComponent(projectId)}/items/markdown`,
+    jsonRequest("POST", input),
+  ),
+  createAttachmentItem: (
+    projectId: string,
+    input: CreateAttachmentProjectItemInput,
+  ) => projectRequest<ProjectItemMutationResponse>(
+    `/projects/${encodeURIComponent(projectId)}/items/attachment`,
+    jsonRequest("POST", input),
+  ),
+  copyAttachmentItem: (
+    projectId: string,
+    input: CopyAttachmentProjectItemInput,
+  ) => projectRequest<ProjectItemMutationResponse>(
+    `/projects/${encodeURIComponent(projectId)}/items/attachment/copy`,
+    jsonRequest("POST", input),
+  ),
+  uploadAttachmentAsset: (file: File, options?: R2UploadOptions) => uploadR2Asset(file, file.name, "project_attachment", options),
+  createReferenceItem: (
+    projectId: string,
+    input: CreateReferenceProjectItemInput,
+  ) => projectRequest<ProjectItemMutationResponse>(
+    `/projects/${encodeURIComponent(projectId)}/items/reference`,
+    jsonRequest("POST", input),
+  ),
+  removeItem: (
+    projectId: string,
+    itemId: string,
+    input: ProjectItemLifecycleInput,
+  ) => projectRequest<ProjectItemMutationResponse>(
+    `/projects/${encodeURIComponent(projectId)}/items/${encodeURIComponent(itemId)}`,
+    jsonRequest("DELETE", input),
+  ),
+  restoreItem: (
+    projectId: string,
+    itemId: string,
+    input: ProjectItemLifecycleInput,
+  ) => projectRequest<ProjectItemMutationResponse>(
+    `/projects/${encodeURIComponent(projectId)}/items/${encodeURIComponent(itemId)}/restore`,
+    jsonRequest("POST", input),
+  ),
+  updateMarkdown: (
+    projectId: string,
+    contentId: string,
+    input: UpdateProjectMarkdownInput,
+  ) => projectRequest<ProjectRowMutationResponse<ProjectContentRecord>>(
+    `/projects/${encodeURIComponent(projectId)}/contents/${encodeURIComponent(contentId)}/markdown`,
+    jsonRequest("PATCH", input),
+  ),
+  updateAttachment: (
+    projectId: string,
+    contentId: string,
+    input: UpdateProjectAttachmentInput,
+  ) => projectRequest<ProjectRowMutationResponse<ProjectContentRecord>>(
+    `/projects/${encodeURIComponent(projectId)}/contents/${encodeURIComponent(contentId)}/attachment`,
+    jsonRequest("PATCH", input),
+  ),
+  updatePlacement: (
+    projectId: string,
+    placementId: string,
+    input: UpdateProjectPlacementInput,
+  ) => projectRequest<ProjectRowMutationResponse<ProjectPlacementRecord>>(
+    `/projects/${encodeURIComponent(projectId)}/placements/${encodeURIComponent(placementId)}`,
+    jsonRequest("PATCH", input),
+  ),
+  createEdge: (
+    projectId: string,
+    input: CreateProjectEdgeInput,
+  ) => projectRequest<ProjectRowMutationResponse<ProjectEdgeRecord>>(
+    `/projects/${encodeURIComponent(projectId)}/edges`,
+    jsonRequest("POST", input),
+  ),
+  updateEdge: (
+    projectId: string,
+    edgeId: string,
+    input: UpdateProjectEdgeInput,
+  ) => projectRequest<ProjectRowMutationResponse<ProjectEdgeRecord>>(
+    `/projects/${encodeURIComponent(projectId)}/edges/${encodeURIComponent(edgeId)}`,
+    jsonRequest("PATCH", input),
+  ),
+  deleteEdge: (
+    projectId: string,
+    edgeId: string,
+    input: ProjectEdgeLifecycleInput,
+  ) => projectRequest<ProjectRowMutationResponse<ProjectEdgeRecord>>(
+    `/projects/${encodeURIComponent(projectId)}/edges/${encodeURIComponent(edgeId)}`,
+    jsonRequest("DELETE", input),
+  ),
+  restoreEdge: (
+    projectId: string,
+    edgeId: string,
+    input: ProjectEdgeLifecycleInput,
+  ) => projectRequest<ProjectRowMutationResponse<ProjectEdgeRecord>>(
+    `/projects/${encodeURIComponent(projectId)}/edges/${encodeURIComponent(edgeId)}/restore`,
+    jsonRequest("POST", input),
+  ),
+};

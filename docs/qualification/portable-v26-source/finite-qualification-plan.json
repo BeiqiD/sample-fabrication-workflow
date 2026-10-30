@@ -1,0 +1,172 @@
+{
+  "status": "Proposed finite commands; not executed in this source-only checkpoint. Runtime requires root coordinator GO.",
+  "workingDirectory": "/tmp/portable-checkpoint-v26-b4c1f7c-source-only",
+  "strictCommands": [
+    {
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.server.json"
+      ],
+      "configSha256": "1b49e4d0ab2c9b8c5583ca5eedcb9a40c8cc9667a4f74d7f4f03d1c8f6da9880"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.runtime-tests.json"
+      ],
+      "configSha256": "6cb4ca106cacb07c0df398c9e894fdd77b98908f27340449fc2a61e208df2356"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.worker.json"
+      ],
+      "configSha256": "7f8a8beb3115c839a0c9008b4949336a0a18517e351ad14f05431b0e73c424fc"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.app.json"
+      ],
+      "configSha256": "2a56d25a041e9e6d411c7e64a66d7c65880d6672f154458cdec33a5267c78bf5"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.shared.json"
+      ],
+      "configSha256": "fc34636bf24a5ef630a494e5d58f336f3efd7fdcf6d5ca9b487116a912e2a5b8"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.file-jobs-node.json"
+      ],
+      "configSha256": "418d8825e653c5c780cc9eea9431e1ef3a90f5b539b504f1a50e7c8d7f1bff14"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        ".tsconfig.v26-worker-tests.json"
+      ],
+      "configSha256": "5d0257f721c467a685277693c245110ccdb613910c516edc9f13e6871e8c0c50"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        ".tsconfig.v26-node-script.json"
+      ],
+      "configSha256": "4d2cd2937bf83d7ad5bf98ed93a3720628a57efe9d9622d99ddb5c91838e713c"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        ".tsconfig.v26-client-tests.json"
+      ],
+      "configSha256": "1e0ef22522c31d1b84462bd4ffb304207aa6e0cc6250d7ee7aee51b3692bf5b9"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        ".tsconfig.v26-research-tests.json"
+      ],
+      "configSha256": "0d11987270d8256090f4f8521158c3bc06176aff26b87b0e8652cd97b084665e"
+    }
+  ],
+  "runtimeCommands": [
+    {
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "server/recovery/portable-v26-checkpoint.test.ts"
+      ],
+      "expectedCases": 14,
+      "scope": "Actual file-backed Node capsule, protected identity/history, rollback and provenance."
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "scripts/lib/export-portable-runtime-v26.test.ts"
+      ],
+      "expectedCases": 1,
+      "scope": "Actual public exportAll ZIP and isolated non-empty research restore."
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "worker/export-portable-negotiation.test.ts"
+      ],
+      "expectedCases": 5,
+      "scope": "Genuine signed Access factory routes on frozen V24, V25 and metadata-only V26."
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "src/lib/api-portable-export.test.ts"
+      ],
+      "expectedCases": 2,
+      "scope": "Current client V26 negotiation and refusal preservation."
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "worker/recovery/portable-backup-v26-workerd.test.ts"
+      ],
+      "expectedCases": 2,
+      "scope": "Genuine local Miniflare/workerd current source plus empty and current D1 target; original authored 180 s per case."
+    }
+  ],
+  "caseBudgets": "Original authored budgets/defaults unchanged; no timeout relaxation.",
+  "order": "Sequential ten strict checks, four bounded runtime files (22 cases), then genuine workerd file (2 cases).",
+  "failurePolicy": "Stop on first failure, retain original output and source hashes, confirm native/SQLite/fixture cleanup, release exclusive runtime before adaptation.",
+  "restrictions": [
+    "No remote D1 or provider I/O; no production deployment.",
+    "No current Node main/catalog adoption; V26 remains a separate provisional metadata-only package.",
+    "No borrowed latest runtime qualification from prior 46-path strict receipt.",
+    "Local authority rows used by tests are explicitly SQL guard fixtures and never physical probe/admission proof."
+  ]
+}

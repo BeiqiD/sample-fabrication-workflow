@@ -1,0 +1,678 @@
+{
+  "status": "QUALIFIED_CURRENT8BE_STORAGE_REFRESH_ORIGINAL_TEN_CLOSED_RELEASED",
+  "recordedAt": "2026-10-11T22:05:50.592332+00:00",
+  "domain": "storage",
+  "producerHead": "8be4e74200096436eaa674a05d44dd772d23fc35",
+  "producerTree": "e7a91951906a0733685489367e73d6d29f74b891",
+  "producerCount": 3086,
+  "qaConsumerHead": "8c460eb229edc1983867a7778a625793d1b852f0",
+  "qaConsumerTree": "28c9177c231c6a7f24e52a51d1bed7492ab3e0a4",
+  "qaConsumerCount": 3092,
+  "copiedArtifactCount": 121,
+  "originalActualArtifactCount": 118,
+  "newBuilds": 0,
+  "disabled84SeedRequests": 0,
+  "plan": {
+    "path": "/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/storage/finite-current8be-genuine-refresh-ten-plan.json",
+    "sha256": "607eeab20bda87e87441761e1e28b7e61dcace8db40800d91f8837dd913e59af",
+    "bytes": 20083
+  },
+  "actualBuild": {
+    "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/build-runtime/actual-one-current8be-cf-build-qualified-closed-release.json",
+    "sha256": "df880ac57d855e4208661077bcb0edcc2a6ef5191c993f3b955acc968e46c2e8"
+  },
+  "actual118Manifest": {
+    "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/build-runtime/fresh-build-artifact-manifest.json",
+    "sha256": "5afe10d664711d498d1b5d3967f815ee63524d4e2d7c934d246584448109faca",
+    "actualFiles": 118
+  },
+  "rootActualBuildRelease": {
+    "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/build-runtime/root-one-current8be-cf-build-full-original118-raw-owner-release.json",
+    "sha256": "6aeda8b7f1c1f7d98faa771c2a44bed44942bf2ec7f4e9b24ba71c14b01ecd53"
+  },
+  "currentApp37Formal": {
+    "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/runtime/actual-current8be-app-and-affected37-qualified-closed-release.json",
+    "sha256": "be8f13911b873405bcdb7913e50b6623c6efc3b189e5462e1ff9af7130bdc561"
+  },
+  "rootExclusiveGO": {
+    "path": "/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/root-current8be-storage-original-ten-exclusive-go.json",
+    "sha256": "124911478946fd2f2810aaf042c705202815cfe746ea7a812af28f2219166a73",
+    "bytes": 2078
+  },
+  "commands": {
+    "passed": 10,
+    "failed": 0,
+    "unrun": 0,
+    "originalStages": [
+      {
+        "stage": "qualified-current02d-coherent-build-producer-preflight",
+        "startedAt": "2026-10-11T22:02:03.958247+00:00",
+        "endedAt": "2026-10-11T22:02:04.336167+00:00",
+        "pid": 1572324,
+        "originalStartTicks": "16938472",
+        "exitCode": 0,
+        "status": "PASS",
+        "ownedClosure": {
+          "before": [],
+          "after": [],
+          "ownedCleanupSignals": [],
+          "noActiveOwnedProcessOrFd": true,
+          "unexpectedLingeringOwner": false,
+          "directChildExitCode": 0,
+          "directChildReaped": true,
+          "afterDirectChildReap": []
+        },
+        "logSha256": "811fc33b462a648eb40b3d9fa8daccec7b45c556cafa10699b4aafd36202afd8"
+      },
+      {
+        "stage": "isolated-copy",
+        "startedAt": "2026-10-11T22:02:13.214284+00:00",
+        "endedAt": "2026-10-11T22:02:14.917581+00:00",
+        "pid": 1572389,
+        "originalStartTicks": "16939398",
+        "exitCode": 0,
+        "status": "PASS",
+        "ownedClosure": {
+          "before": [],
+          "after": [],
+          "ownedCleanupSignals": [],
+          "noActiveOwnedProcessOrFd": true,
+          "unexpectedLingeringOwner": false,
+          "directChildExitCode": 0,
+          "directChildReaped": true,
+          "afterDirectChildReap": []
+        },
+        "logSha256": "1dd64edd490bf1ffa10a3cec703a6ce65331da0b4d26928cd634f8944e7438a6"
+      },
+      {
+        "stage": "fresh-two-version-sentinel",
+        "startedAt": "2026-10-11T22:02:22.443063+00:00",
+        "endedAt": "2026-10-11T22:02:24.555794+00:00",
+        "pid": 1572446,
+        "originalStartTicks": "16940321",
+        "exitCode": 0,
+        "status": "PASS",
+        "ownedClosure": {
+          "before": [
+            {
+              "pid": 1572457,
+              "state": "Z",
+              "ppid": 1,
+              "processGroup": 1572446,
+              "kernelResourcesExited": true,
+              "fdInspection": "PermissionError"
+            }
+          ],
+          "after": [
+            {
+              "pid": 1572457,
+              "state": "Z",
+              "ppid": 1,
+              "processGroup": 1572446,
+              "kernelResourcesExited": true,
+              "fdInspection": "PermissionError"
+            }
+          ],
+          "ownedCleanupSignals": [],
+          "noActiveOwnedProcessOrFd": true,
+          "unexpectedLingeringOwner": false,
+          "directChildExitCode": 0,
+          "directChildReaped": true,
+          "afterDirectChildReap": [
+            {
+              "pid": 1572457,
+              "state": "Z",
+              "ppid": 1,
+              "processGroup": 1572446,
+              "kernelResourcesExited": true,
+              "fdInspection": "PermissionError"
+            }
+          ]
+        },
+        "logSha256": "c5d2aae1f3d981c2393df24a0a5a30950ad689173f595a19306208cf9b408808"
+      },
+      {
+        "stage": "ordinary-actual24-local-migrations",
+        "startedAt": "2026-10-11T22:02:30.880245+00:00",
+        "endedAt": "2026-10-11T22:02:44.176920+00:00",
+        "pid": 1572492,
+        "originalStartTicks": "16941165",
+        "exitCode": 0,
+        "status": "PASS",
+        "ownedClosure": {
+          "before": [
+            {
+              "pid": 1572508,
+              "state": "Z",
+              "ppid": 1,
+              "processGroup": 1572492,
+              "kernelResourcesExited": true,
+              "fdInspection": "PermissionError"
+            }
+          ],
+          "after": [
+            {
+              "pid": 1572508,
+              "state": "Z",
+              "ppid": 1,
+              "processGroup": 1572492,
+              "kernelResourcesExited": true,
+              "fdInspection": "PermissionError"
+            }
+          ],
+          "ownedCleanupSignals": [],
+          "noActiveOwnedProcessOrFd": true,
+          "unexpectedLingeringOwner": false,
+          "directChildExitCode": 0,
+          "directChildReaped": true,
+          "afterDirectChildReap": [
+            {
+              "pid": 1572508,
+              "state": "Z",
+              "ppid": 1,
+              "processGroup": 1572492,
+              "kernelResourcesExited": true,
+              "fdInspection": "PermissionError"
+            }
+          ]
+        },
+        "logSha256": "db24b8fafc55d2507e0368adb2a64fd43f26a2418ab3bd9c3740273dbe8472be"
+      },
+      {
+        "stage": "synthetic-template-sentinels-only",
+        "startedAt": "2026-10-11T22:03:01.169140+00:00",
+        "endedAt": "2026-10-11T22:03:02.532180+00:00",
+        "pid": 1572882,
+        "originalStartTicks": "16944193",
+        "exitCode": 0,
+        "status": "PASS",
+        "ownedClosure": {
+          "before": [
+            {
+              "pid": 1572898,
+              "state": "Z",
+              "ppid": 1,
+              "processGroup": 1572882,
+              "kernelResourcesExited": true,
+              "fdInspection": "PermissionError"
+            }
+          ],
+          "after": [
+            {
+              "pid": 1572898,
+              "state": "Z",
+              "ppid": 1,
+              "processGroup": 1572882,
+              "kernelResourcesExited": true,
+              "fdInspection": "PermissionError"
+            }
+          ],
+          "ownedCleanupSignals": [],
+          "noActiveOwnedProcessOrFd": true,
+          "unexpectedLingeringOwner": false,
+          "directChildExitCode": 0,
+          "directChildReaped": true,
+          "afterDirectChildReap": [
+            {
+              "pid": 1572898,
+              "state": "Z",
+              "ppid": 1,
+              "processGroup": 1572882,
+              "kernelResourcesExited": true,
+              "fdInspection": "PermissionError"
+            }
+          ]
+        },
+        "logSha256": "d5df0628fce98899c8e4acc6dd415448b06d438dbd66f34b8c0a3eec7f8bbbb5"
+      },
+      {
+        "stage": "physical-before",
+        "startedAt": "2026-10-11T22:03:16.128569+00:00",
+        "endedAt": "2026-10-11T22:03:16.954897+00:00",
+        "pid": 1572959,
+        "originalStartTicks": "16945689",
+        "exitCode": 0,
+        "status": "PASS",
+        "ownedClosure": {
+          "before": [],
+          "after": [],
+          "ownedCleanupSignals": [],
+          "noActiveOwnedProcessOrFd": true,
+          "unexpectedLingeringOwner": false,
+          "directChildExitCode": 0,
+          "directChildReaped": true,
+          "afterDirectChildReap": []
+        },
+        "logSha256": "be5487a97ef78b4b8a34adef8581aa1b7881a1f6743fdac30e6a4204b27dd18c"
+      },
+      {
+        "stage": "current-source-build-and-pure24-witness",
+        "startedAt": "2026-10-11T22:03:27.129179+00:00",
+        "endedAt": "2026-10-11T22:03:27.655305+00:00",
+        "pid": 1572987,
+        "originalStartTicks": "16946789",
+        "exitCode": 0,
+        "status": "PASS",
+        "ownedClosure": {
+          "before": [],
+          "after": [],
+          "ownedCleanupSignals": [],
+          "noActiveOwnedProcessOrFd": true,
+          "unexpectedLingeringOwner": false,
+          "directChildExitCode": 0,
+          "directChildReaped": true,
+          "afterDirectChildReap": []
+        },
+        "logSha256": "af5fd1570c25336f008c736eee9fef203ea67de95dea480292e871eea65a77be"
+      },
+      {
+        "stage": "original-one-current-storage-settings-refresh-keyboard",
+        "startedAt": "2026-10-11T22:03:42.852696+00:00",
+        "endedAt": "2026-10-11T22:03:53.930696+00:00",
+        "pid": 1573044,
+        "originalStartTicks": "16948362",
+        "exitCode": 0,
+        "status": "PASS",
+        "ownedClosure": {
+          "before": [],
+          "after": [],
+          "ownedCleanupSignals": [],
+          "noActiveOwnedProcessOrFd": true,
+          "unexpectedLingeringOwner": false,
+          "directChildExitCode": 0,
+          "directChildReaped": true,
+          "afterDirectChildReap": []
+        },
+        "logSha256": "a51d552bfc4d3249093b0704f18758be441703e374cec3da15d4e5a44f290d76"
+      },
+      {
+        "stage": "physical-after",
+        "startedAt": "2026-10-11T22:04:18.701358+00:00",
+        "endedAt": "2026-10-11T22:04:19.651308+00:00",
+        "pid": 1573302,
+        "originalStartTicks": "16951947",
+        "exitCode": 0,
+        "status": "PASS",
+        "ownedClosure": {
+          "before": [],
+          "after": [],
+          "ownedCleanupSignals": [],
+          "noActiveOwnedProcessOrFd": true,
+          "unexpectedLingeringOwner": false,
+          "directChildExitCode": 0,
+          "directChildReaped": true,
+          "afterDirectChildReap": []
+        },
+        "logSha256": "c8ff186e1dcbfa859768169ca28a40260cededc1408ae6942ed0896bfdebbb48"
+      },
+      {
+        "stage": "final-source-artifact-input-pins",
+        "startedAt": "2026-10-11T22:04:27.740835+00:00",
+        "endedAt": "2026-10-11T22:04:28.232796+00:00",
+        "pid": 1573452,
+        "originalStartTicks": "16952851",
+        "exitCode": 0,
+        "status": "PASS",
+        "ownedClosure": {
+          "before": [],
+          "after": [],
+          "ownedCleanupSignals": [],
+          "noActiveOwnedProcessOrFd": true,
+          "unexpectedLingeringOwner": false,
+          "directChildExitCode": 0,
+          "directChildReaped": true,
+          "afterDirectChildReap": []
+        },
+        "logSha256": "da03abf1e659317c36233414c3caf6b4cdf29730961cc6eba925f324cf7dad7c"
+      }
+    ]
+  },
+  "native": {
+    "passed": 1,
+    "failed": 0,
+    "unrun": 0,
+    "originalToolHandle": "35314",
+    "originalFirstToolChunk": "ed022f",
+    "originalTerminalToolChunk": "cac91f",
+    "directPid": 1573044,
+    "originalStartTicks": "16948362",
+    "exitCode": 0,
+    "cases": [
+      {
+        "id": "current-coherent-storage-settings-refresh-keyboard-1280-light",
+        "status": "passed",
+        "assertions": [
+          {
+            "initialCurrentSettings": {
+              "version": 3,
+              "profileCount": 2,
+              "originalBodiesCompleted": true
+            }
+          },
+          {
+            "refreshedCurrentSettings": {
+              "version": 3,
+              "profileCount": 2,
+              "originalBodiesCompleted": true
+            }
+          },
+          {
+            "nativeRefreshFocus": {
+              "connected": true,
+              "active": true,
+              "focusVisible": true,
+              "disabled": false
+            }
+          },
+          {
+            "geometry": {
+              "width": 1280,
+              "root": 1280,
+              "body": 1280,
+              "theme": "light"
+            }
+          }
+        ],
+        "originalRoutesAwaited": {
+          "count": 23,
+          "rejected": 0
+        },
+        "originalBodiesAwaited": {
+          "count": 4,
+          "rejected": 0
+        },
+        "originalWaitsAwaited": {
+          "count": 4,
+          "rejected": 0
+        }
+      }
+    ],
+    "costs": {
+      "setupPOSTs": 6,
+      "readerGETs": 2,
+      "nativeGETs": 4,
+      "nativeMetadataPOSTs": 0,
+      "maxSetupPOSTs": 6,
+      "maxNativePOSTs": 0,
+      "observedAcceptedJobReceipts": 0,
+      "newExecutorSteps": 0
+    },
+    "ownedClosure": {
+      "status": "closed",
+      "browserCloseAwaited": true,
+      "originalPreparationOwnerClosure": {
+        "status": "closed",
+        "startedAt": "2026-10-11T22:03:52.781Z",
+        "originalRequestsAwaited": {
+          "count": 12,
+          "rejected": 0
+        },
+        "workerDisposeAwaited": true,
+        "workerPortRefused": true,
+        "originalOutboundWorkAwaited": {
+          "count": 1,
+          "rejected": 0
+        },
+        "jwksCloseAwaited": true,
+        "jwksPortRefused": true,
+        "completedAt": "2026-10-11T22:03:53.816Z"
+      }
+    },
+    "originalAPIResponseBodies": [
+      {
+        "path": "/api/settings/storage",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "c598cd85d871eb6d6b3bc0c14a26217377053126180d263a694e5f060c5037c4"
+      },
+      {
+        "path": "/api/storage/configuration/capability",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "635c1a510be4a89b46d9144f09780f1a1e794d1235555fd6f60b7d3761299e54"
+      },
+      {
+        "path": "/api/settings/storage",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "c598cd85d871eb6d6b3bc0c14a26217377053126180d263a694e5f060c5037c4"
+      },
+      {
+        "path": "/api/storage/configuration/capability",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "635c1a510be4a89b46d9144f09780f1a1e794d1235555fd6f60b7d3761299e54"
+      }
+    ]
+  },
+  "physical": {
+    "beforeGroups": 2,
+    "afterGroups": 5,
+    "status": "passed",
+    "originalStateBytesUnchanged": true,
+    "allSchemaAndTypedRowsExact": true,
+    "old6SetupPermitsExact": true,
+    "newNativePermits": 0,
+    "sourcePNGExact": true,
+    "targetEmpty": true,
+    "executorSteps": 0
+  },
+  "originalSameWaitReaped": 10,
+  "originalCleanupSignals": [],
+  "currentOwnedGroupObservations": {
+    "1572324": [],
+    "1572389": [],
+    "1572446": [
+      {
+        "pid": 1572457,
+        "state": "Z",
+        "ppid": 1,
+        "group": 1572446,
+        "startTicks": "16940426",
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "1572492": [
+      {
+        "pid": 1572508,
+        "state": "Z",
+        "ppid": 1,
+        "group": 1572492,
+        "startTicks": "16941240",
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "1572882": [
+      {
+        "pid": 1572898,
+        "state": "Z",
+        "ppid": 1,
+        "group": 1572882,
+        "startTicks": "16944270",
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "1572959": [],
+    "1572987": [],
+    "1573044": [],
+    "1573302": [],
+    "1573452": []
+  },
+  "observedEmptyOwnedGroups": 7,
+  "retainedKernelZCount": 3,
+  "kernelLimit": "Only original ten owned groups. KernelZ/PPID1 and FDPermission remain recorded; no observed0FD or globalquiescence claim.",
+  "originalRawRecords": [
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/qualified-current02d-coherent-build-producer-preflight-command.json",
+      "sha256": "81fafa36619bc3ce9eb3b5caac006b00965fe3a7ff0619704159f5e0b45c166d",
+      "bytes": 1307
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/qualified-current02d-coherent-build-producer-preflight.log",
+      "sha256": "811fc33b462a648eb40b3d9fa8daccec7b45c556cafa10699b4aafd36202afd8",
+      "bytes": 120
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/isolated-copy-command.json",
+      "sha256": "91aa0d7bc7efaeb3677e5091791faad4df3d04df5f4d708a268789429eaeb808",
+      "bytes": 1429
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/isolated-copy.log",
+      "sha256": "1dd64edd490bf1ffa10a3cec703a6ce65331da0b4d26928cd634f8944e7438a6",
+      "bytes": 214
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/fresh-two-version-sentinel-command.json",
+      "sha256": "086223177204a9505a37018b63aeb0aabe7c18b307243a34308e9049ea8bb39c",
+      "bytes": 1929
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/fresh-two-version-sentinel.log",
+      "sha256": "c5d2aae1f3d981c2393df24a0a5a30950ad689173f595a19306208cf9b408808",
+      "bytes": 254
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/ordinary-actual24-local-migrations-command.json",
+      "sha256": "ad090b8fac12734e78ce28b6bbfc3f6f354384c00e0a336748e0d1765772afa2",
+      "bytes": 1933
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/ordinary-actual24-local-migrations.log",
+      "sha256": "db24b8fafc55d2507e0368adb2a64fd43f26a2418ab3bd9c3740273dbe8472be",
+      "bytes": 149092
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/synthetic-template-sentinels-only-command.json",
+      "sha256": "53ec01f7643cd5d604ace6c0c135d405bbc85c49c9ec690b02b70ecaf9d5dd66",
+      "bytes": 2035
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/synthetic-template-sentinels-only.log",
+      "sha256": "d5df0628fce98899c8e4acc6dd415448b06d438dbd66f34b8c0a3eec7f8bbbb5",
+      "bytes": 2747
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/physical-before-command.json",
+      "sha256": "6533f7bc9f904eb9692798e1648da112cff9214058e3aecc9ff859313862d2f0",
+      "bytes": 1396
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/physical-before.log",
+      "sha256": "be5487a97ef78b4b8a34adef8581aa1b7881a1f6743fdac30e6a4204b27dd18c",
+      "bytes": 179
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/current-source-build-and-pure24-witness-command.json",
+      "sha256": "dc70a919722635771d9397cd1040184719ae3caf7b464d82a3c0472f455c158b",
+      "bytes": 1266
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/current-source-build-and-pure24-witness.log",
+      "sha256": "af5fd1570c25336f008c736eee9fef203ea67de95dea480292e871eea65a77be",
+      "bytes": 225
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/original-one-current-storage-settings-refresh-keyboard-command.json",
+      "sha256": "07c6b655a7e86d3c15352f722e70bd84c0331e2247892edaa40f976c2ea1fba8",
+      "bytes": 2308
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/original-one-current-storage-settings-refresh-keyboard.log",
+      "sha256": "a51d552bfc4d3249093b0704f18758be441703e374cec3da15d4e5a44f290d76",
+      "bytes": 337
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/physical-after-command.json",
+      "sha256": "259721b15f7671e2ecad532b418c7e855c66fa300ff3e6146884dbd8780314ab",
+      "bytes": 1804
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/physical-after.log",
+      "sha256": "c8ff186e1dcbfa859768169ca28a40260cededc1408ae6942ed0896bfdebbb48",
+      "bytes": 196
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/final-source-artifact-input-pins-command.json",
+      "sha256": "575460352eda8c81272d85331c75b0846dd45e1c93b6b6d2b1a0af63ac987b13",
+      "bytes": 1255
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/final-source-artifact-input-pins.log",
+      "sha256": "da03abf1e659317c36233414c3caf6b4cdf29730961cc6eba925f324cf7dad7c",
+      "bytes": 228
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/fixture/genuine-storage-settings-refresh-keyboard-report.json",
+      "sha256": "fdf088c17d911b7268731a548798988f0deb01935091920628903130f94e314f",
+      "bytes": 79673
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/fixture/genuine-storage-settings-refresh-keyboard-stop.json",
+      "sha256": "5cc693bb0c8496e64698e0923f7b7743e7942e04c0db6e61d7ca76d23a331453",
+      "bytes": 500
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/fixture/physical-sqlite-before-api.json",
+      "sha256": "95faa3655afd30a8f511e1e6aa459d688f5bca11d117ef8a347cd0bcf2cad422",
+      "bytes": 68118
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/fixture/physical-sqlite-after-current-storage-status-refresh-keyboard.json",
+      "sha256": "ecde0ee1ba105ef269de5da49850fd704699d141821a8b84edb48c6df380a143",
+      "bytes": 75024
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/final-current8be-source-and-genuine-refresh-pins.json",
+      "sha256": "9c34bb55eca41d15a9bdff86bc8817f9c05308df0d35d24c14a8cc7220f340b3",
+      "bytes": 3307
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/copy/isolation-receipt.json",
+      "sha256": "11342f3bc57e71b33fccd1ebcae55776969f3b71138764529eb9a39cad240d34",
+      "bytes": 461265
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/fixture/process-fixture.json",
+      "sha256": "d4f6cc659987219d71e089e0128fd3abc27db846e5f6b6faa528486604b6a319",
+      "bytes": 1584
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/fixture/process-fixture.sql",
+      "sha256": "66633d7a6c471473646f345e38b45543f41d3b9f67b2592401df3f102597645d",
+      "bytes": 5579
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/fixture/enabled-storage-draft-build-input-witness.json",
+      "sha256": "e3cca10a9b19a6e1e3b2f3b2d7cbcc68f0b4d893f229fda9fe93dd326b5fc366",
+      "bytes": 1427
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/current02d-build-new-pure24-native-causal-carry.json",
+      "sha256": "8d681358d176d939fa1646b2b43fa40fa32dd51ea2a5c13acfeb4bd1d92c04df",
+      "bytes": 1808
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/chromium-child-temp-owner.json",
+      "sha256": "e416e8c2ca4d7c60cf40cad68a46bf5e5b41f8ba5c470ad07108d9c6035e6879",
+      "bytes": 610
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/frozen-approved-plan.json",
+      "sha256": "607eeab20bda87e87441761e1e28b7e61dcace8db40800d91f8837dd913e59af",
+      "bytes": 20083
+    },
+    {
+      "path": "/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/original-tool-responses.json",
+      "sha256": "20f63cf2e5421eb1e38b56cda9ade38cf40cbcb0c6e04ef9cfb4765adce21fe5",
+      "bytes": 32247
+    }
+  ],
+  "rawRecordCount": 33,
+  "oldFailure": "Original9a focus failure remains exact; successful8be does not retrospectively change originalresult. PackageRefresh and Start202 stillUNRUN under separate rootGO.",
+  "scope": "ONE8be Storage1280light nativeRefresh actualPASS, full4 original200 bodies/hash, exactnativebuttonfocus and root/body1280 within+2. Six genuine setupPOSTs+reader2GET+native4GET=12 API requests; no nativePOST/jobs/permits/provider/executor. Original normalcontext/body/route/waits/browser/Worker/JWKS close+ports and directwait/reap observed, physicalbefore2/after5/finalsource3086/QA3092/artifacts118copy121 PASS. Ready root fullrawreview; no further effect without separate rootGO."
+}

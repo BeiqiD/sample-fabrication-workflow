@@ -1,0 +1,19 @@
+
+ RUN  v4.1.10 /workspace/portable-current194-coherent-metadata-source-only-attempt1
+
+ ↓ worker/uploads/native-file-ingress.test.ts > native File accepted ordinary and metrology ingress > publishes ordinary atomically and replays a lost publication ACK without PUT after defaults change
+ ↓ worker/uploads/native-file-ingress.test.ts > native File accepted ordinary and metrology ingress > publishes metrology atomically and replays a lost publication ACK without PUT after defaults change
+ ↓ worker/uploads/native-file-ingress.test.ts > native File accepted ordinary and metrology ingress > separates embedded content from original purpose and shares the exact research File between metrology and Project attachments
+ ↓ worker/uploads/native-file-ingress.test.ts > native File accepted ordinary and metrology ingress > rolls ordinary publication and alias binding back while an uncertain candidate cannot repeat PUT
+ ↓ worker/uploads/native-file-ingress.test.ts > native File accepted ordinary and metrology ingress > rolls metrology publication and alias binding back while an uncertain candidate cannot repeat PUT
+ ↓ worker/uploads/native-file-ingress.test.ts > native File accepted ordinary and metrology ingress > observes corrupted native ready bytes without fallback, repair or receipt mutation
+ ↓ worker/uploads/native-file-ingress.test.ts > FabuBlox frozen per-file native targets > freezes native provenance and R2 embedded targets before a default change and replays without provider writes
+ ↓ worker/uploads/native-file-ingress.test.ts > FabuBlox frozen per-file native targets > rejects an incomplete companion inventory atomically before any provider I/O
+ ✓ worker/uploads/native-file-ingress.test.ts > FabuBlox frozen per-file native targets > binds native planned, execution and verification assets by File and preserves them through occurrence delete/restore 2094ms
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 8 skipped (9)
+   Start at  04:47:09
+   Duration  5.79s (transform 2.85s, setup 43ms, import 3.54s, tests 2.09s, environment 0ms)
+
+JSON report written to /tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/05-native-file-ingress.test.json

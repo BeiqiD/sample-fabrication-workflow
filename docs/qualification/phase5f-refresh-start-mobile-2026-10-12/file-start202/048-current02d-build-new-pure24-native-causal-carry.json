@@ -1,0 +1,32 @@
+{
+  "status": "PASS",
+  "domain": "file",
+  "producerHead": "2d07b57c4e79403099261528ae8988c0072d28c6",
+  "producerTree": "bf96bbcadd4c4d8a0ada525f639cf768d2d4eb90",
+  "qaConsumerHead": "c3c1027b66cca605c7d1ee5e9b7d30427d5c3ca4",
+  "qaConsumerTree": "7e267469efe57b9e72ceeab205a6633b60526735",
+  "originalBuildCommandReceiptSha256": "ccf435b9bb164cc97815d7dacfc090d454f9cbce935bc096e3f8d4c8f838a978",
+  "originalBuildLogSha256": "6b70efeab75adb8e93e5d9912a43098824731a8fb974053835416914387768e1",
+  "originalProducerCount": 3181,
+  "all3181ProducerInputsOnConsumerExact": true,
+  "extraNativeQaInputs": {
+    "scripts/qa/phase5f/browser-current-package-file-focus-file-start202-natural-focus-keyboard-mobile.mjs": "eceeb804409c169f5788e0a7255e254caf588e13fa7285a0b7b42fc8132c3e28",
+    "scripts/qa/phase5f/browser-current-package-file-focus-file-start202-natural-focus-keyboard.mjs": "11f0e926242a36023418c28d499b289ec7f7c17b7c8404e340a98607331c065d",
+    "scripts/qa/phase5f/browser-current-package-file-focus-package-start202-natural-focus-keyboard-mobile.mjs": "9a9dfe06f17336fd75f83e3e2e5d2c4bffaef92187d733d1242c0cafe781287f",
+    "scripts/qa/phase5f/browser-current-package-file-focus-package-start202-natural-focus-keyboard.mjs": "e5086d1524d47eee1643ee7108b385f9bb9b6e780d2525d90b8c056319bd3c3e",
+    "scripts/qa/phase5f/browser-current-package-file-focus-package-status-refresh-keyboard-mobile.mjs": "be04e25c8e82e39f9f41d1737cd79eb86a2fdba8e39afccfc5e36cf899db3eb0",
+    "scripts/qa/phase5f/browser-current-package-file-focus-package-status-refresh-keyboard.mjs": "fdc76a198b6d364fe4b63feaaa57e8b1fbf3b974f1225f31eb2d498bef13db51",
+    "scripts/qa/phase5f/check-current-package-file-focus-package-refresh-mobile-physical-state.py": "7c0b76aabe0bb91f31a8c40bb71883bdb325eabee2e4af64622cc5a69137f8b9",
+    "scripts/qa/phase5f/check-current-package-file-focus-package-refresh-physical-state.py": "7e60fce30fa71eb67e58296222b39d7fd9456a9e083167345989ca965bf17d30",
+    "scripts/qa/phase5f/check-current-package-file-focus-start202-natural-focus-mobile-physical-state.py": "7c73e3f8cd85ae566004846d7b5365d8c5be638b37f6591d97ec4564bc521378",
+    "scripts/qa/phase5f/check-current-package-file-focus-start202-natural-focus-physical-state.py": "45804fc8a3ef74906fc31a77a627b8fae5958eff709ac65c59355a722710ccb8"
+  },
+  "actualOriginalArtifacts": 118,
+  "newBuilds": 0,
+  "freshIndependentPure24FixtureRequired": true,
+  "disabledSeedRequests": 0,
+  "setupPOSTMaximum": 6,
+  "originalNativeMetadataPOSTMaximum": 2,
+  "maximumTotalPOSTs": 8,
+  "oldPausedLineagesNotOpenedOrChanged": true
+}

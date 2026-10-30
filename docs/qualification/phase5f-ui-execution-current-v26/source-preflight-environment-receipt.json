@@ -1,0 +1,19 @@
+{
+  "status": "SOURCE_ONLY_READY_NO_RUNTIME",
+  "head": "98d81a170394a140fb63e970b31d1985bd56f68d",
+  "ignoredNodeModulesLink": "/workspace/remaining-5f-ui-execution-currente108-source-integration/node_modules",
+  "resolvedRoot": "/workspace/sample-fabrication-workflow/node_modules",
+  "exactExcludeEntry": "/node_modules",
+  "lockProvenance": {
+    "nodeModulesRealRoot": "/workspace/sample-fabrication-workflow/node_modules",
+    "manifestHashes": {
+      "package.json": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+      "package-lock.json": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a"
+    },
+    "hiddenLockSha256": "95202718d08fd50cc286bcddf0af66b08503d63b494e992006c50d4246d69a98",
+    "scope": "Existing shared installed directory; no install/dependency copy; not per-package attestation"
+  },
+  "ownFourStatusDocsAndNineteenNonPatchEvidenceFilesDiffCheck": "PASS",
+  "immutableAcceptedPatchWhitespace": "docs/qualification/portable-execution-current24-worker/frozen-4928-source-candidate.patch:2098: trailing whitespace.\n+ \ndocs/qualification/portable-execution-current24-worker/frozen-4928-source-candidate.patch:2261: trailing whitespace.\n++    \ndocs/qualification/portable-execution-current24-worker/frozen-4928-source-candidate.patch:2732: trailing whitespace.\n+ \ndocs/qualification/portable-execution-current24-worker/frozen-4928-source-candidate.patch:2737: trailing whitespace.\n+ \ndocs/qualification/portable-execution-current24-worker/frozen-4928-source-candidate.patch:2983: trailing whitespace.\n+ \ndocs/qualification/portable-execution-current24-worker/frozen-4928-source-candidate.patch:2989: trailing whitespace.\n+ \ndocs/qualification/portable-execution-current24-worker/frozen-4928-source-candidate.patch:3224: trailing whitespace.\n+ \ndocs/qualification/portable-execution-current24-worker/frozen-4928-source-candidate.patch:3253: trailing whitespace.\n+ \ndocs/qualification/portable-execution-current24-worker/frozen-4928-source-candidate.patch:3358: trailing whitespace.\n++  \ndocs/qualification/portable-execution-current24-worker/frozen-4928-source-candidate.patch:3377: trailing whitespace.\n++  \ndocs/qualification/portable-execution-current24-worker/frozen-4928-source-candidate.patch:3421: trailing whitespace.\n++  \ndocs/qualification/portable-execution-current24-worker/frozen-4928-source-candidate.patch:3474: trailing whitespace.\n++  \ndocs/qualification/portable-execution-current24-worker/frozen-4928-source-candidate.patch:3636: trailing whitespace.\n+ \n",
+  "runtimeRun": false
+}

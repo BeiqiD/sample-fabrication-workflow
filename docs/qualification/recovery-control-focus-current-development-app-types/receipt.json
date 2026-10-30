@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "sourceHead": "a28298e6df5c6bb59fabc5d0f604498480f56e74",
+  "sourceTree": "44f383d302e0a3cb3300b079fc977f2559f16b3f",
+  "sourceFiles": 2362,
+  "sourceBeforeAfterExact": true,
+  "argv": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "/workspace/sample-fabrication-workflow/node_modules/typescript/bin/tsc",
+    "-p",
+    "tsconfig.app.json",
+    "--noEmit"
+  ],
+  "pid": 1131846,
+  "originalStartTicks": "13179006",
+  "exitCode": 0,
+  "originalWaitReaped": true,
+  "ownedGroupAfter": [],
+  "seconds": 1.985,
+  "logSHA": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "scope": "ONE currentdevelopment affectedApp compiler after selective3leaf Recovery adoption. No mounted/native/build invoked or old donor outputs retagged."
+}

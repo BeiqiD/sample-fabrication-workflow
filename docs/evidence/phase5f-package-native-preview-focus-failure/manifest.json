@@ -1,0 +1,320 @@
+{
+  "scope": "Actual Package75e desktop preview focus failure/0PASS1FAIL1UNRUN; normal original owner closure and mandatory physical/source pins. Original unrelated first TS7 setupfailure30 files retained exact. No new qualification claimed.",
+  "actualSourceHead": "75e7d9e61347f875074b8fc7b9d9a1f441ffc835",
+  "actualProducerHead": "f88fffea3ba0654b52ca90ee87efdafdb70cd48c",
+  "status": "FAIL",
+  "ownershipStatus": "CLOSED",
+  "released": true,
+  "caseCounts": {
+    "passed": 0,
+    "failed": 1,
+    "unrun": 1
+  },
+  "commandCounts": {
+    "PASS": 11,
+    "FAIL": 1,
+    "total": 12
+  },
+  "originalStopControl": "PASS_NORMAL_SOURCE_WORKER_STOP_AND_DISPOSAL",
+  "rawRecordCount": 44,
+  "rawBytes": 470210,
+  "files": [
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/final-qualified-f88-source-and-package-two-copy-pins.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/final-qualified-f88-source-and-package-two-copy-pins.json",
+      "sha256": "980177d03ddf113ffeb7d463dbb63db7b0f588aee414356581a999feb41361e5",
+      "bytes": 1139
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/final-source-artifact-input-pins-command.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/final-source-artifact-input-pins-command.json",
+      "sha256": "1677af5dd8c75c6cba802150dc57d08868087021ddf92926c88f6b3f22343077",
+      "bytes": 1369
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/final-source-artifact-input-pins.log",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/final-source-artifact-input-pins.log",
+      "sha256": "81f19a53672ea8819411180d89192969a087c236124be431c0fc5552aaae492a",
+      "bytes": 140
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/fresh-current-source-build-witness-command.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/fresh-current-source-build-witness-command.json",
+      "sha256": "74678b7c6003393742664160415338ab871cf44a2a3d619a4c914588a726d20b",
+      "bytes": 1308
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/fresh-current-source-build-witness.log",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/fresh-current-source-build-witness.log",
+      "sha256": "1d0dfc4a5d8ca3a9a451c8e9b5e3fcb905afc814121055de2943b92287de54bf",
+      "bytes": 137
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/fresh-two-version-sentinel-command.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/fresh-two-version-sentinel-command.json",
+      "sha256": "6b052fdac77c015963e911694654e340138ec901d4cde3843b30cbde4004e0db",
+      "bytes": 1645
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/fresh-two-version-sentinel.log",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/fresh-two-version-sentinel.log",
+      "sha256": "1ae395c8a68c65589219de2a5b60906d1685db8f6eed45cf7a0ba1133b5ba777",
+      "bytes": 214
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/frozen-approved-plan.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/frozen-approved-plan.json",
+      "sha256": "f823176620334a3dcff8bd9779be02ac70d8d92b5e14d811cf8557b5f21ece71",
+      "bytes": 18898
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/genuine-enabled-Access-package-preview-two-command.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/genuine-enabled-Access-package-preview-two-command.json",
+      "sha256": "19515d1a1d5102555d8db56d8861bb864e31362fb353f280350130e9e5fe1b38",
+      "bytes": 2288
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/genuine-enabled-Access-package-preview-two.log",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/genuine-enabled-Access-package-preview-two.log",
+      "sha256": "eee96f5a8bfeb44818bc997db21065ebd8cbaa6589c796887bc03b1fae8f93c5",
+      "bytes": 205
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/isolated-copy-command.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/isolated-copy-command.json",
+      "sha256": "a36ba6226a48f944a259ce4ff1b7e4210247b28245fcc9fc009acb75648e6b32",
+      "bytes": 1152
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/isolated-copy.log",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/isolated-copy.log",
+      "sha256": "11b0b0ed59b4164b68ca3def1e817ce0417e6467db8e696ac002b664655fd4bf",
+      "bytes": 194
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/mature-genuine-api-84-only-command.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/mature-genuine-api-84-only-command.json",
+      "sha256": "cfca9cdcdcc99042641902adf7946360f5b70d0f391d6fe35dc699817f6b2f67",
+      "bytes": 1035
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/mature-genuine-api-84-only.log",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/mature-genuine-api-84-only.log",
+      "sha256": "88165b242ad32b6242800a2081dc632dc5b9ce6e52c6042fb78a028c61dbc2c1",
+      "bytes": 181
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/ordinary-actual24-local-migrations-command.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/ordinary-actual24-local-migrations-command.json",
+      "sha256": "9b646955b75329f80b86962893ec0235106b6b0352e9c37e961079389dd4fece",
+      "bytes": 1821
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/ordinary-actual24-local-migrations.log",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/ordinary-actual24-local-migrations.log",
+      "sha256": "a4c2ee4f147f8110883945240afdfc2a2814e352b98694a6814440398a2d4360",
+      "bytes": 147956
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/owned-built-worker-command.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/owned-built-worker-command.json",
+      "sha256": "62a1ddf77fb36f674043725b39ed15f06333b3ba78bc427df4f3af1791936a3d",
+      "bytes": 1510
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/owned-built-worker.log",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/owned-built-worker.log",
+      "sha256": "b699b9711fa21d1cdf7e409100a3b4409322373758773bea00b2b8c8bb071aaf",
+      "bytes": 497
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/physical-after-command.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/physical-after-command.json",
+      "sha256": "f2079d386a354ac9ae6cdb11f72215d0f382976e448ef2df3b7d3385fcc6b947",
+      "bytes": 1410
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/physical-after.log",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/physical-after.log",
+      "sha256": "c56670064b5cb2a7736d8037fc93c93ed0845ae8d8b9ccb339682bb43dcb0e17",
+      "bytes": 163
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/physical-before-command.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/physical-before-command.json",
+      "sha256": "dd6fa5646b12766d6c068060589e59f3986eb4ef6523901a1e5354e83b5d6e77",
+      "bytes": 1108
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/physical-before.log",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/physical-before.log",
+      "sha256": "fe3e8cc547231eb073a26266a05ea965b77401a877064c420c897657dbe45a33",
+      "bytes": 159
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/qualified-f88-producer-before-package-two.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/qualified-f88-producer-before-package-two.json",
+      "sha256": "8912e8edf5f54f08c32948395b0f4a31de2734f843ac47ef8e0aa121d497acf9",
+      "bytes": 513
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/qualified-f88-producer-preflight-command.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/qualified-f88-producer-preflight-command.json",
+      "sha256": "b01da0946c530cceb6a94e23b31403f3d37b6266894c81ffbf7d98c05eef72c1",
+      "bytes": 1249
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/qualified-f88-producer-preflight.log",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/qualified-f88-producer-preflight.log",
+      "sha256": "41f00eceeeddf13815ab4bebe25f555bdee7dfd60013d98f588e361f692356d0",
+      "bytes": 138
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/synthetic-template-sentinels-only-command.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/synthetic-template-sentinels-only-command.json",
+      "sha256": "d35f3166062c998d666b472c170733d0ae86990b2290a40efc3650ba15a80d2a",
+      "bytes": 1903
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/synthetic-template-sentinels-only.log",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/synthetic-template-sentinels-only.log",
+      "sha256": "eb8c07f1d205e979c2b4d4377e606b0480653d5bd30dd60ce8f595e57f14ede9",
+      "bytes": 1611
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-fixture-attempt2/genuine-package-preview-browser-report.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/genuine-package-preview-browser-report.json",
+      "sha256": "0960788d16d82595c2bee55543b0e3454e97dbb21bd19718ef1d8774664c8db2",
+      "bytes": 47195
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-fixture-attempt2/genuine-package-preview-runtime-stop.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/genuine-package-preview-runtime-stop.json",
+      "sha256": "37d976e8269c6ce0e395bbff3b136fd855cb8144af63d2f5407cfd2cbbe9d8c0",
+      "bytes": 381
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-fixture-attempt2/genuine-package-preview-browser-progress.ndjson",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/genuine-package-preview-browser-progress.ndjson",
+      "sha256": "8dbf4671cafed9ace3959a8d4c4568b5044c4287abb58c20554553c61bd609f7",
+      "bytes": 146
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-fixture-attempt2/physical-sqlite-after-shutdown.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/physical-sqlite-after-shutdown.json",
+      "sha256": "a976862fdcfa39f61c892f18d1c2ccaf63c1596ef6504dba3cd92702643b54af",
+      "bytes": 54557
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-fixture-attempt2/physical-sqlite-before-api.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/physical-sqlite-before-api.json",
+      "sha256": "4a4918916c783cc8cd5229b9c23c76d63f2a77f61c648cc5d2327a4d4b3983b2",
+      "bytes": 49749
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-fixture-attempt2/isolated-server-receipt.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/isolated-server-receipt.json",
+      "sha256": "0d8c5f9f98aeebded36289cd3cea77685d65002df4aedd8249945fc2662d98ee",
+      "bytes": 3398
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-fixture-attempt2/isolated-server-stop-receipt.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/isolated-server-stop-receipt.json",
+      "sha256": "f027bae6c56d00a6823f24c294e1c97abe384404074d19b27cd280c9d58795f7",
+      "bytes": 1017
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-fixture-attempt2/actual-api-fixture-receipt.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/actual-api-fixture-receipt.json",
+      "sha256": "9b8c9dc9373345b804c25140105f3f70436358e842df6e033ad4fc02decba8a5",
+      "bytes": 51607
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-fixture-attempt2/enabled-storage-draft-build-input-witness.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/enabled-storage-draft-build-input-witness.json",
+      "sha256": "08d9a51496e6a047c45c90586e813af5cc1a5cf4ec39d7bd717ca0c727661e73",
+      "bytes": 1356
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-fixture-attempt2/process-fixture.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/process-fixture.json",
+      "sha256": "e07e323a85fb59504ebddd0f6f126ce995245d522e499c6ff0bb9f18d757ecd5",
+      "bytes": 1535
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-finite-source-review-attempt2/finite-genuine-package-preview-two-plan.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/finite-genuine-package-preview-two-plan.json",
+      "sha256": "f823176620334a3dcff8bd9779be02ac70d8d92b5e14d811cf8557b5f21ece71",
+      "bytes": 18898
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-finite-source-review-attempt2/run-frozen-owned-stage.py",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/run-frozen-owned-stage.py",
+      "sha256": "efccc0a273973075b09dab14d114ef6bd5824bcca261d77f05b791a5f5427e6e",
+      "bytes": 11429
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-finite-source-review-attempt2/verify-qualified-f88-producer-and-package-two-witness.py",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/verify-qualified-f88-producer-and-package-two-witness.py",
+      "sha256": "9f3626a7c08e6837a73c011250904e768af4292d4ccc15aefcfae07737eef506",
+      "bytes": 9627
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-finite-source-review-attempt2/source-handoff.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/source-handoff.json",
+      "sha256": "b1b70bc69d2e9ea10696eda93fc6aab55158b52b50456d155056ed0012b4a22d",
+      "bytes": 2993
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-finite-source-review-attempt2/esbuild-stop-api-closure-scope-source-addendum.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/esbuild-stop-api-closure-scope-source-addendum.json",
+      "sha256": "ef9c1462ee86e856b38d262c178e8585e9ecedfaa1e7ef4071460a5514829781",
+      "bytes": 1263
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-fixture-attempt2/genuine-package-preview-browser-artifacts/data-package-real-scope-1280-light.genuine-package-preview.geometry.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/data-package-real-scope-1280-light.genuine-package-preview.geometry.json",
+      "sha256": "8d67bf3ce04462173984cc11e046413e827f39b6ae2973c2c903f2d68676d07c",
+      "bytes": 237
+    },
+    {
+      "originalPath": "/tmp/phase5f-package-two-esbuild-contract-runtime-attempt2/actual-package-two-native-focus-failure-closed-and-released.json",
+      "path": "docs/evidence/phase5f-package-native-preview-focus-failure/actual-package-two-native-focus-failure-closed-and-released.json",
+      "sha256": "b4d5f14afa504bd8d546697d3efa207c164c8dc140bd9d3fe9dc3daaec1f62ea",
+      "bytes": 24879
+    }
+  ],
+  "historicalFirstFailure30Paths": {
+    "docs/PHASE5F_PACKAGE_FIRST_PREVIEW_SETUP_FAILURE.md": "80f90f4324a15d2aa6d425ac4fe8bbbc75b026dbca289d95f4bd2f3db51c244c",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/actual-api-fixture-receipt.json": "ca9c7eee647642aa8eefdfabe95bbd660c66021941fcc0c037f88a739c298b69",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/actual-package-two-first-prebrowser-failure-closed-and-released.json": "67e15857d87e3321206ba3c91c60712d8c0a0eea9890f68b6acf559b690ef925",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/enabled-storage-draft-build-input-witness.json": "b7f1bbb67e9b29b5096ee4a87c58ff5db2e187b5090f37310dc4006baa8e12df",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/final-source-artifact-input-pins-command.json": "c899f3240ba0e54a865ca6b4419f40df618575dfbfdf9c3276ff93d536487b7e",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/final-source-artifact-input-pins.log": "f27b04cdabcd463d002326e3b1fd176d18a53fa1027bc872eb3c72decc9d5718",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/finite-genuine-package-preview-two-plan.json": "01f2fb9a5bb7a0a11b2216811ced7b8efff3241a5b044d469645981c0b080c6d",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/fresh-current-source-build-witness-command.json": "5774d88b3560254b639dcd01c80889e1d9582423473256b609adf9ccfcedefa3",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/fresh-two-version-sentinel-command.json": "c82babf112d25ac532e12cc032a29af74c5c13984602fc7fd5b01f42074e9627",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/genuine-enabled-Access-package-preview-two-command.json": "90d6bef95e408d5f80238eee218a0cbacd622d824ae5f88a1cf2079d4818cfd2",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/genuine-enabled-Access-package-preview-two.log": "1c8e82ef6703debf5ce3f1a5b0520f3c124bcefd7f55f0e214335b30b19a8536",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/isolated-copy-command.json": "fbd4c9171a18b3cd7575b647c68578778a612383efb9f52dbf18e365d78a22c5",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/isolated-server-receipt.json": "3ee4a7314c2d00ec9933aa075edc8c35996883f83467a2c777de843c44a1e754",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/isolated-server-stop-receipt.json": "d86adfcc069d47a43ff1fd640ac329b8da83014fb4cb310290e884b153f1189a",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/manifest.json": "0cff369805fc9160df382029c8d6ac6b242efc5214e01558b7da51f25a630479",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/mature-genuine-api-84-only-command.json": "5ef38261888df04429d6f533730cefdeb68718b613e6bb32b5fb5fbd687bb192",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/ordinary-actual24-local-migrations-command.json": "b5a1232b703faa7a6cc7a0d7c9326b38857d603b6b803f8bfda71597a1219099",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/owned-built-worker-command.json": "f409084008c270f50314c763873e074c49a52756db2008cb3b4b9781229d1e66",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/phase5f-package-f503-finite13-independent-qualified-carry-source-peer.json": "86a7f26b5b9fea4a1d52f859b9d307e55b17e619bf2629b9126a0b24aa407fc0",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/phase5f-package-f503-root-finite13-source-review.json": "3099327ce2d0c9fedf63d49c9961b373a1e59a345dfca751231f8e103d0bd6e7",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/physical-after-command.json": "ce1506207542e3abaee78161492176f2f9d9f79c485cdf212e94e72279109493",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/physical-before-command.json": "5020c75cd3f495f7c88f97c28a75c1f08eed49a01ba567b0c893c2f44c1dc2a2",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/physical-sqlite-after-shutdown.json": "c5cd429c269c9a17953df617d6e6ceb184354b27db563558e1f1cb64c42c4af3",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/physical-sqlite-before-api.json": "9a99e616ea1a7db3b666ae5907bc04e66184d11c916d24102c26b4757b918d32",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/qualified-f88-producer-preflight-command.json": "7471ddeb394f8f2ccc1c7d36a60a05bd838a1d5126b5c355647f1f5061acd090",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/run-frozen-owned-stage.py": "8c5f5ceb66b00899bca416b458a93d9271d8f50ae23d4ee94604e6b3e533e7de",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/source-handoff.json": "0439c5eb636b9da5c66b1f6db6b937d33b57e98c6e6e64c24427afdc2271fb27",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/supplemental-source-artifact-pins-after-prebrowser-setup-failure.json": "f3859612d719a49d2e64ef85f742843cb8fab2f09415615da3e3b088867ffc1c",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/synthetic-template-sentinels-only-command.json": "1e26c274167cc467ec5a99ced56b519c6b8b2fade11383bb94e2d0eec981cd62",
+    "docs/evidence/phase5f-package-first-preview-setup-failure/verify-qualified-f88-producer-and-package-two-witness.py": "b6cf30a04c7e00fc3b5d6ad92b2cf9d43d32878da5281686338c9da6a87b5f1f"
+  },
+  "newFocusRepair": "Independent current1943 ffff source is UNRUN and not part of this historical source-specific evidence."
+}

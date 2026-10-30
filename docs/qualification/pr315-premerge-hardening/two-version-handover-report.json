@@ -1,0 +1,2672 @@
+{
+  "version": 1,
+  "status": "passed",
+  "nodeVersion": "v24.19.0",
+  "startedAt": "2026-10-18T19:40:29.648Z",
+  "scope": "Two actual built Worker/client versions, stable local signed Access edge and sequential original runtimes over unchanged local D1/R2. Real retired lazy-route asset failure, explicit keyboard reload, preserved unowned legacy checkpoint and original accepted-job discovery through the authenticated account list without replay. No production, physical device, arbitrary dirty draft, provider, Package execution, elapsed cadence or full release qualification.",
+  "cases": [
+    {
+      "name": "two-version-handover-1280-light",
+      "width": 1280,
+      "theme": "light",
+      "queued": false,
+      "status": "passed",
+      "startedAt": "2026-10-18T19:40:30.387Z",
+      "edge": {
+        "requests": [
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/settings/data",
+            "query": "",
+            "status": 200,
+            "contentType": "text/html; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"69884d85af3040b596f226d20920a074\"",
+            "bodySha256": "dcc8e4b39c9104c2d5526e1e59d47ca498264b302046214ad69fb9286e589708",
+            "byteSize": 936
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/index-C_6mfDzL.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"5b09daa766189a1f85c1a3be2f1d8e61\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/jsx-runtime-2Zwg-L3c.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"df2eda871b63a47f68d1ca8a2bf7c442\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/preload-helper-Czpn1I53.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"10e5cabdd602439aeb16e33e7132546d\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/index-GPLEXs7v.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"17e719c02f00583e78437d266e3a4b67\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/rolldown-runtime-aKtaBQYM.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"074762b256dec94abb082b6f10ecce7d\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/mime-type-DOlD23vX.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"232a6a1d7f97cb07fa8e6e45b9e5236d\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/tiff-BvNwKutC.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"25db1b14174f20c117144431dbaabb01\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/ReadStatus-CdkuGsJ5.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"c0f9d57a47c99100ca279a4c483a52ae\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/ReadStatus-6Jv3QtjP.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"085c60d8936aa0fb58aae324bcba872b\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/research-sha256-9fIt1tcC.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"718d54e59e3a6df37198d49aff3588e7\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/ResearchPackagesPage-twyvYBUP.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"c4f25a3375492029b37944bac0531672\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/storage-settings-BWidlAtC.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"a47e01c6a0639b9fa07efe26d95a6802\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/ResearchPackagesPage-VinC9mAu.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"02ce7f9940b4e9ffa923a827aaca0855\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/api/packages/jobs",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json",
+            "cacheControl": null,
+            "etag": null
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/api/packages/executor",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json",
+            "cacheControl": null,
+            "etag": null
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/SystemRecoveryPage-Dv7RFNhY.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/html; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"d32209d068d881e5fc0e4b0e755e3241\"",
+            "bodySha256": "f2ada4bf65f73ebbf4e04e3e3f2296fbded341b4f3ca35e8272d94804a3cf4a4",
+            "byteSize": 1028
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/SystemRecoveryPage-_JBf2NQn.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/html; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"d32209d068d881e5fc0e4b0e755e3241\"",
+            "bodySha256": "f2ada4bf65f73ebbf4e04e3e3f2296fbded341b4f3ca35e8272d94804a3cf4a4",
+            "byteSize": 1028
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/settings/data/system",
+            "query": "?handover=explicit-reload",
+            "status": 200,
+            "contentType": "text/html; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"d32209d068d881e5fc0e4b0e755e3241\"",
+            "bodySha256": "f2ada4bf65f73ebbf4e04e3e3f2296fbded341b4f3ca35e8272d94804a3cf4a4",
+            "byteSize": 1028
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/index-CbWJohKl.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"728e4994bd1eeeada8684d8ec3bf9b41\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/preload-helper-Czpn1I53.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"11c81263e1df5f95eb018f462f111218\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/mime-type-DOlD23vX.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"64e570ed894ea10bbce1dc05ea92471f\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/authentication-client-D-4lEczZ.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"ee74530940117ddc96404aa5eb42b27d\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/rolldown-runtime-aKtaBQYM.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"e4dc56a7a6bdb9121570ea4a6497a0aa\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/jsx-runtime-2Zwg-L3c.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"2abbde926d765482bab146adbc208662\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/index-GPLEXs7v.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"bcae58a27b5c41e970f92d000d91f840\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/tiff-BvNwKutC.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"6c65ab1947a6aafb20f96480d4759222\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/api/identity",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json",
+            "cacheControl": "private, no-store",
+            "etag": null
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/SystemRecoveryPage-DIXKurZl.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"c3fae9b348c9f433f2a64f4c03d4ecbb\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/ReadStatus-6Jv3QtjP.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"6c5d1ba510e00bd09f940196b11024a9\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/research-sha256-9fIt1tcC.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"e028e548dfa41645f192483109cf1698\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/SystemRecoveryPage-BLSfeIU9.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"92c95d5b6440b117c12919ddd2f3d453\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/storage-settings-DSsGX-ac.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"eb9ba6a0b5ed8c9257d509b3a2cfccef\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/ReadStatus-CdkuGsJ5.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"023bb0e29433049ac8dcab2a96f3ed70\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/api/system-recovery/capabilities",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json",
+            "cacheControl": "private, no-store",
+            "etag": null
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/api/system-recovery/jobs",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json",
+            "cacheControl": "private, no-store",
+            "etag": null
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/api/system-recovery/maintenance",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json",
+            "cacheControl": "private, no-store",
+            "etag": null
+          }
+        ],
+        "errors": [],
+        "cancelledReads": [],
+        "lostAcknowledgements": []
+      },
+      "api": [
+        {
+          "version": "A",
+          "method": "GET",
+          "path": "/api/system-recovery/backup-preview",
+          "status": 403
+        },
+        {
+          "version": "A",
+          "method": "GET",
+          "path": "/api/files/shadow/status",
+          "status": 200
+        },
+        {
+          "version": "A",
+          "method": "POST",
+          "path": "/api/files/shadow/enable",
+          "status": 200,
+          "input": {
+            "requestId": "1212a2b6-6683-4e7a-bfa0-9b23602791b1",
+            "expectedEpoch": 2,
+            "expectedIncarnation": null
+          }
+        },
+        {
+          "version": "A",
+          "method": "POST",
+          "path": "/api/files/shadow/profiles/enable",
+          "status": 200,
+          "input": {
+            "profile": {
+              "profileId": "storage-profile:r2:bootstrap",
+              "configurationRevision": 1
+            },
+            "runtimeIncarnation": "1212a2b6-6683-4e7a-bfa0-9b23602791b1",
+            "expectedEpoch": 2
+          }
+        },
+        {
+          "version": "A",
+          "method": "POST",
+          "path": "/api/files/shadow/disable",
+          "status": 200,
+          "input": {
+            "runtimeIncarnation": "1212a2b6-6683-4e7a-bfa0-9b23602791b1",
+            "expectedEpoch": 3
+          }
+        },
+        {
+          "version": "A",
+          "method": "GET",
+          "path": "/api/files/authority/status",
+          "status": 200
+        },
+        {
+          "version": "A",
+          "method": "POST",
+          "path": "/api/files/authority/activate",
+          "status": 200,
+          "input": {
+            "requestId": "dde08b23-1810-4768-a9cd-504f9b0bb334",
+            "expectedEpoch": 3,
+            "expectedShadowIncarnation": "1212a2b6-6683-4e7a-bfa0-9b23602791b1"
+          }
+        },
+        {
+          "version": "A",
+          "method": "POST",
+          "path": "/api/samples",
+          "status": 201,
+          "input": {
+            "code": "HANDOVER-a855c483-13df-4cc1-9ed7-d63e8eb67638",
+            "title": "Actual two-version handover source",
+            "status": "stored",
+            "location": "QA"
+          }
+        },
+        {
+          "version": "A",
+          "method": "POST",
+          "path": "/api/assets",
+          "status": 201
+        },
+        {
+          "version": "A",
+          "method": "GET",
+          "path": "/api/samples/4dedcc6f-9228-45d7-8168-04f334de6388",
+          "status": 200
+        },
+        {
+          "version": "A",
+          "method": "POST",
+          "path": "/api/samples/4dedcc6f-9228-45d7-8168-04f334de6388/records",
+          "status": 201,
+          "input": {
+            "status": "stored",
+            "location": "QA",
+            "pinned": false,
+            "expectedUpdatedAt": "2026-10-18T19:40:45.336Z",
+            "body": "Preserved original two-version source",
+            "assetKey": "2026-10-18/bbaf2a60-8ccb-43a3-88a6-37cfe7872809-handover-original.png"
+          }
+        },
+        {
+          "version": "B",
+          "method": "GET",
+          "path": "/api/system-recovery/capabilities",
+          "status": 200
+        },
+        {
+          "version": "B",
+          "method": "GET",
+          "path": "/api/assets/2026-10-18/bbaf2a60-8ccb-43a3-88a6-37cfe7872809-handover-original.png",
+          "status": 200
+        }
+      ],
+      "lifecycle": [
+        {
+          "version": "A",
+          "event": "Actual artifact ready",
+          "workerSha256": "aa52f0c0b01ef6be46837efdc12d060d1872fb92e0896afc2a970df4aba41eec",
+          "at": "2026-10-18T19:40:44.929Z"
+        },
+        {
+          "version": "A",
+          "event": "Original runtime disposed and owned port refused",
+          "at": "2026-10-18T19:40:46.588Z"
+        },
+        {
+          "version": "B",
+          "event": "Actual artifact ready",
+          "workerSha256": "8280562bdf062272d77cdc41247327c0be3328e316d3224d4d6049678dbff751",
+          "at": "2026-10-18T19:40:47.712Z"
+        },
+        {
+          "version": "B",
+          "event": "Original runtime disposed and owned port refused",
+          "at": "2026-10-18T19:40:49.957Z"
+        }
+      ],
+      "migrations": {
+        "appliedOnceUnderA": true,
+        "command": "wrangler d1 migrations apply DB --local",
+        "log": "migrations.log"
+      },
+      "authorization": {
+        "kind": "Actual local signed Access JWT/JWKS, same issuer/audience/actor across versions",
+        "jwksRequests": [
+          {
+            "method": "GET",
+            "path": "/cdn-cgi/access/certs"
+          },
+          {
+            "method": "GET",
+            "path": "/cdn-cgi/access/certs"
+          }
+        ]
+      },
+      "lastPhase": {
+        "label": "B:disposed",
+        "at": "2026-10-18T19:40:49.957Z"
+      },
+      "installation": {
+        "databaseId": "e90c85f9-cf0e-4bdc-ac1f-d2896a88a74b",
+        "sameR2NamespaceAcrossVersions": true,
+        "sameDatabaseAndPersistenceAcrossVersions": true,
+        "realSequentialOwners": true,
+        "profilePreparation": "One historical installation-owned R2 profile metadata row through its original registration triggers; no schema, authority, business or job SQL fixture writes."
+      },
+      "sourceFixture": {
+        "sampleId": "4dedcc6f-9228-45d7-8168-04f334de6388",
+        "assetId": "bbaf2a60-8ccb-43a3-88a6-37cfe7872809",
+        "objectKey": "2026-10-18/bbaf2a60-8ccb-43a3-88a6-37cfe7872809-handover-original.png",
+        "sha256": "5e3d382db4dd83d59aa5742793ad6b7903409e865c83bcbc54835049f043bc15",
+        "byteSize": 68,
+        "profileId": "storage-profile:r2:bootstrap",
+        "setup": "Actual signed Sample/PNG/history HTTP; public shadow/profile admission and source authority activation. No business/job SQL writes."
+      },
+      "browser": {
+        "requests": [
+          {
+            "method": "GET",
+            "path": "/settings/data",
+            "query": "",
+            "type": "document"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/index-C_6mfDzL.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/rolldown-runtime-aKtaBQYM.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/jsx-runtime-2Zwg-L3c.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/preload-helper-Czpn1I53.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/mime-type-DOlD23vX.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/tiff-BvNwKutC.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/index-GPLEXs7v.css",
+            "query": "",
+            "type": "stylesheet"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/ResearchPackagesPage-VinC9mAu.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/ReadStatus-6Jv3QtjP.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/ReadStatus-CdkuGsJ5.css",
+            "query": "",
+            "type": "stylesheet"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/research-sha256-9fIt1tcC.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/ResearchPackagesPage-twyvYBUP.css",
+            "query": "",
+            "type": "stylesheet"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/storage-settings-BWidlAtC.css",
+            "query": "",
+            "type": "stylesheet"
+          },
+          {
+            "method": "GET",
+            "path": "/api/packages/jobs",
+            "query": "",
+            "type": "fetch"
+          },
+          {
+            "method": "GET",
+            "path": "/api/packages/executor",
+            "query": "",
+            "type": "fetch"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/SystemRecoveryPage-_JBf2NQn.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/SystemRecoveryPage-Dv7RFNhY.css",
+            "query": "",
+            "type": "stylesheet"
+          },
+          {
+            "method": "GET",
+            "path": "/settings/data/system",
+            "query": "?handover=explicit-reload",
+            "type": "document"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/index-CbWJohKl.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/rolldown-runtime-aKtaBQYM.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/jsx-runtime-2Zwg-L3c.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/preload-helper-Czpn1I53.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/authentication-client-D-4lEczZ.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/mime-type-DOlD23vX.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/tiff-BvNwKutC.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/index-GPLEXs7v.css",
+            "query": "",
+            "type": "stylesheet"
+          },
+          {
+            "method": "GET",
+            "path": "/api/identity",
+            "query": "",
+            "type": "fetch"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/SystemRecoveryPage-DIXKurZl.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/ReadStatus-6Jv3QtjP.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/ReadStatus-CdkuGsJ5.css",
+            "query": "",
+            "type": "stylesheet"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/research-sha256-9fIt1tcC.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/SystemRecoveryPage-BLSfeIU9.css",
+            "query": "",
+            "type": "stylesheet"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/storage-settings-DSsGX-ac.css",
+            "query": "",
+            "type": "stylesheet"
+          },
+          {
+            "method": "GET",
+            "path": "/api/system-recovery/capabilities",
+            "query": "",
+            "type": "fetch"
+          },
+          {
+            "method": "GET",
+            "path": "/api/system-recovery/jobs",
+            "query": "",
+            "type": "fetch"
+          },
+          {
+            "method": "GET",
+            "path": "/api/system-recovery/maintenance",
+            "query": "",
+            "type": "fetch"
+          }
+        ],
+        "responses": [
+          {
+            "path": "/settings/data",
+            "query": "",
+            "status": 200,
+            "contentType": "text/html; charset=utf-8"
+          },
+          {
+            "path": "/assets/jsx-runtime-2Zwg-L3c.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/preload-helper-Czpn1I53.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/index-GPLEXs7v.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8"
+          },
+          {
+            "path": "/assets/rolldown-runtime-aKtaBQYM.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/index-C_6mfDzL.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/mime-type-DOlD23vX.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/tiff-BvNwKutC.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/ReadStatus-CdkuGsJ5.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8"
+          },
+          {
+            "path": "/assets/ResearchPackagesPage-twyvYBUP.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8"
+          },
+          {
+            "path": "/assets/storage-settings-BWidlAtC.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8"
+          },
+          {
+            "path": "/assets/ReadStatus-6Jv3QtjP.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/research-sha256-9fIt1tcC.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/ResearchPackagesPage-VinC9mAu.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/api/packages/jobs",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json"
+          },
+          {
+            "path": "/api/packages/executor",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json"
+          },
+          {
+            "path": "/assets/SystemRecoveryPage-Dv7RFNhY.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/html; charset=utf-8"
+          },
+          {
+            "path": "/assets/SystemRecoveryPage-_JBf2NQn.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/html; charset=utf-8"
+          },
+          {
+            "path": "/settings/data/system",
+            "query": "?handover=explicit-reload",
+            "status": 200,
+            "contentType": "text/html; charset=utf-8"
+          },
+          {
+            "path": "/assets/mime-type-DOlD23vX.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/preload-helper-Czpn1I53.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/authentication-client-D-4lEczZ.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/index-CbWJohKl.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/rolldown-runtime-aKtaBQYM.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/jsx-runtime-2Zwg-L3c.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/index-GPLEXs7v.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8"
+          },
+          {
+            "path": "/assets/tiff-BvNwKutC.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/api/identity",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json"
+          },
+          {
+            "path": "/assets/SystemRecoveryPage-DIXKurZl.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/research-sha256-9fIt1tcC.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/SystemRecoveryPage-BLSfeIU9.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8"
+          },
+          {
+            "path": "/assets/ReadStatus-6Jv3QtjP.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/storage-settings-DSsGX-ac.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8"
+          },
+          {
+            "path": "/assets/ReadStatus-CdkuGsJ5.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8"
+          },
+          {
+            "path": "/api/system-recovery/capabilities",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json"
+          },
+          {
+            "path": "/api/system-recovery/jobs",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json"
+          },
+          {
+            "path": "/api/system-recovery/maintenance",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json"
+          }
+        ],
+        "consoleErrors": [
+          {
+            "text": "Failed to load module script: Expected a JavaScript-or-Wasm module script but the server responded with a MIME type of \"text/html\". Strict MIME type checking is enforced for module scripts per HTML spec.",
+            "url": "http://127.0.0.1:35231/assets/SystemRecoveryPage-_JBf2NQn.js"
+          },
+          {
+            "text": "TypeError: Failed to fetch dynamically imported module: http://127.0.0.1:35231/assets/SystemRecoveryPage-_JBf2NQn.js",
+            "url": "http://127.0.0.1:35231/assets/index-C_6mfDzL.js"
+          },
+          {
+            "text": "TypeError: Failed to fetch dynamically imported module: http://127.0.0.1:35231/assets/SystemRecoveryPage-_JBf2NQn.js",
+            "url": "http://127.0.0.1:35231/assets/index-C_6mfDzL.js"
+          }
+        ],
+        "pageErrors": [],
+        "documentRequests": 2,
+        "expectedConsoleErrors": [
+          {
+            "text": "Failed to load module script: Expected a JavaScript-or-Wasm module script but the server responded with a MIME type of \"text/html\". Strict MIME type checking is enforced for module scripts per HTML spec.",
+            "url": "http://127.0.0.1:35231/assets/SystemRecoveryPage-_JBf2NQn.js"
+          },
+          {
+            "text": "TypeError: Failed to fetch dynamically imported module: http://127.0.0.1:35231/assets/SystemRecoveryPage-_JBf2NQn.js",
+            "url": "http://127.0.0.1:35231/assets/index-C_6mfDzL.js"
+          },
+          {
+            "text": "TypeError: Failed to fetch dynamically imported module: http://127.0.0.1:35231/assets/SystemRecoveryPage-_JBf2NQn.js",
+            "url": "http://127.0.0.1:35231/assets/index-C_6mfDzL.js"
+          }
+        ],
+        "unexpectedConsoleErrors": [],
+        "expectedPageErrors": [],
+        "unexpectedPageErrors": []
+      },
+      "beforeHandover": {
+        "viewport": 1280,
+        "documentWidth": 1280,
+        "theme": "light"
+      },
+      "handover": {
+        "sameObservedSchemaAndLedger": true,
+        "selectedCanonicalSourceJobAndGuardRowsUnchanged": true,
+        "beforeSha256": "48e1d97fd9fde629f06c3ccdf43dcc681f16395f0c2563b0d6f11c98250c7eb7",
+        "afterSha256": "48e1d97fd9fde629f06c3ccdf43dcc681f16395f0c2563b0d6f11c98250c7eb7",
+        "oldRuntimeClosedBeforeBOpened": true,
+        "sameOrigin": "http://127.0.0.1:35231",
+        "switchedAt": "2026-10-18T19:40:47.962Z"
+      },
+      "retiredAssets": [
+        {
+          "version": "B",
+          "method": "GET",
+          "path": "/assets/SystemRecoveryPage-Dv7RFNhY.css",
+          "query": "",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8",
+          "cacheControl": "public, max-age=0, must-revalidate",
+          "etag": "\"d32209d068d881e5fc0e4b0e755e3241\"",
+          "bodySha256": "f2ada4bf65f73ebbf4e04e3e3f2296fbded341b4f3ca35e8272d94804a3cf4a4",
+          "byteSize": 1028
+        },
+        {
+          "version": "B",
+          "method": "GET",
+          "path": "/assets/SystemRecoveryPage-_JBf2NQn.js",
+          "query": "",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8",
+          "cacheControl": "public, max-age=0, must-revalidate",
+          "etag": "\"d32209d068d881e5fc0e4b0e755e3241\"",
+          "bodySha256": "f2ada4bf65f73ebbf4e04e3e3f2296fbded341b4f3ca35e8272d94804a3cf4a4",
+          "byteSize": 1028
+        }
+      ],
+      "urlFixture": {
+        "method": "history.replaceState preserves router state; no document/API navigation",
+        "destination": "http://127.0.0.1:35231/settings/data/system?handover=explicit-reload#same-location"
+      },
+      "retiredRoute": {
+        "viewport": 1280,
+        "documentWidth": 1280,
+        "theme": "light"
+      },
+      "recoveredRoute": {
+        "viewport": 1280,
+        "documentWidth": 1280,
+        "theme": "light"
+      },
+      "recovery": {
+        "originalDocument": "2c1f0ed6-5f5b-4d2c-a113-968730b05e03",
+        "reloadedDocument": "e9ded8a0-2295-44cf-be3e-3cd2b976374f",
+        "explicitKeyboardReloads": 1,
+        "fullUrlPreserved": true,
+        "automaticDocumentRequestsBeforeReload": 0,
+        "actualCurrentRecoveryPolicy": {
+          "recoveryMapping": "explicit-profile",
+          "backupMaintenance": "planned-only",
+          "maintenanceWithoutTarget": false,
+          "recoveryCleanup": true,
+          "sourceResume": false
+        },
+        "zeroBoundaryMutation": true
+      },
+      "independentReadback": {
+        "originalPngBytesSha256": "5e3d382db4dd83d59aa5742793ad6b7903409e865c83bcbc54835049f043bc15",
+        "originalQueuedJob": null,
+        "independentExecutorPaused": true,
+        "executionAttempts": 0,
+        "foreignKeysValid": true
+      },
+      "closure": {
+        "originalRuntimeVersionsClosed": [
+          "A",
+          "B"
+        ],
+        "ownedEdgeAndJwksPortsRefused": true,
+        "ownedRuntimePortsRefused": true
+      },
+      "finishedAt": "2026-10-18T19:40:49.958Z"
+    },
+    {
+      "name": "two-version-handover-390-dark",
+      "width": 390,
+      "theme": "dark",
+      "queued": true,
+      "status": "passed",
+      "startedAt": "2026-10-18T19:40:49.959Z",
+      "edge": {
+        "requests": [
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/settings/data",
+            "query": "",
+            "status": 200,
+            "contentType": "text/html; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"69884d85af3040b596f226d20920a074\"",
+            "bodySha256": "dcc8e4b39c9104c2d5526e1e59d47ca498264b302046214ad69fb9286e589708",
+            "byteSize": 936
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/index-GPLEXs7v.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"17e719c02f00583e78437d266e3a4b67\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/index-C_6mfDzL.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"5b09daa766189a1f85c1a3be2f1d8e61\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/jsx-runtime-2Zwg-L3c.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"df2eda871b63a47f68d1ca8a2bf7c442\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/preload-helper-Czpn1I53.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"10e5cabdd602439aeb16e33e7132546d\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/rolldown-runtime-aKtaBQYM.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"074762b256dec94abb082b6f10ecce7d\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/mime-type-DOlD23vX.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"232a6a1d7f97cb07fa8e6e45b9e5236d\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/tiff-BvNwKutC.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"25db1b14174f20c117144431dbaabb01\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/ReadStatus-CdkuGsJ5.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"c0f9d57a47c99100ca279a4c483a52ae\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/ReadStatus-6Jv3QtjP.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"085c60d8936aa0fb58aae324bcba872b\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/research-sha256-9fIt1tcC.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"718d54e59e3a6df37198d49aff3588e7\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/ResearchPackagesPage-twyvYBUP.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"c4f25a3375492029b37944bac0531672\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/storage-settings-BWidlAtC.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"a47e01c6a0639b9fa07efe26d95a6802\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/assets/ResearchPackagesPage-VinC9mAu.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"02ce7f9940b4e9ffa923a827aaca0855\""
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/api/packages/jobs",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json",
+            "cacheControl": null,
+            "etag": null
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/api/packages/executor",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json",
+            "cacheControl": null,
+            "etag": null
+          },
+          {
+            "version": "A",
+            "method": "POST",
+            "path": "/api/packages/plans",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json",
+            "cacheControl": null,
+            "etag": null,
+            "input": {
+              "kind": "data_package",
+              "roots": [
+                {
+                  "kind": "sample",
+                  "id": "40d94b36-9fcf-4598-9c4f-f04c2afef520"
+                }
+              ]
+            }
+          },
+          {
+            "version": "A",
+            "method": "POST",
+            "path": "/api/packages/jobs",
+            "query": "",
+            "status": 202,
+            "contentType": "application/json",
+            "cacheControl": null,
+            "etag": null,
+            "input": {
+              "requestId": "0703f01f-2558-4e3e-94d6-23c977db9b12",
+              "kind": "data_package",
+              "roots": [
+                {
+                  "kind": "sample",
+                  "id": "40d94b36-9fcf-4598-9c4f-f04c2afef520"
+                }
+              ]
+            }
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/api/packages/jobs",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json",
+            "cacheControl": null,
+            "etag": null
+          },
+          {
+            "version": "A",
+            "method": "GET",
+            "path": "/api/packages/executor",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json",
+            "cacheControl": null,
+            "etag": null
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/SystemRecoveryPage-Dv7RFNhY.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/html; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"d32209d068d881e5fc0e4b0e755e3241\"",
+            "bodySha256": "f2ada4bf65f73ebbf4e04e3e3f2296fbded341b4f3ca35e8272d94804a3cf4a4",
+            "byteSize": 1028
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/SystemRecoveryPage-_JBf2NQn.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/html; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"d32209d068d881e5fc0e4b0e755e3241\"",
+            "bodySha256": "f2ada4bf65f73ebbf4e04e3e3f2296fbded341b4f3ca35e8272d94804a3cf4a4",
+            "byteSize": 1028
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/settings/data/system",
+            "query": "?handover=queued-original",
+            "status": 200,
+            "contentType": "text/html; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"d32209d068d881e5fc0e4b0e755e3241\"",
+            "bodySha256": "f2ada4bf65f73ebbf4e04e3e3f2296fbded341b4f3ca35e8272d94804a3cf4a4",
+            "byteSize": 1028
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/index-CbWJohKl.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"728e4994bd1eeeada8684d8ec3bf9b41\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/authentication-client-D-4lEczZ.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"ee74530940117ddc96404aa5eb42b27d\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/rolldown-runtime-aKtaBQYM.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"e4dc56a7a6bdb9121570ea4a6497a0aa\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/jsx-runtime-2Zwg-L3c.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"2abbde926d765482bab146adbc208662\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/preload-helper-Czpn1I53.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"11c81263e1df5f95eb018f462f111218\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/mime-type-DOlD23vX.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"64e570ed894ea10bbce1dc05ea92471f\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/index-GPLEXs7v.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"bcae58a27b5c41e970f92d000d91f840\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/tiff-BvNwKutC.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"6c65ab1947a6aafb20f96480d4759222\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/api/identity",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json",
+            "cacheControl": "private, no-store",
+            "etag": null
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/SystemRecoveryPage-DIXKurZl.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"c3fae9b348c9f433f2a64f4c03d4ecbb\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/ReadStatus-CdkuGsJ5.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"023bb0e29433049ac8dcab2a96f3ed70\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/research-sha256-9fIt1tcC.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"e028e548dfa41645f192483109cf1698\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/ReadStatus-6Jv3QtjP.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"6c5d1ba510e00bd09f940196b11024a9\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/SystemRecoveryPage-BLSfeIU9.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"92c95d5b6440b117c12919ddd2f3d453\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/storage-settings-DSsGX-ac.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"eb9ba6a0b5ed8c9257d509b3a2cfccef\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/api/system-recovery/capabilities",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json",
+            "cacheControl": "private, no-store",
+            "etag": null
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/api/system-recovery/jobs",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json",
+            "cacheControl": "private, no-store",
+            "etag": null
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/api/system-recovery/maintenance",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json",
+            "cacheControl": "private, no-store",
+            "etag": null
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/ResearchPackagesPage-BS4Pcx-n.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"b927e7118361a35e902cdf854b61b8f8\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/assets/ResearchPackagesPage-DhaQSAkc.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8",
+            "cacheControl": "public, max-age=0, must-revalidate",
+            "etag": "\"8445b5681679ce4c90e64744cbc82652\""
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/api/packages/jobs",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json",
+            "cacheControl": null,
+            "etag": null
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/api/packages/executor",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json",
+            "cacheControl": null,
+            "etag": null
+          },
+          {
+            "version": "B",
+            "method": "GET",
+            "path": "/api/identity",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json",
+            "cacheControl": "private, no-store",
+            "etag": null
+          }
+        ],
+        "errors": [],
+        "cancelledReads": [],
+        "lostAcknowledgements": [
+          {
+            "version": "A",
+            "requestId": "0703f01f-2558-4e3e-94d6-23c977db9b12",
+            "jobId": "13eed6f8-a975-4d3e-a3b7-69253e6f9072",
+            "input": {
+              "requestId": "0703f01f-2558-4e3e-94d6-23c977db9b12",
+              "kind": "data_package",
+              "roots": [
+                {
+                  "kind": "sample",
+                  "id": "40d94b36-9fcf-4598-9c4f-f04c2afef520"
+                }
+              ]
+            },
+            "actualAckSha256": "323c6be6432890889a5d78b34c2124fc6cba8e4c60365bd48e96ae4c926e7cec",
+            "realCommittedStatus": 202,
+            "fault": "Original actual committed ACK deliberately truncated at owned edge; no response or job substitution."
+          }
+        ]
+      },
+      "api": [
+        {
+          "version": "A",
+          "method": "GET",
+          "path": "/api/system-recovery/backup-preview",
+          "status": 403
+        },
+        {
+          "version": "A",
+          "method": "GET",
+          "path": "/api/files/shadow/status",
+          "status": 200
+        },
+        {
+          "version": "A",
+          "method": "POST",
+          "path": "/api/files/shadow/enable",
+          "status": 200,
+          "input": {
+            "requestId": "0f0f89b5-8c0e-46fc-bcd4-cabd22eb1112",
+            "expectedEpoch": 2,
+            "expectedIncarnation": null
+          }
+        },
+        {
+          "version": "A",
+          "method": "POST",
+          "path": "/api/files/shadow/profiles/enable",
+          "status": 200,
+          "input": {
+            "profile": {
+              "profileId": "storage-profile:r2:bootstrap",
+              "configurationRevision": 1
+            },
+            "runtimeIncarnation": "0f0f89b5-8c0e-46fc-bcd4-cabd22eb1112",
+            "expectedEpoch": 2
+          }
+        },
+        {
+          "version": "A",
+          "method": "POST",
+          "path": "/api/files/shadow/disable",
+          "status": 200,
+          "input": {
+            "runtimeIncarnation": "0f0f89b5-8c0e-46fc-bcd4-cabd22eb1112",
+            "expectedEpoch": 3
+          }
+        },
+        {
+          "version": "A",
+          "method": "GET",
+          "path": "/api/files/authority/status",
+          "status": 200
+        },
+        {
+          "version": "A",
+          "method": "POST",
+          "path": "/api/files/authority/activate",
+          "status": 200,
+          "input": {
+            "requestId": "f4e73856-81af-4736-8c72-850b83b80e54",
+            "expectedEpoch": 3,
+            "expectedShadowIncarnation": "0f0f89b5-8c0e-46fc-bcd4-cabd22eb1112"
+          }
+        },
+        {
+          "version": "A",
+          "method": "POST",
+          "path": "/api/samples",
+          "status": 201,
+          "input": {
+            "code": "HANDOVER-f0e28a77-7499-4e9f-9555-42d6c1c1ba30",
+            "title": "Actual two-version handover source",
+            "status": "stored",
+            "location": "QA"
+          }
+        },
+        {
+          "version": "A",
+          "method": "POST",
+          "path": "/api/assets",
+          "status": 201
+        },
+        {
+          "version": "A",
+          "method": "GET",
+          "path": "/api/samples/40d94b36-9fcf-4598-9c4f-f04c2afef520",
+          "status": 200
+        },
+        {
+          "version": "A",
+          "method": "POST",
+          "path": "/api/samples/40d94b36-9fcf-4598-9c4f-f04c2afef520/records",
+          "status": 201,
+          "input": {
+            "status": "stored",
+            "location": "QA",
+            "pinned": false,
+            "expectedUpdatedAt": "2026-10-18T19:41:04.863Z",
+            "body": "Preserved original two-version source",
+            "assetKey": "2026-10-18/b3e2a983-6db4-4b65-8478-71dde6222380-handover-original.png"
+          }
+        },
+        {
+          "version": "B",
+          "method": "GET",
+          "path": "/api/system-recovery/capabilities",
+          "status": 200
+        },
+        {
+          "version": "B",
+          "method": "GET",
+          "path": "/api/assets/2026-10-18/b3e2a983-6db4-4b65-8478-71dde6222380-handover-original.png",
+          "status": 200
+        }
+      ],
+      "lifecycle": [
+        {
+          "version": "A",
+          "event": "Actual artifact ready",
+          "workerSha256": "aa52f0c0b01ef6be46837efdc12d060d1872fb92e0896afc2a970df4aba41eec",
+          "at": "2026-10-18T19:41:04.480Z"
+        },
+        {
+          "version": "A",
+          "event": "Original runtime disposed and owned port refused",
+          "at": "2026-10-18T19:41:10.951Z"
+        },
+        {
+          "version": "B",
+          "event": "Actual artifact ready",
+          "workerSha256": "8280562bdf062272d77cdc41247327c0be3328e316d3224d4d6049678dbff751",
+          "at": "2026-10-18T19:41:11.912Z"
+        },
+        {
+          "version": "B",
+          "event": "Original runtime disposed and owned port refused",
+          "at": "2026-10-18T19:41:14.269Z"
+        }
+      ],
+      "migrations": {
+        "appliedOnceUnderA": true,
+        "command": "wrangler d1 migrations apply DB --local",
+        "log": "migrations.log"
+      },
+      "authorization": {
+        "kind": "Actual local signed Access JWT/JWKS, same issuer/audience/actor across versions",
+        "jwksRequests": [
+          {
+            "method": "GET",
+            "path": "/cdn-cgi/access/certs"
+          },
+          {
+            "method": "GET",
+            "path": "/cdn-cgi/access/certs"
+          }
+        ]
+      },
+      "lastPhase": {
+        "label": "B:disposed",
+        "at": "2026-10-18T19:41:14.268Z"
+      },
+      "installation": {
+        "databaseId": "ad175316-706d-4c0e-84d4-355f82427061",
+        "sameR2NamespaceAcrossVersions": true,
+        "sameDatabaseAndPersistenceAcrossVersions": true,
+        "realSequentialOwners": true,
+        "profilePreparation": "One historical installation-owned R2 profile metadata row through its original registration triggers; no schema, authority, business or job SQL fixture writes."
+      },
+      "sourceFixture": {
+        "sampleId": "40d94b36-9fcf-4598-9c4f-f04c2afef520",
+        "assetId": "b3e2a983-6db4-4b65-8478-71dde6222380",
+        "objectKey": "2026-10-18/b3e2a983-6db4-4b65-8478-71dde6222380-handover-original.png",
+        "sha256": "5e3d382db4dd83d59aa5742793ad6b7903409e865c83bcbc54835049f043bc15",
+        "byteSize": 68,
+        "profileId": "storage-profile:r2:bootstrap",
+        "setup": "Actual signed Sample/PNG/history HTTP; public shadow/profile admission and source authority activation. No business/job SQL writes."
+      },
+      "browser": {
+        "requests": [
+          {
+            "method": "GET",
+            "path": "/settings/data",
+            "query": "",
+            "type": "document"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/index-C_6mfDzL.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/rolldown-runtime-aKtaBQYM.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/jsx-runtime-2Zwg-L3c.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/preload-helper-Czpn1I53.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/mime-type-DOlD23vX.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/tiff-BvNwKutC.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/index-GPLEXs7v.css",
+            "query": "",
+            "type": "stylesheet"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/ResearchPackagesPage-VinC9mAu.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/ReadStatus-6Jv3QtjP.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/ReadStatus-CdkuGsJ5.css",
+            "query": "",
+            "type": "stylesheet"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/research-sha256-9fIt1tcC.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/ResearchPackagesPage-twyvYBUP.css",
+            "query": "",
+            "type": "stylesheet"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/storage-settings-BWidlAtC.css",
+            "query": "",
+            "type": "stylesheet"
+          },
+          {
+            "method": "GET",
+            "path": "/api/packages/jobs",
+            "query": "",
+            "type": "fetch"
+          },
+          {
+            "method": "GET",
+            "path": "/api/packages/executor",
+            "query": "",
+            "type": "fetch"
+          },
+          {
+            "method": "POST",
+            "path": "/api/packages/plans",
+            "query": "",
+            "type": "fetch"
+          },
+          {
+            "method": "POST",
+            "path": "/api/packages/jobs",
+            "query": "",
+            "type": "fetch"
+          },
+          {
+            "method": "GET",
+            "path": "/api/packages/jobs",
+            "query": "",
+            "type": "fetch"
+          },
+          {
+            "method": "GET",
+            "path": "/api/packages/executor",
+            "query": "",
+            "type": "fetch"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/SystemRecoveryPage-_JBf2NQn.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/SystemRecoveryPage-Dv7RFNhY.css",
+            "query": "",
+            "type": "stylesheet"
+          },
+          {
+            "method": "GET",
+            "path": "/settings/data/system",
+            "query": "?handover=queued-original",
+            "type": "document"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/index-CbWJohKl.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/rolldown-runtime-aKtaBQYM.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/jsx-runtime-2Zwg-L3c.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/preload-helper-Czpn1I53.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/authentication-client-D-4lEczZ.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/mime-type-DOlD23vX.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/tiff-BvNwKutC.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/index-GPLEXs7v.css",
+            "query": "",
+            "type": "stylesheet"
+          },
+          {
+            "method": "GET",
+            "path": "/api/identity",
+            "query": "",
+            "type": "fetch"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/SystemRecoveryPage-DIXKurZl.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/ReadStatus-6Jv3QtjP.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/ReadStatus-CdkuGsJ5.css",
+            "query": "",
+            "type": "stylesheet"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/research-sha256-9fIt1tcC.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/SystemRecoveryPage-BLSfeIU9.css",
+            "query": "",
+            "type": "stylesheet"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/storage-settings-DSsGX-ac.css",
+            "query": "",
+            "type": "stylesheet"
+          },
+          {
+            "method": "GET",
+            "path": "/api/system-recovery/capabilities",
+            "query": "",
+            "type": "fetch"
+          },
+          {
+            "method": "GET",
+            "path": "/api/system-recovery/jobs",
+            "query": "",
+            "type": "fetch"
+          },
+          {
+            "method": "GET",
+            "path": "/api/system-recovery/maintenance",
+            "query": "",
+            "type": "fetch"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/ResearchPackagesPage-DhaQSAkc.js",
+            "query": "",
+            "type": "script"
+          },
+          {
+            "method": "GET",
+            "path": "/assets/ResearchPackagesPage-BS4Pcx-n.css",
+            "query": "",
+            "type": "stylesheet"
+          },
+          {
+            "method": "GET",
+            "path": "/api/packages/jobs",
+            "query": "",
+            "type": "fetch"
+          },
+          {
+            "method": "GET",
+            "path": "/api/packages/executor",
+            "query": "",
+            "type": "fetch"
+          },
+          {
+            "method": "GET",
+            "path": "/api/identity",
+            "query": "",
+            "type": "fetch"
+          }
+        ],
+        "responses": [
+          {
+            "path": "/settings/data",
+            "query": "",
+            "status": 200,
+            "contentType": "text/html; charset=utf-8"
+          },
+          {
+            "path": "/assets/index-GPLEXs7v.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8"
+          },
+          {
+            "path": "/assets/rolldown-runtime-aKtaBQYM.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/mime-type-DOlD23vX.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/preload-helper-Czpn1I53.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/jsx-runtime-2Zwg-L3c.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/tiff-BvNwKutC.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/index-C_6mfDzL.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/ReadStatus-CdkuGsJ5.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8"
+          },
+          {
+            "path": "/assets/ResearchPackagesPage-twyvYBUP.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8"
+          },
+          {
+            "path": "/assets/storage-settings-BWidlAtC.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8"
+          },
+          {
+            "path": "/assets/ReadStatus-6Jv3QtjP.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/research-sha256-9fIt1tcC.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/ResearchPackagesPage-VinC9mAu.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/api/packages/jobs",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json"
+          },
+          {
+            "path": "/api/packages/executor",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json"
+          },
+          {
+            "path": "/api/packages/plans",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json"
+          },
+          {
+            "path": "/api/packages/jobs",
+            "query": "",
+            "status": 202,
+            "contentType": "application/json"
+          },
+          {
+            "path": "/api/packages/jobs",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json"
+          },
+          {
+            "path": "/api/packages/executor",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json"
+          },
+          {
+            "path": "/assets/SystemRecoveryPage-Dv7RFNhY.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/html; charset=utf-8"
+          },
+          {
+            "path": "/assets/SystemRecoveryPage-_JBf2NQn.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/html; charset=utf-8"
+          },
+          {
+            "path": "/settings/data/system",
+            "query": "?handover=queued-original",
+            "status": 200,
+            "contentType": "text/html; charset=utf-8"
+          },
+          {
+            "path": "/assets/rolldown-runtime-aKtaBQYM.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/authentication-client-D-4lEczZ.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/jsx-runtime-2Zwg-L3c.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/index-CbWJohKl.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/preload-helper-Czpn1I53.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/mime-type-DOlD23vX.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/index-GPLEXs7v.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8"
+          },
+          {
+            "path": "/assets/tiff-BvNwKutC.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/api/identity",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json"
+          },
+          {
+            "path": "/assets/SystemRecoveryPage-DIXKurZl.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/research-sha256-9fIt1tcC.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/ReadStatus-6Jv3QtjP.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/assets/ReadStatus-CdkuGsJ5.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8"
+          },
+          {
+            "path": "/assets/SystemRecoveryPage-BLSfeIU9.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8"
+          },
+          {
+            "path": "/assets/storage-settings-DSsGX-ac.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8"
+          },
+          {
+            "path": "/api/system-recovery/capabilities",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json"
+          },
+          {
+            "path": "/api/system-recovery/jobs",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json"
+          },
+          {
+            "path": "/api/system-recovery/maintenance",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json"
+          },
+          {
+            "path": "/assets/ResearchPackagesPage-BS4Pcx-n.css",
+            "query": "",
+            "status": 200,
+            "contentType": "text/css; charset=utf-8"
+          },
+          {
+            "path": "/assets/ResearchPackagesPage-DhaQSAkc.js",
+            "query": "",
+            "status": 200,
+            "contentType": "text/javascript; charset=utf-8"
+          },
+          {
+            "path": "/api/packages/jobs",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json"
+          },
+          {
+            "path": "/api/packages/executor",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json"
+          },
+          {
+            "path": "/api/identity",
+            "query": "",
+            "status": 200,
+            "contentType": "application/json"
+          }
+        ],
+        "consoleErrors": [
+          {
+            "text": "Failed to load resource: net::ERR_CONTENT_LENGTH_MISMATCH",
+            "url": "http://127.0.0.1:39529/api/packages/jobs"
+          },
+          {
+            "text": "Failed to load module script: Expected a JavaScript-or-Wasm module script but the server responded with a MIME type of \"text/html\". Strict MIME type checking is enforced for module scripts per HTML spec.",
+            "url": "http://127.0.0.1:39529/assets/SystemRecoveryPage-_JBf2NQn.js"
+          },
+          {
+            "text": "TypeError: Failed to fetch dynamically imported module: http://127.0.0.1:39529/assets/SystemRecoveryPage-_JBf2NQn.js",
+            "url": "http://127.0.0.1:39529/assets/index-C_6mfDzL.js"
+          },
+          {
+            "text": "TypeError: Failed to fetch dynamically imported module: http://127.0.0.1:39529/assets/SystemRecoveryPage-_JBf2NQn.js",
+            "url": "http://127.0.0.1:39529/assets/index-C_6mfDzL.js"
+          }
+        ],
+        "pageErrors": [],
+        "documentRequests": 2,
+        "expectedConsoleErrors": [
+          {
+            "text": "Failed to load resource: net::ERR_CONTENT_LENGTH_MISMATCH",
+            "url": "http://127.0.0.1:39529/api/packages/jobs"
+          },
+          {
+            "text": "Failed to load module script: Expected a JavaScript-or-Wasm module script but the server responded with a MIME type of \"text/html\". Strict MIME type checking is enforced for module scripts per HTML spec.",
+            "url": "http://127.0.0.1:39529/assets/SystemRecoveryPage-_JBf2NQn.js"
+          },
+          {
+            "text": "TypeError: Failed to fetch dynamically imported module: http://127.0.0.1:39529/assets/SystemRecoveryPage-_JBf2NQn.js",
+            "url": "http://127.0.0.1:39529/assets/index-C_6mfDzL.js"
+          },
+          {
+            "text": "TypeError: Failed to fetch dynamically imported module: http://127.0.0.1:39529/assets/SystemRecoveryPage-_JBf2NQn.js",
+            "url": "http://127.0.0.1:39529/assets/index-C_6mfDzL.js"
+          }
+        ],
+        "unexpectedConsoleErrors": [],
+        "expectedPageErrors": [],
+        "unexpectedPageErrors": []
+      },
+      "originalQueuedCheckpoint": {
+        "action": "export",
+        "input": {
+          "requestId": "0703f01f-2558-4e3e-94d6-23c977db9b12",
+          "kind": "data_package",
+          "roots": [
+            {
+              "kind": "sample",
+              "id": "40d94b36-9fcf-4598-9c4f-f04c2afef520"
+            }
+          ]
+        }
+      },
+      "beforeHandover": {
+        "viewport": 390,
+        "documentWidth": 390,
+        "theme": "dark"
+      },
+      "handover": {
+        "sameObservedSchemaAndLedger": true,
+        "selectedCanonicalSourceJobAndGuardRowsUnchanged": true,
+        "beforeSha256": "77ceabefec6b4a0df101b75b60e307c7f3cf8e282994ead9951a56a27656416d",
+        "afterSha256": "77ceabefec6b4a0df101b75b60e307c7f3cf8e282994ead9951a56a27656416d",
+        "oldRuntimeClosedBeforeBOpened": true,
+        "sameOrigin": "http://127.0.0.1:39529",
+        "switchedAt": "2026-10-18T19:41:12.149Z"
+      },
+      "retiredAssets": [
+        {
+          "version": "B",
+          "method": "GET",
+          "path": "/assets/SystemRecoveryPage-Dv7RFNhY.css",
+          "query": "",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8",
+          "cacheControl": "public, max-age=0, must-revalidate",
+          "etag": "\"d32209d068d881e5fc0e4b0e755e3241\"",
+          "bodySha256": "f2ada4bf65f73ebbf4e04e3e3f2296fbded341b4f3ca35e8272d94804a3cf4a4",
+          "byteSize": 1028
+        },
+        {
+          "version": "B",
+          "method": "GET",
+          "path": "/assets/SystemRecoveryPage-_JBf2NQn.js",
+          "query": "",
+          "status": 200,
+          "contentType": "text/html; charset=utf-8",
+          "cacheControl": "public, max-age=0, must-revalidate",
+          "etag": "\"d32209d068d881e5fc0e4b0e755e3241\"",
+          "bodySha256": "f2ada4bf65f73ebbf4e04e3e3f2296fbded341b4f3ca35e8272d94804a3cf4a4",
+          "byteSize": 1028
+        }
+      ],
+      "urlFixture": {
+        "method": "history.replaceState preserves router state; no document/API navigation",
+        "destination": "http://127.0.0.1:39529/settings/data/system?handover=queued-original#same-location"
+      },
+      "retiredRoute": {
+        "viewport": 390,
+        "documentWidth": 390,
+        "theme": "dark"
+      },
+      "recoveredRoute": {
+        "viewport": 390,
+        "documentWidth": 390,
+        "theme": "dark"
+      },
+      "recovery": {
+        "originalDocument": "3ff09e7d-0ddd-4328-b914-a340eff66d22",
+        "reloadedDocument": "2b31a162-88c4-4b07-bd68-8758bee90a75",
+        "explicitKeyboardReloads": 1,
+        "fullUrlPreserved": true,
+        "automaticDocumentRequestsBeforeReload": 0,
+        "actualCurrentRecoveryPolicy": {
+          "recoveryMapping": "explicit-profile",
+          "backupMaintenance": "planned-only",
+          "maintenanceWithoutTarget": false,
+          "recoveryCleanup": true,
+          "sourceResume": false
+        },
+        "zeroBoundaryMutation": true
+      },
+      "originalJob": {
+        "viewport": 390,
+        "documentWidth": 390,
+        "theme": "dark"
+      },
+      "queuedOriginalReconciliation": {
+        "requestId": "0703f01f-2558-4e3e-94d6-23c977db9b12",
+        "jobId": "13eed6f8-a975-4d3e-a3b7-69253e6f9072",
+        "actualOldAcceptedAckLost": true,
+        "realBAccountScopedJobListRead": true,
+        "originalExportPostCount": 1,
+        "unownedOriginalCheckpointPreserved": true,
+        "originalSessionCheckpointAccepted": false,
+        "legacyOwnershipWarningVisible": true,
+        "noUnownedReceiptRead": true,
+        "noMutationReplay": true
+      },
+      "independentReadback": {
+        "originalPngBytesSha256": "5e3d382db4dd83d59aa5742793ad6b7903409e865c83bcbc54835049f043bc15",
+        "originalQueuedJob": {
+          "id": "13eed6f8-a975-4d3e-a3b7-69253e6f9072",
+          "request_id": "0703f01f-2558-4e3e-94d6-23c977db9b12",
+          "actor": "handover-admin@browser-qualification.invalid",
+          "kind": "data_package",
+          "input_json": "{\"kind\":\"data_package\",\"requestId\":\"0703f01f-2558-4e3e-94d6-23c977db9b12\",\"roots\":[{\"id\":\"40d94b36-9fcf-4598-9c4f-f04c2afef520\",\"kind\":\"sample\"}]}",
+          "state": "queued",
+          "phase": "snapshot",
+          "generation": 0,
+          "owner_token": null
+        },
+        "independentExecutorPaused": true,
+        "executionAttempts": 0,
+        "foreignKeysValid": true
+      },
+      "closure": {
+        "originalRuntimeVersionsClosed": [
+          "A",
+          "B"
+        ],
+        "ownedEdgeAndJwksPortsRefused": true,
+        "ownedRuntimePortsRefused": true
+      },
+      "finishedAt": "2026-10-18T19:41:14.274Z"
+    }
+  ],
+  "versions": {
+    "A": {
+      "source": "/workspace/scratch/96567b57746a/premerge-handover-version-a",
+      "workerSha256": "aa52f0c0b01ef6be46837efdc12d060d1872fb92e0896afc2a970df4aba41eec",
+      "htmlSha256": "dcc8e4b39c9104c2d5526e1e59d47ca498264b302046214ad69fb9286e589708",
+      "entry": "/assets/index-C_6mfDzL.js",
+      "entrySha256": "26ba951cb99cd56c44ceca4643d4532f46a5cad2d6f31e98f584c859417a2e5e",
+      "recovery": "/assets/SystemRecoveryPage-_JBf2NQn.js",
+      "recoverySha256": "5e560dbc64a56671c4688fe3eefb227fba3dffef0b8da1a3448cc288333a0d16",
+      "recoveryCss": [
+        "/assets/SystemRecoveryPage-Dv7RFNhY.css"
+      ],
+      "dependencies": {
+        "manifestSha256": "c5ee22abf5936b99cb1f3a07b2e2fafbf9592b462e2d0e0887b527cf594b3424",
+        "lockSha256": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a",
+        "installedLockSha256": "1fcdebcb5b1faab2b06479f73b6de2785b6e7b0107f4e88b45fab2511df07a81",
+        "installedPackagesChecked": 190,
+        "independentInstallation": true,
+        "installedEntriesMatchOwnLock": true
+      },
+      "commit": "abdc2d98541c01e887bbea540c50bb07a7e1cab5",
+      "tree": "8e057c6bc7a229f1fb005215f97b339cb345eb6f",
+      "trackedChanges": ""
+    },
+    "B": {
+      "source": "/workspace/scratch/96567b57746a/sample-fabrication-workflow",
+      "workerSha256": "8280562bdf062272d77cdc41247327c0be3328e316d3224d4d6049678dbff751",
+      "htmlSha256": "f2ada4bf65f73ebbf4e04e3e3f2296fbded341b4f3ca35e8272d94804a3cf4a4",
+      "entry": "/assets/index-CbWJohKl.js",
+      "entrySha256": "eb582bb483946104b6f5cca82a80fa041b1bc7d4035f1a71a98cb14ee3f6c7a5",
+      "recovery": "/assets/SystemRecoveryPage-DIXKurZl.js",
+      "recoverySha256": "8770aacdc9b48a3f0b1a1b7f6cac926a47897d21756cb1d518360d6b150dbe3c",
+      "recoveryCss": [
+        "/assets/SystemRecoveryPage-BLSfeIU9.css"
+      ],
+      "dependencies": {
+        "manifestSha256": "3bb2d1368f2d41dac4c4d54688d305f14fa4a175518f2505ffcce9c27f53ac50",
+        "lockSha256": "b2a1922654dc60757c012bcc310548393cbe67aa77f4bb3ed21644ff79037fb0",
+        "installedLockSha256": "80d3e9632f8fe357f05fa4e5323596d507e9ef7e7ddc18222499745f0c8e4878",
+        "installedPackagesChecked": 191,
+        "independentInstallation": true,
+        "installedEntriesMatchOwnLock": true
+      },
+      "commit": "3965c90627af91d8e0c680c3aee7fd53e077310c",
+      "tree": "fc082ef9f41490bbdaf5491d6b98228b6a683e80",
+      "trackedChanges": "M .github/workflows/main-readiness.yml\n M .github/workflows/recovery-browser.yml\n M docs/CURRENT_DEVELOPMENT_CAPABILITIES.md\n M docs/MAIN_MERGE_READINESS.md\n M docs/PRODUCT_ROADMAP.md\n M package-lock.json\n M package.json\n M scripts/convert-system-backup.mjs\n M scripts/fp1-comment-acceptance.test.mjs\n M scripts/fp1-consumer-plan.test.mjs\n M scripts/fp1-metrology-reference-acceptance.test.mjs\n M scripts/fp1-r2-upload-acceptance.test.mjs\n M scripts/qa/phase5f/browser-two-version-handover.mjs\n M scripts/qa/phase5f/genuine-migration-intent-browser.mjs\n M scripts/qa/phase5f/genuine-worker-package-browser.mjs\n M scripts/qa/phase5f/genuine-worker-recovery-browser.mjs\n M scripts/qa/phase5f/seed-template-pagination-actual-api.mjs\n M scripts/qa/phase5f/two-version-handover-browser.mjs\n M scripts/qa/phase5f/two-version-handover-runtime.mjs\n M scripts/rehearse-current-local-migrations.mjs\n M scripts/restore-system-backup.mjs\n M scripts/verify-export-restore.mjs\n M server/auth/local-auth-http.test.ts\n M server/auth/local-auth-http.ts\n M src/App.tsx\n M src/components/CommentComposer.tsx\n M src/components/FabubloxImporter.tsx\n M src/components/LocalAuthenticationGate.tsx\n M src/current-storage-settings.mount.test.tsx\n M src/lib/authentication-client.test.ts\n M src/lib/authentication-client.ts\n M src/lib/comment-submission-client.test.ts\n M src/lib/comment-submission-client.ts\n M src/lib/exportSample-native.test.ts\n M src/lib/exportSample.ts\n M src/lib/fabublox-import-client.ts\n M src/lib/file-shadow-adjudication-client.ts\n M src/lib/file-shadow-pilot-client.ts\n M src/lib/metrology-reference-upload-client.ts\n M src/lib/r2-upload-client.ts\n M src/lib/use-project-canvas-copy-paste.ts\n M src/lib/use-project-edge-controller.ts\n M src/lib/use-project-item-trash.ts\n M src/pages/FileEvidenceAdjudication.tsx\n M src/pages/FileMigrationsPage.tsx\n M src/pages/MetrologyTemplatePage.tsx\n M src/pages/ProjectPage.tsx\n M src/pages/ResearchPackagesPage.tsx\n M src/pages/StorageCandidateReadiness.tsx\n M src/pages/StorageConfigurationPage.tsx\n M src/pages/StorageCredentialEncryption.tsx\n M src/pages/StorageProfileActivation.tsx\n M src/pages/StorageProfileRegistration.tsx\n M src/pages/StorageRoleDefaultsForm.tsx\n M src/pages/SystemRecoveryPage.tsx\n M src/phase6-route-load-recovery.mount.test.tsx\n M src/project-canvas-productivity.mount.test.tsx\n M src/reference-source-integration.test.ts\n M src/storage-activation-recovery.mount.test.tsx\n M src/storage-credential-reenvelope.mount.test.tsx\n M src/storage-profile-registration.mount.test.tsx\n M src/system-recovery.mount.test.tsx\n M worker/application.ts\n M worker/files/jobs/migration-kernel.test.ts\n M worker/files/jobs/migration-kernel.ts\n M worker/packages/jobs/kernel.ts\n M worker/packages/jobs/package-repository.test.ts\n M worker/recovery/kernel.ts\n M worker/recovery/runtime.test.ts\n M worker/storage/s3-byte-adapter.ts"
+    }
+  },
+  "compatibility": {
+    "exactSharedInputHashes": {
+      "vite.config.ts": "f21a718d5319413d33d53ea85c0c181b452f700c3b70a72db98519dcd5018bcb",
+      "wrangler.jsonc": "8e0963e9a6732cdd6f5ede57fd5fb611f989620bef229bc3fc27620467a0680f",
+      "migrations/0001_v3_baseline.sql": "da244690cc17e88c99628461e4c4d5b52db37334b7fd6dd04643dfa7ebe4b4d2",
+      "migrations/0002_fp1_file_registry.sql": "28f95dbc7fca4a824c38575ec6be998aacf0d50f25c7325ea745a5a2362d5584",
+      "migrations/0003_fp1_import_acceptance.sql": "c56596cb35bbadda16e8be14f8b3527a1b7384947be1a68c7604602a3d42c701",
+      "migrations/0004_r2_upload_acceptance.sql": "911adba4ba3c5fa6f9e560d72f337da8669cc17be4d51e470940bb86fb62c1b8",
+      "migrations/0005_metrology_reference_acceptance.sql": "ddda77389c39d71d9475c0f83b04995616a8940f00be83eee27b1e9efd4bcd5e",
+      "migrations/0006_comment_acceptance.sql": "5f5a6354f1c55b95644fcd010631a949ba7fdb55f8c77ded7a1829be2b745de8",
+      "migrations/0007_fp1_file_authority_transition.sql": "252123f4e901f2c6ae970f84c25fe34d9ef3f3433fcc144ca583c70b4556218d",
+      "migrations/0008_fp1_shadow_runtime.sql": "324ab0ec3ce282f13b7ee0caae1be1977d817bbd448836925090b72709bd2dfc",
+      "migrations/0009_fp1_shadow_withdrawals.sql": "8394abf5853cb3217da8c5d5b2b1b29188f1f0100d90b8fdc9b569c8621283f8",
+      "migrations/0010_fp1_shadow_adjudications.sql": "6038d51909b8d2fa8ad1d1d3eba4bd96808bb7d4b9a42fafeaeb10b36d40a1a0",
+      "migrations/0011_fp1_retire_legacy_test_projects.sql": "177d3e751bb066dec3b1fcfe78f90703f24f8817b45ce8a6ee861b6d86b6011a",
+      "migrations/0012_fp1_file_authority_runtime.sql": "8360b65ae1f9b199f90e88443bde82e49bb6db6cc9f9110c8bc4410b51a92fab",
+      "migrations/0013_fp1_r2_role_defaults.sql": "d5df0455221af4b52b007a7462b48355fdc5fc6471766979696c2545b19a2343",
+      "migrations/0014_fp2_storage_configuration.sql": "427f022d84086aa29ac34a3b0540e70807fc68e3815e2db98312614028e00d54",
+      "migrations/0015_fp2_storage_candidate_checks.sql": "f2558f69ea77c6382e44f705e76fcc2ed56ad320274c43a3ad0be0afa8cc40c3",
+      "migrations/0016_fp2_credential_reenvelopes.sql": "6b622eaa0fccca4b241a803bcb3b0ee19688d432648d28eb80f34b0afffc36c3",
+      "migrations/0017_fp2_native_storage_profiles.sql": "94919cde4b666e6243358ee328bdc53f7572dbbb5f42ae9a4a4f94dc5a7e4057",
+      "migrations/0018_fp2_native_file_runtime.sql": "76a72e55cd0cadaf48ccedf559cdd411ba26e93096578cdd99fce9c89ab0fe6d",
+      "migrations/0019_fp3_file_jobs.sql": "23d216a71383b4238a9dbf73e98e0252173ba94c1af13b2892e0eb798e4d19a4",
+      "migrations/0020_fp4_research_packages.sql": "0dc7a2248a06a434cf92ca7f647bab4c50ad7f6419c792d10ec13b05b94c44b4",
+      "migrations/0021_fp5_system_recovery.sql": "834df694d90705962b6a8d81e97b0c1cf9b4514ff270f954e29d2080b596a3e1",
+      "migrations/0022_fp5_recovery_evidence.sql": "b637e7e901168e11276b76040cd0a1c45693884a35ad35b5279527e54609ee48",
+      "migrations/0023_portable_local_identity.sql": "7d16acea4506c080397bf57ba3f103cb128a5e4fdfca333a321e99f881dfc245",
+      "migrations/0024_rt3_local_volume_profiles.sql": "010414ba121247175e3bf6fe2eb88028ff8557035b123cfa12970c37e3985533"
+    },
+    "independentDependencyInputs": {
+      "A": {
+        "manifestSha256": "c5ee22abf5936b99cb1f3a07b2e2fafbf9592b462e2d0e0887b527cf594b3424",
+        "lockSha256": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a",
+        "installedLockSha256": "1fcdebcb5b1faab2b06479f73b6de2785b6e7b0107f4e88b45fab2511df07a81",
+        "installedPackagesChecked": 190,
+        "independentInstallation": true,
+        "installedEntriesMatchOwnLock": true
+      },
+      "B": {
+        "manifestSha256": "3bb2d1368f2d41dac4c4d54688d305f14fa4a175518f2505ffcce9c27f53ac50",
+        "lockSha256": "b2a1922654dc60757c012bcc310548393cbe67aa77f4bb3ed21644ff79037fb0",
+        "installedLockSha256": "80d3e9632f8fe357f05fa4e5323596d507e9ef7e7ddc18222499745f0c8e4878",
+        "installedPackagesChecked": 191,
+        "independentInstallation": true,
+        "installedEntriesMatchOwnLock": true
+      }
+    },
+    "originalRecoveryModuleAbsentFromB": true,
+    "realDistinctRecoveryModules": true
+  },
+  "chromiumVersion": "143.0.7499.0",
+  "browserClosed": true,
+  "finishedAt": "2026-10-18T19:41:14.306Z"
+}

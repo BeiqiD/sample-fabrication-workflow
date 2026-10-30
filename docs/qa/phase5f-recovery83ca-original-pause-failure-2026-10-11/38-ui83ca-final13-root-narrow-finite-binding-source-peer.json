@@ -1,0 +1,21 @@
+{
+  "status": "ROOT_NARROW_UI83CA_FINAL13_SOURCE_BINDING_CLEAR",
+  "handoff": {
+    "path": "/workspace/phase5f-recovery-job-controls-original-initial-reader-finite-source-review-attempt5/source-handoff.json",
+    "sha256": "5b3e74748884b108ceb96d60bdb97597aae0c5a018d0d005f7fa039f11bf4e3d"
+  },
+  "sourcePeer": {
+    "path": "/workspace/phase5f83ca-independent-original-initial-reader-source-peer.json",
+    "sha256": "c4e2a2de3401c8075ab168ca9194ecc7e4d6163d75973268c69e20003257e296"
+  },
+  "runner11AndCarrier3OwnedFunctionAstExact": true,
+  "wholeRunnerBindingInverseExact": true,
+  "completeCarrierTopLevelDeltaReadOnlyBindingsAndHistoricalFailureGuards": true,
+  "all13StageIdsOriginal": true,
+  "costsAnd20sBody120sSupervisionBudgetsOriginal": true,
+  "sourceHeadCleanExact": true,
+  "historicalBuild118NewCopy121AccurateScopes": true,
+  "futureOutputRootsAbsent": true,
+  "runtimeEffects": 0,
+  "checkedAt": "2026-10-11T09:17:51.053753+00:00"
+}

@@ -1,0 +1,300 @@
+[
+  {
+    "stage": "qualified-current02d-coherent-build-producer-preflight",
+    "tool": "exec_command",
+    "arguments": {
+      "cmd": "python3 -B /workspace/phase5f-current2d07-mobile-package-refresh-workspace-placement-source-preparation-attempt3/run-frozen-owned-stage.py --exclusive-go-exact-c3c1027-current2d07-mobile-package-refresh-stage qualified-current02d-coherent-build-producer-preflight",
+      "yield_time_ms": 1000,
+      "max_output_tokens": 10000
+    },
+    "result": {
+      "chunk_id": "968536",
+      "wall_time_seconds": 0.592959632,
+      "exit_code": 0,
+      "original_token_count": 382,
+      "output": "{\"stage\": \"qualified-current02d-coherent-build-producer-preflight\", \"ownedPid\": 1673353, \"ownedProcessGroup\": 1673353, \"originalStartTicks\": \"18270313\"}\n{\"stage\": \"qualified-current02d-coherent-build-producer-preflight\", \"cwd\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source\", \"argv\": [\"python3\", \"-B\", \"/workspace/phase5f-current2d07-mobile-package-refresh-workspace-placement-source-preparation-attempt3/carry-current2d07-mobile-original-native.py\", \"--current02d-coherent-saved-job\", \"producer-preflight\"], \"env\": {\"TMPDIR\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1\", \"SQLITE_TMPDIR\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1\"}, \"startedAt\": \"2026-10-12T01:44:02.367141+00:00\", \"status\": \"PASS\", \"log\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight.log\", \"pid\": 1673353, \"processGroup\": 1673353, \"originalStartTicks\": \"18270313\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [], \"after\": [], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": []}, \"endedAt\": \"2026-10-12T01:44:02.811931+00:00\", \"logSha256\": \"3cdc53eb58a874d63edb9b707f58cfa2f802fd75cc9892e72330fb84f24aef10\"}\n{\"stage\": \"producer-preflight\", \"status\": \"PASS\", \"domain\": \"package\", \"newBuilds\": 0, \"newFixtureStillRequired\": true}\n\n"
+    }
+  },
+  {
+    "stage": "isolated-copy",
+    "tool": "exec_command",
+    "arguments": {
+      "cmd": "python3 -B /workspace/phase5f-current2d07-mobile-package-refresh-workspace-placement-source-preparation-attempt3/run-frozen-owned-stage.py --exclusive-go-exact-c3c1027-current2d07-mobile-package-refresh-stage isolated-copy",
+      "yield_time_ms": 1000,
+      "max_output_tokens": 10000
+    },
+    "result": {
+      "chunk_id": "5ad03d",
+      "wall_time_seconds": 1.001046705,
+      "session_id": 99005,
+      "original_token_count": 28,
+      "output": "{\"stage\": \"isolated-copy\", \"ownedPid\": 1673467, \"ownedProcessGroup\": 1673467, \"originalStartTicks\": \"18271468\"}\n"
+    }
+  },
+  {
+    "stage": "isolated-copy",
+    "tool": "write_stdin",
+    "arguments": {
+      "session_id": 99005,
+      "chars": "",
+      "yield_time_ms": 1000,
+      "max_output_tokens": 10000
+    },
+    "result": {
+      "chunk_id": "be3814",
+      "wall_time_seconds": 0.000025457,
+      "exit_code": 0,
+      "original_token_count": 400,
+      "output": "{\"stage\": \"isolated-copy\", \"cwd\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source\", \"argv\": [\"python3\", \"-B\", \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source/scripts/qa/phase5f/prepare-isolated-copy.py\", \"--source-root\", \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source\", \"--destination\", \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy\", \"--dependency-root\", \"/workspace/sample-fabrication-workflow/node_modules\"], \"env\": {\"TMPDIR\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1\", \"SQLITE_TMPDIR\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1\"}, \"startedAt\": \"2026-10-12T01:44:13.918961+00:00\", \"status\": \"PASS\", \"log\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/isolated-copy.log\", \"pid\": 1673467, \"processGroup\": 1673467, \"originalStartTicks\": \"18271468\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [], \"after\": [], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": []}, \"endedAt\": \"2026-10-12T01:44:15.668766+00:00\", \"logSha256\": \"4bb0541cd30f69be442ebc59232356b00164944385587f322b040fe870cbdbab\"}\n{\"destination\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy\", \"sourceHead\": \"2d07b57c4e79403099261528ae8988c0072d28c6\", \"copiedState\": false, \"copiedFiles\": 3181, \"artifacts\": 121}\n\n"
+    }
+  },
+  {
+    "stage": "fresh-two-version-sentinel",
+    "tool": "exec_command",
+    "arguments": {
+      "cmd": "python3 -B /workspace/phase5f-current2d07-mobile-package-refresh-workspace-placement-source-preparation-attempt3/run-frozen-owned-stage.py --exclusive-go-exact-c3c1027-current2d07-mobile-package-refresh-stage fresh-two-version-sentinel",
+      "yield_time_ms": 1000,
+      "max_output_tokens": 10000
+    },
+    "result": {
+      "chunk_id": "11618f",
+      "wall_time_seconds": 1.000823425,
+      "session_id": 23334,
+      "original_token_count": 32,
+      "output": "{\"stage\": \"fresh-two-version-sentinel\", \"ownedPid\": 1673654, \"ownedProcessGroup\": 1673654, \"originalStartTicks\": \"18272736\"}\n"
+    }
+  },
+  {
+    "stage": "fresh-two-version-sentinel",
+    "tool": "write_stdin",
+    "arguments": {
+      "session_id": 23334,
+      "chars": "",
+      "yield_time_ms": 1000,
+      "max_output_tokens": 10000
+    },
+    "result": {
+      "chunk_id": "90b6f2",
+      "wall_time_seconds": 0.000022354,
+      "exit_code": 0,
+      "original_token_count": 489,
+      "output": "{\"stage\": \"fresh-two-version-sentinel\", \"cwd\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source\", \"argv\": [\"node\", \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source/scripts/qa/phase5f/generate-process-fixture.mjs\", \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy\", \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture\"], \"env\": {\"TMPDIR\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1\", \"SQLITE_TMPDIR\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1\"}, \"startedAt\": \"2026-10-12T01:44:26.596495+00:00\", \"status\": \"PASS\", \"log\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/fresh-two-version-sentinel.log\", \"pid\": 1673654, \"processGroup\": 1673654, \"originalStartTicks\": \"18272736\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [{\"pid\": 1673665, \"state\": \"Z\", \"ppid\": 1, \"processGroup\": 1673654, \"kernelResourcesExited\": true, \"fdInspection\": \"PermissionError\"}], \"after\": [{\"pid\": 1673665, \"state\": \"Z\", \"ppid\": 1, \"processGroup\": 1673654, \"kernelResourcesExited\": true, \"fdInspection\": \"PermissionError\"}], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": [{\"pid\": 1673665, \"state\": \"Z\", \"ppid\": 1, \"processGroup\": 1673654, \"kernelResourcesExited\": true, \"fdInspection\": \"PermissionError\"}]}, \"endedAt\": \"2026-10-12T01:44:28.682373+00:00\", \"logSha256\": \"085fa099c56de4d8ffd69b6772782d2f83d16496f077b4d0cf60e30e3d2adfa5\"}\n{\"sql\":\"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/process-fixture.sql\",\"manifest\":\"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/process-fixture.json\",\"prefix\":\"phase5f-4d8f6fe5-46e\"}\n\n"
+    }
+  },
+  {
+    "stage": "ordinary-actual24-local-migrations",
+    "tool": "exec_command",
+    "arguments": {
+      "cmd": "python3 -B /workspace/phase5f-current2d07-mobile-package-refresh-workspace-placement-source-preparation-attempt3/run-frozen-owned-stage.py --exclusive-go-exact-c3c1027-current2d07-mobile-package-refresh-stage ordinary-actual24-local-migrations",
+      "yield_time_ms": 1000,
+      "max_output_tokens": 10000
+    },
+    "result": {
+      "chunk_id": "54b474",
+      "wall_time_seconds": 1.000753537,
+      "session_id": 69134,
+      "original_token_count": 34,
+      "output": "{\"stage\": \"ordinary-actual24-local-migrations\", \"ownedPid\": 1673700, \"ownedProcessGroup\": 1673700, \"originalStartTicks\": \"18274304\"}\n"
+    }
+  },
+  {
+    "stage": "ordinary-actual24-local-migrations",
+    "tool": "write_stdin",
+    "arguments": {
+      "session_id": 69134,
+      "chars": "",
+      "yield_time_ms": 1000,
+      "max_output_tokens": 10000
+    },
+    "result": {
+      "chunk_id": "ed39a6",
+      "wall_time_seconds": 5.000672677,
+      "session_id": 69134,
+      "original_token_count": 0,
+      "output": ""
+    }
+  },
+  {
+    "stage": "ordinary-actual24-local-migrations",
+    "tool": "write_stdin",
+    "arguments": {
+      "session_id": 69134,
+      "chars": "",
+      "yield_time_ms": 1000,
+      "max_output_tokens": 10000
+    },
+    "result": {
+      "chunk_id": "2c4dca",
+      "wall_time_seconds": 0.000023064,
+      "exit_code": 0,
+      "original_token_count": 1901,
+      "output": "{\"stage\": \"ordinary-actual24-local-migrations\", \"cwd\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy\", \"argv\": [\"node\", \"node_modules/wrangler/bin/wrangler.js\", \"d1\", \"migrations\", \"apply\", \"DB\", \"--local\", \"--config\", \".wrangler/deploy.jsonc\", \"--persist-to\", \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy/.wrangler/state\"], \"env\": {\"TMPDIR\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1\", \"SQLITE_TMPDIR\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1\"}, \"startedAt\": \"2026-10-12T01:44:42.277485+00:00\", \"status\": \"PASS\", \"log\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/ordinary-actual24-local-migrations.log\", \"pid\": 1673700, \"processGroup\": 1673700, \"originalStartTicks\": \"18274304\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [{\"pid\": 1673716, \"state\": \"Z\", \"ppid\": 1, \"processGroup\": 1673700, \"kernelResourcesExited\": true, \"fdInspection\": \"PermissionError\"}], \"after\": [{\"pid\": 1673716, \"state\": \"Z\", \"ppid\": 1, \"processGroup\": 1673700, \"kernelResourcesExited\": true, \"fdInspection\": \"PermissionError\"}], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": [{\"pid\": 1673716, \"state\": \"Z\", \"ppid\": 1, \"processGroup\": 1673700, \"kernelResourcesExited\": true, \"fdInspection\": \"PermissionError\"}]}, \"endedAt\": \"2026-10-12T01:44:56.187801+00:00\", \"logSha256\": \"d7a4512db7e0c9e8f900b340ccacd2f43d6572b6d915da4a8fe49bc2fbd19198\"}\n000-8000-000000000000) from .wrangler/state/v3/d1:\n🌀 To execute on your remote database, add a --remote flag to your wrangler command.\n🚣 87 commands executed successfully.\n┌──────────────────────────────────────────┬────────┐\n│ name                                     │ status │\n├──────────────────────────────────────────┼────────┤\n│ 0001_v3_baseline.sql                     │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0002_fp1_file_registry.sql               │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0003_fp1_import_acceptance.sql           │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0004_r2_upload_acceptance.sql            │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0005_metrology_reference_acceptance.sql  │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0006_comment_acceptance.sql              │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0007_fp1_file_authority_transition.sql   │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0008_fp1_shadow_runtime.sql              │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0009_fp1_shadow_withdrawals.sql          │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0010_fp1_shadow_adjudications.sql        │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0011_fp1_retire_legacy_test_projects.sql │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0012_fp1_file_authority_runtime.sql      │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0013_fp1_r2_role_defaults.sql            │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0014_fp2_storage_configuration.sql       │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0015_fp2_storage_candidate_checks.sql    │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0016_fp2_credential_reenvelopes.sql      │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0017_fp2_native_storage_profiles.sql     │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0018_fp2_native_file_runtime.sql         │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0019_fp3_file_jobs.sql                   │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0020_fp4_research_packages.sql           │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0021_fp5_system_recovery.sql             │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0022_fp5_recovery_evidence.sql           │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0023_portable_local_identity.sql         │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0024_rt3_local_volume_profiles.sql       │ ✅     │\n└──────────────────────────────────────────┴────────┘\n🪵  Logs were written to \"/home/agent/.config/.wrangler/logs/wrangler-2026-10-12_01-44-42_853.log\"\n\n"
+    }
+  },
+  {
+    "stage": "synthetic-template-sentinels-only",
+    "tool": "exec_command",
+    "arguments": {
+      "cmd": "python3 -B /workspace/phase5f-current2d07-mobile-package-refresh-workspace-placement-source-preparation-attempt3/run-frozen-owned-stage.py --exclusive-go-exact-c3c1027-current2d07-mobile-package-refresh-stage synthetic-template-sentinels-only",
+      "yield_time_ms": 1000,
+      "max_output_tokens": 10000
+    },
+    "result": {
+      "chunk_id": "41406d",
+      "wall_time_seconds": 1.000353021,
+      "session_id": 20053,
+      "original_token_count": 33,
+      "output": "{\"stage\": \"synthetic-template-sentinels-only\", \"ownedPid\": 1674069, \"ownedProcessGroup\": 1674069, \"originalStartTicks\": \"18277194\"}\n"
+    }
+  },
+  {
+    "stage": "synthetic-template-sentinels-only",
+    "tool": "write_stdin",
+    "arguments": {
+      "session_id": 20053,
+      "chars": "",
+      "yield_time_ms": 1000,
+      "max_output_tokens": 10000
+    },
+    "result": {
+      "chunk_id": "aeb8f4",
+      "wall_time_seconds": 0.000023625,
+      "exit_code": 0,
+      "original_token_count": 1123,
+      "output": "{\"stage\": \"synthetic-template-sentinels-only\", \"cwd\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy\", \"argv\": [\"node\", \"node_modules/wrangler/bin/wrangler.js\", \"d1\", \"execute\", \"DB\", \"--local\", \"--config\", \".wrangler/deploy.jsonc\", \"--persist-to\", \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy/.wrangler/state\", \"--file\", \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/process-fixture.sql\"], \"env\": {\"TMPDIR\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1\", \"SQLITE_TMPDIR\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1\"}, \"startedAt\": \"2026-10-12T01:45:11.172054+00:00\", \"status\": \"PASS\", \"log\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/synthetic-template-sentinels-only.log\", \"pid\": 1674069, \"processGroup\": 1674069, \"originalStartTicks\": \"18277194\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [{\"pid\": 1674085, \"state\": \"Z\", \"ppid\": 1, \"processGroup\": 1674069, \"kernelResourcesExited\": true, \"fdInspection\": \"PermissionError\"}], \"after\": [{\"pid\": 1674085, \"state\": \"Z\", \"ppid\": 1, \"processGroup\": 1674069, \"kernelResourcesExited\": true, \"fdInspection\": \"PermissionError\"}], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": [{\"pid\": 1674085, \"state\": \"Z\", \"ppid\": 1, \"processGroup\": 1674069, \"kernelResourcesExited\": true, \"fdInspection\": \"PermissionError\"}]}, \"endedAt\": \"2026-10-12T01:45:12.486864+00:00\", \"logSha256\": \"21e54fe0ed1bd23c4c0691519d3298e3fe313d19f4e64f619d6de1b454657186\"}\n\u001b[33m▲ \u001b[43;33m[\u001b[43;30mWARNING\u001b[43;33m]\u001b[0m \u001b[1mProxy environment variables detected. We'll use your proxy for fetch requests.\u001b[0m\n\n\n\n ⛅️ wrangler 4.112.0\n────────────────────\nResource location: local \n\nUse --remote if you want to access the remote instance.\n\n\u001b[31m✘ \u001b[41;31m[\u001b[41;97mERROR\u001b[41;31m]\u001b[0m \u001b[1mFailed to write to log file Error: ENOENT: no such file or directory, mkdir '/home/agent/.config/.wrangler'\u001b[0m\n\n      at async Object.mkdir (node:internal/fs/promises:916:10)\n      at async ensureDirectoryExists (/workspace/sample-fabrication-workflow/node_modules/wrangler/wrangler-dist/cli.js:59790:3)\n      at async /workspace/sample-fabrication-workflow/node_modules/wrangler/wrangler-dist/cli.js:59865:7\n      at async Mutex.runWith (/workspace/sample-fabrication-workflow/node_modules/miniflare/dist/src/index.js:71860:48)\n      at async appendToDebugLogFile (/workspace/sample-fabrication-workflow/node_modules/wrangler/wrangler-dist/cli.js:59863:3) {\n    errno: -2,\n    code: 'ENOENT',\n    syscall: 'mkdir',\n    path: '/home/agent/.config/.wrangler'\n  }\n\n\n\u001b[31m✘ \u001b[41;31m[\u001b[41;97mERROR\u001b[41;31m]\u001b[0m \u001b[1mWould have written: \u001b[0m\n\n  --- 2026-10-12T01:45:11.891Z debug\n  🪵  Writing logs to \"/home/agent/.config/.wrangler/logs/wrangler-2026-10-12_01-45-11_681.log\"\n  ---\n  \n\n\n🌀 Executing on local database DB (00000000-0000-4000-8000-000000000000) from .wrangler/state/v3/d1:\n🌀 To execute on your remote database, add a --remote flag to your wrangler command.\n🚣 12 commands executed successfully.\n[\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 1\n    }\n  },\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 23\n    }\n  },\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 0\n    }\n  },\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 0\n    }\n  },\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 0\n    }\n  },\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 21\n    }\n  },\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 0\n    }\n  },\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 0\n    }\n  },\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 23\n    }\n  },\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 0\n    }\n  },\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 0\n    }\n  },\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 0\n    }\n  }\n]\n🪵  Logs were written to \"/home/agent/.config/.wrangler/logs/wrangler-2026-10-12_01-45-11_681.log\"\n\n"
+    }
+  },
+  {
+    "stage": "physical-before",
+    "tool": "exec_command",
+    "arguments": {
+      "cmd": "python3 -B /workspace/phase5f-current2d07-mobile-package-refresh-workspace-placement-source-preparation-attempt3/run-frozen-owned-stage.py --exclusive-go-exact-c3c1027-current2d07-mobile-package-refresh-stage physical-before",
+      "yield_time_ms": 1000,
+      "max_output_tokens": 10000
+    },
+    "result": {
+      "chunk_id": "7fef88",
+      "wall_time_seconds": 1.001156373,
+      "session_id": 45736,
+      "original_token_count": 29,
+      "output": "{\"stage\": \"physical-before\", \"ownedPid\": 1674174, \"ownedProcessGroup\": 1674174, \"originalStartTicks\": \"18279670\"}\n"
+    }
+  },
+  {
+    "stage": "physical-before",
+    "tool": "write_stdin",
+    "arguments": {
+      "session_id": 45736,
+      "chars": "",
+      "yield_time_ms": 1000,
+      "max_output_tokens": 10000
+    },
+    "result": {
+      "chunk_id": "905cef",
+      "wall_time_seconds": 0.000024066,
+      "exit_code": 0,
+      "original_token_count": 381,
+      "output": "{\"stage\": \"physical-before\", \"cwd\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source\", \"argv\": [\"python3\", \"-B\", \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source/scripts/qa/phase5f/check-isolated-state.py\", \"--source-copy\", \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy\", \"--fixture-directory\", \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture\", \"--stage\", \"before-api\"], \"env\": {\"TMPDIR\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1\", \"SQLITE_TMPDIR\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1\"}, \"startedAt\": \"2026-10-12T01:45:35.936527+00:00\", \"status\": \"PASS\", \"log\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/physical-before.log\", \"pid\": 1674174, \"processGroup\": 1674174, \"originalStartTicks\": \"18279670\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [], \"after\": [], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": []}, \"endedAt\": \"2026-10-12T01:45:36.821561+00:00\", \"logSha256\": \"22542e39b9e067144934201b325012082b01c794dc7c5668efc5b7e3f2477ac8\"}\n{\"receipt\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/physical-sqlite-before-api.json\", \"status\": \"passed\", \"sqliteFiles\": 2, \"error\": null}\n\n"
+    }
+  },
+  {
+    "stage": "current-source-build-and-pure24-witness",
+    "tool": "exec_command",
+    "arguments": {
+      "cmd": "python3 -B /workspace/phase5f-current2d07-mobile-package-refresh-workspace-placement-source-preparation-attempt3/run-frozen-owned-stage.py --exclusive-go-exact-c3c1027-current2d07-mobile-package-refresh-stage current-source-build-and-pure24-witness",
+      "yield_time_ms": 1000,
+      "max_output_tokens": 10000
+    },
+    "result": {
+      "chunk_id": "83d9ec",
+      "wall_time_seconds": 0.620736472,
+      "exit_code": 0,
+      "original_token_count": 394,
+      "output": "{\"stage\": \"current-source-build-and-pure24-witness\", \"ownedPid\": 1674239, \"ownedProcessGroup\": 1674239, \"originalStartTicks\": \"18281155\"}\n{\"stage\": \"current-source-build-and-pure24-witness\", \"cwd\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source\", \"argv\": [\"python3\", \"-B\", \"/workspace/phase5f-current2d07-mobile-package-refresh-workspace-placement-source-preparation-attempt3/carry-current2d07-mobile-original-native.py\", \"--current02d-coherent-saved-job\", \"witness\"], \"env\": {\"TMPDIR\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1\", \"SQLITE_TMPDIR\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1\"}, \"startedAt\": \"2026-10-12T01:45:50.782087+00:00\", \"status\": \"PASS\", \"log\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/current-source-build-and-pure24-witness.log\", \"pid\": 1674239, \"processGroup\": 1674239, \"originalStartTicks\": \"18281155\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [], \"after\": [], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": []}, \"endedAt\": \"2026-10-12T01:45:51.288668+00:00\", \"logSha256\": \"997e4a0f3060ccbd36c87990c87798b41254330d957496f0645b17024564c652\"}\n{\"stage\": \"witness\", \"status\": \"PASS\", \"domain\": \"package\", \"producerHead\": \"2d07b57c4e79403099261528ae8988c0072d28c6\", \"qaConsumerHead\": \"c3c1027b66cca605c7d1ee5e9b7d30427d5c3ca4\", \"newBuilds\": 0, \"disabledSeedRequests\": 0}\n\n"
+    }
+  },
+  {
+    "stage": "original-one-current-package-status-refresh-keyboard",
+    "tool": "exec_command",
+    "arguments": {
+      "cmd": "python3 -B /workspace/phase5f-current2d07-mobile-package-refresh-workspace-placement-source-preparation-attempt3/run-frozen-owned-stage.py --exclusive-go-exact-c3c1027-current2d07-mobile-package-refresh-stage original-one-current-package-status-refresh-keyboard",
+      "yield_time_ms": 1000,
+      "max_output_tokens": 10000,
+      "tty": true
+    },
+    "result": {
+      "chunk_id": "85881b",
+      "wall_time_seconds": 1.0007969,
+      "session_id": 21748,
+      "original_token_count": 38,
+      "output": "{\"stage\": \"original-one-current-package-status-refresh-keyboard\", \"ownedPid\": 1674314, \"ownedProcessGroup\": 1674314, \"originalStartTicks\": \"18284617\"}\r\n"
+    }
+  },
+  {
+    "stage": "original-one-current-package-status-refresh-keyboard",
+    "tool": "write_stdin",
+    "arguments": {
+      "session_id": 21748,
+      "chars": "",
+      "yield_time_ms": 1000,
+      "max_output_tokens": 10000
+    },
+    "result": {
+      "chunk_id": "e3cd9a",
+      "wall_time_seconds": 1.4086602529999999,
+      "exit_code": 0,
+      "original_token_count": 641,
+      "output": "{\"stage\": \"original-one-current-package-status-refresh-keyboard\", \"cwd\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source\", \"argv\": [\"node\", \"/tmp/phase5f-current2d07-three-mobile-five-qa-private-attempt1/source/scripts/qa/phase5f/browser-current-package-file-focus-package-status-refresh-keyboard-mobile.mjs\", \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy\", \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture\", \"2d07b57c4e79403099261528ae8988c0072d28c6\", \"--exclusive-go-one-current-coherent-package-status-refresh-keyboard\"], \"env\": {\"TMPDIR\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1\", \"SQLITE_TMPDIR\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1\", \"PLAYWRIGHT_MODULE_PATH\": \"/opt/codex/runtimes/cua/lib/node_modules/playwright-core\", \"CHROMIUM_PATH\": \"/usr/bin/chromium\", \"PHASE5F_FILE_MIGRATION_CHROMIUM_TEMP\": \"/workspace/.pkrfm1\", \"PHASE5F_FILE_MIGRATION_RUNTIME_ROOT\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime\"}, \"cases\": [\"current-coherent-package-status-refresh-keyboard-390-dark\"], \"toolInvocation\": {\"tty\": true, \"originalStdinControl\": \"Only explicit stop newline originalretainedTTY;120s supervision/noSIGTERM graceful claim\"}, \"control\": \"ONE original genuine1280/light Refresh via keyboardEnter; GET-only original replies/strictbody/focus/+2. No write/accept/test/activate. Firstfailure and realpolling retained.\", \"startedAt\": \"2026-10-12T01:46:25.403955+00:00\", \"status\": \"PASS\", \"log\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/original-one-current-package-status-refresh-keyboard.log\", \"pid\": 1674314, \"processGroup\": 1674314, \"originalStartTicks\": \"18284617\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [], \"after\": [], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": []}, \"endedAt\": \"2026-10-12T01:46:37.249177+00:00\", \"logSha256\": \"2b208c81d156b96a36e7f5f39843159751094c2a46b6cc03a256944beb13d84e\"}\r\n{\"id\":\"current-coherent-package-status-refresh-keyboard-390-dark\",\"status\":\"passed\",\"originalContextClosed\":true}\r\n{\"status\":\"passed\",\"passed\":1,\"failed\":0,\"unrun\":0,\"reportPath\":\"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/genuine-package-status-refresh-keyboard-report.json\",\"closure\":\"closed\"}\r\n\r\n"
+    }
+  },
+  {
+    "stage": "physical-after",
+    "tool": "exec_command",
+    "arguments": {
+      "cmd": "python3 -B /workspace/phase5f-current2d07-mobile-package-refresh-workspace-placement-source-preparation-attempt3/run-frozen-owned-stage.py --exclusive-go-exact-c3c1027-current2d07-mobile-package-refresh-stage physical-after",
+      "yield_time_ms": 1000,
+      "max_output_tokens": 10000
+    },
+    "result": {
+      "chunk_id": "bcce7c",
+      "wall_time_seconds": 1.001023055,
+      "session_id": 16709,
+      "original_token_count": 29,
+      "output": "{\"stage\": \"physical-after\", \"ownedPid\": 1674533, \"ownedProcessGroup\": 1674533, \"originalStartTicks\": \"18287731\"}\n"
+    }
+  },
+  {
+    "stage": "physical-after",
+    "tool": "write_stdin",
+    "arguments": {
+      "session_id": 16709,
+      "chars": "",
+      "yield_time_ms": 1000,
+      "max_output_tokens": 10000
+    },
+    "result": {
+      "chunk_id": "da6b6e",
+      "wall_time_seconds": 0.000022944,
+      "exit_code": 0,
+      "original_token_count": 486,
+      "output": "{\"stage\": \"physical-after\", \"cwd\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source\", \"argv\": [\"python3\", \"-B\", \"/tmp/phase5f-current2d07-three-mobile-five-qa-private-attempt1/source/scripts/qa/phase5f/check-current-package-file-focus-package-refresh-mobile-physical-state.py\", \"--domain\", \"package\", \"--source-copy\", \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy\", \"--fixture-directory\", \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture\", \"--runtime-directory\", \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime\"], \"env\": {\"TMPDIR\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1\", \"SQLITE_TMPDIR\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1\"}, \"control\": \"Mandatory after original native child/directwait/reap and context/route/body/controller/browser/Worker/JWKS settlement. New physical output alias; preserve any accepted job/item/hold/permit partial history. Failed native case stays failed.\", \"startedAt\": \"2026-10-12T01:46:56.539843+00:00\", \"status\": \"PASS\", \"log\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/physical-after.log\", \"pid\": 1674533, \"processGroup\": 1674533, \"originalStartTicks\": \"18287731\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [], \"after\": [], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": []}, \"endedAt\": \"2026-10-12T01:46:57.542243+00:00\", \"logSha256\": \"392906688ad288ffcd674a362e318c4e717275192c9a89cee40fb128dc11567b\"}\n{\"receipt\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/physical-sqlite-after-current-package-status-refresh-keyboard.json\", \"status\": \"passed\", \"error\": null}\n\n"
+    }
+  },
+  {
+    "stage": "final-source-artifact-input-pins",
+    "tool": "exec_command",
+    "arguments": {
+      "cmd": "python3 -B /workspace/phase5f-current2d07-mobile-package-refresh-workspace-placement-source-preparation-attempt3/run-frozen-owned-stage.py --exclusive-go-exact-c3c1027-current2d07-mobile-package-refresh-stage final-source-artifact-input-pins",
+      "yield_time_ms": 1000,
+      "max_output_tokens": 10000
+    },
+    "result": {
+      "chunk_id": "6cd02d",
+      "wall_time_seconds": 0.699282369,
+      "exit_code": 0,
+      "original_token_count": 391,
+      "output": "{\"stage\": \"final-source-artifact-input-pins\", \"ownedPid\": 1674596, \"ownedProcessGroup\": 1674596, \"originalStartTicks\": \"18290293\"}\n{\"stage\": \"final-source-artifact-input-pins\", \"cwd\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source\", \"argv\": [\"python3\", \"-B\", \"/workspace/phase5f-current2d07-mobile-package-refresh-workspace-placement-source-preparation-attempt3/carry-current2d07-mobile-original-native.py\", \"--current02d-coherent-saved-job\", \"final-pins\"], \"env\": {\"TMPDIR\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1\", \"SQLITE_TMPDIR\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1\"}, \"startedAt\": \"2026-10-12T01:47:22.164688+00:00\", \"status\": \"PASS\", \"log\": \"/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/final-source-artifact-input-pins.log\", \"pid\": 1674596, \"processGroup\": 1674596, \"originalStartTicks\": \"18290293\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [], \"after\": [], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": []}, \"endedAt\": \"2026-10-12T01:47:22.707940+00:00\", \"logSha256\": \"128244a858c9c65f5546b38121be562884ec2495d168aa33f04d0fc210a8b8a0\"}\n{\"stage\": \"final-pins\", \"status\": \"PASS\", \"domain\": \"package\", \"producerHead\": \"2d07b57c4e79403099261528ae8988c0072d28c6\", \"qaConsumerHead\": \"c3c1027b66cca605c7d1ee5e9b7d30427d5c3ca4\", \"newBuilds\": 0, \"disabledSeedRequests\": 0}\n\n"
+    }
+  }
+]
+

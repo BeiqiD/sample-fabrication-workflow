@@ -1,0 +1,12 @@
+{
+  "status": "SOURCE_CLEAR_RUNTIME_UNRUN",
+  "planSha256": "01f2fb9a5bb7a0a11b2216811ced7b8efff3241a5b044d469645981c0b080c6d",
+  "runnerSha256": "8c5f5ceb66b00899bca416b458a93d9271d8f50ae23d4ee94604e6b3e533e7de",
+  "mature11OwnerFunctionsAstExact": true,
+  "genuinePreviewCases": 2,
+  "qaConsumerHead": "f50384811b2d16fd64847cf10f622719bed0481a",
+  "actualProducerHead": "f88fffea3ba0654b52ca90ee87efdafdb70cd48c",
+  "sourceIndependentPeerSha256": "86a7f26b5b9fea4a1d52f859b9d307e55b17e619bf2629b9126a0b24aa407fc0",
+  "scope": "Reuse actual qualified f88 build via complete equality; fresh isolated24/84; two genuine POST/4GET/two exactly released HTTPpermits; mandatory normal closures/physical/pins; no repeated compiler/build/native carry/provider/jobs",
+  "rootReviewerRuntime": 0
+}

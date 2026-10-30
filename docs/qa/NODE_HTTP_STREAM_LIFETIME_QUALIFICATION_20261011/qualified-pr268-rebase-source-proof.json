@@ -1,0 +1,14 @@
+{
+  "status": "REBASE_SOURCE_TREE_EXACT_NO_CURRENT_COMPILER_RETAG",
+  "recordedAt": "2026-10-11T11:10:47.204032+00:00",
+  "oldCompiledHead": "889ba4228a979ae5cb2fc13da3db8e7657d377c7",
+  "oldBase": "5ca6ada4448e36beaa1c46ceb4bbf1e9b0d2ecef",
+  "newBase": "b1975d22c9397bde82320209ae8c6f7b572f404e",
+  "newHead": "59241d855db4447735e36feeda3790e601ab3bcb",
+  "oldTree": "f4562c9c3a3f4fd68ef785223ab51502888d37f3",
+  "newTree": "f4562c9c3a3f4fd68ef785223ab51502888d37f3",
+  "all2353GitModeWorkingInputsTreeExact": true,
+  "compilerHistoricalSource889": "b3bc2bf737373d8a1a4c7e3cee18a29ed0986f97cb5cf67df745c3910b8750a7",
+  "native30ExactFiveLeafDonorClosureOnly": true,
+  "noRuntimeOrCompilerRepeat": true
+}

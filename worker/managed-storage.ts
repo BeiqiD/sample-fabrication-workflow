@@ -1,8 +1,9 @@
 import type { ManagedStorageStatus } from "../shared/types";
 import {
-  SwitchdriveAuthenticationError,
+  SwitchdriveConnectionCheckError,
   SwitchdriveStorage,
   switchdriveConfiguration,
+  type SwitchdriveTransportOptions,
 } from "./switchdrive-storage";
 import type { Env } from "./types";
 
@@ -21,19 +22,26 @@ export interface ManagedStorageObject {
   etag: string | null;
 }
 
+export interface ManagedStorageStat {
+  byteSize: number | null;
+  contentType: string;
+  etag: string | null;
+}
+
 export interface ManagedStorage {
   readonly provider: string;
   readonly authentication: ManagedStorageStatus["authentication"];
   check(): Promise<void>;
   put(input: ManagedStoragePut): Promise<{ byteSize: number }>;
+  stat(key: string): Promise<ManagedStorageStat | null>;
   get(key: string): Promise<ManagedStorageObject | null>;
   delete(key: string): Promise<void>;
 }
 
-export function managedStorage(env: Env): ManagedStorage | null {
+export function managedStorage(env: Env, options: SwitchdriveTransportOptions = {}): ManagedStorage | null {
   if (env.MANAGED_STORAGE_PROVIDER?.trim().toLowerCase() === "switchdrive") {
     const configuration = switchdriveConfiguration(env);
-    return configuration ? new SwitchdriveStorage(configuration) : null;
+    return configuration ? new SwitchdriveStorage(configuration, options) : null;
   }
   return null;
 }
@@ -68,9 +76,10 @@ export async function managedStorageStatus(env: Env): Promise<ManagedStorageStat
         provider: storage.provider,
         available: false,
         authentication: storage.authentication,
-        message: error instanceof SwitchdriveAuthenticationError
-          ? "SWITCHdrive rejected the configured username or App Passcode. File attachments are disabled."
+        message: error instanceof SwitchdriveConnectionCheckError
+          ? `${error.message} File attachments are disabled.`
           : "SWITCHdrive could not be reached or its WebDAV address is invalid. File attachments are disabled.",
+        ...(error instanceof SwitchdriveConnectionCheckError ? { diagnostic: error.diagnostic } : {}),
       };
     }
   }
@@ -93,9 +102,10 @@ export function managedObjectKey(
   sample?: { id: string; code: string },
 ) {
   const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-180) || "attachment";
+  const safeLocator = itemId.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-220) || crypto.randomUUID();
   const safeCode = sample?.code.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 100) || "sample";
   const prefix = sample
     ? `samples/${safeCode}--${sample.id}/comment-attachments`
     : "shared-comment-attachments";
-  return `${prefix}/${submissionId}/${itemId}-${safeName}`;
+  return `${prefix}/${submissionId}/${safeLocator}-${safeName}`;
 }

@@ -1,0 +1,45 @@
+{
+  "status": "SOURCE_ONLY_ALL15_UNRUN_WAIT_PARENT_EXCLUSIVE_GO",
+  "producerRoot": "/tmp/phase5f-package-preview-focus-current1943-source-attempt3",
+  "producerHead": "ffff956c68e64e20b91b773d3bcb064642a37410",
+  "producerTree": "6717c62026f486e241de222ae6d206e30a51ce96",
+  "consumerRoot": "/tmp/phase5f-package-preview-focus-fresh-producer-consumer-source-attempt3",
+  "consumerHead": "638fd7407a38fc24983b6014558ccaf1e80aae9e",
+  "consumerTree": "8476845653757f328ae5c86d8b5010ad114a47e9",
+  "producerAndConsumerCounts": 1879,
+  "newHelperSha256": "9e37a20d0f9a594086dc4e581958af2ce47d6fdb3ca3ebbb0a8b03eac7075ac9",
+  "files": {
+    "finite-fresh-package-focus-two-plan.json": {
+      "path": "/tmp/phase5f-package-preview-focus-fresh-build-finite-source-review-attempt5/finite-fresh-package-focus-two-plan.json",
+      "sha256": "fd2ead51d00e9fca4d7e938d679b38d97d338d59247b3d5e572ad02d465927e2"
+    },
+    "run-frozen-owned-stage.py": {
+      "path": "/tmp/phase5f-package-preview-focus-fresh-build-finite-source-review-attempt5/run-frozen-owned-stage.py",
+      "sha256": "3d9d9c5b5b92d08c64b69273c17b84d1dbe97f081d49bcc49cb955453c105180"
+    },
+    "verify-fresh-package-focus-producer-and-two-witness.py": {
+      "path": "/tmp/phase5f-package-preview-focus-fresh-build-finite-source-review-attempt5/verify-fresh-package-focus-producer-and-two-witness.py",
+      "sha256": "d7af170d60aec3af53a30e10346d4d9c86c424654aff4c7e72816b9603a36d38"
+    }
+  },
+  "runnerScope": "10 mature functions/classes ASTexact old75e; verify_source only len1879 correction. Top-level initialstage/newroots/token/planhash changed; ownership/TTY/default120 logic unchanged. Carrier3defs ASTexact, top-level exactfreshbuild/source/currentnamespace qualification replaces historicalf88carry.",
+  "startCommand": "python3 -B /tmp/phase5f-package-preview-focus-fresh-build-finite-source-review-attempt5/run-frozen-owned-stage.py --exclusive-go-exact-ffff956-fresh-package-focus-two-stage affected-app-strict",
+  "stageCounts": {
+    "plannedStages": 15,
+    "actualCommandChildren": 14,
+    "normalStdinStop": 1
+  },
+  "sourceOnly": "Python AST/JSON/source authoring only; no type/compiler/SQL/build/server/browser/helper invoked.",
+  "parentLatestActualFailure": "b4d5f14afa504bd8d546697d3efa207c164c8dc140bd9d3fe9dc3daaec1f62ea",
+  "preservedOriginalSourcePlan": {
+    "root": "/tmp/phase5f-package-preview-focus-fresh-build-finite-source-review-attempt3",
+    "handoffSha256": "e5745fa248c1ce08e673ae18a1c58d5a6b117775c9e3c3855a59c0fcd3917487",
+    "scope": "Source-only originalconsumer e3 comments/report1792 inherited scope corrected to1878 actualprotected inputs. No actual firstplan invocation."
+  },
+  "previousFrozenPlan": {
+    "root": "/tmp/phase5f-package-preview-focus-fresh-build-finite-source-review-attempt4",
+    "handoffSha256": "3dae7e0514ef1e6e443f18801280c40bd0589af3643f1c5f8b8fc940e17dbbb2",
+    "status": "UNRUN",
+    "successor": "Only inheritedrunner docstring13/f88 correctedto15/freshbuild andtwo description e3consumer corrected638; commands/roots/sourceowners/budgets unchanged. Relative externalreview path+planhash updated."
+  }
+}

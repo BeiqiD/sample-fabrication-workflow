@@ -1,0 +1,13 @@
+
+ RUN  v4.1.10 /workspace/portable-current194-coherent-metadata-source-only-attempt1
+
+ ✓ worker/state-consumer-binding.test.ts > binds active state consumers and checks the exact File when splitting: available 1525ms
+ ✓ worker/state-consumer-binding.test.ts > binds active state consumers and checks the exact File when splitting: unavailable-existing 1312ms
+ ✓ worker/state-consumer-binding.test.ts > binds active state consumers and checks the exact File when splitting: unavailable-inherited 1389ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  04:46:49
+   Duration  7.22s (transform 2.32s, setup 34ms, import 2.85s, tests 4.23s, environment 0ms)
+
+JSON report written to /tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/02-state-consumer-binding.test.json

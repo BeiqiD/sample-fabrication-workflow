@@ -1,0 +1,253 @@
+{
+  "kind": "phase5f-original-native-request-terminal-enabled-admin-four-finite-plan/5",
+  "status": "FROZEN_SOURCE_ONLY_NO_RUNTIME_GO",
+  "sourceHead": "63d720a807ab8b21a8f8c152cc3cb8314e615355",
+  "sourceTree": "bd0aac2ca2f0de8b7fddbbad4e5865b9e89dd0d8",
+  "sourceRoot": "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5",
+  "sourceReceipt": {
+    "path": "/tmp/phase5f-admin-explicit-refresh-original-request-source-review-attempt5/frozen-single-QA-native-terminal-source.json",
+    "sha256": "a0b13f008f1d27a2ebeaf7bda50b9260670f8b3a5df85dd8d0404c03b4ab4886"
+  },
+  "roots": {
+    "copy": "/tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5",
+    "fixture": "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5",
+    "runtime": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5"
+  },
+  "originalProdQualification": {
+    "source": "d191eac9aab2f5b89037a3630eb68e417e8046e2",
+    "docsHead": "0397bcd1fe3009300c149bfff5636d7b900eda01",
+    "receipt": {
+      "path": "/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/finite-runtime-attempt1/finite-affected-qualification-receipt.json",
+      "sha256": "a0b2306f579096fbd8f328451084a6d34d931852bdb6c4d96b8da68190bafea8"
+    },
+    "scope": "Historical actual d191 appstrict41/new118build PASS; current product all1705baseline exact0397. Current63d changes only one QA observer/control helper vsoriginal95 actualproducer;1706 remaining95 inputs and original118/121 artifacts exact. No newbuild or historical41/fullCI/focus rerun inferred."
+  },
+  "commands": [
+    {
+      "stage": "original95-actual-build-artifact-causal-carry",
+      "control": "No npm build. Verify exact original95 producer380049 exit0/reaped and original63343498 command receipt/118 manifest, current single-helper QA delta/all1706 other mode/blob/workingbytes, same original3 generated configs/121copy artifacts. Transfer only those original121 regular bytes into consumerignored artifact/config locations, no copied state/dependencies. Record producer95 head/tree/root unchanged and distinct consumer 63d head/tree/root. Preserve original attempt4 failedfixture/closedfe8300 and raw receipts.",
+      "cwd": "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5",
+      "argv": [
+        "python3",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-source-review-attempt5/carry-exact-original95-build-artifacts.py",
+        "--exclusive-go-causal-95-to-63d-artifacts"
+      ]
+    },
+    {
+      "stage": "isolated-copy",
+      "cwd": "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5",
+      "argv": [
+        "python3",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5/scripts/qa/phase5f/prepare-isolated-copy.py",
+        "--source-root",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5",
+        "--destination",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5",
+        "--dependency-root",
+        "/workspace/sample-fabrication-workflow/node_modules"
+      ]
+    },
+    {
+      "stage": "fresh-two-version-sentinel",
+      "cwd": "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5",
+      "argv": [
+        "node",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5/scripts/qa/phase5f/generate-process-fixture.mjs",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5"
+      ]
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "cwd": "/tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "migrations",
+        "apply",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/.wrangler/state"
+      ],
+      "env": {
+        "WRANGLER_SEND_METRICS": "false",
+        "WRANGLER_LOG_PATH": "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5/wrangler-logs"
+      }
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "cwd": "/tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "execute",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5/.wrangler/state",
+        "--file",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5/process-fixture.sql"
+      ],
+      "env": {
+        "WRANGLER_SEND_METRICS": "false",
+        "WRANGLER_LOG_PATH": "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5/wrangler-logs"
+      }
+    },
+    {
+      "stage": "physical-before",
+      "cwd": "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5",
+      "argv": [
+        "python3",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5/scripts/qa/phase5f/check-isolated-state.py",
+        "--source-copy",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5",
+        "--fixture-directory",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5",
+        "--stage",
+        "before-api"
+      ]
+    },
+    {
+      "stage": "owned-built-worker",
+      "cwd": "/tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5",
+      "argv": [
+        "node",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5/scripts/qa/phase5f/start-built-server.mjs",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5"
+      ],
+      "control": "Keep owned stdin open, await actual ready health/ready200 and immutable owner/session; never start browser while readiness lacks",
+      "toolInvocation": {
+        "tty": true,
+        "yieldTimeMs": 1000,
+        "control": "PTY keeps originalstdin alive, sourceisatty guard BEFORE childspawn. Require originalready200/session/PID/startticks/noStop beforeseed. Explicitoriginalstop newline only originaltoolsession, thenactualdisposal/directwait."
+      }
+    },
+    {
+      "stage": "mature-genuine-api-84-only",
+      "cwd": "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5",
+      "argv": [
+        "node",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5/scripts/qa/phase5f/seed-actual-api.mjs",
+        "http://127.0.0.1:4219/",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5"
+      ],
+      "expectedRequests": 84
+    },
+    {
+      "stage": "original-disabled-seed-Worker-stop",
+      "control": "After genuine mature84 setup succeeds or any firstfailure, send originalstdin stop only originalttytoolsession; await originaldisposal/stoppedreceipt/directexit0/PIDabsence/4219refusal. No focus/browser runs on this seedWorker. Admin4 requires mature84PASS and originalseedownerCLOSED."
+    },
+    {
+      "stage": "original95-producer-distinct-consumer-input-scope-witness",
+      "control": "Write witness exactlyonce/private after consumerisolatedcopy and originalseedWorker normal stdin stop. Keep original95 witness sourceHead/sourceTree/sourceRoot and63343498 originalCommandReceiptSha256 unchanged; add actual consumerSourceHead/Tree/Root and inputScope purpose original95-actual-producer-single-QA-observer-equivalence-v1, exclude ONLY scripts/qa/phase5f/browser-enabled-admin-actual-api.mjs, count1706 and deterministic preserved inventory SHA46ccb104c44bfbaa6af7c4c9665d0ce5646093f8f7f23738d237023c22019057 from actual original95/currentconsumer source bytes; sourceEquivalenceReceiptSha256 a0b13f008f1d27a2ebeaf7bda50b9260670f8b3a5df85dd8d0404c03b4ab4886. Same original118 worker/frontend artifacts; original3 configs/121source artifacts input precise. Current newcopy Worker/config hashes must match the actual independently rehashed original121 artifacts/configs; physicalisolatedstate is fresh, never a newbuild claim. No producer/head/path rewrite or newfreshbuild claim."
+    },
+    {
+      "stage": "genuine-enabled-Access-admin-four",
+      "cwd": "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5",
+      "argv": [
+        "node",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5/scripts/qa/phase5f/browser-enabled-admin-actual-api.mjs",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5",
+        "--exclusive-go-four-enabled-admin"
+      ],
+      "env": {
+        "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+        "CHROMIUM_PATH": "/usr/bin/chromium"
+      },
+      "cases": [
+        "admin-1280-light",
+        "admin-390-dark",
+        "reader-1280-light",
+        "admin-390-dark-read-retry"
+      ],
+      "authenticationControls": 6,
+      "mutationScope": "No accepted browserwrites. One original privileged PUT{} by genuine reader mustdeny403. Fixture-only originalempty revisiontable temporarilydropped/restored exactDDL once and originalserviceGET503\u2192200; fulltyped catalog/row compare required. JWT/privatekey memoryonly, original auth/adminpolicy unchanged.",
+      "ownership": "Launch existing recorder tools.exec_command tty:true; adminhelper original child inherits same live TTY. Normalcomplete finally awaits originalcachedowners; explicit stop newline only on this originalTTY marksinterrupted and restores originalfault before cachedcontext/browser cancellation and normalfinally. SIGTERM/143 only external interruption, not gracefulowner closure. No fake Miniflare signalfinally.",
+      "observer": "Original503 status-only unusedbody: nativeRequest finished/failed listeners armbefore navigation, same original Request identity and singleoriginal Response.body Promise; closed pair underoriginal20s afterrealRefresh200. Accept completed+observedhash; or soleknownCDPNoData with nativefinished/failureNull explicitunusedpayloadunavailable/nohash; exceptional nativefailed requires netERR_ABORTED and eventaftercontrolledRefresh. Allotherbodyobservations remainstrict completed. Originalalert\u2192focusedRefreshEnter200/exacttypedtable restoration/roles and budgets unchanged."
+    },
+    {
+      "stage": "physical-after",
+      "cwd": "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5",
+      "argv": [
+        "python3",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5/scripts/qa/phase5f/check-isolated-state.py",
+        "--source-copy",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5",
+        "--fixture-directory",
+        "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5",
+        "--stage",
+        "after-shutdown"
+      ],
+      "require": "Only after originaldisabledseedWorker and newenabledAccesshelper bothactualexit +browser/Worker/JWKSstopclosed +bothportsrefused, regardlessfirstfailure where fixture exists. Original mature physical checker preservesSQLiteFK/PNG/inputbytes. Do not infer Accessclosure fromseedstop."
+    },
+    {
+      "stage": "final-source-artifact-input-pins",
+      "control": "Rehash frozen1707Gitworkingbytes/allartifactregularfiles/lock/config/API84/lifecycle/admin4 report/newphysical and prior36 genuinefocus2 actualPASS receipts. Capture allnewadmin4case bodies/status/fail/unrun, actualownerchildexit/reap/groups/FDPermission. Never claim source-equivalent historicalFocus2 asnewrun; no originalfocus rerun authorized. Firstfailure stopsmatrix exceptmandatoryactualrestore/ownedclosure/physical/pins."
+    }
+  ],
+  "fixtureCost": {
+    "actualSetup": 84,
+    "adminAuthenticationControls": 6,
+    "adminBrowserReadCost": "Observed15 prior36, newactual recorded independently; no assumed latency",
+    "acceptedDomainBrowserWrites": 0,
+    "deniedReaderPut": 1,
+    "fixtureAuthorityChanges": "None: no grants/authrows/identitymaps/provider/keyring writes. Originalemptyconfigurationtable fault restored exactDDL/alltypedcatalogrows; genuineJWKS/JOSE originalauth."
+  },
+  "budgets": "Original20s/action/request/setupbudgets unchanged; sameoriginal terminal/body pair bound underexisting20s. Strict allconsumed/non-target API bodies; no extraHTTP/retry/capture/fallback, no oldFocus/mounted/browser/perf/native reruns or build rerun.",
+  "scope": "New finiteenabledAccess4 over newisolatedactual24 fixture+mature84. Original95actualproducer causal inputscope carry, distinct consumerQAhead; original36Focus2 historicalsourceequivalence only. No remoteprovider/device/production/group/recovery/whole5F claim.",
+  "installedDependencies": {
+    "root": "/workspace/sample-fabrication-workflow/node_modules",
+    "package": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+    "lock": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a",
+    "hiddenLock": "95202718d08fd50cc286bcddf0af66b08503d63b494e992006c50d4246d69a98"
+  },
+  "executionRecorder": "Reuse accepted mature owner/group cleanup and original stdin-worker lifecycle. No new generic framework/timeout expansion needed; actual runner source/command handoff to parent separate from this finiteplan.",
+  "retainedUnexpectedFailures": [
+    {
+      "path": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt1/first-failure-closed-and-released-receipt.json",
+      "sha256": "aef2af48d32e2c3438cc3868ed7337526df41cb4bf57890d7920ac5096ad6d69"
+    },
+    {
+      "path": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt2/first-failure-closed-and-released-receipt.json",
+      "sha256": "c7002e6e6dd42168bfb5fbd795e394e4c4f8dad05e6da61816b36b8718cd432e"
+    },
+    {
+      "path": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/first-failure-closed-and-released-receipt.json",
+      "sha256": "654ff268bd727158fe6f6925f9c994148edf9f62d32cbc69e6116f1a91febe76"
+    },
+    {
+      "path": "/tmp/phase5f-enabled-admin-original-body-barrier-runtime-attempt4/first-failure-closed-and-released-receipt.json",
+      "sha256": "fe8300c7b809dc06115bc717751fc570c29450f618a6c0b71c731862475ea5e1",
+      "scope": "Original95 actualbuild/setup84 pass; progress3PASS/fourthbodypending interrupted143. No fullreport/auth/finally closure observed. Posthoc exactemptytable physicalrestore only."
+    }
+  ],
+  "historicalFocusTwoCarry": {
+    "sourceHead": "36e28cb2db6500ce26ca6e3048eb4b6fe44d0c5e",
+    "report": {
+      "path": "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3/metrology-cancel-focus-browser-report.json",
+      "sha256": "800e74c625a962d3008a06ab69058181fd9e5b5e398923789f9012323fdb6d81"
+    },
+    "closedReceipt": {
+      "path": "/tmp/phase5f-idle-focus-enabled-admin-runtime-attempt3/first-failure-closed-and-released-receipt.json",
+      "sha256": "654ff268bd727158fe6f6925f9c994148edf9f62d32cbc69e6116f1a91febe76"
+    },
+    "scope": "PrioractualFocus2PASS withownedclosure/physical. Focushelper/product/application1706currentbytes exact36; no newFocusrun inferred. Prioradmin3PASS1FAIL preserved; newadmin4mustactuallyqualifyallfour."
+  },
+  "runtimeRoot": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5",
+  "sourceReviewRoot": "/tmp/phase5f-admin-explicit-refresh-original-request-source-review-attempt5",
+  "whyNoFreshBuildIsQueued": "Original95 child380049 observed npm run build exit0/reaped,118 outputs;63d consumer has onlysingleQAhelperdelta andall1706 originalproducertrackedinputs/artifact121 exact. This is scoped causalcarry with producer95head/tree/root kept, never fresh63dbuild.",
+  "originalStdinControlTimeGuard": {
+    "browserStageLauncher": "tools.exec_command tty:true; existing recorder child inherits same originalTTY",
+    "supervision": "Capture immediate originalchild PID/PGID/startticks from recorder. Every20s inspect originalprogress/finalreport while command runs. The same503 terminal/body pair has unchanged20s source bound. If totaladminstage exceeds120s or a completed case/action remains stalled beyond its existing budgets, send stop newline ONCE to this original toolsession, then await actualchildexit/reap/report/typedrestore/ports; stop later stages except mandatoryphysical/sourcepins. This supervisory interruption is FAILED, never an expanded test budget or PASS.",
+    "signalFallback": "No SIGTERM-as-finally assumption. If originalTTYstop cannot close originalhelper, preserve exact interruption/exit facts and require physicalsyntheticcleanup before runtime release."
+  }
+}

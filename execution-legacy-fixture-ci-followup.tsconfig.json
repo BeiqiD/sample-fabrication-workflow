@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.runtime-tests.json",
+  "include": [
+    "worker/delete-run-route.test.ts",
+    "worker/metrology-routes.test.ts",
+    "execution-legacy-fixture-ci-followup.vitest.config.mts"
+  ],
+  "exclude": []
+}

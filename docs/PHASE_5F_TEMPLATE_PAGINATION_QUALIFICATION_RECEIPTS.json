@@ -1,0 +1,1285 @@
+{
+  "version": 1,
+  "status": "passed-and-closed",
+  "createdAt": "2026-10-10T22:00:16.639641+00:00",
+  "qualifiedSourceHead": "3c69d4d15e993e381e4df319f1d9cd6601b089d2",
+  "qualifiedSourceTree": "c6f21d7abca9b007378be99e67783850c6b75a00",
+  "sourceRoot": "/workspace/remaining-5f-template-pagination-source-d7d2a88",
+  "runtimeRoot": "/tmp/phase5f-template-pages-runtime-canon-attempt1",
+  "sourceCopyRoot": "/tmp/phase5f-template-pages-copy-canon-attempt1",
+  "fixtureDirectory": "/tmp/phase5f-template-pages-fixture-canon-attempt1",
+  "frozenPlanSha256": "e742752b7c39ce13ffff3dd1e46da5c53ce8427398f0b86fa81e090cc8a74d62",
+  "sourcePeerSha256": "6d6f0db32f72e57e2678c3e243edf83e5f655dcf4d1aeb135763ced264190c14",
+  "scope": "Four additive actual Templates default-pagination cases on a fresh AUTH_MODE=disabled local built Worker/D1/R2. One owned strict and fresh build were actual; old six/mounted/Worker/performance matrices were not rerun. No remote/authenticated-admin/provider/physical-device/IME/whole-5F or complete-CI claim.",
+  "trackedSourceFiles": 1500,
+  "freshCopiedArtifactFiles": 121,
+  "sourceAndArtifactBytesRecheckedAfterShutdown": true,
+  "runtimeCommands": [
+    {
+      "stage": "single-owned-witness-fixture-strict-canonical-module-closure",
+      "cwd": "/workspace/remaining-5f-template-pagination-source-d7d2a88",
+      "argv": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.phase5f-project-creation-subject-tests.json"
+      ],
+      "configSha256": "9db6437945f8d95c42cfe1bc88311da3ef529daf6d08697061db0b9709271bec",
+      "fixtureSha256": "985bf82829eb3a71686e8eeaa81ad55793f49abb170bd321e60612fa3e809cd9",
+      "scope": "Exactly parent-requested unchanged dedicated sixth config after canonical module-path move, no flags/budgets/source changes; otherfive strict closure belongs to own completeCI.",
+      "startedAt": "2026-10-10T21:54:50.720455+00:00",
+      "endedAt": "2026-10-10T21:54:50.998599+00:00",
+      "exitCode": 0,
+      "log": "/tmp/phase5f-template-pages-runtime-canon-attempt1/single-owned-witness-fixture-strict-canonical-module-closure.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "receiptPath": "/tmp/phase5f-template-pages-runtime-canon-attempt1/single-owned-witness-fixture-strict-canonical-module-closure-command.json",
+      "receiptSha256": "27c31681730d3ace978d3f48df775ad83c7cebc80f75b8ee899043ac903c6ec2",
+      "status": "passed"
+    },
+    {
+      "stage": "fresh-canonical-source-worker-build",
+      "cwd": "/workspace/remaining-5f-template-pagination-source-d7d2a88",
+      "argv": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "startedAt": "2026-10-10T21:55:00.499706+00:00",
+      "endedAt": "2026-10-10T21:55:05.527143+00:00",
+      "exitCode": 0,
+      "log": "/tmp/phase5f-template-pages-runtime-canon-attempt1/fresh-canonical-source-worker-build.log",
+      "logSha256": "9715eb7fb363f17c891431204e196c605475227407407bf848b280d25d38cb9e",
+      "receiptPath": "/tmp/phase5f-template-pages-runtime-canon-attempt1/fresh-canonical-source-worker-build-command.json",
+      "receiptSha256": "3be33168615934a5412fed6b0b9fe7bd83182c08b5fb2096e01afd999eb938f0",
+      "status": "passed"
+    },
+    {
+      "stage": "fresh-isolated-copy",
+      "cwd": "/workspace/remaining-5f-template-pagination-source-d7d2a88",
+      "argv": [
+        "python3",
+        "/workspace/remaining-5f-template-pagination-source-d7d2a88/scripts/qa/phase5f/prepare-isolated-copy.py",
+        "--source-root",
+        "/workspace/remaining-5f-template-pagination-source-d7d2a88",
+        "--destination",
+        "/tmp/phase5f-template-pages-copy-canon-attempt1",
+        "--dependency-root",
+        "/workspace/sample-fabrication-workflow/node_modules"
+      ],
+      "startedAt": "2026-10-10T21:55:34.237960+00:00",
+      "endedAt": "2026-10-10T21:55:34.993574+00:00",
+      "exitCode": 0,
+      "log": "/tmp/phase5f-template-pages-runtime-canon-attempt1/fresh-isolated-copy.log",
+      "logSha256": "d46479c3548b2fa6a1f099ac05f999a2ef4a2c83d79b0c5b6d186fb85e6f98d1",
+      "receiptPath": "/tmp/phase5f-template-pages-runtime-canon-attempt1/fresh-isolated-copy-command.json",
+      "receiptSha256": "0a47bf6259df159e9b046b5d38c79119b547d00b91d5bebd58d87661db096c11",
+      "status": "passed"
+    },
+    {
+      "stage": "fresh-random-two-version-sentinel",
+      "cwd": "/workspace/remaining-5f-template-pagination-source-d7d2a88",
+      "argv": [
+        "node",
+        "/workspace/remaining-5f-template-pagination-source-d7d2a88/scripts/qa/phase5f/generate-process-fixture.mjs",
+        "/tmp/phase5f-template-pages-copy-canon-attempt1",
+        "/tmp/phase5f-template-pages-fixture-canon-attempt1"
+      ],
+      "startedAt": "2026-10-10T21:55:34.993891+00:00",
+      "endedAt": "2026-10-10T21:55:35.802507+00:00",
+      "exitCode": 0,
+      "log": "/tmp/phase5f-template-pages-runtime-canon-attempt1/fresh-random-two-version-sentinel.log",
+      "logSha256": "e7f6dde5bb584aa828c7ac36f36110583d7169a8ea22ce29ed802abb7e7d24a6",
+      "receiptPath": "/tmp/phase5f-template-pages-runtime-canon-attempt1/fresh-random-two-version-sentinel-command.json",
+      "receiptSha256": "2727fc46bd3142bba8ed8fae819b6b48992896f7eb7c9d4d75c2ca588eb7a128",
+      "status": "passed"
+    },
+    {
+      "stage": "ordinary-local-migrations",
+      "cwd": "/tmp/phase5f-template-pages-copy-canon-attempt1",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "migrations",
+        "apply",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/tmp/phase5f-template-pages-copy-canon-attempt1/.wrangler/state"
+      ],
+      "env": {
+        "WRANGLER_SEND_METRICS": "false",
+        "WRANGLER_LOG_PATH": "/tmp/phase5f-template-pages-fixture-canon-attempt1/wrangler-logs"
+      },
+      "startedAt": "2026-10-10T21:55:35.802839+00:00",
+      "endedAt": "2026-10-10T21:55:48.494685+00:00",
+      "exitCode": 0,
+      "log": "/tmp/phase5f-template-pages-runtime-canon-attempt1/ordinary-local-migrations.log",
+      "logSha256": "efdd0b1d615d3b237e45cd80394ba0efbaf0e3ac8bd5a396713c9c3feafb0818",
+      "receiptPath": "/tmp/phase5f-template-pages-runtime-canon-attempt1/ordinary-local-migrations-command.json",
+      "receiptSha256": "119f8b18235f882b7e30360487891d3f772ace292bb7731b0d98935b3eab4b6a",
+      "status": "passed"
+    },
+    {
+      "stage": "hashed-sentinel-fixture-sql",
+      "cwd": "/tmp/phase5f-template-pages-copy-canon-attempt1",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "execute",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/tmp/phase5f-template-pages-copy-canon-attempt1/.wrangler/state",
+        "--file",
+        "/tmp/phase5f-template-pages-fixture-canon-attempt1/process-fixture.sql"
+      ],
+      "env": {
+        "WRANGLER_SEND_METRICS": "false",
+        "WRANGLER_LOG_PATH": "/tmp/phase5f-template-pages-fixture-canon-attempt1/wrangler-logs"
+      },
+      "startedAt": "2026-10-10T21:55:48.495449+00:00",
+      "endedAt": "2026-10-10T21:55:49.748690+00:00",
+      "exitCode": 0,
+      "log": "/tmp/phase5f-template-pages-runtime-canon-attempt1/hashed-sentinel-fixture-sql.log",
+      "logSha256": "d02dd87fc37a8c09b255c54937e13bc8f41401971b8c8b761582c302bb85f7db",
+      "receiptPath": "/tmp/phase5f-template-pages-runtime-canon-attempt1/hashed-sentinel-fixture-sql-command.json",
+      "receiptSha256": "a911beee33d23d4a86d6d68454ef73bcfc08ff350adb6f2ab9b7bb112f4e876f",
+      "status": "passed"
+    },
+    {
+      "stage": "physical-before-api",
+      "cwd": "/tmp/phase5f-template-pages-copy-canon-attempt1",
+      "argv": [
+        "python3",
+        "/workspace/remaining-5f-template-pagination-source-d7d2a88/scripts/qa/phase5f/check-isolated-state.py",
+        "--source-copy",
+        "/tmp/phase5f-template-pages-copy-canon-attempt1",
+        "--fixture-directory",
+        "/tmp/phase5f-template-pages-fixture-canon-attempt1",
+        "--stage",
+        "before-api"
+      ],
+      "startedAt": "2026-10-10T21:55:49.749032+00:00",
+      "endedAt": "2026-10-10T21:55:50.156111+00:00",
+      "exitCode": 0,
+      "log": "/tmp/phase5f-template-pages-runtime-canon-attempt1/physical-before-api.log",
+      "logSha256": "f4b59cf9fa2a7d0bfae58ba2da81a2bf89ab1e068b397d286a612151ccf2d555",
+      "receiptPath": "/tmp/phase5f-template-pages-runtime-canon-attempt1/physical-before-api-command.json",
+      "receiptSha256": "20bcb9fff358d04d75d0cbc29ec537a824f0aa2266d99aa18ddf545ac665e47d",
+      "status": "passed"
+    },
+    {
+      "stage": "owned-isolated-built-worker",
+      "cwd": "/tmp/phase5f-template-pages-copy-canon-attempt1",
+      "argv": [
+        "node",
+        "/workspace/remaining-5f-template-pagination-source-d7d2a88/scripts/qa/phase5f/start-built-server.mjs",
+        "/tmp/phase5f-template-pages-copy-canon-attempt1",
+        "/tmp/phase5f-template-pages-fixture-canon-attempt1"
+      ],
+      "stdinOwnedAndRetained": true,
+      "awaitBeforeNext": "actual ready receipt from this owned server",
+      "startedAt": "2026-10-10T21:57:52.272385+00:00",
+      "endedAt": "2026-10-10T21:58:28.420295+00:00",
+      "exitCode": 0,
+      "childPid": 242884,
+      "log": "/tmp/phase5f-template-pages-runtime-canon-attempt1/owned-isolated-built-worker.log",
+      "logSha256": "1ca8b1593edf45c39522b426fcb414390beb3cdcb427420099e5ed43041bd025",
+      "receiptPath": "/tmp/phase5f-template-pages-runtime-canon-attempt1/owned-isolated-built-worker-command.json",
+      "receiptSha256": "94e2a73bbf77245f6142fd62a7e3e631991fd7b9ec8d40e28602459dcdad14e4",
+      "status": "passed"
+    },
+    {
+      "stage": "mature84-ordinary-api-fixture-setup-no-browser",
+      "cwd": "/tmp/phase5f-template-pages-copy-canon-attempt1",
+      "argv": [
+        "node",
+        "/workspace/remaining-5f-template-pagination-source-d7d2a88/scripts/qa/phase5f/seed-actual-api.mjs",
+        "http://127.0.0.1:4219/",
+        "/tmp/phase5f-template-pages-fixture-canon-attempt1"
+      ],
+      "startedAt": "2026-10-10T21:58:09.454181+00:00",
+      "endedAt": "2026-10-10T21:58:12.131975+00:00",
+      "exitCode": 0,
+      "log": "/tmp/phase5f-template-pages-runtime-canon-attempt1/mature84-ordinary-api-fixture-setup-no-browser.log",
+      "logSha256": "b1c50afb816f01c7fb760a68aebbda7c1687853bcc748f86ccfff0b4da30f3a3",
+      "receiptPath": "/tmp/phase5f-template-pages-runtime-canon-attempt1/mature84-ordinary-api-fixture-setup-no-browser-command.json",
+      "receiptSha256": "823e85984a3ff8ab4866e6893240d7cb8982a8e03fadd2a0c09a8f2d5febdf08",
+      "status": "passed"
+    },
+    {
+      "stage": "new102-genuine-distinct-template-family-seed",
+      "cwd": "/tmp/phase5f-template-pages-copy-canon-attempt1",
+      "argv": [
+        "node",
+        "/workspace/remaining-5f-template-pagination-source-d7d2a88/scripts/qa/phase5f/seed-template-pagination-actual-api.mjs",
+        "http://127.0.0.1:4219/",
+        "/tmp/phase5f-template-pages-fixture-canon-attempt1"
+      ],
+      "startedAt": "2026-10-10T21:58:12.132373+00:00",
+      "endedAt": "2026-10-10T21:58:14.701394+00:00",
+      "exitCode": 0,
+      "log": "/tmp/phase5f-template-pages-runtime-canon-attempt1/new102-genuine-distinct-template-family-seed.log",
+      "logSha256": "89609a95f31e524b0864d52f7fc3f88c2bb4ae0d355ca89fd2558b07d269a1e5",
+      "receiptPath": "/tmp/phase5f-template-pages-runtime-canon-attempt1/new102-genuine-distinct-template-family-seed-command.json",
+      "receiptSha256": "f338a6f704eb6599d83f31f7bf75dba9d592886113568a336ba7431148d1c5a2",
+      "status": "passed"
+    },
+    {
+      "stage": "new-complete-four-read-only-browser-cases",
+      "cwd": "/tmp/phase5f-template-pages-copy-canon-attempt1",
+      "argv": [
+        "node",
+        "/workspace/remaining-5f-template-pagination-source-d7d2a88/scripts/qa/phase5f/browser-template-pagination-actual-api.mjs",
+        "http://127.0.0.1:4219/",
+        "/tmp/phase5f-template-pages-fixture-canon-attempt1",
+        "/tmp/phase5f-template-pages-copy-canon-attempt1"
+      ],
+      "env": {
+        "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+        "CHROMIUM_PATH": "/usr/bin/chromium"
+      },
+      "forbiddenEnv": [
+        "PHASE5F_CASE_ID",
+        "PHASE5F_REVIEWED_HARNESS_SHA256"
+      ],
+      "startedAt": "2026-10-10T21:58:14.701733+00:00",
+      "endedAt": "2026-10-10T21:58:24.827039+00:00",
+      "exitCode": 0,
+      "log": "/tmp/phase5f-template-pages-runtime-canon-attempt1/new-complete-four-read-only-browser-cases.log",
+      "logSha256": "90935097b182a008727554cefc65bdfaee91be924d7d8a1cd22ba9214585dfb1",
+      "receiptPath": "/tmp/phase5f-template-pages-runtime-canon-attempt1/new-complete-four-read-only-browser-cases-command.json",
+      "receiptSha256": "6e9c1e0743a30edd4fda19e8804ef4a24376febf6ce024448da8517181472620",
+      "status": "passed"
+    },
+    {
+      "stage": "owned-stdin-stop-and-await-actual-exit",
+      "status": "passed",
+      "receiptPath": "/tmp/phase5f-template-pages-runtime-canon-attempt1/owned-stop-exit-port-pid-receipt.json",
+      "receiptSha256": "a9fdff3192ad980cdf8517a06fbd55c39fd49268e0a96f05f3371163cf47ea3c"
+    },
+    {
+      "stage": "physical-after-shutdown",
+      "cwd": "/tmp/phase5f-template-pages-copy-canon-attempt1",
+      "argv": [
+        "python3",
+        "/workspace/remaining-5f-template-pagination-source-d7d2a88/scripts/qa/phase5f/check-isolated-state.py",
+        "--source-copy",
+        "/tmp/phase5f-template-pages-copy-canon-attempt1",
+        "--fixture-directory",
+        "/tmp/phase5f-template-pages-fixture-canon-attempt1",
+        "--stage",
+        "after-shutdown"
+      ],
+      "alwaysAfterServiceStarted": true,
+      "startedAt": "2026-10-10T21:58:39.031475+00:00",
+      "endedAt": "2026-10-10T21:58:39.482150+00:00",
+      "exitCode": 0,
+      "log": "/tmp/phase5f-template-pages-runtime-canon-attempt1/physical-after-shutdown.log",
+      "logSha256": "d194344cf10701dea807cf81c4ca12310b39287ab34b8f1de37f1004b0fba095",
+      "receiptPath": "/tmp/phase5f-template-pages-runtime-canon-attempt1/physical-after-shutdown-command.json",
+      "receiptSha256": "54ccd5397ebc5f00bdf0c5bd314340310e847b6e01a362359daddf8c32454a82",
+      "status": "passed"
+    }
+  ],
+  "seed": {
+    "matureApiSetupRequests": 84,
+    "newTemplateApiRequests": 102,
+    "newPostRequests": 47,
+    "newGetRequests": 55,
+    "processFamilyCount": 21,
+    "metrologyFamilyCount": 26,
+    "all47FamilyAndTemplateIdsDistinct": true,
+    "pagination": {
+      "process": {
+        "first": {
+          "page": 1,
+          "pageSize": 20,
+          "total": 21,
+          "totalPages": 2
+        },
+        "last": {
+          "page": 2,
+          "pageSize": 20,
+          "total": 21,
+          "totalPages": 2
+        }
+      },
+      "metrology": {
+        "first": {
+          "page": 1,
+          "pageSize": 25,
+          "total": 26,
+          "totalPages": 2
+        },
+        "last": {
+          "page": 2,
+          "pageSize": 25,
+          "total": 26,
+          "totalPages": 2
+        }
+      }
+    },
+    "originalInputJournalSha256": "6bd618146bea86c5324d9fd07177b8464db651215c80c4de570f5b268e03f086",
+    "originalWorkbookAndManifestPairsRehashed": 21,
+    "parser": {
+      "sourceSha256": "97e873c2e939b9986070668d65d0762eca24325345afce3d9788a78606a90247",
+      "sectionsSourceSha256": "2e2f33eefe73f181a05b66844477a2e1500ce3a1e21d2ac9b938eb1c39fd33b7",
+      "moduleSha256": "5feca008320add582cd142553aa7baa8ae6eab07eb66a340d3d598fd308f5eda",
+      "scope": "Actual source parser bundled using pinned existing esbuild/JSZip, mature xmldom input shim; not a browser parser or whole-build rerun."
+    }
+  },
+  "browser": {
+    "engine": "Chromium",
+    "actualVersion": "151.0.7922.173",
+    "passed": 4,
+    "failed": 0,
+    "unrunCaseIds": [],
+    "completeFiniteMatrix": true,
+    "browserClosed": true,
+    "apiReadResponsesObservedPerCase": 13,
+    "browserApiMutations": 0,
+    "cases": [
+      {
+        "id": "template-pages-process-390-dark",
+        "domain": "process",
+        "width": 390,
+        "theme": "dark",
+        "status": "passed",
+        "assertions": [
+          {
+            "surface": "templates-original-first-pages",
+            "client": 390,
+            "rootScroll": 390,
+            "bodyScroll": 390,
+            "theme": "dark"
+          },
+          {
+            "readFault": "/api/template-families",
+            "genuineStatusBeforeControlledFault": 200,
+            "genuineResponseSha256": "d04c0957c869667f8eddf591f6b25cb1a2461903e18e1b9e3469437836fdda3e"
+          },
+          {
+            "surface": "templates-recovered-last-page",
+            "client": 390,
+            "rootScroll": 390,
+            "bodyScroll": 390,
+            "theme": "dark"
+          },
+          {
+            "surface": "original-template-source",
+            "client": 390,
+            "rootScroll": 390,
+            "bodyScroll": 390,
+            "theme": "dark"
+          },
+          {
+            "surface": "templates-restored-query-first-pages",
+            "client": 390,
+            "rootScroll": 390,
+            "bodyScroll": 390,
+            "theme": "dark"
+          },
+          {
+            "distinctProcessFamilies": 21,
+            "processDefaultSize": 20,
+            "processFirstRows": 20,
+            "processLastRows": 1,
+            "distinctMetrologyFamilies": 26,
+            "metrologyDefaultSize": 25,
+            "metrologyFirstRows": 25,
+            "metrologyLastRows": 1,
+            "targetDomain": "process",
+            "genuineDefaultSizesCheckedBySeeder": true,
+            "independentDomainPagePreserved": true,
+            "restoredExactOriginalFirstPage": true,
+            "actualUnderlyingRead200BeforeControlled503": true,
+            "nativeKeyboardRetry": true,
+            "nativeSourceLinkAndBrowserHistoryBack": true,
+            "nativeSearchAccessibilityName": "Search templates",
+            "queryChangeResetsBothPages": true,
+            "searchFocusRetained": true,
+            "browserMutationRequests": 0,
+            "apiReadResponsesObserved": 13
+          }
+        ],
+        "contextClosed": true,
+        "observationSummary": {
+          "completed": 13,
+          "unfinished": 0,
+          "unavailable": 0,
+          "requiredUnfinished": 0
+        }
+      },
+      {
+        "id": "template-pages-process-1280-light",
+        "domain": "process",
+        "width": 1280,
+        "theme": "light",
+        "status": "passed",
+        "assertions": [
+          {
+            "surface": "templates-original-first-pages",
+            "client": 1280,
+            "rootScroll": 1280,
+            "bodyScroll": 1280,
+            "theme": "light"
+          },
+          {
+            "readFault": "/api/template-families",
+            "genuineStatusBeforeControlledFault": 200,
+            "genuineResponseSha256": "d04c0957c869667f8eddf591f6b25cb1a2461903e18e1b9e3469437836fdda3e"
+          },
+          {
+            "surface": "templates-recovered-last-page",
+            "client": 1280,
+            "rootScroll": 1280,
+            "bodyScroll": 1280,
+            "theme": "light"
+          },
+          {
+            "surface": "original-template-source",
+            "client": 1280,
+            "rootScroll": 1280,
+            "bodyScroll": 1280,
+            "theme": "light"
+          },
+          {
+            "surface": "templates-restored-query-first-pages",
+            "client": 1280,
+            "rootScroll": 1280,
+            "bodyScroll": 1280,
+            "theme": "light"
+          },
+          {
+            "distinctProcessFamilies": 21,
+            "processDefaultSize": 20,
+            "processFirstRows": 20,
+            "processLastRows": 1,
+            "distinctMetrologyFamilies": 26,
+            "metrologyDefaultSize": 25,
+            "metrologyFirstRows": 25,
+            "metrologyLastRows": 1,
+            "targetDomain": "process",
+            "genuineDefaultSizesCheckedBySeeder": true,
+            "independentDomainPagePreserved": true,
+            "restoredExactOriginalFirstPage": true,
+            "actualUnderlyingRead200BeforeControlled503": true,
+            "nativeKeyboardRetry": true,
+            "nativeSourceLinkAndBrowserHistoryBack": true,
+            "nativeSearchAccessibilityName": "Search templates",
+            "queryChangeResetsBothPages": true,
+            "searchFocusRetained": true,
+            "browserMutationRequests": 0,
+            "apiReadResponsesObserved": 13
+          }
+        ],
+        "contextClosed": true,
+        "observationSummary": {
+          "completed": 13,
+          "unfinished": 0,
+          "unavailable": 0,
+          "requiredUnfinished": 0
+        }
+      },
+      {
+        "id": "template-pages-metrology-390-light",
+        "domain": "metrology",
+        "width": 390,
+        "theme": "light",
+        "status": "passed",
+        "assertions": [
+          {
+            "surface": "templates-original-first-pages",
+            "client": 390,
+            "rootScroll": 390,
+            "bodyScroll": 390,
+            "theme": "light"
+          },
+          {
+            "readFault": "/api/metrology-templates",
+            "genuineStatusBeforeControlledFault": 200,
+            "genuineResponseSha256": "d550986531a75e4fa717275fc3e7b7c0d7f09d45b034fdec503d26c47fb62bc4"
+          },
+          {
+            "surface": "templates-recovered-last-page",
+            "client": 390,
+            "rootScroll": 390,
+            "bodyScroll": 390,
+            "theme": "light"
+          },
+          {
+            "surface": "original-template-source",
+            "client": 390,
+            "rootScroll": 390,
+            "bodyScroll": 390,
+            "theme": "light"
+          },
+          {
+            "surface": "templates-restored-query-first-pages",
+            "client": 390,
+            "rootScroll": 390,
+            "bodyScroll": 390,
+            "theme": "light"
+          },
+          {
+            "distinctProcessFamilies": 21,
+            "processDefaultSize": 20,
+            "processFirstRows": 20,
+            "processLastRows": 1,
+            "distinctMetrologyFamilies": 26,
+            "metrologyDefaultSize": 25,
+            "metrologyFirstRows": 25,
+            "metrologyLastRows": 1,
+            "targetDomain": "metrology",
+            "genuineDefaultSizesCheckedBySeeder": true,
+            "independentDomainPagePreserved": true,
+            "restoredExactOriginalFirstPage": true,
+            "actualUnderlyingRead200BeforeControlled503": true,
+            "nativeKeyboardRetry": true,
+            "nativeSourceLinkAndBrowserHistoryBack": true,
+            "nativeSearchAccessibilityName": "Search templates",
+            "queryChangeResetsBothPages": true,
+            "searchFocusRetained": true,
+            "browserMutationRequests": 0,
+            "apiReadResponsesObserved": 13
+          }
+        ],
+        "contextClosed": true,
+        "observationSummary": {
+          "completed": 13,
+          "unfinished": 0,
+          "unavailable": 0,
+          "requiredUnfinished": 0
+        }
+      },
+      {
+        "id": "template-pages-metrology-1280-dark",
+        "domain": "metrology",
+        "width": 1280,
+        "theme": "dark",
+        "status": "passed",
+        "assertions": [
+          {
+            "surface": "templates-original-first-pages",
+            "client": 1280,
+            "rootScroll": 1280,
+            "bodyScroll": 1280,
+            "theme": "dark"
+          },
+          {
+            "readFault": "/api/metrology-templates",
+            "genuineStatusBeforeControlledFault": 200,
+            "genuineResponseSha256": "d550986531a75e4fa717275fc3e7b7c0d7f09d45b034fdec503d26c47fb62bc4"
+          },
+          {
+            "surface": "templates-recovered-last-page",
+            "client": 1280,
+            "rootScroll": 1280,
+            "bodyScroll": 1280,
+            "theme": "dark"
+          },
+          {
+            "surface": "original-template-source",
+            "client": 1280,
+            "rootScroll": 1280,
+            "bodyScroll": 1280,
+            "theme": "dark"
+          },
+          {
+            "surface": "templates-restored-query-first-pages",
+            "client": 1280,
+            "rootScroll": 1280,
+            "bodyScroll": 1280,
+            "theme": "dark"
+          },
+          {
+            "distinctProcessFamilies": 21,
+            "processDefaultSize": 20,
+            "processFirstRows": 20,
+            "processLastRows": 1,
+            "distinctMetrologyFamilies": 26,
+            "metrologyDefaultSize": 25,
+            "metrologyFirstRows": 25,
+            "metrologyLastRows": 1,
+            "targetDomain": "metrology",
+            "genuineDefaultSizesCheckedBySeeder": true,
+            "independentDomainPagePreserved": true,
+            "restoredExactOriginalFirstPage": true,
+            "actualUnderlyingRead200BeforeControlled503": true,
+            "nativeKeyboardRetry": true,
+            "nativeSourceLinkAndBrowserHistoryBack": true,
+            "nativeSearchAccessibilityName": "Search templates",
+            "queryChangeResetsBothPages": true,
+            "searchFocusRetained": true,
+            "browserMutationRequests": 0,
+            "apiReadResponsesObserved": 13
+          }
+        ],
+        "contextClosed": true,
+        "observationSummary": {
+          "completed": 13,
+          "unfinished": 0,
+          "unavailable": 0,
+          "requiredUnfinished": 0
+        }
+      }
+    ],
+    "workerSha256": "457ca644fd1f5f6132b707b87d0b15b8e3fa13b63280004d1da47d71c9caadc3",
+    "servedRouteChunks": [
+      {
+        "routeName": "TemplatesPage",
+        "chunk": "TemplatesPage-D4x84RBI.js",
+        "sha256": "25940cdc275198303020958953d24e849d8ae2b2a864b8db76a33a4705a661de",
+        "servedMatched": true
+      },
+      {
+        "routeName": "TemplatePage",
+        "chunk": "TemplatePage-Bt05F-SH.js",
+        "sha256": "225353b87fcfa004c095e165bec776c2301de5ecbcb0775724a0293afd3222af",
+        "servedMatched": true
+      },
+      {
+        "routeName": "MetrologyTemplatePage",
+        "chunk": "MetrologyTemplatePage-DCKwENrH.js",
+        "sha256": "a79e529de4ae4f72fbc732e182e0e4194894417d02c745dc77043b5dbda82f06",
+        "servedMatched": true
+      }
+    ],
+    "reportSha256": "c96231533928408d2bad24fdfb14e09c4e3d34adeca3bb176ddd2829245429ec",
+    "summarySha256": "7d5719f3577bdce6f51a9cc625f614a45366a0ee9187f07f978466beade76fe6"
+  },
+  "closure": {
+    "stage": "owned-stdin-stop-and-await-actual-exit",
+    "checkedAt": "2026-10-10T21:58:39.031279+00:00",
+    "toolSessionId": 67372,
+    "toolExitCode": 0,
+    "workerPid": 242884,
+    "workerSessionId": "7eb1e5df-3c65-4380-80f9-aeab0bdb5fd7",
+    "pidAbsent": true,
+    "portClosed": true,
+    "socketConnectResult": 111,
+    "disposalAwaited": true,
+    "stopReceiptSha256": "80ace9fc7462539b14cb66652fd1ac77ade512aa1ff135cf6dd67885000014fe",
+    "startupReceiptSha256": "1ff21292dfae52d54c4cb9ccdbc645c4be8f3961cdca66c6743f8c370a8ae84d"
+  },
+  "physical": {
+    "beforeStatus": "passed",
+    "afterStatus": "passed",
+    "sqliteDatabases": 4,
+    "categories": {
+      "d1": 2,
+      "r2": 2
+    },
+    "originalStateSnapshotFiles": 10,
+    "allQuickChecksOkAndForeignKeyChecksEmpty": true,
+    "appliedMigrations": 23,
+    "originalTwoSentinelsRetained": true,
+    "seededProjectAttachmentPhysicalBytesMatched": true,
+    "originalStateBytesUnchangedDuringDiagnostics": true,
+    "objectBlobByteReceipts": 43,
+    "procDescriptorInspectionInaccessibleProcessCountBefore": 948,
+    "procDescriptorInspectionInaccessibleProcessCountAfter": 948,
+    "scope": "Owned runtime PID/port closed. Read-only SQLite diagnostics use private DB/WAL/SHM snapshots and verify unchanged original input bytes; process-descriptor inspection retains its actual inaccessible-process limit. No whole-host quiescence claim."
+  },
+  "historicalScopes": "Earlier a5/3c source candidate UNRUN snapshots, the old unused2f artifact proof, and every retained prior failure/pass are preserved. Their totals are not combined with these four cases.",
+  "integration": "Acceptance/docs checkpoint alone changes no product or helper bytes from qualified3c. Complete own-head CI remains separately required before merge.",
+  "rawEvidence": [
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/curate-actual-four.py",
+      "byteSize": 8223,
+      "sha256": "0fb6340a4887123925f661df4b40201bad0d68259a29329a54e475a8fcec8b84"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/exclusive-runtime-start.json",
+      "byteSize": 453,
+      "sha256": "07d907d3f39768626b7e2ace0d9b5e50e388db909924e8d39f7aaf783ca36dc1"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/fresh-canonical-source-worker-build-command.json",
+      "byteSize": 478,
+      "sha256": "3be33168615934a5412fed6b0b9fe7bd83182c08b5fb2096e01afd999eb938f0"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/fresh-canonical-source-worker-build.log",
+      "byteSize": 12726,
+      "sha256": "9715eb7fb363f17c891431204e196c605475227407407bf848b280d25d38cb9e"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/fresh-isolated-copy-command.json",
+      "byteSize": 783,
+      "sha256": "0a47bf6259df159e9b046b5d38c79119b547d00b91d5bebd58d87661db096c11"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/fresh-isolated-copy.log",
+      "byteSize": 186,
+      "sha256": "d46479c3548b2fa6a1f099ac05f999a2ef4a2c83d79b0c5b6d186fb85e6f98d1"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/fresh-random-two-version-sentinel-command.json",
+      "byteSize": 678,
+      "sha256": "2727fc46bd3142bba8ed8fae819b6b48992896f7eb7c9d4d75c2ca588eb7a128"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/fresh-random-two-version-sentinel.log",
+      "byteSize": 198,
+      "sha256": "e7f6dde5bb584aa828c7ac36f36110583d7169a8ea22ce29ed802abb7e7d24a6"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/frozen-approved-runtime-plan.json",
+      "byteSize": 346307,
+      "sha256": "e742752b7c39ce13ffff3dd1e46da5c53ce8427398f0b86fa81e090cc8a74d62"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/hashed-sentinel-fixture-sql-command.json",
+      "byteSize": 898,
+      "sha256": "a911beee33d23d4a86d6d68454ef73bcfc08ff350adb6f2ab9b7bb112f4e876f"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/hashed-sentinel-fixture-sql.log",
+      "byteSize": 1611,
+      "sha256": "d02dd87fc37a8c09b255c54937e13bc8f41401971b8c8b761582c302bb85f7db"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/mature84-ordinary-api-fixture-setup-no-browser-command.json",
+      "byteSize": 659,
+      "sha256": "823e85984a3ff8ab4866e6893240d7cb8982a8e03fadd2a0c09a8f2d5febdf08"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/mature84-ordinary-api-fixture-setup-no-browser.log",
+      "byteSize": 173,
+      "sha256": "b1c50afb816f01c7fb760a68aebbda7c1687853bcc748f86ccfff0b4da30f3a3"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/new-complete-four-read-only-browser-cases-command.json",
+      "byteSize": 960,
+      "sha256": "6e9c1e0743a30edd4fda19e8804ef4a24376febf6ce024448da8517181472620"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/new-complete-four-read-only-browser-cases.log",
+      "byteSize": 472,
+      "sha256": "90935097b182a008727554cefc65bdfaee91be924d7d8a1cd22ba9214585dfb1"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/new102-genuine-distinct-template-family-seed-command.json",
+      "byteSize": 675,
+      "sha256": "f338a6f704eb6599d83f31f7bf75dba9d592886113568a336ba7431148d1c5a2"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/new102-genuine-distinct-template-family-seed.log",
+      "byteSize": 183,
+      "sha256": "89609a95f31e524b0864d52f7fc3f88c2bb4ae0d355ca89fd2558b07d269a1e5"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/ordinary-local-migrations-command.json",
+      "byteSize": 818,
+      "sha256": "119f8b18235f882b7e30360487891d3f772ace292bb7731b0d98935b3eab4b6a"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/ordinary-local-migrations.log",
+      "byteSize": 136708,
+      "sha256": "efdd0b1d615d3b237e45cd80394ba0efbaf0e3ac8bd5a396713c9c3feafb0818"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/owned-isolated-built-worker-command.json",
+      "byteSize": 772,
+      "sha256": "94e2a73bbf77245f6142fd62a7e3e631991fd7b9ec8d40e28602459dcdad14e4"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/owned-isolated-built-worker.log",
+      "byteSize": 481,
+      "sha256": "1ca8b1593edf45c39522b426fcb414390beb3cdcb427420099e5ed43041bd025"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/owned-stop-exit-port-pid-receipt.json",
+      "byteSize": 523,
+      "sha256": "a9fdff3192ad980cdf8517a06fbd55c39fd49268e0a96f05f3371163cf47ea3c"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/owned-worker-tool-session.json",
+      "byteSize": 268,
+      "sha256": "14a7e3daf6d103697bc7aa2c4d634802a3fee02afb81fb7e249e2458ae8d59a0"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/owned-worker-wrapper-start.json",
+      "byteSize": 522,
+      "sha256": "777ac209b4704e08ec77602233f1701bbe192247b853c6e3f9299902bc0e5a09"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/physical-after-shutdown-command.json",
+      "byteSize": 767,
+      "sha256": "54ccd5397ebc5f00bdf0c5bd314340310e847b6e01a362359daddf8c32454a82"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/physical-after-shutdown.log",
+      "byteSize": 155,
+      "sha256": "d194344cf10701dea807cf81c4ca12310b39287ab34b8f1de37f1004b0fba095"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/physical-before-api-command.json",
+      "byteSize": 718,
+      "sha256": "20bcb9fff358d04d75d0cbc29ec537a824f0aa2266d99aa18ddf545ac665e47d"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/physical-before-api.log",
+      "byteSize": 151,
+      "sha256": "f4b59cf9fa2a7d0bfae58ba2da81a2bf89ab1e068b397d286a612151ccf2d555"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/single-owned-witness-fixture-strict-canonical-module-closure-command.json",
+      "byteSize": 978,
+      "sha256": "27c31681730d3ace978d3f48df775ad83c7cebc80f75b8ee899043ac903c6ec2"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-runtime-canon-attempt1/single-owned-witness-fixture-strict-canonical-module-closure.log",
+      "byteSize": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/actual-api-fixture-receipt.json",
+      "byteSize": 51589,
+      "sha256": "235b1271aaf1c0ee998a7f3c64a2d9c2477c63c49bb72e00fa336df4cd7b86b6"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/actual-api-fixture-session.json",
+      "byteSize": 919,
+      "sha256": "edebda8bbfecfe881b8ee599b81f46ff087e11d7682306655936b159b9c00f0a"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/fixture-hashing.mjs",
+      "byteSize": 2920,
+      "sha256": "1144627ef71e4d4315c4bc2b9eb0de300860061f4fa1bb0d1dcc303eed9d8c71"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/isolated-server-receipt.json",
+      "byteSize": 3306,
+      "sha256": "1ff21292dfae52d54c4cb9ccdbc645c4be8f3961cdca66c6743f8c370a8ae84d"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/isolated-server-session.json",
+      "byteSize": 678,
+      "sha256": "ffc96734aed8f144ca2f78b819a07f70cc9e0c6d90b6ca720c3a8c44323c7df8"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/isolated-server-stop-receipt.json",
+      "byteSize": 999,
+      "sha256": "80ace9fc7462539b14cb66652fd1ac77ade512aa1ff135cf6dd67885000014fe"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/physical-snapshot-after-shutdown/d1/miniflare-D1DatabaseObject/faaf2b0445ab934c3aac48ddf0cdfade8f9bac050be98993748742cdd2cb05fb.sqlite",
+      "byteSize": 5562368,
+      "sha256": "113807a4e9b98d3b1536534a6a2f81e7d4003e22060b3acde1f40ee41efbfc05"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/physical-snapshot-after-shutdown/d1/miniflare-D1DatabaseObject/faaf2b0445ab934c3aac48ddf0cdfade8f9bac050be98993748742cdd2cb05fb.sqlite-shm",
+      "byteSize": 32768,
+      "sha256": "7c2f43ba11429665aa35694181666aabd516fa101a3e2ee542334843e8d7c7f1"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/physical-snapshot-after-shutdown/d1/miniflare-D1DatabaseObject/faaf2b0445ab934c3aac48ddf0cdfade8f9bac050be98993748742cdd2cb05fb.sqlite-wal",
+      "byteSize": 4313672,
+      "sha256": "ad2ff71f06021be5a67ccbcabe9111e8fcafa089e3023de29eefe40a4fed44b1"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/physical-snapshot-after-shutdown/d1/miniflare-D1DatabaseObject/metadata.sqlite",
+      "byteSize": 4096,
+      "sha256": "4c34b48e33536be849e9810707c97ff2b5625bb5cbf1637dbe384cfffdda3b9d"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/physical-snapshot-after-shutdown/d1/miniflare-D1DatabaseObject/metadata.sqlite-shm",
+      "byteSize": 32768,
+      "sha256": "fe6265a8f4e791506f1d6efa569fe8c954857f85cd9333e4c7adb7fe32fc2347"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/physical-snapshot-after-shutdown/d1/miniflare-D1DatabaseObject/metadata.sqlite-wal",
+      "byteSize": 8272,
+      "sha256": "0316a89d69c690e82225d41d63f8469fa398b230083dace0d163a1996470cd3b"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/physical-snapshot-after-shutdown/r2/miniflare-R2BucketObject/eaa2fcb26d4038a3ef7dc7a68c7d2b0194f2d07ce329fb4925ae44e7f0611f87.sqlite",
+      "byteSize": 45056,
+      "sha256": "7f562680d52e9e38a4dc472f56cd8f1470d10b1ac52501fe0a9f7657e5b08531"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/physical-snapshot-after-shutdown/r2/miniflare-R2BucketObject/eaa2fcb26d4038a3ef7dc7a68c7d2b0194f2d07ce329fb4925ae44e7f0611f87.sqlite-shm",
+      "byteSize": 32768,
+      "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/physical-snapshot-after-shutdown/r2/miniflare-R2BucketObject/eaa2fcb26d4038a3ef7dc7a68c7d2b0194f2d07ce329fb4925ae44e7f0611f87.sqlite-wal",
+      "byteSize": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/physical-snapshot-after-shutdown/r2/miniflare-R2BucketObject/metadata.sqlite",
+      "byteSize": 4096,
+      "sha256": "4c34b48e33536be849e9810707c97ff2b5625bb5cbf1637dbe384cfffdda3b9d"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/physical-snapshot-after-shutdown/r2/miniflare-R2BucketObject/metadata.sqlite-shm",
+      "byteSize": 32768,
+      "sha256": "87ade7054ba2fc67f2438962e3e0ca8d88e5f324a19f330593eb1909c29656a4"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/physical-snapshot-after-shutdown/r2/miniflare-R2BucketObject/metadata.sqlite-wal",
+      "byteSize": 8272,
+      "sha256": "b88ae4712560efb834fca0056d837a89354a2dc865323c9fc290fe4b3cab2159"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/physical-snapshot-before-api/d1/miniflare-D1DatabaseObject/faaf2b0445ab934c3aac48ddf0cdfade8f9bac050be98993748742cdd2cb05fb.sqlite",
+      "byteSize": 3715072,
+      "sha256": "93eecab1206de92e99f0f2bfcd4965fcb17c1772118f8ba5c0516dba63f29db0"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/physical-snapshot-before-api/d1/miniflare-D1DatabaseObject/faaf2b0445ab934c3aac48ddf0cdfade8f9bac050be98993748742cdd2cb05fb.sqlite-shm",
+      "byteSize": 32768,
+      "sha256": "62051bdfb19baff2782b13d36f2d4069c4d688639c086efc5d33575f6d520417"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/physical-snapshot-before-api/d1/miniflare-D1DatabaseObject/faaf2b0445ab934c3aac48ddf0cdfade8f9bac050be98993748742cdd2cb05fb.sqlite-wal",
+      "byteSize": 5594992,
+      "sha256": "566c3981db78d37b94e7c5a32324164f8f6bee27f8997fa3cf0cd4c35bcb9e8a"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/physical-snapshot-before-api/d1/miniflare-D1DatabaseObject/metadata.sqlite",
+      "byteSize": 4096,
+      "sha256": "4c34b48e33536be849e9810707c97ff2b5625bb5cbf1637dbe384cfffdda3b9d"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/physical-snapshot-before-api/d1/miniflare-D1DatabaseObject/metadata.sqlite-shm",
+      "byteSize": 32768,
+      "sha256": "fe6265a8f4e791506f1d6efa569fe8c954857f85cd9333e4c7adb7fe32fc2347"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/physical-snapshot-before-api/d1/miniflare-D1DatabaseObject/metadata.sqlite-wal",
+      "byteSize": 8272,
+      "sha256": "0316a89d69c690e82225d41d63f8469fa398b230083dace0d163a1996470cd3b"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/physical-sqlite-after-shutdown.json",
+      "byteSize": 62459,
+      "sha256": "f07d0cf62692198115fe01843df9ceb8e0dcdfe3317b7b4bda083384156f700c"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/physical-sqlite-before-api.json",
+      "byteSize": 37864,
+      "sha256": "ae165a66a0f75bcb1196e152127077574381c1b007b84a025f1d5e817e094ce4"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/process-fixture.json",
+      "byteSize": 1517,
+      "sha256": "6ba1efc5366bbe9cae9d5c8b0cfa5c0ab96b910a4b1d09397c03098bdbbe92a2"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/process-fixture.sql",
+      "byteSize": 5579,
+      "sha256": "72fd7767e625a944c52008746beb629172cd8bb4a4b277ef850952bc1cd5420d"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-browser-artifacts/template-pages-metrology-1280-dark.png",
+      "byteSize": 1096529,
+      "sha256": "fb505ee01df023fdd06a91fd70e1af67b4f05d07a0b3befa47ec30e309318147"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-browser-artifacts/template-pages-metrology-390-light.png",
+      "byteSize": 1029824,
+      "sha256": "4196cf0254cfc15a54eb12fe32cde97253f49e6e0b2e60840f6becbe3f4b5bbf"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-browser-artifacts/template-pages-process-1280-light.png",
+      "byteSize": 1081512,
+      "sha256": "dd57fc1757c8933906961d88f181e1a8993699f4395d1e535d3eca879717b490"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-browser-artifacts/template-pages-process-390-dark.png",
+      "byteSize": 1047880,
+      "sha256": "fd594bc52fec3eee601265a7618b031426e70d799103d231db52e67aa7fcb45d"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-browser-progress.ndjson",
+      "byteSize": 1854,
+      "sha256": "360b6f6ffea685c1cf05134b86352d1baae25f2f6704e4431b472c5a48e3918f"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-browser-report.json",
+      "byteSize": 92952,
+      "sha256": "c96231533928408d2bad24fdfb14e09c4e3d34adeca3bb176ddd2829245429ec"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-browser-session.json",
+      "byteSize": 685,
+      "sha256": "b8d1aa1801463d240bb9bcd217c27aa864aab0ce40351fbf5d196dd42e8a0bc2"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-browser-summary.json",
+      "byteSize": 10130,
+      "sha256": "7d5719f3577bdce6f51a9cc625f614a45366a0ee9187f07f978466beade76fe6"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-fixture-receipt.json",
+      "byteSize": 145920,
+      "sha256": "16317d41165176f0b2c5ce9001c51dee460ade3f1502c19eed11be12d9cf2cfb"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-fixture-session.json",
+      "byteSize": 919,
+      "sha256": "5319f0916c8415c4eef8876310f0316ba83d144da56e08899fe6ae807ab25bec"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-original-inputs.ndjson",
+      "byteSize": 54186,
+      "sha256": "6bd618146bea86c5324d9fd07177b8464db651215c80c4de570f5b268e03f086"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P01-manifest.json",
+      "byteSize": 1381,
+      "sha256": "e4ff29de8ad753006001113acd24ee906d802ae15580e3f4537f0566edb498e0"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P01.xlsx",
+      "byteSize": 1980,
+      "sha256": "6d306b150fdfe81c479d4dbc64f1c54f453148f4b67353dc8d9ef6314fd813d6"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P02-manifest.json",
+      "byteSize": 1381,
+      "sha256": "78af94c562df1e5e5e2832f8bda58a842ad254608c1057fc7a2675eba3a83262"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P02.xlsx",
+      "byteSize": 1979,
+      "sha256": "7bb559673a14e475f1c90624dd88316b9a4451b9fbe52617ede8b0a151c271c4"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P03-manifest.json",
+      "byteSize": 1381,
+      "sha256": "45d5a59a8913fd4cac46e9da3ccc725856ff5318e5b40ab5ac4e128e3a4eead7"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P03.xlsx",
+      "byteSize": 1980,
+      "sha256": "1b1c177424848a9c6e53aec00275e871a05e331522dccca1c49c795553d1f193"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P04-manifest.json",
+      "byteSize": 1381,
+      "sha256": "6e483760197c64afa2cb8044dfb31bde2173c1a581fda094b104a59b02f00712"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P04.xlsx",
+      "byteSize": 1980,
+      "sha256": "9891ea1b9f96ee846e10b5b185f936e293b44da2e14b135010e0aee938775d00"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P05-manifest.json",
+      "byteSize": 1381,
+      "sha256": "1457fdec037f0771a661b49bfb720139d20b69147a31c04d35fb76606408a110"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P05.xlsx",
+      "byteSize": 1980,
+      "sha256": "32e7d60c8203c1e3972e4a5318e6d5d8fcf5cf3924c7ed5311d2d12b8b862cd1"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P06-manifest.json",
+      "byteSize": 1381,
+      "sha256": "8e0547d11357bac5f9f76c05212ae6693deff663b7314a56e6b41463ae0a0761"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P06.xlsx",
+      "byteSize": 1980,
+      "sha256": "4878e24f83d3af3530384d747d57ecda7cf5b076b3e95a789fead0b9cf4c0e99"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P07-manifest.json",
+      "byteSize": 1381,
+      "sha256": "2ea2ab2e372361b1a1b6e3a0318ecced26e5765da40eaa0f24ed80a66e7c2792"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P07.xlsx",
+      "byteSize": 1980,
+      "sha256": "6a95bd991607661f203e5cbcafa162118e9232b4fdf073b88014e0cccf834240"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P08-manifest.json",
+      "byteSize": 1381,
+      "sha256": "ac3f01fb91e9ec855602794f4b6ddc4de8462ac1ea25bbf25a1d31ebea02aa2f"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P08.xlsx",
+      "byteSize": 1980,
+      "sha256": "f5c03ba378fbc565c0432301a81c95295b7d64017ecf3163764cf3dabe0e033e"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P09-manifest.json",
+      "byteSize": 1381,
+      "sha256": "9fb125ac1e84a3713c32c9628d350be2a07232aa6b76ba58a234807ccce080f3"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P09.xlsx",
+      "byteSize": 1980,
+      "sha256": "18a21baa882cedd2b5d899b347cc8882521062a87c25d7ae8ca5e2c6e7a20268"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P10-manifest.json",
+      "byteSize": 1381,
+      "sha256": "05671ba105c676cd8489cace5451856b4a6d55102d9b58689dfab93ed32e4aaf"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P10.xlsx",
+      "byteSize": 1980,
+      "sha256": "ca5411ad696429e57c28d464cce43b6f291f9d1edcc52ec2f0e04030b3fd2958"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P11-manifest.json",
+      "byteSize": 1381,
+      "sha256": "52f8b10cc617f7eb70c7c4dfbd4f562df2980976ec352e9e46fc8e8ae27983ab"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P11.xlsx",
+      "byteSize": 1980,
+      "sha256": "f8257344704cb48a2ad665a76f987c9c4a2514d368885ceb20a8debdc9fd1968"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P12-manifest.json",
+      "byteSize": 1381,
+      "sha256": "e6b09319d9ae1dbb4139064ca164aefe5a256e13dae64693588db1b35bfcbe1f"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P12.xlsx",
+      "byteSize": 1980,
+      "sha256": "22cbf2192a767c5ec6cf716093abae26d5f5f5712280a726c62b433e94f2666e"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P13-manifest.json",
+      "byteSize": 1381,
+      "sha256": "312842d961508dab7bfff9e2cfc12c318e3c5fc871d089c88dc9d0b25175da31"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P13.xlsx",
+      "byteSize": 1980,
+      "sha256": "c842169dd1c743f3b8bfaffe9d2a75ab2ffdb8d3fa6bb16e5dbc1fe0e725a38c"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P14-manifest.json",
+      "byteSize": 1381,
+      "sha256": "739a6e89fb4f04eb006abdba78505b311ea13058adc01a3dec50e9e46cca543d"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P14.xlsx",
+      "byteSize": 1980,
+      "sha256": "0ce4452c05f1e1a39a9236ea5ca931b79d074ebab3d9b69e79712afa67f0c16d"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P15-manifest.json",
+      "byteSize": 1381,
+      "sha256": "42c083e5d771be9a6b6171fdfc4cd7e4bf886933c4b83f8f945f98360b52b269"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P15.xlsx",
+      "byteSize": 1980,
+      "sha256": "321738893446c6e64fd123edc9900fa7438e4baed7007b68e1f2ddad2279831d"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P16-manifest.json",
+      "byteSize": 1381,
+      "sha256": "78f2d7c85ae6a7a77b9f6caea28c77d651a788491e1fc9d14218bd15f696294d"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P16.xlsx",
+      "byteSize": 1980,
+      "sha256": "40dd3ce8779cabbd3536da0a148c74c8342bc88cbf782571169bc044e4107689"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P17-manifest.json",
+      "byteSize": 1381,
+      "sha256": "485bc0a164116c793753c7351f8f88c2b7c2c7f5fe2709cadcffd6dc75be439d"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P17.xlsx",
+      "byteSize": 1980,
+      "sha256": "2c1223dd93a3bdeb0e0f71724eee0205aabde12dcb000656484cbf5e55e0bfe3"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P18-manifest.json",
+      "byteSize": 1381,
+      "sha256": "8dec9fc3bccbe3c2e8c0a4807fe5e8a3c9f8d95058b44a31b57807d73afd7e67"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P18.xlsx",
+      "byteSize": 1980,
+      "sha256": "b5e5200abfe20e542904d498f023808c4d731fab7ba9b1eac44cf8bdd0fb0819"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P19-manifest.json",
+      "byteSize": 1381,
+      "sha256": "b56f3a03e48cc20ec255ff3c3008052301aee43f445ba743ee92683295705e9a"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P19.xlsx",
+      "byteSize": 1980,
+      "sha256": "9d541fd0be6a51df380d8cdeff3411e5491a06b2756ca3deda168aced6eb24be"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P20-manifest.json",
+      "byteSize": 1381,
+      "sha256": "3e2e040d5e64cebb77e44b3a446e76e4c6c6efca54ea38ca790357e7192ab415"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P20.xlsx",
+      "byteSize": 1979,
+      "sha256": "20876953e02e2db1f03d98e052934f4218e933aedaa03bb6e89a7b810540ef01"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P21-manifest.json",
+      "byteSize": 1381,
+      "sha256": "cdc64c1903bd2a6e090ebdd8ad56d56b211513a444141eba63d207e04787eafe"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/P21.xlsx",
+      "byteSize": 1980,
+      "sha256": "d71dcbbd3befd8260a7ef7ed291480d912618667201ba1e3ba9022745940659c"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/template-pagination-originals/genuine-workbook-parser.mjs",
+      "byteSize": 340750,
+      "sha256": "5feca008320add582cd142553aa7baa8ae6eab07eb66a340d3d598fd308f5eda"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/wrangler-logs/wrangler-2026-10-10_21-55-36_341.log",
+      "byteSize": 143676,
+      "sha256": "cdcb960bbc16392c66cd07d0d3ac036fe9e21a2789653c33a2d73522ce5a14e1"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-fixture-canon-attempt1/wrangler-logs/wrangler-2026-10-10_21-55-48_996.log",
+      "byteSize": 4399,
+      "sha256": "8334ec3dd70f9f6ad6cd1f680e35e7fece8a303c05557a1d7e503f2b9a3bd98d"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-copy-canon-attempt1/isolation-receipt.json",
+      "byteSize": 190952,
+      "sha256": "535e19e58b4311d20818f3816c22d53d3e81fab7dc2d845af009b0af5516be39"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-copy-canon-attempt1/.wrangler/deploy.jsonc",
+      "byteSize": 999,
+      "sha256": "db9a7cb902762e8157250299794762f8d57471f5efee3d82a1d56093f56eaab6"
+    },
+    {
+      "path": "/tmp/phase5f-template-pages-copy-canon-attempt1/.wrangler/local-installation.json",
+      "byteSize": 58,
+      "sha256": "f15e926caee92030353fe0d1fbba9eda8c7005b9a40c2d80c077504e5a2af525"
+    },
+    {
+      "path": "/tmp/phase5f-template-pagination-readiness-independent-source-addendum.json",
+      "byteSize": 3328,
+      "sha256": "6d6f0db32f72e57e2678c3e243edf83e5f655dcf4d1aeb135763ced264190c14"
+    }
+  ]
+}

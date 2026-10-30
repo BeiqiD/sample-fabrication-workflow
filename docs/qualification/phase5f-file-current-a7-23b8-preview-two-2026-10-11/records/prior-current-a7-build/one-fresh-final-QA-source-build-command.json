@@ -1,0 +1,60 @@
+{
+  "stage": "one-fresh-final-QA-source-build",
+  "cwd": "/workspace/portable-dev270-file-preview-focus-complete-native-helper-source-attempt2",
+  "argv": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "env": {
+    "TMPDIR": "/workspace",
+    "SQLITE_TMPDIR": "/workspace"
+  },
+  "scope": "ONE genuinely fresh currenta7 CF Worker+frontend build. No old118 carry, Node target, browser/native/fixture or repeat compiler/mounted.",
+  "startedAt": "2026-10-11T12:19:10.765149+00:00",
+  "status": "PASS",
+  "log": "/workspace/phase5f-file-preview-current-a7-one-cf-build-runtime-attempt5/one-fresh-final-QA-source-build.log",
+  "pid": 1170038,
+  "processGroup": 1170038,
+  "originalStartTicks": "13441153",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1170135,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1170038,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1170135,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1170038,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1170135,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1170038,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T12:19:16.896091+00:00",
+  "logSha256": "abe13a26f960e3c91947930885d9e22f11c50091236cd3dc086665ee33a45e09"
+}

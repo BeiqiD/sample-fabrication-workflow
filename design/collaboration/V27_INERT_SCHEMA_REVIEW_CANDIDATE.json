@@ -1,0 +1,326 @@
+{
+  "status": "source-only-static-candidate; no genuine native observation yet",
+  "checkpointId": "portable-runtime/v27",
+  "rawMigrationPath": "design/collaboration/0025_group_authorization.sql",
+  "rawMigrationName": "0025_group_authorization.sql",
+  "rawMigrationSha256": "b2050cb78c1dc4a6004f4d22f2a4fd6ae873c9ce27fe8bc7e4c8ae2d16a0e60d",
+  "expectedApplicationSchemaSha256": "f1303c296bd189e0724df97d02653633b6393582b7b0cc890f3c975ea99bfc92",
+  "expectedLexicalSchemaSha256": "a559f5c9f31c8b15be7dfdcb592cebe7b6acaefdf6cc90327094e308f74af4ca",
+  "expectedNodeSchemaSha256": "ee71d6f59c6e0141f2df309d95230919f1d2b21ffb5c9700ee9f9820453f575f",
+  "newSchemaObjects": [
+    {
+      "type": "index",
+      "name": "collaboration_grants_member_idx",
+      "tableName": "collaboration_grants",
+      "sql": "CREATE INDEX collaboration_grants_member_idx ON collaboration_grants(member_id,enabled,root_kind,root_id)"
+    },
+    {
+      "type": "index",
+      "name": "collaboration_identities_member_idx",
+      "tableName": "collaboration_identities",
+      "sql": "CREATE INDEX collaboration_identities_member_idx ON collaboration_identities(member_id)"
+    },
+    {
+      "type": "table",
+      "name": "collaboration_control",
+      "tableName": "collaboration_control",
+      "sql": "CREATE TABLE collaboration_control (\n singleton INTEGER PRIMARY KEY CHECK(singleton=1),\n schema_version INTEGER NOT NULL CHECK(schema_version=1),\n enforcement TEXT NOT NULL CHECK(enforcement='disabled')\n) WITHOUT ROWID"
+    },
+    {
+      "type": "table",
+      "name": "collaboration_grants",
+      "tableName": "collaboration_grants",
+      "sql": "CREATE TABLE collaboration_grants (\n root_kind TEXT NOT NULL,\n root_id TEXT NOT NULL,\n member_id TEXT NOT NULL REFERENCES collaboration_members(member_id) ON DELETE RESTRICT,\n capability TEXT NOT NULL CHECK(capability IN('read','operate','edit','manage')),\n enabled INTEGER NOT NULL CHECK(enabled IN(0,1)),\n revision INTEGER NOT NULL CHECK(typeof(revision)='integer' AND revision BETWEEN 1 AND 9007199254740991),\n CHECK(capability<>'operate' OR root_kind='sample'),\n PRIMARY KEY(root_kind,root_id,member_id),\n FOREIGN KEY(root_kind,root_id) REFERENCES collaboration_resources(root_kind,root_id) ON DELETE RESTRICT\n) WITHOUT ROWID"
+    },
+    {
+      "type": "table",
+      "name": "collaboration_identities",
+      "tableName": "collaboration_identities",
+      "sql": "CREATE TABLE collaboration_identities (\n provider TEXT NOT NULL CHECK(provider IN('access','local')),\n issuer TEXT NOT NULL CHECK(typeof(issuer)='text' AND length(issuer) BETWEEN 1 AND 2048 AND instr(issuer,char(0))=0),\n subject TEXT NOT NULL CHECK(typeof(subject)='text' AND length(subject) BETWEEN 1 AND 256 AND instr(subject,char(0))=0),\n member_id TEXT NOT NULL REFERENCES collaboration_members(member_id) ON DELETE RESTRICT,\n enabled INTEGER NOT NULL CHECK(enabled IN(0,1)),\n revision INTEGER NOT NULL CHECK(typeof(revision)='integer' AND revision BETWEEN 1 AND 9007199254740991),\n PRIMARY KEY(provider,issuer,subject)\n) WITHOUT ROWID"
+    },
+    {
+      "type": "table",
+      "name": "collaboration_members",
+      "tableName": "collaboration_members",
+      "sql": "CREATE TABLE collaboration_members (\n member_id TEXT PRIMARY KEY CHECK(typeof(member_id)='text' AND length(member_id)=36 AND instr(member_id,char(0))=0),\n display_name TEXT NOT NULL CHECK(typeof(display_name)='text' AND length(display_name) BETWEEN 1 AND 200 AND instr(display_name,char(0))=0),\n state TEXT NOT NULL CHECK(state IN('active','suspended','left')),\n workspace_role TEXT NOT NULL CHECK(workspace_role IN('member','membershipAdministrator')),\n can_create_samples INTEGER NOT NULL DEFAULT 0 CHECK(can_create_samples IN(0,1)),\n can_create_projects INTEGER NOT NULL DEFAULT 0 CHECK(can_create_projects IN(0,1)),\n can_create_templates INTEGER NOT NULL DEFAULT 0 CHECK(can_create_templates IN(0,1)),\n revision INTEGER NOT NULL CHECK(typeof(revision)='integer' AND revision BETWEEN 1 AND 9007199254740991)\n) WITHOUT ROWID"
+    },
+    {
+      "type": "table",
+      "name": "collaboration_resources",
+      "tableName": "collaboration_resources",
+      "sql": "CREATE TABLE collaboration_resources (\n root_kind TEXT NOT NULL CHECK(root_kind IN('sample','project','template')),\n root_id TEXT NOT NULL CHECK(typeof(root_id)='text' AND length(root_id) BETWEEN 1 AND 256 AND instr(root_id,char(0))=0),\n visibility TEXT NOT NULL CHECK(visibility IN('restricted','workspace')),\n revision INTEGER NOT NULL CHECK(typeof(revision)='integer' AND revision BETWEEN 1 AND 9007199254740991),\n PRIMARY KEY(root_kind,root_id)\n) WITHOUT ROWID"
+    },
+    {
+      "type": "trigger",
+      "name": "collaboration_control_delete_guard",
+      "tableName": "collaboration_control",
+      "sql": "CREATE TRIGGER collaboration_control_delete_guard BEFORE DELETE ON collaboration_control\n BEGIN SELECT RAISE(ABORT,'Collaboration control is installation owned'); END"
+    },
+    {
+      "type": "trigger",
+      "name": "collaboration_control_insert_guard",
+      "tableName": "collaboration_control",
+      "sql": "CREATE TRIGGER collaboration_control_insert_guard BEFORE INSERT ON collaboration_control\n BEGIN SELECT RAISE(ABORT,'Collaboration control is installation owned'); END"
+    },
+    {
+      "type": "trigger",
+      "name": "collaboration_control_update_guard",
+      "tableName": "collaboration_control",
+      "sql": "CREATE TRIGGER collaboration_control_update_guard BEFORE UPDATE ON collaboration_control\n BEGIN SELECT RAISE(ABORT,'Collaboration enforcement requires a reviewed forward migration'); END"
+    },
+    {
+      "type": "trigger",
+      "name": "collaboration_grant_delete_guard",
+      "tableName": "collaboration_grants",
+      "sql": "CREATE TRIGGER collaboration_grant_delete_guard BEFORE DELETE ON collaboration_grants\n BEGIN SELECT RAISE(ABORT,'Resource grant identity is retained'); END"
+    },
+    {
+      "type": "trigger",
+      "name": "collaboration_grant_insert_guard",
+      "tableName": "collaboration_grants",
+      "sql": "CREATE TRIGGER collaboration_grant_insert_guard BEFORE INSERT ON collaboration_grants BEGIN\n SELECT RAISE(ABORT,'Resource grant identity is retained') WHERE EXISTS(SELECT 1 FROM collaboration_grants WHERE root_kind=NEW.root_kind AND root_id=NEW.root_id AND member_id=NEW.member_id);\n SELECT RAISE(ABORT,'Resource grant starts at revision one') WHERE NEW.revision<>1;\nEND"
+    },
+    {
+      "type": "trigger",
+      "name": "collaboration_grant_revision_guard",
+      "tableName": "collaboration_grants",
+      "sql": "CREATE TRIGGER collaboration_grant_revision_guard BEFORE UPDATE ON collaboration_grants BEGIN\n SELECT RAISE(ABORT,'Resource grant identity is immutable') WHERE NEW.root_kind IS NOT OLD.root_kind OR NEW.root_id IS NOT OLD.root_id OR NEW.member_id IS NOT OLD.member_id;\n SELECT RAISE(ABORT,'Resource grant requires an exact next revision') WHERE NEW.revision<>OLD.revision+1;\nEND"
+    },
+    {
+      "type": "trigger",
+      "name": "collaboration_identity_delete_guard",
+      "tableName": "collaboration_identities",
+      "sql": "CREATE TRIGGER collaboration_identity_delete_guard BEFORE DELETE ON collaboration_identities\n BEGIN SELECT RAISE(ABORT,'Verified identity binding is retained'); END"
+    },
+    {
+      "type": "trigger",
+      "name": "collaboration_identity_insert_guard",
+      "tableName": "collaboration_identities",
+      "sql": "CREATE TRIGGER collaboration_identity_insert_guard BEFORE INSERT ON collaboration_identities BEGIN\n SELECT RAISE(ABORT,'Verified identity binding is retained') WHERE EXISTS(SELECT 1 FROM collaboration_identities WHERE provider=NEW.provider AND issuer=NEW.issuer AND subject=NEW.subject);\n SELECT RAISE(ABORT,'Identity binding starts at revision one') WHERE NEW.revision<>1;\nEND"
+    },
+    {
+      "type": "trigger",
+      "name": "collaboration_identity_revision_guard",
+      "tableName": "collaboration_identities",
+      "sql": "CREATE TRIGGER collaboration_identity_revision_guard BEFORE UPDATE ON collaboration_identities BEGIN\n SELECT RAISE(ABORT,'Verified identity binding is immutable') WHERE NEW.provider IS NOT OLD.provider OR NEW.issuer IS NOT OLD.issuer\n  OR NEW.subject IS NOT OLD.subject OR NEW.member_id IS NOT OLD.member_id;\n SELECT RAISE(ABORT,'Identity binding requires an exact next revision') WHERE NEW.revision<>OLD.revision+1;\nEND"
+    },
+    {
+      "type": "trigger",
+      "name": "collaboration_member_delete_guard",
+      "tableName": "collaboration_members",
+      "sql": "CREATE TRIGGER collaboration_member_delete_guard BEFORE DELETE ON collaboration_members\n BEGIN SELECT RAISE(ABORT,'Membership identity is retained'); END"
+    },
+    {
+      "type": "trigger",
+      "name": "collaboration_member_departure",
+      "tableName": "collaboration_members",
+      "sql": "CREATE TRIGGER collaboration_member_departure AFTER UPDATE OF state ON collaboration_members\n WHEN OLD.state<>'left' AND NEW.state='left' BEGIN\n UPDATE collaboration_grants SET enabled=0,revision=revision+1 WHERE member_id=NEW.member_id AND enabled=1;\nEND"
+    },
+    {
+      "type": "trigger",
+      "name": "collaboration_member_insert_guard",
+      "tableName": "collaboration_members",
+      "sql": "CREATE TRIGGER collaboration_member_insert_guard BEFORE INSERT ON collaboration_members BEGIN\n SELECT RAISE(ABORT,'Membership identity is retained') WHERE EXISTS(SELECT 1 FROM collaboration_members WHERE member_id=NEW.member_id);\n SELECT RAISE(ABORT,'Membership starts at revision one') WHERE NEW.revision<>1;\nEND"
+    },
+    {
+      "type": "trigger",
+      "name": "collaboration_member_revision_guard",
+      "tableName": "collaboration_members",
+      "sql": "CREATE TRIGGER collaboration_member_revision_guard BEFORE UPDATE ON collaboration_members BEGIN\n SELECT RAISE(ABORT,'Membership identity is immutable') WHERE NEW.member_id IS NOT OLD.member_id;\n SELECT RAISE(ABORT,'Membership requires an exact next revision') WHERE NEW.revision<>OLD.revision+1;\nEND"
+    },
+    {
+      "type": "trigger",
+      "name": "collaboration_resource_delete_guard",
+      "tableName": "collaboration_resources",
+      "sql": "CREATE TRIGGER collaboration_resource_delete_guard BEFORE DELETE ON collaboration_resources\n BEGIN SELECT RAISE(ABORT,'Collaboration root policy is retained'); END"
+    },
+    {
+      "type": "trigger",
+      "name": "collaboration_resource_insert_guard",
+      "tableName": "collaboration_resources",
+      "sql": "CREATE TRIGGER collaboration_resource_insert_guard BEFORE INSERT ON collaboration_resources BEGIN\n SELECT RAISE(ABORT,'Collaboration root must be a genuine existing resource') WHERE\n  (NEW.root_kind='sample' AND NOT EXISTS(SELECT 1 FROM samples WHERE id=NEW.root_id)) OR\n  (NEW.root_kind='project' AND NOT EXISTS(SELECT 1 FROM projects WHERE id=NEW.root_id)) OR\n  (NEW.root_kind='template' AND NOT EXISTS(SELECT 1 FROM recipe_families WHERE id=NEW.root_id));\nEND"
+    },
+    {
+      "type": "trigger",
+      "name": "collaboration_resource_reinsert_guard",
+      "tableName": "collaboration_resources",
+      "sql": "CREATE TRIGGER collaboration_resource_reinsert_guard BEFORE INSERT ON collaboration_resources BEGIN\n SELECT RAISE(ABORT,'Collaboration root policy is retained') WHERE EXISTS(SELECT 1 FROM collaboration_resources WHERE root_kind=NEW.root_kind AND root_id=NEW.root_id);\n SELECT RAISE(ABORT,'Root policy starts at revision one') WHERE NEW.revision<>1;\nEND"
+    },
+    {
+      "type": "trigger",
+      "name": "collaboration_resource_revision_guard",
+      "tableName": "collaboration_resources",
+      "sql": "CREATE TRIGGER collaboration_resource_revision_guard BEFORE UPDATE ON collaboration_resources BEGIN\n SELECT RAISE(ABORT,'Collaboration root identity is immutable') WHERE NEW.root_kind IS NOT OLD.root_kind OR NEW.root_id IS NOT OLD.root_id;\n SELECT RAISE(ABORT,'Root policy requires an exact next revision') WHERE NEW.revision<>OLD.revision+1;\nEND"
+    }
+  ],
+  "localRecoveryTableSpecs": [
+    {
+      "name": "collaboration_control",
+      "columns": [
+        "singleton",
+        "schema_version",
+        "enforcement"
+      ],
+      "withoutRowid": true,
+      "local": true,
+      "classification": "local",
+      "primaryKeyColumns": [
+        "singleton"
+      ]
+    },
+    {
+      "name": "collaboration_members",
+      "columns": [
+        "member_id",
+        "display_name",
+        "state",
+        "workspace_role",
+        "can_create_samples",
+        "can_create_projects",
+        "can_create_templates",
+        "revision"
+      ],
+      "withoutRowid": true,
+      "local": true,
+      "classification": "local",
+      "primaryKeyColumns": [
+        "member_id"
+      ]
+    },
+    {
+      "name": "collaboration_identities",
+      "columns": [
+        "provider",
+        "issuer",
+        "subject",
+        "member_id",
+        "enabled",
+        "revision"
+      ],
+      "withoutRowid": true,
+      "local": true,
+      "classification": "local",
+      "primaryKeyColumns": [
+        "provider",
+        "issuer",
+        "subject"
+      ]
+    },
+    {
+      "name": "collaboration_resources",
+      "columns": [
+        "root_kind",
+        "root_id",
+        "visibility",
+        "revision"
+      ],
+      "withoutRowid": true,
+      "local": true,
+      "classification": "local",
+      "primaryKeyColumns": [
+        "root_kind",
+        "root_id"
+      ]
+    },
+    {
+      "name": "collaboration_grants",
+      "columns": [
+        "root_kind",
+        "root_id",
+        "member_id",
+        "capability",
+        "enabled",
+        "revision"
+      ],
+      "withoutRowid": true,
+      "local": true,
+      "classification": "local",
+      "primaryKeyColumns": [
+        "root_kind",
+        "root_id",
+        "member_id"
+      ]
+    }
+  ],
+  "localSeedRows": {
+    "collaboration_control": {
+      "columns": [
+        "singleton",
+        "schema_version",
+        "enforcement"
+      ],
+      "rows": [
+        {
+          "rowid": null,
+          "cells": [
+            {
+              "type": "integer",
+              "value": "1"
+            },
+            {
+              "type": "integer",
+              "value": "1"
+            },
+            {
+              "type": "text",
+              "value": "disabled"
+            }
+          ]
+        }
+      ]
+    },
+    "collaboration_members": {
+      "columns": [
+        "member_id",
+        "display_name",
+        "state",
+        "workspace_role",
+        "can_create_samples",
+        "can_create_projects",
+        "can_create_templates",
+        "revision"
+      ],
+      "rows": []
+    },
+    "collaboration_identities": {
+      "columns": [
+        "provider",
+        "issuer",
+        "subject",
+        "member_id",
+        "enabled",
+        "revision"
+      ],
+      "rows": []
+    },
+    "collaboration_resources": {
+      "columns": [
+        "root_kind",
+        "root_id",
+        "visibility",
+        "revision"
+      ],
+      "rows": []
+    },
+    "collaboration_grants": {
+      "columns": [
+        "root_kind",
+        "root_id",
+        "member_id",
+        "capability",
+        "enabled",
+        "revision"
+      ],
+      "rows": []
+    }
+  },
+  "frozenV26Inputs": {
+    "shared/contracts/portable-runtime-v26-recovery-catalog.ts": "933d14153cda618ad7e19c3e147047e22bff7cd2838304ba90ac936275c86c85",
+    "worker/recovery/portable-runtime-v26-trusted-schema.ts": "4c89c3c1586aee88017e8a35fe713bc9041ab94e5c34081c8055a3438eb27aaa",
+    "server/installation-catalog-v26.ts": "55688ec4bbfea94423bdc00ae58a5097ed277e4d3169be3ba070b4f09a537aff",
+    "server/operational-installation-catalog.ts": "eb07706e3145278645d1b2077da37e6c247ea605dcc9d8125b7341479ca87100",
+    "shared/contracts/system-backup-v3.ts": "325559ae3165981b7cc0d8fc8edd8408497431210e802f91841b66512fdf9df3",
+    "shared/contracts/export-portable-runtime-v26.ts": "79aed8a993233463f19ca28ff0ee7479e4c475bfbda70e3d73d27faa0acb3e9f",
+    "shared/contracts/export-business-v26.ts": "48d554c78135889db48b2465153a5d7b946de510806209a60971e06a6ed8bef3"
+  }
+}

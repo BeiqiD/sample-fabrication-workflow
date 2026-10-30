@@ -1,0 +1,596 @@
+{
+  "status": "BYTE_EXACT_ORIGINAL_CURATIONS_SOURCE_ONLY_PUBLIC_ADOPTION",
+  "baseHead": "14dcb524c948bc0bba528001b14c340c575cf676",
+  "baseTree": "d625576c9f41c615c369bc8e99438c008c8a6b44",
+  "originals": [
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/actual-current02d-c94b-file-mobile-original-ten-first-geometry-failure-closed-release.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/actual-current02d-c94b-file-mobile-original-ten-first-geometry-failure-closed-release.json",
+      "sha256": "cc42b1d03715fdc295478237bce7552ae96706f9ffd52045abc29caaafd37fb2",
+      "bytes": 26528,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight-command.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/001-qualified-current02d-coherent-build-producer-preflight-command.json",
+      "sha256": "90e6509096a634d5ab8e467fb22befa2a92bf4bee04a477cea8d08ec8dba48e2",
+      "bytes": 1268,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight.log",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/002-qualified-current02d-coherent-build-producer-preflight.log",
+      "sha256": "c4160a0c49b75db63594624dca05981b158dcd67cebbe588ffb3e5bebed64e0f",
+      "bytes": 117,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/isolated-copy-command.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/003-isolated-copy-command.json",
+      "sha256": "982db1dcb7d74da728bcb68034cd2f80f8434232dc8b2908fd174a7708af1e5a",
+      "bytes": 1379,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/isolated-copy.log",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/004-isolated-copy.log",
+      "sha256": "9435dad34ff8994d94e0761cd6505a6eebb9ce9f0d427daf86e88145afdf703e",
+      "bytes": 200,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/fresh-two-version-sentinel-command.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/005-fresh-two-version-sentinel-command.json",
+      "sha256": "cff6ea32163490cd203cae40e7c3cf4ee5ab23ce4f8d33908ec0a305ba6eaf86",
+      "bytes": 1863,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/fresh-two-version-sentinel.log",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/006-fresh-two-version-sentinel.log",
+      "sha256": "19149302d1fb52da2526ad4ecb539d86886a49e975c098f7ae06c8a3c0352f56",
+      "bytes": 226,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/ordinary-actual24-local-migrations-command.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/007-ordinary-actual24-local-migrations-command.json",
+      "sha256": "906738235c4877a7f316b5cba8a4699db62e37e1b35b9eb4a1190a1ab8beb04d",
+      "bytes": 1863,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/ordinary-actual24-local-migrations.log",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/008-ordinary-actual24-local-migrations.log",
+      "sha256": "0a32073d13168c689b17a1607f7a6defb9ac547d866138dc1a13fde0d3e345df",
+      "bytes": 149092,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/synthetic-template-sentinels-only-command.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/009-synthetic-template-sentinels-only-command.json",
+      "sha256": "ab67c8f089516add49d54bb039ab97b515dc96c83dcb53cfb1a503dcf9e85497",
+      "bytes": 1951,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/synthetic-template-sentinels-only.log",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/010-synthetic-template-sentinels-only.log",
+      "sha256": "14879c790ec5c8e879dfa979c2b2bab1648f54c7854eba7ff693a688809d5d75",
+      "bytes": 2747,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/physical-before-command.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/011-physical-before-command.json",
+      "sha256": "970fee939419177a325ad35995e67091b898300c08d3ab950ac48df52995556f",
+      "bytes": 1330,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/physical-before.log",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/012-physical-before.log",
+      "sha256": "34f8cdc79c23afb4f364acdcab08e069841e2e2f3b1819f74d7838d9536224b2",
+      "bytes": 165,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/current-source-build-and-pure24-witness-command.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/013-current-source-build-and-pure24-witness-command.json",
+      "sha256": "1e120c4c81d6b730fa2662045ed4f30065bcf34fd766bf759998bf084d779097",
+      "bytes": 1227,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/current-source-build-and-pure24-witness.log",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/014-current-source-build-and-pure24-witness.log",
+      "sha256": "e125124d3165a3f50c78bdee3b115076c57e74d04a2d3269b4bf8e04364b52c5",
+      "bytes": 222,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/original-one-current-file-saved-job-keyboard-command.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/015-original-one-current-file-saved-job-keyboard-command.json",
+      "sha256": "12e64df79684b25c0a944620b18fb7915235f94992ef34f74d07c75971d435fc",
+      "bytes": 2205,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/original-one-current-file-saved-job-keyboard.log",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/016-original-one-current-file-saved-job-keyboard.log",
+      "sha256": "8313eb0f7e5e1495c196c9eec68640fb394449a652c5e7e8bf73eab2b79feef0",
+      "bytes": 310,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/physical-after-command.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/017-physical-after-command.json",
+      "sha256": "f7d871bc2f65d89312e9c004af10c3c9e1f2437b71420891282d98a7b84a10ba",
+      "bytes": 1708,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/physical-after.log",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/018-physical-after.log",
+      "sha256": "2042486017892493e9820666daac55564eae04d2a31aa7623f08d8c5285a0f0e",
+      "bytes": 174,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/final-source-artifact-input-pins-command.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/019-final-source-artifact-input-pins-command.json",
+      "sha256": "c1e3dece9297099bbe91c1d0e00b98fc5276f9d0cd1dff240c600a089c636688",
+      "bytes": 1216,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/final-source-artifact-input-pins.log",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/020-final-source-artifact-input-pins.log",
+      "sha256": "d068556be8251d661e189f5f3a8b97554e5bf98d3bcde00a78090e8d881c33d9",
+      "bytes": 225,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/fixture/genuine-local-r2-file-saved-job-keyboard-report.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/021-genuine-local-r2-file-saved-job-keyboard-report.json",
+      "sha256": "e9bda97932eb8688e056d2a5b0fb1694811b55119982bea3e0d942951749320e",
+      "bytes": 95304,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/fixture/genuine-local-r2-file-saved-job-keyboard-stop.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/022-genuine-local-r2-file-saved-job-keyboard-stop.json",
+      "sha256": "947c70313151616686bd8cb7a8ab7b76435da2ca2909f0a0eab5a5bf59a9592f",
+      "bytes": 500,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/fixture/genuine-local-r2-file-saved-job-keyboard-artifacts/current-coherent-file-saved-job-keyboard-390-dark.geometry.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/023-current-coherent-file-saved-job-keyboard-390-dark.geometry.json",
+      "sha256": "46ab82ffe8b3b0a1ba563ebdca9d7cf23992f1201a51bd4f5260e0b41129715a",
+      "bytes": 68,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/fixture/physical-sqlite-before-api.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/024-physical-sqlite-before-api.json",
+      "sha256": "18ceae65ae220976e9d19c00461540951df9d0d337dde99faa6a4b63c69b2535",
+      "bytes": 67088,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/fixture/physical-sqlite-after-current-file-saved-job-keyboard.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/025-physical-sqlite-after-current-file-saved-job-keyboard.json",
+      "sha256": "0ac8cc81ddc16d51af6739b508b1cc2971cf83574172842e7a8786968a2d9f26",
+      "bytes": 73987,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/fixture/enabled-storage-draft-build-input-witness.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/026-enabled-storage-draft-build-input-witness.json",
+      "sha256": "94f42961feeb0aedd640045413da386ebd8444c2a6b090d0e725895fd09385fe",
+      "bytes": 1357,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/copy/isolation-receipt.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/027-isolation-receipt.json",
+      "sha256": "8d81d8a2ab11306962d332cb41a33aabd4dac371249aafae2ec6d708328f186c",
+      "bytes": 393004,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/fixture/process-fixture.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/028-process-fixture.json",
+      "sha256": "61a0e57bb98b78a82b8ae0a9d60bc5b43642084ee53aaa20650f82ee9bff7b07",
+      "bytes": 1558,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/fixture/process-fixture.sql",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/029-process-fixture.sql",
+      "sha256": "d8dded9f1d0e5ee6df23a29a80e11129c028268e0e4e17ad07a5a5db5dcf1311",
+      "bytes": 5579,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/chromium-child-temp-owner.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/030-chromium-child-temp-owner.json",
+      "sha256": "523233d3c6a5f53a1fb6616bd234b68f10ad61fd0e132a90be8acaeeddbc9df9",
+      "bytes": 582,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/current02d-build-new-pure24-native-causal-carry.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/031-current02d-build-new-pure24-native-causal-carry.json",
+      "sha256": "0ce71d437b324f9f6c96a1fe734d972d1f4f17431b19efcdccea4e87c4d0f965",
+      "bytes": 1804,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/final-current02d-source-and-genuine-saved-job-pins.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/032-final-current02d-source-and-genuine-saved-job-pins.json",
+      "sha256": "0de61ef35536482097d4e4e4859fdb9be5acf633734e0f2e34942643960aa802",
+      "bytes": 3299,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/frozen-approved-plan.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/prior-c94-geometry-failure/033-frozen-approved-plan.json",
+      "sha256": "ea7df2a96dcd51d4373358b8edaa8945eb5b0c7baf398df8b7ac1dd4f9e22fa8",
+      "bytes": 17299,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/actual-one-current5e-file-mobile-wrap-cf-build-qualified-closed-release.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/one-required-current5e-build/actual-one-current5e-file-mobile-wrap-cf-build-qualified-closed-release.json",
+      "sha256": "c85c13e7ebb479b90e1e71e068c5ddb0a5481080438ee2782a58f673ff845727",
+      "bytes": 4906,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/one-fresh-final-QA-source-build-command.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/one-required-current5e-build/001-one-fresh-final-QA-source-build-command.json",
+      "sha256": "860a3f0c63ac38a7e162246f466ef4ef906e16d9aef0b56fc570fa9cd83d763e",
+      "bytes": 2013,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/one-fresh-final-QA-source-build.log",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/one-required-current5e-build/002-one-fresh-final-QA-source-build.log",
+      "sha256": "dfa13775e1102eee774625102080578adbf93bc1122c3f0bd8feb8b468014cde",
+      "bytes": 12743,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/fresh-build-artifact-manifest.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/one-required-current5e-build/003-fresh-build-artifact-manifest.json",
+      "sha256": "09e3b5b80cea5e001a6c98323611f2b212325b931085f1f0d1af0d0ac992781d",
+      "bytes": 14601,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/frozen-approved-plan.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/one-required-current5e-build/004-frozen-approved-plan.json",
+      "sha256": "9194e359c7ff4002c13378e1d69a561471b9e764d2576dcb1814befd11fccdd9",
+      "bytes": 5443,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-layout-wrap-one-cf-build-source-preparation-attempt1/source-handoff.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/one-required-current5e-build/005-source-handoff.json",
+      "sha256": "d0a34e605fe9a28bccf89b42266482f158a2be892b5905574881b4bfb85abc56",
+      "bytes": 4359,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-saved-mobile-layout-wrap-source-preparation-attempt1/materialized-full-5e-linked-worktree-source-receipt.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/one-required-current5e-build/006-materialized-full-5e-linked-worktree-source-receipt.json",
+      "sha256": "6d7070e3f4d50d443fa397103fe23a113bf2740872c345cb533a4bad965b0330",
+      "bytes": 719714,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/workspace/phase5f-file-saved-mobile-layout-wrap-source-preparation-attempt1/one-rule-virtual-source-handoff.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/one-required-current5e-build/007-one-rule-virtual-source-handoff.json",
+      "sha256": "38a6a2c7e2f85203bbb4012d3ea3aa5250a09dfd3461737acae13aed15ce3601",
+      "bytes": 434613,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/actual-current5e-b3d-file-mobile-original-ten-qualified-closed-release.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/actual-current5e-b3d-file-mobile-original-ten-qualified-closed-release.json",
+      "sha256": "9c17332913fb4ff7efdeb0f2e09fba4504132cc2bd8a8d47a404518512c36214",
+      "bytes": 19360,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/qualified-current02d-coherent-build-producer-preflight-command.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/001-qualified-current02d-coherent-build-producer-preflight-command.json",
+      "sha256": "6d0a3ad86ea7f0a0bac82cba9c13e192d569cbb055bfc04769cc815cf2542ef5",
+      "bytes": 1306,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/qualified-current02d-coherent-build-producer-preflight.log",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/002-qualified-current02d-coherent-build-producer-preflight.log",
+      "sha256": "c4160a0c49b75db63594624dca05981b158dcd67cebbe588ffb3e5bebed64e0f",
+      "bytes": 117,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/isolated-copy-command.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/003-isolated-copy-command.json",
+      "sha256": "82ed153fec9b604edbbfa9daca08e5f1d57527de3420ef015d24d0a89f08e1db",
+      "bytes": 1435,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/isolated-copy.log",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/004-isolated-copy.log",
+      "sha256": "179a1c29e600bcdc9f0d4fd6e73585e93206e55aaf91668332d5e3ab97b4d398",
+      "bytes": 211,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/fresh-two-version-sentinel-command.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/005-fresh-two-version-sentinel-command.json",
+      "sha256": "7790a0a315c8ad8ed12cafc662459d4f1d628bd248c70e88b75985fcaac92421",
+      "bytes": 1926,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/fresh-two-version-sentinel.log",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/006-fresh-two-version-sentinel.log",
+      "sha256": "4a04e6e565fcd46d738bc125d450537c3378b5cbeb10c20765816254a59934d5",
+      "bytes": 248,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/ordinary-actual24-local-migrations-command.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/007-ordinary-actual24-local-migrations-command.json",
+      "sha256": "c1b1d703a36b3f61ade1a7e2d43f67934a36584e322ed9bef24d5a817f1a21b2",
+      "bytes": 1918,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/ordinary-actual24-local-migrations.log",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/008-ordinary-actual24-local-migrations.log",
+      "sha256": "410827433f866e25ff2f08cab457e287f851b45b28a429105045d9c8665df793",
+      "bytes": 149092,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/synthetic-template-sentinels-only-command.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/009-synthetic-template-sentinels-only-command.json",
+      "sha256": "93cafc591eb1c9638b1df70734869f699b2cfdf7bd24ee411170ba05769a2752",
+      "bytes": 2017,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/synthetic-template-sentinels-only.log",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/010-synthetic-template-sentinels-only.log",
+      "sha256": "ef324d3b6c2f31140255aebbe4b0986e927e5d294f7d3fa2b76c350cd3cb7494",
+      "bytes": 2747,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/physical-before-command.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/011-physical-before-command.json",
+      "sha256": "fa00bc38e7a1990d055f3b4de961010676e1378bfcfa3644289c44cabcb9eb96",
+      "bytes": 1393,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/physical-before.log",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/012-physical-before.log",
+      "sha256": "e3fed2150f9a7917c9818f63d7e4bbbced918a68acb8402a48558d02f49d5220",
+      "bytes": 176,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/current-source-build-and-pure24-witness-command.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/013-current-source-build-and-pure24-witness-command.json",
+      "sha256": "64378f22ae15f1e12795b27777d0d449e268c5fa48d02d0848e94e08d0776cee",
+      "bytes": 1265,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/current-source-build-and-pure24-witness.log",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/014-current-source-build-and-pure24-witness.log",
+      "sha256": "878054f4b455868e817190f6e74694fb78780e0e893211a3520460308eeb4c35",
+      "bytes": 222,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/original-one-current-file-saved-job-keyboard-command.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/015-original-one-current-file-saved-job-keyboard-command.json",
+      "sha256": "fab6130ed85cb3343838a3aedf0a52d212e9569a4a97f38ea71087e217594577",
+      "bytes": 2276,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/original-one-current-file-saved-job-keyboard.log",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/016-original-one-current-file-saved-job-keyboard.log",
+      "sha256": "7651fb6d2c0d009988874dd042aba421c7881e7ef173ac0f8de5745e9d3795dd",
+      "bytes": 321,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/physical-after-command.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/017-physical-after-command.json",
+      "sha256": "5a2617e4f86c31fe0bee1a75e738fa8c7b0ee0a31e1c9eb5840dd6f917203e39",
+      "bytes": 1781,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/physical-after.log",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/018-physical-after.log",
+      "sha256": "862cfd8ead7a86e0ea6ff42ab2d6913492da4ac20851ed96a5aea2c91dfa6712",
+      "bytes": 185,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/final-source-artifact-input-pins-command.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/019-final-source-artifact-input-pins-command.json",
+      "sha256": "70c1138169e491d0acd73414d04a5f357cffb6340918b2a59930839c5ded21a2",
+      "bytes": 1254,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/final-source-artifact-input-pins.log",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/020-final-source-artifact-input-pins.log",
+      "sha256": "78294bb01f15dbfd6f061ea19498236896becd368638a8b4198941c441444f8d",
+      "bytes": 225,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/fixture/genuine-local-r2-file-saved-job-keyboard-report.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/021-genuine-local-r2-file-saved-job-keyboard-report.json",
+      "sha256": "99fabfc0150eeff36e019cefaae2d56dac035a280f3e058ae7a519d2c0762e2c",
+      "bytes": 93789,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/fixture/genuine-local-r2-file-saved-job-keyboard-stop.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/022-genuine-local-r2-file-saved-job-keyboard-stop.json",
+      "sha256": "5f5000ef23ba980736a8f2572972091881ed00d2a2023a6fcbe3eda27c3fe33d",
+      "bytes": 500,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/fixture/genuine-local-r2-file-saved-job-keyboard-artifacts/current-coherent-file-saved-job-keyboard-390-dark.geometry.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/023-current-coherent-file-saved-job-keyboard-390-dark.geometry.json",
+      "sha256": "0309ff9f2ce2bdf06bee71d370a2b7b0cec9639964561c17af1d147530057f7a",
+      "bytes": 68,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/fixture/physical-sqlite-before-api.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/024-physical-sqlite-before-api.json",
+      "sha256": "121a531f0a6c4d422868eab764196f076944696d7a47cc1653630ffdf7642711",
+      "bytes": 67365,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/fixture/physical-sqlite-after-current-file-saved-job-keyboard.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/025-physical-sqlite-after-current-file-saved-job-keyboard.json",
+      "sha256": "aa2f40997faf0ab8f01261b39c4e8a16d62a7a7ef379f53bcac42a709350aadf",
+      "bytes": 74258,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/fixture/enabled-storage-draft-build-input-witness.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/026-enabled-storage-draft-build-input-witness.json",
+      "sha256": "847c19e49ce5d6a05ee9f2007dc201496d55bc38a267db833699a7a69110d1bb",
+      "bytes": 1363,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/fixture/process-fixture.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/027-process-fixture.json",
+      "sha256": "f6f314cad450cee726ee0309624dce8fff71b572cee620ae24932bf6decd1d3d",
+      "bytes": 1584,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/fixture/process-fixture.sql",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/028-process-fixture.sql",
+      "sha256": "5c32ff5e2781c3c43ba0139985cafa49dd740c7d31b395170827984e568faf25",
+      "bytes": 5579,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/copy/isolation-receipt.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/029-isolation-receipt.json",
+      "sha256": "62d07b49fe1c8c90894529347c744e6ce3ac76a1f66e781a936193b2bcde25bd",
+      "bytes": 393023,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/chromium-child-temp-owner.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/030-chromium-child-temp-owner.json",
+      "sha256": "520e8582dc201ad8d26c75f381a6c6c1560b22f4b456b5200b8385b535646cd0",
+      "bytes": 604,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/original-tool-handles-and-terminal-chunks.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/031-original-tool-handles-and-terminal-chunks.json",
+      "sha256": "3f4e6c46fdb0b67f7af2d2899fd1b382813f937c7c43c0ee46dda8367b25d146",
+      "bytes": 31188,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/final-current02d-source-and-genuine-saved-job-pins.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/032-final-current02d-source-and-genuine-saved-job-pins.json",
+      "sha256": "229f91740e56b94f7340ddcc786e5cfcb86a1751cb3e2096e724aec0740945e2",
+      "bytes": 2681,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-final-peer-source-preparation-attempt4/source-handoff.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/033-source-handoff.json",
+      "sha256": "dee7c5ec9caec7af366e106f5b9b68c50f57eda5633ed8b45a23b93dcd05ad37",
+      "bytes": 6682,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-final-peer-source-preparation-attempt4/root-current-b3d-original-ten-final-full-source-finite-peer-and-exclusive-go.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/actual-current5e-b3d-mobile/034-root-current-b3d-original-ten-final-full-source-finite-peer-and-exclusive-go.json",
+      "sha256": "32d562f28cdce96567e1317d7614a2a6989c9348dba6118b7e5522884c9d0da1",
+      "bytes": 2206,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/runtime/root-one-fresh5e-cf-build-full-source-raw-original-owner-kernel-read-release.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/source-and-owner-reads/root-one-fresh5e-cf-build-full-source-raw-original-owner-kernel-read-release.json",
+      "sha256": "9b026c2dd891990279ca6b6f716eff86fbb52f4ea87cc3dc1c357b671245fb03",
+      "bytes": 1892,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/root-current-b3d-original-ten-full-raw-source-history-owner-kernel-read-release.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/source-and-owner-reads/root-current-b3d-original-ten-full-raw-source-history-owner-kernel-read-release.json",
+      "sha256": "bd8441b0fb1ca375962245357b826e90a6b8ccb60b95c0001b22999aba7a3813",
+      "bytes": 3302,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-layout-wrap-native-finite-source-preparation-attempt2/independent-complete-original-ten-source-binding-and-custody-findings.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/source-and-owner-reads/independent-complete-original-ten-source-binding-and-custody-findings.json",
+      "sha256": "88bdde30cdd0edb9031bc286f9356c7456537679b797904c92e1b6294fab2a11",
+      "bytes": 16665,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-source-preparation-attempt3/independent-narrow-complete-mobile-five-custody-source-addendum.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/source-and-owner-reads/independent-narrow-complete-mobile-five-custody-source-addendum.json",
+      "sha256": "54de6081bec02a0af9dca1d0902da5c8d13d0467b368d3d8b25e029ba9172f5e",
+      "bytes": 6020,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-source-preparation-attempt3/five-custody-sites-exact-whole-inverse.patch",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/source-and-owner-reads/five-custody-sites-exact-whole-inverse.patch",
+      "sha256": "97cf176921f1e0814ff6aa636168d0cba5c0b341ebb7ef84eea84a9c161d8fc4",
+      "bytes": 9486,
+      "mode": "100644"
+    },
+    {
+      "originalPath": "/tmp/phase5f-file-saved-mobile-five-custody-native-finite-source-preparation-attempt3/independent-narrow-original-ten-five-custody-finite-binding-source-addendum.json",
+      "repositoryPath": "docs/qualification/phase5f-file-saved-job-mobile-wrap-2026-10-11/source-and-owner-reads/independent-narrow-original-ten-five-custody-finite-binding-source-addendum.json",
+      "sha256": "5f4c9f18a05e4b850702258d4d2b18665d2b19940c42cdcd1b932fc7090fd5be",
+      "bytes": 12060,
+      "mode": "100644"
+    }
+  ],
+  "originalCount": 83,
+  "allLogBytesExplicitlyAdded": true,
+  "originalReceiptKeys": {
+    "priorFailure": "rawOriginalReferences",
+    "singleBuild": "allOriginalReferences",
+    "newMobile": "references"
+  },
+  "scope": "Original c94 failure, actual single5e build and new b3d native pass remain separate; public own CI unrun; Start202 initial focus uncharacterized."
+}

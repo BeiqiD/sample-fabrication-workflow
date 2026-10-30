@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.server.json",
+  "include": ["server/files/local-file-runtime-optin.qualification.ts"]
+}

@@ -1,0 +1,871 @@
+{
+  "version": 1,
+  "scope": "Four actual local enabled-Access browser cases over fresh synthetic current24 D1/R2. No remote Access, provider, device, recovery or whole-roadmap acceptance.",
+  "sourceRoot": "/tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3",
+  "sourceCopyRoot": "/tmp/phase5f-idle-focus-enabled-admin-copy-attempt3",
+  "sourceHead": "36e28cb2db6500ce26ca6e3048eb4b6fe44d0c5e",
+  "sourceTree": "606e517d574fdf20a62265b898babc2e02f9598c",
+  "fixtureDirectory": "/tmp/phase5f-idle-focus-enabled-admin-fixture-attempt3",
+  "isolationReceiptSha256": "e0eb7479a704c443575e239627f6d0a391df98b47ef87bb79ddb765c17260c83",
+  "helperSha256": "04f011850a4e893775f02ee01459a1fef071db5176db1af01542748f5b4aa90d",
+  "seedReceiptSha256": "1d13d36d5ceeac70ff6f2f0cd612f9507a592e15036a3ae18570285a60981b02",
+  "freshBuildReceiptSha256": "c867a879c1e1fe2669d3d46b6c5a6a2c7ae64922c682d7ad73a6b4f83cedb5a1",
+  "sessionId": "b3570748-e683-46b3-9d80-64bbb6d241cf",
+  "sessionPid": 370547,
+  "expectedCases": [
+    "admin-1280-light",
+    "admin-390-dark",
+    "reader-1280-light",
+    "admin-390-dark-read-retry"
+  ],
+  "cases": [
+    {
+      "id": "admin-1280-light",
+      "width": 1280,
+      "theme": "light",
+      "status": "passed",
+      "assertions": [
+        {
+          "surface": "current-storage",
+          "geometry": {
+            "width": 1280,
+            "root": 1280,
+            "body": 1280,
+            "theme": "light"
+          }
+        },
+        {
+          "surface": "administrator-configuration",
+          "geometry": {
+            "width": 1280,
+            "root": 1280,
+            "body": 1280,
+            "theme": "light"
+          }
+        },
+        {
+          "actualAdministrator": true,
+          "credentialEditing": "unavailable",
+          "acceptedBrowserMutations": 0
+        }
+      ],
+      "api": [
+        {
+          "path": "/api/settings/storage",
+          "method": "GET",
+          "status": 200,
+          "body": "completed",
+          "responseSha256": "be8e55adc2616cfad590aedf5e19d82a5f2d293746e05c56353b58aa037eb945"
+        },
+        {
+          "path": "/api/storage/configuration/capability",
+          "method": "GET",
+          "status": 200,
+          "body": "completed",
+          "responseSha256": "635c1a510be4a89b46d9144f09780f1a1e794d1235555fd6f60b7d3761299e54"
+        },
+        {
+          "path": "/api/storage/configuration/capability",
+          "method": "GET",
+          "status": 200,
+          "body": "completed",
+          "responseSha256": "635c1a510be4a89b46d9144f09780f1a1e794d1235555fd6f60b7d3761299e54"
+        },
+        {
+          "path": "/api/storage/configuration",
+          "method": "GET",
+          "status": 200,
+          "body": "completed",
+          "responseSha256": "08e5fd38ed06ae9535526273e0896581a31cea8a0933508adfc33b682f9d54a5"
+        }
+      ],
+      "pageErrors": [],
+      "externalRequests": [],
+      "startedAt": "2026-10-11T00:11:50.545Z",
+      "contextClosed": true,
+      "completedAt": "2026-10-11T00:11:51.669Z"
+    },
+    {
+      "id": "admin-390-dark",
+      "width": 390,
+      "theme": "dark",
+      "status": "passed",
+      "assertions": [
+        {
+          "surface": "current-storage",
+          "geometry": {
+            "width": 390,
+            "root": 390,
+            "body": 390,
+            "theme": "dark"
+          }
+        },
+        {
+          "surface": "administrator-configuration",
+          "geometry": {
+            "width": 390,
+            "root": 390,
+            "body": 390,
+            "theme": "dark"
+          }
+        },
+        {
+          "actualAdministrator": true,
+          "credentialEditing": "unavailable",
+          "acceptedBrowserMutations": 0
+        }
+      ],
+      "api": [
+        {
+          "path": "/api/settings/storage",
+          "method": "GET",
+          "status": 200,
+          "body": "completed",
+          "responseSha256": "be8e55adc2616cfad590aedf5e19d82a5f2d293746e05c56353b58aa037eb945"
+        },
+        {
+          "path": "/api/storage/configuration/capability",
+          "method": "GET",
+          "status": 200,
+          "body": "completed",
+          "responseSha256": "635c1a510be4a89b46d9144f09780f1a1e794d1235555fd6f60b7d3761299e54"
+        },
+        {
+          "path": "/api/storage/configuration/capability",
+          "method": "GET",
+          "status": 200,
+          "body": "completed",
+          "responseSha256": "635c1a510be4a89b46d9144f09780f1a1e794d1235555fd6f60b7d3761299e54"
+        },
+        {
+          "path": "/api/storage/configuration",
+          "method": "GET",
+          "status": 200,
+          "body": "completed",
+          "responseSha256": "08e5fd38ed06ae9535526273e0896581a31cea8a0933508adfc33b682f9d54a5"
+        }
+      ],
+      "pageErrors": [],
+      "externalRequests": [],
+      "startedAt": "2026-10-11T00:11:51.669Z",
+      "contextClosed": true,
+      "completedAt": "2026-10-11T00:11:52.655Z"
+    },
+    {
+      "id": "reader-1280-light",
+      "width": 1280,
+      "theme": "light",
+      "status": "passed",
+      "assertions": [
+        {
+          "ordinaryVerifiedReader": true,
+          "privilegedApiDenied": [
+            {
+              "path": "/api/storage/configuration",
+              "method": "GET",
+              "status": 403
+            },
+            {
+              "path": "/api/storage/configuration/candidates",
+              "method": "PUT",
+              "status": 403
+            }
+          ]
+        },
+        {
+          "surface": "ordinary-reader-configuration",
+          "geometry": {
+            "width": 1280,
+            "root": 1280,
+            "body": 1280,
+            "theme": "light"
+          }
+        }
+      ],
+      "api": [
+        {
+          "path": "/api/storage/configuration/capability",
+          "method": "GET",
+          "status": 200,
+          "body": "completed",
+          "responseSha256": "46cd1fdfbc14df588d9b364855b1d714409c19fef8f0ba099d3de75b51680931"
+        },
+        {
+          "path": "/api/storage/configuration",
+          "method": "GET",
+          "status": 403,
+          "body": "completed",
+          "responseSha256": "0a16fbb05ce68c8224dc59377436923efe3d3f58506874d7b6f4d3234e37dc4d"
+        },
+        {
+          "path": "/api/storage/configuration/candidates",
+          "method": "PUT",
+          "status": 403,
+          "body": "completed",
+          "responseSha256": "0a16fbb05ce68c8224dc59377436923efe3d3f58506874d7b6f4d3234e37dc4d"
+        }
+      ],
+      "pageErrors": [],
+      "externalRequests": [],
+      "startedAt": "2026-10-11T00:11:52.662Z",
+      "contextClosed": true,
+      "completedAt": "2026-10-11T00:11:53.341Z"
+    },
+    {
+      "id": "admin-390-dark-read-retry",
+      "width": 390,
+      "theme": "dark",
+      "status": "failed",
+      "assertions": [
+        {
+          "controlledFixtureFault": "Original empty configuration table temporarily absent",
+          "originalDdlSha256": "8a800c5f13d07ebe5e11be318150aafcbf52a5f2d5c597cc5f73f39766ca04be"
+        },
+        {
+          "surface": "administrator-real-service-retry",
+          "geometry": {
+            "width": 390,
+            "root": 390,
+            "body": 390,
+            "theme": "dark"
+          }
+        },
+        {
+          "actualConfigurationResponses": [
+            503,
+            200
+          ],
+          "explicitRetry": "Focused Refresh + Enter",
+          "restoredOriginalSchema": true
+        }
+      ],
+      "api": [
+        {
+          "path": "/api/storage/configuration/capability",
+          "method": "GET",
+          "status": 200,
+          "body": "completed",
+          "responseSha256": "635c1a510be4a89b46d9144f09780f1a1e794d1235555fd6f60b7d3761299e54"
+        },
+        {
+          "path": "/api/storage/configuration",
+          "method": "GET",
+          "status": 503,
+          "body": "failed",
+          "error": "response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier"
+        },
+        {
+          "path": "/api/storage/configuration/capability",
+          "method": "GET",
+          "status": 200,
+          "body": "completed",
+          "responseSha256": "635c1a510be4a89b46d9144f09780f1a1e794d1235555fd6f60b7d3761299e54"
+        },
+        {
+          "path": "/api/storage/configuration",
+          "method": "GET",
+          "status": 200,
+          "body": "completed",
+          "responseSha256": "08e5fd38ed06ae9535526273e0896581a31cea8a0933508adfc33b682f9d54a5"
+        }
+      ],
+      "pageErrors": [],
+      "externalRequests": [],
+      "startedAt": "2026-10-11T00:11:53.344Z",
+      "error": "AssertionError [ERR_ASSERTION]: Every original API response body must settle before context shutdown.\n    at caseRun (file:///tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3/scripts/qa/phase5f/browser-enabled-admin-actual-api.mjs:241:5)\n    at async file:///tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3/scripts/qa/phase5f/browser-enabled-admin-actual-api.mjs:350:3",
+      "contextClosed": true,
+      "completedAt": "2026-10-11T00:11:55.156Z"
+    }
+  ],
+  "authenticationControls": [
+    {
+      "id": "genuine-signed-admin",
+      "status": 200,
+      "responseSha256": "635c1a510be4a89b46d9144f09780f1a1e794d1235555fd6f60b7d3761299e54"
+    },
+    {
+      "id": "genuine-signed-reader",
+      "status": 200,
+      "responseSha256": "46cd1fdfbc14df588d9b364855b1d714409c19fef8f0ba099d3de75b51680931"
+    },
+    {
+      "id": "missing-jwt",
+      "status": 403,
+      "responseSha256": "ca730ec7fc2b7edb7277e5b8e58d6a474971ca59dafb499141a4856c06132638"
+    },
+    {
+      "id": "forged-signature",
+      "status": 403,
+      "responseSha256": "ca730ec7fc2b7edb7277e5b8e58d6a474971ca59dafb499141a4856c06132638"
+    },
+    {
+      "id": "expired-jwt",
+      "status": 403,
+      "responseSha256": "ca730ec7fc2b7edb7277e5b8e58d6a474971ca59dafb499141a4856c06132638"
+    },
+    {
+      "id": "wrong-audience",
+      "status": 403,
+      "responseSha256": "ca730ec7fc2b7edb7277e5b8e58d6a474971ca59dafb499141a4856c06132638"
+    }
+  ],
+  "jwksRequests": [
+    {
+      "method": "GET",
+      "path": "/cdn-cgi/access/certs",
+      "at": "2026-10-11T00:11:50.001Z"
+    }
+  ],
+  "startedAt": "2026-10-11T00:11:47.782Z",
+  "status": "failed",
+  "jwksOwner": {
+    "host": "127.0.0.1",
+    "port": 38625,
+    "publicJwksSha256": "301cd7412891395f6e0389102b2b61716ba9d0efced71196e39ae6600b4bbb37",
+    "issuerScope": "Fresh private local issuer, no remote Access acceptance"
+  },
+  "databaseBefore": {
+    "schemaSha256": "324002fb62d3e42d71e524b2406987622b0f601fca1bcb5d97cedfd77018643b",
+    "tables": {
+      "assets": {
+        "count": 1,
+        "sha256": "4fb9f7647c09be8c0e62bd32c0925ed17278aaca1d175fcbd651e728a4a12b18"
+      },
+      "attachment_derivatives": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "blob_gc_ledger": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "blob_integrity_quarantine": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "comment_item_acceptances": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "comment_submission_acceptances": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "comment_submission_items": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "comment_submission_targets": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "comment_submissions": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "d1_migrations": {
+        "count": 24,
+        "sha256": "cd9ae421c6c4aec333fd81556910697ee4cb45de0daa7c6a8c1bb6949d4b1ea5"
+      },
+      "events": {
+        "count": 50,
+        "sha256": "fafc9606b0d2b9cc341f927dc5c2ebb2c707c2a9d5192bfe1d8b8440fc7f8e35"
+      },
+      "file_acceptance_candidates": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_authority_control": {
+        "count": 1,
+        "sha256": "8d42ce104c2692f1acd329268a47d07f5f52d09641511e6d647f2f3cca873acf"
+      },
+      "file_authority_runtime_guard": {
+        "count": 1,
+        "sha256": "cd0abcf4ef4f63725555e03157a79f760e52e5659c623de209c45b2049cef92d"
+      },
+      "file_consumer_migration_decisions": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_derivations": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_holds": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_job_cleanup_grants": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_job_runtime_guard": {
+        "count": 1,
+        "sha256": "a56a7806abe551c3cd7bc63f865bc553ba5e6350dee0c405500486935decdb08"
+      },
+      "file_location_gc_ledger": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_location_holds": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_location_integrity_quarantine": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_location_publications": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_locations": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_migration_attempts": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_migration_items": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_migration_jobs": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_publications": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_registry_rowid_claims": {
+        "count": 1,
+        "sha256": "52044eba0353f85c05e96e137aca53f55ab8335fcf1aab52014cff4efb1e43fc"
+      },
+      "file_shadow_adjudication_revocations": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_shadow_adjudication_withdrawals": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_shadow_adjudications": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_shadow_attempts": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_shadow_checkpoints": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_shadow_closures": {
+        "count": 1,
+        "sha256": "52b4f681cb95fe8e5161e5606a922a835e2405b3278ff01e13a39c53894bdd5d"
+      },
+      "file_shadow_control": {
+        "count": 1,
+        "sha256": "55e0a1910fc7cc1ea0c3e5de88515a1595ea73bf10411436c2281ddf76366fca"
+      },
+      "file_shadow_decisions": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_shadow_dependency_versions": {
+        "count": 107,
+        "sha256": "cf010a0af8e78143b84e4a7d9ce3cbccf34abaf3fe69759b682c5b908be03904"
+      },
+      "file_shadow_enablements": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_shadow_heads": {
+        "count": 1,
+        "sha256": "0b67b78d7a5b39c8cea8bbe131690881871ae1e41b60f9a252432c484a2e615d"
+      },
+      "file_shadow_legacy_deletion_claims": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_shadow_legacy_holds": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_shadow_occurrences": {
+        "count": 2,
+        "sha256": "b8b64124101ef6a6966901a703fe655d416792805e105ff58f2d4a8f6ab49f73"
+      },
+      "file_shadow_operation_adjudications": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_shadow_operations": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_shadow_profile_enablements": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_shadow_reconciliations": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_shadow_runtime_guard": {
+        "count": 1,
+        "sha256": "ba93f4815cf1dd6cbd56957b2adda6635d96136863bae7eb24e92345568f8762"
+      },
+      "file_shadow_runtime_incarnations": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "file_shadow_withdrawals": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "files": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "import_file_acceptances": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "imports": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "legacy_file_mappings": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "local_accounts": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "local_admin_grants": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "local_auth_events": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "local_identity_installation": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "local_login_throttle": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "local_sessions": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "local_storage_profile_activations": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "local_storage_profile_admissions": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "local_storage_profile_bindings": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "local_storage_profile_checks": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "local_storage_profile_registrations": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "managed_storage_objects": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "metrology_reference_upload_requests": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "metrology_template_references": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "project_content_attachments": {
+        "count": 1,
+        "sha256": "d79acf041ea5574f0142823dfec327df1992277cce70e8148b8e1e53058bfd7e"
+      },
+      "project_contents": {
+        "count": 2,
+        "sha256": "9190aa199c7a70bbccd207f26e8f226dd801009006944bf5ebd0d577eb5b4385"
+      },
+      "project_edges": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "project_items": {
+        "count": 4,
+        "sha256": "9aada970fe3e51288e1f8cf2b9e00a32ef6cfa734bc3da6c650b17563df60091"
+      },
+      "project_map_placements": {
+        "count": 4,
+        "sha256": "05a5ff3dccba7b022c89f9a68df522586a90835bc621bd186927cbdc5545f2ac"
+      },
+      "projects": {
+        "count": 1,
+        "sha256": "488600c8a169b8a06d2294940a48dea12e2cf3c03497e755b48be79502670f96"
+      },
+      "r2_upload_requests": {
+        "count": 1,
+        "sha256": "38db210399199afbfdf56d02bd60b7f83f78035282b36f89ced45af97717d64b"
+      },
+      "recipe_change_proposals": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "recipe_families": {
+        "count": 7,
+        "sha256": "efc275aa1d4e11a5a0a57e5e5299dd37f07420207c457380e0ec4044a6974041"
+      },
+      "recovery_file_alias_evidence": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "recovery_file_binding_evidence": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "recovery_file_evidence": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "reference_targets": {
+        "count": 2,
+        "sha256": "8f2270e0e3c9f3495eecfdd79539f173837035b6cc98de6062f82028a8b2f7ca"
+      },
+      "research_package_attempts": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "research_package_files": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "research_package_identity_maps": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "research_package_jobs": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "research_package_records": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "research_package_requests": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "research_package_source_identity": {
+        "count": 1,
+        "sha256": "6f8d7360bf734bd5fd7a2aab9a07af88e21631f62fac25ca65f83db9ed39e78c"
+      },
+      "run_plan_revisions": {
+        "count": 14,
+        "sha256": "c49152e95aeab930feb485b27f7d5178bddd215b0ba217e3449dfa32188671b1"
+      },
+      "run_step_assets": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "run_step_comments": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "run_step_plan_links": {
+        "count": 28,
+        "sha256": "518a5cfb3ce49eddeaa3b374ef9f391ed93da7a0f6a611960acd0ed460c5c392"
+      },
+      "run_steps": {
+        "count": 29,
+        "sha256": "6cbe44a640b13cf0306d3ad34758474c70df89677a2ceb95199cd58d8fb98e06"
+      },
+      "runs": {
+        "count": 14,
+        "sha256": "70f72363c54435fe6c8243a64478d969892b76f93d35ba79e7072e6624ee3513"
+      },
+      "samples": {
+        "count": 20,
+        "sha256": "11b5240cc53bce435d4ee8f0fb9dfe009ca8f5b34646dbd32e1f9211ff7d1041"
+      },
+      "state_representation_assets": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "state_representations": {
+        "count": 1,
+        "sha256": "e0d369b91966f6a2b264b32c860f391009a00b563d68d5b29ffcc3c79b5b9549"
+      },
+      "state_verification_steps": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "state_verifications": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "step_definitions": {
+        "count": 9,
+        "sha256": "b1e941cad7f1f48e9769e184797344cabc192f25eabebe334072e06ae4d84dc0"
+      },
+      "storage_profile_activations": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "storage_profile_admissions": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "storage_profile_runtime": {
+        "count": 1,
+        "sha256": "25ea6b78c6bb97aaf5e61b66ddf20bfcba106cd7facd5bfc43be9acd03fc312e"
+      },
+      "storage_profiles": {
+        "count": 1,
+        "sha256": "68a2d96f2bd523e5f9ca778889aa2db554b1032c758b47caca45393a2d91f14b"
+      },
+      "storage_role_defaults": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "storage_role_policy_revisions": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "system_recovery_attempts": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "system_recovery_files": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "system_recovery_jobs": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "system_recovery_legacy_holds": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "system_recovery_maintenance": {
+        "count": 1,
+        "sha256": "55eeeabe2eb1e41404aeb54e1790246c6b25ca4e8c43504072bd0813c4caa740"
+      },
+      "system_recovery_maintenance_requests": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "system_recovery_metadata_chunks": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "system_recovery_requests": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "system_recovery_runtime": {
+        "count": 1,
+        "sha256": "87588e9a45fbd7a3136d5eb0ad0709498647eaf4ca2ed30f53a68ba0585463eb"
+      },
+      "system_recovery_target_claim": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "system_recovery_target_files": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "system_recovery_target_provenance": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "system_recovery_write_leases": {
+        "count": 63,
+        "sha256": "7830ea1fe97caec21f50387eaba1f40aacf086da9e1a435ae164fcbf33a86bad"
+      },
+      "system_research_package_cleanup_grants": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "system_storage_candidate_check_audit": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "system_storage_candidate_checks": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "system_storage_configuration_audit": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "system_storage_configuration_revisions": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "system_storage_credential_descriptors": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "system_storage_credential_payloads": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "system_storage_credential_reenvelopes": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "system_storage_native_bindings": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "system_storage_profiles": {
+        "count": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "template_steps": {
+        "count": 11,
+        "sha256": "80f42b13d041f1907c1fc32115efdc5c7743b61482398a87008c9193a8ff7dfa"
+      },
+      "template_versions": {
+        "count": 8,
+        "sha256": "f0276a9ee2cf55543a51ecf684b576c533db021c039b5507ee9e8277a3db022c"
+      }
+    }
+  },
+  "error": "AssertionError [ERR_ASSERTION]: Every original API response body must settle before context shutdown.\n    at caseRun (file:///tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3/scripts/qa/phase5f/browser-enabled-admin-actual-api.mjs:241:5)\n    at async file:///tmp/phase5f-idle-focus-enabled-admin-route-fixture-source-attempt3/scripts/qa/phase5f/browser-enabled-admin-actual-api.mjs:350:3",
+  "ownedClosure": {
+    "sessionId": "b3570748-e683-46b3-9d80-64bbb6d241cf",
+    "startedAt": "2026-10-11T00:11:55.157Z",
+    "status": "closed",
+    "browserCloseAwaited": true,
+    "originalCatalogAndRowsRestored": true,
+    "workerDisposeAwaited": true,
+    "workerPortRefused": true,
+    "jwksCloseAwaited": true,
+    "jwksPortRefused": true,
+    "completedAt": "2026-10-11T00:11:56.330Z"
+  },
+  "unrunCases": [],
+  "completedAt": "2026-10-11T00:11:56.330Z"
+}

@@ -1,0 +1,20 @@
+
+ RUN  v4.1.10 /workspace/portable-current591-neutral-file-definition-source-only-attempt1
+
+ ✓ worker/imports/fabublox-authority.test.ts > active accepted import File publication > publishes every typed file atomically, separates equal bytes by purpose, and reconciles lost ACK without another PUT 789ms
+ ↓ worker/imports/fabublox-authority.test.ts > active accepted import File publication > rolls first role initialization back when fresh import acceptance rejects with ABORT,'secret acceptance detail' before provider I/O
+ ↓ worker/imports/fabublox-authority.test.ts > active accepted import File publication > rolls first role initialization back when fresh import acceptance rejects with IGNORE before provider I/O
+ ↓ worker/imports/fabublox-authority.test.ts > active accepted import File publication > keeps paused execution from accepting a fresh import or initializing role defaults
+ ↓ worker/imports/fabublox-authority.test.ts > active accepted import File publication > allows one owner for concurrent fresh requests while role initialization and the receipt commit together
+ ↓ worker/imports/fabublox-authority.test.ts > active accepted import File publication > rejects a fresh import if its captured overlap mode changes before the acceptance batch
+ ↓ worker/imports/fabublox-authority.test.ts > active accepted import File publication > returns a sanitized unavailable response when fresh authority selection cannot read the current mode
+ ↓ worker/imports/fabublox-authority.test.ts > active accepted import File publication > rolls publications and typed bindings back when the original import completion fails
+ ↓ worker/imports/fabublox-authority.test.ts > active accepted import File publication > recovers an interrupted private import without provider access or moving candidate ownership
+ ↓ worker/imports/fabublox-authority.test.ts > active accepted import File publication > keeps a committed import intact when both finalization acknowledgement and readback were lost
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 9 skipped (10)
+   Start at  03:58:20
+   Duration  3.81s (transform 2.33s, setup 31ms, import 2.88s, tests 790ms, environment 0ms)
+
+JSON report written to /tmp/portable-current591-neutral-file-definition-nine-owned-actual-attempt1/original-imported-template-clone.json

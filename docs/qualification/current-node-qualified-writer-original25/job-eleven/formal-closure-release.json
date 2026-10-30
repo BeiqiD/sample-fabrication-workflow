@@ -1,0 +1,241 @@
+{
+  "kind": "current-original-job-eleven-formal-closure-release/1",
+  "status": "PASS_CLOSED_RELEASED",
+  "sourceHead": "eaef0b5d1346faaa5cdf0fc8db0d9439919f1c42",
+  "sourceTree": "0908d3c9f3c17a46ca0c8c5459ed906e6ccd4512",
+  "fullTrackedInputCount": 2575,
+  "fullModeGitBlobWorkingPinsVerified": true,
+  "actualFreshCases": 11,
+  "actualPassed": 11,
+  "actualFailed": 0,
+  "actualBailUnrun": 0,
+  "intentionalUnselected": 0,
+  "toolSessionId": 16447,
+  "originalToolWaitCompleted": true,
+  "originalToolExitCode": 0,
+  "observedOriginalLiveOwners": {
+    "kind": "original-job-eleven-live-tool-handle-observation/1",
+    "toolSessionId": 16447,
+    "recordedBeforeWaitAtEpoch": 1791725284.994053,
+    "originalObservedOwners": [
+      {
+        "pid": 1222765,
+        "state": "S",
+        "parentPid": 1222764,
+        "processGroup": 1222764,
+        "startTicks": 13853345,
+        "exactOriginalArgv": [
+          "python3",
+          "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/job-eleven/original-supervisor.py"
+        ]
+      },
+      {
+        "pid": 1222768,
+        "state": "S",
+        "parentPid": 1222765,
+        "processGroup": 1222768,
+        "startTicks": 13853349,
+        "exactOriginalArgv": [
+          "python3",
+          "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/job-eleven/original-owned-runner.py"
+        ]
+      }
+    ],
+    "noSignalSent": true,
+    "sourceRoot": "/workspace/portable-current-a5-qualified-writer-continuation-source-attempt1",
+    "scope": "Original live metadata only; no missing owner reconstructed",
+    "actualChildOwner": {
+      "pid": 1222777,
+      "processGroup": 1222777,
+      "command": [
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "node-job-http-request.vitest.config.mts",
+        "--reporter=verbose",
+        "--reporter=json",
+        "--outputFile.json=/workspace/current-a5-qualified-writer-job-eleven-owned-actual-attempt1/actual-native.json"
+      ],
+      "status": "RUNNING",
+      "stateAtObservation": "S",
+      "startTicks": 13853376
+    }
+  },
+  "originalChildWaitedReaped": true,
+  "originalRunnerWaitedReaped": true,
+  "originalGroupsAfterSameWait": [
+    {
+      "processGroup": 1222764,
+      "originalMembers": []
+    },
+    {
+      "processGroup": 1222768,
+      "originalMembers": []
+    },
+    {
+      "processGroup": 1222777,
+      "originalMembers": []
+    }
+  ],
+  "allOriginalGroupsEmpty": true,
+  "privateOriginalTmpAndFixtureIdentitiesUnchanged": true,
+  "fixtureParentUsesOriginalCanonicalCheckoutCwd": true,
+  "noInventedJobSetup20": true,
+  "retainedJobFixtureArtifacts": [
+    {
+      "path": "/workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-case-0Qbr5p",
+      "uid": 1000,
+      "mode": "0o700",
+      "symlink": false,
+      "files": [
+        "application.sqlite",
+        "application.sqlite.writer-lock"
+      ]
+    },
+    {
+      "path": "/workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-case-4GVYzN",
+      "uid": 1000,
+      "mode": "0o700",
+      "symlink": false,
+      "files": [
+        "application.sqlite",
+        "application.sqlite.writer-lock"
+      ]
+    },
+    {
+      "path": "/workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-case-BDNFl1",
+      "uid": 1000,
+      "mode": "0o700",
+      "symlink": false,
+      "files": [
+        "application.sqlite",
+        "application.sqlite.writer-lock"
+      ]
+    },
+    {
+      "path": "/workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-case-Grfdc4",
+      "uid": 1000,
+      "mode": "0o700",
+      "symlink": false,
+      "files": [
+        "application.sqlite",
+        "application.sqlite.writer-lock"
+      ]
+    },
+    {
+      "path": "/workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-case-MIYiq0",
+      "uid": 1000,
+      "mode": "0o700",
+      "symlink": false,
+      "files": [
+        "application.sqlite",
+        "application.sqlite.writer-lock"
+      ]
+    },
+    {
+      "path": "/workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-case-Ntun2w",
+      "uid": 1000,
+      "mode": "0o700",
+      "symlink": false,
+      "files": [
+        "application.sqlite",
+        "application.sqlite.writer-lock"
+      ]
+    },
+    {
+      "path": "/workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-case-RrP22S",
+      "uid": 1000,
+      "mode": "0o700",
+      "symlink": false,
+      "files": [
+        "application.sqlite",
+        "application.sqlite.writer-lock"
+      ]
+    },
+    {
+      "path": "/workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-case-p3t8sY",
+      "uid": 1000,
+      "mode": "0o700",
+      "symlink": false,
+      "files": [
+        "application.sqlite",
+        "application.sqlite.writer-lock"
+      ]
+    },
+    {
+      "path": "/workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-case-u8aZTp",
+      "uid": 1000,
+      "mode": "0o700",
+      "symlink": false,
+      "files": [
+        "application.sqlite",
+        "application.sqlite.writer-lock"
+      ]
+    },
+    {
+      "path": "/workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-case-wWMzI8",
+      "uid": 1000,
+      "mode": "0o700",
+      "symlink": false,
+      "files": [
+        "application.sqlite",
+        "application.sqlite.writer-lock"
+      ]
+    },
+    {
+      "path": "/workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-case-zsCQ9Q",
+      "uid": 1000,
+      "mode": "0o700",
+      "symlink": false,
+      "files": [
+        "application.sqlite",
+        "application.sqlite.writer-lock"
+      ]
+    },
+    {
+      "path": "/workspace/portable-current-a5-qualified-writer-continuation-source-attempt1/.job-http-template-9itiky",
+      "uid": 1000,
+      "mode": "0o700",
+      "symlink": false,
+      "files": [
+        "closed-v26.sqlite",
+        "closed-v26.sqlite.writer-lock"
+      ]
+    }
+  ],
+  "noInterruptSignalsSent": true,
+  "ordinaryOriginalOwners": "Original whole setup/case ALS roots retain original filesystem/acquire/socket/app/Response/body and secondary owners. Cached original successful full-body read or cancel and HTTP/component drain precede same Native/core ACK and physical lease release. Failed/quarantined original remains retained; no retry/fallback, provider/default activation or expanded budgets.",
+  "artifacts": [
+    {
+      "path": "/workspace/current-a5-qualified-writer-job-eleven-owned-actual-attempt1/receipt.json",
+      "sha256": "62862358654248afcb0258ee712201fb70bf4616a78bf3abcb41d6d165209670"
+    },
+    {
+      "path": "/workspace/current-a5-qualified-writer-job-eleven-owned-actual-attempt1/actual-native.json",
+      "sha256": "9e8f35d10bd0d93715062d566ac92186327605ca43dcf9ca542bd9a51dc327ee"
+    },
+    {
+      "path": "/workspace/current-a5-qualified-writer-job-eleven-owned-actual-attempt1/original-native.log",
+      "sha256": "ba7c483bc46f528ac3073f6e711ca201948a1f41b8b2a785f7ce95da4c76f859"
+    },
+    {
+      "path": "/workspace/current-a5-qualified-writer-job-eleven-owned-actual-attempt1/original-owner.json",
+      "sha256": "c28eef9ded7f7efb97f2ea50e78f824d0614ada39a3c32d92522cf59dbdc5e37"
+    },
+    {
+      "path": "/workspace/current-a5-qualified-writer-job-eleven-owned-actual-attempt1/final-closure.json",
+      "sha256": "da41f7e13b4997eb22d08bca9225aac01d62f31abd705d295b4c971c9880c203"
+    },
+    {
+      "path": "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/job-eleven/original-supervisor-actual-attempt1.json",
+      "sha256": "5595e5d340dfea61000c1de43c072bb8e6088275db194ed0a8d01beadc2de9e7"
+    },
+    {
+      "path": "/workspace/current-a5-qualified-writer-continuation-source-handoffs/finite-original-current-twenty-five-peerbound-attempt1/job-eleven/original-tool-live-owner-observation.json",
+      "sha256": "a79a7e76eaf14cd3fef9fa0658686348a9e7466740cee6654675e4445e397e7d"
+    }
+  ],
+  "runtimeSixStillUnrun": true,
+  "exclusiveWindowReleasedToRoot": true
+}

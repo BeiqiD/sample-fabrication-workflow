@@ -1,11 +1,32 @@
 # Comment file uploads
 
-All sample notes and process-step comments use the same two-stage submission
+All Sample notes and process-Step Comments use the same two-stage submission
 model.
+
+[FP1j accepted operations](./FP1_COMMENT_ACCEPTANCE.md) strengthen this model with
+immutable input, per-item execution ownership, frozen physical placement and
+atomic publication. New clients negotiate `comment-submission/1`, hash every
+prepared image/original before creation and recover uncertain responses through
+the authenticated acceptance status route. The seven-day acceptance deadline is
+fixed; status reads, retries and failure reports do not renew it.
+
+## Body rendering boundary
+
+A Comment body remains one authoritative plain string entered through the existing textarea. Displayed Sample-note and process-Step Comment bodies are rendered client-side with the shared safe GFM/TeX renderer; generated HTML and MathML are never persisted or accepted from a caller.
+
+The renderer does not turn Comments into a document editor:
+
+- the composer has no WYSIWYG state, block model, formatting toolbar, or preview-owned save path;
+- images, unchanged files, and external links continue through the existing submission items and attachment controls;
+- Markdown image syntax is rendered as a safe link rather than an inline image, so it cannot bypass attachment identity, upload integrity, lifecycle, or export rules;
+- raw HTML is shown literally, unsafe URL schemes are rejected, and TeX expansion/size are bounded;
+- Project Reading may use the same renderer core with document spacing and ordinary Markdown images, but that presentation policy does not change Comment storage.
+
+The Comment renderer is lazy-loaded from published read surfaces. Uploading and failed recovery cards remain plain submission-state UI and do not load the renderer merely to show a local draft. The same status boundary applies when a non-ready process-Step Comment is projected into the Sample page's Notes & observations list: its body remains literal plain text until the submission becomes `ready`.
 
 ## Storage boundaries
 
-- Processed inline comment images use the existing private `ASSETS` R2 binding.
+- Processed inline Comment images use the existing private `ASSETS` R2 binding.
 - Original files use the `ManagedStorage` interface in
   `worker/managed-storage.ts`.
 - External links are database records only. The Worker never fetches or
@@ -18,16 +39,18 @@ continue to work without a connected file-storage provider.
 
 The first supported adapter is SWITCHdrive over its official HTTPS WebDAV
 endpoint. It uses a dedicated SWITCHdrive App Passcode, never the user's
-SWITCH edu-ID password. The Worker checks the credentials with a read-only
+SWITCH edu-ID password. The Worker checks credentials with a read-only
 `PROPFIND` request before the UI enables file attachments. File bytes are
 streamed unchanged to SWITCHdrive; parent directories are created lazily.
-Attachments belonging to one sample are placed below a human-readable
-`samples/<sample-code>--<sample-id>/comment-attachments/` folder. A comment
-shared across multiple samples is stored once below `shared-comment-attachments/`
-instead of silently duplicating the original file.
 
-Provider-specific key naming, requests, and authentication must stay inside a
-`ManagedStorage` implementation; comment routes must not contain Google Drive,
+Attachments belonging to one Sample are placed below a human-readable
+`samples/<sample-code>--<sample-id>/comment-attachments/` folder. A Comment
+shared across multiple Samples is stored once below
+`shared-comment-attachments/` instead of silently duplicating the original
+file.
+
+Provider-specific key naming, requests, and authentication stay inside a
+`ManagedStorage` implementation; Comment routes do not contain Google Drive,
 OneDrive, SWITCHdrive, or other provider-specific logic.
 
 ## Authentication
@@ -38,14 +61,48 @@ Application authentication and storage authentication are separate:
    submission.
 2. The Worker authenticates to the configured external file storage. No
    storage credential reaches the browser.
-3. An OAuth-backed adapter should keep refresh tokens in encrypted
-   server-side secrets and store only a connection/secret reference, provider,
-   account label, status, and expiry in D1. It must expose the same
-   `ManagedStorage` methods and report unavailable or expired authentication
-   through `/api/storage/status`.
+3. An OAuth-backed adapter keeps refresh tokens in encrypted server-side
+   secrets and stores only a connection/secret reference, provider, account
+   label, status, and expiry in D1. It exposes the same `ManagedStorage`
+   operations and reports unavailable or expired authentication through
+   `/api/storage/status`.
 
-Do not put OAuth access or refresh tokens in D1 records, local storage, comment
-metadata, upload URLs, or client logs.
+Do not put OAuth access or refresh tokens in D1 records, local storage, Comment
+metadata, upload URLs, exports, or client logs.
+
+## Connection diagnostics
+
+The existing authenticated `/api/storage/status` route returns an optional
+`diagnostic` object when SWITCHdrive answers a connection probe with an HTTP
+failure. It includes the exact `httpStatus`, a fixed `classification`, the
+native `redirected` flag, whether a Basic challenge was present, and an optional
+allowlisted DAV `providerReason` (`not_authenticated` or `forbidden`). Unknown
+provider messages, response bodies/URLs, header contents and credentials are
+never returned. XML inspection is limited to 8 KiB and unread bodies are cancelled.
+
+The read-only `PROPFIND` probe uses `redirect: "manual"`. A 3xx reports a redirect
+without following it or forwarding credentials to another endpoint; a previously
+followed legitimate redirect now leaves storage unavailable until its intended
+endpoint is confirmed. Successful 200/207 checks keep the same behavior. The
+upload/download requests and storage bindings are unchanged.
+
+Interpret the result without assuming a cause:
+
+- 401 means authentication was not accepted; it does not establish passcode
+  expiry, revocation or which credential is incorrect.
+- 403 means access was forbidden; check account/endpoint permissions as well as
+  authentication. The login identifier and DAV path account identifier may be
+  different; do not rewrite one from the other automatically.
+- A redirect or other HTTP failure is reported separately from authentication.
+- A timeout or network/configuration error retains the existing unavailable
+  response without fabricated HTTP diagnostic fields.
+
+Compare current account details and the App Passcode login name with the
+[official SWITCHdrive WebDAV guidance](https://help.switch.ch/drive/faq/mobile-devices/).
+The [Nextcloud login API](https://docs.nextcloud.com/server/stable/developer_manual/client_apis/LoginFlow/index.html)
+explains why login names and WebDAV user IDs need not be identical. Diagnose
+before changing credentials, and enter any credential correction through secure
+Worker settings rather than repository files or logs.
 
 ## SWITCHdrive configuration
 
@@ -64,10 +121,19 @@ user-supplied URLs.
 
 ## Deployment
 
-Apply `migrations/0005_comment_submissions.sql`. No additional R2 bucket is
-required. Until all SWITCHdrive secrets are configured and the WebDAV
-credential check succeeds, users can submit text, compressed comment images,
-and attachment links, but cannot upload original files.
+The original Comment schema is retained in the current S2 baseline; its original
+`0005_comment_submissions.sql` is historical provenance, not the next migration.
+Apply the current reviewed forward chain, including FP1j's `0006` acceptance
+suffix, through the deployment gate. The rich-text presentation
+follow-up added no migration, API field, or additional R2 bucket. Until all
+SWITCHdrive secrets are configured and the WebDAV credential check succeeds,
+users can submit text, compressed Comment images, and attachment links, but
+cannot upload original files.
+
+The [S2 activation checkpoint](./CLOUDFLARE_S2_ACTIVATION_CHECKPOINT.md) records the
+completed baseline deployment. Each new suffix still requires the current
+verification, remote migration and browser acceptance gates. Existing file
+bindings are preserved.
 
 ## Upload integrity
 
@@ -76,8 +142,32 @@ and attachment links, but cannot upload original files.
 - Managed attachments are sent as the original `File` body without
   transformation. The browser supplies a SHA-256 hash, and the storage adapter
   streams the body unchanged.
-- Submission and item IDs make create, upload, retry, and finalize operations
-  idempotent. Successfully uploaded items are not uploaded again.
-- Cancelled or abandoned storage objects are marked for cleanup. A scheduled
-  cleanup handler can remove provider objects after the retention period
-  without changing the composer or submission API.
+- Submission and item IDs bind the immutable accepted manifest, actual upload
+  hashes, candidate keys and physical profiles. Unknown outcomes are queried
+  before another action; an already claimed upload cannot acquire a second
+  execution owner. Successfully uploaded items are not uploaded again.
+- Ordinary Delete of a ready Comment or attachment occurrence is soft deletion;
+  it does not remove the canonical submission, occurrence identity, or shared
+  bytes needed for Restore and complete export.
+- Cancelled or explicitly retry-closed storage objects may become cleanup
+  candidates after the retention period, but age alone does not make a
+  retryable submission unreachable.
+- Retryability must be represented by one explicit authoritative state read by
+  retry routes, Cancel, scheduled cleanup, and the retention-edge surface.
+- A shared managed object or R2 asset remains protected while any ready,
+  soft-deleted, archived, unfinished, retryable, or future Project source can
+  still use or export it.
+- Cancelling one deduplicated submission must not orphan bytes used by another
+  unfinished or retryable submission.
+- Cancel and scheduled cleanup use the same reachability predicate, re-check it
+  before physical provider deletion, and remain safe when Finalize, retry,
+  Restore, or new deduplicated attachment creation wins a concurrent race.
+- Provider deletion is scheduled work. Cancel never removes bytes directly in
+  the request path.
+
+The authoritative reachability, export-warning, permanent-delete, test, and
+migration/deployment rules are maintained in
+[blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md). Its implementation history
+is recorded in [blob lifecycle implementation plan](./BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md);
+the current accepted-operation and next File-transition boundaries are in
+[FP1j](./FP1_COMMENT_ACCEPTANCE.md).

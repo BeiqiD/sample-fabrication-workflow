@@ -1,0 +1,48 @@
+{
+  "kind": "storage-candidate-only-css-and-fresh-layout-independent-source-peer/1",
+  "status": "CLEAR_SOURCE_ONLY_ACTUAL8STAGES_UNRUN",
+  "reviewedAtUtc": "2026-10-11T02:45:02.699173+00:00",
+  "sourceRoot": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+  "head": "f88fffea3ba0654b52ca90ee87efdafdb70cd48c",
+  "tree": "df05a78afcdee28f7136a349001464c399531e9c",
+  "handoff": "/tmp/phase5f-storage-candidate-section-wrap-source-review-attempt10/source-plan-runner-handoff.json",
+  "handoffSha256": "c8bba6a3ba4811f9bc20d87aca730cf015285520c698885bcdae11720fa7be7e",
+  "helperSha256": "903369b821e680c786fb6e9c77044de35410b3d639ddc7e2e0215508648eedb3",
+  "cssSha256": "c56f7a2fe5db78602e2455dfe6ddcae364fb0634c4347f8b943ccc7a422c3bb7",
+  "sourceInputsWorkingGitExact": 1792,
+  "unchangedProtectedInputsExact558": 1790,
+  "changedPaths": [
+    "scripts/qa/phase5f/browser-enabled-storage-draft-actual-api.mjs",
+    "src/pages/storage-settings.css"
+  ],
+  "CSSSingleRuleInverseExact558": true,
+  "all11MatureRunnerDefsASTExact": true,
+  "carrierOnlyPinsFunctionChanged": true,
+  "finitePlan": "/tmp/phase5f-storage-candidate-section-wrap-source-review-attempt10/finite-fresh-storage390-layout-repair-plan.json",
+  "finitePlanSha256": "20d549143ab4730142119cc7f5aab513c64b990ba6069ea4e1dc7bb319e1e19d",
+  "witness": "/tmp/phase5f-storage-candidate-section-wrap-source-review-attempt10/write-fresh-layout-build-witness.py",
+  "witnessSha256": "44ccdd09783e43d1c3b6eebfd4c9da5dd37e1fe09ce18f598673ba11f60ef4eb",
+  "findings": [],
+  "conclusions": [
+    "Final selector binds existing StorageConfiguration candidate section only, so shared StorageSettings/FileMigrations profile-list buttons remain unchanged. Full labels/actions and overflow tolerance remain exact.",
+    "Readonly helper retains original01 state/namespace/accepted revisions/configuration bindings but uses separately hashed fresh application copy and authentic build witness; no oldartifact qualification of CSS. Exactly1790 historical inputs must match; only CSS/helper are exceptions pinned to current producer.",
+    "Original native JWKS/admin/CSRF/keyring and GET-only/allrows before-after/no-secrets geometry tails reviewed unchanged. New fresh keyring means original ciphertext credentials are unavailable; layout characterization does not replay old writes.",
+    "Witness requires original current build PASS/exactargv/exit0/directreap/logdigest/distfile hashes, then verifies current copy tracked+artifact inputs; body helper verifies witness/current Worker/config/artifact digests before startup.",
+    "Original2 writecase action bodies remain unchanged. Nonreadonly applicationSource equals original source and old four positional arguments remain accepted; new readonly path requires explicit fifth freshsource.",
+    "Normal context/APIbody/browser/Worker/JWKS lifetime closures and mandatory copiedphysical check remain exact. All11 stage runner funcs/classes exact; carrier pins exception narrowed to CSS/helper and exact CSS digest, originals never opened or written.",
+    "Future finite appstrict\u2192mounted24\u2192onefreshbuild\u2192copy\u2192witness\u2192historicalstatecopy\u2192single390\u2192mandatoryphysical is coherent; oldStorage2 remains separately queued after freshlayout success."
+  ],
+  "documentationScopeNotes": [
+    "Two descriptive strings retain previous names (Fresh3b6 and all1791others); executable roots/head/pins and actual protected equality are f88/1790 as independently verified. No runtime evidence is inferred from descriptions."
+  ],
+  "limits": {
+    "compilerRuns": 0,
+    "mountedRuns": 0,
+    "builds": 0,
+    "sqliteConnections": 0,
+    "browserRuns": 0,
+    "sourceChangesByReviewer": 0,
+    "actualNewStages": 0,
+    "old558FailureRetained": "/tmp/phase5f-storage-read-only-layout-tail-runtime-attempt7/actual-read-only-layout558-first-overflow-failure-closed-and-released.json"
+  }
+}

@@ -1,0 +1,299 @@
+{
+  "status": "ROOT_CURRENT8BE_PACKAGE_ORIGINAL_TEN_FOCUS_FAILURE_FULL_READ_CLOSED_RELEASED",
+  "utc": "2026-10-11T22:21:49.388476+00:00",
+  "formal": {
+    "path": "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/actual-current8be-package-refresh-original-ten-focus-failure-closed-release.json",
+    "sha256": "78ac612f615b1d6c4b2266038f80ed480a027e3ba2b47c7d5648119953ce5f24"
+  },
+  "all33OriginalRawReferences": {
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/qualified-current02d-coherent-build-producer-preflight-command.json": "88b31cfbd2cc5d45864a03056e24426e2436f3d970354aad6e7d293178e457af",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/qualified-current02d-coherent-build-producer-preflight.log": "3cdc53eb58a874d63edb9b707f58cfa2f802fd75cc9892e72330fb84f24aef10",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/isolated-copy-command.json": "75a4f1b790e222034de305b6187e25b2c15cc2d701234e67e61a53a087e7bea4",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/isolated-copy.log": "9a2a85db8de0f2acc96f19bb1dff32878c7b86d94284dfab8913c921cf1c71c8",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/fresh-two-version-sentinel-command.json": "26f011753ed9def7b0fea8f6e17030f76df060712e03792d08ce69c8cd343653",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/fresh-two-version-sentinel.log": "dd4f94c3bece0ad92192452ad2fdca9cc8a4d397f490e2ecf36379518701eeb8",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/ordinary-actual24-local-migrations-command.json": "ea727686ba2f5b770bdc7eda882360c7a8ebad56fe44bb397baafeb14b6ab7a9",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/ordinary-actual24-local-migrations.log": "4ba8f80dae5711bbd311045086485528f2f5cc2d04af16302ac32e0ef50f8886",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/synthetic-template-sentinels-only-command.json": "06a3defd6a9f1b2501c489f98342b2151b32d03a87923f5cbe2db3ea11422ff3",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/synthetic-template-sentinels-only.log": "7689de58f1d8961a9f14c5e374e937cf6fe0cf337d1ea8cf305baa59f69fa5ba",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/physical-before-command.json": "c6d3febbb93b6ad538c00263b0aebae17b98b621869b88590ec7cb077eed4219",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/physical-before.log": "0cfd231b7469edcff6547bd6aadf83b4a6550104f5cdd78769481d775413921e",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/current-source-build-and-pure24-witness-command.json": "5959e3a6ca5afa5019a5050be8ca9c012f91f8ec3a350181afb383eeab8aa566",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/current-source-build-and-pure24-witness.log": "cc0f99011b2f3b270b0cff5d5bfbae766e6cac42b32858649086c4b9c41fbc3e",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/original-one-current-package-status-refresh-keyboard-command.json": "cfc9dbb5b370dbc90c56a1cd2fd14113bec9f97a4d02e84e36229f9eabdad89e",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/original-one-current-package-status-refresh-keyboard.log": "d3d764a5492db50df1eceb688621fc4c103906e63134eb50d7c62b1b3ed4ab13",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/physical-after-command.json": "196832db653675066b83dac81156521b93890665e9a686e442c7356353eb049c",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/physical-after.log": "958982dceb6ff0b20516cdb78c956514e293db2999975c06db4d8d9c15017eeb",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/final-source-artifact-input-pins-command.json": "190edf4d2239e98117ce9c68f87b7cf781949c4dd277e340c0a87110a82ecf31",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/final-source-artifact-input-pins.log": "d164fc43a091ef7aea77aa51dc0f113d19cd7a6ab5e2c50688e1de0164bb901a",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/fixture/genuine-package-status-refresh-keyboard-report.json": "326974b7d7444d98bde164413ac441d0cce13f816041f61ed3e37b5893ad13ee",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/fixture/genuine-package-status-refresh-keyboard-stop.json": "3324e3f6380fd7d2b36f8c6b91bd63ff9f6cd0f5330b6aec19dca34742fc2dad",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/fixture/physical-sqlite-before-api.json": "4a392b7d0d49c28bbf191dc6f3d0d137448daf99abf7ec2abd7542ec36870211",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/fixture/physical-sqlite-after-current-package-status-refresh-keyboard.json": "8cb90502f849559a1cca4430b255dadbc318f1a637cde2df8863e1944cd8a26a",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/final-current8be-source-and-genuine-refresh-pins.json": "bceac50f8afa50bd0b20688f142c53716967ca279b8f9e7b82df61a825b3ff20",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/copy/isolation-receipt.json": "4d7c5d877a5a4de966dad77c22c4c09a22d59ade0f7b8e51f85d1179d85cee12",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/fixture/process-fixture.json": "63c1c7f65925eba103327b3a63ed5e8ebf453d785a8469d96c851ae4022b11b2",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/fixture/process-fixture.sql": "4a89882fbb4f3e27ed0f5c62722570ac4f7a1bd320cb6c683fa7760e9bd782ce",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/fixture/enabled-storage-draft-build-input-witness.json": "f635461f0a0346679963c6cb25c84a1d78d1e38dbf0fd12cbf78ac8a23456d1a",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/current02d-build-new-pure24-native-causal-carry.json": "b60c4a4e190bf61cb11cc43f07e888e767bd866ee8c20cee06bbb556f163ef22",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/chromium-child-temp-owner.json": "e821a2d79cfc6db563505be81232c0de2c25e4096c35d7ce663ffad6377efc8f",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/frozen-approved-plan.json": "fc4a4b7a40f45f244b67b7cc98699d1cc1d3cc93a8728dd3d7fbb3271d85e7e7",
+    "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/runtime/original-tool-responses.json": "3b6f8a8d4c19c9a2acd708a90b109f2f5ff99ad72540aa8ff11f5fdd8c37520e"
+  },
+  "all17OriginalToolResponses": true,
+  "fullProducerGitPhysicalModes": 3086,
+  "fullConsumerGitPhysicalModes": 3092,
+  "fullCopyTracked3086Artifacts121Original118": true,
+  "allOriginal10DirectWaitReapedNoSignals": true,
+  "actualCommandCounts": {
+    "passed": 9,
+    "failed": 1,
+    "unrun": 0
+  },
+  "actualNativeCounts": {
+    "passed": 0,
+    "failed": 1,
+    "unrun": 0
+  },
+  "case": {
+    "id": "current-coherent-package-status-refresh-keyboard-1280-light",
+    "width": 1280,
+    "height": 1000,
+    "theme": "light",
+    "status": "failed",
+    "requests": [
+      {
+        "path": "/api/packages/jobs",
+        "method": "GET"
+      },
+      {
+        "path": "/api/packages/executor",
+        "method": "GET"
+      },
+      {
+        "path": "/api/packages/jobs",
+        "method": "GET"
+      },
+      {
+        "path": "/api/packages/executor",
+        "method": "GET"
+      },
+      {
+        "path": "/api/packages/jobs",
+        "method": "GET"
+      },
+      {
+        "path": "/api/packages/executor",
+        "method": "GET"
+      },
+      {
+        "path": "/api/packages/jobs",
+        "method": "GET"
+      },
+      {
+        "path": "/api/packages/executor",
+        "method": "GET"
+      },
+      {
+        "path": "/api/packages/jobs",
+        "method": "GET"
+      },
+      {
+        "path": "/api/packages/executor",
+        "method": "GET"
+      },
+      {
+        "path": "/api/packages/jobs",
+        "method": "GET"
+      },
+      {
+        "path": "/api/packages/executor",
+        "method": "GET"
+      }
+    ],
+    "api": [
+      {
+        "path": "/api/packages/jobs",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "0a5796e93f9b57ddf7c45f860485cbb7353fc0eda3dca753a444d0fd2a1573fe"
+      },
+      {
+        "path": "/api/packages/executor",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "6d9e0b15dc01d07a7e22150c4f05d4815a532ba2a15efb0a54f753a60b16037f"
+      },
+      {
+        "path": "/api/packages/jobs",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "0a5796e93f9b57ddf7c45f860485cbb7353fc0eda3dca753a444d0fd2a1573fe"
+      },
+      {
+        "path": "/api/packages/executor",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "6d9e0b15dc01d07a7e22150c4f05d4815a532ba2a15efb0a54f753a60b16037f"
+      },
+      {
+        "path": "/api/packages/jobs",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "0a5796e93f9b57ddf7c45f860485cbb7353fc0eda3dca753a444d0fd2a1573fe"
+      },
+      {
+        "path": "/api/packages/executor",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "6d9e0b15dc01d07a7e22150c4f05d4815a532ba2a15efb0a54f753a60b16037f"
+      },
+      {
+        "path": "/api/packages/jobs",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "0a5796e93f9b57ddf7c45f860485cbb7353fc0eda3dca753a444d0fd2a1573fe"
+      },
+      {
+        "path": "/api/packages/executor",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "6d9e0b15dc01d07a7e22150c4f05d4815a532ba2a15efb0a54f753a60b16037f"
+      },
+      {
+        "path": "/api/packages/jobs",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "0a5796e93f9b57ddf7c45f860485cbb7353fc0eda3dca753a444d0fd2a1573fe"
+      },
+      {
+        "path": "/api/packages/executor",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "6d9e0b15dc01d07a7e22150c4f05d4815a532ba2a15efb0a54f753a60b16037f"
+      },
+      {
+        "path": "/api/packages/jobs",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "0a5796e93f9b57ddf7c45f860485cbb7353fc0eda3dca753a444d0fd2a1573fe"
+      },
+      {
+        "path": "/api/packages/executor",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "6d9e0b15dc01d07a7e22150c4f05d4815a532ba2a15efb0a54f753a60b16037f"
+      }
+    ],
+    "assertions": [
+      {
+        "initialSavedPackageWork": {
+          "emptyJobs": true,
+          "supported": true,
+          "enabled": false,
+          "canManage": true,
+          "originalBodiesCompleted": true
+        }
+      },
+      {
+        "refreshedSavedPackageWork": {
+          "emptyJobs": true,
+          "supported": true,
+          "enabled": false,
+          "canManage": true,
+          "originalBodiesCompleted": true
+        }
+      }
+    ],
+    "pageErrors": [],
+    "externalRequests": [],
+    "startedAt": "2026-10-11T22:17:31.560Z",
+    "error": "{\"kind\":\"object\",\"name\":\"TimeoutError\",\"message\":\"page.waitForFunction: Timeout 19957ms exceeded.\"}",
+    "contextCloseAwaited": true,
+    "originalRoutesAwaited": {
+      "count": 27,
+      "rejected": 0
+    },
+    "originalBodiesAwaited": {
+      "count": 12,
+      "rejected": 0
+    },
+    "originalWaitsAwaited": {
+      "count": 4,
+      "rejected": 0
+    },
+    "originalReadOnlyHistory": {
+      "stage": "settled-current-coherent-package-status-refresh-keyboard-1280-light",
+      "allSchemaAndTypedTableRowsExact": true,
+      "old6PermitsExact": true,
+      "newReleasedPermits": 0,
+      "sourceBytesExact": true,
+      "targetEmpty": true,
+      "executorSteps": 0
+    },
+    "completedAt": "2026-10-11T22:17:53.896Z"
+  },
+  "normalOriginalOwnerClosure": {
+    "status": "closed",
+    "browserCloseAwaited": true,
+    "originalPreparationOwnerClosure": {
+      "status": "closed",
+      "startedAt": "2026-10-11T22:17:55.048Z",
+      "originalRequestsAwaited": {
+        "count": 12,
+        "rejected": 0
+      },
+      "workerDisposeAwaited": true,
+      "workerPortRefused": true,
+      "originalOutboundWorkAwaited": {
+        "count": 1,
+        "rejected": 0
+      },
+      "jwksCloseAwaited": true,
+      "jwksPortRefused": true,
+      "completedAt": "2026-10-11T22:17:56.129Z"
+    }
+  },
+  "physical": {
+    "before": {
+      "path": "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/fixture/physical-sqlite-before-api.json",
+      "sha256": "4a392b7d0d49c28bbf191dc6f3d0d137448daf99abf7ec2abd7542ec36870211",
+      "bytes": 68328
+    },
+    "after": {
+      "path": "/tmp/phase5f-package-current8be-status-refresh-native-private-attempt2/fixture/physical-sqlite-after-current-package-status-refresh-keyboard.json",
+      "sha256": "8cb90502f849559a1cca4430b255dadbc318f1a637cde2df8863e1944cd8a26a",
+      "bytes": 75230
+    },
+    "beforeGroups": 2,
+    "afterGroups": 5,
+    "status": "passed",
+    "finalCatalog": {
+      "stage": "before-original-Worker-dispose",
+      "allSchemaAndTypedTableRowsExact": true,
+      "old6PermitsExact": true,
+      "newReleasedPermits": 0,
+      "sourceBytesExact": true,
+      "targetEmpty": true,
+      "executorSteps": 0
+    },
+    "nativeFailureRemainsFailed": true
+  },
+  "observedEmptyOwnedGroups": 7,
+  "retainedKernelZCount": 3,
+  "kernelLimit": "Only original ten owned groups. KernelZ/PPID1 and FDPermission remain recorded; no observed0FD or globalquiescence claim.",
+  "exclusiveReleased": true,
+  "nextAction": "Original Package focus failure retained; characterize File/Package Start202 before concrete combined repair and ONE necessary current build. No same-head Package Refresh retry."
+}

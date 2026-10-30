@@ -1,0 +1,626 @@
+{
+  "status": "FAILED_PREBROWSER_SETUP_CLOSED_RELEASED",
+  "completedAt": "2026-10-11T03:43:01.290687+00:00",
+  "actualCommands": 12,
+  "actualCommandPass": 10,
+  "actualCommandFail": 2,
+  "originalStopControl": "PASS_NORMAL_DISPOSAL_PORT_REFUSED",
+  "actualPlannedStages": 13,
+  "browserCases": {
+    "passed": 0,
+    "failed": 0,
+    "unrun": 2,
+    "reason": "Original helper throws before signing keys/JWKS/Miniflare/browser/case startup: installed TypeScript ScriptTarget undefined at original line171."
+  },
+  "firstFailure": {
+    "stage": "genuine-enabled-Access-package-preview-two",
+    "actualExitCode": 1,
+    "log": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/genuine-enabled-Access-package-preview-two.log",
+    "logSha256": "1c8e82ef6703debf5ce3f1a5b0520f3c124bcefd7f55f0e214335b30b19a8536"
+  },
+  "dependentFinalCarrierFailure": "Original final-source carrier actualFAILED only at missing not-written browser report; supplemental source/artifact byte pins PASS does not relabel that failure.",
+  "apiCosts": {
+    "authDisabledOrdinaryMatureSetup": 84,
+    "genuinePackagePreviewPost": 0,
+    "newPreviewWritePermits": 0,
+    "genuineSignedBrowserRequests": 0,
+    "healthReadyAssetsSeparate": true
+  },
+  "physicalAfter": {
+    "status": "passed",
+    "sqliteFiles": 4,
+    "quickAndForeignKeysPassed": true,
+    "sourcePNGAndInputBytesPassed": true
+  },
+  "supplementalPins": {
+    "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/supplemental-source-artifact-pins-after-prebrowser-setup-failure.json",
+    "sha256": "f3859612d719a49d2e64ef85f742843cb8fab2f09415615da3e3b088867ffc1c"
+  },
+  "originalChildClosures": [
+    {
+      "stage": "final-source-artifact-input-pins",
+      "pid": 689323,
+      "processGroup": 689323,
+      "originalStartTicks": "10338966",
+      "exitCode": 1,
+      "status": "FAILED",
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 1,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      }
+    },
+    {
+      "stage": "fresh-current-source-build-witness",
+      "pid": 689072,
+      "processGroup": 689072,
+      "originalStartTicks": "10335158",
+      "exitCode": 0,
+      "status": "PASS",
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      }
+    },
+    {
+      "stage": "fresh-two-version-sentinel",
+      "pid": 686294,
+      "processGroup": 686294,
+      "originalStartTicks": "10326920",
+      "exitCode": 0,
+      "status": "PASS",
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 686305,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 686294,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 686305,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 686294,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 686305,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 686294,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      }
+    },
+    {
+      "stage": "genuine-enabled-Access-package-preview-two",
+      "pid": 689145,
+      "processGroup": 689145,
+      "originalStartTicks": "10335563",
+      "exitCode": 1,
+      "status": "FAILED",
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 1,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      }
+    },
+    {
+      "stage": "isolated-copy",
+      "pid": 686248,
+      "processGroup": 686248,
+      "originalStartTicks": "10326528",
+      "exitCode": 0,
+      "status": "PASS",
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      }
+    },
+    {
+      "stage": "mature-genuine-api-84-only",
+      "pid": 688988,
+      "processGroup": 688988,
+      "originalStartTicks": "10333593",
+      "exitCode": 0,
+      "status": "PASS",
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      }
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "pid": 686353,
+      "processGroup": 686353,
+      "originalStartTicks": "10327581",
+      "exitCode": 0,
+      "status": "PASS",
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 686369,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 686353,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 686369,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 686353,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 686369,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 686353,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      }
+    },
+    {
+      "stage": "owned-built-worker",
+      "pid": 688906,
+      "processGroup": 688906,
+      "originalStartTicks": "10332365",
+      "exitCode": 0,
+      "status": "PASS",
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      }
+    },
+    {
+      "stage": "physical-after",
+      "pid": 689272,
+      "processGroup": 689272,
+      "originalStartTicks": "10338422",
+      "exitCode": 0,
+      "status": "PASS",
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      }
+    },
+    {
+      "stage": "physical-before",
+      "pid": 686895,
+      "processGroup": 686895,
+      "originalStartTicks": "10331439",
+      "exitCode": 0,
+      "status": "PASS",
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      }
+    },
+    {
+      "stage": "qualified-f88-producer-preflight",
+      "pid": 686155,
+      "processGroup": 686155,
+      "originalStartTicks": "10325994",
+      "exitCode": 0,
+      "status": "PASS",
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      }
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "pid": 686699,
+      "processGroup": 686699,
+      "originalStartTicks": "10329607",
+      "exitCode": 0,
+      "status": "PASS",
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 686715,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 686699,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 686715,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 686699,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 686715,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 686699,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      }
+    }
+  ],
+  "groups": [
+    {
+      "stage": "final-source-artifact-input-pins",
+      "processGroup": 689323,
+      "members": [],
+      "activeOwnedMembersObserved": false,
+      "noSignalsSent": true
+    },
+    {
+      "stage": "fresh-current-source-build-witness",
+      "processGroup": 689072,
+      "members": [],
+      "activeOwnedMembersObserved": false,
+      "noSignalsSent": true
+    },
+    {
+      "stage": "fresh-two-version-sentinel",
+      "processGroup": 686294,
+      "members": [
+        {
+          "pid": 686305,
+          "state": "Z",
+          "ppid": 1,
+          "processGroup": 686294,
+          "kernelResourcesExited": true,
+          "fdInspection": "PermissionError"
+        }
+      ],
+      "activeOwnedMembersObserved": false,
+      "noSignalsSent": true
+    },
+    {
+      "stage": "genuine-enabled-Access-package-preview-two",
+      "processGroup": 689145,
+      "members": [],
+      "activeOwnedMembersObserved": false,
+      "noSignalsSent": true
+    },
+    {
+      "stage": "isolated-copy",
+      "processGroup": 686248,
+      "members": [],
+      "activeOwnedMembersObserved": false,
+      "noSignalsSent": true
+    },
+    {
+      "stage": "mature-genuine-api-84-only",
+      "processGroup": 688988,
+      "members": [],
+      "activeOwnedMembersObserved": false,
+      "noSignalsSent": true
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "processGroup": 686353,
+      "members": [
+        {
+          "pid": 686369,
+          "state": "Z",
+          "ppid": 1,
+          "processGroup": 686353,
+          "kernelResourcesExited": true,
+          "fdInspection": "PermissionError"
+        }
+      ],
+      "activeOwnedMembersObserved": false,
+      "noSignalsSent": true
+    },
+    {
+      "stage": "owned-built-worker",
+      "processGroup": 688906,
+      "members": [],
+      "activeOwnedMembersObserved": false,
+      "noSignalsSent": true
+    },
+    {
+      "stage": "physical-after",
+      "processGroup": 689272,
+      "members": [],
+      "activeOwnedMembersObserved": false,
+      "noSignalsSent": true
+    },
+    {
+      "stage": "physical-before",
+      "processGroup": 686895,
+      "members": [],
+      "activeOwnedMembersObserved": false,
+      "noSignalsSent": true
+    },
+    {
+      "stage": "qualified-f88-producer-preflight",
+      "processGroup": 686155,
+      "members": [],
+      "activeOwnedMembersObserved": false,
+      "noSignalsSent": true
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "processGroup": 686699,
+      "members": [
+        {
+          "pid": 686715,
+          "state": "Z",
+          "ppid": 1,
+          "processGroup": 686699,
+          "kernelResourcesExited": true,
+          "fdInspection": "PermissionError"
+        }
+      ],
+      "activeOwnedMembersObserved": false,
+      "noSignalsSent": true
+    }
+  ],
+  "ownedClosure": "CLOSED",
+  "released": true,
+  "scope": "Only original new owned12 directchildren reaped. Three groups have kernel Z/PPID1 + FD PermissionError observations; no observed zeroFD/globalquiescence claim. SeedWorker normalfinally occurred; browser/JWKS/runtime never started, not claimeddisposed. No retries/source edits/install/build/provider/production.",
+  "rawRecords": [
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/final-source-artifact-input-pins-command.json",
+      "sha256": "c899f3240ba0e54a865ca6b4419f40df618575dfbfdf9c3276ff93d536487b7e",
+      "bytes": 1369
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/final-source-artifact-input-pins.log",
+      "sha256": "f27b04cdabcd463d002326e3b1fd176d18a53fa1027bc872eb3c72decc9d5718",
+      "bytes": 981
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/fresh-current-source-build-witness-command.json",
+      "sha256": "5774d88b3560254b639dcd01c80889e1d9582423473256b609adf9ccfcedefa3",
+      "bytes": 1306
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/fresh-current-source-build-witness.log",
+      "sha256": "1d0dfc4a5d8ca3a9a451c8e9b5e3fcb905afc814121055de2943b92287de54bf",
+      "bytes": 137
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/fresh-two-version-sentinel-command.json",
+      "sha256": "c82babf112d25ac532e12cc032a29af74c5c13984602fc7fd5b01f42074e9627",
+      "bytes": 1642
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/fresh-two-version-sentinel.log",
+      "sha256": "766ffa88de3ef84c799410f4c10861e5ef3878fe585988f4974b034d1d7c83b8",
+      "bytes": 212
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/frozen-approved-plan.json",
+      "sha256": "01f2fb9a5bb7a0a11b2216811ced7b8efff3241a5b044d469645981c0b080c6d",
+      "bytes": 17577
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/genuine-enabled-Access-package-preview-two-command.json",
+      "sha256": "90d6bef95e408d5f80238eee218a0cbacd622d824ae5f88a1cf2079d4818cfd2",
+      "bytes": 2285
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/genuine-enabled-Access-package-preview-two.log",
+      "sha256": "1c8e82ef6703debf5ce3f1a5b0520f3c124bcefd7f55f0e214335b30b19a8536",
+      "bytes": 630
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/isolated-copy-command.json",
+      "sha256": "fbd4c9171a18b3cd7575b647c68578778a612383efb9f52dbf18e365d78a22c5",
+      "bytes": 1150
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/isolated-copy.log",
+      "sha256": "6faacbf0ed5ce9d2e79a4c4c3373b8fde68a3a99d3980048baf4adb3d8ab336a",
+      "bytes": 193
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/mature-genuine-api-84-only-command.json",
+      "sha256": "5ef38261888df04429d6f533730cefdeb68718b613e6bb32b5fb5fbd687bb192",
+      "bytes": 1033
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/mature-genuine-api-84-only.log",
+      "sha256": "ae4348dbd47141ad24f35e4a343e339ce6ee1b62a55a5e8b8b853cfd89d31b0c",
+      "bytes": 180
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/ordinary-actual24-local-migrations-command.json",
+      "sha256": "b5a1232b703faa7a6cc7a0d7c9326b38857d603b6b803f8bfda71597a1219099",
+      "bytes": 1817
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/ordinary-actual24-local-migrations.log",
+      "sha256": "a4c2ee4f147f8110883945240afdfc2a2814e352b98694a6814440398a2d4360",
+      "bytes": 147956
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/owned-built-worker-command.json",
+      "sha256": "f409084008c270f50314c763873e074c49a52756db2008cb3b4b9781229d1e66",
+      "bytes": 1506
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/owned-built-worker.log",
+      "sha256": "8773516d6af37d9881558614e668134f90a7b105fa1121ac2b8101f99aaef0cc",
+      "bytes": 495
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/physical-after-command.json",
+      "sha256": "ce1506207542e3abaee78161492176f2f9d9f79c485cdf212e94e72279109493",
+      "bytes": 1407
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/physical-after.log",
+      "sha256": "df7bdf0498910d19910130bcfa312ba073c57494f2d5ca0fa5b3974b589f1ed1",
+      "bytes": 162
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/physical-before-command.json",
+      "sha256": "5020c75cd3f495f7c88f97c28a75c1f08eed49a01ba567b0c893c2f44c1dc2a2",
+      "bytes": 1105
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/physical-before.log",
+      "sha256": "ffbba7660afd18f1f2347e741792b69f4218e3803cbab70b6969b1d0d7e25a20",
+      "bytes": 158
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/qualified-f88-producer-before-package-two.json",
+      "sha256": "8912e8edf5f54f08c32948395b0f4a31de2734f843ac47ef8e0aa121d497acf9",
+      "bytes": 513
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/qualified-f88-producer-preflight-command.json",
+      "sha256": "7471ddeb394f8f2ccc1c7d36a60a05bd838a1d5126b5c355647f1f5061acd090",
+      "bytes": 1247
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/qualified-f88-producer-preflight.log",
+      "sha256": "41f00eceeeddf13815ab4bebe25f555bdee7dfd60013d98f588e361f692356d0",
+      "bytes": 138
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/supplemental-source-artifact-pins-after-prebrowser-setup-failure.json",
+      "sha256": "f3859612d719a49d2e64ef85f742843cb8fab2f09415615da3e3b088867ffc1c",
+      "bytes": 516
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/synthetic-template-sentinels-only-command.json",
+      "sha256": "1e26c274167cc467ec5a99ced56b519c6b8b2fade11383bb94e2d0eec981cd62",
+      "bytes": 1898
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/synthetic-template-sentinels-only.log",
+      "sha256": "cfa94088bb90346b526336959d13ecd52b8775834a8e8a604653a41fdcaebb19",
+      "bytes": 1611
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-fixture-attempt1/physical-sqlite-before-api.json",
+      "sha256": "9a99e616ea1a7db3b666ae5907bc04e66184d11c916d24102c26b4757b918d32",
+      "bytes": 49186
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-fixture-attempt1/physical-sqlite-after-shutdown.json",
+      "sha256": "c5cd429c269c9a17953df617d6e6ceb184354b27db563558e1f1cb64c42c4af3",
+      "bytes": 53910
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-fixture-attempt1/isolated-server-receipt.json",
+      "sha256": "3ee4a7314c2d00ec9933aa075edc8c35996883f83467a2c777de843c44a1e754",
+      "bytes": 3392
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-fixture-attempt1/isolated-server-stop-receipt.json",
+      "sha256": "d86adfcc069d47a43ff1fd640ac329b8da83014fb4cb310290e884b153f1189a",
+      "bytes": 1015
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-fixture-attempt1/actual-api-fixture-receipt.json",
+      "sha256": "ca9c7eee647642aa8eefdfabe95bbd660c66021941fcc0c037f88a739c298b69",
+      "bytes": 51605
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-fixture-attempt1/enabled-storage-draft-build-input-witness.json",
+      "sha256": "b7f1bbb67e9b29b5096ee4a87c58ff5db2e187b5090f37310dc4006baa8e12df",
+      "bytes": 1355
+    },
+    {
+      "path": "/tmp/phase5f-package-two-genuine-preview-fixture-attempt1/process-fixture.json",
+      "sha256": "bf3d3aed98f491a1e2e1f1fd77e7c05eab72f79f13cac30a756775e2aa5b926a",
+      "bytes": 1533
+    }
+  ]
+}

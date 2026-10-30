@@ -1,0 +1,60 @@
+{
+  "stage": "fresh-two-version-sentinel",
+  "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+  "argv": [
+    "node",
+    "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source/scripts/qa/phase5f/generate-process-fixture.mjs",
+    "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/copy",
+    "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/fixture"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1",
+    "SQLITE_TMPDIR": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1"
+  },
+  "startedAt": "2026-10-12T02:20:21.527808+00:00",
+  "status": "PASS",
+  "log": "/workspace/phase5f-package-current2d07-start202-mobile-native-private-attempt1/runtime/fresh-two-version-sentinel.log",
+  "pid": 1685770,
+  "processGroup": 1685770,
+  "originalStartTicks": "18488229",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1685781,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1685770,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1685781,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1685770,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1685781,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1685770,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-12T02:20:23.763893+00:00",
+  "logSha256": "65217447348f09b2a46338419cbad844ad4326fe892e9987f85cda68581be21b"
+}

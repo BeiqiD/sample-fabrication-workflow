@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source
+
+
+ Test Files  2 passed (2)
+      Tests  59 passed (59)
+   Start at  22:54:21
+   Duration  4.02s (transform 391ms, setup 0ms, import 622ms, tests 2.64s, environment 551ms)
+

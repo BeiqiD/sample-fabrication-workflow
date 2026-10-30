@@ -1,0 +1,38 @@
+{
+  "status": "SOURCE_ONLY_CORRECTED_PACKAGE13_ALL_UNRUN",
+  "qaConsumerRoot": "/tmp/phase5f-package-two-esbuild-contract-loader-source-attempt2",
+  "qaConsumerHead": "75e7d9e61347f875074b8fc7b9d9a1f441ffc835",
+  "qaConsumerTree": "f2022d32c04ff9ad11231b20d5f04f72fe2c7cfe",
+  "qaConsumer1793CleanPins": "source handoff23cf proves all1793 modes/blobs/working and protected1792 source-equivalent to actualf88",
+  "actualCausalProducer": "f88fffea3ba0654b52ca90ee87efdafdb70cd48c",
+  "actualProducerClosedReceiptSha256": "51bac259cf336bf9c4e04b26ed88566a884e39e257c1d5e1d6082a09d9ae7727",
+  "files": {
+    "finite-genuine-package-preview-two-plan.json": {
+      "path": "/tmp/phase5f-package-two-esbuild-contract-finite-source-review-attempt2/finite-genuine-package-preview-two-plan.json",
+      "sha256": "f823176620334a3dcff8bd9779be02ac70d8d92b5e14d811cf8557b5f21ece71"
+    },
+    "run-frozen-owned-stage.py": {
+      "path": "/tmp/phase5f-package-two-esbuild-contract-finite-source-review-attempt2/run-frozen-owned-stage.py",
+      "sha256": "efccc0a273973075b09dab14d114ef6bd5824bcca261d77f05b791a5f5427e6e"
+    },
+    "verify-qualified-f88-producer-and-package-two-witness.py": {
+      "path": "/tmp/phase5f-package-two-esbuild-contract-finite-source-review-attempt2/verify-qualified-f88-producer-and-package-two-witness.py",
+      "sha256": "9f3626a7c08e6837a73c011250904e768af4292d4ccc15aefcfae07737eef506"
+    }
+  },
+  "all11MatureRunnerFunctionsClassesASTExact": true,
+  "all3CarrierFunctionASTExact": true,
+  "onlyGlobalsBindingsChanged": "new roots/QAhead/tree/helper hash/planhash/CLI token; commands/cases/default20/120/source1792/consumer1793/84/realPOST2/exactpermits unchanged",
+  "startCommand": "python -B /tmp/phase5f-package-two-esbuild-contract-finite-source-review-attempt2/run-frozen-owned-stage.py --exclusive-go-exact-75e7d9e-package-preview-two-stage qualified-f88-producer-preflight",
+  "preservedOriginalActualFailure": {
+    "path": "/tmp/phase5f-package-two-genuine-preview-runtime-attempt1/actual-package-two-first-prebrowser-failure-closed-and-released.json",
+    "sha256": "67e15857d87e3321206ba3c91c60712d8c0a0eea9890f68b6acf559b690ef925",
+    "status": "FAIL_SETUP_CLOSED_RELEASED/0CASES0POST; never relabeled by new successor"
+  },
+  "sourceOnlyAuthoring": "Python AST/JSON/staticdiff and node--check only, no compiler/esbuild/helper/SQL/socket/browser/runtime/ordinarybuild invocation",
+  "rootLoaderPeer": {
+    "path": "/tmp/phase5f-package75e-root-compiler-loader-tiny-source-review.json",
+    "sha256": "2e2308091c3c2c429786e357f46fbf1aad7e922b0c4d726a26729f7376aa6ec3"
+  },
+  "scope": "New independent actual24/84 fixture necessary to retain firstfailed original raw/physical exclusivefilename. No redundanttypes/mounted/appbuild; firstnativecasefailure abortssecond, all originalroute/body/context/browser/Worker/JWKS/compiler/directchild closure and physical/pins mandatory; no SIGTERMgraceful/globalquiescence/device/provider/jobs/whole5F claim."
+}

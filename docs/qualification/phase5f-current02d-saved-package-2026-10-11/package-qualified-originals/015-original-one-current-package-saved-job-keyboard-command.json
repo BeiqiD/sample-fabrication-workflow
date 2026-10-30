@@ -1,0 +1,47 @@
+{
+  "stage": "original-one-current-package-saved-job-keyboard",
+  "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+  "argv": [
+    "node",
+    "/workspace/phase5f-coherent-saved-package-native-qa-source-attempt1/scripts/qa/phase5f/browser-current-coherent-package-saved-job-keyboard.mjs",
+    "/workspace/coherent-package-sample-shadow-native02-private-attempt2/copy",
+    "/workspace/coherent-package-sample-shadow-native02-private-attempt2/fixture",
+    "02d6dfbe5f2bd98847b3d6f509c219de5ad816ad",
+    "--exclusive-go-one-current-coherent-package-saved-job-keyboard"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2",
+    "SQLITE_TMPDIR": "/workspace/coherent-package-sample-shadow-native02-private-attempt2",
+    "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+    "CHROMIUM_PATH": "/usr/bin/chromium",
+    "PHASE5F_FILE_MIGRATION_CHROMIUM_TEMP": "/workspace/.sfpk2",
+    "PHASE5F_FILE_MIGRATION_RUNTIME_ROOT": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime"
+  },
+  "cases": [
+    "current-coherent-package-saved-job-keyboard-1280-light"
+  ],
+  "toolInvocation": {
+    "tty": true,
+    "originalStdinControl": "Only explicit stop newline originalretainedTTY;120s supervision/noSIGTERM graceful claim"
+  },
+  "control": "ONE genuine current package keyboard acceptance; exact Preview200/accept202/Pause200/Resume200/Cancel200 once, alltrue sourceDTO/state. Independentnamespace, no executor/ZIP/fakejob/bodyfallback.",
+  "startedAt": "2026-10-11T17:37:15.518873+00:00",
+  "status": "PASS",
+  "log": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/original-one-current-package-saved-job-keyboard.log",
+  "pid": 1407231,
+  "processGroup": 1407231,
+  "originalStartTicks": "15349628",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T17:37:39.278636+00:00",
+  "logSha256": "b898d3d2508397ab5cd734cbd01698811f1ce9f762a890a2e3b871b8f247fde7"
+}

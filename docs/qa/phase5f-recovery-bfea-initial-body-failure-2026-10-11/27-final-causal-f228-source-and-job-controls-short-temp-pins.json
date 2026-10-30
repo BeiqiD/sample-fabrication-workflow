@@ -1,0 +1,64 @@
+{
+  "status": "PASS",
+  "actualProducerHead": "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+  "qaConsumerHead": "bfea74fb975f46fa70eb203c5f5844b46d115215",
+  "qaConsumerTree": "0a7fa7198fa972e1e79e29abdefb17b5281e20b0",
+  "allOriginalProducerAndCopiedInputsExact": true,
+  "nonHelperConsumerCountExact": 2488,
+  "ownedQaHelperSha256": "120568dc7243d62457dc42ec7bb0eb070b987390d659d9385ce504e7d08fce7c",
+  "originalActualArtifactCount": 118,
+  "originalCopiedArtifactCount": 121,
+  "newBuilds": 0,
+  "newSeedRequests": 84,
+  "newBrowserStatus": "failed",
+  "oldPausedHistorySeparateAndUntouched": true,
+  "newLogicalMutationMaximum": 10,
+  "retainedOriginal63LeaseRowsExact": true,
+  "acceptedMetadataHistoryEvidence": {
+    "stage": "after-original-shared-disable",
+    "schemaExact": true,
+    "onlyThreeExplicitMetadataTablesMayDiffer": true,
+    "allOtherApplicationTablesExact": true,
+    "original63WritePermitsExact": true,
+    "addedPermits": 0,
+    "acceptedJobs": 0,
+    "requestRows": 0,
+    "runtimeEnabled": 0,
+    "runtimeIncarnationSha256": "867f04c4c81a1cc4f93b9c05ed97b9b258347601744e97c8d3cc248de69efb09",
+    "runtimeRowSha256": "e367b5ff279992144074242a6a058f6072a6729a73638607df0e6de459bcf86a",
+    "lineages": []
+  },
+  "originalNormalWorkerJwksHandleClosure": {
+    "sessionId": "780f49c5-5082-4e59-bacb-66b4274e3248",
+    "startedAt": "2026-10-11T08:59:18.983Z",
+    "status": "closed",
+    "browserCloseAwaited": true,
+    "originalSharedWorkBeforeDisableAwaited": 1,
+    "originalDisableAwaited": true,
+    "originalSharedWorkAwaited": {
+      "count": 2,
+      "rejected": 0
+    },
+    "originalApplicationCatalogRowsPermitsAndAcceptedHistoryVerified": true,
+    "executorDisabledReadBack": true,
+    "workerDisposeAwaited": true,
+    "workerPortRefused": true,
+    "jwksCloseAwaited": true,
+    "jwksPortRefused": true,
+    "completedAt": "2026-10-11T08:59:21.279Z"
+  },
+  "browserHandleScope": {
+    "returnedBrowserHandleClosedAwaited": true
+  },
+  "originalDirectChildWaitReapAndGroupEvidence": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 1,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "oldFailuresStillRetained": true
+}

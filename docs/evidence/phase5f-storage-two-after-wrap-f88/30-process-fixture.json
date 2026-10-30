@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "prefix": "phase5f-ffd0239c-fdb",
+  "ids": {
+    "family": "phase5f-ffd0239c-fdb-family",
+    "v1": "phase5f-ffd0239c-fdb-v1",
+    "v2": "phase5f-ffd0239c-fdb-v2"
+  },
+  "familyName": "5F mixed process ffd0239c-fdb",
+  "sourceRoot": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+  "sourceCopyRoot": "/tmp/phase5f-storage-candidate-section-wrap-two-write-copy-attempt11",
+  "sourceHead": "f88fffea3ba0654b52ca90ee87efdafdb70cd48c",
+  "fixtureDirectory": "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11",
+  "isolationReceiptSha256": "a75d88f98902bf45c79d9fcab08c6296e6421133c113d6bfb75dc9ef9dc133dd",
+  "copiedState": false,
+  "initialSubstrateStep": {
+    "localId": "substrate",
+    "sourceRow": 1,
+    "position": 0,
+    "stepNumber": "0",
+    "name": "Substrate Stack",
+    "sectionName": null,
+    "toolName": "Synthetic substrate holder",
+    "parametersText": "Silicon / oxide test stack",
+    "commentsText": "Synthetic isolated acceptance fixture",
+    "rawCells": {},
+    "stateImageIds": []
+  },
+  "initialStateHash": "e636f7b49fd417be647b93acd07cb9d7bdace617e05f939725de1975bad36a17",
+  "sqlSha256": "f9c074885126ea94cdd148b92d5c5388a29c4c85395d75843627dae9b5da6ae2",
+  "helperSha256": "9049e2b47fb3bf8c5c41fd015424a164407352869193f5aa04bf5ea153f84815",
+  "hashingModuleSha256": "975cca608cdd338acae6565943ec508a27e6afdcc4e73fb21727d20e28292aaf",
+  "loopbackPort": 4219,
+  "scope": "Hashed synthetic process templates only; apply exclusively to isolated local fixture DB after review."
+}

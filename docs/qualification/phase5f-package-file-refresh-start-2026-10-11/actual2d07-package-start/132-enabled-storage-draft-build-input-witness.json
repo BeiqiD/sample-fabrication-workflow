@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "command": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "actualExitCode": 0,
+  "directChildReaped": true,
+  "sourceHead": "2d07b57c4e79403099261528ae8988c0072d28c6",
+  "sourceTree": "bf96bbcadd4c4d8a0ada525f639cf768d2d4eb90",
+  "sourceRoot": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+  "sourceCopyRoot": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/copy",
+  "trackedInputInventorySha256": "1a3ee2ce3227e006a5e6a63878c07e8e5bf2fb5ba3398e45f4b52d7f98ec23e9",
+  "workerSha256": "e2323a0df645e108a1b7132465141543737e05cdbb190a1b16fcf7b7281cad0b",
+  "activeBuildConfigSha256": "ee8193a941f99db938de841b600012ca72f9f571ee150b18e665ea7ffd6e782b",
+  "copiedArtifactInventorySha256": "db93fc0582e2421a586aaa7747f49756c2c55d759cd33ccbb5ef375dae47af63",
+  "originalCommandReceiptSha256": "ccf435b9bb164cc97815d7dacfc090d454f9cbce935bc096e3f8d4c8f838a978",
+  "originalBuildLogSha256": "6b70efeab75adb8e93e5d9912a43098824731a8fb974053835416914387768e1",
+  "freshDistFileCount": 118,
+  "copiedArtifactFileCount": 121,
+  "scope": "Actual original2d07 ONECF118 source3181/QA3186 all3181 ordinary bytes exact plus5 reviewed Refresh and Start202 QA; current2d07 App59 actualPASS is separate affected scope. This independent Start202 namespace records one Preview200 and accept202 only; no control/executor/replay. Independent new pure24/sentinels beforeAPI; no historicala7 artifacts/pausedjobs borrowed, no additionalbuild/84seed/old63permits or seedWorker lifecycle."
+}

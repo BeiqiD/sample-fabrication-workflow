@@ -1,0 +1,68 @@
+{
+  "kind": "file6e531-independent-dual-r2-route-dto-and-protected-source-peer/1",
+  "status": "SOURCE_CLEAR_NEW_SETUP_AND_TWO_CASES_UNRUN",
+  "sourceRoot": "/workspace/phase5f-file-two-r2-original-result-contract-source-attempt8",
+  "sourceHead": "6e531cf0e08069544723958dc0c7500766fd7479",
+  "sourceTree": "1590bfce82c726bcf2bd86104d91ff795600dc7b",
+  "currentWorkingGitModesAndHashesExact": 2495,
+  "c1cdProtectedExact": 2493,
+  "originalF228ProductAndBuildInputPathsExact": 2489,
+  "originalBuildDoesNotQualifyNewQACases": true,
+  "ownedFiles": {
+    "scripts/qa/phase5f/prepare-genuine-two-r2-migration-runtime.mjs": "095033e8c67ec1273c9d7c4f6723d2086fa386b9fba54cc3e9f10f516e4aeb0a",
+    "scripts/qa/phase5f/browser-genuine-two-r2-file-migration-preview.mjs": "b9793f596e34989fcfe13cc23cf26a7928697157b3f9b02146cabf4327fa9e53"
+  },
+  "fourSingularCapabilityCorrections": true,
+  "wholeBrowserInverseToC1Exact": true,
+  "wholeControllerInverseToC1Exact": true,
+  "sourceRouteDtoMatrixChecked": 17,
+  "originalRouteAndContractPinsChecked": 26,
+  "findings": [],
+  "checks": [
+    "Worker application mounts singular storage capability; exact boolean DTO and allowed signed reader without inferred management.",
+    "Shadow enable/profile enable/disable and authority activate paths, closed command keys, current incarnation/epoch/profile revision and six genuine setup POSTs match mature original services.",
+    "Actual JOSE issuer/audience/JWKS verification and application allowlist precede independent deployment admin/evidence-operator selectors; private tokens remain original-process only.",
+    "Two canonical distinct local R2 namespaces bind exact ASSETS and MIGRATION_TARGET capabilities; frozen historical profiles become read_write through original profile enablement, not fabricated defaults.",
+    "Active R2 original acceptance returns only id/key/deduplicated; native S3 null-key/file-assets shape is not asserted.",
+    "Same original actor/client upload ID ties ready r2_upload receipt to ready acceptance candidate.result_file_id, typed usable publication and exact original assets id/key/hash/size; protected GET /assets/:key supports same accepted publication.",
+    "Current storage GET retains version=3 query; migration inventory/jobs/executor DTOs and original frontend endpoints match; disabled executor remains unchanged.",
+    "One metadata-only plan POST per case has original complete nine-field plan, eligible File and N/N/5N/3N/15N byte budgets with bytesVerified=false; no job acceptance or executor request.",
+    "All original browser strict body/hash equality, focus/geometry, cached context/browser/setup closure, released6old/+2 permit proofs and 20/120 budgets remain unchanged."
+  ],
+  "newChildTempPath": "/workspace/.f2r2t3",
+  "newChildTempAbsentAtSourceObservation": true,
+  "requiresCrossFileFinalPlanEnvironmentCarrierTempIdentityBinding": true,
+  "original404FailureReceiptSha256Historical": "5271e9c3b7b0862f611eec2adf04e336c57b4c2c7ade6a867dc72631c29f3e7c",
+  "originalFailureRawIndependentlyReopened": false,
+  "effects": {
+    "compiler": 0,
+    "module": 0,
+    "SDK": 0,
+    "SQLite": 0,
+    "browser": 0,
+    "build": 0
+  },
+  "limits": [
+    "Source consistency only. New setup/two native cases remain unrun; no new provider/production/native Node qualification.",
+    "Frozen f228 product equality permits only explicitly bound historical118 build/121 copy causal provenance; it does not relabel current QA runtime.",
+    "New final10 plan/runner/carrier and exact temp3 bindings need a separate narrow peer before root GO."
+  ],
+  "references": {
+    "source-handoff.json": {
+      "path": "/workspace/phase5f-file-capability-and-r2-contract-source-preparation-attempt6/source-handoff.json",
+      "sha256": "258a53514170f972fb1338f3e0c66537ea3f3f792f4387fcaa0563db50e94bbd"
+    },
+    "complete-controller-browser-route-dto-source-audit.json": {
+      "path": "/workspace/phase5f-file-capability-and-r2-contract-source-preparation-attempt6/complete-controller-browser-route-dto-source-audit.json",
+      "sha256": "92fd4abb693746ab3b428c1f0fc831b410d374572809b18091e65b6033f1db24"
+    },
+    "complete-two-leaf-c1cd-route-and-result-successor.patch": {
+      "path": "/workspace/phase5f-file-capability-and-r2-contract-source-preparation-attempt6/complete-two-leaf-c1cd-route-and-result-successor.patch",
+      "sha256": "a74b57861f298460391c7c6653f15bdd6ecd8c56d1a69735e1dfc7f6834c9b5f"
+    },
+    "complete-file-route-result-corrected-source-freeze.json": {
+      "path": "/workspace/phase5f-file-capability-and-r2-contract-source-preparation-attempt6/complete-file-route-result-corrected-source-freeze.json",
+      "sha256": "10848347f314130f0cfeeda9ca5e2fce8a1338ea4dc62117720588f3424fbf31"
+    }
+  }
+}

@@ -1,0 +1,646 @@
+{
+  "status": "PASS",
+  "formalState": "CLOSED_AND_RELEASED",
+  "completedAt": "2026-10-11T17:39:04.753908+00:00",
+  "domain": "package",
+  "sourceHead": "02d6dfbe5f2bd98847b3d6f509c219de5ad816ad",
+  "sourceTree": "40f4a540901e7c49d28184bb8b27a1f808b4f6b8",
+  "qaConsumerHead": "a7876c3c1c145c60978c9a302d198bbe4efff7c3",
+  "qaConsumerTree": "7906a67754a94c69874bb0d2e347c888d3179c28",
+  "originalStagesOnce": {
+    "total": 10,
+    "passed": 10,
+    "failed": 0,
+    "unrun": 0
+  },
+  "nativeCases": {
+    "total": 1,
+    "passed": 1,
+    "failed": 0,
+    "unrun": 0,
+    "caseId": "current-coherent-package-saved-job-keyboard-1280-light",
+    "viewport": [
+      1280,
+      1000
+    ],
+    "theme": "light"
+  },
+  "firstFailure": null,
+  "actualCosts": {
+    "setupPOSTs": 7,
+    "readerGETs": 2,
+    "nativeGETs": 4,
+    "nativeMetadataPOSTs": 5,
+    "ordinaryResearchPreparationPOSTs": 1,
+    "maxSetupPOSTs": 7,
+    "maxNativePOSTs": 5,
+    "maxTotalPOSTs": 12,
+    "observedAcceptedJobReceipts": 1,
+    "newExecutorSteps": 0
+  },
+  "ordinarySamplePreparation": {
+    "path": "/api/samples",
+    "method": "POST",
+    "startedAt": "2026-10-11T17:37:21.569Z",
+    "state": "accepted",
+    "status": 201,
+    "responseSha256": "7dc5869eca71cb2e2d958814fabd520889bf2148eaecdba45c514c79901de188",
+    "body": "completed",
+    "completedAt": "2026-10-11T17:37:23.157Z",
+    "exactOriginalReleasedPermit": {
+      "id": "2aeae1e2-467b-401d-bc88-177b061c29d4",
+      "sha256": "2a0b2165dac077c4de44e7aa1602d7cccd52f834a6ecf535b6c7bfc9afdd5ec7",
+      "allEarlierRowsExact": true,
+      "requestWindowMatched": true
+    },
+    "exactSampleShadowEffects": {
+      "epochDelta": 2,
+      "originalControlSha256": "177688b2e6b77153636997e122347b724967165f34195d55ffae3d598c477d71",
+      "acceptedControlSha256": "07e42706ce7226314ea631ebf3711dc73c445e4c67c0f7ea2601219a19696fe9",
+      "uniqueDependencySha256": "3e11a13b05b6ab5b370e46eb52bcae45588dccbd4f1d4b560d19d4bf7d4aad90",
+      "allEarlierDependencyRowsExact": true
+    },
+    "scope": "One genuine ordinary authenticated research create; exact original Sample+created event and unique released permit. No SQL authority grant."
+  },
+  "nativeAssertions": [
+    {
+      "genuineOriginalPlan200": true,
+      "nativePreviewFocus": {
+        "active": true,
+        "focusVisible": true,
+        "disabled": false
+      }
+    },
+    {
+      "action": "pause",
+      "state": "paused",
+      "originalControl200": true,
+      "immediateFocusObservation": {
+        "connected": true,
+        "active": true,
+        "body": false,
+        "tag": "BUTTON",
+        "focusVisible": true
+      },
+      "settledNativeFocus": {
+        "connected": true,
+        "active": true,
+        "focusVisible": true
+      }
+    },
+    {
+      "action": "resume",
+      "state": "queued",
+      "originalControl200": true,
+      "immediateFocusObservation": {
+        "connected": true,
+        "active": true,
+        "body": false,
+        "tag": "BUTTON",
+        "focusVisible": true
+      },
+      "settledNativeFocus": {
+        "connected": true,
+        "active": true,
+        "focusVisible": true
+      }
+    },
+    {
+      "action": "cancel",
+      "state": "cancel_requested",
+      "originalControl200": true,
+      "immediateFocusObservation": {
+        "connected": true,
+        "active": true,
+        "body": false,
+        "tag": "P",
+        "focusVisible": true
+      },
+      "settledNativeFocus": {
+        "connected": true,
+        "active": true,
+        "focusVisible": true
+      }
+    },
+    {
+      "geometry": {
+        "width": 1280,
+        "root": 1280,
+        "body": 1280,
+        "theme": "light"
+      }
+    }
+  ],
+  "acceptedHistory": {
+    "stage": "before-original-Worker-dispose",
+    "onlyExactPackageJobRequestTwoCapturedRecordsAndReleasedPermitsChanged": true,
+    "old6PermitsExact": true,
+    "oldHoldsExact": true,
+    "newReleasedPermits": 6,
+    "jobState": "cancel_requested",
+    "jobGeneration": 3,
+    "packageFiles": 0,
+    "packageAttempts": 0,
+    "executorDisabled": true,
+    "sourceBytesExact": true,
+    "targetEmpty": true,
+    "addedRowsSha256": "657a9f040f62f20594aa3dc71b03dd82c6961e5ae3d33fe2a0cd1e6ef63507be"
+  },
+  "normalOwnedClosure": {
+    "status": "closed",
+    "browserCloseAwaited": true,
+    "originalPreparationOwnerClosure": {
+      "status": "closed",
+      "startedAt": "2026-10-11T17:37:37.946Z",
+      "originalRequestsAwaited": {
+        "count": 12,
+        "rejected": 0
+      },
+      "workerDisposeAwaited": true,
+      "workerPortRefused": true,
+      "originalOutboundWorkAwaited": {
+        "count": 1,
+        "rejected": 0
+      },
+      "jwksCloseAwaited": true,
+      "jwksPortRefused": true,
+      "completedAt": "2026-10-11T17:37:39.151Z"
+    }
+  },
+  "originalCaseClosure": {
+    "contextCloseAwaited": true,
+    "originalRoutesAwaited": {
+      "count": 24,
+      "rejected": 0
+    },
+    "originalBodiesAwaited": {
+      "count": 9,
+      "rejected": 0
+    },
+    "originalWaitsAwaited": {
+      "count": 7,
+      "rejected": 0
+    }
+  },
+  "allOriginalCommandOwners": [
+    {
+      "stage": "qualified-current02d-coherent-build-producer-preflight",
+      "pid": 1405894,
+      "processGroup": 1405894,
+      "originalStartTicks": "15321937",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "logSha256": "3cdc53eb58a874d63edb9b707f58cfa2f802fd75cc9892e72330fb84f24aef10"
+    },
+    {
+      "stage": "isolated-copy",
+      "pid": 1406642,
+      "processGroup": 1406642,
+      "originalStartTicks": "15341811",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "logSha256": "4721f153a0ef801da5a624e605ba0528f900e10af364628e83f30a4120b2fd86"
+    },
+    {
+      "stage": "fresh-two-version-sentinel",
+      "pid": 1406687,
+      "processGroup": 1406687,
+      "originalStartTicks": "15343006",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 1406698,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1406687,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 1406698,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1406687,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 1406698,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1406687,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "logSha256": "cf45efe74c7de10e13d456d5600b63b2773cdbb259d5e02a5287b271e2e91f3d"
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "pid": 1406731,
+      "processGroup": 1406731,
+      "originalStartTicks": "15343957",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 1406747,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1406731,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 1406747,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1406731,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 1406747,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1406731,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "logSha256": "f00a5c0bb0f2380d02b7eda20538d76901dbae0780aaefb84323803ce05ac14e"
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "pid": 1407065,
+      "processGroup": 1407065,
+      "originalStartTicks": "15346829",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 1407081,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1407065,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 1407081,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1407065,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 1407081,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1407065,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "logSha256": "b3f1c24e6e01eede628daf17af6ff004d494a4720cad31db7472483e1d11294b"
+    },
+    {
+      "stage": "physical-before",
+      "pid": 1407126,
+      "processGroup": 1407126,
+      "originalStartTicks": "15347834",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "logSha256": "42270492feededeb644b7f3d1dcf86ffc414b593e02a5a8262dc254c4fa6eda1"
+    },
+    {
+      "stage": "current-source-build-and-pure24-witness",
+      "pid": 1407152,
+      "processGroup": 1407152,
+      "originalStartTicks": "15348389",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "logSha256": "1d9079bae82380384c6a61b972a5598c3db16826de5c6e7562569ace8bfb6569"
+    },
+    {
+      "stage": "original-one-current-package-saved-job-keyboard",
+      "pid": 1407231,
+      "processGroup": 1407231,
+      "originalStartTicks": "15349628",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "logSha256": "b898d3d2508397ab5cd734cbd01698811f1ce9f762a890a2e3b871b8f247fde7"
+    },
+    {
+      "stage": "physical-after",
+      "pid": 1407503,
+      "processGroup": 1407503,
+      "originalStartTicks": "15353876",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "logSha256": "130d05bdf927a9339b05c97b04abe3bc1f67966984f77357d33908902000bd77"
+    },
+    {
+      "stage": "final-source-artifact-input-pins",
+      "pid": 1407559,
+      "processGroup": 1407559,
+      "originalStartTicks": "15354488",
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "logSha256": "a111dbd383d0b5bf1e1dd29de666dd6a8ee0d9bbe710996bca96ed2cd548a73e"
+    }
+  ],
+  "originalToolHandles": {
+    "qualified-current02d-coherent-build-producer-preflight": {
+      "terminalChunk": "e663f5",
+      "exitCode": 0
+    },
+    "isolated-copy": {
+      "session": 32789,
+      "terminalChunk": "7e5df4",
+      "exitCode": 0
+    },
+    "fresh-two-version-sentinel": {
+      "session": 69244,
+      "terminalChunk": "24648d",
+      "exitCode": 0
+    },
+    "ordinary-actual24-local-migrations": {
+      "session": 78394,
+      "terminalChunk": "9fffe0",
+      "exitCode": 0
+    },
+    "synthetic-template-sentinels-only": {
+      "session": 69547,
+      "terminalChunk": "9dce86",
+      "exitCode": 0
+    },
+    "physical-before": {
+      "terminalChunk": "32e0f4",
+      "exitCode": 0
+    },
+    "current-source-build-and-pure24-witness": {
+      "terminalChunk": "ff5d06",
+      "exitCode": 0
+    },
+    "original-one-current-package-saved-job-keyboard": {
+      "session": 16665,
+      "tty": true,
+      "terminalChunk": "923123",
+      "exitCode": 0
+    },
+    "physical-after": {
+      "terminalChunk": "4a4150",
+      "exitCode": 0
+    },
+    "final-source-artifact-input-pins": {
+      "terminalChunk": "19a0da",
+      "exitCode": 0
+    }
+  },
+  "physical": {
+    "status": "passed",
+    "receiptPath": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/fixture/physical-sqlite-after-current-package-saved-job-keyboard.json",
+    "receiptSha256": "bde5b22eb1766f374a9cae0bc2562680d689954c5ec1280dfc9e65602d749b66"
+  },
+  "rawReferences": [
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/qualified-current02d-coherent-build-producer-preflight-command.json",
+      "sha256": "042d47fdb7e999c6910e5a9c94698f22a61c25895952b3d69ff2f275efcdfc83",
+      "sizeBytes": 1294
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/qualified-current02d-coherent-build-producer-preflight.log",
+      "sha256": "3cdc53eb58a874d63edb9b707f58cfa2f802fd75cc9892e72330fb84f24aef10",
+      "sizeBytes": 120
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/isolated-copy-command.json",
+      "sha256": "fae1cc063adc4e0859c6a1558d819a7b6528d0f91df760656d85a4d453e3e50c",
+      "sizeBytes": 1423
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/isolated-copy.log",
+      "sha256": "4721f153a0ef801da5a624e605ba0528f900e10af364628e83f30a4120b2fd86",
+      "sizeBytes": 211
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/fresh-two-version-sentinel-command.json",
+      "sha256": "4b1d43c33419be239681b0950842c4c0d45375b07cf01290b5175f0c9e51cda7",
+      "sizeBytes": 1918
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/fresh-two-version-sentinel.log",
+      "sha256": "cf45efe74c7de10e13d456d5600b63b2773cdbb259d5e02a5287b271e2e91f3d",
+      "sizeBytes": 248
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/ordinary-actual24-local-migrations-command.json",
+      "sha256": "1461577c62c80a5c55b5ecc5257c43cd87151361c38cc0992be7f8d9d17167a8",
+      "sizeBytes": 1918
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/ordinary-actual24-local-migrations.log",
+      "sha256": "f00a5c0bb0f2380d02b7eda20538d76901dbae0780aaefb84323803ce05ac14e",
+      "sizeBytes": 149092
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/synthetic-template-sentinels-only-command.json",
+      "sha256": "423e395564886c9cdce2eddd3abf333aa51ad012248d981e54f77c2549a08334",
+      "sizeBytes": 2017
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/synthetic-template-sentinels-only.log",
+      "sha256": "b3f1c24e6e01eede628daf17af6ff004d494a4720cad31db7472483e1d11294b",
+      "sizeBytes": 2747
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/physical-before-command.json",
+      "sha256": "1e44fcffe2cbb167ce4e9983e2f91ca45178339df5d47058de1ce71f09812fd1",
+      "sizeBytes": 1385
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/physical-before.log",
+      "sha256": "42270492feededeb644b7f3d1dcf86ffc414b593e02a5a8262dc254c4fa6eda1",
+      "sizeBytes": 176
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/current-source-build-and-pure24-witness-command.json",
+      "sha256": "b2c283365ffceb6554508426193c8cfd487b2d1e6711127eaaf3bf57db80d46b",
+      "sizeBytes": 1253
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/current-source-build-and-pure24-witness.log",
+      "sha256": "1d9079bae82380384c6a61b972a5598c3db16826de5c6e7562569ace8bfb6569",
+      "sizeBytes": 225
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/original-one-current-package-saved-job-keyboard-command.json",
+      "sha256": "762ba909712c57afb240a1a19dd89236bf5c4ed4080d732006fb02551a17457f",
+      "sizeBytes": 2274
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/original-one-current-package-saved-job-keyboard.log",
+      "sha256": "b898d3d2508397ab5cd734cbd01698811f1ce9f762a890a2e3b871b8f247fde7",
+      "sizeBytes": 320
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/physical-after-command.json",
+      "sha256": "aa037f84063ce1e5462e1c3e6a87b4c18ddf1f2e7b859c3734abef25d0f1bf70",
+      "sizeBytes": 1770
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/physical-after.log",
+      "sha256": "130d05bdf927a9339b05c97b04abe3bc1f67966984f77357d33908902000bd77",
+      "sizeBytes": 188
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/final-source-artifact-input-pins-command.json",
+      "sha256": "b41370ab61335bd5d244f5efcbdaf6a6c662d3dd11f0c06ad17855b2cbfcacd3",
+      "sizeBytes": 1242
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/final-source-artifact-input-pins.log",
+      "sha256": "a111dbd383d0b5bf1e1dd29de666dd6a8ee0d9bbe710996bca96ed2cd548a73e",
+      "sizeBytes": 228
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/fixture/genuine-package-saved-job-keyboard-report.json",
+      "sha256": "350e8dc54a9d7fb9ce0ec20b995856dd644d44f41f55796a60e3e763c75cf333",
+      "sizeBytes": 91725
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/fixture/physical-sqlite-after-current-package-saved-job-keyboard.json",
+      "sha256": "bde5b22eb1766f374a9cae0bc2562680d689954c5ec1280dfc9e65602d749b66",
+      "sizeBytes": 73745
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/fixture/physical-sqlite-before-api.json",
+      "sha256": "d862f099bc22148abcd2b014d7d5e4dc5f63e460205dce512b66c45c5fa05839",
+      "sizeBytes": 66851
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/final-current02d-source-and-genuine-saved-job-pins.json",
+      "sha256": "fd7d47ee97a61cdb38293b903e0e53c2195abf4e314fe80d9e06037ae792cd30",
+      "sizeBytes": 2891
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/current02d-build-new-pure24-native-causal-carry.json",
+      "sha256": "066914a97a754d8cfc3e8c2f55305f96a135c433dea92b3002597c32f6aaa6c2",
+      "sizeBytes": 1335
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/chromium-child-temp-owner.json",
+      "sha256": "7c08682da0a6c6ae724bd601326e67f8e714409a69aad2b2dad69485f04de922",
+      "sizeBytes": 604
+    },
+    {
+      "path": "/workspace/coherent-package-sample-shadow-native02-private-attempt2/runtime/frozen-approved-plan.json",
+      "sha256": "10221b42504f8ed71857a65cc8fa7fc7e4540e7ff5938c1a8cade6120c22cdeb",
+      "sizeBytes": 17252
+    }
+  ],
+  "buildScope": "Original actual ONE current02d build118 and copy121 exact causal carry; no repeated compiler, mounted suite or build. This qualifies producer02d/consumera787 only, not a new public integrated head.",
+  "runtimeScope": "New independent pure24 local fixture; seven genuine setup POSTs and five native metadata POSTs. No executor/ZIP/provider write/production effects; accepted job cancel_requested/generation3 retained.",
+  "groupScope": "All ten original direct children same wait and reaped, no cleanup signals and no active owned groups observed. Seven groups EMPTY; three retain recorded PPID1 kernel Z with FD PermissionError, without observed zero-FD or global-quiescence claim.",
+  "priorFailureScope": {
+    "path": "/workspace/coherent-package-saved-native02-private-attempt1/runtime/actual-current02d-package-original-ten-setup-first-failure-closed-release.json",
+    "sha256": "bd528a2cc1ab7f2429545792c05bb5aca6c5244ffb85d2c12e114f52804dffaa",
+    "scope": "Original10 ninePASS/one pre-case setupFAILED, native0P0F1UNRUN; seven accepted setup POSTs remain immutable; normal Worker/JWKS ACK successful, finalcatalogACK FAILED; no reuse/rollback."
+  }
+}

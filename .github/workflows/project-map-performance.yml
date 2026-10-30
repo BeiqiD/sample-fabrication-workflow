@@ -1,0 +1,53 @@
+name: Project Map performance
+
+on:
+  push:
+    branches-ignore:
+      - main
+  pull_request:
+    branches:
+      - main
+      - v2/backend-foundation
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Mark performance verification pending
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERIFY_PUBLISH_STATUSES: "1"
+        run: node scripts/run-verification.mjs --mode map-performance --status pending
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Project Map performance checks
+        id: verification
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERIFY_PUBLISH_STATUSES: "1"
+        run: node scripts/run-verification.mjs --mode map-performance
+
+      - name: Close verification statuses when the gate did not run
+        if: ${{ always() && (steps.verification.outcome == 'skipped' || steps.verification.outcome == 'cancelled') }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERIFY_PUBLISH_STATUSES: "1"
+        run: node scripts/run-verification.mjs --mode map-performance --status skipped

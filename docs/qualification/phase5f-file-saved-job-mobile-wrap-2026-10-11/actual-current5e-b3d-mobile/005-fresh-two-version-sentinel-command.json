@@ -1,0 +1,60 @@
+{
+  "stage": "fresh-two-version-sentinel",
+  "cwd": "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source",
+  "argv": [
+    "node",
+    "/tmp/phase5f-file-saved-mobile-layout-wrap-producer-private-attempt1/source/scripts/qa/phase5f/generate-process-fixture.mjs",
+    "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/copy",
+    "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/fixture"
+  ],
+  "env": {
+    "TMPDIR": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3",
+    "SQLITE_TMPDIR": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3"
+  },
+  "startedAt": "2026-10-11T19:30:52.370268+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/fresh-two-version-sentinel.log",
+  "pid": 1485227,
+  "processGroup": 1485227,
+  "originalStartTicks": "16031314",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1485238,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1485227,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1485238,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1485227,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1485238,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1485227,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T19:30:54.074955+00:00",
+  "logSha256": "4a04e6e565fcd46d738bc125d450537c3378b5cbeb10c20765816254a59934d5"
+}

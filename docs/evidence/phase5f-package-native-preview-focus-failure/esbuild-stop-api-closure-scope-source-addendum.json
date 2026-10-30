@@ -1,0 +1,13 @@
+{
+  "status": "SOURCE_ONLY_COMPILER_API_CLOSURE_SCOPE_ADDENDUM",
+  "unchangedPackageConsumer": "75e7d9e61347f875074b8fc7b9d9a1f441ffc835",
+  "unchangedRecoveryConsumer": "1f274c910cd96e874939b4a3cda9d53286575f48",
+  "unchangedPlanSha256": "f823176620334a3dcff8bd9779be02ac70d8d92b5e14d811cf8557b5f21ece71",
+  "sourceObservation": {
+    "mainJsPath": "/workspace/sample-fabrication-workflow/node_modules/esbuild/lib/main.js",
+    "mainJsSha256": "8331fe1d8b3a07381f33cc425fcfaa94776e263113653f80ec3ba433e9657e73",
+    "api": "stop() destroys original service pipes and requests child.kill, then returns Promise.resolve; public Promise completion is not native child-exit/reap evidence"
+  },
+  "preciseSourceScope": "The original build Promise and public stop API Promise are retained and awaited before subsequent operations. No original compiler-child exit is claimed from that Promise. Existing final retained helper direct-child wait + observed owned process-group/kernel state determine actual closure independently; inaccessible FD metadata remains unknown. All new actual stages remain UNRUN.",
+  "noExpansion": "No code/product/runner/plan/argv/assertion/timebudget/dependency/build/runtime mutation; no new custody framework or child compiler executed."
+}

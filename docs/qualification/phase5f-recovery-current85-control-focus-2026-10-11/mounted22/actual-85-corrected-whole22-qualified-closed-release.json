@@ -1,0 +1,33 @@
+{
+  "status": "PASS",
+  "window": "CLOSED/RELEASED",
+  "closedAt": "2026-10-11T11:13:22.434641+00:00",
+  "sourceHead": "85f70fd4f22530b98e6ceaafc7c1663f201e5b7a",
+  "sourceTree": "b3c41095d9aec295df8693ebd69ab3a20f9dd7a0",
+  "all2346GitModesBlobsAndWorkingHashesExact": true,
+  "sourceClean": true,
+  "actualCommand": "/workspace/phase5f-recovery-control-focus-current5ca-runtime-attempt2/affected-recovery-mounted-file-command.json",
+  "actualCommandSha256": "6e03bb89bdb986dd6b6ecc0b0ee518a11fac57c07dacffee01743860627c7160",
+  "originalToolSession": 61043,
+  "originalPid": 1105461,
+  "originalProcessGroup": 1105461,
+  "originalStartTicks": "13043067",
+  "actualCounts": {
+    "passed": 22,
+    "failed": 0,
+    "pending": 0
+  },
+  "defaultTestTimeoutMs": 5000,
+  "commandExitCode": 0,
+  "directChildReaped": true,
+  "ownedGroupEmpty": true,
+  "ownedSignals": [],
+  "strictScope": "Prior actual28e strict PASS8a699, exact product unchanged; strict not rerun on85 fixture-only literal successor.",
+  "historicalFailureScope": "Original28e20PASS1labelFAIL1bailUNRUN and efb5 closure preserved.",
+  "unrun": [
+    "fresh-current-CF-build",
+    "current-native-two"
+  ],
+  "noWorkerBrowserSQLiteOrBuildStarted": true,
+  "noGlobalQuiescenceClaim": true
+}

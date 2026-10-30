@@ -1,9 +1,10 @@
-import { lazy, Suspense, useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import type { PaginationMeta } from "../../shared/types";
 import { ConfirmDeleteDialog } from "../components/ConfirmDeleteDialog";
 import { MetrologyTemplateForm } from "../components/MetrologyTemplateForm";
 import { PaginationControls } from "../components/PaginationControls";
+import { ReadStatus } from "../components/ReadStatus";
 import {
   api,
   type MetrologyTemplateInput,
@@ -12,9 +13,11 @@ import {
   type ProcessTemplateVersionSummary,
 } from "../lib/api";
 import { pageFromSearchParam, setPageParam } from "../lib/pagination";
+import { preferredScrollBehavior } from "../lib/preferred-scroll-behavior";
 
-const FabubloxImporter = lazy(() => import("../components/FabubloxImporter")
-  .then((module) => ({ default: module.FabubloxImporter })));
+import { workbookImportPath } from "../lib/templateRoutes";
+import { ActionIcon } from "../components/ActionIcon";
+import { SearchField } from "../components/SearchField";
 const EMPTY_PROCESS_PAGINATION: PaginationMeta = { page: 1, pageSize: 20, total: 0, totalPages: 1 };
 const EMPTY_METROLOGY_PAGINATION: PaginationMeta = { page: 1, pageSize: 25, total: 0, totalPages: 1 };
 
@@ -30,11 +33,17 @@ function initialSubstrateLabel(template: ProcessTemplateVersionSummary) {
 }
 
 export function TemplatesPage() {
+  const [searchParams] = useSearchParams();
+  return searchParams.get("import") === "1"
+    ? <Navigate to={workbookImportPath(searchParams)} replace />
+    : <TemplatesDirectoryPage />;
+}
+
+function TemplatesDirectoryPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedQuery = searchParams.get("q") ?? "";
   const processPage = pageFromSearchParam(searchParams.get("processPage"));
   const metrologyPage = pageFromSearchParam(searchParams.get("metrologyPage"));
-  const importing = searchParams.get("import") === "1";
   const [query, setQuery] = useState(requestedQuery);
   const [families, setFamilies] = useState<ProcessTemplateFamilySummary[]>([]);
   const [metrologyTemplates, setMetrologyTemplates] = useState<MetrologyTemplateSummary[]>([]);
@@ -49,18 +58,32 @@ export function TemplatesPage() {
   const [pendingRemoval, setPendingRemoval] = useState<PendingTemplateRemoval | null>(null);
   const [removalError, setRemovalError] = useState("");
   const [creatingMetrology, setCreatingMetrology] = useState(false);
-  const [imported, setImported] = useState<{ id: string; name: string; version: number } | null>(null);
+  const [creatingMetrologySaving, setCreatingMetrologySaving] = useState(false);
   const [expandedFamilies, setExpandedFamilies] = useState<Set<string>>(() => new Set());
   const [familyVersions, setFamilyVersions] = useState<Record<string, ProcessTemplateVersionSummary[]>>({});
-  const [loadingFamilyId, setLoadingFamilyId] = useState("");
+  const [loadingFamilies, setLoadingFamilies] = useState<Set<string>>(() => new Set());
+  const [familyErrors, setFamilyErrors] = useState<Record<string, string>>({});
   const [processRefresh, setProcessRefresh] = useState(0);
   const [metrologyRefresh, setMetrologyRefresh] = useState(0);
+  const familyReadControllers = useRef(new Map<string, AbortController>());
+  const familyReadScope = useRef("");
+  familyReadScope.current = JSON.stringify([requestedQuery, processPage, processRefresh]);
 
   useEffect(() => {
     setQuery(requestedQuery);
+  }, [requestedQuery]);
+
+  useEffect(() => {
     setExpandedFamilies(new Set());
     setFamilyVersions({});
-  }, [requestedQuery]);
+    setFamilyErrors({});
+    setLoadingFamilies(new Set());
+    const controllers = familyReadControllers.current;
+    return () => {
+      controllers.forEach((controller) => controller.abort());
+      controllers.clear();
+    };
+  }, [processPage, processRefresh, requestedQuery]);
 
   useEffect(() => {
     const normalized = query.trim();
@@ -78,12 +101,14 @@ export function TemplatesPage() {
   useEffect(() => {
     const controller = new AbortController();
     setProcessLoading(true);
+    setProcessError("");
     api.listTemplateFamilies({
       query: requestedQuery,
       page: processPage,
       pageSize: 20,
       signal: controller.signal,
     }).then((result) => {
+      if (controller.signal.aborted) return;
       if (processPage > result.pagination.totalPages) {
         setSearchParams((current) => setPageParam(current, "processPage", result.pagination.totalPages), { replace: true });
         return;
@@ -92,7 +117,7 @@ export function TemplatesPage() {
       setProcessPagination(result.pagination);
       setProcessError("");
     }).catch((error: Error) => {
-      if (error.name !== "AbortError") setProcessError(error.message);
+      if (!controller.signal.aborted && error.name !== "AbortError") setProcessError(error.message);
     }).finally(() => {
       if (!controller.signal.aborted) setProcessLoading(false);
     });
@@ -102,12 +127,14 @@ export function TemplatesPage() {
   useEffect(() => {
     const controller = new AbortController();
     setMetrologyLoading(true);
+    setMetrologyError("");
     api.listMetrologyTemplates({
       query: requestedQuery,
       page: metrologyPage,
       pageSize: 25,
       signal: controller.signal,
     }).then((result) => {
+      if (controller.signal.aborted) return;
       if (metrologyPage > result.pagination.totalPages) {
         setSearchParams((current) => setPageParam(current, "metrologyPage", result.pagination.totalPages), { replace: true });
         return;
@@ -116,7 +143,7 @@ export function TemplatesPage() {
       setMetrologyPagination(result.pagination);
       setMetrologyError("");
     }).catch((error: Error) => {
-      if (error.name !== "AbortError") setMetrologyError(error.message);
+      if (!controller.signal.aborted && error.name !== "AbortError") setMetrologyError(error.message);
     }).finally(() => {
       if (!controller.signal.aborted) setMetrologyLoading(false);
     });
@@ -129,23 +156,16 @@ export function TemplatesPage() {
     setSearchParams(next, { replace });
   }
 
-  async function importCompleted(result: { templateVersionId: string; version: number; name: string }) {
-    setImported({ id: result.templateVersionId, name: result.name, version: result.version });
-    updateSearchParams((next) => {
-      next.delete("import");
-      next.delete("processPage");
-    }, true);
-    setExpandedFamilies(new Set());
-    setFamilyVersions({});
-    setProcessRefresh((value) => value + 1);
-  }
-
   async function createMetrology(input: MetrologyTemplateInput) {
-    await api.createMetrologyTemplate(input);
-    setCreatingMetrology(false);
-    setNotice(`Created ${input.name.trim()}.`);
-    updateSearchParams((next) => next.delete("metrologyPage"), true);
-    setMetrologyRefresh((value) => value + 1);
+    if (creatingMetrologySaving) return;
+    setCreatingMetrologySaving(true);
+    try {
+      await api.createMetrologyTemplate(input);
+      setCreatingMetrology(false);
+      setNotice(`Created ${input.name.trim()}.`);
+      updateSearchParams((next) => next.delete("metrologyPage"), true);
+      setMetrologyRefresh((value) => value + 1);
+    } finally { setCreatingMetrologySaving(false); }
   }
 
   async function removeProcessTemplate(template: ProcessTemplateVersionSummary) {
@@ -186,6 +206,33 @@ export function TemplatesPage() {
     }
   }
 
+  async function loadFamilyVersions(family: ProcessTemplateFamilySummary) {
+    const id = family.recipeFamilyId;
+    if (familyReadControllers.current.has(id)) return;
+    const scope = familyReadScope.current;
+    const controller = new AbortController();
+    familyReadControllers.current.set(id, controller);
+    setLoadingFamilies((current) => new Set(current).add(id));
+    setFamilyErrors((current) => ({ ...current, [id]: "" }));
+    try {
+      const result = await api.listTemplateFamilyVersions(id, { query: requestedQuery, signal: controller.signal });
+      if (controller.signal.aborted || scope !== familyReadScope.current) return;
+      setFamilyVersions((current) => ({ ...current, [id]: result.versions }));
+    } catch (error) {
+      if (controller.signal.aborted || scope !== familyReadScope.current) return;
+      setFamilyErrors((current) => ({ ...current, [id]: (error as Error).message }));
+    } finally {
+      if (!controller.signal.aborted && scope === familyReadScope.current) {
+        familyReadControllers.current.delete(id);
+        setLoadingFamilies((current) => {
+          const next = new Set(current);
+          next.delete(id);
+          return next;
+        });
+      }
+    }
+  }
+
   async function toggleFamily(family: ProcessTemplateFamilySummary) {
     if (expandedFamilies.has(family.recipeFamilyId)) {
       setExpandedFamilies((current) => {
@@ -197,71 +244,47 @@ export function TemplatesPage() {
     }
     setExpandedFamilies((current) => new Set(current).add(family.recipeFamilyId));
     if (familyVersions[family.recipeFamilyId]) return;
-    setLoadingFamilyId(family.recipeFamilyId);
-    try {
-      const result = await api.listTemplateFamilyVersions(family.recipeFamilyId, { query: requestedQuery });
-      setFamilyVersions((current) => ({ ...current, [family.recipeFamilyId]: result.versions }));
-      setProcessError("");
-    } catch (error) {
-      setProcessError((error as Error).message);
-      setExpandedFamilies((current) => {
-        const next = new Set(current);
-        next.delete(family.recipeFamilyId);
-        return next;
-      });
-    } finally {
-      setLoadingFamilyId("");
-    }
+    await loadFamilyVersions(family);
   }
 
   function changePage(key: "processPage" | "metrologyPage", page: number, sectionId: string) {
     setSearchParams(setPageParam(searchParams, key, page));
-    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: preferredScrollBehavior(), block: "start" });
   }
 
   const hasQuery = Boolean(requestedQuery);
 
   return <div className="page templates-page">
     <div className="page-heading">
-      <div><p className="eyebrow">Reusable workflow content</p><h1>Templates</h1><p className="lead">Keep fabrication plans and repeatable metrology records in one consistent workspace.</p></div>
+      <div><h1>Templates</h1><p className="lead">Keep fabrication plans and repeatable metrology records in one consistent workspace.</p></div>
     </div>
-    {notice && <p className="success-banner">{notice}</p>}
-    {imported && <p className="success-banner">Imported <strong>{imported.name} v{imported.version}</strong>. <Link to={`/templates/${imported.id}`}>Open the new version →</Link></p>}
-    <label className="search-box">
-      <span>Search templates</span>
-      <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search process and metrology templates…" />
-    </label>
+    {notice && <p className="success-banner" role="status">{notice}</p>}
+    <SearchField label="Search templates" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search process and metrology templates…" />
+    <nav className="templates-quick-nav" aria-label="Template sections">
+      <a href="#process-templates">Process</a>
+      <a href="#metrology-templates">Metrology</a>
+    </nav>
 
-    <section className="templates-section process-templates-section" id="process-templates">
+    <section className="templates-section process-templates-section" id="process-templates" tabIndex={-1}>
       <div className="section-heading templates-section-heading">
-        <div><h2>Process templates</h2><p>Versioned fabrication plans imported from FabuBlox workbooks. Older versions load only when a family is expanded.</p></div>
-        <button type="button" className={importing ? "button" : "button primary"} onClick={() => updateSearchParams((next) => {
-          if (importing) next.delete("import"); else next.set("import", "1");
-        })}>{importing ? "Close import" : "Import workbook"}</button>
+        <div><h2>Process templates</h2><p>Review fabrication plans, edit available versions and reuse them in processing runs.</p></div>
       </div>
-      {importing && <Suspense fallback={<div className="card"><p className="muted padded">Loading workbook importer…</p></div>}>
-        <FabubloxImporter onImported={importCompleted} />
-      </Suspense>}
-      {processError && <p className="error-banner">{processError}</p>}
-      {processLoading ? <p className="muted">Loading process templates…</p> : families.length ? <div className="template-family-list">
+      <ReadStatus loading={processLoading} error={processError} loadingMessage="Loading process templates…" errorTitle="Process templates could not be loaded" retryLabel="Retry process templates" onRetry={() => setProcessRefresh((value) => value + 1)} density="compact" />
+      {!processLoading && !processError && (families.length ? <div className="template-family-list">
         {families.map((family) => {
           const expanded = expandedFamilies.has(family.recipeFamilyId);
           const versions = expanded ? familyVersions[family.recipeFamilyId] : undefined;
           const visibleVersions = versions ?? [family.latest];
+          const versionsId = `template-family-versions-${encodeURIComponent(family.recipeFamilyId)}`;
+          const familyLoading = loadingFamilies.has(family.recipeFamilyId);
           return <section className="card template-family-card" key={family.recipeFamilyId}>
-            <header className="template-family-heading">
-              <div className="card-copy"><p className="card-label">{family.templateType} template</p><h3 className="card-title">{family.name}</h3><p className="card-meta">Latest version v{family.latestVersion}</p></div>
-              <div className="template-family-actions">
-                <span className="meta-badge">{family.versionCount} version{family.versionCount === 1 ? "" : "s"}</span>
-                {family.versionCount > 1 && <button type="button" className="text-button" disabled={loadingFamilyId === family.recipeFamilyId} onClick={() => void toggleFamily(family)}>
-                  {loadingFamilyId === family.recipeFamilyId ? "Loading…" : expanded ? "Show latest only" : "Show all versions"}
-                </button>}
-              </div>
-            </header>
-            <div className="template-version-list">{visibleVersions.map((template) => <article className="template-version-row" key={template.id}>
+            {expanded && <ReadStatus loading={familyLoading} error={familyErrors[family.recipeFamilyId]} loadingMessage="Loading older versions…" errorTitle="Older versions could not be loaded" retryLabel="Retry versions" onRetry={() => void loadFamilyVersions(family)} density="compact" />}
+            <div className="template-version-list" id={versionsId}>{visibleVersions.map((template) => <article className={`template-version-row${template.version === family.latestVersion ? " template-family-latest" : ""}`} key={template.id}>
               <Link className="template-version-link" to={`/templates/${template.id}`} aria-label={`Open ${template.name} version ${template.version}`}>
                 <div className="template-version-identity">
-                  <div className="card-title-line"><strong>v{template.version}</strong>{template.version === family.latestVersion && <span className="meta-badge">Latest</span>}</div>
+                  {template.version === family.latestVersion
+                    ? <><h3 className="card-title">{family.name}</h3><span className="template-version-meta">{family.templateType} · Latest version v{template.version}</span></>
+                    : <strong>v{template.version}</strong>}
                   <small>{template.sourceFilename || "Manually created version"}</small>
                 </div>
                 <div className="template-version-fact"><small>Initial substrate</small><span>{initialSubstrateLabel(template)}</span></div>
@@ -269,27 +292,33 @@ export function TemplatesPage() {
                 <div className="template-version-fact"><small>Steps</small><span>{template.stepCount}</span></div>
               </Link>
               <div className="template-row-actions">
+                {template.version === family.latestVersion && <div className="template-family-actions">
+                  <span className="meta-badge">{family.versionCount} version{family.versionCount === 1 ? "" : "s"}</span>
+                  {family.versionCount > 1 && <button type="button" className="text-button" disabled={familyLoading} aria-expanded={expanded} aria-controls={versionsId} onClick={() => void toggleFamily(family)}>
+                    {familyLoading ? "Loading…" : expanded ? "Show latest only" : "Show all versions"}
+                  </button>}
+                </div>}
                 <Link className="text-button template-row-edit" to={`/templates/${template.id}`}>{template.locked ? "View" : "Edit"} →</Link>
                 {!template.locked && <button type="button" className="text-button danger-text" disabled={removingId === template.id} onClick={() => { setRemovalError(""); setPendingRemoval({ kind: "process", template }); }}>{removingId === template.id ? "Deleting…" : "Delete"}</button>}
               </div>
             </article>)}</div>
           </section>;
         })}
-      </div> : <div className="card"><p className="muted padded">{hasQuery ? "No matching process templates." : "No active process templates yet."}</p></div>}
-      <PaginationControls pagination={processPagination} label="Process template pages" disabled={processLoading} onPageChange={(page) => changePage("processPage", page, "process-templates")} />
+      </div> : <div className="card template-empty-state"><p className="muted padded">{hasQuery ? "No matching process templates." : "No active process templates yet."}</p>{!hasQuery && <p className="muted">Add fabrication plans in <Link to={workbookImportPath(searchParams)}>Settings → Workbook import</Link>, then return here to review and edit them.</p>}</div>)}
+      {!processLoading && !processError && <PaginationControls pagination={processPagination} label="Process template pages" disabled={processLoading} onPageChange={(page) => changePage("processPage", page, "process-templates")} />}
     </section>
 
-    <section className="templates-section metrology-templates-section" id="metrology-templates">
+    <section className="templates-section metrology-templates-section" id="metrology-templates" tabIndex={-1}>
       <div className="section-heading templates-section-heading">
         <div><h2>Metrology templates</h2><p>Flat, reusable records for results, comments, and attachments. They do not change the sample structure.</p></div>
-        <button type="button" className="button primary" aria-expanded={creatingMetrology} onClick={() => setCreatingMetrology((open) => !open)}>{creatingMetrology ? "Close" : "New metrology template"}</button>
+        <button type="button" className="button primary core-toolbar-action" aria-expanded={creatingMetrology} disabled={creatingMetrologySaving} onClick={() => setCreatingMetrology((open) => !open)}><ActionIcon name={creatingMetrology ? "chevron-down" : "plus"} /><span>{creatingMetrology ? "Close" : "New metrology template"}</span></button>
       </div>
       {creatingMetrology && <MetrologyTemplateForm title="New metrology template" submitLabel="Save template" onCancel={() => setCreatingMetrology(false)} onSubmit={createMetrology} />}
-      {metrologyError && <p className="error-banner">{metrologyError}</p>}
-      {metrologyLoading ? <p className="muted">Loading metrology templates…</p> : metrologyTemplates.length ? <div className="metrology-template-list">
+      <ReadStatus loading={metrologyLoading} error={metrologyError} loadingMessage="Loading metrology templates…" errorTitle="Metrology templates could not be loaded" retryLabel="Retry metrology templates" onRetry={() => setMetrologyRefresh((value) => value + 1)} density="compact" />
+      {!metrologyLoading && !metrologyError && (metrologyTemplates.length ? <div className="metrology-template-list">
         {metrologyTemplates.map((template) => <article className="card metrology-template-row" id={`metrology-template-${template.id}`} key={template.id}>
           <Link className="metrology-template-link" to={`/templates/metrology/${template.id}`} aria-label={`Open ${template.name} metrology template`}>
-            <div className="metrology-template-identity"><p className="card-label">Metrology</p><h3 className="card-title">{template.name}</h3></div>
+            <div className="metrology-template-identity"><h3 className="card-title">{template.name}</h3></div>
             <div className="metrology-template-summary">
               <span><small>Tool</small><strong>{template.toolName || "Optional"}</strong></span>
               <span><small>Default content</small><strong>{template.hasDefaultContent ? "Defined" : "Empty"}</strong></span>
@@ -300,8 +329,8 @@ export function TemplatesPage() {
             <button type="button" className="text-button danger-text" disabled={removingId === template.id} onClick={() => { setRemovalError(""); setPendingRemoval({ kind: "metrology", template }); }}>{removingId === template.id ? "Deleting…" : "Delete"}</button>
           </div>
         </article>)}
-      </div> : <div className="card"><p className="muted padded">{hasQuery ? "No matching metrology templates." : "No metrology templates yet."}</p></div>}
-      <PaginationControls pagination={metrologyPagination} label="Metrology template pages" disabled={metrologyLoading} onPageChange={(page) => changePage("metrologyPage", page, "metrology-templates")} />
+      </div> : <div className="card"><p className="muted padded">{hasQuery ? "No matching metrology templates." : "No metrology templates yet."}</p></div>)}
+      {!metrologyLoading && !metrologyError && <PaginationControls pagination={metrologyPagination} label="Metrology template pages" disabled={metrologyLoading} onPageChange={(page) => changePage("metrologyPage", page, "metrology-templates")} />}
     </section>
     {pendingRemoval && <ConfirmDeleteDialog
       title={pendingRemoval.kind === "process" ? "Delete this process template version?" : "Delete this metrology template?"}

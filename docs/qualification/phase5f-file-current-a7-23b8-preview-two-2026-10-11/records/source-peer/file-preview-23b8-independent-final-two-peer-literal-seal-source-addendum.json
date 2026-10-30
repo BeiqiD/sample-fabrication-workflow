@@ -1,0 +1,44 @@
+{
+  "status": "SOURCE_CLEAR_FINAL_TWO_PEER_LITERAL_BINDING_NATIVE_UNRUN",
+  "handoff": {
+    "path": "/workspace/phase5f-file-preview-current-a7-native-copy-gate-final-peer-source-preparation-attempt11/source-handoff.json",
+    "sha256": "e1b8cb31e370873c4ba67fb9edb5208b1f9fe416cdda6d34a27e9dff3c557f01"
+  },
+  "currentSourcePeer": {
+    "path": "/workspace/file-preview-23b8-independent-complete-copy-helper-and-three-qa-source-peer.json",
+    "sha256": "203eff74e677817ce98f75806438bbd4ccf97ef8e8cdf125a1842d001a3f6212"
+  },
+  "preparedFinitePeer": {
+    "path": "/workspace/file-preview-23b8-independent-prepared-original-ten-copy-gate-finite-source-peer.json",
+    "sha256": "95d23db974f2b93b783e940def0d9cb8f3a61a05a45d4c6aefef8a0801807e3f"
+  },
+  "files": {
+    "finite-current-a7-genuine-two-r2-file-preview-ten-plan.json": {
+      "path": "/workspace/phase5f-file-preview-current-a7-native-copy-gate-final-peer-source-preparation-attempt11/finite-current-a7-genuine-two-r2-file-preview-ten-plan.json",
+      "sha256": "5784597f5147dda1181ae77ae3a9698f68d04ed07a6954b96b3b426b2a38048a"
+    },
+    "run-frozen-owned-stage.py": {
+      "path": "/workspace/phase5f-file-preview-current-a7-native-copy-gate-final-peer-source-preparation-attempt11/run-frozen-owned-stage.py",
+      "sha256": "7a59dea3668afd87c6537dd7365993d8689ae76a026e584142aa7e860529cb1e"
+    },
+    "carry-current-a7-genuine-two-r2-file-migration.py": {
+      "path": "/workspace/phase5f-file-preview-current-a7-native-copy-gate-final-peer-source-preparation-attempt11/carry-current-a7-genuine-two-r2-file-migration.py",
+      "sha256": "870c32fd19861733d5be3ce7b627089bc3792a8e29c9811d7ad78d8278a3427f"
+    },
+    "final-peer-only-complete-inverse-source-proof.json": {
+      "path": "/workspace/phase5f-file-preview-current-a7-native-copy-gate-final-peer-source-preparation-attempt11/final-peer-only-complete-inverse-source-proof.json",
+      "sha256": "8a6b1e125167a53eeb024a89e7e1fec71959c32222b3ef10ce1338b2ff3b822b"
+    }
+  },
+  "verified": [
+    "All exact file and peer hashes",
+    "All 11 runner and 3 carrier function ASTs exact prepared",
+    "Whole runner and carrier inverse exact after plan directory/hash and two proof-loop fields",
+    "Whole plan inverse exact after peer fields, status and truthful runtime preparation metadata",
+    "Ten commands and predicates, source identities, three QA leaves, build and case budgets unchanged",
+    "Runtime 0700 contains only exact 0600 frozen plan; copy, fixture and TMP5 absent"
+  ],
+  "limits": [
+    "Source only; no authored code or preflight invoked; Native and all ten stages UNRUN; root GO separate"
+  ]
+}

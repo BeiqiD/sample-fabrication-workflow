@@ -1,0 +1,49 @@
+{
+  "stage": "genuine-signed-admin-recovery-job-controls-two",
+  "cwd": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+  "argv": [
+    "node",
+    "/workspace/phase5f-recovery-job-controls-native-application-byte-proof-source-attempt6/scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs",
+    "/workspace/recovery-native-proof-f228-private-attempt5/copy",
+    "/workspace/recovery-native-proof-f228-private-attempt5/fixture",
+    "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+    "2489",
+    "--exclusive-go-two-genuine-recovery-job-controls"
+  ],
+  "env": {
+    "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+    "CHROMIUM_PATH": "/usr/bin/chromium",
+    "TMPDIR": "/workspace/recovery-native-proof-f228-private-attempt5",
+    "SQLITE_TMPDIR": "/workspace/recovery-native-proof-f228-private-attempt5",
+    "PHASE5F_CHROMIUM_PRIVATE_TEMP": "/workspace/.r2b9tmp",
+    "PHASE5F_JOB_CONTROL_RUNTIME_ROOT": "/workspace/recovery-native-proof-f228-private-attempt5/runtime"
+  },
+  "cases": [
+    "historical-backup-controls-1280-light",
+    "historical-backup-controls-390-dark"
+  ],
+  "control": "Sharedenable/disable once + each genuine historicalpreview/backup/Pause/Resume/Cancel max10POST. Original nativeapplication bytes primary for6 exactplannedfetches; originalCDPattempt separately retained always, others strictCDP. Original DTO/status/backendhash/focus/+2/readiness/20s/TTY120 and fullacceptedhistory/normalownerclosures preserved; no clone/newread/request/fallback/provider/ZIP/steps/targets.",
+  "toolInvocation": {
+    "tty": true,
+    "originalControl": "Only explicitstop newline originalretainedTTY; awaitoriginalclosure/report/childexit120s guard, no SIGTERM-as-finally assumption."
+  },
+  "startedAt": "2026-10-11T09:56:20.361534+00:00",
+  "status": "PASS",
+  "log": "/workspace/recovery-native-proof-f228-private-attempt5/runtime/genuine-signed-admin-recovery-job-controls-two.log",
+  "pid": 1042602,
+  "processGroup": 1042602,
+  "originalStartTicks": "12584113",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T09:56:35.300550+00:00",
+  "logSha256": "17624ab2d6c3eab6e3d041b0aa01dbe501a9f46ee87dbf53a48b4d7ab0b3645a"
+}

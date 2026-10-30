@@ -1,0 +1,21 @@
+{
+  "status": "closed",
+  "browserCloseAwaited": true,
+  "originalPreparationOwnerClosure": {
+    "status": "closed",
+    "startedAt": "2026-10-12T01:46:35.861Z",
+    "originalRequestsAwaited": {
+      "count": 12,
+      "rejected": 0
+    },
+    "workerDisposeAwaited": true,
+    "workerPortRefused": true,
+    "originalOutboundWorkAwaited": {
+      "count": 1,
+      "rejected": 0
+    },
+    "jwksCloseAwaited": true,
+    "jwksPortRefused": true,
+    "completedAt": "2026-10-12T01:46:37.104Z"
+  }
+}

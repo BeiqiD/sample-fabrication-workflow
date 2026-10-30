@@ -1,0 +1,39 @@
+{
+  "stage": "physical-after-short-chromium",
+  "cwd": "/workspace/phase5f-recovery-job-controls-chromium-child-temp-source-attempt2",
+  "argv": [
+    "python3",
+    "-B",
+    "/workspace/phase5f-recovery-job-controls-short-child-temp-finite-source-review-attempt2/physical-job-controls-short-chromium-attempt2.py",
+    "--source-copy",
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/copy",
+    "--fixture-directory",
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture",
+    "--stage",
+    "after-short-chromium-attempt2"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1",
+    "SQLITE_TMPDIR": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1"
+  },
+  "require": "Mandatory after every original browser/helper result. Actual original native body/route/context/browser (if returned), Worker/JWKS/shared configure/disable/history settlements, retained original direct child wait/reap/port refusal before physical. No returned Browser handle is a handle-only limitation, never proof native Chromium did not spawn.",
+  "startedAt": "2026-10-11T08:22:01.176961+00:00",
+  "status": "PASS",
+  "log": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/physical-after-short-chromium.log",
+  "pid": 990439,
+  "processGroup": 990439,
+  "originalStartTicks": "12018194",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T08:22:01.999834+00:00",
+  "logSha256": "857ae97726a90311d625ca5a8d8d422b3ffd4e5a448b2e1d67aaeb3219eb8e3e"
+}

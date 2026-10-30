@@ -1,0 +1,33 @@
+{
+  "status": "ROOT_CURRENT_B3D_FIVE_CUSTODY_ORIGINAL_TEN_FULL_SOURCE_FINITE_CLEAR_EXCLUSIVE_GO",
+  "time": "2026-10-11T19:30:11.883109+00:00",
+  "handoff": {
+    "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-final-peer-source-preparation-attempt4/source-handoff.json",
+    "sha256": "dee7c5ec9caec7af366e106f5b9b68c50f57eda5633ed8b45a23b93dcd05ad37"
+  },
+  "wholeOriginalBindingsForwardInverseAndAll11Plus3OwnerASTExact": true,
+  "wholeTenCommandsAndAllOriginalBudgetsExact": true,
+  "all2726ProducerAnd2728ConsumerGitBlobPhysicalShaAndExecutableBitsExact": true,
+  "all118ActualProducerArtifactsExact": true,
+  "sourceCustodyPeer": {
+    "path": "/tmp/phase5f-file-saved-mobile-five-custody-source-preparation-attempt3/independent-narrow-complete-mobile-five-custody-source-addendum.json",
+    "sha256": "54de6081bec02a0af9dca1d0902da5c8d13d0467b368d3d8b25e029ba9172f5e"
+  },
+  "finitePeer": {
+    "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-finite-source-preparation-attempt3/independent-narrow-original-ten-five-custody-finite-binding-source-addendum.json",
+    "sha256": "5f4c9f18a05e4b850702258d4d2b18665d2b19940c42cdcd1b932fc7090fd5be"
+  },
+  "currentRuntimeTwoPlansOnlyAndNewCopyFixtureShortTmpAbsent": true,
+  "priorExclusiveOwnerRootRelease": {
+    "path": "/tmp/local-comment-e6d4-original-eighth-passive-owned-actual-attempt1/root-original-e6d4-case8-timeout-all-raw-source-owner-kernel-read-release.json",
+    "sha256": "04e3d8eeda773adafd5e379454af1dc7813a68b9b568389ce7696ef3bed3f08c"
+  },
+  "GO": "Exactly ONE original File390x844dark/native tenpipeline on current5e/b3d. NoTSC/build/mounted repeat; originalTTY120/20/+2/max11POST preserved. Only sameoriginalstdin stop/wait/body/controller/context/browser/Worker/JWKS firstACK/directchild/kernel proofs, stopfirstfail and mandatoryphysical-after/finalpins. Keep Start202 initial focus explicitly uncharacterized.",
+  "startArgv": [
+    "python3",
+    "-B",
+    "/tmp/phase5f-file-saved-mobile-five-custody-native-final-peer-source-preparation-attempt4/run-frozen-owned-stage.py",
+    "--exclusive-go-exact-b3d227a-file-mobile-custody-stage",
+    "qualified-current02d-coherent-build-producer-preflight"
+  ]
+}

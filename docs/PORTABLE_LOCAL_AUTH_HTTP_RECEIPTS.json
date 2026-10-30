@@ -1,0 +1,48 @@
+{
+  "scope": "Private unmounted local auth route/middleware library, actual numeric loopback development ingress only; no Node app/CLI/SPA/publicTLS/proxy qualification",
+  "patch": {
+    "path": "/tmp/portable-rt4-auth-http-qualified.patch",
+    "sha256": "5f80528c2c992f38532a1cb4f52de2bdc70e3066b2905752680d74f8e8082c91"
+  },
+  "sourceFiles": {
+    "server/auth/local-auth-transport.ts": "01879c200be84c623d31c325e86b31e6314be6d3bcaa858d9ae894f706a75d76",
+    "server/auth/local-auth-http.ts": "12e7a55fa56ac45671f8df33354d75212e430cb34fc918529b6454116a3c4993",
+    "server/auth/local-auth-http.test.ts": "fe666a937538ca3cb4aec0f24f5ac9c7d9502cf5103cc76d65d181ea9b0b92a8"
+  },
+  "strictNodeTypes": "PASS /tmp/portable-rt4-http-types-attempt6.log",
+  "runtimeTests": {
+    "result": "PASS14/14,1file,15.70s (tests15.35s),exit0",
+    "log": "/tmp/portable-rt4-auth-http-runtime-attempt1.log",
+    "exactCommand": "./node_modules/.bin/vitest run --config vitest.config.ts server/auth/local-auth-http.test.ts",
+    "cwd": "/workspace/portable-rt4-http-qualification",
+    "scope": "Actual socket numeric-loopback authority + genuine isolated7DDL SQLite identity + actual measured scrypt; not fullV25 application fixture",
+    "transportAndCleanup": "All owned actual HTTP servers/connections closed and actual SQLite handles closed by afterEach; zero remaining synthetic HTTP fixture directories; unified exec session55404 final exit0 observed",
+    "exclusiveWindow": "Parent explicit GO; no other heavy runners; finite run exited and window explicitly released",
+    "qualifiedAssertions": [
+      "cookie-only raw bearer; no raw token SQL/file/JSON; noStore/nonCORS",
+      "exact configured Origin+metadata before login quota writes",
+      "bounded streamed4096+1 login overflow413/zero throttle/session; fatalUTF8/exactkeys/passwordbytes",
+      "no anonymous initialization; unknown/wrong passwords generic401/no cookie",
+      "unsafe Origin+token-derived CSRF+genuine current session",
+      "duplicate/malformedcookie/Access-style header rejects",
+      "explicit rotation oldbearer+oldcsrf invalid; originalabsoluteexpiry retained",
+      "logout persistedrevocation thenexpiredcookie",
+      "currentadmin grant re-read after actualgrant delete; fileoperatorfalse; actorunchanged",
+      "currentaccount disabled between middleware/lateradmit fails",
+      "idle/passwordreset revocation; actualclosedDB redacted503/private,no-store",
+      "factoryforged/publicTLS/proxy origin rejection; unadmitted Fetch request denial",
+      "actual wildcardbind andspoofedHost/forwardingheader denial"
+    ]
+  },
+  "peerReview": "PASS bounded read-only sqlite_adapter_review after no-store-before-auth fix; parent also production-read clear; no reviewer tests or edits",
+  "explicitLimits": [
+    "Composer owns installed current checkpoint/native-core admission and immutable schema/ledger lifetime; test fixture deliberately isolated actual identity DDL, not full V25 app",
+    "Only actual numeric127.0.0.1/[::1] http listener/local socket/peer + exact Host/Request admission; no forwarding header/TLS inference",
+    "Development cookie distinct sfw_dev_session; Path=/ HttpOnly SameSite=Strict, noDomain; HTTP loopback is trusted isolated development and other same-host apps can share cookie scope across ports",
+    "Raw bearer only Set-Cookie; CSRF is separately domain-separated SHA256 bearer derivation; no new DDL",
+    "No web bootstrap/password/admin authority; offline fence and bootstrap CLI still separately owned",
+    "Explicit rotation revokes old token before response delivery; lost Set-Cookie ACK cannot replay or recover the rotated bearer; ordinary fresh login required",
+    "Transient JSON/password strings GC-managed; no whole-process secret-memory erasure claim"
+  ],
+  "patchApplyCheck": "PASS against relocated parent private /workspace/portable-next-integration-7cdee51 before owner adoption, no mutation"
+}

@@ -1,0 +1,1351 @@
+{
+  "version": 2,
+  "sourceRoot": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+  "sourceCopyRoot": "/tmp/phase5f-storage-candidate-section-wrap-two-write-copy-attempt11",
+  "sourceHead": "f88fffea3ba0654b52ca90ee87efdafdb70cd48c",
+  "fixtureDirectory": "/tmp/phase5f-storage-candidate-section-wrap-two-write-fixture-attempt11",
+  "isolationReceiptSha256": "a75d88f98902bf45c79d9fcab08c6296e6421133c113d6bfb75dc9ef9dc133dd",
+  "fixtureManifestSha256": "9c2efad2eacc645582cd67a6c5e8e7525ec3b984343d4d2f692a63959c43eaa3",
+  "baseUrl": "http://127.0.0.1:4219",
+  "prefix": "phase5f-ffd0239c-fdb",
+  "ids": {
+    "family": "phase5f-ffd0239c-fdb-family",
+    "v1": "phase5f-ffd0239c-fdb-v1",
+    "v2": "phase5f-ffd0239c-fdb-v2"
+  },
+  "sessionId": "d047167e-08fe-4a54-b062-c14f47e571cc",
+  "serverReceiptSha256": "20814534a81d8c8b00f192ee8e05d895dd47571a8099edc0db16497d7604e061",
+  "serverSessionId": "3923564d-c126-4a79-ade6-c6bb5a1d0633",
+  "helperSha256": "675af3585e918c0b5ae4b4dcd682432dbe2c5f4ff2b43a8e3392e99413d74518",
+  "familyName": "5F mixed process ffd0239c-fdb",
+  "startedAt": "2026-10-11T03:07:43.816Z",
+  "mixed": [
+    {
+      "sampleId": "83ff3123-51e9-4e32-b9ee-87cff53f581d",
+      "code": "phase5f-ffd0239c-fdb-MIX-1",
+      "runId": "55b700f1-3a8f-4a21-b95f-fa32c521f69d",
+      "initialPlanRevisionId": "10cc5edd-864c-46fe-8f4b-79f5e43777cb",
+      "firstStepId": "1e22b47d-f066-428b-8a57-1eadd8044e56"
+    },
+    {
+      "sampleId": "f9ab0d54-983d-487b-b5be-013e3afcb0b9",
+      "code": "phase5f-ffd0239c-fdb-MIX-2",
+      "runId": "33941e3a-3cac-4c61-b545-c67086c22304",
+      "initialPlanRevisionId": "2d1f388b-8d93-48a3-9ba1-a6a990c4aa63",
+      "firstStepId": "ac45b778-dd11-4b85-9ee0-48bfdd55d7c8"
+    },
+    {
+      "sampleId": "aced241e-7740-48be-8d79-7e01ca5be6e9",
+      "code": "phase5f-ffd0239c-fdb-MIX-3",
+      "runId": "1cbd70d6-1115-4470-a605-36a7d00b933c",
+      "initialPlanRevisionId": "1a62c2b1-5a32-495d-b873-f3258b18f49f",
+      "firstStepId": "22b04d7a-4f23-4823-a7b7-0d681aaac520"
+    },
+    {
+      "sampleId": "3e607461-5fb2-462e-9bef-d2791cdfdd55",
+      "code": "phase5f-ffd0239c-fdb-MIX-4",
+      "runId": "15c64e6c-2b3f-4d79-b255-2e1d419c7f8f",
+      "initialPlanRevisionId": "7befa42d-8a96-4dfe-950d-7624e93f7f2a",
+      "firstStepId": "8a12c646-384b-4584-9a00-c9cb37f6d3fa"
+    },
+    {
+      "sampleId": "6bf1a810-0c3b-4853-9846-7dfc770065d5",
+      "code": "phase5f-ffd0239c-fdb-MIX-5",
+      "runId": "473f64a8-8521-461c-845a-89c02be4715e",
+      "initialPlanRevisionId": "3b1ec2a0-bb9e-4fd5-b492-95e01426b7aa",
+      "firstStepId": "7cefad79-3c58-4276-993b-f5f78f29c408"
+    },
+    {
+      "sampleId": "b5633e95-7860-48f2-b662-f6b03bcb42d1",
+      "code": "phase5f-ffd0239c-fdb-MIX-6",
+      "runId": "afff1b92-3372-464b-80af-f2e94bd9df16",
+      "initialPlanRevisionId": "185ec790-7f09-4e20-9e07-45e0863ca150",
+      "firstStepId": "45259b66-f666-4557-b8ff-039f36861b72"
+    },
+    {
+      "sampleId": "0e13a754-018d-497f-aa31-6694f0477f2c",
+      "code": "phase5f-ffd0239c-fdb-MIX-7",
+      "runId": "42c07e6d-0187-450c-a17b-5d43dc579726",
+      "initialPlanRevisionId": "5ca6080e-11d1-4070-880e-cb59eff42bcd",
+      "firstStepId": "d88367d0-2027-4e47-914a-a30c5e851a66"
+    },
+    {
+      "sampleId": "d63c51bd-8e2e-4324-9da5-877e28face99",
+      "code": "phase5f-ffd0239c-fdb-MIX-8",
+      "runId": "abd3a728-c23f-475c-8c20-a1560e8e0e3e",
+      "initialPlanRevisionId": "ab50d87a-d7c0-4ae6-a9bf-8a7648edfbe9",
+      "firstStepId": "a43e08a6-03fb-4362-b4e0-c5a3c70cff5a"
+    }
+  ],
+  "cases": [
+    {
+      "key": "720-light",
+      "width": 720,
+      "theme": "light",
+      "plan": {
+        "sampleId": "1dbe23c8-3a2f-4cf1-86c8-428dd2f52651",
+        "code": "phase5f-ffd0239c-fdb-PLAN-720-light",
+        "runId": "6892e127-f52c-4fdf-a36c-691ffe0ec115",
+        "initialPlanRevisionId": "e445aa0d-e043-48e8-ab14-d783cf3f482d",
+        "firstStepId": "4119b9b7-c74f-4652-8a83-5f2dd200ab2d"
+      },
+      "start": {
+        "sampleId": "7d0cdfb4-da1a-40e0-80af-1d2891c860c0",
+        "code": "phase5f-ffd0239c-fdb-START-720-light",
+        "runId": null
+      },
+      "actualPlanPreviewQualified": true
+    },
+    {
+      "key": "720-dark",
+      "width": 720,
+      "theme": "dark",
+      "plan": {
+        "sampleId": "ccba845f-e3c7-4fa8-b2f2-ee8dcb8c4557",
+        "code": "phase5f-ffd0239c-fdb-PLAN-720-dark",
+        "runId": "1daebd7d-e8a3-4f7f-8792-53b7cd8e7a87",
+        "initialPlanRevisionId": "351d05d3-6c91-46b9-b240-312cd92c6138",
+        "firstStepId": "8efcf391-0283-4d0d-894b-71393c5ab898"
+      },
+      "start": {
+        "sampleId": "4913b8d0-4d2f-4161-be0b-4ae6136c5a3e",
+        "code": "phase5f-ffd0239c-fdb-START-720-dark",
+        "runId": null
+      },
+      "actualPlanPreviewQualified": true
+    },
+    {
+      "key": "721-light",
+      "width": 721,
+      "theme": "light",
+      "plan": {
+        "sampleId": "b907ec5b-6a0c-40cc-9fed-8530ffc29eba",
+        "code": "phase5f-ffd0239c-fdb-PLAN-721-light",
+        "runId": "8201ba48-263e-4842-847e-9461c6a11a0e",
+        "initialPlanRevisionId": "3b73a43f-b1c2-4990-846e-39e7ae7ede79",
+        "firstStepId": "4628fa3f-049e-4e04-b0e4-cbfec8b5f6ff"
+      },
+      "start": {
+        "sampleId": "de6226b2-736e-477f-80d7-910c58bbef66",
+        "code": "phase5f-ffd0239c-fdb-START-721-light",
+        "runId": null
+      },
+      "actualPlanPreviewQualified": true
+    },
+    {
+      "key": "721-dark",
+      "width": 721,
+      "theme": "dark",
+      "plan": {
+        "sampleId": "05068cd2-7414-4dc0-97cc-aa4ce2453705",
+        "code": "phase5f-ffd0239c-fdb-PLAN-721-dark",
+        "runId": "7dfa72c0-3c76-422e-ad3c-587b26c372b6",
+        "initialPlanRevisionId": "3d04e412-b810-448d-976c-5e8aa196b9ac",
+        "firstStepId": "fc57cab5-40f7-4dc8-be7f-796c1535ae88"
+      },
+      "start": {
+        "sampleId": "a9ba8272-e0cc-4e8f-b203-c95419a2bed4",
+        "code": "phase5f-ffd0239c-fdb-START-721-dark",
+        "runId": null
+      },
+      "actualPlanPreviewQualified": true
+    },
+    {
+      "key": "1200-light",
+      "width": 1200,
+      "theme": "light",
+      "plan": {
+        "sampleId": "667e4f13-47a7-4c59-af2b-1e9035a85be5",
+        "code": "phase5f-ffd0239c-fdb-PLAN-1200-light",
+        "runId": "4e9c8ed0-83d3-44b4-b7df-126296aebb87",
+        "initialPlanRevisionId": "7e7ccb99-4c40-4e24-bd61-b481e9d33108",
+        "firstStepId": "89f8ef89-3164-40de-bf0c-85a0a252f269"
+      },
+      "start": {
+        "sampleId": "ffc1cbac-f073-4af1-8586-26cd0fae5efe",
+        "code": "phase5f-ffd0239c-fdb-START-1200-light",
+        "runId": null
+      },
+      "actualPlanPreviewQualified": true
+    },
+    {
+      "key": "1200-dark",
+      "width": 1200,
+      "theme": "dark",
+      "plan": {
+        "sampleId": "f0a59b5e-cde1-4957-bfd5-72c265b9085e",
+        "code": "phase5f-ffd0239c-fdb-PLAN-1200-dark",
+        "runId": "b8222a5d-2ea8-4d22-8b23-9278d88cd3f9",
+        "initialPlanRevisionId": "db2c8b5c-3144-48e1-a681-185bca62b511",
+        "firstStepId": "9fde4324-66d8-4546-8ea8-b7c504f54056"
+      },
+      "start": {
+        "sampleId": "4d977916-5ff9-49ea-9f6e-8efcd664d8ab",
+        "code": "phase5f-ffd0239c-fdb-START-1200-dark",
+        "runId": null
+      },
+      "actualPlanPreviewQualified": true
+    }
+  ],
+  "trace": [
+    {
+      "path": "/templates/phase5f-ffd0239c-fdb-v1",
+      "method": "GET",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:43.817Z",
+      "request": null,
+      "outcome": "response_accepted",
+      "responseSha256": "541177a94b7c0814d6877fecfdabeea6eb626f1a91706f2cacf7dc4f6252569a"
+    },
+    {
+      "path": "/templates/phase5f-ffd0239c-fdb-v2",
+      "method": "GET",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:43.894Z",
+      "request": null,
+      "outcome": "response_accepted",
+      "responseSha256": "20141e9f256ff52f231019aa5649dc18ac91104ec3e6bfc6f94cc176034bdf30"
+    },
+    {
+      "path": "/samples",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:43.903Z",
+      "request": {
+        "code": "phase5f-ffd0239c-fdb-MIX-1",
+        "title": "5F MIX-1 · synthetic long research title 中文",
+        "description": "Only isolated test research; retained fixture",
+        "status": "stored",
+        "location": "Synthetic rack · Shelf 12"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "d94ad35f0aeeac73ac0a4aa7ba4c6b349cbeebb3de66b8900a9c592a62b2eb45"
+    },
+    {
+      "path": "/samples/83ff3123-51e9-4e32-b9ee-87cff53f581d/runs/preview",
+      "method": "POST",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:43.982Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "e978d05eb18a2d51923a54dec28d2a2bc09765de736c0cef5b0c0c9ae7819423"
+    },
+    {
+      "path": "/samples/83ff3123-51e9-4e32-b9ee-87cff53f581d/runs",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:43.998Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1",
+        "substrateConfirmation": {
+          "confirmed": true,
+          "expectedSampleUpdatedAt": "2026-10-11T03:07:43.907Z",
+          "expectedPreviousStateHash": null,
+          "expectedTemplateStructureKey": "initial-substrate:phase5f-ffd0239c-fdb-v1",
+          "expectedTemplateStateHash": "e636f7b49fd417be647b93acd07cb9d7bdace617e05f939725de1975bad36a17",
+          "expectedLatestRunId": null
+        }
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "79c2e33daf5edb307c96007d28cd36d4628da2cde265ee5ccb60416074d22ba9"
+    },
+    {
+      "path": "/samples/83ff3123-51e9-4e32-b9ee-87cff53f581d",
+      "method": "GET",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.160Z",
+      "request": null,
+      "outcome": "response_accepted",
+      "responseSha256": "5b4c61f7dd1459273229037158a313653b1404c81f97ffbac5011a9db1577e78"
+    },
+    {
+      "path": "/samples",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.174Z",
+      "request": {
+        "code": "phase5f-ffd0239c-fdb-MIX-2",
+        "title": "5F MIX-2 · synthetic long research title 中文",
+        "description": "Only isolated test research; retained fixture",
+        "status": "stored",
+        "location": "Synthetic rack · Shelf 12"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "5fd1eb3cbca44f22ee78111ebf4a5f503eaf3fb6df87f4845e964e588934c979"
+    },
+    {
+      "path": "/samples/f9ab0d54-983d-487b-b5be-013e3afcb0b9/runs/preview",
+      "method": "POST",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.185Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "95f52a42a969b94d4355e50df1461f838a2f3ba3ae071a1c556c931c08afdd84"
+    },
+    {
+      "path": "/samples/f9ab0d54-983d-487b-b5be-013e3afcb0b9/runs",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.195Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1",
+        "substrateConfirmation": {
+          "confirmed": true,
+          "expectedSampleUpdatedAt": "2026-10-11T03:07:44.177Z",
+          "expectedPreviousStateHash": null,
+          "expectedTemplateStructureKey": "initial-substrate:phase5f-ffd0239c-fdb-v1",
+          "expectedTemplateStateHash": "e636f7b49fd417be647b93acd07cb9d7bdace617e05f939725de1975bad36a17",
+          "expectedLatestRunId": null
+        }
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "a785422a803fdeb6b36691d6e39536853b255b4bdb0819fe240ecc66416076c3"
+    },
+    {
+      "path": "/samples/f9ab0d54-983d-487b-b5be-013e3afcb0b9",
+      "method": "GET",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.206Z",
+      "request": null,
+      "outcome": "response_accepted",
+      "responseSha256": "e1e0ff392afc66f5c42b2cc47398b78585777bbee5a0ebb5e4031db3810b5a3f"
+    },
+    {
+      "path": "/samples",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.215Z",
+      "request": {
+        "code": "phase5f-ffd0239c-fdb-MIX-3",
+        "title": "5F MIX-3 · synthetic long research title 中文",
+        "description": "Only isolated test research; retained fixture",
+        "status": "stored",
+        "location": "Synthetic rack · Shelf 12"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "4ee1afe4869fa225e2fd61eac20ffbf899069f9d486a26b038cf3f8b7d8048ee"
+    },
+    {
+      "path": "/samples/aced241e-7740-48be-8d79-7e01ca5be6e9/runs/preview",
+      "method": "POST",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.222Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "890fe3e6f73d687c62762d226e0f0a97109492291b2ca6762456772743993c6a"
+    },
+    {
+      "path": "/samples/aced241e-7740-48be-8d79-7e01ca5be6e9/runs",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.232Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1",
+        "substrateConfirmation": {
+          "confirmed": true,
+          "expectedSampleUpdatedAt": "2026-10-11T03:07:44.217Z",
+          "expectedPreviousStateHash": null,
+          "expectedTemplateStructureKey": "initial-substrate:phase5f-ffd0239c-fdb-v1",
+          "expectedTemplateStateHash": "e636f7b49fd417be647b93acd07cb9d7bdace617e05f939725de1975bad36a17",
+          "expectedLatestRunId": null
+        }
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "691fcbe18138fe391ac7c9c799afca0ddb272546a0526d01d055319385cd2e03"
+    },
+    {
+      "path": "/samples/aced241e-7740-48be-8d79-7e01ca5be6e9",
+      "method": "GET",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.244Z",
+      "request": null,
+      "outcome": "response_accepted",
+      "responseSha256": "ba819c1bbffdab1881556a18b8fb6b9e432ec2be7d4d4289e38e469240e83e3f"
+    },
+    {
+      "path": "/samples",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.253Z",
+      "request": {
+        "code": "phase5f-ffd0239c-fdb-MIX-4",
+        "title": "5F MIX-4 · synthetic long research title 中文",
+        "description": "Only isolated test research; retained fixture",
+        "status": "stored",
+        "location": "Synthetic rack · Shelf 12"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "1bfc16a56cde1c72bef6811dda46af12667c9df8d94b59d7f9e1af2a7b0e4737"
+    },
+    {
+      "path": "/samples/3e607461-5fb2-462e-9bef-d2791cdfdd55/runs/preview",
+      "method": "POST",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.261Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "514ba012cf127b852f28d4aa5109c96173c954b40c64fd59756900418915b92b"
+    },
+    {
+      "path": "/samples/3e607461-5fb2-462e-9bef-d2791cdfdd55/runs",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.270Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1",
+        "substrateConfirmation": {
+          "confirmed": true,
+          "expectedSampleUpdatedAt": "2026-10-11T03:07:44.256Z",
+          "expectedPreviousStateHash": null,
+          "expectedTemplateStructureKey": "initial-substrate:phase5f-ffd0239c-fdb-v1",
+          "expectedTemplateStateHash": "e636f7b49fd417be647b93acd07cb9d7bdace617e05f939725de1975bad36a17",
+          "expectedLatestRunId": null
+        }
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "32ea109ab3900941bc8259c880c13c9aeab546a1048b1c8bbef6c93262c02869"
+    },
+    {
+      "path": "/samples/3e607461-5fb2-462e-9bef-d2791cdfdd55",
+      "method": "GET",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.281Z",
+      "request": null,
+      "outcome": "response_accepted",
+      "responseSha256": "08701253de8131953f6def4f78ec46c53a1a1b026f61bc49f8d097eb23741b74"
+    },
+    {
+      "path": "/samples",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.290Z",
+      "request": {
+        "code": "phase5f-ffd0239c-fdb-MIX-5",
+        "title": "5F MIX-5 · synthetic long research title 中文",
+        "description": "Only isolated test research; retained fixture",
+        "status": "stored",
+        "location": "Synthetic rack · Shelf 12"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "9e7273437e26313e3dd29a655a0ecc14812eb1fb9e196137f49433af40148244"
+    },
+    {
+      "path": "/samples/6bf1a810-0c3b-4853-9846-7dfc770065d5/runs/preview",
+      "method": "POST",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.296Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "03a6de61c01eaa23fc15c00c0994875653661d7b3b34d51dd17e67b31d15aa8b"
+    },
+    {
+      "path": "/samples/6bf1a810-0c3b-4853-9846-7dfc770065d5/runs",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.305Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1",
+        "substrateConfirmation": {
+          "confirmed": true,
+          "expectedSampleUpdatedAt": "2026-10-11T03:07:44.292Z",
+          "expectedPreviousStateHash": null,
+          "expectedTemplateStructureKey": "initial-substrate:phase5f-ffd0239c-fdb-v1",
+          "expectedTemplateStateHash": "e636f7b49fd417be647b93acd07cb9d7bdace617e05f939725de1975bad36a17",
+          "expectedLatestRunId": null
+        }
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "b6b2f03f6790ac52288f46f49a53453f8a8c5f9736b11b35667bcf54398bec82"
+    },
+    {
+      "path": "/samples/6bf1a810-0c3b-4853-9846-7dfc770065d5",
+      "method": "GET",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.317Z",
+      "request": null,
+      "outcome": "response_accepted",
+      "responseSha256": "0965d579621250904e2f1496d6bc4440b582ba2894ee5665124655c687789047"
+    },
+    {
+      "path": "/samples",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.325Z",
+      "request": {
+        "code": "phase5f-ffd0239c-fdb-MIX-6",
+        "title": "5F MIX-6 · synthetic long research title 中文",
+        "description": "Only isolated test research; retained fixture",
+        "status": "stored",
+        "location": "Synthetic rack · Shelf 12"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "e93dd7a01de0f95fba756ed367875807dcac6ab102e1e4a4a4c5ec90bd5eef2e"
+    },
+    {
+      "path": "/samples/b5633e95-7860-48f2-b662-f6b03bcb42d1/runs/preview",
+      "method": "POST",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.333Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "43cc1c8ad85e3af476f9c3d0cd70e9a0c0f0baff65b9d12ff5f428e871e0ca36"
+    },
+    {
+      "path": "/samples/b5633e95-7860-48f2-b662-f6b03bcb42d1/runs",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.341Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1",
+        "substrateConfirmation": {
+          "confirmed": true,
+          "expectedSampleUpdatedAt": "2026-10-11T03:07:44.327Z",
+          "expectedPreviousStateHash": null,
+          "expectedTemplateStructureKey": "initial-substrate:phase5f-ffd0239c-fdb-v1",
+          "expectedTemplateStateHash": "e636f7b49fd417be647b93acd07cb9d7bdace617e05f939725de1975bad36a17",
+          "expectedLatestRunId": null
+        }
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "fa903276c47a76d8e4d7da0e406cf9f8e7bb978678a8fd3fd7a1f3b63aaac8e3"
+    },
+    {
+      "path": "/samples/b5633e95-7860-48f2-b662-f6b03bcb42d1",
+      "method": "GET",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.352Z",
+      "request": null,
+      "outcome": "response_accepted",
+      "responseSha256": "2eec0478a96c28d08ddf8b0757eaf0546c77c4a10c683c0309c1dcc18cbee632"
+    },
+    {
+      "path": "/samples",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.360Z",
+      "request": {
+        "code": "phase5f-ffd0239c-fdb-MIX-7",
+        "title": "5F MIX-7 · synthetic long research title 中文",
+        "description": "Only isolated test research; retained fixture",
+        "status": "stored",
+        "location": "Synthetic rack · Shelf 12"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "655734dd7f68b4c20a2081e59ba416e5576379fb2ebb6f59b0512b96bb438bb0"
+    },
+    {
+      "path": "/samples/0e13a754-018d-497f-aa31-6694f0477f2c/runs/preview",
+      "method": "POST",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.368Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "0586205dda1b8d7ffd9ee14df81bbde2a7b55f72ac63ced7531918f89be63a71"
+    },
+    {
+      "path": "/samples/0e13a754-018d-497f-aa31-6694f0477f2c/runs",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.376Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1",
+        "substrateConfirmation": {
+          "confirmed": true,
+          "expectedSampleUpdatedAt": "2026-10-11T03:07:44.362Z",
+          "expectedPreviousStateHash": null,
+          "expectedTemplateStructureKey": "initial-substrate:phase5f-ffd0239c-fdb-v1",
+          "expectedTemplateStateHash": "e636f7b49fd417be647b93acd07cb9d7bdace617e05f939725de1975bad36a17",
+          "expectedLatestRunId": null
+        }
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "fc797234bbd8a311357bc604aea496ea4d129f5db33d7f1cb28d98cd6b973098"
+    },
+    {
+      "path": "/samples/0e13a754-018d-497f-aa31-6694f0477f2c",
+      "method": "GET",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.387Z",
+      "request": null,
+      "outcome": "response_accepted",
+      "responseSha256": "dace0426d1db367ca48069ee596730f2cb7082c6a5ab50fa0ef2e9d841d18f32"
+    },
+    {
+      "path": "/samples",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.396Z",
+      "request": {
+        "code": "phase5f-ffd0239c-fdb-MIX-8",
+        "title": "5F MIX-8 · synthetic long research title 中文",
+        "description": "Only isolated test research; retained fixture",
+        "status": "stored",
+        "location": "Synthetic rack · Shelf 12"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "b834aef61e3d49278d1b9eb58a584255fbbc9454b9ef2c2fa5132dfefeccbfc3"
+    },
+    {
+      "path": "/samples/d63c51bd-8e2e-4324-9da5-877e28face99/runs/preview",
+      "method": "POST",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.404Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "75e434c6487178126fa2a316631e9b2bc5397066cf7ebdc2b768956cd7344a4f"
+    },
+    {
+      "path": "/samples/d63c51bd-8e2e-4324-9da5-877e28face99/runs",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.413Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1",
+        "substrateConfirmation": {
+          "confirmed": true,
+          "expectedSampleUpdatedAt": "2026-10-11T03:07:44.398Z",
+          "expectedPreviousStateHash": null,
+          "expectedTemplateStructureKey": "initial-substrate:phase5f-ffd0239c-fdb-v1",
+          "expectedTemplateStateHash": "e636f7b49fd417be647b93acd07cb9d7bdace617e05f939725de1975bad36a17",
+          "expectedLatestRunId": null
+        }
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "a4d1b6fe4dd747137a83080e3199d97531676b870fc31f8d302374723cdcb140"
+    },
+    {
+      "path": "/samples/d63c51bd-8e2e-4324-9da5-877e28face99",
+      "method": "GET",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.425Z",
+      "request": null,
+      "outcome": "response_accepted",
+      "responseSha256": "795e983880af6b9dababdcbdacf6d5d9bc810712b1a471d37d23d76f73ae43f7"
+    },
+    {
+      "path": "/samples",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.434Z",
+      "request": {
+        "code": "phase5f-ffd0239c-fdb-PLAN-720-light",
+        "title": "5F PLAN-720-light · synthetic long research title 中文",
+        "description": "Only isolated test research; retained fixture",
+        "status": "stored",
+        "location": "Synthetic rack · Shelf 12"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "4c882c7fb3d66f37d739318c02692ffaf6133ffee18e8abcf01bfdc7ffcff522"
+    },
+    {
+      "path": "/samples/1dbe23c8-3a2f-4cf1-86c8-428dd2f52651/runs/preview",
+      "method": "POST",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.442Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "361a01644c5550da609554276d0466597b17c6604da2a35cc0a698e25cb14d5a"
+    },
+    {
+      "path": "/samples/1dbe23c8-3a2f-4cf1-86c8-428dd2f52651/runs",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.451Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1",
+        "substrateConfirmation": {
+          "confirmed": true,
+          "expectedSampleUpdatedAt": "2026-10-11T03:07:44.436Z",
+          "expectedPreviousStateHash": null,
+          "expectedTemplateStructureKey": "initial-substrate:phase5f-ffd0239c-fdb-v1",
+          "expectedTemplateStateHash": "e636f7b49fd417be647b93acd07cb9d7bdace617e05f939725de1975bad36a17",
+          "expectedLatestRunId": null
+        }
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "012b52e7daefefee629c09121aea08df97d577fa00bcb9bde165e192d244e897"
+    },
+    {
+      "path": "/samples/1dbe23c8-3a2f-4cf1-86c8-428dd2f52651",
+      "method": "GET",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.462Z",
+      "request": null,
+      "outcome": "response_accepted",
+      "responseSha256": "43dd6951f3ce39b15293ff11c36bb88ac068a67618c85cb258110e2bb5130eff"
+    },
+    {
+      "path": "/samples",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.473Z",
+      "request": {
+        "code": "phase5f-ffd0239c-fdb-START-720-light",
+        "title": "5F START-720-light · synthetic long research title 中文",
+        "description": "Only isolated test research; retained fixture",
+        "status": "stored",
+        "location": "Synthetic rack · Shelf 12"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "83b29e23d9dd922ed27645704d710c08f9aa0560bb33e450026819b31c785e4a"
+    },
+    {
+      "path": "/samples/1dbe23c8-3a2f-4cf1-86c8-428dd2f52651/runs/6892e127-f52c-4fdf-a36c-691ffe0ec115/plan-update/preview",
+      "method": "POST",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.481Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v2"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "7976bb71eb6098239ef7b7d9c7339cb760739538787c906cef4d8f1fbad04c31"
+    },
+    {
+      "path": "/samples",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.501Z",
+      "request": {
+        "code": "phase5f-ffd0239c-fdb-PLAN-720-dark",
+        "title": "5F PLAN-720-dark · synthetic long research title 中文",
+        "description": "Only isolated test research; retained fixture",
+        "status": "stored",
+        "location": "Synthetic rack · Shelf 12"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "ffecc5bc81b40c07e0efe559b29a2d9c714c981a6ba7d6ec4b2eec143331b19a"
+    },
+    {
+      "path": "/samples/ccba845f-e3c7-4fa8-b2f2-ee8dcb8c4557/runs/preview",
+      "method": "POST",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.508Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "489601c7682dee21318b61cd26b9544d404f8f8d6015854cff712d55e293a14a"
+    },
+    {
+      "path": "/samples/ccba845f-e3c7-4fa8-b2f2-ee8dcb8c4557/runs",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.518Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1",
+        "substrateConfirmation": {
+          "confirmed": true,
+          "expectedSampleUpdatedAt": "2026-10-11T03:07:44.503Z",
+          "expectedPreviousStateHash": null,
+          "expectedTemplateStructureKey": "initial-substrate:phase5f-ffd0239c-fdb-v1",
+          "expectedTemplateStateHash": "e636f7b49fd417be647b93acd07cb9d7bdace617e05f939725de1975bad36a17",
+          "expectedLatestRunId": null
+        }
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "594e6b51bfaa92911bbbbf1f7a3ffe2cc4fcd2978e83f63e63cceb2905b0e9b1"
+    },
+    {
+      "path": "/samples/ccba845f-e3c7-4fa8-b2f2-ee8dcb8c4557",
+      "method": "GET",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.531Z",
+      "request": null,
+      "outcome": "response_accepted",
+      "responseSha256": "6251d4a795776fdb85fab951eb4c5cb28f2e55e4c35cc9c56903a26455dc3836"
+    },
+    {
+      "path": "/samples",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.543Z",
+      "request": {
+        "code": "phase5f-ffd0239c-fdb-START-720-dark",
+        "title": "5F START-720-dark · synthetic long research title 中文",
+        "description": "Only isolated test research; retained fixture",
+        "status": "stored",
+        "location": "Synthetic rack · Shelf 12"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "5d3df3869defdc689335f2dbcd39b574452dbc460a926e486e60bdbbb50d5f37"
+    },
+    {
+      "path": "/samples/ccba845f-e3c7-4fa8-b2f2-ee8dcb8c4557/runs/1daebd7d-e8a3-4f7f-8792-53b7cd8e7a87/plan-update/preview",
+      "method": "POST",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.553Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v2"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "16f35134741586303a08417c3565295fcd8445717ad95ad5c9916fecb3818376"
+    },
+    {
+      "path": "/samples",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.565Z",
+      "request": {
+        "code": "phase5f-ffd0239c-fdb-PLAN-721-light",
+        "title": "5F PLAN-721-light · synthetic long research title 中文",
+        "description": "Only isolated test research; retained fixture",
+        "status": "stored",
+        "location": "Synthetic rack · Shelf 12"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "edef79127f874d7f773a6f881e8df701943b81800071b74e6ad7d29d5e5ef80b"
+    },
+    {
+      "path": "/samples/b907ec5b-6a0c-40cc-9fed-8530ffc29eba/runs/preview",
+      "method": "POST",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.572Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "a0a3c9234e022a4cae1f3644d686509f37a8c6b71cdc1e49273a622539a966ad"
+    },
+    {
+      "path": "/samples/b907ec5b-6a0c-40cc-9fed-8530ffc29eba/runs",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.581Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1",
+        "substrateConfirmation": {
+          "confirmed": true,
+          "expectedSampleUpdatedAt": "2026-10-11T03:07:44.567Z",
+          "expectedPreviousStateHash": null,
+          "expectedTemplateStructureKey": "initial-substrate:phase5f-ffd0239c-fdb-v1",
+          "expectedTemplateStateHash": "e636f7b49fd417be647b93acd07cb9d7bdace617e05f939725de1975bad36a17",
+          "expectedLatestRunId": null
+        }
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "8ea37dcb08b6ed5cc60ea9b0133667458ee81dab52546510f9638ce4ad1b5b84"
+    },
+    {
+      "path": "/samples/b907ec5b-6a0c-40cc-9fed-8530ffc29eba",
+      "method": "GET",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.592Z",
+      "request": null,
+      "outcome": "response_accepted",
+      "responseSha256": "6db32c5d0ca22f62d89cf095cf35a1e2d06125f6685897bad64d7c4daf2d9d90"
+    },
+    {
+      "path": "/samples",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.601Z",
+      "request": {
+        "code": "phase5f-ffd0239c-fdb-START-721-light",
+        "title": "5F START-721-light · synthetic long research title 中文",
+        "description": "Only isolated test research; retained fixture",
+        "status": "stored",
+        "location": "Synthetic rack · Shelf 12"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "cc903a1cd1a4ee3226c737c7b577f19f567ec50c4748ab9b57e9f7b856e1af11"
+    },
+    {
+      "path": "/samples/b907ec5b-6a0c-40cc-9fed-8530ffc29eba/runs/8201ba48-263e-4842-847e-9461c6a11a0e/plan-update/preview",
+      "method": "POST",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.608Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v2"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "60348f1b8592db21b49df52aceed19b0c6711730b7400b745ddda9d1c2fece06"
+    },
+    {
+      "path": "/samples",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.623Z",
+      "request": {
+        "code": "phase5f-ffd0239c-fdb-PLAN-721-dark",
+        "title": "5F PLAN-721-dark · synthetic long research title 中文",
+        "description": "Only isolated test research; retained fixture",
+        "status": "stored",
+        "location": "Synthetic rack · Shelf 12"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "ebc9ac6f8a886a53614830d7feab6d3263a79c9d8aff69b18c3021f96c4fc7c8"
+    },
+    {
+      "path": "/samples/05068cd2-7414-4dc0-97cc-aa4ce2453705/runs/preview",
+      "method": "POST",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.631Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "f41a746b5e4059b933bd1e500667c319b7bd6503b87d2c9a895f2f91b1fd0617"
+    },
+    {
+      "path": "/samples/05068cd2-7414-4dc0-97cc-aa4ce2453705/runs",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.639Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1",
+        "substrateConfirmation": {
+          "confirmed": true,
+          "expectedSampleUpdatedAt": "2026-10-11T03:07:44.626Z",
+          "expectedPreviousStateHash": null,
+          "expectedTemplateStructureKey": "initial-substrate:phase5f-ffd0239c-fdb-v1",
+          "expectedTemplateStateHash": "e636f7b49fd417be647b93acd07cb9d7bdace617e05f939725de1975bad36a17",
+          "expectedLatestRunId": null
+        }
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "1271bb9784e0655f3615a23091f5aba91c78b3a5cee998a5f5ca6b27e6856b69"
+    },
+    {
+      "path": "/samples/05068cd2-7414-4dc0-97cc-aa4ce2453705",
+      "method": "GET",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.653Z",
+      "request": null,
+      "outcome": "response_accepted",
+      "responseSha256": "63c1240be97395d2bf5e8335518b3187ea59d2670e4c0252ab7e574308cdbaeb"
+    },
+    {
+      "path": "/samples",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.664Z",
+      "request": {
+        "code": "phase5f-ffd0239c-fdb-START-721-dark",
+        "title": "5F START-721-dark · synthetic long research title 中文",
+        "description": "Only isolated test research; retained fixture",
+        "status": "stored",
+        "location": "Synthetic rack · Shelf 12"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "4b495fab3a13b116c3b9e79fc89d26b545a1a3c21cfcca853d57ed201c40de58"
+    },
+    {
+      "path": "/samples/05068cd2-7414-4dc0-97cc-aa4ce2453705/runs/7dfa72c0-3c76-422e-ad3c-587b26c372b6/plan-update/preview",
+      "method": "POST",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.673Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v2"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "5d4544fd9e693c0d83b23fed7e026e0cb4f15cc8d9ae4a926db63def91e2b1aa"
+    },
+    {
+      "path": "/samples",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.686Z",
+      "request": {
+        "code": "phase5f-ffd0239c-fdb-PLAN-1200-light",
+        "title": "5F PLAN-1200-light · synthetic long research title 中文",
+        "description": "Only isolated test research; retained fixture",
+        "status": "stored",
+        "location": "Synthetic rack · Shelf 12"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "15e2109b77413b47a74bd5b7381eb5f58c4d34aa418ef56238f4f0a21a9ae06d"
+    },
+    {
+      "path": "/samples/667e4f13-47a7-4c59-af2b-1e9035a85be5/runs/preview",
+      "method": "POST",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.693Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "e56b724e3863d5ea9a5888e031852e7a5de2ecd57655f54349e720fa76bebab8"
+    },
+    {
+      "path": "/samples/667e4f13-47a7-4c59-af2b-1e9035a85be5/runs",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.704Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1",
+        "substrateConfirmation": {
+          "confirmed": true,
+          "expectedSampleUpdatedAt": "2026-10-11T03:07:44.688Z",
+          "expectedPreviousStateHash": null,
+          "expectedTemplateStructureKey": "initial-substrate:phase5f-ffd0239c-fdb-v1",
+          "expectedTemplateStateHash": "e636f7b49fd417be647b93acd07cb9d7bdace617e05f939725de1975bad36a17",
+          "expectedLatestRunId": null
+        }
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "0e31c1c44d43b32b2b3d49861b90a5c884050c255f30ce700c1890d8297ed078"
+    },
+    {
+      "path": "/samples/667e4f13-47a7-4c59-af2b-1e9035a85be5",
+      "method": "GET",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.717Z",
+      "request": null,
+      "outcome": "response_accepted",
+      "responseSha256": "e91d98402289841177e3831994aa7e32bf9864685e81e9aaaccc8413924929c0"
+    },
+    {
+      "path": "/samples",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.726Z",
+      "request": {
+        "code": "phase5f-ffd0239c-fdb-START-1200-light",
+        "title": "5F START-1200-light · synthetic long research title 中文",
+        "description": "Only isolated test research; retained fixture",
+        "status": "stored",
+        "location": "Synthetic rack · Shelf 12"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "56113531969c48e29517a0e5e75d44e724b88c0150162baf325699d4996c6e5f"
+    },
+    {
+      "path": "/samples/667e4f13-47a7-4c59-af2b-1e9035a85be5/runs/4e9c8ed0-83d3-44b4-b7df-126296aebb87/plan-update/preview",
+      "method": "POST",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.734Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v2"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "4ad506a9ea186cb47cb9809bea0a24cf3ff225333d59e0923c0a9fe5735a15a6"
+    },
+    {
+      "path": "/samples",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.744Z",
+      "request": {
+        "code": "phase5f-ffd0239c-fdb-PLAN-1200-dark",
+        "title": "5F PLAN-1200-dark · synthetic long research title 中文",
+        "description": "Only isolated test research; retained fixture",
+        "status": "stored",
+        "location": "Synthetic rack · Shelf 12"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "6dd705d25b89eb3a656f9513173c91de86552ff321894230c13a4d25e65d74c8"
+    },
+    {
+      "path": "/samples/f0a59b5e-cde1-4957-bfd5-72c265b9085e/runs/preview",
+      "method": "POST",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.751Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "0301062f96657785de10f68a05fc0b4ca47a78241cc571d74a8981c0ec41bc88"
+    },
+    {
+      "path": "/samples/f0a59b5e-cde1-4957-bfd5-72c265b9085e/runs",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.761Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v1",
+        "substrateConfirmation": {
+          "confirmed": true,
+          "expectedSampleUpdatedAt": "2026-10-11T03:07:44.746Z",
+          "expectedPreviousStateHash": null,
+          "expectedTemplateStructureKey": "initial-substrate:phase5f-ffd0239c-fdb-v1",
+          "expectedTemplateStateHash": "e636f7b49fd417be647b93acd07cb9d7bdace617e05f939725de1975bad36a17",
+          "expectedLatestRunId": null
+        }
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "cae502732376d4069ec9b5433703e32993187f4996f6474309b36858d7bd8d0e"
+    },
+    {
+      "path": "/samples/f0a59b5e-cde1-4957-bfd5-72c265b9085e",
+      "method": "GET",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.771Z",
+      "request": null,
+      "outcome": "response_accepted",
+      "responseSha256": "d6995d3db8f899dc20465a0146106fa5aaf9b3597ab96d20fdcddae88e23faf9"
+    },
+    {
+      "path": "/samples",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.779Z",
+      "request": {
+        "code": "phase5f-ffd0239c-fdb-START-1200-dark",
+        "title": "5F START-1200-dark · synthetic long research title 中文",
+        "description": "Only isolated test research; retained fixture",
+        "status": "stored",
+        "location": "Synthetic rack · Shelf 12"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "b09a10caca74b933967296866cf8b111cd2cd5e42a5f75c5ccab8bdda0c4361e"
+    },
+    {
+      "path": "/samples/f0a59b5e-cde1-4957-bfd5-72c265b9085e/runs/b8222a5d-2ea8-4d22-8b23-9278d88cd3f9/plan-update/preview",
+      "method": "POST",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.786Z",
+      "request": {
+        "templateVersionId": "phase5f-ffd0239c-fdb-v2"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "256af6ed3c36b55bb0f07c1d2b0525cf1a28a4cec3b8ac863bdc1606c0e2a308"
+    },
+    {
+      "path": "/metrology-templates",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.797Z",
+      "request": {
+        "name": "5F synthetic SEM phase5f-ffd0239c-fdb",
+        "toolName": "Synthetic SEM fixture",
+        "parametersText": "5 keV · Long wrapped parameter line 中文",
+        "commentsText": "Synthetic metrology reference owner"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "2f1433e1645e744de498aa6d4b340bee26173df394c054ff00d3bff94c3d5729"
+    },
+    {
+      "path": "/samples/83ff3123-51e9-4e32-b9ee-87cff53f581d/runs/55b700f1-3a8f-4a21-b95f-fa32c521f69d/metrology",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.846Z",
+      "request": {
+        "templateVersionId": "cae542b8-13af-4785-8bc3-b0729359a579",
+        "afterStepId": "1e22b47d-f066-428b-8a57-1eadd8044e56"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "5b59f1263b1d65f3da0f9f61554603ceaea715daf921c2d98a47422df17624ee"
+    },
+    {
+      "path": "/samples/83ff3123-51e9-4e32-b9ee-87cff53f581d",
+      "method": "GET",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:44.953Z",
+      "request": null,
+      "outcome": "response_accepted",
+      "responseSha256": "085dc9bc02f5cc7d75f7e38e0b25257a42cf7100c0cfa577888a93c8c017eb91"
+    },
+    {
+      "path": "/samples/83ff3123-51e9-4e32-b9ee-87cff53f581d/records",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:44.961Z",
+      "request": {
+        "expectedUpdatedAt": "2026-10-11T03:07:44.852Z",
+        "status": "active",
+        "location": "Synthetic rack · Shelf 12",
+        "pinned": false,
+        "body": "5F timeline note: source record → Process → Project. 中文记录 and $E=mc^2$ remain ordinary research text."
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "00422edf7a8dd3f9eabe1f1cf754100a1b1aecd03fd8172710f4d99e8ee6d2e5"
+    },
+    {
+      "path": "/projects",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:45.041Z",
+      "request": {
+        "id": "phase5f-ffd0239c-fdb-project",
+        "operationId": "3b6f959a-4b9c-4d28-93c2-3f6e3d1c0703",
+        "title": "5F mixed Project phase5f-ffd0239c-fdb"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "fa17cadcf281d409379495d25a11bd05adf1ba7c8d945544379b21403e394ac2"
+    },
+    {
+      "path": "/projects/phase5f-ffd0239c-fdb-project",
+      "method": "GET",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:45.073Z",
+      "request": null,
+      "outcome": "response_accepted",
+      "responseSha256": "e0460ca9233b5f447fa14606989b0025f41c0e8d11f33a8eb226733f378f4cd1"
+    },
+    {
+      "path": "/projects/phase5f-ffd0239c-fdb-project/items/markdown",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:45.078Z",
+      "request": {
+        "itemId": "e287cb86-a52b-4ffc-86bf-8bbe8272a267",
+        "placementId": "bb5ede7b-7c2a-4ef0-a534-78b5a46e1a7c",
+        "operationId": "2ea0dae0-bad3-42ea-9908-d867a777ec96",
+        "expectedProjectRevision": 1,
+        "contentId": "28f7614c-c717-4482-bf78-5f1e93be1ac8",
+        "markdownSource": "# 5F mixed domain record\n\n[Open Samples](/samples)\n\n中文 / $E=mc^2$ · retained identity and explicit source navigation.",
+        "geometry": {
+          "x": 0,
+          "y": 20,
+          "width": 320,
+          "height": 220,
+          "zIndex": 0
+        }
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "8119dc6ff737175bc0ae3df47eb8e87c9023a5492d8a9216b319b36325a9428c"
+    },
+    {
+      "path": "/projects/phase5f-ffd0239c-fdb-project",
+      "method": "GET",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:45.155Z",
+      "request": null,
+      "outcome": "response_accepted",
+      "responseSha256": "f96e74a5199ee2acdc051571c22f3eebaa952cb9071f275177b394a3b8d84d0a"
+    },
+    {
+      "path": "/projects/phase5f-ffd0239c-fdb-project/items/reference",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:45.159Z",
+      "request": {
+        "itemId": "310d9939-3597-4ed0-b550-39c448d95d28",
+        "placementId": "cc50c20c-cd7d-42ee-ad84-00d578baf178",
+        "operationId": "34e71021-ad90-4c41-a3a6-c71b9bdc89c1",
+        "expectedProjectRevision": 2,
+        "target": {
+          "type": "sample",
+          "id": "83ff3123-51e9-4e32-b9ee-87cff53f581d"
+        },
+        "geometry": {
+          "x": 360,
+          "y": 20,
+          "width": 320,
+          "height": 220,
+          "zIndex": 1
+        }
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "908fb27deee3bbe6924e89fb76dfaaadcc446db77e7364e8bd9049db0a97f80d"
+    },
+    {
+      "path": "/projects/phase5f-ffd0239c-fdb-project",
+      "method": "GET",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:45.194Z",
+      "request": null,
+      "outcome": "response_accepted",
+      "responseSha256": "bc721d5f2c56cb093c69e9d5e24b0714c72bcf0199760b1d340308aab8fa51ea"
+    },
+    {
+      "path": "/projects/phase5f-ffd0239c-fdb-project/items/reference",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:45.200Z",
+      "request": {
+        "itemId": "2c816201-c06e-4e14-9b48-7a001f993934",
+        "placementId": "da7a57b3-7bf7-4f08-a7f6-07f2bafdd131",
+        "operationId": "18b0b037-a88a-4748-9b36-8de72434a40b",
+        "expectedProjectRevision": 3,
+        "target": {
+          "type": "run_step",
+          "id": "1e22b47d-f066-428b-8a57-1eadd8044e56"
+        },
+        "geometry": {
+          "x": 720,
+          "y": 20,
+          "width": 320,
+          "height": 220,
+          "zIndex": 2
+        }
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "435790bfcecbe93a26a9a8bcecddefc04ef36b62c0dd079e059cc74ecba3cb86"
+    },
+    {
+      "path": "/project-assets",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:45.210Z",
+      "request": {
+        "byteSize": 68,
+        "sha256": "5e3d382db4dd83d59aa5742793ad6b7903409e865c83bcbc54835049f043bc15"
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "fc47ab55d181ab9a74702718e91e344c5fa0cc0859d06c5b2a3add01c0acbe69"
+    },
+    {
+      "path": "/projects/phase5f-ffd0239c-fdb-project",
+      "method": "GET",
+      "status": 200,
+      "dispatchedAt": "2026-10-11T03:07:45.360Z",
+      "request": null,
+      "outcome": "response_accepted",
+      "responseSha256": "817f702b1729da1b11622d1f3081dba8cafae4e28e12620b01c03e5ddd41d9bb"
+    },
+    {
+      "path": "/projects/phase5f-ffd0239c-fdb-project/items/attachment",
+      "method": "POST",
+      "status": 201,
+      "dispatchedAt": "2026-10-11T03:07:45.366Z",
+      "request": {
+        "itemId": "8a7f6363-b0c2-43d7-95bd-b0a2338c7346",
+        "placementId": "2fd9d869-1e63-4bbe-8aac-9e5186f25199",
+        "operationId": "f3a93a35-3e7c-4f28-b705-528a181dbeab",
+        "expectedProjectRevision": 4,
+        "contentId": "c2d0a5e6-452f-40bf-a575-ddebac304f03",
+        "locator": {
+          "assetId": "037dacae-562b-4b19-95ab-9dda9dd1f11d"
+        },
+        "presentation": {
+          "originalName": "synthetic-5f-image.png",
+          "mimeType": "image/png",
+          "byteSize": 68
+        },
+        "caption": "Actual isolated R2 bytes; not live provider qualification",
+        "sourceUrl": null,
+        "geometry": {
+          "x": 1080,
+          "y": 20,
+          "width": 320,
+          "height": 220,
+          "zIndex": 3
+        }
+      },
+      "outcome": "response_accepted",
+      "responseSha256": "d823ebbcc9c8d69f99486c19f1e38cf44286519cca158dd18affbf12e525234e"
+    }
+  ],
+  "scope": "Actual API synthetic fixtures retained in fresh local isolated D1/R2 only; no remote authentication or provider qualification.",
+  "metrology": {
+    "templateId": "cae542b8-13af-4785-8bc3-b0729359a579",
+    "entryId": "6f85888e-debd-4098-a674-62776ac9c439"
+  },
+  "project": {
+    "projectId": "phase5f-ffd0239c-fdb-project",
+    "attachmentContentId": "c2d0a5e6-452f-40bf-a575-ddebac304f03",
+    "attachmentByteSize": 68,
+    "attachmentSha256": "5e3d382db4dd83d59aa5742793ad6b7903409e865c83bcbc54835049f043bc15"
+  },
+  "status": "prepared",
+  "completedAt": "2026-10-11T03:07:45.895Z"
+}

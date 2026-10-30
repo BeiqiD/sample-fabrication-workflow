@@ -1,0 +1,38 @@
+{
+  "kind": "phase5f-metrology-idle-cancel7ba-independent-source-peer/1",
+  "status": "PRODUCT_SOURCE_CLEAR_AFFECTED_PLAN_SOURCE_CLEAR_UNRUN",
+  "root": "/tmp/phase5f-metrology-cancel-focus-f02-source-attempt1",
+  "head": "7ba51b3f83721596a6fa59a61c60f57426977bfb",
+  "tree": "68a09d8427baf2538dfceb18a39fe883c7122337",
+  "base": "f02dd9ab80f98a3317b0842e4ec8a2f8cb899a43",
+  "pins": {
+    "/tmp/phase5f-metrology-cancel-focus-f02-source-review-attempt1/fixed-source-receipt.json": "499df96a877c737a99d336af313a1a8af72c5a5fd8f8d582e507964896c9347e",
+    "/tmp/phase5f-metrology-cancel-focus-f02-source-review-attempt1/fixed-finite-plan.json": "f75dd4b03dadcca72e5be8902bd70b33e2cfa99cee36c9201f9d566c1dc6c738",
+    "/tmp/phase5f-metrology-cancel-focus-f02-source-review-attempt1/fixed-finite-source-preparation-receipt.json": "1229e0aa3a4469e77ac12c885029fdfd6b9ee817f5f9dab70f1b2cc436074d50",
+    "/tmp/phase5f-metrology-cancel-focus-f02-source-review-attempt1/fixed-f02-two-path.patch": "8aa7a7991bffc3d6ecc36ca2144ac1da2c0d84ffe271b6d3190856d5110b50eb",
+    "/tmp/phase5f-metrology-cancel-focus-f02-source-review-attempt1/run-exact-fixed-metrology-focus-plan.py": "964d536979ab5c3d1e264fe9b2232d34dfa81b68ba4da042d285fd7da11bcc46"
+  },
+  "treeProof": {
+    "baselineEntries": 1679,
+    "currentEntries": 1679,
+    "changedOnly": [
+      "src/components/MultiSampleRunGrid.tsx",
+      "src/phase5f-metrology-pending.mount.test.tsx"
+    ],
+    "otherModeBlobsExact": 1677,
+    "allWorkingGitBlobBytesExact": true
+  },
+  "findings": [],
+  "conclusions": [
+    "The one picker-private flag is set only by explicit idle embedded Cancel. It is consumed by newly committed original Search node once, with genuine mounted session/no operation/isConnected and body-or-owned-dialog focus guards.",
+    "Original read debounce/query/session/operation ownership and create/add/refresh async functions are unchanged; global modal manager/forms/grid/canonical API/backend/catalog remain exact. No asynchronous late continuation can schedule this focus action.",
+    "Additive original real-grid characterization checks original title and Cancel focus, same picker DOM, committed Search focus, unchanged list-read count, zero template/run writes and no refresh. Removing exactly this new case reconstructs baseline whole test bytes.",
+    "Affected plan is exact app compiler then original26 pending plus new1 and original12 picker controls=39/max1/no-file-parallel/bail1/default5s, then genuinely absent-output fresh build. Historical actual one-case failure remains immutable, distinct from diagnostic wrapper exit0/26 filtered unrun.",
+    "Runner has source/dependency/hash/exclusive-output guards, registers stage before launch, direct process cleanup/reap finally and first failure/remaining-unrun receipts. Nine mature ownership helper functions are AST-exact previously accepted fabb; current run_owned adds preregistration and source-specific verify_source is new."
+  ],
+  "recorderBoundary": "This peer confirms inherited accepted cleanup code has no new semantic delta; it does not execute failure injection or extend its bounded-close behavior into a general no-abandon quarantine contract. Actual GO still requires parent scheduling and real closure inspection.",
+  "queuedBrowser": "Separate unprepared two native keyboard cases require fresh-source artifact and later explicit GO; no current browser acceptance.",
+  "runtimeExecuted": false,
+  "compilerExecuted": false,
+  "productEdited": false
+}

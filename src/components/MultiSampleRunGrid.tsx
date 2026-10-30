@@ -1,10 +1,13 @@
-import { Fragment, type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { nativeAssetUrl } from "../../shared/contracts/r2-upload";
+import { Fragment, type FormEvent, type RefObject, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { CommentSubmission, CreateCommentSubmissionInput, RunStep, RunStepComment, SampleRun, StepStatus } from "../../shared/types";
+import type { FileAssetMediaRef, CommentSubmission, CreateCommentSubmissionInput, RunStep, RunStepAssetPresentationInput, RunStepComment, SampleRun, StepStatus } from "../../shared/types";
 import { api, type MetrologyTemplateInput, type MetrologyTemplateSummary } from "../lib/api";
 import { visibleAlphaBounds } from "../lib/diagramImage";
+import { discardR2Upload, prepareR2UploadFile, R2UploadRequestError } from "../lib/r2-upload-client";
 import { compressLayerStackImage } from "../lib/images";
 import { useModalDialog } from "../lib/use-modal-dialog";
+import { preferredScrollBehavior } from "../lib/preferred-scroll-behavior";
 import {
   buildRunGrid,
   findCurrentRunGridRow,
@@ -15,6 +18,10 @@ import {
 import { runStepIsModified, runStepIsReadOnly } from "../lib/runSteps";
 import { pendingRunStepActionTargets } from "../lib/runGridActions";
 import { CommentAttachmentList } from "./CommentAttachmentList";
+import { AttachmentCard } from "./AttachmentCard";
+import { safeAttachmentHref } from "../lib/attachment-presentation";
+import { CommentBody } from "./CommentBody";
+import { commentComposerSource } from "../lib/comment-submission-client";
 import { CommentComposer, CommentSubmissionRecovery } from "./CommentComposer";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { DialogCloseIcon } from "./DialogCloseIcon";
@@ -22,6 +29,7 @@ import { FileDropzone } from "./FileDropzone";
 import { MetrologyTemplateForm } from "./MetrologyTemplateForm";
 import { ProcessPlanCommentButton } from "./ProcessPlanCommentButton";
 import { ProcessingActionIcon } from "./ProcessingActionIcon";
+import { ActionIcon } from "./ActionIcon";
 import { StateMismatchDialog } from "./StateMismatchDialog";
 import { StepStatusIcon } from "./StepStatusIcon";
 
@@ -32,12 +40,12 @@ type DrawerState =
   | { mode: "add"; column: RunGridColumn; afterStepId?: string }
   | null;
 
-type MetrologyDrawerState = { column: RunGridColumn; afterStepId?: string } | null;
+type MetrologyDrawerState = { column: RunGridColumn; afterStepId?: string; returnFocusRef: RefObject<HTMLButtonElement | null> } | null;
 
 type DeleteRequest =
   | { kind: "comment"; comment: RunStepComment; common: boolean }
   | { kind: "comment_asset"; comment: RunStepComment; common: boolean }
-  | { kind: "execution_asset"; assetKey: string; column: RunGridColumn; step: RunStep };
+  | { kind: "execution_asset"; assetKey: string; assetId?: string; column: RunGridColumn; step: RunStep };
 
 type RecipeDetailsState = { step: RunStep; number: number } | null;
 type CommonCommentGroup = { comment: RunStepComment; codes: string[] };
@@ -123,7 +131,7 @@ type DiagramViewport = {
 
 const diagramViewportCache = new Map<string, DiagramViewport | null>();
 
-function DiagramThumbnail({ src, alt }: { src: string; alt: string }) {
+function DiagramThumbnail({ src, alt, onError }: { src: string; alt: string; onError?: () => void }) {
   const cached = diagramViewportCache.get(src);
   const [viewport, setViewport] = useState<DiagramViewport | null | undefined>(cached);
 
@@ -173,6 +181,7 @@ function DiagramThumbnail({ src, alt }: { src: string; alt: string }) {
 
   return <>
     <img
+      onError={onError}
       className={viewport ? "diagram-thumbnail-source measured" : "diagram-thumbnail-source"}
       src={src}
       alt={viewport ? "" : alt}
@@ -186,93 +195,110 @@ function DiagramThumbnail({ src, alt }: { src: string; alt: string }) {
   </>;
 }
 
-export function DiagramGallery({ keys, label, kind = "diagram", size = "compact", onDelete, className = "" }: {
+export function DiagramGallery({ keys, images = [], urls = [], thumbnailUrls = {}, onDeleteNative, label, kind = "diagram", size = "compact", onDelete, className = "" }: {
   keys: string[];
+  images?: FileAssetMediaRef[];
+  urls?: string[];
+  /** Existing server-projected thumbnails; this does not generate derivatives. */
+  thumbnailUrls?: Readonly<Record<string, string>>;
+  onDeleteNative?: (assetId: string) => void;
   label: string;
   kind?: GalleryKind;
   size?: GallerySize;
   onDelete?: (key: string) => void;
   className?: string;
 }) {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const entries = [...keys.filter(key => key && !/[\\\u0000-\u001f\u007f]/.test(key)).map(key => ({ id: key, url: `/api/assets/${key}`, native: false })),
+    ...images.filter(image => image.url === nativeAssetUrl(image.assetId))
+      .map(image => ({ id: image.assetId, url: image.url, native: true })),
+    ...urls.filter(url => url.startsWith("/api/") && safeAttachmentHref(url))
+      .map(url => ({ id: url, url, native: false }))];
+  const entryOrder = entries.map(entry => entry.url).join("\n");
+  const everOpened = useRef(false);
+  const [activeUrl, setActiveUrl] = useState<string | null>(null);
+  const activeIndex = activeUrl === null ? null : entries.findIndex(entry => entry.url === activeUrl);
+  const activeEntry = activeIndex === null || activeIndex < 0 ? null : entries[activeIndex];
+  const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
+  const [previewAttempt, setPreviewAttempt] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
+  const dialogRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const galleryRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ pointerId: number; x: number; y: number; panX: number; panY: number } | null>(null);
-
+  useModalDialog({ dialogRef, initialFocusRef: closeButtonRef, returnFocusRef: galleryRef, enabled: Boolean(activeEntry), onClose: () => setActiveUrl(null) });
+  function setActiveIndex(index: number) { everOpened.current = true; setActiveUrl(entries[index]?.url ?? null); }
+  function failed(url: string) { setFailedUrls(current => new Set(current).add(url)); }
+  function retry(url: string) {
+    setFailedUrls(current => { const next = new Set(current); next.delete(url); return next; });
+    setPreviewAttempt(current => current + 1);
+    closeButtonRef.current?.focus({ preventScroll: true });
+  }
   function setImageZoom(nextZoom: number) {
     const limited = Math.min(5, Math.max(1, nextZoom));
     setZoom(limited);
     if (limited === 1) setPan({ x: 0, y: 0 });
   }
-
   useEffect(() => {
-    if (activeIndex === null) return;
-    setZoom(1);
-    setPan({ x: 0, y: 0 });
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    closeButtonRef.current?.focus();
+    if (activeUrl && !activeEntry) setActiveUrl(null);
+  }, [activeUrl, activeEntry]);
+  useEffect(() => {
+    if (!activeEntry) return;
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") { event.preventDefault(); event.stopImmediatePropagation(); setActiveIndex(null); }
-      if (event.key === "ArrowLeft") setActiveIndex((current) => current === null ? null : (current - 1 + keys.length) % keys.length);
-      if (event.key === "ArrowRight") setActiveIndex((current) => current === null ? null : (current + 1) % keys.length);
-      if (["+", "="].includes(event.key)) { event.preventDefault(); setZoom((current) => Math.min(5, current + .25)); }
-      if (event.key === "-") { event.preventDefault(); setZoom((current) => Math.max(1, current - .25)); }
-      if (event.key === "0") { setZoom(1); setPan({ x: 0, y: 0 }); }
+      if (event.defaultPrevented || event.isComposing || event.altKey || event.ctrlKey || event.metaKey
+        || !dialogRef.current?.contains(document.activeElement)) return;
+      if (event.key === "ArrowLeft") { event.preventDefault(); setActiveIndex(((activeIndex ?? 0) - 1 + entries.length) % entries.length); }
+      if (event.key === "ArrowRight") { event.preventDefault(); setActiveIndex(((activeIndex ?? 0) + 1) % entries.length); }
+      if (["+", "="].includes(event.key)) { event.preventDefault(); if (!failedUrls.has(activeUrl!)) setImageZoom(zoom + .25); }
+      if (event.key === "-") { event.preventDefault(); if (!failedUrls.has(activeUrl!)) setImageZoom(zoom - .25); }
+      if (event.key === "0") { event.preventDefault(); setZoom(1); setPan({ x: 0, y: 0 }); }
     }
     window.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [activeIndex, keys.length]);
-  if (!keys.length) return null;
-  const lightbox = activeIndex === null ? null : createPortal(<div className={`image-lightbox ${kind}-lightbox`} role="dialog" aria-modal="true" aria-label={label} onMouseDown={(event) => { if (event.target === event.currentTarget) setActiveIndex(null); }}>
-    <div className="image-lightbox-panel">
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [activeUrl, activeIndex, entryOrder, zoom, failedUrls]);
+  useEffect(() => { setZoom(1); setPan({ x: 0, y: 0 }); dragRef.current = null; }, [activeUrl]);
+  if (!entries.length && !activeEntry && !everOpened.current) return null;
+  const lightbox = !activeEntry || activeIndex === null ? null : createPortal(<div className={`image-lightbox ${kind}-lightbox`} role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) setActiveUrl(null); }}>
+    <div ref={dialogRef} className="image-lightbox-panel" role="dialog" aria-modal="true" aria-label={label}>
       <div className="image-lightbox-toolbar">
-        <span className="image-lightbox-caption"><strong>{label}</strong><small>{activeIndex + 1} / {keys.length}</small></span>
+        <span className="image-lightbox-caption"><strong>{label}</strong><small>{activeIndex + 1} / {entries.length}</small></span>
         <div className="image-zoom-controls" aria-label="Image zoom controls">
-          <button type="button" onClick={() => setImageZoom(zoom - .25)} disabled={zoom === 1} aria-label="Zoom out">−</button>
+          <button type="button" onClick={() => setImageZoom(zoom - .25)} disabled={zoom === 1 || failedUrls.has(activeEntry.url)} aria-label="Zoom out">−</button>
           <button type="button" className="zoom-level" onClick={() => setImageZoom(1)} aria-label="Reset image zoom">{Math.round(zoom * 100)}%</button>
-          <button type="button" onClick={() => setImageZoom(zoom + .25)} disabled={zoom === 5} aria-label="Zoom in">+</button>
+          <button type="button" onClick={() => setImageZoom(zoom + .25)} disabled={zoom === 5 || failedUrls.has(activeEntry.url)} aria-label="Zoom in">+</button>
         </div>
-        <a href={`/api/assets/${keys[activeIndex]}`} target="_blank" rel="noreferrer">Original</a>
-        <button ref={closeButtonRef} type="button" className="lightbox-close" onClick={() => setActiveIndex(null)} aria-label="Close image viewer"><DialogCloseIcon /></button>
+        <a href={activeEntry.url} target="_blank" rel="noopener noreferrer">Open image</a>
+        <button ref={closeButtonRef} type="button" className="lightbox-close" onClick={() => setActiveUrl(null)} aria-label="Close image viewer"><DialogCloseIcon /></button>
       </div>
-      <div
-        className={`image-lightbox-stage${zoom > 1 ? " zoomed" : ""}`}
-        onWheel={(event) => { event.preventDefault(); setImageZoom(zoom + (event.deltaY < 0 ? .25 : -.25)); }}
+      <div className={`image-lightbox-stage${zoom > 1 ? " zoomed" : ""}`}
+        onWheel={event => { event.preventDefault(); if (!failedUrls.has(activeEntry.url)) setImageZoom(zoom + (event.deltaY < 0 ? .25 : -.25)); }}
         onDoubleClick={() => setImageZoom(zoom === 1 ? 2 : 1)}
-        onPointerDown={(event) => {
-          if (zoom === 1) return;
+        onPointerDown={event => {
+          if (zoom === 1 || failedUrls.has(activeEntry.url)) return;
           event.currentTarget.setPointerCapture(event.pointerId);
           dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, panX: pan.x, panY: pan.y };
         }}
-        onPointerMove={(event) => {
-          const drag = dragRef.current;
-          if (!drag || drag.pointerId !== event.pointerId) return;
-          setPan({ x: drag.panX + event.clientX - drag.x, y: drag.panY + event.clientY - drag.y });
-        }}
-        onPointerUp={(event) => { if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null; }}
-        onPointerCancel={() => { dragRef.current = null; }}
-      >
-        <img
-          src={`/api/assets/${keys[activeIndex]}`}
-          alt={`${label} ${activeIndex + 1}`}
-          draggable={false}
-          style={{ transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})` }}
-        />
+        onPointerMove={event => { const drag = dragRef.current; if (drag && drag.pointerId === event.pointerId) setPan({ x: drag.panX + event.clientX - drag.x, y: drag.panY + event.clientY - drag.y }); }}
+        onPointerUp={event => { if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null; }}
+        onPointerCancel={() => { dragRef.current = null; }}>
+        {failedUrls.has(activeEntry.url) ? <AttachmentCard filename={label} description="The browser could not display this image. Its authorized image link remains available."
+          href={activeEntry.url} actionLabel="Open image" external density="comfortable" status={{ kind: "failed", label: "Preview unavailable" }}
+          actions={<button type="button" onClick={() => retry(activeEntry.url)}>Retry image preview</button>} />
+          : <img key={`${activeEntry.url}:${previewAttempt}`} src={activeEntry.url} alt={`${label} ${activeIndex + 1}`} draggable={false}
+            onError={() => failed(activeEntry.url)} style={{ transform: `translate3d(${pan.x}px, ${pan.y}px, 0) scale(${zoom})` }} />}
       </div>
-      {keys.length > 1 && <><button type="button" className="lightbox-arrow previous" onClick={() => setActiveIndex((activeIndex - 1 + keys.length) % keys.length)} aria-label="Previous image">←</button><button type="button" className="lightbox-arrow next" onClick={() => setActiveIndex((activeIndex + 1) % keys.length)} aria-label="Next image">→</button></>}
+      {entries.length > 1 && <><button type="button" className="lightbox-arrow previous" onClick={() => setActiveIndex((activeIndex - 1 + entries.length) % entries.length)} aria-label="Previous image">←</button><button type="button" className="lightbox-arrow next" onClick={() => setActiveIndex((activeIndex + 1) % entries.length)} aria-label="Next image">→</button></>}
     </div>
   </div>, document.body);
   return <>
-    <div className={`grid-diagrams ${kind}-thumbnails ${size}-thumbnails ${className}`.trim()} role="list">{keys.map((key, index) => {
-      const src = `/api/assets/${key}`;
-      return <div className="grid-diagram-item" key={`${key}:${index}`} role="listitem"><button type="button" onClick={() => setActiveIndex(index)} aria-label={`Open ${label} ${index + 1} of ${keys.length}`}>
-        {kind === "diagram" ? <DiagramThumbnail src={src} alt={label} /> : <img src={src} alt={label} loading="lazy" />}
-      </button>{onDelete && <button type="button" className="diagram-delete-button" title="Delete image" onClick={() => onDelete(key)} aria-label={`Delete ${label} ${index + 1}`}>×</button>}</div>;
+    <div ref={galleryRef} tabIndex={-1} className={`grid-diagrams ${kind}-thumbnails ${size}-thumbnails ${className}`.trim()} role="list" aria-label={label}>{!entries.length && <span className="image-preview-unavailable">No images available</span>}{entries.map((entry, index) => {
+      const key = entry.id, src = entry.url;
+      const thumbnail = thumbnailUrls[src];
+      const thumbnailSrc = thumbnail?.startsWith("/api/") && safeAttachmentHref(thumbnail) ? thumbnail : src;
+      return <div className="grid-diagram-item" key={`${key}:${index}`} role="listitem"><button type="button" onClick={() => setActiveIndex(index)} aria-label={`Open ${label} ${index + 1} of ${entries.length}`}>
+        {failedUrls.has(thumbnailSrc) ? <span className="image-preview-unavailable">Preview unavailable</span>
+          : kind === "diagram" ? <DiagramThumbnail src={thumbnailSrc} alt={label} onError={() => failed(thumbnailSrc)} /> : <img key={previewAttempt} src={thumbnailSrc} alt={label} loading="lazy" onError={() => failed(thumbnailSrc)} />}
+      </button>{(entry.native ? onDeleteNative : onDelete) && <button type="button" className="diagram-delete-button" title="Delete run attachment" onClick={() => entry.native ? onDeleteNative?.(key) : onDelete?.(key)} aria-label={`Delete ${label} ${index + 1}`}><ActionIcon name="delete" /></button>}</div>;
     })}</div>
     {lightbox}
   </>;
@@ -281,7 +307,7 @@ export function DiagramGallery({ keys, label, kind = "diagram", size = "compact"
 function RecipeDetailsSheet({ state, onClose }: { state: NonNullable<RecipeDetailsState>; onClose: () => void }) {
   const { step, number } = state;
   const hasPlannedCopy = Boolean(step.plannedParametersText || step.plannedCommentsText);
-  const hasPlannedDiagrams = step.plannedImageKeys.length > 0;
+  const hasPlannedDiagrams = (step.plannedImageKeys.length > 0 || Boolean(step.plannedImages?.length));
   const dialogRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   useModalDialog({ dialogRef, initialFocusRef: closeButtonRef, onClose });
@@ -298,35 +324,39 @@ function RecipeDetailsSheet({ state, onClose }: { state: NonNullable<RecipeDetai
           {step.plannedParametersText && <div className="recipe-field"><small>Parameters</small><p>{step.plannedParametersText}</p></div>}
           {step.plannedCommentsText && <div className="recipe-field"><small>Plan note</small><p>{step.plannedCommentsText}</p></div>}
         </div>}
-        <DiagramGallery keys={step.plannedImageKeys} label={`Plan diagram for ${step.title}`} />
+        <DiagramGallery keys={step.plannedImageKeys} images={step.plannedImages} label={`Plan diagram for ${step.title}`} />
         {!hasPlannedCopy && !hasPlannedDiagrams && <p className="muted">No additional process-step details.</p>}
       </div>
     </section>
   </div>, document.body);
 }
 
-function CommentCard({ comment, meta, imageLabel, onDelete, onDeleteAsset, common = false }: {
+function CommentCard({ comment, meta, imageLabel, onDelete, onDeleteAsset, onChanged, common = false, density = "dense" }: {
   comment: RunStepComment;
   meta: string;
   imageLabel: string;
   onDelete?: () => void;
   onDeleteAsset?: () => void;
+  onChanged?: () => Promise<void>;
   common?: boolean;
+  density?: "comfortable" | "compact" | "dense";
 }) {
-  const imageKeys = (comment.images ?? []).flatMap((image) => image.assetKey ? [image.assetKey] : []);
+  const imageKeys = (comment.images ?? []).filter(image => image.status === "ready").flatMap((image) => image.assetKey ? [image.assetKey] : []);
+  const imageUrls = (comment.images ?? []).filter(image => image.status === "ready").flatMap(image => image.assetKey ? [] : image.assetUrl ? [image.assetUrl] : []);
+  if (!comment.submissionId && !imageUrls.length && !imageKeys.length && comment.assetUrl) imageUrls.push(comment.assetUrl);
   const attachments = comment.attachments ?? [];
   const incomplete = comment.status && comment.status !== "ready";
   return <div className={`cell-comment${common ? " common-comment" : ""}`}>
     <div className="comment-card-content">
       <div className="comment-card-copy">
         {incomplete && <strong className={`comment-upload-state status-${comment.status}`}>{comment.status === "failed" ? "Upload incomplete" : "Uploading…"}</strong>}
-        {comment.body && <p>{comment.body}</p>}
+        {comment.body && <CommentBody source={comment.body} />}
         <small>{meta}</small>
       </div>
-      {(imageKeys.length > 0 || comment.assetKey) && <div className="comment-thumbnail-gallery"><DiagramGallery keys={imageKeys.length ? imageKeys : [comment.assetKey!]} label={imageLabel} kind="photo" onDelete={onDeleteAsset && !comment.submissionId ? () => onDeleteAsset() : undefined} /></div>}
+      {(imageKeys.length > 0 || imageUrls.length > 0 || comment.assetKey) && <div className="comment-thumbnail-gallery"><DiagramGallery keys={imageKeys.length ? imageKeys : !comment.submissionId && comment.assetKey ? [comment.assetKey] : []} urls={imageUrls} label={imageLabel} kind="photo" onDelete={onDeleteAsset && !comment.submissionId ? () => onDeleteAsset() : undefined} /></div>}
     </div>
-    <CommentAttachmentList attachments={attachments} />
-    {onDelete && !incomplete && <button type="button" className="comment-delete-button" onClick={onDelete} aria-label="Delete comment">Delete</button>}
+    <CommentAttachmentList attachments={attachments} images={comment.submissionId ? comment.images : undefined} submissionId={!incomplete ? comment.submissionId : undefined} onChanged={onChanged} common={common} density={density} />
+    {onDelete && !incomplete && <button type="button" className="comment-delete-button" onClick={onDelete} aria-label={comment.submissionId ? "Move Comment to trash" : "Delete comment"}>{comment.submissionId ? "Trash" : "Delete"}</button>}
   </div>;
 }
 
@@ -351,19 +381,21 @@ function recoverableFromComments(comments: RunStepComment[]) {
   return [...submissions.values()];
 }
 
-function CommentList({ comments, onDelete, onDeleteAsset }: { comments: RunStepComment[]; onDelete?: (comment: RunStepComment) => void; onDeleteAsset?: (comment: RunStepComment) => void }) {
+function CommentList({ comments, onDelete, onDeleteAsset, onChanged }: { comments: RunStepComment[]; onDelete?: (comment: RunStepComment) => void; onDeleteAsset?: (comment: RunStepComment) => void; onChanged?: () => Promise<void> }) {
   if (!comments.length) return null;
   return <div className="comment-history"><div className="cell-comments">{comments.map((comment) => <CommentCard
     key={comment.id}
     comment={comment}
     meta={`${comment.actorEmail || "Unknown user"} · ${new Date(comment.createdAt).toLocaleString()}`}
     imageLabel="Comment photo"
+    onChanged={onChanged}
     onDelete={onDelete ? () => onDelete(comment) : undefined}
-    onDeleteAsset={onDeleteAsset && comment.assetKey ? () => onDeleteAsset(comment) : undefined}
+    onDeleteAsset={onDeleteAsset && (comment.assetKey || comment.assetUrl) ? () => onDeleteAsset(comment) : undefined}
   />)}</div></div>;
 }
 
 function ProcessPlanCommentDialog({
+  sourceKey,
   stepName,
   commentContext,
   targets,
@@ -372,9 +404,11 @@ function ProcessPlanCommentDialog({
   readOnly,
   onClose,
   onSubmitted,
+  onAttachmentChanged,
   onDelete,
   onDeleteAsset,
 }: {
+  sourceKey: string;
   stepName: string;
   commentContext: "process-plan" | "metrology";
   targets: RunStepCommentContext["targets"];
@@ -383,6 +417,7 @@ function ProcessPlanCommentDialog({
   readOnly: boolean;
   onClose: () => void;
   onSubmitted: () => Promise<void>;
+  onAttachmentChanged: () => Promise<void>;
   onDelete: (comment: RunStepComment) => void;
   onDeleteAsset: (comment: RunStepComment) => void;
 }) {
@@ -409,6 +444,7 @@ function ProcessPlanCommentDialog({
       <div className="process-plan-comment-content">
         {!readOnly && targets.length > 0 && <CommentComposer
           label="Add to checked samples"
+          sourceKey={sourceKey}
           context={{ kind: "run_steps", scope: "common", targets }}
           onCancel={onClose}
           onSubmitted={async () => {
@@ -417,7 +453,7 @@ function ProcessPlanCommentDialog({
           }}
         />}
         {!readOnly && targets.length === 0 && <p className="muted process-plan-comment-empty-selection">Check one or more samples in the grid to add a common comment.</p>}
-        <CommentSubmissionRecovery submissions={recovery} onSubmitted={onSubmitted} />
+        <CommentSubmissionRecovery localSourceKey={!readOnly && targets.length > 0 ? sourceKey : undefined} submissions={recovery} onSubmitted={onSubmitted} />
         <section className="process-plan-comment-history" aria-label={`Existing ${commentContext} comments`}>
           <div className="process-plan-comment-history-heading">
             <small>Execution comments</small>
@@ -428,10 +464,12 @@ function ProcessPlanCommentDialog({
               key={comment.operationGroupId || comment.id}
               comment={comment}
               common
+              density="compact"
               meta={`${codes.join(", ")} · ${comment.actorEmail || "Unknown user"} · ${new Date(comment.createdAt).toLocaleString()}`}
               imageLabel="Common comment photo"
+              onChanged={readOnly ? undefined : onAttachmentChanged}
               onDelete={() => onDelete(comment)}
-              onDeleteAsset={comment.assetKey ? () => onDeleteAsset(comment) : undefined}
+              onDeleteAsset={(comment.assetKey || comment.assetUrl) ? () => onDeleteAsset(comment) : undefined}
             />)}</div>
             : <p className="muted process-plan-comment-empty">No comments on this {commentSubject} yet.</p>}
         </section>
@@ -478,6 +516,7 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
   const [image, setImage] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [uploadProblem, setUploadProblem] = useState(false);
   const dialogRef = useRef<HTMLElement>(null);
   const initialFieldRef = useRef<HTMLElement>(null);
   const metrology = step?.entryKind === "metrology";
@@ -488,12 +527,21 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
     event.preventDefault();
     if (!state.column.run) return;
     if (!isTemplateStep && !title.trim()) { setError("Step name is required."); return; }
-    setSaving(true); setError("");
+    setSaving(true); setError(""); setUploadProblem(false);
     try {
       let assetKey: string | undefined;
+      let assetId: string | undefined;
+      let assetMetadata: RunStepAssetPresentationInput | undefined;
       if (image) {
-        const compressed = await compressLayerStackImage(image);
-        assetKey = (await api.uploadAsset(compressed, compressed.name)).key;
+        const context = `run-step:${state.column.sample.id}:${state.column.run.id}:${editing ? state.step.id : `new:${state.afterStepId || "start"}`}`;
+        const compressed = await prepareR2UploadFile(image, context, () => compressLayerStackImage(image));
+        const uploaded = await api.uploadAsset(compressed, compressed.name, { context });
+        if (uploaded.key === null) assetId = uploaded.id; else assetKey = uploaded.key;
+        assetMetadata = {
+          filename: compressed.name,
+          mimeType: compressed.type || "application/octet-stream",
+          byteSize: compressed.size,
+        };
       }
       if (editing) {
         await api.updateRunStep(state.column.sample.id, state.column.run.id, state.step.id, {
@@ -506,6 +554,8 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
           notes: state.step.notes || "",
           expectedUpdatedAt: state.step.updatedAt,
           assetKey,
+          assetId,
+          assetMetadata,
         });
       } else {
         await api.createRunStep(state.column.sample.id, state.column.run.id, {
@@ -516,11 +566,13 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
           commentsText,
           deviationNote,
           assetKey,
+          assetId,
+          assetMetadata,
         });
       }
       await onSaved();
       onClose();
-    } catch (error) { setError((error as Error).message); }
+    } catch (error) { setError((error as Error).message); setUploadProblem(error instanceof R2UploadRequestError); }
     finally { setSaving(false); }
   }
 
@@ -536,7 +588,7 @@ function StepDrawer({ state, onClose, onSaved }: { state: Exclude<DrawerState, n
         <label>{metrology ? "Result note" : "What happened"}<textarea rows={3} value={commentsText} onChange={(event) => setCommentsText(event.target.value)} placeholder={metrology ? "Optional result summary" : "Execution detail, not a plan edit"} /></label>
         {!metrology && <label>Reason for deviation<textarea rows={3} value={deviationNote} onChange={(event) => setDeviationNote(event.target.value)} /></label>}
         <FileDropzone compact accept="image/*" capture="environment" file={image} onFile={setImage} label={metrology ? "Add a result image" : "Add an execution image"} />
-        {error && <p className="error-banner">{error}</p>}
+        {error && <p className="error-banner">{error}</p>}{uploadProblem && <div className="form-actions"><small>The previous upload may still finish. Discarding lets you choose a new upload.</small><button type="button" className="button" disabled={saving} onClick={() => { try { discardR2Upload("ordinary_image", `run-step:${state.column.sample.id}:${state.column.run?.id}:${editing ? state.step.id : `new:${state.afterStepId || "start"}`}`); setImage(null); setError(""); setUploadProblem(false); } catch (caught) { setError((caught as Error).message); } }}>Discard upload</button></div>}
         <div className="form-actions"><button type="button" className="button" disabled={saving} onClick={onClose}>Cancel</button><button className="button primary" disabled={saving}>{saving ? "Saving…" : editing ? "Save correction" : "Add step"}</button></div>
       </form>
     </aside>
@@ -548,75 +600,151 @@ function MetrologyPickerDrawer({ state, onClose, onSaved }: {
   onClose: () => void;
   onSaved: () => Promise<void>;
 }) {
-  const [templates, setTemplates] = useState<MetrologyTemplateSummary[]>([]);
-  const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
+  const [readAttempt, setReadAttempt] = useState(0);
+  const readKey = JSON.stringify([query, readAttempt]);
+  const [templateRead, setTemplateRead] = useState<{
+    key: string; templates: MetrologyTemplateSummary[]; loading: boolean; error: string;
+  }>({ key: readKey, templates: [], loading: true, error: "" });
+  const templates = templateRead.key === readKey ? templateRead.templates : [];
+  const loading = templateRead.key !== readKey || templateRead.loading;
+  const readError = templateRead.key === readKey ? templateRead.error : "";
   const [creating, setCreating] = useState(false);
+  const [savingPhase, setSavingPhase] = useState<"create" | "add" | "refresh" | null>(null);
   const [savingId, setSavingId] = useState("");
   const [error, setError] = useState("");
+  const sessionRef = useRef<object | null>(null);
+  const operationRef = useRef<object | null>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-  useModalDialog({ dialogRef, initialFocusRef: searchRef, onClose, blocked: Boolean(savingId) });
+  const returnToPickerRef = useRef(false);
+  const saving = savingPhase !== null;
+  function close() {
+    if (!operationRef.current) onClose();
+  }
+  useModalDialog({ dialogRef, initialFocusRef: searchRef, returnFocusRef: state.returnFocusRef, onClose: close, blocked: saving });
+  useEffect(() => {
+    const session = {};
+    sessionRef.current = session;
+    return () => {
+      sessionRef.current = null;
+      operationRef.current = null;
+    };
+  }, []);
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
+    setTemplateRead({ key: readKey, templates: [], loading: true, error: "" });
     const timeout = window.setTimeout(() => {
       api.listMetrologyTemplates({ query, pageSize: 50, signal: controller.signal }).then(({ templates }) => {
-        setTemplates(templates);
-        setError("");
+        if (!controller.signal.aborted) setTemplateRead({ key: readKey, templates, loading: false, error: "" });
       }).catch((error: Error) => {
-        if (error.name !== "AbortError") setError(error.message);
+        if (!controller.signal.aborted && error.name !== "AbortError") {
+          setTemplateRead({ key: readKey, templates: [], loading: false, error: error.message });
+        }
       }).finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
+        if (!controller.signal.aborted) setTemplateRead((current) => current.key === readKey
+          ? { ...current, loading: false } : current);
       });
     }, query.trim() ? 160 : 0);
     return () => {
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [query]);
+  }, [query, readKey]);
+
+  function begin(phase: "create" | "add", templateVersionId = "") {
+    if (!sessionRef.current || operationRef.current || !state.column.run) return null;
+    const operation = {
+      session: sessionRef.current,
+      sampleId: state.column.sample.id,
+      runId: state.column.run.id,
+      afterStepId: state.afterStepId,
+      onSaved,
+      onClose,
+    };
+    operationRef.current = operation;
+    setSavingPhase(phase); setSavingId(templateVersionId); setError("");
+    return operation;
+  }
+
+  type Operation = NonNullable<ReturnType<typeof begin>>;
+  function current(operation: Operation) {
+    return sessionRef.current === operation.session && operationRef.current === operation;
+  }
+  function finish(operation: Operation) {
+    if (!current(operation)) return;
+    operationRef.current = null;
+    setSavingPhase(null); setSavingId("");
+  }
+
+  async function insert(operation: Operation, templateVersionId: string) {
+    if (!current(operation)) return;
+    setSavingPhase("add"); setSavingId(templateVersionId);
+    try {
+      await api.createMetrologyRunEntry(operation.sampleId, operation.runId, {
+        templateVersionId,
+        afterStepId: operation.afterStepId,
+      });
+      if (!current(operation)) return;
+      setSavingPhase("refresh");
+      await operation.onSaved();
+      if (current(operation)) operation.onClose();
+    } catch (error) {
+      if (current(operation)) setError((error as Error).message);
+    }
+  }
 
   async function add(templateVersionId: string) {
-    if (!state.column.run) return;
-    setSavingId(templateVersionId); setError("");
-    try {
-      await api.createMetrologyRunEntry(state.column.sample.id, state.column.run.id, {
-        templateVersionId,
-        afterStepId: state.afterStepId,
-      });
-      await onSaved();
-      onClose();
-    } catch (error) { setError((error as Error).message); }
-    finally { setSavingId(""); }
+    const operation = begin("add", templateVersionId);
+    if (!operation) return;
+    try { await insert(operation, templateVersionId); }
+    finally { finish(operation); }
   }
 
   async function createAndAdd(input: MetrologyTemplateInput) {
-    const created = await api.createMetrologyTemplate(input);
-    await add(created.id);
+    const operation = begin("create");
+    if (!operation) return;
+    try {
+      const created = await api.createMetrologyTemplate(input);
+      if (current(operation)) await insert(operation, created.id);
+    } catch (error) {
+      if (current(operation)) throw error;
+    } finally { finish(operation); }
   }
 
-  return <div className="step-drawer-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !savingId) onClose(); }}>
+  return <div className="step-drawer-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) close(); }}>
     <aside ref={dialogRef} className="step-drawer metrology-picker-drawer" role="dialog" aria-modal="true" aria-labelledby="metrology-picker-title">
-      <div className="step-drawer-heading"><div><p className="dialog-kicker">{state.column.sample.code}</p><h2 id="metrology-picker-title">Add metrology</h2></div><button type="button" className="drawer-close" aria-label="Close" disabled={Boolean(savingId)} onClick={onClose}><DialogCloseIcon /></button></div>
+      <div className="step-drawer-heading"><div><p className="dialog-kicker">{state.column.sample.code}</p><h2 id="metrology-picker-title">Add metrology</h2></div><button type="button" className="drawer-close" aria-label="Close" disabled={saving} onClick={close}><DialogCloseIcon /></button></div>
       <p className="muted">Choose a saved record type, or create a new metrology template and add it here.</p>
-      {creating ? <MetrologyTemplateForm embedded title="New metrology template" submitLabel="Save and add" onCancel={() => setCreating(false)} onSubmit={createAndAdd} /> : <>
-        <label className="search-box metrology-template-search"><span>Search templates</span><input ref={searchRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="SEM, AFM, XRD…" /></label>
+      {creating ? <MetrologyTemplateForm embedded title="New metrology template" submitLabel="Save and add" onCancel={() => { if (operationRef.current) return; returnToPickerRef.current = true; setCreating(false); }} onSubmit={createAndAdd} /> : <>
+        <label className="search-box metrology-template-search"><span>Search templates</span><input ref={(node) => {
+          searchRef.current = node;
+          if (!node || !returnToPickerRef.current) return;
+          returnToPickerRef.current = false;
+          // This picker owns only its explicit idle create-form return. A later
+          // overlay or an unmounted session keeps its own focus destination.
+          if (sessionRef.current && !operationRef.current && node.isConnected
+            && (document.activeElement === document.body || dialogRef.current?.contains(document.activeElement))) {
+            node.focus({ preventScroll: true });
+          }
+        }} aria-label="Search templates" disabled={saving} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="SEM, AFM, XRD…" /></label>
         <div className="metrology-picker-list">
-          {templates.map((template) => <button type="button" key={template.id} disabled={Boolean(savingId)} onClick={() => void add(template.id)}>
+          {templates.map((template) => <button type="button" key={template.id} disabled={saving} onClick={() => void add(template.id)}>
             <span><strong>{template.name}</strong><small>{template.toolName || "No default tool"}{template.hasDefaultContent ? " · default content" : ""}</small></span>
             <span>{savingId === template.id ? "Adding…" : "Add"}</span>
           </button>)}
           {loading && !templates.length && <p className="muted">Loading metrology templates…</p>}
-          {!loading && !templates.length && <p className="muted">No matching metrology templates.</p>}
+          {!loading && !templates.length && !readError && <p className="muted">No matching metrology templates.</p>}
         </div>
-        <button type="button" className="button wide" disabled={Boolean(savingId)} onClick={() => setCreating(true)}>Create new metrology template</button>
+        {readError && <div><p className="error-banner" role="alert">{readError}</p><button type="button" className="button" disabled={saving} onClick={() => setReadAttempt((attempt) => attempt + 1)}>Retry templates</button></div>}
+        <button type="button" className="button wide" disabled={saving} onClick={() => setCreating(true)}>Create new metrology template</button>
       </>}
       {error && <p className="error-banner">{error}</p>}
     </aside>
   </div>;
 }
 
-export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = false }: { columns: RunGridColumn[]; primaryRun: SampleRun; onSaved: () => Promise<void>; readOnly?: boolean }) {
+export function MultiSampleRunGrid({ columns, primaryRun, onSaved, onAttachmentChanged = onSaved, readOnly = false }: { columns: RunGridColumn[]; primaryRun: SampleRun; onSaved: (affectedSampleIds?: readonly string[]) => Promise<void>; onAttachmentChanged?: () => Promise<void>; readOnly?: boolean }) {
   const rows = useMemo(() => buildRunGrid(columns), [columns]);
   const currentRow = useMemo(() => findCurrentRunGridRow(rows), [rows]);
   const currentRowSignature = currentRow ? `${currentRow.row.key}:${currentRow.unfinishedColumnIndexes.join(",")}` : "";
@@ -647,6 +775,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
   const fullHeader = useRef<HTMLDivElement>(null);
   const stickySampleTrack = useRef<HTMLDivElement>(null);
   const jumpButtonAnchor = useRef<HTMLDivElement>(null);
+  const restoreJumpFocus = useRef(false);
   const rowAnchors = useRef(new Map<string, HTMLElement>());
   const stepCellAnchors = useRef(new Map<string, HTMLElement>());
   const jumpBaseEligible = useRef(false);
@@ -858,6 +987,9 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
       const headerBottom = headerNode.getBoundingClientRect().bottom;
       const cardBottom = cardNode.getBoundingClientRect().bottom;
       const next = headerBottom <= stickyTop + 36 && cardBottom > stickyTop + 36;
+      const jumpAnchor = jumpButtonAnchor.current;
+      if (jumpAnchor?.classList.contains("mobile-docked") && jumpAnchor.contains(document.activeElement)
+        && Boolean(jumpAnchor.closest(".run-grid-sticky-names")) !== next) restoreJumpFocus.current = true;
       setShowStickyNames((current) => current === next ? current : next);
       cardNode.style.setProperty("--run-grid-sticky-top", `${stickyTop}px`);
     }
@@ -901,7 +1033,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
     if (!node || !sampleHeader) return;
     const columnWidth = sampleHeader.getBoundingClientRect().width;
     const nextColumn = Math.round(node.scrollLeft / columnWidth) + direction;
-    node.scrollTo({ left: Math.max(0, nextColumn * columnWidth), behavior: "smooth" });
+    node.scrollTo({ left: Math.max(0, nextColumn * columnWidth), behavior: preferredScrollBehavior() });
   }
 
   async function jumpToCurrent() {
@@ -1025,8 +1157,10 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
     if (!eligible.length) return;
     setPendingAction(`confirm:${rowKey}`); setError("");
     try {
-      await api.confirmRunSteps({ targets: eligible.map(({ column, step }) => target(column, step)) });
-      await onSaved();
+      const targets = eligible.map(({ column, step }) => target(column, step));
+      const affectedSampleIds = [...new Set(targets.map(({ sampleId }) => sampleId))];
+      await api.confirmRunSteps({ targets });
+      await onSaved(affectedSampleIds);
     } catch (error) { setError((error as Error).message); }
     finally { setPendingAction(null); }
   }
@@ -1034,7 +1168,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
   async function confirmDelete() {
     if (!deleteRequest) return;
     const actionKey = deleteRequest.kind === "execution_asset"
-      ? `delete-asset:${deleteRequest.step.id}:${deleteRequest.assetKey}`
+      ? `delete-asset:${deleteRequest.step.id}:${deleteRequest.assetId ?? deleteRequest.assetKey}`
       : `delete:${deleteRequest.comment.id}:${deleteRequest.kind}`;
     setPendingAction(actionKey); setDeleteError(""); setError("");
     try {
@@ -1043,7 +1177,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
         else await api.deleteRunStepComment(deleteRequest.comment.id);
       }
       else if (deleteRequest.kind === "comment_asset") await api.deleteRunStepCommentAsset(deleteRequest.comment.id);
-      else await api.deleteRunStepAsset(deleteRequest.column.sample.id, deleteRequest.column.run!.id, deleteRequest.step.id, deleteRequest.assetKey);
+      else await api.deleteRunStepAsset(deleteRequest.column.sample.id, deleteRequest.column.run!.id, deleteRequest.step.id, deleteRequest.assetId ? { assetId: deleteRequest.assetId } : deleteRequest.assetKey);
       setDeleteRequest(null);
       await onSaved();
     } catch (error) { setDeleteError((error as Error).message); }
@@ -1102,12 +1236,13 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
       onVerifyMismatch={(note) => verifyState(column, step, "mismatched", note)}
       commentContext={{ kind: "run_steps", scope: "individual", targets: [target(column, step)] }}
       onCommentSubmitted={onSaved}
+      onAttachmentChanged={onAttachmentChanged}
       onDeleteComment={(comment) => { setDeleteError(""); setDeleteRequest({ kind: "comment", comment, common: false }); }}
       onDeleteCommentAsset={(comment) => { setDeleteError(""); setDeleteRequest({ kind: "comment_asset", comment, common: false }); }}
-      onDeleteExecutionAsset={(assetKey) => { setDeleteError(""); setDeleteRequest({ kind: "execution_asset", assetKey, column, step }); }}
+      onDeleteExecutionAsset={(selector) => { setDeleteError(""); setDeleteRequest({ kind: "execution_asset", assetKey: typeof selector === "string" ? selector : "", ...(typeof selector === "string" ? {} : selector), column, step }); }}
       onEdit={() => setDrawer({ mode: "edit", column, step })}
       onAddFabrication={() => setDrawer({ mode: "add", column, afterStepId: step.id })}
-      onAddMetrology={() => setMetrologyDrawer({ column, afterStepId: step.id })}
+      onAddMetrology={(returnFocusRef) => setMetrologyDrawer({ column, afterStepId: step.id, returnFocusRef })}
       allowAdd={primaryRun.runKind === "process"}
       readOnly={runStepIsReadOnly(readOnly, primaryRun.status === "complete", step)}
     />;
@@ -1116,10 +1251,20 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
   const layoutClass = `sample-count-${Math.min(columns.length, 4)}`;
   const jumpButtonVisible = Boolean(currentRow && jumpButtonGeometry.baseEligible
     && (!jumpButtonGeometry.overlapsGrid || jumpDirectionAllowed));
-  const jumpButton = typeof document === "undefined" || !currentRow ? null : createPortal(
+  useLayoutEffect(() => {
+    if (!restoreJumpFocus.current) return;
+    if (!currentRow || (document.activeElement !== document.body && !jumpButtonAnchor.current?.contains(document.activeElement))) {
+      restoreJumpFocus.current = false;
+      return;
+    }
+    if (!jumpButtonVisible) return;
+    restoreJumpFocus.current = false;
+    jumpButtonAnchor.current?.querySelector("button")?.focus({ preventScroll: true });
+  }, [mobileRunGrid, showStickyNames, jumpButtonVisible, currentRow]);
+  const jumpButton = !currentRow ? null : (
     <div
       ref={jumpButtonAnchor}
-      className={`jump-to-current-anchor${jumpButtonVisible ? " is-visible" : ""}`}
+      className={`jump-to-current-anchor${mobileRunGrid ? " mobile-docked" : ""}${jumpButtonVisible ? " is-visible" : ""}`}
       aria-hidden={!jumpButtonVisible}
     >
       <button
@@ -1134,29 +1279,32 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
       >
         <JumpToCurrentIcon />
       </button>
-    </div>,
-    document.body,
+    </div>
   );
   return <>
   <article className={`run-grid-card ${layoutClass}`} ref={card}>
     <div className="run-grid-toolbar">
-      <div><p className="card-label">{primaryRun.runKind === "metrology" ? "Metrology" : `${primaryRun.templateType} · plan r${primaryRun.planRevisionNumber}`} · run {primaryRun.sequenceNo}</p><h3 className="card-title">{primaryRun.templateName}{primaryRun.runKind === "process" ? ` v${primaryRun.templateVersion}` : ""}</h3><small>{primaryRun.runKind === "metrology" ? "A standalone result record; it does not change the sample structure." : primaryRun.status === "active" ? "Plan on the left; actual execution stays in each sample column." : `${primaryRun.status} run · preserved in the sample chain`}</small></div>
+      <div className="run-grid-identity"><h3 className="card-title">{primaryRun.templateName}{primaryRun.runKind === "process" ? ` v${primaryRun.templateVersion}` : ""}</h3><p className="run-grid-run-meta">{primaryRun.runKind === "metrology" ? "Metrology" : `${primaryRun.templateType} · plan r${primaryRun.planRevisionNumber}`} · run {primaryRun.sequenceNo}</p></div>
       <div className="grid-scroll-buttons" aria-label="Sample columns">{scrollState.overflow && <button type="button" disabled={!scrollState.left} onClick={() => scrollColumns(-1)} aria-label="Scroll sample columns left">←</button>}<span>{columns.length} sample{columns.length === 1 ? "" : "s"}</span>{scrollState.overflow && <button type="button" disabled={!scrollState.right} onClick={() => scrollColumns(1)} aria-label="Scroll sample columns right">→</button>}</div>
+      <div className="run-grid-navigation-row">
+        <details className="processing-grid-guidance"><summary>{primaryRun.runKind === "metrology" ? "Record and batch help" : "Plan and batch help"}</summary><div><p>{primaryRun.runKind === "metrology" ? "A standalone result record; it does not change the sample structure." : primaryRun.status === "active" ? "Plan on the left; actual execution stays in each sample column." : `${primaryRun.status} run · preserved in the sample chain`}</p><p>Common actions use checked samples</p></div></details>
+        <div className="mobile-jump-dock">{mobileRunGrid && !showStickyNames ? jumpButton : null}</div>
+      </div>
     </div>
-    {error && <p className="error-banner grid-error">{error}</p>}
-    <div className={`run-grid-sticky-names${showStickyNames ? " visible" : ""}`} aria-hidden="true">
-      <div className="sticky-recipe-name">{primaryRun.runKind === "metrology" ? "Metrology" : "Process plan"}</div>
-      <div className="sticky-sample-viewport">
+    {error && <p className="error-banner grid-error" role="alert">{error}</p>}
+    <div className={`run-grid-sticky-names${showStickyNames ? " visible" : ""}`}>
+      <div className="sticky-recipe-name" aria-hidden="true">{primaryRun.runKind === "metrology" ? "Metrology" : "Process plan"}</div>
+      <div className="sticky-sample-viewport" aria-hidden="true">
         <div className="sticky-sample-track" ref={stickySampleTrack}>
           {columns.map((column) => <div className="sticky-sample-name" key={`sticky:${column.sample.id}`} title={`${column.sample.title} · ${column.sample.code}`}>{column.sample.title}</div>)}
         </div>
       </div>
+      <div className="mobile-jump-dock">{mobileRunGrid && showStickyNames ? jumpButton : null}</div>
     </div>
     <div className="run-grid-scroll" ref={scroller}>
       <div className="run-grid" style={{ "--sample-columns": columns.length } as React.CSSProperties}>
         <div className="run-grid-header recipe-column" ref={fullHeader}>
           <strong>{primaryRun.runKind === "metrology" ? "Record type" : "Process plan"}</strong>
-          <small>Common actions use checked samples</small>
         </div>
         {columns.map((column) => <div className="run-grid-header sample-column-header" key={column.sample.id}>
           <label><input type="checkbox" checked={selected.has(column.sample.id)} disabled={!column.run || readOnly} onChange={() => toggleColumn(column.sample.id)} /><span><strong>{column.sample.title}</strong><small>{column.sample.code}</small></span></label>
@@ -1226,8 +1374,8 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
             >
               {row.kind !== "template" ? <div className={`recipe-step-heading additional-step-heading${row.kind === "metrology" ? " metrology-step-heading" : ""}`}><span>{row.kind === "metrology" ? "M" : "+"}</span><div><strong>{row.kind === "metrology" ? "Metrology" : "Additional step"}</strong><small>{row.kind === "metrology" ? rowLeadStep?.title : "Not part of the process template"}</small></div></div> : <>
               <div className="recipe-step-heading recipe-step-heading-desktop"><span>{recipeNumber}</span><div><strong>{row.recipeStep?.plannedTitle || row.recipeStep?.title}</strong>{row.recipeStep?.plannedToolName && <small>{row.recipeStep.plannedToolName}</small>}</div></div>
-              {row.recipeStep && <button type="button" className="recipe-step-heading recipe-details-trigger" onClick={() => setRecipeDetails({ step: row.recipeStep!, number: recipeNumber })} aria-label={`View process-step details for ${row.recipeStep.plannedTitle || row.recipeStep.title}`}><span className="recipe-step-number">{recipeNumber}</span><strong>{row.recipeStep.plannedTitle || row.recipeStep.title}</strong><svg className="recipe-details-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6" /></svg></button>}
-              <div className="recipe-content-split recipe-desktop-details"><div>{row.recipeStep?.plannedParametersText && <div className="recipe-field"><small>Parameters</small><p>{row.recipeStep.plannedParametersText}</p></div>}{row.recipeStep?.plannedCommentsText && <div className="recipe-field"><small>Plan note</small><p>{row.recipeStep.plannedCommentsText}</p></div>}</div>{row.recipeStep && <DiagramGallery keys={row.recipeStep.plannedImageKeys} label={`Plan diagram for ${row.recipeStep.title}`} size="wide" />}</div>
+              {row.recipeStep && <button type="button" className="recipe-step-heading recipe-details-trigger" onClick={() => setRecipeDetails({ step: row.recipeStep!, number: recipeNumber })} aria-label={`View process-step details for ${row.recipeStep.plannedTitle || row.recipeStep.title}`} title={row.recipeStep.plannedTitle || row.recipeStep.title}><span className="recipe-step-number">{recipeNumber}</span><strong>{row.recipeStep.plannedTitle || row.recipeStep.title}</strong><svg className="recipe-details-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="m9 6 6 6-6 6" /></svg></button>}
+              <div className="recipe-content-split recipe-desktop-details"><div>{row.recipeStep?.plannedParametersText && <div className="recipe-field"><small>Parameters</small><p>{row.recipeStep.plannedParametersText}</p></div>}{row.recipeStep?.plannedCommentsText && <div className="recipe-field"><small>Plan note</small><p>{row.recipeStep.plannedCommentsText}</p></div>}</div>{row.recipeStep && <DiagramGallery keys={row.recipeStep.plannedImageKeys} images={row.recipeStep.plannedImages} label={`Plan diagram for ${row.recipeStep.title}`} size="wide" />}</div>
               </>}
               {supportsCommonActions && <>
               {!readOnly && <div className="recipe-actions">
@@ -1254,6 +1402,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
               {!mobileRunGrid && <div className="process-plan-comment-inline">
                 {!readOnly && commonCommentsOpen && <CommentComposer
                   label="Add to checked samples"
+                  sourceKey={`common-row:${row.key}`}
                   context={{ kind: "run_steps", scope: "common", targets: commonTargets }}
                   adaptiveToolbarLayout
                   onCancel={() => setCommonCommentRow(null)}
@@ -1262,7 +1411,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
                     await onSaved();
                   }}
                 />}
-                <CommentSubmissionRecovery submissions={commonRecovery} onSubmitted={onSaved} />
+                <CommentSubmissionRecovery localSourceKey={!readOnly && commonCommentsOpen && !mobileRunGrid ? `common-row:${row.key}` : undefined} submissions={commonRecovery} onSubmitted={onSaved} />
                 {readyCommonGroups.length > 0 && <div className="common-comments">
                   <small>Common execution comments</small>
                   {readyCommonGroups.map(({ comment, codes }) => <CommentCard
@@ -1271,12 +1420,14 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
                   common
                   meta={`${codes.join(", ")} · ${comment.actorEmail || "Unknown user"} · ${new Date(comment.createdAt).toLocaleString()}`}
                   imageLabel="Common comment photo"
+                  onChanged={readOnly ? undefined : onAttachmentChanged}
                   onDelete={() => { setDeleteError(""); setDeleteRequest({ kind: "comment", comment, common: true }); }}
-                  onDeleteAsset={comment.assetKey ? () => { setDeleteError(""); setDeleteRequest({ kind: "comment_asset", comment, common: true }); } : undefined}
+                  onDeleteAsset={(comment.assetKey || comment.assetUrl) ? () => { setDeleteError(""); setDeleteRequest({ kind: "comment_asset", comment, common: true }); } : undefined}
                   />)}
                 </div>}
               </div>}
               {mobileRunGrid && commonCommentsOpen && <ProcessPlanCommentDialog
+                sourceKey={`common-row:${row.key}`}
                 stepName={stepName}
                 commentContext={commonCommentContext}
                 targets={commonTargets}
@@ -1285,6 +1436,7 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
                 readOnly={readOnly}
                 onClose={() => setCommonCommentRow(null)}
                 onSubmitted={onSaved}
+                onAttachmentChanged={onAttachmentChanged}
                 onDelete={(comment) => { setDeleteError(""); setDeleteRequest({ kind: "comment", comment, common: true }); }}
                 onDeleteAsset={(comment) => { setDeleteError(""); setDeleteRequest({ kind: "comment_asset", comment, common: true }); }}
               />}
@@ -1309,42 +1461,45 @@ export function MultiSampleRunGrid({ columns, primaryRun, onSaved, readOnly = fa
         })}
       </div>
     </div>
-    {drawer && <StepDrawer key={`${drawer.mode}:${drawer.mode === "edit" ? drawer.step.id : `${drawer.column.sample.id}:${drawer.afterStepId || "first"}`}`} state={drawer} onClose={() => setDrawer(null)} onSaved={onSaved} />}
-    {metrologyDrawer && <MetrologyPickerDrawer key={`${metrologyDrawer.column.sample.id}:${metrologyDrawer.afterStepId || "first"}`} state={metrologyDrawer} onClose={() => setMetrologyDrawer(null)} onSaved={onSaved} />}
+    {drawer && <StepDrawer key={`${drawer.mode}:${drawer.mode === "edit" ? drawer.step.id : `${drawer.column.sample.id}:${drawer.afterStepId || "first"}`}`} state={drawer} onClose={() => setDrawer(null)} onSaved={() => onSaved([drawer.column.sample.id])} />}
+    {metrologyDrawer && <MetrologyPickerDrawer key={`${metrologyDrawer.column.sample.id}:${metrologyDrawer.afterStepId || "first"}`} state={metrologyDrawer} onClose={() => setMetrologyDrawer(null)} onSaved={() => onSaved([metrologyDrawer.column.sample.id])} />}
     {recipeDetails && <RecipeDetailsSheet state={recipeDetails} onClose={closeRecipeDetails} />}
     {deleteRequest && <ConfirmDeleteDialog
-      title={deleteRequest.kind === "comment" ? "Delete this comment?" : deleteRequest.kind === "comment_asset" ? "Delete this comment attachment?" : "Delete this execution image?"}
+      title={deleteRequest.kind === "comment" ? (deleteRequest.comment.submissionId ? "Move this Comment to trash?" : "Delete this comment?") : deleteRequest.kind === "comment_asset" ? "Delete this comment attachment?" : "Delete this run attachment?"}
       description={deleteRequest.kind === "comment"
-        ? (deleteRequest.common ? "This common comment will be removed from every sample included when it was added. The audit history will remain." : "This comment will be removed from this sample step. The audit history will remain.")
+        ? (deleteRequest.comment.submissionId ? `${deleteRequest.common ? "This common Comment will be hidden from every target. " : "This Comment will be hidden from this step. "}The Comment and its attachments are retained in Trash for 30 days; the audit history remains.` : deleteRequest.common ? "This common comment will be removed from every sample included when it was added. The audit history will remain." : "This comment will be removed from this sample step. The audit history will remain.")
         : deleteRequest.kind === "comment_asset"
           ? (deleteRequest.common ? "The attached image will be removed from every copy of this common comment; the text and audit history will remain." : "The attached image will be removed; the comment text and audit history will remain.")
-          : "The image will be detached from this execution step; the Timeline will retain a text-only deletion event."}
+          : "Only this attachment will be detached from the execution step. The Run, step, status, and textual Timeline history remain. Its bytes have a guaranteed 24-hour recovery window; later recovery depends on whether cleanup has begun."}
       summary={deleteRequest.kind === "execution_asset" ? deleteRequest.step.title : deleteRequest.comment.body.trim() || "Image attachment"}
       deleting={pendingAction !== null && pendingAction.startsWith("delete")}
       error={deleteError}
-      eyebrow={deleteRequest.kind === "comment" ? "Delete comment" : "Delete image"}
-      confirmLabel={deleteRequest.kind === "comment" ? "Delete comment" : "Delete image"}
+      appendIrreversibleWarning={deleteRequest.kind === "comment" && !deleteRequest.comment.submissionId}
+      eyebrow={deleteRequest.kind === "comment" ? (deleteRequest.comment.submissionId ? "Move Comment to trash" : "Delete comment") : "Remove attachment"}
+      confirmLabel={deleteRequest.kind === "comment" ? (deleteRequest.comment.submissionId ? "Move Comment to trash" : "Delete comment") : deleteRequest.kind === "execution_asset" ? "Delete run attachment" : "Remove attachment"}
       onCancel={() => { setDeleteRequest(null); setDeleteError(""); }}
       onConfirm={() => void confirmDelete()}
     />}
   </article>
-  {jumpButton}
+  {typeof document !== "undefined" && !mobileRunGrid && jumpButton ? createPortal(jumpButton, document.body) : null}
   </>;
 }
 
-function StepCell({ column, step, pendingAction, onDone, onVerifyMatched, onVerifyMismatch, commentContext, onCommentSubmitted, onDeleteComment, onDeleteCommentAsset, onDeleteExecutionAsset, onEdit, onAddFabrication, onAddMetrology, allowAdd, readOnly }: {
+function StepCell({ column, step, pendingAction, onDone, onVerifyMatched, onVerifyMismatch, commentContext, onCommentSubmitted, onAttachmentChanged, onDeleteComment, onDeleteCommentAsset, onDeleteExecutionAsset, onEdit, onAddFabrication, onAddMetrology, allowAdd, readOnly }: {
   column: RunGridColumn; step: RunStep; pendingAction: string | null;
   onDone: () => void; onVerifyMatched: () => void; onVerifyMismatch: (note: string) => Promise<void>;
   commentContext: Extract<CreateCommentSubmissionInput["context"], { kind: "run_steps" }>;
   onCommentSubmitted: () => Promise<void>;
-  onDeleteComment: (comment: RunStepComment) => void; onDeleteCommentAsset: (comment: RunStepComment) => void; onDeleteExecutionAsset: (assetKey: string) => void; onEdit: () => void;
-  onAddFabrication: () => void; onAddMetrology: () => void; allowAdd: boolean; readOnly: boolean;
+  onAttachmentChanged: () => Promise<void>;
+  onDeleteComment: (comment: RunStepComment) => void; onDeleteCommentAsset: (comment: RunStepComment) => void; onDeleteExecutionAsset: (selector: string | { assetId: string }) => void; onEdit: () => void;
+  onAddFabrication: () => void; onAddMetrology: (returnFocusRef: RefObject<HTMLButtonElement | null>) => void; allowAdd: boolean; readOnly: boolean;
 }) {
   const individualComments = step.comments.filter((comment) => comment.scope === "individual");
   const recoverableComments = recoverableFromComments(individualComments);
   const readyComments = individualComments.filter((comment) => (comment.status ?? "ready") === "ready");
   const [showStateActions, setShowStateActions] = useState(false);
   const [showAddActions, setShowAddActions] = useState(false);
+  const addActionRef = useRef<HTMLButtonElement>(null);
   const [showMismatchDialog, setShowMismatchDialog] = useState(false);
   const actionsLocked = pendingAction !== null;
   const pendingForStep = pendingRunStepActionTargets(pendingAction, step.id);
@@ -1358,16 +1513,16 @@ function StepCell({ column, step, pendingAction, onDone, onVerifyMatched, onVeri
     {!readOnly && <div className={`cell-actions${metrology ? " metrology-cell-actions" : ""}`}>
       <button type="button" className="done-action" aria-busy={pendingAction === `done:${step.id}`} data-background-locked={lockedByAnotherStep && step.status !== "done" || undefined} disabled={actionsLocked || step.status === "done"} onClick={onDone}>{pendingAction === `done:${step.id}` ? "Saving…" : "Done"}</button>
       <button type="button" data-background-locked={lockedByAnotherStep || undefined} disabled={actionsLocked} onClick={onEdit}>Correct</button>
-      {allowAdd && <button type="button" className="add-entry-action" title="Add after this entry" aria-label="Add after this entry" aria-expanded={showAddActions} data-background-locked={lockedByAnotherStep && column.run?.status === "active" || undefined} disabled={actionsLocked || column.run?.status !== "active"} onClick={() => { setShowStateActions(false); setShowAddActions((shown) => !shown); }}>Add ▾</button>}
+      {allowAdd && <button ref={addActionRef} type="button" className="add-entry-action" title="Add after this entry" aria-label="Add after this entry" aria-expanded={showAddActions} data-background-locked={lockedByAnotherStep && column.run?.status === "active" || undefined} disabled={actionsLocked || column.run?.status !== "active"} onClick={() => { setShowStateActions(false); setShowAddActions((shown) => !shown); }}>Add ▾</button>}
       {!metrology && <button type="button" aria-busy={pendingAction === `verify:${step.id}`} data-background-locked={lockedByAnotherStep || undefined} disabled={actionsLocked} aria-expanded={showStateActions} onClick={() => { setShowAddActions(false); setShowStateActions((shown) => !shown); }}>{pendingAction === `verify:${step.id}` ? "Saving…" : "State ▾"}</button>}
     </div>}
-    {!readOnly && showAddActions && <div className="state-action-panel add-action-panel"><button type="button" disabled={actionsLocked} onClick={() => { setShowAddActions(false); onAddFabrication(); }}>Fabrication</button><button type="button" disabled={actionsLocked} onClick={() => { setShowAddActions(false); onAddMetrology(); }}>Metrology</button></div>}
+    {!readOnly && showAddActions && <div className="state-action-panel add-action-panel"><button type="button" disabled={actionsLocked} onClick={() => { setShowAddActions(false); onAddFabrication(); }}>Fabrication</button><button type="button" disabled={actionsLocked} onClick={() => { setShowAddActions(false); onAddMetrology(addActionRef); }}>Metrology</button></div>}
     {!readOnly && showStateActions && <div className="state-action-panel"><button type="button" disabled={actionsLocked} onClick={() => { setShowStateActions(false); onVerifyMatched(); }}>State verified</button><button type="button" disabled={actionsLocked} onClick={() => { setShowStateActions(false); setShowMismatchDialog(true); }}>State mismatch</button></div>}
     {(step.origin === "ad_hoc" || metrology) && <strong className="ad-hoc-title">{step.title}</strong>}
-    <div className="cell-content-split"><div><ActualDifferences step={step} /></div><DiagramGallery keys={step.executionImageKeys} label={`Execution image for ${step.title}`} onDelete={onDeleteExecutionAsset} /></div>
+    <div className="cell-content-split"><div><ActualDifferences step={step} /></div><DiagramGallery keys={step.executionImageKeys} images={step.executionImages} label={`Execution image for ${step.title}`} onDelete={onDeleteExecutionAsset} onDeleteNative={assetId => onDeleteExecutionAsset({ assetId })} /></div>
     {!readOnly && <CommentComposer label="Individual comment" context={commentContext} adaptiveToolbarLayout onSubmitted={onCommentSubmitted} />}
-    <CommentSubmissionRecovery submissions={recoverableComments} onSubmitted={onCommentSubmitted} />
-    <CommentList comments={readyComments} onDelete={onDeleteComment} onDeleteAsset={onDeleteCommentAsset} />
+    <CommentSubmissionRecovery localSourceKey={!readOnly ? commentComposerSource(commentContext) : undefined} submissions={recoverableComments} onSubmitted={onCommentSubmitted} />
+    <CommentList comments={readyComments} onDelete={onDeleteComment} onDeleteAsset={onDeleteCommentAsset} onChanged={readOnly ? undefined : onAttachmentChanged} />
     {showMismatchDialog && <StateMismatchDialog
       sampleCode={column.sample.code}
       stepTitle={step.plannedTitle || step.title}

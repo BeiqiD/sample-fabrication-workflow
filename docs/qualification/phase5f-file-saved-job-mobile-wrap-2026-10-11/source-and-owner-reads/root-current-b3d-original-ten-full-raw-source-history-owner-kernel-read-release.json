@@ -1,0 +1,113 @@
+{
+  "status": "ROOT_CURRENT_B3D_ORIGINAL_TEN_FORMAL_RAW_ALL_SOURCE_ARTIFACT_HISTORY_OWNER_KERNEL_READ_RELEASED",
+  "time": "2026-10-11T19:41:21.589801+00:00",
+  "formal": {
+    "path": "/tmp/phase5f-file-saved-mobile-five-custody-native-private-attempt3/runtime/actual-current5e-b3d-file-mobile-original-ten-qualified-closed-release.json",
+    "sha256": "9c17332913fb4ff7efdeb0f2e09fba4504132cc2bd8a8d47a404518512c36214"
+  },
+  "wholeOriginal34ReferencesByteReadHashExact": true,
+  "completeGitModeBlobPhysicalSources": [
+    2726,
+    2728
+  ],
+  "wholeCopyTracked2726Artifact121AndOriginal118Hashes": true,
+  "actualCommandsPass": 10,
+  "actualNativePass": 1,
+  "actual390DarkGeometry": {
+    "width": 390,
+    "root": 390,
+    "body": 390,
+    "theme": "dark"
+  },
+  "genuineFocusedMetadataHistoryAndAllResponsesRead": true,
+  "physicalBeforeAfter": {
+    "sqliteCounts": [
+      2,
+      5
+    ],
+    "sourceBytesAndPNGExact": true,
+    "targetEmpty": true
+  },
+  "sameOriginal10WaitsReapedNoSignals": true,
+  "passiveKernelGroups": [
+    {
+      "pid": 1485238,
+      "state": "Z",
+      "ppid": 1,
+      "pgid": 1485227
+    },
+    {
+      "pid": 1485298,
+      "state": "Z",
+      "ppid": 1,
+      "pgid": 1485271
+    },
+    {
+      "pid": 1485637,
+      "state": "Z",
+      "ppid": 1,
+      "pgid": 1485621
+    }
+  ],
+  "kernelLimits": {
+    "sevenGroupsEMPTY": 7,
+    "threeRetainedExitedGroups": [
+      {
+        "stage": "fresh-two-version-sentinel",
+        "pid": 1485227,
+        "startTicks": "16031314",
+        "exitCode": 0,
+        "sameOriginalWaitReaped": true,
+        "kernelGroupsAfterWait": [
+          {
+            "pid": 1485238,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1485227,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      {
+        "stage": "ordinary-actual24-local-migrations",
+        "pid": 1485271,
+        "startTicks": "16032224",
+        "exitCode": 0,
+        "sameOriginalWaitReaped": true,
+        "kernelGroupsAfterWait": [
+          {
+            "pid": 1485298,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1485271,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      {
+        "stage": "synthetic-template-sentinels-only",
+        "pid": 1485621,
+        "startTicks": "16034676",
+        "exitCode": 0,
+        "sameOriginalWaitReaped": true,
+        "kernelGroupsAfterWait": [
+          {
+            "pid": 1485637,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1485621,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      }
+    ],
+    "FDPermissionUnknownPreserved": true,
+    "noSignals": true,
+    "noGlobalPGEmptyOrObservedZeroFdClaim": true
+  },
+  "Start202InitialFocus": "UNCHARACTERIZED: genuine accept202 is qualified, but the original helper explicitly focuses Pause before later controls; no disappearing Start\u2192job focus claim.",
+  "scope": "Original5e CSS producer/b3d QA only. Historical c94bFAIL retained; no Package mobile or Refresh completion claim. No candidate rerun/build/type. Local actual window released."
+}

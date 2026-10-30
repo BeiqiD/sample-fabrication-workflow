@@ -1,0 +1,376 @@
+{
+  "kind": "portable-v26-current-business-finite-qualification-plan/1",
+  "status": "FROZEN_SOURCE_ONLY; no listed command executed by this audit",
+  "workingDirectory": "/tmp/portable-v26-business-e9eb709-private-source",
+  "strictCommands": [
+    {
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.server.json"
+      ],
+      "configSha256": "1b49e4d0ab2c9b8c5583ca5eedcb9a40c8cc9667a4f74d7f4f03d1c8f6da9880",
+      "status": "UNRUN on the combined source"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.runtime-tests.json"
+      ],
+      "configSha256": "6cb4ca106cacb07c0df398c9e894fdd77b98908f27340449fc2a61e208df2356",
+      "status": "UNRUN on the combined source"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.worker.json"
+      ],
+      "configSha256": "7f8a8beb3115c839a0c9008b4949336a0a18517e351ad14f05431b0e73c424fc",
+      "status": "UNRUN on the combined source"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.app.json"
+      ],
+      "configSha256": "2a56d25a041e9e6d411c7e64a66d7c65880d6672f154458cdec33a5267c78bf5",
+      "status": "UNRUN on the combined source"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.shared.json"
+      ],
+      "configSha256": "fc34636bf24a5ef630a494e5d58f336f3efd7fdcf6d5ca9b487116a912e2a5b8",
+      "status": "UNRUN on the combined source"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.file-jobs-node.json"
+      ],
+      "configSha256": "418d8825e653c5c780cc9eea9431e1ef3a90f5b539b504f1a50e7c8d7f1bff14",
+      "status": "UNRUN on the combined source"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        ".tsconfig.v26-worker-tests.json"
+      ],
+      "configSha256": "850a0437d2fc0b2d60445eb5b20e0ed3617c50b710c1143899dff363340005e8",
+      "status": "UNRUN on the combined source"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        ".tsconfig.v26-node-script.json"
+      ],
+      "configSha256": "4d2cd2937bf83d7ad5bf98ed93a3720628a57efe9d9622d99ddb5c91838e713c",
+      "status": "UNRUN on the combined source"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        ".tsconfig.v26-client-tests.json"
+      ],
+      "configSha256": "1e0ef22522c31d1b84462bd4ffb304207aa6e0cc6250d7ee7aee51b3692bf5b9",
+      "status": "UNRUN on the combined source"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        ".tsconfig.v26-research-tests.json"
+      ],
+      "configSha256": "494543c1502fd3e89600a58cb70d0035e077a321103cef3b7ebebfbc3625b8d4",
+      "status": "UNRUN on the combined source"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.export-contract.json"
+      ],
+      "configSha256": "e8ec1615b8eca48ee0855db8c05025f4c1d2e32cb16e512a3fc80926ff6a09a7",
+      "status": "UNRUN on the combined source",
+      "reason": "The existing typecheck:export-contract package script requires both focused compilers."
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.file-migration.json"
+      ],
+      "configSha256": "e9452fb188809937d9ef0461fad126c0b68fd4ab7f067c7e9b2e068a5b31b752",
+      "status": "UNRUN on the combined source",
+      "reason": "The existing typecheck:export-contract package script requires both focused compilers."
+    }
+  ],
+  "runtimeCommands": [
+    {
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "server/recovery/portable-v26-checkpoint.test.ts"
+      ],
+      "expectedCases": 14,
+      "scope": "Actual file-backed Node capsule, protected identity/history, rollback and provenance.",
+      "sourceSha256": "cf9a28935d18b9faf6f9197da4899a76c7800ff148e4fd62bb5e998d8dc3efb8",
+      "status": "UNRUN on the combined source; original d79 actual receipt remains separate"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "scripts/lib/export-portable-runtime-v26.test.ts"
+      ],
+      "expectedCases": 1,
+      "scope": "Actual public exportAll ZIP and isolated non-empty research restore.",
+      "sourceSha256": "fc9ff7cbf2c888680db89ec06d188c1ac9fbd2da0cf65ca4b8440cf3d0b28ef0",
+      "status": "UNRUN on the combined source; original d79 actual receipt remains separate"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "worker/export-portable-negotiation.test.ts"
+      ],
+      "expectedCases": 5,
+      "scope": "Genuine signed Access factory routes on frozen V24, V25 and metadata-only V26.",
+      "sourceSha256": "bc219c9a469c3f0ca5b5629272ca3276ebaccef30dc6b937e4b349feffa279fb",
+      "status": "UNRUN on the combined source; original d79 actual receipt remains separate"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "src/lib/api-portable-export.test.ts"
+      ],
+      "expectedCases": 2,
+      "scope": "Current client V26 negotiation and refusal preservation.",
+      "sourceSha256": "2d062b1a8a856c82eb82f1c7a46e94d7635c04c1d605d7869325fd38a301f0e7",
+      "status": "UNRUN on the combined source; original d79 actual receipt remains separate"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "worker/recovery/portable-backup-v26-workerd.test.ts"
+      ],
+      "expectedCases": 2,
+      "scope": "Genuine local Miniflare/workerd current source plus empty and current D1 target; original authored 180 s per case.",
+      "sourceSha256": "05f498915fe03b6616f1ed01302999ced198b99b085ece8e7af044d109f51042",
+      "status": "UNRUN on the combined source; original d79 actual receipt remains separate"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "worker/recovery/portable-backup-current-workerd.test.ts"
+      ],
+      "sourceSha256": "d53a5de9d1222c27aa1aa50a66180a2085a226be12349c7df432256f7201b4fa",
+      "expectedCases": 2,
+      "scope": "Genuine frozen V25/V2 exact23 source and empty/current targets, using the reviewed24 reader only to select the frozen23 chain.",
+      "authoredBudget": "Original 180000 ms per case.",
+      "status": "UNRUN on the combined source"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "scripts/lib/export-portable-runtime.test.ts"
+      ],
+      "sourceSha256": "c7d259718ded33168578df33d7dbeac326b162149d4063124f5094a180e5eae0",
+      "expectedCases": 1,
+      "scope": "Nonempty frozen V25 research ZIP through explicit historical writer and schema25 request, isolated real restore.",
+      "authoredBudget": "Original 30000 ms per case.",
+      "status": "UNRUN on the combined source"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "scripts/lib/export-restore-migrations.test.ts"
+      ],
+      "sourceSha256": "1aa53cc2634ed0683db32d30de63f99997f4ead377a4a3c28f5deaf187d5e576",
+      "expectedCases": 1,
+      "scope": "Frozen V7\u2013V25 content migration planner; reviewed23 input excludes raw0024 and installation authority.",
+      "authoredBudget": "Original Vitest defaults.",
+      "status": "UNRUN on the combined source"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "worker/reference-read.qualification.test.ts"
+      ],
+      "sourceSha256": "8763c198a38c37c2d86c89ab0fadf5bbb2551e87f41a25bedab01f55f980a546",
+      "expectedCases": 4,
+      "scope": "Actual current24 Worker/D1/R2 Reference routes, visibility, read-only behavior and Access/control rejection.",
+      "authoredBudget": "Original beforeAll 30000 ms; other authored defaults unchanged.",
+      "status": "UNRUN on the combined source"
+    },
+    {
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "worker/source-lifecycle-routes.test.ts"
+      ],
+      "sourceSha256": "990042e683134d918be3dd8ba6a619889cd537adb0273125c35c79f1a3a46c31",
+      "expectedCases": 36,
+      "scope": "Original34 lifecycle scopes plus two V26 attachment export scopes, preserving genuine frozen22/V24 and frozen23/V25 physical images and current24/V26 default.",
+      "authoredBudget": "Original Vitest case/hook defaults; no relaxation.",
+      "status": "UNRUN on the combined source"
+    },
+    {
+      "command": [
+        "node",
+        "--test",
+        "--test-concurrency=1",
+        "scripts/current-schema-source.test.mjs"
+      ],
+      "sourceSha256": "bcd9104eaea5f67ac1bb1b378d0f95025550ba0a0c9307be1ebeec587eb6e64e",
+      "expectedCases": 10,
+      "scope": "Actual populated whole-file and Wrangler-split upgrades through raw0024, original typed cells/rowids/receipts and pinned historical SQL.",
+      "authoredBudget": "Original Node test defaults.",
+      "status": "UNRUN on the combined source"
+    },
+    {
+      "command": [
+        "node",
+        "--test",
+        "--test-concurrency=1",
+        "scripts/remote-d1-migration-observation.test.mjs"
+      ],
+      "sourceSha256": "c430056939b4a7f4f693e376c86c6ad3b51e6e4b6224158beaf33242cede70b7",
+      "expectedCases": 9,
+      "scope": "Offline fixed-transport observation validation plus actual local D1 parity for exact S0-37 and current24; no real remote calls.",
+      "authoredBudget": "Original 60000 ms for each of the two local-D1 parity cases; other original budgets unchanged.",
+      "status": "UNRUN on the combined source"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/verify-project-worker.mjs"
+      ],
+      "sourceSha256": "640e9e27a1a2be14d4bc8dd5c05f0b1f46d725fbbcb38d8e3895094481d61d3f",
+      "expectedOutcome": "Existing smoke success assertion/message after genuine current24 migration, explicit current26 export and V24/V25 refusal, plus existing Project/attachment/reference/lifecycle behavior.",
+      "scope": "Actual local source Worker/D1 smoke, no remote migration or deployment.",
+      "status": "UNRUN on the combined source"
+    },
+    {
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "scope": "Existing local configuration, TypeScript project build and Vite production artifact. Required before artifact smoke; source-local build only, no deploy.",
+      "expectedOutcome": "Build exits zero and Vite writes a fresh same-source .wrangler/deploy/config.json redirect into dist.",
+      "status": "UNRUN on the combined source"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/verify-project-worker.mjs",
+        "--production-artifact"
+      ],
+      "sourceSha256": "640e9e27a1a2be14d4bc8dd5c05f0b1f46d725fbbcb38d8e3895094481d61d3f",
+      "artifactReaderSha256": "6ef87947f372a15bc93e1882f28f9f98f423ef751fc1073445017df3019a912a",
+      "requires": "The immediately preceding fresh same-source npm run build; no stale or copied V25 artifact.",
+      "expectedOutcome": "Existing complete Project Worker/D1 success plus artifact health/SPA/JavaScript/Access/201-reference assertions.",
+      "scope": "Actual local built Worker+assets and isolated D1 smoke. No deploy.",
+      "status": "UNRUN on the combined source"
+    }
+  ],
+  "expectedVitestCases": 68,
+  "expectedNodeCases": 19,
+  "caseCountDerivation": "Existing authored parameterization: lifecycle26 plain +6+2+2=36; current schema6 plain +4 migration-loop=10; remote7 plain +2 fixture-loop=9. Counts are source-derived expectations and must be checked against actual results.",
+  "order": "All twelve compiler commands sequentially, then runtime commands exactly in listed order. No concurrent local runtime. Root must explicitly grant exclusive GO after Node19 closes.",
+  "failurePolicy": "Stop the chain on the first nonzero command or missing/incorrect case count. Preserve first actual stderr/output, selected source hashes and stage status; confirm all owned SQLite/Miniflare/workerd/fixture resources close; release the exclusive runtime window before source adaptation. Later leaves remain UNRUN.",
+  "budgetPolicy": "Use unchanged authored per-case and hook budgets. No CLI timeout extension, no new blanket harness timeout and no migration-byte/schema/catalog normalization.",
+  "resourceClosure": "Inventory before/after owned temp fixture paths and workerd PIDs. Existing unowned processes must remain untouched. Source-authored finally/afterEach/afterAll closure is required; keep build outputs and dependencies uncommitted.",
+  "historicalEvidence": {
+    "source": "d79d4f02574e4b4e270808cb5732165e8fd3f3a1",
+    "qualifiedCheckpoint": "e1d9894ce7607f7110abf0f4876a4a818b78eada",
+    "scope": "Ten original strict commands, original22 plus workerd2 passed on d79. That actual result does not qualify the current combined dependency graph."
+  },
+  "restrictions": [
+    "No remote D1 or provider I/O; no production deployment.",
+    "No current Node main/catalog adoption; V26 remains a separate provisional metadata-only package.",
+    "No borrowed latest runtime qualification from prior 46-path strict receipt.",
+    "Local authority rows used by tests are explicitly SQL guard fixtures and never physical probe/admission proof."
+  ],
+  "publicationBoundary": "V26 remains a separately owned provisional metadata-only catalog. Current operational Node/main catalog stays V25. No File/local provider authority or default-role enabling; no production deployment or remote D1/provider I/O.",
+  "sourceBaselineHead": "4ee8a7b1c7b1e0ced8ce5a771b76e908b9aae5c2",
+  "sourceBaselineTree": "fbabedb1f23a6e92e554cc4b5205e508f592789c",
+  "preparedAtCheckpoint": "42573a7ae7759863c44863e585c8866c63d47b2e",
+  "sourceDelta": {
+    "path": "scripts/current-schema-source.test.mjs",
+    "originalSha256": "e37a33b7710a7e5302ebb90b107d9010b4b517540fbd077f1a92871815d55871",
+    "correctedSha256": "bcd9104eaea5f67ac1bb1b378d0f95025550ba0a0c9307be1ebeec587eb6e64e",
+    "reason": "Existing conservative SQL token normalization in complete catalog comparison; raw0024 comment text differs under genuine Wrangler splitting.",
+    "other60V26CodeConfigurationPinsUnchanged": true,
+    "parentFinitePlanSha256": "da3cf7f17ddcfa381029552bb5c15eae87bb3d687c87c67850ef5662f20927b2",
+    "actualQualificationMustRecordOwnCommit": "The corrected Git checkpoint and any subsequent docs-only checkpoint must record exact own HEAD/tree before execution. No runtime has occurred on this source."
+  }
+}

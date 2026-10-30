@@ -1,0 +1,21 @@
+{
+  "status": "SOURCE_CLEAR_NEW_TYPES_MOUNT_BUILD_AND_TWO_BROWSER_UNRUN",
+  "sourceHead": "ffff956c68e64e20b91b773d3bcb064642a37410",
+  "sourceBase": "1943f746332596220ed34edb5d4b0ac45d6db40d",
+  "handoff": {
+    "path": "/tmp/phase5f-package-preview-focus-current1943-source-review-attempt3/source-handoff.json",
+    "sha256": "2c5611d05807f8b463bc96fe197f781bbd72e136ce67959302ff0eac9936b4fb"
+  },
+  "productAndMountedPatch": {
+    "path": "/tmp/phase5f-package-preview-focus-current1943-source-review-attempt3/package-preview-focus-two-owned-paths.patch",
+    "sha256": "223e9f68d19c6e839bdfe8dd6db565aa44c2de99ed752fa514336c2cd105e6d6"
+  },
+  "completeProduct16Plus2AndMounted53LineDeltaRead": true,
+  "explicitOriginalFocusedButtonCapturedInsideExistingActWithOriginalAbortSignal": true,
+  "afterBusyFalseConnectedEnabledSameButtonAndLifetimeRequired": true,
+  "bodyOrButtonOnlyNoOtherControlStealNoInitialFocus": true,
+  "acceptedOperationIdsRequestBodiesReceiptReplayAndDenialSemanticsUnchanged": true,
+  "twoMeaningfulOriginalDeferredResponseAndOtherFocusedControlCases": true,
+  "jsdomBodyBlurModelIsNotActualBrowserProof": true,
+  "newProductInputsRequireOneFreshBuildAndOriginalTwoNativeBrowsers": true
+}

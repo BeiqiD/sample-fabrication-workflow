@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /tmp/phase5f-storage-candidate-section-wrap-source-attempt10
+
+
+ Test Files  1 passed (1)
+      Tests  24 passed (24)
+   Start at  02:50:11
+   Duration  1.97s (transform 298ms, setup 0ms, import 410ms, tests 1.16s, environment 292ms)
+

@@ -3,6 +3,7 @@
 .step-drawer .drawer-form select {
   font-size: var(--font-body);
   line-height: 1.45;
+  font-weight: 400;
 }
 
 .run-controls-picker select {

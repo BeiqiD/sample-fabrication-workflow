@@ -1,0 +1,179 @@
+{
+  "version": 1,
+  "status": "FROZEN_SOURCE_ONLY_FOUR_STAGES_UNRUN_WAIT_ROOT_PEER_AND_EXCLUSIVE_GO",
+  "commands": [
+    {
+      "stage": "current-actual-f228-carry-and-short-temp-beforephysical",
+      "cwd": "/workspace/phase5f-recovery-job-controls-chromium-child-temp-source-attempt2",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-recovery-job-controls-short-child-temp-finite-source-review-attempt2/carry-current-cf-and-short-child-temp.py",
+        "--coherent-cf-producer-for-genuine-job-controls-two",
+        "before-physical"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1"
+      },
+      "control": "Require exact original actual f228 build118/copy121/current24+mature84 state, 0jobs/requestrows/runtime-disabled and all original63 permits; retain old two shared POSTs. Fresh short Chromium-only directory with UID/mode/dev/inode/free-space witness. New aliased prephysical4; no build/seed/data copy."
+    },
+    {
+      "stage": "genuine-signed-admin-recovery-job-controls-two",
+      "cwd": "/workspace/phase5f-recovery-job-controls-chromium-child-temp-source-attempt2",
+      "argv": [
+        "node",
+        "/workspace/phase5f-recovery-job-controls-chromium-child-temp-source-attempt2/scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs",
+        "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/copy",
+        "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture",
+        "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+        "2489",
+        "--exclusive-go-two-genuine-recovery-job-controls"
+      ],
+      "env": {
+        "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+        "CHROMIUM_PATH": "/usr/bin/chromium",
+        "TMPDIR": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1",
+        "PHASE5F_CHROMIUM_PRIVATE_TEMP": "/workspace/.r2b6tmp",
+        "PHASE5F_JOB_CONTROL_RUNTIME_ROOT": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2"
+      },
+      "cases": [
+        "historical-backup-controls-1280-light",
+        "historical-backup-controls-390-dark"
+      ],
+      "control": "Shared genuine executor enable200/disable200 once; each historical backup-preview200/backup202/pause200/resume200/cancel200 native actions. Max10 original metadata mutation requests, no scheduled/step/ZIP/target/provider. Strict original full native and backend Response bodies, no fallback. Exact3-table lineage/runtime audit and all original63 permits/other app rows preserved. Stop firstfailure after original routes/body/context settlement; remaining IDs UNRUN. The original parent TMPDIR/source-copy/fixture contracts remain unchanged; only Chromium child launch env receives the fresh short private leaf. Original failed launch had no returned Browser handle and remains unqualified.",
+      "toolInvocation": {
+        "tty": true,
+        "originalControl": "Only explicitstop newline originalretainedTTY; awaitoriginalclosure/report/childexit120s guard, no SIGTERM-as-finally assumption."
+      }
+    },
+    {
+      "stage": "physical-after-short-chromium",
+      "cwd": "/workspace/phase5f-recovery-job-controls-chromium-child-temp-source-attempt2",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-recovery-job-controls-short-child-temp-finite-source-review-attempt2/physical-job-controls-short-chromium-attempt2.py",
+        "--source-copy",
+        "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/copy",
+        "--fixture-directory",
+        "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture",
+        "--stage",
+        "after-short-chromium-attempt2"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1"
+      },
+      "require": "Mandatory after every original browser/helper result. Actual original native body/route/context/browser (if returned), Worker/JWKS/shared configure/disable/history settlements, retained original direct child wait/reap/port refusal before physical. No returned Browser handle is a handle-only limitation, never proof native Chromium did not spawn."
+    },
+    {
+      "stage": "final-source-artifact-input-pins",
+      "cwd": "/workspace/phase5f-recovery-job-controls-chromium-child-temp-source-attempt2",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-recovery-job-controls-short-child-temp-finite-source-review-attempt2/carry-current-cf-and-short-child-temp.py",
+        "--coherent-cf-producer-for-genuine-job-controls-two",
+        "final-pins"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1"
+      },
+      "control": "Preserve original setup and final-pin failures. Verify exact producer2489/copied2489/copy121/actual118 and newconsumer2488 nonhelper causal input equality; validate exact original direct-owner closure and retained three-table job history, original63 permits/all other application rows. PASS browser qualification requires returned Browser closeAwaited and original two cases passed; failed launch can only retain handle/native-exit limitations."
+    }
+  ],
+  "sourceHead": "4a4f324588d2482ce24b56a759566eae822a0e97",
+  "sourceTree": "2bd722e9723b8514ab202c0c33b09927f58dd27e",
+  "trackedFileCount": 2489,
+  "sourceRoot": "/workspace/phase5f-recovery-job-controls-chromium-child-temp-source-attempt2",
+  "runtimeRoot": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2",
+  "roots": {
+    "copy": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/copy",
+    "fixture": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture",
+    "runtime": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2",
+    "chromiumChildTemporary": "/workspace/.r2b6tmp",
+    "parentTemporaryUnchanged": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1"
+  },
+  "installedDependencies": {
+    "root": "/workspace/sample-fabrication-workflow/node_modules",
+    "package": "5c8a504d14b7208edb3d77b8c5049c713d55e4e7821d8e43b7b54e6dbeebe8fc",
+    "dependencyParentPackage": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+    "lock": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a",
+    "hiddenLock": "95202718d08fd50cc286bcddf0af66b08503d63b494e992006c50d4246d69a98"
+  },
+  "budgets": {
+    "nativeOperationBodyAndReadinessMs": 20000,
+    "originalTTYSupervisionMs": 120000,
+    "supervisionProgressEveryMs": 20000,
+    "bodyMaximumExclusiveBytes": 131072,
+    "overflowPx": 2
+  },
+  "originalStdinControlTimeGuard": {
+    "tool": "tools.exec_command tty:true for both original seed/controller and genuine browser helper",
+    "progressEveryMs": 20000,
+    "overallMs": 120000,
+    "stop": "Only explicit original stop newline once on original retainedTTY; await original helper closure/report/directchild exit/reap/ports. Never classify SIGTERM as graceful or normalfinally.",
+    "firstFailure": "Stop later normal stages; still mandatory original seedstop/original body/route/context/shared configure settlement/disable/history/disposal and postphysical+finalpins. Retain source/app/test/cleanup failures distinctly."
+  },
+  "originalOwnerPreparation": "/workspace/phase5f-recovery-job-controls-current-coherent-finite-preparation-attempt1/original-mature-owner-preparation.json",
+  "helper": {
+    "path": "scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs",
+    "sha256": "fb6fe9acacd019f5b1eb4589b6e9b5878dd64645074b81c2e6d3cf655650d9b0",
+    "childEnvAndHandleScopePeer": "1c02542dafc48b85110da2359cb90de2a5ab0eede97778f984a7a8adc64fd6cb"
+  },
+  "causalCarry": {
+    "producerHead": "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+    "producerTree": "d16675a42725094e586f9f3bc78468aa5e46310d",
+    "sourceRoot": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+    "originalClosedReceipt": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime/actual-recovery-job-controls-first-setup-failure-closed-release.json",
+    "originalClosedReceiptSha256": "ac9a5db5a7550cdbf5fe5b4cec0dbedc688d54869790c6ecf4d986fdf592b95e",
+    "allOriginalProducerAndCopiedTrackedInputs": 2489,
+    "exactNewConsumerNonHelperInputs": 2488,
+    "actualOriginalCFArtifactFiles": 118,
+    "copiedArtifactFiles": 121,
+    "originalRawLocalMigrations": 24,
+    "originalOrdinarySeedRequests": 84,
+    "oldSharedPosts": 2,
+    "oldBrowserCasesRun": 0,
+    "oldAcceptedJobs": 0,
+    "oldRequestRows": 0,
+    "originalPermitRows": 63,
+    "originalRuntimeEnabled": 0,
+    "newBuilds": 0,
+    "newSeeds": 0,
+    "sameHeadNotClaimed": true
+  },
+  "expectedCosts": {
+    "newAuxiliaryGETs": 2,
+    "newBrowserBaselineGETs": 8,
+    "originalPollingMayAddOnlyStatusGETs": true,
+    "newSharedPOSTs": 2,
+    "newBrowserNativePOSTs": 8,
+    "newOriginalPOSTMaximum": 10,
+    "oldDistinctSharedPOSTsAlreadyAccepted": 2,
+    "wholeFixturePOSTMaximumIncludingOldSetup": 12,
+    "newWritePermits": 0,
+    "scheduledSteps": 0,
+    "executionSteps": 0,
+    "ZIPOrProviderOrTargetOperations": 0
+  },
+  "carrier": {
+    "path": "/workspace/phase5f-recovery-job-controls-short-child-temp-finite-source-review-attempt2/carry-current-cf-and-short-child-temp.py",
+    "sha256": "a7e148a2d4eb2c405627877a9ab79bd51f14b3c73ebbf3f049b21f9bbeb4ac2e",
+    "threeMatureDefinitionsAstExact": [
+      "sha",
+      "digest",
+      "saved"
+    ]
+  },
+  "physical": {
+    "path": "/workspace/phase5f-recovery-job-controls-short-child-temp-finite-source-review-attempt2/physical-job-controls-short-chromium-attempt2.py",
+    "sha256": "5231402826ea074ba033b1b3ae42d6b9bef7fb15f90e0b43973d541f3f88ccd6",
+    "change": "Only before-short-chromium-attempt2/after-short-chromium-attempt2 output aliases and original post-shutdown physical checks applied to both; original physical outputs remain untouched."
+  },
+  "sourceReviewRoot": "/workspace/phase5f-recovery-job-controls-short-child-temp-finite-source-review-attempt2",
+  "firstFailure": "Stop subsequent normal cases/stages after original first failure; original normal cleanup/retained history and aliased postphysical/finalpins remain mandatory. Preserve missing handle/body/launch/finalpin failures rather than manufacture PASS."
+}

@@ -1,3 +1,337 @@
+## 2026-10-28 — Focused daily workspaces
+
+The user requested smaller icons/buttons and daily Processing, Samples,
+Projects and Templates pages without duplicated Settings transfer tools.
+This explicitly revises the preceding 44px Sample toolbar experiment: core
+page chrome now uses Compact controls, while forms and execution cells retain
+their established roles.
+
+Sample has three header actions: processing, metrology and splitting. Its
+legacy ZIP, package and report buttons are removed. Processing has its run
+controls and a link to the Sample record; it no longer presents offline
+reporting. Project Reading retains online document/attachment editing and
+attachment access; its export toolbar/menu and download-only state are
+removed. Settings continues to own research packages, reports and full content
+archives. The older per-record ZIP UI is retired rather than reproduced in
+another toolbar; its library tests remain separate from Settings workflows.
+Existing typed report/package bookmarks still resolve through Data.
+
+Workbook import has one canonical page, `/settings/import-workbook`, in the
+Settings navigation and overview. `/templates?import=1` and
+`/imports/fabublox` replace-navigate there, retaining only directory search and
+pagination parameters. The original importer still owns identity, pending
+receipts and recovery. Acceptance opens the encoded Template route, where
+users can review/clone/edit versions and continue processing in the web app.
+The Templates directory no longer mounts an importer or offers a duplicate
+import button. Its introduction describes review, editing and reuse.
+
+Core header commands use 16px icons with approximately 32px desktop and 36px
+mobile buttons, with accessible names and visible keyboard focus. The Project
+Add caret remains 12px. Page titles are locally 32/28px; this does not rescale
+Settings or the Dense execution grid. The mobile Processing Add sample command
+sits beside its section heading rather than occupying a full extra row.
+Primary edit/save/destructive decisions retain explicit text. Sample details
+View/Edit sizing, operation admission, selected-run resolution and Project
+save reconciliation remain unchanged.
+
+Browser calibration uses owned native D1/R2 and signed Access, with matching
+fixture definitions before and after: eight core views at 1440px light,
+390px dark and 320px light, plus Settings routes and legacy redirects.
+Separate interaction fixtures verify in-page Markdown saving and a real Done
+transition through automatic run completion. No transfer is required for
+those workflows. Final screenshots and measurements are retained in the
+workspace review artifact with their source/build fingerprints.
+
+The active large-Project Reading browser harness follows the focused online
+workflow; actual archive/package download acceptance remains in the dedicated
+Settings browser harnesses. Historical frozen reports are not reinterpreted
+as evidence for this new interface.
+
+## 2026-10-27 — Sample and Data visual calibration
+
+The user requested a concrete visual refinement, calibrated in a real browser,
+with more icon actions on phones. This pass targets Comfortable Sample/Data
+page chrome: mixed mobile action sizes and extra action rows, equally prominent
+Data cards, and a 320px import button extending beyond its card. Dense execution
+controls and Project Map are outside this change.
+
+Sample uses a local 44/34px title, a readable description measure, quieter
+secondary surfaces, and one row of six 44px mobile action targets. Data uses
+40/34px titles, a quieter executor panel, distinct export/import cards and
+individual saved-job cards. Navigation, source returns and secondary operations
+use the existing decorative SVG system. Mobile icon-only controls retain their
+accessible names and titles; primary acceptance actions, source/scope notices,
+unknown-receipt recovery and state/reason text remain written out. Completed
+jobs use the existing blue information palette, while pending/paused states
+remain neutral. Explicit mobile-icon props keep Project/Processing text labels.
+
+Real Chromium baseline/candidate captures used the same native public-API
+fixture definition. The first candidate exposed extra desktop whitespace from
+a three-line description and a separate status row. After restoring a wider
+desktop description and placing status/actions together, measurements were:
+
+| Fixture measurement | Before | Final candidate |
+| --- | ---: | ---: |
+| Sample details top, 1440px light | 437.28px | 423.61px |
+| Sample details top, 390px dark | 520.34px | 452.78px |
+| Sample details natural height, both cases | 589.95px | 589.95px |
+| Data export card top, 1440px light | 527.97px | 487.95px |
+| Data export card top, 390px dark | 713.17px | 652.55px |
+| Mobile Sample package/report target | 34px high | 44 × 44px |
+
+The frozen candidate is product `19daf9b`; client index SHA-256 is
+`f07957e75310fdde3e40d337503a505d0642061b55a0805fae41d46e0ddd8f52`.
+The Worker artifact is unchanged from the baseline. The primary 16-capture
+matrix covers 1440/390px in both themes, 360px dark, 320px light, and a
+non-system-admin identity. Two captures include real accepted jobs, observed as
+user-paused and recovered-paused after the executor is disabled. They cover
+saved-job presentation separately from the empty-work baseline comparison.
+This identity checks administrator-only executor visibility, not a read-only
+Sample ACL.
+
+All six Sample View/Edit/Cancel checks retain exactly equal details, notes,
+structure and secondary-section bounds. Native fragment navigation updates
+the hash and current-location marker. Keyboard targets retain visible focus.
+The successful matrix has no document/card-action overflow, console/page
+errors, browser mutations, external requests or provider calls. Its owned
+runtime was closed normally. An exploratory run with a stale label selector
+and an overlapping rebuild is recorded as a harness failure and excluded.
+
+Four additional captures at 1180px light and 768px dark use the identical frozen
+artifact. Their Sample View/Edit/Cancel and Data fragment-navigation checks
+also pass without overflow or browser errors, and the second runtime is closed.
+The existing expanded Settings menu at these middle widths still consumes
+substantial vertical space; changing that shell is a separate design decision.
+
+Source review confirms Data request, ACK, polling, checkpoint and permission
+logic is unchanged, as are all Sample event/disabled/link expressions and the
+View/Edit sizing rules. The existing SVG contract test now lives under the
+mounted configuration's discovered filename, so the added icons are checked
+by the ordinary test command.
+
+## 2026-10-27 — Core workflow selection and report continuity
+
+A real-browser walk through Sample creation, process start, execution and report
+preparation exposed three concrete gaps. An explicitly missing run ID silently
+selected another editable run. The Processing directory could offer a new
+process or an old next step based on missing/stale step text rather than run
+status. After the last Done automatically completed a run, reporting required
+returning to Sample; Data then lost the source view's navigation context.
+
+Explicit run requests now require an exact match. An unresolved request shows no
+execution grid or enabled run mutations; loading, failed reading and confirmed
+absence are distinct states. The original URL remains available for refresh, or
+the user explicitly chooses an available run. Implicit selection, metrology
+editability and deliberate post-deletion selection retain their existing rules.
+Directory instructions follow run status before considering next-step text.
+
+The workspace has a single offline-report link with a visible primary-sample
+scope label. It prepares a report across that sample's recorded runs, while
+retaining selected-run and additional-column navigation context. Data displays
+the source label, canonical links back to the source/archive and Processing, and
+an explicit notice if the user edits the export scope or changes link context.
+The actual preview still determines scope and requires deliberate acceptance;
+source labels and return metadata grant no authority and start no work.
+The standalone report action also owns its disabled appearance, so unresolved
+run selection cannot leave a visually enabled report action without a link.
+
+Return routes use enumerated local paths and encoded identifiers. A free-form
+return URL is never used. Same-page query changes retain drafts, selected files,
+owner checkpoints and pending operations. The workspace's Dense execution table
+and Project Map geometry are unchanged. New controls and source context belong
+to the Comfortable page chrome; the directory retains its Compact row geometry.
+
+The baseline's old controller assumptions about manual Finish and a historical
+package endpoint were recorded as harness failures, not product failures. The
+actual last Done automatically completed the native run. Its missing-run,
+completed-workspace and source-context observations were recorded before all
+owned local runtime resources were closed.
+
+Final real Chromium acceptance used product `4583699`: two complete workflows
+at 1440px light and 390px dark, from browser-created Sample through native
+template comparison, execution, automatic completion, report preparation,
+receipt/job progress, actual ZIP download and source navigation. The downloads
+were read independently: HTML/Markdown retained the Sample title and executed
+step, and each manifest named only its primary Sample. The mobile view retained
+an additional real Sample column on return without adding it to report scope.
+
+Missing and foreign run links exposed no editable fallback. Deliberate selection
+restored the correct run. The disabled report action measured opacity 0.5,
+versus 1 when enabled. Reader 390px/360px supplements covered source navigation,
+long-label wrapping, edited-scope feedback and an ignored external return URL
+without writes. There were 37 safe screenshots, no page overflow or unexpected
+console/page/proxy/provider/external errors, and all owned resources closed.
+
+The final 121-file client manifest SHA-256 is
+`37a527f1e359e875051e4fa9ba9f4d33e9266cd9bae5fea6b7daa887ee564393`.
+Native scheduled events were explicitly driven only in the owned fixture to
+finish the two report jobs; this does not qualify natural scheduling cadence or
+a deployed provider. Pending-read races, rare directory status combinations and
+opaque URL identifiers additionally have targeted mounted/unit regressions.
+
+## 2026-10-27 — Data and recovery task flow
+
+This follow-up keeps the Settings shell and organizes the two long operation
+pages by task. The real-browser baseline placed Preview export at document
+y=889px on desktop and y=1287px on a 390px phone. Preview system backup was at
+y=1282px and y=1985px respectively. Runtime explanations and maintenance controls
+preceded the main forms, while earlier receipts and saved jobs were separated.
+
+Data now groups Export, Import and Saved work. Recovery groups Backup, Validate
+archive, Saved work, Maintenance and Executor. Native page-fragment links target
+focusable sections with a sticky-header scroll margin. Every form, selected file,
+acknowledgement and job stays mounted; navigation does not fetch or submit work.
+Earlier receipts remain accessible alongside their page's saved work. Cross-page
+related tools follow the task sections, so they remain available without taking
+the place of the primary task links near the top of the page.
+
+The first status area keeps execution availability, maintenance and unknown
+operation results visible. Static archive limits, heartbeats and deployment
+explanations move into technical details. Maintenance and executor actions remain
+expanded in their own sections. Paused execution still permits accepted queued
+work. Ordinary backups still follow the runtime's existing fence policy and do
+not require a recovery target. Original request reconciliation, owner checkpoints
+and source-resume generation checks retain their existing behavior.
+
+These are **Comfortable** Settings surfaces. The shared task links and technical
+disclosures have a minimum 40px target, using existing color tokens. Styles are
+owned by `settings-tasks.css` and the two route stylesheets. Process/Project
+geometry, the primary Settings navigation, backend contracts and job admission
+rules are outside this change.
+
+Real Chromium acceptance of product source `c518b5e` passed 12 page observations,
+10 native task/draft/file interactions, 12 footer checks with 11 actual keyboard
+cross-page activations, and two native acceptance/transport-loss/reconciliation
+cases. Administrator and reader were compared at 1440px light and 390px dark;
+administrator cases additionally cover 1024px light and 360px dark. All owned
+resources closed. The final 120-file client manifest SHA-256 is
+`eb01aa4b09776f40e23afe9210fc4da5cb4b6eb0dcfbc6af8dddb07f2825a931`.
+
+| Administrator primary preview | Before | Final |
+| --- | ---: | ---: |
+| Data, 1440px | 889px | 735px |
+| System, 1440px | 1282px | 797px |
+| Data, 390px | 1287px | 1049px |
+| System, 390px | 1985px | 1103px |
+
+Both desktop previews fit fully in the 900px viewport. Mobile previews still
+require scrolling; the task links are in the first viewport at y=653px for Data
+and y=723/769px for Recovery. Tab/Enter reaches the native targets clear of the
+sticky header. Draft/File retention is promised for same-page task jumps;
+cross-page related links retain their normal page-unmount behavior.
+
+The two unknown-result cases accepted real small queued jobs before transport
+was interrupted, then used the original GET receipt to recover the same job,
+actor, input and accepted timestamp without another acceptance POST. No scheduler
+ran. Two expected network-failure diagnostics were isolated; there were no
+unexpected console/page/proxy errors, provider calls or browser writes. These
+are local owned-runtime checks, not deployed-provider or scheduled-execution
+acceptance.
+
+Mounted regressions also protect maintenance summaries after an explicit status
+GET: the summary follows the same saved maintenance state as its controls while
+the original unknown request remains unresolved. Open maintenance with active
+writers is described accurately and retains ordinary-backup admission behavior.
+
+## 2026-10-23 — Settings information architecture
+
+The Settings navigation candidate starts at `47b5f8f`. It addresses the requested
+separation between everyday research work and occasional data/administration
+tasks. This is a development candidate, not deployed or main-release acceptance.
+
+| Observed baseline | Candidate behavior |
+| --- | --- |
+| Primary navigation has six entries, including Export; Settings opens Storage directly. | Five entries: Processing, Samples, Projects, Templates and Settings. Settings opens a real overview. |
+| `/settings` renders an empty main area. Data/System lose Settings highlighting. | An overview and one Settings navigation cover data/export, storage, and system/maintenance. Each supported destination has one precise current link. |
+| The same archive is named Full content backup, Legacy content archive and Export; maintenance links sit below the archive. | Related links call it Content archive. Maintenance has its own Settings group. Old `/export` and `/maintenance/*` URLs remain valid. |
+| Navigation across these pages has no stable secondary structure. | A 224px desktop rail becomes three groups above the content at 1200px and a collapsed current-page disclosure at 720px. |
+
+The new overview follows the **Comfortable** profile: 14px body, existing semantic
+colors and card/control primitives. `src/settings.css` is the permanent owner of
+the Settings shell and overview only. Desktop navigation links are at least
+40px high; the mobile disclosure is at least 56px. Short desktop windows constrain
+the sticky rail to the available height and allow it to scroll independently,
+including keyboard focus to its final destination. Existing topbar geometry,
+Process-grid density, Project Map/Reading geometry and business form logic are
+outside this change.
+
+The overview does not query administrator capabilities, infer one permission
+from another, or start operations. Existing pages continue to check Storage
+management, system administration and File operator access independently.
+Research-object package/report links retain their query parameters; connection
+form hashes and supported trailing-slash URL spelling are preserved. Browser
+content archives still cancel/release downloads on leaving their page; saved
+server jobs and unconfirmed request checkpoints retain their existing lifecycle.
+The overview and archive page explain that difference before an export starts.
+
+Real Chromium acceptance of the built `f4a67af` product recorded 398 observations
+and 179 screenshots: administrator/reader, light/dark, and widths 1440, 1024,
+390 and 360px; additional checks cover 720/721 and 1200/1201px boundaries and
+1440/390px windows at 540px height. The mobile summary measures 61px. The short
+desktop rail measures 428px and its final link is reachable by keyboard. No
+horizontal overflow, page/console/proxy errors, external provider requests or
+browser mutations occurred. All four active-export leave/return cases passed,
+and all owned browser/runtime resources closed. Geometry checks allow 1px for
+browser subpixel rounding; existing page introductions are measured rather than
+forced to one heading position.
+
+The client manifest SHA-256 is
+`ad20993bfcbd3e8cb7e8f59517db75914c7396f1f511375723eb0b4aa96a51e6`.
+The following QA-only update teaches the existing full-content export browser
+qualification to enter through Settings, including mobile disclosure and retry.
+Its two real native-Worker cancellation/retry cases passed, retaining independent
+ZIP inventory, hash and CRC checks. These later QA/documentation changes do not
+change the qualified product artifact or establish deployed-site acceptance.
+
+Further refinement should now work page by page: present actionable status,
+the next task and saved work before technical details. The existing Data
+executor card is a specific follow-up from the browser baseline, especially on
+mobile. Any later simplification must leave paused execution, maintenance
+blocks, unknown operation results and retry/reconciliation controls visible.
+Personal settings should expose only supported capabilities, starting with the
+existing theme and session controls.
+
+## 2026-09-13 — Current Project refinement evidence
+
+Project refinements through merged PR #185 are deployed on the isolated v3
+integration site. The [current C4 record](./PROJECT_C4_ACCEPTANCE.md#current-integration-check--2026-09-13)
+owns exact build identity, CI evidence and the remaining acceptance matrix.
+It includes completed shortcut/command ownership, editing resize, Markdown
+composition, panel-state/dialog and source-focus refinements. At 1363 × 936,
+References and Inspector both measure 340px on Map and 380px in Reading, with
+matching 14px padding and 12px radius. The Sample note Referenced badge no longer
+intersects its timestamp; Delete note has 14px right clearance. Light and dark
+desktop checks passed. These measurements do not replace native-device or
+unverified viewport acceptance, or alter the frozen historical baseline below.
+
+## Historical 2026-09-11 — Math rendering and cross-surface card audit
+
+Follow-up to merged #167, prompted by Project Markdown displaying TeX source. This pass covers the shared renderer, Project Map/Reading/Inspector, Comment surfaces, Search controls, template/import cards, descriptions and confirmation dialogs.
+
+| Finding | Correction |
+| --- | --- |
+| Map and Inspector used a truncated plain-text Markdown excerpt | Render the complete source with the shared lazy renderer. Full-detail Map cards have a keyboard-accessible scroll region; compact/overview retain lightweight descriptors and visible-node culling. |
+| Generated card titles repeated Markdown/TeX source | Full Markdown cards use the document's own headings/content in Map, Reading and Inspector. Non-Markdown titles remain; Map titles wrap to two lines. |
+| Parent card heading/paragraph selectors and Reading pre-wrap leaked into rich content | Scope card chrome selectors and restore normal Markdown whitespace and zero-minimum grid columns. |
+| Explicit TeX parentheses rejected whitespace/newlines; escaped dollars closed formulas early | Scan unescaped closing delimiters, keep separate dollar and explicit-parenthesis rules. Only complete standalone display blocks interrupt paragraphs. |
+| Malformed TeX exposed fixed-color parser error HTML | Keep escaped source readable with the existing theme-aware error style. |
+| Compact Timeline line-clamped the rich tree and clipped matrices/fractions | Preserve complete content in a focusable scroll region. |
+| Global input/table styles distorted task-list checkboxes and scientific table headers | Reset native checkbox/radio sizes and rich-text table-header casing/typography. This also repairs Search filter controls. |
+| Common Comment pre-wrap doubled renderer-generated line breaks | Restrict legacy plain-text whitespace rules. |
+| Long template names, workbook fields and import parameters overflowed cards | Allow wrapping and zero-minimum grid columns; keep preview images in their column. |
+| Short-viewport confirmations lost action access | Constrain dialog height to the available viewport with internal scrolling. |
+| Sample/reference descriptions lost authored line breaks | Preserve whitespace on these plain-text description fields. |
+
+Validation: added renderer regressions for fractions, scripts, matrices/aligned, escaped delimiters, malformed TeX and protected code; mounted regressions cover complete Map/Inspector content past the old excerpt boundary, reading-key isolation, link double-click behavior, native text shortcuts in the actual ProjectPage, and compact Timeline scroll access. Existing representative Map performance and repository CI gates remain required. The representative performance fixture covers compact/overview and existing scale contracts; complex full-detail MathML layout still needs browser timing.
+
+At that initial checkpoint, the execution environment disconnected before
+implementation; source edits were prepared through the repository connection
+and locked Marked 18.0.9 / Temml 0.13.3 parsing was exercised in an isolated
+JavaScript runtime. The then-pending build and browser checks were subsequently
+recorded in `PROJECT_UX_REPAIR_ACCEPTANCE.md`, `PROJECT_C3_ACCEPTANCE.md` and
+`PROJECT_C4_ACCEPTANCE.md`. Preserve their specific versions and viewport
+limits; CI alone does not establish viewport or MathML font-layout acceptance.
+
 # Frontend implementation baseline
 
 Status: **frozen reference baseline**  

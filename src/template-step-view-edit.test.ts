@@ -13,7 +13,7 @@ describe("template step view/edit parity", () => {
   });
 
   it("keeps the existing diagram gallery and action family outside the edited field copy", () => {
-    expect(page).toContain('<DiagramGallery keys={step.imageKeys} label={step.name} className="template-diagram-gallery" />');
+    expect(page).toContain('<DiagramGallery keys={step.imageKeys} images={step.images} label={step.name} className="template-diagram-gallery" />');
     expect(page).toContain('className="template-step-actions"');
     expect(page).toContain('Delete step');
     expect(page).toContain('className="button primary"');

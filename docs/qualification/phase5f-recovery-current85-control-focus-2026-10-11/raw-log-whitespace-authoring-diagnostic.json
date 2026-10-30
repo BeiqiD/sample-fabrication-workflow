@@ -1,0 +1,6 @@
+{
+  "status": "ORIGINAL_RAW_LOG_WHITESPACE_ONLY_PRESERVED",
+  "checkExitCode": 2,
+  "output": "docs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/mounted22/affected-recovery-mounted-file.log:9: new blank line at EOF.\ndocs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/ordinary-actual24-local-migrations.log:7: trailing whitespace.\n+Resource location: local \ndocs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/native13/synthetic-template-sentinels-only.log:7: trailing whitespace.\n+Resource location: local \ndocs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/one-build/one-fresh-final-QA-source-build.log:32: trailing whitespace.\n+  \ndocs/qualification/phase5f-recovery-current85-control-focus-2026-10-11/original-strict-and-label-failure/affected-recovery-mounted-file.log:30: new blank line at EOF.\n",
+  "scope": "Source/evidence packaging check; not compiler/test/runtime failure. Original rawlog bytes preserved."
+}

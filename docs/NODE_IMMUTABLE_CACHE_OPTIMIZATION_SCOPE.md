@@ -1,0 +1,9 @@
+# Immutable reviewed catalog caches
+
+This change reuses static catalog validation only for deeply frozen, owned data graphs. A second lazy WeakMap reuses the expected schema string only for a checkpoint in that validated immutable catalog. Each operation still reads the actual connection, schema, migration ledger, installation, integrity and foreign-key state. Mutable, accessor, Proxy, inherited and sparse inputs retain the original validation path. No current database or authorization result is cached.
+
+The complete migration fixture keeps all 32 original controls and adds eight cache controls, including live-ledger corruption, mutable nested/accessor/Proxy/prototype/sparse inputs, current schema/FK health, and mutable-checkpoint expected-schema parity before and after genuine index DDL. The unchanged default Vitest **/*.test.ts include discovers this single file; no extra test command duplicates its census.
+
+The stripped production and complete 40-case fixture are byte-exact the reviewed pure58 source. Original instrumented e088 safety40 passed with its original owners normally closed. Its separate Job HTTP11 result was 10 PASS and one unchanged-budget held-body timeout, so this change does not claim whole Job qualification or attribute that timeout to performance. The first two static-cache measurements and original evidence remain separately scoped; the uninstrumented source was derived by exact whole-file inverses.
+
+This isolated proposal is based on development commit 3104c7c1f68b8851afac024e93d4f8b7a0038b0f and changes only migrations.ts, its existing test file and this note. All other development entries remain exact. It does not adopt private Node49, File or Group implementations. No compiler, Native test, build, CI, publication or merge has run for this proposal. Current-branch qualification and review remain pending.

@@ -1,0 +1,59 @@
+{
+  "status": "PASS",
+  "sqliteResults": [
+    {
+      "file": "v3/d1/miniflare-D1DatabaseObject/faaf2b0445ab934c3aac48ddf0cdfade8f9bac050be98993748742cdd2cb05fb.sqlite",
+      "quickCheck": [
+        [
+          "ok"
+        ]
+      ],
+      "foreignKeyCheck": [],
+      "originalReaderClosed": true
+    },
+    {
+      "file": "v3/d1/miniflare-D1DatabaseObject/metadata.sqlite",
+      "quickCheck": [
+        [
+          "ok"
+        ]
+      ],
+      "foreignKeyCheck": [],
+      "originalReaderClosed": true
+    },
+    {
+      "file": "v3/r2/miniflare-R2BucketObject/eaa2fcb26d4038a3ef7dc7a68c7d2b0194f2d07ce329fb4925ae44e7f0611f87.sqlite",
+      "quickCheck": [
+        [
+          "ok"
+        ]
+      ],
+      "foreignKeyCheck": [],
+      "originalReaderClosed": true
+    },
+    {
+      "file": "v3/r2/miniflare-R2BucketObject/metadata.sqlite",
+      "quickCheck": [
+        [
+          "ok"
+        ]
+      ],
+      "foreignKeyCheck": [],
+      "originalReaderClosed": true
+    }
+  ],
+  "pngAndOtherOriginalBlobBytesExact": true,
+  "png": [
+    {
+      "file": "v3/r2/sample-fabrication-workflow-local-assets/blobs/97d0169fcfc716a8d6477679d9f078f72ed9e55dab8409b4a151cfd02b53834c000001a128b6c926",
+      "sha256": "5e3d382db4dd83d59aa5742793ad6b7903409e865c83bcbc54835049f043bc15"
+    }
+  ],
+  "originalStateMainWalAndOtherBytesExact": true,
+  "originalShmBytesRead": false,
+  "originalShmStatExact": true,
+  "all1792OriginalSourceAnd121ArtifactsExact": true,
+  "all1790OtherConsumerProductAndSourceBytesEqual": true,
+  "retainedApplicationSchemaAndAllRowsUnchanged": true,
+  "scope": "Copied readers only; original state was never opened by SQLite or Miniflare. No original accepted history or ciphertext rollback."
+}

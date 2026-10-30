@@ -1,0 +1,160 @@
+name: Current V28 genuine restore and explicit destination operators
+
+on:
+  push:
+    branches: [codex/node-v28-post-restore-operators, codex/node-v28-restored-maintenance-release, codex/node-v28-operational-health-ready, codex/node-v28-public-local-backup-capture, codex/node-v28-nonempty-backup-restore, codex/portable-v26-r2-node-backup-one, codex/node-research-package-http]
+
+permissions:
+  contents: read
+
+jobs:
+  genuine-current-restore:
+    if: ${{ github.ref != 'refs/heads/codex/node-research-package-http' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      NO_COLOR: '1'
+      FORCE_COLOR: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+          cache: npm
+      - name: Install the exact current committed lock
+        run: npm ci
+      - name: Reserve a fresh private fixture and output namespace
+        shell: bash
+        run: |
+          run_root="$HOME/.current-v28-post-restore-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir -m 700 "$run_root"
+          printf 'POST_RESTORE_RUN_ROOT=%s\n' "$run_root" >> "$GITHUB_ENV"
+      - name: Full current server and runtime test types
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage types --run-root "$POST_RESTORE_RUN_ROOT"
+      - name: Seven strict restored configuration unit cases
+        if: ${{ github.ref == 'refs/heads/codex/node-v28-restored-maintenance-release' || github.ref == 'refs/heads/codex/node-v28-operational-health-ready' || github.ref == 'refs/heads/codex/node-v28-public-local-backup-capture' || github.ref == 'refs/heads/codex/node-v28-nonempty-backup-restore' || github.ref == 'refs/heads/codex/portable-v26-r2-node-backup-one' }}
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage config-unit --run-root "$POST_RESTORE_RUN_ROOT"
+      - name: Original three strict operational parser cases
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage parser --run-root "$POST_RESTORE_RUN_ROOT"
+      - name: Original three strict explicit public stopped capture parser cases
+        if: ${{ github.ref == 'refs/heads/codex/node-v28-public-local-backup-capture' || github.ref == 'refs/heads/codex/node-v28-nonempty-backup-restore' || github.ref == 'refs/heads/codex/portable-v26-r2-node-backup-one' }}
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage capture-parser --run-root "$POST_RESTORE_RUN_ROOT"
+      - name: Build the current Node client and unchanged fixed package
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -m 700 "$POST_RESTORE_RUN_ROOT/producer"
+          npm run build:node-client 2>&1 | tee "$POST_RESTORE_RUN_ROOT/producer/node-client.log"
+          node scripts/build-node.mjs 2>&1 | tee "$POST_RESTORE_RUN_ROOT/producer/node-distribution.log"
+      - name: Require the actual embedded verifier and all four compiled help commands
+        shell: bash
+        run: |
+          set -o pipefail
+          node dist-node/distribution/tools/verify-node-distribution.mjs dist-node/distribution --runtime 2>&1 | tee "$POST_RESTORE_RUN_ROOT/producer/embedded-verifier.log"
+          cp dist-node/distribution/manifest.json "$POST_RESTORE_RUN_ROOT/producer/manifest.json"
+          python3 -B scripts/qa/run-current-v28-post-restore.py --stage help-main --run-root "$POST_RESTORE_RUN_ROOT"
+          python3 -B scripts/qa/run-current-v28-post-restore.py --stage help-identity --run-root "$POST_RESTORE_RUN_ROOT"
+          python3 -B scripts/qa/run-current-v28-post-restore.py --stage help-installation --run-root "$POST_RESTORE_RUN_ROOT"
+          python3 -B scripts/qa/run-current-v28-post-restore.py --stage help-restore --run-root "$POST_RESTORE_RUN_ROOT"
+      - name: Fresh genuine complete zero-File V5 capture and current real restore CLI
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage preparation --run-root "$POST_RESTORE_RUN_ROOT"
+      - name: Original two destination identity and Group cases while maintenance stays fenced
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage operators --run-root "$POST_RESTORE_RUN_ROOT"
+      - name: Original three strict stopped maintenance-release parser cases
+        if: ${{ github.ref == 'refs/heads/codex/node-v28-restored-maintenance-release' || github.ref == 'refs/heads/codex/node-v28-operational-health-ready' || github.ref == 'refs/heads/codex/node-v28-public-local-backup-capture' || github.ref == 'refs/heads/codex/node-v28-nonempty-backup-restore' || github.ref == 'refs/heads/codex/portable-v26-r2-node-backup-one' }}
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage maintenance-parser --run-root "$POST_RESTORE_RUN_ROOT"
+      - name: Original three genuine stopped maintenance-release cases
+        if: ${{ github.ref == 'refs/heads/codex/node-v28-restored-maintenance-release' || github.ref == 'refs/heads/codex/node-v28-operational-health-ready' || github.ref == 'refs/heads/codex/node-v28-public-local-backup-capture' || github.ref == 'refs/heads/codex/node-v28-nonempty-backup-restore' || github.ref == 'refs/heads/codex/portable-v26-r2-node-backup-one' }}
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage maintenance --run-root "$POST_RESTORE_RUN_ROOT"
+      - name: Actual compiled main on the same released restored target
+        if: ${{ github.ref == 'refs/heads/codex/node-v28-restored-maintenance-release' || github.ref == 'refs/heads/codex/node-v28-operational-health-ready' || github.ref == 'refs/heads/codex/node-v28-public-local-backup-capture' || github.ref == 'refs/heads/codex/node-v28-nonempty-backup-restore' || github.ref == 'refs/heads/codex/portable-v26-r2-node-backup-one' }}
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage main --run-root "$POST_RESTORE_RUN_ROOT"
+      - name: Genuine one-File HTTP upload, compiled V28 capture and inert restore
+        if: ${{ github.ref == 'refs/heads/codex/node-v28-nonempty-backup-restore' || github.ref == 'refs/heads/codex/portable-v26-r2-node-backup-one' }}
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage nonempty --run-root "$POST_RESTORE_RUN_ROOT"
+      - name: Genuine current V26 R2 backup and programmatic Node inert restore
+        if: ${{ github.ref == 'refs/heads/codex/portable-v26-r2-node-backup-one' }}
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage r2pair --run-root "$POST_RESTORE_RUN_ROOT"
+      - name: Retain only raw logs, results, small receipts and the package manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: current-v28-post-restore-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          include-hidden-files: true
+          path: |
+            ${{ env.POST_RESTORE_RUN_ROOT }}/*/original*.log
+            ${{ env.POST_RESTORE_RUN_ROOT }}/types/receipt.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/parser/original-results.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/parser/receipt.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/capture-parser/original-results.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/capture-parser/receipt.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/producer/*.log
+            ${{ env.POST_RESTORE_RUN_ROOT }}/producer/manifest.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/help-*/receipt.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/preparation/original-results.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/preparation/receipt.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/preparation-inputs.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/operators/original-results.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/operators/receipt.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/maintenance-parser/original-results.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/maintenance-parser/receipt.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/maintenance/original-results.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/maintenance/receipt.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/config-unit/original-results.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/config-unit/receipt.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/main/original-results.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/main/receipt.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/nonempty/original-results.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/nonempty/receipt.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/nonempty-inputs.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/r2pair/original-results.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/r2pair/receipt.json
+            ${{ env.POST_RESTORE_RUN_ROOT }}/r2pair-inputs.json
+
+  genuine-current-package-http:
+    if: ${{ github.ref == 'refs/heads/codex/node-research-package-http' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      NO_COLOR: '1'
+      FORCE_COLOR: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+          cache: npm
+      - name: Install the exact current committed lock
+        run: npm ci
+      - name: Reserve a fresh private original-owned Package fixture namespace
+        shell: bash
+        run: |
+          run_root="$HOME/.current-node-package-http-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir -m 700 "$run_root"
+          printf 'PACKAGE_HTTP_RUN_ROOT=%s\n' "$run_root" >> "$GITHUB_ENV"
+      - name: Full current server and runtime test types
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage types --run-root "$PACKAGE_HTTP_RUN_ROOT"
+      - name: Three genuine original Package HTTP and independent executor cases
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage package-http --run-root "$PACKAGE_HTTP_RUN_ROOT"
+      - name: Preserve original raw logs, exact results and custody receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: current-node-package-http-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          include-hidden-files: true
+          path: |
+            ${{ env.PACKAGE_HTTP_RUN_ROOT }}/types/receipt.json
+            ${{ env.PACKAGE_HTTP_RUN_ROOT }}/types/original*.log
+            ${{ env.PACKAGE_HTTP_RUN_ROOT }}/package-http/receipt.json
+            ${{ env.PACKAGE_HTTP_RUN_ROOT }}/package-http/original*.log
+            ${{ env.PACKAGE_HTTP_RUN_ROOT }}/package-http/original-results.json

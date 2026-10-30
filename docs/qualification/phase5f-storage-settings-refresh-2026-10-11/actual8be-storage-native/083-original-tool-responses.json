@@ -1,0 +1,172 @@
+[
+  {
+    "stage": "qualified-current02d-coherent-build-producer-preflight",
+    "toolResult": {
+      "chunk_id": "800485",
+      "wall_time_seconds": 0.515215012,
+      "exit_code": 0,
+      "original_token_count": 370,
+      "output": "{\"stage\": \"qualified-current02d-coherent-build-producer-preflight\", \"ownedPid\": 1572324, \"ownedProcessGroup\": 1572324, \"originalStartTicks\": \"16938472\"}\n{\"stage\": \"qualified-current02d-coherent-build-producer-preflight\", \"cwd\": \"/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source\", \"argv\": [\"python3\", \"-B\", \"/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/storage/carry-current8be-genuine-readonly-refresh.py\", \"--current02d-coherent-saved-job\", \"producer-preflight\"], \"env\": {\"TMPDIR\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2\", \"SQLITE_TMPDIR\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2\"}, \"startedAt\": \"2026-10-11T22:02:03.958247+00:00\", \"status\": \"PASS\", \"log\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/qualified-current02d-coherent-build-producer-preflight.log\", \"pid\": 1572324, \"processGroup\": 1572324, \"originalStartTicks\": \"16938472\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [], \"after\": [], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": []}, \"endedAt\": \"2026-10-11T22:02:04.336167+00:00\", \"logSha256\": \"811fc33b462a648eb40b3d9fa8daccec7b45c556cafa10699b4aafd36202afd8\"}\n{\"stage\": \"producer-preflight\", \"status\": \"PASS\", \"domain\": \"storage\", \"newBuilds\": 0, \"newFixtureStillRequired\": true}\n\n"
+    }
+  },
+  {
+    "stage": "isolated-copy",
+    "toolResult": {
+      "chunk_id": "d0b07a",
+      "wall_time_seconds": 1.001313443,
+      "session_id": 45807,
+      "original_token_count": 28,
+      "output": "{\"stage\": \"isolated-copy\", \"ownedPid\": 1572389, \"ownedProcessGroup\": 1572389, \"originalStartTicks\": \"16939398\"}\n"
+    }
+  },
+  {
+    "stage": "isolated-copy",
+    "toolResult": {
+      "chunk_id": "56c7a9",
+      "wall_time_seconds": 0.000028412,
+      "exit_code": 0,
+      "original_token_count": 382,
+      "output": "{\"stage\": \"isolated-copy\", \"cwd\": \"/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source\", \"argv\": [\"python3\", \"-B\", \"/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source/scripts/qa/phase5f/prepare-isolated-copy.py\", \"--source-root\", \"/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source\", \"--destination\", \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/copy\", \"--dependency-root\", \"/workspace/sample-fabrication-workflow/node_modules\"], \"env\": {\"TMPDIR\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2\", \"SQLITE_TMPDIR\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2\"}, \"startedAt\": \"2026-10-11T22:02:13.214284+00:00\", \"status\": \"PASS\", \"log\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/isolated-copy.log\", \"pid\": 1572389, \"processGroup\": 1572389, \"originalStartTicks\": \"16939398\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [], \"after\": [], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": []}, \"endedAt\": \"2026-10-11T22:02:14.917581+00:00\", \"logSha256\": \"1dd64edd490bf1ffa10a3cec703a6ce65331da0b4d26928cd634f8944e7438a6\"}\n{\"destination\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/copy\", \"sourceHead\": \"8be4e74200096436eaa674a05d44dd772d23fc35\", \"copiedState\": false, \"copiedFiles\": 3086, \"artifacts\": 121}\n\n"
+    }
+  },
+  {
+    "stage": "fresh-two-version-sentinel",
+    "toolResult": {
+      "chunk_id": "b91700",
+      "wall_time_seconds": 1.001008471,
+      "session_id": 59219,
+      "original_token_count": 32,
+      "output": "{\"stage\": \"fresh-two-version-sentinel\", \"ownedPid\": 1572446, \"ownedProcessGroup\": 1572446, \"originalStartTicks\": \"16940321\"}\n"
+    }
+  },
+  {
+    "stage": "fresh-two-version-sentinel",
+    "toolResult": {
+      "chunk_id": "e48506",
+      "wall_time_seconds": 0.000025888,
+      "exit_code": 0,
+      "original_token_count": 471,
+      "output": "{\"stage\": \"fresh-two-version-sentinel\", \"cwd\": \"/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source\", \"argv\": [\"node\", \"/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source/scripts/qa/phase5f/generate-process-fixture.mjs\", \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/copy\", \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/fixture\"], \"env\": {\"TMPDIR\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2\", \"SQLITE_TMPDIR\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2\"}, \"startedAt\": \"2026-10-11T22:02:22.443063+00:00\", \"status\": \"PASS\", \"log\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/fresh-two-version-sentinel.log\", \"pid\": 1572446, \"processGroup\": 1572446, \"originalStartTicks\": \"16940321\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [{\"pid\": 1572457, \"state\": \"Z\", \"ppid\": 1, \"processGroup\": 1572446, \"kernelResourcesExited\": true, \"fdInspection\": \"PermissionError\"}], \"after\": [{\"pid\": 1572457, \"state\": \"Z\", \"ppid\": 1, \"processGroup\": 1572446, \"kernelResourcesExited\": true, \"fdInspection\": \"PermissionError\"}], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": [{\"pid\": 1572457, \"state\": \"Z\", \"ppid\": 1, \"processGroup\": 1572446, \"kernelResourcesExited\": true, \"fdInspection\": \"PermissionError\"}]}, \"endedAt\": \"2026-10-11T22:02:24.555794+00:00\", \"logSha256\": \"c5d2aae1f3d981c2393df24a0a5a30950ad689173f595a19306208cf9b408808\"}\n{\"sql\":\"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/fixture/process-fixture.sql\",\"manifest\":\"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/fixture/process-fixture.json\",\"prefix\":\"phase5f-9ac730c0-c96\"}\n\n"
+    }
+  },
+  {
+    "stage": "ordinary-actual24-local-migrations",
+    "toolResult": {
+      "chunk_id": "43df2d",
+      "wall_time_seconds": 1.001205337,
+      "session_id": 98959,
+      "original_token_count": 34,
+      "output": "{\"stage\": \"ordinary-actual24-local-migrations\", \"ownedPid\": 1572492, \"ownedProcessGroup\": 1572492, \"originalStartTicks\": \"16941165\"}\n"
+    }
+  },
+  {
+    "stage": "ordinary-actual24-local-migrations",
+    "toolResult": {
+      "chunk_id": "f82909",
+      "wall_time_seconds": 5.00176172,
+      "session_id": 98959,
+      "original_token_count": 0,
+      "output": ""
+    }
+  },
+  {
+    "stage": "ordinary-actual24-local-migrations",
+    "toolResult": {
+      "chunk_id": "8c47fe",
+      "wall_time_seconds": 0.000028442,
+      "exit_code": 0,
+      "original_token_count": 1892,
+      "output": "{\"stage\": \"ordinary-actual24-local-migrations\", \"cwd\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/copy\", \"argv\": [\"node\", \"node_modules/wrangler/bin/wrangler.js\", \"d1\", \"migrations\", \"apply\", \"DB\", \"--local\", \"--config\", \".wrangler/deploy.jsonc\", \"--persist-to\", \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/copy/.wrangler/state\"], \"env\": {\"TMPDIR\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2\", \"SQLITE_TMPDIR\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2\"}, \"startedAt\": \"2026-10-11T22:02:30.880245+00:00\", \"status\": \"PASS\", \"log\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/ordinary-actual24-local-migrations.log\", \"pid\": 1572492, \"processGroup\": 1572492, \"originalStartTicks\": \"16941165\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [{\"pid\": 1572508, \"state\": \"Z\", \"ppid\": 1, \"processGroup\": 1572492, \"kernelResourcesExited\": true, \"fdInspection\": \"PermissionError\"}], \"after\": [{\"pid\": 1572508, \"state\": \"Z\", \"ppid\": 1, \"processGroup\": 1572492, \"kernelResourcesExited\": true, \"fdInspection\": \"PermissionError\"}], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": [{\"pid\": 1572508, \"state\": \"Z\", \"ppid\": 1, \"processGroup\": 1572492, \"kernelResourcesExited\": true, \"fdInspection\": \"PermissionError\"}]}, \"endedAt\": \"2026-10-11T22:02:44.176920+00:00\", \"logSha256\": \"db24b8fafc55d2507e0368adb2a64fd43f26a2418ab3bd9c3740273dbe8472be\"}\n000-8000-000000000000) from .wrangler/state/v3/d1:\n🌀 To execute on your remote database, add a --remote flag to your wrangler command.\n🚣 87 commands executed successfully.\n┌──────────────────────────────────────────┬────────┐\n│ name                                     │ status │\n├──────────────────────────────────────────┼────────┤\n│ 0001_v3_baseline.sql                     │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0002_fp1_file_registry.sql               │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0003_fp1_import_acceptance.sql           │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0004_r2_upload_acceptance.sql            │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0005_metrology_reference_acceptance.sql  │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0006_comment_acceptance.sql              │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0007_fp1_file_authority_transition.sql   │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0008_fp1_shadow_runtime.sql              │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0009_fp1_shadow_withdrawals.sql          │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0010_fp1_shadow_adjudications.sql        │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0011_fp1_retire_legacy_test_projects.sql │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0012_fp1_file_authority_runtime.sql      │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0013_fp1_r2_role_defaults.sql            │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0014_fp2_storage_configuration.sql       │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0015_fp2_storage_candidate_checks.sql    │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0016_fp2_credential_reenvelopes.sql      │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0017_fp2_native_storage_profiles.sql     │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0018_fp2_native_file_runtime.sql         │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0019_fp3_file_jobs.sql                   │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0020_fp4_research_packages.sql           │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0021_fp5_system_recovery.sql             │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0022_fp5_recovery_evidence.sql           │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0023_portable_local_identity.sql         │ ✅     │\n├──────────────────────────────────────────┼────────┤\n│ 0024_rt3_local_volume_profiles.sql       │ ✅     │\n└──────────────────────────────────────────┴────────┘\n🪵  Logs were written to \"/home/agent/.config/.wrangler/logs/wrangler-2026-10-11_22-02-31_422.log\"\n\n"
+    }
+  },
+  {
+    "stage": "synthetic-template-sentinels-only",
+    "toolResult": {
+      "chunk_id": "27306f",
+      "wall_time_seconds": 1.001093116,
+      "session_id": 59593,
+      "original_token_count": 33,
+      "output": "{\"stage\": \"synthetic-template-sentinels-only\", \"ownedPid\": 1572882, \"ownedProcessGroup\": 1572882, \"originalStartTicks\": \"16944193\"}\n"
+    }
+  },
+  {
+    "stage": "synthetic-template-sentinels-only",
+    "toolResult": {
+      "chunk_id": "8607d2",
+      "wall_time_seconds": 0.000026209,
+      "exit_code": 0,
+      "original_token_count": 1113,
+      "output": "{\"stage\": \"synthetic-template-sentinels-only\", \"cwd\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/copy\", \"argv\": [\"node\", \"node_modules/wrangler/bin/wrangler.js\", \"d1\", \"execute\", \"DB\", \"--local\", \"--config\", \".wrangler/deploy.jsonc\", \"--persist-to\", \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/copy/.wrangler/state\", \"--file\", \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/fixture/process-fixture.sql\"], \"env\": {\"TMPDIR\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2\", \"SQLITE_TMPDIR\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2\"}, \"startedAt\": \"2026-10-11T22:03:01.169140+00:00\", \"status\": \"PASS\", \"log\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/synthetic-template-sentinels-only.log\", \"pid\": 1572882, \"processGroup\": 1572882, \"originalStartTicks\": \"16944193\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [{\"pid\": 1572898, \"state\": \"Z\", \"ppid\": 1, \"processGroup\": 1572882, \"kernelResourcesExited\": true, \"fdInspection\": \"PermissionError\"}], \"after\": [{\"pid\": 1572898, \"state\": \"Z\", \"ppid\": 1, \"processGroup\": 1572882, \"kernelResourcesExited\": true, \"fdInspection\": \"PermissionError\"}], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": [{\"pid\": 1572898, \"state\": \"Z\", \"ppid\": 1, \"processGroup\": 1572882, \"kernelResourcesExited\": true, \"fdInspection\": \"PermissionError\"}]}, \"endedAt\": \"2026-10-11T22:03:02.532180+00:00\", \"logSha256\": \"d5df0628fce98899c8e4acc6dd415448b06d438dbd66f34b8c0a3eec7f8bbbb5\"}\n\u001b[33m▲ \u001b[43;33m[\u001b[43;30mWARNING\u001b[43;33m]\u001b[0m \u001b[1mProxy environment variables detected. We'll use your proxy for fetch requests.\u001b[0m\n\n\n\n ⛅️ wrangler 4.112.0\n────────────────────\nResource location: local \n\nUse --remote if you want to access the remote instance.\n\n\u001b[31m✘ \u001b[41;31m[\u001b[41;97mERROR\u001b[41;31m]\u001b[0m \u001b[1mFailed to write to log file Error: ENOENT: no such file or directory, mkdir '/home/agent/.config/.wrangler'\u001b[0m\n\n      at async Object.mkdir (node:internal/fs/promises:916:10)\n      at async ensureDirectoryExists (/workspace/sample-fabrication-workflow/node_modules/wrangler/wrangler-dist/cli.js:59790:3)\n      at async /workspace/sample-fabrication-workflow/node_modules/wrangler/wrangler-dist/cli.js:59865:7\n      at async Mutex.runWith (/workspace/sample-fabrication-workflow/node_modules/miniflare/dist/src/index.js:71860:48)\n      at async appendToDebugLogFile (/workspace/sample-fabrication-workflow/node_modules/wrangler/wrangler-dist/cli.js:59863:3) {\n    errno: -2,\n    code: 'ENOENT',\n    syscall: 'mkdir',\n    path: '/home/agent/.config/.wrangler'\n  }\n\n\n\u001b[31m✘ \u001b[41;31m[\u001b[41;97mERROR\u001b[41;31m]\u001b[0m \u001b[1mWould have written: \u001b[0m\n\n  --- 2026-10-11T22:03:01.943Z debug\n  🪵  Writing logs to \"/home/agent/.config/.wrangler/logs/wrangler-2026-10-11_22-03-01_724.log\"\n  ---\n  \n\n\n🌀 Executing on local database DB (00000000-0000-4000-8000-000000000000) from .wrangler/state/v3/d1:\n🌀 To execute on your remote database, add a --remote flag to your wrangler command.\n🚣 12 commands executed successfully.\n[\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 0\n    }\n  },\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 27\n    }\n  },\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 0\n    }\n  },\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 1\n    }\n  },\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 0\n    }\n  },\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 22\n    }\n  },\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 0\n    }\n  },\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 0\n    }\n  },\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 25\n    }\n  },\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 0\n    }\n  },\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 0\n    }\n  },\n  {\n    \"results\": [],\n    \"success\": true,\n    \"meta\": {\n      \"duration\": 0\n    }\n  }\n]\n🪵  Logs were written to \"/home/agent/.config/.wrangler/logs/wrangler-2026-10-11_22-03-01_724.log\"\n\n"
+    }
+  },
+  {
+    "stage": "physical-before",
+    "toolResult": {
+      "chunk_id": "0649b9",
+      "wall_time_seconds": 0.967292121,
+      "exit_code": 0,
+      "original_token_count": 393,
+      "output": "{\"stage\": \"physical-before\", \"ownedPid\": 1572959, \"ownedProcessGroup\": 1572959, \"originalStartTicks\": \"16945689\"}\n{\"stage\": \"physical-before\", \"cwd\": \"/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source\", \"argv\": [\"python3\", \"-B\", \"/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source/scripts/qa/phase5f/check-isolated-state.py\", \"--source-copy\", \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/copy\", \"--fixture-directory\", \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/fixture\", \"--stage\", \"before-api\"], \"env\": {\"TMPDIR\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2\", \"SQLITE_TMPDIR\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2\"}, \"startedAt\": \"2026-10-11T22:03:16.128569+00:00\", \"status\": \"PASS\", \"log\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/physical-before.log\", \"pid\": 1572959, \"processGroup\": 1572959, \"originalStartTicks\": \"16945689\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [], \"after\": [], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": []}, \"endedAt\": \"2026-10-11T22:03:16.954897+00:00\", \"logSha256\": \"be5487a97ef78b4b8a34adef8581aa1b7881a1f6743fdac30e6a4204b27dd18c\"}\n{\"receipt\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/fixture/physical-sqlite-before-api.json\", \"status\": \"passed\", \"sqliteFiles\": 2, \"error\": null}\n\n"
+    }
+  },
+  {
+    "stage": "current-source-build-and-pure24-witness",
+    "toolResult": {
+      "chunk_id": "6b8dae",
+      "wall_time_seconds": 0.680387884,
+      "exit_code": 0,
+      "original_token_count": 382,
+      "output": "{\"stage\": \"current-source-build-and-pure24-witness\", \"ownedPid\": 1572987, \"ownedProcessGroup\": 1572987, \"originalStartTicks\": \"16946789\"}\n{\"stage\": \"current-source-build-and-pure24-witness\", \"cwd\": \"/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source\", \"argv\": [\"python3\", \"-B\", \"/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/storage/carry-current8be-genuine-readonly-refresh.py\", \"--current02d-coherent-saved-job\", \"witness\"], \"env\": {\"TMPDIR\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2\", \"SQLITE_TMPDIR\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2\"}, \"startedAt\": \"2026-10-11T22:03:27.129179+00:00\", \"status\": \"PASS\", \"log\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/current-source-build-and-pure24-witness.log\", \"pid\": 1572987, \"processGroup\": 1572987, \"originalStartTicks\": \"16946789\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [], \"after\": [], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": []}, \"endedAt\": \"2026-10-11T22:03:27.655305+00:00\", \"logSha256\": \"af5fd1570c25336f008c736eee9fef203ea67de95dea480292e871eea65a77be\"}\n{\"stage\": \"witness\", \"status\": \"PASS\", \"domain\": \"storage\", \"producerHead\": \"8be4e74200096436eaa674a05d44dd772d23fc35\", \"qaConsumerHead\": \"8c460eb229edc1983867a7778a625793d1b852f0\", \"newBuilds\": 0, \"disabledSeedRequests\": 0}\n\n"
+    }
+  },
+  {
+    "stage": "original-one-current-storage-settings-refresh-keyboard",
+    "toolResult": {
+      "chunk_id": "ed022f",
+      "wall_time_seconds": 1.001902482,
+      "session_id": 35314,
+      "original_token_count": 39,
+      "output": "{\"stage\": \"original-one-current-storage-settings-refresh-keyboard\", \"ownedPid\": 1573044, \"ownedProcessGroup\": 1573044, \"originalStartTicks\": \"16948362\"}\r\n"
+    }
+  },
+  {
+    "stage": "original-one-current-storage-settings-refresh-keyboard",
+    "toolResult": {
+      "chunk_id": "cac91f",
+      "wall_time_seconds": 2.477922706,
+      "exit_code": 0,
+      "original_token_count": 626,
+      "output": "{\"stage\": \"original-one-current-storage-settings-refresh-keyboard\", \"cwd\": \"/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source\", \"argv\": [\"node\", \"/tmp/phase5f-refresh-start202-current8be-six-qa-private-attempt1/source/scripts/qa/phase5f/browser-current-coherent-storage-settings-refresh-keyboard.mjs\", \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/copy\", \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/fixture\", \"8be4e74200096436eaa674a05d44dd772d23fc35\", \"--exclusive-go-one-current-coherent-storage-settings-refresh-keyboard\"], \"env\": {\"TMPDIR\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2\", \"SQLITE_TMPDIR\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2\", \"PLAYWRIGHT_MODULE_PATH\": \"/opt/codex/runtimes/cua/lib/node_modules/playwright-core\", \"CHROMIUM_PATH\": \"/usr/bin/chromium\", \"PHASE5F_FILE_MIGRATION_CHROMIUM_TEMP\": \"/workspace/.ssrf2\", \"PHASE5F_FILE_MIGRATION_RUNTIME_ROOT\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime\"}, \"cases\": [\"current-coherent-storage-settings-refresh-keyboard-1280-light\"], \"toolInvocation\": {\"tty\": true, \"originalStdinControl\": \"Only explicit stop newline originalretainedTTY;120s supervision/noSIGTERM graceful claim\"}, \"control\": \"ONE original genuine1280/light Refresh via keyboardEnter; GET-only original replies/strictbody/focus/+2. No write/accept/test/activate. Firstfailure and realpolling retained.\", \"startedAt\": \"2026-10-11T22:03:42.852696+00:00\", \"status\": \"PASS\", \"log\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/original-one-current-storage-settings-refresh-keyboard.log\", \"pid\": 1573044, \"processGroup\": 1573044, \"originalStartTicks\": \"16948362\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [], \"after\": [], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": []}, \"endedAt\": \"2026-10-11T22:03:53.930696+00:00\", \"logSha256\": \"a51d552bfc4d3249093b0704f18758be441703e374cec3da15d4e5a44f290d76\"}\r\n{\"id\":\"current-coherent-storage-settings-refresh-keyboard-1280-light\",\"status\":\"passed\",\"originalContextClosed\":true}\r\n{\"status\":\"passed\",\"passed\":1,\"failed\":0,\"unrun\":0,\"reportPath\":\"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/fixture/genuine-storage-settings-refresh-keyboard-report.json\",\"closure\":\"closed\"}\r\n\r\n"
+    }
+  },
+  {
+    "stage": "physical-after",
+    "toolResult": {
+      "chunk_id": "b753c6",
+      "wall_time_seconds": 1.000877031,
+      "session_id": 50190,
+      "original_token_count": 29,
+      "output": "{\"stage\": \"physical-after\", \"ownedPid\": 1573302, \"ownedProcessGroup\": 1573302, \"originalStartTicks\": \"16951947\"}\n"
+    }
+  },
+  {
+    "stage": "physical-after",
+    "toolResult": {
+      "chunk_id": "e3b0b0",
+      "wall_time_seconds": 0.000024236,
+      "exit_code": 0,
+      "original_token_count": 469,
+      "output": "{\"stage\": \"physical-after\", \"cwd\": \"/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source\", \"argv\": [\"python3\", \"-B\", \"/tmp/phase5f-refresh-start202-current8be-six-qa-private-attempt1/source/scripts/qa/phase5f/check-current-coherent-storage-package-refresh-physical-state.py\", \"--domain\", \"storage\", \"--source-copy\", \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/copy\", \"--fixture-directory\", \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/fixture\", \"--runtime-directory\", \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime\"], \"env\": {\"TMPDIR\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2\", \"SQLITE_TMPDIR\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2\"}, \"control\": \"Mandatory after original native child/directwait/reap and context/route/body/controller/browser/Worker/JWKS settlement. New physical output alias; preserve any accepted job/item/hold/permit partial history. Failed native case stays failed.\", \"startedAt\": \"2026-10-11T22:04:18.701358+00:00\", \"status\": \"PASS\", \"log\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/physical-after.log\", \"pid\": 1573302, \"processGroup\": 1573302, \"originalStartTicks\": \"16951947\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [], \"after\": [], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": []}, \"endedAt\": \"2026-10-11T22:04:19.651308+00:00\", \"logSha256\": \"c8ff186e1dcbfa859768169ca28a40260cededc1408ae6942ed0896bfdebbb48\"}\n{\"receipt\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/fixture/physical-sqlite-after-current-storage-status-refresh-keyboard.json\", \"status\": \"passed\", \"error\": null}\n\n"
+    }
+  },
+  {
+    "stage": "final-source-artifact-input-pins",
+    "toolResult": {
+      "chunk_id": "29f7f3",
+      "wall_time_seconds": 0.629130422,
+      "exit_code": 0,
+      "original_token_count": 379,
+      "output": "{\"stage\": \"final-source-artifact-input-pins\", \"ownedPid\": 1573452, \"ownedProcessGroup\": 1573452, \"originalStartTicks\": \"16952851\"}\n{\"stage\": \"final-source-artifact-input-pins\", \"cwd\": \"/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/source\", \"argv\": [\"python3\", \"-B\", \"/tmp/phase5f-refresh-current8be-two-native-finite-source-preparation-attempt1/storage/carry-current8be-genuine-readonly-refresh.py\", \"--current02d-coherent-saved-job\", \"final-pins\"], \"env\": {\"TMPDIR\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2\", \"SQLITE_TMPDIR\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2\"}, \"startedAt\": \"2026-10-11T22:04:27.740835+00:00\", \"status\": \"PASS\", \"log\": \"/tmp/phase5f-storage-current8be-status-refresh-native-private-attempt2/runtime/final-source-artifact-input-pins.log\", \"pid\": 1573452, \"processGroup\": 1573452, \"originalStartTicks\": \"16952851\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [], \"after\": [], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": []}, \"endedAt\": \"2026-10-11T22:04:28.232796+00:00\", \"logSha256\": \"da03abf1e659317c36233414c3caf6b4cdf29730961cc6eba925f324cf7dad7c\"}\n{\"stage\": \"final-pins\", \"status\": \"PASS\", \"domain\": \"storage\", \"producerHead\": \"8be4e74200096436eaa674a05d44dd772d23fc35\", \"qaConsumerHead\": \"8c460eb229edc1983867a7778a625793d1b852f0\", \"newBuilds\": 0, \"disabledSeedRequests\": 0}\n\n"
+    }
+  }
+]

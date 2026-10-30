@@ -1,0 +1,44 @@
+{
+  "stage": "genuine-enabled-Access-admin-four",
+  "cwd": "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5",
+  "argv": [
+    "node",
+    "/tmp/phase5f-admin-explicit-refresh-original-request-source-attempt5/scripts/qa/phase5f/browser-enabled-admin-actual-api.mjs",
+    "/tmp/phase5f-admin-explicit-refresh-original-request-copy-attempt5",
+    "/tmp/phase5f-admin-explicit-refresh-original-request-fixture-attempt5",
+    "--exclusive-go-four-enabled-admin"
+  ],
+  "env": {
+    "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+    "CHROMIUM_PATH": "/usr/bin/chromium"
+  },
+  "cases": [
+    "admin-1280-light",
+    "admin-390-dark",
+    "reader-1280-light",
+    "admin-390-dark-read-retry"
+  ],
+  "authenticationControls": 6,
+  "mutationScope": "No accepted browserwrites. One original privileged PUT{} by genuine reader mustdeny403. Fixture-only originalempty revisiontable temporarilydropped/restored exactDDL once and originalserviceGET503\u2192200; fulltyped catalog/row compare required. JWT/privatekey memoryonly, original auth/adminpolicy unchanged.",
+  "ownership": "Launch existing recorder tools.exec_command tty:true; adminhelper original child inherits same live TTY. Normalcomplete finally awaits originalcachedowners; explicit stop newline only on this originalTTY marksinterrupted and restores originalfault before cachedcontext/browser cancellation and normalfinally. SIGTERM/143 only external interruption, not gracefulowner closure. No fake Miniflare signalfinally.",
+  "observer": "Original503 status-only unusedbody: nativeRequest finished/failed listeners armbefore navigation, same original Request identity and singleoriginal Response.body Promise; closed pair underoriginal20s afterrealRefresh200. Accept completed+observedhash; or soleknownCDPNoData with nativefinished/failureNull explicitunusedpayloadunavailable/nohash; exceptional nativefailed requires netERR_ABORTED and eventaftercontrolledRefresh. Allotherbodyobservations remainstrict completed. Originalalert\u2192focusedRefreshEnter200/exacttypedtable restoration/roles and budgets unchanged.",
+  "startedAt": "2026-10-11T00:48:34.390576+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-admin-explicit-refresh-original-request-runtime-attempt5/genuine-enabled-Access-admin-four.log",
+  "pid": 400413,
+  "processGroup": 400413,
+  "originalStartTicks": "9297516",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T00:48:44.971776+00:00",
+  "logSha256": "48efd35769af23054be6a940b6543633708ab5f672bf6e13ba02b0bf9ad2c06a"
+}

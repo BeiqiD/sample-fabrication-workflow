@@ -1,0 +1,34 @@
+{
+  "stage": "physical-after",
+  "cwd": "/tmp/phase5f-package-preview-focus-current1943-source-attempt3",
+  "argv": [
+    "python3",
+    "/tmp/phase5f-package-preview-focus-current1943-source-attempt3/scripts/qa/phase5f/check-isolated-state.py",
+    "--source-copy",
+    "/tmp/phase5f-package-preview-focus-fresh-build-copy-attempt3",
+    "--fixture-directory",
+    "/tmp/phase5f-package-preview-focus-fresh-build-fixture-attempt3",
+    "--stage",
+    "after-shutdown"
+  ],
+  "require": "Only after originaldisabledseedWorker and newPackagepreviewhelper bothactualexit +browser/Worker/JWKSstopclosed +bothportsrefused, regardlessfirstfailure where fixture exists. Original mature physical checker preservesSQLiteFK/PNG/inputbytes. Do not infer Accessclosure fromseedstop.",
+  "startedAt": "2026-10-11T04:13:31.562145+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-package-preview-focus-fresh-build-runtime-attempt3/physical-after.log",
+  "pid": 732973,
+  "processGroup": 732973,
+  "originalStartTicks": "10527233",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T04:13:32.167973+00:00",
+  "logSha256": "eb72f2e40a7a2cd139aaa692acd7755f6c974cd0da1dc3b8c4bd798ae4fdc824"
+}

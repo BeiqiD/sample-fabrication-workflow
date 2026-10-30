@@ -1,0 +1,55 @@
+name: Node Package independent process
+
+on:
+  push:
+    branches: [codex/node-package-process]
+
+permissions:
+  contents: read
+
+jobs:
+  genuine-package-process:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      NO_COLOR: '1'
+      FORCE_COLOR: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+          cache: npm
+      - name: Install committed dependencies
+        run: npm ci
+      - name: Reserve private original-owned evidence root
+        shell: bash
+        run: |
+          package_process_root="$HOME/.node-package-process-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir -m 700 "$package_process_root"
+          printf 'PACKAGE_PROCESS_ROOT=%s\n' "$package_process_root" >> "$GITHUB_ENV"
+      - name: Check complete server and runtime types
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage types --run-root "$PACKAGE_PROCESS_ROOT"
+      - name: Build the actual Node client and fixed distribution
+        run: |
+          npm run build:node-client
+          node scripts/build-node.mjs
+      - name: Verify compiled process restart and original 120-second cadence
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage package-process --run-root "$PACKAGE_PROCESS_ROOT"
+      - name: Retain original logs, results and ownership receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-package-process-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          include-hidden-files: true
+          path: |
+            ${{ env.PACKAGE_PROCESS_ROOT }}/types/receipt.json
+            ${{ env.PACKAGE_PROCESS_ROOT }}/types/original*.log
+            ${{ env.PACKAGE_PROCESS_ROOT }}/package-process/receipt.json
+            ${{ env.PACKAGE_PROCESS_ROOT }}/package-process/original*.log
+            ${{ env.PACKAGE_PROCESS_ROOT }}/package-process/original-results.json

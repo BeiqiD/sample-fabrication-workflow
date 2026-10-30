@@ -1,0 +1,18 @@
+{
+  "kind": "portable-current-execution-four-nineteen-owned-final-closure/1",
+  "at": "2026-10-10T22:18:01.566422+00:00",
+  "receipt": "/tmp/portable-current-execution-four-nineteen-owned-actual-attempt1/receipt.json",
+  "receiptSha256": "44dbc5a34edf75d6863bdcd93b5a0daa95d857d5d3993229e3fa6b34192c8635",
+  "head": "4928ce953b37eb3fe5c7452d560fa0f41c0d6110",
+  "tree": "3fb2735159a27d0181de9e653d040ed5bca7436e",
+  "freshCompilers": 4,
+  "freshLegacyNativeFixtureScopes": 7,
+  "freshActualCurrent24WorkerScopes": 12,
+  "allEightOwnedGroupMembersFinal": [],
+  "noActiveOwnedProcessOrOpenOwnedFd": true,
+  "actualWorkerDisposeAwaitedByUnchangedAfterEach": true,
+  "legacyInMemoryNativeOwners": "Process lifetime ended; no per-fixture manualclose or globalother-owner absence claim",
+  "sourcePinsAndGitClean": true,
+  "runtimeReleased": true,
+  "historicalOld18Native12Worker": "Preserved separately at oldcurrent23; not a newfresh30 run"
+}

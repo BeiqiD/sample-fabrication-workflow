@@ -1,0 +1,878 @@
+import { restoreV26ResearchExportToIsolatedDirectory } from "./export-restore-v26";
+import { WORKER_SCHEDULER_MIGRATION_NAME, WORKER_SCHEDULER_MIGRATION_SHA256 } from "../../shared/contracts/worker-scheduler-schema-extension";
+import { validateFullExportV25, PORTABLE_RUNTIME_SOURCE_CHECKPOINT_PATH, PORTABLE_IDENTITY_MIGRATION_NAMES } from "../../shared/contracts/export-portable-runtime";
+import { SYSTEM_RECOVERY_SCHEMA_FINGERPRINT_SHA256, buildSystemRecoveryBlobExportPlan } from "../../shared/contracts/export-system-recovery";
+import { SYSTEM_RECOVERY_EVIDENCE_EXPORT_COLUMNS } from "../../shared/contracts/export-system-recovery-evidence";
+import { RESEARCH_PACKAGE_SCHEMA_FINGERPRINT_SHA256, buildResearchPackageBlobExportPlan } from "../../shared/contracts/export-research-packages";
+import { RESEARCH_PACKAGE_EXPORT_COLUMNS, RESEARCH_PACKAGE_LOCAL_TABLE_NAMES } from "../../shared/contracts/export-research-package-schema";
+import { FILE_MIGRATION_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-migrations";
+import { FILE_JOBS_LOCAL_TABLE_NAMES, FILE_JOBS_EXPORT_COLUMNS } from "../../shared/contracts/export-file-jobs-schema";
+import { FILE_NATIVE_ADMISSION_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-native-admission";
+import { FILE_NATIVE_RUNTIME_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-native-runtime";
+import { FILE_NATIVE_RUNTIME_LOCAL_TABLES } from "../../shared/contracts/file-native-runtime";
+import { buildFileNativeBlobExportPlan } from "../../shared/contracts/export-file-native-blob-plan";
+import { FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-role-policy";
+import { SYSTEM_STORAGE_CONFIGURATION_MIGRATIONS } from "../../shared/contracts/storage-configuration-schema";
+import { FILE_AUTHORITY_RUNTIME_LOCAL_TABLE_NAMES, FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-runtime";
+import { FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-shadow-adjudications";
+import { FILE_SHADOW_ADJUDICATION_EXPORT_COLUMNS } from "../../shared/contracts/file-shadow-adjudication";
+import { FILE_SHADOW_WITHDRAWAL_SCHEMA_FINGERPRINT_SHA256 } from "../../shared/contracts/export-file-shadow-withdrawals";
+import { createHash } from "node:crypto";
+import { mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
+import { join, resolve } from "node:path";
+import { DatabaseSync } from "node:sqlite";
+import { crc32 } from "node:zlib";
+import JSZip from "jszip";
+import type { CompatibilitySchema, ExportSchemaObject, ExportTables, FileShadowSourceRowids, FullExportManifestV15, RetiredExportFields } from "../../shared/contracts/export";
+import { classifyExportCompatibilitySchema, exportCompatibilityColumns, projectCompatibilitySnapshot, restoreCompatibilityRows } from "../../shared/contracts/export-compatibility";
+import { EXPORT_RETIRED_FIELDS_PATH, EXPORT_SOURCE_SCHEMA_PATH, validateFullExportV8, validateFullExportV9, validateFullExportV10, validateFullExportV11, validateFullExportV12, validateFullExportV13, validateFullExportV14, validateFullExportV15, validateFullExportV16, validateFullExportV17, validateFullExportV18, validateFullExportV19, validateFullExportV20, validateFullExportV21, validateFullExportV22, validateFullExportV23, validateFullExportV24 } from "../../shared/contracts/export-protocol";
+import { sqliteTableColumns } from "../../shared/domain/sqlite-table-columns";
+import { fileShadowArchiveColumn, isFileShadowRowidColumn } from "../../shared/contracts/file-shadow-rowid";
+import { IMPORT_ACCEPTANCE_EXPORT_COLUMNS } from "../../shared/contracts/export-import-acceptance";
+import { buildBlobExportPlan } from "../../shared/contracts/export-blob-plan";
+import {
+  FILE_AUTHORITY_REBUILDABLE_TABLE_NAMES,
+  FILE_AUTHORITY_SCHEMA_FINGERPRINT_SHA256,
+  FILE_REGISTRY_ROWID_CLAIMS_INTEGRITY_SQL,
+  fileAuthoritySchemaFingerprint,
+} from "../../shared/contracts/export-file-authority";
+import { buildFileShadowBlobExportPlan, FILE_SHADOW_HEAD_INTEGRITY_SQL, FILE_SHADOW_EXPORTED_VIEWS, FILE_SHADOW_REBUILDABLE_TABLE_NAMES, FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256, FILE_SHADOW_SOURCE_ROWIDS_PATH, fileShadowSchemaFingerprint } from "../../shared/contracts/export-file-shadow";
+
+type Row = Record<string, string | number | null>;
+const EXPORTED_VIEWS = [...new Set([
+  "blob_retention_edges",
+  "file_consumer_relational_projection",
+  "file_consumer_content_projection",
+  "file_consumer_direct_projection",
+  "file_consumer_projection",
+  "file_relational_retention_edges",
+  "file_content_retention_edges",
+  "file_direct_retention_edges",
+  "file_retention_edges",
+  "file_location_retention_edges",
+  "file_location_availability",
+  ...FILE_SHADOW_EXPORTED_VIEWS,
+])];
+const PLATFORM_TABLES = new Set(["d1_migrations", "_cf_KV"]);
+const REBUILDABLE_TABLES = new Set<string>([...FILE_AUTHORITY_REBUILDABLE_TABLE_NAMES, ...FILE_SHADOW_REBUILDABLE_TABLE_NAMES,
+  ...FILE_AUTHORITY_RUNTIME_LOCAL_TABLE_NAMES, ...FILE_JOBS_LOCAL_TABLE_NAMES, ...RESEARCH_PACKAGE_LOCAL_TABLE_NAMES]);
+const MAX_ARCHIVE_BYTES = 256 * 1024 * 1024;
+const MAX_EXPANDED_BYTES = 256 * 1024 * 1024;
+const MAX_ENTRY_BYTES = 128 * 1024 * 1024;
+const OUTCOMES = new Set(["packaged", "missing", "provider_unavailable", "metadata_not_ready", "download_failed", "size_mismatch", "hash_mismatch"]);
+
+function ensure(condition: unknown, message: string): asserts condition {
+  if (!condition) throw new Error(message);
+}
+function object(value: unknown): value is Record<string, any> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+function hash(bytes: string | Uint8Array) { return createHash("sha256").update(bytes).digest("hex"); }
+function canonical(value: any): string {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  if (object(value)) return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`).join(",")}}`;
+  return JSON.stringify(value);
+}
+function sameRows(left: Row[], right: Row[]) {
+  return canonical(left.map(canonical).sort()) === canonical(right.map(canonical).sort());
+}
+function identifier(name: string) { return `"${name.replaceAll('"', '""')}"`; }
+function safeArchivePath(path: unknown): asserts path is string {
+  ensure(typeof path === "string" && path.length > 0 && !/[\\\u0000:]/.test(path)
+    && path.split("/").every((part) => part && part !== "." && part !== ".."), "Unsafe archive path");
+}
+
+export function planExportRestoreMigrations(migrationNames: string[], schemaVersion: number) {
+  const reviewedChain = ["0001_v3_baseline.sql", "0002_fp1_file_registry.sql", "0003_fp1_import_acceptance.sql", "0004_r2_upload_acceptance.sql", "0005_metrology_reference_acceptance.sql", "0006_comment_acceptance.sql", "0007_fp1_file_authority_transition.sql", "0008_fp1_shadow_runtime.sql", "0009_fp1_shadow_withdrawals.sql", "0010_fp1_shadow_adjudications.sql", "0012_fp1_file_authority_runtime.sql", "0013_fp1_r2_role_defaults.sql", "0017_fp2_native_storage_profiles.sql", "0018_fp2_native_file_runtime.sql", "0019_fp3_file_jobs.sql", "0020_fp4_research_packages.sql", "0022_fp5_recovery_evidence.sql"];
+  // This deployment-only cleanup is not a schema transition. Restoring an older
+  // snapshot must preserve its rows, including the explicitly deleted QA data.
+  const cleanup = "0011_fp1_retire_legacy_test_projects.sql";
+  // Content recovery never installs administrator candidates or credential
+  // payload storage. A separately authorized installation recovery owns those.
+  const schemaNames = migrationNames.filter((name) => name !== cleanup && !SYSTEM_STORAGE_CONFIGURATION_MIGRATIONS.includes(name as typeof SYSTEM_STORAGE_CONFIGURATION_MIGRATIONS[number])
+    && !PORTABLE_IDENTITY_MIGRATION_NAMES.includes(name as typeof PORTABLE_IDENTITY_MIGRATION_NAMES[number]));
+  const knownChain = schemaNames.length >= 2 && schemaNames.length <= reviewedChain.length
+    && canonical(schemaNames) === canonical(reviewedChain.slice(0, schemaNames.length));
+  const forwardNames = knownChain ? schemaNames.filter((name) =>
+    name === reviewedChain[1] && schemaVersion < 9
+    || name === reviewedChain[2] && schemaVersion < 10
+    || name === reviewedChain[3] && schemaVersion < 11
+    || name === reviewedChain[4] && schemaVersion < 12
+    || name === reviewedChain[5] && schemaVersion < 13
+    || name === reviewedChain[6] && schemaVersion < 14
+    || name === reviewedChain[7] && schemaVersion < 15
+    || name === reviewedChain[8] && schemaVersion < 16
+    || name === reviewedChain[9] && schemaVersion < 17
+    || name === reviewedChain[10] && schemaVersion < 18
+    || name === reviewedChain[11] && schemaVersion < 19
+    || name === reviewedChain[12] && schemaVersion < 20
+    || name === reviewedChain[13] && schemaVersion < 21
+    || name === reviewedChain[14] && schemaVersion < 22
+    || name === reviewedChain[15] && schemaVersion < 23
+    || name === reviewedChain[16] && schemaVersion < 24) : [];
+  return { schemaNames, forwardNames };
+}
+
+/** 0018 contains a separately classified installation binding beside portable
+ * tables. Omit only DDL owned by that exact local table; references from portable
+ * guards remain and therefore cannot grant restored execution or credentials. */
+export async function contentNativeRuntimeMigrationSql(sql: string) {
+  const { unstable_splitSqlQuery } = await import("wrangler");
+  const localTables = new Set<string>(FILE_NATIVE_RUNTIME_LOCAL_TABLES);
+  const statements = unstable_splitSqlQuery(sql);
+  let omittedTable = false;
+  const content = statements.filter(statement => {
+    const table = statement.match(/\bCREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?["`\[]?(\w+)["`\]]?/i);
+    if (table && localTables.has(table[1])) { omittedTable = true; return false; }
+    const index = statement.match(/\bCREATE\s+(?:UNIQUE\s+)?INDEX\s+(?:IF\s+NOT\s+EXISTS\s+)?["`\[]?\w+["`\]]?\s+ON\s+["`\[]?(\w+)["`\]]?/i);
+    if (index && localTables.has(index[1])) return false;
+    const trigger = statement.match(/\bCREATE\s+TRIGGER\s+(?:IF\s+NOT\s+EXISTS\s+)?["`\[]?\w+["`\]]?[\s\S]*?\b(?:BEFORE|AFTER|INSTEAD\s+OF)\b[\s\S]*?\bON\s+["`\[]?(\w+)["`\]]?/i);
+    return !trigger || !localTables.has(trigger[1]);
+  });
+  ensure(omittedTable, "Native content migration is missing its classified installation binding");
+  return content.map(statement => `${statement};`).join("\n");
+}
+
+// JSZip intentionally accepts duplicate ZIP member names. Reject them before
+// parsing so a shadowed table/manifest cannot silently replace an earlier one.
+function checkZipDirectory(bytes: Buffer) {
+  let end = -1;
+  for (let offset = bytes.length - 22; offset >= Math.max(0, bytes.length - 65557); offset -= 1) {
+    if (bytes.readUInt32LE(offset) === 0x06054b50
+      && offset + 22 + bytes.readUInt16LE(offset + 20) === bytes.length) { end = offset; break; }
+  }
+  ensure(end >= 0, "ZIP end directory is missing");
+  const count = bytes.readUInt16LE(end + 10);
+  let offset = bytes.readUInt32LE(end + 16);
+  const size = bytes.readUInt32LE(end + 12);
+  ensure(bytes.readUInt16LE(end + 4) === 0 && bytes.readUInt16LE(end + 6) === 0
+    && count === bytes.readUInt16LE(end + 8) && count < 65535
+    && size < 0xffffffff && offset + size === end, "Only ordinary single-volume ZIP archives are supported");
+  const names = new Set<string>();
+  const members = new Map<string, { size: number; checksum: number }>();
+  let expanded = 0;
+  for (let index = 0; index < count; index += 1) {
+    ensure(offset + 46 <= end && bytes.readUInt32LE(offset) === 0x02014b50, "Invalid ZIP central directory");
+    const length = bytes.readUInt16LE(offset + 28);
+    const next = offset + 46 + length + bytes.readUInt16LE(offset + 30) + bytes.readUInt16LE(offset + 32);
+    ensure(next <= end, "Invalid ZIP member length");
+    const name = bytes.subarray(offset + 46, offset + 46 + length).toString("utf8");
+    safeArchivePath(name.endsWith("/") ? name.slice(0, -1) : name);
+    ensure(!names.has(name), "Duplicate ZIP member name");
+    names.add(name);
+    const unpacked = bytes.readUInt32LE(offset + 24);
+    members.set(name, { size: unpacked, checksum: bytes.readUInt32LE(offset + 16) });
+    expanded += unpacked;
+    ensure(unpacked <= MAX_ENTRY_BYTES && expanded <= MAX_EXPANDED_BYTES, "Archive exceeds isolated restore size limits");
+    ensure(!(bytes.readUInt16LE(offset + 8) & 1), "Encrypted ZIP entries are unsupported");
+    offset = next;
+  }
+  ensure(offset === end, "ZIP directory count disagrees with its size");
+  return members;
+}
+
+async function archiveReader(bytes: Buffer) {
+  const directory = checkZipDirectory(bytes);
+  const zip = await JSZip.loadAsync(bytes);
+  ensure(canonical(Object.keys(zip.files).sort()) === canonical([...directory.keys()].sort()),
+    "ZIP paths changed or were shadowed while loading");
+  for (const file of Object.values(zip.files)) {
+    const original = (file as JSZip.JSZipObject & { unsafeOriginalName?: string }).unsafeOriginalName;
+    ensure(original === undefined || original === file.name, "ZIP path was normalized while loading");
+    safeArchivePath(file.dir ? file.name.slice(0, -1) : file.name);
+  }
+  let expanded = 0;
+  const consumed = new Set<string>();
+  async function read(path: string) {
+    safeArchivePath(path);
+    ensure(!consumed.has(path), "Archive paths must identify exactly one table or blob");
+    consumed.add(path);
+    const file = zip.file(path);
+    ensure(file, `Missing archive entry: ${path}`);
+    const chunks: Buffer[] = [];
+    let size = 0;
+    let checksum = 0;
+    await new Promise<void>((accept, reject) => {
+      const stream = file.nodeStream("nodebuffer");
+      // JSZip uses readable-stream, whose public type omits destroy(). Qualify
+      // the cancellation capability actually consumed by this byte budget;
+      // its implementation need not inherit Node's core Readable prototype.
+      const destroy = "destroy" in stream ? stream.destroy : undefined;
+      ensure(typeof destroy === "function", "Archive cancellation unavailable");
+      stream.on("data", (chunk: Buffer) => {
+        size += chunk.length;
+        expanded += chunk.length;
+        if (size > MAX_ENTRY_BYTES || expanded > MAX_EXPANDED_BYTES) {
+          destroy.call(stream, new Error("Archive exceeds isolated restore size limits"));
+          return;
+        }
+        chunks.push(chunk);
+        checksum = crc32(chunk, checksum);
+      });
+      stream.once("error", reject);
+      stream.once("end", accept);
+    });
+    ensure(directory.get(path)?.size === size && directory.get(path)?.checksum === checksum,
+      "ZIP member size or CRC-32 mismatch");
+    return Buffer.concat(chunks);
+  }
+  return {
+    read,
+    async json(path: string) { return JSON.parse((await read(path)).toString("utf8")); },
+    finish() {
+      ensure(Object.values(zip.files).filter((file) => !file.dir).every((file) => consumed.has(file.name)),
+        "Archive contains entries not declared by its manifest");
+    },
+  };
+}
+
+function schema(database: DatabaseSync) {
+  return database.prepare("SELECT type, name, tbl_name, sql FROM sqlite_schema WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY type, name")
+    .all() as Array<{ type: string; name: string; tbl_name: string; sql: string }>;
+}
+
+async function ensureFileAuthorityTargetSchema(database: DatabaseSync) {
+  // The source snapshot observes the complete sqlite_schema inventory,
+  // including sql=NULL implicit indexes. Read the same inventory here; the
+  // fingerprint helper itself selects the transition-relevant owners and
+  // excludes unrelated SQLite/platform objects.
+  const observed = database.prepare(
+    "SELECT type, name, tbl_name AS tableName, sql FROM sqlite_schema ORDER BY type, name",
+  ).all() as unknown as ExportSchemaObject[];
+  ensure(await fileAuthoritySchemaFingerprint(observed) === FILE_AUTHORITY_SCHEMA_FINGERPRINT_SHA256,
+    "Local File authority schema differs from the reviewed migration checkpoint");
+}
+
+function ensureJobExecutionSuspended(database: DatabaseSync) {
+  if (!database.prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='file_job_runtime_guard'").get()) return false;
+  const rows = database.prepare("SELECT singleton,enabled,incarnation,last_heartbeat_at FROM file_job_runtime_guard").all();
+  ensure(rows.length === 1 && rows[0].singleton === 1 && rows[0].enabled === 0
+    && rows[0].incarnation === null && rows[0].last_heartbeat_at === null, "Recovered File jobs must remain unadmitted and paused");
+  ensure(database.prepare("SELECT COUNT(*) AS count FROM file_job_cleanup_grants").get()?.count === 0,
+    "Recovered File jobs must not inherit local cleanup authorization");
+  return true;
+}
+
+function ensureResearchPackageExecutionSuspended(database: DatabaseSync) {
+  if (!database.prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='research_package_jobs'").get()) return false;
+  ensureJobExecutionSuspended(database);
+  ensure(database.prepare("SELECT COUNT(*) AS count FROM system_research_package_cleanup_grants").get()?.count === 0,
+    "Recovered research packages must not inherit local cleanup authorization");
+  ensure(database.prepare("SELECT COUNT(*) AS count FROM research_package_live_verified_attempts").get()?.count === 0,
+    "Recovered package verification must not confer a live execution lease");
+  return true;
+}
+
+async function ensureFileShadowTargetSchema(database: DatabaseSync, version: 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 = 15) {
+  const observed = database.prepare("SELECT type, name, tbl_name AS tableName, sql FROM sqlite_schema ORDER BY type, name").all() as unknown as ExportSchemaObject[];
+  ensure(await fileShadowSchemaFingerprint(observed) === (version >= 24 ? SYSTEM_RECOVERY_SCHEMA_FINGERPRINT_SHA256 : version === 23 ? RESEARCH_PACKAGE_SCHEMA_FINGERPRINT_SHA256 : version === 22 ? FILE_MIGRATION_SCHEMA_FINGERPRINT_SHA256 : version === 21 ? FILE_NATIVE_RUNTIME_SCHEMA_FINGERPRINT_SHA256 : version === 20 ? FILE_NATIVE_ADMISSION_SCHEMA_FINGERPRINT_SHA256 : version === 19 ? FILE_R2_ROLE_DEFAULTS_SCHEMA_FINGERPRINT_SHA256 : version === 18 ? FILE_AUTHORITY_RUNTIME_SCHEMA_FINGERPRINT_SHA256 : version === 17 ? FILE_SHADOW_ADJUDICATION_SCHEMA_FINGERPRINT_SHA256 : version === 16 ? FILE_SHADOW_WITHDRAWAL_SCHEMA_FINGERPRINT_SHA256 : FILE_SHADOW_SCHEMA_FINGERPRINT_SHA256),
+    "Local File shadow schema differs from the reviewed migration checkpoint");
+}
+
+function ensureShadowExecutionSuspended(database: DatabaseSync) {
+  if (!database.prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='file_shadow_runtime_guard'").get()) return false;
+  const rows = database.prepare("SELECT singleton, incarnation, enabled FROM file_shadow_runtime_guard").all();
+  ensure(rows.length === 1 && rows[0].singleton === 1 && rows[0].incarnation === null && rows[0].enabled === 0,
+    "Restored shadow execution must remain suspended");
+  ensure(database.prepare("SELECT COUNT(*) AS count FROM file_shadow_runtime_incarnations").get()?.count === 0,
+    "Restored shadow runtime incarnation history must be local and empty");
+  return true;
+}
+
+function ensureAuthorityExecutionSuspended(database: DatabaseSync) {
+  if (!database.prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='file_authority_runtime_guard'").get()) return false;
+  const rows = database.prepare("SELECT singleton, incarnation, enabled FROM file_authority_runtime_guard").all();
+  ensure(rows.length === 1 && rows[0].singleton === 1 && rows[0].incarnation === null && rows[0].enabled === 0,
+    "Restored File authority execution must remain suspended");
+  return true;
+}
+
+function fileRegistryRowidClaimsInstalled(database: DatabaseSync) {
+  return database.prepare("SELECT 1 FROM sqlite_schema WHERE type = 'table' AND name = 'file_registry_rowid_claims'").get() !== undefined;
+}
+
+function ensureFileRegistryRowidClaims(database: DatabaseSync) {
+  if (!fileRegistryRowidClaimsInstalled(database)) return;
+  const row = database.prepare(FILE_REGISTRY_ROWID_CLAIMS_INTEGRITY_SQL).get() as { invalid_count?: unknown } | undefined;
+  ensure(row?.invalid_count === 0, "File registry rowid claims differ from their registry rows");
+}
+
+function rebuildFileRegistryRowidClaims(database: DatabaseSync) {
+  if (!fileRegistryRowidClaimsInstalled(database)) return false;
+  database.exec(`
+    DELETE FROM file_registry_rowid_claims;
+    INSERT INTO file_registry_rowid_claims (registry_name, claimed_rowid)
+    SELECT 'storage_profiles', rowid FROM storage_profiles
+    UNION ALL SELECT 'files', rowid FROM files
+    UNION ALL SELECT 'file_locations', rowid FROM file_locations
+    UNION ALL SELECT 'legacy_file_mappings', rowid FROM legacy_file_mappings;
+  `);
+  ensureFileRegistryRowidClaims(database);
+  return true;
+}
+
+function inspectProjectRelations(database: DatabaseSync) {
+  // These final-state relations have trigger guards rather than complete
+  // foreign keys. Historical/deleted rows are valid and remain in the checks.
+  const checks = {
+    "Project content ownership": `SELECT 1 FROM project_items i JOIN project_contents c ON c.id = i.project_content_id WHERE c.project_id <> i.project_id LIMIT 1`,
+    "Active Project placement": `SELECT 1 FROM project_items i LEFT JOIN project_map_placements p ON p.project_item_id = i.id WHERE i.deleted_at IS NULL AND p.id IS NULL LIMIT 1`,
+    "Project edge ownership": `SELECT 1 FROM project_edges e JOIN project_items a ON a.id = e.source_item_id JOIN project_items b ON b.id = e.target_item_id WHERE a.project_id <> e.project_id OR b.project_id <> e.project_id LIMIT 1`,
+    "Project sequence watermark": `SELECT 1 FROM projects p JOIN project_items i ON i.project_id = p.id WHERE i.created_sequence >= p.next_created_sequence LIMIT 1`,
+    "Project attachment subtype": `SELECT 1 FROM project_content_attachments a JOIN project_contents c ON c.id = a.project_content_id WHERE c.content_type <> 'attachment' LIMIT 1`,
+  };
+  for (const [name, sql] of Object.entries(checks)) ensure(!database.prepare(sql).get(), `${name} verification failed`);
+}
+
+function retentionAt(databasePath: string, inspectionTime: string, view = "blob_retention_edges") {
+  const projection = new DatabaseSync(databasePath, { readOnly: true });
+  const clock = new DatabaseSync(":memory:");
+  try {
+    // Override time only on a separate read-only inspection connection. The
+    // restored database and its ordinary future writes retain SQLite's clock.
+    for (const name of ["datetime", "date", "time", "strftime", "julianday", "unixepoch"]) {
+      projection.function(name, { varargs: true }, (...values) => {
+        const args = values.length ? values.map((value, index) =>
+          value === "now" && (name !== "strftime" || index > 0) ? inspectionTime : value) : [inspectionTime];
+        return Object.values(clock.prepare(`SELECT ${name}(${args.map(() => "?").join(",")})`).get(...args)!)[0];
+      });
+    }
+    return projection.prepare(`SELECT * FROM ${identifier(view)}`).all() as Row[];
+  } finally {
+    projection.close();
+    clock.close();
+  }
+}
+
+function nativeRetentionSnapshotsAt(databasePath: string, inspectionTime: string, views: string[]) {
+  const projection = new DatabaseSync(databasePath, { readOnly: true }), clock = new DatabaseSync(":memory:");
+  try {
+    // Reuse one source-clock inspection connection for the complete successor
+    // view inventory, rather than reparsing the full schema for each view.
+    for (const name of ["datetime", "date", "time", "strftime", "julianday", "unixepoch"]) {
+      projection.function(name, { varargs: true }, (...values) => {
+        const args = values.length ? values.map((value, index) =>
+          value === "now" && (name !== "strftime" || index > 0) ? inspectionTime : value) : [inspectionTime];
+        return Object.values(clock.prepare(`SELECT ${name}(${args.map(() => "?").join(",")})`).get(...args)!)[0];
+      });
+    }
+    return Object.fromEntries(views.map(name => [name, projection.prepare(`SELECT * FROM ${identifier(name)}`).all() as Row[]]));
+  } finally { projection.close(); clock.close(); }
+}
+
+export async function restoreExportToIsolatedDirectory(options: {
+  archivePath: string;
+  destination: string;
+  migrationsDirectory: string;
+  targetCompatibilitySchema?: CompatibilitySchema;
+}) {
+  // Version dispatch is separate from the frozen historical readers. The
+  // bounded ZIP parser qualifies the manifest entry before choosing V26.
+  const negotiatedInfo = await stat(options.archivePath);
+  ensure(negotiatedInfo.isFile() && negotiatedInfo.size <= MAX_ARCHIVE_BYTES, "Archive exceeds isolated restore size limits");
+  const negotiatedBytes = await readFile(options.archivePath);
+  ensure(negotiatedBytes.length <= MAX_ARCHIVE_BYTES, "Archive exceeds isolated restore size limits");
+  const negotiated = await (await archiveReader(negotiatedBytes)).json("export-manifest.json");
+  if (object(negotiated) && negotiated.schemaVersion === 26) return restoreV26ResearchExportToIsolatedDirectory(options);
+  const destination = resolve(options.destination);
+  // Exclusive creation precedes all writes. Neither an existing directory nor
+  // a symlink is accepted, and there is deliberately no force/overwrite mode.
+  await mkdir(destination, { mode: 0o700 });
+  let database: DatabaseSync | undefined;
+  let completed = false;
+  try {
+    const staging = await mkdtemp(join(destination, ".in-progress-"));
+    const inputInfo = await stat(options.archivePath);
+    ensure(inputInfo.isFile() && inputInfo.size <= MAX_ARCHIVE_BYTES, "Archive exceeds isolated restore size limits");
+    const bytes = await readFile(options.archivePath);
+    ensure(bytes.length <= MAX_ARCHIVE_BYTES, "Archive exceeds isolated restore size limits");
+    const archive = await archiveReader(bytes);
+    const manifest = await archive.json("export-manifest.json");
+    const warnings = await archive.json("export-warnings.json");
+    ensure(object(manifest) && [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25].includes(manifest.schemaVersion) && typeof manifest.exportedAt === "string"
+      && Number.isFinite(Date.parse(manifest.exportedAt)) && object(manifest.tables)
+      && Array.isArray(manifest.blobs) && Array.isArray(warnings), "Unsupported complete-export manifest");
+
+    database = new DatabaseSync(join(staging, "database.sqlite"));
+    const successor = "0024_rt3_local_volume_profiles.sql";
+    const inventory = (await readdir(options.migrationsDirectory)).filter((name) => name.endsWith(".sql")).sort();
+    if (inventory.includes(successor)) ensure(hash(await readFile(join(options.migrationsDirectory, successor)))
+      === "010414ba121247175e3bf6fe2eb88028ff8557035b123cfa12970c37e3985533", "Unreviewed V26 successor migration");
+    if (inventory.includes(WORKER_SCHEDULER_MIGRATION_NAME)) ensure(hash(await readFile(join(options.migrationsDirectory, WORKER_SCHEDULER_MIGRATION_NAME)))
+      === WORKER_SCHEDULER_MIGRATION_SHA256, "Unreviewed Worker scheduler successor migration");
+    // Exact known successor is not executed by any historical research reader.
+    const migrationNames = inventory.filter(name => name !== successor && name !== WORKER_SCHEDULER_MIGRATION_NAME);
+    ensure(migrationNames.length > 0, "No local migrations found");
+    const migrations: Array<{ name: string; sha256: string }> = [];
+    // Historical profiles first restore against their exact reviewed physical
+    // schema. Only this named chain admits the bounded forward transitions.
+    const { schemaNames, forwardNames } = planExportRestoreMigrations(migrationNames, manifest.schemaVersion);
+    const forwardMigrations: Array<{ name: string; sha256: string; sql: string }> = [];
+    const migrationSql: string[] = [];
+    for (const name of schemaNames) {
+      const sourceSql = await readFile(join(options.migrationsDirectory, name), "utf8");
+      const sql = name === "0018_fp2_native_file_runtime.sql" ? await contentNativeRuntimeMigrationSql(sourceSql) : sourceSql;
+      migrations.push({ name, sha256: hash(sourceSql) });
+      migrationSql.push(sql);
+      if (forwardNames.includes(name)) forwardMigrations.push({ name, sha256: hash(sourceSql), sql });
+      else database.exec(sql);
+    }
+    let expectedSchema = schema(database);
+    let derivedTablesRebuilt = false;
+    if (manifest.schemaVersion === 14) await ensureFileAuthorityTargetSchema(database);
+    if (manifest.schemaVersion >= 15) await ensureFileShadowTargetSchema(database, manifest.schemaVersion);
+    const tableNames = expectedSchema.filter((entry) => entry.type === "table"
+      && !PLATFORM_TABLES.has(entry.name) && !REBUILDABLE_TABLES.has(entry.name)).map((entry) => entry.name);
+    const schemaViewNames = new Set(expectedSchema.filter((entry) => entry.type === "view").map((entry) => entry.name));
+    const exportedViews = EXPORTED_VIEWS.filter((name) => schemaViewNames.has(name));
+    const catalog = [...tableNames, ...exportedViews].sort();
+    ensure(canonical(Object.keys(manifest.tables).sort()) === canonical(catalog), "Archive table catalog differs from the current local schema");
+    const observedColumns = (name: string) => (database!.prepare(`PRAGMA table_xinfo(${identifier(name)})`).all() as Array<{ name: string }>).map((column) => column.name);
+    const compatibilityProfile = manifest.schemaVersion >= 14 ? "file-authority-v14" : "legacy";
+    const targetCompatibilitySchema = classifyExportCompatibilitySchema({
+      samples: observedColumns("samples"), run_step_comments: observedColumns("run_step_comments"),
+    }, compatibilityProfile);
+    ensure(options.targetCompatibilitySchema === undefined || options.targetCompatibilitySchema === targetCompatibilitySchema,
+      "Requested compatibility target differs from the reviewed migration schema");
+    ensure(options.targetCompatibilitySchema !== undefined || manifest.schemaVersion === 7 && targetCompatibilitySchema === "S0",
+      "An explicit compatibility target is required for this archive or schema");
+    let tables: Record<string, Row[]> = {};
+    for (const name of catalog) {
+      const descriptor = manifest.tables[name];
+      ensure(object(descriptor) && Number.isSafeInteger(descriptor.rowCount) && descriptor.rowCount >= 0, `Invalid table row count: ${name}`);
+      const tableBytes = await archive.read(descriptor.path);
+      const rows = JSON.parse(tableBytes.toString("utf8"));
+      ensure(Array.isArray(rows) && rows.length === descriptor.rowCount, `Table row count mismatch: ${name}`);
+      if (manifest.schemaVersion >= 8) ensure(Number.isSafeInteger(descriptor.byteSize) && descriptor.byteSize === tableBytes.length
+        && typeof descriptor.sha256 === "string" && descriptor.sha256 === hash(tableBytes), `Table SHA-256 or size mismatch: ${name}`);
+      const columns = (database.prepare(`PRAGMA table_info(${identifier(name)})`).all() as Array<{ name: string }>).map((column) => column.name).sort();
+      for (const row of rows) {
+        ensure(object(row) && (["samples", "run_step_comments"].includes(name) || canonical(Object.keys(row).sort()) === canonical(columns)), `Table column mismatch: ${name}`);
+        ensure(Object.values(row).every((value) => value === null || typeof value === "string"
+          || typeof value === "number" && Number.isFinite(value) && (!Number.isInteger(value) || Number.isSafeInteger(value))), `Invalid table cell: ${name}`);
+      }
+      tables[name] = rows;
+    }
+
+    let retiredFields: RetiredExportFields;
+    let sourceRowids: FileShadowSourceRowids | undefined;
+    let sourceSnapshotClock: string | undefined;
+    const retainedArtifacts: Array<{ path: string; bytes: Buffer }> = [];
+    if (manifest.schemaVersion >= 8) {
+      ensure(manifest.archiveWriter === 1 && object(manifest.artifacts), "Unsupported complete-export writer");
+      const artifacts: Record<string, any> = {};
+      const artifactPaths = [["sourceSchema", EXPORT_SOURCE_SCHEMA_PATH], ["retiredFields", EXPORT_RETIRED_FIELDS_PATH]];
+      if (manifest.schemaVersion >= 15) artifactPaths.push(["sourceRowids", FILE_SHADOW_SOURCE_ROWIDS_PATH]);
+      if (manifest.schemaVersion === 25) artifactPaths.push(["portableCheckpoint", PORTABLE_RUNTIME_SOURCE_CHECKPOINT_PATH]);
+      for (const [name, path] of artifactPaths) {
+        const descriptor = manifest.artifacts[name];
+        ensure(object(descriptor) && descriptor.path === path && Number.isSafeInteger(descriptor.byteSize), `Invalid ${name} artifact descriptor`);
+        const artifactBytes = await archive.read(path);
+        ensure(artifactBytes.length === descriptor.byteSize && typeof descriptor.sha256 === "string" && hash(artifactBytes) === descriptor.sha256, `${name} artifact SHA-256 or size mismatch`);
+        artifacts[name] = { ...descriptor, value: JSON.parse(artifactBytes.toString("utf8")) };
+        retainedArtifacts.push({ path, bytes: artifactBytes });
+      }
+      ensure(Object.keys(manifest.artifacts).sort().join(",") === (manifest.schemaVersion === 25 ? "portableCheckpoint,retiredFields,sourceRowids,sourceSchema" : manifest.schemaVersion >= 15 ? "retiredFields,sourceRowids,sourceSchema" : "retiredFields,sourceSchema"), "Unknown or missing provenance artifacts");
+      // Archive entries have final outcomes, while the negotiated wire catalog
+      // has download URLs. Validate provenance against a reconstructed wire
+      // plan here; the original archived blob catalog and bytes are checked
+      // against that same table-derived plan below without dropping entries.
+      const validate = manifest.schemaVersion === 25 ? validateFullExportV25 : manifest.schemaVersion === 24 ? validateFullExportV24 : manifest.schemaVersion === 23 ? validateFullExportV23 : manifest.schemaVersion === 22 ? validateFullExportV22 : manifest.schemaVersion === 21 ? validateFullExportV21 : manifest.schemaVersion === 20 ? validateFullExportV20 : manifest.schemaVersion === 19 ? validateFullExportV19 : manifest.schemaVersion === 18 ? validateFullExportV18 : manifest.schemaVersion === 17 ? validateFullExportV17 : manifest.schemaVersion === 16 ? validateFullExportV16 : manifest.schemaVersion === 15 ? validateFullExportV15 : manifest.schemaVersion === 14 ? validateFullExportV14 : manifest.schemaVersion === 13 ? validateFullExportV13 : manifest.schemaVersion === 12 ? validateFullExportV12 : manifest.schemaVersion === 11 ? validateFullExportV11 : manifest.schemaVersion === 10 ? validateFullExportV10 : manifest.schemaVersion === 9 ? validateFullExportV9 : validateFullExportV8;
+      const validated = await validate({ ...manifest, tables, artifacts, blobs: manifest.schemaVersion >= 24 ? buildSystemRecoveryBlobExportPlan(tables, artifacts.sourceSchema.value.snapshotClock, manifest.backupHoldOwner).blobs : manifest.schemaVersion >= 23 ? buildResearchPackageBlobExportPlan(tables, artifacts.sourceSchema.value.snapshotClock).blobs : manifest.schemaVersion >= 21 ? buildFileNativeBlobExportPlan(tables) : manifest.schemaVersion >= 15 ? buildFileShadowBlobExportPlan(tables) : buildBlobExportPlan(tables) });
+      if (validated.schemaVersion >= 21) sourceSnapshotClock = artifacts.sourceSchema.value.snapshotClock;
+      if (validated.schemaVersion >= 15) sourceRowids = (validated as FullExportManifestV15).artifacts.sourceRowids.value;
+      retiredFields = validated.artifacts.retiredFields.value;
+      tables = restoreCompatibilityRows(validated.tables, retiredFields, targetCompatibilitySchema, compatibilityProfile);
+    } else {
+      // V7 has no physical schema/build digest. Use only its declared row
+      // contract; never label an inferred schema as an observed one.
+      const converted = projectCompatibilitySnapshot(tables as ExportTables, { compatibilityColumns: exportCompatibilityColumns("S0") });
+      retiredFields = converted.retiredFields;
+      tables = restoreCompatibilityRows(converted.tables, retiredFields, targetCompatibilitySchema);
+      retainedArtifacts.push({ path: EXPORT_RETIRED_FIELDS_PATH, bytes: Buffer.from(JSON.stringify(retiredFields, null, 2)) });
+    }
+    // Validate physical target columns after lossless conversion, including
+    // empty tables whose retired-family availability is checked above.
+    for (const name of catalog) {
+      const columns = observedColumns(name).sort();
+      for (const row of tables[name]) ensure(canonical(Object.keys(row).sort()) === canonical(columns), `Table column mismatch: ${name}`);
+    }
+    if (manifest.schemaVersion >= 23) ensure(typeof sourceSnapshotClock === "string", "Research recovery requires its validated source snapshot clock");
+    const plan = manifest.schemaVersion >= 24 ? buildSystemRecoveryBlobExportPlan(tables, sourceSnapshotClock!, manifest.backupHoldOwner).blobs : manifest.schemaVersion >= 23 ? buildResearchPackageBlobExportPlan(tables, sourceSnapshotClock!).blobs : manifest.schemaVersion >= 21 ? buildFileNativeBlobExportPlan(tables) : manifest.schemaVersion >= 15 ? buildFileShadowBlobExportPlan(tables) : buildBlobExportPlan(tables);
+    const expectedBlobs = new Map(plan.map((entry) => [entry.locatorId, entry]));
+    ensure(manifest.blobs.length === plan.length, "Archive blob catalog differs from exported tables");
+    const seen = new Set<string>();
+    const providerEntries: Array<Record<string, unknown>> = [];
+    const missingHashes: string[] = [];
+    const expectedWarnings = new Map<string, Record<string, unknown>>();
+    await mkdir(join(staging, "provider-bytes"));
+    for (const [index, blob] of manifest.blobs.entries()) {
+      ensure(object(blob) && typeof blob.locatorId === "string" && !seen.has(blob.locatorId), "Duplicate or invalid blob locator");
+      seen.add(blob.locatorId);
+      const expected = expectedBlobs.get(blob.locatorId);
+      ensure(expected, "Unknown blob locator");
+      for (const field of ["storeKind", "provider", "objectKey", "blobRecordIds", "filename", "expectedByteSize", "expectedSha256", "sourceOccurrences"] as const) {
+        // Occurrences form a multiset: source and restoring hosts may have
+        // different locale sort orders. Sorting retains duplicate entries, so
+        // missing, extra or changed occurrences still fail exact comparison.
+        const observed = field === "sourceOccurrences" && Array.isArray(blob[field])
+          ? blob[field].map(canonical).sort() : blob[field];
+        const recorded = field === "sourceOccurrences" ? expected[field].map(canonical).sort() : expected[field];
+        ensure(canonical(observed) === canonical(recorded), `Blob metadata disagrees with table snapshot: ${field}`);
+      }
+      if (manifest.schemaVersion >= 15) {
+        for (const field of ["byteAuthority", "storageProfileId", "storageProfileRevision", "locationId"] as const) {
+          ensure(canonical(blob[field]) === canonical((expected as unknown as Record<string, unknown>)[field]), `Shadow blob identity differs: ${field}`);
+        }
+      }
+      ensure(OUTCOMES.has(blob.outcome), "Unknown blob export outcome");
+      ensure(expected.initialOutcome === null || blob.outcome === expected.initialOutcome, "Blob outcome disagrees with unavailable metadata");
+      let localPath: string | null = null;
+      let restoredSha256: string | null = null;
+      if (blob.outcome === "packaged") {
+        const blobBytes = await archive.read(blob.path);
+        ensure(blob.expectedByteSize === null || blobBytes.length === blob.expectedByteSize, "Packaged blob size mismatch");
+        restoredSha256 = hash(blobBytes);
+        ensure(blob.expectedSha256 === null || restoredSha256 === blob.expectedSha256.toLowerCase(), "Packaged blob SHA-256 mismatch");
+        if (blob.expectedSha256 === null) missingHashes.push(blob.locatorId);
+        localPath = `provider-bytes/${String(index + 1).padStart(6, "0")}.blob`;
+        await writeFile(join(staging, localPath), blobBytes, { flag: "wx", mode: 0o600 });
+      } else {
+        ensure(blob.path === null, "Unavailable blob must not declare a packaged path");
+        expectedWarnings.set(blob.locatorId, blob);
+      }
+      providerEntries.push({ locatorId: blob.locatorId, storeKind: blob.storeKind, provider: blob.provider,
+        objectKey: blob.objectKey, path: localPath, sha256: restoredSha256, outcome: blob.outcome,
+        ...(manifest.schemaVersion >= 15 ? { byteAuthority: blob.byteAuthority, storageProfileId: blob.storageProfileId,
+          storageProfileRevision: blob.storageProfileRevision, locationId: blob.locationId } : {}) });
+    }
+    ensure(warnings.length === expectedWarnings.size, "Export warnings disagree with blob outcomes");
+    for (const warning of warnings) {
+      ensure(object(warning), "Invalid export warning");
+      const blob = expectedWarnings.get(warning.locatorId);
+      ensure(blob && warning.code === blob.outcome && typeof warning.message === "string"
+        && canonical(warning.blobRecordIds) === canonical(blob.blobRecordIds)
+        && canonical(warning.sourceOccurrences) === canonical(blob.sourceOccurrences), "Export warning disagrees with its blob");
+      if (manifest.schemaVersion >= 15) for (const field of ["byteAuthority", "storageProfileId", "storageProfileRevision", "locationId"] as const) ensure(canonical(warning[field]) === canonical(blob[field]), "Shadow warning identity differs from its blob");
+      expectedWarnings.delete(warning.locatorId);
+    }
+    archive.finish();
+
+    // The only database affected here was just created in our private staging
+    // directory. Ordinary write triggers reject valid historical snapshots and
+    // migration seeds may have changed since export. Load the exact snapshot
+    // atomically, then reinstall the exact original schema before publication.
+    const triggers = expectedSchema.filter((entry) => entry.type === "trigger");
+    database.exec("PRAGMA foreign_keys = OFF; BEGIN IMMEDIATE");
+    try {
+      for (const trigger of triggers) database.exec(`DROP TRIGGER ${identifier(trigger.name)}`);
+      for (const name of tableNames) database.exec(`DELETE FROM ${identifier(name)}`);
+      for (const name of tableNames) {
+        const rows = tables[name];
+        if (!rows.length) continue;
+        const columns = Object.keys(rows[0]);
+        const physicalRows = sourceRowids?.tables[name];
+        const insertColumns = physicalRows ? ["rowid", ...columns] : columns;
+        const insert = database.prepare(`INSERT INTO ${identifier(name)} (${insertColumns.map(identifier).join(",")}) VALUES (${insertColumns.map((column) => isFileShadowRowidColumn(name, column) ? "CAST(? AS INTEGER)" : "?").join(",")})`);
+        for (const [index, row] of rows.entries()) insert.run(...(physicalRows ? [BigInt(physicalRows[index].rowid)] : []), ...columns.map((column) => row[column]));
+      }
+      derivedTablesRebuilt = rebuildFileRegistryRowidClaims(database);
+      ensureShadowExecutionSuspended(database);
+      ensureAuthorityExecutionSuspended(database);
+      ensureJobExecutionSuspended(database);
+      ensureResearchPackageExecutionSuspended(database);
+      for (const trigger of triggers) database.exec(trigger.sql);
+      ensure(database.prepare("PRAGMA foreign_key_check").all().length === 0, "Restored database foreign-key check failed");
+      ensure(database.prepare("PRAGMA integrity_check").all().every((row) => Object.values(row)[0] === "ok"), "Restored database integrity check failed");
+      ensure(canonical(schema(database)) === canonical(expectedSchema), "Restored schema differs from the migrated schema");
+      if (sourceRowids) {
+        for (const [name, entries] of Object.entries(sourceRowids.tables)) {
+          for (const [index, entry] of entries.entries()) {
+            const recovered = database.prepare(`SELECT * FROM ${identifier(name)} WHERE rowid=?`).get(BigInt(entry.rowid));
+            ensure(recovered && canonical(recovered) === canonical(tables[name][index]), "Restored shadow source rowid differs");
+          }
+        }
+        const proof = database.prepare(FILE_SHADOW_HEAD_INTEGRITY_SQL).get();
+        ensure(proof?.invalid_count === 0, "Restored shadow heads differ from their current physical source rows");
+      }
+      inspectProjectRelations(database);
+      for (const name of tableNames) {
+        const columns = Object.keys(tables[name][0] ?? {});
+        const projection = columns.some((column) => isFileShadowRowidColumn(name, column))
+          ? columns.map((column) => fileShadowArchiveColumn(name, column)).join(", ") : "*";
+        ensure(sameRows(database.prepare(`SELECT ${projection} FROM ${identifier(name)}`).all() as Row[], tables[name]), `Restored rows differ: ${name}`);
+      }
+      database.exec("COMMIT; PRAGMA foreign_keys = ON");
+    } catch (error) {
+      database.exec("ROLLBACK; PRAGMA foreign_keys = ON");
+      throw error;
+    }
+    ensure(Object.values(database.prepare("PRAGMA foreign_keys").get()!)[0] === 1, "Foreign-key enforcement was not restored");
+    if (sourceSnapshotClock) {
+      const sourceRetention = nativeRetentionSnapshotsAt(join(staging, "database.sqlite"), sourceSnapshotClock,
+        exportedViews.filter(name => name.includes("retention_edges")));
+      for (const [name, rows] of Object.entries(sourceRetention)) ensure(sameRows(rows, tables[name]),
+        `Restored retention differs at the exact source snapshot clock: ${name}`);
+    }
+    const currentEdges = database.prepare("SELECT * FROM blob_retention_edges").all() as Row[];
+    const now = new Date().toISOString();
+    const unmatched = currentEdges.map(canonical);
+    const expiredEdges: Row[] = [];
+    for (const edge of tables.blob_retention_edges) {
+      const found = unmatched.indexOf(canonical(edge));
+      if (found >= 0) { unmatched.splice(found, 1); continue; }
+      ensure(typeof edge.retain_until === "string" && Number.isFinite(Date.parse(edge.retain_until))
+        && database.prepare("SELECT datetime(?) <= datetime(?) AS expired").get(edge.retain_until, now)?.expired === 1,
+      "A non-expired retention edge was lost during restore");
+      expiredEdges.push(edge);
+    }
+    ensure(unmatched.length === 0, "Restore introduced retention edges absent from the archive");
+    if (expiredEdges.length) {
+      // exportedAt is assigned after D1's batch, so it is not the exact clock
+      // used by its view SELECT. Prove each expired historical edge against the
+      // same canonical rows before expiry; do not pretend that exportedAt can
+      // distinguish a legitimate edge expiring during response construction.
+      const firstExpiry = expiredEdges.reduce((earliest, edge) => Math.min(earliest, Date.parse(edge.retain_until as string)), Infinity);
+      // The view's datetime comparison has second precision, even when the
+      // archived retain_until includes milliseconds. Rewind a full second.
+      const beforeExpiry = new Date(firstExpiry - 1000).toISOString();
+      const candidates = retentionAt(join(staging, "database.sqlite"), beforeExpiry).map(canonical);
+      for (const edge of expiredEdges) {
+        const found = candidates.indexOf(canonical(edge));
+        ensure(found >= 0, "Expired retention edge cannot be reconstructed from canonical rows");
+        candidates.splice(found, 1);
+      }
+    }
+    const expiredShadowRetentionEdges: Array<{ view: string; row: Row }> = [];
+    for (const name of exportedViews) {
+      if (name === "blob_retention_edges") continue;
+      if (manifest.schemaVersion >= 15 && name.includes("retention_edges")) {
+        const current = (database.prepare(`SELECT * FROM ${identifier(name)}`).all() as Row[]).map(canonical);
+        const expired: Row[] = [];
+        for (const row of tables[name]) {
+          const index = current.indexOf(canonical(row));
+          if (index >= 0) { current.splice(index, 1); continue; }
+          ensure(typeof row.retain_until === "string" && Number.isFinite(Date.parse(row.retain_until)) && Date.parse(row.retain_until) <= Date.parse(now), `A non-expired shadow retention edge was lost: ${name}`);
+          expired.push(row);
+        }
+        ensure(current.length === 0, `Restore introduced shadow retention edges: ${name}`);
+        if (expired.length) {
+          const inspectionTime = new Date(Math.min(...expired.map((row) => Date.parse(String(row.retain_until)))) - 1000).toISOString();
+          const candidates = retentionAt(join(staging, "database.sqlite"), inspectionTime, name).map(canonical);
+          for (const row of expired) {
+            const index = candidates.indexOf(canonical(row));
+            ensure(index >= 0, `Expired shadow retention edge cannot be reconstructed: ${name}`); candidates.splice(index, 1);
+            expiredShadowRetentionEdges.push({ view: name, row });
+          }
+        }
+        continue;
+      }
+      ensure(sameRows(database.prepare(`SELECT * FROM ${identifier(name)}`).all() as Row[], tables[name]),
+        `Restored projection differs: ${name}`);
+    }
+    if (forwardMigrations.length) {
+      database.exec("BEGIN IMMEDIATE");
+      try {
+        for (const migration of forwardMigrations) database.exec(migration.sql);
+        // Added acceptance fields are explicitly unknown on historical rows.
+        // All original cells, observations and byte roots remain unchanged.
+        const addsAcceptance = forwardNames.includes("0003_fp1_import_acceptance.sql");
+        const addsFileAuthority = forwardNames.includes("0007_fp1_file_authority_transition.sql");
+        const addsFileShadow = forwardNames.includes("0008_fp1_shadow_runtime.sql");
+        const addsFileRuntime = forwardNames.includes("0012_fp1_file_authority_runtime.sql");
+        const addsRoleDefaults = forwardNames.includes("0013_fp1_r2_role_defaults.sql");
+        const addsNativeProfiles = forwardNames.includes("0017_fp2_native_storage_profiles.sql");
+        const addsNativeRuntime = forwardNames.includes("0018_fp2_native_file_runtime.sql");
+        const addsFileJobs = forwardNames.includes("0019_fp3_file_jobs.sql");
+        const addsResearchPackages = forwardNames.includes("0020_fp4_research_packages.sql");
+        const addsRecoveryEvidence = forwardNames.includes("0022_fp5_recovery_evidence.sql");
+        if (addsRecoveryEvidence) for (const name of Object.keys(SYSTEM_RECOVERY_EVIDENCE_EXPORT_COLUMNS))
+          ensure(database.prepare(`SELECT COUNT(*) AS count FROM ${identifier(name)}`).get()?.count === 0,
+            "Historical recovery must not invent recovered File provenance");
+        if (addsResearchPackages) {
+          for (const name of Object.keys(RESEARCH_PACKAGE_EXPORT_COLUMNS)) if (name !== "research_package_source_identity")
+            ensure(database.prepare(`SELECT COUNT(*) AS count FROM ${identifier(name)}`).get()?.count === 0, "Historical recovery must not invent package history");
+          ensureResearchPackageExecutionSuspended(database);
+        }
+        if (addsFileJobs) {
+          for (const name of Object.keys(FILE_JOBS_EXPORT_COLUMNS)) ensure(database.prepare(`SELECT COUNT(*) AS count FROM ${identifier(name)}`).get()?.count === 0, "Historical recovery must not invent migration jobs");
+          ensureJobExecutionSuspended(database);
+        }
+        if (addsNativeRuntime) {
+          ensure(database.prepare("SELECT COUNT(*) AS count FROM storage_profile_activations").get()?.count === 0, "Historical recovery must not activate a native profile");
+          ensure(database.prepare("SELECT COUNT(*) AS count FROM import_file_acceptances").get()?.count === 0, "Historical recovery must not invent per-file accepted targets");
+          for (const name of FILE_NATIVE_RUNTIME_LOCAL_TABLES) ensure(!database.prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name=?").get(name), "Content recovery must not install local native credential bindings");
+        }
+        if (addsNativeProfiles) {
+          ensure(database.prepare("SELECT COUNT(*) AS count FROM storage_profile_admissions").get()?.count === 0, "Historical restore must not manufacture native admission evidence");
+          ensure(!database.prepare("SELECT 1 FROM storage_profiles WHERE adapter_type = 's3' LIMIT 1").get(), "Historical restore must not register a new external profile");
+        }
+        if (addsRoleDefaults) {
+          ensure(database.prepare("SELECT COUNT(*) AS count FROM storage_role_defaults").get()?.count === 0, "Historical restore must not choose a new storage destination");
+          ensure(!database.prepare("SELECT 1 FROM comment_submission_acceptances WHERE storage_role_policy_revision <> 1 LIMIT 1").get(), "Historical restore must retain the accepted role revision");
+        }
+        const addsAdjudications = forwardNames.includes("0010_fp1_shadow_adjudications.sql");
+        if (addsAdjudications) for (const name of Object.keys(FILE_SHADOW_ADJUDICATION_EXPORT_COLUMNS)) ensure(database.prepare(`SELECT COUNT(*) AS count FROM ${identifier(name)}`).get()?.count === 0,
+          "Historical restore must leave adjudication history empty");
+        const addsWithdrawals = forwardNames.includes("0009_fp1_shadow_withdrawals.sql");
+        if (addsWithdrawals) ensure(database.prepare("SELECT COUNT(*) AS count FROM file_shadow_withdrawals").get()?.count === 0,
+          "Historical restore must leave withdrawal receipts empty");
+        for (const name of tableNames) {
+          const originalTable = expectedSchema.find((entry) => entry.type === "table" && entry.name === name)!;
+          const originalColumns = sqliteTableColumns(originalTable.sql, name);
+          const select = originalColumns.map((column) => fileShadowArchiveColumn(name, column)).join(", ");
+          ensure(sameRows(database.prepare(`SELECT ${select} FROM ${identifier(name)}`).all() as Row[], tables[name]),
+            `Forward migration changed recovered rows: ${name}`);
+        }
+        if (addsAcceptance) ensure(!database.prepare(`SELECT 1 FROM imports WHERE ${IMPORT_ACCEPTANCE_EXPORT_COLUMNS.map((name) => `${identifier(name)} IS NOT NULL`).join(" OR ")} LIMIT 1`).get(),
+          "Historical restore must leave import acceptance unknown");
+        if (forwardNames.includes("0002_fp1_file_registry.sql")) {
+          for (const name of ["storage_profiles", "files", "file_locations", "legacy_file_mappings"]) ensure(database.prepare(`SELECT COUNT(*) AS count FROM ${identifier(name)}`).get()?.count === 0,
+            "Historical restore forward migration must leave file observations empty");
+        }
+        if (forwardNames.includes("0004_r2_upload_acceptance.sql")) ensure(database.prepare("SELECT COUNT(*) AS count FROM r2_upload_requests").get()?.count === 0,
+          "Historical restore must leave R2 upload acceptance empty");
+        if (forwardNames.includes("0005_metrology_reference_acceptance.sql")) ensure(database.prepare("SELECT COUNT(*) AS count FROM metrology_reference_upload_requests").get()?.count === 0,
+          "Historical restore must leave metrology reference acceptance empty");
+        if (forwardNames.includes("0006_comment_acceptance.sql")) {
+          for (const name of ["comment_submission_acceptances", "comment_item_acceptances"]) ensure(database.prepare(`SELECT COUNT(*) AS count FROM ${identifier(name)}`).get()?.count === 0,
+            "Historical restore must leave Comment acceptance empty");
+        }
+        if (addsFileAuthority) {
+          const bindings = {
+            state_representation_assets: ["file_id"],
+            run_step_assets: ["file_id"],
+            metrology_template_references: ["file_id"],
+            run_step_comments: ["file_id"],
+            state_verifications: ["evidence_file_id"],
+            comment_submission_items: ["file_id"],
+            project_content_attachments: ["file_id"],
+            attachment_derivatives: ["derived_file_id"],
+            events: ["asset_file_id", "thumbnail_file_id"],
+            imports: ["workbook_file_id", "manifest_file_id"],
+            template_versions: ["source_file_id"],
+          } as const;
+          for (const [name, columns] of Object.entries(bindings)) {
+            ensure(!database.prepare(`SELECT 1 FROM ${identifier(name)} WHERE ${columns.map((column) => `${identifier(column)} IS NOT NULL`).join(" OR ")} LIMIT 1`).get(),
+              "Historical restore must leave File consumer authority unknown");
+          }
+          for (const name of ["file_location_publications", "file_publications", "file_derivations", "file_holds", "file_location_holds", "file_location_gc_ledger", "file_location_integrity_quarantine", "file_consumer_migration_decisions", "file_acceptance_candidates"]) {
+            ensure(database.prepare(`SELECT COUNT(*) AS count FROM ${identifier(name)}`).get()?.count === 0,
+              "Historical restore must leave File authority content empty");
+          }
+          ensure(database.prepare("SELECT COUNT(*) AS count FROM file_authority_control WHERE singleton = 1 AND mode = 'legacy' AND revision = 1").get()?.count === 1,
+            "Historical restore must remain in legacy File authority mode");
+          ensure(database.prepare(`SELECT COUNT(*) AS count FROM storage_profile_runtime runtime
+            JOIN storage_profiles profile ON profile.id = runtime.storage_profile_id
+            WHERE runtime.state = 'read_only' AND runtime.registered_at = profile.created_at
+              AND runtime.activated_at IS NULL AND runtime.retired_at IS NULL`).get()?.count
+            === database.prepare("SELECT COUNT(*) AS count FROM storage_profiles").get()?.count,
+          "Historical restore must create read-only runtime state for every storage profile");
+          ensureFileRegistryRowidClaims(database);
+          derivedTablesRebuilt = true;
+        }
+        ensure(database.prepare("PRAGMA foreign_key_check").all().length === 0, "Forward migration foreign-key check failed");
+        ensure(database.prepare("PRAGMA integrity_check").all().every((row) => Object.values(row)[0] === "ok"), "Forward migration integrity check failed");
+        const upgradedSchema = schema(database);
+        if (addsFileShadow) {
+          await ensureFileShadowTargetSchema(database, addsRecoveryEvidence ? 24 : addsResearchPackages ? 23 : addsFileJobs ? 22 : addsNativeRuntime ? 21 : addsNativeProfiles ? 20 : addsRoleDefaults ? 19 : addsFileRuntime ? 18 : addsAdjudications ? 17 : addsWithdrawals ? 16 : 15);
+          ensureShadowExecutionSuspended(database);
+          ensure(database.prepare("SELECT mode FROM file_authority_control WHERE singleton=1").get()?.mode === "legacy",
+            "Historical restore must not enable shadow overlap");
+        } else if (addsWithdrawals || addsAdjudications || addsFileRuntime || addsRoleDefaults || addsNativeProfiles || addsNativeRuntime || addsFileJobs || addsResearchPackages || addsRecoveryEvidence) {
+          await ensureFileShadowTargetSchema(database, addsRecoveryEvidence ? 24 : addsResearchPackages ? 23 : addsFileJobs ? 22 : addsNativeRuntime ? 21 : addsNativeProfiles ? 20 : addsRoleDefaults ? 19 : addsFileRuntime ? 18 : addsAdjudications ? 17 : 16);
+          ensureShadowExecutionSuspended(database);
+        } else if (addsFileAuthority) await ensureFileAuthorityTargetSchema(database);
+        // Every old view/index/trigger and unchanged table keeps its SQL, apart
+        // from the two reviewed update guards extended for the new nullable
+        // File slots. In particular retention remains identical at a fixed clock.
+        const fileAuthorityChangedTables = new Set(Object.keys({
+          state_representation_assets: 1, run_step_assets: 1, metrology_template_references: 1,
+          run_step_comments: 1, state_verifications: 1, comment_submission_items: 1,
+          project_content_attachments: 1, attachment_derivatives: 1, events: 1,
+          imports: 1, template_versions: 1,
+        }));
+        const fileAuthorityReplacedObjects = new Set([
+          "trigger:project_content_attachments_reject_update",
+          "trigger:template_versions_guard_unpublished_update",
+        ]);
+        for (const entry of expectedSchema) {
+          // The reviewed shadow suffixes replace occurrence, admission and
+          // legacy-GC guards. The exact target fingerprint plus the independently
+          // rebuilt reviewed schema below qualifies those schema changes;
+          // every previously restored canonical cell was compared above.
+          if (addsFileShadow || addsAdjudications || addsFileRuntime || addsRoleDefaults || addsNativeProfiles || addsNativeRuntime || addsFileJobs || addsResearchPackages || addsRecoveryEvidence) continue;
+          if (addsAcceptance && entry.type === "table" && entry.name === "imports") continue;
+          if (addsFileAuthority && entry.type === "table" && fileAuthorityChangedTables.has(entry.name)) continue;
+          if (addsFileAuthority && fileAuthorityReplacedObjects.has(`${entry.type}:${entry.name}`)) continue;
+          ensure(upgradedSchema.some((current) => canonical(current) === canonical(entry)),
+            "Historical restore forward migration changed verified schema objects");
+        }
+        const reviewed = new DatabaseSync(":memory:");
+        try {
+          for (const sql of migrationSql) reviewed.exec(sql);
+          ensure(canonical(upgradedSchema) === canonical(schema(reviewed)), "Forward migration differs from the reviewed current schema");
+        } finally { reviewed.close(); }
+        expectedSchema = upgradedSchema;
+        database.exec("COMMIT");
+      } catch (error) { database.exec("ROLLBACK"); throw error; }
+    }
+    const authorityExecutionSuspended = ensureAuthorityExecutionSuspended(database);
+    const jobExecutionSuspended = ensureJobExecutionSuspended(database);
+    const researchPackageExecutionSuspended = ensureResearchPackageExecutionSuspended(database);
+    const report = {
+      kind: "isolated-versioned-export-rehearsal", schemaVersion: manifest.schemaVersion,
+      targetCompatibilitySchema,
+      archiveProfile: manifest.schemaVersion >= 9 ? manifest.archiveProfile : null,
+      appliedForwardMigrations: forwardMigrations.map(({ name, sha256 }) => ({ name, sha256 })),
+      originalArchivePath: "original-archive.zip",
+      retainedArtifactPaths: retainedArtifacts.map((artifact) => artifact.path),
+      sourceSchemaEvidence: manifest.schemaVersion >= 8 ? "observed-in-source-snapshot" : "unavailable-in-v7",
+      archivedAt: manifest.exportedAt, verifiedAt: now, archiveSha256: hash(bytes),
+      migrationsSha256: hash(canonical(migrations)), migrations,
+      schemaSha256: hash(canonical(expectedSchema)), tableCount: tableNames.length,
+      restoredTableCount: expectedSchema.filter((entry) => entry.type === "table" && !PLATFORM_TABLES.has(entry.name)).length,
+      rowCount: tableNames.reduce((count, name) => count + tables[name].length, 0),
+      restoredBlobCount: providerEntries.filter((entry) => entry.path !== null).length,
+      databasePath: "database.sqlite", providerManifestPath: "provider-manifest.json",
+      warnings, packagedWithoutRecordedHash: missingHashes, expiredRetentionEdges: expiredEdges,
+      ...(manifest.schemaVersion >= 23 ? { excludedResearchPackageOutputs: manifest.excludedOutputs } : {}),
+      ...(manifest.schemaVersion >= 24 ? { recoveredFileEvidence: { recordedHistoryPreserved: true, providerIO: false, executionResumed: false } } : {}),
+      ...(researchPackageExecutionSuspended ? { researchPackageRecovery: {
+        providerIO: false, runtimeExecutionEnabled: false, unfinishedJobsResumed: false,
+        recordedHistoryPreserved: true, explicitNewIncarnationRequired: true,
+        installationAdmissionRequired: true, actorReauthorizationRequired: true,
+        cleanupRequiresFreshLocalApproval: true,
+      } } : {}),
+      ...(jobExecutionSuspended ? { jobRecovery: { providerIO: false, runtimeExecutionEnabled: false,
+        unfinishedJobsResumed: false, recordedHistoryPreserved: true, explicitNewIncarnationRequired: true, administratorReauthorizationRequired: true,
+        unfinishedJobsRequireExplicitResume: true, cleanupRequiresFreshLocalApproval: true } } : {}),
+      ...(authorityExecutionSuspended ? { authorityRecovery: { providerIO: false, runtimeExecutionEnabled: false,
+        unfinishedOperationsResumed: false, installationAdmissionRequired: true,
+        recordedAuthorityMode: database.prepare("SELECT mode FROM file_authority_control WHERE singleton=1").get()?.mode } } : {}),
+      ...(ensureShadowExecutionSuspended(database) ? { shadowRecovery: { providerIO: false, runtimeExecutionEnabled: false,
+        unfinishedOperationsResumed: false, authorityActivationPerformed: false,
+        recordedAuthorityMode: database.prepare("SELECT mode FROM file_authority_control WHERE singleton=1").get()?.mode,
+        reconciliationRequired: true, expiredRetentionEdges: expiredShadowRetentionEdges } } : {}),
+      verification: { rowsEqual: true, foreignKeys: true, integrity: "ok", triggersReinstalled: triggers.length,
+        schemaEqual: true, derivedTablesRebuilt, projectRelations: true, retentionDifferencesOnlyExpired: true,
+        expiredEdgesReconstructed: true, exportedAtIsExactSnapshotClock: false,
+        ...(sourceSnapshotClock ? { sourceSnapshotClock, retentionEqualAtSourceSnapshotClock: true } : {}) },
+    };
+    await mkdir(join(staging, "provenance"));
+    if (manifest.schemaVersion === 25) await mkdir(join(staging, "artifacts"));
+    for (const artifact of retainedArtifacts) await writeFile(join(staging, artifact.path), artifact.bytes, { flag: "wx", mode: 0o600 });
+    await writeFile(join(staging, "original-archive.zip"), bytes, { flag: "wx", mode: 0o600 });
+    await writeFile(join(staging, "provider-manifest.json"), JSON.stringify(providerEntries, null, 2), { flag: "wx", mode: 0o600 });
+    await writeFile(join(staging, "restore-report.json"), JSON.stringify(report, null, 2), { flag: "wx", mode: 0o600 });
+    database.close();
+    database = undefined;
+    const restoredDirectory = join(destination, "restored");
+    await rename(staging, restoredDirectory);
+    completed = true;
+    return { restoredDirectory, report };
+  } finally {
+    try { database?.close(); }
+    finally { if (!completed) await rm(destination, { recursive: true, force: true }); }
+  }
+}

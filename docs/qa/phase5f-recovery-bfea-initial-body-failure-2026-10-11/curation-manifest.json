@@ -1,0 +1,218 @@
+{
+  "version": 1,
+  "date": "2026-10-11",
+  "basisHead": "bfea74fb975f46fa70eb203c5f5844b46d115215",
+  "actualReceipt": {
+    "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/25-actual-bfea-fresh-namespace-initial-body-failure-closed-release.json",
+    "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/actual-bfea-fresh-namespace-initial-body-failure-closed-release.json",
+    "bytes": 21088,
+    "sha256": "843258754c8ef7b859bf695000c7984202749a52338541d1946ec49e597f0a20"
+  },
+  "scope": "Fresh physical current24 + genuine84, historical f228 one build118/copy121 causal carry, passive control-only observer bfea. Twelve commands11PASS1FAIL plus original logical seedStopPASS. Desktop0PASS1FAIL; mobile1UNRUN. Failure initial successful capabilities200 native body before preview/backup/Pause; maintenance200 also failed nativebody; jobs200 original nativebody complete. Exact native caps+maintenance ERR_ABORTED observed before context close; no control/application-control observer exercised and no demonstrated cause for old Pause failure. Genuine enable/disable2 only; jobs0/requestRows0/old63permits exact/new0. Original browser/contexts/routes/bodies/shared request/Worker/JWKS normalclose and both ports refused, all12 directchildren reaped,9 groupsEMPTY3 kernelZ FDPermission (not observed zeroFD/no signals). Physical4/source2489/protected2488/output118/copy121 exact. No production/provider/step/ZIP/recoverytarget.",
+  "records": [
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/01-final-source-artifact-input-pins-command.json",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/final-source-artifact-input-pins-command.json",
+      "bytes": 1487,
+      "sha256": "e875ef0e8687705ca1cd6d318952ba2d698dc3d7d347240f20318a5a9e125a67"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/02-fresh-current-source-build-witness-command.json",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/fresh-current-source-build-witness-command.json",
+      "bytes": 1488,
+      "sha256": "dbadd82b2032e1be78a9d99a8f99d0c731c6c91698d8dfde1056a7c5c8dc827f"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/03-fresh-two-version-sentinel-command.json",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/fresh-two-version-sentinel-command.json",
+      "bytes": 1895,
+      "sha256": "4750cfabfffa84262fe370ee3ea7eb82b7d71a70ae8881380e34aac706b54ca4"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/04-genuine-signed-admin-recovery-job-controls-two-command.json",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/genuine-signed-admin-recovery-job-controls-two-command.json",
+      "bytes": 2549,
+      "sha256": "e56b1473385705a4afb954d9a377b5924669e767d2e2d511647b86129871e73e"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/05-isolated-copy-command.json",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/isolated-copy-command.json",
+      "bytes": 1417,
+      "sha256": "343150c14ad1566275161acda0205bdc043171dd8223256856295a692e9af563"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/06-mature-genuine-api-84-only-command.json",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/mature-genuine-api-84-only-command.json",
+      "bytes": 1273,
+      "sha256": "d95655e33179358f0285451f9b15b3e5ef2f659031febe1330bc27d967df5c95"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/07-ordinary-actual24-local-migrations-command.json",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/ordinary-actual24-local-migrations-command.json",
+      "bytes": 2008,
+      "sha256": "565afad8a6aa22acc70dcbb54456fcba201c2bb36228a14e91be564af1301772"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/08-owned-built-worker-command.json",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/owned-built-worker-command.json",
+      "bytes": 1733,
+      "sha256": "583a940f46399b5dbe3cfe4d8bb16acc2eb9584c059052537ed345424751412b"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/09-physical-after-command.json",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/physical-after-command.json",
+      "bytes": 1668,
+      "sha256": "022561ec8ab11a6ec8e138c4660cabdda61728872290ad0f1eb1b1d6560ec033"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/10-physical-before-command.json",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/physical-before-command.json",
+      "bytes": 1352,
+      "sha256": "720c1bc161f850aaff2fc205b174c9e3acdcc2d5b7c76e18220db117fdad4fcc"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/11-qualified-original-f228-build-producer-preflight-command.json",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/qualified-original-f228-build-producer-preflight-command.json",
+      "bytes": 1494,
+      "sha256": "f700174a1bfceee3310c7e3c80a2cc932fdaba11667429c1b200294d0f4dd5ec"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/12-synthetic-template-sentinels-only-command.json",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/synthetic-template-sentinels-only-command.json",
+      "bytes": 2096,
+      "sha256": "a727a7f33ac671876f2633d60b0c11f6235ffecfb01ada1ff7d30ad7ea1db209"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/13-final-source-artifact-input-pins.log",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/final-source-artifact-input-pins.log",
+      "bytes": 201,
+      "sha256": "824eb02688ac47e562e466d63db434c8ce576af38a70b46da1386e979a7e0f3f"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/14-fresh-current-source-build-witness.log",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/fresh-current-source-build-witness.log",
+      "bytes": 198,
+      "sha256": "5894bff782b4f27ad8af7238229175845583739c765c5fb4d6fa9867a2d5cab1"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/15-fresh-two-version-sentinel.log",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/fresh-two-version-sentinel.log",
+      "bytes": 226,
+      "sha256": "ac1d0e21289cf67a6f74558df50c9f7656c83335dbc9a4fd7c4bb88c9724fda1"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/16-genuine-signed-admin-recovery-job-controls-two.log",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/genuine-signed-admin-recovery-job-controls-two.log",
+      "bytes": 250,
+      "sha256": "b48f3c958f44ae2414cd92a26457fc2a1526fff0925582dbdd99470e95b8c93c"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/17-isolated-copy.log",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/isolated-copy.log",
+      "bytes": 200,
+      "sha256": "3ae0ef44ec1e89b8e39c5755b4fee43d4cf56a5532d409ff62fb330d8b343a9a"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/18-mature-genuine-api-84-only.log",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/mature-genuine-api-84-only.log",
+      "bytes": 187,
+      "sha256": "2c7411c9b6289fcaf3e20609480e12453584c7b86d6f9045fea1878564e267b0"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/19-ordinary-actual24-local-migrations.log",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/ordinary-actual24-local-migrations.log",
+      "bytes": 147956,
+      "sha256": "a4c2ee4f147f8110883945240afdfc2a2814e352b98694a6814440398a2d4360"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/20-owned-built-worker.log",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/owned-built-worker.log",
+      "bytes": 509,
+      "sha256": "1be66cd140b0aecac7369d1c18419305fe656b11066c7336dc7027ab88e19ed5"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/21-physical-after.log",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/physical-after.log",
+      "bytes": 169,
+      "sha256": "9cff1e5e7fe90a45f2c17df5dc493d967b46d03a69306f0fbabdfdcf6b13cf64"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/22-physical-before.log",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/physical-before.log",
+      "bytes": 165,
+      "sha256": "ac2587e7aa5fc6a0afd8c04fa9bc92512089ed2af6661d8e3cd87c140638065b"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/23-qualified-original-f228-build-producer-preflight.log",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/qualified-original-f228-build-producer-preflight.log",
+      "bytes": 104,
+      "sha256": "1526840294dc311b819362a317d612b4942985bbdf52dc2dcc06a534e4a8af3f"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/24-synthetic-template-sentinels-only.log",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/synthetic-template-sentinels-only.log",
+      "bytes": 1611,
+      "sha256": "296d7fa0e6197119fa43549ecfc8b0560fc4172c02cac251e08a88a75dde9fd8"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/25-actual-bfea-fresh-namespace-initial-body-failure-closed-release.json",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/actual-bfea-fresh-namespace-initial-body-failure-closed-release.json",
+      "bytes": 21088,
+      "sha256": "843258754c8ef7b859bf695000c7984202749a52338541d1946ec49e597f0a20"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/26-original-f228-build-new-physical-fixture-causal-carry.json",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/original-f228-build-new-physical-fixture-causal-carry.json",
+      "bytes": 937,
+      "sha256": "1c5bcbbda4922c8eb34ae24a1625c54a8f23493d8877689c3b5de7f527e17818"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/27-final-causal-f228-source-and-job-controls-short-temp-pins.json",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/final-causal-f228-source-and-job-controls-short-temp-pins.json",
+      "bytes": 2302,
+      "sha256": "8102602e67e17301e0a926c623f6b56645262d1efb83953e88f4d07e2f327c60"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/28-chromium-child-temp-owner.json",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/chromium-child-temp-owner.json",
+      "bytes": 622,
+      "sha256": "b3e31201860a07ae5319833895150458983b58a12d0be8ed5b4ecf85e36c1848"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/29-frozen-approved-plan.json",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/runtime/frozen-approved-plan.json",
+      "bytes": 16719,
+      "sha256": "c6cf06042a81f6675b7f2ec8d27eb4f0ca996463a2ec2acaee946e21bb31428a"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/30-genuine-recovery-job-controls-browser-report-original-pause-observer-attempt3.json",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/fixture/genuine-recovery-job-controls-browser-report-original-pause-observer-attempt3.json",
+      "bytes": 55324,
+      "sha256": "02eadacc2a053eab4000ff5b26e177f39ee5497adfaa6dd7bd022f0390780b9b"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/31-genuine-recovery-job-controls-runtime-stop-original-pause-observer-attempt3.json",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/fixture/genuine-recovery-job-controls-runtime-stop-original-pause-observer-attempt3.json",
+      "bytes": 579,
+      "sha256": "70dcdf16b0c8d1ee2dee78f8219b0cbb126a0670cbc8559a39e5c535036ef4f1"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/32-physical-sqlite-before-api.json",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/fixture/physical-sqlite-before-api.json",
+      "bytes": 57714,
+      "sha256": "d56dafe7806a09c2dde025f19512a7f7b2ee3fcb8f497ef3fd18e1ef6435dda3"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/33-physical-sqlite-after-shutdown.json",
+      "originalPath": "/workspace/recovery-pause-observer-f228-private-attempt3/fixture/physical-sqlite-after-shutdown.json",
+      "bytes": 62529,
+      "sha256": "720d0cd2d5549cf1c17e1658edcc651804ea39b44a2f8452e941cc46e9c79683"
+    },
+    {
+      "curatedPath": "docs/qa/phase5f-recovery-bfea-initial-body-failure-2026-10-11/34-phase5f-bfea-independent-passive-helper-and-thirteen-source-peer.json",
+      "originalPath": "/workspace/phase5f-bfea-independent-passive-helper-and-thirteen-source-peer.json",
+      "bytes": 4551,
+      "sha256": "8d688805eb4c850c7865ff1f8b82790fbfa4aef414e2688964ce97dbefc21d19"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.server.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["node", "@cloudflare/workers-types"]
+  },
+  "files": [
+    "server/collaboration/current-final-fabublox-genuine-process.qualification.ts",
+    "server/collaboration/current-final-fabublox-genuine-process.qualification-support.ts",
+    "server/collaboration/current-final-fabublox-multipart-first-close.qualification.ts",
+    "current-final-fabublox-genuine-process.vitest.config.mts"
+  ],
+  "include": [],
+  "exclude": []
+}

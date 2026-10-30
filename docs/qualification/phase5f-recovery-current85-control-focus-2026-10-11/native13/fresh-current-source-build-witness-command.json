@@ -1,0 +1,35 @@
+{
+  "stage": "fresh-current-source-build-witness",
+  "control": "Bind ONE actually completed current85 freshbuild to new physical24+mature84 after normal original seedowner stop. QA helper only differs, all2345 nonhelper inputs exact; full six original native EOF/body proofs and same-job focus assertions remain strict.",
+  "cwd": "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2",
+  "argv": [
+    "python3",
+    "-B",
+    "/workspace/phase5f-recovery-current-focus-final-b498-thirteen-source-preparation-attempt6/bind-current85-fresh-cf-build-and-job-control-focus.py",
+    "--coherent-cf-producer-for-genuine-job-controls-two",
+    "witness"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7",
+    "SQLITE_TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7"
+  },
+  "startedAt": "2026-10-11T11:35:33.264771+00:00",
+  "status": "PASS",
+  "log": "/workspace/recovery-current-focus-native-private-attempt7/runtime/fresh-current-source-build-witness.log",
+  "pid": 1131934,
+  "processGroup": 1131934,
+  "originalStartTicks": "13179403",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T11:35:33.682455+00:00",
+  "logSha256": "58f1a2b8b374018aa4d97d66640e27ba966463bfc4e70b2a589bddf93db0e397"
+}

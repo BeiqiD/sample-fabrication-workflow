@@ -1,0 +1,13 @@
+# Genuine Recovery metadata controls — 2026-10-11
+
+Both native cases passed on 1280/light and 390/dark Chromium with genuine local signed admin/reader identities and original Access middleware. All12 commands/13 logical stages passed; the extra logical stage is explicit original seed-Worker stdin stop/disposal. A fresh current24 fixture and mature84 API requests ran. Original f228 CF118/copy121 outputs were carried by exact input proof, with no new build or historical Node/other artifact retag.
+
+Original shared enable/disable accepted200. Each case accepted preview200, historical backup202, Pause200, Resume200 and Cancel200 exactly once. Ten metadata mutations, eight browser GETs and two reader GETs were recorded. Two original accepted jobs/requests remain, cancelled at generation3 and tied to the genuine actor/request/job histories. Only the three specified recovery metadata tables changed; all other rows/schema and original63 leases stayed exact, newpermits0.
+
+Every case proved six planned original application Response/native-reader/read-Promise bodies with complete bounded EOF bytes, original identity/request correlation, DTO/status and accepted backend hash. CDP attempts were always retained separately: desktop6 completed; mobile4 completed and2 NoData/ERR_ABORTED records (backup/Pause), each with complete original application EOF and accepted backend hash. Available CDP bytes matched. There was no clone/additional read/request/retry/fallback/invented response. Old CDP-only failures remain preserved and their causes are not inferred.
+
+Preview retained native keyboard focus. Replaced Pause/Resume/Cancel controls were disconnected with focus on body; no return-focus claim is made for removed controls. All original status/history assertions and three transition geometry checks passed at both widths with zero recorded overflow. No rich report, invented counts, ZIP, executeStep, scheduled execution, provider, target, deployment, physical device or alternate engine was exercised.
+
+Original bodies/routes/waits and contexts settled. Browser/shared disable/Worker/JWKS normal close ACKs and refused ports were observed. All12 direct children exited0/reaped;9groupsEMPTY and3 only kernel-exited zombies with inaccessible FD metadata. No cleanup signals or observed zero-FD/global-quiescence claim. Physicalafter4 actual SQLite groups and final source/artifact pins passed; accepted history and all older isolated fixtures remain.
+
+Numbered records are byte-for-byte original evidence. The curation manifest binds every hash/length and historical failure scope. A source-authoring mkdir error happened before any curation because docs/qa did not exist in this baseline; it is retained separately and is not an application/runtime failure.

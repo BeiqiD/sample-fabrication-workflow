@@ -1,0 +1,36 @@
+{
+  "stage": "affected-storage-mounted-file",
+  "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+  "argv": [
+    "node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "vitest.mounted.config.ts",
+    "src/storage-configuration.mount.test.tsx",
+    "--maxWorkers",
+    "1",
+    "--bail",
+    "1"
+  ],
+  "control": "Full original affected Storage mounted24/default5s; no assertion/config/timeout changes or unrelated matrix.",
+  "startedAt": "2026-10-11T02:50:10.836847+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/affected-storage-mounted-file.log",
+  "pid": 618936,
+  "processGroup": 618936,
+  "originalStartTicks": "10027160",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T02:50:13.186269+00:00",
+  "logSha256": "d6599c0c4b1a118f391142942af83a21b2ef0913605f2e857d90d79b70658e44"
+}

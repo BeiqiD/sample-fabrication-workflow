@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.runtime-tests.json",
+  "include": [
+    "worker/project-creation-subject.test.ts"
+  ],
+  "exclude": []
+}

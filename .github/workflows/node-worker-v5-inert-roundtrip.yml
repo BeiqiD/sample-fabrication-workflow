@@ -1,0 +1,104 @@
+name: Current Node Worker V5 inert roundtrip
+
+on:
+  push:
+    branches: [codex/node-worker-v5-inert-roundtrip]
+
+permissions:
+  contents: read
+
+jobs:
+  original-current-v5:
+    runs-on: ubuntu-24.04
+    # All original stage outer caps total 61 minutes; leave room for setup and
+    # original close without changing any stage, case or kernel budget.
+    timeout-minutes: 75
+    env:
+      NO_COLOR: '1'
+      FORCE_COLOR: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+          cache: npm
+      - name: Install exact committed dependencies
+        run: npm ci
+      - name: Reserve a fresh private original evidence root
+        shell: bash
+        run: |
+          v5_run_root="$HOME/.node-worker-v5-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          mkdir -m 700 "$v5_run_root"
+          printf 'WORKER_V5_RUN_ROOT=%s\n' "$v5_run_root" >> "$GITHUB_ENV"
+      - name: Full server and runtime types
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage types --run-root "$WORKER_V5_RUN_ROOT"
+      - name: Worker and all strict native QA type projects
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage worker-v5-types --run-root "$WORKER_V5_RUN_ROOT"
+      - name: Fresh original client distribution and runtime verifier
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage worker-v5-build --run-root "$WORKER_V5_RUN_ROOT"
+      - name: Original current zero File producer and fixed inert CLI restore
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage worker-v5-zero --run-root "$WORKER_V5_RUN_ROOT"
+      - name: Original current real HTTP one File producer and fixed inert CLI restore
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage worker-v5-nonempty --run-root "$WORKER_V5_RUN_ROOT"
+      - name: Two original native V28 inert constructor cases
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage worker-v5-constructor --run-root "$WORKER_V5_RUN_ROOT"
+      - name: Two original LOCAL R2 publication and unknown PUT acknowledgement cases
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage worker-v5-payload --run-root "$WORKER_V5_RUN_ROOT"
+      - name: Original real held R2 V5 to fresh current Node loop
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage worker-v5-held --run-root "$WORKER_V5_RUN_ROOT"
+      - name: Original Access public historical V5 jobs and held R2 backup
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage worker-v5-public-historical --run-root "$WORKER_V5_RUN_ROOT"
+      - name: Original actor revocation and real deadline native issue negatives
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage worker-v5-original-issue-negative --run-root "$WORKER_V5_RUN_ROOT"
+      - name: Original natural Comment headed LOCAL producer
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage worker-v5-bound-producer --run-root "$WORKER_V5_RUN_ROOT"
+      - name: Original native R2 Comment publication and exact present-head history
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage worker-v5-bound-payload --run-root "$WORKER_V5_RUN_ROOT"
+      - name: Original public Run Step headed LOCAL producer
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage worker-v5-present-head-bound-producer --run-root "$WORKER_V5_RUN_ROOT"
+      - name: Original native R2 Run Step publication and exact present-head history
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage worker-v5-present-head-bound-payload --run-root "$WORKER_V5_RUN_ROOT"
+      - name: Original Access public Run Step and Comment headed V5 roundtrips
+        run: python3 -B scripts/qa/run-current-v28-post-restore.py --stage worker-v5-public-headed --run-root "$WORKER_V5_RUN_ROOT"
+      - name: Preserve only closed bounded receipts and redacted original diagnostics
+        if: ${{ always() && env.WORKER_V5_RUN_ROOT != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: current-node-worker-v5-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          include-hidden-files: true
+          path: |
+            ${{ env.WORKER_V5_RUN_ROOT }}/types/closed-receipt.json
+            ${{ env.WORKER_V5_RUN_ROOT }}/types/closed-diagnostics.log
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-types/closed-receipt.json
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-types/closed-diagnostics.log
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-build/closed-receipt.json
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-build/closed-diagnostics.log
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-zero/closed-receipt.json
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-zero/closed-diagnostics.log
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-nonempty/closed-receipt.json
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-nonempty/closed-diagnostics.log
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-constructor/closed-receipt.json
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-constructor/closed-diagnostics.log
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-payload/closed-receipt.json
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-payload/closed-diagnostics.log
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-held/closed-receipt.json
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-held/closed-diagnostics.log
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-public-historical/closed-receipt.json
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-public-historical/closed-diagnostics.log
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-original-issue-negative/closed-receipt.json
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-original-issue-negative/closed-diagnostics.log
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-bound-producer/closed-receipt.json
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-bound-producer/closed-diagnostics.log
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-bound-payload/closed-receipt.json
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-bound-payload/closed-diagnostics.log
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-present-head-bound-producer/closed-receipt.json
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-present-head-bound-producer/closed-diagnostics.log
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-present-head-bound-payload/closed-receipt.json
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-present-head-bound-payload/closed-diagnostics.log
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-public-headed/closed-receipt.json
+            ${{ env.WORKER_V5_RUN_ROOT }}/worker-v5-public-headed/closed-diagnostics.log

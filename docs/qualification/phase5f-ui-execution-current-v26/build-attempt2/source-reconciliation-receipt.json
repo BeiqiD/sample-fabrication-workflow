@@ -1,0 +1,1331 @@
+{
+  "kind": "phase5f-currente108-ui-execution-source-union/1",
+  "createdAt": "2026-10-10T22:26:06.596298+00:00",
+  "root": "/workspace/remaining-5f-ui-execution-currente108-source-integration",
+  "head": "98d81a170394a140fb63e970b31d1985bd56f68d",
+  "tree": "62d67e1c9fb3d59d74c49e0eceebe4ef2975ffe4",
+  "parents": [
+    "d0c2088b1acc5cc1789c519fd912b29d7420feba",
+    "4928ce953b37eb3fe5c7452d560fa0f41c0d6110"
+  ],
+  "clean": true,
+  "actualBase": "e10849614afbb4807c86b3f0fc2fc357ba70ceda",
+  "automaticMergeWithoutConflicts": true,
+  "disjointParentDelta35Each": true,
+  "candidatePaths": [
+    "docs/FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md",
+    "docs/LONG_TERM_ROADMAP.md",
+    "docs/PHASE_5F_DIRECTORY_AND_STORAGE_QUALIFICATION.md",
+    "docs/PHASE_5F_DIRECTORY_AND_STORAGE_QUALIFICATION_RECEIPTS.json",
+    "docs/PHASE_5F_DIRECTORY_AND_STORAGE_SOURCE_CANDIDATE.md",
+    "docs/PHASE_5F_DIRECTORY_AND_STORAGE_SOURCE_RECEIPTS.json",
+    "docs/PHASE_5F_ROLE_FOCUS_REVIEW_LEDGER.md",
+    "docs/PHASE_5F_SHARED_BOUNDARY_REPAIR_SOURCE_CANDIDATE.md",
+    "docs/PHASE_5F_TEMPLATE_PAGINATION_QUALIFICATION.md",
+    "docs/PHASE_5F_TEMPLATE_PAGINATION_QUALIFICATION_RECEIPTS.json",
+    "docs/PHASE_5F_TEMPLATE_PAGINATION_SOURCE_CANDIDATE.md",
+    "docs/PRODUCT_ROADMAP.md",
+    "docs/ROADMAP_AUTONOMOUS_DEVELOPMENT_GOAL.md",
+    "docs/qualification/portable-execution-current-business/README.md",
+    "docs/qualification/portable-execution-current-business/actual-qualification-attempt1.json",
+    "docs/qualification/portable-execution-current-business/finite-qualification-plan.json",
+    "docs/qualification/portable-execution-current-business/source-receipt.json",
+    "docs/qualification/portable-execution-current24-worker/01-worker-strict.log",
+    "docs/qualification/portable-execution-current24-worker/02-server-strict.log",
+    "docs/qualification/portable-execution-current24-worker/03-execution-fixtures-strict.log",
+    "docs/qualification/portable-execution-current24-worker/04-legacy-fixtures-strict.log",
+    "docs/qualification/portable-execution-current24-worker/05-legacy-seven.json",
+    "docs/qualification/portable-execution-current24-worker/05-legacy-seven.log",
+    "docs/qualification/portable-execution-current24-worker/06-run-trash-current24-four.json",
+    "docs/qualification/portable-execution-current24-worker/06-run-trash-current24-four.log",
+    "docs/qualification/portable-execution-current24-worker/07-metrology-current24-four.json",
+    "docs/qualification/portable-execution-current24-worker/07-metrology-current24-four.log",
+    "docs/qualification/portable-execution-current24-worker/08-confirmation-current24-four.json",
+    "docs/qualification/portable-execution-current24-worker/08-confirmation-current24-four.log",
+    "docs/qualification/portable-execution-current24-worker/README.md",
+    "docs/qualification/portable-execution-current24-worker/curated-manifest.json",
+    "docs/qualification/portable-execution-current24-worker/final-closure.json",
+    "docs/qualification/portable-execution-current24-worker/frozen-4928-source-candidate.patch",
+    "docs/qualification/portable-execution-current24-worker/frozen-finite-runtime-plan.json",
+    "docs/qualification/portable-execution-current24-worker/frozen-source-receipt.json",
+    "docs/qualification/portable-execution-current24-worker/independent-source-peer.json",
+    "docs/qualification/portable-execution-current24-worker/receipt.json",
+    "docs/qualification/portable-execution-legacy-fixture-followup/README.md",
+    "docs/qualification/portable-execution-legacy-fixture-followup/finite-runtime-plan.json",
+    "docs/qualification/portable-execution-legacy-fixture-followup/source-receipt.json",
+    "docs/qualification/portable-execution-v26-current-fixture-repair/README.md",
+    "docs/qualification/portable-execution-v26-current-fixture-repair/finite-runtime-plan.json",
+    "docs/qualification/portable-execution-v26-current-fixture-repair/source-receipt.json",
+    "execution-legacy-fixture-ci-followup.tsconfig.json",
+    "execution-legacy-fixture-ci-followup.vitest.config.mts",
+    "execution-metadata-qualification.tsconfig.json",
+    "execution-metadata-qualification.vitest.config.mts",
+    "scripts/qa/phase5f/README.md",
+    "scripts/qa/phase5f/browser-directory-actual-api.mjs",
+    "scripts/qa/phase5f/browser-template-pagination-actual-api.mjs",
+    "scripts/qa/phase5f/prepare-isolated-copy.py",
+    "scripts/qa/phase5f/seed-directory-actual-api.mjs",
+    "scripts/qa/phase5f/seed-template-pagination-actual-api.mjs",
+    "server/metrology-write.test.ts",
+    "server/run-trash.test.ts",
+    "server/step-confirmation-sql.ts",
+    "server/step-confirmation.test.ts",
+    "shared/contracts/project-creation-subject.ts",
+    "shared/project-creation-subject.ts",
+    "src/lib/project-client.ts",
+    "src/pages/ProjectsPage.tsx",
+    "src/pages/StorageProfileActivation.tsx",
+    "src/phase5f-project-directory-intent.mount.test.tsx",
+    "src/phase5f-storage-activation-read.mount.test.tsx",
+    "src/project-shell.mount.test.tsx",
+    "src/styles.css",
+    "tsconfig.phase5f-project-creation-subject-tests.json",
+    "worker/delete-run-route.test.ts",
+    "worker/execution/confirmation-d1.ts",
+    "worker/execution/confirmation-service.ts",
+    "worker/execution/confirmation-sql.ts",
+    "worker/execution/confirmation-surface.ts",
+    "worker/execution/confirmation-worker.ts",
+    "worker/execution/metrology-write-service.ts",
+    "worker/execution/metrology-write-surface.ts",
+    "worker/execution/metrology-write-worker.ts",
+    "worker/execution/routes.ts",
+    "worker/execution/run-trash-service.ts",
+    "worker/execution/run-trash-surface.ts",
+    "worker/execution/run-trash-worker.ts",
+    "worker/files/jobs/native-migration.test.ts",
+    "worker/metrology-routes.test.ts",
+    "worker/metrology-write.qualification.test.ts",
+    "worker/project-creation-subject.test.ts",
+    "worker/project-routes.ts",
+    "worker/projects/creation-subject.ts",
+    "worker/projects/read-surface.ts",
+    "worker/projects/read-worker.ts",
+    "worker/run-trash.qualification.test.ts",
+    "worker/step-confirmation.qualification.test.ts"
+  ],
+  "candidatePathHashes": {
+    "docs/FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md": "64381a763353b9cbb70795c0170d3c6ba45efe71dbc703b940bcca1568708d42",
+    "docs/LONG_TERM_ROADMAP.md": "c94d0d35208c0d3dff6ec024c6799d155d3fd52b2a9505e49ea8bce9adfe776f",
+    "docs/PHASE_5F_DIRECTORY_AND_STORAGE_QUALIFICATION.md": "6e68843852daab0cd45802528a6beb2217dbf17fcc3ef8760a9f04dea6b2d33d",
+    "docs/PHASE_5F_DIRECTORY_AND_STORAGE_QUALIFICATION_RECEIPTS.json": "e99594d156dd4af3a02e339263d040eb9b6b8c4cb8451c7b193380c3abbb85c1",
+    "docs/PHASE_5F_DIRECTORY_AND_STORAGE_SOURCE_CANDIDATE.md": "7405cf0b9c30b798b6ac4a542b64e2b0de2848961e2c53d33979f2f711f5ac27",
+    "docs/PHASE_5F_DIRECTORY_AND_STORAGE_SOURCE_RECEIPTS.json": "9e35f552c078d58a96d27c30de36ef41ca4f9a9e4dfb9c38bc5504c0b558e086",
+    "docs/PHASE_5F_ROLE_FOCUS_REVIEW_LEDGER.md": "be47cb8554a7e100074ca92be9d862a767a7f8b34c8aad3142cc6d1e5b3cc2d3",
+    "docs/PHASE_5F_SHARED_BOUNDARY_REPAIR_SOURCE_CANDIDATE.md": "c92bed33986972579fb123288ad47044ac7b0c44d1c2e76d1b23f5a6f4aad7c0",
+    "docs/PHASE_5F_TEMPLATE_PAGINATION_QUALIFICATION.md": "52d2e53facde22f549eb66131aa9e8e571e166e11bdcf220531e978086795bab",
+    "docs/PHASE_5F_TEMPLATE_PAGINATION_QUALIFICATION_RECEIPTS.json": "f2dc076d1bcff69748820fac667ccd682f4e767b6bccd4fafafdb631a9d13bf0",
+    "docs/PHASE_5F_TEMPLATE_PAGINATION_SOURCE_CANDIDATE.md": "68f4475d7a004f84a1d9df4669ed247210e50d0d77bba6171cfdb46178ca1ce9",
+    "docs/PRODUCT_ROADMAP.md": "3c9cffb9e6251e2e315305eda477d2bacf368ee51bc7ff726c0d91d7c7906ff4",
+    "docs/ROADMAP_AUTONOMOUS_DEVELOPMENT_GOAL.md": "0759f6f3d541d35dee2f69d6aa0cc67758b1660c143f2ce8d4843c436e982706",
+    "docs/qualification/portable-execution-current-business/README.md": "58fa06e2205fd3ebc2e8f2b3f359ad094d67e3e51789f0429b9fceedde7ddb19",
+    "docs/qualification/portable-execution-current-business/actual-qualification-attempt1.json": "c2bfc8b559843bc739859a9196852bc23451ad6f62b9ce0ca7b5987ef5e403cf",
+    "docs/qualification/portable-execution-current-business/finite-qualification-plan.json": "c386ea63e1eeab96e835a5c0193844af239f116601c48701508f9b12d4c97b3f",
+    "docs/qualification/portable-execution-current-business/source-receipt.json": "6de441433cc342e26b726b85d984fc87b87272d0596961962141256786141696",
+    "docs/qualification/portable-execution-current24-worker/01-worker-strict.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "docs/qualification/portable-execution-current24-worker/02-server-strict.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "docs/qualification/portable-execution-current24-worker/03-execution-fixtures-strict.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "docs/qualification/portable-execution-current24-worker/04-legacy-fixtures-strict.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "docs/qualification/portable-execution-current24-worker/05-legacy-seven.json": "ac818c729976754d0b9fa67a20f19a887efe95479ee8212f83280c8dd44dacf2",
+    "docs/qualification/portable-execution-current24-worker/05-legacy-seven.log": "9e6bb4ab019dafde3a8caebfb92bac580c572136b3e2371bac6860c67389cf82",
+    "docs/qualification/portable-execution-current24-worker/06-run-trash-current24-four.json": "5bb5ab7cc452a7691d58bbe04637a73536f479efea9b734f7915247d946a5ccc",
+    "docs/qualification/portable-execution-current24-worker/06-run-trash-current24-four.log": "6c97ddb8d51beaf6dbd8d1513cb9d2c5aeaee535bc9cbd1c11d81082b5be5f97",
+    "docs/qualification/portable-execution-current24-worker/07-metrology-current24-four.json": "0879a3effaaadc6477b9b70cff35ee714e322483c29c5fe1b2708a54805d2eed",
+    "docs/qualification/portable-execution-current24-worker/07-metrology-current24-four.log": "a3fa66024911633f91c64dbe553758516dbe4fd76c15e7a3b7d19752576d34ec",
+    "docs/qualification/portable-execution-current24-worker/08-confirmation-current24-four.json": "0f0cb0e71b4b03346e18769ec0eebd1693a96cbc2fa1e7f4899546225f774d9d",
+    "docs/qualification/portable-execution-current24-worker/08-confirmation-current24-four.log": "b6a8796379bb338b93ea1655242b64b616951179836d91b91f733d25bc7cb436",
+    "docs/qualification/portable-execution-current24-worker/README.md": "f2bf97619542e1c8cb55bafe9bd20cf2cb02da139cb8b9e4759335bdbaac254d",
+    "docs/qualification/portable-execution-current24-worker/curated-manifest.json": "05ea436f8ce97539ff8249d4390d725925758de701e8ac602fd181683695d3ae",
+    "docs/qualification/portable-execution-current24-worker/final-closure.json": "fe2b7af92acf857308cbdc537c6124a284a55c49de1103c34b5e92a6a974be01",
+    "docs/qualification/portable-execution-current24-worker/frozen-4928-source-candidate.patch": "9a27707a01ef5f24e17ec061847ecd416e170a6230725786e6fd238894bda244",
+    "docs/qualification/portable-execution-current24-worker/frozen-finite-runtime-plan.json": "272e482019d9a483fe3182ff6500ddccf320ecb9ed70145d0b27c3f93b02151c",
+    "docs/qualification/portable-execution-current24-worker/frozen-source-receipt.json": "9b5b019553ac94e29b97cfca4502a7373c9b599c6734530b51cddd1782746c5c",
+    "docs/qualification/portable-execution-current24-worker/independent-source-peer.json": "b13f8a1f810516bf992afc068fae2f81bae4c49577bd7f5ef03d482538d7b2b6",
+    "docs/qualification/portable-execution-current24-worker/receipt.json": "44dbc5a34edf75d6863bdcd93b5a0daa95d857d5d3993229e3fa6b34192c8635",
+    "docs/qualification/portable-execution-legacy-fixture-followup/README.md": "bfec724bcea18bab7cb6fb14f9477d8dad26b11615ea815c6d05c721789a5001",
+    "docs/qualification/portable-execution-legacy-fixture-followup/finite-runtime-plan.json": "b30f75ae86957e33ecb7bca8fca47a7abcf0ea44a41af0f5d79ed4f634c3c166",
+    "docs/qualification/portable-execution-legacy-fixture-followup/source-receipt.json": "5af2d3826d12743e1a59a685847dac7c0931eb4f1da0183f21ee3eafd7c46848",
+    "docs/qualification/portable-execution-v26-current-fixture-repair/README.md": "80607073027754092bf3abc83b87e8a8a357e2301cb18fa5fdb75cf9ae7f25a8",
+    "docs/qualification/portable-execution-v26-current-fixture-repair/finite-runtime-plan.json": "272e482019d9a483fe3182ff6500ddccf320ecb9ed70145d0b27c3f93b02151c",
+    "docs/qualification/portable-execution-v26-current-fixture-repair/source-receipt.json": "9b5b019553ac94e29b97cfca4502a7373c9b599c6734530b51cddd1782746c5c",
+    "execution-legacy-fixture-ci-followup.tsconfig.json": "132e828de1738356500e164cd5fe0fac158e63bb64759ba511278e2e13b21cd8",
+    "execution-legacy-fixture-ci-followup.vitest.config.mts": "efa7c5480608ad7ef6010a2fee72b5432411dbb6f18b20d5a329a0b6201b3875",
+    "execution-metadata-qualification.tsconfig.json": "829526f07834536a7d779d1d0fde2cb7c2952b7671c461af283465c89e57904b",
+    "execution-metadata-qualification.vitest.config.mts": "864a0d5fa77334f1ea05ccc57d8a9e0357447cffcc38f2d7182a7cda89b4a369",
+    "scripts/qa/phase5f/README.md": "5d8357ccf2a3e7b4c7ce3139ae8b246697c8b752a5477d0c46f6018ff6733e81",
+    "scripts/qa/phase5f/browser-directory-actual-api.mjs": "432e28a60ed608ca196f889ec6a460e4d30a47aeba51f48fc33285a7fb713c8e",
+    "scripts/qa/phase5f/browser-template-pagination-actual-api.mjs": "e978b4fa71d1e6d0fc0b7d94785a7ca3eb906f6b106ddda8e8919c2a09b2b249",
+    "scripts/qa/phase5f/prepare-isolated-copy.py": "45d6096ade96f69502da95eb929a0a24b49ca2100032e856a4972875b40f0168",
+    "scripts/qa/phase5f/seed-directory-actual-api.mjs": "40ec91f2715987d6759ed36df030cb8d9585a8b8ae375848840d7aefab9fc3ff",
+    "scripts/qa/phase5f/seed-template-pagination-actual-api.mjs": "6b70d66d7abd3e1e3967af6e46d710b4b05cf3d8ed00a1352543fef77d18d513",
+    "server/metrology-write.test.ts": "12730fa64073e0a6d1216e8cb704217dcb5ac760baf9ff169db9b1fd8b19115f",
+    "server/run-trash.test.ts": "3ad9a7b0dd9290e6b14c2b0cc9b899ac555046996d503a57fc58adb144d8d61d",
+    "server/step-confirmation-sql.ts": "d3451b4882f083465f7717b3b9ee2ba248118341f3ab7ca18595d67363097e18",
+    "server/step-confirmation.test.ts": "baec3c5c45020d993cba9efdbe363ef4a70d8bceaf2b2409faa041e523d5b9db",
+    "shared/contracts/project-creation-subject.ts": "df307cc57aeb5706dd770220cdc7f4b47d99a33a6d8c8232e30f693878827f27",
+    "shared/project-creation-subject.ts": "1d2f41c22e00e09877146e4e15d2f0b01eb29d67061c73363083c9abcd69428e",
+    "src/lib/project-client.ts": "e1fc50966291182a41b7ef4ccc9c2fb114554a622bf3889fcba9a0b68b96e243",
+    "src/pages/ProjectsPage.tsx": "841934c3d52cf217f46bff22f60bec24d292193946db0bfdfb698ac8cd2c605c",
+    "src/pages/StorageProfileActivation.tsx": "6f4fcc67e6283dc6a85248043980635290e132313960e36d6f88e4400f963723",
+    "src/phase5f-project-directory-intent.mount.test.tsx": "24208fd3c4f4e2f51d7018aa75a819885c66cec2404a70b1deff5198a484e8de",
+    "src/phase5f-storage-activation-read.mount.test.tsx": "29bbbd5e2b315203d04cf70385f0a341ab5ac83533ac3672e1281674e6a751c8",
+    "src/project-shell.mount.test.tsx": "3b3b5ee7e7705b4a0471b7bb866980eb2ec246a8d41d068dd305de1a1b06b307",
+    "src/styles.css": "d8ed3ea55288a2351ff9602d4d3c53857020dee460ccee7058658f02220199ac",
+    "tsconfig.phase5f-project-creation-subject-tests.json": "9db6437945f8d95c42cfe1bc88311da3ef529daf6d08697061db0b9709271bec",
+    "worker/delete-run-route.test.ts": "94da737637f0617a9c418d2ca5dd4b84e0378b15c53db37d454ff80399994b1c",
+    "worker/execution/confirmation-d1.ts": "b5e7f67478db3fec2ae4db71063da90a6f3348a59432d48e281ebe16a1d4321b",
+    "worker/execution/confirmation-service.ts": "eef194c0054705dc198012d44a744d1f96c3de4b55b1dd940303454dff6e2305",
+    "worker/execution/confirmation-sql.ts": "07e9050d6e629f037f393485d384fbf04486a2ab59960370c92d6b994ef37f4c",
+    "worker/execution/confirmation-surface.ts": "32dd2b8ca44f1164d1b19432ae7b5bad542366014d4c30f81a0cf35058977037",
+    "worker/execution/confirmation-worker.ts": "2aad426066ce4843c486d78a39cde044f4c047364dc9daaaa943280df3892cd2",
+    "worker/execution/metrology-write-service.ts": "b77e88bf4151ae87722cf1343cde13b9721e3fc6f3bfbe022d8aab83c106b031",
+    "worker/execution/metrology-write-surface.ts": "62bc81cacb633867501a0ac0f32c79b1333d2adead8127ff0980b052d103b1a3",
+    "worker/execution/metrology-write-worker.ts": "a178ccd6b0edfd41d061c223085159d9f375fa07604142db308344518d30a59e",
+    "worker/execution/routes.ts": "819efa262c5e19c2741b8f0d780ee6268eae9ff1e094ccfbb7536b23007a7494",
+    "worker/execution/run-trash-service.ts": "6473e07a348ea5e3659edf8607f3be1e18e1d6380e34997c23b8a01bcd16182a",
+    "worker/execution/run-trash-surface.ts": "08268fb8be0b085cab71b82c889c012430fb501ac14f7bd6d89b70eef5b3ef6b",
+    "worker/execution/run-trash-worker.ts": "338e7e8810cdab60463e05a7f15493bdaad92fae8c9c83079fb5beae49a9da31",
+    "worker/files/jobs/native-migration.test.ts": "8e9b275ed87f4e96f1902feced0b0abdc3dac7e33810655e5e506f5b50d27b9b",
+    "worker/metrology-routes.test.ts": "e6297c0204ad314357729bcf790bf7c3b482015021c460de81c521fe265a9fa4",
+    "worker/metrology-write.qualification.test.ts": "d76473076860f6f4feba372b7b6a3932ddf8fdc63e5f8245f4c11bd5425a2c5a",
+    "worker/project-creation-subject.test.ts": "985bf82829eb3a71686e8eeaa81ad55793f49abb170bd321e60612fa3e809cd9",
+    "worker/project-routes.ts": "f60a4254799f274b7048172aed80c223f7bbb3892a2c5cdac5dbe8fc6a5c2aeb",
+    "worker/projects/creation-subject.ts": "51cb1a186993e3a75c063724c97d26dbae9a8c7a0d295b8d213baf398785c5ef",
+    "worker/projects/read-surface.ts": "211f8edddf1cb4d561bfe7b5a6f15d457d611e085e5268aa470bb684009195e0",
+    "worker/projects/read-worker.ts": "fa9a58c09e8ceda2925c7415180fdaf490d93c543db5524e94c71891c5fc3ee2",
+    "worker/run-trash.qualification.test.ts": "26d145b1661891614025d512ef17270c2e159953460d2e3bed575b8731887a68",
+    "worker/step-confirmation.qualification.test.ts": "d8bfffbde7222bb970a7631cec10738e73a097dd02db76fc55586eb8ec1c170a"
+  },
+  "allTrackedEntriesAndWorkingBytesExact": 1642,
+  "unchangedActualBaseEntries": 1552,
+  "all114CurrentV26EntriesAndWorkingBytesExact": true,
+  "actualV26Delta": {
+    ".tsconfig.v26-client-tests.json": {
+      "mode": "100644",
+      "blob": "cd3c648c45e53608c158e6291c2eb6ef8d4fbd3c",
+      "sha256": "1e0ef22522c31d1b84462bd4ffb304207aa6e0cc6250d7ee7aee51b3692bf5b9"
+    },
+    ".tsconfig.v26-node-script.json": {
+      "mode": "100644",
+      "blob": "28cb7cb3a6af373d825be4e4d9ffa8bdf9906f9c",
+      "sha256": "4d2cd2937bf83d7ad5bf98ed93a3720628a57efe9d9622d99ddb5c91838e713c"
+    },
+    ".tsconfig.v26-research-tests.json": {
+      "mode": "100644",
+      "blob": "d676734b66306bab1b651a79b0e2457112247cb2",
+      "sha256": "494543c1502fd3e89600a58cb70d0035e077a321103cef3b7ebebfbc3625b8d4"
+    },
+    ".tsconfig.v26-worker-tests.json": {
+      "mode": "100644",
+      "blob": "c62b68ca45d70d171dedf5920015c5a75878e8b6",
+      "sha256": "850a0437d2fc0b2d60445eb5b20e0ed3617c50b710c1143899dff363340005e8"
+    },
+    "docs/PORTABLE_CHECKPOINT_V26_PRIVATE.md": {
+      "mode": "100644",
+      "blob": "abe39b5de119a7249197070face252d59c77e66f",
+      "sha256": "97d28cba1c617bca2f16d4c3937566552634b34978bd83facc40c543f24db330"
+    },
+    "docs/PORTABLE_LOCAL_VOLUME_V26_PRIVATE_SOURCE.md": {
+      "mode": "100644",
+      "blob": "3d38f6fe13a984ac556afde5308665b09828f190",
+      "sha256": "e22444d57e368040aa1fcd2846800c6126b7e1528249b0b85d1984207f8b6fe0"
+    },
+    "docs/qualification/portable-v26-bb3-source-ci-failure/README.md": {
+      "mode": "100644",
+      "blob": "d25424d703475d0644b3507b849d94e46a3734a7",
+      "sha256": "9d8b2fe26552e6013e535732bce0d171e74d7ffe52e557f32da56c975e78d32a"
+    },
+    "docs/qualification/portable-v26-bb3-source-ci-failure/retained-failure-receipt.json": {
+      "mode": "100644",
+      "blob": "27c7aa881bf193b7477c65697cb2bd5e8067715e",
+      "sha256": "82be614ee295d7f7a32aaa106b0df0a1a4aa1c35f9da091f43b4064e3d30044e"
+    },
+    "docs/qualification/portable-v26-business-source/README.md": {
+      "mode": "100644",
+      "blob": "ca68642c01c37d4601babbc5e801d1bb282d9c00",
+      "sha256": "a5637ba720e833ea38550acae61bee7025d988fb9af85c14f8a7ef6f6967d77a"
+    },
+    "docs/qualification/portable-v26-business-source/git-apply-check.log": {
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/qualification/portable-v26-business-source/git-apply.log": {
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/qualification/portable-v26-business-source/source-integration-receipt.json": {
+      "mode": "100644",
+      "blob": "c2bcc0341495f9543835f0e1d7763331bae022c5",
+      "sha256": "7aa6cc2e62ce604abfed97dc4dacfbd099cd405ca3bad445da15a7acfff57e7f"
+    },
+    "docs/qualification/portable-v26-combined-plan/README.md": {
+      "mode": "100644",
+      "blob": "e7aaebab2801d74697f6df11656de1f89e1e2974",
+      "sha256": "393903896bf7c3306ae1a9690991f00d8d171845fc410fa501a4153870699ecf"
+    },
+    "docs/qualification/portable-v26-combined-plan/finite-qualification-plan.json": {
+      "mode": "100644",
+      "blob": "dd67efea2403d2d6fdbfcf00c6a3905e4b6ac71e",
+      "sha256": "0c7b23363ba2f08958c133eaba6c7c9cd55ad05580b86d025f05a468e34a91fe"
+    },
+    "docs/qualification/portable-v26-combined-plan/migration-comment-correction-source-receipt.json": {
+      "mode": "100644",
+      "blob": "a3aa2ae9173811363e2efb1cdd2f5723004b968f",
+      "sha256": "793cee55755604f34feb9d35c1611e478fa47b31a1a78d4dc0c82dd6c77a07f7"
+    },
+    "docs/qualification/portable-v26-combined-plan/migration-comment-correction.md": {
+      "mode": "100644",
+      "blob": "5f4b7d9f6289a5a038ad7d380630b668d7040477",
+      "sha256": "33f943a5ee72717269a7f8f54edab397b67047bc932fed064d4583cb997ae65b"
+    },
+    "docs/qualification/portable-v26-combined-plan/source-audit-receipt.json": {
+      "mode": "100644",
+      "blob": "c5c22f68df8cde84a1dfc73050374beb7fec2674",
+      "sha256": "c27d3fd0960440b099d28e4d275cf660d9e92d1f0c2672203fd7f389340340a3"
+    },
+    "docs/qualification/portable-v26-combined-presence-probe-source/README.md": {
+      "mode": "100644",
+      "blob": "f358950c1284bc8748f6c2496d99feb0098de637",
+      "sha256": "2367174adcf7d8027e1bc544e32d7b07d01cdc06e15b102b046707310b0d784c"
+    },
+    "docs/qualification/portable-v26-combined-presence-probe-source/finite-remaining-qualification-plan.json": {
+      "mode": "100644",
+      "blob": "a50eb25ba06e4cdd2e64eade5c5fc56c36cc36a7",
+      "sha256": "91cb6883d33b4468ad009af247aaaf03ce410d18598644f4e9a87ddce995ff0b"
+    },
+    "docs/qualification/portable-v26-combined-presence-probe-source/source-freeze-receipt.json": {
+      "mode": "100644",
+      "blob": "3cadfe79842607478e4d4de227233ef6917e6aa5",
+      "sha256": "c165cd74df559379703e1c4093d69c7286c6397b0bd333f2e73d11cec42a1e12"
+    },
+    "docs/qualification/portable-v26-current-attempt1-failed/01-strict-tsconfig.server.json.log": {
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/qualification/portable-v26-current-attempt1-failed/02-strict-tsconfig.runtime-tests.json.log": {
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/qualification/portable-v26-current-attempt1-failed/03-strict-tsconfig.worker.json.log": {
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/qualification/portable-v26-current-attempt1-failed/04-strict-tsconfig.app.json.log": {
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/qualification/portable-v26-current-attempt1-failed/05-strict-tsconfig.shared.json.log": {
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/qualification/portable-v26-current-attempt1-failed/06-strict-tsconfig.file-jobs-node.json.log": {
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/qualification/portable-v26-current-attempt1-failed/07-strict-.tsconfig.v26-worker-tests.json.log": {
+      "mode": "100644",
+      "blob": "8d19c921af3ab41389a2f2276762f98990a75c76",
+      "sha256": "fd4409e0225fdec3bfea2645cc1804577e5fec6f2295b657d11c1d181ce10cf3"
+    },
+    "docs/qualification/portable-v26-current-attempt1-failed/README.md": {
+      "mode": "100644",
+      "blob": "498d7c09e6a52c1588b9574a77f8e899513672db",
+      "sha256": "56bfa4ce443b00c86cb3a18c33e3a7c9b020bab6ffc71fb9d3d1a5c106a44fbc"
+    },
+    "docs/qualification/portable-v26-current-attempt1-failed/actual-receipt.json": {
+      "mode": "100644",
+      "blob": "fe58b627b7488e7389dcf7cc29501cb9de508eed",
+      "sha256": "d832ed97048d3d84a383706557bd6fb5603c12806c9bfed5191732310f3d3197"
+    },
+    "docs/qualification/portable-v26-current-attempt1-failed/failure-review-receipt.json": {
+      "mode": "100644",
+      "blob": "0103a21a8124bee9aa8b8868add24e5bc56dc433",
+      "sha256": "e339f9af8f360284f93a38e054fa7ac8b26dd4f5a9b3efbae06377966927de74"
+    },
+    "docs/qualification/portable-v26-current-attempt1-failed/source-only-preflight-receipt.json": {
+      "mode": "100644",
+      "blob": "7612ddc384db46a0f4e82f8403251aa5c61c4c94",
+      "sha256": "812a68356e99fc2875c7e6bc1a094275bc03da0dc9e3583ec6113e99ed96a6f6"
+    },
+    "docs/qualification/portable-v26-current-source-correction/README.md": {
+      "mode": "100644",
+      "blob": "4c62758b6e9fe4efa4d6dfff2e069a3a4bd6ed1b",
+      "sha256": "1886356cf77d2031c7918353960fcff87454b87cd7186a7d34f96d321da3877e"
+    },
+    "docs/qualification/portable-v26-current-source-correction/finite-remaining-qualification-plan.json": {
+      "mode": "100644",
+      "blob": "8d7ccd659a750f317d84843486acd001301df7ea",
+      "sha256": "7519e79cbe5741211f76fb30d693a0889d1b496a90774783b56b1cfe21763dd6"
+    },
+    "docs/qualification/portable-v26-current-source-correction/source-freeze-receipt.json": {
+      "mode": "100644",
+      "blob": "9a3f49a8a12014bf353354b1b1edc69dd23914d3",
+      "sha256": "adf07adfed39cf9f4d64187e94269c0c1af9530d2bcec7d4ff33c2516897cd42"
+    },
+    "docs/qualification/portable-v26-latest/README.md": {
+      "mode": "100644",
+      "blob": "8e25a5564af4d99b7b959dc1b8fa66eea058bfb7",
+      "sha256": "7a7292c01b6f450446572b673f582e7385844e668a420f641578bfce044dbda8"
+    },
+    "docs/qualification/portable-v26-latest/original-actual-receipt.json": {
+      "mode": "100644",
+      "blob": "34d481f98e726b05de1d1aa542100605ee156580",
+      "sha256": "d227303c0a7ca780f26d611203bc11aef41c0f1e7598090cd1e66b3c224d1d95"
+    },
+    "docs/qualification/portable-v26-latest/qualification-receipt.json": {
+      "mode": "100644",
+      "blob": "704d770e1b3a8df7f558c9d035056e6e2e877f21",
+      "sha256": "57ad8a140f975db5c5faba5728b24fd7aa47aea8fcb4d829a9c65a4982f96613"
+    },
+    "docs/qualification/portable-v26-latest/runtime-01.log": {
+      "mode": "100644",
+      "blob": "f02ec09fb546859ee6e5d936a6c69488cf7a02b8",
+      "sha256": "7cae2025cf6393c274811bbce4ce8ca4abe4e24b2e259c14d181a52724366771"
+    },
+    "docs/qualification/portable-v26-latest/runtime-02.log": {
+      "mode": "100644",
+      "blob": "f83b1c777802b21b3e292cd0b89d1091c95bae38",
+      "sha256": "9b6b2d28baff3c0b419aef62f4322160cc298e19092dfcf05f94f958f75859c8"
+    },
+    "docs/qualification/portable-v26-latest/runtime-03.log": {
+      "mode": "100644",
+      "blob": "ef9bccdfd62956b766163713d03e2b6d4dad8ee2",
+      "sha256": "06a5de3e71b966dec7db14e006f57b82441363fc8914219044b758db2c0f42b6"
+    },
+    "docs/qualification/portable-v26-latest/runtime-04.log": {
+      "mode": "100644",
+      "blob": "84d103a46b06ef810dd2c9544656827e27407b15",
+      "sha256": "24dfb00b86b870e490e9dce6a4f00bcb3ad7b68f17ae82c7336e4e4683d8b93e"
+    },
+    "docs/qualification/portable-v26-latest/runtime-05.log": {
+      "mode": "100644",
+      "blob": "d201a70ebf4171b70df46e2e3b6d16f439547d40",
+      "sha256": "c2fd530950d0800d7e40d1ea25235f2a133dfcb21b36635beb66cb2fea3379d0"
+    },
+    "docs/qualification/portable-v26-latest/strict-01.log": {
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/qualification/portable-v26-latest/strict-02.log": {
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/qualification/portable-v26-latest/strict-03.log": {
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/qualification/portable-v26-latest/strict-04.log": {
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/qualification/portable-v26-latest/strict-05.log": {
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/qualification/portable-v26-latest/strict-06.log": {
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/qualification/portable-v26-latest/strict-07.log": {
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/qualification/portable-v26-latest/strict-08.log": {
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/qualification/portable-v26-latest/strict-09.log": {
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/qualification/portable-v26-latest/strict-10.log": {
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/qualification/portable-v26-source/README.md": {
+      "mode": "100644",
+      "blob": "23cd4457dbdc01852480a8a33e4e93981d97721b",
+      "sha256": "24e22712d4b9f582eaad4c3e407ea6f50ca0f183fb4031887ac4c8a762f6df0c"
+    },
+    "docs/qualification/portable-v26-source/finite-qualification-plan.json": {
+      "mode": "100644",
+      "blob": "bfe6161f86857cd29daeebe0428fb0b54ca8171e",
+      "sha256": "a908e0dabe2616e7d6c7234e752b605922e5a9a06245b0f337186f64fccf367d"
+    },
+    "docs/qualification/portable-v26-source/original-frozen-source-receipt.json": {
+      "mode": "100644",
+      "blob": "00baf2d7ea1c4889b3e98895a46a4872ef9e1ae3",
+      "sha256": "cded4ef213b5a6817293f20a6c19f921157d8fb5a60077592822956dba37cf40"
+    },
+    "docs/qualification/portable-v26-source/source-review-receipt.json": {
+      "mode": "100644",
+      "blob": "aa768154b58a53eed2f61ccf2c7668c1300c3b6b",
+      "sha256": "3d725e193cc9b18b2fecfdd630c93f32839947796cad0e666893dfb38090f7b6"
+    },
+    "migrations/0024_rt3_local_volume_profiles.sql": {
+      "mode": "100644",
+      "blob": "54674e6a0481ec454eb6942dd57ed1973bce32d0",
+      "sha256": "010414ba121247175e3bf6fe2eb88028ff8557035b123cfa12970c37e3985533"
+    },
+    "scripts/current-schema-source.test.mjs": {
+      "mode": "100644",
+      "blob": "ee9cc1633034abfebc451b5c0c317c9a0bc4c89b",
+      "sha256": "bcd9104eaea5f67ac1bb1b378d0f95025550ba0a0c9307be1ebeec587eb6e64e"
+    },
+    "scripts/generate-portable-runtime-schema.mjs": {
+      "mode": "100644",
+      "blob": "a21555eebe7d0aaa4ee3cf3ca416aca5056c6a55",
+      "sha256": "8a3547cab2df7bcb64d3a0670d62dd147726b114dcf20a0a007fa8d12a2e1b66"
+    },
+    "scripts/generate-portable-runtime-v26-schema.mjs": {
+      "mode": "100644",
+      "blob": "b5f98b5fc7612735627093809cb4a9098e84216c",
+      "sha256": "c81ed19e81d1aa83c203bc8c9eb9371c2fdae350ef14c70d85df7e62ffe4bc12"
+    },
+    "scripts/lib/export-portable-runtime-v26.test.ts": {
+      "mode": "100644",
+      "blob": "e08da885068d5b6516f38db55be96111ffca2a27",
+      "sha256": "fc9ff7cbf2c888680db89ec06d188c1ac9fbd2da0cf65ca4b8440cf3d0b28ef0"
+    },
+    "scripts/lib/export-portable-runtime.test.ts": {
+      "mode": "100644",
+      "blob": "71e90faffc50c32f8329e1681d1a02dbf2b597db",
+      "sha256": "c7d259718ded33168578df33d7dbeac326b162149d4063124f5094a180e5eae0"
+    },
+    "scripts/lib/export-restore-migrations.test.ts": {
+      "mode": "100644",
+      "blob": "c0a693e8eea874005f950a79025c499d7f625252",
+      "sha256": "1aa53cc2634ed0683db32d30de63f99997f4ead377a4a3c28f5deaf187d5e576"
+    },
+    "scripts/lib/export-restore-v26.ts": {
+      "mode": "100644",
+      "blob": "53753e648b71787cf602031d70cf97a4f05e0513",
+      "sha256": "0e7b7ed7f55942d5f15a7c741be8b5fa3ac5f0f27c296f8972447fbc658acb8f"
+    },
+    "scripts/lib/export-restore.ts": {
+      "mode": "100644",
+      "blob": "0eaab0e8f90645fe0955da415fc31ed5660573ad",
+      "sha256": "6a4ff38a0f400adbc06ae26e4f98bf5dc31723834cea368782c562d7c01dd4f3"
+    },
+    "scripts/lib/portable-v26-schema-policy.json": {
+      "mode": "100644",
+      "blob": "f9760d662bc9547ed5a50b9fbf437619156b791c",
+      "sha256": "18832d52f3728a44771c4402544acfb0530b919d0f9a492094d1539f907a56b3"
+    },
+    "scripts/lib/restore-system-backup.ts": {
+      "mode": "100644",
+      "blob": "5c00dd440f9bcadc9a797f89ea57718d613a1eb8",
+      "sha256": "768398f56db6f95e2fc18ae5ed7eee4fb98050fb6794903feb03c146fcf86742"
+    },
+    "scripts/remote-d1-migration-observation.test.mjs": {
+      "mode": "100644",
+      "blob": "a4482cf4ed88df5ffa9a4c2cdb438946cfe7c945",
+      "sha256": "c430056939b4a7f4f693e376c86c6ad3b51e6e4b6224158beaf33242cede70b7"
+    },
+    "scripts/verify-project-worker.mjs": {
+      "mode": "100644",
+      "blob": "da6acfe53a317a764381cec9a841f6f2c5ec6e6f",
+      "sha256": "640e9e27a1a2be14d4bc8dd5c05f0b1f46d725fbbcb38d8e3895094481d61d3f"
+    },
+    "server/installation-catalog-v26.ts": {
+      "mode": "100644",
+      "blob": "70668db1c17e6165173e69a1a09625c7c13c725a",
+      "sha256": "55688ec4bbfea94423bdc00ae58a5097ed277e4d3169be3ba070b4f09a537aff"
+    },
+    "server/recovery/portable-v26-checkpoint.test.ts": {
+      "mode": "100644",
+      "blob": "40de6f956fe02a1e325fd1a93e39eda392b7ca3b",
+      "sha256": "cf9a28935d18b9faf6f9197da4899a76c7800ff148e4fd62bb5e998d8dc3efb8"
+    },
+    "server/recovery/restore-v26.ts": {
+      "mode": "100644",
+      "blob": "7e509f715cbecc01982b4267a7f444348f62bd0c",
+      "sha256": "d94c994f584df4f35623854b32d66cd7191717c5f6817abc0017cdf712deddbd"
+    },
+    "server/recovery/snapshot-v26.ts": {
+      "mode": "100644",
+      "blob": "760980fcd7023d6ab4e1cc18053de9607a2de58a",
+      "sha256": "2c3543b0020964f7121eadf5a4087e177c2e16b066e62bcd306811a20825cc92"
+    },
+    "server/storage/local-profile-registration-sql.ts": {
+      "mode": "100644",
+      "blob": "3aa201b3f3fabc0bf06a1dba11c50ee6c9e492b5",
+      "sha256": "db3d92870a7463271f08af22021c6d2a8061a0b0a3ce47b5308d4fd65336acf0"
+    },
+    "server/storage/local-profile-v26-installation.fixture.ts": {
+      "mode": "100644",
+      "blob": "d9000d1a88e46449553749a94251d16dae4528ff",
+      "sha256": "1522107528b5bdbdd5e70213aa43491fdc571083b4f55304aff53b8c529c32df"
+    },
+    "server/storage/local-profile-v26-schema.fixture.ts": {
+      "mode": "100644",
+      "blob": "ea2d3a5150fd260c29baffa1f3e3baad835f666e",
+      "sha256": "0bc8afe67ade8f4d0f5e816b93e493776c41f164753741944ed57b838726492f"
+    },
+    "server/storage/local-profile-v26.test.ts": {
+      "mode": "100644",
+      "blob": "c3325851c4e069eccb068cd5285b00dc0bb6ac8c",
+      "sha256": "4fe24da9bac2ce4d9aaf50210610181964ac11e32973bd90f2855e3bf4314f20"
+    },
+    "shared/contracts/export-business-v26.ts": {
+      "mode": "100644",
+      "blob": "811894f6a69421ce5760ca95688fab789c3fb2fb",
+      "sha256": "48d554c78135889db48b2465153a5d7b946de510806209a60971e06a6ed8bef3"
+    },
+    "shared/contracts/export-file-native-shadow-v26.ts": {
+      "mode": "100644",
+      "blob": "f3cf578d873904de63d5c3c041d5cf6e3c42b74c",
+      "sha256": "e75af6f10b12156cb810dcf2c14556b812bc744b6a5a785471b90254c4a93a96"
+    },
+    "shared/contracts/export-file-system-recovery-runtime-v26.ts": {
+      "mode": "100644",
+      "blob": "92c15e93de0171ac79be3450225c687a810c6992",
+      "sha256": "4482c7618802c32025c063ac9613fb60b101bf3f865dab268520b3a5f47f0c98"
+    },
+    "shared/contracts/export-local-profiles-v26.ts": {
+      "mode": "100644",
+      "blob": "30e00a3d9099a307002a8cc374c5c05140df2ed4",
+      "sha256": "3fbb610a0f9bef4158f5fbc7b6ca671b023b1800caf830c2fe37984ec5c856ba"
+    },
+    "shared/contracts/export-portable-runtime-v26.ts": {
+      "mode": "100644",
+      "blob": "6cd4206ca0b31e0315e8ac3b56bbfe989b32e002",
+      "sha256": "79aed8a993233463f19ca28ff0ee7479e4c475bfbda70e3d73d27faa0acb3e9f"
+    },
+    "shared/contracts/local-profile-registration.ts": {
+      "mode": "100644",
+      "blob": "00718f51c4c1089e7e8a10a1c0c5c38a9cf7d7e6",
+      "sha256": "453bd5450dcbfc3d68d33230b95cebda41d671de436e18b3ddc7b140a42bbfe7"
+    },
+    "shared/contracts/local-volume-profile.test.ts": {
+      "mode": "100644",
+      "blob": "70a8918a9a804b13b72772b3fd1934ea9d1b9855",
+      "sha256": "a9e3fea3423698d8f1411e68bb538b0fd76cdf381fb61496c92fc1bebaa6ce74"
+    },
+    "shared/contracts/local-volume-profile.ts": {
+      "mode": "100644",
+      "blob": "1873478d0a2cfd0764520627d676897a3ef352a3",
+      "sha256": "2537a631c0ea988382a8770d71f31d1bbb147a4559a3cc0ceec29bd781c6e968"
+    },
+    "shared/contracts/portable-runtime-v26-recovery-catalog.ts": {
+      "mode": "100644",
+      "blob": "5a0cd3aa51809aa81ef54141b09475bd5a3e40f2",
+      "sha256": "933d14153cda618ad7e19c3e147047e22bff7cd2838304ba90ac936275c86c85"
+    },
+    "shared/contracts/system-backup-v26-content.ts": {
+      "mode": "100644",
+      "blob": "ad4fdbc2f0d7074719d4eed21216d5830e727540",
+      "sha256": "df2df7ef704758a2ce3673a850ec46cdcc6b84ff101bbbac5fa41cdcd30bac58"
+    },
+    "shared/contracts/system-backup-v3.ts": {
+      "mode": "100644",
+      "blob": "d4dce4351a8a981d17915cc33bd9878d594680ea",
+      "sha256": "325559ae3165981b7cc0d8fc8edd8408497431210e802f91841b66512fdf9df3"
+    },
+    "shared/contracts/system-backup-versioned-admission.ts": {
+      "mode": "100644",
+      "blob": "f609bc17bb829f2617c08d62f979538d0e20f249",
+      "sha256": "30a5fcac44c64d1ff4d4160076737ac5ba977dceed874a16a4d56afa3e1ca3cf"
+    },
+    "src/lib/api-portable-export.test.ts": {
+      "mode": "100644",
+      "blob": "a2d6d9f1fe27c8fdcb2c77f19e2bf144a4c84052",
+      "sha256": "2d062b1a8a856c82eb82f1c7a46e94d7635c04c1d605d7869325fd38a301f0e7"
+    },
+    "src/lib/api.ts": {
+      "mode": "100644",
+      "blob": "327a27e3cc548e982c4c6177ad34f9cdf3602d5a",
+      "sha256": "66549eee6bb0d814d56349bc69ccb2f69fbd1c08e497ca42bf66f4dd9592a2e3"
+    },
+    "src/lib/exportAll.ts": {
+      "mode": "100644",
+      "blob": "c2a08bbf8ae0b20a974cc913ac8c29350db78ac8",
+      "sha256": "ab29f3a64db20708bd124182ed8e445f3a4d7ed832fc76f1b9dac3f77a245af9"
+    },
+    "test/reviewed-portable-migration-sources.ts": {
+      "mode": "100644",
+      "blob": "f4b4d2cb08ec296d9975711cfe9e2ea417348ab1",
+      "sha256": "ebc6785c53861af62eb01e1e3b4bc8fa511d918074c1db28508b9f0124d89356"
+    },
+    "worker/export-portable-negotiation.test.ts": {
+      "mode": "100644",
+      "blob": "ca8015db73b175e79ea977cace40e73e47f731f6",
+      "sha256": "b86a466f8ff625e87f2d44ccc41e47c464226c0b210ea8d533bdf0e387857972"
+    },
+    "worker/export-routes.ts": {
+      "mode": "100644",
+      "blob": "a0040cee708e0bf09848808309175b6cc0b29e16",
+      "sha256": "dafdc67e240e7b7ab8805c498ff06032ed5989af84b55a20542ac239edf300ad"
+    },
+    "worker/export-v26-core.ts": {
+      "mode": "100644",
+      "blob": "4df67c4f69f2d5e841f1db86817e005f264e1512",
+      "sha256": "85f73069411f3434c561ed6fbe1e0864720ae16c268ad5fcf59aa7beb056b879"
+    },
+    "worker/export-v26-snapshot.ts": {
+      "mode": "100644",
+      "blob": "1d873ff864a5a55761ff15584780ea65e8213684",
+      "sha256": "c520d7bcd36e20caa00d7dbfd1db88c7aa7820299df66d282cc51f7d32ac6d48"
+    },
+    "worker/projects/service.ts": {
+      "mode": "100644",
+      "blob": "7407850da4cdaa0c646158d90fe7a0112b8aa5f8",
+      "sha256": "b0510f325a6820c79d35a9d12cc080d9d1364bc8f9c407ac0bc1a7f7c3a0f93e"
+    },
+    "worker/recovery/backup-archive.ts": {
+      "mode": "100644",
+      "blob": "0e24fb6fb576aaa958922853c55bc355c097317d",
+      "sha256": "1eb52eff5dd7fd201984205d21b519f10da0485900ab62c4ab62f1c694ea5eda"
+    },
+    "worker/recovery/portable-backup-current-workerd.test.ts": {
+      "mode": "100644",
+      "blob": "92da26265de3fb7f058347c22a88761e4695d88d",
+      "sha256": "d53a5de9d1222c27aa1aa50a66180a2085a226be12349c7df432256f7201b4fa"
+    },
+    "worker/recovery/portable-backup-snapshot.ts": {
+      "mode": "100644",
+      "blob": "37c031a947e3e17fe02c2b3eb2f622029876cd49",
+      "sha256": "515f75201346dd4a0c970bd04ac546039261e42e9da6a5380c50a7db3f615c4c"
+    },
+    "worker/recovery/portable-backup-v26-snapshot.ts": {
+      "mode": "100644",
+      "blob": "a87ab972efbf95fe7793c1597e203c4a8530668c",
+      "sha256": "50a5297a7ff7dad210fd5e80e7ec0d1a94bdc0e131d2deeaa66b8044e9103234"
+    },
+    "worker/recovery/portable-backup-v26-workerd.test.ts": {
+      "mode": "100644",
+      "blob": "2a9bcac041879d0baec0d9ff6b1d555fb7e7840f",
+      "sha256": "05f498915fe03b6616f1ed01302999ced198b99b085ece8e7af044d109f51042"
+    },
+    "worker/recovery/portable-runtime-v26-trusted-schema.ts": {
+      "mode": "100644",
+      "blob": "9cb2fca69c99335ca1751e8ca9d406df4cb58d82",
+      "sha256": "4c89c3c1586aee88017e8a35fe713bc9041ab94e5c34081c8055a3438eb27aaa"
+    },
+    "worker/recovery/protected-settings.ts": {
+      "mode": "100644",
+      "blob": "a989fb6875392dedcfc53f269e6e531858096f5d",
+      "sha256": "5d689c3f74c78f91481de1bcb09180af76020b259432c3fd65d6167356e4933a"
+    },
+    "worker/recovery/report.ts": {
+      "mode": "100644",
+      "blob": "0681f947bb1fd8206917e0c2249da778831d5911",
+      "sha256": "11a12d147ea32519be1272f32e2b6bad0df7289c217eca6574b9dfa3ae8b83b9"
+    },
+    "worker/recovery/service.ts": {
+      "mode": "100644",
+      "blob": "e5348cead79de8f517f399be4811da0801e3c3eb",
+      "sha256": "dce5158d62a53b6d9247d69a369f1e3d9204950813e9ac0199acf99351e8b475"
+    },
+    "worker/recovery/target-import.ts": {
+      "mode": "100644",
+      "blob": "44d864d28fca058fa7757877b9a9c9ba0ed5f1b8",
+      "sha256": "3aa465bc11a77cc13dea7ec2810977055f3b3b63441088db09908b866ce95ca4"
+    },
+    "worker/recovery/v26-cloudflare-schema.ts": {
+      "mode": "100644",
+      "blob": "2cb85b86d9e0fe6b0df6b980f93698ee05bc51df",
+      "sha256": "dae983d7172684173d978f8c16b6a9ffb3bb3e8e96c1a18e1f81f01c0fd6a489"
+    },
+    "worker/recovery/verification.ts": {
+      "mode": "100644",
+      "blob": "bb45b7823423b63584a4afaaacfa4dcbe75bf3a3",
+      "sha256": "71d7ea49c9a5efe78a749c055dd9938d5fb1ae0ebfed870a1c8281255ed8665c"
+    },
+    "worker/recovery/versioned-catalog.ts": {
+      "mode": "100644",
+      "blob": "5425c7fdc07aa51f3e9ebacffbbb3b3196d49cdf",
+      "sha256": "bb1880dd80e2632c504f99e80782cf06a687989fd6b5ab12ae36865a9f1cb2f5"
+    },
+    "worker/reference-read.qualification.test.ts": {
+      "mode": "100644",
+      "blob": "1fd251bc61e3eb659cd8efb89228541635cdef3a",
+      "sha256": "8763c198a38c37c2d86c89ab0fadf5bbb2551e87f41a25bedab01f55f980a546"
+    },
+    "worker/source-lifecycle-routes.test.ts": {
+      "mode": "100644",
+      "blob": "694d4613bda7634d43eb60043901837764f528cd",
+      "sha256": "990042e683134d918be3dd8ba6a619889cd537adb0273125c35c79f1a3a46c31"
+    },
+    "worker/storage/local-profile-registration.ts": {
+      "mode": "100644",
+      "blob": "4f23f1add527c84eba3b224900387b84697f1d30",
+      "sha256": "108b8090d34c8ad756441a508dbd8607d4fedfbf617e7e458b8e7c991cf32a73"
+    }
+  },
+  "allExecution35Exact4928": true,
+  "allUI31ExceptFourDatedDocsExactD0": true,
+  "datedDocsUpdated": [
+    "docs/FRONTEND_REFINEMENT_IMPLEMENTATION_PLAN.md",
+    "docs/LONG_TERM_ROADMAP.md",
+    "docs/PRODUCT_ROADMAP.md",
+    "docs/ROADMAP_AUTONOMOUS_DEVELOPMENT_GOAL.md"
+  ],
+  "curatedExecutionEvidence20Files": [
+    "docs/qualification/portable-execution-current24-worker/01-worker-strict.log",
+    "docs/qualification/portable-execution-current24-worker/02-server-strict.log",
+    "docs/qualification/portable-execution-current24-worker/03-execution-fixtures-strict.log",
+    "docs/qualification/portable-execution-current24-worker/04-legacy-fixtures-strict.log",
+    "docs/qualification/portable-execution-current24-worker/05-legacy-seven.json",
+    "docs/qualification/portable-execution-current24-worker/05-legacy-seven.log",
+    "docs/qualification/portable-execution-current24-worker/06-run-trash-current24-four.json",
+    "docs/qualification/portable-execution-current24-worker/06-run-trash-current24-four.log",
+    "docs/qualification/portable-execution-current24-worker/07-metrology-current24-four.json",
+    "docs/qualification/portable-execution-current24-worker/07-metrology-current24-four.log",
+    "docs/qualification/portable-execution-current24-worker/08-confirmation-current24-four.json",
+    "docs/qualification/portable-execution-current24-worker/08-confirmation-current24-four.log",
+    "docs/qualification/portable-execution-current24-worker/README.md",
+    "docs/qualification/portable-execution-current24-worker/curated-manifest.json",
+    "docs/qualification/portable-execution-current24-worker/final-closure.json",
+    "docs/qualification/portable-execution-current24-worker/frozen-4928-source-candidate.patch",
+    "docs/qualification/portable-execution-current24-worker/frozen-finite-runtime-plan.json",
+    "docs/qualification/portable-execution-current24-worker/frozen-source-receipt.json",
+    "docs/qualification/portable-execution-current24-worker/independent-source-peer.json",
+    "docs/qualification/portable-execution-current24-worker/receipt.json"
+  ],
+  "curatedOriginalRawFiles14": true,
+  "curatedManifestSha256": "05ea436f8ce97539ff8249d4390d725925758de701e8ac602fd181683695d3ae",
+  "executionSourcePeer": {
+    "path": "/tmp/portable-execution-current4928-independent-source-peer.json",
+    "sha256": "b13f8a1f810516bf992afc068fae2f81bae4c49577bd7f5ef03d482538d7b2b6"
+  },
+  "uiSourcePeer": {
+    "path": "/tmp/phase5f-ui-currentd0-independent-source-reconciliation-peer.json",
+    "sha256": "bfd3b25d6f670d3b998c5754562a7e6f606183aa3a36d430b6f40a7c94074e27"
+  },
+  "sharedMiddlewareAndRuntimeEntryPinsExactBothParents": {
+    "worker/index.ts": "d1f672ea14a8c81e9d4e12718b5a946a5421d606cb423c51f5464b02bb3e09e3",
+    "worker/application.ts": "3c309fd57784d7a4a5e1eb64251cfc5870fdbe44c84e8aae61d2945e0849b041",
+    "worker/platform/http.ts": "77823626b1dc7e47090b54457c3db06b263226abe98b3adabffb5c26b7287e00",
+    "worker/files/authority-execution.ts": "573c6d85166c6c443845847eb08115112084f34f357788adaff92efb4a902d2b",
+    "worker/recovery/maintenance.ts": "d36d68a2a919793c3f46b1cf52a953a82c4b35b4eab1ceffd00e801028d8179d",
+    "worker/types.ts": "4ec9592962374df19f7e9825e46e6236443bb11e2402494f15bd72da5bec36d0",
+    "worker/storage/configuration-d1.ts": "a85ee48baec40ef67f641f9abe8b2ef0baa30fcb9e544a7725740d699fdcafe7",
+    "worker/reference-test-support.ts": "53333d2ba02005dfe363a24b92216ad4a5a9684e005e3b98d4bd370a7293f1c4",
+    "server/installation-catalog.ts": "b12f6850defb6992d8bbdeb2da8bd12c305e54513643fd987281814a1df88992",
+    "server/sqlite.ts": "852c319a02f44ee25aa99b1b95d1dec3bfcdec8dd60a4d7deec58e256e42df68",
+    "test/reviewed-portable-migration-sources.ts": "ebc6785c53861af62eb01e1e3b4bc8fa511d918074c1db28508b9f0124d89356",
+    "vitest.config.ts": "f7d653404ebf008e1c134c56039b3e9219f9242a491db4bd035cbbd06658a66d",
+    "vitest.mounted.config.ts": "fd051a71b0bdc63992c3e6e05f184159a2a1b96518c3db54a112ea44c1f5b991",
+    "package.json": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+    "package-lock.json": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a"
+  },
+  "finiteStageDirectInputsExactD0": {
+    "scripts/verify-shared-boundary.mjs": "95c8a4320381ae971ce57234c20a8ae522009f515abeab48e888c12b1f3f3fc7",
+    "server/project-read.test.ts": "6d498ef7e474765ec9494f09afa1627da81865f518e958175736a72167e4ec24",
+    "src/current-storage-settings.mount.test.tsx": "3d01f89277395e6fbc87114a463393e740b07d02dbc125b63ef27edd938a6b65",
+    "src/lib/project-client.test.ts": "6ef8bc794e661f6b5239dbbf8c2e9a046f2908b1cca6f440a2948acbca81e66c",
+    "src/phase5f-project-directory-intent.mount.test.tsx": "24208fd3c4f4e2f51d7018aa75a819885c66cec2404a70b1deff5198a484e8de",
+    "src/phase5f-storage-activation-read.mount.test.tsx": "29bbbd5e2b315203d04cf70385f0a341ab5ac83533ac3672e1281674e6a751c8",
+    "src/project-shell.mount.test.tsx": "3b3b5ee7e7705b4a0471b7bb866980eb2ec246a8d41d068dd305de1a1b06b307",
+    "src/reference-page.test.ts": "7bcfc842cfc18a0b5e42dadc6043e52a688a9e233c1c6639725953f3231da148",
+    "src/storage-activation-recovery.mount.test.tsx": "d64c3fe0c1fcd8b81bde2c226daaf0a344f7048baa74ae695d3dff95eaf29117",
+    "tsconfig.phase5f-project-creation-subject-tests.json": "9db6437945f8d95c42cfe1bc88311da3ef529daf6d08697061db0b9709271bec",
+    "vitest.config.ts": "f7d653404ebf008e1c134c56039b3e9219f9242a491db4bd035cbbd06658a66d",
+    "vitest.mounted.config.ts": "fd051a71b0bdc63992c3e6e05f184159a2a1b96518c3db54a112ea44c1f5b991",
+    "worker/files/jobs/native-migration.test.ts": "8e9b275ed87f4e96f1902feced0b0abdc3dac7e33810655e5e506f5b50d27b9b",
+    "worker/project-creation-subject.test.ts": "985bf82829eb3a71686e8eeaa81ad55793f49abb170bd321e60612fa3e809cd9",
+    "worker/project-persistence-service.test.ts": "7b19fc44d0ad6d1f8b859dfac31ba570867d164f0edaa0696ffed418c79b17b1",
+    "worker/project-read.qualification.test.ts": "b3a261e5ec37c6fd1e688c229533c1dba1e0fe73cf81faa45c4be2a7d404ef13",
+    "worker/project-routes.test.ts": "38032c6a9882d4ccb98f6991b93a199c6de882d202bae8e01c65074f5130e1e4"
+  },
+  "finiteConservativeRelativeImportClosure": {
+    "count": 419,
+    "pins": {
+      "scripts/verify-shared-boundary.mjs": "95c8a4320381ae971ce57234c20a8ae522009f515abeab48e888c12b1f3f3fc7",
+      "server/installation-catalog.ts": "b12f6850defb6992d8bbdeb2da8bd12c305e54513643fd987281814a1df88992",
+      "server/migrations.ts": "983cd7d70ce210d427779efbb571be67d67c7b789547e8912e4496a0246fa596",
+      "server/project-read-sql.ts": "b7ecae322196b45927f8b8ecb1a701519b02e1858f144f944509c93ff5d0e865",
+      "server/project-read.test.ts": "6d498ef7e474765ec9494f09afa1627da81865f518e958175736a72167e4ec24",
+      "server/sqlite.ts": "852c319a02f44ee25aa99b1b95d1dec3bfcdec8dd60a4d7deec58e256e42df68",
+      "shared/comment-submissions.ts": "60d2a6f27a9860f7d1eb625ed6530fe21c1b19a6135331bfe96ffa121d6dda74",
+      "shared/content-addressing.ts": "ee1d965164c289d40dd3f1b0f228dfabb153cbceb0a18ddf832c996004af4ab5",
+      "shared/contracts/comment-acceptance.ts": "aef40e3c5776b33f171dc120277788d364800b63183ad5abe40abb1d85b49d3e",
+      "shared/contracts/comment-submissions.ts": "5fff32939b566ba1f43571475e0260c18d21c474d3532080ca48e3bea1c5aab0",
+      "shared/contracts/current-storage-settings.ts": "9c303aae2aecf70eaaf35a7a48b8309984755c98b23d08cde78c6f81df35c80e",
+      "shared/contracts/export-blob-plan.ts": "531d227a13e9c1b5f425da6611e07b0029a05de16c12dd5feceaf8b55abc2da6",
+      "shared/contracts/export-business-v26.ts": "48d554c78135889db48b2465153a5d7b946de510806209a60971e06a6ed8bef3",
+      "shared/contracts/export-comment-acceptance-v21.ts": "c9c8485fafb4acc81d558e7a157cba204b57eb8a3b7e838d4c226c77be55ad1b",
+      "shared/contracts/export-comment-acceptance.ts": "e01c886cc9e4bb84d3801560a8697359790da61df1da2bbc76867e36791e4c6a",
+      "shared/contracts/export-compatibility.ts": "cf6e5ac9c55029587e7b00b1d6f3aefcf4a56bcc78d43a18ec5e3945d7040f97",
+      "shared/contracts/export-file-authority.ts": "3e6e477b5779d86fe1c0cb76ab4797af7405089d14cf2e1a2a0bf5729da66293",
+      "shared/contracts/export-file-foundation.ts": "7cf423df7e0dd2f6a7260e5bd1668b788d00497059e46e88c5d388cc323e01aa",
+      "shared/contracts/export-file-jobs-schema.ts": "2cd8ff39550c97fdfa30c5bfc9b8c0e882092d329098491dd1e7c9b14f029d23",
+      "shared/contracts/export-file-jobs.ts": "67f86b22a76d99aee4cdb512dcdddb8436d8e383812921a001f6c6b3c9ba9e6e",
+      "shared/contracts/export-file-migrations.ts": "57b293980d7ff0aab1c66f660a2a02c7684147ecb3b5c4ee23770d16ae3849d5",
+      "shared/contracts/export-file-native-admission.ts": "0b7e6eb2808c9c4e04a86c9da1459cd332d3c20c952af8ca55ad49155374656b",
+      "shared/contracts/export-file-native-blob-plan.ts": "f5110861ed325f768fa3d2662b1814cfa3c83ab2f4f90dc259b4ca62fd9ff7b5",
+      "shared/contracts/export-file-native-candidates.ts": "15430544d83abb115941a1c04190f62351c86c8f40d244792491c8bebc93f92d",
+      "shared/contracts/export-file-native-references.ts": "d74f80f83d90127e26932caffddf9e039172cf5bdd4b6aa5321353c87fb1006e",
+      "shared/contracts/export-file-native-retention.ts": "631da4fbefa8e9462fc9e88a46ab127f8ab70ef5a7d9b98ae25b53322336de38",
+      "shared/contracts/export-file-native-role-policy.ts": "ead1040d4582fcf3372a8ad530779c307c0014a6f38383a8212d56fd7e3471cf",
+      "shared/contracts/export-file-native-runtime.ts": "3dff19a14bdf4e6b214822cb092543bfb620185e5e06fe96aa4edae5d7b7e667",
+      "shared/contracts/export-file-native-shadow-v26.ts": "e75af6f10b12156cb810dcf2c14556b812bc744b6a5a785471b90254c4a93a96",
+      "shared/contracts/export-file-native-shadow.ts": "c0900a465f6e4f6724b475a7cea2044a66b2abb1903738ad3734629a9c283bac",
+      "shared/contracts/export-file-role-policy.ts": "60bd59407f2e5f81b00cd7b90f8759dd2efcb0ce5537d36b1838debcc01a58dc",
+      "shared/contracts/export-file-runtime.ts": "302f8be1364c4db7e44a1533b43ed041f8b2ae6effdd43eb563bc978ed3d6096",
+      "shared/contracts/export-file-shadow-adjudications.ts": "55da95c86aedde85f0bf3fa7f08f7c2238754a74f58ec2f6ba1d0390fe93d5d9",
+      "shared/contracts/export-file-shadow-withdrawals.ts": "047920074367f4c14850e9dfebbaa83b1838045536380441be3af12efa2fc1a1",
+      "shared/contracts/export-file-shadow.ts": "acc20e751bd2cd7358607cdac619062af5b7508343a3a49a007dc48588d2919e",
+      "shared/contracts/export-file-system-recovery-runtime-v26.ts": "4482c7618802c32025c063ac9613fb60b101bf3f865dab268520b3a5f47f0c98",
+      "shared/contracts/export-file-system-recovery-runtime.ts": "b719279a14ddf1481c697bf67859110fb2cc473fba5db420a57e1c4e99dcebae",
+      "shared/contracts/export-file-upload-acceptance-v21.ts": "39ac8f92e4ae4cf1e35f73bc5bdbc442bdaa24a9b037a45be69d2a241fc87782",
+      "shared/contracts/export-import-acceptance-v21.ts": "d0408112f980b36547d0810e1624623409a24c8882c64b6452b3cbc58fca433e",
+      "shared/contracts/export-import-acceptance.ts": "351bd9ff599e9edf7548e3163da8db03adc2dfedc1e14604a97d54779b8514a8",
+      "shared/contracts/export-local-profiles-v26.ts": "3fbb610a0f9bef4158f5fbc7b6ca671b023b1800caf830c2fe37984ec5c856ba",
+      "shared/contracts/export-metrology-reference-acceptance-v21.ts": "8ee40b5c67f190cc0b22e7d9552f5a8ae3495679fb66afb51f1a694a7b0384d8",
+      "shared/contracts/export-metrology-reference-acceptance.ts": "ddd04e1e3d4e61a7f014713f25d0e1b221f3f783f8203ef0e58ff3f0e49aefb9",
+      "shared/contracts/export-portable-runtime-v26.ts": "79aed8a993233463f19ca28ff0ee7479e4c475bfbda70e3d73d27faa0acb3e9f",
+      "shared/contracts/export-portable-runtime.ts": "2379049de0b99b41562601d91863581afa4a7d863a9841c15d5f84bd65b0500a",
+      "shared/contracts/export-protocol.ts": "cb844dd10f4210b2c23530ec170c704957ff5c1aabfd60be77aa97ff3f82f531",
+      "shared/contracts/export-r2-upload-acceptance.ts": "6abed67155451eb9cc9321c20a6a7d1e44f63c3d8269902eb2941657fea6b376",
+      "shared/contracts/export-research-package-schema.ts": "8991ee74a0c72ec0447c1ec84689864f367d95c5d7104da176e8176f205977a2",
+      "shared/contracts/export-research-packages.ts": "88c7c31200b0c4d13a1aebf8160257188d3bf6515fdf6755eb7d37d69cfeacde",
+      "shared/contracts/export-research-preview-provenance.ts": "b57f2f230181c3ef54951122e44d0d5ece8fecdecb7081b516a018197ebb95ec",
+      "shared/contracts/export-system-recovery-evidence.ts": "cbcfcd23ef263c227edc0e9ee097713ab9f8694a1df50224956c63fddaf71946",
+      "shared/contracts/export-system-recovery.ts": "20cf877f1932371db0d38a3999d06b9ba75532e23501c7268de210e8466e46bd",
+      "shared/contracts/export.ts": "959b02132308fc6a89790edfb857a347a466414eb600d2e8fb02f88e449144fc",
+      "shared/contracts/fabublox-import-input.ts": "bb054556e8abdc278e5a6daf4737f15dd096e3f5bed7954ebb5413b2dd5a6aa3",
+      "shared/contracts/fabublox-import.ts": "7db9adb8c94a1bc1015b72a7c148d921f2ad8de5093d5180fcec8ca0b4483a71",
+      "shared/contracts/file-jobs.ts": "47cccec6437a4e7af189d356a5a1eddeab45da2aedbfedd84f2b0d02d788da4b",
+      "shared/contracts/file-native-runtime.ts": "fa4eaf74af0a00e7ce7910022355c9096f51755811f300da8c1b6f9cdfe9db08",
+      "shared/contracts/file-shadow-adjudication.ts": "cc8478f4de1de6e858a78a4a7a60499938f0b89b025c278692c6793b67e2161d",
+      "shared/contracts/file-shadow-evidence-review.ts": "3b0dbc54309cb8885ffb5eacb9730b2de2e29eb9656d90d9beb5af8ee86f7419",
+      "shared/contracts/file-shadow-rowid.ts": "0568e0a4eec3f925fb47c03ae3af08ab198cb3971fd4b3f3948e79becbff503f",
+      "shared/contracts/file-shadow-schema.ts": "76c91a3ee843772d9da2eca66c5a81653072bfc3a87d0db8fc7e0696ca890570",
+      "shared/contracts/file-shadow-withdrawal.ts": "c0439b818d81e88dfdc12882f3c7e058de2bc9c906ab2f857d17ee46e946cea2",
+      "shared/contracts/files.ts": "526d3cfde8fd31accab1de467616ce85ee161561e8e82be24ff1fadf6fbaab28",
+      "shared/contracts/local-volume-profile.ts": "2537a631c0ea988382a8770d71f31d1bbb147a4559a3cc0ceec29bd781c6e968",
+      "shared/contracts/metrology-reference-upload.ts": "2537c5ede2cf39f53014e7e5c241d467d6371355b7de23ff619a4d8e41264301",
+      "shared/contracts/node-installation-schema.ts": "c6732cac48266f603a5c7827deed8dc0029d37f64c79ffccee8c7316daa61b77",
+      "shared/contracts/portable-runtime-recovery-catalog.ts": "cf3f2a6fa56def0d96ce53a4a0bb80ee4c712e554ff551af21ffa755f04137a9",
+      "shared/contracts/portable-runtime-v26-recovery-catalog.ts": "933d14153cda618ad7e19c3e147047e22bff7cd2838304ba90ac936275c86c85",
+      "shared/contracts/project-api.ts": "f8350ad0d78a1c0e741ffda53a6f7338965329da281afe2630aab00301029d40",
+      "shared/contracts/project-copy-paste-api.ts": "6e40acc5982d3284fcc44b21aebb74e9f49d6e349b3d3606eb0509d5491baa38",
+      "shared/contracts/project-creation-subject.ts": "df307cc57aeb5706dd770220cdc7f4b47d99a33a6d8c8232e30f693878827f27",
+      "shared/contracts/project-types.ts": "81921fdfc12402371764f5d45a0e264e9b8f5166b9ce247e5633e42c1a6a4e54",
+      "shared/contracts/r2-upload.ts": "fb893a06a11204abd7fc4a91ee50f59b19a267733501dd5ff474aeb51a4903a2",
+      "shared/contracts/reference-children.ts": "5ef645ac5242a4b0fe817a73bf2a56de855f68a8e74d3a67f3fd682a6e66a07d",
+      "shared/contracts/reference-destinations.ts": "3e244ec1796105c490c5a4b877cd895eddce479e9430d76da9a44879708e05bd",
+      "shared/contracts/reference-search.ts": "3d4d55c3bde1defd9893a4246edcd62f098c68bb59a2be6ff7333fc8713e3387",
+      "shared/contracts/reference-types.ts": "917f8f73f9b0814985e581941afaecd153809a00af71b3bf3b3fcd8d5de55b8c",
+      "shared/contracts/research-package-api.ts": "071ddae1f44c7997d5e5534e98f6f4c303e7a2be9af021e1017aa6eb5642d2ca",
+      "shared/contracts/research-package-catalog.ts": "e8ace9420497700805fb789030f3b7ec3e7cc7c76ad8bc1e2a732758002e223e",
+      "shared/contracts/research-package-relations.ts": "3b36072d014433d9ea682cd14edb6d581ab6ad3d6544846aceb974e290dc53c2",
+      "shared/contracts/research-package.ts": "5bee852ef9412032d737d2c03696f1f192b7829b4b158dd80e9e2778236b477f",
+      "shared/contracts/storage-candidate-check.ts": "e19df56e53a6849e56b2f944abc514ec5fbeb424c7d7c0eb07ce5ca8d82ca1fa",
+      "shared/contracts/storage-candidate-readiness.ts": "a97baeda7ca8dde9e3cbe7a96334199a0527e6cd1eebf36089c16a1e889a0f89",
+      "shared/contracts/storage-configuration-schema.ts": "8c8203b54da3dbcc4f92fd8ba1006c74ca45ad41319738a562f09dbbb08f3075",
+      "shared/contracts/storage-configuration.ts": "23c21ab06a8e7d57e5aef54a322a672668ca3053d71f75d18e837b40c1b2bb04",
+      "shared/contracts/storage-credential-reenvelope.ts": "e677c7e530e6e93b0302309c87e54d1afefcecd53f7c9522a9ede8fbce1b5780",
+      "shared/contracts/storage-policy.ts": "6c7deb66910a31a9bd1db410da3c567d999473db690a03db9b19079fc7ac0328",
+      "shared/contracts/storage-profile-admission.ts": "58e5f229515a52b002e0cf48d8205c33179d01cc026c4bcd4146d25830132d54",
+      "shared/contracts/storage-settings.ts": "715c075df25bd446dba9879efea0f7dca6f545f57e25d9ede814e611eceb9154",
+      "shared/contracts/system-backup-v2.ts": "c21709161ce3aa65659f4608ebc321cfe288b0a124608d2689c7dff8cd282a95",
+      "shared/contracts/system-backup-v26-content.ts": "df2df7ef704758a2ce3673a850ec46cdcc6b84ff101bbbac5fa41cdcd30bac58",
+      "shared/contracts/system-backup-v3.ts": "325559ae3165981b7cc0d8fc8edd8408497431210e802f91841b66512fdf9df3",
+      "shared/contracts/system-backup-versioned-admission.ts": "30a5fcac44c64d1ff4d4160076737ac5ba977dceed874a16a4d56afa3e1ca3cf",
+      "shared/contracts/system-backup.ts": "27a5250a6e452b2a0ed173dc84789f063891cc8685840e16a1f0aa4eb45941b2",
+      "shared/contracts/system-recovery-catalog.ts": "30c7a20c875abee5dc65771f2bbd4d44f5f8eb1b41975450c3bff910745a574c",
+      "shared/contracts/system-recovery-image.ts": "8817d2759c8b5c7b9934ce9c2624d7210393ed6ac66e8d46423474d9869178a4",
+      "shared/contracts/system-recovery.ts": "ebb899d318ea45e89078c6e9e54aa974b98405582e16f8608f929cd881aed0e4",
+      "shared/contracts/template.ts": "32a5740ed1d62a010ee33df81bcdb6f32dcb8f4bc4dd7883eee42d4028b0989c",
+      "shared/contracts/types.ts": "754133847b274f59b5fbd779588a555f0df18f3df38396487d293b32da89705a",
+      "shared/domain/bounded-string-memo.ts": "6d272c6187c8079b548a2745d540e28669796904a155f8e3a24cb1ffecd19902",
+      "shared/domain/content-addressing.ts": "ab3b5b1bb2983fd6594a7cae5c3e68e1d6099258f243fc1c7ffe9a2b223cbc7a",
+      "shared/domain/mime-type.ts": "12e4ba15786ffaf7f6b802eaf7bb413ce1330c8e461e1180f0b37643778eeac4",
+      "shared/domain/reference-comment-preview.ts": "252ea22927b3e4c8ad4fbc1e67622d2765928e50cbc290ea12c18b689cbd0af0",
+      "shared/domain/research-archive.ts": "74f59da6ca14bc6ad347918d477802f214fa5d4d85e1e3f2c41c5d3eda6019ef",
+      "shared/domain/research-report.ts": "e3fb820a07a10e939d934c44f2f446ee541b06d251fa365b0b35bec4c5950959",
+      "shared/domain/research-sha256.ts": "b260b0d577d3d560bd5f01d8071b9e1ceba1f11efb3f15fcf6bbc646d17982d6",
+      "shared/domain/sample-records.ts": "6eb5c1ef012a8fb39a4444abde65c841c54249ad4a34ac6c54a551601ff018c5",
+      "shared/domain/sqlite-table-columns.ts": "9e61f0daa903cb1abceb3e20de75820864ad434f1167b3f1cb3f2255b02d1b90",
+      "shared/domain/system-backup-archive.ts": "a27af804abda81c3579c664cbd1cfdf9d955c819fde8a5c2186cf9cc99b00594",
+      "shared/domain/tiff.ts": "be1938f7059bf7f9817cb0737941a3b596b839e4d23a62901f3bb51b0972d37f",
+      "shared/mime-type.ts": "d7d23216ca4cbe752cc9a2a46be561685db2ee287faa5aaed435d456ee436b6f",
+      "shared/project-api.ts": "45243bbb28c6ea73d83465c1c68c8af59eb130a1e9a41ccc6f501fb392a3dcc8",
+      "shared/project-copy-paste-api.ts": "a5236e98c22e28a6d6e4bc090b7877a12764e9a913636eb1c94830abb9f0b311",
+      "shared/project-creation-subject.ts": "1d2f41c22e00e09877146e4e15d2f0b01eb29d67061c73363083c9abcd69428e",
+      "shared/project-types.ts": "9fd282a898414f26ef8f952ca952d8b1a182decd97c1095d3d221db5fb69169d",
+      "shared/reference-children.ts": "fd58bd974b5600a71141972b10e820e20b2ecd99c1df027daf3bfa5b0d7601c4",
+      "shared/reference-comment-preview.ts": "28ec766c62754a9a824a7d075dafc6ded59dcf4c3926838a46bcdedf205a4f84",
+      "shared/reference-destinations.ts": "478512733edba048b8196e212b79f74609ba7a1296095883140aeffb70d83489",
+      "shared/reference-search.ts": "4ec68eb6fd77e10aff751d76e49ce8a0ff4efec50f2e4ded8b7ed945698ae60f",
+      "shared/reference-types.ts": "3b41f29dbed62b1c886107d0dfb33b2e76e53c0773799c627fcb0eddc9342588",
+      "shared/sample-records.ts": "8f8b6e354ebddeb33a1084bd888ce49dd080849b581181c36362661e93169149",
+      "shared/tiff.ts": "a5a89fc6d2bd6ef02b07a58cf576131ec23f097ec755a76ec0a93d8c1a8a0084",
+      "shared/types.ts": "e3a67e943054c26f5dd8ea5097c9ecf85ce72f03262cfbe72ab40c833c41090e",
+      "src/components/ReadStatus.tsx": "5806cac991e884b2848dff3127665a22d94ea8c5b0e203d1882267dc44fec678",
+      "src/components/read-status.css": "bf0ed08ce6a50188d287ec44dbf9bcde69bf14129cabd1696b725f3cf25c6659",
+      "src/current-storage-settings.mount.test.tsx": "3d01f89277395e6fbc87114a463393e740b07d02dbc125b63ef27edd938a6b65",
+      "src/lib/api.ts": "66549eee6bb0d814d56349bc69ccb2f69fbd1c08e497ca42bf66f4dd9592a2e3",
+      "src/lib/authentication-client.ts": "f264dc97b28093115f04063148cffb4f45857b328b3cfe976d4b341b173cbf18",
+      "src/lib/comment-submission-client.ts": "d751bdc20f9f2cf2ddc72c32ad9c7c0e7f17eab19ccbf34a0e3ceac61f18a9f3",
+      "src/lib/fabublox-import-client.ts": "2c4e8ce9866f719328243acf27db2770a5b7ff871bc19e453ab815b34c6f8af5",
+      "src/lib/images.ts": "d2b1152f3a06685653ed0df56c2f6486bee958e2ee19e96c889497a0b8498ec6",
+      "src/lib/metrology-reference-upload-client.ts": "a815f84adc44206bcc7a14b2d294dfc03711c6621e40f2acb66ba693b3cd6e62",
+      "src/lib/project-client.test.ts": "6ef8bc794e661f6b5239dbbf8c2e9a046f2908b1cca6f440a2948acbca81e66c",
+      "src/lib/project-client.ts": "e1fc50966291182a41b7ef4ccc9c2fb114554a622bf3889fcba9a0b68b96e243",
+      "src/lib/r2-upload-client.ts": "7b526234670c60c7845426f74ec4709b310be242a20126d24dd1b8ccfc689780",
+      "src/lib/storage-configuration-client.ts": "82420b13588e021d62d9b3a3f61fe19f3494077a16b9b980d94e592014ba7d45",
+      "src/lib/taskQueue.ts": "f930b238de25ed3e545055551282977f3405815abda252a472991c7006103b14",
+      "src/lib/tiffPreview.ts": "88a8d608863ebc14e43217703419e56274030652f59b7335d9bd5771a72d9b00",
+      "src/lib/uuid.ts": "bcddfbb90cf39113866c49e6a86cb47e94220541f661c1d7b3fb6fb257a45cbe",
+      "src/pages/ProjectsPage.tsx": "841934c3d52cf217f46bff22f60bec24d292193946db0bfdfb698ac8cd2c605c",
+      "src/pages/StorageCandidateReadiness.tsx": "a2fd39e4a7b65dd129a41d414eb99e875aa6ebf8cb9052690ed7e2613ccc5933",
+      "src/pages/StorageProfileActivation.tsx": "6f4fcc67e6283dc6a85248043980635290e132313960e36d6f88e4400f963723",
+      "src/pages/StorageProfileRegistration.tsx": "db9ed6003f63fc5b295cde9b3367855344eeb21b2497e5dda1867cc67c38701c",
+      "src/pages/StorageRoleDefaultsForm.tsx": "f4043ddc9a437854d65a0140f93ca4fd47a9f167a3eed617ecf8f497f2b1fb4b",
+      "src/pages/StorageSettingsPage.tsx": "f152b782fb887ba65d4df5efc51bda252aecef0633db5a11dfa79e16be2fe593",
+      "src/pages/storage-settings.css": "472a1bbc25763fe910117e3a880d68f6a22d8cb6662f42912ba53fbef316f7d1",
+      "src/phase5f-project-directory-intent.mount.test.tsx": "24208fd3c4f4e2f51d7018aa75a819885c66cec2404a70b1deff5198a484e8de",
+      "src/phase5f-storage-activation-read.mount.test.tsx": "29bbbd5e2b315203d04cf70385f0a341ab5ac83533ac3672e1281674e6a751c8",
+      "src/project-shell.mount.test.tsx": "3b3b5ee7e7705b4a0471b7bb866980eb2ec246a8d41d068dd305de1a1b06b307",
+      "src/project.css": "cfda4fdb54fb8a1207435a39739d610022d721c4b60001e0e3380cbcc44afc96",
+      "src/reference-page.test.ts": "7bcfc842cfc18a0b5e42dadc6043e52a688a9e233c1c6639725953f3231da148",
+      "src/storage-activation-recovery.mount.test.tsx": "d64c3fe0c1fcd8b81bde2c226daaf0a344f7048baa74ae695d3dff95eaf29117",
+      "tsconfig.phase5f-project-creation-subject-tests.json": "9db6437945f8d95c42cfe1bc88311da3ef529daf6d08697061db0b9709271bec",
+      "vitest.config.ts": "f7d653404ebf008e1c134c56039b3e9219f9242a491db4bd035cbbd06658a66d",
+      "vitest.mounted.config.ts": "fd051a71b0bdc63992c3e6e05f184159a2a1b96518c3db54a112ea44c1f5b991",
+      "worker/application.ts": "3c309fd57784d7a4a5e1eb64251cfc5870fdbe44c84e8aae61d2945e0849b041",
+      "worker/application/maintenance.ts": "b579bb6adc20e13a76b9c3e8e6be752fb8a15fcdad45b8a469774876947825c5",
+      "worker/application/r2-upload-support.ts": "2c5fcde3a2822b22badf2925033aad549dc1e37a51adfc25f197b9d3e3556c95",
+      "worker/application/sample-structure.ts": "e47be81aca7194c01d5dc655756461a0b1557e4211280a4aca37602c2c6f7b8c",
+      "worker/asset-dedupe.ts": "acfbfe488626164a8f492f01ad52f36004d2e7262023f1e0a4c22d400949c239",
+      "worker/attachment-ingestion.ts": "5168c91355663c7082defbd0befd7af383809783ac51163d408571b37232121a",
+      "worker/auth.ts": "168af29d149bfff88c7362b786805c1c407cdb5a56f376706b421545594ed484",
+      "worker/blob-lifecycle/attachment-routes.ts": "e5bcc46e7be1e944151d751337a616e8586733886910b9f8e5e228e0cba4fd8e",
+      "worker/blob-lifecycle/export.ts": "0b86390d064297cb26ad66b2503ddeb7809098b419596ed0e5b9f9194ed48755",
+      "worker/blob-lifecycle/gc-database.ts": "4246c2bf3ec336fbef36a951feb37dda875b934956edd5cf69fe0970897cdec5",
+      "worker/blob-lifecycle/gc.ts": "0f3dad2d608e634957750d19954935ccf5316ceb3e60a9a467123a0c08971771",
+      "worker/blob-lifecycle/reachability.ts": "1c1729c0af5f0c5812456fccfc4bf46ca0350268f9b3cb27230c138c35239c0a",
+      "worker/blob-lifecycle/recovery-retention.ts": "9334b57a7eae4c9054f3d4db00da2c9774a1a79b073e47da5418b5b6a9343485",
+      "worker/blob-lifecycle/registration.ts": "8e20bd85ca6ce9ac5a06ce7521dbc2c19d65ff3a8ca381cf511eef51ed39edd9",
+      "worker/blob-lifecycle/reuse.ts": "fc8a26986c7b6f7255f2407afc4682971f964bd1865faa3a6eec8214bde53b9c",
+      "worker/blob-lifecycle/storage.ts": "98e0d060e406ef185e6a422f0aefc026497b2cd9b33be8a3a34104c83785da51",
+      "worker/blob-lifecycle/types.ts": "6a528f52409ec3192a0bb5a504b3270eb17018582cda496fce61992d3f63501d",
+      "worker/comment-acceptance-test-support.ts": "cc496518d526e55525b57523b779bc2f7bf9f230cb616e584815b59a3c77054e",
+      "worker/comment-submission-routes.ts": "7fbd51a231718a4a51d8295d6568fe19df5454579649d79addf2b5cf97c29eaf",
+      "worker/comment-submission-serialization.ts": "aa43fbcd7620193aa07bbb6e3fc20b627ad682776d8db550f4b709d0aa7633ad",
+      "worker/comment-upload-cleanup.ts": "91a061232cf388ee4e1462db58cefc08137aaa8bbfe0f184acdbd9296550d615",
+      "worker/d1-bulk.ts": "c7a722adad32e6ca5b4bf101fd6eb801cbed91757898039415ad97cd761e2d73",
+      "worker/d1-primary.ts": "8c512fa626c6a88a66db9250f093717da49ffd560b77d4793b668925ec9c6a6a",
+      "worker/directory-query.ts": "7224b57b2bb0b0f66cc8281afbf3f30ec621098fb5cd418922dcda47d3b47cb5",
+      "worker/evidence/comment-operation-group.ts": "bfc6a40465f29bbab724807f954a746b4804400fb8093a199168e192b6948987",
+      "worker/evidence/legacy-routes.ts": "f6665111c561bcaeaf1df31d9bfeb698216f7e6bb59ccad0efb18979c01d83f3",
+      "worker/evidence/retry-maintenance.ts": "c9738c6442d96856fbc071e7ab90fc982bb98a604fbee10402c67c7cd42de4c0",
+      "worker/execution/confirmation-d1.ts": "b5e7f67478db3fec2ae4db71063da90a6f3348a59432d48e281ebe16a1d4321b",
+      "worker/execution/confirmation-service.ts": "eef194c0054705dc198012d44a744d1f96c3de4b55b1dd940303454dff6e2305",
+      "worker/execution/confirmation-sql.ts": "07e9050d6e629f037f393485d384fbf04486a2ab59960370c92d6b994ef37f4c",
+      "worker/execution/confirmation-surface.ts": "32dd2b8ca44f1164d1b19432ae7b5bad542366014d4c30f81a0cf35058977037",
+      "worker/execution/confirmation-worker.ts": "2aad426066ce4843c486d78a39cde044f4c047364dc9daaaa943280df3892cd2",
+      "worker/execution/metrology-write-service.ts": "b77e88bf4151ae87722cf1343cde13b9721e3fc6f3bfbe022d8aab83c106b031",
+      "worker/execution/metrology-write-surface.ts": "62bc81cacb633867501a0ac0f32c79b1333d2adead8127ff0980b052d103b1a3",
+      "worker/execution/metrology-write-worker.ts": "a178ccd6b0edfd41d061c223085159d9f375fa07604142db308344518d30a59e",
+      "worker/execution/native-asset-lifecycle.ts": "ffb5bdd3402143e596fc993b8a2b32bde27e518d3965696d593a99b2dd6e8515",
+      "worker/execution/plan-alignment.ts": "b259449e9ffca2294914ed4012062344b8cfbdaa814cbfab50b4f4746f87a981",
+      "worker/execution/routes.ts": "819efa262c5e19c2741b8f0d780ee6268eae9ff1e094ccfbb7536b23007a7494",
+      "worker/execution/run-trash-service.ts": "6473e07a348ea5e3659edf8607f3be1e18e1d6380e34997c23b8a01bcd16182a",
+      "worker/execution/run-trash-surface.ts": "08268fb8be0b085cab71b82c889c012430fb501ac14f7bd6d89b70eef5b3ef6b",
+      "worker/execution/run-trash-worker.ts": "338e7e8810cdab60463e05a7f15493bdaad92fae8c9c83079fb5beae49a9da31",
+      "worker/execution/step-targets.ts": "a3fd5673b8f1d45bd992de406a4b62d05e8d8f15f519db4b3c6c964044e815e5",
+      "worker/export-catalog.ts": "cc3947c05254a5447260f83de5d9b4f94e004b680550455216d2ebd25d01a966",
+      "worker/export-data.ts": "b0f93b0e0b90a58373afff5f8bd80bef902ffaf93c8bdf69c693c98cdc6aa4cb",
+      "worker/export-native-retention-snapshot.ts": "9c129114fe67bc83d4634fe7ed090bcf4b3665717b5c86bf351277e8c2c15d7b",
+      "worker/export-routes.ts": "dafdc67e240e7b7ab8805c498ff06032ed5989af84b55a20542ac239edf300ad",
+      "worker/export-v10-snapshot.ts": "e9f1cd7903f7f775ec1bb99ab2dc5bad4c9f46c4edd4f8fcd1799d2130e7f1e7",
+      "worker/export-v11-snapshot.ts": "d8eda28cce8ba0982e82f9a99306b66369b34cbac2540cb68d9d1d76bebd3006",
+      "worker/export-v12-snapshot.ts": "5141e57ae6322a2e7e13edaba423b1a00551d6e634e2b4016de7ded4b9a2a80c",
+      "worker/export-v13-snapshot.ts": "4f22f801afc1c0ef24fd9ced2eeb16c5c7caa077d838f20f88080cb736a15e65",
+      "worker/export-v14-snapshot.ts": "d3462385dfbc78775b84429f9bff489a55839d97b8163f7e0869fc5ca311e83e",
+      "worker/export-v15-snapshot.ts": "50d4de992f5ca0fc55f809b5e4cb47e98c7beb880355e8e6e51469f3dff12657",
+      "worker/export-v16-snapshot.ts": "be2a8e8d24dccaf8b8e88b11c020492067ba61c88dfc66723a5cbf9189d2bf0c",
+      "worker/export-v17-snapshot.ts": "49e923a73e16dc2cfc09cdfbc0bcedbe1911fb47c8161bc5dd3bc55c9cbb2ed8",
+      "worker/export-v18-snapshot.ts": "f8134e640135ba69158ec5b5b3f702b3abcbe1146c79942d6e0b58e51c7b421b",
+      "worker/export-v19-snapshot.ts": "a2d34c7d5272bbfb1d94bc8fe2d156b72d3d3e27db9138ac52872f394b7a424e",
+      "worker/export-v20-snapshot.ts": "43f42d3029ad9c8446ff05cdbd72a17d79944d6d2ae45fa8aa156ebf82df27c7",
+      "worker/export-v21-snapshot.ts": "365c7e759e92ff7192b14ad6e196e98416c83c65e4ba89eed850f7acaa26452d",
+      "worker/export-v22-snapshot.ts": "6bfa21730126dd0792b6b6322c510e6ae01f287eac5b72d89726f43e4b24de84",
+      "worker/export-v23-snapshot.ts": "351211ecb437bbdb1e29e47e64605377d40fed0735fbf09a20c95a3ad08f8836",
+      "worker/export-v24-core.ts": "fb4ebb7efe123f55016063aedde6726ec1293da42543dfefd5a943dbb50b1934",
+      "worker/export-v24-snapshot.ts": "c19d49caf17333a60f1c941d5f72101dfd75f4d1476a7ccdd1501c2197bc8399",
+      "worker/export-v25-snapshot.ts": "f92e06026b79e59eb4cf359a1422680846b11851cff31f6423c354f894335d20",
+      "worker/export-v26-core.ts": "85f73069411f3434c561ed6fbe1e0864720ae16c268ad5fcf59aa7beb056b879",
+      "worker/export-v26-snapshot.ts": "c520d7bcd36e20caa00d7dbfd1db88c7aa7820299df66d282cc51f7d32ac6d48",
+      "worker/export-v8-snapshot.ts": "2189e1e354f37659098614f2f275f3a8a6a81dca61463300aceb83a26916aeea",
+      "worker/export-v9-snapshot.ts": "243ee57561f34f6681ea1fd39dc01772c8ef6c5fe5f5aae6a35094c83ca1023c",
+      "worker/fabublox-import-recovery.ts": "e17071287a81adc6c408b057f43179353400bab1b25570c6bf43ba6813b7625b",
+      "worker/fabublox-recovery-assets.ts": "2fa3659d4d25df4d399b7df0ec57264603c15e7c67bd99de9f72514801327b24",
+      "worker/fabublox-recovery-guard.ts": "9c9421186569a881214590742913473ad9080705d9d5653b697c8c2750413519",
+      "worker/files/accepted-result-reader.ts": "3a7515bae203621c3e824589ad20fb4ace3c4f52e8d0657c677bb6c2a3d0c924",
+      "worker/files/asset-input.ts": "e47cec0dfbff2d68775d5ed41283814eacde14c9add96627f9f8e8b9a6bb1137",
+      "worker/files/authority-activation.ts": "f7f7dad723020f6743d36b5ad31f58c05a3f57aed766e269008b6faa9349f480",
+      "worker/files/authority-candidates.ts": "2a4c90bc39e168c4fdea62467604380fcf7eefbc0a441fd7074e858ecf8418b7",
+      "worker/files/authority-execution.ts": "573c6d85166c6c443845847eb08115112084f34f357788adaff92efb4a902d2b",
+      "worker/files/authority-gc.ts": "3c773543b9289fa1d1983135c49b3c0e2b2ca79682c223e4c08e7d48a343134c",
+      "worker/files/authority-mode.ts": "287680a0daaa18900f73051b7bed422547735dadd4c21f150ef7c3a153dc42b5",
+      "worker/files/authority-publication.ts": "fa89a3b4b805352bda57168c883311cf0361a93d3d4e1a7114241ff59b6488c6",
+      "worker/files/authority-reader.ts": "e0c9dba2cda8bd584594899d6a27726966284efd6334214b3ba74f74bfae8037",
+      "worker/files/authority-runtime-test-support.ts": "4d4e166c50b00dc24386761499c4ee7a4a763b68e4126f658a2989198f9b593b",
+      "worker/files/business-lifecycle.ts": "58add13ef0fb08a2bed69e75fa66cd57defd3734fceb5a70d7d45e96703bdc86",
+      "worker/files/byte-deleter.ts": "ddb0436810e3d6b858aa740c2e2b3af67442bb57c3282c107ac1efaae14fd163",
+      "worker/files/byte-reader.ts": "852f0055f0e8ca30497784f4bbaf1409139a1b31b2964db0817425c46a888519",
+      "worker/files/byte-verification.ts": "31c060d28d77b2a2a0923a139125580600e6360bd568b203ba782f232029d609",
+      "worker/files/byte-writer.ts": "80ea741722912ddddcc38e50fc56f0fddb7574ceee0c20884fb2149f9cc61b15",
+      "worker/files/consumer-binding.ts": "0df56959e4352f9faf7351c67f45acf2167fec97ce53d2abc9b669ef2184f89e",
+      "worker/files/evidence-operator.ts": "7a2c301864e4a311ec9433e57742f29696966c9825606d3e7d793556ece49534",
+      "worker/files/jobs/d1-repository.ts": "730c52eb3356c1ead1d01a8e6564de9f723686404fba4eb62e0a69cb164ea197",
+      "worker/files/jobs/migration-kernel.ts": "ef8249c9ca148b6ff2202521dd1858e02699787c7ec19285c3ca93d9521f5544",
+      "worker/files/jobs/native-migration.test.ts": "8e9b275ed87f4e96f1902feced0b0abdc3dac7e33810655e5e506f5b50d27b9b",
+      "worker/files/jobs/sql-repository.ts": "c9b9c9fb7164ab3af156b9f6c97e740c6a4d2d102b3d0a773d4315901e74302a",
+      "worker/files/jobs/types.ts": "bf941e05134c68f68bc66929b9232d7c2a501a3d8ec438efc76bd2329281f61d",
+      "worker/files/jobs/worker-runtime.ts": "e4f4648117e288463dfcec6d33c43cff27d6eaab20a3061248ac9faad0338f09",
+      "worker/files/legacy-byte-deleter.ts": "8d31f9d832f2ec9b0f5034f1b21dd3ef2d0abebc1b98aa386fcd9f6340788ebc",
+      "worker/files/legacy-byte-inspection.ts": "362c3d352e7b92b267f90f116ac1dadd74b3bc4014cad7640f905173b7db2be5",
+      "worker/files/legacy-byte-reader.ts": "dbf7b7ae7e6d7d74f8b716a8d36625f22a87aaa8122cde130becc889f4fe9fc3",
+      "worker/files/legacy-byte-writer.ts": "057fcda2d1d37a6d590a46f5dd776cfe0e6f326ff28cc544985aaf9d9169ece9",
+      "worker/files/live-consumer-baseline.ts": "bf5342a34c8ca1171c73980ffec9e4f3f63d72a10afd3d3e1a02b17444b27408",
+      "worker/files/managed-bootstrap-profile.ts": "e9b533d618be98808d1088c87a6eb0fbc2030df9977b5812d423b350eca5c161",
+      "worker/files/migration-routes.ts": "e0cda252a1ece12a9c5d9f291b92ef43d07770429f5ab1be5784674fa161bc3b",
+      "worker/files/native-asset-alias.ts": "82ef934cc0e19154a5723425c72696672e4950aa8375a6ad2693c1d3fa78b13c",
+      "worker/files/r2-bootstrap-profile.ts": "85b3e1c401416fc2d4c50d49e753ed804329663469fc78d6090eeaaee27fa9b6",
+      "worker/files/r2-profile-bindings.ts": "fbe6d2c18dd9fb912b97e86f19f8a3425ba148a2ec6de67ed2e582a089e1c78a",
+      "worker/files/shadow-adjudication-routes.ts": "969eaf5091fbad0a460bc6157605e86184e675032ea380d44ce9317d9e48aed0",
+      "worker/files/shadow-adjudication-service.ts": "11ee15cee13869285918b721c2a333a2ad5aa80812ffbb23bd77c76a60ba094b",
+      "worker/files/shadow-baseline.ts": "384fbcf998e59e7c9f05ded9a9afbaa96445a31a14deb7b954c25452f1ec7262",
+      "worker/files/shadow-byte-transfer.ts": "a82e5f3e3f36dd3a0cb6b69f08defaa8f3fd6391db7fa1a7f0dff7f7e5ec8375",
+      "worker/files/shadow-evidence-review.ts": "33bfdec0e21a4590d5027dbe7ebe899e6c06d6c27409d5584d52be9c0c501777",
+      "worker/files/shadow-identification.ts": "80e5595a68f54d5e6b0bb9cd3e6cc5e70daf3386452631e9cfd2dcbbb636e116",
+      "worker/files/shadow-profile.ts": "587b07e866557c17509321f2be625002a681f81a946f6078eb43c81235b789ae",
+      "worker/files/shadow-routes.ts": "bcd666dbdb9bb98c528502988294dfd88e2f204b04b4c1aac6819c9768698bc2",
+      "worker/files/shadow-service.ts": "57cc444bbb5dc7b8da4912c35cce31f95d57d0b736ff8e390746c593ae0117a8",
+      "worker/files/storage-adapters/cloudflare-sha256.ts": "bf4b550dc99d7d1b164cc3a93919463d288234c79f65553370760c0dc48f5e44",
+      "worker/files/storage-adapters/managed-deleter.ts": "68ced7c63688346fed0eb6017ea7b973cbf754fd2feccf06bfa1f8ee0ff23d58",
+      "worker/files/storage-adapters/managed-reader.ts": "82edfeb41f0625e6530b7c964606501c6854caefd24ea81a258ca57e81753ef2",
+      "worker/files/storage-adapters/managed-writer.ts": "b8e890fd154453a36743e78fce7673c008d26480be38e292a3ae923ade940e2f",
+      "worker/files/storage-adapters/r2-deleter.ts": "080662fb67af64da77145e7ad2a9c39f30a9ec7169239ad15584243960ae8ec8",
+      "worker/files/storage-adapters/r2-reader.ts": "5dc0b2a49fa74d199ca168d9e315dc3c754af44ea1aead0f665070a58f5a6858",
+      "worker/files/storage-adapters/r2-shadow-writer.ts": "239f9f290c9f8ab0cdb4a25d5f3336055788ab28ab183e6962726b9bd126d3f7",
+      "worker/files/storage-adapters/r2-writer.ts": "9f9ddd14909ec705ec9df1c104fceaba53a1743ff77bba9369102224617c82b4",
+      "worker/files/storage-profile-opening.ts": "926261bd578605082e2ffc24236c094cc543a894de3ee6458186c3a730ffd625",
+      "worker/files/storage-role-defaults.ts": "fd89a0d624eb2d9f0ce5c1f3d1dacb7476a6f2e153bb99713cb65b4ff681095f",
+      "worker/files/storage-role-selection.ts": "9b541de5f59609cd463b8ed904a06eb59f402f6c296cdac5b96b8b8661cb9f05",
+      "worker/imports/fabublox-acceptance.ts": "3b6c0f415a5927476006449aec4168448732b09a0d6aa33bcac93c9274d790e2",
+      "worker/imports/fabublox-authority-recovery.ts": "6d5f9a9bf2227ab5a98afdcd726fb472f6435e45108880965ff965b93fba90b8",
+      "worker/imports/fabublox-authority.ts": "5a6759a111dea333ef2db946f41a14532ee5f2f2d1f9c3d2cc5272c1da67e81d",
+      "worker/imports/fabublox-routes.ts": "28eb3fe4fe72dd939f2ab18a726b94c6f06e6b606b058c99f8f275c8f04c7910",
+      "worker/index.ts": "d1f672ea14a8c81e9d4e12718b5a946a5421d606cb423c51f5464b02bb3e09e3",
+      "worker/managed-storage.ts": "161f95fa937e9e236e8be2ae7c5cbf2463e7db945ec87a8f64b798d45e44839e",
+      "worker/media-response.ts": "f479bb56ac6b5505dce2e199a1f1aab5b9d75925232d59e79c1f1baf9d9e3305",
+      "worker/packages/import-domain-identity.ts": "b8ec07e82ab8b4b474c7b498b847475072b915342ed24ba1450ba389e6b5fe03",
+      "worker/packages/import-domain-snapshot.ts": "1a76425ff102244257f033f1ae26c915897d0b0ba3866a6e8d66637a921f5c08",
+      "worker/packages/import-domain-types.ts": "bb61641b4dcc991879ed4b560da69c73c07be1b72a0084736b8b2a52c0315ae6",
+      "worker/packages/import-domain.ts": "301dd23469bc6c775836a0d95e9e4d23d3b78ebebd0257eaf8ed9a70ea4dff5d",
+      "worker/packages/jobs/kernel.ts": "6da7307abb3e67a33bc2d67c9710144810aab1a088e0c37cbee871e4f9dba61d",
+      "worker/packages/jobs/scheduled-runtime.ts": "51c141f8e0c5d9fbe5851a0169f2b423ec7d4f829aed9598978e4cbf9d85f812",
+      "worker/packages/jobs/sql-repository.ts": "686360caec4dff1936279869907e0f92ffd4f41bdc936f0d454fe90481e71e82",
+      "worker/packages/jobs/types.ts": "96fc57b4e57c842d10801a2cfbd80d4aa7852b6df8513badb211f9fc78a9ed06",
+      "worker/packages/jobs/worker-runtime.ts": "5ba066e53bb068d0b274c82d636ecb61882493d7aa7099760fbf4df98679eafb",
+      "worker/packages/routes.ts": "868da897c13c1fb29fd5eb5d06793268cacb689d108423add50b273b133d8d71",
+      "worker/packages/snapshot-closure.ts": "2084b7e73141e4b0d5d2cf74ec2e0f1f3f5be4c0018fcc00725c9c3ef82f9ad8",
+      "worker/packages/snapshot-sql.ts": "ccd9c5c4127a42625c82ca8a8d63e74af0b332c8dc79adbde4c608b1ece7ccb9",
+      "worker/packages/snapshot.ts": "0338568dc24f84451851376225381a8965ed74742e6596cd14654939d2581d70",
+      "worker/plan-context.ts": "1e877b22484f357f729f71d9568a9f71720373ef49f9e3d641ca941b1725955e",
+      "worker/plan-update.ts": "bd1f09b8f8bf17923c0414d551b01439c19d461e2ca17ea8e4c9c022671a8e34",
+      "worker/platform/authentication.ts": "13c305f2c9754567bd0b0bc3d093e4f9cf089f6c95bd12088bce11af5f71fdd0",
+      "worker/platform/http.ts": "77823626b1dc7e47090b54457c3db06b263226abe98b3adabffb5c26b7287e00",
+      "worker/platform/readiness.ts": "1ca1cdffbabfb8f9d8dc5d9c06550a0ea6df7b15b15e3a7a272ac4ac727a75bc",
+      "worker/platform/routes.ts": "e67f8f6ec69bd53d2c009fd1c2bbef49718bb3f2dddc0af36e2b817178093bfc",
+      "worker/process-definition/read-decoding.ts": "07b94ad0aba29995dfbe6fc25d5d9c39b6b0eeb91c98f781bd67b24074797c08",
+      "worker/process-definition/read-service.ts": "f15c3890cb6531849a78e1ea2f0bc265fbc90a2c8a7adc7ec75e2f3e17c7ada9",
+      "worker/process-definition/read-surface.ts": "b91612783dc27435e0152bb87fe01d21d8715e9d3973291113cadee964d83b2d",
+      "worker/process-definition/read-worker.ts": "e24938d828e771006fb973a01f9f96795a102b2ae2081d24beadbcda2e8098c4",
+      "worker/process-definition/routes.ts": "7ef76e085225a08051c20752b099d5d0e44ef3cd892f61179070ce2404f2121e",
+      "worker/process-definition/substrate.ts": "e81a2bb6c921d43115bbe9f4d655517bfaf9d6ed23a052d6617389a4b49e532d",
+      "worker/project-creation-subject.test.ts": "985bf82829eb3a71686e8eeaa81ad55793f49abb170bd321e60612fa3e809cd9",
+      "worker/project-foundation-routes.ts": "5eed142b92c8ccb0e2fbc0aed62b270d1924c3c4488b1b5d1a973e4d85f409cf",
+      "worker/project-persistence-service.test.ts": "7b19fc44d0ad6d1f8b859dfac31ba570867d164f0edaa0696ffed418c79b17b1",
+      "worker/project-read.qualification.test.ts": "b3a261e5ec37c6fd1e688c229533c1dba1e0fe73cf81faa45c4be2a7d404ef13",
+      "worker/project-routes.test.ts": "38032c6a9882d4ccb98f6991b93a199c6de882d202bae8e01c65074f5130e1e4",
+      "worker/project-routes.ts": "f60a4254799f274b7048172aed80c223f7bbb3892a2c5cdac5dbe8fc6a5c2aeb",
+      "worker/projects/attachment-copy.ts": "c68b50ccf12fde8a9eb98f1d387527a95a7cea1eb9e2f3c283912826fb3c75e6",
+      "worker/projects/creation-subject.ts": "51cb1a186993e3a75c063724c97d26dbae9a8c7a0d295b8d213baf398785c5ef",
+      "worker/projects/errors.ts": "83423fbaa233784758507b58e9cf6319ce7448397b5105523e8415b230119348",
+      "worker/projects/failure.ts": "51bfb3617e8c56e9cd63b21599f861847e4bc5972fe1b59127b2624c45fc10a6",
+      "worker/projects/read-d1.ts": "0a52af13624517d742a8bcbb99272c371642330fbea876fea7857617c8bdf23b",
+      "worker/projects/read-decoding.ts": "e18210d41e94b96e1a8dd105913cc1e19f5b32c64f217db614ca6ca2a0751f54",
+      "worker/projects/read-service.ts": "aab6645191ef0adac724d9b2b7946b7bc9a7c3cea249333a113e1f25060df526",
+      "worker/projects/read-sql.ts": "a8de3273e061756b1a60c16f76293e89b56b9a87ecdf93bc30d8f2df80451cd3",
+      "worker/projects/read-surface.ts": "211f8edddf1cb4d561bfe7b5a6f15d457d611e085e5268aa470bb684009195e0",
+      "worker/projects/read-worker.ts": "fa9a58c09e8ceda2925c7415180fdaf490d93c543db5524e94c71891c5fc3ee2",
+      "worker/projects/serializers.ts": "c21a1e39eeafa2ded482834c8f8adb13b41c7f775ad251572fbb528e863c13d3",
+      "worker/projects/service.ts": "b0510f325a6820c79d35a9d12cc080d9d1364bc8f9c407ac0bc1a7f7c3a0f93e",
+      "worker/projects/settlement.ts": "5a82515839bf06356191f4153483a02be123b7076a439a8e821e2ae765d08c00",
+      "worker/recovery/backup-archive.ts": "1eb52eff5dd7fd201984205d21b519f10da0485900ab62c4ab62f1c694ea5eda",
+      "worker/recovery/backup-snapshot.ts": "fd3404abe52cb9e2818ad7b402ef06963225591aca98ac8722f19cf92652ccf9",
+      "worker/recovery/current-cloudflare-schema.ts": "cf98e32b06b117549dad95528a64e08fbbc6304ae4674649bace1e9704bf94ae",
+      "worker/recovery/jobs.ts": "d85af795b3fe719aa751a15f067876466938376677975b5a1251e2f000b3be09",
+      "worker/recovery/maintenance-routes.ts": "9b379a96d672e4859a17ce6247573896e1073d7ef382f7c9265f940e24adec48",
+      "worker/recovery/maintenance.ts": "d36d68a2a919793c3f46b1cf52a953a82c4b35b4eab1ceffd00e801028d8179d",
+      "worker/recovery/portable-backup-holds.ts": "054cf1e9e70a16ad54923fc6bce6536cfdd3e1e7c43d633bfb8d7fad9f96447c",
+      "worker/recovery/portable-backup-snapshot.ts": "515f75201346dd4a0c970bd04ac546039261e42e9da6a5380c50a7db3f615c4c",
+      "worker/recovery/portable-backup-v26-snapshot.ts": "50a5297a7ff7dad210fd5e80e7ec0d1a94bdc0e131d2deeaa66b8044e9103234",
+      "worker/recovery/portable-runtime-trusted-schema.ts": "7501630f491ea4b2755652dade4980b5c999c0ad98164833bbf9e9a67fb49e18",
+      "worker/recovery/portable-runtime-v26-trusted-schema.ts": "4c89c3c1586aee88017e8a35fe713bc9041ab94e5c34081c8055a3438eb27aaa",
+      "worker/recovery/protected-settings.ts": "5d689c3f74c78f91481de1bcb09180af76020b259432c3fd65d6167356e4933a",
+      "worker/recovery/report.ts": "11a12d147ea32519be1272f32e2b6bad0df7289c217eca6574b9dfa3ae8b83b9",
+      "worker/recovery/repository.ts": "fa2a1c8b25a2a4cb75036a9c5a640ec0400fbd4165b9147243193b7c27bbb49d",
+      "worker/recovery/routes.ts": "11124e6910e44e3e3a19906b1a43cd20db0666cd71b541b4f8c2dfd450555316",
+      "worker/recovery/service.ts": "dce5158d62a53b6d9247d69a369f1e3d9204950813e9ac0199acf99351e8b475",
+      "worker/recovery/target-files.ts": "e281578499aa445249cf7dacc32642d224dcb09d22cb6f3a8682e4d39d3e0428",
+      "worker/recovery/target-import.ts": "3aa465bc11a77cc13dea7ec2810977055f3b3b63441088db09908b866ce95ca4",
+      "worker/recovery/target-migrations.ts": "e27fd85a290ef930cff9b6f315af3d99fbf289fdcccc759193221bf73e823360",
+      "worker/recovery/trusted-schema.ts": "b3554f846d3d7e88268e17cadd6364983416b9dd86a11337501e4bcc8609c2ca",
+      "worker/recovery/v26-cloudflare-schema.ts": "dae983d7172684173d978f8c16b6a9ffb3bb3e8e96c1a18e1f81f01c0fd6a489",
+      "worker/recovery/verification.ts": "71d7ea49c9a5efe78a749c055dd9938d5fb1ae0ebfed870a1c8281255ed8665c",
+      "worker/recovery/versioned-catalog.ts": "bb1880dd80e2632c504f99e80782cf06a687989fd6b5ab12ae36865a9f1cb2f5",
+      "worker/reference-routes.ts": "fe7bd12b2fefacd76e1200a7bf86441c690d8a92c06e9cff9d072fd07b43ec14",
+      "worker/reference-test-support.ts": "53333d2ba02005dfe363a24b92216ad4a5a9684e005e3b98d4bd370a7293f1c4",
+      "worker/references/adapters.ts": "aabc32878787df65c17037f3bbf7864966a0d2e3e4b9bb1a0d4c3872a42e8aaf",
+      "worker/references/eligibility.ts": "7fe7841c5d108023dae81e7818b4e916787daf79ab40331a81a60b58d73e3bf8",
+      "worker/references/read-children.ts": "43cbfc7c962ee36b5390e2d845259a6f01710d40ffdc1587e185f3767aa6da99",
+      "worker/references/read-resolver.ts": "7b62eed22a06044455f465e46b332ebe2bd34d4fa97214d8c87ee2651e1d04e2",
+      "worker/references/read-search.ts": "3b1a133479da99cf6d19a9c854b399950d3bd1ca02dd67bc7ca2cf902d89bd96",
+      "worker/references/read-service.ts": "f4f2a100d333be88fd136a3a0fca99dbc2f608e51a60abc8a0873420ba170759",
+      "worker/references/read-surface.ts": "5bdd813b7da22f0e1b055dee4e1c89155979bfe2f3410d6d4c7b3c9e2415ab26",
+      "worker/references/read-worker.ts": "00cd92d1f74600f6df91d41774c3abd5c9d1bf7a190a0d958e37d207e565ce90",
+      "worker/references/registry.ts": "6d5381d714759cef181eaea05b4c27b4dac6ad9f3bde3302faab54c3bb84a22d",
+      "worker/references/resolver.ts": "a2e1a838256f18965ad4746ca22ec6151ebe63f426bdfd92bb5a7eeaeca97dd5",
+      "worker/request-guards.ts": "072365648ed1d1e825409f522da081d21e7f5d9911f0338f8c21017e484e7444",
+      "worker/run-lifecycle.ts": "78ff33f6505246e5225e9314942da1da4c1a4b227af3726f1f700dfde2e3ae18",
+      "worker/run-position.ts": "93a99f3b0f58b81318b7cb7ed88fa0b6fc31fce0e1b3261a2d2c19c0691f127c",
+      "worker/run-start.ts": "74fe13cfa61dd25c20c2ab10cbf496f272a08aa0552c0bc8b9de9f83834a43d9",
+      "worker/run-step-confirmation.ts": "347308c5b6db80731fca297a05f0db9c6c98171ee7c43754c2c2a480a3e48572",
+      "worker/runtime/authorization.ts": "852976b53a90b390b71a4c3a4d6d5765e07006fb4853d137966b2bceacb206ef",
+      "worker/runtime/configuration-sql.ts": "1ef2a9857222e527633858026e1e82f990104ed19f52787eca67d544145de0fd",
+      "worker/runtime/d1-sql.ts": "a73c496183edfe02917855cb4492a15810e767e2849db8bf3a3b1aab7099bead",
+      "worker/runtime/read-sql.ts": "c57e13bc619ce613054526065cfb2000a7279712553849e83424cddc9beae6d1",
+      "worker/runtime/sql.ts": "c30f91bb5de7e4ccdebe8f35422a2f9e9c19d0376fbc30839ffa7a44c1780b6a",
+      "worker/sample-input.ts": "2e2aaf4fbef3022b2f975d5b3a19933f5f5842971fa985133b60b01ce02f0a06",
+      "worker/sample-split-state.ts": "23a7000e3892a23de3cac9a9a14ae697eb03e37744084b342b3837007dced106",
+      "worker/sample-structure-query.ts": "56be5b15c9293e5945d9d741f8e269504798cec9737534da4e6551353af8817a",
+      "worker/sample-update.ts": "8e1b72d7f256dc868f547e212625d69d91a102342086b06832a5483211cdebe5",
+      "worker/samples/metadata-service.ts": "118178839b165a05421f2a0be51724735090914c8bfd3c767afc62e0253029ab",
+      "worker/samples/metadata-surface.ts": "9de9d1a9cd7b2ba6bea24a73aed7a96f86fbe8925ffca0a8b7872a31035df034",
+      "worker/samples/metadata-worker.ts": "4d8b2b9ce92513e6d104eb9b16a188211002deb22a88a024174ad7127767362d",
+      "worker/samples/read-decoding.ts": "b9045450e9d0ca808c7b3d4f1788f4d129d033900cd832c5b998d9e60f64f6bf",
+      "worker/samples/read-service.ts": "c802aee3fabe92b43567032db948fffdb1a5ee46b43c88de033977b9feef1e3e",
+      "worker/samples/read-surface.ts": "4c01af656be4ed14f1a97dd6b33af10a06a73ca5988e7f8b3d4836de0652dd50",
+      "worker/samples/read-worker.ts": "40f337d941df0071d6c10fca22edd000eb1fab44542e91b28cb9eafd7da144fd",
+      "worker/samples/request-context.ts": "9ac419448e98fd85a4c1005eb0158f0eaa8f944d6c3101c36da96cf93e71cda4",
+      "worker/samples/routes.ts": "7ff32b3275d18a034e46f3003432979a9313ec14f6841fdac4f678b17bee41e9",
+      "worker/serializers.ts": "9a7b0c393f0ff6a6a0967717f52bdc6cf6505434ccd692e76009227f4b4e8511",
+      "worker/storage/candidate-check-routes.ts": "afecef7101fde3729b9050ef19d24da403786ed37396ffe50349cb59777fbc6f",
+      "worker/storage/candidate-check-service.ts": "60ab3db94e7bdbc5fbe3d80e15beafbc6ef16f748e027bbefe73a0b9bfe462cc",
+      "worker/storage/candidate-readiness-routes.ts": "2f301e8ef7e08304a74c758a438b782a1beb02d9d96a74d8d7bcc7fc291a2967",
+      "worker/storage/candidate-readiness-service.ts": "b804ad9cefcab547cb47178cd8af0565e4f52ef6c3754a4eaa75934177d95a0c",
+      "worker/storage/configuration-d1.ts": "a85ee48baec40ef67f641f9abe8b2ef0baa30fcb9e544a7725740d699fdcafe7",
+      "worker/storage/configuration-registry-core.ts": "48c537e3acefccbeb4a0a74dd99237ecb47e6ebb6a149d41738539ad384d6761",
+      "worker/storage/configuration-registry.ts": "075d3598376e4141f7cf190c7892ae268514c24b7b74bb99c8b2694fac732b6b",
+      "worker/storage/configuration-routes.ts": "0eb366ea683e110773d7b5ddb08bb34573a81a13e654492a9f275b72b0f3346c",
+      "worker/storage/configuration-surface.ts": "0a7be07bb425380bf907b6de09ece4b649c045f3e959e12c0741426a751d1039",
+      "worker/storage/credential-envelope.ts": "676f3508842d657c4e980cdd5a709738727e34a351d3096282d4381e5e8017b6",
+      "worker/storage/credential-reenvelope-routes.ts": "69272a32546a7951f76cd5631c9dc8d9e1c225d14a32c2a362f4bed6b0a5bf94",
+      "worker/storage/credential-reenvelope-service.ts": "a56e99d3320fe83136004d9be4519e702851dd4845e052d77c68e6f5b6ef771f",
+      "worker/storage/native-profile-activation.ts": "3852ac911a7a4030984f129c8385681a6c322dd699365ab503624b6aa00ce92e",
+      "worker/storage/native-s3-byte-reader.ts": "8248d0d9918e0d9dd9d38fb5a0da1eb136a3221a5727a402c745ef85ba33e671",
+      "worker/storage/native-s3-byte-storage.ts": "4d147a12ac8ea8787a69e1203ff44c0b25e18853320a0f1efc22cb3531bc698a",
+      "worker/storage/originals-status.ts": "96b2b796033a04f8b2efd16484c9205a9a2e20e27e9552352a15328a40a1771b",
+      "worker/storage/policy-routes.ts": "17e61b4c9ce6e2cab31914a3280514bf5a8d7ca03a45dfa1f9643ce7bde62aa1",
+      "worker/storage/routes.ts": "685be99bf8da2e3a61d8b5035acf13fd79e8cfb99154ea6326138a58bab30c02",
+      "worker/storage/s3-byte-adapter.ts": "020122c519afb27c627912e131f3e484625ce606bfb16bb6e0f13a3db6b6cf11",
+      "worker/storage/settings-read-model.ts": "c07fe51178dfb3850dea1823d9f99971b45154b9827921cc85ad17e783ad8f9c",
+      "worker/storage/storage-profile-admission-routes.ts": "4fd0764fd933d90aea7bf76594d9a17a89ba3a0b92ab17631af137605e5260df",
+      "worker/storage/storage-profile-admission-service.ts": "94797d1f5304101c8ee1f3db7436e0a00eb41b8462b0971cb6129a351917a355",
+      "worker/storage/storage-role-policy.ts": "6c5f4691ba390c6a50c232459138b40c15e731b88c118533ac4adffef7bc7311",
+      "worker/storage/system-administrator.ts": "017ca9c5c5c3bdd72283ea479fdaf33e365ae39e42c911005cc81600be6c2e01",
+      "worker/switchdrive-storage.ts": "8bba15b33e728ac479c109b0ac79970815b35c25a1a88c2f47ef810957902abf",
+      "worker/template-publication.ts": "ca2caa8547cb0001510d94f10bbaa0806980ab27f514f02c87771f3eadb40ed4",
+      "worker/types.ts": "4ec9592962374df19f7e9825e46e6236443bb11e2402494f15bd72da5bec36d0",
+      "worker/uploads/comment-acceptance.ts": "f7c84babffa5e60e7b09604f2fb28f93b4c65f888a1f2b8f4b8f0b881d0f3f52",
+      "worker/uploads/metrology-reference-acceptance.ts": "6c0e6c76176193073136ec9bf75dfbd877b8dac918c67fd649ed61ef15c71215",
+      "worker/uploads/native-acceptance-test-support.ts": "6c785b25245ad4cf5a5dd3d54df31b2626448499d57ab4aaa05d1fc480fbc476",
+      "worker/uploads/r2-upload-acceptance.ts": "1b92b33536b335bc5fe06b8480a215a92d82cd54905a425266cff21d32aecae1"
+    },
+    "changedVsD0ExactlyAcceptedExecution12": [
+      "worker/execution/confirmation-d1.ts",
+      "worker/execution/confirmation-service.ts",
+      "worker/execution/confirmation-sql.ts",
+      "worker/execution/confirmation-surface.ts",
+      "worker/execution/confirmation-worker.ts",
+      "worker/execution/metrology-write-service.ts",
+      "worker/execution/metrology-write-surface.ts",
+      "worker/execution/metrology-write-worker.ts",
+      "worker/execution/routes.ts",
+      "worker/execution/run-trash-service.ts",
+      "worker/execution/run-trash-surface.ts",
+      "worker/execution/run-trash-worker.ts"
+    ],
+    "notFullClosureProof": "Relative literal import/export/require scan only; excludes dynamic Wrangler entrypoint strings, compiler config/package dependencies, CSS/assets. Whole-tree byte proof above bounds every actual difference."
+  },
+  "executionConservativeRelativeImportClosure": {
+    "count": 375,
+    "changedVs4928ExactlyUIWitnessRoutes": [
+      "shared/contracts/project-creation-subject.ts",
+      "shared/project-creation-subject.ts",
+      "worker/project-routes.ts",
+      "worker/projects/creation-subject.ts",
+      "worker/projects/read-surface.ts",
+      "worker/projects/read-worker.ts"
+    ],
+    "notFreshCombined12": "Original actual current24 Worker12 is exact4928 historical evidence, not a new combined run. Genuine shared middleware/actor/admission inputs remain exact; changed Project witness modules are explicit. Complete own CI must run new Execution cases on final combined source."
+  },
+  "browserEntryPinsExactD0AndAccepted3c": {
+    "src/pages/TemplatesPage.tsx": "aa7904a6aeb1adf2ce7a7dc6d1c223d2791cdecbac3ed372cb69702a19f2db14",
+    "src/pages/TemplatePage.tsx": "5ed98d35a489d26f0ceae57eefd995fbd8a971d297ef7612e2c942bad75ee741",
+    "src/pages/MetrologyTemplatePage.tsx": "0b7b1fdc0a4e7a2d6564211f98856b034a690958be5218dc175940cd8d643a51",
+    "src/pages/ProjectsPage.tsx": "841934c3d52cf217f46bff22f60bec24d292193946db0bfdfb698ac8cd2c605c",
+    "src/pages/SamplesPage.tsx": "a86ac2a1d16b12cfbfc5f22221a2f79b4e56d9cfd27a4cb7bd1f80e8c1885b4b",
+    "src/pages/StorageSettingsPage.tsx": "f152b782fb887ba65d4df5efc51bda252aecef0633db5a11dfa79e16be2fe593",
+    "src/pages/StorageProfileActivation.tsx": "6f4fcc67e6283dc6a85248043980635290e132313960e36d6f88e4400f963723",
+    "src/lib/project-client.ts": "e1fc50966291182a41b7ef4ccc9c2fb114554a622bf3889fcba9a0b68b96e243",
+    "worker/projects/read-surface.ts": "211f8edddf1cb4d561bfe7b5a6f15d457d611e085e5268aa470bb684009195e0",
+    "worker/projects/read-worker.ts": "fa9a58c09e8ceda2925c7415180fdaf490d93c543db5524e94c71891c5fc3ee2",
+    "shared/contracts/project-creation-subject.ts": "df307cc57aeb5706dd770220cdc7f4b47d99a33a6d8c8232e30f693878827f27",
+    "shared/project-creation-subject.ts": "1d2f41c22e00e09877146e4e15d2f0b01eb29d67061c73363083c9abcd69428e",
+    "src/styles.css": "d8ed3ea55288a2351ff9602d4d3c53857020dee460ccee7058658f02220199ac"
+  },
+  "browserCarry": "Four actual3c and six actual2f remain original historical sources; neither is a fresh combined browser run or full reachable Worker equality. Execution routes/services change in this union; fresh combined build required, no old121 artifact reuse. No redundant browser/perf matrix proposed.",
+  "dependencyProvenance": {
+    "nodeModulesRealRoot": "/workspace/sample-fabrication-workflow/node_modules",
+    "manifestHashes": {
+      "package.json": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+      "package-lock.json": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a"
+    },
+    "hiddenLockSha256": "95202718d08fd50cc286bcddf0af66b08503d63b494e992006c50d4246d69a98",
+    "scope": "Existing shared installed directory; no install/dependency copy; not per-package attestation"
+  },
+  "diffCheck": "Exact accepted4928 production contains five whitespace-only lines; its immutable source patch retains thirteen nested patch whitespace lines. No normalization; own dated docs and new non-patch curation diffcheck must pass. All114 currentbase bytes preserved.",
+  "runtimeStatus": "Six finite stages and own complete combined CI UNRUN; parent exclusive GO required",
+  "candidatePatchPath": "/tmp/phase5f-ui-execution-currente108-source-reconciliation/current-e108-ui-execution90-source-candidate.patch",
+  "candidatePatchSha256": "1a840f9b74521d2f8204e38bb337b51146396dccc43371c9f5dcdb4bd0c49dcc",
+  "canonicalOrRemoteMutation": false
+}

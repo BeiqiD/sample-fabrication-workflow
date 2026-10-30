@@ -1,0 +1,1077 @@
+{
+  "status": "FAILED_CURRENT8BE_PACKAGE_START202_NATURAL_FOCUS_ORIGINAL_TEN_CLOSED_RELEASED",
+  "recordedAt": "2026-10-11T22:32:36.630688+00:00",
+  "domain": "package",
+  "producerHead": "8be4e74200096436eaa674a05d44dd772d23fc35",
+  "producerTree": "e7a91951906a0733685489367e73d6d29f74b891",
+  "producerCount": 3086,
+  "qaConsumerHead": "8c460eb229edc1983867a7778a625793d1b852f0",
+  "qaConsumerTree": "28c9177c231c6a7f24e52a51d1bed7492ab3e0a4",
+  "qaConsumerCount": 3092,
+  "copiedArtifactCount": 121,
+  "originalActualArtifactCount": 118,
+  "newBuilds": 0,
+  "disabled84SeedRequests": 0,
+  "plan": {
+    "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/frozen-approved-plan.json",
+    "sha256": "3ee0b0b885b48129e7c33798dbd87bf7e0d08ec269507a38c82c7fbe3a1a7369",
+    "bytes": 20637
+  },
+  "actualBuild": {
+    "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/build-runtime/actual-one-current8be-cf-build-qualified-closed-release.json",
+    "sha256": "df880ac57d855e4208661077bcb0edcc2a6ef5191c993f3b955acc968e46c2e8"
+  },
+  "actual118Manifest": {
+    "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/build-runtime/fresh-build-artifact-manifest.json",
+    "sha256": "5afe10d664711d498d1b5d3967f815ee63524d4e2d7c934d246584448109faca",
+    "actualFiles": 118
+  },
+  "rootActualBuildRelease": {
+    "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/build-runtime/root-one-current8be-cf-build-full-original118-raw-owner-release.json",
+    "sha256": "6aeda8b7f1c1f7d98faa771c2a44bed44942bf2ec7f4e9b24ba71c14b01ecd53"
+  },
+  "currentApp37Formal": {
+    "path": "/tmp/phase5f-storage-refresh-focus-current553-private-attempt1/runtime/actual-current8be-app-and-affected37-qualified-closed-release.json",
+    "sha256": "be8f13911b873405bcdb7913e50b6623c6efc3b189e5462e1ff9af7130bdc561"
+  },
+  "rootExclusiveGO": {
+    "path": "/tmp/phase5f-start202-current8be-two-native-finite-source-preparation-attempt2/root-current8be-package-start202-original-ten-exclusive-go.json",
+    "sha256": "8d8f7c197ef3565ca28837591d41e852cf3409988febdc5ddbc86d3c4325b6a9",
+    "bytes": 3600
+  },
+  "commands": {
+    "passed": 9,
+    "failed": 1,
+    "unrun": 0,
+    "originalStages": [
+      {
+        "stage": "qualified-current02d-coherent-build-producer-preflight",
+        "startedAt": "2026-10-11T22:28:30.188709+00:00",
+        "endedAt": "2026-10-11T22:28:30.567379+00:00",
+        "pid": 1580720,
+        "originalStartTicks": "17097095",
+        "exitCode": 0,
+        "status": "PASS",
+        "ownedClosure": {
+          "before": [],
+          "after": [],
+          "ownedCleanupSignals": [],
+          "noActiveOwnedProcessOrFd": true,
+          "unexpectedLingeringOwner": false,
+          "directChildExitCode": 0,
+          "directChildReaped": true,
+          "afterDirectChildReap": []
+        },
+        "logSha256": "3cdc53eb58a874d63edb9b707f58cfa2f802fd75cc9892e72330fb84f24aef10"
+      },
+      {
+        "stage": "isolated-copy",
+        "startedAt": "2026-10-11T22:28:40.787026+00:00",
+        "endedAt": "2026-10-11T22:28:42.388560+00:00",
+        "pid": 1580769,
+        "originalStartTicks": "17098155",
+        "exitCode": 0,
+        "status": "PASS",
+        "ownedClosure": {
+          "before": [],
+          "after": [],
+          "ownedCleanupSignals": [],
+          "noActiveOwnedProcessOrFd": true,
+          "unexpectedLingeringOwner": false,
+          "directChildExitCode": 0,
+          "directChildReaped": true,
+          "afterDirectChildReap": []
+        },
+        "logSha256": "759ceed9d6772785ec5d105380f70517e299bb6a498636ef862dd29f3213210d"
+      },
+      {
+        "stage": "fresh-two-version-sentinel",
+        "startedAt": "2026-10-11T22:28:56.518305+00:00",
+        "endedAt": "2026-10-11T22:28:58.413845+00:00",
+        "pid": 1580882,
+        "originalStartTicks": "17099728",
+        "exitCode": 0,
+        "status": "PASS",
+        "ownedClosure": {
+          "before": [
+            {
+              "pid": 1580925,
+              "state": "Z",
+              "ppid": 1,
+              "processGroup": 1580882,
+              "kernelResourcesExited": true,
+              "fdInspection": "PermissionError"
+            }
+          ],
+          "after": [
+            {
+              "pid": 1580925,
+              "state": "Z",
+              "ppid": 1,
+              "processGroup": 1580882,
+              "kernelResourcesExited": true,
+              "fdInspection": "PermissionError"
+            }
+          ],
+          "ownedCleanupSignals": [],
+          "noActiveOwnedProcessOrFd": true,
+          "unexpectedLingeringOwner": false,
+          "directChildExitCode": 0,
+          "directChildReaped": true,
+          "afterDirectChildReap": [
+            {
+              "pid": 1580925,
+              "state": "Z",
+              "ppid": 1,
+              "processGroup": 1580882,
+              "kernelResourcesExited": true,
+              "fdInspection": "PermissionError"
+            }
+          ]
+        },
+        "logSha256": "576c2683706cae04ee846fd833da478f2db53ae763e4353383eea6af85258f08"
+      },
+      {
+        "stage": "ordinary-actual24-local-migrations",
+        "startedAt": "2026-10-11T22:29:07.977917+00:00",
+        "endedAt": "2026-10-11T22:29:20.914347+00:00",
+        "pid": 1580993,
+        "originalStartTicks": "17100874",
+        "exitCode": 0,
+        "status": "PASS",
+        "ownedClosure": {
+          "before": [
+            {
+              "pid": 1581009,
+              "state": "Z",
+              "ppid": 1,
+              "processGroup": 1580993,
+              "kernelResourcesExited": true,
+              "fdInspection": "PermissionError"
+            }
+          ],
+          "after": [
+            {
+              "pid": 1581009,
+              "state": "Z",
+              "ppid": 1,
+              "processGroup": 1580993,
+              "kernelResourcesExited": true,
+              "fdInspection": "PermissionError"
+            }
+          ],
+          "ownedCleanupSignals": [],
+          "noActiveOwnedProcessOrFd": true,
+          "unexpectedLingeringOwner": false,
+          "directChildExitCode": 0,
+          "directChildReaped": true,
+          "afterDirectChildReap": [
+            {
+              "pid": 1581009,
+              "state": "Z",
+              "ppid": 1,
+              "processGroup": 1580993,
+              "kernelResourcesExited": true,
+              "fdInspection": "PermissionError"
+            }
+          ]
+        },
+        "logSha256": "b8663080799ada4f3f518e0151498107400f892c4c485d47c792d871202916d4"
+      },
+      {
+        "stage": "synthetic-template-sentinels-only",
+        "startedAt": "2026-10-11T22:30:12.527719+00:00",
+        "endedAt": "2026-10-11T22:30:13.814255+00:00",
+        "pid": 1581713,
+        "originalStartTicks": "17107329",
+        "exitCode": 0,
+        "status": "PASS",
+        "ownedClosure": {
+          "before": [
+            {
+              "pid": 1581729,
+              "state": "Z",
+              "ppid": 1,
+              "processGroup": 1581713,
+              "kernelResourcesExited": true,
+              "fdInspection": "PermissionError"
+            }
+          ],
+          "after": [
+            {
+              "pid": 1581729,
+              "state": "Z",
+              "ppid": 1,
+              "processGroup": 1581713,
+              "kernelResourcesExited": true,
+              "fdInspection": "PermissionError"
+            }
+          ],
+          "ownedCleanupSignals": [],
+          "noActiveOwnedProcessOrFd": true,
+          "unexpectedLingeringOwner": false,
+          "directChildExitCode": 0,
+          "directChildReaped": true,
+          "afterDirectChildReap": [
+            {
+              "pid": 1581729,
+              "state": "Z",
+              "ppid": 1,
+              "processGroup": 1581713,
+              "kernelResourcesExited": true,
+              "fdInspection": "PermissionError"
+            }
+          ]
+        },
+        "logSha256": "0674f0475a100b9c1b1743a9bf7f2916c824290b096606531828331a6bf15fe5"
+      },
+      {
+        "stage": "physical-before",
+        "startedAt": "2026-10-11T22:30:33.478575+00:00",
+        "endedAt": "2026-10-11T22:30:34.362465+00:00",
+        "pid": 1581775,
+        "originalStartTicks": "17109424",
+        "exitCode": 0,
+        "status": "PASS",
+        "ownedClosure": {
+          "before": [],
+          "after": [],
+          "ownedCleanupSignals": [],
+          "noActiveOwnedProcessOrFd": true,
+          "unexpectedLingeringOwner": false,
+          "directChildExitCode": 0,
+          "directChildReaped": true,
+          "afterDirectChildReap": []
+        },
+        "logSha256": "b6886a811e8f5d776981313c652f7fd7db8c1c85acf3fdf8d8d7b4d7a6d31b99"
+      },
+      {
+        "stage": "current-source-build-and-pure24-witness",
+        "startedAt": "2026-10-11T22:30:43.889494+00:00",
+        "endedAt": "2026-10-11T22:30:44.362095+00:00",
+        "pid": 1581803,
+        "originalStartTicks": "17110465",
+        "exitCode": 0,
+        "status": "PASS",
+        "ownedClosure": {
+          "before": [],
+          "after": [],
+          "ownedCleanupSignals": [],
+          "noActiveOwnedProcessOrFd": true,
+          "unexpectedLingeringOwner": false,
+          "directChildExitCode": 0,
+          "directChildReaped": true,
+          "afterDirectChildReap": []
+        },
+        "logSha256": "cc0f99011b2f3b270b0cff5d5bfbae766e6cac42b32858649086c4b9c41fbc3e"
+      },
+      {
+        "stage": "original-one-current-package-start202-natural-focus",
+        "startedAt": "2026-10-11T22:30:52.241881+00:00",
+        "endedAt": "2026-10-11T22:31:28.020293+00:00",
+        "pid": 1581892,
+        "originalStartTicks": "17111301",
+        "exitCode": 1,
+        "status": "FAILED",
+        "ownedClosure": {
+          "before": [],
+          "after": [],
+          "ownedCleanupSignals": [],
+          "noActiveOwnedProcessOrFd": true,
+          "unexpectedLingeringOwner": false,
+          "directChildExitCode": 1,
+          "directChildReaped": true,
+          "afterDirectChildReap": []
+        },
+        "logSha256": "cf34f465d547320611373c5333d410a172f688ffd56c8fe1d2bdc06e35f834dc"
+      },
+      {
+        "stage": "physical-after",
+        "startedAt": "2026-10-11T22:31:48.887492+00:00",
+        "endedAt": "2026-10-11T22:31:49.824601+00:00",
+        "pid": 1582132,
+        "originalStartTicks": "17116965",
+        "exitCode": 0,
+        "status": "PASS",
+        "ownedClosure": {
+          "before": [],
+          "after": [],
+          "ownedCleanupSignals": [],
+          "noActiveOwnedProcessOrFd": true,
+          "unexpectedLingeringOwner": false,
+          "directChildExitCode": 0,
+          "directChildReaped": true,
+          "afterDirectChildReap": []
+        },
+        "logSha256": "836bdf309dbde8d7120a937960a3a3bcc4fb825eb4f0b33fba323e678ecb8a76"
+      },
+      {
+        "stage": "final-source-artifact-input-pins",
+        "startedAt": "2026-10-11T22:32:05.211863+00:00",
+        "endedAt": "2026-10-11T22:32:05.667866+00:00",
+        "pid": 1582189,
+        "originalStartTicks": "17118598",
+        "exitCode": 0,
+        "status": "PASS",
+        "ownedClosure": {
+          "before": [],
+          "after": [],
+          "ownedCleanupSignals": [],
+          "noActiveOwnedProcessOrFd": true,
+          "unexpectedLingeringOwner": false,
+          "directChildExitCode": 0,
+          "directChildReaped": true,
+          "afterDirectChildReap": []
+        },
+        "logSha256": "d164fc43a091ef7aea77aa51dc0f113d19cd7a6ab5e2c50688e1de0164bb901a"
+      }
+    ]
+  },
+  "native": {
+    "passed": 0,
+    "failed": 1,
+    "unrun": 0,
+    "originalToolHandle": "21037",
+    "originalFirstToolChunk": "e3bc59",
+    "originalTerminalToolChunk": "355455",
+    "directPid": 1581892,
+    "originalStartTicks": "17111301",
+    "exitCode": 1,
+    "cases": [
+      {
+        "id": "current-package-start202-natural-focus-1280-light",
+        "width": 1280,
+        "height": 1000,
+        "theme": "light",
+        "status": "failed",
+        "requests": [
+          {
+            "path": "/api/packages/jobs",
+            "method": "GET"
+          },
+          {
+            "path": "/api/packages/executor",
+            "method": "GET"
+          },
+          {
+            "path": "/api/packages/plans",
+            "method": "POST"
+          },
+          {
+            "path": "/api/packages/jobs",
+            "method": "POST"
+          },
+          {
+            "path": "/api/packages/jobs",
+            "method": "GET"
+          },
+          {
+            "path": "/api/packages/executor",
+            "method": "GET"
+          },
+          {
+            "path": "/api/packages/jobs",
+            "method": "GET"
+          },
+          {
+            "path": "/api/packages/executor",
+            "method": "GET"
+          },
+          {
+            "path": "/api/packages/jobs",
+            "method": "GET"
+          },
+          {
+            "path": "/api/packages/executor",
+            "method": "GET"
+          },
+          {
+            "path": "/api/packages/jobs",
+            "method": "GET"
+          },
+          {
+            "path": "/api/packages/executor",
+            "method": "GET"
+          }
+        ],
+        "api": [
+          {
+            "path": "/api/packages/jobs",
+            "method": "GET",
+            "status": 200,
+            "body": "completed",
+            "sha256": "0a5796e93f9b57ddf7c45f860485cbb7353fc0eda3dca753a444d0fd2a1573fe"
+          },
+          {
+            "path": "/api/packages/executor",
+            "method": "GET",
+            "status": 200,
+            "body": "completed",
+            "sha256": "b5ca5ba0d41fbc1e5515e94c133fd5ec74022112761b5c3da0a8ea0151104481"
+          },
+          {
+            "path": "/api/packages/plans",
+            "method": "POST",
+            "status": 200,
+            "body": "completed",
+            "sha256": "542cc82c42025cd7a052c824050c39d3ad3a1bcf2d69c1758b02e3e9c6473503",
+            "exactOriginalBackendMatches": true
+          },
+          {
+            "path": "/api/packages/executor",
+            "method": "GET",
+            "status": 200,
+            "body": "completed",
+            "sha256": "b5ca5ba0d41fbc1e5515e94c133fd5ec74022112761b5c3da0a8ea0151104481"
+          },
+          {
+            "path": "/api/packages/jobs",
+            "method": "GET",
+            "status": 200,
+            "body": "completed",
+            "sha256": "91bf376d668fd40125260638bf549d207875462a59628ccbb2f4eddb60b5d450"
+          },
+          {
+            "path": "/api/packages/jobs",
+            "method": "POST",
+            "status": 202,
+            "body": "completed",
+            "sha256": "3b36fdd6a3935c277b90087881ec3c72457f0648aa167f13fa1d4c16b469d9e5",
+            "exactOriginalBackendMatches": true
+          },
+          {
+            "path": "/api/packages/jobs",
+            "method": "GET",
+            "status": 200,
+            "body": "completed",
+            "sha256": "91bf376d668fd40125260638bf549d207875462a59628ccbb2f4eddb60b5d450"
+          },
+          {
+            "path": "/api/packages/executor",
+            "method": "GET",
+            "status": 200,
+            "body": "completed",
+            "sha256": "b5ca5ba0d41fbc1e5515e94c133fd5ec74022112761b5c3da0a8ea0151104481"
+          },
+          {
+            "path": "/api/packages/jobs",
+            "method": "GET",
+            "status": 200,
+            "body": "completed",
+            "sha256": "91bf376d668fd40125260638bf549d207875462a59628ccbb2f4eddb60b5d450"
+          },
+          {
+            "path": "/api/packages/executor",
+            "method": "GET",
+            "status": 200,
+            "body": "completed",
+            "sha256": "b5ca5ba0d41fbc1e5515e94c133fd5ec74022112761b5c3da0a8ea0151104481"
+          },
+          {
+            "path": "/api/packages/jobs",
+            "method": "GET",
+            "status": 200,
+            "body": "completed",
+            "sha256": "91bf376d668fd40125260638bf549d207875462a59628ccbb2f4eddb60b5d450"
+          },
+          {
+            "path": "/api/packages/executor",
+            "method": "GET",
+            "status": 200,
+            "body": "completed",
+            "sha256": "b5ca5ba0d41fbc1e5515e94c133fd5ec74022112761b5c3da0a8ea0151104481"
+          }
+        ],
+        "backendResponses": [
+          {
+            "action": "preview",
+            "path": "/api/packages/plans",
+            "method": "POST",
+            "startedAt": "2026-10-11T22:31:01.958Z",
+            "state": "accepted",
+            "status": 200,
+            "body": "completed",
+            "responseSha256": "542cc82c42025cd7a052c824050c39d3ad3a1bcf2d69c1758b02e3e9c6473503",
+            "completedAt": "2026-10-11T22:31:04.587Z",
+            "exactOriginalReleasedPermit": {
+              "id": "5d53a950-8c0d-45cc-94cd-b607ee5807de",
+              "sha256": "fffa6909c7f63af11bab41579ba6b6f208b5bd63f73ef93b5b542eff7a83556c",
+              "allEarlierRowsExact": true,
+              "requestWindowMatched": true
+            },
+            "nativeDelivery": "fulfilled"
+          },
+          {
+            "action": "accept",
+            "path": "/api/packages/jobs",
+            "method": "POST",
+            "startedAt": "2026-10-11T22:31:04.673Z",
+            "state": "accepted",
+            "status": 202,
+            "body": "completed",
+            "responseSha256": "3b36fdd6a3935c277b90087881ec3c72457f0648aa167f13fa1d4c16b469d9e5",
+            "completedAt": "2026-10-11T22:31:07.328Z",
+            "exactOriginalReleasedPermit": {
+              "id": "7c037226-090a-4e97-ab83-3c4a282c429c",
+              "sha256": "0e6f8541c3a44c91dc82ae59c4d49ec67d2a1e2ab2416f326849cbe85ec73012",
+              "allEarlierRowsExact": true,
+              "requestWindowMatched": true
+            },
+            "job": {
+              "id": "ba6d3303-be84-493c-ad25-f92d6001e49f",
+              "requestId": "796a5f96-af6a-462d-ab14-0f3ecc4ab619",
+              "kind": "data_package",
+              "state": "queued",
+              "phase": "snapshot",
+              "acceptedAt": "2026-10-11T22:31:04.700Z",
+              "updatedAt": "2026-10-11T22:31:04.700Z",
+              "reason": null,
+              "progress": {
+                "completedFiles": 0,
+                "totalFiles": 0,
+                "bytesDone": 0,
+                "bytesTotal": 0
+              },
+              "output": null,
+              "result": null
+            },
+            "nativeDelivery": "fulfilled"
+          }
+        ],
+        "assertions": [
+          {
+            "genuineOriginalPlan200": true,
+            "nativePreviewFocus": {
+              "active": true,
+              "focusVisible": true,
+              "disabled": false
+            }
+          },
+          {
+            "originalAccept202": true,
+            "acceptedJobId": "ba6d3303-be84-493c-ad25-f92d6001e49f",
+            "initialJobState": "queued",
+            "startRemoved": true,
+            "immediateNaturalFocus": {
+              "connected": true,
+              "active": false,
+              "body": true,
+              "tag": "BUTTON",
+              "focusVisible": false,
+              "disabled": false
+            }
+          }
+        ],
+        "pageErrors": [],
+        "externalRequests": [],
+        "startedAt": "2026-10-11T22:31:00.764Z",
+        "input": {
+          "kind": "data_package",
+          "roots": [
+            {
+              "kind": "sample",
+              "id": "5b8cf4bc-cfd0-414f-9d64-4082a29e7017"
+            }
+          ]
+        },
+        "error": "{\"kind\":\"object\",\"name\":\"TimeoutError\",\"message\":\"page.waitForFunction: Timeout 17287ms exceeded.\"}",
+        "contextCloseAwaited": true,
+        "originalRoutesAwaited": {
+          "count": 27,
+          "rejected": 0
+        },
+        "originalBodiesAwaited": {
+          "count": 12,
+          "rejected": 0
+        },
+        "originalWaitsAwaited": {
+          "count": 4,
+          "rejected": 0
+        },
+        "originalCatalogAndSourceBytes": {
+          "stage": "settled-current-package-start202-natural-focus-1280-light",
+          "onlyExactPackageJobRequestTwoCapturedRecordsAndReleasedPermitsChanged": true,
+          "old6PermitsExact": true,
+          "oldHoldsExact": true,
+          "newReleasedPermits": 3,
+          "jobState": "queued",
+          "jobGeneration": 0,
+          "packageFiles": 0,
+          "packageAttempts": 0,
+          "executorDisabled": true,
+          "sourceBytesExact": true,
+          "targetEmpty": true,
+          "addedRowsSha256": "11f099d4974fc5b6a6a818234d309099e7052dbe87adf0dacc0e0fbb98693fe5"
+        },
+        "completedAt": "2026-10-11T22:31:25.774Z"
+      }
+    ],
+    "costs": {
+      "setupPOSTs": 7,
+      "readerGETs": 2,
+      "nativeGETs": 10,
+      "nativeMetadataPOSTs": 2,
+      "ordinaryResearchPreparationPOSTs": 1,
+      "maxSetupPOSTs": 7,
+      "maxNativePOSTs": 2,
+      "maxTotalPOSTs": 12,
+      "observedAcceptedJobReceipts": 1,
+      "newExecutorSteps": 0
+    },
+    "ownedClosure": {
+      "status": "closed",
+      "browserCloseAwaited": true,
+      "originalPreparationOwnerClosure": {
+        "status": "closed",
+        "startedAt": "2026-10-11T22:31:26.883Z",
+        "originalRequestsAwaited": {
+          "count": 12,
+          "rejected": 0
+        },
+        "workerDisposeAwaited": true,
+        "workerPortRefused": true,
+        "originalOutboundWorkAwaited": {
+          "count": 1,
+          "rejected": 0
+        },
+        "jwksCloseAwaited": true,
+        "jwksPortRefused": true,
+        "completedAt": "2026-10-11T22:31:27.902Z"
+      }
+    },
+    "originalAPIResponseBodies": [
+      {
+        "path": "/api/packages/jobs",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "0a5796e93f9b57ddf7c45f860485cbb7353fc0eda3dca753a444d0fd2a1573fe"
+      },
+      {
+        "path": "/api/packages/executor",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "b5ca5ba0d41fbc1e5515e94c133fd5ec74022112761b5c3da0a8ea0151104481"
+      },
+      {
+        "path": "/api/packages/plans",
+        "method": "POST",
+        "status": 200,
+        "body": "completed",
+        "sha256": "542cc82c42025cd7a052c824050c39d3ad3a1bcf2d69c1758b02e3e9c6473503",
+        "exactOriginalBackendMatches": true
+      },
+      {
+        "path": "/api/packages/executor",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "b5ca5ba0d41fbc1e5515e94c133fd5ec74022112761b5c3da0a8ea0151104481"
+      },
+      {
+        "path": "/api/packages/jobs",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "91bf376d668fd40125260638bf549d207875462a59628ccbb2f4eddb60b5d450"
+      },
+      {
+        "path": "/api/packages/jobs",
+        "method": "POST",
+        "status": 202,
+        "body": "completed",
+        "sha256": "3b36fdd6a3935c277b90087881ec3c72457f0648aa167f13fa1d4c16b469d9e5",
+        "exactOriginalBackendMatches": true
+      },
+      {
+        "path": "/api/packages/jobs",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "91bf376d668fd40125260638bf549d207875462a59628ccbb2f4eddb60b5d450"
+      },
+      {
+        "path": "/api/packages/executor",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "b5ca5ba0d41fbc1e5515e94c133fd5ec74022112761b5c3da0a8ea0151104481"
+      },
+      {
+        "path": "/api/packages/jobs",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "91bf376d668fd40125260638bf549d207875462a59628ccbb2f4eddb60b5d450"
+      },
+      {
+        "path": "/api/packages/executor",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "b5ca5ba0d41fbc1e5515e94c133fd5ec74022112761b5c3da0a8ea0151104481"
+      },
+      {
+        "path": "/api/packages/jobs",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "91bf376d668fd40125260638bf549d207875462a59628ccbb2f4eddb60b5d450"
+      },
+      {
+        "path": "/api/packages/executor",
+        "method": "GET",
+        "status": 200,
+        "body": "completed",
+        "sha256": "b5ca5ba0d41fbc1e5515e94c133fd5ec74022112761b5c3da0a8ea0151104481"
+      }
+    ]
+  },
+  "physical": {
+    "before": {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/fixture/physical-sqlite-before-api.json",
+      "sha256": "a1ffbcd8d182b788f18e5c85c0a95b648ad71b69d9fbf20236cabcc30d4597c0",
+      "bytes": 68712
+    },
+    "after": {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/fixture/physical-sqlite-after-current-package-status-refresh-keyboard.json",
+      "sha256": "d7211d741afafcb56b989eb8a3d075686131c2fc15a6976feff5096e8677294d",
+      "bytes": 75613
+    },
+    "beforeGroups": 2,
+    "afterGroups": 5,
+    "status": "passed",
+    "finalCatalog": {
+      "stage": "before-original-Worker-dispose",
+      "onlyExactPackageJobRequestTwoCapturedRecordsAndReleasedPermitsChanged": true,
+      "old6PermitsExact": true,
+      "oldHoldsExact": true,
+      "newReleasedPermits": 3,
+      "jobState": "queued",
+      "jobGeneration": 0,
+      "packageFiles": 0,
+      "packageAttempts": 0,
+      "executorDisabled": true,
+      "sourceBytesExact": true,
+      "targetEmpty": true,
+      "addedRowsSha256": "11f099d4974fc5b6a6a818234d309099e7052dbe87adf0dacc0e0fbb98693fe5"
+    },
+    "nativeFailureRemainsFailed": true
+  },
+  "originalSameWaitReaped": [
+    {
+      "stage": "qualified-current02d-coherent-build-producer-preflight",
+      "pid": 1580720,
+      "originalStartTicks": "17097095",
+      "directChildExitCode": 0,
+      "directChildReaped": true
+    },
+    {
+      "stage": "isolated-copy",
+      "pid": 1580769,
+      "originalStartTicks": "17098155",
+      "directChildExitCode": 0,
+      "directChildReaped": true
+    },
+    {
+      "stage": "fresh-two-version-sentinel",
+      "pid": 1580882,
+      "originalStartTicks": "17099728",
+      "directChildExitCode": 0,
+      "directChildReaped": true
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "pid": 1580993,
+      "originalStartTicks": "17100874",
+      "directChildExitCode": 0,
+      "directChildReaped": true
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "pid": 1581713,
+      "originalStartTicks": "17107329",
+      "directChildExitCode": 0,
+      "directChildReaped": true
+    },
+    {
+      "stage": "physical-before",
+      "pid": 1581775,
+      "originalStartTicks": "17109424",
+      "directChildExitCode": 0,
+      "directChildReaped": true
+    },
+    {
+      "stage": "current-source-build-and-pure24-witness",
+      "pid": 1581803,
+      "originalStartTicks": "17110465",
+      "directChildExitCode": 0,
+      "directChildReaped": true
+    },
+    {
+      "stage": "original-one-current-package-start202-natural-focus",
+      "pid": 1581892,
+      "originalStartTicks": "17111301",
+      "directChildExitCode": 1,
+      "directChildReaped": true
+    },
+    {
+      "stage": "physical-after",
+      "pid": 1582132,
+      "originalStartTicks": "17116965",
+      "directChildExitCode": 0,
+      "directChildReaped": true
+    },
+    {
+      "stage": "final-source-artifact-input-pins",
+      "pid": 1582189,
+      "originalStartTicks": "17118598",
+      "directChildExitCode": 0,
+      "directChildReaped": true
+    }
+  ],
+  "originalCleanupSignals": [],
+  "currentOwnedGroupObservations": [
+    {
+      "stage": "qualified-current02d-coherent-build-producer-preflight",
+      "afterDirectChildReap": []
+    },
+    {
+      "stage": "isolated-copy",
+      "afterDirectChildReap": []
+    },
+    {
+      "stage": "fresh-two-version-sentinel",
+      "afterDirectChildReap": [
+        {
+          "pid": 1580925,
+          "state": "Z",
+          "ppid": 1,
+          "processGroup": 1580882,
+          "kernelResourcesExited": true,
+          "fdInspection": "PermissionError"
+        }
+      ]
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "afterDirectChildReap": [
+        {
+          "pid": 1581009,
+          "state": "Z",
+          "ppid": 1,
+          "processGroup": 1580993,
+          "kernelResourcesExited": true,
+          "fdInspection": "PermissionError"
+        }
+      ]
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "afterDirectChildReap": [
+        {
+          "pid": 1581729,
+          "state": "Z",
+          "ppid": 1,
+          "processGroup": 1581713,
+          "kernelResourcesExited": true,
+          "fdInspection": "PermissionError"
+        }
+      ]
+    },
+    {
+      "stage": "physical-before",
+      "afterDirectChildReap": []
+    },
+    {
+      "stage": "current-source-build-and-pure24-witness",
+      "afterDirectChildReap": []
+    },
+    {
+      "stage": "original-one-current-package-start202-natural-focus",
+      "afterDirectChildReap": []
+    },
+    {
+      "stage": "physical-after",
+      "afterDirectChildReap": []
+    },
+    {
+      "stage": "final-source-artifact-input-pins",
+      "afterDirectChildReap": []
+    }
+  ],
+  "observedEmptyOwnedGroups": 7,
+  "retainedKernelZCount": 3,
+  "kernelLimit": "Only original ten owned groups. KernelZ/PPID1 and FDPermission remain recorded; no observed0FD or globalquiescence claim.",
+  "originalRawRecords": [
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/qualified-current02d-coherent-build-producer-preflight-command.json",
+      "sha256": "73acb381266e42378f8ce15706ed5655347405241f092f0a1bd7e8d1c3ffeec7",
+      "bytes": 1330
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/qualified-current02d-coherent-build-producer-preflight.log",
+      "sha256": "3cdc53eb58a874d63edb9b707f58cfa2f802fd75cc9892e72330fb84f24aef10",
+      "bytes": 120
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/isolated-copy-command.json",
+      "sha256": "8ffd0734c253c17aab5be64fd02fd80d3b432f3d52e2cd6ae7f2b2c0b188a94d",
+      "bytes": 1461
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/isolated-copy.log",
+      "sha256": "759ceed9d6772785ec5d105380f70517e299bb6a498636ef862dd29f3213210d",
+      "bytes": 222
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/fresh-two-version-sentinel-command.json",
+      "sha256": "1e6be51a409a7f044f5e80f5c2416e8e4d4c96bfa66a900deda572bc26463015",
+      "bytes": 1969
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/fresh-two-version-sentinel.log",
+      "sha256": "576c2683706cae04ee846fd833da478f2db53ae763e4353383eea6af85258f08",
+      "bytes": 270
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/ordinary-actual24-local-migrations-command.json",
+      "sha256": "fe99aad289da4d21d1eaf13c9c2cd3b6fa6d424a821b5f4fd1394a23c2eee9af",
+      "bytes": 1973
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/ordinary-actual24-local-migrations.log",
+      "sha256": "b8663080799ada4f3f518e0151498107400f892c4c485d47c792d871202916d4",
+      "bytes": 149092
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/synthetic-template-sentinels-only-command.json",
+      "sha256": "d34e77dda7039d4fbcc40f53e84ed7f3d966901f4326c172b9a43ee307a921d0",
+      "bytes": 2083
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/synthetic-template-sentinels-only.log",
+      "sha256": "0674f0475a100b9c1b1743a9bf7f2916c824290b096606531828331a6bf15fe5",
+      "bytes": 2747
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/physical-before-command.json",
+      "sha256": "407c59ec96dc43ada6b1e2efadf52c85b18a90bccd98fb7817ef778dfc85e44e",
+      "bytes": 1436
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/physical-before.log",
+      "sha256": "b6886a811e8f5d776981313c652f7fd7db8c1c85acf3fdf8d8d7b4d7a6d31b99",
+      "bytes": 187
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/current-source-build-and-pure24-witness-command.json",
+      "sha256": "5d0e8ea644009a6c602c2426d058464c390352feedf90740b57366a8395b7ef8",
+      "bytes": 1289
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/current-source-build-and-pure24-witness.log",
+      "sha256": "cc0f99011b2f3b270b0cff5d5bfbae766e6cac42b32858649086c4b9c41fbc3e",
+      "bytes": 225
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/original-one-current-package-start202-natural-focus-command.json",
+      "sha256": "9c5eeae65ec2dcbd66cfb2eabe1c201c2b8ee2e72e7d2d3df1979d3f9f512a5c",
+      "bytes": 2417
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/original-one-current-package-start202-natural-focus.log",
+      "sha256": "cf34f465d547320611373c5333d410a172f688ffd56c8fe1d2bdc06e35f834dc",
+      "bytes": 330
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/physical-after-command.json",
+      "sha256": "87127008d1777ba0cb0e27f463d1e9b2751957d19733f641e868c85ca3cf2999",
+      "bytes": 1842
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/physical-after.log",
+      "sha256": "836bdf309dbde8d7120a937960a3a3bcc4fb825eb4f0b33fba323e678ecb8a76",
+      "bytes": 204
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/final-source-artifact-input-pins-command.json",
+      "sha256": "8a96f48db49ed0a282e0ba8bf3ec69e1ee8a36cb41f8b19c2e4235bece726c2c",
+      "bytes": 1278
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/final-source-artifact-input-pins.log",
+      "sha256": "d164fc43a091ef7aea77aa51dc0f113d19cd7a6ab5e2c50688e1de0164bb901a",
+      "bytes": 228
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/fixture/genuine-package-start202-natural-focus-report.json",
+      "sha256": "ebfa5d5aef514191315523dd64247b31339e7c001d9e5b363472d89615ff380e",
+      "bytes": 86762
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/fixture/genuine-package-start202-natural-focus-stop.json",
+      "sha256": "1ce1936b27aefd6e6c372ab8c707577ec968a9a687331d5330832db0739b2a8e",
+      "bytes": 500
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/fixture/physical-sqlite-before-api.json",
+      "sha256": "a1ffbcd8d182b788f18e5c85c0a95b648ad71b69d9fbf20236cabcc30d4597c0",
+      "bytes": 68712
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/fixture/physical-sqlite-after-current-package-status-refresh-keyboard.json",
+      "sha256": "d7211d741afafcb56b989eb8a3d075686131c2fc15a6976feff5096e8677294d",
+      "bytes": 75613
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/final-current8be-source-and-genuine-start202-pins.json",
+      "sha256": "291da80bd929403a04b050481fceb7ab3d87ebb8991c141605672f7f39b3c8b4",
+      "bytes": 3380
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/copy/isolation-receipt.json",
+      "sha256": "dff024437174f89f50209591e76c34e11549c9a7e1e958944b4356ab276b29f5",
+      "bytes": 461273
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/fixture/process-fixture.json",
+      "sha256": "33c08040c4f469ac52029d3ddab081134f9b25ebe991ea513efef528b09f18a3",
+      "bytes": 1600
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/fixture/process-fixture.sql",
+      "sha256": "35ca2513ec7e4363ff2ebf9492b454da97a4033ea4a41a821c86ef9f2065cdb5",
+      "bytes": 5579
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/fixture/enabled-storage-draft-build-input-witness.json",
+      "sha256": "9ecc32804c2044289ba9ebb35704f77e3f4d09db94bc2a8d3cf737de5ede38ac",
+      "bytes": 1542
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/current02d-build-new-pure24-native-causal-carry.json",
+      "sha256": "13cb33411cb69ead66bae0846db3d3af1145ac1838e6aeb1f1dfd04f3e35a265",
+      "bytes": 1808
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/chromium-child-temp-owner.json",
+      "sha256": "115ffd4deeaaffb52b88df7f094a4ac0c25067696e99b8c8c0a3714f2bc86d04",
+      "bytes": 625
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/frozen-approved-plan.json",
+      "sha256": "3ee0b0b885b48129e7c33798dbd87bf7e0d08ec269507a38c82c7fbe3a1a7369",
+      "bytes": 20637
+    },
+    {
+      "path": "/tmp/phase5f-package-current8be-start202-natural-focus-native-private-attempt2/runtime/original-tool-responses.json",
+      "sha256": "c0f529483ec1c8054ef13f0e679943e2f32fe4efd7faa81a9d45afc35927c380",
+      "bytes": 32267
+    }
+  ],
+  "rawRecordCount": 33,
+  "oldFailure": "OriginalStorage9a failure/newStorage8be success, PackageRefresh focus failure and FileStart202 focus failure remain separate. This is first genuine PackageStart202 characterization; no forcedfocus/control/retry/acceptedreplay. Allacceptedqueuedlineages retained.",
+  "scope": "ONE current8be/8c Package1280light Start202 naturalfocus actualFAIL: originalPreview200/focus andaccept202 samequeuedgen0 job/startremoved PASS, immediate sameenabledPause connectedtrue/activefalse/bodytrue observed before helperfocus/control; exactnatural-focus wait Timeout17287ms within originalremaining20s; geometryUNRUN. Realpolling retained:6R2setupPOST+oneordinarySample201+2readerGET+10nativeGET+2nativePOST=9actualPOST total. Report maxTotalPOSTs12 remains inheriteddonorlabel; actualfinitebound9 enforced. OriginalSample/event epoch+2 andoneSampledependency, thenexactPackagejob/request/twocapturedrecords+3releasedpermits only; original6permits/oldholds unchanged. All12originalnativebodies/hash completed;27routes/4waits settled0reject. No Pause/Resume/Cancel/executor/ZIP/provider. Originalnormalcontext/body/route/waits/browser/Worker/JWKS close+ports and all10directwait/reap observed; mandatoryphysicalbefore2/after5 and finalsource3086/QA3092/artifacts118copy121 PASS. KernelZ/FDPermission limits retained. No further effect without distinct rootGO."
+}

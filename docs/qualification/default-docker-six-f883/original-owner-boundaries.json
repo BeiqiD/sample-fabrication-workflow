@@ -1,0 +1,214 @@
+{
+  "status": "ORIGINAL_REMOTE_DEFAULT_DOCKER_SIX_PASS_LOCAL_OBSERVERS_CLOSED",
+  "observedAt": "2026-10-11T19:55:51.043718+00:00",
+  "runId": 38169765719,
+  "jobId": 114559726334,
+  "workflowHead": "52eeb92b2cebbfb6811e4eebd539007a7949ade4",
+  "targetSourceHead": "f883e64086bee44b353f3840271fa3eaaafdcc7d",
+  "event": "push",
+  "originalConclusion": "success",
+  "caseCounts": {
+    "PASS": 6,
+    "FAIL": 0,
+    "UNRUN": 0
+  },
+  "cases": [
+    {
+      "id": "image-artifact-nonroot-and-daemon-bind",
+      "status": "PASS"
+    },
+    {
+      "id": "explicit-fresh-bootstrap-and-stopped-inspection",
+      "status": "PASS"
+    },
+    {
+      "id": "genuine-internal-loopback-auth-and-supported-metadata",
+      "status": "PASS"
+    },
+    {
+      "id": "live-writer-exclusion-and-original-graceful-stop",
+      "status": "PASS"
+    },
+    {
+      "id": "same-image-restart-and-recreate-persistence",
+      "status": "PASS"
+    },
+    {
+      "id": "wrong-installation-private-bind-and-keyring-availability-denials",
+      "status": "PASS"
+    }
+  ],
+  "originalReceiptSha256": "fbcb17d5424537bb20827a0d5649e32e4dcc77ec2f4aa832fa17eee0b50a71b5",
+  "exportManifestSha256": "2089795f7f87dcadb2ffa4e8e0fa757c59bf4fd7a222f2b59dd432e39fca8c3e",
+  "originalImageBuildCompletionAcknowledged": true,
+  "originalImageBuilds": 1,
+  "originalImageId": "sha256:533e62c8f1180859a372d09fdbb59eaeaf23eeec8fa8da55ddadd2c3c5877ac2",
+  "original87CliChildrenWaitedReapedClosureProven": true,
+  "all14ActualContainerFinalStatesStoppedPid0": true,
+  "missingBindEntryExpectedAbsentNotFabricatedStoppedState": true,
+  "containersWithoutOriginalExitObservation": [
+    "busy-main",
+    "wrong-installation"
+  ],
+  "daemonTerminalStateDoesNotProveMissingApplicationFirstACK": true,
+  "sourceContextAndPrivateKeyringPinsExact": true,
+  "noDockerSIGKILLOrRemoval": true,
+  "cliGroupsInactive": true,
+  "containerClosureUnproven": [],
+  "localOriginalReadOnlyChildren": [
+    {
+      "pid": 1501157,
+      "startTicks": 16153861,
+      "exitCode": 0,
+      "directChildReaped": true,
+      "processGroup": 1501157,
+      "postWaitGroupStatus": "EMPTY",
+      "unknownProcCount": 0
+    },
+    {
+      "pid": 1501161,
+      "startTicks": 16153913,
+      "exitCode": 0,
+      "directChildReaped": true,
+      "processGroup": 1501161,
+      "postWaitGroupStatus": "EMPTY",
+      "unknownProcCount": 0
+    },
+    {
+      "pid": 1501179,
+      "startTicks": 16154045,
+      "exitCode": 0,
+      "directChildReaped": true,
+      "processGroup": 1501179,
+      "postWaitGroupStatus": "EMPTY",
+      "unknownProcCount": 0
+    },
+    {
+      "pid": 1501199,
+      "startTicks": 16155591,
+      "exitCode": 0,
+      "directChildReaped": true,
+      "processGroup": 1501199,
+      "postWaitGroupStatus": "EMPTY",
+      "unknownProcCount": 0
+    },
+    {
+      "pid": 1503328,
+      "startTicks": 16158109,
+      "exitCode": 0,
+      "directChildReaped": true,
+      "processGroup": 1503328,
+      "postWaitGroupStatus": "EMPTY",
+      "unknownProcCount": 0
+    },
+    {
+      "pid": 1503632,
+      "startTicks": 16168819,
+      "exitCode": 0,
+      "directChildReaped": true,
+      "processGroup": 1503632,
+      "postWaitGroupStatus": "EMPTY",
+      "unknownProcCount": 0
+    },
+    {
+      "pid": 1503650,
+      "startTicks": 16168905,
+      "exitCode": 0,
+      "directChildReaped": true,
+      "processGroup": 1503650,
+      "postWaitGroupStatus": "EMPTY",
+      "unknownProcCount": 0
+    }
+  ],
+  "originalReceiptArtifactDownloaded": false,
+  "rawReceiptFactsSource": "Source-qualified remote whitelist validates original exported manifest/receipt/log hashes before printing. No local artifact download; original receipt raw bytes unavailable locally.",
+  "scope": "Frozen f883 default V26/Filefalse/Jobfalse runtime and packaged offline V5; remote image independently built once. Does not qualify new public adoption HEAD or current enabled/Group runtime.",
+  "sourceAuthoringDiagnostics": [
+    {
+      "toolChunk": "0c9f84",
+      "stage": "local summary rendering after original read receipts were already written",
+      "errorType": "KeyError",
+      "key": "lastState",
+      "cause": "expectedAbsent missing-bind entry has no actual State",
+      "oldFilesOrRuntimeChanged": false,
+      "correctedWithoutRemoteReadRepeat": true
+    },
+    {
+      "toolChunk": "caf4eb",
+      "stage": "new formal receipt prior-failure pin locator",
+      "errorType": "FileNotFoundError",
+      "cause": "typed source-admission where original filename is asset-admission",
+      "oldFailurePreserved": true,
+      "correctedToExistingExactReceipt": true,
+      "runtimeEffects": 0
+    }
+  ],
+  "pushCount": 1,
+  "dispatchCount": 0,
+  "rerunCount": 0,
+  "artifactDownloadCount": 0,
+  "rawReferences": [
+    {
+      "path": "/workspace/docker-52ee-one-current-asset-push-and-ci-observation-attempt1/original-one-push-receipt.json",
+      "sha256": "4f0b872d75e0aded48b74ef6f7c78e43c282fe98fbaeb1b94b5cbf29312f5b69",
+      "bytes": 3568
+    },
+    {
+      "path": "/workspace/docker-52ee-one-current-asset-push-and-ci-observation-attempt1/original-push-tool-session-closure-addendum.json",
+      "sha256": "da0d26da662e1b43dd4206c5061d09c1a6edf739c4630c312e7a32b5ee5ff910",
+      "bytes": 422
+    },
+    {
+      "path": "/workspace/docker-52ee-one-current-asset-push-and-ci-observation-attempt1/original-one-run-list.json",
+      "sha256": "86ed36d9299e35c7d00943fdcc5620f54d71064241a647d9629d5cae95ec5386",
+      "bytes": 349
+    },
+    {
+      "path": "/workspace/docker-52ee-one-current-asset-push-and-ci-observation-attempt1/original-one-run-list-read-receipt.json",
+      "sha256": "9cce5e95b569da406b224361494bfb01409c0a036350ab5b4e1d95fdececea83",
+      "bytes": 802
+    },
+    {
+      "path": "/workspace/docker-52ee-one-current-asset-push-and-ci-observation-attempt1/original-one-run-read-only-watch-receipt.json",
+      "sha256": "5777d268660df110b3d39872b3fe48e42dc63406e142e49d0eb77d7cb429c2d5",
+      "bytes": 729
+    },
+    {
+      "path": "/workspace/docker-52ee-one-current-asset-push-and-ci-observation-attempt1/original-watch-tool-session-closure-addendum.json",
+      "sha256": "834cfdf11eecd56fbf8e3e92afd0f198397886d287ebad97d888783dd51640a2",
+      "bytes": 499
+    },
+    {
+      "path": "/workspace/docker-52ee-one-current-asset-push-and-ci-observation-attempt1/original-run-metadata.json",
+      "sha256": "ad0e1b7b3c019a1297c5dd271a94b1f2b556fe89ff936c389c7a26770e436838",
+      "bytes": 1763
+    },
+    {
+      "path": "/workspace/docker-52ee-one-current-asset-push-and-ci-observation-attempt1/original-whole-job.log",
+      "sha256": "7938d96439ec4cce80468d7bb7777f860f7cc2c5fb730dd42830aa9479f3519e",
+      "bytes": 68783
+    },
+    {
+      "path": "/workspace/docker-52ee-one-current-asset-push-and-ci-observation-attempt1/original-whitelisted-receipt-facts.json",
+      "sha256": "389efb28df1e5f5ece22bb6fde01208ee6bfe0efbbdbdcf0f7c7a9040a9126e6",
+      "bytes": 28987
+    },
+    {
+      "path": "/workspace/docker-52ee-one-current-asset-push-and-ci-observation-attempt1/original-terminal-run-metadata-and-log-read-receipt.json",
+      "sha256": "b19cf17b78bb2c1a43ecdc08420511506bc512bcab31df41f0eaf047034525bc",
+      "bytes": 1900
+    }
+  ],
+  "priorFailuresPreservedReferences": [
+    {
+      "path": "/workspace/docker-0514-one-fixed-window-push-and-ci-observation-attempt1/original-one-0514-asset-admission-failure-zero-cases-boundary-receipt.json",
+      "sha256": "4ad53c78ba94e972e246102f4db296d95a49996185d70bc97b1116d5285ff7bd",
+      "bytes": 5630
+    },
+    {
+      "path": "/workspace/docker-f100-one-diagnostic-push-and-ci-observation-attempt1/original-one-f100-api401-five-pass-sixth-failure-exact-owner-boundary-receipt.json",
+      "sha256": "deaafe8afe3959886c67c276d19fa3b5572c7eebe03205345bf60ae10e5ed7d7",
+      "bytes": 5776
+    }
+  ]
+}

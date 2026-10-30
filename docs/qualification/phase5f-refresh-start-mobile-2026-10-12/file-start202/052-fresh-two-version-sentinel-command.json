@@ -1,0 +1,60 @@
+{
+  "stage": "fresh-two-version-sentinel",
+  "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+  "argv": [
+    "node",
+    "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source/scripts/qa/phase5f/generate-process-fixture.mjs",
+    "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/copy",
+    "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/fixture"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1",
+    "SQLITE_TMPDIR": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1"
+  },
+  "startedAt": "2026-10-12T01:56:48.495527+00:00",
+  "status": "PASS",
+  "log": "/workspace/phase5f-file-current2d07-start202-mobile-native-private-attempt1/runtime/fresh-two-version-sentinel.log",
+  "pid": 1678958,
+  "processGroup": 1678958,
+  "originalStartTicks": "18346926",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1678969,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1678958,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1678969,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1678958,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1678969,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1678958,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-12T01:56:50.794248+00:00",
+  "logSha256": "83d38595409f5c938aaa15be14443cf696135f6f4ce9ca3206212dd64b49cadc"
+}

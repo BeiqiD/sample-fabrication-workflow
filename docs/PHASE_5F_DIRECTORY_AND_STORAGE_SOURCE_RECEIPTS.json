@@ -1,0 +1,91 @@
+{
+  "status": "SOURCE_ONLY_UNEXECUTED_REVIEW_PENDING",
+  "baseCommit": "21fc17362d94b7ede38279781626130ddcb4020a",
+  "baseTree": "2b0d1d5d22a6f79928a353cdaef813772ebed5dc",
+  "privateRoot": "/workspace/remaining-5f-ui-source-21fc173",
+  "privateBranch": "codex/remaining-5f-ui-source",
+  "ownedSourceFiles": {
+    "src/lib/project-client.ts": "e1fc50966291182a41b7ef4ccc9c2fb114554a622bf3889fcba9a0b68b96e243",
+    "src/pages/ProjectsPage.tsx": "841934c3d52cf217f46bff22f60bec24d292193946db0bfdfb698ac8cd2c605c",
+    "src/pages/StorageProfileActivation.tsx": "6f4fcc67e6283dc6a85248043980635290e132313960e36d6f88e4400f963723",
+    "src/project-shell.mount.test.tsx": "3b3b5ee7e7705b4a0471b7bb866980eb2ec246a8d41d068dd305de1a1b06b307",
+    "worker/project-routes.ts": "f60a4254799f274b7048172aed80c223f7bbb3892a2c5cdac5dbe8fc6a5c2aeb",
+    "worker/projects/read-surface.ts": "211f8edddf1cb4d561bfe7b5a6f15d457d611e085e5268aa470bb684009195e0",
+    "worker/projects/read-worker.ts": "fa9a58c09e8ceda2925c7415180fdaf490d93c543db5524e94c71891c5fc3ee2",
+    "scripts/qa/phase5f/browser-directory-actual-api.mjs": "e464c0f9020c417a2d2301901571227c203f53763ebd44e77766ea9ed59d0bb0",
+    "scripts/qa/phase5f/seed-directory-actual-api.mjs": "40ec91f2715987d6759ed36df030cb8d9585a8b8ae375848840d7aefab9fc3ff",
+    "shared/project-creation-subject.ts": "df307cc57aeb5706dd770220cdc7f4b47d99a33a6d8c8232e30f693878827f27",
+    "src/phase5f-project-directory-intent.mount.test.tsx": "24208fd3c4f4e2f51d7018aa75a819885c66cec2404a70b1deff5198a484e8de",
+    "src/phase5f-storage-activation-read.mount.test.tsx": "29bbbd5e2b315203d04cf70385f0a341ab5ac83533ac3672e1281674e6a751c8",
+    "worker/project-creation-subject.test.ts": "dae76089cbd2ec041aabc9b0c868a1e9c09d8c2eb49ab51148dc52af7358485b",
+    "worker/projects/creation-subject.ts": "51cb1a186993e3a75c063724c97d26dbae9a8c7a0d295b8d213baf398785c5ef"
+  },
+  "staticProof": {
+    "baselineTrackedFiles": 1479,
+    "unchangedBaselineFiles": 1471,
+    "changedExistingFiles": [
+      "scripts/qa/phase5f/README.md",
+      "src/lib/project-client.ts",
+      "src/pages/ProjectsPage.tsx",
+      "src/pages/StorageProfileActivation.tsx",
+      "src/project-shell.mount.test.tsx",
+      "worker/project-routes.ts",
+      "worker/projects/read-surface.ts",
+      "worker/projects/read-worker.ts"
+    ],
+    "immutableSourceHashes": {
+      "worker/projects/service.ts": "92704f4fec38d7fc61b46145688d4b56b065096bf959d6d0603bd0613e0447c2",
+      "worker/projects/read-service.ts": "aab6645191ef0adac724d9b2b7946b7bc9a7c3cea249333a113e1f25060df526",
+      "worker/projects/read-sql.ts": "a8de3273e061756b1a60c16f76293e89b56b9a87ecdf93bc30d8f2df80451cd3",
+      "migrations/0023_portable_local_identity.sql": "7d16acea4506c080397bf57ba3f103cb128a5e4fdfca333a321e99f881dfc245",
+      "server/http.ts": "a385a665e71cdef1a80b3d1ad425b3f253e13d83fc22a9c92c187273b6f697ea",
+      "server/sqlite.ts": "852c319a02f44ee25aa99b1b95d1dec3bfcdec8dd60a4d7deec58e256e42df68",
+      "src/pages/ProcessingPage.tsx": "0ab4507c761d4d0c996beb7a5182bd5fc29dac5f3bbf47c4d9c767c40bb978dd",
+      "src/pages/ProcessingWorkspacePage.tsx": "c8183e92e3569484452cba2bbfa1c671f7124c5ea91c537952cdc6a61061992c",
+      "src/styles.css": "887d2350a26d97492ee8d9f192c1ab70f092dc5412582ce90b6502e62460c5f4",
+      "src/project.css": "cfda4fdb54fb8a1207435a39739d610022d721c4b60001e0e3380cbcc44afc96"
+    },
+    "oldProjectShellThreeTestBodiesByteUnchanged": true,
+    "newProjectMountedCases": 10,
+    "newStorageMountedCases": 4,
+    "newWorkerRouteCases": 3,
+    "finiteBrowserCases": 6,
+    "additionalActualApiSeedSampleOwnersPlanned": 51
+  },
+  "gates": {
+    "sourcePeer": "NOT_RUN",
+    "clientStrict": "NOT_RUN",
+    "serverStrict": "NOT_RUN",
+    "runtimeTestStrict": "NOT_RUN",
+    "WorkerStrict": "NOT_RUN",
+    "mounted14AndMatureRegressions": "NOT_RUN",
+    "WorkerRoute3AndMatureReadWrite": "NOT_RUN",
+    "freshWorkerBuild": "NOT_RUN",
+    "seed51": "NOT_RUN",
+    "browser6": "NOT_RUN",
+    "physicalStateChecks": "NOT_RUN",
+    "exactHeadFullCI": "NOT_RUN"
+  },
+  "boundaries": [
+    "No runtime process, SQLite, compiler, test, build or browser executed in this task.",
+    "No canonical or remote mutation.",
+    "Optional current-subject witness is not membership, identity mapping, File or administrator authority.",
+    "Node composer must explicitly supply node-local genuine installation context; current unavailable Project creation is not enabled by this candidate.",
+    "Legacy Project clients remain compatible; exact service SQL and all raw migrations/catalogs are unchanged.",
+    "Browser touch viewport is emulation; no physical-device/IME/provider/authenticated-deployed acceptance."
+  ],
+  "patch": {
+    "path": "/tmp/phase5f-directory-source-only-attempt1.patch",
+    "sha256": "5ef85ce23e391e2e48e6d50f3d80a9c1b7a4ce86c237760ba4d7bc00eef4036e",
+    "bytes": 119824,
+    "fileCount": 14
+  },
+  "freshSourceApplication": {
+    "baseCommit": "21fc17362d94b7ede38279781626130ddcb4020a",
+    "root": "/tmp/phase5f-directory-source-only-apply-21fc173",
+    "checkExitCode": 0,
+    "applyExitCode": 0,
+    "allOwnedSourceHashesMatched": true,
+    "runtimeExecuted": false
+  }
+}

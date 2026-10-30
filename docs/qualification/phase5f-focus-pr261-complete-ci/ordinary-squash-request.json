@@ -1,0 +1,5 @@
+{
+  "sha": "ff29b1137c38eae933fa16ec1d3e3bdc70aedcb0",
+  "merge_method": "squash",
+  "commit_title": "Restore Metrology focus and bound confirmation rejection controls (#261)"
+}

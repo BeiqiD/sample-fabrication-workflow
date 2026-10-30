@@ -1,0 +1,225 @@
+{
+  "status": "FAILED_ACTUAL_FIRST_CASE_CLOSED_AND_RUNTIME_RELEASED",
+  "createdAt": "2026-10-11T08:22:54.554412+00:00",
+  "producerHead": "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+  "qaConsumerHead": "4a4f324588d2482ce24b56a759566eae822a0e97",
+  "planSha256": "2232b313fb27a5dc6baa4b59ca90a37f321008da324fcd75b71d36badcb5767b",
+  "commands": {
+    "actual": 4,
+    "passed": 3,
+    "failed": 1,
+    "unrun": 0
+  },
+  "browser": {
+    "passed": 0,
+    "failedCases": 1,
+    "unrun": [
+      "historical-backup-controls-390-dark"
+    ],
+    "firstFailure": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ 'failed'\n- 'completed'\n\n    at originalResponseBody (file:///workspace/phase5f-recovery-job-controls-chromium-child-temp-source-attempt2/scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs:402:73)\n    at async caseRun (file:///workspace/phase5f-recovery-job-controls-chromium-child-temp-source-attempt2/scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs:497:131)\n    at async file:///workspace/phase5f-recovery-job-controls-chromium-child-temp-source-attempt2/scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs:593:3",
+    "browserNowActuallyCreatedAndCloseAwaited": true
+  },
+  "actualApiCosts": {
+    "auxiliaryGets": 2,
+    "browserGets": 4,
+    "browserMutationIntents": 2,
+    "originalServerMutationRequestsIssued": 4,
+    "sharedMutationRequests": 2,
+    "originalMutationRequestsMaximum": 10,
+    "acceptedMetadataMutationResponses": 4,
+    "productionPollingMayAddReadOnlyGets": true,
+    "originalRouteFetchForwardsOneNativeIntentOnce": true,
+    "scheduledOrStepInvocationsByHelper": 0,
+    "zipOrProviderOrTargetOperationsByHelper": 0
+  },
+  "oldOriginalSetupPostsSeparate": 2,
+  "historyEvidence": {
+    "stage": "after-original-shared-disable",
+    "schemaExact": true,
+    "onlyThreeExplicitMetadataTablesMayDiffer": true,
+    "allOtherApplicationTablesExact": true,
+    "original63WritePermitsExact": true,
+    "addedPermits": 0,
+    "acceptedJobs": 1,
+    "requestRows": 1,
+    "runtimeEnabled": 0,
+    "runtimeIncarnationSha256": "da6a3c81c7c4ac2abdef6d2dd8966f4a15119ac187505780fb096b0a18e8518f",
+    "runtimeRowSha256": "dc0ca3795b613fb199248e46ba35ffa96c4b956253f714bec78410608ea4b0d4",
+    "lineages": [
+      {
+        "jobId": "45f1572e-5f40-4465-b57f-4d5c6d218dac",
+        "requestId": "0b02acc7-4bbb-47db-a421-a77e42f2903f",
+        "actorMatchesCurrentSignedSubject": true,
+        "actorSha256": "5e685ebf41964f639f7cfd400fdfe7af27235920b84afae43456490d57625260",
+        "inputSha256": "17e460646b84346be18cf411ce37080e1b96b04e57f487b516585f11689a5e03",
+        "checkpointSha256": "944281dab220b6b58386d470c482560520fef6a8df927785d35d9c12e18936cf",
+        "state": "paused",
+        "generation": 1,
+        "reason": "paused_by_administrator",
+        "jobSha256": "6fc49f232f2db09aa1b79de293ef898ae7d627c3a5a2064cdc4fdebf7aaa2e92",
+        "requestSha256": "416f1c7401e141372a2fc6e98d7494a29559f304acc3f5c111aae838fa220263",
+        "noExecutionOrTargetOrArtifactWork": true
+      }
+    ]
+  },
+  "casesOriginalObserversAndContextSettled": [
+    {
+      "id": "historical-backup-controls-1280-light",
+      "contextClosed": true,
+      "originalAcceptedHistoryVerified": true,
+      "originalRouteWorkAwaited": {
+        "count": 21,
+        "rejected": 0
+      },
+      "originalBodiesAwaited": {
+        "count": 6,
+        "rejected": 0
+      },
+      "originalResponseWaitsAwaited": {
+        "count": 6,
+        "rejected": 0
+      }
+    }
+  ],
+  "actualPhysical": {
+    "path": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/physical-sqlite-after-short-chromium-attempt2.json",
+    "sha256": "5e3b7e23211b1dd8f3d01930a127bafeec9dd5f114194bcb8a86241727bd08d0",
+    "status": "PASS",
+    "SQLiteFiles": 4
+  },
+  "actualFinalPins": {
+    "path": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/final-causal-f228-source-and-job-controls-short-temp-pins.json",
+    "sha256": "c0cae2a8c3f390d48c4e1f56bbad997477858f90ef5d966283b52a2f4dc564a6",
+    "status": "PASS",
+    "producerCount": 2489,
+    "newConsumerNonHelperCount": 2488,
+    "carriedArtifactCount": 118,
+    "copiedArtifactCount": 121,
+    "noNewBuildOrSeed": true
+  },
+  "originalNormalHandleClosure": {
+    "sessionId": "a43fea5a-18f6-4ce8-bf7f-26a8bc44afca",
+    "startedAt": "2026-10-11T08:21:05.841Z",
+    "status": "closed",
+    "browserCloseAwaited": true,
+    "originalSharedWorkBeforeDisableAwaited": 1,
+    "originalDisableAwaited": true,
+    "originalSharedWorkAwaited": {
+      "count": 2,
+      "rejected": 0
+    },
+    "originalApplicationCatalogRowsPermitsAndAcceptedHistoryVerified": true,
+    "executorDisabledReadBack": true,
+    "workerDisposeAwaited": true,
+    "workerPortRefused": true,
+    "jwksCloseAwaited": true,
+    "jwksPortRefused": true,
+    "completedAt": "2026-10-11T08:21:08.185Z"
+  },
+  "actualOwnedDirectCommandsAndCurrentGroups": [
+    {
+      "pid": 989896,
+      "startTicks": "12010129",
+      "group": 989896,
+      "directExit": 0,
+      "directReaped": true,
+      "actualCurrentMembers": []
+    },
+    {
+      "pid": 989972,
+      "startTicks": "12011945",
+      "group": 989972,
+      "directExit": 1,
+      "directReaped": true,
+      "actualCurrentMembers": []
+    },
+    {
+      "pid": 990439,
+      "startTicks": "12018194",
+      "group": 990439,
+      "directExit": 0,
+      "directReaped": true,
+      "actualCurrentMembers": []
+    },
+    {
+      "pid": 990517,
+      "startTicks": "12018898",
+      "group": 990517,
+      "directExit": 0,
+      "directReaped": true,
+      "actualCurrentMembers": []
+    }
+  ],
+  "ownedCleanupSignals": [],
+  "scope": "Only current four original owned groups/current helper normal closure examined; no global process/FD quiescence claim. Original accepted queued job retained, executor disabled. Strict original202 native body observation failed; actual cause remains undiagnosed, no product/HTTP/body fallback/waiver/retry. Old original ac9 setup/final carrier failure preserved separately.",
+  "originalRawFiles": {
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/genuine-recovery-job-controls-browser-progress-short-chromium-attempt2.ndjson": {
+      "sha256": "803f344e6716f5ec71eab992e5453ae6db726788e94185df6b9e040d0bfebc45",
+      "bytes": 152
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/genuine-recovery-job-controls-browser-report-short-chromium-attempt2.json": {
+      "sha256": "697440a258b5969acc815dae9cebeb1e3720ba58ae8baf9acdd19d7a61bf0e12",
+      "bytes": 56141
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/genuine-recovery-job-controls-runtime-stop-short-chromium-attempt2.json": {
+      "sha256": "c7eac0f73a311b571ab7c825de6ae9b54f02d4ea398dee8669a6310542133534",
+      "bytes": 579
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/physical-sqlite-after-short-chromium-attempt2.json": {
+      "sha256": "5e3b7e23211b1dd8f3d01930a127bafeec9dd5f114194bcb8a86241727bd08d0",
+      "bytes": 61845
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/physical-sqlite-before-short-chromium-attempt2.json": {
+      "sha256": "08bbff6db9733b31a25303856830c1b4cac4688e28feb669b49eecc26eb8b05b",
+      "bytes": 61735
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/chromium-child-temp-owner.json": {
+      "sha256": "9c84383c93a07b2800f90d8e0f75f4acc2615ed8ce9f7e861fc000db08a41084",
+      "bytes": 652
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/current-actual-f228-carry-and-short-temp-beforephysical-command.json": {
+      "sha256": "d65185548be502131571da453b25e28ce011493e65b9e849679b6aaa7fb147d4",
+      "bytes": 1675
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/current-actual-f228-carry-and-short-temp-beforephysical.log": {
+      "sha256": "fa65f6539aa4a3585323f4e329bf7d72965a897730b6b34de0c1cd79f238387a",
+      "bytes": 406
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/final-causal-f228-source-and-job-controls-short-temp-pins.json": {
+      "sha256": "c0cae2a8c3f390d48c4e1f56bbad997477858f90ef5d966283b52a2f4dc564a6",
+      "bytes": 3086
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/final-source-artifact-input-pins-command.json": {
+      "sha256": "30c564c93bcd60d0cc282a1f6fa9c52844008d8209a12b9337e5344fbc01f178",
+      "bytes": 1768
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/final-source-artifact-input-pins.log": {
+      "sha256": "83755c7466e52cc3b9436df4afc4f83c5f45f5389ecad32e6ad70a9b278f122e",
+      "bytes": 201
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/frozen-approved-plan.json": {
+      "sha256": "2232b313fb27a5dc6baa4b59ca90a37f321008da324fcd75b71d36badcb5767b",
+      "bytes": 11012
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/genuine-signed-admin-recovery-job-controls-two-command.json": {
+      "sha256": "fdd18d65e85a7554cdfd78a6a259eaca278494c13697e2ce6bd0053f6d900e96",
+      "bytes": 2894
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/genuine-signed-admin-recovery-job-controls-two.log": {
+      "sha256": "8f10f1196917cc6d7b98e8c60176b9901bebc231b73639c53271063dc93c67b6",
+      "bytes": 256
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/physical-after-short-chromium-command.json": {
+      "sha256": "f30fa2a92a005275670ff165019cf4d06d093fd3263d8e95989eb89f73236b40",
+      "bytes": 1866
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/physical-after-short-chromium.log": {
+      "sha256": "857ae97726a90311d625ca5a8d8d422b3ffd4e5a448b2e1d67aaeb3219eb8e3e",
+      "bytes": 199
+    },
+    "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/prior-actual-f228-build-and-two-shared-posts-causal-carry.json": {
+      "sha256": "a727992e96186eb40f1fd29bf1d47f1f3e9a14e4b337a2ade33d05e069f36194",
+      "bytes": 943
+    }
+  }
+}

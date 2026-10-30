@@ -1,0 +1,68 @@
+{
+  "stage": "synthetic-template-sentinels-only",
+  "cwd": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/copy",
+  "argv": [
+    "node",
+    "node_modules/wrangler/bin/wrangler.js",
+    "d1",
+    "execute",
+    "DB",
+    "--local",
+    "--config",
+    ".wrangler/deploy.jsonc",
+    "--persist-to",
+    "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/copy/.wrangler/state",
+    "--file",
+    "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/fixture/process-fixture.sql"
+  ],
+  "env": {
+    "TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2",
+    "SQLITE_TMPDIR": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2"
+  },
+  "startedAt": "2026-10-11T20:28:25.678822+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-package-mobile-six-custody-native-private-attempt2/runtime/synthetic-template-sentinels-only.log",
+  "pid": 1519931,
+  "processGroup": 1519931,
+  "originalStartTicks": "16376644",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1519947,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1519931,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1519947,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1519931,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1519947,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1519931,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T20:28:26.972112+00:00",
+  "logSha256": "2fff3b72fd5945514b75aba1301c6c3103debdff629b1cb200b004f0b8360e1d"
+}

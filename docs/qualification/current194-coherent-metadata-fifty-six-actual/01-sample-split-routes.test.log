@@ -1,0 +1,21 @@
+
+ RUN  v4.1.10 /workspace/portable-current194-coherent-metadata-source-only-attempt1
+
+ ✓ worker/sample-split-routes.test.ts > Sample split route characterization > inherits the completed process structure instead of the parent's inherited or initial state 1175ms
+ ✓ worker/sample-split-routes.test.ts > Sample split route characterization > rejects a stale parent revision without changing samples, structures, or audit events 1093ms
+ ✓ worker/sample-split-routes.test.ts > execution-image structure inheritance > materializes an ordered persistent diagram, downloads child images, and reuses its immutable identity 1382ms
+ ✓ worker/sample-split-routes.test.ts > execution-image structure inheritance > rejects a changed parent revision at the transaction boundary without publishing a state or children 1493ms
+ ✓ worker/sample-split-routes.test.ts > execution-image structure inheritance > rejects a changed execution order at the transaction boundary without publishing a state or children 1574ms
+ ✓ worker/sample-split-routes.test.ts > execution-image structure inheritance > rejects a changed completed step at the transaction boundary without publishing a state or children 1570ms
+ ✓ worker/sample-split-routes.test.ts > execution-image structure inheritance > rolls the materialized state back when a child code collides 1380ms
+ ✓ worker/sample-split-routes.test.ts > execution-image structure inheritance > preserves and rejects an inconsistent existing canonical content 1269ms
+ ✓ worker/sample-split-routes.test.ts > execution-image structure inheritance > preserves and rejects an inconsistent existing partial mapping 1354ms
+ ✓ worker/sample-split-routes.test.ts > execution-image structure inheritance > preserves and rejects an inconsistent existing empty mapping 1254ms
+ ✓ worker/sample-split-routes.test.ts > execution-image structure inheritance > rejects an incomplete representation that appears after the pre-read without filling its empty mapping 1451ms
+
+ Test Files  1 passed (1)
+      Tests  11 passed (11)
+   Start at  04:46:30
+   Duration  18.21s (transform 2.51s, setup 36ms, import 3.06s, tests 15.00s, environment 0ms)
+
+JSON report written to /tmp/portable-current194-coherent-metadata-fifty-six-owned-actual-attempt1/01-sample-split-routes.test.json

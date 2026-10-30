@@ -1,0 +1,9 @@
+
+ RUN  v4.1.10 /workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1
+
+
+ Test Files  1 passed (1)
+      Tests  34 passed (34)
+   Start at  16:17:00
+   Duration  2.90s (transform 591ms, setup 0ms, import 731ms, tests 1.74s, environment 314ms)
+

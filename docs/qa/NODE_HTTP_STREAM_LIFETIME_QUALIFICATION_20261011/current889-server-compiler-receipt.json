@@ -1,0 +1,47 @@
+{
+  "status": "PASS_COMPILER_ONLY",
+  "sourceHead": "889ba4228a979ae5cb2fc13da3db8e7657d377c7",
+  "sourceTree": "f4562c9c3a3f4fd68ef785223ab51502888d37f3",
+  "sourceEntries": 2353,
+  "sourceBeforeExact": true,
+  "argv": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "/workspace/sample-fabrication-workflow/node_modules/typescript/bin/tsc",
+    "-p",
+    "tsconfig.server.json",
+    "--noEmit"
+  ],
+  "outerSeconds": 60,
+  "runtimeCases": 0,
+  "builds": 0,
+  "nativeOrSocket": 0,
+  "startedAt": "2026-10-11T10:58:00.754732+00:00",
+  "privateTMP": {
+    "path": "/workspace/dev5ca-http-drain-source-review-attempt1/current889-one-server-compiler-actual-attempt1/private-tmp",
+    "dev": 27,
+    "ino": 203994,
+    "uid": 1000,
+    "gid": 1000,
+    "mode": "0o700"
+  },
+  "fixedDependencies": {
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node": "bc17c508ffeed0ec622934f9b7fa72f8e78da65350e63c3eceb56fa688aa5e12",
+    "/workspace/sample-fabrication-workflow/node_modules/typescript/bin/tsc": "2219f428a7e55aaf1f7ad85b9b0f0cf5078aeb76ccc9a7c6036c92d48f492ffd",
+    "/workspace/sample-fabrication-workflow/node_modules/typescript/lib/tsc.js": "cbdfbf11c26ed00dfc073155e316a42d6d6d8a387be61006b82fa9aa93ac572e",
+    "/workspace/sample-fabrication-workflow/node_modules/.package-lock.json": "95202718d08fd50cc286bcddf0af66b08503d63b494e992006c50d4246d69a98"
+  },
+  "pid": 1090601,
+  "processGroup": 1090601,
+  "originalTimedOut": false,
+  "originalChildWaited": true,
+  "seconds": 1.243,
+  "exitCode": 0,
+  "sourceAfterExact": true,
+  "privateTMPExact": true,
+  "ownedGroupMembers": [],
+  "unreadableProcPids": [],
+  "ownedGroupEmpty": true,
+  "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "planSha256": "a7fc2ca52be3f0268b8946d6ba8879e33ff6d35fc8529bfc0776238d33753f0f",
+  "compilerNoRuntimeCaseCarry": true
+}

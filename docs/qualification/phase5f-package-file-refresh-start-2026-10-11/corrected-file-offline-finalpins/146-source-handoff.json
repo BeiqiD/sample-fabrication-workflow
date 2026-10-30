@@ -1,0 +1,71 @@
+{
+  "status": "SOURCE_ONLY_FILE_ORDERED_READER_ONE_FINALPINS_CHECK_UNRUN",
+  "plan": {
+    "path": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-source-preparation-attempt1/finite-one-original-closed-file-ordered-reader-finalpins-plan.json",
+    "sha256": "532836f3422b4f38b5a322bb9558e501838761d8f9bd44bfa0d51a63ab1b0b7d",
+    "bytes": 16640
+  },
+  "runner": {
+    "path": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-source-preparation-attempt1/run-frozen-owned-stage.py",
+    "sha256": "547e0d4c67cf6253e74bd9e8f68141f8ae68be0e9a7269be82864da329a865aa",
+    "bytes": 11574
+  },
+  "carrier": {
+    "path": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-source-preparation-attempt1/check-original-closed-file-ordered-reader-finalpins.py",
+    "sha256": "28a2f9b02154460d72cd2f29803ae732728379b811e6f7111c69a66be1fa032b",
+    "bytes": 17655
+  },
+  "inverse": {
+    "path": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-source-preparation-attempt1/whole-three-carrier-four-runner-binding-and-ordered-reader-inverses.json",
+    "sha256": "6dac06fed8a159f3c326fd6c5042936e8b41d03a73e5358e27e402c19df83dca",
+    "bytes": 3738
+  },
+  "carrierPatch": {
+    "path": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-source-preparation-attempt1/carrier-ordered-reader-and-two-output-bindings.patch",
+    "sha256": "e11933172ec109ae7edfd4b051c705827b220ff0732f090c89f460d8f7d11632",
+    "bytes": 3845
+  },
+  "originalFileFailureFormal": {
+    "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/actual-current2d07-file-start202-final-carrier-failure-body-range-corrected-closed-release.json",
+    "sha256": "e4c9e7cf35c0ee1ac9869d6e1a1cf43e524a8e2d15c8bd676d318e45bf817743",
+    "bytes": 27984
+  },
+  "originalNativeReport": {
+    "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/fixture/genuine-file-start202-natural-focus-report.json",
+    "sha256": "503b85f232d43207f9d64a14cd97a42a76e6201e06b9441e6fa18a8f4ddd4b0c",
+    "bytes": 85809
+  },
+  "originalReaderHelper": {
+    "path": "/tmp/phase5f-package-file-current2d07-native-five-qa-private-attempt1/source/scripts/qa/phase5f/browser-current-package-file-focus-file-start202-natural-focus-keyboard.mjs",
+    "sha256": "11f0e926242a36023418c28d499b289ec7f7c17b7c8404e340a98607331c065d",
+    "bytes": 39872
+  },
+  "allOriginalSourcesAndProducerUnchanged": true,
+  "newNativeCasesHTTPAndSQLite": 0,
+  "runtimePrepared": {
+    "path": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-private-attempt1/runtime",
+    "mode": "0700",
+    "dev": 34,
+    "ino": 2105395,
+    "uid": 1000,
+    "entries": [
+      "frozen-approved-plan.json"
+    ],
+    "plan600": {
+      "path": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-private-attempt1/runtime/frozen-approved-plan.json",
+      "sha256": "532836f3422b4f38b5a322bb9558e501838761d8f9bd44bfa0d51a63ab1b0b7d",
+      "bytes": 16640
+    }
+  },
+  "newOutput": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-private-attempt1/runtime/final-current2d07-file-start202-ordered-reader-source-pins.json",
+  "startArgv": [
+    "python3",
+    "-B",
+    "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-source-preparation-attempt1/run-frozen-owned-stage.py",
+    "--exclusive-go-exact-c316fe8-original-closed-file-ordered-reader-finalpins-stage",
+    "original-closed-file-ordered-reader-finalpins"
+  ],
+  "actualEffects": 0,
+  "packageStartDisposition": "Original frozenPackageTEN unchanged; its two reader paths are capability200/executor200, so no unnecessary Package source correction.",
+  "next": "Root exact source peer and explicit necessaryfinalpins-only GO; no candidate invocation by author"
+}

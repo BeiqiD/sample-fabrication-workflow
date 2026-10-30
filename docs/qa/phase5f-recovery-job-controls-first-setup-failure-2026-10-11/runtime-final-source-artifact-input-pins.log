@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/workspace/phase5f-recovery-job-controls-current-coherent-finite-source-review-attempt1/verify-coherent-cf-producer-and-job-controls-witness.py", line 67, in <module>
+    assert closure['browserCloseAwaited'] and closure['jwksCloseAwaited'] and closure['jwksPortRefused']
+           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'browserCloseAwaited'

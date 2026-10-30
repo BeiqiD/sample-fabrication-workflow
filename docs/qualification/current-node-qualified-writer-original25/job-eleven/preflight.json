@@ -1,0 +1,74 @@
+{
+  "kind": "current-node-job-eleven-actual/1",
+  "status": "RESERVED_BEFORE_EFFECTS",
+  "sourceHead": "eaef0b5d1346faaa5cdf0fc8db0d9439919f1c42",
+  "sourceTree": "0908d3c9f3c17a46ca0c8c5459ed906e6ccd4512",
+  "sourceFreezeSha256": "bd8f5568cd5abfd542c068884c83490721150a1d85316a553f5cf03efdd88ede",
+  "planSha256": "af84cead36b635819e5e4fe27e50c02b70d7bdc4fc9b4f0166a038171f49aad2",
+  "runnerSha256": "86ad9696a2b4f3e339a2bc7c692aac28206d7f971c4ae98348567228aa5c803f",
+  "sourcePinsVerifiedBefore": true,
+  "strictCarry": {
+    "dependencyCanonicalTarget": "/workspace/sample-fabrication-workflow/node_modules",
+    "nodeExecutableSha256": "bc17c508ffeed0ec622934f9b7fa72f8e78da65350e63c3eceb56fa688aa5e12",
+    "typescriptEntrypointSha256": "2219f428a7e55aaf1f7ad85b9b0f0cf5078aeb76ccc9a7c6036c92d48f492ffd",
+    "actualOwnedFixtureCompilerReceiptPath": "/workspace/current-a5-qualified-writer-continuation-source-handoffs/affected-node-types-attempt1/receipt.json",
+    "actualOwnedFixtureCompilerReceiptSha256": "f770147c48efa0fdc750a0a2b231af4a308eda83ea22e154e06dd73a31f8da95",
+    "actualCompilerSourceHead": "eaef0b5d1346faaa5cdf0fc8db0d9439919f1c42",
+    "causalInputClosurePath": "/workspace/current-a5-qualified-writer-continuation-source-handoffs/complete-before-affected-node-types-source-freeze.json",
+    "causalInputClosureSha256": "bd8f5568cd5abfd542c068884c83490721150a1d85316a553f5cf03efdd88ede",
+    "scope": "Actual current Server strict PASS covers include server, including all three original fixture/support groups; all2575 current inputs/modes verified before and after on exact current head. No compiler repeated and no Native case carry.",
+    "actualCompilerSourceTree": "0908d3c9f3c17a46ca0c8c5459ed906e6ccd4512"
+  },
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "node_modules/vitest/vitest.mjs",
+    "run",
+    "--config",
+    "node-job-http-request.vitest.config.mts",
+    "--reporter=verbose",
+    "--reporter=json",
+    "--outputFile.json=/workspace/current-a5-qualified-writer-job-eleven-owned-actual-attempt1/actual-native.json"
+  ],
+  "expectedTotal": 11,
+  "expectedSelected": 11,
+  "expectedUnselected": 0,
+  "caseDefaultMs": 5000,
+  "hookDefaultMs": 10000,
+  "observedFilesystemRootOwnerUid": 65534,
+  "runtimeResults": [],
+  "authorityScope": "Current development joined Node source eaef0b5d1346faaa5cdf0fc8db0d9439919f1c42; original job-eleven wholly fresh, zero Native case carry. Same original Native/core/physical lease and current Request/session/role/incarnation/recovery fences, qualified active original writer continuation; source-specific donor results remain historical. No Group/V28/CLI/research/metrology grant or runtime default broadening.",
+  "privateTemporaryDirectoryBefore": {
+    "path": "/workspace/current-a5-qualified-writer-job-eleven-owned-actual-attempt1/private-tmp",
+    "dev": 27,
+    "ino": 1945288,
+    "uid": 1000,
+    "gid": 1000,
+    "mode": "0o700",
+    "freeBytesBeforeChild": 2896687104,
+    "childEnvOverrides": {
+      "TMPDIR": "/workspace/current-a5-qualified-writer-job-eleven-owned-actual-attempt1/private-tmp",
+      "SQLITE_TMPDIR": "/workspace/current-a5-qualified-writer-job-eleven-owned-actual-attempt1/private-tmp"
+    }
+  },
+  "privateFixtureDirectoryBefore": {
+    "path": "/workspace/current-a5-qualified-writer-job-eleven-owned-actual-attempt1/private-fixtures",
+    "dev": 27,
+    "ino": 1945289,
+    "uid": 1000,
+    "gid": 1000,
+    "mode": "0o700",
+    "childEnvOverride": {
+      "NODE_PROTOTYPE_FIXTURE_PARENT": "/workspace/current-a5-qualified-writer-job-eleven-owned-actual-attempt1/private-fixtures"
+    }
+  },
+  "explicitInheritedCatalogKdfBeforeAllMs": null,
+  "actualHistoricalCompilerReceipts": [
+    {
+      "path": "/workspace/current-a5-qualified-writer-continuation-source-handoffs/affected-node-types-attempt1/receipt.json",
+      "sha256": "f770147c48efa0fdc750a0a2b231af4a308eda83ea22e154e06dd73a31f8da95",
+      "actualSourceHead": "eaef0b5d1346faaa5cdf0fc8db0d9439919f1c42",
+      "actualSourceTree": "0908d3c9f3c17a46ca0c8c5459ed906e6ccd4512",
+      "scope": "Actual current Server strict PASS covers include server, including all three original fixture/support groups; all2575 current inputs/modes verified before and after on exact current head. No compiler repeated and no Native case carry."
+    }
+  ]
+}

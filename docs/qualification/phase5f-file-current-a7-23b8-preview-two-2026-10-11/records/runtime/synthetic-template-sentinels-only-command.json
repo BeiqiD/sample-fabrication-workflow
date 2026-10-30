@@ -1,0 +1,70 @@
+{
+  "stage": "synthetic-template-sentinels-only",
+  "cwd": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/copy",
+  "argv": [
+    "node",
+    "node_modules/wrangler/bin/wrangler.js",
+    "d1",
+    "execute",
+    "DB",
+    "--local",
+    "--config",
+    ".wrangler/deploy.jsonc",
+    "--persist-to",
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/copy/.wrangler/state",
+    "--file",
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture/process-fixture.sql"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5",
+    "SQLITE_TMPDIR": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5",
+    "WRANGLER_SEND_METRICS": "false",
+    "WRANGLER_LOG_PATH": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture/wrangler-logs"
+  },
+  "startedAt": "2026-10-11T13:00:18.801731+00:00",
+  "status": "PASS",
+  "log": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/synthetic-template-sentinels-only.log",
+  "pid": 1195881,
+  "processGroup": 1195881,
+  "originalStartTicks": "13687957",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1195897,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1195881,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1195897,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1195881,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1195897,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1195881,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T13:00:20.152480+00:00",
+  "logSha256": "f7489c7ff80f5f56172be63e89f719891814ec556dbe2836fa0057fd32d2c066"
+}

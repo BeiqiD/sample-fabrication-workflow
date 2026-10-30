@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "sourceRoot": "/tmp/phase5f-package-preview-focus-current1943-source-attempt3",
+  "sourceCopyRoot": "/tmp/phase5f-package-preview-focus-fresh-build-copy-attempt3",
+  "fixtureDirectory": "/tmp/phase5f-package-preview-focus-fresh-build-fixture-attempt3",
+  "sourceHead": "ffff956c68e64e20b91b773d3bcb064642a37410",
+  "sourceTree": "6717c62026f486e241de222ae6d206e30a51ce96",
+  "sessionId": "9ebfbea5-66cc-4d62-8693-3107305d22c2",
+  "sessionPid": 730629,
+  "isolationReceiptSha256": "523626086276ca02f030b37051d7f1355a95793220f0f558cac51ab75ed43bb1",
+  "fixtureManifestSha256": "ae2f147838e75acc6e0080540e12f1754f5d31ee20b3d751c7a76ccbc053322c",
+  "status": "stopped",
+  "control": "stdin:stop",
+  "disposalAwaited": true,
+  "portClosed": true,
+  "startedAt": "2026-10-11T04:12:52.651Z",
+  "stoppedAt": "2026-10-11T04:12:52.662Z",
+  "startupReceiptSha256": "8679d2c04f089af9e45c07d30d77651642ce5167ce0a0d9ae81bf8f2e8aea390",
+  "helperSha256": "929eec612bf7ab8b266089553b5d56ce75e0abb192d24ab929222403cc5d3424"
+}

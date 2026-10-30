@@ -1,0 +1,22 @@
+{
+  "stage": "baseline-original756-product-new-two-tests",
+  "pid": 793668,
+  "argv": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "/tmp/comment-create-order-756-baseline-control-source-attempt1/node_modules/vitest/vitest.mjs",
+    "run",
+    "src/lib/comment-submission-client.test.ts",
+    "--maxWorkers",
+    "1",
+    "--no-file-parallelism",
+    "--reporter=json",
+    "--outputFile=/tmp/comment-create-order-baseline-and-fixed-actual-attempt1/baseline-two-result.json",
+    "-t",
+    "reserves the first create|releases a failed digest reservation"
+  ],
+  "root": "/tmp/comment-create-order-756-baseline-control-source-attempt1",
+  "productSha256": "d751bdc20f9f2cf2ddc72c32ad9c7c0e7f17eab19ccbf34a0e3ceac61f18a9f3",
+  "testSha256": "411994b527f42e523b3d6a8100c330fc10251ce7f00df2c91a69eb8b110f5f3b",
+  "defaultsUnchanged": true,
+  "expectedSelected": 2
+}

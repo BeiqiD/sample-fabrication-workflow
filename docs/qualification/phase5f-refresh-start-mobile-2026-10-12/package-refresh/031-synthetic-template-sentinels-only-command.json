@@ -1,0 +1,68 @@
+{
+  "stage": "synthetic-template-sentinels-only",
+  "cwd": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy",
+  "argv": [
+    "node",
+    "node_modules/wrangler/bin/wrangler.js",
+    "d1",
+    "execute",
+    "DB",
+    "--local",
+    "--config",
+    ".wrangler/deploy.jsonc",
+    "--persist-to",
+    "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/copy/.wrangler/state",
+    "--file",
+    "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/fixture/process-fixture.sql"
+  ],
+  "env": {
+    "TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1",
+    "SQLITE_TMPDIR": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1"
+  },
+  "startedAt": "2026-10-12T01:45:11.172054+00:00",
+  "status": "PASS",
+  "log": "/workspace/phase5f-package-current2d07-refresh-mobile-native-private-attempt1/runtime/synthetic-template-sentinels-only.log",
+  "pid": 1674069,
+  "processGroup": 1674069,
+  "originalStartTicks": "18277194",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1674085,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1674069,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1674085,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1674069,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1674085,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1674069,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-12T01:45:12.486864+00:00",
+  "logSha256": "21e54fe0ed1bd23c4c0691519d3298e3fe313d19f4e64f619d6de1b454657186"
+}

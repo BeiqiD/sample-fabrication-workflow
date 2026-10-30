@@ -1,0 +1,351 @@
+{
+  "status": "PASS-CLOSED-RELEASED",
+  "completedAt": "2026-10-11T13:02:34.091726+00:00",
+  "producerHead": "a7d64919f28477adcd3923809a63d1c1f9cc0561",
+  "producerTree": "5e3b9da99f834135f8ea011aa47f7a092e1a7ef5",
+  "qaConsumerHead": "23b8f368248ee5e21d78fb9f371de7ff9d0283a0",
+  "qaConsumerTree": "dc94c01bc6a7fa8df6db4cf4615019c51d45fd12",
+  "trackedProducerInputs": 2438,
+  "trackedQaInputs": 2438,
+  "ordinaryProducerInputsExact": 2435,
+  "commands": {
+    "passed": 10,
+    "failed": 0,
+    "unrun": 0
+  },
+  "nativeCases": {
+    "passed": 2,
+    "failed": 0,
+    "unrun": 0
+  },
+  "actualCosts": {
+    "setupPOSTs": 6,
+    "readerGETs": 2,
+    "nativeGETs": 14,
+    "nativePreviewPOSTs": 2,
+    "maxSetupPOSTs": 6,
+    "maxPreviewPOSTs": 2,
+    "newMigrationJobsOrExecutorSteps": 0
+  },
+  "cases": [
+    {
+      "id": "genuine-file-migration-preview-1280-light",
+      "status": "passed",
+      "assertions": [
+        {
+          "genuineOriginalPlan200": true,
+          "oneEligibleActualFile": 1,
+          "bytes": 68,
+          "stagingBytes": 340,
+          "maxTransferBytes": 1020,
+          "nativePreviewFocus": {
+            "active": true,
+            "focusVisible": true,
+            "disabled": false
+          }
+        },
+        {
+          "geometry": {
+            "width": 1280,
+            "root": 1280,
+            "body": 1280,
+            "theme": "light"
+          }
+        }
+      ],
+      "originalRoutesAwaited": {
+        "count": 28,
+        "rejected": 0
+      },
+      "originalBodiesAwaited": {
+        "count": 8,
+        "rejected": 0
+      },
+      "originalWaitsAwaited": {
+        "count": 6,
+        "rejected": 0
+      },
+      "contextCloseAwaited": true
+    },
+    {
+      "id": "genuine-file-migration-preview-390-dark",
+      "status": "passed",
+      "assertions": [
+        {
+          "genuineOriginalPlan200": true,
+          "oneEligibleActualFile": 1,
+          "bytes": 68,
+          "stagingBytes": 340,
+          "maxTransferBytes": 1020,
+          "nativePreviewFocus": {
+            "active": true,
+            "focusVisible": true,
+            "disabled": false
+          }
+        },
+        {
+          "geometry": {
+            "width": 390,
+            "root": 390,
+            "body": 390,
+            "theme": "dark"
+          }
+        }
+      ],
+      "originalRoutesAwaited": {
+        "count": 28,
+        "rejected": 0
+      },
+      "originalBodiesAwaited": {
+        "count": 8,
+        "rejected": 0
+      },
+      "originalWaitsAwaited": {
+        "count": 6,
+        "rejected": 0
+      },
+      "contextCloseAwaited": true
+    }
+  ],
+  "originalSourceAndHistory": {
+    "stage": "before-original-Worker-dispose",
+    "allApplicationRowsAndSchemaExactExceptExactReleasedPreviewPermits": true,
+    "old6PermitsExact": true,
+    "newReleasedPermits": 2,
+    "sourceBytesExact": true,
+    "targetEmpty": true,
+    "newRowsSha256": "206d91825c07b3509e450d4dcb4f346524551cf76fb0412e491c3357d7baef32"
+  },
+  "normalOwnerClosure": {
+    "status": "closed",
+    "browserCloseAwaited": true,
+    "originalPreparationOwnerClosure": {
+      "status": "closed",
+      "startedAt": "2026-10-11T13:01:00.914Z",
+      "originalRequestsAwaited": {
+        "count": 12,
+        "rejected": 0
+      },
+      "workerDisposeAwaited": true,
+      "workerPortRefused": true,
+      "originalOutboundWorkAwaited": {
+        "count": 1,
+        "rejected": 0
+      },
+      "jwksCloseAwaited": true,
+      "jwksPortRefused": true,
+      "completedAt": "2026-10-11T13:01:02.176Z"
+    }
+  },
+  "physicalSQLiteFiles": 5,
+  "physicalStatus": "passed",
+  "physicalPNGMatched": true,
+  "originalStateBytesUnchanged": true,
+  "actualArtifactFiles": 118,
+  "copiedArtifactFiles": 121,
+  "newBuildsThisWindow": 0,
+  "mountedOrTypeRerunsThisWindow": 0,
+  "disabledSeedRequests": 0,
+  "directChildren": {
+    "count": 10,
+    "allOriginalExit0AndWaitReapObserved": true,
+    "cleanupSignals": [],
+    "kernelGroups": {
+      "1195259": [],
+      "1195319": [],
+      "1195396": [
+        {
+          "pid": 1195407,
+          "state": "Z",
+          "ppid": 1,
+          "processGroup": 1195396,
+          "kernelResourcesExited": true,
+          "fdInspection": "PermissionError"
+        }
+      ],
+      "1195453": [
+        {
+          "pid": 1195469,
+          "state": "Z",
+          "ppid": 1,
+          "processGroup": 1195453,
+          "kernelResourcesExited": true,
+          "fdInspection": "PermissionError"
+        }
+      ],
+      "1195881": [
+        {
+          "pid": 1195897,
+          "state": "Z",
+          "ppid": 1,
+          "processGroup": 1195881,
+          "kernelResourcesExited": true,
+          "fdInspection": "PermissionError"
+        }
+      ],
+      "1195970": [],
+      "1196053": [],
+      "1196124": [],
+      "1196356": [],
+      "1196382": []
+    },
+    "emptyGroups": 7,
+    "exitedKernelGroups": 3,
+    "scope": "Only original ten owned groups; kernelZ/X resource exits retained. PermissionError means FD metadata unavailable, not observed zeroFD; no global quiescence claim."
+  },
+  "loopbackPorts": [
+    {
+      "host": "127.0.0.1",
+      "port": 4219,
+      "connection": "refused"
+    },
+    {
+      "host": "127.0.0.1",
+      "port": 43797,
+      "connection": "refused"
+    }
+  ],
+  "firstActualFailuresPreserved": {
+    "currentCopyFailure": "738c885e5f2c3f983584723d509c2d0205857b485b276a718c26fafe163563ed",
+    "original6eFocusFailure": "cecfb35007e536cbca9eba13dea29bbd05e18db2c745b533add67aa382000849"
+  },
+  "scope": "Current a7 actualCF118 producer with separately reviewed23b8 three-QA consumer; currentc50 strict/File11 carry separate, no fresh same-head compiler/mounted claim. Two signed Access localR2 previews/metadata permits only, no migration acceptance/executor/transfer/GC/ZIP/provider/mainTarget or complete5F/currentownCI/deployment acceptance.",
+  "rawRecords": {
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/chromium-child-temp-owner.json": {
+      "sha256": "af27a55e0fc089ca1c846385f5d71cefadcf43579e743e8324c0bd15d0690c53",
+      "bytes": 601
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/current-a7-build-new-pure24-file-fixture-causal-carry.json": {
+      "sha256": "57a61c14208df931982727b3199ca5aa23d30389b0ea7048652d29e27d5b0df8",
+      "bytes": 1657
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/current-source-build-and-pure24-witness-command.json": {
+      "sha256": "175cfe19145b361c887b14b2bbac54912961e36f9a0fdbba8db94e45a2c2ab87",
+      "bytes": 1307
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/current-source-build-and-pure24-witness.log": {
+      "sha256": "d34d7d9e7f1567f7fcfae8b0f774f0acf1b18f5df23516c93bed257f99d0201c",
+      "bytes": 204
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/final-a7-source-and-genuine-two-r2-file-preview-pins.json": {
+      "sha256": "168edaaf7829f32a679133c33658fa3b0fa47f287ae8f66855357621b7fecd1a",
+      "bytes": 2798
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/final-source-artifact-input-pins-command.json": {
+      "sha256": "9a8a61edab88f9b15628915db28cad8d9ee3ff39bf030adbf436a81a722c94fa",
+      "bytes": 1296
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/final-source-artifact-input-pins.log": {
+      "sha256": "2fd1746b29511e4816b3d16369b3595c95a0ff6cece0fef864b86a029cb37384",
+      "bytes": 207
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/fresh-two-version-sentinel-command.json": {
+      "sha256": "8aba9aa7e55dafa94a337ff35dd810712a1a919eca07cb30168afe12c06799d1",
+      "bytes": 1934
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/fresh-two-version-sentinel.log": {
+      "sha256": "f28e855f48fe2cfb521bf2ad267db59b53eb100979004048ab36bb30a35261fb",
+      "bytes": 244
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/frozen-approved-plan.json": {
+      "sha256": "5784597f5147dda1181ae77ae3a9698f68d04ed07a6954b96b3b426b2a38048a",
+      "bytes": 19078
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/isolated-copy-command.json": {
+      "sha256": "1a9e4b790f5bd7721e9ec231b64f4e631e5fe2cd7cae6a6570ee148cc06480be",
+      "bytes": 1438
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/isolated-copy.log": {
+      "sha256": "c1274e0088c09a57327105e49ff538292b26115fca5d4459f8099da502dbb563",
+      "bytes": 209
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/ordinary-actual24-local-migrations-command.json": {
+      "sha256": "50a32319286b047e7d510a8f09a67980c73a34b7b47a6c05e2321970916c015c",
+      "bytes": 2062
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/ordinary-actual24-local-migrations.log": {
+      "sha256": "a4c2ee4f147f8110883945240afdfc2a2814e352b98694a6814440398a2d4360",
+      "bytes": 147956
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/original-two-local-r2-file-migration-previews-command.json": {
+      "sha256": "2efc632e78a266accd93d87a5dcc75139f8ef55730b932817f772a09002a4dd1",
+      "bytes": 2375
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/original-two-local-r2-file-migration-previews.log": {
+      "sha256": "89711d0fab8f148e727a9c8537d5bd4178b181efb4aed7415b1162cce94056b8",
+      "bytes": 404
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/physical-after-command.json": {
+      "sha256": "ca79dc10409b0468a9150776bab6de7b752e42157c5b1faf5a208eb84c82bf34",
+      "bytes": 1759
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/physical-after.log": {
+      "sha256": "4ca420c4a68a92ca3a6900c07989e5d5307c7fbc3a9e3a4c83cfdad1412ccd02",
+      "bytes": 182
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/physical-before-command.json": {
+      "sha256": "2b9afe48d23f581d7fa1d115188d836d894b08d431280fd9adc0e9abb4ea565a",
+      "bytes": 1401
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/physical-before.log": {
+      "sha256": "4ac954995b4c4ffc8e8226174f3df3e3ef71d7b5eaebf368c10c35da5e3f25ec",
+      "bytes": 174
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/qualified-current-a7-build-producer-preflight-command.json": {
+      "sha256": "809e95a032c18fd9dd51bb7b8571160f074aa198941de440afc6b87cbe9503fd",
+      "bytes": 1330
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/qualified-current-a7-build-producer-preflight.log": {
+      "sha256": "44ebaa303713644672cafc49cfee64773c540ef7c1a048848ffbc026de299230",
+      "bytes": 99
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/synthetic-template-sentinels-only-command.json": {
+      "sha256": "5608dd3f25d47adbe7658b1ca40dc1333b78fa7143a753e90bf884a0428ea191",
+      "bytes": 2159
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/runtime/synthetic-template-sentinels-only.log": {
+      "sha256": "f7489c7ff80f5f56172be63e89f719891814ec556dbe2836fa0057fd32d2c066",
+      "bytes": 1611
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture/enabled-storage-draft-build-input-witness.json": {
+      "sha256": "6c38942732ec974b008876fcb3202a16175e9c621ad8c7697225a299d03b967a",
+      "bytes": 1338
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture/fixture-hashing.mjs": {
+      "sha256": "6759a47bcc613bcae6cb75cefd6fdd3c89759920befd1d31fbca57736bb4311e",
+      "bytes": 2930
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture/genuine-two-r2-file-migration-preview-artifacts/genuine-file-migration-preview-1280-light.geometry.json": {
+      "sha256": "a34806aae4f53a2d6cbd210a29e6c42f959bc15e59a2516d9b970e8645000112",
+      "bytes": 72
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture/genuine-two-r2-file-migration-preview-artifacts/genuine-file-migration-preview-390-dark.geometry.json": {
+      "sha256": "0309ff9f2ce2bdf06bee71d370a2b7b0cec9639964561c17af1d147530057f7a",
+      "bytes": 68
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture/genuine-two-r2-file-migration-preview-report.json": {
+      "sha256": "8a2df17ccf77fdb634a88139c420dd003d0b6bb311eface0e00efd0467e748d1",
+      "bytes": 87632
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture/genuine-two-r2-file-migration-preview-stop.json": {
+      "sha256": "e3897efc85005dc87ca362b1e4fd2f7877dac0fa51d730b1ab1aff97f6d68e5c",
+      "bytes": 500
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture/physical-sqlite-after-two-local-r2-migration-preview.json": {
+      "sha256": "ec22b2fe98062b0afcc6d7db515655ba5d3fe8d5e1b62204b6cd65bf391da6e4",
+      "bytes": 70230
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture/physical-sqlite-before-api.json": {
+      "sha256": "4a8022486bd5f0c9152548850361bccf92670187ace3cb4725c99aa45f59aa1a",
+      "bytes": 63348
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture/process-fixture.json": {
+      "sha256": "c8ac8fd02d6e0e86a2b12f55d72f79ba65124d6d274f9a3706f66cb7fca31128",
+      "bytes": 1589
+    },
+    "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/fixture/process-fixture.sql": {
+      "sha256": "0ad6d34fec4e7727b054b0f9529d9ea08ae0f200678bf1eaed2439c036b9c8e5",
+      "bytes": 5579
+    }
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "status": "SOURCE_ONLY_FIVE_ADDITIVE_MOBILE_QA_FROZEN_ALL_ACTUAL_UNRUN",
+  "repository": "/workspace/current-dev57f-qualified-cli-mounted-jobs-source-attempt1",
+  "ref": "refs/heads/source/current2d07-three-mobile-complementary-five-qa",
+  "head": "c3c1027b66cca605c7d1ee5e9b7d30427d5c3ca4",
+  "tree": "7e267469efe57b9e72ceeab205a6633b60526735",
+  "parent": "c316fe89ce79cd9d4d40627763bbe7ed029debbe",
+  "trackedCount": 3191,
+  "protectedParentCount": 3186,
+  "protectedProducerCount": 3181,
+  "allProtectedModeBlobBytesExact": true,
+  "freeze": {
+    "path": "/tmp/phase5f-current2d07-three-mobile-complementary-qa-source-preparation-attempt1/complete-mobile-complementary-git-source-freeze.json",
+    "sha256": "33e9b74e8e73617676a8388ff19b73fbed2e988a60b0c77ff75e33d9d3c0cd9e",
+    "bytes": 911862
+  },
+  "ownedInverse": {
+    "path": "/tmp/phase5f-current2d07-three-mobile-complementary-qa-source-preparation-attempt1/five-owned-mobile-qa-and-whole-donor-inverses.json",
+    "sha256": "6c6c473fac9a60e37ee671e450f1c5b3b31bf5aee91f4126e79c7fb39a05cc91",
+    "bytes": 4413
+  },
+  "patch": {
+    "path": "/tmp/phase5f-current2d07-three-mobile-complementary-qa-source-preparation-attempt1/additive-mobile-five-qa-source.patch",
+    "sha256": "614eab4ed81a951579a9f199fd8538fd5df4d8c1c1ace9b216aed802717e7a9f",
+    "bytes": 141574
+  },
+  "producer": {
+    "root": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+    "head": "2d07b57c4e79403099261528ae8988c0072d28c6",
+    "count": 3181,
+    "actual118Manifest": {
+      "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/fresh-build-artifact-manifest.json",
+      "sha256": "597c4bc6edc4b4174abc45ece58d815f6d6e38e587710b01f267d084a7cfe7ae",
+      "bytes": 14601
+    },
+    "scope": "Actual current2d07 CF build reused only with complete source/artifact causal closure; new QA is not a new production build."
+  },
+  "nativeScenarios": [
+    {
+      "id": "current-coherent-package-status-refresh-keyboard-390-dark",
+      "setupPOSTMaximum": 6,
+      "nativePOSTMaximum": 0,
+      "expectedNativeGETs": 4,
+      "actualPollingCountRecorded": true
+    },
+    {
+      "id": "current-file-start202-natural-focus-390-dark",
+      "setupPOSTMaximum": 6,
+      "nativePOSTMaximum": 2,
+      "state": "genuine queued generation0; natural same-job Pause focus before helper control/focus"
+    },
+    {
+      "id": "current-package-start202-natural-focus-390-dark",
+      "setupPOSTMaximum": 7,
+      "nativePOSTMaximum": 2,
+      "state": "genuine ordinary Sample201 then queued generation0; natural same-job Pause focus"
+    }
+  ],
+  "viewport": {
+    "width": 390,
+    "height": 844,
+    "theme": "dark",
+    "isMobile": true,
+    "hasTouch": true,
+    "scope": "Chromium emulation; no physical device, IME or other-engine claim"
+  },
+  "requestsBodiesAssertionsBudgets": {
+    "unchangedExceptViewportThemeCaseIdentityAndPrivateTemp": true,
+    "bodyMs": 20000,
+    "nativeTTYMs": 120000,
+    "overflowTolerancePx": 2,
+    "maximumPOSTAcrossSeparateNamespaces": 23
+  },
+  "freshChildTemps": [
+    "/workspace/.pkrfm1",
+    "/workspace/.sfstm1",
+    "/workspace/.pkstm1"
+  ],
+  "physicalReaderScope": "Only browser basename selectors change. Existing original physical algorithm/normal owner predicates remain exact; no failed-native waiver.",
+  "fileFinalPinsRequirement": "Use exact ordered reader tuples GET capability200 and GET /api/files/migrations403 from the corrected offline File oracle; do not inherit all200 carrier defect.",
+  "protectedActualHistory": "Existing three desktop current2d07/c316 cases and all old8be/c94 failures remain untouched, no accepted lineage replay.",
+  "workingHeadIndexUnchanged": {
+    "head": "f883e64086bee44b353f3840271fa3eaaafdcc7d",
+    "indexSha256": "ca3d74a19561f7c054edee4a38a615a51fa0d650fe60c5f0cecdba722a4ab85c"
+  },
+  "effects": {
+    "candidateModuleImports": 0,
+    "compilerMountedBuildNativeHTTPDatabaseCalls": 0,
+    "physicalMaterialization": false
+  },
+  "next": "Affected five-QA independent source review, then one finite source binding per fresh isolated scenario and explicit root exclusive GO; no current acceptance claim."
+}

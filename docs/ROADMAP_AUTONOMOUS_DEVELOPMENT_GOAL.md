@@ -1,0 +1,417 @@
+# Autonomous roadmap development goal
+
+**Bounded Node/Worker interoperability development checkpoint — 2026-10-14.**
+The current development milestone covers the named Node/SQLite/LOCAL and native
+Worker/D1/R2 Package and V5 Backup/Recovery paths. Each original result retains
+its own actual source, archive producer and first-close proof; no older pass is
+retagged as a new head.
+
+| Bounded acceptance | Exact-source result |
+| --- | --- |
+| Bidirectional Package and copy faults | Merged #305 retains the genuine 15-File R2→Node and Node→R2 pair. Merged #306 retains the final-byte corruption refusal and verified-copy process restart with exactly-once graph publication. |
+| Worker V5 public, headed and planned paths | Merged #310 preserves `0679be77`: its original dedicated 15-stage pipeline passed all 18 cases, including natural Comment/Run Step headed round trips and original revoke/deadline controls. The separate genuine planned one-case, three-distinct-D1 result remains at `7545713e`. Frozen V26/V3 compatibility stays separate. |
+| Node target, authority and held-R2 consumers | `b3fdd028`: eight original target/fault/consumer cases and the strengthened original live-owner case passed with original process/provider/Native closure. The held-R2 archive remains producer `62ac1d54`; current online and fixed offline CLI consumers preserve exact typed rows/rowids, payloads and protected/local history. |
+| Same-app elapsed cadence and restart | `b3fdd028`: all eight original shared-workflow cases passed. They cover prepared Package logout/same-cookie refusal, original archive Response EOF/cancel and scheduled Recovery ACK drain on SIGTERM, completed-POST revocation, real 120-second File/Package/Recovery slots and nonzero cursor restart. Original child wait and closure are proven; the earlier B6 cursor failure remains attached to its old attempt. |
+| Same-app maintenance and positive planned handoff | `15bd88d2`: one genuine same-parent case passed. The original File body/read ACK and source lease remained held; new source writers were denied and final fencing waited for that original ACK. A changed existing recipe-family name in the same window refused final handoff; exact restoration then admitted the positive planned inert handoff. Complete target typed image/rowids, payloads, absent protected authority and original Native/lease/HTTP closure passed. |
+| Qualified development integration | #311 merged into `v2/backend-foundation` as `11f2ea94` after all four own Verify/Project Map workflows, all 15 contexts and the original dedicated two-case target pipeline passed. The P7 QA/documentation successor carries this checkpoint. Its own four Verify/Project Map workflows and all 15 contexts are the pre-merge gates; its qualified development merge provides the final milestone integration. #311 post-merge results retain their separate scope. |
+
+The first target case has a new bounded 180-second QA allowance; the second
+retains 90 seconds. Its old 120-second failures and the environment-interrupted
+first wrapper with unproven closure remain recorded as their original failures.
+The real 60-second kernel, HTTP 5-second limit and product 120-second cadence
+stay unchanged. P7 uses the genuine same-parent factory and its original
+one-shot method; it does not claim compiled-main invocation or elapsed cadence.
+The separate P8 results provide the actual elapsed-slot evidence.
+
+The named bounded software/native acceptance is complete at the recorded
+scopes. The bounded goal closes after those Native results and successful own
+CI/development merge of this QA/documentation successor. This checkpoint travels
+with that successor; its qualified merge is the final integration step.
+
+Targets retain default-off executors and absent protected authority. The source
+remains maintenance-fenced with its source executors off; the closed source was
+observed through an actual read-only Native handle with unchanged durable main
+hash/inode. No operating-system read-only enforcement, running-app binding
+change or automatic activation is inferred.
+
+The next finite development work is frontend closure against the enabled
+supported matrix, followed by a reviewable `main` candidate. Physical-device,
+other-engine, authenticated deployed-provider and release/activation acceptance
+retain their separate boundaries. Production `main` merge, deployment, remote
+migration, provider activation and real production file movement are not granted
+by this checkpoint. Heavy checks remain local/GitHub CI; the Cloudflare path
+remains configuration, one bundle and upload.
+
+**Bounded Worker V5 development checkpoint — 2026-10-14.**
+[PR #309](https://github.com/BeiqiD/sample-fabrication-workflow/pull/309) merged as
+[`04666ebf`](https://github.com/BeiqiD/sample-fabrication-workflow/commit/04666ebf78f095e1e0f3255024dd570f896ada2c).
+Its four own Verify/Project Map workflows and all 15 contexts passed. The actual
+post-merge [Verify](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38495703078)
+and [Map](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38495703172),
+all 15 contexts and the registered Cloudflare check also succeeded.
+
+| Current slice | Exact-source evidence and remaining boundary |
+| --- | --- |
+| Worker V5, bounded P10–P12 paths | `7545713e`: all 18 original cases and the separate original planned case passed. Named LOCAL/R2, natural Comment and Run Step headed paths preserve complete typed history, payloads and original closure; restored capabilities remain inert. This does not close arbitrary-provider, activation or elapsed-cadence acceptance. |
+| NULL-key hold regression | `99459475`: the original backup suite passed 13 cases, comprising the unchanged 10 and three added isolated SQLite installer/rollback regressions. These SQL cases do not establish a complete public V5 workflow. |
+| Dedicated Worker workflow | `16a8c89f`: SOURCE-reviewed workflow now runs all 15 original controller stages in order and exports only 30 explicit closed receipt/diagnostic paths. Its enclosing 75-minute job allowance preserves every original stage/case/kernel/cadence budget. Dedicated push and CI for the next Worker draft remain pending. |
+| Node P8 composition | `b6b839a2`: eight bounded original local case passes are recorded. The first cursor failure remains attached to its original attempt; the broader current composition/restart acceptance stays open. |
+| Current Node target | `9ef25c17`: the original first 120-second case failed; the second remains pending at this checkpoint. Source guard/performance work is ongoing and has no passing or resolved-cause claim. This private Node follow-on is outside the next Worker draft. |
+
+Each result retains its own head and scope. The 754 Worker pass and 994 QA pass
+are not retagged as a 16a runtime or hosted CI pass. Earlier failures, frozen
+V1–V3 readers, protected/local-history boundaries and the P1–P12/F1–F6 matrix
+remain recorded. The wider Node/Worker goal, frontend enabled-matrix acceptance
+and release review remain open.
+
+Next actions are finite:
+
+1. Publish the reviewed Worker draft and run its complete original dedicated
+   pipeline; review exact-source counts and original closure before a CI claim.
+2. Finish the current Node target and remaining P/F gates under the unchanged
+   original budgets, with separate source and runtime qualification of any
+   guard changes; retain the first failures and pending cases.
+3. Close the supported frontend matrix, then prepare a reviewable `main`
+   candidate. This checkpoint grants no production merge, deployment, remote
+   migration, provider activation or automatic cutover.
+
+**Finite Node online/offline target SOURCE checkpoint — 2026-10-13.**
+The user has resumed the bounded Node↔native R2 Package/Backup interchange and
+online Recovery goal before frontend closure and a reviewable main candidate.
+This successor starts from qualified development `48be3389` and adds only the
+original online/offline target's whole-V5-validated `backupHoldOwner` propagation,
+its required local destination verifier prerequisite, the V28-only audited
+LOCAL→R2 recovery-evidence codec prerequisite and exact offline restorer manifest
+pin, nine original Native read statement reuse plus meaningful migration
+regressions, and isolated target QA.
+Old default formats, migration/activation choices and roadmap history remain.
+
+[PR #307](https://github.com/BeiqiD/sample-fabrication-workflow/pull/307) merged
+qualified `3522ef58` as `48be3389`. Its four own Verify/Project Map push/PR
+workflows, dedicated fresh-target push run and all15 contexts passed. The two
+same-head original local target cases retain their own Native/first-close proof.
+Post-merge `48be3389` Verify/Map/all15 contexts and the registered Cloudflare
+check reached success; hosted original stdout was unavailable, so no hosted test
+count or fresh target Native pass is inferred from that metadata.
+
+Private local consumer `5849db5c` passed three original fault cases and one
+held-R2 V5→online fresh inert Node target case with original process/provider/
+Native closure. F4 is actual existing administrator revocation; F6 replaces the
+planned generation/token/checkpoint through original HTTP while ACK is held.
+That original F5 checks target database inode replacement only. The additional
+required artifact-binding F5 case replaces an actually opened private provider
+root, retains original archive file inodes/full hashes, and checks paused durable
+archive dependency, cleanup409 and no fallback across positive close/restart;
+its new120s case is SOURCE/UNRUN until Root executes it on the adopted head.
+
+The R2 input remains the original producer `62ac1d54` archive and closed capture/
+Node-restore/D1 receipts. It is neither rebuilt nor retagged as this consumer's
+current producer. Whole validated V5 hold owner and truthful Cloudflare observed
+ledger are retained. Exact business typed cells/rowids and protected history are
+checked; fresh local bindings/executors stay absent/off. A different source
+window rejects planned recovery and requires explicit historical acknowledgment.
+The report prepares an inert target; it does not activate or cut over an app.
+These retained local inputs do not create a hosted CI qualification count.
+
+This new bounded candidate still needs fresh complete types/distribution, its
+exact original local Native cases and all four own Verify/Map workflows before a
+PR/merge claim. Historical failures and passes remain attached to their heads.
+The offline repair retains the exact current restorer `8ac2eba1` and matching
+immutable manifest pin. A separate new120s case invokes the actual current
+compiled CLI on the same unchanged held-R2 input, checks exact typed rows/rowids,
+all promised payload bytes, protected/local recovery history, inactive controls
+and genuine original CLI/archive/Native first-close proof. Its independent
+read-only Native observer records durable main hash/inode and new reader WAL/SHM
+truthfully; no writer sentinel or alternate constructor is fabricated. This
+new offline consumer case remains SOURCE/UNRUN until Root runs the adopted head;
+the original producer's offline proof remains separately scoped.
+
+The remaining goal includes original public Worker V5 qualification and headed
+history support, real same-app File/Package/Recovery cadence plus nonzero cursor
+restart and maintenance writer drain, then frontend product closure. Their
+private Source/review/runtime receipts remain separate; this checkpoint does
+not declare them complete or promise arbitrary provider parity. Main merge,
+production deployment, remote migration and activation are not authorized here.
+
+**Measured development checkpoint — 2026-10-13 13:13 UTC.**
+[PR #303](https://github.com/BeiqiD/sample-fabrication-workflow/pull/303) merged
+qualified `03ed386b` into development at `ba1c92da`. Its dedicated original
+process case, four own Verify/Map workflows and all15 contexts passed. The case
+observed three real120-second Package slots, graceful restart, exact export bytes
+and cancellation/hold release; it does not establish Recovery cadence or F3.
+
+P1/P2 now have a genuine local pass at `a0e002c3`: two original native R2/Node
+HTTP cases, each with the complete15-File graph, exact payloads/relations and
+fresh identities. Both original first closes and read-only whole checks of the
+actual closed D1 files passed. Dedicated/current development CI for this slice
+is still being prepared; historical sources keep their recorded failures.
+
+[Draft #304](https://github.com/BeiqiD/sample-fabrication-workflow/pull/304)
+source `1aec62f9` passed dedicated run38402334096: full types, original parser3,
+Recovery configuration8, four compiled help entries and one nonempty genuine
+source-fence/unknown-publication/reconciliation/CLI-restart/public-reupload case.
+Its own complete Verify runs remain pending. This qualifies the Recovery-only
+source/validation slice and one Node F2 path, not target restoration, same-app
+business-writer drain or automatic Recovery120-second cadence.
+
+The formal V28/V5 fresh D1 constructor at `6243c2d0` passed two original native
+cases using genuine zero-File and nonempty LOCAL Node archives, exact inert typed
+images, explicit R2 mapping plans and closed-original-file checks. R2 payload
+publication, final mapping/ready proofs, job integration and matching Worker V5
+capture remain unqualified. P6/P7, remaining P8/P9 and P10–P12 completion, plus
+F1/F3/F4/F5/F6, continue as separate bounded work. Main/production activation is
+outside the authorized development scope. This checkpoint supersedes older
+SOURCE/UNRUN statements only for the exact measured portions above.
+
+**Current resumed Node/R2 and online Recovery goal — 2026-10-13 UTC.** The owner
+requests completing the bounded bidirectional Package/Backup and Node online
+Recovery milestone, then final frontend closure and a reviewable `main` candidate.
+The [finite RT5 matrix](PRODUCT_ROADMAP.md) names P1–P12 and F1–F6; all new cases
+are SOURCE-only/UNRUN. Ordinary reviewed development integration remains authorized.
+Production `main` merge, deployment, production database changes and production
+file movement remain outside this goal.
+
+#301 merged qualified `b37c307c` as
+`a9c33725b6622acfad05cc818f886e2775c7e7bb` with exact tree
+`8d19f4ff0519082764d323550322e6452abc1807`. Its four own Verify/Map runs and
+all 15 contexts passed; dedicated run38383242264 passed actual full types and
+the original three Node Package HTTP/independent-dispatch cases, including the
+complete 15-File local copy/export/download. #302 merged qualified `4c92c14d`
+as `4776095f4351c2d108f485600bd43933d7dc69c6`, preserving tree
+`aa07802520a98851713f94199dfb216e55913c06`; its four own Verify/Map runs and
+all 15 contexts passed. Both actual post-merge CI scopes remain PENDING.
+
+Retain the #300 original native R2→inert Node V26/V3 25-case pipeline PASS and
+the separate nonempty Node V28/V5 offline backup/restore qualification. The #301
+local Package pass proves independent dispatch invocation, not measured cadence,
+R2 Package transfer or online Recovery. Current Node `systemRecovery`, maintenance
+and export-snapshot route owners remain unavailable in that composition.
+
+Proceed through separate bounded slices: paired nonempty R2→Node and Node→R2
+Package copy; preserve exact V26/V3 compatibility and reject unsupported LOCAL
+payloads rather than changing their format;
+Node online admission/artifact/target capabilities using the existing neutral
+Recovery kernel, SQL repository and format code; actual cadence/restart, durable
+controls, explicit cleanup and the six named failure controls; then formal V28/V5
+Worker catalog/schema/profile admission and both nonempty V5 directions. Worker
+currently admits V24–V26/system-backup1–3, so V5 support cannot be inferred or
+obtained by relabelling. Any matching-generation forward migration is separately
+reviewed and preserves the baseline and historical readers.
+
+After those exact-source development gates, close the frontend against the
+supported enabled matrix and selected 6A6/6B scope, then prepare the main ancestry,
+configuration and schema-line handoff for review. Arbitrary-provider parity,
+actual production activation and authenticated deployed Cloudflare↔Docker transfer
+are not claimed. Historical text below remains unchanged.
+
+<!-- Current RT5 snapshot ends; historical text follows unchanged. -->
+
+**Current local development checkpoint — 2026-10-13 UTC.** Supported local Phase5F candidate qualification and the [role/coverage baseline map](PHASE5F_LOCAL_BASELINE_COVERAGE_MAP.md) are complete. Fresh092 push/PR native20 and fresh71 whole24, including its separate nonempty case, passed at their original heads; each candidate's four own Verify/Map workflows and all15 contexts were successful at 05:03:40 UTC. [#298](https://github.com/BeiqiD/sample-fabrication-workflow/pull/298) merged at `f65001da`, preserving qualified tree `a2b645`; [#299](https://github.com/BeiqiD/sample-fabrication-workflow/pull/299) merged at `ab0339bce591abd2fed61690916c2d098de2a43d`, preserving tree `1a04056ef5cc1a6a11ea31b51648c3eeb3f50902`. These measured scopes retain the previously merged eight-Sample, exact Compare focus and250/400 functional evidence; historical SOURCE/UNRUN and failure records keep their original status.
+
+At the 05:05:34 UTC observation, ab033 [Workers Build115138845853](https://github.com/BeiqiD/sample-fabrication-workflow/runs/115138845853) had succeeded at 05:05:30; ordinary post-merge [Map38349545551](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38349545551) passed, while [Verify38349544226](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38349544226) and all15 completion remain **PENDING** (2success/13pending). The separate merged #296 Docker17 and #297 two-File/six-case fixture passes are recorded in the baseline map. Remaining accepted local work is genuine nonempty R2→Node RT5 transfer and RT4/RT5 Node Package HTTP, independent execution and nonempty copy. Adapter a98's actual full server types failed on transitive Cloudflare dependencies; neutral extraction is in progress and remains unqualified.
+
+Formal physical device/touch/IME, other supported engines, measured real-data performance and authenticated serving/schema/old-document handover remain independent acceptance. Restored V28 capabilities remain inert under their existing explicit admission. Whole5F, selected6A6/6B and release acceptance remain open. The dated checkpoints below are historical; their sources, failures, counts and limits are unchanged.
+
+Dated development progress — 2026-10-13 (UTC): Cloudflare build optimization #283 is merged; the default deployment path performs configuration, one Vite bundle and upload. Complex verification stays local or in GitHub CI. Subsequent Workers builds at #284 and #285 succeeded.
+
+FabuBlox local import #284 is merged at `784aeb5c`; its complete own/post-merge CI passed. Node V3 producer repair #285 is merged at `8d832ba7` after its four own Verify/Map workflows and all 15 checks passed. Its actual post-merge [Verify 38323940091](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38323940091), [Map 38323940004](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38323940004), all 15 contexts and Cloudflare build succeeded. Its full package build, eight distribution tests, embedded verifier and four CLI help checks retain their actual source scopes.
+
+Explicit V28 profile [PR #286](https://github.com/BeiqiD/sample-fabrication-workflow/pull/286) merged at `356`, preserving qualified `4ef7a9d` tree `1e454`; its four own Verify/Map workflows and all 15 contexts passed. Its fresh package, three parser cases and four genuine programmatic runtime-startup cases passed in [run 38323352244](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38323352244). Actual post-merge [Verify 38326376427](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38326376427), [Map 38326376350](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38326376350) and all 15 contexts succeeded; the default entry remains V26.
+
+**Merged roadmap status checkpoint:** [PR #287](https://github.com/BeiqiD/sample-fabrication-workflow/pull/287) merged at `493` after its own four Verify/Map workflows and all 15 contexts succeeded. Its actual post-merge Verify38327815284/Map38327815430 and all 15 contexts succeeded; the documentation merge does not complete the separate runtime, browser or release scopes.
+
+**Merged restored Node operators — bounded dedicated pass:** [PR #289](https://github.com/BeiqiD/sample-fabrication-workflow/pull/289) at `ebc1` passed its dedicated [run 38327393720](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38327393720): actual full server type checking, three parser cases, a fresh 123-file/930-source-input Node package, embedded verification and four bundled CLI help checks. Genuine complete zero-File V5 capture and one actual bundled restore-CLI case passed across distinct source/destination installations; two reset-secret administrator/Group operator cases and the credential-revision `+2` check passed. Parent `f34` [run 38326839944](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38326839944) retains its own earlier zero-File capture/restore/operator scope. The candidate's four own Verify/Map workflows and all 15 contexts succeeded, and PR #289 merged at `86a8972588f60326aad850c63f1e0ebb08813578` with the exact `ebc1` tree. Its actual Cloudflare build115077834314 succeeded. The merge's new ordinary post-CI remains pending. Maintenance remains fenced; nonempty FileBackup, restored business activation, serving and public capture remain UNRUN. These bounded results do not establish whole Node recovery.
+
+**Large Project browser work — original native200 pass, combined-head scope pending:** [Draft PR #288](https://github.com/BeiqiD/sample-fabrication-workflow/pull/288) source `32` passed dedicated [run 38328093696](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38328093696): two physical SQLite checks before startup, 477 real API seed requests, one genuine native200 browser case, original normal stop and four physical SQLite checks afterwards. `completeFiniteMatrix` remains `false`. Its first attempt's Python SQLite parser failure before API startup still retains API/browser UNRUN. New source `028c0ff7bf8ef4d1ab1b127b8e3a0899cd63e245` exactly combines the `32` browser source with `ebc1`; its dedicated [run 38329403623](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38329403623) separately passed the same original native200 and before/after physical checks. Its whole CI remains pending. The `32` result is not retagged onto this combined source. Historical 250/400 browser cases retain their original sources and scopes; whole5F acceptance remains open.
+
+**RT6 — original bounded failure retained:** The original `8d` Docker attempt built its image and passed two cases before its constructor-path failure. Corrected `ce880` dedicated [run 38327278329](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38327278329) built one image, passed its first eight actual cases, then failed case 9, `genuine-native-upload-replay-and-bytes`, on `POST /api/assets` with observed HTTP 503; the remaining eight cases were UNRUN. Actual CLI/container closure was confirmed, while the original `originalBodiesClosureUnproven` marker remains preserved. The 503 root cause is undetermined. The fixed-enum diagnostic `b3e7463` ran the same 17-case matrix in [run 38329481740](https://github.com/BeiqiD/sample-fabrication-workflow/actions/runs/38329481740), retaining 8PASS/1FAIL/8UNRUN and identifying the original response as `node_503_file_unavailable`. This generic File error still requires a specific server-side cause; it does not establish a full pass. The original 17-case matrix and budgets remain unchanged, and RT6 is not complete.
+
+**Maintenance control — source and narrow checks pending completion:** New six-leaf maintenance source `087` has actual Root full server type checking and three parser cases passed. Its three genuine maintenance cases remain UNRUN. Maintenance remains fenced; no serving activation or whole maintenance-lane pass is claimed.
+
+Whole File/Job/Backup/recovery, complete 5F and conditional 6A6/6B acceptance remain open. Historical records below retain their original dates, sources, failures, counts and limits.
+
+Status: **active**, authorized on 2026-10-10.
+
+Continue the accepted [product roadmap](PRODUCT_ROADMAP.md) without routine user
+intervention. Implement bounded slices, retain observed failures, review the
+changes, run meaningful checks and merge qualified implementation PRs into
+`v2/backend-foundation`. PR #250 is already merged at
+`541eedb1405678097675aac5eb1284bf3c8ef950`. Implementation
+[PR #251](https://github.com/BeiqiD/sample-fabrication-workflow/pull/251) subsequently
+merged at `aa497d9a1a304751ea7533548573a256799ef734` on 2026-10-10 at
+13:30:26 UTC, preserving exact qualified `af8f374cfbbade3282f2e686cc9f35d3c40adf4a`
+tree `087749d12a3e3ad19473f1f4e63d29e1ecf1c269`. All 12 local default leaves,
+four remote Verify/Map runs and all 15 final status contexts passed at that source.
+The #251 post-merge Verify/Map checks and all 15 contexts also passed.
+[PR #252](https://github.com/BeiqiD/sample-fabrication-workflow/pull/252) merged at
+`fc3abc3eac6085cfde8af97b44a9b6d91ac62a15` on 2026-10-10 at 15:03:29 UTC.
+Its final four Verify/Map runs and all fifteen contexts passed before merge;
+post-merge Verify attempt 1 failed five existing default-deadline source cases,
+with later leaves skipped. The one separate failed-job rerun then passed
+all twelve default leaves and fifteen public contexts (native355, source3349,
+mounted966). The first failure remains retained. Workers Build114248318359
+failed without a reason in check metadata; actual serving/schema remain open. It has
+[current browser evidence](PHASE_5F_CURRENT_BROWSER_ACCEPTANCE.md) at `ee171339`
+and fresh `c06cb71` / tree `2466e718` (20 matrix cases, both named Metrology
+cases and awaited-stop/physical proof passed). The later
+[Retry/group/motion slice](PHASE_5F_RETRY_GROUP_MOTION_ACCEPTANCE.md) has bounded
+actual browser qualification at `6c4dc88`. Final source9b passed all12 local
+leaves (355/3351/980), four own Verify/Map runs and all15 contexts; #254 merged
+at `7e129b8c888179631d84623721c464d2efb320bf` with exact qualified tree equality.
+[Final follow-up receipts](PHASE_5F_FINAL_FOLLOWUP_CHECKS.md) retain all failures.
+Portable-runtime foundation PR #253 merged at `fbeb4217e984bfb25d80f7029626df438e6d618b` after its exact own-head Verify/Map gates and all15 contexts passed. Its post-merge Processing Retry publication assertion failure is retained. Services PR #255 merged at `b6b2d9a414c7ce49a28f28b2d1da929fbf538f01` after both new own-head complete Verify gates, both Map gates and all15 contexts passed, including the native408 timeout and mounted Retry follow-ups. PR #256 subsequently merged the paired current checkpoint at `5f367482462a85db7f2511ae1d94efb7a4b778c2`; its exact own four Verify/Map runs and15 contexts passed, and its post-merge Verify/Map passed. PR #257 merged current business ports at `913364e78dfff0b7d55e6cf4622b52147a33f947`, preserving the qualified9592d9c tree. Both own complete Verify runs, both Map runs and all15 contexts passed (native356, source404 files/3784 cases, mounted103 files/985 cases); its post-merge checks are separate. PR #258 subsequently merged at `e10849614afbb4807c86b3f0fc2fc357ba70ceda`, preserving its own-four-gate-qualified318 tree `d5f48defbb7e3a0c23e912017e8dee9c76eb00bb`. Merged #258 post-merge Verify38090002753/Map38090002713 and all15 contexts subsequently passed (source409 files/3843 cases, mounted103 files/985 cases); only conditional failure-cleanup was skipped, not a verification leaf. This is not deployed serving/schema qualification. PR #259 subsequently merged at `ed499a9de5e520871f1484d9357e89d34f16df14`, preserving tree `58715671e28382540e308bbe555162129ba70608`. Its exact final `f02dd9a` own Verify push/PR and Map push/PR runs and all 15 contexts passed. Post-merge Verify38095570398 and Map38095570259 also passed. PR #260 closed as superseded and was not independently merged. The initial #259 complete checks failed shared source ownership after native356, with14 downstream leaves skipped. At canonical-path repair head781, PR Verify passed native356/shared verification then failed one source fixture (3786 passed/1 failed,13 downstream leaves skipped); the minimal one-timestamp correction subsequently passed the original stream/migration6 at combined source98d, before the final replacement complete gates passed. Separate genuine Templates four-case/102-request qualification passed at3c with actual owned stop/physical proof; prior six directory/creation cases remain tied to2f. Neither evidence scope replaces final reconciled-head complete gates. The merged combined #259 additionally adopted the Step-confirmation, Run trash/restore and Metrology metadata mutation services from source4928. Its fresh four strict checks, original legacy7 and genuine current24 Worker12 passed with actual owned closure; [raw evidence](qualification/portable-execution-current24-worker/README.md) remains separate from the older current23 three-strict/native18/Worker12 scopes. The [combined98d local qualification](qualification/phase5f-ui-execution-current-v26/README.md) passed shared ownership, one owned strict, original6/mounted37/source38 and a separate fresh build across two bounded attempts. The original wrapperFAIL and actual exited-kernel/FD-permission reconciliation remain immutable, with no first-five rerun or rewritten six-stage PASS. The final-head complete CI and ordinary squash merge are now recorded separately from these historical bounded attempts. The closed superseded #260 retains its independent qualification and failures. Private Node19 and job-principal slices have bounded actual qualification, but whole Node/File/jobs/container and group authorization milestones remain unfinished.
+
+PR #261 subsequently merged at `1be6642406ae44f62c1b0bdb56e9e2877e6ed081`
+on 2026-10-11 01:03:05 UTC after exactff29 own Verify push/PR and Map push/PR
+and all15 contexts passed. Original [CI/ordinary merge receipts](qualification/phase5f-focus-pr261-complete-ci/README.md)
+retain source416/3877 and mounted105/1002 counts. Its post-merge Verify38100508911,
+Map38100508960 and all15 contexts passed. The separate [native focus2 and enabled local Storage read/admin4/JWT6](PHASE_5F_NATIVE_FOCUS_AND_ENABLED_ADMIN_QUALIFICATION.md)
+qualification preserves the original36/63d sources,95 actual build, all observed
+failures and awaited physical/owner closure; no accepted administrator write or
+provider activation was performed.
+
+PR #262 subsequently merged at `591bee968e2fc06a3666f8ed4774fd698bbf3c4b`
+on 2026-10-11 01:40:10 UTC after its own four Verify/Map runs and all15 contexts
+passed. Its merged tree exactly matches qualified source3578176/tree9de0f69;
+[the receipt](PR262_OWN_CI_AND_MERGE_RECEIPT.json) retains actual counts and original
+receipt hashes. Post-merge Verify38102602822, Map38102602889 and all15 contexts
+passed; [the complete receipt](PR262_POSTMERGE_COMPLETE_CI_RECEIPT.json) retains
+native357/source416-3877/mounted105-1002/NodeHTTP20 and original log hashes.
+Continue from this development/test integration while retaining all distinct
+historical source, browser, failed and CI scopes. The ordinary development merges
+remain authorized; production main and real-provider admission retain their scope.
+
+PR #263 subsequently merged at `1943f746332596220ed34edb5d4b0ac45d6db40d`
+on 2026-10-11 03:51:22 UTC. Its exact final source31d207 passed both own
+Verify runs, both Map runs and all15 contexts before the ordinary squash merge;
+the merged tree equals that qualified tree. The original Storage draft lost-reply
+and stale-revision browser controls, genuine focus and390 layout receipts remain
+in their own qualification scopes. Post-merge Map38109722374 and
+Verify38109722299 subsequently passed, together with all15 contexts; their
+separate raw receipt is3372a2cc3eb8ebb7f78febb297f8ea8894c160b2754670c44d5259ac5bd88ec8.
+
+PR #265 subsequently merged at `dd1aa12711860faecf7f2c67a92935535c080c8f`
+on 2026-10-11 after exactd680 own Verify push/PR and Map push/PR plus all15
+contexts passed. Its merged tree exactly equals qualified tree
+`d1e234360013ee74213b2f896a4a911c12cff51f`; ordinary merge receiptd713f53d
+remains separate from the original Package browser receipt14bbb9d8. Post-merge
+checks are a new scope and are not inherited from these successful own runs.
+
+PR #264 original756 PR Verify failed the existing concurrent Comment creation
+assertion although its push Verify, both Map checks and all15 push contexts
+passed. The [invocation-order repair](COMMENT_CREATE_ORDER_QUALIFICATION.md)
+retains that failure and passed original15 plus new2 controls,17 total at6d4,
+after the new baseline pair exposed the old failure. Its affected app type
+check and independent source review passed. The neutral extraction and repair
+were reconciled onto merged #265, qualified by their new complete gates and
+merged normally in #264 as recorded below. Historical service/compiler/browser
+receipts retain their original execution sources.
+
+The [neutral File/Definition extraction](CURRENT194_NEUTRAL_FILE_DEFINITION_ADOPTION.md)
+now has complete original metadata algorithms, nine original affected Worker
+controls passed at source96 and exact causal adoption onto current194 verified.
+The compiler and runtime observations retain their historical heads. This is a
+bounded service extraction; public Node File/Job Request authority and whole
+application/container qualification remain in progress. Continue the active
+roadmap from its reviewed ordinary #264 integration; operational File and
+migration acceptance remain separate work.
+
+PR #264 subsequently merged normally at `31a2cfe2ecd033679229b6318a1bcf85a6b2425d`.
+Its exactc5b Verify push/PR, Map push/PR and all15 statuses passed before merge;
+the whole merged tree equals qualified `bcc2796847af6d4b159e871eb3827710616b5fc4`.
+The [current integration receipts](qualification/pr266-storage-layout-focus-current/README.md)
+retain original own gates, ordinary merge, PR265 post-merge success and PR266's
+first failed PR Verify. PR266 original4e push Verify and both Map checks passed,
+but its original Storage Refresh focus assertion failed in PR Verify. The
+separateff643 layout-focus repair passed one affected app compiler and the
+originaltwo mounted controls. Its new coherent complete CI remains required;
+old56 metadata tests and native browser builds retain their original source.
+Continue all independent Node/File/Job/Group and remaining5F development.
+
+## Working order
+
+1. Preserve the completed [Metrology pending/session slice](PHASE_5F_METROLOGY_ACCEPTANCE.md)
+   and reviewed #251 integration. Retain migration ordering, V21–V24 recovery
+   compatibility and distinct historical/current receipts.
+2. Preserve merged #252's owner-scoped Processing refresh and search-label slice.
+   Preserve `ee171339` 20-case matrix, 84-request seed, six cost cases and 12
+   additional Project scenario identities, plus awaited-stop and physical
+   DB/FK/PNG/isolated-input-byte receipts. Preserve the fresh `c06cb71` 20-case matrix,
+   named Metrology pair and stop/physical qualification; qualify the final-head
+   complete gate and the separate post-merge failures. Preserve #254's qualified
+   initial Project GET Retry, three-owner group refresh and reduced-motion
+   merge, both named actual browser scopes and final complete checks;
+   they do not establish whole-5F acceptance.
+3. Continue from merged #265/currentV26. Preserve #259's one-timestamp fixture
+   correction, UI changes and Execution metadata services, along with the
+   separate six directory/creation cases, four Templates cases and current24
+   Execution source4928 receipts. Preserve merged #261's Metrology Cancel/Escape/Close focus repair, its narrow
+   41-case qualification, actual browser focus2 and exact own-head complete CI
+   as distinct scopes, including #262's durable authenticated-read evidence.
+   Preserve the separately passed f88 Storage layout/draft qualification and
+   continue supported genuine package/recovery presentation in bounded slices.
+   Keep observed failures and actual enabled provider/operational limits explicit.
+   Preserve domain identity, accepted-write semantics and mature grid geometry.
+4. Measure the finite performance candidates before changing them. Preserve
+   revision, uncertain-ACK, undo and Saved behavior when reducing request cost.
+5. Complete executable 6A6 stabilization and enabled-scope 6B rehearsal against
+   the reviewed integration, with fresh and populated migration coverage.
+6. Advance the scheduled Node/SQLite/local storage and Docker portability
+   milestone, then small-group membership and domain authorization, in bounded
+   contracts and implementation slices. The file-job Node adapter alone does
+   not qualify the complete application or cross-deployment parity.
+
+The separate unmounted LocalFile host checkpointd8f878f8 passed strict2/native6,
+including real HTTP reads, original-owner draining and restart preservation.
+It does not enable the public application or certify whole Node/File/jobs.
+Node49 checkpoint729 passed strict and21 native cases before its business-SQL
+observer counted four real session-refresh statements in addition to49 business
+statements. The narrow observer repair subsequently passed the original Run
+cases. Later independent permission fixtures passed all seven Definition and
+seven Lifecycle cases, then stopped at a Project Step teardown timeout after
+one passing case. A normal-EOF request-body cancellation repair has passed
+source review; its baseline/fixed regression and complete fresh Node/HTTP
+qualification remain pending. Preserve every failed attempt; the
+business49/bind100/refused232-step boundaries remain unchanged. The first
+Storage focus mounted fixture and Sample permission strict failures are likewise
+retained separately. Storage source01ad passed fresh strict/24mounted/build and
+one lost-reply case but failed its conflict-case390 layout check after real
+conflict/Refresh/focus reconciliation. That original failure remains unchanged.
+The later [f88 candidate wrapping qualification](PHASE5F_STORAGE_CANDIDATE_WRAP_QUALIFICATION.md)
+passed a fresh app strict check, affected24 mounted cases, one118-output build
+with121 copied artifacts and one390 read-only layout case. Its [original two
+draft cases](PHASE5F_STORAGE_TWO_AFTER_WRAP_QUALIFICATION.md) then passed on a new
+isolated24/84 fixture using that exact build; prior strict/mounted/build passes
+were carried, not rerun. Three accepted revisions, all63 original permit rows
+and four uniquely correlated released HTTP permits were verified across103
+ordinary API requests, with normal owned browser/Worker/JWKS shutdown and
+physical/source/artifact checks. Earlier layout/focus failures retain their raw
+receipts; package/recovery presentation, final coherent-head CI and full5F remain
+open. Job fixture sourcef57 passed all20 original tests with actual owner
+closure, as a separate runtime-negative/fixture scope. Continue fixes and meaningful bounded checks without routine
+user intervention; merge only the qualified coherent implementation.
+
+The optional later search, LLM, real-time editing and other exploratory directions
+remain conditional roadmap items. Their presence in the long-term direction is
+not evidence that an unreviewed product policy or implementation is complete.
+
+## Development and evidence boundary
+
+The user authorizes development/test builds, direct testing of the development
+Workers site, and ordinary reviewed merges into the integration branch. Preserve
+the earlier development-only scope: the first production `main` release remains
+a separate release gate. Avoid changing real provider admission or performing
+destructive recovery as a shortcut to acceptance.
+
+Authenticated remote testing needs a legitimate Cloudflare Access identity and
+the application's verified-email authorization. The current instance reaches an
+Access login redirect on three anonymously checked routes; that proves
+reachability, not application readiness. Workers Build `114224522096`
+succeeded after merge. That success does not alone prove the deployed traffic version or D1
+migration state. Local implementation and isolated test work continue while
+those operational prerequisites are unavailable.
+
+For each completed slice record the source/tree, actual checks and limits. Do
+not turn temporary fixtures, mocked provider replies or desktop emulation into
+claims of real-provider, physical-device or cross-deployment acceptance. Keep
+blocked external checks explicit and continue all independent planned work.

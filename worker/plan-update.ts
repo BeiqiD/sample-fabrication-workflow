@@ -1,4 +1,4 @@
-import type { PlanAlignment } from "../shared/plan-alignment";
+import type { PlanAlignment } from "./execution/plan-alignment";
 
 type NextTemplateStep = {
   id: string;

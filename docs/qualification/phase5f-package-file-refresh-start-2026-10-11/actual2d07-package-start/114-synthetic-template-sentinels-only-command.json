@@ -1,0 +1,68 @@
+{
+  "stage": "synthetic-template-sentinels-only",
+  "cwd": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/copy",
+  "argv": [
+    "node",
+    "node_modules/wrangler/bin/wrangler.js",
+    "d1",
+    "execute",
+    "DB",
+    "--local",
+    "--config",
+    ".wrangler/deploy.jsonc",
+    "--persist-to",
+    "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/copy/.wrangler/state",
+    "--file",
+    "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/fixture/process-fixture.sql"
+  ],
+  "env": {
+    "TMPDIR": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1",
+    "SQLITE_TMPDIR": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1"
+  },
+  "startedAt": "2026-10-11T23:31:22.224221+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-package-current2d07-start202-focus-native-private-attempt1/runtime/synthetic-template-sentinels-only.log",
+  "pid": 1612844,
+  "processGroup": 1612844,
+  "originalStartTicks": "17474299",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 1612860,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1612844,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 1612860,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1612844,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 1612860,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1612844,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T23:31:23.485304+00:00",
+  "logSha256": "b95b794de3facb404e584aab6d4457c28b55d590ae2e696964ae4bde6a963006"
+}

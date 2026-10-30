@@ -1,0 +1,169 @@
+{
+  "kind": "phase5f-metrology-Cancel-Escape-Close-focus-affected-local-actual/1",
+  "status": "PASS",
+  "sourceHead": "d191eac9aab2f5b89037a3630eb68e417e8046e2",
+  "sourceTree": "7b858579d85008e7c6ba08b9e48105286ea7679a",
+  "completedAt": "2026-10-10T23:42:47.500895+00:00",
+  "sourceReceiptSha256": "aaa8264a0299dfd69e72df245fa64a4b386717067c96ba278f3714858bce6a68",
+  "planSha256": "7fcc5d54cbc3131108591c7d5a09c6f115a6927d0c90b0fbebaf2248eb14f75f",
+  "commands": [
+    {
+      "stage": "current-app-strict",
+      "argv": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "-p",
+        "tsconfig.app.json"
+      ],
+      "cwd": "/tmp/phase5f-metrology-focus-combined7ba-source-attempt1",
+      "startedAt": "2026-10-10T23:42:35.787437+00:00",
+      "status": "PASS",
+      "log": "/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/finite-runtime-attempt1/current-app-strict.log",
+      "pid": 336783,
+      "processGroup": 336783,
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-10T23:42:37.507396+00:00",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "stage": "real-grid-picker-pending41",
+      "argv": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "vitest.mounted.config.ts",
+        "src/phase5f-metrology-pending.mount.test.tsx",
+        "src/phase5f-metrology-picker-read.mount.test.tsx",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--bail=1",
+        "--reporter=default",
+        "--reporter=json",
+        "--outputFile=/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/finite-runtime-attempt1/mounted41.vitest.json"
+      ],
+      "cwd": "/tmp/phase5f-metrology-focus-combined7ba-source-attempt1",
+      "expectedStaticCases": 41,
+      "startedAt": "2026-10-10T23:42:37.507609+00:00",
+      "status": "PASS",
+      "log": "/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/finite-runtime-attempt1/real-grid-picker-pending41.log",
+      "pid": 336842,
+      "processGroup": 336842,
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "endedAt": "2026-10-10T23:42:42.649959+00:00",
+      "logSha256": "0ed4549bffa0161d59553b8934479b87ff0d8e2b28eec7ef000d130ef6864d1b",
+      "vitestActualTotals": {
+        "numTotalTests": 41,
+        "numPassedTests": 41,
+        "numFailedTests": 0,
+        "numPendingTests": 0,
+        "numTodoTests": 0
+      },
+      "vitestReportSha256": "42e0b67db9758b636862baeb5a54ffece899bd2f949c419c1c22960e0a71c8d5"
+    },
+    {
+      "stage": "fresh-combined-metrology-focus-build",
+      "argv": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "/tmp/phase5f-metrology-focus-combined7ba-source-attempt1",
+      "startedAt": "2026-10-10T23:42:42.650571+00:00",
+      "status": "PASS",
+      "log": "/tmp/phase5f-metrology-focus-combined7ba-source-review-attempt1/finite-runtime-attempt1/fresh-combined-metrology-focus-build.log",
+      "pid": 338597,
+      "processGroup": 338597,
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 338688,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 338597,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 338688,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 338597,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 338688,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 338597,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "endedAt": "2026-10-10T23:42:47.426652+00:00",
+      "logSha256": "f02975189bcbefdf7072b8e2ae73f4ff6ad27bfb7676adfb1c8fb5a0cbfd0911"
+    }
+  ],
+  "firstFailedStage": null,
+  "runnerError": null,
+  "sourcePostCheckError": null,
+  "sourcePinsRechecked": true,
+  "remainingUnrunStages": [],
+  "allOwnedGroupsFinal": {
+    "336783": [],
+    "336842": [],
+    "338597": [
+      {
+        "pid": 338688,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 338597,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "allDirectChildrenActuallyReaped": true,
+  "noActiveOwnedProcessOrFd": true,
+  "freshArtifactFileCount": 118,
+  "historicalFirstFailure": {
+    "path": "/tmp/phase5f-metrology-escape-focus7ba-characterization-review-attempt1/runtime/one-case-characterization-receipt.json",
+    "sha256": "263ece7a736aaa7c85ca71221f97d4f6dd7d6e862d450ea4739745941f9b8352",
+    "status": "Actual1caseFAIL bodyfocus vs exact surviving sameStepAdd;27filteredUNRUN/commandexit1/diagnosticwrapperexit0/groupEMPTY/reaped, immutable"
+  },
+  "browserSupplement": "UNRUN separateGO after source/artifact review",
+  "scope": "Exactly current real-grid Cancel1+Escape1+Close1+originalpending26+picker12=41, currentappstrict/newfreshbuild; all old budgets/assertions remain. Existing sharedmodal/api/SQL/revisions/operation ownership unchanged. Old7ba39/build stays independent exactsource.",
+  "remoteMutation": false
+}

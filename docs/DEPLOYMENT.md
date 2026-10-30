@@ -27,46 +27,33 @@ The binding names are part of the application contract:
 
 The resource names and IDs behind those bindings are installation-specific. The R2 bucket stores workbooks, diagrams, and compressed inline images. Do not create a second R2 bucket for unchanged original attachments; those use the optional `ManagedStorage` adapter.
 
-## 2. Replace the deployment configuration
+## 2. Configure the deployment environment
 
-Before connecting the fork to Workers Builds, edit `wrangler.jsonc` in the fork. A minimal fresh-installation configuration looks like this:
+The checked-in `wrangler.jsonc` contains only application-level configuration. It deliberately omits Worker names, routes, D1 and R2 resource identifiers, and authentication values.
 
-```jsonc
-{
-  "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "<YOUR_WORKER_NAME>",
-  "main": "./worker/index.ts",
-  "compatibility_date": "2026-07-20",
-  "workers_dev": true,
-  "preview_urls": false,
-  "triggers": {
-    "crons": ["17 3 * * *"]
-  },
-  "assets": {
-    "not_found_handling": "single-page-application"
-  },
-  "vars": {
-    "AUTH_MODE": "access"
-  },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "<YOUR_D1_DATABASE_NAME>",
-      "database_id": "<YOUR_D1_DATABASE_ID>"
-    }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "ASSETS",
-      "bucket_name": "<YOUR_R2_BUCKET_NAME>"
-    }
-  ]
-}
-```
+In the Worker's **Settings → Builds → Variables and secrets**, add these Build Variables:
 
-Use `workers_dev: true` for the initial deployment, or replace it with a route/custom-domain configuration that belongs to your account. Remove any route inherited from the source repository. The Worker name in Cloudflare and `name` in `wrangler.jsonc` must match.
+| Variable | Value |
+|---|---|
+| `DEPLOY_WORKER_NAME` | The existing Worker name |
+| `DEPLOY_D1_DATABASE_NAME` | The existing D1 database name |
+| `DEPLOY_D1_DATABASE_ID` | The existing D1 database UUID |
+| `DEPLOY_R2_BUCKET_NAME` | The existing private R2 bucket name |
+| `DEPLOY_WORKERS_DEV` | `true` for a `workers.dev` deployment; otherwise `false` |
 
-Do not commit authentication secrets, storage passwords, or Access identifiers to `wrangler.jsonc`.
+These identifiers are not credentials, so Build Variables are sufficient. The build generates `.wrangler/deploy.jsonc`, which is ignored by Git. Missing or malformed variables stop the build before migration or deployment; the generator never guesses or provisions a resource.
+
+The generator also pins the Cloudflare account and the R2 physical namespace for
+[durable import requests](./FP1_DURABLE_IMPORT_ACCEPTANCE.md). It reuses the standard
+`CLOUDFLARE_ACCOUNT_ID` (or legacy `CF_ACCOUNT_ID`) if supplied. Otherwise it runs
+the installed Wrangler's noninteractive `whoami --json` with the existing build
+authentication and accepts exactly one account. An ambiguous or unavailable
+account stops configuration; multi-account installations must supply the intended
+standard account variable. No additional login or credential is introduced.
+The generated `R2_BOOTSTRAP_NAMESPACE` runtime value contains only the account
+and bucket identity. Do not edit it independently of the actual R2 binding.
+
+Do not add deployment identifiers back to `wrangler.jsonc`. Do not commit authentication secrets, storage passwords, Access identifiers, generated configuration, or deployment hostnames.
 
 ## 3. Connect the fork to Cloudflare Workers Builds
 
@@ -79,17 +66,86 @@ In **Cloudflare Dashboard → Workers & Pages**:
 
    ```text
    Build command:
-   npm run build
+   npm run build:deploy
 
    Deploy command:
-   npx wrangler d1 migrations apply DB --remote && npx wrangler deploy
+   npm run deploy:remote
    ```
 
 5. Under **Settings → Build → Branch control**, disable builds for non-production branches.
 
-The deploy command intentionally applies D1 migrations before deploying the new Worker. Because the commands are joined with `&&`, a failed migration prevents code that expects the new schema from being deployed.
+Workers Builds generates the deployment configuration and runs one Vite build.
+The deploy command uploads that existing Worker bundle and its static assets.
+Tests, TypeScript checks, migration checks, Worker smokes and artifact validation
+run separately with `npm run verify:ci` locally or in GitHub Actions.
+
+Apply schema changes separately with `npm run db:migrate:remote` before deploying
+a release that needs them. A normal code deployment does not run migrations.
+For a standalone build and deploy, run `npm run deploy`; `deploy:remote` consumes
+the artifact already produced by `build:deploy`.
 
 Do not use that remote-migration command for preview branches. If previews are introduced later, give them a separate Worker, hostname, D1 database, R2 bucket, and deploy command.
+
+### v3 integration branch gate
+
+`v2/backend-foundation` is an integration branch, not the production branch.
+Use its dedicated development resources and run the
+[v3 backend validation](./V3_BACKEND_FOUNDATION.md#v3-deployment-gate)
+locally or in GitHub Actions. Apply its schema changes as a separate operation.
+
+The normative requirements are in
+[blob lifecycle contract](./BLOB_LIFECYCLE_CONTRACT.md), and the current code
+slice is tracked in
+[blob lifecycle implementation plan](./BLOB_LIFECYCLE_IMPLEMENTATION_PLAN.md).
+The gate requires one concurrency-safe retention-edge definition across
+submission cancellation, scheduled cleanup, complete export, and future
+permanent-delete planning.
+
+Shared uploads, unfinished/retryable submissions, archived sources, and
+soft-deleted ready sources must remain protected. Full export must preserve all
+database rows, package each available blob once, and record unavailable bytes
+in `export-warnings.json` instead of aborting the ZIP.
+
+The repository now provides dedicated focused checks:
+
+```text
+npm run verify:blob-lifecycle
+npm run verify:reference-foundation
+npm run verify:ci
+npm run verify:v3-deployment
+```
+
+The complete CI and explicit local deployment-validation commands use the same leaf-check inventory in
+`scripts/verification-plan.mjs`. Each runs the source and mounted suites, export
+type contract, migrations, required Worker smokes and one production build. The
+deployment profile selects `build:deploy`; its final Project smoke consumes that
+built Worker and client assets with isolated local D1/R2 and test authentication.
+It does not rebuild using local deployment bindings or contact remote storage.
+The Map bundle check follows the initial static import graph, including indirect
+imports and module preloads. Focused domain commands remain available for local
+iteration and may each build their own artifacts.
+
+Use `node scripts/run-verification.mjs --mode ci --list` (or `--mode deploy`) to
+inspect the exact checks without executing them. The independent Map performance
+workflow retains its focused checks and its own build; main-job deduplication
+does not imply artifact sharing across workflow jobs. Custom commit-status
+contexts retain fixed names across pending, success, failure and unexecuted
+checks, with details and timing in the workflow log/summary.
+
+The reference gate combines detailed host-SQLite tests, the ordered Wrangler
+local D1 migration check, and a Miniflare/workerd smoke that invokes the unified
+Worker's resolver endpoint with all nine v1 adapters and 200 distinct targets.
+Run these checks and the complete test suite locally or in GitHub Actions.
+They are excluded from the Cloudflare build and deploy commands so the hosted
+pipeline only generates configuration, bundles, and uploads the existing artifact.
+
+Until the exact integration head passes this gate and an operator explicitly
+authorizes activation:
+
+- do not apply v3 migrations to a remote D1 database;
+- do not deploy the v3 Worker;
+- keep non-production branch builds disabled;
+- do not change the production resources used by `main`.
 
 ## 4. Protect the application with Cloudflare Access
 
@@ -99,9 +155,10 @@ Before storing real sample data:
 2. Add an Allow policy for the intended people or identity groups.
 3. Copy the Access team domain and the application's Audience (AUD) tag.
 4. Open the Worker, then go to **Settings → Variables and Secrets**.
-5. Add these as encrypted secrets:
+5. Add these Runtime Variables:
 
    ```text
+   AUTH_MODE=access
    ACCESS_TEAM_DOMAIN=https://<YOUR_TEAM>.cloudflareaccess.com
    ACCESS_AUD=<YOUR_ACCESS_APPLICATION_AUD>
    ```
@@ -114,18 +171,38 @@ Before storing real sample data:
 
 `ALLOWED_EMAILS` is a second allowlist checked after the Access JWT has been validated. It is not a replacement for an Access policy.
 
+Historical File evidence adjudication has a separate operator boundary. To grant
+that capability to a reviewed operator, configure the Runtime Variable
+`FILE_EVIDENCE_OPERATOR_EMAILS` as a comma-separated list of exact email addresses.
+The server checks this list against the validated Access identity on every
+evidence command. Application access, `ALLOWED_EMAILS`, request headers and
+`AUTH_MODE=disabled` do not grant this capability. An absent, empty or malformed
+operator list disables adjudication; existing read-only evidence review remains
+available. The application reports only the current user's capability, never the
+configured list. Deploying code does not select or grant an operator.
+
+An operator's confirmation records a present-day classification and the cited
+basis for the original storage binding. It does not create an upload receipt or
+verify file bytes. Keep unknown history blocked and provide no credentials in
+the evidence statements. Conversion remains a separate explicit operation.
+
+These values describe the runtime environment but are not credentials. Actual tokens, passwords, and client secrets must use encrypted Secrets instead. The base Wrangler configuration sets `keep_vars: true`, so deployments preserve Runtime Variables managed in the Cloudflare dashboard.
+
 The application is fail-closed when `AUTH_MODE=access`: protected API routes reject requests if Access is absent, misconfigured, or supplies an invalid issuer/audience.
 
 ## 5. Deploy and verify
 
-Push or merge the sanitized configuration to `main`. Workers Builds should:
+Push or merge the application version to the production branch configured in Workers Builds. It should:
 
 1. Install dependencies.
-2. Run `npm run build`.
-3. Apply every unapplied file in `migrations/` to the bound remote D1 database.
-4. Deploy the Worker only after migrations succeed.
+2. Generate the deployment bindings and build the Worker and client assets once.
+3. Upload those artifacts with Wrangler.
 
-Check the build log for either applied migration names or `No migrations to apply`.
+Run complete verification separately before merging. When the release changes
+the schema, run `npm run build:deploy` and `npm run db:migrate:remote` from a
+checkout with the intended deployment variables before uploading that release.
+Check the build log for bundle completion and deployment success; migration
+results are in the separate migration command's output.
 
 Then verify:
 
@@ -136,11 +213,11 @@ Then verify:
    { "ok": true }
    ```
 
-3. Create a disposable sample and add a text comment.
+3. Create a disposable Sample and add a text Comment.
 4. Add a compressed inline image and an external attachment link.
 5. Confirm file-upload controls remain disabled if managed storage is not configured.
 6. Import a representative FabuBlox workbook through the preview/confirm flow.
-7. Download a ZIP export and inspect `export-manifest.json` plus at least one asset.
+7. Download a ZIP export and inspect `export-manifest.json`, `export-warnings.json` when supported by that version, and at least one packaged asset.
 
 ## 6. Optional unchanged original-file attachments
 
@@ -165,12 +242,32 @@ The browser never receives the WebDAV credentials. Original bytes are streamed u
 For an existing installation:
 
 1. Review the release diff and new migrations before merging.
-2. Keep the production deploy command migration-first.
+2. Run verification locally or in GitHub Actions, and apply new schema migrations separately.
 3. Merge the tested version into the configured production branch.
 4. Confirm the build log and `/api/ready`.
-5. Run a small workflow smoke test when a release changes imports, comments, runs, or storage.
+5. Run a small workflow smoke test when a release changes imports, Comments, Runs, or storage.
 
 Applied D1 migrations are recorded and are not executed again.
+
+### Current disposable integration installation: in-place S2 rebuild
+
+The owner has authorized rebuilding the existing disposable integration D1
+in place. Follow the [current S2 procedure](./BACKEND_DISPOSABLE_S2_CUTOVER.md)
+and its recorded execution checkpoint. This installation keeps the current
+Worker, D1 database ID and `DB` binding, R2 bucket and `ASSETS` binding, and
+SWITCHdrive provider, root and credentials. Preserve its existing `DEPLOY_*`
+Build Variables, hostname and Access settings; no new storage-root build input
+or replacement resources are required.
+
+Rebuilding the application schema and migration ledger is a controlled
+maintenance operation against the explicitly confirmed disposable database.
+Stop old application writers and serialize builds before executing that
+procedure, then initialize the final S2 schema, deploy the verified matching
+application and complete acceptance before restoring normal access. Ordinary
+`deploy:remote` uploads the already built artifacts; database maintenance and
+schema migration are separate commands. This one installation's authorized rebuild
+does not change the upgrade or recovery procedure for installations that must
+preserve their data.
 
 ## Local development and CLI deployment
 
@@ -185,15 +282,17 @@ npm run dev
 
 `AUTH_MODE=disabled` is only for local development. Local D1/R2 simulations do not contain production data by default.
 
-An operator who prefers Wrangler can deploy from a trusted checkout:
+An operator who prefers Wrangler can export the required `DEPLOY_*` values in a trusted shell and deploy from a trusted checkout:
 
 ```bash
-npm run verify
-npm run db:migrate:remote
+npm run verify:ci
 npm run deploy
 ```
 
-Confirm the active Cloudflare account and every binding before applying remote migrations.
+For a schema-changing release, run `npm run build:deploy` followed by
+`npm run db:migrate:remote` before `npm run deploy:remote`. Complete v3 lifecycle
+validation can also be run explicitly with `npm run verify:v3-deployment` in the
+local checkout; Cloudflare Workers Builds does not execute it.
 
 ## Backup and recovery
 
@@ -201,13 +300,14 @@ Confirm the active Cloudflare account and every binding before applying remote m
 - D1 Time Travel can restore database state within the retention window offered by the account plan.
 - Before any destructive restore, create a fresh export and record the current D1 bookmark.
 - Managed original files are backed up according to the external storage provider's own retention and recovery rules.
+- Treat export warnings about missing or unavailable bytes as integrity incidents; preserve the database export and investigate the provider separately.
 
 ## Security checklist
 
-- No credentials are committed to Git. A fork replaces every inherited account identifier, resource ID, and deployment hostname before its first build.
+- No credentials or installation-specific identifiers are committed to Git. Each environment supplies its own Build Variables, Runtime Variables, and Secrets in Cloudflare.
 - The complete application hostname is covered by Access.
 - The Worker validates the Access JWT issuer and audience.
-- Sensitive runtime values are encrypted Worker secrets.
+- Sensitive runtime values are encrypted Worker Secrets; non-secret runtime configuration uses Runtime Variables.
 - D1 and R2 belong to the installing account and are not shared with another deployment.
 - Preview branches cannot migrate or write production storage.
 - Original-file credentials stay server-side and are never returned to the browser.

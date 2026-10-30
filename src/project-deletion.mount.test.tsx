@@ -1,0 +1,582 @@
+
+// @vitest-environment jsdom
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ProjectEdgeRecord } from "../shared/project-api";
+import type { ProjectMapContextCommands } from "./components/project/ProjectMapSurface";
+import type { ProjectItemSelection } from "./lib/project-canvas-productivity";
+import type { ProjectReferenceDragPayload } from "./lib/project-reference-placement";
+import { ProjectPage } from "./pages/ProjectPage";
+import { projectTestSnapshot } from "./project-test-fixture";
+
+vi.mock("./components/ReferenceSearchSurface", () => ({ ReferenceSearchSurface: () => <div /> }));
+vi.mock("./components/project/ProjectMapSurface", async () => {
+  const React = await import("react");
+  return {
+    ProjectMapSurface: React.forwardRef<{
+      getViewportCenter: () => { x: number; y: number };
+    }, {
+      selectedEdgeId?: string | null;
+      onSelect: (itemId: string | null) => boolean | void;
+      onSelectionChange?: (selection: ProjectItemSelection) => boolean | void;
+      onEdgeSelect?: (edgeId: string | null) => boolean | void;
+      onReferenceDrop?: (
+        payload: ProjectReferenceDragPayload,
+        point: { x: number; y: number },
+      ) => void;
+      onMarkdownCreateRequest?: (point: { x: number; y: number }) => void;
+      contextCommands?: ProjectMapContextCommands;
+    }>((props, ref) => {
+      React.useImperativeHandle(ref, () => ({ getViewportCenter: () => ({ x: 400, y: 300 }) }));
+      return <div>
+        Project Map fixture
+        <button type="button" onClick={() => props.onSelect("item-note")}>Select test Map item</button>
+        <button type="button" onClick={() => props.contextCommands?.openReferences()}>
+          Open References from Canvas
+        </button>
+        <button type="button" onClick={() => props.contextCommands?.inspectItem("item-note")}>
+          Inspect test Map item
+        </button>
+        <button type="button" onClick={() => props.onSelectionChange?.({
+          itemIds: ["item-note", "item-reference"],
+          primaryItemId: "item-reference",
+        })}>Select two test Map items</button>
+        <button type="button" onClick={() => props.onEdgeSelect?.("edge-a")}>Select test edge A</button>
+        <button type="button" onClick={() => props.onEdgeSelect?.("edge-b")}>Try selecting test edge B</button>
+        <p>Selected edge: {props.selectedEdgeId ?? "none"}</p>
+        <button
+          type="button"
+          disabled={props.contextCommands?.edgeInspectDisabled}
+          onClick={() => props.contextCommands?.inspectEdge("edge-a")}
+        >Inspect edge from Canvas</button>
+        <button
+          type="button"
+          disabled={props.contextCommands?.edgeEditDisabled}
+          onClick={() => props.contextCommands?.editEdge()}
+        >Edit selected edge</button>
+        <button
+          type="button"
+          disabled={props.contextCommands?.edgeDeleteDisabled}
+          onClick={() => props.contextCommands?.deleteEdge()}
+        >Delete selected edge</button>
+        <button type="button" onClick={() => props.onReferenceDrop?.({
+          version: 1,
+          target: { type: "sample", id: "sample-pending" },
+          preview: {
+            title: "Pending sample",
+            subtitle: null,
+            excerpt: null,
+            referenceUrl: "/references/sample/r1_sample-pending",
+            openSourceUrl: "/samples/sample-pending",
+          },
+        }, { x: 420, y: 320 })}>Start pending Reference</button>
+        <button type="button" onClick={() => props.onMarkdownCreateRequest?.({
+          x: 420,
+          y: 320,
+        })}>Start Markdown editor from Canvas</button>
+      </div>;
+    }),
+  };
+});
+
+function desktopMatchMedia() {
+  return vi.fn((query: string) => ({
+    matches: query.includes("min-width"),
+    media: "(min-width: 860px)",
+    onchange: null,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
+}
+
+function jsonResponse(payload: unknown, status = 200) {
+  return Promise.resolve(new Response(JSON.stringify(payload), {
+    status,
+    headers: { "content-type": "application/json" },
+  }));
+}
+
+function edgeRecord(id: string): ProjectEdgeRecord {
+  const now = "2026-08-28T12:00:00.000Z";
+  return {
+    id,
+    projectId: "project-a",
+    sourceItemId: "item-note",
+    targetItemId: "item-reference",
+    sourceHandle: id === "edge-a" ? "right" : "bottom",
+    targetHandle: id === "edge-a" ? "left" : "top",
+    markerStart: "none",
+    markerEnd: "arrow",
+    label: id,
+    revision: 1,
+    createdBy: "user@example.com",
+    updatedBy: "user@example.com",
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+    deletedBy: null,
+  };
+}
+
+function renderProjectPage() {
+  const router = createMemoryRouter([{
+    path: "/projects/:projectId",
+    element: <ProjectPage />,
+  }, {
+    path: "/projects",
+    element: <div>Projects destination</div>,
+  }], { initialEntries: ["/projects/project-a"] });
+  return { router, view: render(<RouterProvider router={router} />) };
+}
+
+function openProjectActions() {
+  const trigger = screen.getByRole("button", { name: "Project actions" });
+  fireEvent.click(trigger);
+  expect(trigger.getAttribute("aria-expanded")).toBe("true");
+  return screen.getByRole("button", { name: "Move to trash" });
+}
+
+describe("Project lifecycle UI", () => {
+  const fetchMock = vi.fn<typeof fetch>();
+
+  beforeEach(() => {
+    vi.stubGlobal("matchMedia", desktopMatchMedia());
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    cleanup();
+    fetchMock.mockReset();
+    vi.unstubAllGlobals();
+  });
+
+  it("owns the desktop Map viewport and releases document scrolling for Reading", async () => {
+    const snapshot = projectTestSnapshot();
+    fetchMock.mockImplementationOnce(() => jsonResponse(snapshot));
+
+    const { view } = renderProjectPage();
+    await screen.findByText("Project Map fixture");
+
+    const page = document.querySelector(".project-page");
+    const header = document.querySelector(".project-workspace-header");
+    expect(page?.classList.contains("desktop")).toBe(true);
+    expect(page?.classList.contains("map")).toBe(true);
+    expect(document.documentElement.classList.contains("project-map-viewport")).toBe(true);
+    expect(header).toBeTruthy();
+    expect(within(header as HTMLElement).getByRole("heading", {
+      level: 1,
+      name: snapshot.project.title,
+    }).getAttribute("title")).toBe(snapshot.project.title);
+    expect(within(header as HTMLElement).queryByText("Project workspace")).toBeNull();
+
+    const workspace = document.querySelector(".project-desktop-workspace");
+    const referencesToggle = screen.getByRole("button", { name: "References" });
+    const inspectorToggle = screen.getByRole("button", { name: "Inspector" });
+    expect(workspace?.getAttribute("data-reference-open")).toBe("false");
+    expect(workspace?.getAttribute("data-inspector-open")).toBe("false");
+    expect(screen.queryByRole("complementary", { name: "Reference search and placement" })).toBeNull();
+    expect(screen.queryByRole("complementary", { name: "Project Inspector" })).toBeNull();
+
+    fireEvent.click(referencesToggle);
+    expect(screen.getByRole("complementary", {
+      name: "Reference search and placement",
+    }).getAttribute("data-panel-presentation")).toBe("floating");
+    fireEvent.click(referencesToggle);
+    expect(screen.queryByRole("complementary", {
+      name: "Reference search and placement",
+    })).toBeNull();
+    expect(screen.getByText("Project Map fixture")).toBeTruthy();
+    expect(document.querySelector("input[aria-label='Choose Project attachment']")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Open References from Canvas" }));
+    const referencePanel = screen.getByRole("complementary", {
+      name: "Reference search and placement",
+    });
+    await waitFor(() => expect(document.activeElement).toBe(referencePanel));
+
+    fireEvent.click(screen.getByRole("button", { name: "Inspect test Map item" }));
+    const inspector = await screen.findByRole("complementary", { name: "Project Inspector" });
+    expect(inspector.getAttribute("data-panel-presentation")).toBe("floating");
+    await waitFor(() => expect(document.activeElement).toBe(inspector));
+    expect(within(inspector).getByRole("button", { name: "Pin" }).getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(within(inspector).getByRole("button", { name: "Close Inspector" }));
+    await waitFor(() => {
+      expect(screen.queryByRole("complementary", { name: "Project Inspector" })).toBeNull();
+      expect(document.activeElement).toBe(inspectorToggle);
+    });
+
+    fireEvent.click(inspectorToggle);
+    const pinnedInspector = await screen.findByRole("complementary", {
+      name: "Project Inspector",
+    });
+    expect(within(pinnedInspector).getByRole("button", { name: "Pin" }).getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(within(pinnedInspector).getByRole("button", { name: "Pin" }));
+    expect(within(pinnedInspector).getByRole("button", { name: "Unpin" })).toBeTruthy();
+    const inspectorClose = within(pinnedInspector).getByRole("button", {
+      name: "Close Inspector",
+    });
+    inspectorClose.focus();
+    fireEvent.keyDown(inspectorClose, { key: "Escape" });
+    await waitFor(() => {
+      expect(screen.queryByRole("complementary", { name: "Project Inspector" })).toBeNull();
+      expect(document.activeElement).toBe(inspectorToggle);
+    });
+
+    const projectActions = screen.getByRole("button", { name: "Project actions" });
+    const add = screen.getByRole("button", { name: "Add" });
+    expect(projectActions.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("button", { name: "Move to trash" })).toBeNull();
+    fireEvent.click(projectActions);
+    expect(screen.getByRole("button", { name: "Move to trash" })).toBeTruthy();
+    fireEvent.click(add);
+    expect(screen.queryByRole("button", { name: "Move to trash" })).toBeNull();
+    expect(screen.getByRole("group", { name: "Add to Project" })).toBeTruthy();
+    fireEvent.click(projectActions);
+    expect(screen.queryByRole("group", { name: "Add to Project" })).toBeNull();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(projectActions.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("button", { name: "Move to trash" })).toBeNull();
+    expect(document.activeElement).toBe(projectActions);
+
+    fireEvent.click(add);
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("group", { name: "Add to Project" })).toBeNull();
+    expect(document.activeElement).toBe(add);
+    fireEvent.click(add);
+    const referenceClose = screen.getByRole("button", { name: "Close References" });
+    referenceClose.focus();
+    fireEvent.keyDown(referenceClose, { key: "Escape" });
+    expect(screen.queryByRole("group", { name: "Add to Project" })).toBeNull();
+    expect(screen.getByRole("complementary", { name: "Reference search and placement" })).toBeTruthy();
+    expect(document.activeElement).toBe(add);
+    // Menu Escape must not propagate into Canvas selection clearing.
+    fireEvent.click(inspectorToggle);
+    expect(screen.getByRole("complementary", { name: "Project Inspector" }).textContent).toContain("Design note");
+    fireEvent.click(add);
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Reading" }));
+    expect(screen.queryByRole("group", { name: "Add to Project" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Reading" }));
+    await waitFor(() => {
+      expect(page?.classList.contains("reading")).toBe(true);
+      expect(document.documentElement.classList.contains("project-map-viewport")).toBe(false);
+      expect(screen.getByRole("button", { name: "Add" })).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Map" }));
+    await waitFor(() => {
+      expect(page?.classList.contains("map")).toBe(true);
+      expect(document.documentElement.classList.contains("project-map-viewport")).toBe(true);
+    });
+
+    view.unmount();
+    expect(document.documentElement.classList.contains("project-map-viewport")).toBe(false);
+  });
+
+  it("projects pending Reference work into exact edge mutation availability", async () => {
+    const snapshot = projectTestSnapshot();
+    snapshot.edges = [edgeRecord("edge-a")];
+    fetchMock.mockImplementation((path, init) => {
+      if (!init?.method || init.method === "GET") return jsonResponse(snapshot);
+      if (init.method === "POST" && String(path).endsWith("/items/reference")) {
+        return new Promise<Response>(() => undefined);
+      }
+      return jsonResponse({ error: `Unexpected ${init?.method} ${String(path)}` }, 500);
+    });
+
+    renderProjectPage();
+    await screen.findByText("Project Map fixture");
+    fireEvent.click(screen.getByRole("button", { name: "Select test edge A" }));
+    await screen.findByText("Selected edge: edge-a");
+    fireEvent.click(screen.getByRole("button", { name: "Start pending Reference" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Edit selected edge" }).hasAttribute("disabled")).toBe(true);
+      expect(screen.getByRole("button", { name: "Delete selected edge" }).hasAttribute("disabled")).toBe(true);
+    });
+    expect(screen.getByRole("button", { name: "Inspect edge from Canvas" }).hasAttribute("disabled")).toBe(false);
+  });
+
+  it("rejects edge inspection while an owned-content editor owns selection", async () => {
+    const snapshot = projectTestSnapshot();
+    snapshot.edges = [edgeRecord("edge-a")];
+    fetchMock.mockImplementation(() => jsonResponse(snapshot));
+
+    renderProjectPage();
+    await screen.findByText("Project Map fixture");
+    fireEvent.click(screen.getByRole("button", { name: "Start Markdown editor from Canvas" }));
+    await screen.findByText("Selected edge: none");
+    expect(screen.queryByRole("complementary", { name: "Project Inspector" })).toBeNull();
+
+    const inspectEdge = screen.getByRole("button", { name: "Inspect edge from Canvas" });
+    expect(inspectEdge.hasAttribute("disabled")).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Try selecting test edge B" }));
+    expect(screen.getByText("Selected edge: none")).toBeTruthy();
+  });
+
+  it("keeps an unresolved edge editor on its original edge", async () => {
+    const snapshot = projectTestSnapshot();
+    snapshot.edges = [edgeRecord("edge-a"), edgeRecord("edge-b")];
+    fetchMock.mockImplementation(() => jsonResponse(snapshot));
+
+    renderProjectPage();
+    await screen.findByText("Project Map fixture");
+    fireEvent.click(screen.getByRole("button", { name: "Select test edge A" }));
+    await screen.findByText("Selected edge: edge-a");
+    fireEvent.click(screen.getByRole("button", { name: "Edit selected edge" }));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Inspect edge from Canvas" }).hasAttribute("disabled")).toBe(true);
+      expect(screen.getByRole("button", { name: "Edit selected edge" }).hasAttribute("disabled")).toBe(true);
+      expect(screen.getByRole("button", { name: "Delete selected edge" }).hasAttribute("disabled")).toBe(true);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Try selecting test edge B" }));
+    expect(screen.getByText("Selected edge: edge-a")).toBeTruthy();
+  });
+
+  it("moves selection and clipboard counts out of the single-row header at the desktop boundary", async () => {
+    const snapshot = projectTestSnapshot();
+    snapshot.project = {
+      ...snapshot.project,
+      title: "A deliberately long Project title that must truncate without hiding workspace controls",
+    };
+    fetchMock.mockImplementation(() => jsonResponse(snapshot));
+
+    renderProjectPage();
+    await screen.findByText("Project Map fixture");
+    fireEvent.click(screen.getByRole("button", { name: "Select two test Map items" }));
+    fireEvent.keyDown(document, { key: "c", code: "KeyC", ctrlKey: true });
+
+    const header = document.querySelector<HTMLElement>(".project-workspace-header")!;
+    const workspace = document.querySelector<HTMLElement>(".project-desktop-workspace")!;
+    await waitFor(() => {
+      expect(within(header).queryByText("2 selected")).toBeNull();
+      expect(within(header).queryByText("2 copied")).toBeNull();
+      expect(within(workspace).getByText("2 selected")).toBeTruthy();
+      expect(within(workspace).getByText("2 copied")).toBeTruthy();
+    });
+    expect(within(header).getByRole("button", { name: "References" })).toBeTruthy();
+    expect(within(header).getByRole("button", { name: "Inspector" })).toBeTruthy();
+    expect(within(header).getByRole("button", { name: "Undo" })).toBeTruthy();
+    expect(within(header).getByRole("button", { name: "Redo" })).toBeTruthy();
+    expect(within(header).getByRole("button", { name: "Save" })).toBeTruthy();
+    expect(within(header).getByRole("button", { name: "Project actions" })).toBeTruthy();
+    for (const name of ["References", "Inspector", "Undo", "Redo", "Save", "Project actions"]) {
+      const control = within(header).getByRole("button", { name });
+      expect(control.querySelector('svg[aria-hidden="true"][focusable="false"]')).toBeTruthy();
+      expect(control.getAttribute("title")).toBeTruthy();
+    }
+
+    document.documentElement.dataset.theme = "dark";
+    expect(within(header).getByRole("button", { name: "Project actions" })).toBeTruthy();
+    delete document.documentElement.dataset.theme;
+  });
+
+  it("moves a Project to trash and exact-retries the same lifecycle request after an uncertain outcome", async () => {
+    const snapshot = projectTestSnapshot();
+    let deleteCount = 0;
+    fetchMock.mockImplementation((path, init) => {
+      if (String(path) === "/api/projects/project-a" && !init?.method) return jsonResponse(snapshot);
+      if (String(path) === "/api/projects/project-a" && init?.method === "DELETE") {
+        deleteCount += 1;
+        if (deleteCount === 1) return jsonResponse({ error: "Temporary Project deletion failure" }, 503);
+        return jsonResponse({
+          project: {
+            ...snapshot.project,
+            revision: snapshot.project.revision + 1,
+            deletedAt: "2026-08-14T08:00:00.000Z",
+            deletedBy: "user@example.com",
+          },
+          replayed: true,
+        });
+      }
+      return jsonResponse({ error: `Unexpected ${init?.method || "GET"} ${String(path)}` }, 500);
+    });
+
+    renderProjectPage();
+    await screen.findByText("Project Map fixture");
+    fireEvent.click(openProjectActions());
+    expect(await screen.findByRole("alertdialog", { name: "Move Project to trash" })).toBeTruthy();
+    expect(screen.getByText(/can be restored later/)).toBeTruthy();
+    expect(screen.queryByText(/cannot be undone/i)).toBeNull();
+    fireEvent.change(screen.getByLabelText("Type the Project title to confirm"), {
+      target: { value: snapshot.project.title },
+    });
+    const dialog = screen.getByRole("alertdialog", { name: "Move Project to trash" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Move to trash" }));
+
+    expect(await screen.findByText("Temporary Project deletion failure")).toBeTruthy();
+    const firstDelete = fetchMock.mock.calls[1];
+    expect(firstDelete[0]).toBe("/api/projects/project-a");
+    expect(firstDelete[1]?.method).toBe("DELETE");
+    const firstBody = JSON.parse(String(firstDelete[1]?.body));
+    expect(firstBody.expectedRevision).toBe(snapshot.project.revision);
+    expect(firstBody.operationId).toMatch(/^operation-/);
+    expect(screen.getByRole("button", { name: "Cancel" }).hasAttribute("disabled")).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry exact move" }));
+    await screen.findByText("Projects destination");
+    const secondBody = JSON.parse(String(fetchMock.mock.calls[2][1]?.body));
+    expect(secondBody).toEqual(firstBody);
+  });
+
+  it("requires a fresh title confirmation and lifecycle identity after a deletion conflict", async () => {
+    const initial = projectTestSnapshot();
+    const refreshed = projectTestSnapshot();
+    refreshed.project = {
+      ...refreshed.project,
+      revision: initial.project.revision + 1,
+      updatedAt: "2026-08-14T09:40:00.000Z",
+    };
+    let readCount = 0;
+    const deleteInputs: Array<{ expectedRevision: number; operationId: string }> = [];
+
+    fetchMock.mockImplementation((path, init) => {
+      if (String(path) === "/api/projects/project-a" && !init?.method) {
+        readCount += 1;
+        return jsonResponse(readCount === 1 ? initial : refreshed);
+      }
+      if (String(path) === "/api/projects/project-a" && init?.method === "DELETE") {
+        const input = JSON.parse(String(init.body)) as { expectedRevision: number; operationId: string };
+        deleteInputs.push(input);
+        if (deleteInputs.length === 1) return jsonResponse({ error: "Project revision conflict" }, 409);
+        return jsonResponse({
+          project: {
+            ...refreshed.project,
+            revision: refreshed.project.revision + 1,
+            deletedAt: "2026-08-14T09:45:00.000Z",
+            deletedBy: "user@example.com",
+          },
+          replayed: false,
+        });
+      }
+      return jsonResponse({ error: `Unexpected ${init?.method || "GET"} ${String(path)}` }, 500);
+    });
+
+    renderProjectPage();
+    await screen.findByText("Project Map fixture");
+    fireEvent.click(openProjectActions());
+    fireEvent.change(screen.getByLabelText("Type the Project title to confirm"), {
+      target: { value: initial.project.title },
+    });
+    let dialog = screen.getByRole("alertdialog", { name: "Move Project to trash" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Move to trash" }));
+
+    expect(await screen.findByText(/latest authoritative state has been reloaded/)).toBeTruthy();
+    await waitFor(() => {
+      expect((screen.getByLabelText("Type the Project title to confirm") as HTMLInputElement).value).toBe("");
+    });
+    dialog = screen.getByRole("alertdialog", { name: "Move Project to trash" });
+    expect(within(dialog).getByRole("button", { name: "Move to trash" }).hasAttribute("disabled")).toBe(true);
+    expect(deleteInputs).toHaveLength(1);
+    expect(deleteInputs[0].expectedRevision).toBe(initial.project.revision);
+
+    fireEvent.change(screen.getByLabelText("Type the Project title to confirm"), {
+      target: { value: refreshed.project.title },
+    });
+    dialog = screen.getByRole("alertdialog", { name: "Move Project to trash" });
+    const freshConfirm = within(dialog).getByRole("button", { name: "Move to trash" });
+    expect(freshConfirm.hasAttribute("disabled")).toBe(false);
+    fireEvent.click(freshConfirm);
+
+    await screen.findByText("Projects destination");
+    expect(deleteInputs).toHaveLength(2);
+    expect(deleteInputs[1].expectedRevision).toBe(refreshed.project.revision);
+    expect(deleteInputs[1].operationId).not.toBe(deleteInputs[0].operationId);
+  });
+
+
+  it("does not carry a deterministic deletion request across Project route identities", async () => {
+    const projectA = projectTestSnapshot();
+    const projectB = projectTestSnapshot();
+    projectB.project = {
+      ...projectB.project,
+      id: "project-b",
+      title: projectA.project.title,
+      revision: projectA.project.revision,
+      updatedAt: "2026-08-14T10:00:00.000Z",
+    };
+    projectB.contents = projectB.contents.map((content) => ({ ...content, projectId: "project-b" }));
+    projectB.items = projectB.items.map((item) => ({ ...item, projectId: "project-b" }));
+
+    const deletionCalls: Array<{
+      projectId: string;
+      expectedRevision: number;
+      operationId: string;
+    }> = [];
+    let projectBReads = 0;
+
+    fetchMock.mockImplementation((path, init) => {
+      const url = String(path);
+      if (url === "/api/projects/project-a" && !init?.method) return jsonResponse(projectA);
+      if (url === "/api/projects/project-b" && !init?.method) {
+        projectBReads += 1;
+        return jsonResponse(projectB);
+      }
+      if ((url === "/api/projects/project-a" || url === "/api/projects/project-b") && init?.method === "DELETE") {
+        const input = JSON.parse(String(init.body)) as { expectedRevision: number; operationId: string };
+        const targetProjectId = url.endsWith("project-a") ? "project-a" : "project-b";
+        deletionCalls.push({ projectId: targetProjectId, ...input });
+        if (targetProjectId === "project-a") {
+          return jsonResponse({ error: "Project deletion rejected" }, 400);
+        }
+        return jsonResponse({
+          project: {
+            ...projectB.project,
+            revision: projectB.project.revision + 1,
+            deletedAt: "2026-08-14T10:05:00.000Z",
+            deletedBy: "user@example.com",
+          },
+          replayed: false,
+        });
+      }
+      return jsonResponse({ error: `Unexpected ${init?.method || "GET"} ${url}` }, 500);
+    });
+
+    const { router } = renderProjectPage();
+    await screen.findByText("Project Map fixture");
+    fireEvent.click(openProjectActions());
+    fireEvent.change(screen.getByLabelText("Type the Project title to confirm"), {
+      target: { value: projectA.project.title },
+    });
+    let dialog = screen.getByRole("alertdialog", { name: "Move Project to trash" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Move to trash" }));
+
+    expect(await screen.findByText("Project deletion rejected")).toBeTruthy();
+    expect(deletionCalls).toHaveLength(1);
+    expect(deletionCalls[0]).toMatchObject({
+      projectId: "project-a",
+      expectedRevision: projectA.project.revision,
+    });
+    const projectAOperationId = deletionCalls[0].operationId;
+    expect((screen.getByLabelText("Type the Project title to confirm") as HTMLInputElement).value)
+      .toBe(projectA.project.title);
+
+    await act(async () => {
+      await router.navigate("/projects/project-b");
+    });
+    await waitFor(() => expect(projectBReads).toBeGreaterThan(0));
+    await screen.findByText("Project Map fixture");
+    expect(screen.queryByRole("alertdialog", { name: "Move Project to trash" })).toBeNull();
+    expect(deletionCalls).toHaveLength(1);
+
+    fireEvent.click(openProjectActions());
+    dialog = await screen.findByRole("alertdialog", { name: "Move Project to trash" });
+    const confirmation = screen.getByLabelText("Type the Project title to confirm") as HTMLInputElement;
+    expect(confirmation.value).toBe("");
+    fireEvent.change(confirmation, { target: { value: projectB.project.title } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Move to trash" }));
+
+    await screen.findByText("Projects destination");
+    expect(deletionCalls).toHaveLength(2);
+    expect(deletionCalls[1]).toMatchObject({
+      projectId: "project-b",
+      expectedRevision: projectB.project.revision,
+    });
+    expect(deletionCalls[1].operationId).not.toBe(projectAOperationId);
+  });
+
+});

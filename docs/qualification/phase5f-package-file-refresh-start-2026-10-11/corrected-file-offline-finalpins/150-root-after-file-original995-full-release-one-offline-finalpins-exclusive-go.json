@@ -1,0 +1,37 @@
+{
+  "status": "ROOT_EXCLUSIVE_GO_ONE_CORRECTED_FILE_ORIGINAL_CLOSED_OFFLINE_FINALPINS_ONLY",
+  "owner": "remaining_5f_ui",
+  "priorRootRelease": {
+    "path": "/tmp/phase5f-file-current2d07-start202-focus-native-private-attempt1/runtime/root-current2d07-file-start-native1pass-final-carrier9p1f-full-original-release.json",
+    "sha256": "99566653a83c5064dedabd006ba268bfe47e582aa0e9d22df0f8462e94008db6",
+    "bytes": 4501
+  },
+  "sourcePeer": {
+    "path": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-source-preparation-attempt1/independent-root-three-splice-ordered-reader-original-closed-finalpins-source-peer.json",
+    "sha256": "277c067db71d14f51328f51295303d6aee1ef59361bc683abfda033517ffde8d",
+    "bytes": 964
+  },
+  "handoff": {
+    "path": "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-source-preparation-attempt1/source-handoff.json",
+    "sha256": "e4e3a09804294f409056bf7a570adc514d836bc024c622d3d00e03330aa98761",
+    "bytes": 3801
+  },
+  "startArgv": [
+    "python3",
+    "-B",
+    "/tmp/phase5f-file-current2d07-start202-ordered-reader-finalpins-source-preparation-attempt1/run-frozen-owned-stage.py",
+    "--exclusive-go-exact-c316fe8-original-closed-file-ordered-reader-finalpins-stage",
+    "original-closed-file-ordered-reader-finalpins"
+  ],
+  "commands": 1,
+  "browser": 0,
+  "HTTP": 0,
+  "SQLiteOpen": 0,
+  "newJobs": 0,
+  "nativeRerun": 0,
+  "otherActualGo": false,
+  "freeBytes": {
+    "/workspace": 619331584,
+    "/tmp": 915562496
+  }
+}

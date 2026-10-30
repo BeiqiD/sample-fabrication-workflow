@@ -1,3 +1,117 @@
+.sample-overview-page .sample-header-copy h1 {
+  margin: 0;
+  font-size: 32px;
+  line-height: 1.12;
+  letter-spacing: -.03em;
+  text-wrap: balance;
+}
+
+.sample-identity-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.sample-identity-summary > div {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
+.sample-identity-summary dt {
+  color: var(--muted);
+}
+
+.sample-identity-summary dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.sample-overview-page .sample-priority-grid {
+  grid-template-areas: "structure notes" "details notes";
+  grid-template-rows: auto 1fr;
+  gap: 16px 24px;
+  align-items: start;
+}
+
+.sample-overview-page .sample-current-structure {
+  grid-area: structure;
+}
+
+.sample-overview-page .sample-notes-slot {
+  grid-area: notes;
+  align-self: stretch;
+}
+
+.sample-overview-page .sample-details-card {
+  grid-area: details;
+}
+
+.sample-details-toggle {
+  display: none;
+}
+
+.sample-details-card .card-title-row {
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.sample-details-card .card-title-row > .text-button {
+  min-width: 52px;
+  min-height: 24px;
+  text-align: right;
+}
+
+.sample-overview-page .sample-header > .sample-header-actions {
+  min-width: 0;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.sample-overview-page .sample-header-action-buttons > .button {
+  min-height: 32px;
+  padding: 5px 9px;
+  font-size: 12px;
+}
+
+.sample-overview-page .sample-header-action-buttons .action-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+}
+
+.sample-overview-page .sample-current-structure,
+.sample-overview-page .sample-details-card,
+.sample-overview-page .sample-notes-card,
+.sample-overview-page .sample-secondary-grid .card {
+  background: var(--surface);
+  box-shadow: none;
+}
+
+.sample-overview-page .sample-delete-section {
+  margin: 32px 0 0;
+  padding: 20px 0 0;
+  border-top-color: var(--line);
+  border-radius: 0;
+  background: transparent;
+}
+
+.sample-delete-section h2 {
+  margin: 0;
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+.sample-overview-page .sample-note {
+  border-left-width: 1px;
+}
+
 .sample-details-mode-stack {
   position: relative;
   min-width: 0;
@@ -63,12 +177,84 @@
   font-weight: 400;
 }
 
+.sample-details-card .sample-description-value {
+  display: block;
+  white-space: pre-wrap;
+}
+
 .sample-details-card .detail-form input:not([type="checkbox"]),
 .sample-details-card .detail-form select {
   min-height: 40px;
 }
 
+@media (min-width: 1201px) {
+  /* Keep record identity readable when work actions need a separate row. */
+  .sample-overview-page .sample-header { flex-wrap: wrap; }
+  .sample-overview-page .sample-header-copy { flex-basis: 20rem; }
+  .sample-overview-page .sample-header > .sample-header-actions { flex-grow: 1; }
+}
+
+@media (max-width: 1200px) {
+  .sample-overview-page .sample-header > .sample-header-actions { align-items: flex-start; }
+  .sample-overview-page .sample-header-action-buttons { justify-content: flex-start; }
+  .sample-overview-page .sample-header-action-buttons .sample-header-secondary-action { width: 32px; min-width: 32px; padding: 0; }
+  .sample-overview-page .sample-priority-grid { align-items: stretch; }
+  .sample-overview-page .sample-current-structure { order: 1; }
+  .sample-overview-page .sample-notes-slot { order: 2; }
+  .sample-overview-page .sample-details-card { order: 3; }
+}
+
 @media (max-width: 720px) {
+  .sample-overview-page .sample-header { gap: 14px; margin-bottom: 24px; }
+  .sample-overview-page .sample-header-copy h1 { font-size: 28px; }
+  .sample-identity-summary { gap: 6px 16px; margin-top: 10px; }
+  .sample-overview-page .sample-header > .sample-header-actions { flex-direction: row; align-items: center; flex-wrap: nowrap; }
+
+  .sample-overview-page .sample-priority-grid { gap: 20px; }
+  .sample-overview-page .sample-details-card { padding: 16px; }
+
+  .sample-details-toggle {
+    width: 100%;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0;
+    border: 0;
+    color: var(--ink);
+    background: transparent;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 650;
+  }
+
+  .sample-details-toggle:hover:not(:disabled) { color: var(--accent); }
+  .sample-details-toggle:disabled { cursor: default; }
+  .sample-details-toggle .action-icon { width: 16px; height: 16px; flex: 0 0 16px; }
+  .sample-details-toggle[aria-expanded="true"] .action-icon { transform: rotate(180deg); }
+  .sample-details-toggle[aria-expanded="true"] { margin-bottom: 16px; }
+  .sample-overview-page .sample-delete-section { align-items: flex-start; flex-wrap: wrap; }
+
+  /* Core work actions stay compact and named; transfers live in Settings. */
+  .sample-overview-page .sample-header-action-buttons {
+    display: flex;
+    gap: 6px;
+    min-width: 0;
+    max-width: 100%;
+    margin-left: auto;
+    flex: 0 1 auto;
+    justify-content: start;
+  }
+
+  .sample-overview-page .sample-header-action-buttons > .button {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+    padding: 0;
+  }
+
   .sample-note-content {
     grid-template-columns: minmax(0, 1fr);
     gap: 10px;

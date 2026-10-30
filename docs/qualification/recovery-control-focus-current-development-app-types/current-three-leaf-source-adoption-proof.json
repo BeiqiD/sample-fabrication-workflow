@@ -1,0 +1,20 @@
+{
+  "status": "ROOT_SOURCE_ADOPTION_CLEAR",
+  "recordedUTC": "2026-10-11T11:39:29.009179+00:00",
+  "head": "a28298e6df5c6bb59fabc5d0f604498480f56e74",
+  "tree": "44f383d302e0a3cb3300b079fc977f2559f16b3f",
+  "protectedCurrentHTTPDevelopmentEntriesExact": 2359,
+  "qualifiedThreeSelectedDonorLeavesExact": true,
+  "donorHead": "b498aa01b3742e15438fd8c8a9dd9383637d9bf0",
+  "sourceReviewChain": [
+    "de6ed4c46be385e0551571d607ea9abbcc8d612b39b62ac4d68c1fec4b67b124",
+    "43d75e00550d4296d0e13cddb3cf41be2bbcd9b98567f8092632efa310e91c9e",
+    "f8eac9db724c4ad89aaf3c5eea8b0ba0bae2599b644e519b7aa60a442aeed595",
+    "0fee410eb4ae59a5dcbf85e97505e2ab29daf24b527a95df3b8d76893133974c"
+  ],
+  "genuineBrowserActualDonorScopeOnly": "72144cd34779e75b4f58b681a111b9268cf224b4bc5216132efd6a1468f0b680",
+  "currentAffectedAppCompiler": "b7e5ea806e12110ceea359d34cf53c6b6b5d2fea84be1b342d1f4e289a7aa145",
+  "currentSourceNotRetaggedAsDonorRuntime": true,
+  "defaultOwnCompleteCI": "UNRUN_REQUIRED_BEFORE_MERGE",
+  "productionMainTouched": false
+}

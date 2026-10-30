@@ -1,0 +1,742 @@
+{
+  "status": "FAILED_GEOMETRY_ORIGINAL_TEN_CLOSED_RELEASED",
+  "recordedAt": "2026-10-11T18:35:11.646364+00:00",
+  "sourceHead": "02d6dfbe5f2bd98847b3d6f509c219de5ad816ad",
+  "qaConsumerHead": "c94b07c390af5fe34c0f8a25750bfcf44be872b1",
+  "buildScope": "Original actual02d ONE CF118/copy121 causally carried; zero new build/compiler/mounted. Consumerc94 mobile helpers only; not current public dev artifact.",
+  "actualCommands": {
+    "count": 10,
+    "passed": 9,
+    "failed": 1
+  },
+  "nativeCases": {
+    "passed": 0,
+    "failed": 1,
+    "unrun": 0,
+    "id": "current-coherent-file-saved-job-keyboard-390-dark",
+    "width": 390,
+    "height": 844,
+    "theme": "dark"
+  },
+  "firstFailure": {
+    "error": "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:\n\n  assert(geometry.root<=geometry.width+2&&geometry.body<=geometry.width+2)\n\n    at caseRun (file:///workspace/phase5f-coherent-saved-package-mobile-qa-source-attempt1/scripts/qa/phase5f/browser-current-coherent-local-r2-file-saved-job-keyboard-mobile.mjs:225:139)\n    at async file:///workspace/phase5f-coherent-saved-package-mobile-qa-source-attempt1/scripts/qa/phase5f/browser-current-coherent-local-r2-file-saved-job-keyboard-mobile.mjs:254:3",
+    "recordedGeometry": {
+      "width": 390,
+      "root": 482,
+      "body": 482,
+      "theme": "dark"
+    },
+    "actualScreenshotOrDOMRectsCaptured": false,
+    "scope": "Only numeric root/body/viewport geometry was captured; no retrospective DOM/element/screenshot inference."
+  },
+  "partialActualPasses": [
+    {
+      "genuineOriginalPlan200": true,
+      "nativePreviewFocus": {
+        "active": true,
+        "focusVisible": true,
+        "disabled": false
+      }
+    },
+    {
+      "action": "pause",
+      "state": "paused",
+      "originalControl200": true,
+      "immediateFocusObservation": {
+        "connected": true,
+        "active": true,
+        "body": false,
+        "tag": "BUTTON",
+        "focusVisible": true
+      },
+      "settledNativeFocus": {
+        "connected": true,
+        "active": true,
+        "focusVisible": true
+      }
+    },
+    {
+      "action": "resume",
+      "state": "queued",
+      "originalControl200": true,
+      "immediateFocusObservation": {
+        "connected": true,
+        "active": true,
+        "body": false,
+        "tag": "BUTTON",
+        "focusVisible": true
+      },
+      "settledNativeFocus": {
+        "connected": true,
+        "active": true,
+        "focusVisible": true
+      }
+    },
+    {
+      "action": "cancel",
+      "state": "cancelled",
+      "originalControl200": true,
+      "immediateFocusObservation": {
+        "connected": true,
+        "active": true,
+        "body": false,
+        "tag": "P",
+        "focusVisible": true
+      },
+      "settledNativeFocus": {
+        "connected": true,
+        "active": true,
+        "focusVisible": true
+      }
+    }
+  ],
+  "originalRoutesAwaited": {
+    "count": 40,
+    "rejected": 0
+  },
+  "originalBodiesAwaited": {
+    "count": 20,
+    "rejected": 0
+  },
+  "originalWaitsAwaited": {
+    "count": 10,
+    "rejected": 0
+  },
+  "actualCosts": {
+    "setupPOSTs": 6,
+    "readerGETs": 2,
+    "nativeGETs": 15,
+    "nativeMetadataPOSTs": 5,
+    "maxSetupPOSTs": 6,
+    "maxNativePOSTs": 5,
+    "observedAcceptedJobReceipts": 1,
+    "newExecutorSteps": 0
+  },
+  "acceptedHistoryRetained": {
+    "stage": "before-original-Worker-dispose",
+    "onlyExactOneJobOneItemOneHoldAndReleasedPermitsChanged": true,
+    "old6PermitsExact": true,
+    "oldHoldsExact": true,
+    "newReleasedPermits": 5,
+    "jobState": "cancelled",
+    "jobGeneration": 3,
+    "migrationAttempts": 0,
+    "executorDisabled": true,
+    "sourceBytesExact": true,
+    "targetEmpty": true,
+    "addedRowsSha256": "86214d36f7aff9f1b16bae87f4c808f28be28dfc549ebb04a9018b8b63191f01"
+  },
+  "normalOriginalOwnerClosure": {
+    "status": "closed",
+    "browserCloseAwaited": true,
+    "originalPreparationOwnerClosure": {
+      "status": "closed",
+      "startedAt": "2026-10-11T18:32:59.554Z",
+      "originalRequestsAwaited": {
+        "count": 12,
+        "rejected": 0
+      },
+      "workerDisposeAwaited": true,
+      "workerPortRefused": true,
+      "originalOutboundWorkAwaited": {
+        "count": 1,
+        "rejected": 0
+      },
+      "jwksCloseAwaited": true,
+      "jwksPortRefused": true,
+      "completedAt": "2026-10-11T18:33:00.594Z"
+    }
+  },
+  "physicalAfter": {
+    "status": "passed",
+    "sqliteGroups": 5,
+    "originalStateBytesUnchanged": true
+  },
+  "commands": [
+    {
+      "stage": "qualified-current02d-coherent-build-producer-preflight",
+      "status": "PASS",
+      "pid": 1459193,
+      "processGroup": 1459193,
+      "originalStartTicks": "15671423",
+      "originalTool": {
+        "terminalChunk": "6ea263",
+        "toolExitCode": 0
+      },
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "command": {
+        "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight-command.json",
+        "bytes": 1268,
+        "sha256": "90e6509096a634d5ab8e467fb22befa2a92bf4bee04a477cea8d08ec8dba48e2"
+      },
+      "log": {
+        "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight.log",
+        "bytes": 117,
+        "sha256": "c4160a0c49b75db63594624dca05981b158dcd67cebbe588ffb3e5bebed64e0f"
+      }
+    },
+    {
+      "stage": "isolated-copy",
+      "status": "PASS",
+      "pid": 1459245,
+      "processGroup": 1459245,
+      "originalStartTicks": "15672378",
+      "originalTool": {
+        "toolSession": 69275,
+        "terminalChunk": "26601d",
+        "toolExitCode": 0
+      },
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "command": {
+        "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/isolated-copy-command.json",
+        "bytes": 1379,
+        "sha256": "982db1dcb7d74da728bcb68034cd2f80f8434232dc8b2908fd174a7708af1e5a"
+      },
+      "log": {
+        "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/isolated-copy.log",
+        "bytes": 200,
+        "sha256": "9435dad34ff8994d94e0761cd6505a6eebb9ce9f0d427daf86e88145afdf703e"
+      }
+    },
+    {
+      "stage": "fresh-two-version-sentinel",
+      "status": "PASS",
+      "pid": 1459408,
+      "processGroup": 1459408,
+      "originalStartTicks": "15673339",
+      "originalTool": {
+        "toolSession": 34357,
+        "terminalChunk": "832f01",
+        "toolExitCode": 0
+      },
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 1459419,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1459408,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 1459419,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1459408,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 1459419,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1459408,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "command": {
+        "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/fresh-two-version-sentinel-command.json",
+        "bytes": 1863,
+        "sha256": "cff6ea32163490cd203cae40e7c3cf4ee5ab23ce4f8d33908ec0a305ba6eaf86"
+      },
+      "log": {
+        "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/fresh-two-version-sentinel.log",
+        "bytes": 226,
+        "sha256": "19149302d1fb52da2526ad4ecb539d86886a49e975c098f7ae06c8a3c0352f56"
+      }
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "status": "PASS",
+      "pid": 1459501,
+      "processGroup": 1459501,
+      "originalStartTicks": "15674212",
+      "originalTool": {
+        "toolSession": 62722,
+        "terminalChunk": "0f4fbd",
+        "toolExitCode": 0
+      },
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 1459517,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1459501,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 1459517,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1459501,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 1459517,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1459501,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "command": {
+        "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/ordinary-actual24-local-migrations-command.json",
+        "bytes": 1863,
+        "sha256": "906738235c4877a7f316b5cba8a4699db62e37e1b35b9eb4a1190a1ab8beb04d"
+      },
+      "log": {
+        "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/ordinary-actual24-local-migrations.log",
+        "bytes": 149092,
+        "sha256": "0a32073d13168c689b17a1607f7a6defb9ac547d866138dc1a13fde0d3e345df"
+      }
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "status": "PASS",
+      "pid": 1459952,
+      "processGroup": 1459952,
+      "originalStartTicks": "15679593",
+      "originalTool": {
+        "toolSession": 22958,
+        "terminalChunk": "5ea4a2",
+        "toolExitCode": 0
+      },
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [
+          {
+            "pid": 1459968,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1459952,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "after": [
+          {
+            "pid": 1459968,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1459952,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": [
+          {
+            "pid": 1459968,
+            "state": "Z",
+            "ppid": 1,
+            "processGroup": 1459952,
+            "kernelResourcesExited": true,
+            "fdInspection": "PermissionError"
+          }
+        ]
+      },
+      "command": {
+        "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/synthetic-template-sentinels-only-command.json",
+        "bytes": 1951,
+        "sha256": "ab67c8f089516add49d54bb039ab97b515dc96c83dcb53cfb1a503dcf9e85497"
+      },
+      "log": {
+        "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/synthetic-template-sentinels-only.log",
+        "bytes": 2747,
+        "sha256": "14879c790ec5c8e879dfa979c2b2bab1648f54c7854eba7ff693a688809d5d75"
+      }
+    },
+    {
+      "stage": "physical-before",
+      "status": "PASS",
+      "pid": 1460057,
+      "processGroup": 1460057,
+      "originalStartTicks": "15681687",
+      "originalTool": {
+        "terminalChunk": "2d8c5b",
+        "toolExitCode": 0
+      },
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "command": {
+        "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/physical-before-command.json",
+        "bytes": 1330,
+        "sha256": "970fee939419177a325ad35995e67091b898300c08d3ab950ac48df52995556f"
+      },
+      "log": {
+        "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/physical-before.log",
+        "bytes": 165,
+        "sha256": "34f8cdc79c23afb4f364acdcab08e069841e2e2f3b1819f74d7838d9536224b2"
+      }
+    },
+    {
+      "stage": "current-source-build-and-pure24-witness",
+      "status": "PASS",
+      "pid": 1460083,
+      "processGroup": 1460083,
+      "originalStartTicks": "15682147",
+      "originalTool": {
+        "terminalChunk": "b77ce0",
+        "toolExitCode": 0
+      },
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "command": {
+        "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/current-source-build-and-pure24-witness-command.json",
+        "bytes": 1227,
+        "sha256": "1e120c4c81d6b730fa2662045ed4f30065bcf34fd766bf759998bf084d779097"
+      },
+      "log": {
+        "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/current-source-build-and-pure24-witness.log",
+        "bytes": 222,
+        "sha256": "e125124d3165a3f50c78bdee3b115076c57e74d04a2d3269b4bf8e04364b52c5"
+      }
+    },
+    {
+      "stage": "original-one-current-file-saved-job-keyboard",
+      "status": "FAILED",
+      "pid": 1460129,
+      "processGroup": 1460129,
+      "originalStartTicks": "15682600",
+      "originalTool": {
+        "toolSession": 95867,
+        "tty": true,
+        "terminalChunk": "fa7f36",
+        "toolExitCode": 1
+      },
+      "exitCode": 1,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 1,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "command": {
+        "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/original-one-current-file-saved-job-keyboard-command.json",
+        "bytes": 2205,
+        "sha256": "12e64df79684b25c0a944620b18fb7915235f94992ef34f74d07c75971d435fc"
+      },
+      "log": {
+        "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/original-one-current-file-saved-job-keyboard.log",
+        "bytes": 310,
+        "sha256": "8313eb0f7e5e1495c196c9eec68640fb394449a652c5e7e8bf73eab2b79feef0"
+      }
+    },
+    {
+      "stage": "physical-after",
+      "status": "PASS",
+      "pid": 1460454,
+      "processGroup": 1460454,
+      "originalStartTicks": "15687810",
+      "originalTool": {
+        "toolSession": 28971,
+        "terminalChunk": "063d3b",
+        "toolExitCode": 0
+      },
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "command": {
+        "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/physical-after-command.json",
+        "bytes": 1708,
+        "sha256": "f7d871bc2f65d89312e9c004af10c3c9e1f2437b71420891282d98a7b84a10ba"
+      },
+      "log": {
+        "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/physical-after.log",
+        "bytes": 174,
+        "sha256": "2042486017892493e9820666daac55564eae04d2a31aa7623f08d8c5285a0f0e"
+      }
+    },
+    {
+      "stage": "final-source-artifact-input-pins",
+      "status": "PASS",
+      "pid": 1460543,
+      "processGroup": 1460543,
+      "originalStartTicks": "15688664",
+      "originalTool": {
+        "terminalChunk": "477958",
+        "toolExitCode": 0
+      },
+      "exitCode": 0,
+      "ownedClosure": {
+        "before": [],
+        "after": [],
+        "ownedCleanupSignals": [],
+        "noActiveOwnedProcessOrFd": true,
+        "unexpectedLingeringOwner": false,
+        "directChildExitCode": 0,
+        "directChildReaped": true,
+        "afterDirectChildReap": []
+      },
+      "command": {
+        "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/final-source-artifact-input-pins-command.json",
+        "bytes": 1216,
+        "sha256": "c1e3dece9297099bbe91c1d0e00b98fc5276f9d0cd1dff240c600a089c636688"
+      },
+      "log": {
+        "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/final-source-artifact-input-pins.log",
+        "bytes": 225,
+        "sha256": "d068556be8251d661e189f5f3a8b97554e5bf98d3bcde00a78090e8d881c33d9"
+      }
+    }
+  ],
+  "rawOriginalReferences": [
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight-command.json",
+      "bytes": 1268,
+      "sha256": "90e6509096a634d5ab8e467fb22befa2a92bf4bee04a477cea8d08ec8dba48e2"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/qualified-current02d-coherent-build-producer-preflight.log",
+      "bytes": 117,
+      "sha256": "c4160a0c49b75db63594624dca05981b158dcd67cebbe588ffb3e5bebed64e0f"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/isolated-copy-command.json",
+      "bytes": 1379,
+      "sha256": "982db1dcb7d74da728bcb68034cd2f80f8434232dc8b2908fd174a7708af1e5a"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/isolated-copy.log",
+      "bytes": 200,
+      "sha256": "9435dad34ff8994d94e0761cd6505a6eebb9ce9f0d427daf86e88145afdf703e"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/fresh-two-version-sentinel-command.json",
+      "bytes": 1863,
+      "sha256": "cff6ea32163490cd203cae40e7c3cf4ee5ab23ce4f8d33908ec0a305ba6eaf86"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/fresh-two-version-sentinel.log",
+      "bytes": 226,
+      "sha256": "19149302d1fb52da2526ad4ecb539d86886a49e975c098f7ae06c8a3c0352f56"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/ordinary-actual24-local-migrations-command.json",
+      "bytes": 1863,
+      "sha256": "906738235c4877a7f316b5cba8a4699db62e37e1b35b9eb4a1190a1ab8beb04d"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/ordinary-actual24-local-migrations.log",
+      "bytes": 149092,
+      "sha256": "0a32073d13168c689b17a1607f7a6defb9ac547d866138dc1a13fde0d3e345df"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/synthetic-template-sentinels-only-command.json",
+      "bytes": 1951,
+      "sha256": "ab67c8f089516add49d54bb039ab97b515dc96c83dcb53cfb1a503dcf9e85497"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/synthetic-template-sentinels-only.log",
+      "bytes": 2747,
+      "sha256": "14879c790ec5c8e879dfa979c2b2bab1648f54c7854eba7ff693a688809d5d75"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/physical-before-command.json",
+      "bytes": 1330,
+      "sha256": "970fee939419177a325ad35995e67091b898300c08d3ab950ac48df52995556f"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/physical-before.log",
+      "bytes": 165,
+      "sha256": "34f8cdc79c23afb4f364acdcab08e069841e2e2f3b1819f74d7838d9536224b2"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/current-source-build-and-pure24-witness-command.json",
+      "bytes": 1227,
+      "sha256": "1e120c4c81d6b730fa2662045ed4f30065bcf34fd766bf759998bf084d779097"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/current-source-build-and-pure24-witness.log",
+      "bytes": 222,
+      "sha256": "e125124d3165a3f50c78bdee3b115076c57e74d04a2d3269b4bf8e04364b52c5"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/original-one-current-file-saved-job-keyboard-command.json",
+      "bytes": 2205,
+      "sha256": "12e64df79684b25c0a944620b18fb7915235f94992ef34f74d07c75971d435fc"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/original-one-current-file-saved-job-keyboard.log",
+      "bytes": 310,
+      "sha256": "8313eb0f7e5e1495c196c9eec68640fb394449a652c5e7e8bf73eab2b79feef0"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/physical-after-command.json",
+      "bytes": 1708,
+      "sha256": "f7d871bc2f65d89312e9c004af10c3c9e1f2437b71420891282d98a7b84a10ba"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/physical-after.log",
+      "bytes": 174,
+      "sha256": "2042486017892493e9820666daac55564eae04d2a31aa7623f08d8c5285a0f0e"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/final-source-artifact-input-pins-command.json",
+      "bytes": 1216,
+      "sha256": "c1e3dece9297099bbe91c1d0e00b98fc5276f9d0cd1dff240c600a089c636688"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/final-source-artifact-input-pins.log",
+      "bytes": 225,
+      "sha256": "d068556be8251d661e189f5f3a8b97554e5bf98d3bcde00a78090e8d881c33d9"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/fixture/genuine-local-r2-file-saved-job-keyboard-report.json",
+      "bytes": 95304,
+      "sha256": "e9bda97932eb8688e056d2a5b0fb1694811b55119982bea3e0d942951749320e"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/fixture/genuine-local-r2-file-saved-job-keyboard-stop.json",
+      "bytes": 500,
+      "sha256": "947c70313151616686bd8cb7a8ab7b76435da2ca2909f0a0eab5a5bf59a9592f"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/fixture/genuine-local-r2-file-saved-job-keyboard-artifacts/current-coherent-file-saved-job-keyboard-390-dark.geometry.json",
+      "bytes": 68,
+      "sha256": "46ab82ffe8b3b0a1ba563ebdca9d7cf23992f1201a51bd4f5260e0b41129715a"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/fixture/physical-sqlite-before-api.json",
+      "bytes": 67088,
+      "sha256": "18ceae65ae220976e9d19c00461540951df9d0d337dde99faa6a4b63c69b2535"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/fixture/physical-sqlite-after-current-file-saved-job-keyboard.json",
+      "bytes": 73987,
+      "sha256": "0ac8cc81ddc16d51af6739b508b1cc2971cf83574172842e7a8786968a2d9f26"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/fixture/enabled-storage-draft-build-input-witness.json",
+      "bytes": 1357,
+      "sha256": "94f42961feeb0aedd640045413da386ebd8444c2a6b090d0e725895fd09385fe"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/copy/isolation-receipt.json",
+      "bytes": 393004,
+      "sha256": "8d81d8a2ab11306962d332cb41a33aabd4dac371249aafae2ec6d708328f186c"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/fixture/process-fixture.json",
+      "bytes": 1558,
+      "sha256": "61a0e57bb98b78a82b8ae0a9d60bc5b43642084ee53aaa20650f82ee9bff7b07"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/fixture/process-fixture.sql",
+      "bytes": 5579,
+      "sha256": "d8dded9f1d0e5ee6df23a29a80e11129c028268e0e4e17ad07a5a5db5dcf1311"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/chromium-child-temp-owner.json",
+      "bytes": 582,
+      "sha256": "523233d3c6a5f53a1fb6616bd234b68f10ad61fd0e132a90be8acaeeddbc9df9"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/current02d-build-new-pure24-native-causal-carry.json",
+      "bytes": 1804,
+      "sha256": "0ce71d437b324f9f6c96a1fe734d972d1f4f17431b19efcdccea4e87c4d0f965"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/final-current02d-source-and-genuine-saved-job-pins.json",
+      "bytes": 3299,
+      "sha256": "0de61ef35536482097d4e4e4859fdb9be5acf633734e0f2e34942643960aa802"
+    },
+    {
+      "path": "/workspace/coherent-file-saved-mobile02-private-attempt1/runtime/frozen-approved-plan.json",
+      "bytes": 17299,
+      "sha256": "ea7df2a96dcd51d4373358b8edaa8945eb5b0c7baf398df8b7ac1dd4f9e22fa8"
+    }
+  ],
+  "rawOriginalReferenceCount": 33,
+  "allOriginalDirectChildrenWaitedAndReaped": true,
+  "ownedSignals": [],
+  "kernelGroupScope": {
+    "emptyGroups": 7,
+    "kernelExitedZGroups": 3,
+    "scope": "All original groups have no active owner. Three inherited PPID1 kernel Z entries retain PermissionError on FD inspection; neither observed zero FDs nor global quiescence is claimed."
+  },
+  "packageMobile": "UNRUN_NO_GO",
+  "release": "Actual File window CLOSED and RELEASED after original native ACK/wait/reap, mandatoryphysical-after and finalpins. No accepted rows or old histories were removed."
+}

@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "command": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "actualExitCode": 0,
+  "directChildReaped": true,
+  "sourceHead": "f228213d76d79003ca32eaa3066ce88ecf30ed48",
+  "sourceTree": "d16675a42725094e586f9f3bc78468aa5e46310d",
+  "sourceRoot": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/producer-source",
+  "sourceCopyRoot": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/copy",
+  "trackedInputInventorySha256": "4a1c1cc5c57b62e1cf258425936d834acab409fdad1668e4074db96295044c5b",
+  "workerSha256": "b05b4b2414012440f3a36fa3379a721677254479e47ffde7d0fa0d45ff008fa1",
+  "activeBuildConfigSha256": "eb002236c8ad0a252d264a42130f32e256baa60c88e2dff1271dde7353bcea1f",
+  "copiedArtifactInventorySha256": "bf9cc57ecfcc3a67d0575e978eca6640b22d912110590b9b78f73a272a0f90a8",
+  "originalCommandReceiptSha256": "1e2d98d3207f902a2426b8aaf1d9a15e0bfbf8fe19acb9679c8c7c622ac70a9f",
+  "originalBuildLogSha256": "a0a78af3dda4ee238573d7dc99f3d87759dcffa3668bf2d1cbb8697aa8a0e1e5",
+  "freshDistFileCount": 118,
+  "copiedArtifactFileCount": 121,
+  "scope": "ONE actual samehead coherent f228 CF Worker+frontend build, original command exit0/directreap and all2489 tracked source inputs/full measured artifact manifest. Independent Node local-auth output never substituted; new24/84 namespace/config causal proof separate. Samehead QA helper all inputs exact. No historical5a/118 retag."
+}

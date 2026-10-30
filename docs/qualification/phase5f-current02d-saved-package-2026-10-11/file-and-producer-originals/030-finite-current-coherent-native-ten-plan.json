@@ -1,0 +1,308 @@
+{
+  "version": 1,
+  "installedDependencies": {
+    "root": "/workspace/sample-fabrication-workflow/node_modules",
+    "package": "5c8a504d14b7208edb3d77b8c5049c713d55e4e7821d8e43b7b54e6dbeebe8fc",
+    "dependencyParentPackage": "fcb3be018dca8279bd534b30de65d72acaa5818ca9e3b7f0d7b0870034b27233",
+    "lock": "8c7c110246cad9faf4f39a10071166fe4475c406c1d2c165d83715a96dca710a",
+    "hiddenLock": "95202718d08fd50cc286bcddf0af66b08503d63b494e992006c50d4246d69a98"
+  },
+  "budgets": {
+    "nativeOperationBodyAndReadinessMs": 20000,
+    "originalTTYSupervisionMs": 120000,
+    "supervisionProgressEveryMs": 20000,
+    "bodyMaximumExclusiveBytes": 131072,
+    "overflowPx": 2
+  },
+  "status": "SOURCE_ONLY_PREPARED_CURRENT_COHERENT_NATIVE_TEN_UNRUN_PENDING_FINITE_PEER_AND_GO",
+  "domain": "file",
+  "sourceRoot": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+  "sourceHead": "02d6dfbe5f2bd98847b3d6f509c219de5ad816ad",
+  "sourceTree": "40f4a540901e7c49d28184bb8b27a1f808b4f6b8",
+  "trackedFileCount": 2726,
+  "qaConsumerRoot": "/workspace/phase5f-coherent-saved-package-native-qa-source-attempt1",
+  "qaConsumerHead": "a4d80bc69cce4e366ab7a7c6d2a4a61ca13b22fd",
+  "qaConsumerTree": "40e2bff88806f2d439089d40346654794a4141e1",
+  "qaConsumerTrackedCount": 2729,
+  "runtimeRoot": "/workspace/coherent-file-saved-native02-private-attempt1/runtime",
+  "roots": {
+    "copy": "/workspace/coherent-file-saved-native02-private-attempt1/copy",
+    "fixture": "/workspace/coherent-file-saved-native02-private-attempt1/fixture",
+    "runtime": "/workspace/coherent-file-saved-native02-private-attempt1/runtime",
+    "parent": "/workspace/coherent-file-saved-native02-private-attempt1",
+    "shortChromiumChildTemp": "/workspace/.sfpj1"
+  },
+  "ownedExtraQaLeaves": {
+    "scripts/qa/phase5f/browser-current-coherent-local-r2-file-saved-job-keyboard.mjs": "603bc4cb0eaaef1243fd3ac08ce2e00fa9517faebacc0ad34b98a732d962c525",
+    "scripts/qa/phase5f/browser-current-coherent-package-saved-job-keyboard.mjs": "059fe43c645520b8ee4fddfce12a2f613d69c66cb7d4a0ddb4b18fa503c48d60",
+    "scripts/qa/phase5f/check-current-coherent-saved-job-physical-state.py": "f62ce9ff0ac39ce306df8fa409d14948971c0aad2ae4a03a5b1e6d4176610ee0"
+  },
+  "copiedOrdinaryPrepareHelperSha256": "fba64e958ba1042a7ea406ef9d502ce12829c194c4ec3ea65ee447b3f3105292",
+  "nativeHelperPath": "/workspace/phase5f-coherent-saved-package-native-qa-source-attempt1/scripts/qa/phase5f/browser-current-coherent-local-r2-file-saved-job-keyboard.mjs",
+  "nativeStage": "original-one-current-file-saved-job-keyboard",
+  "nativePermit": "--exclusive-go-one-current-coherent-local-r2-file-saved-job-keyboard",
+  "cases": [
+    "current-coherent-file-saved-job-keyboard-1280-light"
+  ],
+  "expectedCosts": {
+    "domain": "file",
+    "id": "current-coherent-file-saved-job-keyboard-1280-light",
+    "viewport": [
+      1280,
+      1000
+    ],
+    "theme": "light",
+    "setupPOSTs": 6,
+    "maxNativePOSTs": 5,
+    "totalPOSTs": 11,
+    "mutationSequence": [
+      "Preview200",
+      "accept202",
+      "Pause200",
+      "Resume200",
+      "Cancel200"
+    ],
+    "expectedFinalSqlState": "cancelled",
+    "expectedRawGeneration": 3,
+    "expectedNativeChangedTables": [
+      "system_recovery_write_leases",
+      "file_migration_jobs",
+      "file_migration_items",
+      "file_location_holds"
+    ],
+    "oldSixSetupPermitsExact": true,
+    "fiveUniqueReleasedNativeHTTPPermits": true,
+    "namespace": "FUTURE_FRESH_INDEPENDENT_FILE_NEVER_PREVIOUS_PAUSED_LINEAGE",
+    "shortChildTemp": "/workspace/.sfpj1"
+  },
+  "actualFreshCurrentBuild": {
+    "path": "/workspace/phase5f-saved-file-package-coherent-one-cf-build-runtime-attempt1/actual-one-current02d-cf-build-qualified-closed-release.json",
+    "sha256": "ce43c814467daaf3889f9f8b1696e00d73d8214072c17ca973f7bbf8324dcdd3"
+  },
+  "actualBuildManifest": {
+    "path": "/workspace/phase5f-saved-file-package-coherent-one-cf-build-runtime-attempt1/fresh-build-artifact-manifest.json",
+    "sha256": "589f7e3463f10a066cf274257ff4234ba74ad24dc4664bedfb671c6f44063b22",
+    "actualFiles": 118
+  },
+  "currentAppAndPackage34Formal": {
+    "path": "/workspace/phase5f-saved-package-typed-role-name-first-two-runtime-attempt2/actual-current02d-app-strict-and-whole-package34-qualified-closed-release.json",
+    "sha256": "9100d8754ab1601919a2ad5b485ba9b4c9a98cf0df600810b11f4c5de9de1726"
+  },
+  "nativeSourceHandoff": {
+    "path": "/workspace/phase5f-coherent-saved-package-native-source-preparation-attempt1/source-handoff.json",
+    "sha256": "b0e66e3feac75737ccc30cadf10752e3ea71f61c75ae715eba1d8e9d31fa2e7e"
+  },
+  "nativeSourceFreeze": {
+    "path": "/workspace/phase5f-coherent-saved-package-native-source-preparation-attempt1/complete-qa-source-freeze.json",
+    "sha256": "946a6cd556d0cc9ecd0032390d802c0cee14376e370ca11fb95282b2ae8ca1d7"
+  },
+  "runtimePreparation": "Not created yet; future parent/runtime0700/frozen plan only before GO. Copy/fixture/output/shortTemp must be absent at originalproducerpreflight.",
+  "stopControl": "Exact originalTTY, <=120s outer supervisor/progress20s; only explicitstop newline to samehandle, wait original body/route/context/browser/Worker/JWKS ACK/directchild/reap/group/ports. Firstfailure stopnormal, mandatoryphysicalafter+finalpins after originalsettlement evenfailednative; no rollback/history deletion.",
+  "scope": "Current02d ONECF118 actual source2726/QA2729; all2726 ordinary inputs exact. Fresh namespace24+pure sentinel, original6 genuine setup APIs instead of84research seed. File11 totalPOST vs Package12 totalPOST precise. No build/compile/mounted/executor/ZIP/provider/Recovery target/runtime invocation.",
+  "independentNamespace": "Never share copy/fixture/runtime/installation/R2 namespace with otherdomain or historicalfailedPausedJob; expected newlineage metadata only.",
+  "commands": [
+    {
+      "stage": "qualified-current02d-coherent-build-producer-preflight",
+      "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-coherent-file-saved-native-finite-source-preparation-attempt1/carry-current-coherent-saved-job.py",
+        "--current02d-coherent-saved-job",
+        "producer-preflight"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/coherent-file-saved-native02-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/coherent-file-saved-native02-private-attempt1"
+      }
+    },
+    {
+      "stage": "isolated-copy",
+      "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1/scripts/qa/phase5f/prepare-isolated-copy.py",
+        "--source-root",
+        "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+        "--destination",
+        "/workspace/coherent-file-saved-native02-private-attempt1/copy",
+        "--dependency-root",
+        "/workspace/sample-fabrication-workflow/node_modules"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/coherent-file-saved-native02-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/coherent-file-saved-native02-private-attempt1"
+      }
+    },
+    {
+      "stage": "fresh-two-version-sentinel",
+      "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+      "argv": [
+        "node",
+        "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1/scripts/qa/phase5f/generate-process-fixture.mjs",
+        "/workspace/coherent-file-saved-native02-private-attempt1/copy",
+        "/workspace/coherent-file-saved-native02-private-attempt1/fixture"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/coherent-file-saved-native02-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/coherent-file-saved-native02-private-attempt1"
+      }
+    },
+    {
+      "stage": "ordinary-actual24-local-migrations",
+      "cwd": "/workspace/coherent-file-saved-native02-private-attempt1/copy",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "migrations",
+        "apply",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/workspace/coherent-file-saved-native02-private-attempt1/copy/.wrangler/state"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/coherent-file-saved-native02-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/coherent-file-saved-native02-private-attempt1"
+      }
+    },
+    {
+      "stage": "synthetic-template-sentinels-only",
+      "cwd": "/workspace/coherent-file-saved-native02-private-attempt1/copy",
+      "argv": [
+        "node",
+        "node_modules/wrangler/bin/wrangler.js",
+        "d1",
+        "execute",
+        "DB",
+        "--local",
+        "--config",
+        ".wrangler/deploy.jsonc",
+        "--persist-to",
+        "/workspace/coherent-file-saved-native02-private-attempt1/copy/.wrangler/state",
+        "--file",
+        "/workspace/coherent-file-saved-native02-private-attempt1/fixture/process-fixture.sql"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/coherent-file-saved-native02-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/coherent-file-saved-native02-private-attempt1"
+      }
+    },
+    {
+      "stage": "physical-before",
+      "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1/scripts/qa/phase5f/check-isolated-state.py",
+        "--source-copy",
+        "/workspace/coherent-file-saved-native02-private-attempt1/copy",
+        "--fixture-directory",
+        "/workspace/coherent-file-saved-native02-private-attempt1/fixture",
+        "--stage",
+        "before-api"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/coherent-file-saved-native02-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/coherent-file-saved-native02-private-attempt1"
+      }
+    },
+    {
+      "stage": "current-source-build-and-pure24-witness",
+      "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-coherent-file-saved-native-finite-source-preparation-attempt1/carry-current-coherent-saved-job.py",
+        "--current02d-coherent-saved-job",
+        "witness"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/coherent-file-saved-native02-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/coherent-file-saved-native02-private-attempt1"
+      }
+    },
+    {
+      "stage": "original-one-current-file-saved-job-keyboard",
+      "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+      "argv": [
+        "node",
+        "/workspace/phase5f-coherent-saved-package-native-qa-source-attempt1/scripts/qa/phase5f/browser-current-coherent-local-r2-file-saved-job-keyboard.mjs",
+        "/workspace/coherent-file-saved-native02-private-attempt1/copy",
+        "/workspace/coherent-file-saved-native02-private-attempt1/fixture",
+        "02d6dfbe5f2bd98847b3d6f509c219de5ad816ad",
+        "--exclusive-go-one-current-coherent-local-r2-file-saved-job-keyboard"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/coherent-file-saved-native02-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/coherent-file-saved-native02-private-attempt1",
+        "PLAYWRIGHT_MODULE_PATH": "/opt/codex/runtimes/cua/lib/node_modules/playwright-core",
+        "CHROMIUM_PATH": "/usr/bin/chromium",
+        "PHASE5F_FILE_MIGRATION_CHROMIUM_TEMP": "/workspace/.sfpj1",
+        "PHASE5F_FILE_MIGRATION_RUNTIME_ROOT": "/workspace/coherent-file-saved-native02-private-attempt1/runtime"
+      },
+      "cases": [
+        "current-coherent-file-saved-job-keyboard-1280-light"
+      ],
+      "toolInvocation": {
+        "tty": true,
+        "originalStdinControl": "Only explicit stop newline originalretainedTTY;120s supervision/noSIGTERM graceful claim"
+      },
+      "control": "ONE genuine current file keyboard acceptance; exact Preview200/accept202/Pause200/Resume200/Cancel200 once, alltrue sourceDTO/state. Independentnamespace, no executor/ZIP/fakejob/bodyfallback."
+    },
+    {
+      "stage": "physical-after",
+      "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-coherent-saved-package-native-qa-source-attempt1/scripts/qa/phase5f/check-current-coherent-saved-job-physical-state.py",
+        "--domain",
+        "file",
+        "--source-copy",
+        "/workspace/coherent-file-saved-native02-private-attempt1/copy",
+        "--fixture-directory",
+        "/workspace/coherent-file-saved-native02-private-attempt1/fixture",
+        "--runtime-directory",
+        "/workspace/coherent-file-saved-native02-private-attempt1/runtime"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/coherent-file-saved-native02-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/coherent-file-saved-native02-private-attempt1"
+      },
+      "control": "Mandatory after original native child/directwait/reap and context/route/body/controller/browser/Worker/JWKS settlement. New physical output alias; preserve any accepted job/item/hold/permit partial history. Failed native case stays failed."
+    },
+    {
+      "stage": "final-source-artifact-input-pins",
+      "cwd": "/workspace/phase5f-saved-file-package-focus-current-a0d-source-attempt1",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/phase5f-coherent-file-saved-native-finite-source-preparation-attempt1/carry-current-coherent-saved-job.py",
+        "--current02d-coherent-saved-job",
+        "final-pins"
+      ],
+      "env": {
+        "TMPDIR": "/workspace/coherent-file-saved-native02-private-attempt1",
+        "SQLITE_TMPDIR": "/workspace/coherent-file-saved-native02-private-attempt1"
+      }
+    }
+  ],
+  "actualCommandCount": 10,
+  "matureRecorderBasis": {
+    "path": "/workspace/phase5f-file-saved-job-keyboard-current-a7-final-peer-source-preparation-attempt2/run-frozen-owned-stage.py",
+    "sha256": "85781520cc22ed5be6adec0ea1c47967e728e1b8057a38d49255ad65e9ce5024",
+    "scope": "10 functions+1 class; verify_source census2438\u21922726 only, other10 definitions AST exact. Globals/path/token/current initial stage binding are separately compared."
+  },
+  "carrierPath": "/workspace/phase5f-coherent-file-saved-native-finite-source-preparation-attempt1/carry-current-coherent-saved-job.py",
+  "carrierSha256": "51e4ea4427aef4d35fe4c83e71a9af015d46774abe8e60a07669a4cc0c0645c4",
+  "originalBuildCommand": {
+    "path": "/workspace/phase5f-saved-file-package-coherent-one-cf-build-runtime-attempt1/one-fresh-final-QA-source-build-command.json",
+    "sha256": "ae558f4ec6af56dd6d4632f02da485eb0a51b8b613abc21ea7c88f4b02581c65",
+    "scope": "Actualcurrent02d once; commandexit0/samewait/reaped/noactive/noSignals, one kernelZ/FD PermissionError; not PGEMPTY or observed0FD."
+  }
+}

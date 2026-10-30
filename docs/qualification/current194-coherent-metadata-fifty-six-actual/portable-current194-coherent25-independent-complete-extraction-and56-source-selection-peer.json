@@ -1,0 +1,134 @@
+{
+  "kind": "current194-coherent25-independent-complete-extraction-and56-source-selection-peer/1",
+  "status": "SOURCE_CLEAR_ONLY_56_ALL_UNRUN",
+  "reviewer": "/root/roadmap_performance_probe",
+  "reviewedAt": "2026-10-11T04:35:40.375483+00:00",
+  "source": {
+    "root": "/workspace/portable-current194-coherent-metadata-source-only-attempt1",
+    "head": "ccc7478f6045b38421f4e35def3360d7a031dd88",
+    "tree": "f713dd1ff9f0cf6b3a5a154a6bf1cab89c692a58",
+    "basis": "756ac6f3aa8872e6b799576eff4ee20d42aab476",
+    "all1932WorkingGitBlobsAndShaVerified": true,
+    "protectedBasisEntriesExact": 1902,
+    "changedPaths": {
+      "production": 25,
+      "ownedConfig": 1,
+      "docs": 4
+    },
+    "all25ProductionBytesExactSelected418Sources": true,
+    "allTestsCryptoMigrationsFrontendAuthorityContractsUnchanged": true
+  },
+  "references": {
+    "/tmp/portable-sample54ee-independent-complete-algorithm-source-peer.json": "d9fe5b29009530f8246c19ac75d476a63f96445a3d222141bdab2b4e66696ee3",
+    "/tmp/portable-timeline5d4a-independent-complete-algorithm-source-peer.json": "165a44a9510b69cf4fbdad18a8bf4981a9ee7084d2b453e6257f8baa27ac00fd",
+    "/tmp/portable-current591-execution-file-metadata-three-whole-source-inverse.json": "35db79e10bf1190f0bee609e2cdb01ef1de1edb2e7ab544e8cc79f78e752d3b3",
+    "/tmp/portable-current591-execution-insertion-verification-whole-source-inverse.json": "1edabf40bc32bed738cd323e282a3c23b35a34d8b4f72912f30f2b669cdaf309",
+    "/tmp/portable-current591-legacy-comment-metadata-five-whole-source-inverse.json": "9f8a9e693b6d078154c81f9db15c39445329f2fc68668bce1ca46131dff404e9",
+    "/tmp/portable-current194-coherent-metadata-complete-source-freeze.json": "c8496d7dc1852712219ecdcac75fd620e222dbe33e66acec5172f976ba527fe7",
+    "/tmp/portable-current194-coherent-metadata-original-worker-fifty-six-finite-plan.json": "63d4a4872dcadb984fdbea2f6d7e147305f0f5647c36f70b9fa9de1f74482203",
+    "/tmp/portable-current194-coherent-metadata-literal-import-source-closure.json": "8b46c283c74b1c980e22938f306d11c0f998855bc4f1976661e7c5f78cbec3b7",
+    "/tmp/portable-current194-coherent-metadata-owned-types-actual.json": "7e00f2e4a7f675a4ea21fb99e6e3bc145894538ce5974d72e5bb9d5548c692b7",
+    "/tmp/portable-current194-coherent-metadata-adoption-map-source.json": "8d78ee1897e9f7f86b4222f81d150f98762871300cbc74eeb97335803016ed14"
+  },
+  "reviewedProduction": {
+    "newCompleteExecutionBodyAlgorithms": [
+      "updateExecutionStepWithDatabase144",
+      "removeExecutionAssetWithDatabase98",
+      "restoreExecutionAssetWithDatabase114",
+      "createExecutionStepWithDatabase184",
+      "verifyExecutionStateWithDatabase233"
+    ],
+    "newCompleteExecutionHelpers": [
+      "validRunStepAssetPresentation14",
+      "resolveRunStepAssetPresentation25",
+      "changeNativeExecutionAsset52"
+    ],
+    "newCompleteCommentBodyAlgorithms": [
+      "createRunStepCommentsWithDatabase174",
+      "removeRunStepCommentAssetWithDatabase197",
+      "restoreRunStepCommentAssetWithDatabase188",
+      "removeRunStepCommentWithDatabase203",
+      "restoreRunStepCommentWithDatabase207"
+    ],
+    "commentWholeGroupVisibility": "Entire all-target/canonical readiness predicate read; actual group source byte exact prior Timeline peer",
+    "fullOutsideRouterInverses": "Read author scripts before running only read-only validation prefixes. Independently all declared body transforms and full reconstructed original routers match actual immutable Git originals. No proof files rewritten. Whole5 Execution and5 Comment originals include all SQL/bind/branch/error/ACK/audit; not fragment-level or compiler-only review.",
+    "priorSameByteAlgorithmsCarried": "Prior complete Sample54ee d9fe5b +Timeline5d4 165a44 peers are explicitly carried for exact same extracted service and port bytes. No repeated whole review is claimed. Current25 wrappers/D1 dispatch/current shared neutral dependencies inspected and exact selected source adoption verified."
+  },
+  "semantics": {
+    "sqlAndFences": "Original CAS and all-ancestor lifecycle predicates preserved; same File binding/restoration fences execute before original mutations, and fence result ordinals sliced exactly. No resource permission or new native/provider allowed union.",
+    "execution": "Original status/editable fields, optional native/legacy asset presentation/file binding; original independent primary selection for native alias, original occurrence/event behavior and exact Run/Sample timestamp guards. Ad-hoc SSOT hashing and insertion neighbor/count snapshot; original covered JSON/100-bind state verification guards and proposals unchanged.",
+    "comment": "<=12 targets, whole common-group visibility and canonical readiness/deleted state; exact generated RETURNING set independent from trigger-sensitive changes. Empty guarded INSERT409 remains distinct from actual committed but malformed ACK500; no destructive retry introduced. Restore uses same source/publication/file and operation identities.",
+    "d1": "Adapters forward actual current Worker prepare/primaryD1/readFileAuthorityMode/batch, genuine full result arrays preserved. Structural trusted code-owned ports confer no authorization; native Request/resource/File/Group proof remains separate."
+  },
+  "finiteSourceSelection": {
+    "planSha256": "63d4a4872dcadb984fdbea2f6d7e147305f0f5647c36f70b9fa9de1f74482203",
+    "originalRawInvocations": 60,
+    "uniqueSelectedOriginalCases": 56,
+    "serialStageCounts": [
+      11,
+      3,
+      3,
+      3,
+      1,
+      3,
+      14,
+      17,
+      1
+    ],
+    "dedupOnly": "NativeSample attach/unlink extra1; commonComment deleted-ancestor extra1; common consumer binding extra2. No original unique case removed.",
+    "all9OriginalFixtureHashesExact": true,
+    "all4OriginalPlansRehashed": true,
+    "exactTitlePathRegexUnionAndArgvChecked": true,
+    "defaultCaseMs": 5000,
+    "defaultHookMs": 10000,
+    "originalConsumerCaseMs": 15000,
+    "maxWorkers": 1,
+    "fileParallelism": false,
+    "bail": 1,
+    "newTimeoutRetryOptions": false,
+    "actualObservedCases": 0,
+    "caseCarry": 0,
+    "currentOutputObservedAbsent": true,
+    "runner": "No new executable launcher authored/invoked by this review; any actual root GO must use separately reviewed mature minimal retarget and verify observed actual unique title paths/counts, pending/unselected separately."
+  },
+  "fixtureReadiness": {
+    "scope": "Original SQLite-backed D1 compatibility and actual original transaction/RETURNING/race predicates, frozen referenceV24/22 and native18, retained historical schema7, explicit reviewedPortable26 current+retained24/25 fixture images; original provider/FixedLengthStream/Request doubles preserved. Not live workerd/D1/native installed auth or provider parity.",
+    "reviewedSources": [
+      "worker/reference-test-support.ts",
+      "worker/source-lifecycle-routes.test.ts setup/batch/fixture clone lifecycle",
+      "worker/files/authority-runtime-test-support.ts",
+      "worker/uploads/native-acceptance-test-support.ts",
+      "test/reviewed-portable-migration-sources.ts",
+      "worker/legacy-comment-settlement.test.ts whole14 controls",
+      "all9 selected file imports/factory/cleanup and title expansion definitions",
+      "vitest.config.ts/setup-worker-crypto exact inputs"
+    ],
+    "literalImportClosurePinsRehashed": 418,
+    "literalImportEdges": 1826,
+    "knownCustodyLimit": "Compatibility occurrence-metadata selected3 close only on successful tail; lifecycle afterEach closes native even on timed-out asynchronous case and resets fixture cache. These unchanged tests do not prove original owner/provider/physical-lease ACK closure. Failed stages may report only actual reaped child and kernel resource closure, not graceful host settlement. Limits are explicit in current readiness/plan; no authority is inferred."
+  },
+  "actualCompiledPrerequisite": {
+    "path": "/tmp/portable-current194-coherent-metadata-owned-types-actual.json",
+    "sha256": "7e00f2e4a7f675a4ea21fb99e6e3bc145894538ce5974d72e5bb9d5548c692b7",
+    "sourceHead": "07e35907e989464701eb40d801399c9e80f0b7b1",
+    "actualChecks": 1,
+    "current1928CodeInputsExactTo07": true,
+    "currentHeadDiff": "Only4 documentation leaves; compiler original log rehashed, no compiler rerun/current execution fabricated."
+  },
+  "effects": {
+    "compilerRuns": 0,
+    "vitestRuns": 0,
+    "databaseConnections": 0,
+    "socketProviderBrowserBuild": 0,
+    "candidateProductEdits": 0
+  },
+  "limitations": [
+    "All56 new current cases remain UNRUN pending root exclusive GO. Prior Worker9/File6/Definition6 are not carried as56 acceptance.",
+    "No Node HTTP/ordinary local File/Job/resource/Group permission, provider/role/default/current recovery activation, full CI/deployment or full portable runtime completion.",
+    "Source proof does not establish actual runtime performance or default deadline stability."
+  ],
+  "reviewDiagnostics": [
+    "Some broad source print calls truncated combined output; exact subsequent bounded per-function ranges were read before complete extraction clearance.",
+    "A glob lookup for optional alternative prior peer name patterns returned no such files alongside actual exact peer paths; actual d9fe5/165a44 receipts rehashed. No source/runtime effects."
+  ]
+}

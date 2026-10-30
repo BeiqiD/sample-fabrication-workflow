@@ -1,0 +1,12 @@
+{
+  "status": "PASS_SOURCE_ARTIFACT_BYTES_ONLY",
+  "sourceHead": "f88fffea3ba0654b52ca90ee87efdafdb70cd48c",
+  "tracked1792SourceConsumerCopyExact": true,
+  "consumer1793Head": "f50384811b2d16fd64847cf10f622719bed0481a",
+  "consumerHelperSha256": "d62c4822bf0c15f3bf4e00ebb9e09d3ccd6edf0b71d1653655d59ea418d0fb87",
+  "newCopyArtifacts121Exact": true,
+  "originalActualDist118Exact": true,
+  "newBuilds": 0,
+  "originalFinalCarrierStatus": "FAILED_MISSING_UNWRITTEN_BROWSER_REPORT",
+  "browserQualification": false
+}

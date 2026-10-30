@@ -1,47 +1,18 @@
 import { api } from "./api";
+import { buildFullExportInWorker } from "./full-export-worker-client";
+import { checkFullExportAbort, type FullExportOptions } from "./full-export-safety";
 
-function safeSegment(value: string) {
-  return value.replace(/[^a-zA-Z0-9._-]/g, "_");
-}
+// Preserve the historical builder entry points for archive readers and tests.
+export * from "./full-export-archive";
+export type { FullExportOptions, FullExportProgress } from "./full-export-safety";
 
-export async function exportAll(onProgress?: (completed: number, total: number) => void) {
-  const [{ default: JSZip }, manifest] = await Promise.all([import("jszip"), api.getFullExport()]);
-  const zip = new JSZip();
-  zip.file("export-manifest.json", JSON.stringify({
-    schemaVersion: manifest.schemaVersion,
-    exportedAt: manifest.exportedAt,
-    tables: Object.fromEntries(Object.entries(manifest.tables).map(([name, rows]) => [name, { rowCount: rows.length, path: `tables/${name}.json` }])),
-    assets: manifest.assetKeys.map((key) => ({ key, path: `assets/${key.split("/").map(safeSegment).join("/")}` })),
-    managedAttachments: manifest.managedAttachments.map((attachment) => ({
-      ...attachment,
-      path: `attachments/${safeSegment(attachment.itemId)}-${safeSegment(attachment.filename)}`,
-    })),
-  }, null, 2));
-  for (const [name, rows] of Object.entries(manifest.tables)) {
-    zip.file(`tables/${safeSegment(name)}.json`, JSON.stringify(rows, null, 2));
-  }
-  const total = manifest.assetKeys.length + manifest.managedAttachments.length;
-  onProgress?.(0, total);
-  let completed = 0;
-  for (const key of manifest.assetKeys) {
-    const response = await fetch(`/api/assets/${key}`);
-    if (!response.ok) throw new Error(`Could not export asset ${key}`);
-    zip.file(`assets/${key.split("/").map(safeSegment).join("/")}`, await response.blob());
-    completed += 1;
-    onProgress?.(completed, total);
-  }
-  for (const attachment of manifest.managedAttachments) {
-    const response = await fetch(attachment.downloadUrl);
-    if (!response.ok) throw new Error(`Could not export attachment ${attachment.filename}`);
-    zip.file(`attachments/${safeSegment(attachment.itemId)}-${safeSegment(attachment.filename)}`, await response.blob());
-    completed += 1;
-    onProgress?.(completed, total);
-  }
-  const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = `sample-log-${manifest.exportedAt.slice(0, 10)}.zip`;
-  anchor.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+export async function exportAll(onProgress?: (completed: number, total: number) => void, options: FullExportOptions = {}) {
+  checkFullExportAbort(options.signal);
+  options.onStageProgress?.({ stage: "preparing", completed: 0, total: 0, bytesRead: 0 });
+  checkFullExportAbort(options.signal);
+  const manifest = await api.getFullExport(options.signal);
+  checkFullExportAbort(options.signal);
+  const result = await buildFullExportInWorker(manifest, onProgress, options);
+  checkFullExportAbort(options.signal);
+  return { ...result, filename: `sample-log-${manifest.exportedAt.slice(0, 10)}.zip` };
 }

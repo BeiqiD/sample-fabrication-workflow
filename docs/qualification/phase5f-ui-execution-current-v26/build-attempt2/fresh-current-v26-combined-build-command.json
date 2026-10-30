@@ -1,0 +1,54 @@
+{
+  "stage": "fresh-current-v26-combined-build",
+  "argv": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "cwd": "/workspace/remaining-5f-ui-execution-currente108-source-integration",
+  "startedAt": "2026-10-10T22:43:50.457464+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-ui-execution-currente108-build-only-98d81a1-attempt2/fresh-current-v26-combined-build.log",
+  "pid": 301315,
+  "processGroup": 301315,
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 301449,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 301315,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 301449,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 301315,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 301449,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 301315,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-10T22:43:55.907368+00:00",
+  "logSha256": "01a2aea4510ee4b8bca21aa55b2be40c2e8f24e48c36d19ee361b620fc8c793b"
+}

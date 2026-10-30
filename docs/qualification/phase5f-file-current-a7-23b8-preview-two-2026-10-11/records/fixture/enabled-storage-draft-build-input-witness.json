@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "command": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "actualExitCode": 0,
+  "directChildReaped": true,
+  "sourceHead": "a7d64919f28477adcd3923809a63d1c1f9cc0561",
+  "sourceTree": "5e3b9da99f834135f8ea011aa47f7a092e1a7ef5",
+  "sourceRoot": "/workspace/portable-dev270-file-preview-focus-complete-native-helper-source-attempt2",
+  "sourceCopyRoot": "/workspace/file-preview-current-a7-two-r2-native-private-attempt5/copy",
+  "trackedInputInventorySha256": "a05a85fa81177f37628873e7c78de9ea10afc3df8da6a9100ac0b37a517d34f5",
+  "workerSha256": "d2f71d546452c57fb227a1a7bb07eb5096e9d19cc84203a8b52820cf911e3ea8",
+  "activeBuildConfigSha256": "8497a12b69017e59ba568b2a206c40b4d63dda3f8072e1ce2faa63450f2dfb17",
+  "copiedArtifactInventorySha256": "5a18616e9b9077ce4cf6f829c7a0bbf96d0d8f4c49d73303aeafde27d38b738a",
+  "originalCommandReceiptSha256": "e7e80f8ad8854e47867c3dbfd5a1510813c8d755d96e594a932a511a9f173bb8",
+  "originalBuildLogSha256": "abe13a26f960e3c91947930885d9e22f11c50091236cd3dc086665ee33a45e09",
+  "freshDistFileCount": 118,
+  "copiedArtifactFileCount": 121,
+  "scope": "Actual currenta7 ONECF118 source2438/QAconsumer ordinary2435 exact plus3 closed QA substitutions; newpure24/sentinels beforeAPI independently qualified. No newbuild/mature84/old63permit/Nodeartifact/seedWorker lifecycle claim."
+}

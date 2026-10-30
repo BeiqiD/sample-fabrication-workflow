@@ -1,0 +1,32 @@
+{
+  "verify-push-success.log": {
+    "vitestFiles": [
+      416,
+      105
+    ],
+    "vitestCases": [
+      3877,
+      1002
+    ],
+    "nodeNativeCounts": [
+      357,
+      20
+    ],
+    "rawSha256": "44cf8cdfb561144c5df47b4d515313421fce419c4c9868ec44c84b055181e086"
+  },
+  "verify-pr-success.log": {
+    "vitestFiles": [
+      416,
+      105
+    ],
+    "vitestCases": [
+      3877,
+      1002
+    ],
+    "nodeNativeCounts": [
+      357,
+      20
+    ],
+    "rawSha256": "8be2b9508923ad1ba25a06edf760a13a6d1beb3b9663a89e7d4aa11669d3f08e"
+  }
+}

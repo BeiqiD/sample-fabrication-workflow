@@ -1,0 +1,182 @@
+{
+  "status": "CLOSED_RELEASED_QUALIFIED_ONE_CURRENT2D07_CF_BUILD",
+  "sourceRoot": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+  "sourceHead": "2d07b57c4e79403099261528ae8988c0072d28c6",
+  "sourceTree": "bf96bbcadd4c4d8a0ada525f639cf768d2d4eb90",
+  "sourceCount": 3181,
+  "sourceAll3181AfterExact": true,
+  "commands": {
+    "passed": 1,
+    "failed": 0,
+    "unrun": 0,
+    "originalStages": [
+      {
+        "stage": "one-fresh-final-QA-source-build",
+        "cwd": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source",
+        "argv": [
+          "npm",
+          "run",
+          "build"
+        ],
+        "env": {
+          "TMPDIR": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1",
+          "SQLITE_TMPDIR": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1"
+        },
+        "startedAt": "2026-10-11T22:57:12.445131+00:00",
+        "status": "PASS",
+        "log": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/one-fresh-final-QA-source-build.log",
+        "pid": 1601438,
+        "processGroup": 1601438,
+        "originalStartTicks": "17269321",
+        "exitCode": 0,
+        "ownedClosure": {
+          "before": [
+            {
+              "pid": 1601519,
+              "state": "Z",
+              "ppid": 1,
+              "processGroup": 1601438,
+              "kernelResourcesExited": true,
+              "fdInspection": "PermissionError"
+            }
+          ],
+          "after": [
+            {
+              "pid": 1601519,
+              "state": "Z",
+              "ppid": 1,
+              "processGroup": 1601438,
+              "kernelResourcesExited": true,
+              "fdInspection": "PermissionError"
+            }
+          ],
+          "ownedCleanupSignals": [],
+          "noActiveOwnedProcessOrFd": true,
+          "unexpectedLingeringOwner": false,
+          "directChildExitCode": 0,
+          "directChildReaped": true,
+          "afterDirectChildReap": [
+            {
+              "pid": 1601519,
+              "state": "Z",
+              "ppid": 1,
+              "processGroup": 1601438,
+              "kernelResourcesExited": true,
+              "fdInspection": "PermissionError"
+            }
+          ]
+        },
+        "endedAt": "2026-10-11T22:57:18.962754+00:00",
+        "logSha256": "6b70efeab75adb8e93e5d9912a43098824731a8fb974053835416914387768e1"
+      }
+    ]
+  },
+  "build": {
+    "command": [
+      "npm",
+      "run",
+      "build"
+    ],
+    "actualExitCode": 0,
+    "directChildReaped": true,
+    "exactCompleteArtifactSetAnd118Hashes": true,
+    "manifest": {
+      "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/fresh-build-artifact-manifest.json",
+      "sha256": "597c4bc6edc4b4174abc45ece58d815f6d6e38e587710b01f267d084a7cfe7ae",
+      "bytes": 14601
+    },
+    "fileCount": 118,
+    "buildCount": 1,
+    "target": "Genuine default Cloudflare Worker+SPA frontend; no Node output substitution or old8be118 retag"
+  },
+  "originalToolRecords": {
+    "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/original-tool-responses.json",
+    "sha256": "6256cd8ee2b1c0dc96cf5b29a379b3fd07460ea9965e7b880be2c6da7597afc5",
+    "bytes": 5185
+  },
+  "originalToolCount": 2,
+  "originalExecAndSameWait": [
+    {
+      "kind": "exec",
+      "result": {
+        "chunk_id": "d09f54",
+        "wall_time_seconds": 1.00142262,
+        "session_id": 97895,
+        "original_token_count": 33,
+        "output": "{\"stage\": \"one-fresh-final-QA-source-build\", \"ownedPid\": 1601438, \"ownedProcessGroup\": 1601438, \"originalStartTicks\": \"17269321\"}\n"
+      }
+    },
+    {
+      "kind": "same-original-wait",
+      "result": {
+        "chunk_id": "6ea07e",
+        "wall_time_seconds": 2.4416e-05,
+        "exit_code": 0,
+        "original_token_count": 1117,
+        "output": "{\"stage\": \"one-fresh-final-QA-source-build\", \"cwd\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/source\", \"argv\": [\"npm\", \"run\", \"build\"], \"env\": {\"TMPDIR\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1\", \"SQLITE_TMPDIR\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1\"}, \"startedAt\": \"2026-10-11T22:57:12.445131+00:00\", \"status\": \"PASS\", \"log\": \"/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/one-fresh-final-QA-source-build.log\", \"pid\": 1601438, \"processGroup\": 1601438, \"originalStartTicks\": \"17269321\", \"exitCode\": 0, \"ownedClosure\": {\"before\": [{\"pid\": 1601519, \"state\": \"Z\", \"ppid\": 1, \"processGroup\": 1601438, \"kernelResourcesExited\": true, \"fdInspection\": \"PermissionError\"}], \"after\": [{\"pid\": 1601519, \"state\": \"Z\", \"ppid\": 1, \"processGroup\": 1601438, \"kernelResourcesExited\": true, \"fdInspection\": \"PermissionError\"}], \"ownedCleanupSignals\": [], \"noActiveOwnedProcessOrFd\": true, \"unexpectedLingeringOwner\": false, \"directChildExitCode\": 0, \"directChildReaped\": true, \"afterDirectChildReap\": [{\"pid\": 1601519, \"state\": \"Z\", \"ppid\": 1, \"processGroup\": 1601438, \"kernelResourcesExited\": true, \"fdInspection\": \"PermissionError\"}]}, \"endedAt\": \"2026-10-11T22:57:18.962754+00:00\", \"logSha256\": \"6b70efeab75adb8e93e5d9912a43098824731a8fb974053835416914387768e1\"}\n99 kB\ndist/client/assets/MetrologyTemplatePage-DR_b9xT5.js            8.22 kB \u2502 gzip:  2.89 kB\ndist/client/assets/ProjectsPage-C45zSR_a.js                     8.23 kB \u2502 gzip:  2.64 kB\ndist/client/assets/storage-profile-admission-DzG82ysI.js        8.30 kB \u2502 gzip:  2.80 kB\ndist/client/assets/r2-upload-client-_dZl_mt-.js                 8.37 kB \u2502 gzip:  3.06 kB\ndist/client/assets/storage-configuration-client-BFktP9rW.js     8.93 kB \u2502 gzip:  2.38 kB\ndist/client/assets/project-canvas-productivity-BLz5gopC.js      8.98 kB \u2502 gzip:  3.23 kB\ndist/client/assets/SamplesPage-D2pa-fVF.js                     11.32 kB \u2502 gzip:  3.52 kB\ndist/client/assets/TemplatesPage-CLcVvp5k.js                   13.77 kB \u2502 gzip:  4.19 kB\ndist/client/assets/TemplatePage-DEbUhYnH.js                    13.83 kB \u2502 gzip:  3.81 kB\ndist/client/assets/ProjectReadingSurface-CFxHjMj3.js           14.04 kB \u2502 gzip:  5.03 kB\ndist/client/assets/ReferenceSourceFocus-DeFzq0uj.js            17.75 kB \u2502 gzip:  5.13 kB\ndist/client/assets/StorageSettingsPage-ByXwO0G6.js             18.21 kB \u2502 gzip:  4.55 kB\ndist/client/assets/FabubloxImporter-nhmkBmzS.js                19.46 kB \u2502 gzip:  6.63 kB\ndist/client/assets/ReferenceSearchSurface-4nUdD5WM.js          20.46 kB \u2502 gzip:  6.37 kB\ndist/client/assets/FileMigrationsPage-B2GCO6tw.js              25.04 kB \u2502 gzip:  7.85 kB\ndist/client/assets/ProcessingWorkspacePage-CaoyAwNw.js         30.25 kB \u2502 gzip:  9.26 kB\ndist/client/assets/SamplePage-DpOrSeKt.js                      31.90 kB \u2502 gzip:  9.19 kB\ndist/client/assets/FileShadowPilotPage-BD71DQ_-.js             32.44 kB \u2502 gzip:  9.11 kB\ndist/client/assets/FileEvidencePage-BPslvyAo.js                42.42 kB \u2502 gzip: 11.18 kB\ndist/client/assets/StorageConfigurationPage-ClGu_QKW.js        43.37 kB \u2502 gzip: 10.60 kB\ndist/client/assets/SystemRecoveryPage-Cf4675mx.js              47.84 kB \u2502 gzip: 13.68 kB\ndist/client/assets/ResearchPackagesPage-CRl79HM2.js            53.22 kB \u2502 gzip: 16.63 kB\ndist/client/assets/api-BM2mqFS5.js                             54.18 kB \u2502 gzip: 13.50 kB\ndist/client/assets/MultiSampleRunGrid-kvYgq-g0.js              91.20 kB \u2502 gzip: 25.32 kB\ndist/client/assets/jszip.min-DhiFe-R7.js                       95.87 kB \u2502 gzip: 28.46 kB\ndist/client/assets/ProjectPage-C9G7uSOv.js                    156.30 kB \u2502 gzip: 37.77 kB\ndist/client/assets/ProjectMapSurface-DZbQKJsF.js              223.20 kB \u2502 gzip: 70.23 kB\ndist/client/assets/rich-text-CSUyYODD.js                      249.48 kB \u2502 gzip: 73.76 kB\ndist/client/assets/index-CjZgCkpz.js                          306.42 kB \u2502 gzip: 97.54 kB\ndist/client/assets/ExportPage-Dl4NrhI1.js                     325.15 kB \u2502 gzip: 74.46 kB\n\n\u2713 built in 625ms\n\ud83e\udeb5  Logs were written to \"/home/agent/.config/.wrangler/logs/wrangler-2026-10-11_22-57-17_235.log\"\nnpm notice\nnpm notice New major version of npm available! 11.9.0 -> 12.2.0\nnpm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0\nnpm notice To update run: npm install -g npm@12.2.0\nnpm notice\n\n"
+      }
+    }
+  ],
+  "closure": {
+    "normalOriginalExit0": true,
+    "originalDirectChildReaped": true,
+    "noActiveOwnedProcessReported": true,
+    "knownKernelZ": [
+      {
+        "pid": 1601519,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 1601438,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "fdPermissionLimitPreserved": true,
+    "groupEmptyClaim": false,
+    "cleanupSignals": [],
+    "globalQuiescenceClaim": false
+  },
+  "rawReferences": [
+    {
+      "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/frozen-approved-plan.json",
+      "sha256": "55dd23a43ebf1cd6a43875a5276da1c86da5a3b7d1df6552780f34ff4ae0e2f9",
+      "bytes": 3424
+    },
+    {
+      "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/original-tool-responses.json",
+      "sha256": "6256cd8ee2b1c0dc96cf5b29a379b3fd07460ea9965e7b880be2c6da7597afc5",
+      "bytes": 5185
+    },
+    {
+      "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/one-fresh-final-QA-source-build-command.json",
+      "sha256": "ccf435b9bb164cc97815d7dacfc090d454f9cbce935bc096e3f8d4c8f838a978",
+      "bytes": 1698
+    },
+    {
+      "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/one-fresh-final-QA-source-build.log",
+      "sha256": "6b70efeab75adb8e93e5d9912a43098824731a8fb974053835416914387768e1",
+      "bytes": 12749
+    },
+    {
+      "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-private-attempt1/build-runtime/fresh-build-artifact-manifest.json",
+      "sha256": "597c4bc6edc4b4174abc45ece58d815f6d6e38e587710b01f267d084a7cfe7ae",
+      "bytes": 14601
+    }
+  ],
+  "plan": {
+    "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-one-cf-build-source-preparation-attempt1/finite-one-current2d07-combined-focus-cf-build-plan.json",
+    "sha256": "55dd23a43ebf1cd6a43875a5276da1c86da5a3b7d1df6552780f34ff4ae0e2f9",
+    "bytes": 3424
+  },
+  "runner": {
+    "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-one-cf-build-source-preparation-attempt1/run-frozen-owned-stage.py",
+    "sha256": "6fa2dc2e5b9f5fd66577821f4ea05dc0ee252eb96bdb283339c011cc60aea74e",
+    "bytes": 11538
+  },
+  "rootGO": {
+    "path": "/tmp/phase5f-package-file-refresh-start-focus-currentcb19-one-cf-build-source-preparation-attempt1/root-after-current2d07-app59-full-release-one-cf-build-exclusive-go.json",
+    "sha256": "414721636604d5b3cc8969bc4c0586e710bbe251f9a9719940f65f27595b7cfc",
+    "bytes": 1138
+  },
+  "scope": "Exactly one current product CF producer after original APP+59 PASS. Native consumers c316 source-qualified only; future three scenarios require exact actual manifest/copy121/fresh namespace finite binding and distinct root GO. No browser/Worker/JWKS/SQLite started under build GO. Original log including Wrangler log path and npm notices remains untouched."
+}

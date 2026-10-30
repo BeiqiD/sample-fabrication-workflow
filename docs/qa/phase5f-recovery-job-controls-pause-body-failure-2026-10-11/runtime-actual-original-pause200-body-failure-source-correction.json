@@ -1,0 +1,63 @@
+{
+  "status": "SOURCE_DIAGNOSTIC_CORRECTION_ORIGINALS_UNCHANGED",
+  "createdAt": "2026-10-11T08:24:50.966681+00:00",
+  "originalClosedReceipt": {
+    "path": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/runtime-short-child-temp-attempt2/actual-short-child-temp-first-body-failure-closed-release.json",
+    "sha256": "31bca7f4584bf1320554e3021ffd5cd598727965c5be90c37850e60a70dd5e6c"
+  },
+  "originalReport": {
+    "path": "/workspace/phase5f-recovery-job-controls-coherent-f228-private-attempt1/fixture/genuine-recovery-job-controls-browser-report-short-chromium-attempt2.json",
+    "sha256": "697440a258b5969acc815dae9cebeb1e3720ba58ae8baf9acdd19d7a61bf0e12"
+  },
+  "correction": "Initial brief status and original aggregate scope incorrectly described a backup202 native-body failure and previewPOST. Actual raw records show backup202 native body fully completed/hashmatched, then first Pause200 native body CDPNoData. Preview is GET. Original failure stack/API records unchanged; no accepted request replay or body waiver.",
+  "actualBackup202": {
+    "path": "/api/system-recovery/jobs",
+    "method": "POST",
+    "status": 202,
+    "body": "completed",
+    "mutationOrdinal": 2,
+    "responseSha256": "d9cc200a554867660516a44287340290b83354d4f322c3030f8bfea5f329a8f4",
+    "genuineOriginalBackendBodyMatches": true
+  },
+  "actualPause200": {
+    "path": "/api/system-recovery/jobs/45f1572e-5f40-4465-b57f-4d5c6d218dac/control",
+    "method": "POST",
+    "status": 200,
+    "body": "failed",
+    "mutationOrdinal": 3,
+    "error": "response.body: Protocol error (Network.getResponseBody): No data found for resource with given identifier\n    at Page.<anonymous> (/workspace/phase5f-recovery-job-controls-chromium-child-temp-source-attempt2/scripts/qa/phase5f/browser-genuine-recovery-job-controls.mjs:460:31)"
+  },
+  "originalPauseBackend": {
+    "path": "/api/system-recovery/jobs/45f1572e-5f40-4465-b57f-4d5c6d218dac/control",
+    "status": 200,
+    "body": "completed",
+    "responseSha256": "0a10dbbe9b298c4321a41f753f6501e0946d06967f30c2dab0c155d2f9d289b2",
+    "mutationOrdinal": 3
+  },
+  "actualMutationKinds": [
+    "shared-enable200",
+    "backup202",
+    "pause200",
+    "shared-disable200"
+  ],
+  "retainedJobState": {
+    "state": "paused",
+    "generation": 1,
+    "reason": "paused_by_administrator",
+    "noExecutionOrTargetOrArtifactWork": true,
+    "jobSha256": "6fc49f232f2db09aa1b79de293ef898ae7d627c3a5a2064cdc4fdebf7aaa2e92",
+    "requestSha256": "416f1c7401e141372a2fc6e98d7494a29559f304acc3f5c111aae838fa220263"
+  },
+  "nativePreviewFocusActuallyPassed": {
+    "nativePreviewReturnFocus": {
+      "active": true,
+      "focusVisible": true,
+      "disabled": false
+    }
+  },
+  "cause": "Unproven: no original Request terminal or callerSignal/body-reader observation was captured in this helper. No retrospective diagnosis of native body unavailability, page rendering, cancellation or protocol ordering is claimed.",
+  "sourceBindings": {
+    "currentHelperSha256": "fb6fe9acacd019f5b1eb4589b6e9b5878dd64645074b81c2e6d3cf655650d9b0"
+  },
+  "effects": "Read-only source/raw diagnosis and new immutable addendum only; no helper/compiler/SQLite/browser/server/retry."
+}

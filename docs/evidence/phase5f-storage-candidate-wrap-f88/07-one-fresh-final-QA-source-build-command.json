@@ -1,0 +1,56 @@
+{
+  "stage": "one-fresh-final-QA-source-build",
+  "cwd": "/tmp/phase5f-storage-candidate-section-wrap-source-attempt10",
+  "argv": [
+    "npm",
+    "run",
+    "build"
+  ],
+  "control": "ONE genuine ordinary fresh build of exactf88 tracked source containing CSSrepair. Original01 output cannot qualify this CSS.",
+  "startedAt": "2026-10-11T02:50:18.849586+00:00",
+  "status": "PASS",
+  "log": "/tmp/phase5f-storage-candidate-section-wrap-runtime-attempt10/one-fresh-final-QA-source-build.log",
+  "pid": 619045,
+  "processGroup": 619045,
+  "originalStartTicks": "10027961",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [
+      {
+        "pid": 619124,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 619045,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "after": [
+      {
+        "pid": 619124,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 619045,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": [
+      {
+        "pid": 619124,
+        "state": "Z",
+        "ppid": 1,
+        "processGroup": 619045,
+        "kernelResourcesExited": true,
+        "fdInspection": "PermissionError"
+      }
+    ]
+  },
+  "endedAt": "2026-10-11T02:50:23.753677+00:00",
+  "logSha256": "a3fd280b617a6174c06592006f101df0a0a3dacfe33ca9aacf32fe377b586f7c"
+}

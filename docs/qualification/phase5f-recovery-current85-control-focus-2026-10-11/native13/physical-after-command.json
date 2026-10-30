@@ -1,0 +1,38 @@
+{
+  "stage": "physical-after",
+  "cwd": "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2",
+  "argv": [
+    "python3",
+    "/workspace/phase5f-recovery-job-control-focus-current5ca-fixture-source-attempt2/scripts/qa/phase5f/check-isolated-state.py",
+    "--source-copy",
+    "/workspace/recovery-current-focus-native-private-attempt7/copy",
+    "--fixture-directory",
+    "/workspace/recovery-current-focus-native-private-attempt7/fixture",
+    "--stage",
+    "after-shutdown"
+  ],
+  "require": "Only after original helper body/route/shared configure callbacks/context/browser/Worker/JWKS normalclose, actual directwait/reap and portsrefused. Physical4 is mandatory after fixture/browser failure; accepted job/request history remains retained. No original Recovery/Package outputs overwritten.",
+  "env": {
+    "TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7",
+    "SQLITE_TMPDIR": "/workspace/recovery-current-focus-native-private-attempt7"
+  },
+  "startedAt": "2026-10-11T11:36:25.529845+00:00",
+  "status": "PASS",
+  "log": "/workspace/recovery-current-focus-native-private-attempt7/runtime/physical-after.log",
+  "pid": 1132442,
+  "processGroup": 1132442,
+  "originalStartTicks": "13184630",
+  "exitCode": 0,
+  "ownedClosure": {
+    "before": [],
+    "after": [],
+    "ownedCleanupSignals": [],
+    "noActiveOwnedProcessOrFd": true,
+    "unexpectedLingeringOwner": false,
+    "directChildExitCode": 0,
+    "directChildReaped": true,
+    "afterDirectChildReap": []
+  },
+  "endedAt": "2026-10-11T11:36:26.240108+00:00",
+  "logSha256": "e08bc970f71cfb93ff553c27e30dfcb6b1c204995f05b0d1095946e60f84025d"
+}

@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/workspace/phase5f-file-preview-current-a7-native-final-peer-binding-source-preparation-attempt8/carry-current-a7-genuine-two-r2-file-migration.py", line 60, in <module>
+    isolation=json.loads((COPY/'isolation-receipt.json').read_bytes())
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py", line 1019, in read_bytes
+    with self.open(mode='rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py", line 1013, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/workspace/file-preview-current-a7-two-r2-native-private-attempt4/copy/isolation-receipt.json'

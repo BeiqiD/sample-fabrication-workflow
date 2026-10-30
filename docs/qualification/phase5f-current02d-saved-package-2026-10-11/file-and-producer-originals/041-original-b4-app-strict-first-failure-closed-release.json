@@ -1,0 +1,43 @@
+{
+  "status": "FAILED_STATIC_COMMAND_CLOSED_RELEASED",
+  "recordedAt": "2026-10-11T16:09:46.121831+00:00",
+  "sourceHead": "b4bddf7f34d5ea9ef2483fa072c0dc79ad47e1a1",
+  "sourceTree": "4ae33124cc950cf1eabefaf27049cdc89eeefa65",
+  "sourceCount": 2726,
+  "allWorkingTrackedBytesExact": true,
+  "originalToolSession": 97758,
+  "originalChild": {
+    "pid": 1347722,
+    "processGroup": 1347722,
+    "startTicks": "14818464",
+    "exitCode": 1,
+    "originalWaitReaped": true,
+    "groupAfterReap": [],
+    "signals": []
+  },
+  "actual": {
+    "appStrict": "FAIL_TS2769_SIX_NEW_FIXTURE_EXACT_ROLE_OPTION_LITERALS",
+    "mounted34": "UNRUN",
+    "build": "UNRUN",
+    "nativeFile": "UNRUN",
+    "nativePackage": "UNRUN"
+  },
+  "scope": "Static compiler only; no Worker/browser/SQLite/HTTP child started. Original log retained; no compiler retry under this GO. No global process quiescence claim.",
+  "raw": {
+    "affected-app-strict-command.json": {
+      "path": "/workspace/phase5f-saved-file-package-focus-current-a0d-first-two-runtime-attempt1/affected-app-strict-command.json",
+      "sha256": "9b6b45f701cad38a34997d99042484907cc42e46313d4c3c6b23ed30ce43de32",
+      "byteLength": 983
+    },
+    "affected-app-strict.log": {
+      "path": "/workspace/phase5f-saved-file-package-focus-current-a0d-first-two-runtime-attempt1/affected-app-strict.log",
+      "sha256": "b8ac2e5edd777caa400015b6edcb7a7806a243f372a338e5cf669bfead747c2d",
+      "byteLength": 1462
+    },
+    "frozen-approved-plan.json": {
+      "path": "/workspace/phase5f-saved-file-package-focus-current-a0d-first-two-runtime-attempt1/frozen-approved-plan.json",
+      "sha256": "3676edd832113135ece7a65a16da9df8c9f35ecc07e30f12746a1624478ff62e",
+      "byteLength": 4133
+    }
+  }
+}

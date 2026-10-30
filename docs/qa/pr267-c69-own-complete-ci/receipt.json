@@ -1,0 +1,19 @@
+{
+  "status": "PASS_OWN_FOUR_AND_ALL15_PREMERGE",
+  "capturedAt": "2026-10-11T10:19:08.084891+00:00",
+  "head": "c69ccebfd97bbf123d8b063f6c808a1b21e57701",
+  "base": "3104c7c1f68b8851afac024e93d4f8b7a0038b0f",
+  "qualifiedTree": "db28547598df7b10b07000dbd101edf4241d17ca",
+  "raw": {
+    "verify-push.json": "a5de9e561df63d2dacdbe7a11f8020225b666a2a65fc944e9dd2c2e60885077c",
+    "verify-pr.json": "4da93d3011c7c6225908705685162b80304bc97df2e3b8ac26e6236913188278",
+    "map-push.json": "39be9cd1d3f20b605f53b5356fe1d653b4602090cb205c33c706ae6f16f3b8d5",
+    "map-pr.json": "7b1ddf8cb71ce157d7ba876a555cae061d33253041e2ada161338a86e64a4239",
+    "statuses.json": "399e9333c70c682cf87e5ce00b7590dcc967a5db50f8c04f42ae998fccff6a08",
+    "pr.json": "4ea902931bad7cc966a7dd83837056cdc4006e4ab45554a80d3e7c0c166c2005",
+    "dev-ref.json": "852e83b064465b3b0e4c62ede07cee3e662ebca50154dd5b4197b316bb769bb1",
+    "head-commit.json": "240062b0556d3b15cc17b14facc442cd0b7ecb6076f940768f73a3127b15e939"
+  },
+  "mergeExecuted": false,
+  "scope": "Pure immutable caches and original32+eight controls only; no unfinished Node/File/Group composition or production deploy."
+}

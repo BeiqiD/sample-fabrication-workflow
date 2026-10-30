@@ -1,0 +1,214 @@
+{
+  "kind": "pr266-current-metadata-storage-layout-focus-immutable-evidence-adoption/1",
+  "sourceHead": "ff643e2709e9348dee304971ebdd4031a6e123dd",
+  "metadataSource": "4e0b8244989b2456e802cf33c636680f13f75c1f",
+  "records": [
+    {
+      "source": "/workspace/pr264-c5b-own-complete-ci-before-ordinary-merge-attempt1/original-pr.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr264-own-complete/original-pr.json",
+      "sha256": "bb5299cfd0107c87964b9a2a05cbd5cf0d268561b3c81b4ab248385694d1633f",
+      "bytes": 154
+    },
+    {
+      "source": "/workspace/pr264-c5b-own-complete-ci-before-ordinary-merge-attempt1/original-statuses.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr264-own-complete/original-statuses.json",
+      "sha256": "aa61338c7f3c564952d4349b3ebc002d65d550438e89fb27a15b61ce863825e1",
+      "bytes": 12937
+    },
+    {
+      "source": "/workspace/pr264-c5b-own-complete-ci-before-ordinary-merge-attempt1/receipt.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr264-own-complete/receipt.json",
+      "sha256": "6e926e59f47f5436c9b2d516c9c3a5ccd7e7fa653e767c66bc0d8fc2cb9d1fe3",
+      "bytes": 1916
+    },
+    {
+      "source": "/workspace/pr264-c5b-own-complete-ci-before-ordinary-merge-attempt1/run-38113759190.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr264-own-complete/run-38113759190.json",
+      "sha256": "99ebeba702b111258bef5e48016d8b62c2407b3392331616832a89313c9a6892",
+      "bytes": 14090
+    },
+    {
+      "source": "/workspace/pr264-c5b-own-complete-ci-before-ordinary-merge-attempt1/run-38113759192.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr264-own-complete/run-38113759192.json",
+      "sha256": "2031d0a20e0e7ebcda892206e505513cdb2a29bd1a2fb1bb71f64e8c123136b5",
+      "bytes": 14124
+    },
+    {
+      "source": "/workspace/pr264-c5b-own-complete-ci-before-ordinary-merge-attempt1/run-38113762211.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr264-own-complete/run-38113762211.json",
+      "sha256": "a8decd111106e043ea0f72530e13a905b54cc5b2594e582c75b2818abb4fc08b",
+      "bytes": 14126
+    },
+    {
+      "source": "/workspace/pr264-c5b-own-complete-ci-before-ordinary-merge-attempt1/run-38113762215.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr264-own-complete/run-38113762215.json",
+      "sha256": "a141676691a537187407d6f44466b02b2e474d7f36c7cc42f410ea2f5bb3d60d",
+      "bytes": 14092
+    },
+    {
+      "source": "/workspace/pr264-c5b-ordinary-merge-tree-verification-attempt1/original-merged-pr.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr264-ordinary-merge/original-merged-pr.json",
+      "sha256": "c8280eebe9780ce5d3155b112b41debe394b8eb1b32a378b778c5dc5f49616ef",
+      "bytes": 228
+    },
+    {
+      "source": "/workspace/pr264-c5b-ordinary-merge-tree-verification-attempt1/pr266-future-ordinary-merge-tree.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr264-ordinary-merge/pr266-future-ordinary-merge-tree.json",
+      "sha256": "fd532caa872db9a7979f995aa5c159f6487b7c1205f51f0148d63390e23453ce",
+      "bytes": 294
+    },
+    {
+      "source": "/workspace/pr264-c5b-ordinary-merge-tree-verification-attempt1/receipt.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr264-ordinary-merge/receipt.json",
+      "sha256": "0ca957b4d38ee1243ff40eef483807970b152b90b17cdd5304879922d90b49d7",
+      "bytes": 872
+    },
+    {
+      "source": "/workspace/phase5f-pr265-postmerge-complete-ci-attempt1/project-map.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr265-postmerge/project-map.json",
+      "sha256": "e835d339a08577e20a98e12f2c7dc4970db3c1ff9e9339892c7c015299b63ede",
+      "bytes": 13615
+    },
+    {
+      "source": "/workspace/phase5f-pr265-postmerge-complete-ci-attempt1/receipt.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr265-postmerge/receipt.json",
+      "sha256": "4a57392e38d4cd20935e5e5818e9e423cec9032c2c18510ad7322f8ae461dfa7",
+      "bytes": 905
+    },
+    {
+      "source": "/workspace/phase5f-pr265-postmerge-complete-ci-attempt1/statuses.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr265-postmerge/statuses.json",
+      "sha256": "206e70a6a0e365a7d817ebc3e7f720a5cf61aef258771f6698f1b4e9af2183b1",
+      "bytes": 12937
+    },
+    {
+      "source": "/workspace/phase5f-pr265-postmerge-complete-ci-attempt1/verify.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr265-postmerge/verify.json",
+      "sha256": "6b882046d04102a675fecc7777af3578b5b438eb54b809ccc56f2036cdca1bd4",
+      "bytes": 13581
+    },
+    {
+      "source": "/workspace/pr266-4e-original-own-pr-ci-failure-preserved-attempt1/original-annotations-114397087012.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr266-original-failure/original-annotations-114397087012.json",
+      "sha256": "a108d1c5184c988df547390a912f27cb7e91538c2cde03879954dfce1de435f5",
+      "bytes": 6161
+    },
+    {
+      "source": "/workspace/pr266-4e-original-own-pr-ci-failure-preserved-attempt1/original-artifacts.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr266-original-failure/original-artifacts.json",
+      "sha256": "244563f989470892c537c9a4622920af0d228ee4528f7d00c64a06d6cd95856c",
+      "bytes": 32
+    },
+    {
+      "source": "/workspace/pr266-4e-original-own-pr-ci-failure-preserved-attempt1/original-jobs.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr266-original-failure/original-jobs.json",
+      "sha256": "d80b1d68da1ca7fcaf418309af0da62311067f5161aff4fa6197c19b401ee7a9",
+      "bytes": 2803
+    },
+    {
+      "source": "/workspace/pr266-4e-original-own-pr-ci-failure-preserved-attempt1/original-run.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr266-original-failure/original-run.json",
+      "sha256": "5bee8ceea82a859b9b71b09925558e57c779e4e6f955395ee09812fd49be28f3",
+      "bytes": 14100
+    },
+    {
+      "source": "/workspace/pr266-4e-original-own-pr-ci-failure-preserved-attempt1/receipt.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr266-original-failure/receipt.json",
+      "sha256": "8deabbf0fe267ebbe46f93c039c8086e3331e4bfb1a2465037ebc2f2f46c1235",
+      "bytes": 1124
+    },
+    {
+      "source": "/workspace/pr266-4e-original-four-own-ci-preserved-attempt1/original-15-status-contexts.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr266-original-four-ci/original-15-status-contexts.json",
+      "sha256": "4ec73c1d62538a46c1586bd23fb6b3c658a71a4a11247b7254ac9a9df79a86b8",
+      "bytes": 12937
+    },
+    {
+      "source": "/workspace/pr266-4e-original-four-own-ci-preserved-attempt1/original-run-38114662584.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr266-original-four-ci/original-run-38114662584.json",
+      "sha256": "3ccd6886e32de56bbe69990fda131bc880ab9a09d5c145b3507116a9e6542e6f",
+      "bytes": 14135
+    },
+    {
+      "source": "/workspace/pr266-4e-original-four-own-ci-preserved-attempt1/original-run-38114662688.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr266-original-four-ci/original-run-38114662688.json",
+      "sha256": "974beb6a75451f40108829ed00da476a7e4fac14260eb4fdbec2da0aa766efc3",
+      "bytes": 14101
+    },
+    {
+      "source": "/workspace/pr266-4e-original-four-own-ci-preserved-attempt1/original-run-38114671135.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr266-original-four-ci/original-run-38114671135.json",
+      "sha256": "5bee8ceea82a859b9b71b09925558e57c779e4e6f955395ee09812fd49be28f3",
+      "bytes": 14100
+    },
+    {
+      "source": "/workspace/pr266-4e-original-four-own-ci-preserved-attempt1/original-run-38114671197.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr266-original-four-ci/original-run-38114671197.json",
+      "sha256": "1dfeea7ce2c8b37893a179ffc86d5046efabadb10f0bdf45a99ef39022b3d01b",
+      "bytes": 14134
+    },
+    {
+      "source": "/workspace/pr266-4e-original-four-own-ci-preserved-attempt1/receipt.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/pr266-original-four-ci/receipt.json",
+      "sha256": "273cc6c4c84d509fc41375dac669dd7eee86aa258db7664fa97b241ea90c59c8",
+      "bytes": 2148
+    },
+    {
+      "source": "/workspace/storage-refresh-ff643-independent-layout-focus-source-peer.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/storage-source-peer/storage-refresh-ff643-independent-layout-focus-source-peer.json",
+      "sha256": "42d0c8a7e0353b837faea4c7adee8c623218a3eaeae96ebb324b630560704335",
+      "bytes": 622279
+    },
+    {
+      "source": "/workspace/storage-refresh-focus-commit-current4e-one-affected-app-compiler-attempt1/original-app-compiler.log",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/storage-affected-compiler/original-app-compiler.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "/workspace/storage-refresh-focus-commit-current4e-one-affected-app-compiler-attempt1/receipt.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/storage-affected-compiler/receipt.json",
+      "sha256": "6f3133b554e2415accff7332525e9c859e499ae60ef013a8de67a954d86d9644",
+      "bytes": 1184
+    },
+    {
+      "source": "/workspace/storage-refresh-focus-commit-current4e-original-two-mounted-actual-attempt1/original-owner.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/storage-original-two-mounted/original-owner.json",
+      "sha256": "da9912c4de6abfa673e0fb001d3682b19148b2557fe565b9f6a7a07850f3da88",
+      "bytes": 685
+    },
+    {
+      "source": "/workspace/storage-refresh-focus-commit-current4e-original-two-mounted-actual-attempt1/original-two.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/storage-original-two-mounted/original-two.json",
+      "sha256": "0a690eb31fe5f28cb01a4b7ff7f2f9e9e4ecc847985909d239d3a40155511eaf",
+      "bytes": 9568
+    },
+    {
+      "source": "/workspace/storage-refresh-focus-commit-current4e-original-two-mounted-actual-attempt1/original-two.log",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/storage-original-two-mounted/original-two.log",
+      "sha256": "0a1fcb345e610c97d1491ae61c98cfb3489cabe7d57e3677f2e1735a0d58e21b",
+      "bytes": 4735
+    },
+    {
+      "source": "/workspace/storage-refresh-focus-commit-current4e-original-two-mounted-actual-attempt1/preflight.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/storage-original-two-mounted/preflight.json",
+      "sha256": "57d1656a4dcad12c794a33280bbfd86617cb4fef4fcc4c7de53a57ab1d00166d",
+      "bytes": 271684
+    },
+    {
+      "source": "/workspace/storage-refresh-focus-commit-current4e-original-two-mounted-actual-attempt1/receipt.json",
+      "path": "docs/qualification/pr266-storage-layout-focus-current/storage-original-two-mounted/receipt.json",
+      "sha256": "e30a5fff22d6c3db583b57b7ea51ef560cfdda89b6fee84fef44147608c19edc",
+      "bytes": 1842
+    }
+  ],
+  "rawCopiesByteExact": true,
+  "pr264Merge": "31a2cfe2ecd033679229b6318a1bcf85a6b2425d",
+  "pr264QualifiedTree": "bcc2796847af6d4b159e871eb3827710616b5fc4",
+  "oldPr266FourRuns": "Verify push success; Verify PR failure; both Map success. All15 head statuses success does not replace failed Verify PR.",
+  "storageAffectedCompiler": "one actual PASS atff643",
+  "storageMounted": "originaltwo2PASS atff643; 22 unselected",
+  "newFrontendBuilds": 0,
+  "newNativeBrowserRuns": 0,
+  "scope": "Historical metadata56 and priorPackage/Storage browser evidence retain original source/build provenance. New coherent-head complete CI is required; no serving/schema/provider/wholeNode/Group activation claim."
+}
